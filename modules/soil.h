@@ -41,14 +41,8 @@ const int NSOILLAYER_SIMPLE = 2;
 /// number of padding layers in the soil
 const int PAD_LAYERS = 5;
 
-/// number of total soil layers in the acrotelm
-const int NACROTELM = 3;
-
-/// number of total soil layers in the catotelm
-const int NCATOTELM = 12;
-
-/// Number of sublayers in the acrotelm, i.e. 1cm layers with this = 30
-const int NSUBLAYERS_ACRO = 30;
+/// depth of the acrotelm (mm), catotelm rest of soil column
+const double ACROTELM_DEPTH = 300.0;
 
 /// Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest = true
 const double PAD_DEPTH = 48000;
@@ -182,11 +176,15 @@ const double AIR_THICKNESS = 100.0;
 
 ////////////////////////////////////////////////////////////////////////
 
-// SOIL CONSTANTS 
+// SOIL CONSTANTS
+
+/// Increased soil decomposition due to tillage (crops)
+// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
+static const double TILLAGE_FACTOR = 33.0 / 17.0;
 
 /// reduce infiltration and percolation rates sharply when there is ice present in the soil
 // See CLM4.5 - Swenson et al. (2012)
-const bool ICE_IMPEDANCE = false;
+const bool IMASS_IMPEDANCE = false;
 	
 /// min temp [deg C] for heterotrophic decomposition.
 // Clein & Schimel (1995) use -4 degC
@@ -295,7 +293,7 @@ const double atomiccmass = 12.0;
 const double tiller_weight = 0.22;
      
 /// a threshold factor for a minimum water content in the layer [unitless]
-const double water_min = 0.1;
+const double Fwmass_min = 0.1; // DW_COMMENT
 
 /// Latitude (N). North of this and PEATLAND stands are treated as peatland as in Wania et al. (2009a, 2009b, 2010)
 // But south of this, then the PEATLAND stands are irrigated to avoid water stress, and can be a source of methane

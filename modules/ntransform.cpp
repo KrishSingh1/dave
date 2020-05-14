@@ -55,7 +55,7 @@ void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, do
 
 	double nh3_max = 0.0, f_nit_T = 0.0, nh3_inc = 0.0;
 	double soil_T = soillayer.temp;
-	double wcont = soillayer.wcont;
+	double wcont = min(1.0, soillayer.wcont());
 
 	// calculating soil pH value, aprec = daily mean precip, based on annual average
 	if (soillayer.pH == 0.0) {
@@ -82,7 +82,7 @@ void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, do
 	}
 
 	// NH3 increment (table 5, eqn 2, 3, 4, 6, Xu-Ri 2008)
-	nh3_inc = min(soillayer.NH4_mass, nh3_max * (min(1.0, wcont) * (1.0 - min(1.0, wcont))) * f_nit_T * f_nit_T * exp(2.0 * (soillayer.pH - 10.0)) * soillayer.NH4_mass);
+	nh3_inc = min(soillayer.NH4_mass, nh3_max * (wcont * (1.0 - wcont)) * f_nit_T * f_nit_T * exp(2.0 * (soillayer.pH - 10.0)) * soillayer.NH4_mass);
 
 	soillayer.NH4_mass -= nh3_inc;
 
@@ -105,8 +105,7 @@ void substrate_partition(Soillayer& soillayer) {
 	// Meaning that there is no nitrification at that WFPS.
 	// Derived from Pilegaard 2013
 
-	double wcont = soillayer.wcont;
-	double wet = richards_curve(0.05, 0.95, 7.5, 0.5, wcont);
+	double wet = richards_curve(0.05, 0.95, 7.5, 0.5, min(1.0, soillayer.wcont()));
 
 	soillayer.NH4_mass_w = soillayer.NH4_mass * wet;
 	soillayer.NO3_mass_w = soillayer.NO3_mass * wet;
@@ -127,7 +126,7 @@ void nitrification(Patch& patch, Soillayer& soillayer) {
 
 	double b = log(3.0) * 5.0;
 	double a = exp(-b*6.0 / 10.0);
-	double wcont = soillayer.wcont;
+	double wcont = min(1.0, soillayer.wcont());
 	double act_dry = a*exp(wcont*b);
 	double act_wet = max(0.0, 4.0 - 5.0*wcont);
 	double nit_act = min(act_dry, act_wet);
@@ -180,7 +179,7 @@ void nitrification(Patch& patch, Soillayer& soillayer) {
  */
 void denitrification(Patch& patch,Soillayer& soillayer) {
 	double soil_T = soillayer.temp;
-	double wcont = soillayer.wcont;
+	double wcont = min(1.0, soillayer.wcont());
 	// used to remove the per m3 from the constants KC and KN.
 	double water_cont_m3 = wcont * soillayer.awc / 1000.0;
 
@@ -253,7 +252,7 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, double& 
 	soillayer.labile_carbon = soillayer.labile_carbon_w + soillayer.labile_carbon_d;
 
 	double soil_T = soillayer.temp;
-	double wcont = soillayer.wcont;
+	double wcont = min(1.0, soillayer.wcont());
 	double ftemp, no_d_flux_inc, n2o_d_flux_inc, no_w_flux_inc, n2o_w_flux_inc, n2_flux_inc;
 	double no_flux_inc, n2o_flux_inc;
 	double net_nitrif = 0.0;

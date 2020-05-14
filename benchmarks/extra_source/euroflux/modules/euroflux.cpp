@@ -97,8 +97,6 @@ void adjust_soildepth(Soiltype& soiltype, double soildepth) {
 		soiltype.wsats[0] /= 2.0;
 		soiltype.wsats[1] = min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER) * (soiltype.wsats[1]/SOILDEPTH_LOWER);
 	}
-
-	soiltype.wtot = (soiltype.wtot/(SOILDEPTH_UPPER + SOILDEPTH_LOWER))*soildepth;
 }
 
 }

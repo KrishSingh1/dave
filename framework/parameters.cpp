@@ -79,7 +79,7 @@ bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), o
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
 bool ifmethane;						// Whether to run the methane model (for peatland only)
-bool iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties
+int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
 wateruptaketype wateruptake;
@@ -529,8 +529,8 @@ void plib_declarations(int id,xtring setname) {
 			"Optional additional wetland run-on (mm/day)");
 		declareitem("ifmethane",&ifmethane,1,CB_NONE,
 			"Whether to run the methane model (1), or not (0)");
-		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 1, CB_NONE,
-			"Whether soil C pool input is used to update soil properties (1), or not (0)");
+		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 0, 2, 1, CB_NONE,
+			"Whether soil C pool input is used to update soil properties, 0 - no, 1 - static, 2 - dynamic");
 		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
 			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
 
@@ -1288,6 +1288,14 @@ void plib_callback(int callback) {
 		
 
 		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
+		if (iftwolayersoil == 1 && hydroscheme != BUCKET) {
+			sendmessage("Error", "Hydrological scheme must be BUCKET for two layer soil!");
+			plibabort();
+		}
+		if (iftwolayersoil == 0 && hydroscheme != HTESSEL) {
+			sendmessage("Error", "Hydrological scheme must be HTESSEL for multilayer layer soil!");
+			plibabort();
+		}
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");

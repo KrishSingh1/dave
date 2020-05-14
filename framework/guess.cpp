@@ -214,6 +214,55 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of Pools member functions
+////////////////////////////////////////////////////////////////////////////////
+
+/*Pools::Pools(Soillayer& sl)
+	: soillayer(sl) {
+
+	reset();
+}
+
+void Pools::reset() {
+	for (size_t i = 0; i < NPERPATCHPOOLTYPES; ++i) {
+
+		annual_pools[i] = 0.0;
+
+		for (int m = 0; m < 12; ++m) {
+			monthly_pools[m][i] = 0.0;
+		}
+
+		for (int d = 0; d < date.year_length(); ++d) {
+			daily_pools[d][i] = 0.0;
+		}
+	}
+}
+
+void Pools::serialize(ArchiveStream& arch) {
+	arch & annual_pools
+		& monthly_pools
+		& daily_pools;
+}
+
+void Pools::report_flux(PerPatchPoolType pool_type, double value) {
+	annual_pools[pool_type] += value;
+	monthly_pools[date.month][pool_type] += value;
+	daily_pools[date.day][pool_type] += value;
+}
+
+double Pools::get_daily_pool(PerPatchPoolType pool_type, int month) const {
+	return monthly_pools[month][pool_type];
+}
+
+double Pools::get_monthly_pool(PerPatchPoolType pool_type, int month) const {
+	return monthly_pools[month][pool_type];
+}
+
+double Pools::get_daily_pool(PerPatchPoolType pool_type, int day) const {
+	return daily_pools[day][pool_type];
+}*/
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Vegetation member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -337,7 +386,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_heart
 		& harvested_products_slow_nmass
 		& swindow
-		& water_deficit_y
+		& wmass_deficit_y
 		& inund_count
 		& inund_stress;
 	if (pft.landcover==CROPLAND)
@@ -443,7 +492,6 @@ void Patch::serialize(ArchiveStream& arch) {
 		& aevap
 		& aintercep
 		& arunoff
-		& awetland_water_added
 		& apet
 		& eet_net_veg
 		& wdemand

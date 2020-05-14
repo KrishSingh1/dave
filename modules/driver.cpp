@@ -521,6 +521,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					soilcolumn.savesomcent = false;
 				}
 
+				// Determine static or actual soil carbon fractions
+				std::vector<double> socfrac(soilcolumn.nsoillayers);
+				if (iforganicsoilproperties == 1 && date.year == 0) {
+					 soilcolumn.get_static_socfrac(socfrac); // DW_COMMENT move to within set_properties()
+				}
+
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -529,18 +535,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					soillayer.aorgCleach = 0.0;
 					soillayer.aminleach = 0.0;
 
-					// Set soil layer properties on first day of simulation. 
-					// In future releases soil properties will be changing over time 
 					if (date.year == 0) {
 						soillayer.mwcontabove = 0.0;
-						soillayer.set_properties(soilcolumn.soiltype); // DW_COMMENT Need to transfer this info when doing landuse change
 					}
+
+					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr]); // DW_COMMENT Need to transfer this info when doing landuse change
 
 					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
 				}
-
-				if (date.year == 0) // DW_COMMENT need to save this info when doing landuse change
-					soilcolumn.init_hydrology_variables();
 
 				// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 				pftlist.firstobj();
@@ -724,7 +726,7 @@ void dailyaccounting_patch(Patch& patch) {
 		if (date.year == 0) {
 			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 				soilcolumn.soillayers[lyr].temp_old = 0.0;
-				soilcolumn.soillayers[lyr].temp_analytic = 0.0;
+				soilcolumn.soillayers[lyr].temp = 0.0;
 			}
 		}
 	}
@@ -762,7 +764,7 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Inialize and update fractions of water, mineral content, peat content, organic content, as well as porosity.
-	soilcolumn.update_layer_fractions();
+	//soilcolumn.update_layer_fractions(); DW_COMMENT should be removed
 
 	// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
 	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.

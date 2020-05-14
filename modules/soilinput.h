@@ -48,8 +48,6 @@ public:
 private:
 	void get_soil_mineral(double lon, double lat, Gridcell& gridcell);
 
-	void get_soil_organic(double lon, double lat, Gridcell& gridcell);
-
 	bool soil_code;
 	
 	double searchradius_soil;

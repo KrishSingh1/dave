@@ -64,7 +64,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 	// Dynamic landcover and crop fraction data during historical
 	// period and create/kill stands.
-	landcover_dynamics(gridcell, input_module);
+	if (run_landcover && date.day == 0) // DW_COMMENT shouldn't need to be here!
+		landcover_dynamics(gridcell, input_module);
 
 	// Update dynamic management options
 	input_module->getmanagement(gridcell);

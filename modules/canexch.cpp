@@ -1149,7 +1149,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	//double nmin_avail = soilcolumn.nmass_avail(true,NO); // DW_COMMENT
 
 	// Average soil temperature down to active layer depth
-	double soil_temp = soilcolumn.temp_depth(soilcolumn.thaw);
+	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get_temp(), soilcolumn.get_depth());
 
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double temp_scale = soil_temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil_temp, 1.652) - pow(soil_temp / 41.748, 7.19)) : 0.0;
@@ -1621,23 +1621,24 @@ double water_uptake(std::vector<double>  wcont, std::vector<double> awc,
  */
 double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
+	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	int nsoillayersupper = patch.soilcolumn.nsoillayersupper;
+	int nsoillayersupper = soilcolumn.nsoillayersupper;
 
 	std::vector<double> awc(nsoillayersupper);
 	std::vector<double> wcont_cp(nsoillayersupper);
 	std::vector<double> grootdist(nsoillayersupper);
 
 	for (int lyr = 0; lyr < nsoillayersupper; lyr++) {
-		awc[lyr] = patch.soilcolumn.soillayers[lyr].awc;
-		wcont_cp[lyr] = patch.soilcolumn.soillayers[lyr].wcont;
+		awc[lyr] = soilcolumn.soillayers[lyr].awc;
+		wcont_cp[lyr] = soilcolumn.soillayers[lyr].wcont();
 		grootdist[lyr] += pft.rootdist[lyr];
 	}
 
 	if (day.isstart) {
-		ppft.water_deficit_d = 0.0;
+		ppft.wmass_deficit_d = 0.0;
 		if (date.day == 0) {
-			ppft.water_deficit_y = 0.0;
+			ppft.wmass_deficit_y = 0.0;
 		}
 	}
 
@@ -1646,18 +1647,22 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
 
-	if (patch.soilcolumn.wcont_depth(SOILDEPTH_UPPER) < 0.9 && ppft.phen > 0.0)	{
+	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_wcont(), soilcolumn.get_awc());
+	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_awc());
+
+	if (wcont_upper < 0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
 		double wr_opt = min(1.0, patch.wdemand / ppft.phen / pft.emax);
 
 		if (wateruptake == WR_ROOTDIST) {
 
 			// Array of optimal wcont_values instead.
-			for (int i = 0; i<nsoillayersupper; i++) {
-				wcont_opt[i] = (wr_opt * pft.emax - min(patch.soilcolumn.wcont_depth(SOILDEPTH_UPPER) * patch.soilcolumn.awc_depth(SOILDEPTH_UPPER) * patch.fpc_rescale, pft.emax * grootdist[i])/ nsoillayersupper) / patch.soilcolumn.soillayers[i].awc / patch.fpc_rescale;
+			for (int i = 0; i < nsoillayersupper; i++) {
+				wcont_opt[i] = (wr_opt * pft.emax - min(wcont_upper * awc_upper * patch.fpc_rescale,
+					pft.emax * grootdist[i])/ nsoillayersupper) / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
 			
-				if (wcont_opt[i] * patch.soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
-					wcont_opt[i] = pft.emax * pft.rootdist[i] / patch.soilcolumn.soillayers[i].awc / patch.fpc_rescale;
+				if (wcont_opt[i] * soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
+					wcont_opt[i] = pft.emax * pft.rootdist[i] / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
 				}
 
 				// DW_COMMENT CHECK SO THIS WORKS AS IT SHOULD!!!!!!!!
@@ -1681,10 +1686,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				irrigate_soil = true; // Allows irrigation if even one layer needs more water 
 		}
 
-		if (irrigate_soil && patch.soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
+		if (irrigate_soil && soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
-			if (!patch.soilcolumn.ice_depth(SOILDEPTH_UPPER)) {
+			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_imass())) {
 
 				// Irrigation water for this PFT:
 
@@ -1692,11 +1697,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				std::vector<double> water_to_add_ly(nsoillayersupper);
 
 				for (int i = 0; i < nsoillayersupper; i++) {
-					water_to_add_ly[i] = (wcont_opt[i] - wcont_cp[i]) * patch.soilcolumn.soillayers[i].awc;
+					water_to_add_ly[i] = (wcont_opt[i] - wcont_cp[i]) * soilcolumn.soillayers[i].awc;
 					water_to_add += water_to_add_ly[i];
 				}
 
-				ppft.water_deficit_d += water_to_add;
+				ppft.wmass_deficit_d += water_to_add;
 
 				// Local storage
 
@@ -1716,10 +1721,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				for (int ly = 0; ly < nsoillayersupper; ly++) {
 					if (add_water[ly]) {
 						// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
-						Faw_layer[ly] = patch.soilcolumn.soillayers[ly].wcont * patch.soilcolumn.soillayers[ly].awc; // mm
+						Faw_layer[ly] = soilcolumn.soillayers[ly].wcont() * soilcolumn.soillayers[ly].awc; // mm
 
 						// Water in this layer
-						potential_layer[ly] = patch.soilcolumn.soillayers[ly].wsats - Faw_layer[ly];
+						potential_layer[ly] = soilcolumn.soillayers[ly].wsats - Faw_layer[ly];
 						potential_water += potential_layer[ly];
 					}
 				} // for loop (ly)
@@ -1736,19 +1741,19 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 						Faw_layer[s] += water_input_ly;
 						potential_layer[s] -= water_input_ly;
-						wcont_cp[s] = Faw_layer[s] / patch.soilcolumn.soillayers[s].awc;
+						wcont_cp[s] = Faw_layer[s] / soilcolumn.soillayers[s].awc;
 				
 						// Update wcont (and wcont_evap, Frac_water etc.) too
-						patch.soilcolumn.soillayers[s].wcont = Faw_layer[s] / patch.soilcolumn.soillayers[s].awc;
-
+						//patch.soilcolumn.soillayers[s].wcont = Faw_layer[s] / patch.soilcolumn.soillayers[s].awc; // DW_COMMENT
+						soilcolumn.soillayers[s].wmass += water_input_ly;
 					}
 					
-					total_available_water += wcont_cp[s] * patch.soilcolumn.soillayers[s].awc; // mm
-					total_capacity += patch.soilcolumn.soillayers[s].wsats; // mm
+					total_available_water += wcont_cp[s] * soilcolumn.soillayers[s].awc; // mm
+					total_capacity += soilcolumn.soillayers[s].wsats; // mm
 
-					oob_check_wcont(wcont_cp[s], patch.soilcolumn.soillayers[s].wcont_max());
+					//oob_check_wcont(wcont_cp[s], patch.soilcolumn.soillayers[s].wcont_max());
 
-					// Error check
+					// Error check // DW_COMMENT need to check this full function so it makes sense!!!!!!!!!!!!!!
 					if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {
 						dprintf("irrigated_water_uptake - error in the water balance!\n");
 						return -9999.0;
@@ -1759,15 +1764,15 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		}
 
 		if (day.isend) {
-			ppft.water_deficit_d /= date.subdaily;
-			ppft.water_deficit_y += ppft.water_deficit_d;
+			ppft.wmass_deficit_d /= date.subdaily;
+			ppft.wmass_deficit_y += ppft.wmass_deficit_d;
 		}
 	}
 
-	// DW_COMMENT wcont_cp should equal patch.soilcolumn.get_wcont()
+	// DW_COMMENT wcont_cp should equal patch.soilcolumn.wconts()
 
-	return water_uptake(wcont_cp, patch.soilcolumn.get_awc(), pft.rootdist, pft.emax, patch.fpc_rescale,
-				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);
+	return water_uptake(wcont_cp, soilcolumn.get_awc(), pft.rootdist, pft.emax, patch.fpc_rescale,
+				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
 };
 
 
@@ -1808,10 +1813,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
-				std::vector<double> wcont_local(patch.soilcolumn.nsoillayers);
-				wcont_local = patch.soilcolumn.get_wcont();
+				//std::vector<double> wcont_local(patch.soilcolumn.nsoillayers);
+				//wcont_local = patch.soilcolumn.wconts();
 
-				wr = water_uptake(wcont_local, patch.soilcolumn.get_awc(),
+				//wr = water_uptake(wcont_local, patch.soilcolumn.awcs(),
+				wr = water_uptake(patch.soilcolumn.get_wcont(), patch.soilcolumn.get_awc(),
 					pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);
 			}
@@ -2388,7 +2394,6 @@ void forest_floor_conditions(Patch& patch) {
 	const Climate& climate = patch.get_climate();
 	double lambda;			// not used here
 	PhotosynthesisResult phot;
-
 	for (int p=0; p<npft; p++) {
 
 		Patchpft& ppft = patch.pft[p];
@@ -2413,7 +2418,7 @@ void forest_floor_conditions(Patch& patch) {
 
 			if (ppft.wstress_day) {
 
-				//PhotosynthesisStresses ps_stress;
+				//PhotosynthesisStresses ps_stress; DW_COMMENT fix photosynthesis input
 				//ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
 
 				assimilation_wstress(pft, pftco2, climate.temp, climate.par,

@@ -345,7 +345,8 @@ extern double wetland_runon;
 extern bool ifmethane;
 
 /// Whether soil C pool input is used to update soil properties
-extern bool iforganicsoilproperties;
+/* 0 - use soicode value, 1 - use soilinput static soil C content, 2 - use modelled soil layer C content */
+extern int iforganicsoilproperties;
 
 /// Whether to take water from runoff to saturate low latitide wetlands
 extern bool ifsaturatewetlands;

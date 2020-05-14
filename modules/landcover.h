@@ -55,8 +55,9 @@ struct landcover_change_transfer {
 
 	double transfer_cpool_fast[NSOILLAYER_MAX];
 	double transfer_cpool_slow[NSOILLAYER_MAX];
-	double transfer_wcont[NSOILLAYER_MAX];
-	double transfer_wcont_evap;
+	double transfer_wmass[NSOILLAYER_MAX];
+	double transfer_imass[NSOILLAYER_MAX];
+	// double transfer_wcont_evap; // DW_COMMENT
 	double transfer_decomp_litter_mean[NSOILLAYER_MAX];
 	double transfer_k_soilfast_mean[NSOILLAYER_MAX];
 	double transfer_k_soilslow_mean[NSOILLAYER_MAX];
@@ -72,7 +73,7 @@ struct landcover_change_transfer {
 	double transfer_NO_mass[NSOILLAYER_MAX];
 	double transfer_NO2_mass[NSOILLAYER_MAX];
 
-	double transfer_NH4_mass_w[NSOILLAYER_MAX];
+/*	double transfer_NH4_mass_w[NSOILLAYER_MAX]; // DW_COMMENT
 	double transfer_NO3_mass_w[NSOILLAYER_MAX];
 	double transfer_NH4_mass_d[NSOILLAYER_MAX];
 	double transfer_NO3_mass_d[NSOILLAYER_MAX];
@@ -81,7 +82,7 @@ struct landcover_change_transfer {
 	double transfer_NO2_mass_w[NSOILLAYER_MAX];
 	double transfer_N2O_mass_d[NSOILLAYER_MAX];
 	double transfer_NO_mass_d[NSOILLAYER_MAX];
-	double transfer_NO2_mass_d[NSOILLAYER_MAX];
+	double transfer_NO2_mass_d[NSOILLAYER_MAX];*/
 	Historic<double, NYEARAAET> transfer_aaet_5;
 	double transfer_anfix_calc;
 
@@ -127,10 +128,10 @@ struct landcover_change_transfer {
 
 			ncont += transfer_N2_mass[lyr] + transfer_NH4_mass[lyr] + transfer_NO3_mass[lyr];
 			ncont += transfer_N2O_mass[lyr] + transfer_NO_mass[lyr] + transfer_NO2_mass[lyr];
-			ncont += transfer_N2O_mass_w[lyr] + transfer_NO_mass_w[lyr] + transfer_NO2_mass_w[lyr];
+		/*	ncont += transfer_N2O_mass_w[lyr] + transfer_NO_mass_w[lyr] + transfer_NO2_mass_w[lyr]; // DW_COMMENT
 			ncont += transfer_N2O_mass_d[lyr] + transfer_NO_mass_d[lyr] + transfer_NO2_mass_d[lyr];
 			ncont += transfer_NH4_mass_w[lyr] + transfer_NO3_mass_w[lyr];
-			ncont += transfer_NH4_mass_d[lyr] + transfer_NO3_mass_d[lyr];
+			ncont += transfer_NH4_mass_d[lyr] + transfer_NO3_mass_d[lyr];*/
 		}
 
 		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
@@ -190,7 +191,7 @@ struct landcover_change_transfer {
 				transfer_NO2_mass[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass * scale;
 				transfer_N2O_mass[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass * scale;
 
-				transfer_NH4_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass_w * scale;
+			/*	transfer_NH4_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass_w * scale; // DW_COMMENT
 				transfer_NO3_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass_w * scale;
 				transfer_NO_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass_w * scale;
 				transfer_NO2_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass_w * scale;
@@ -200,9 +201,10 @@ struct landcover_change_transfer {
 				transfer_NO3_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass_d * scale;
 				transfer_NO_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass_d * scale;
 				transfer_NO2_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass_d * scale;
-				transfer_N2O_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass_d * scale;
+				transfer_N2O_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass_d * scale;*/
 
-				transfer_wcont[lyr] += patch.soilcolumn.soillayers[lyr].wcont * scale;
+				transfer_wmass[lyr] += patch.soilcolumn.soillayers[lyr].wmass * scale;
+				transfer_imass[lyr] += patch.soilcolumn.soillayers[lyr].imass * scale;
 
 				transfer_decomp_litter_mean[lyr] += patch.soilcolumn.soillayers[lyr].decomp_litter_mean * scale;
 				transfer_k_soilfast_mean[lyr] += patch.soilcolumn.soillayers[lyr].k_soilfast_mean * scale;
@@ -214,7 +216,7 @@ struct landcover_change_transfer {
 				transfer_snowpack_NO3_mass[lyr] += patch.soilcolumn.snow.NO3_mass * scale;
 			}
 
-			transfer_wcont_evap += patch.soilcolumn.wcont_evap * scale;
+			//transfer_wcont_evap += patch.soilcolumn.wcont_evap * scale; // DW_COMMENT do we need to transfer this?????
 			double aaet_5_cp[NYEARAAET] = {0.0};
 			transfer_aaet_5.to_array(aaet_5_cp);
 			for(unsigned int i=0;i<patch.aaet_5.size();i++)
@@ -255,12 +257,13 @@ struct landcover_change_transfer {
 
 		transfer_acflux_harvest = from.transfer_acflux_harvest;
 		transfer_anflux_harvest = from.transfer_anflux_harvest;
-		transfer_wcont_evap = from.transfer_wcont_evap;
+		//transfer_wcont_evap = from.transfer_wcont_evap; // DW_COMMENT do we need to transfer this?
 
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 			transfer_cpool_fast[lyr] = from.transfer_cpool_fast[lyr];
 			transfer_cpool_slow[lyr] = from.transfer_cpool_slow[lyr];
-			transfer_wcont[lyr] = from.transfer_wcont[lyr];
+			transfer_wmass[lyr] = from.transfer_wmass[lyr];
+			transfer_imass[lyr] = from.transfer_imass[lyr];
 			transfer_decomp_litter_mean[lyr] = from.transfer_decomp_litter_mean[lyr];
 			transfer_k_soilfast_mean[lyr] = from.transfer_k_soilfast_mean[lyr];
 			for (int i = 0; i < NSOMPOOL; i++) {
@@ -279,7 +282,7 @@ struct landcover_change_transfer {
 			transfer_N2O_mass[lyr] = from.transfer_N2O_mass[lyr];
 			transfer_N2_mass[lyr] = from.transfer_N2_mass[lyr];
 
-			transfer_NH4_mass_w[lyr] = from.transfer_NH4_mass_w[lyr];
+		/*	transfer_NH4_mass_w[lyr] = from.transfer_NH4_mass_w[lyr]; // DW_COMMENT
 			transfer_NO3_mass_w[lyr] = from.transfer_NO3_mass_w[lyr];
 			transfer_NO_mass_w[lyr] = from.transfer_NO_mass_w[lyr];
 			transfer_NO2_mass_w[lyr] = from.transfer_NO2_mass_w[lyr];
@@ -289,7 +292,7 @@ struct landcover_change_transfer {
 			transfer_NO3_mass_d[lyr] = from.transfer_NO3_mass_d[lyr];
 			transfer_NO_mass_d[lyr] = from.transfer_NO_mass_d[lyr];
 			transfer_NO2_mass_d[lyr] = from.transfer_NO2_mass_d[lyr];
-			transfer_N2O_mass_d[lyr] = from.transfer_N2O_mass_d[lyr];
+			transfer_N2O_mass_d[lyr] = from.transfer_N2O_mass_d[lyr];*/
 		}
 
 		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
@@ -331,12 +334,13 @@ struct landcover_change_transfer {
 		}
 		transfer_acflux_harvest += from.transfer_acflux_harvest * multiplier;
 		transfer_anflux_harvest += from.transfer_anflux_harvest * multiplier;
-		transfer_wcont_evap += from.transfer_wcont_evap * multiplier;
+		//transfer_wcont_evap += from.transfer_wcont_evap * multiplier; // DW_COMMENT do we need to transfer this????????
 
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 			transfer_cpool_fast[lyr] += from.transfer_cpool_fast[lyr] * multiplier;
 			transfer_cpool_slow[lyr] += from.transfer_cpool_slow[lyr] * multiplier;
-			transfer_wcont[lyr] += from.transfer_wcont[lyr] * multiplier;
+			transfer_wmass[lyr] += from.transfer_wmass[lyr] * multiplier;
+			transfer_imass[lyr] += from.transfer_imass[lyr] * multiplier;
 			transfer_decomp_litter_mean[lyr] += from.transfer_decomp_litter_mean[lyr] * multiplier;
 			transfer_k_soilfast_mean[lyr] += from.transfer_k_soilfast_mean[lyr] * multiplier;
 			for (int i = 0; i < NSOMPOOL; i++) {
@@ -355,7 +359,7 @@ struct landcover_change_transfer {
 			transfer_NO_mass[lyr] += from.transfer_NO_mass[lyr] * multiplier;
 			transfer_NO2_mass[lyr] += from.transfer_NO2_mass[lyr] * multiplier;
 
-			transfer_NH4_mass_w[lyr] += from.transfer_NH4_mass_w[lyr] * multiplier;
+			/*transfer_NH4_mass_w[lyr] += from.transfer_NH4_mass_w[lyr] * multiplier; // DW_COMMENT
 			transfer_NO3_mass_w[lyr] += from.transfer_NO3_mass_w[lyr] * multiplier;
 			transfer_N2O_mass_w[lyr] += from.transfer_N2O_mass_w[lyr] * multiplier;
 			transfer_NO_mass_w[lyr] += from.transfer_NO_mass_w[lyr] * multiplier;
@@ -365,7 +369,7 @@ struct landcover_change_transfer {
 			transfer_NO3_mass_d[lyr] += from.transfer_NO3_mass_d[lyr] * multiplier;
 			transfer_N2O_mass_d[lyr] += from.transfer_N2O_mass_d[lyr] * multiplier;
 			transfer_NO_mass_d[lyr] += from.transfer_NO_mass_d[lyr] * multiplier;
-			transfer_NO2_mass_d[lyr] += from.transfer_NO2_mass_d[lyr] * multiplier;
+			transfer_NO2_mass_d[lyr] += from.transfer_NO2_mass_d[lyr] * multiplier;*/
 		}
 
 		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {

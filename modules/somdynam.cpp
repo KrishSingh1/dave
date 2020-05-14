@@ -43,10 +43,7 @@
 
 static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
 static const double TAU_SOILFAST=33.0;
-static const double TAU_SOILSLOW=1000.0;
-
-static const double TILLAGE_FACTOR = 33.0 / 17.0;
-	// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
+static const double TAU_SOILSLOW=1000.0;	
 
 static const double FASTFRAC=0.985;
 	// fraction of litter decomposition entering fast SOM pool
@@ -215,7 +212,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 		// Calculate decay constants and rates given today's soil moisture and
 		// temperature
 
-		decayrates(soillayer.wcont, soillayer.gtemp, k_soilfast, k_soilslow, fr_litter,
+		decayrates(soillayer.wcont(), soillayer.gtemp, k_soilfast, k_soilslow, fr_litter,
 			fr_soilfast, fr_soilslow, tillage); // DW_COMMENT tillage depth
 
 		// From year soilcolumn.solvesom_begin, update running means for later solution
@@ -346,28 +343,28 @@ void reduce_decay_rates(double decay_reduction[NSOMPOOL], double nmin_actual[NSO
 	}
 }
 
-/// Set N:C ratios for SOM pools
-/** Set N:C ratios for slow, passive, humus and soil microbial pools
+/// Set target N:C ratios for SOM pools
+/** Set target N:C ratios for slow, passive, humus and soil microbial pools
  *  based on mineral nitrogen pool or litter nitrogen fraction (Parton et al 1993, Fig 4)
  */
-void setntoc(Soillayer& soillayer, double fac, pooltype pool, double cton_max, double cton_min,
+void Soillayer::setntoc(double fac, pooltype pool, double cton_max, double cton_min,
 	double fmin, double fmax) {
 
 	if (fac <= fmin)
-		soillayer.sompool[pool].ntoc = 1.0 / cton_max;
+		sompool[pool].ntoc = 1.0 / cton_max;
 	else if (fac >= fmax)
-		soillayer.sompool[pool].ntoc = 1.0 / cton_min;
+		sompool[pool].ntoc = 1.0 / cton_min;
 	else {
-		soillayer.sompool[pool].ntoc = 1.0 / (cton_min + (cton_max - cton_min) *
+		sompool[pool].ntoc = 1.0 / (cton_min + (cton_max - cton_min) *
 			(fmax - fac) / (fmax - fmin));
 	}
 }
 
 /// Calculates CENTURY instantaneous decay rates
-/** Calculates CENTURY instantaneous decay rates given soil temperature,
- *  water content of upper soil layer
- */
-void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soil, bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent) {
+/** Calculates CENTURY instantaneous decay rates given soil layer temperature,
+*  water content, texture etc
+*/
+void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -378,7 +375,7 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
-	const double texture_mod = 1.0 - 0.75 * (soillayer.clay_frac + soillayer.silt_frac);
+	const double texture_mod = 1.0 - 0.75 * (clay_frac + silt_frac);
 
 	// Calculate decomposition temperature modifier (in range 0-1)
 	// [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
@@ -386,14 +383,14 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 
 	double temp_mod = 0.0;
 
-	if (temp_soil > 0.0) {
+	if (temp > 0.0) {
 		temp_mod = max(0.0,
-			0.0326 + 0.00351 * pow(temp_soil, 1.652) - pow(temp_soil / 41.748, 7.19));
+			0.0326 + 0.00351 * pow(temp, 1.652) - pow(temp / 41.748, 7.19));
 	}
 
 	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
 	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
-	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && !iftwolayersoil) {
+	if (ifcarbonfreeze && temp <= 0.0 && temp >= MIN_DECOMP_TEMP && !iftwolayersoil) {
 
 		double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
 		bool linear_decrease_below_freezing = false;
@@ -401,12 +398,12 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 		if (linear_decrease_below_freezing) {
 			// Linear approach (Koven et al. 2011)
 			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
-		} 
+			temp_mod = slope * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
+		}
 		else {
 			// Alternative Q10 relationship (Schaefer & Jafarov, 2016)
 			double q10_freeze = 200.5; // i.e. average of 164 and 237 based on incubation of frozen soil samples (Mikan et al., 2002)
-			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp_soil / 10.0);
+			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp / 10.0);
 		}
 	}
 
@@ -418,20 +415,20 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
 	// is calculated with the help of Cosby et al 1984;
 	// use Gerten equivalents here, but wfps COULD be made depth equivalent
-	const double wfps = soillayer.wfps() * 100.0;
+	double wfps100 = wfps() * 100.0;
 
 	double moist_mod;
 
-	if (wfps < 60.0)
-		moist_mod = exp((wfps - 60.0) * (wfps - 60.0) / -800.0);
+	if (wfps100 < 60.0)
+		moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
 	else
-		moist_mod = 0.000371 * wfps * wfps - 0.0748 * wfps + 4.13;
+		moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;
 
 	double moist_mod_inundated_mineral = 0.000371 * 100.0 * 100.0 - 0.0748 * 100 + 4.13; // 100% WFPS for wetlands on mineral soils, 0.36 approx
 
-	// Combined moisture and temperature modifier
-	
-	// simple overrides for peatlands and mineral wetlands
+																						 // Combined moisture and temperature modifier
+
+																						 // simple overrides for peatlands and mineral wetlands
 	double moist_mod_saturated = 1.0; // no effect unless this is peatland
 
 	if (ispeatland) {
@@ -455,7 +452,7 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 		// from 3 to 5.
 
 		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFFWD || p == SURFCWD) {
-			k *= exp(-5.0 * soillayer.sompool[p].ligcfrac);
+			k *= exp(-5.0 * sompool[p].ligcfrac);
 		}
 		else if (p == SOILMICRO && !ispeatland) {
 			k *= texture_mod;
@@ -472,10 +469,10 @@ void decayrates_century(Soillayer& soillayer, double temp_soil, double wcont_soi
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
-		soillayer.sompool[p].fracremain = exp(-k);
+		sompool[p].fracremain = exp(-k);
 
 		if (savesomcent) {
-			soillayer.sompool[p].mfracremain_mean[date.month] += soillayer.sompool[p].fracremain / date.ndaymonth[date.month];
+			sompool[p].mfracremain_mean[date.month] += sompool[p].fracremain / date.ndaymonth[date.month];
 		}
 	}
 }
@@ -557,18 +554,17 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		// (Parton et al 1993, Fig 4)
 
 		// ForCent (Parton 2010) values
-		setntoc(soillayer, nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
 
-		setntoc(soillayer, nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
 
-		setntoc(soillayer, nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
 
 		if (!ifequilsom) {
 
 			// Calculate potential fraction remaining following decay today for all pools
 			// (assumes no nitrogen limitation)
-			decayrates_century(soillayer, soillayer.temp, soillayer.wcont, tillage,
-				patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), patch.soilcolumn.savesomcent);
+			soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), patch.soilcolumn.savesomcent);
 		}
 
 		// Calculate decomposition in all pools assuming these decay rates
@@ -1233,7 +1229,7 @@ void transfer_litter(Patch& patch) {
 			// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 			// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
 			if (!negligible(litter_cmass)) {
-				setntoc(soillayer, litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+				soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
 			}
 		}
 
@@ -1259,12 +1255,12 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		if (!negligible(soillayer.perc_frac)) {
+		if (!negligible(soillayer.perc_mass)) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water drainage
 			// Use Gerten equivalents here 
-			minleachfrac = soillayer.perc_frac / (soillayer.perc_frac + soillayer.wcont);
+			minleachfrac = soillayer.perc_mass / (soillayer.perc_mass + soillayer.wmass);
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1275,7 +1271,7 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H2O/month)
 			double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
 
-			soillayer.orgleachfrac = min(1.0, soillayer.perc_frac * soillayer.awc / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.sand_frac);
+			soillayer.orgleachfrac = min(1.0, soillayer.perc_mass / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.sand_frac);
 		}
 		else {
 			minleachfrac = 0.0;
@@ -1331,8 +1327,8 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water percolated or drainage
-			minleachfrac = drain / (abs(dperc) + drain + soillayer.awc * soillayer.wcont + soillayer.wp * soillayer.wpcont);
-			minmovefrac = dperc / (abs(dperc) + drain + soillayer.awc * soillayer.wcont + soillayer.wp * soillayer.wpcont);
+			minleachfrac = drain / (abs(dperc) + drain + soillayer.wmass);
+			minmovefrac = dperc / (abs(dperc) + drain + soillayer.wmass);
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1582,7 +1578,7 @@ void equilsom(Patch& patch) {
 
 					// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 					if (!negligible(litter_cmass)) {
-						setntoc(soillayer, litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+						soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
 					}
 				}
 

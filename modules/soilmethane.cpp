@@ -81,25 +81,8 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 	std::vector<double> solution(nsoillayers);
 
 	// initialise
-	dplus=0.0;
-	dminus=0.0;
-	dz_factor=0.0;
-	Cplus=0.0;
-	Cp_minus=0.0;
-	dzhere=0.0;
-	dzminus=0.0;
-	dzplus=0.0;
-	cohere=0.0;
-	cominus=0.0;
-	coplus=0.0;
-
-	for (int l = 0; l < nsoillayers; l++) {
-		diag[l] = 0.0;
-		left[l] = 0.0;
-		right[l] = 0.0;
-		rhs[l] = 0.0;
-		solution[l] = 0.0;
-	}
+	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
+	dzhere = dzminus = dzplus = cohere = cominus = coplus = 0.0;
 
     // --- CODE STARTS HERE ---
 
@@ -111,12 +94,12 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 
 	// End members for off-diagonal elements.
 	left[0] = 0.0;
-	right[active_layers-1] = 0.0;
+	right[active_layers - 1] = 0.0;
 
 	// Process the active layers. 
 	// The first time (lidx and layer = layer0) corresponds to the surface layer
 
-	for (lidx = 1; lidx<=active_layers; lidx++) {
+	for (lidx = 1; lidx <= active_layers; lidx++) {
 
 		// Deal with different layer counting schemes.
 		layer = lidx - 1; 
@@ -129,14 +112,14 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 
 		// D+
 
-		if (layer==nsoillayers-1) 
+		if (layer == nsoillayers - 1) 
 			dplus = 0.0; // BC2 - Bottom layer diffusion clamped to 0
 		else 
 			dplus = 0.5 * (Di[layer] + Di[layer + 1]);
 
 		// D-
 
-		if (layer==0) 
+		if (layer == 0) 
 			dminus = Di[layer]; // top layer
 		else
 			dminus = 0.5 * (Di[layer] + Di[layer - 1]); // soil layers	
@@ -156,7 +139,7 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 		}
 
 		// --- MINUS ---
-		if (layer==0) {
+		if (layer == 0) {
 			// top layer
 			dzminus = dz[layer];
 			cominus = conc[layer];
@@ -174,35 +157,35 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 		// Fill in matrix diagonal and off-diagonal elements.
  
 		// DIAG
-		if (lidx==1) 
+		if (lidx == 1) 
 			diag[0] = 1.0; // BC1 - top layer should be (1,0,...,0)
 		else
-			diag[lidx-1] = 1.0 + Cplus + Cp_minus;
+			diag[lidx - 1] = 1.0 + Cplus + Cp_minus;
  
 		// LEFT & RIGHT
 		if (lidx < active_layers) {
 
 			if (lidx > 1)
-				right[lidx-1] = -Cplus;
+				right[lidx - 1] = -Cplus;
 			else
 				right[lidx-1] = 0.0; // i.e. BC1, where top layer == (1,0,..,0)
 
 			// left[0] is set above.
 			if (lidx > 1)
-				left[lidx-1] = -Cp_minus;			
+				left[lidx - 1] = -Cp_minus;			
 		}
 
 		if (lidx == active_layers) 
-			left[lidx-1] = -Cp_minus;
+			left[lidx - 1] = -Cp_minus;
 		 
 		// RHS
 		// Calculate right hand side vector values.
-		if (lidx==1) 
+		if (lidx == 1) 
 			rhs[0] = surf_conc;
-		else if (lidx==active_layers) // Cplus == 0 here anyway
-			rhs[lidx-1] = (1.0 - Cp_minus) * cohere + Cp_minus * cominus;
+		else if (lidx == active_layers) // Cplus == 0 here anyway
+			rhs[lidx - 1] = (1.0 - Cp_minus) * cohere + Cp_minus * cominus;
 		else
-			rhs[lidx-1] = (1.0 - Cplus - Cp_minus) * cohere +
+			rhs[lidx - 1] = (1.0 - Cplus - Cp_minus) * cohere +
 			Cplus * coplus + Cp_minus * cominus;
 	} // end for
 
@@ -212,7 +195,7 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 	//   FORMAT OUTPUT PARAMETERS
 
 	// Transfer the solution to the concentration array.
-	for (lidx = 0; lidx<nsoillayers; lidx++) {
+	for (lidx = 0; lidx < nsoillayers; lidx++) {
 
 		conc[lidx] = solution[lidx];
 	}
@@ -257,10 +240,13 @@ bool Soilcolumn::calculate_gas_diffusivities(std::vector<double> dCH4, std::vect
 		D_CH4_water = (0.9798 + 0.02986 * layerT + 0.0004381 * layerT * layerT) * scale;
 		D_CO2_water = (0.9390 + 0.02671 * layerT + 0.0004095 * layerT * layerT) * scale;
 		D_O2_water = (1.1720 + 0.03443 * layerT + 0.0005048 * layerT * layerT) * scale;
+
+		// Fraction air in soil layer
+		double frac_air = soillayers[lyr].fracair();
 	
-		if (soillayers[lyr].Frac_air > 0.05 && lyr < NACROTELM) {
+		if (frac_air > 0.05 && lyr < nacrotelm) {
 			// Wania et al. (2010), Eqn. 11 
-			double airpow = pow(soillayers[lyr].Frac_air, 10 / 3) / pow(acrotelm_por, 2.0);
+			double airpow = pow(frac_air, 10 / 3) / pow(acrotelm_por, 2.0);
 			dCH4[lyr] = airpow * D_CH4_air;
 			dCO2[lyr] = airpow * D_CO2_air;
 			dO2[lyr] = airpow * D_O2_air;
@@ -368,6 +354,9 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 
 	// Concentration of the dissolved gas in question [mmol m-3]
 	std::vector<double> C(nsoillayers);
+
+	// layer water + ice volume [m3]
+	std::vector<double> total_volume_water(nsoillayers);
 	
 	if (thisgastype != O2gas)
 		atomic_mass = atomiccmass; // i.e. CO2 or CH4 - 12 gC/mol
@@ -378,20 +367,22 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		total_volume_water[lyr] = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM;
+
 		if (thisgastype == CO2gas) {
 			initialAmount += soillayers[lyr].CO2_soil;
 			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayers[lyr].CO2_soil / atomic_mass / soillayers[lyr].total_volume_water * MMOL_PER_MOL;
+			C[lyr] = soillayers[lyr].CO2_soil / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 		else if (thisgastype == CH4gas) {
 			initialAmount += soillayers[lyr].CH4;
 			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayers[lyr].CH4 / atomic_mass / soillayers[lyr].total_volume_water * MMOL_PER_MOL;
+			C[lyr] = soillayers[lyr].CH4 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 		else {
 			initialAmount += soillayers[lyr].O2;
 			// mol layer-1 to mmol m-3
-			C[lyr] = soillayers[lyr].O2 / atomic_mass / soillayers[lyr].total_volume_water * MMOL_PER_MOL;
+			C[lyr] = soillayers[lyr].O2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 	}
 
@@ -402,16 +393,17 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 	double Cnew;
 	if (thisgastype == O2gas || thisgastype == CH4gas) { // Could also run for CH4 here below.
 
-		if ((soillayers[0].Frac_water + soillayers[0].Frac_water_belowpwp) < water_min) { // Could add a snow restriction
+		if ((soillayers[0].wmass / soillayers[0]. depth) < Fwmass_min) { // Could add a snow restriction
 			// No diffusion if there's too little liquid water in the top layer
 			Cnew = C[0]; // Unchanged surface concentration
 			dailyDiff = 0.0;
 		} 
 		else {
 			
+			double volume_liquid_water = soillayers[0].wmass * M_PER_MM;
 			// Analytical solution to determine Csurf - see Wania et al. Sec 2.5
-			Cnew = Ceq + (C[0] - Ceq) * exp(-kgas / soillayers[0].volume_liquid_water); // mmol m-3
-			dailyDiff = (C[0] - Cnew) * atomic_mass * soillayers[0].volume_liquid_water / MMOL_PER_MOL; // mol layer-1 d-1 (O2)
+			Cnew = Ceq + (C[0] - Ceq) * exp(-kgas / volume_liquid_water); // mmol m-3
+			dailyDiff = (C[0] - Cnew) * atomic_mass * volume_liquid_water / MMOL_PER_MOL; // mol layer-1 d-1 (O2)
 		}
 
 		C[0] = Cnew; // mmol m-3 - The new surface concentration
@@ -440,7 +432,7 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			if ((soillayers[lyr].Frac_water + soillayers[lyr].Frac_water_belowpwp) < water_min) {
+			if ((soillayers[0].wmass / soillayers[0].depth) < Fwmass_min) {
 				D[lyr] = 1e-9; // [m2 d-1]
 			}
 		}
@@ -473,7 +465,7 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 			total_diff = 0.0;
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
 				C_last[lyr] = C[lyr];
-				total_diff += fabs(C_last[lyr]-C_init[lyr]);
+				total_diff += fabs(C_last[lyr] - C_init[lyr]);
 			}
 
 			cncount++;
@@ -481,7 +473,7 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 			ratio = total_diff / totalConc;
 			
 			// stable if the ratio is < 0.01 and we've passed a third of the max iterations 
-			if (ratio < 0.01 && cncount > int(gasdiffix/3))
+			if (ratio < 0.01 && cncount > int(gasdiffix / 3))
 				stable = true;
 
 		} while (cncount < gasdiffix && !stable); // until max 1% variation between iterations, or 100 loops
@@ -490,16 +482,17 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 	// Unit conversions - allocate concentrations to g layer-1 or mole layer-1
 	double finalAmount = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
 		if (thisgastype == CO2gas) {
-			soillayers[lyr].CO2_soil = C[lyr] * atomic_mass * soillayers[lyr].total_volume_water / MMOL_PER_MOL;
+			soillayers[lyr].CO2_soil = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
 			finalAmount += soillayers[lyr].CO2_soil;
 		}
 		else if (thisgastype == CH4gas) {
-			soillayers[lyr].CH4 = C[lyr] * atomic_mass * soillayers[lyr].total_volume_water / MMOL_PER_MOL;
+			soillayers[lyr].CH4 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
 			finalAmount += soillayers[lyr].CH4;
 		}
 		else {
-			soillayers[lyr].O2 = C[lyr] * atomic_mass * soillayers[lyr].total_volume_water / MMOL_PER_MOL;
+			soillayers[lyr].O2 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
 			finalAmount += soillayers[lyr].O2;
 		}
 	}
@@ -552,19 +545,21 @@ double Soilcolumn::calculate_tiller_areas() {
 
 	double tiller_frac = 0.0;
 
-	for (int ii=0; ii<nsoillayers; ii++) {
+	std::vector<double> rootfrac = get_peatland_rootfrac();
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		if (!negligible(tiller_density)) {
-			tiller_frac = tiller_density * soillayers[ii].rootfrac;
+			tiller_frac = tiller_density * rootfrac[lyr];
 
 			// Consider this as the fraction of the area (1m2) occupied by tillers in this later
-			soillayers[ii].tiller_area = PI * pow(tiller_radius, 2.0) * tiller_frac * tiller_por; // [unitless m2 m-2]
+			soillayers[lyr].tiller_area = PI * pow(tiller_radius, 2.0) * tiller_frac * tiller_por; // [unitless m2 m-2]
 
-			if (soillayers[ii].tiller_area < 0.000000001)
-				soillayers[ii].tiller_area = 0.0;
+			if (soillayers[lyr].tiller_area < 0.000000001)
+				soillayers[lyr].tiller_area = 0.0;
 		}
 		else {
-			soillayers[ii].tiller_area = 0.0;
+			soillayers[lyr].tiller_area = 0.0;
 		}
 	}
 
@@ -597,44 +592,47 @@ bool Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 	// to return
 	plantTransportToday = 0.0;
 
-	for (int ii=0; ii<nsoillayers; ii++) {
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		// Weight plant transport by the area of porous root cross-sections. 
 		// plant_trans(i) [mmol layer-1 d-1]
         // the 2.07 are from the equation for k_CH4, when U10 is zero.
 
+		double total_volume_water = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM;
+		double volume_liquid_water = soillayers[lyr].wmass * M_PER_MM;
+
 		if (thisgastype == O2gas)
-			Cgas[ii] = soillayers[ii].O2 / atomic_mass / soillayers[ii].total_volume_water * MMOL_PER_MOL;
+			Cgas[lyr] = soillayers[lyr].O2 / atomic_mass / total_volume_water * MMOL_PER_MOL;
 		else
-			Cgas[ii] = soillayers[ii].CH4 / atomic_mass / soillayers[ii].total_volume_water * MMOL_PER_MOL;
+			Cgas[lyr] = soillayers[lyr].CH4 / atomic_mass / total_volume_water * MMOL_PER_MOL;
 		// CH4 and CO2: gC layer-1 to mmol m-3
 		// O2: mol layer-1 to mmol m-3
 
-		if ((soillayers[ii].Frac_water + soillayers[ii].Frac_water_belowpwp) < water_min || negligible(soillayers[ii].tiller_area) || soillayers[ii].volume_liquid_water < 0.0001) {
-			Cnew = Cgas[ii]; // no plant transport to/from this layer
+		if ((soillayers[lyr].wmass) / soillayers[lyr].depth < Fwmass_min || negligible(soillayers[lyr].tiller_area) || volume_liquid_water < 0.0001) {
+			Cnew = Cgas[lyr]; // no plant transport to/from this layer
 		} 
 		else {
-			double exponent = kgas / soillayers[ii].volume_liquid_water;
-			exponent *= soillayers[ii].tiller_area;
+			double exponent = kgas / volume_liquid_water;
+			exponent *= soillayers[lyr].tiller_area;
 			double fac = exp(-1.0 * exponent);
-			double change = Cnew + (Cgas[ii] - Ceq) * fac;
+			double change = Cnew + (Cgas[lyr] - Ceq) * fac;
 
-			Cnew = Ceq + (Cgas[ii] - Ceq) * exp(-kgas / (soillayers[ii].volume_liquid_water / soillayers[ii].tiller_area)); // mmol m-3
-			plantTransportToday += (Cgas[ii] - Cnew) 
-				* atomic_mass * soillayers[ii].total_volume_water / MMOL_PER_MOL; // mol layer-1 d-1 (O2) or // gC m-2 d-1 (CH4 & CO2)
+			Cnew = Ceq + (Cgas[lyr] - Ceq) * exp(-kgas / (volume_liquid_water / soillayers[lyr].tiller_area)); // mmol m-3
+			plantTransportToday += (Cgas[lyr] - Cnew) 
+				* atomic_mass * total_volume_water / MMOL_PER_MOL; // mol layer-1 d-1 (O2) or // gC m-2 d-1 (CH4 & CO2)
 
 			// Restrict TINY negative plant transport
 			if (plantTransportToday < 0.0 && fabs(plantTransportToday) < 1e-8) {
 				plantTransportToday = 0.0;
-				Cnew = Cgas[ii];
+				Cnew = Cgas[lyr];
 			}
 		}
 
 		// mmol m-3 to gC layer-1 (CO2 or CH4), or mol layer-1 (O2) 
 		if (thisgastype != O2gas)
-			soillayers[ii].CH4 = Cnew * atomic_mass * soillayers[ii].total_volume_water / MMOL_PER_MOL;
+			soillayers[lyr].CH4 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
 		else
-			soillayers[ii].O2 = Cnew * atomic_mass * soillayers[ii].total_volume_water / MMOL_PER_MOL;
+			soillayers[lyr].O2 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
 	}
 	return true;
 }
@@ -653,26 +651,44 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 	bool emitToAtmosphere = true;	// Whether to emit CH4 directly to the atmosphere (true by default)
 	int bubbleToLayer = 0;		// The soil layer to bubble to.
 
+	if (wtpp <= 0) {
+		if (wtpp >= -100.0)
+			bubbleToLayer = 0;
+		else if (wtpp >= -200.0 && wtpp < -100.0)
+			bubbleToLayer = 1;
+		else
+			bubbleToLayer = 2;
+	}
+	else { // Standing water
+		bubbleToLayer = -1;
+	}
+
 	// Ensure ebullition from all layers
+	bubbleToLayer = -1;
 
-	for (int ii=0; ii<nsoillayers; ii++) {
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		double TsoilK = soillayers[ii].temp + K2degC;
+		Soillayer& soillayer = soillayers[lyr];
 
-		waterheight += soillayers[ii].total_volume_water; // m
+		double TsoilK = soillayer.temp + K2degC;
+
+		double total_volume_water = (soillayer.wmass + soillayer.imass) * M_PER_MM;
+		double volume_liquid_water = soillayer.wmass * M_PER_MM;
+
+		waterheight += total_volume_water; // m
 
 		// Bubble formation below the WT only
-		if (ii > bubbleToLayer) {
+		if (lyr > bubbleToLayer) {
 
 			// Max CH4 that can be dissolved (Wania et al. (2010), Eqn 15)
-			double CH4_diss_max = 0.05708 - 0.001545 * max(0.0, soillayers[ii].temp) +
-				0.00002069 * max(0.0, pow(soillayers[ii].temp,2.0)); // ml CH4 ml-1 H2O
+			double CH4_diss_max = 0.05708 - 0.001545 * max(0.0, soillayer.temp) +
+				0.00002069 * max(0.0, pow(soillayer.temp,2.0)); // ml CH4 ml-1 H2O
 
 			// Water pressure
 			double hydro_press = rho_H2O * gravity * waterheight; // N, or kg m s-2
 
 			// Maximum volume that can be dissolved
-			double CH4_diss_max_m3 = CH4_diss_max * soillayers[ii].volume_liquid_water; // m3 CH4 layer-1
+			double CH4_diss_max_m3 = CH4_diss_max * volume_liquid_water; // m3 CH4 layer-1
 
 			// Use ideal gas law to convert to mol CH4 layer-1
 			double CH4_diss_max_mol = CH4_diss_max_m3 * (hydro_press + atm_press) / (R_gas * TsoilK); // mol CH4 layer-1
@@ -680,67 +696,69 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 			// Convert to g CH4-C layer-1
 			double CH4_diss_max_g = CH4_diss_max_mol * mr_C; // g CH4-C layer-1
 			
-			soillayers[ii].CH4_ebull_ind = 0.0;
+			soillayer.CH4_ebull_ind = 0.0;
 			
 			// Restrict ebullition to cases when there is enough liquid water and when soil T > 0. 
-			if ((soillayers[ii].Frac_water + soillayers[ii].Frac_water_belowpwp) > water_min && soillayers[ii].temp > 0.0) {
+			if (soillayer.wmass / soillayer.depth > Fwmass_min && soillayer.temp > 0.0) {
 
 				double henry_k_cc_CH4 = TsoilK / (12.2 * henry_k_CH4);
-				soillayers[ii].CH4_diss = min(CH4_diss_max_g, henry_k_cc_CH4 * soillayers[ii].CH4);
+				soillayer.CH4_diss = min(CH4_diss_max_g, henry_k_cc_CH4 * soillayer.CH4);
 				
 				// Override (a la Wania et al. 2010) with this new, simpler ebullition
-				soillayers[ii].CH4_diss = min(CH4_diss_max_g, soillayers[ii].CH4);
+				soillayer.CH4_diss = min(CH4_diss_max_g, soillayer.CH4);
 
-				soillayers[ii].CH4_gas = soillayers[ii].CH4 - soillayers[ii].CH4_diss; // g CH4-C layer-1 - gas
-				soillayers[ii].CH4_gas_vol = soillayers[ii].CH4_gas / atomiccmass * R_gas * TsoilK / (hydro_press + atm_press); // [m3]
-				soillayers[ii].CH4_vgc = soillayers[ii].CH4_gas_vol / (soillayers[ii].depth / MM_PER_M * SQ_M); // m3/m3
+				soillayer.CH4_gas = soillayer.CH4 - soillayer.CH4_diss; // g CH4-C layer-1 - gas
+				soillayer.CH4_gas_vol = soillayer.CH4_gas / atomiccmass * R_gas * TsoilK / (hydro_press + atm_press); // [m3]
+				soillayer.CH4_vgc = soillayer.CH4_gas_vol / (soillayer.depth / MM_PER_M * SQ_M); // m3/m3
 			
 				// Ebullition/bubble formation if the volumetric gas content (VGC) exceeds vgc_high * bubble_CH4_frac, 
 				// where bubble_CH4_frac id the CH4 fraction of gas bubbles
-				if (soillayers[ii].CH4_vgc > vgc_high * bubble_CH4_frac) {
+				if (soillayer.CH4_vgc > vgc_high * bubble_CH4_frac) {
 				
-					soillayers[ii].CH4_ebull_vol = (soillayers[ii].CH4_vgc - vgc_low * bubble_CH4_frac) * soillayers[ii].depth / MM_PER_M * SQ_M; // m3/m3
-					soillayers[ii].CH4_vgc = vgc_low * bubble_CH4_frac;
-					soillayers[ii].CH4_ebull_ind = soillayers[ii].CH4_ebull_vol * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
-					soillayers[ii].CH4_gas = soillayers[ii].CH4_vgc * soillayers[ii].depth / MM_PER_M * SQ_M * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
-					soillayers[ii].CH4_ebull_ind *= atomiccmass; // mol to g
-					soillayers[ii].CH4_gas *= atomiccmass; // mol to g 
+					soillayer.CH4_ebull_vol = (soillayer.CH4_vgc - vgc_low * bubble_CH4_frac) * soillayer.depth / MM_PER_M * SQ_M; // m3/m3
+					soillayer.CH4_vgc = vgc_low * bubble_CH4_frac;
+					soillayer.CH4_ebull_ind = soillayer.CH4_ebull_vol * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
+					soillayer.CH4_gas = soillayer.CH4_vgc * soillayer.depth / MM_PER_M * SQ_M * (hydro_press + atm_press) / (R_gas * TsoilK); // mol
+					soillayer.CH4_ebull_ind *= atomiccmass; // mol to g
+					soillayer.CH4_gas *= atomiccmass; // mol to g 
 
 					// Update the amount of CH4 to emit today, from this layer
-					ebull_today += soillayers[ii].CH4_ebull_ind; // g m-2 d-1
+					ebull_today += soillayer.CH4_ebull_ind; // g m-2 d-1
 				}
 
 				// Now recalculate the total CH4 amount in this layer, both dissolved and gaseous
-				soillayers[ii].CH4 = soillayers[ii].CH4_diss + soillayers[ii].CH4_gas;
+				soillayer.CH4 = soillayer.CH4_diss + soillayer.CH4_gas;
 
 			} 
 			else {
 			
 				// No change in the dissolved CH4 amount
-				soillayers[ii].CH4_diss = soillayers[ii].CH4_diss_yesterday;
+				soillayer.CH4_diss = soillayer.CH4_diss_yesterday;
 			} // Frac_water
 		} 
 		else {
 			
 			// No change in the dissolved CH4 amount
-			soillayers[ii].CH4_diss = soillayers[ii].CH4_diss_yesterday;
+			soillayer.CH4_diss = soillayer.CH4_diss_yesterday;
 		} // bubble layer check
 	} // for ii
 
 	// If the water table is below the surface, then put the bubbled methane into the first unsaturated layer
 	if (!emitToAtmosphere) {
 
-		soillayers[bubbleToLayer].CH4 += ebull_today;
+		Soillayer& bubblelayer = soillayers[bubbleToLayer];
+
+		bubblelayer.CH4 += ebull_today;
 		ebull_today = 0.0; // No emission today.
 
 		// O2 is in [mol layer-1]
-		soillayers[bubbleToLayer].O2 *= oxid_frac; // since 25% of O2 used by roots themselves...  
-		soillayers[bubbleToLayer].CH4 /= atomiccmass; // mol layer-1
-		soillayers[bubbleToLayer].CH4_oxid = min(soillayers[bubbleToLayer].CH4, 0.5 * soillayers[bubbleToLayer].O2); // usually 75%
-		soillayers[bubbleToLayer].CH4 = (soillayers[bubbleToLayer].CH4 - soillayers[bubbleToLayer].CH4_oxid) * atomiccmass; // gC layer again	
-		soillayers[bubbleToLayer].O2 -= 2.0 * soillayers[bubbleToLayer].CH4_oxid; // subtract the moles used in oxidation
+		bubblelayer.O2 *= oxid_frac; // since 25% of O2 used by roots themselves...  
+		bubblelayer.CH4 /= atomiccmass; // mol layer-1
+		bubblelayer.CH4_oxid = min(bubblelayer.CH4, 0.5 * bubblelayer.O2); // usually 75%
+		bubblelayer.CH4 = (bubblelayer.CH4 - bubblelayer.CH4_oxid) * atomiccmass; // gC layer again	
+		bubblelayer.O2 -= 2.0 * bubblelayer.CH4_oxid; // subtract the moles used in oxidation
 
-		soillayers[bubbleToLayer].CO2_soil += soillayers[bubbleToLayer].CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
+		bubblelayer.CO2_soil += bubblelayer.CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
 	}
 
 	return true;
@@ -849,10 +867,6 @@ bool Soilcolumn::methane(bool generatemethane) {
 		
 		int daynum = date.day;
 
-		// Initialise the peatland root fractions.
-		if (daynum == 0)
-			init_peatland_root_fractions();
-
 		// Budget/conservation variables [gC/m2]
 		double ch4_c_in = 0.0;
 		double co2_c_in = 0.0;
@@ -889,18 +903,12 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		// Layer depths in m, and volume of water in m3
 
-		for (int lyr = 0; lyr < nsoillayers; lyr++) { // DW_COMMENT CAN BE DONE PER LAYER
-			Dz_metre[lyr] = soillayers[lyr].depth * M_PER_MM; // layer depths in m
-			soillayers[lyr].volume_liquid_water = (soillayers[lyr].Frac_water + soillayers[lyr].Frac_water_belowpwp) * Dz_metre[lyr];	// m3 water
-			soillayers[lyr].total_volume_water = (soillayers[lyr].Frac_water + soillayers[lyr].Fpwp_ref + soillayers[lyr].Frac_ice) * Dz_metre[lyr];	// m3 water + ice
-		}
+		std::vector<double> volume_liquid_water(nsoillayers);
+		std::vector<double> total_volume_water(nsoillayers);
 
-		// If we have standing water...
-		if (wtp[daynum] > 0.0) {
-			// wtp in mm
-			Dz_metre[0] += wtp[daynum] * M_PER_MM;
-			soillayers[0].volume_liquid_water += (soillayers[0].Frac_water + soillayers[0].Frac_water_belowpwp) * wtp[daynum] * M_PER_MM;
-			soillayers[0].total_volume_water += (soillayers[0].Frac_water + soillayers[0].Fpwp_ref + soillayers[0].Frac_ice) * wtp[daynum] * M_PER_MM;
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			volume_liquid_water[lyr] = (soillayers[lyr].wmass + max(0.0, wtp[daynum])) * M_PER_MM;	// m3 water
+			total_volume_water[lyr] = (soillayers[lyr].wmass + soillayers[lyr].imass + max(0.0, wtp[daynum])) * M_PER_MM;	// m3 water + ice
 		}
 
 		// Update the temperature-dependent gas parameters
@@ -927,11 +935,11 @@ bool Soilcolumn::methane(bool generatemethane) {
 			double drh = soillayer.dcflux_soil * G_PER_KG;
 			total_drh += drh;
 
-			double anoxic = 1.0 - soillayer.Frac_air - Fgas;
+			double anoxic = 1.0 - soillayer.fracair() - Fgas;
 
 			// *** CH4 PRODUCTION IN THIS LAYER ***
 
-			if ((soillayer.Frac_water + soillayer.Frac_water_belowpwp) < water_min)
+			if (soillayer.wmass / soillayer.depth < Fwmass_min)
 				soillayer.CH4_prod = 0.0;
 			else
 				soillayer.CH4_prod = anoxic * CH4toCO2_peat * drh; // gC/m2
@@ -1025,15 +1033,15 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		// Assume that 1/2 of the O2 is utilized by other electron
 		// acceptors and you need 2 moles of O2 to oxidise 1 mole of CH4.
-		for (int ii=0; ii<nsoillayers; ii++) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			// O2 is in [mol layer-1]
-			soillayers[ii].O2 *= oxid_frac; // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
-			soillayers[ii].CH4 /= atomiccmass; // mol layer-1
-			soillayers[ii].CH4_oxid = min(soillayers[ii].CH4, 0.5 * soillayers[ii].O2); // usually 75%
-			soillayers[ii].CH4 = (soillayers[ii].CH4 - soillayers[ii].CH4_oxid) * atomiccmass; // gC layer again	
-			soillayers[ii].O2 -= 2.0 * soillayers[ii].CH4_oxid; // subtract the moles used in oxidation
+			soillayers[lyr].O2 *= oxid_frac; // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
+			soillayers[lyr].CH4 /= atomiccmass; // mol layer-1
+			soillayers[lyr].CH4_oxid = min(soillayers[lyr].CH4, 0.5 * soillayers[lyr].O2); // usually 75%
+			soillayers[lyr].CH4 = (soillayers[lyr].CH4 - soillayers[lyr].CH4_oxid) * atomiccmass; // gC layer again	
+			soillayers[lyr].O2 -= 2.0 * soillayers[lyr].CH4_oxid; // subtract the moles used in oxidation
 
-			soillayers[ii].CO2_soil += soillayers[ii].CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
+			soillayers[lyr].CO2_soil += soillayers[lyr].CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
 		}
 
 		// *** STEP 6b ***
@@ -1049,12 +1057,12 @@ bool Soilcolumn::methane(bool generatemethane) {
 		double checkbefore = ch4_before_oxid_and_diffusion + co2_before_oxid_and_diffusion + ch4_diff_before_BC;
 
 		calculate_carbon_store(daynum, true);
-		check = ch4_store+co2_store+CH4_diff_today;
+		check = ch4_store + co2_store + CH4_diff_today;
 
 		double checkafter1 = check - checkbefore;
 
 		if (fabs(checkafter1) > MAX_ERR && verbosity >= WARNING)
-			dprintf("%s%g\n","Soil::methane() - after oxidation and diffusion of CH4: ",checkafter1);
+			dprintf("%s%g\n","Soil::methane() - after oxidation and diffusion of CH4: ", checkafter1);
 
 		checkbefore = check;
 
@@ -1070,7 +1078,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		// Check C budget
 		calculate_carbon_store(daynum, true);
-		check = ch4_store+co2_store+CH4_diff_today+CH4_plant_today;
+		check = ch4_store + co2_store + CH4_diff_today + CH4_plant_today;
 		double checkafter2 = check - checkbefore;
 		if (fabs(checkafter2) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after plant transport of CH4: ",checkafter2);
@@ -1084,7 +1092,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		// Check C budget
 		calculate_carbon_store(daynum, true);
-		check = ch4_store+co2_store+CH4_diff_today+CH4_plant_today+CH4_ebull_today;
+		check = ch4_store + co2_store + CH4_diff_today + CH4_plant_today + CH4_ebull_today;
 
 		double checkafter3 = check - checkbefore;
 
@@ -1101,9 +1109,9 @@ bool Soilcolumn::methane(bool generatemethane) {
 		double tot_dcflux_soil = 0.0;
 
 		// Correct & record Dec 31 data
-		for (int ii=0; ii<nsoillayers; ii++) {
-			soillayers[ii].CO2_soil = 0.0;
-			tot_dcflux_soil += soillayers[ii].dcflux_soil;
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			soillayers[lyr].CO2_soil = 0.0;
+			tot_dcflux_soil += soillayers[lyr].dcflux_soil;
 		}
 		
 		// Recalculate ch4_store and co2_store now, after CO2 diffusion
@@ -1147,48 +1155,17 @@ bool Soilcolumn::methane(bool generatemethane) {
 		}
 
 		// Record today's values
-		for (int ii=0; ii<nsoillayers; ii++) {
-			soillayers[ii].CO2_soil_yesterday = soillayers[ii].CO2_soil;
-			soillayers[ii].CH4_yesterday = soillayers[ii].CH4;
-			soillayers[ii].CH4_diss_yesterday = soillayers[ii].CH4_diss;
-			soillayers[ii].CH4_gas_yesterday = soillayers[ii].CH4_gas;
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			soillayers[lyr].CO2_soil_yesterday = soillayers[lyr].CO2_soil;
+			soillayers[lyr].CH4_yesterday = soillayers[lyr].CH4;
+			soillayers[lyr].CH4_diss_yesterday = soillayers[lyr].CH4_diss;
+			soillayers[lyr].CH4_gas_yesterday = soillayers[lyr].CH4_gas;
 		}
 	} // generatemethane?
 
 	return true;
 }
 
-
-
-void Soilcolumn::init_peatland_root_fractions() {
-
-	// Initialise the root fractions in each layer of the wetland, assuming an exponential decrease of root biomass with depth
-	// in accordance with observations from peat cores.
-
-	// Called on the first day of the simulaton.
-	
-	// See Wania et al. (2010) - Section 2.2.2
-
-	const double b = 25.1695;
-	const double corr = 2.49994026;
-	
-	double layermiddepth = -soillayers[0].depth / 2.0 * CM_PER_MM; // cm
-
-	double sumrootfrac = 0.0;  // DW_COMMENT CHECK rootfrac!!!!!!!
-
-	for (int lyr=0; lyr < nsoillayers; lyr++) {
-		
-		if (lyr == nsoillayers - 1) {
-			soillayers[lyr].rootfrac = 1.0 - sumrootfrac;
-		}
-		else {
-			soillayers[lyr].rootfrac = exp(layermiddepth / b) / corr;
-			layermiddepth -= (soillayers[lyr].depth + soillayers[lyr + 1].depth) / 2.0 * CM_PER_MM;
-		}
-
-		sumrootfrac += soillayers[lyr].rootfrac;
-	}
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

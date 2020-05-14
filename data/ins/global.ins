@@ -95,8 +95,8 @@ ifcalcsla 1			! Whether to calculate SLA from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
-firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
-weathergenerator "GWGEN"	! GWGEN, INTERP
+firemodel "NOFIRE"		! BLAZE, GLOBFIRM, NOFIRE
+weathergenerator "INTERP"	! GWGEN, INTERP
 hydroscheme "BUCKET"		! BUCKET, HTESSEL
 npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
@@ -120,7 +120,7 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
-soil_depth 2000.0		! Soil depth (mm)
+soil_depth 1500.0		! Soil depth (mm)
 timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 
 
@@ -129,7 +129,7 @@ timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 !///////////////////////////////////////////////////////////////////////////////
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
-ifnlim 1			! Whether plant growth limited by available N
+ifnlim 0			! Whether plant growth limited by available N
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.234			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b -0.172			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -140,19 +140,20 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+iftwolayersoil 1		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
 				! rootdistribution must be "fixed"
 
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
+				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
-ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifcarbonfreeze 0		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 
 ! WETLAND SWITCHES (no effect when run_peatland 0)
-ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
+ifinundationstress 0		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
 ifmethane 0			! Whether to run the methane model and calculate methane fluxes

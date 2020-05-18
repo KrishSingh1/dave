@@ -6,7 +6,7 @@ GMAPPIXELSIZE=""	#="-pixsize 5 5"
 # Set data-dir
 # This path must start with '=/' and end with '/' in order to enable
 # automatic substition of path on other systems than simba.
-DATAPATH=/data/
+DATAPATH=/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/
 
 
 # Function for preparing data for a scatter plot using gnuplot.
@@ -122,7 +122,7 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.txt
 prepare_agb cpool1993-2012.txt cpool1993-2012_agb.txt VegC
-joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.txt
+joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.txt -i Lon Lat -fast -o cpool1993-2012_joyned.txt
     
 . postprocess_above_ground_biomass.sh # Get above-below ground partintioning based on Jackson et al.
 

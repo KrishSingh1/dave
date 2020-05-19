@@ -81,7 +81,6 @@ void Snow::init_state() {
 	NH4_mass = 0.0;
 	snow_depth_standard = 50.0;
 	snow_depth_limit = 1.2;
-	dec_depth = 0.0;
 
 	for (int mth = 0; mth < 12; mth++) {
 		mdepth[mth] = 0.0;
@@ -107,6 +106,32 @@ double Snow::depth() {
 		sd += snowlayers[lyr].depth;
 	}
 	return sd;
+}
+
+double Snow::snowpack_avrmax3mth() {
+	double snow_max_mths[3];
+	snow_max_mths[0] = snow_max_mths[1] = snow_max_mths[2] = 0.0;
+
+	for (int mth = 0; mth < 12; mth++) {
+
+		// If current element is greater than first
+		if (mdepth[mth] > snow_max_mths[0]) {
+			snow_max_mths[2] = snow_max_mths[1];
+			snow_max_mths[1] = snow_max_mths[0];
+			snow_max_mths[0] = mdepth[mth];
+		}
+
+		// If mdepth[mth] is in between first and second then update second
+		else if (mdepth[mth] > snow_max_mths[1]) {
+			snow_max_mths[2] = snow_max_mths[1];
+			snow_max_mths[1] = mdepth[mth];
+		}
+
+		else if (mdepth[mth] > snow_max_mths[2])
+			snow_max_mths[2] = mdepth[mth];
+	}
+
+	return (snow_max_mths[0] + snow_max_mths[1] + snow_max_mths[2]) / 3.0;
 }
 
 double Snow::snowpack() {
@@ -837,7 +862,6 @@ void Snow::serialize(ArchiveStream& arch) {
 		& nsnowlayers
 		& snow_depth_standard
 		& snow_depth_limit
-		& dec_depth
 		& NH4_mass
 		& NO3_mass;
 }
@@ -899,18 +923,12 @@ Soillayer::Soillayer(double d, bool a, bool c) : depth(d), acrotelm(a), catotelm
 	sompool[PASSIVESOM].ntoc = 1.0 / 9.0;
 
 	// N pools
-	NO2_mass = 0.0;
-	NO2_mass_w = 0.0;
-	NO2_mass_d = 0.0;
-	NO_mass = 0.0;
-	NO_mass_w = 0.0;
-	NO_mass_d = 0.0;
-	N2O_mass = 0.0;
-	N2O_mass_w = 0.0;
-	N2O_mass_d = 0.0;
-	N2_mass = 0.0;
 	NH4_mass = 0.0;
 	NO3_mass = 0.0;
+	NO2_mass = 0.0;
+	NO_mass = 0.0;
+	N2O_mass = 0.0;
+	N2_mass = 0.0;
 	anmin = 0.0;
 	animmob = 0.0;
 	aminleach = 0.0;
@@ -943,8 +961,6 @@ Soillayer::Soillayer(double d, bool a, bool c) : depth(d), acrotelm(a), catotelm
 
 	// soil labile carbon availability
 	labile_carbon = 0.0;
-	labile_carbon_w = 0.0;
-	labile_carbon_d = 0.0;
 
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
@@ -1068,6 +1084,11 @@ void Soillayer::set_properties(Soiltype soiltype, double socfrac) {
 		// Two layer hydrology parameters
 		perc_base = min_frac * soiltype.perc_base + org_frac * soiltype.perc_base_org;
 		perc_exp = soiltype.perc_exp;
+	}
+
+	// If two layer soil scheme then wmass is never below wp
+	if (iftwolayersoil) {
+		wmass = wp;
 	}
 }
 
@@ -1394,6 +1415,7 @@ void Soilcolumn::initdrivers() {
 	bool catotelm = false;
 	nacrotelm = 0;
 	ncatotelm = 0;
+	thaw = soil_depth;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -1437,7 +1459,6 @@ void Soilcolumn::initdrivers() {
 	awcont_upper = 0.0;
 	rain_melt = 0.0;
 	max_rain_melt = 0.0;
-	dperc = 0.0;
 	percolate = 0.0;
 	runoff = 0.0;
 
@@ -1472,95 +1493,77 @@ void Soilcolumn::initdrivers() {
 	savesomcent = false;
 }
 
-std::vector<double> Soilcolumn::get_temp() {
-	std::vector<double> temp(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		temp[lyr] = soillayers[lyr].temp;
-	return temp;
+
+
+std::vector<double> Soilcolumn::get_prop(soilproptype SPT, int m) {
+	
+	std::vector<double> prop(nsoillayers);
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		if (SPT == DEPTH)
+			prop[lyr] = soillayers[lyr].depth; 
+		else if (SPT == TEMP)
+			prop[lyr] = soillayers[lyr].temp; 
+		else if (SPT == WMASS)
+			prop[lyr] = soillayers[lyr].wmass;
+		else if (SPT == IMASS)
+			prop[lyr] = soillayers[lyr].imass;
+		else if (SPT == WCONT)
+			prop[lyr] = soillayers[lyr].wcont();
+		else if (SPT == MWCONT)
+			prop[lyr] = soillayers[lyr].mwcont[m];
+		else if (SPT == AWCONT)
+			prop[lyr] = soillayers[lyr].awcont;
+		else if (SPT == WSATS)
+			prop[lyr] = soillayers[lyr].wsats;
+		else if (SPT == AWC)
+			prop[lyr] = soillayers[lyr].awc;
+		else if (SPT == WP)
+			prop[lyr] = soillayers[lyr].wp;
+		else if (SPT == WCONTMAX)
+			prop[lyr] = soillayers[lyr].wcont_max();
+		else if (SPT == NH_4)
+			prop[lyr] = soillayers[lyr].NH4_mass;
+		else if (SPT == NO_3)
+			prop[lyr] = soillayers[lyr].NO3_mass;
+	}
+	return prop;
 }
 
-std::vector<double> Soilcolumn::get_wmass() {
-	std::vector<double> wmass(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		wmass[lyr] = soillayers[lyr].wmass;
-	return wmass;
+std::vector<double> Soilcolumn::get_ccontfrac() {
+
+	std::vector<double> ccontfrac(nsoillayers);
+
+	double cconttot = ccont();
+
+	if (!negligible(cconttot)) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			ccontfrac[lyr] += soillayers[lyr].ccont() / cconttot;
+		}
+	}
+	else {
+		ccontfrac[0] = 1.0;
+	}
+
+	return ccontfrac;
 }
 
-std::vector<double> Soilcolumn::get_imass() {
-	std::vector<double> imass(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		imass[lyr] = soillayers[lyr].imass;
-	return imass;
-}
+std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref) {
 
-std::vector<double> Soilcolumn::get_wcont() {
-	std::vector<double> wconts(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		wconts[lyr] = soillayers[lyr].wcont();
-	return wconts;
-}
+	std::vector<double> nfrac(nsoillayers);
 
-std::vector<double> Soilcolumn::get_mwcont(int m) {
-	std::vector<double> mwconts(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		mwconts[lyr] = soillayers[lyr].mwcont[m];
-	return mwconts;
-}
+	double ntot = nmass_avail(pref);
 
-std::vector<double> Soilcolumn::get_awcont() {
-	std::vector<double> awconts(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		awconts[lyr] = soillayers[lyr].awcont;
-	return awconts;
-}
+	if (!negligible(ntot)) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			nfrac[lyr] += soillayers[lyr].nmass_avail(pref) / ntot;
+		}
+	}
+	else {
+		nfrac[0] = 1.0;
+	}
 
-std::vector<double> Soilcolumn::get_wsat() {
-	std::vector<double> wsats(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		wsats[lyr] = soillayers[lyr].wsats;
-	return wsats;
-}
-
-std::vector<double> Soilcolumn::get_awc() {
-	std::vector<double> awcs(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		awcs[lyr] = soillayers[lyr].awc;
-	return awcs;
-}
-
-std::vector<double> Soilcolumn::get_wp() {
-	std::vector<double> wps(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		wps[lyr] = soillayers[lyr].wp;
-	return wps;
-}
-
-std::vector<double> Soilcolumn::get_depth() {
-	std::vector<double> depths(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		depths[lyr] = soillayers[lyr].depth;
-	return depths;
-}
-
-std::vector<double> Soilcolumn::get_wcont_max() {
-	std::vector<double> wcont_max(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		wcont_max[lyr] = soillayers[lyr].wcont_max();
-	return wcont_max;
-}
-
-std::vector<double> Soilcolumn::get_NH4() {
-	std::vector<double> NH4(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		NH4[lyr] = soillayers[lyr].NH4_mass;
-	return NH4;
-}
-
-std::vector<double> Soilcolumn::get_NO3() {
-	std::vector<double> NO3(nsoillayers);
-	for (int lyr = 0; lyr < nsoillayers; lyr++)
-		NO3[lyr] = soillayers[lyr].NO3_mass;
-	return NO3;
+	return nfrac;
 }
 
 std::vector<double> Soilcolumn::get_rootfrac() {
@@ -1827,7 +1830,7 @@ double Soilcolumn::set_b(double sigma) {
 }
 
 // Determines static soil layer organic fractions 
-void Soilcolumn::get_static_socfrac(std::vector<double> socfrac) {
+std::vector<double> Soilcolumn::get_static_socfrac() {
 
 	// Use a beta value to reproduce the global vertical SOC profile shown in Fig 4 of Jobbagy & Jackson (2010)
 	const double beta_SOC = 0.976;
@@ -1838,6 +1841,8 @@ void Soilcolumn::get_static_socfrac(std::vector<double> socfrac) {
 	// 40 - 60cm	:	0.16				:	0.16
 	// 60 - 80cm	:	0.10				:	0.11
 	// 80 - 100cm	:	0.06				:	0.09
+
+	std::vector<double> socfrac(nsoillayers);
 
 	double depth = soillayers[0].depth * CM_PER_MM; // [mm]
 
@@ -1852,6 +1857,8 @@ void Soilcolumn::get_static_socfrac(std::vector<double> socfrac) {
 
 	// Put the residual SOC fraction in lowest soil layer
 	socfrac[nsoillayers - 1] += 1.0 - min(soc_frac_total, 1.0);
+
+	return socfrac;
 }
 
 /// Average temperature down to a depth
@@ -2356,9 +2363,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double fpc_moss_total = 0.0;// Total fpc for mosses
 
 	// total water in acrotelm layers (mm)
-	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get_wmass());
+	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get_prop(WMASS));
 	// total ice in acrotelm layers (mm)
-	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get_imass());
+	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get_prop(IMASS));
 
 	/// surface water content when WTD is at 20 mm
 	const double surfw = 0.34;
@@ -2599,7 +2606,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Porosity updates in the presence of ice?
 	bool subtractIceFromWtot = true;
-	double avgIceFrac = subtractIceFromWtot ? to_depth(ACROTELM_DEPTH, get_imass(), get_depth()) : 0.0;
+	double avgIceFrac = subtractIceFromWtot ? to_depth(ACROTELM_DEPTH, get_prop(IMASS), get_prop(DEPTH)) : 0.0;
 
 	// the pore space minus the ice fraction
 	double acrotelm_por_icy = acrotelm_por - avgIceFrac;
@@ -2907,8 +2914,6 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// Excess water transferred to runoff
 	// Eqns 26, 27, 31, Haxeltine & Prentice 1996
 
-	double runoff_drain = 0.0;
-
 	for (int lyr = 1; lyr < nsoillayers; lyr++) {
 
 		// Percolation
@@ -2928,8 +2933,11 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		soillayers[lyr - 1].wmass -= soillayers[lyr - 1].perc_mass;
 		soillayers[lyr].wmass += soillayers[lyr - 1].perc_mass;
 		if (soillayers[lyr].wmass > soillayers[lyr].fc()) {
-			runoff_drain += soillayers[lyr].wmass - soillayers[lyr].fc();
+			soillayers[lyr].runoff_drain = soillayers[lyr].wmass - soillayers[lyr].fc();
 			soillayers[lyr].wmass = soillayers[lyr].fc();
+		}
+		else {
+			soillayers[lyr].runoff_drain = 0.0;
 		}
 
 		// Deduct AET from this soil layer
@@ -2954,15 +2962,15 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	}
 
 	// Total runoff
-	runoff = runoff_surf + runoff_drain + runoff_baseflow;
+	runoff = runoff_surf + runoff_drain() + runoff_baseflow;
 
 	// Water balance check
-	double wafter = wmass() + rain_melt + runoff + aet_total + evap;
+	double wafter = wmass() + runoff + aet_total + evap;
 	if (fabs(wbefore-wafter) > 1.0e-10)
-		dprintf("Year %d Day %d BUCKETWATER Before %g After %g Diff %g\n",date.year,date.day, wbefore, wafter, wbefore - wafter);
+		dprintf("Year %d Day %d BUCKETWATER Before %g After %g Diff %g Rain_melt %g\n",date.year,date.day, wbefore, wafter, wbefore - wafter, rain_melt);
 
-	// Save percolation from system (needed in leaching())
-	dperc = runoff_baseflow + runoff_drain;
+	// Reset rain_melt
+	rain_melt = 0.0;
 
 	// Save monthly and annaul values
 	patch.maet[date.month] += aet_total;
@@ -2970,7 +2978,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	patch.mrunoff[date.month] += runoff;
 
 	patch.asurfrunoff += runoff_surf;
-	patch.adrainrunoff += runoff_drain;
+	patch.adrainrunoff += runoff_drain();
 	patch.abaserunoff += runoff_baseflow;
 	patch.arunoff += runoff;
 	patch.aaet += aet_total;
@@ -3081,7 +3089,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Evaporation
 
 	// Calculate wcont and awc for evaporation layers (only up to awc)
-	double wcont_evap = min(1.0, to_depth(SOILDEPTH_EVAP, get_wcont(), get_awc()));
+	double wcont_evap = min(1.0, to_depth(SOILDEPTH_EVAP, get_prop(WCONT), get_prop(AWC)));
 
 	// Calculate total evaporation
 	// guess2008 - changed to wcont_evap**2, as in LPJ-mL
@@ -3094,7 +3102,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Evaporation cannot exceed available water down to evaporation depth
-	double avail_evap = to_depth(SOILDEPTH_EVAP, get_wmass()) - to_depth(SOILDEPTH_EVAP, get_wp());
+	double avail_evap = to_depth(SOILDEPTH_EVAP, get_prop(WMASS)) - to_depth(SOILDEPTH_EVAP, get_prop(WP));
 	evap = min(avail_evap, evap);
 
 	// Extract evaporation from soil layers as a fraction of available water
@@ -3114,9 +3122,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Surface infiltration and runoff
 
 	// Calculate water and ice content for infiltration layers
-	double wmass_infilt = to_depth(SOILDEPTH_INFILT, get_wmass());
-	double imass_infilt = to_depth(SOILDEPTH_INFILT, get_imass());
-	double wsats_infilt = to_depth(SOILDEPTH_INFILT, get_wsat());
+	double wmass_infilt = to_depth(SOILDEPTH_INFILT, get_prop(WMASS));
+	double imass_infilt = to_depth(SOILDEPTH_INFILT, get_prop(IMASS));
+	double wsats_infilt = to_depth(SOILDEPTH_INFILT, get_prop(WSATS));
 	double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
 
 	// Calculate runoff if there is any throughfall or snow melt (Balsamo 2009, eqn 6 and 11)

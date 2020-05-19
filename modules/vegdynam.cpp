@@ -112,7 +112,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 
 	if (!iftwolayersoil) {
 		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0 // DW_COMMENT only arctic pfts in the NH?
-		if (((patch.soilcolumn.snow.mdepth[0] + patch.soilcolumn.snow.mdepth[1] + patch.soilcolumn.snow.dec_depth) / 3.0) < pft.min_snow ||
+		if (patch.soilcolumn.snow.snowpack_avrmax3mth() < pft.min_snow ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 
@@ -125,7 +125,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-		double awcontupper = patch.soilcolumn.to_depth(SOILDEPTH_UPPER, patch.soilcolumn.get_awcont(), patch.soilcolumn.get_awc());
+		double awcontupper = patch.soilcolumn.to_depth(SOILDEPTH_UPPER, patch.soilcolumn.get_prop(AWCONT), patch.soilcolumn.get_prop(AWC));
         if (pft.drought_tolerance > awcontupper) {
            return false;
         }
@@ -424,6 +424,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	const bool establish_active_pfts_before_management = true;
 
+	double ncont_before = patch.ncont();
+
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -691,6 +693,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		// ... on to next PFT
 		pftlist.nextobj();
 	}
+
+	double ncont_after = patch.ncont();
+
+	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
+		dprintf("Year %d Day %d NITROGEN ESTAB diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 }
 
 

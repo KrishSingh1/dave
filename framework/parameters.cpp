@@ -653,8 +653,10 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum temperature limit for photosynthesis (deg C)");
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
-		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
+		declareitem("root_beta", &ppft->root_beta, 0.0, 1.0, 1, CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
+		declareitem("root_dist", ppft->root_dist, 0.0, 1.0, NSOILLAYER_MAX, CB_ROOTFRAC,
+			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
@@ -1212,10 +1214,10 @@ void plib_callback(int callback) {
 		break;
 	case CB_ROOTFRAC:
 		numval = 0.0;
-		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
+		ppft->init_rootdist(rootdistribution);
 		
 		for (i=0;i<ppft->rootdist.size();i++) numval+=ppft->rootdist[i];
-		if (numval<0.99 || numval>1.01) {
+		if (fabs(1.0-numval)>1.0e-2) {
 			sendmessage("Error","Specified root fractions do not sum to 1.0");
 			plibabort();
 		}
@@ -1636,7 +1638,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			if (!itemparsed("lambda_max")) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
-				if (!itemparsed("rootdist")) badins("rootdist");
+				if (!itemparsed("root_dist")) badins("root_dist");
 			}
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");

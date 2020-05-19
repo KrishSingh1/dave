@@ -47,6 +47,71 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
+/// Soil N substrate partitioning
+/** Daily calculation of nitrogen substrate partition
+*  between aerobic and anaerobic soil fractions
+*/
+struct Nsubpart {
+
+	Nsubpart() {
+		NH4_mass_w = NH4_mass_d = 0.0;
+		NO3_mass_w = NO3_mass_d = 0.0;
+		NO2_mass_w = NO2_mass_d = 0.0;
+		NO_mass_w = NO_mass_d = 0.0;
+		N2O_mass_w = N2O_mass_d = 0.0;
+		labile_carbon_w = labile_carbon_d = 0.0;
+	}
+
+	// soil NH4 mass in pool (kgN/m2)
+	double NH4_mass_w; // wet proportion
+	double NH4_mass_d; // dry proportion
+
+	// soil NO3 mass in pool (kgN/m2)
+	double NO3_mass_w;
+	double NO3_mass_d;
+	
+	// soil NO2 mass in pool (kgN/m2)
+	double NO2_mass_w;
+	double NO2_mass_d;
+	
+	// soil NO mass in pool (kgN/m2)
+	double NO_mass_w;
+	double NO_mass_d;
+	
+	// soil NO mass in pool (kgN/m2)
+	double N2O_mass_w;
+	double N2O_mass_d;
+	
+	// soil labile carbon availability daily (kgC/m2/day)
+	double labile_carbon_w;
+	double labile_carbon_d;
+
+	void substrate_partition(Soillayer soillayer) {
+
+		// An S-curve fitted to the linear increase in
+		// denitrifier activity above roughly 50% WFPS with the steepest
+		// change around 66% ending up at 100% around 75%.
+		// Meaning that there is no nitrification at that WFPS.
+		// Derived from Pilegaard 2013
+
+		double wet = richards_curve(0.05, 0.95, 7.5, 0.5, min(1.0, soillayer.wcont()));
+
+		NH4_mass_w = soillayer.NH4_mass * wet;
+		NO3_mass_w = soillayer.NO3_mass * wet;
+		NO2_mass_w = soillayer.NO2_mass * wet; 
+		N2O_mass_w = soillayer.N2O_mass * wet;
+		NO_mass_w = soillayer.NO_mass * wet;
+		labile_carbon_w = soillayer.labile_carbon * wet;
+
+		NH4_mass_d = soillayer.NH4_mass - NH4_mass_w;
+		NO3_mass_d = soillayer.NO3_mass - NO3_mass_w;
+		NO2_mass_d = soillayer.NO2_mass - NO2_mass_w;
+		N2O_mass_d = soillayer.N2O_mass - N2O_mass_w;
+		NO_mass_d = soillayer.NO_mass - NO_mass_w;
+		labile_carbon_d = soillayer.labile_carbon - labile_carbon_w;
+	};
+};
+
 /// Soil NH3 volatilization
 /** Daily calculation of NH3 volatilization from soil
  *
@@ -93,42 +158,17 @@ void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, do
 	n_budget_check -= nh3_inc;
 }
 
-/// Soil N substrate partitioning
-/** Daily calculation of nitrogen substrate partition 
- *  between aerobic and anaerobic soil fractions
- */
-void substrate_partition(Soillayer& soillayer) {
-
-	// An S-curve fitted to the linear increase in
-	// denitrifier activity above roughly 50% WFPS with the steepest
-	// change around 66% ending up at 100% around 75%.
-	// Meaning that there is no nitrification at that WFPS.
-	// Derived from Pilegaard 2013
-
-	double wet = richards_curve(0.05, 0.95, 7.5, 0.5, min(1.0, soillayer.wcont()));
-
-	soillayer.NH4_mass_w = soillayer.NH4_mass * wet;
-	soillayer.NO3_mass_w = soillayer.NO3_mass * wet;
-	soillayer.NO2_mass_w = soillayer.NO2_mass * wet;
-	soillayer.labile_carbon_w = soillayer.labile_carbon * wet;
-
-	soillayer.NH4_mass_d = soillayer.NH4_mass - soillayer.NH4_mass_w;
-	soillayer.NO3_mass_d = soillayer.NO3_mass - soillayer.NO3_mass_w;
-	soillayer.NO2_mass_d = soillayer.NO2_mass - soillayer.NO2_mass_w;
-	soillayer.labile_carbon_d = soillayer.labile_carbon - soillayer.labile_carbon_w;
-}
-
 /// Soil N nitrification
 /** Daily calculation of nitrification, and nitrification
  *  induced trace gas emissions 
  */
-void nitrification(Patch& patch, Soillayer& soillayer) {
+void nitrification(Patch& patch, Soillayer& soillayer, Nsubpart& subpart) {
 
 	double b = log(3.0) * 5.0;
-	double a = exp(-b*6.0 / 10.0);
+	double a = exp(-b * 6.0 / 10.0);
 	double wcont = min(1.0, soillayer.wcont());
-	double act_dry = a*exp(wcont*b);
-	double act_wet = max(0.0, 4.0 - 5.0*wcont);
+	double act_dry = a * exp(wcont * b);
+	double act_wet = max(0.0, 4.0 - 5.0 * wcont);
 	double nit_act = min(act_dry, act_wet);
 
 	double f_nit_T, no3_inc, no_inc, n2o_inc, gross_nitrif;
@@ -142,9 +182,9 @@ void nitrification(Patch& patch, Soillayer& soillayer) {
 		f_nit_T = 0.0;
 	}
 	// gross nitrification rate, NH4_mass converted to NO3_mass (table 8, eqn 1, Xu-Ri 2008)
-	no3_inc = f_nitri_max * nit_act * f_nit_T * soillayer.NH4_mass_d;
+	no3_inc = f_nitri_max * nit_act * f_nit_T * subpart.NH4_mass_d;
 	gross_nitrif = no3_inc;
-	soillayer.NH4_mass_d -= no3_inc;
+	subpart.NH4_mass_d -= no3_inc;
 
 	double ngas_inc = f_denitri_gas_max * no3_inc;
 	//no3_inc -= ngas_inc;
@@ -157,17 +197,17 @@ void nitrification(Patch& patch, Soillayer& soillayer) {
 
 	no_inc = f_no * ngas_inc;
 	no3_inc -= no_inc;
-	soillayer.NO_mass_d += no_inc;
+	subpart.NO_mass_d += no_inc;
 
 	n2o_inc = ngas_inc - no_inc;
 	no3_inc -= n2o_inc;
-	soillayer.N2O_mass_d += n2o_inc;
+	subpart.N2O_mass_d += n2o_inc;
 
 	// New NO3-
-	soillayer.NO3_mass_d += no3_inc;
+	subpart.NO3_mass_d += no3_inc;
 
-	soillayer.NO3_mass_d += soillayer.NO2_mass_d;
-	soillayer.NO2_mass_d = 0.0;
+	subpart.NO3_mass_d += subpart.NO2_mass_d;
+	subpart.NO2_mass_d = 0.0;
 
 	// Report gross nitrification
 	patch.fluxes.report_flux(Fluxes::GROSS_NITRIF, gross_nitrif);
@@ -177,16 +217,19 @@ void nitrification(Patch& patch, Soillayer& soillayer) {
 /** Daily calculation of denitrification rate, and denitrification
  *  induced trace gas emissions 
  */
-void denitrification(Patch& patch,Soillayer& soillayer) {
+void denitrification(Patch& patch,Soillayer& soillayer, Nsubpart& subpart) {
+	
 	double soil_T = soillayer.temp;
 	double wcont = min(1.0, soillayer.wcont());
+	
 	// used to remove the per m3 from the constants KC and KN.
 	double water_cont_m3 = wcont * soillayer.awc / 1000.0;
 
 	double wfps = soillayer.wfps();
 
 	double f_den_T, d_N_max, no2_inc, no_inc, n2o_inc, ngas_inc, gross_denitrif, n2_inc;
-	if (water_cont_m3 > 0.0 && wfps>0.4) {
+	if (water_cont_m3 > 0.0 && wfps > 0.4) {
+
 		// temperature limiting factor for denitrification, 22 deg C == 1 (table 9, eqn 1, Xu-Ri 2008)
 		if (soil_T >= -40.0) {
 			f_den_T = min(1.0, exp(308.56 * (1.0 / 68.02 - 1.0 / (soil_T + 46.02))));
@@ -195,23 +238,23 @@ void denitrification(Patch& patch,Soillayer& soillayer) {
 			f_den_T = 0.0;
 		}
 		// effect of labile carbon availability on denitrification (table 9, eqn 2, Xu-Ri 2008)
-		d_N_max = soillayer.labile_carbon_w / (k_C * water_cont_m3 + soillayer.labile_carbon_w);
+		d_N_max = subpart.labile_carbon_w / (k_C * water_cont_m3 + subpart.labile_carbon_w);
 
 		// gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
-		no2_inc = min(soillayer.NO3_mass_w, soillayer.NO3_mass_w * f_denitri_max * d_N_max * f_den_T * soillayer.NO3_mass_w / (k_N * water_cont_m3 + soillayer.NO3_mass_w));
+		no2_inc = min(subpart.NO3_mass_w, subpart.NO3_mass_w * f_denitri_max * d_N_max * f_den_T * subpart.NO3_mass_w / (k_N * water_cont_m3 + subpart.NO3_mass_w));
 
 		gross_denitrif   = no2_inc;
-		soillayer.NO3_mass_w -= no2_inc;
-		soillayer.NO2_mass_w += no2_inc;
+		subpart.NO3_mass_w -= no2_inc;
+		subpart.NO2_mass_w += no2_inc;
 
 		// gross transformation of NO2 to N2 (table 9, eqn 4, Xu-Ri 2008)
 
 		// Denitrification rate dependence on moisture, Weier et al. 1993
 		double f_den_w = min(1.0, exp(13.0360 * wfps - 11.6219));
 
-		ngas_inc = min(soillayer.NO2_mass_w, soillayer.NO2_mass_w * f_nitri_gas_max * d_N_max * f_den_w * f_den_T * soillayer.NO2_mass_w / (k_N * water_cont_m3 + soillayer.NO2_mass_w));
+		ngas_inc = min(subpart.NO2_mass_w, subpart.NO2_mass_w * f_nitri_gas_max * d_N_max * f_den_w * f_den_T * subpart.NO2_mass_w / (k_N * water_cont_m3 + subpart.NO2_mass_w));
 
-		soillayer.NO2_mass_w -= ngas_inc;
+		subpart.NO2_mass_w -= ngas_inc;
 
 		double f_n2o_no_w = max(0.0, min(1.0, 3.2092 * wfps - 0.9210));
 
@@ -231,8 +274,8 @@ void denitrification(Patch& patch,Soillayer& soillayer) {
 			n2_inc = ngas_inc - n2o_inc;
 		}
 
-		soillayer.NO_mass_w += no_inc;
-		soillayer.N2O_mass_w	+= n2o_inc;
+		subpart.NO_mass_w += no_inc;
+		subpart.N2O_mass_w += n2o_inc;
 		soillayer.N2_mass += n2_inc;
 	} 
 	else {
@@ -246,15 +289,14 @@ void denitrification(Patch& patch,Soillayer& soillayer) {
 /** Daily calculation of soil N gas emissions 
 
  */
-void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, double& n_budget_check) {
+void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, Nsubpart& subpart, double& n_budget_check) {
 
-	//for book keeping
-	soillayer.labile_carbon = soillayer.labile_carbon_w + soillayer.labile_carbon_d;
+	// for book keeping
+	soillayer.labile_carbon = subpart.labile_carbon_w + subpart.labile_carbon_d;
 
 	double soil_T = soillayer.temp;
 	double wcont = min(1.0, soillayer.wcont());
 	double ftemp, no_d_flux_inc, n2o_d_flux_inc, no_w_flux_inc, n2o_w_flux_inc, n2_flux_inc;
-	double no_flux_inc, n2o_flux_inc;
 	double net_nitrif = 0.0;
 	double net_denitrif = 0.0;
 
@@ -265,44 +307,34 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, double& 
 	else {
 		ftemp = 0.0;
 	}
-	// Nitrification flux
 
-	// daily NO gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
-	no_d_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.NO_mass_d;
-	soillayer.NO_mass_d -= no_d_flux_inc;
+	// Nitrification fluxes
+
+	// Daily NO gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	no_d_flux_inc = ftemp * (1.0 - wcont) * subpart.NO_mass_d;
+	subpart.NO_mass_d -= no_d_flux_inc;
 	net_nitrif += no_d_flux_inc;
 
-	// daily N2O gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
-	n2o_d_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.N2O_mass_d;
-	soillayer.N2O_mass_d -= n2o_d_flux_inc;
+	// Daily N2O gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	n2o_d_flux_inc = ftemp * (1.0 - wcont) * subpart.N2O_mass_d;
+	subpart.N2O_mass_d -= n2o_d_flux_inc;
 	net_nitrif += n2o_d_flux_inc;
 
 
 	// Denitrification fluxes
 
-	// daily NO gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
-	no_w_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.NO_mass_w;
-	soillayer.NO_mass_w -= no_w_flux_inc;
+	// Daily NO gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	no_w_flux_inc = ftemp * (1.0 - wcont) * subpart.NO_mass_w;
+	subpart.NO_mass_w -= no_w_flux_inc;
 	net_denitrif += no_w_flux_inc;
 
-	// daily N2O gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
-	n2o_w_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.N2O_mass_w;
-	soillayer.N2O_mass_w -= n2o_w_flux_inc;
+	// Daily N2O gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	n2o_w_flux_inc = ftemp * (1.0 - wcont) * subpart.N2O_mass_w;
+	subpart.N2O_mass_w -= n2o_w_flux_inc;
 	net_denitrif += n2o_w_flux_inc;
 
-	/////////////////////////////////////////////
-	//TOTAL fluxes: nitrification + denitrification
-	//no_flux
-	no_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.NO_mass;
-	soillayer.NO_mass -= no_flux_inc;
-
-	//n2o flux
-	n2o_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.N2O_mass;
-	soillayer.N2O_mass -= n2o_flux_inc;
-	//////////////////////////////////////////////
-
-	// daily N2 gas released from soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
-	n2_flux_inc = ftemp * (1.0 - min(1.0, wcont)) * soillayer.N2_mass;
+	// Daily N2 gas released from soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	n2_flux_inc = ftemp * (1.0 - wcont) * soillayer.N2_mass;
 	soillayer.N2_mass -= n2_flux_inc;
 
 	//////////////////////////////////////////////
@@ -316,12 +348,12 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, double& 
 	patch.fluxes.report_flux(Fluxes::NET_DENITRIF, net_denitrif);
 
 	// substrates after N gas emissions
-	soillayer.NH4_mass = soillayer.NH4_mass_w + soillayer.NH4_mass_d;
-	soillayer.NO3_mass = soillayer.NO3_mass_w + soillayer.NO3_mass_d;
-	soillayer.NO2_mass = soillayer.NO2_mass_w + soillayer.NO2_mass_d;
-	soillayer.NO_mass = soillayer.NO_mass_w + soillayer.NO_mass_d;
-	soillayer.N2O_mass = soillayer.N2O_mass_w + soillayer.N2O_mass_d;
-	soillayer.labile_carbon = soillayer.labile_carbon_w + soillayer.labile_carbon_d;
+	soillayer.NH4_mass = subpart.NH4_mass_w + subpart.NH4_mass_d;
+	soillayer.NO3_mass = subpart.NO3_mass_w + subpart.NO3_mass_d;
+	soillayer.NO2_mass = subpart.NO2_mass_w + subpart.NO2_mass_d;
+	soillayer.NO_mass = subpart.NO_mass_w + subpart.NO_mass_d;
+	soillayer.N2O_mass = subpart.N2O_mass_w + subpart.N2O_mass_d;
+	soillayer.labile_carbon = subpart.labile_carbon_w + subpart.labile_carbon_d;
 
 	// N budget check
 	// N lost through emissions and existing pool sizes
@@ -336,6 +368,7 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, double& 
  *  of soil organic matter dynamic submodel.
  */
 void ntransform(Patch& patch, Climate& climate) {
+
 	if (ifntransform) {
 		const double EPS = 1.0e-14;
 		double n_budget_check;
@@ -354,16 +387,17 @@ void ntransform(Patch& patch, Climate& climate) {
 			nh3_volatilization(patch, soillayer, climate, n_budget_check);
 
 			// N substrate partition
-			substrate_partition(soillayer);
+			Nsubpart subpart;
+			subpart.substrate_partition(soillayer);
 
 			// nitrification
-			nitrification(patch, soillayer);
+			nitrification(patch, soillayer, subpart);
 
 			// denitrification
-			denitrification(patch, soillayer);
+			denitrification(patch, soillayer, subpart);
 
 			// N gas emission
-			n_gas_emission(patch, fluxes, soillayer, n_budget_check);
+			n_gas_emission(patch, fluxes, soillayer, subpart, n_budget_check);
 
 			// warning if soil N transform does not hold mass balance
 			assert(fabs(n_budget_check) < EPS);

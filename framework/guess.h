@@ -140,6 +140,9 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
 /// Nitrogen preferance
 typedef enum {NO, NH4, NO3} n_pref_type;
+
+/// Soil property types
+typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, NH_4, NO_3} soilproptype;
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -1629,6 +1632,8 @@ public:
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	std::vector<double> rootdist;
+	/// vegetation root profile input in an array containing fraction of roots in each soil layer, [0=upper layer]
+	double root_dist[NSOILLAYER_MAX];
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -2010,8 +2015,11 @@ public:
 		c3=0.0;
 		d3=0.0;
 
-		for (int i=0; i<3; i++)
-			photo[i]=0.0;
+		for (int i = 0; i<3; i++)
+			photo[i] = 0.0;
+
+		for (int i = 0; i<NSOILLAYER_MAX; i++)
+			root_dist[i] = 0.0;
 	}
 
 	/// Calculates SLA given leaf longevity
@@ -2129,7 +2137,7 @@ public:
 	}
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-	void init_rootdist() {
+	void init_rootdist(rootdisttype rootdistribution) { 
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		// Soil layer depth shouldn't be calculated here for each PFT, but needs to be done as
@@ -2162,25 +2170,42 @@ public:
 		int soil_lyrs = lyr;
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+		if (!iftwolayersoil) { 
 
-		rootdist.resize(soil_lyrs, 0.0);
+			rootdist.resize(soil_lyrs, 0.0);
 
-		double tot = 0.0;
-		tot_depth = lyr_depths[0] * CM_PER_MM;
+			if (rootdistribution == ROOTDIST_JACKSON) {
 
-		// init first layer
-		rootdist[0] = 1.0 - pow(root_beta, tot_depth);
-		tot += rootdist[0];
+				// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
 
-		for (lyr = 1; lyr < soil_lyrs - 1; lyr++) {
-			tot_depth += lyr_depths[lyr] * CM_PER_MM;
-			rootdist[lyr] = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - lyr_depths[lyr] * CM_PER_MM));
-			tot += rootdist[lyr];
+				double tot = 0.0;
+				tot_depth = lyr_depths[0] * CM_PER_MM;
+
+				// init first layer
+				rootdist[0] = 1.0 - pow(root_beta, tot_depth);
+				tot += rootdist[0];
+
+				for (lyr = 1; lyr < soil_lyrs - 1; lyr++) {
+					tot_depth += lyr_depths[lyr] * CM_PER_MM;
+					rootdist[lyr] = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - lyr_depths[lyr] * CM_PER_MM));
+					tot += rootdist[lyr];
+				}
+
+				// Add the remaining rootdist in last soil layer
+				rootdist[soil_lyrs - 1] = 1.0 - tot;
+			}
+			else { // ROOTDIST_FIXED 
+
+				for (lyr = 0; lyr < soil_lyrs - 1; lyr++) {
+					rootdist[lyr] = root_dist[lyr];
+				}
+			}
 		}
-
-		// Add the remaining rootdist in last soil layer
-		rootdist[soil_lyrs - 1] = 1.0 - tot;
+		else { // Old two layer scheme
+			rootdist.resize(2, 0.0);
+			rootdist[0] = root_dist[0];
+			rootdist[1] = root_dist[1];
+		}
 	}
     
 	bool ismoss() const {
@@ -3330,25 +3355,15 @@ public:
 	double aorgCleach;
 
 	/// soil NH4 mass in pool (kgN/m2)
-	double NH4_mass;	// total
-	double NH4_mass_w;	// wet proportion
-	double NH4_mass_d;	// dry proportion
+	double NH4_mass;
 	/// soil NO3 mass in pool (kgN/m2)
 	double NO3_mass; 
-	double NO3_mass_w;
-	double NO3_mass_d;
 	/// soil NO2 mass in pool (kgN/m2)
 	double NO2_mass;
-	double NO2_mass_w;
-	double NO2_mass_d;
 	/// soil NO mass in pool (kgN/m2)
 	double NO_mass;
-	double NO_mass_w;
-	double NO_mass_d;
 	/// soil NO mass in pool (kgN/m2)
 	double N2O_mass;
-	double N2O_mass_w;
-	double N2O_mass_d;
 	/// soil N2 mass in pool (kgN/m2)
 	double N2_mass;
 
@@ -3357,8 +3372,6 @@ public:
 
 	// soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
-	double labile_carbon_w;
-	double labile_carbon_d;
 
 	// Variables for fast spinup of SOM pools
 
@@ -3531,8 +3544,6 @@ public:
 	double snow_depth_standard;
 	/// Limit for creating/deleting a snow layer compared to standard depth (20%)
 	double snow_depth_limit;
-	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008) 
-	double dec_depth;
 	/// Daily snow depth [mm]
 	double ddepth[Date::MAX_YEAR_LENGTH];
 	/// Monthly snow depth (average) [mm]
@@ -3578,6 +3589,9 @@ public:
 
 	/// Balance ice and water in snow layers after melt
 	void ice_water_snow_balance();
+
+	/// Mean snow depth for the three months with largest snowpack
+	double snowpack_avrmax3mth();
 
 	/// Returns total snowpack (water and ice) [mm]
 	double snowpack();
@@ -3687,8 +3701,6 @@ public:
 	double max_rain_melt;
 	/// whether to percolate today
 	bool percolate;
-	/// daily percolation (mm)
-	double dperc;
 	/// total runoff today (mm/day)
 	double runoff;
 	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
@@ -3786,32 +3798,13 @@ public:
 	}
 
 	void initdrivers();
-	/// Get soil layers temperature
-	std::vector<double> get_temp();
-	/// Get soil layers water mass
-	std::vector<double> get_wmass();
-	/// Get soil layers ice mass
-	std::vector<double> get_imass();
-	/// Get soil layers wcont
-	std::vector<double> get_wcont();
-	/// Get monthly soil layers wcont
-	std::vector<double> get_mwcont(int m);
-	/// Get annual soil layers wcont
-	std::vector<double> get_awcont();
-	/// Get soil layers wcont_max
-	std::vector<double> get_wcont_max();
-	/// Get soil layers wsat
-	std::vector<double> get_wsat();
-	/// Get soil layers awc
-	std::vector<double> get_awc();
-	/// Get soil layers wp
-	std::vector<double> get_wp();
-	/// Get soil layers depths
-	std::vector<double> get_depth();
-	/// Get soil layers NH4
-	std::vector<double> get_NH4();
-	/// Get soil layers NO3
-	std::vector<double> get_NO3();
+
+	/// Get soil property 
+	std::vector<double> get_prop(soilproptype SPT, int m = 0);
+	/// Get soil layers total cmass fractions
+	std::vector<double> Soilcolumn::get_ccontfrac();
+	/// Get soil layers avail nmass fraction
+	std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref);
 	/// Get soil layers root fractions
 	std::vector<double> get_rootfrac();
 	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 
@@ -3859,7 +3852,7 @@ public:
 	/// Set b parameter for orography influence on surface runoff
 	double set_b(double sigma);
 	/// Return static soil organic carbon fractions
-	void Soilcolumn::get_static_socfrac(std::vector<double> socfrac);
+	std::vector<double> Soilcolumn::get_static_socfrac();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(std::vector<double> rootdist);
 	/// variable down to a depth 
@@ -4245,9 +4238,6 @@ public:
 		nsapling = 0;
 
 		fwuptake.resize(pft.rootdist.size(), 0.0);
-
-		for(int i=0;i<pft.rootdist.size();i++) // DW_COMMENT shouldn't be needed. Already done above
-			fwuptake[i]=0.0;
 
 		cropphen = NULL;
 		harvested_products_slow = 0.0;

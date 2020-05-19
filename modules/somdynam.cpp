@@ -408,8 +408,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 	}
 
 	// Calculate decomposition moisture modifier (in range 0-1)
-	// Friend et al 1997, Eqn 53
-	// (Parton et al 1993, Fig 2)
+	// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
 
 	// Water Filled Pore Spaces (wfps) %
 	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
@@ -424,20 +423,25 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 	else
 		moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;
 
-	double moist_mod_inundated_mineral = 0.000371 * 100.0 * 100.0 - 0.0748 * 100 + 4.13; // 100% WFPS for wetlands on mineral soils, 0.36 approx
+	// Additional moist modifier for saturated soils
+	// no effect unless this is a peat soil
+	double moist_mod_saturated = 1.0; 
 
-																						 // Combined moisture and temperature modifier
-
-																						 // simple overrides for peatlands and mineral wetlands
-	double moist_mod_saturated = 1.0; // no effect unless this is peatland
-
+	// Moisture modifiers for peat soils
 	if (ispeatland) {
+		// Fixed value for peat soils
 		moist_mod_saturated = RMOIST_ANAEROBIC / RMOIST; // i.e 0.25 = 0.1 / 0.4 (standard values)
+		// Simple overrides for peatlands and mineral wetlands
 		moist_mod = RMOIST;
 	}
 
-	if (ismineralwetland)
-		moist_mod = moist_mod_inundated_mineral;
+	// Moisture modifiers for wetlands on mineral soils
+	if (ismineralwetland) {
+		// 100% WFPS for wetlands on mineral soils, 0.36 approx
+		moist_mod = 0.000371 * 100.0 * 100.0 - 0.0748 * 100 + 4.13;
+	}
+
+	// Combined moisture and temperature modifier
 
 	for (int p = 0; p < NSOMPOOL; p++) {
 
@@ -458,7 +462,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 			k *= texture_mod;
 		}
 
-		// Increased HR for crops (tillage)
+		// Increased decay rates for crops (tillage)
 		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
 			k *= TILLAGE_FACTOR;
 		}
@@ -529,7 +533,9 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	const double EPS = 1.0e-16;
 
 	double ncont_before = patch.soilcolumn.ncont();
+	double ccont_before = patch.soilcolumn.ccont();
 	double nextra = 0.0;
+	double cextra = 0.0;
 
 	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 
@@ -790,6 +796,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			else
 				soillayer.dcflux_soil = respsum;
 
+			cextra += respsum;
+
 			// Sum annual organic nitrogen leaching
 
 			soillayer.aorgNleach += leachsum_nmass;
@@ -798,6 +806,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			// Sum annual organic carbon leaching
 
 			soillayer.aorgCleach += leachsum_cmass;
+			cextra += leachsum_cmass;
 
 			// Sum annuals
 			soillayer.anmin += nmin_actual_tot;
@@ -836,9 +845,13 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	}
 
 	double ncont_after = patch.soilcolumn.ncont() + nextra;
+	double ccont_after = patch.soilcolumn.ccont() + cextra;
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14 && !ifequilsom) // DW_COMMENT remove
-		dprintf("Year %d Day %d SOM diff %g %g %g\n",date.year,date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
+	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
+		dprintf("Year %d Day %d NITROGEN SOM diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
+
+	if (date.year > freenyears && fabs(ccont_before - ccont_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
+		dprintf("Year %d Day %d CARBON SOM diff %g %g %g\n", date.year, date.day, fabs(ccont_before - ccont_after), ccont_before, ccont_after);
 
 }
 
@@ -1249,18 +1262,21 @@ void transfer_litter(Patch& patch) {
  */
 void leaching_LPJ(Soilcolumn& soilcolumn) {
 
-	double minleachfrac;
+	double ncont_before = soilcolumn.ncont();
+	double nextra = 0.0;
+
+	double minleachfrac, minmovefrac;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		if (!negligible(soillayer.perc_mass)) {
+		if (!negligible(soillayer.perc_mass + soillayer.runoff_drain)) {
 
 			// Leaching from available nitrogen mineral pool
-			// in proportion to amount of water drainage
-			// Use Gerten equivalents here 
-			minleachfrac = soillayer.perc_mass / (soillayer.perc_mass + soillayer.wmass);
+			// in proportion to amount of water precolated and drained
+			minleachfrac = soillayer.runoff_drain / (soillayer.perc_mass + soillayer.runoff_drain + soillayer.wmass);
+			minmovefrac = soillayer.perc_mass / (soillayer.perc_mass + soillayer.runoff_drain + soillayer.wmass);
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1271,10 +1287,12 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H2O/month)
 			double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
 
-			soillayer.orgleachfrac = min(1.0, soillayer.perc_mass / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.sand_frac);
+			// precolation and drainage results in direct loss of organic C
+			soillayer.orgleachfrac = min(1.0, (soillayer.perc_mass + soillayer.runoff_drain) / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.sand_frac);
 		}
 		else {
 			minleachfrac = 0.0;
+			minmovefrac = 0.0;
 			soillayer.orgleachfrac = 0.0;
 		}
 
@@ -1288,13 +1306,35 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 
 			soillayer.nmass_subtract(leaching, NO3);
 			soillayer.aminleach += leaching;
+			nextra += leaching;
+
+			leaching = nmin_avail * minmovefrac;
+
+			soillayer.nmass_subtract(leaching, NO3);
+
+			// Bottom layer then N is lost
+			if (lyr == soilcolumn.nsoillayers - 1) {
+				soillayer.aminleach += leaching;
+				nextra += leaching;
+			}
+			// else if is transferred to layer below
+			else {
+				soilcolumn.soillayers[lyr + 1].nmass_inc(leaching, NO3);
+			}
 		}
 
 		if (soilcolumn.savesomcent) {
 			soillayer.morgleach_mean[date.month] += soillayer.orgleachfrac / date.ndaymonth[date.month];
 			soillayer.mminleach_mean[date.month] += minleachfrac / date.ndaymonth[date.month];
+			soillayer.mminmove_mean[date.month] += minmovefrac / date.ndaymonth[date.month];
+			
 		}
 	}
+
+	double ncont_after = soilcolumn.ncont() + nextra;
+
+	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
+		dprintf("Year %d Day %d NITROGEN LEACH diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 }
 
 /// LEACHING
@@ -1394,13 +1434,12 @@ void soilnadd(Patch& patch) {
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	if (!ifntransform) {
+		// Add an additional N flux from soil
 		double nflux = 0.01 * (soilcolumn.NH4_input + soilcolumn.NO3_input);
 		soilcolumn.NH4_input -= 0.01 * soilcolumn.NH4_input;
 		soilcolumn.NO3_input -= 0.01 * soilcolumn.NO3_input;
 
 		patch.fluxes.report_flux(Fluxes::NH3_SOIL, nflux);
-
-		// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
 	}
 
 	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
@@ -1411,18 +1450,16 @@ void soilnadd(Patch& patch) {
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
 
-	double soilcolumn_cmass = soilcolumn.ccont();
+	// Get soil layers total C mass fractions
+	std::vector<double> ccontfrac = soilcolumn.get_ccontfrac();
 
 	// Nitrogen fixation in each soil layer
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		// Base layer activity to C content
-		double cfrac_lyr = !negligible(soilcolumn_cmass) ? soillayer.ccont() / soilcolumn_cmass : 0.0;
-
 		// Nitrogen mass saturation level
-		double NMASS_SAT_LYR = NMASS_SAT * cfrac_lyr;
+		double NMASS_SAT_LYR = NMASS_SAT * ccontfrac[lyr];
 
 		// NH4 in soil layer
 		const double nmin_avail = soillayer.nmass_avail(NH4);
@@ -1432,7 +1469,7 @@ void soilnadd(Patch& patch) {
 		// nitrogen fixation is reduced (nitrogen rich soils)
 		if (nmin_avail < NMASS_SAT_LYR) {
 
-			double daily_nfix = soilcolumn.anfix_calc * cfrac_lyr / date.year_length();
+			double daily_nfix = soilcolumn.anfix_calc * ccontfrac[lyr] / date.year_length();
 
 			if (nmin_avail + daily_nfix > NMASS_SAT_LYR) {
 				daily_nfix = NMASS_SAT_LYR - nmin_avail;
@@ -1551,7 +1588,8 @@ void equilsom(Patch& patch) {
 		// Monthly time steps
 		for (int m = 0; m < 12; m++) {
 
-			double soilcolumn_cmass = soilcolumn.ccont();
+			// Get soil layers total C mass fractions
+			std::vector<double> ccontfrac = soilcolumn.get_ccontfrac();
 
 			// Go through each soil layer
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -1606,7 +1644,7 @@ void equilsom(Patch& patch) {
 				}
 
 				// Monthly nitrogen addition from fixation to the soil layer
-				soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * !negligible(soilcolumn_cmass) ? soillayer.ccont() / soilcolumn_cmass : 0.0, NH4);
+				soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * ccontfrac[lyr], NH4);
 
 				// Monthly decomposition and fluxes between SOM pools
 

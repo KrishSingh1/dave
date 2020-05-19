@@ -1143,13 +1143,11 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	/// daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
-	// soil available mineral nitrogen (kgN/m2)
+	// soil available mineral nitrogen (kg N m-2)
 	const double nmin_avail = soilcolumn.nmass_avail(NO, true);
-	// Available soil N DW_COMMENT avail_nmass and Km shouldn't be down to root depth
-	//double nmin_avail = soilcolumn.nmass_avail(true,NO); // DW_COMMENT
 
-	// Average soil temperature down to active layer depth
-	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get_temp(), soilcolumn.get_depth());
+	// Average soil temperature down to active layer depth scaled by available N fraction in layers
+	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get_prop(TEMP), soilcolumn.get_nfrac(NO));
 
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double temp_scale = soil_temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil_temp, 1.652) - pow(soil_temp / 41.748, 7.19)) : 0.0;
@@ -1647,8 +1645,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
 
-	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_wcont(), soilcolumn.get_awc());
-	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_awc());
+	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(WCONT), soilcolumn.get_prop(AWC));
+	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(AWC));
 
 	if (wcont_upper < 0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
@@ -1689,7 +1687,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		if (irrigate_soil && soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
-			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_imass())) {
+			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(IMASS))) {
 
 				// Irrigation water for this PFT:
 
@@ -1771,7 +1769,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	// DW_COMMENT wcont_cp should equal patch.soilcolumn.wconts()
 
-	return water_uptake(wcont_cp, soilcolumn.get_awc(), pft.rootdist, pft.emax, patch.fpc_rescale,
+	return water_uptake(wcont_cp, soilcolumn.get_prop(AWC), pft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
 };
 
@@ -1817,7 +1815,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				//wcont_local = patch.soilcolumn.wconts();
 
 				//wr = water_uptake(wcont_local, patch.soilcolumn.awcs(),
-				wr = water_uptake(patch.soilcolumn.get_wcont(), patch.soilcolumn.get_awc(),
+				wr = water_uptake(patch.soilcolumn.get_prop(WCONT), patch.soilcolumn.get_prop(AWC),
 					pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);
 			}

@@ -455,8 +455,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		ifsaturatewetlands = false;
 
 		// Fail in these cases
-		if (iforganicsoilproperties || ifcarbonfreeze || ifmultilayersnow) {
-			fail("dailyaccounting_gridcell: iforganicsoilproperties, ifcarbonfreeze and ifmultilayersnow must all be 0 if iftwolayersoil = 1");
+		if (ifcarbonfreeze || ifmultilayersnow) { // iforganicsoilproperties is now available for two layer soil scheme
+			fail("dailyaccounting_gridcell: ifcarbonfreeze and ifmultilayersnow must all be 0 if iftwolayersoil = 1");
 		}
 	}
 
@@ -521,10 +521,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					soilcolumn.savesomcent = false;
 				}
 
-				// Determine static or actual soil carbon fractions
+				// Determine static soil carbon fractions
 				std::vector<double> socfrac(soilcolumn.nsoillayers);
 				if (iforganicsoilproperties == 1 && date.year == 0) {
-					 soilcolumn.get_static_socfrac(socfrac); // DW_COMMENT move to within set_properties()
+					socfrac = soilcolumn.get_static_socfrac(); // DW_COMMENT move to within set_properties()
 				}
 
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -539,7 +539,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 						soillayer.mwcontabove = 0.0;
 					}
 
-					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr]); // DW_COMMENT Need to transfer this info when doing landuse change
+					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr]);
 
 					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
 				}
@@ -752,14 +752,11 @@ void dailyaccounting_patch(Patch& patch) {
 	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
 	if (date.day == 0) {
 
-		// Save the December value for use in establishment
-		soilcolumn.snow.dec_depth = soilcolumn.snow.depth();
-
 		for (int mth = 0; mth < 12; mth++) {
 			soilcolumn.snow.mdepth[mth] = 0.0;
 			soilcolumn.mthaw[mth] = 0.0;
-			for (int sl = 0; sl < soilcolumn.nsoillayers; sl++)
-				soilcolumn.soillayers[sl].mtemp[mth] = 0.0;
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++)
+				soilcolumn.soillayers[lyr].mtemp[mth] = 0.0;
 		}
 	}
 

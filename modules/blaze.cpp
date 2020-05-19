@@ -609,7 +609,7 @@ void blaze(Patch& patch, Climate& climate) {
 				indiv.reduce_biomass(MAX_GRASS_BURN, MAX_GRASS_BURN);
 
 				// remove NPP and put is to fire flux
-				patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp*MAX_GRASS_BURN);
+				patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
 				indiv.anpp *= (1. - MAX_GRASS_BURN);
 
 				// kill object if burn is total
@@ -632,8 +632,8 @@ void blaze(Patch& patch, Climate& climate) {
 					// Number of individuals represented by 'indiv'
 					// (round up to be on the safe side)
 					// In individual mode densindiv is 1!
-
-					int nindiv = (int)(indiv.densindiv*patcharea + 0.5);
+					
+					int nindiv = (int)(indiv.densindiv * patcharea + 0.5);
 					int nindiv_prev = nindiv;
 					for (int i = 0; i < nindiv_prev; i++) {
 						if (randfrac(patch.stand.seed) > survival_probability(patch, indiv)) {

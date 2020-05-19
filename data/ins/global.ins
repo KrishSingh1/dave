@@ -111,7 +111,7 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         	! see documentation for water_uptake()
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -129,7 +129,7 @@ timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 !///////////////////////////////////////////////////////////////////////////////
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
-ifnlim 0			! Whether plant growth limited by available N
+ifnlim 1			! Whether plant growth limited by available N
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.234			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b -0.172			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -239,7 +239,8 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	!rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	!root_dist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 ! multi layer soil
+	root_dist 0.6 0.4 0 0 0 0 0 0 0 0 ! two layer soil
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
@@ -287,7 +288,8 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	!rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	!root_dist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 ! multi layer soil
+	root_dist 0.6 0.4 0 0 0 0 0 0 0 0 ! two layer soil
 	root_beta 0.982
 	longevity 100
 
@@ -304,7 +306,8 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	!rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	!root_dist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 ! multi layer soil
+	root_dist 0.9 0.1 0 0 0 0 0 0 0 0 ! two layer soil
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
@@ -743,7 +746,8 @@ group "lowshrub"(
 	k_allom1 10
 	k_allom2 4
 	k_latosa 125
-	!rootdist 0.27 0.2 0.14 0.1 0.08 0.06 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.0 0.0
+	!root_dist 0.27 0.2 0.14 0.1 0.08 0.06 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.0 0.0
+	root_dist 0.6 0.4 0 0 0 0 0 0 0 0
 	root_beta 0.9685
 	turnover_sap 0.01
 	greff_min 0.012 	! 60% of the shrub_high value, as in AW, but AW had 0.03

@@ -118,7 +118,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
-			methane_dynamics(patch);
+			methane_dynamics(patch); // DW_COMMENT need to check
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
 

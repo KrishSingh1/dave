@@ -154,10 +154,7 @@ void irrigation(Patch& patch) {
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	patch.irrigation_d = 0.0;
-	if (date.day == 0) {
-		patch.irrigation_y = 0.0;
-	}
+	double irrigation_d = 0.0;
 
 	if (!patch.stand.isirrigated) {
 		return;
@@ -170,12 +167,12 @@ void irrigation(Patch& patch) {
 			if (ppft.wmass_deficit_d < 0.0) {
 				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
 			}
-			patch.irrigation_d += ppft.wmass_deficit_d;
+			irrigation_d += ppft.wmass_deficit_d;
 		}
 	}
-	patch.irrigation_y += patch.irrigation_d;
-	soilcolumn.rain_melt += patch.irrigation_d;
-	soilcolumn.max_rain_melt += patch.irrigation_d;
+	patch.fluxes.report_flux(Fluxes::WIRRI, irrigation_d);
+	soilcolumn.rain_melt += irrigation_d;
+	soilcolumn.max_rain_melt += irrigation_d;
 }
 
 // Inundation stress

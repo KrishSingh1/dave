@@ -1485,7 +1485,7 @@ void soilnadd(Patch& patch) {
 	if (date.islastmonth && date.islastday) {
 
 		// Add this year's AET to aaet_5 which keeps track of the last 5 years
-		patch.aaet_5.add(patch.aaet + patch.aevap + patch.aintercep);
+		patch.aaet_5.add(patch.fluxes.get_annual_flux(Fluxes::WAET) + patch.fluxes.get_annual_flux(Fluxes::WEVAP) + patch.fluxes.get_annual_flux(Fluxes::WINTERCEP));
 
 		// Calculate estimated maximum nitrogen fixation (aaet should be in cm/yr, eqn is in nitrogen/ha/yr)
 		double cmtomm = 0.1;

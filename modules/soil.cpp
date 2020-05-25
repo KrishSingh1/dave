@@ -100,6 +100,14 @@ double Snow::ncont() {
 	return NO3_mass + NH4_mass;
 }
 
+/// Water mass in snow layers
+double Snow::wcontent() {
+	double wcontent = 0.0;
+	for (int lyr = 0; lyr < nsnowlayers; lyr++)
+		wcontent += snowlayers[lyr].wmass + snowlayers[lyr].imass;
+	return wcontent;
+}
+
 double Snow::depth() {
 	double sd = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
@@ -703,9 +711,9 @@ void Snow::update_layers(double prec, double snowfall_dens) {
 void Snow::snowfall(double airT, double& prec) {
 
 	// If snowfall
-	if (airT < 0.0 && prec > 0.0) {
-
-		if (ifmultilayersnow) {
+	if (ifmultilayersnow) {
+		
+		if (airT < 0.0 && prec > 0.0) {
 
 			// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
 			int a = 109; // kg m-3, 
@@ -795,9 +803,8 @@ void Snow::snowfall(double airT, double& prec) {
 			}
 		}
 	}
-
 	// Simple single snow layer scheme (v4.0)
-	if (!ifmultilayersnow) {
+	else { // !ifmultilayersnow
 
 		// Daily calculation of snowfall and rainfall from precipitation and snow melt from
 		// snow pack; update of snow pack with new snow and snow melt and snow melt
@@ -1460,7 +1467,6 @@ void Soilcolumn::initdrivers() {
 	rain_melt = 0.0;
 	max_rain_melt = 0.0;
 	percolate = 0.0;
-	runoff = 0.0;
 
 	// Peatland hydrology variables
 	awtp = 0.0;
@@ -1729,14 +1735,12 @@ double Soilcolumn::ncont() {
 }
 
 /// Water content of soil column
-double Soilcolumn::wcont() {
-	double acc_water = 0.0;
-	double acc_awc = 0.0;
+double Soilcolumn::wcontent() {
+	double wcontent = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		acc_water += soillayers[lyr].wcont() * soillayers[lyr].awc;
-		acc_awc += soillayers[lyr].awc;
+		wcontent += soillayers[lyr].wmass + soillayers[lyr].imass;
 	}
-	return acc_awc > 0.0 ? acc_water / acc_awc : 0.0;
+	return wcontent;
 }
 
 /// Water mass of soil column
@@ -1924,9 +1928,6 @@ void Soilcolumn::calc_temp_analytic() { // DW_COMMENT
 	// monthly based on mean daily soil water content for the past month, interpolating
 	// between estimates for 0, 15% and 100% AWHC (Van Duin 1963; Jury et al 1991,
 	// Fig 5.11).
-
-	if (!iftwolayersoil)
-		return;
 
 	Climate climate = patch.get_climate();
 
@@ -2378,23 +2379,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	const double grad_lim = 50.0;
 	/// Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
 	double az = (acrotelm_por - minvtot) / zmin;
-	
-
-	// Reset annuals
-	if (date.day == 0) {
-		patch.aevap = 0.0;
-		patch.asurfrunoff = 0.0;
-		patch.adrainrunoff = 0.0;
-		patch.abaserunoff = 0.0;
-		patch.arunoff = 0.0;
-		patch.awetland_wmass_added = 0.0;
-	}
-
-	// Reset monthlys
-	if (date.dayofmonth == 0) {
-		patch.mevap[date.month] = 0.0;
-		patch.mrunoff[date.month] = 0.0;
-	}
 
 	// *** TRANSPIRATION *** 
 
@@ -2485,7 +2469,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Water in the acrotelm 
 	wtot_acrotelm += rain_melt - evapotranspiration - runoff_drain;
-
+	rain_melt = 0.0;
 
 	// *** RUNOFF AND RUNON***
 
@@ -2524,18 +2508,14 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Save evapotranspiration data
 	if (empirical_evapotranspiration) {
-
-		patch.aaet += (1.0 - fevap) * evapotranspiration;
-		patch.aevap += fevap * evapotranspiration;
-		patch.maet[date.month] += (1.0 - fevap) * evapotranspiration;
-		patch.mevap[date.month] += fevap * evapotranspiration;
+		
+		patch.fluxes.report_flux(Fluxes::WEVAP, fevap * evapotranspiration);
+		patch.fluxes.report_flux(Fluxes::WAET, (1.0 - fevap) * evapotranspiration);
 	}
 	else {
 
-		patch.aaet += aet_total;
-		patch.aevap += evap;
-		patch.maet[date.month] += aet_total;
-		patch.mevap[date.month] += evap;
+		patch.fluxes.report_flux(Fluxes::WEVAP, evap);
+		patch.fluxes.report_flux(Fluxes::WAET, aet_total);
 	}
 
 
@@ -2595,11 +2575,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// *** RUNOFF ***
 
-	// Save today's runoff in Soil::runoff
-	runoff = runoff_surf;
-	patch.arunoff += runoff;
-	patch.mrunoff[date.month] += runoff;
-	patch.asurfrunoff += runoff;
+	// Save today's runoff
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
 
 
 	// *** WATER CONTENT IN EACH LAYER - THE PROFILE ***
@@ -2826,22 +2803,6 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// Water mass balance check
 	double wbefore = wmass() + rain_melt;
 
-	// Reset annuals
-	if (date.day == 0) {
-		patch.aevap = 0.0;
-		patch.asurfrunoff = 0.0;
-		patch.adrainrunoff = 0.0;
-		patch.abaserunoff = 0.0;
-		patch.arunoff = 0.0;
-		patch.awetland_wmass_added = 0.0;
-	}
-
-	// Reset monthlys
-	if (date.dayofmonth == 0) {
-		patch.mevap[date.month] = 0.0;
-		patch.mrunoff[date.month] = 0.0;
-	}
-
 	// Actual Evapotranspiration from soil column
 
 	// AET for a particular layer and individual (mm)
@@ -2945,7 +2906,6 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	}
 
 	// Baseflow runoff (rain or snowmelt days only)
-	double runoff_baseflow = 0.0;
 	if (percolate) {
 		double perc_baseflow = BASEFLOW_FRAC * soillayers[nsoillayers - 1].perc_base * 
 			pow(soillayers[nsoillayers - 1].wcont(), soillayers[nsoillayers - 1].perc_exp);
@@ -2958,31 +2918,26 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		// Deduct from water content of bottom soil layer
 		soillayers[nsoillayers - 1].perc_mass = min(perc_baseflow, soillayers[nsoillayers - 1].wmass - soillayers[nsoillayers - 1].wp);
 		soillayers[nsoillayers - 1].wmass -= soillayers[nsoillayers - 1].perc_mass;
-		runoff_baseflow = soillayers[nsoillayers - 1].perc_mass;
+		soillayers[nsoillayers - 1].runoff_baseflow = soillayers[nsoillayers - 1].perc_mass;
+	}
+	else {
+		soillayers[nsoillayers - 1].runoff_baseflow = 0.0;
 	}
 
-	// Total runoff
-	runoff = runoff_surf + runoff_drain() + runoff_baseflow;
-
 	// Water balance check
-	double wafter = wmass() + runoff + aet_total + evap;
+	double wafter = wmass() + runoff_surf + runoff_drain() + runoff_baseflow() + aet_total + evap;
 	if (fabs(wbefore-wafter) > 1.0e-10)
 		dprintf("Year %d Day %d BUCKETWATER Before %g After %g Diff %g Rain_melt %g\n",date.year,date.day, wbefore, wafter, wbefore - wafter, rain_melt);
 
 	// Reset rain_melt
 	rain_melt = 0.0;
 
-	// Save monthly and annaul values
-	patch.maet[date.month] += aet_total;
-	patch.mevap[date.month] += evap;
-	patch.mrunoff[date.month] += runoff;
-
-	patch.asurfrunoff += runoff_surf;
-	patch.adrainrunoff += runoff_drain();
-	patch.abaserunoff += runoff_baseflow;
-	patch.arunoff += runoff;
-	patch.aaet += aet_total;
-	patch.aevap += evap;
+	// Save fluxes
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, runoff_drain());
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, runoff_baseflow()); 
+	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
+	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
 
 	// Update awcont_upper
 
@@ -3044,21 +2999,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	const double SOILDEPTH_EVAP = 200.0;
 	/// Soil depth for soil infiltration
 	const double SOILDEPTH_INFILT = 500.0;
-
-	// Reset annuals
-	if (date.day == 0) {
-		patch.aevap = 0.0;
-		patch.asurfrunoff = 0.0;
-		patch.adrainrunoff = 0.0;
-		patch.abaserunoff = 0.0;
-		patch.arunoff = 0.0;
-	}
-
-	// Reset monthlys
-	if (date.dayofmonth == 0) {
-		patch.mevap[date.month] = 0.0;
-		patch.mrunoff[date.month] = 0.0;
-	}
 
 	double wmass_begin = wmass() + rain_melt;
 
@@ -3137,6 +3077,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Calculate infiltration (mm)
 	double infilt = max(0.0, rain_melt - runoff_surf);
+	rain_melt = 0.0;
 
 	// Calculate water profile and fluxes
 	calc_wflow(infilt);
@@ -3188,17 +3129,13 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		}
 	}
 
-	patch.asurfrunoff += runoff_surf;
-	patch.adrainrunoff += runoff_drain();
-	patch.abaserunoff += runoff_baseflow();
-	patch.arunoff += runoff;
-	patch.awetland_wmass_added += patch.wetland_wmass_added_today;
-	patch.aaet += aet_total;
-	patch.aevap += evap;
-
-	patch.maet[date.month] += aet_total;
-	patch.mevap[date.month] += evap;
-	patch.mrunoff[date.month] += runoff;
+	// Save fluxes
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, runoff_drain());
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, runoff_baseflow());
+	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
+	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
+	patch.fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	// guess2008 - DLE - update awcont
@@ -3242,11 +3179,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 /* Initial percolation
  */
 void Soilcolumn::initial_percolation() {
-
-	// Reset annuals
-	if (date.day == 0) {
-		patch.awetland_wmass_added = 0.0;
-	}
 
 	patch.wetland_wmass_added_today = 0.0;
 
@@ -3555,205 +3487,220 @@ bool Soilcolumn::can_freeze() const {
 
 void Soilcolumn::calc_temp() {
 
-	if (!iftwolayersoil) {
+	// Minimum dz for top snow layer [m] (should be calculated from Von Neumann Stability Analysis k=gamma deltaT/(deltaX)^2)
+	double min_slyr_dz = 0.1; // DW_COMMENT NOT THE BEST WAY!!!!!!!!
 
-		// Minimum dz for top snow layer [m] (should be calculated from Von Neumann Stability Analysis k=gamma deltaT/(deltaX)^2)
-		double min_slyr_dz = 0.1;
+	for (int ts = 0; ts < date.timesteps; ts++) {
 
-		for (int ts = 0; ts < date.timesteps; ts++) {
+		int nsnowsoillayers = snow.nsnowlayers + nsoillayers;
+		int nsnowsoilpadlayers = snow.nsnowlayers + nsoillayers + PAD_LAYERS;
+		int tmp_snowlayers = snow.nsnowlayers; //////////////////////////
 
-			int nsnowsoillayers = snow.nsnowlayers + nsoillayers;
-			int nsnowsoilpadlayers = snow.nsnowlayers + nsoillayers + PAD_LAYERS;
-			int tmp_snowlayers = snow.nsnowlayers; //////////////////////////
-
-			if (nsnowsoilpadlayers != tpara.dz.size()) {
-				tpara.set_sizes(nsnowsoilpadlayers);
-			}
-
-			// Update heat capacity and thermal conductivity for snow, soil and padding layers
-			update_heatcap_and_cond();
-
-			// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			int slyr = snow.nsnowlayers - 1;
-			for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
-				if (lyr == 0 && snow.snowlayers[slyr].depth * M_PER_MM < min_slyr_dz && !iftwolayersoil) {
-					double frac_snow = snow.snowlayers[slyr].depth / 100.0;
-					tpara.dz[lyr] = min_slyr_dz;
-					tpara.cap[lyr] = snow.snowlayers[slyr].Ch * frac_snow + Cp_air * (1.0 - frac_snow);
-					tpara.diff[lyr] = snow.snowlayers[slyr].Kh * frac_snow + Kair * (1.0 - frac_snow);
-				}
-				else {
-					tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
-					tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
-					tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
-				}
-				tpara.psi[lyr] = snow.snowlayers[slyr].temp;
-
-				slyr--;
-			}
-
-			// Soil layers
-			for (int lyr = snow.nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-				tpara.dz[lyr] = soillayers[lyr - snow.nsnowlayers].depth * M_PER_MM;
-				tpara.cap[lyr] = soillayers[lyr - snow.nsnowlayers].Ch;
-				tpara.diff[lyr] = soillayers[lyr - snow.nsnowlayers].Kh;
-				tpara.psi[lyr] = soillayers[lyr - snow.nsnowlayers].temp;
-			}
-
-			// Padding layers
-			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-				tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
-				tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
-				tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
-				tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
-			}
-
-			double depth = tpara.dz[0] / 2.0;
-			tpara.z[0] = depth;
-			for (int lyr = 1; lyr < nsnowsoilpadlayers; lyr++) {
-				depth += (tpara.dz[lyr - 1] + tpara.dz[lyr]) / 2.0;
-				tpara.z[lyr] = depth;
-			}
-
-			// Boundary conditions for soil temperature (Shouldn't use air temperature)
-			// Upper boundary condition
-			double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - patch.get_climate().temp) / tpara.z[0] / date.timesteps;
-
-			// Lower boundary condition
-			double f_bot = 0.0;
-
-			// Build diagonals and RHS vector
-			build_diags_rhs(date.dt / date.timesteps, f_top, f_bot,
-				tpara.cap, tpara.diff, tpara.cond,
-				tpara.upper, tpara.main, tpara.lower, tpara.rhs,
-				tpara.z, tpara.dz, tpara.psi, tpara.sink, nsnowsoilpadlayers);
-
-			// Solve tridiagonal system
-			solve_tridiagonal(tpara.upper, tpara.main, tpara.lower, tpara.rhs, tpara.psi1);
-
-			// Update temperatures
-
-			// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			slyr = snow.nsnowlayers - 1;
-			for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
-				snow.snowlayers[slyr].temp = tpara.psi1[lyr];
-				slyr--;
-			}
-
-			// Set new soil layer temperatures
-			for (int lyr = snow.nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-				soillayers[lyr - snow.nsnowlayers].temp = tpara.psi1[lyr];
-			}
-
-			// Set new padding layer temperatures
-			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-				pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
-			}
-
-			// Phase change between water and ice and adjust snow layer temperatures accordingly
-			snow.phase_change();
-
-			// Phase change between water and ice and adjust soil layer temperatures accordingly
-			phase_change();
-
-			// Balance ice and water in snow layers after melt
-			snow.ice_water_snow_balance();
-
-			/*if (date.year == 0) {
-			dprintf("%d %d %g %g ", date.day, ts, patch.get_climate().temp, f_top);
-			for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-			dprintf("%g ", tpara.psi1[lyr]);
-			}
-			for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-			dprintf("%g ", tpara.z[lyr]);
-			}
-			for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-			dprintf("%g ", tpara.dz[lyr]);
-			}
-			for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-			dprintf("%g ", tpara.cap[lyr]);
-			}
-			for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-			dprintf("%g ", tpara.diff[lyr]);
-			}
-			dprintf("\n");
-			}*/
-
-			/*//PRINTING OUT DAILY SNOW AND SOIL PROPERTIES
-			if (date.year == 0 && date.day == 0 && ts == 0) {
-				dprintf("Year Day cnstep dailyair f_top Snow1 Snow2 Snow3 Snow4 Snow5 Soil1 Soil3 Soil3 Soil4 Soil5 Soil6 snowdz1 snowdz2 snowdz3 snowdz4 snowdz5 soildz1 soildz2 soildz3 cap_C1 cap_C2 cap_C3 cap_C4 cap_C5 cap_C6 cap_C7 cap_C8 diff_C1 diff_C2 diff_C3 diff_C4 diff_C5 diff_C6 diff_C7 diff_C8 \n");
-			}
-			//
-			if (date.year < 5){// && date.day < 100) {
-
-				dprintf("%d %d %d %g %g", date.year, date.day, ts, patch.get_climate().temp, f_top);
-
-				// Temp
-				for (int i = 4; i >= 0; i--) {
-					if (snow.nsnowlayers - 1 >= i)
-						dprintf(" %g", snow.snowlayers[i].temp);
-					else
-						dprintf(" %g", patch.get_climate().temp);
-				}
-				dprintf(" %g %g %g %g %g %g", soillayers[0].temp, soillayers[1].temp, soillayers[2].temp, soillayers[3].temp, soillayers[4].temp, soillayers[5].temp);
-
-				// Snow depth
-				for (int i = 4; i >= 0; i--) {
-					if (snow.nsnowlayers - 1 >= i)
-						dprintf(" %g", snow.snowlayers[i].depth);
-					else
-						dprintf(" %g", 100.0);
-				}
-				dprintf(" %g %g %g", tpara.dz[tmp_snowlayers], tpara.dz[tmp_snowlayers + 1], tpara.dz[tmp_snowlayers + 2]);
-
-				// cap_C
-				for (int i = 4; i >= 0; i--) {
-					if (snow.nsnowlayers - 1 >= i)
-						dprintf(" %g", snow.snowlayers[i].Ch);
-					else
-						dprintf(" %g", 0.0);
-				}
-				dprintf(" %g %g %g", tpara.cap[tmp_snowlayers], tpara.cap[tmp_snowlayers +1], tpara.cap[tmp_snowlayers +2]);
-
-				// diff_K
-				for (int i = 4; i >= 0; i--) {
-					if (snow.nsnowlayers - 1 >= i)
-						dprintf(" %g", snow.snowlayers[i].Kh);
-					else
-						dprintf(" %g", 0.0);
-				}
-				dprintf(" %g %g %g", tpara.diff[tmp_snowlayers], tpara.diff[tmp_snowlayers + 1], tpara.diff[tmp_snowlayers + 2]);
-
-				dprintf("\n");
-			}*/
+		if (nsnowsoilpadlayers != tpara.dz.size()) {
+			tpara.set_sizes(nsnowsoilpadlayers);
 		}
 
-		// Not the first time this method is called	
-		firstTempCalc = false;
+		// Update heat capacity and thermal conductivity for snow, soil and padding layers
+		update_heatcap_and_cond();
 
-		// Thaw depth calculation
-		thaw_depth();
+		// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+		int slyr = snow.nsnowlayers - 1;
+		for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
+			if (lyr == 0 && snow.snowlayers[slyr].depth * M_PER_MM < min_slyr_dz && !iftwolayersoil) {
+				double frac_snow = snow.snowlayers[slyr].depth / 100.0;
+				tpara.dz[lyr] = min_slyr_dz;
+				tpara.cap[lyr] = snow.snowlayers[slyr].Ch * frac_snow + Cp_air * (1.0 - frac_snow);
+				tpara.diff[lyr] = snow.snowlayers[slyr].Kh * frac_snow + Kair * (1.0 - frac_snow);
+			}
+			else {
+				tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
+				tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
+				tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
+			}
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = snow.snowlayers[slyr].temp;
 
+			slyr--;
+		}
+
+		// Soil layers
+		for (int lyr = snow.nsnowlayers; lyr < nsnowsoillayers; lyr++) {
+			tpara.dz[lyr] = soillayers[lyr - snow.nsnowlayers].depth * M_PER_MM;
+			tpara.cap[lyr] = soillayers[lyr - snow.nsnowlayers].Ch;
+			tpara.diff[lyr] = soillayers[lyr - snow.nsnowlayers].Kh;
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = soillayers[lyr - snow.nsnowlayers].temp;
+		}
+
+		// Padding layers
+		for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
+			tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
+			tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
+			tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
+		}
+
+		double depth = tpara.dz[0] / 2.0;
+		tpara.z[0] = depth;
+		for (int lyr = 1; lyr < nsnowsoilpadlayers; lyr++) {
+			depth += (tpara.dz[lyr - 1] + tpara.dz[lyr]) / 2.0;
+			tpara.z[lyr] = depth;
+		}
+
+		// Boundary conditions for soil temperature (Shouldn't use air temperature)
+		// Upper boundary condition
+		double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - patch.get_climate().temp) / tpara.z[0] / date.timesteps;
+
+		// Lower boundary condition
+		double f_bot = 0.0;
+
+		// Build diagonals and RHS vector
+		build_diags_rhs(date.dt / date.timesteps, f_top, f_bot,
+			tpara.cap, tpara.diff, tpara.cond,
+			tpara.upper, tpara.main, tpara.lower, tpara.rhs,
+			tpara.z, tpara.dz, tpara.psi, tpara.sink, nsnowsoilpadlayers);
+
+		// Solve tridiagonal system
+		solve_tridiagonal(tpara.upper, tpara.main, tpara.lower, tpara.rhs, tpara.psi1);
+
+		// Update temperatures
+
+		// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+		slyr = snow.nsnowlayers - 1;
+		for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
+			snow.snowlayers[slyr].temp = tpara.psi1[lyr];
+			slyr--;
+		}
+
+		// Set new soil layer temperatures
+		for (int lyr = snow.nsnowlayers; lyr < nsnowsoillayers; lyr++) {
+			soillayers[lyr - snow.nsnowlayers].temp = tpara.psi1[lyr];
+		}
+
+		// Set new padding layer temperatures
+		for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
+			pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
+		}
+
+		// Phase change between water and ice and adjust snow layer temperatures accordingly
+		snow.phase_change();
+
+		// Phase change between water and ice and adjust soil layer temperatures accordingly
+		phase_change();
+
+		// Balance ice and water in snow layers after melt
+		snow.ice_water_snow_balance();
+
+		/*if (date.year == 0) {
+		dprintf("%d %d %g %g ", date.day, ts, patch.get_climate().temp, f_top);
+		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
+		dprintf("%g ", tpara.psi1[lyr]);
+		}
+		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
+		dprintf("%g ", tpara.z[lyr]);
+		}
+		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
+		dprintf("%g ", tpara.dz[lyr]);
+		}
+		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
+		dprintf("%g ", tpara.cap[lyr]);
+		}
+		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
+		dprintf("%g ", tpara.diff[lyr]);
+		}
+		dprintf("\n");
+		}*/
+
+		/*//PRINTING OUT DAILY SNOW AND SOIL PROPERTIES
+		if (date.year == 0 && date.day == 0 && ts == 0) {
+			dprintf("Year Day cnstep dailyair f_top Snow1 Snow2 Snow3 Snow4 Snow5 Soil1 Soil3 Soil3 Soil4 Soil5 Soil6 snowdz1 snowdz2 snowdz3 snowdz4 snowdz5 soildz1 soildz2 soildz3 cap_C1 cap_C2 cap_C3 cap_C4 cap_C5 cap_C6 cap_C7 cap_C8 diff_C1 diff_C2 diff_C3 diff_C4 diff_C5 diff_C6 diff_C7 diff_C8 \n");
+		}
+		//
+		if (date.year < 5){// && date.day < 100) {
+
+			dprintf("%d %d %d %g %g", date.year, date.day, ts, patch.get_climate().temp, f_top);
+
+			// Temp
+			for (int i = 4; i >= 0; i--) {
+				if (snow.nsnowlayers - 1 >= i)
+					dprintf(" %g", snow.snowlayers[i].temp);
+				else
+					dprintf(" %g", patch.get_climate().temp);
+			}
+			dprintf(" %g %g %g %g %g %g", soillayers[0].temp, soillayers[1].temp, soillayers[2].temp, soillayers[3].temp, soillayers[4].temp, soillayers[5].temp);
+
+			// Snow depth
+			for (int i = 4; i >= 0; i--) {
+				if (snow.nsnowlayers - 1 >= i)
+					dprintf(" %g", snow.snowlayers[i].depth);
+				else
+					dprintf(" %g", 100.0);
+			}
+			dprintf(" %g %g %g", tpara.dz[tmp_snowlayers], tpara.dz[tmp_snowlayers + 1], tpara.dz[tmp_snowlayers + 2]);
+
+			// cap_C
+			for (int i = 4; i >= 0; i--) {
+				if (snow.nsnowlayers - 1 >= i)
+					dprintf(" %g", snow.snowlayers[i].Ch);
+				else
+					dprintf(" %g", 0.0);
+			}
+			dprintf(" %g %g %g", tpara.cap[tmp_snowlayers], tpara.cap[tmp_snowlayers +1], tpara.cap[tmp_snowlayers +2]);
+
+			// diff_K
+			for (int i = 4; i >= 0; i--) {
+				if (snow.nsnowlayers - 1 >= i)
+					dprintf(" %g", snow.snowlayers[i].Kh);
+				else
+					dprintf(" %g", 0.0);
+			}
+			dprintf(" %g %g %g", tpara.diff[tmp_snowlayers], tpara.diff[tmp_snowlayers + 1], tpara.diff[tmp_snowlayers + 2]);
+
+			dprintf("\n");
+		}*/
+	}
+
+	// Not the first time this method is called	
+	firstTempCalc = false;
+
+	// Thaw depth calculation
+	thaw_depth();
+}
+
+
+// Calculate soil layer temperatures
+/*
+ *
+*/
+void Soilcolumn::temp() {
+
+	if (iftwolayersoil) {
+		// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
+		// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.
+		calc_temp_analytic(); // DW_COMMENT check so temp make sense
+	}
+	else {
+
+		// Calculate the soil temperature in snow, soil and padding layers.
+		calc_temp();
 	}
 
 	// Save daily snow depth
 	snow.ddepth[date.day] = snow.depth();
 
 	// Calculate mean monthly snow depth
-	if (date.islastday)
+	if (date.islastday) {
 		snow.mdepth[date.month] = mean(snow.ddepth + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
+	}
 }
 
 void Soilcolumn::serialize(ArchiveStream& arch) {
 	arch & soillayers
-		& NH4_input
-		& NO3_input
 		& anfix
 		& anfix_mean
 		& anfix_calc
-		& rain_melt
-		& max_rain_melt
 		& pad
 		& solvesomcent_beginyr
 		& solvesomcent_endyr;

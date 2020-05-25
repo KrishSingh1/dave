@@ -123,8 +123,7 @@ void interception(Patch& patch,Climate& climate) {
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
 
 	// Interception accounting for patch
-	patch.aintercep+=patch.intercep;
-	patch.mintercep[date.month]+=patch.intercep;
+	patch.fluxes.report_flux(Fluxes::WINTERCEP, patch.intercep);
 
 }
 
@@ -2545,8 +2544,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	double pet_patch = patch.wdemand_day * patch.fpc_total + patch.intercep +
 				climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0);
 
-	patch.apet += pet_patch;
-	patch.mpet[date.month] += pet_patch;
+	patch.fluxes.report_flux(Fluxes::WPET, pet_patch);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

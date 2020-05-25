@@ -463,13 +463,16 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// On first day of year ...
 
 	if (date.day == 0) {
+
+		// reset annual precipitation
+		climate.aprec = 0.0;
+
 		// ... reset annual GDD5 counter
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
 		gridcell.aNH4dep  = 0.0;
 		gridcell.aNO3dep  = 0.0;
-		climate.aprec = 0.0;
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
@@ -569,6 +572,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.ifsensechill = true;
 	}
 
+	climate.aprec += climate.prec;
+
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);
@@ -638,6 +643,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// On 31 December update records of minimum monthly temperatures for the last
 		// 20 years and find mean of minimum monthly temperatures for the last 20 years
 		if (date.islastmonth) {
+
+			climate.aprec_lastyear = climate.aprec;
+
 			startyear = 20 - (int)min(19, date.year);
 			climate.mtemp_min20 = climate.mtemp_min;
 			climate.mtemp_max20 = climate.mtemp_max;
@@ -706,10 +714,6 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.day == 0) {
 
-		patch.aaet = 0.0;
-		patch.aintercep = 0.0;
-		patch.apet = 0.0;
-
 		// Calculate total FPC
 		patch.fpc_total = 0;
 		Vegetation& vegetation = patch.vegetation;
@@ -729,13 +733,6 @@ void dailyaccounting_patch(Patch& patch) {
 				soilcolumn.soillayers[lyr].temp = 0.0;
 			}
 		}
-	}
-
-	if (date.dayofmonth == 0) {
-
-		patch.maet[date.month] = 0.0;
-		patch.mintercep[date.month] = 0.0;
-		patch.mpet[date.month]=0.0;
 	}
 
 	if(run_landcover)
@@ -763,15 +760,8 @@ void dailyaccounting_patch(Patch& patch) {
 	// Inialize and update fractions of water, mineral content, peat content, organic content, as well as porosity.
 	//soilcolumn.update_layer_fractions(); DW_COMMENT should be removed
 
-	// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
-	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.
-	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in 
-	// Soilcolumn::get_soil_temp_25() below).
-	soilcolumn.calc_temp_analytic(); // DW_COMMENT check so temp make sense
-
-	// Calculate the soil temperature in snow, soil and padding layers. This function is called 
-	// even if iftwolayersoil is true, though the calculations are much simpler.
-	soilcolumn.calc_temp();
+	// Calculate soil layer temperatures
+	patch.soilcolumn.temp();
 
 	// Save daily soil temperature
 	patch.soilcolumn.set_dtemp();

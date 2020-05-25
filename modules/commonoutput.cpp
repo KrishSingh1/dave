@@ -1250,11 +1250,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			surfrunoff_gridcell+=patch.asurfrunoff*to_gridcell_average;
-			drainrunoff_gridcell+=patch.adrainrunoff*to_gridcell_average;
-			baserunoff_gridcell+=patch.abaserunoff*to_gridcell_average;
-			runoff_gridcell += patch.arunoff*to_gridcell_average;
-			wetland_wmass_added_gridcell += patch.awetland_wmass_added*to_gridcell_average;
+			surfrunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF)*to_gridcell_average;
+			drainrunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN)*to_gridcell_average;
+			baserunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)*to_gridcell_average;
+			runoff_gridcell += (patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
+			wetland_wmass_added_gridcell += patch.fluxes.get_annual_flux(Fluxes::WADDED)*to_gridcell_average;
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001) {
@@ -1312,11 +1312,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			// Monthly output variables
 
 			for (m=0;m<12;m++) {
-				maet[m] += patch.maet[m]*to_gridcell_average;
-				mpet[m] += patch.mpet[m]*to_gridcell_average;
-				mevap[m] += patch.mevap[m]*to_gridcell_average;
-				mintercep[m] += patch.mintercep[m]*to_gridcell_average;
-				mrunoff[m] += patch.mrunoff[m]*to_gridcell_average;
+
+				mpet[m] += patch.fluxes.get_monthly_flux(Fluxes::WPET, m) * to_gridcell_average;
+				maet[m] += patch.fluxes.get_monthly_flux(Fluxes::WAET, m) * to_gridcell_average;
+				mevap[m] += patch.fluxes.get_monthly_flux(Fluxes::WEVAP, m) * to_gridcell_average;
+				mintercep[m] += patch.fluxes.get_monthly_flux(Fluxes::WINTERCEP, m) * to_gridcell_average;
+				mrunoff[m] += (patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
 				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
 				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC));
@@ -1425,7 +1426,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_runoff,				baserunoff_gridcell);
 	outlimit(out,out_runoff,				runoff_gridcell);
 	outlimit(out,out_wetland_water_added,	wetland_wmass_added_gridcell);
-	
+
 	outlimit(out,out_aiso,		aiso_gridcell);
 	outlimit(out,out_amon,		amon_gridcell);
 	outlimit(out,out_amon_mt1,  amon_mt1_gridcell);

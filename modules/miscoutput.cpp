@@ -789,7 +789,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 
 			//Gridcell irrigation
-			irrigation_gridcell += patch.irrigation_y*to_gridcell_average;
+			irrigation_gridcell += patch.fluxes.get_annual_flux(Fluxes::WIRRI)*to_gridcell_average;
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;

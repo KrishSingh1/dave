@@ -500,6 +500,12 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
+	double wcontent;
+	double wcontent_zero;
+	double wcontent_zero_scaled;
+	double wflux;
+	double wflux_zero;
+
 public:
 	MassBalance() {
 
@@ -514,6 +520,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		wcontent = 0.0;
+		wcontent_zero = 0.0;
+		wcontent_zero_scaled = 0.0;
+		wflux = 0.0;
+		wflux_zero = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -529,6 +540,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		wcontent = 0.0;
+		wcontent_zero = 0.0;
+		wcontent_zero_scaled = 0.0;
+		wflux = 0.0;
+		wflux_zero = 0.0;
 	}
 
 	void init(Gridcell& gridcell);
@@ -543,10 +559,12 @@ public:
 	bool check_patch(Patch& patch, bool check_harvest = false);
 	bool check_patch_C(Patch& patch, bool check_harvest = false);
 	bool check_patch_N(Patch& patch, bool check_harvest = false);
+	bool check_patch_W(Patch& patch);
 
 	void check_year(Gridcell& gridcell); // calls both check_year_C and check_year_N
 	void check_year_C(Gridcell& gridcell);
 	void check_year_N(Gridcell& gridcell);
+	void check_year_W(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
 	void serialize(ArchiveStream& arch);
@@ -1170,6 +1188,24 @@ public:
 		CH4C_PLAN,
 		/// CH4 flux to atmosphere from peatland soils due to ebullition (gC/m2).
 		CH4C_EBUL,
+		/// Surface runoff
+		WRUNOFF_SURF,
+		/// Drainage runoff
+		WRUNOFF_DRAIN,
+		/// Baseflow runoff
+		WRUNOFF_BASE,
+		/// Soil evaporation
+		WEVAP,
+		/// Potential evapotranspiration
+		WPET,
+		/// Actual evapotranspiration
+		WAET,
+		/// Interception
+		WINTERCEP,
+		/// Irrigation water
+		WIRRI,
+		/// Water added to wetlands
+		WADDED,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};
@@ -3606,6 +3642,8 @@ public:
 
 	double ncont();
 
+	double wcontent();
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3701,8 +3739,6 @@ public:
 	double max_rain_melt;
 	/// whether to percolate today
 	bool percolate;
-	/// total runoff today (mm/day)
-	double runoff;
 	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
 	double b;
 	/// Soil temperature padding
@@ -3830,7 +3866,7 @@ public:
 	/// N content of soil column
 	double ncont();
 	/// water content of soil column
-	double wcont();
+	double wcontent();
 	/// water mass of soil column
 	double wmass();
 	/// Total cpool slow C mass
@@ -3909,6 +3945,8 @@ public:
 	/// Update heat capacity and conductivity for padding layers
 	void update_heatcap_and_cond_for_pad();
 	/// Calculate soil temperature
+	void temp();
+	/// Calculate multilayer soil temperature
 	void calc_temp();
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
@@ -4367,28 +4405,10 @@ public:
 
 	/// interception by vegetation today on patch basis (mm)
 	double intercep;
-	/// annual sum of AET (mm/year)
-	double aaet;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
-	/// annual sum of soil evaporation (mm/year)
-	double aevap;
-	/// annual sum of interception (mm/year)
-	double aintercep;
-	/// annual sum of runoff (mm/year)
-	double asurfrunoff;
-	/// annual sum of runoff (mm/year)
-	double adrainrunoff;
-	/// annual sum of runoff (mm/year)
-	double abaserunoff;
-	/// annual sum of runoff (mm/year)
-	double arunoff;
 	/// water added to wetlands today (mm)
 	double wetland_wmass_added_today;
-	/// annual sum of water added to wetlands (mm/year)
-	double awetland_wmass_added;
-	/// annual sum of potential evapotranspiration (mm/year)
-	double apet;
 
 	/// equilibrium evapotranspiration today, deducting interception (mm)
 	double eet_net_veg;
@@ -4403,17 +4423,6 @@ public:
 	/// rescaling factor to account for spatial overlap between individuals/cohorts populations
 	double fpc_rescale;
 
-	/// monthly AET (mm/month)
-	double maet[12];
-	/// monthly soil evaporation (mm/month)
-	double mevap[12];
-	/// monthly interception (mm/month)
-	double mintercep[12];
-	/// monthly runoff (mm/month)
-	double mrunoff[12];
-	/// monthly PET (mm/month)
-	double mpet[12];
-
 	/// daily nitrogen demand
 	double ndemand;
 
@@ -4421,11 +4430,6 @@ public:
 	double anfert;
 	/// daily nitrogen fertilization (kgN/m2/day)
 	double dnfert;
-
-	/// daily value of irrigation water (mm), set in irrigation(), derived from wmass_deficit_d
-	double irrigation_d;
-	/// yearly sum of irrigation water (mm)
-	double irrigation_y;
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
@@ -4457,10 +4461,14 @@ public:
 	double ccont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false);
+	/// Total patch water mass
+	double wcontent();
 	/// Total patch carbon fluxes so far this year
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
+	/// Total patch water fluxes so far this year
+	double wflux();
 	
 	/// Get 5-year mean of wood C mass increase (periodic annual increment)
 	double get_cmass_wood_inc_5() {
@@ -4675,10 +4683,14 @@ public:
 	double ccont(double scale_indiv = 1.0);
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
+	/// Total stand water
+	double wcontent();
 	/// Total stand carbon fluxes so far this year
 	double cflux();
 	/// Total stand nitrogen fluxes so far this year
 	double nflux();
+	/// Total stand water fluxes so far this year
+	double wflux();
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -5070,10 +5082,14 @@ public:
 	double ccont();
 	/// Total gridcell nitrogen biomass and litter
 	double ncont();
+	/// Total gridcell water mass
+	double wcontent();
 	/// Total gridcell carbon fluxes so far this year
 	double cflux();
 	/// Total gridcell nitrogen fluxes so far this year
 	double nflux();
+	/// Total gridcell water fluxes so far this year
+	double wflux();
 	/// Returns each soil layer dept
 	std::vector<double> soil_layer_depths();
 

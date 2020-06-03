@@ -46,7 +46,6 @@ for y in $panyears; do
 	else
 	    awk -v t=${TLB[$nreg]} -v reg=$reg -v d=${DWD[$nreg]} -v l=${LIT[$nreg]} -v s=${SOI[$nreg]} '{OFS="\t"; if (FNR>1) {printf "%-13s %7.2f %7.2f %7.2f %7.2f %7.2f %10s\n%-13s %7.2f %7.2f %7.2f %7.2f %7.2f %10s", reg, $1, $2, 0, $3, $1+$2+$3,"LPJ-GUESS",".",t,l,d,s,t+l+d+s," Pan_et_al.\n"}} ' cpool_natural_${y}_${reg}_tot.txt >> pan_${y}.txt
 	fi
-	tot_vegc+=
 
 	# Remove intermediate files
 	rm -f cpool_natural_${y}_${reg}.txt cpool_natural_${y}_${reg}_tot.txt
@@ -58,7 +57,7 @@ for y in $panyears; do
     # Remove dashes from file and sum up 
     sed 's/-/0./g' pan_${y}.txt | awk -v tot="Global Totals" '{if ($7~/^LPJ/){lvegc+=$2; llittc+=$3; ldwdc+=$4; lsoilc+=$5; ltotc+=$6} else if ($7~/^Pan/){pvegc+=$2; plittc+=$3; pdwdc+=$4; psoilc+=$5; ptotc+=$6}}; END {printf "%13s %7.2f %7.2f %7.2f %7.2f %7.2f %10s\n%-13s %7.2f %7.2f %7.2f %7.2f %7.2f %10s", tot, lvegc, llittc, ldwdc, lsoilc, ltotc,"LPJ-GUESS", ".",pvegc, plittc, pdwdc, psoilc, ptotc," Pan_et_al.\n"}' >> pan_${y}.txt
 	
-    describe_textfile pan_${y}.txt "Forest Carbon Pools compared to Pan_et_al. regional dataset [Pg(C)] for 2007"
+    describe_textfile pan_${y}.txt "Forest Carbon Pools compared to Pan_et_al. regional dataset for 2007. Units: Pg C"
 
     # Remove intermediate files
     rm -f pan_tmp_$y cpool_natural_${y}.txt 

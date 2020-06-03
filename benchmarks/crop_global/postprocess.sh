@@ -131,7 +131,7 @@ awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb
 awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.txt > cpool1993-2012_joyned_VegC.txt
 delta cpool1993-2012_joyned_VegC.txt lu_cmass_agb_1993-2012_tot.txt_Liu.txt -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.txt
 gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
-describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass. Units: kg m-2."
+describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass"
     
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
 scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.png
@@ -147,30 +147,30 @@ tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.txt
 joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.txt
 
 gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
-    -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
-describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]"
+    -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions Units: kg C m-2 y-1]"
+describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016"
 	
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_Fire.txt
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_gfed.txt
 delta  cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt -i Lon Lat -o delta_cflux1997-2016_joyned.txt
 gmap delta_cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait \
     -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png \
-    -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
-describe_image delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a."
+    -t "Fire C flux LPJ-GUESS - GFED4 Units: kg C m-2 y-1" -c BLUE RED -vert
+describe_image delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data"
 
 # A-slicing over regions 0.5 degrees resolution
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS CEAS SEAS EQAS AUST)
 tot_lpjg=0.
 tot_gfed=0.
+if [ -f tot_cflux_reg.txt ]; then
+    rm -f tot_cflux_reg.txt
+fi
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
     creg=${GFEDreg[${xx}]} 
     awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/fire/gfed_regions0.5.dat > reg.txt
     joyn cflux1997-2016_joyned.txt reg.txt -i Lon Lat -fast -o cflux_reg_${x}_joyned.txt  
     aslice cflux_reg_${x}_joyned.txt -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.txt
-    if [ $x -eq 1 ]; then
-	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.txt
-    fi
 
     long_desc=$(head -n $x ${DATAPATH}/fire/gfed_region_description.txt | tail -n 1)
     awk -v reg=$creg '{ORS=" "; if(FNR==2){printf "%s      %6.2f   %6.2f    ",reg,$4*1000,$11*1000}}' \
@@ -179,12 +179,24 @@ for ((x=1; x<=14; x++)); do
 
     rm -f tot_cflux_reg_${x}.txt cflux_reg_${x}_joyned.txt reg.txt
 done
-tot_lpjg=$(awk '(FNR>1){sum+=$2} END {print sum}' tot_cflux_reg.txt)
-tot_gfed=$(awk '(FNR>1){sum+=$3} END {print sum}' tot_cflux_reg.txt)
+tot_lpjg=$(awk '{sum+=$2} END {print sum}' tot_cflux_reg.txt)
+tot_gfed=$(awk '{sum+=$3} END {print sum}' tot_cflux_reg.txt)
 printf "Total    %6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.txt
-describe_textfile tot_cflux_reg.txt "Fire C-emissions per GFED - region [Pg/a]"
+if [ -f tot_cflux_reg_glob.txt ]; then
+    rm -f tot_cflux_reg_glob.txt
+fi
+# flip line-column to make it work with the delta-tool
+for ((x=1; x<=3; x++))
+  do awk -v r=$x '{ORS=" "; printf "%10s", $r} ; END {print "\n"}'  tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
+done
+# append regional descriptions
+echo ""  >> tot_cflux_reg_glob.txt 
+echo "Description of regions" >> tot_cflux_reg_glob.txt 
+awk '(FNR>1 && $1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
+describe_textfile tot_cflux_reg_glob.txt "Fire C-emissions per GFED region: LPJ-GUESS vs GFED. Units: Pg C/y"
+
 rm -f cflux1997-2016.txt cflux1997-2016_joyned.txt cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt \
-   delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt 
+   delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt tot_cflux_reg.txt 
 
 # N2O benchmark
 

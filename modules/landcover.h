@@ -64,9 +64,9 @@ struct landcover_change_transfer {
 	Sompool transfer_sompool[NSOMPOOL][NSOILLAYER_MAX];
 	double transfer_NH4_mass[NSOILLAYER_MAX];
 	double transfer_NO3_mass[NSOILLAYER_MAX];
-	double transfer_snowpack[NLAYERS_SNOW_MAX];
-	double transfer_snowpack_NH4_mass[NLAYERS_SNOW_MAX];
-	double transfer_snowpack_NO3_mass[NLAYERS_SNOW_MAX];
+	double transfer_snowpack[NSNOWLAYERS_MAX];
+	double transfer_snowpack_NH4_mass[NSNOWLAYERS_MAX];
+	double transfer_snowpack_NO3_mass[NSNOWLAYERS_MAX];
 
 	double transfer_N2_mass[NSOILLAYER_MAX];
 	double transfer_N2O_mass[NSOILLAYER_MAX];
@@ -134,7 +134,7 @@ struct landcover_change_transfer {
 			ncont += transfer_NH4_mass_d[lyr] + transfer_NO3_mass_d[lyr];*/
 		}
 
-		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
+		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
 			ncont += transfer_snowpack_NH4_mass[slyr] + transfer_snowpack_NO3_mass[slyr];
 		}
 
@@ -295,7 +295,7 @@ struct landcover_change_transfer {
 			transfer_N2O_mass_d[lyr] = from.transfer_N2O_mass_d[lyr];*/
 		}
 
-		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
+		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
 			transfer_snowpack_NH4_mass[slyr] = from.transfer_snowpack_NH4_mass[slyr];
 			transfer_snowpack_NO3_mass[slyr] = from.transfer_snowpack_NO3_mass[slyr];
 		}
@@ -372,7 +372,7 @@ struct landcover_change_transfer {
 			transfer_NO2_mass_d[lyr] += from.transfer_NO2_mass_d[lyr] * multiplier;*/
 		}
 
-		for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
+		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
 			transfer_snowpack_NH4_mass[slyr] += from.transfer_snowpack_NH4_mass[slyr] * multiplier;
 			transfer_snowpack_NO3_mass[slyr] += from.transfer_snowpack_NO3_mass[slyr] * multiplier;
 		}

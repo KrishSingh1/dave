@@ -113,10 +113,38 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	if (soil_code) {
 		load_lpj_soilcodes(fname, coords);
-	} 
+	}
 	else {
 		load_mineral_soils(fname, coords);
 	}
+}
+
+// Initialises the soil input class and determines the format of the supplied input file.
+void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist) {
+
+	std::set<coord> coords(gridlist.begin(), gridlist.end());
+
+	std::ifstream ifs(fname, std::ifstream::in);
+
+	std::string line;
+
+	while (getline(ifs, line)) {
+		std::istringstream iss(line);
+
+		double lon, lat;
+		double depth;
+		if (iss >> lon >> lat >> depth) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.count(c) == 0) {
+				continue;
+			}
+			depth_map[c] = depth;
+			if (depth_map.size() == coords.size()) {
+				break;
+			}
+		}
+	}
+	ifs.close();
 }
 
 // Read in routine for text file with LPJ soil codes.
@@ -451,6 +479,9 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 
 	// Soil carbon content
 	soiltype.soilC = soilprop.soilC;
+
+	// Soil depth
+	soiltype.soildepth = depth_map[c] * MM_PER_M;
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period

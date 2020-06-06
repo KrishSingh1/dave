@@ -402,7 +402,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		}
 		else {
 			// Alternative Q10 relationship (Schaefer & Jafarov, 2016)
-			double q10_freeze = 200.5; // i.e. average of 164 and 237 based on incubation of frozen soil samples (Mikan et al., 2002)
+			double q10_freeze = 2.9; // (Natali et al., 2019)
 			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp / 10.0);
 		}
 	}
@@ -448,7 +448,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		double k = K_MAX[p] * temp_mod * moist_mod;
+		double k = K_MAX[p] * temp_mod * moist_mod * depth_mod;
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
@@ -798,6 +798,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			cextra += respsum;
 
+			soillayer.arespsum += respsum;
+
 			// Sum annual organic nitrogen leaching
 
 			soillayer.aorgNleach += leachsum_nmass;
@@ -899,7 +901,7 @@ void transfer_litter(Patch& patch) {
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-		// Soil object for this layer (lyr)
+		// Soil object for this layer
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 		// Fire (GlobFIRM)

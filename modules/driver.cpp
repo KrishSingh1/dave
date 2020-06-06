@@ -530,6 +530,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					socfrac = soilcolumn.get_static_socfrac(); // DW_COMMENT move to within set_properties()
 				}
 
+				double acc_depth = 0.0;
+
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -542,7 +544,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 						soillayer.mwcontabove = 0.0;
 					}
 
-					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr]);
+					double wadded = 0.0;
+					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr], stand.first_year, wadded);
+					patch.fluxes.report_flux(Fluxes::WADDED, wadded); // DW_COMMENT should be within set_properties
 
 					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
 				}
@@ -727,11 +731,14 @@ void dailyaccounting_patch(Patch& patch) {
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 
-		if (date.year == 0) {
-			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+		
+		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+			if (date.year == 0) {
 				soilcolumn.soillayers[lyr].temp_old = 0.0;
 				soilcolumn.soillayers[lyr].temp = 0.0;
 			}
+
+			soilcolumn.soillayers[lyr].arespsum = 0.0;
 		}
 	}
 
@@ -752,26 +759,29 @@ void dailyaccounting_patch(Patch& patch) {
 		for (int mth = 0; mth < 12; mth++) {
 			soilcolumn.snow.mdepth[mth] = 0.0;
 			soilcolumn.mthaw[mth] = 0.0;
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++)
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				soilcolumn.soillayers[lyr].mtemp[mth] = 0.0;
+			}
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+				soilcolumn.snow.mtemp[lyr][mth] = 0.0;
+			}
 		}
 	}
 
-	// Inialize and update fractions of water, mineral content, peat content, organic content, as well as porosity.
-	//soilcolumn.update_layer_fractions(); DW_COMMENT should be removed
-
 	// Calculate soil layer temperatures
-	patch.soilcolumn.temp();
+	soilcolumn.temp();
 
-	// Save daily soil temperature
-	patch.soilcolumn.set_dtemp();
-
-	// On last day of month, calculate mean soil temperature for last month
-	if (date.islastday) {
-		patch.soilcolumn.set_mtemp();
+	/*dprintf("Year %d Day %d ",date.year,date.day);
+	for (int lyr = 0; lyr < soilcolumn.snow.nsnowlayers; lyr++) {
+		dprintf("%g ", soilcolumn.snow.snowlayers[lyr].temp);
 	}
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		dprintf("%g ", soilcolumn.soillayers[lyr].temp);
+	}
+	dprintf("\n");*/
 
-	respiration_temperature_response(patch.soilcolumn);
+	// Calculate respiration temperature response
+	respiration_temperature_response(soilcolumn);
 
 	patch.is_litter_day = false;
 	patch.isharvestday = false;
@@ -783,7 +793,7 @@ void dailyaccounting_patch(Patch& patch) {
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
-void respiration_temperature_response(double temp,double& gtemp, bool ifsoil) {
+void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 
 	// DESCRIPTION
 	// Calculates g(T), response of respiration rate to temperature (T), based on

@@ -2266,9 +2266,9 @@ bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st
  */
 void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
-	//if (!run_landcover || date.day) {
-	//	return;
-	//}
+	if (!run_landcover || date.day) {
+		return;
+	}
 
 	double* st_frac_transfer = NULL;
 	double* primary_st_frac_transfer = NULL;
@@ -2742,7 +2742,7 @@ landcover_change_transfer::landcover_change_transfer() {
 			transfer_sompool[lyr][i].ntoc = 0.0;
 	}
 
-	for (int slyr = 0; slyr < NLAYERS_SNOW_MAX; slyr++) {
+	for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
 		// SNOW DW_COMMENT 
 		transfer_snowpack_NH4_mass[slyr] = transfer_snowpack_NO3_mass[slyr] = 0.0;
 	}

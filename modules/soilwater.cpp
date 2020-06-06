@@ -39,7 +39,7 @@
 #include "config.h"
 #include "soilwater.h"
 
-void snow(Soilcolumn& soilcolumn, double prec, double temp) {
+void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
 	// snow pack; update of snow pack with new snow and snow melt and snow melt
@@ -52,16 +52,13 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp) {
 	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
 	// Add snow if snowfall (temp < 0)
-	soilcolumn.snow.snowfall(temp, prec);
+	soilcolumn.snow.snowfall(temp, prec, u10, soilcolumn.rain_melt);
 
 	// Update snow density after mechanical compaction
-	soilcolumn.snow.update_density();
+	soilcolumn.snow.compaction();
 
-	// Add snow melt to precipitation
-	soilcolumn.rain_melt = prec + soilcolumn.snow.melt;
-
-	// Reset snow melt
-	soilcolumn.snow.melt = 0.0;
+	// Save monthly snow values
+	soilcolumn.save_snow();
 
 	// Soil water percolation
 	soilcolumn.percolate = soilcolumn.rain_melt >= 0.1;
@@ -127,10 +124,10 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	// Water mass balance check
-	double wbefore = soilcolumn.wmass() + soilcolumn.snow.snowpack() + climate.prec - patch.intercep;
+	double wbefore = soilcolumn.wcontent() + soilcolumn.snow.snowpack() + climate.prec - patch.intercep + soilcolumn.rain_melt;
 
 	// Update snowpack
-	snow(soilcolumn, climate.prec - patch.intercep, climate.temp);
+	snow(soilcolumn, climate.prec - patch.intercep, climate.temp, climate.u10);
 
 	// Update snowpack N content
 	snow_ninput(climate.prec - patch.intercep, soilcolumn.snow.snowpack(), soilcolumn.rain_melt, 
@@ -142,8 +139,8 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	soilcolumn.initial_percolation();
 
 	// Water mass balance check
-	double wafter = soilcolumn.wmass() + soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
-	if (fabs(wbefore - wafter) > 1.0e-10 && date.day == 0 && date.year == 0)
+	double wafter = soilcolumn.wcontent() + soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
+	if (fabs(wbefore - wafter) > 1.0e-10)
 		dprintf("Year %d Day %d INITIALINFILT Before %g After %g Diff %g\n", date.year, date.day, wbefore, wafter, wbefore - wafter);
 }
 

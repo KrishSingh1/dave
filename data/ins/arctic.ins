@@ -29,6 +29,7 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
+file_csoil "csoil.out"
 !file_aburned_area_out "annual_burned_area.out"
 !file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -74,9 +75,9 @@ file_nflux "nflux.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
 !file_msnow "msnowdepth.out"
-!file_mwtp "mwtp.out"
-!file_mald "mald.out"
-!file_wetland_water_added "wetland_water_added.out"
+file_mwtp "mwtp.out"
+file_mald "mald.out"
+file_wetland_water_added "wetland_water_added.out"
 
 !file_mburned_area_out "monthly_burned_area.out"
 
@@ -97,7 +98,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-npatch 5			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -111,7 +112,7 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
 				! see documentation for water_uptake()
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -120,7 +121,8 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
-
+soil_depth 1500.0		! Soil depth (mm)
+timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -144,7 +146,7 @@ iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme
 				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
 				! rootdistribution must be "fixed"
 
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
@@ -172,7 +174,7 @@ save_state 0			! Whether to save a state file
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0			! Whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 1			! Whether to use (and change) landcover fractions (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -238,7 +240,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_dist 0.14 0.14 0.14 0.14 0.14 0.06 0.06 0.06 0.06 0.06
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
@@ -286,7 +288,7 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_dist 0.14 0.14 0.14 0.14 0.14 0.06 0.06 0.06 0.06 0.06
 	root_beta 0.982
 	longevity 100
 
@@ -303,7 +305,7 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
@@ -576,6 +578,7 @@ pft "C3G" (
 
 	! Temperate (C3) grass
 	include 1
+	landcover "peatland"
 	C3G
 	gdd0_min 1000 ! Wolf et al. (2008) have 800. 1000 matches the gdd0_max limit for GFT, minimizing overlap
 )
@@ -594,7 +597,7 @@ group "tallshrub" (
 	k_allom2 6
 	k_latosa 500
 	longevity 100 ! Wolf et al have 40. Juniper can live for > 100 years
-	rootdist 0.14 0.14 0.14 0.14 0.14 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03
+	root_dist 0.15 0.15 0.15 0.15 0.15 0.05 0.05 0.05 0.05 0.05
 	turnover_root 0.7
 
 	! Bioclimatic limits
@@ -629,7 +632,7 @@ group "lowshrub" (
 	k_allom2 4
 	k_latosa 125
 	longevity 25
-	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02	
+	root_dist 0.17 0.17 0.17 0.17 0.17 0.03 0.03 0.03 0.03 0.03	
 	turnover_root 0.7
 
 	! Bioclimatic limits
@@ -651,9 +654,9 @@ group "prostratedwarfshrub" (
 	! Typical species: Vaccinium oxycoccus, Salix arctica, Arctostaphylos alpinus
 
 	shrub
-
+	landcover "peatland"
 	! Allometry
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
 	!root_beta 0.9555
 	turnover_root 0.5
 
@@ -698,7 +701,7 @@ group "cushionforblichenmosstundra" (
 
 	grass
    	boreal
-
+	landcover "peatland"
 	ltor_max 0.1
 	turnover_root 0.5
 	turnover_leaf 0.6
@@ -718,7 +721,7 @@ group "cushionforblichenmosstundra" (
 	wtp_max -200 ! mm
 	inund_duration 10 ! days
 
-	rootdist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01 0.0 0.0 0.0 0.0 0.0
+	root_dist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01
 	root_beta 0.9555
 
 	! BVOC values - Guy Schurgers, October/November 2011
@@ -832,7 +835,7 @@ pft "LSS" (
 	! Typical species: Vaccinium myrtillus, V. uliginosum, Salix hastata, S. glauca etc.
 
 	include 1
-
+	landcover "peatland"
 	broadleaved
 	lowshrub ! NB: Overrides k_latosa set in broadleaved
 	boreal
@@ -903,7 +906,7 @@ pft "EPDS" (
 	needleleaved
 	evergreen
 	boreal
-
+	landcover "peatland"
 	ltor_max 0.5   ! Jing not sure
 
 	leaflong 2
@@ -947,6 +950,7 @@ pft "SPDS" (
 	broadleaved
 	summergreen
 	boreal
+	landcover "peatland"
 
 	ltor_max 0.5   ! Jing not sure
 
@@ -995,7 +999,7 @@ group "C4G" (
 
 	grass
 	pathway "c4"
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
 	gmin 0.5
 	phenology "any"
 	leaflong 0.5

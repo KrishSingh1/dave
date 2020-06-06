@@ -135,6 +135,8 @@ void CRUInput::init() {
 
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
+	soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -268,6 +270,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		gridcell.climate.instype = SWRAD_TS;
 	
 		soilinput.get_soil(lon, lat, gridcell);
+
+		gridcell.set_soil_depth(); // DW_COMMENT
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)

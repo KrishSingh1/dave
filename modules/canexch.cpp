@@ -1116,7 +1116,8 @@ void nstore_usage(Vegetation& vegetation) {
 				}
 
 				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-				indiv.nstress = ifnlim;
+				// and we aren't in the free N years interval
+				indiv.nstress = ifnlim && date.year > freenyears;
 				
 			}
 		}
@@ -1620,7 +1621,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	int nsoillayersupper = soilcolumn.nsoillayersupper;
+	int nsoillayersupper = min(4,soilcolumn.nsoillayers); // DW_COMMENT calculate
 
 	std::vector<double> awc(nsoillayersupper);
 	std::vector<double> wcont_cp(nsoillayersupper);

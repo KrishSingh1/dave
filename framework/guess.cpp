@@ -653,9 +653,12 @@ double Patch::wflux() {
 
 	double wflux = 0.0;
 
+	// Influx
 	wflux += -get_climate().aprec;
 	wflux += -fluxes.get_annual_flux(Fluxes::WIRRI);
 	wflux += -fluxes.get_annual_flux(Fluxes::WADDED);
+
+	// Outflux
 	wflux += fluxes.get_annual_flux(Fluxes::WINTERCEP);
 	wflux += fluxes.get_annual_flux(Fluxes::WAET);
 	wflux += fluxes.get_annual_flux(Fluxes::WEVAP);
@@ -2353,6 +2356,55 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 	lat = latitude;
 }
 
+void Gridcell::set_soil_depth() {
+	
+	// soil_Depth is defined in global.ins
+	// if zero then use input map of soil depth
+	if (negligible(soil_depth)) {
+		soil_depth = soiltype.soildepth;
+	}
+	else {
+		soiltype.soildepth = soil_depth; // DW_COMMENT soiltype doesn't need to know depth!!!!!!
+	}
+
+	std::vector<double> soil_lyr_depth = soil_layer_depths();
+
+	double nsoillayers = soil_lyr_depth.size();
+
+	// Set fixed rootdist per PFT depending on soil depth and layer thickness
+	for (unsigned int p = 0; p<pftlist.nobj; p++) {
+		//pft[p].pft.rootdist.resize(nsoillayers);
+		pft[p].pft.init_rootdist(rootdistribution, soil_lyr_depth);
+	}
+
+	// Create soil layers for each patch
+	Gridcell::iterator gc_itr = begin();
+	while (gc_itr != end()) {
+
+		// START OF LOOP THROUGH STANDS
+		Stand& stand = *gc_itr;
+
+		stand.firstobj();
+		while (stand.isobj) {
+
+			// START OF LOOP THROUGH PATCHES
+
+			// Get reference to this patch
+			Patch& patch = stand.getobj();
+
+			for (int i = 0; i < npft; i++) {
+				patch.pft[i].fwuptake.resize(nsoillayers);
+			}
+
+			patch.soilcolumn.init_soillayers(soil_lyr_depth);
+			
+			stand.nextobj();
+		}// End of loop through patches
+
+		++gc_itr;
+	}	// End of loop through stands
+}
+
 Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch) {
 
 	Stand& stand = create_stand(st.landcover, no_patch);
@@ -2448,27 +2500,61 @@ std::vector<double> Gridcell::soil_layer_depths() {
 	std::vector<double> lyr_depths;
 
 	if (!iftwolayersoil) {
-		int lyr = 0;
-		double depth = soil_depth;
-		double tot_depth = 0.0;
-		double remain_depth = depth - tot_depth;
+		
 		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 1000.0, 2000.0, 4000.0 };
 
+		double std_tot_depth = 0.0;
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) std_tot_depth += std_depths[lyr];
+
 		// Calculate number of soil layers and their individual depths
-		while (!negligible(remain_depth)) {
-			lyr_depths.resize(lyr + 1);
-			double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
-			if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYER_MAX - 1) {
-				double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
-				lyr_depths[lyr] = lyr_depth;
-				tot_depth += lyr_depth;
-				remain_depth = depth - tot_depth;
+		if (soil_depth > std_tot_depth) {
+
+			double tot_depth = 0.0;
+
+			lyr_depths.resize(NSOILLAYER_MAX);
+
+			// Deeper soil than standard soil layer depths
+			// Bottom three soil layers will adjust for
+			// deeper soil than standard depth
+			for (int lyr = 0; lyr < NSOILLAYER_MAX - 3; lyr++) {
+				lyr_depths[lyr] = std_depths[lyr];
+				tot_depth += std_depths[lyr];
 			}
-			else {
-				lyr_depths[lyr] = remain_depth;
-				remain_depth = 0.0;
+
+			// Upscaling fraction to remaining soil layers
+			double scalar = (soil_depth - tot_depth) / (std_tot_depth - tot_depth);
+		
+			for (int lyr = NSOILLAYER_MAX - 3; lyr < NSOILLAYER_MAX; lyr++) {
+				lyr_depths[lyr] = std_depths[lyr] * scalar;
+				tot_depth += std_depths[lyr] * scalar;
 			}
-			lyr++;
+
+			if (fabs(soil_depth - tot_depth) > 1.0e-12)
+				dprintf("ERROR: Soil layers don't add up to total soil depth %g\n", fabs(soil_depth - tot_depth));
+
+		}
+		else {
+
+			int lyr = 0;
+			double depth = soil_depth;
+			double tot_depth = 0.0;
+			double remain_depth = depth - tot_depth;
+
+			while (!negligible(remain_depth)) {
+				lyr_depths.resize(lyr + 1);
+				double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
+				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYER_MAX - 1) {
+					double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
+					lyr_depths[lyr] = lyr_depth;
+					tot_depth += lyr_depth;
+					remain_depth = depth - tot_depth;
+				}
+				else {
+					lyr_depths[lyr] = remain_depth;
+					remain_depth = 0.0;
+				}
+				lyr++;
+			}
 		}
 	}
 	else {

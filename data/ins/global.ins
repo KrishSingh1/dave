@@ -29,6 +29,8 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
+file_csoil "csoil.out"
+file_rsoil "rsoil.out"
 !file_aburned_area_out "annual_burned_area.out"
 !file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -67,13 +69,13 @@ file_mwcont_lower "mwcont_lower.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
-!file_msoiltempdepth25 "soiltemp25cm.out"
+file_temp "temp.out"
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
 
-!file_msnow "msnowdepth.out"
+file_msnow "msnowdepth.out"
 !file_mwtp "mwtp.out"
 !file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
@@ -97,7 +99,6 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "INTERP"	! GWGEN, INTERP
-hydroscheme "BUCKET"		! BUCKET, HTESSEL
 npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
@@ -111,7 +112,7 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         	! see documentation for water_uptake()
-rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -120,7 +121,7 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
-soil_depth 1500.0		! Soil depth (mm)
+soil_depth 0.0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to soil_depth
 timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 
 
@@ -140,13 +141,13 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 1		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
 				! rootdistribution must be "fixed"
 
-ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)

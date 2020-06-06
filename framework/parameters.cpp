@@ -24,7 +24,6 @@ xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
-hydroschemetype hydroscheme;
 
 int npatch;
 int npatch_secondarystand;
@@ -181,7 +180,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
-	CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROSCHEME
+	CB_FIREMODEL, CB_WEATHERGENERATOR
 };
 
 // File local variables
@@ -225,7 +224,6 @@ void initsettings() {
 
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
-	hydroscheme=BUCKET;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -476,9 +474,6 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
 			"Weather Generator (\"INTERP\", \"GWGEN\")");
-
-		declareitem("hydroscheme", &strparam, 20, CB_HYDROSCHEME,
-				"Hydrological scheme (\"BUCKET\", \"HTESSEL\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -1045,15 +1040,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_HYDROSCHEME:
-		if (strparam.upper() == "BUCKET") hydroscheme = BUCKET;
-		else if (strparam.upper() == "HTESSEL") hydroscheme = HTESSEL;
-		else {
-			sendmessage("Error",
-				"Unknown hydrology scheme (valid types: \"BUCKET\", \"HTESSEL\")");
-			plibabort();
-		}
-		break;
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1213,15 +1199,15 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_ROOTFRAC:
-		numval = 0.0;
+		/*numval = 0.0;
 		ppft->init_rootdist(rootdistribution);
 		
 		for (i=0;i<ppft->rootdist.size();i++) numval+=ppft->rootdist[i];
-		if (fabs(1.0-numval)>1.0e-2) {
+		if (fabs(1.0-numval)>1.0e-10) {
 			sendmessage("Error","Specified root fractions do not sum to 1.0");
 			plibabort();
 		}
-		ppft->rootdist[ppft->rootdist.size() -1]+=1.0-numval;
+		ppft->rootdist[ppft->rootdist.size() -1]+=1.0-numval;*/
 		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound
@@ -1237,7 +1223,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 
-		if (!itemparsed("hydroscheme")) badins("hydroscheme");
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
@@ -1290,15 +1275,15 @@ void plib_callback(int callback) {
 		
 
 		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
-		if (iftwolayersoil == 1 && hydroscheme != BUCKET) {
-			sendmessage("Error", "Hydrological scheme must be BUCKET for two layer soil!");
-			plibabort();
-		}
-		if (iftwolayersoil == 0 && hydroscheme != HTESSEL) {
-			sendmessage("Error", "Hydrological scheme must be HTESSEL for multilayer layer soil!");
-			plibabort();
-		}
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
+		if (iftwolayersoil == 1 && ifmultilayersnow == 1) {
+			sendmessage("Error", "Can't have multilayer snow scheme together with two layer soil!");
+			plibabort();
+		}
+		if (iftwolayersoil == 0 && ifmultilayersnow == 0) {
+			sendmessage("Error", "Can't have simple snow scheme together with multi layer soil!");
+			plibabort();
+		}
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");

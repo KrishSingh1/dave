@@ -38,6 +38,9 @@ const int CONSTANT_1 = 123;*/
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
 const int NSOILLAYER_SIMPLE = 2;
 
+/// maximum number of soil layers modelled
+const int NSOILLAYER_MAX = 10;
+
 /// number of padding layers in the soil
 const int PAD_LAYERS = 5;
 
@@ -74,7 +77,7 @@ const double snowdens_start = 275.0;
 const double snowdens_end = 500.0;
 
 /// maximum number of snow layers allowed (<= 5)
-const int NLAYERS_SNOW = 5;
+const int NSNOWLAYERS_MAX = 5;
 
 // WATER PARAMETERS
 
@@ -160,7 +163,7 @@ const double Kmin = 2.0;
 const double Kmoss = 0.25;
 
 /// latent heat of fusion (Granberg et al. 1999) [J m-3]
-const double Lheat = 3.34E8;	
+const double Lheat = 3.3355E8;	
 
 /// A FILL-IN for layers above layer0.
 const double MISSING_VALUE = -9999.0;      
@@ -186,9 +189,8 @@ static const double TILLAGE_FACTOR = 33.0 / 17.0;
 // See CLM4.5 - Swenson et al. (2012)
 const bool IMASS_IMPEDANCE = false;
 	
-/// min temp [deg C] for heterotrophic decomposition.
-// Clein & Schimel (1995) use -4 degC
-const double MIN_DECOMP_TEMP = -8.0;		
+/// min temp [deg C] for heterotrophic decomposition
+const double MIN_DECOMP_TEMP = -20.0;		
 	
 /// max CO2 [mimol/L] available to mosses in the acrotelm - see Wania et al (2009b)
 // value taken from Smolders et al. 2001 which give an average CO2 conc. of 70 sites as 934 mimol L-1

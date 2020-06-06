@@ -36,8 +36,11 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_cflux", &file_cflux, 300, "C fluxes output file");
 	declare_parameter("file_doc", &file_doc, 300, "DOC output file");
 	declare_parameter("file_dens", &file_dens, 300, "Tree density output file");
-	declare_parameter("file_cpool", &file_cpool, 300, "Soil C output file");
+	declare_parameter("file_cpool", &file_cpool, 300, "C output file");
 	declare_parameter("file_clitter", &file_clitter, 300, "Litter C output file");
+	declare_parameter("file_csoil", &file_csoil, 300, "Soil layer C output file");
+	declare_parameter("file_rsoil", &file_rsoil, 300, "Soil layer C respiration output file");
+	declare_parameter("file_temp", &file_temp, 300, "Snow and soil layer temperature output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
 
@@ -86,22 +89,6 @@ CommonOutput::CommonOutput() {
 		declare_parameter("file_mburned_area_out", &file_mburned_area_out, 300, "BLAZE monthly burned area output file");
 		declare_parameter("file_simfireanalysis_out", &file_simfireanalysis_out, 300, "SIMFIRE analytics output");
 	}
-
-	declare_parameter("file_msoiltempdepth5", &file_msoiltempdepth5, 300, "Soil temperature output file (5cm depth)");
-	declare_parameter("file_msoiltempdepth15", &file_msoiltempdepth15, 300, "Soil temperature output file (15cm depth)");
-	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
-	declare_parameter("file_msoiltempdepth35", &file_msoiltempdepth35, 300, "Soil temperature output file (35cm depth)");
-	declare_parameter("file_msoiltempdepth45", &file_msoiltempdepth45, 300, "Soil temperature output file (45cm depth)");
-	declare_parameter("file_msoiltempdepth55", &file_msoiltempdepth55, 300, "Soil temperature output file (55cm depth)");
-	declare_parameter("file_msoiltempdepth65", &file_msoiltempdepth65, 300, "Soil temperature output file (65cm depth)");
-	declare_parameter("file_msoiltempdepth75", &file_msoiltempdepth75, 300, "Soil temperature output file (75cm depth)");
-	declare_parameter("file_msoiltempdepth85", &file_msoiltempdepth85, 300, "Soil temperature output file (85cm depth)");
-	declare_parameter("file_msoiltempdepth95", &file_msoiltempdepth95, 300, "Soil temperature output file (95cm depth)");
-	declare_parameter("file_msoiltempdepth105", &file_msoiltempdepth105, 300, "Soil temperature output file (105cm depth)");
-	declare_parameter("file_msoiltempdepth115", &file_msoiltempdepth115, 300, "Soil temperature output file (115cm depth)");
-	declare_parameter("file_msoiltempdepth125", &file_msoiltempdepth125, 300, "Soil temperature output file (125cm depth)");
-	declare_parameter("file_msoiltempdepth135", &file_msoiltempdepth135, 300, "Soil temperature output file (135cm depth)");
-	declare_parameter("file_msoiltempdepth145", &file_msoiltempdepth145, 300, "Soil temperature output file (145cm depth)");
 
 	declare_parameter("file_mch4", &file_mch4, 300, "Monthly CH4 emissions, total");
 	declare_parameter("file_mch4diff", &file_mch4diff, 300, "Monthly CH4 emissions, diffusion");
@@ -175,6 +162,21 @@ void CommonOutput::define_output_tables() {
 	for (int i = 0; i < 12; i++) {
 		month_columns      += ColumnDescriptor(months[i], 8,  3);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
+	}
+
+	// Create soil layer columns
+	ColumnDescriptors soillyr_columns;
+	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8);
+	}
+	soillyr_columns += ColumnDescriptor("Total", 13, 8);
+
+	// Create soil layer columns
+	ColumnDescriptors snowsoillyr_columns;
+	xtring snowsoillayers[] = { "slyr4", "slyr3", "slyr2", "slyr1", "slyr0", "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
+	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX; lyr++) {
+		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 9, 2);
 	}
 
 	// Create the columns for each output file
@@ -399,6 +401,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_doc,	        file_doc,			 doc_columns);
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
+	create_output_table(out_csoil,          file_csoil,          soillyr_columns);
+	create_output_table(out_rsoil,          file_rsoil,          soillyr_columns);
+	create_output_table(out_temp,           file_temp,           snowsoillyr_columns);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -458,23 +463,6 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
 	create_output_table(out_mald,           file_mald,           mald_columns);
-
-	// Soil temperatures
-	create_output_table(out_msoiltempdepth5, file_msoiltempdepth5, month_columns);
-	create_output_table(out_msoiltempdepth15, file_msoiltempdepth15, month_columns);
-	create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
-	create_output_table(out_msoiltempdepth35, file_msoiltempdepth35, month_columns);
-	create_output_table(out_msoiltempdepth45, file_msoiltempdepth45, month_columns);
-	create_output_table(out_msoiltempdepth55, file_msoiltempdepth55, month_columns);
-	create_output_table(out_msoiltempdepth65, file_msoiltempdepth65, month_columns);
-	create_output_table(out_msoiltempdepth75, file_msoiltempdepth75, month_columns);
-	create_output_table(out_msoiltempdepth85, file_msoiltempdepth85, month_columns);
-	create_output_table(out_msoiltempdepth95, file_msoiltempdepth95, month_columns);
-	create_output_table(out_msoiltempdepth105, file_msoiltempdepth105, month_columns);
-	create_output_table(out_msoiltempdepth115, file_msoiltempdepth115, month_columns);
-	create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
-	create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
-	create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -700,6 +688,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double NO_mass_inc,N2O_mass_inc,N2_mass_inc,NH3_mass_inc;
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
+	double soilc[NSOILLAYER_MAX];
+	double soilr[NSOILLAYER_MAX];
+
 	// hold the monthly average across patches
 	double mnpp[12];
 	double mgpp[12];
@@ -719,7 +710,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mmon_mt1[12];
 	double mmon_mt2[12];
 
-	double msoilt[12][NSOILLAYER_MAX];
 	double mch4[12];
 	double mch4_diff[12];
 	double mch4_ebull[12];
@@ -727,6 +717,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double msnowdepth[12];
 	double mwtp[12];
 	double mald[12];
+	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX][12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -738,9 +729,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
-
-		for (int sl = 0; sl < NSOILLAYER_MAX; sl++) msoilt[m][sl] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
+			mtemp[lyr][m] = 0.0;
+		}
 	}
 
 	double aaet, apet, aevap, arunoff, aintercep, awetland_wmass_added;
@@ -790,13 +782,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_vmaxnlim=0.0;
 
 	double cmass_gridcell=0.0;
-	double nmass_gridcell= 0.0;
+	double nmass_gridcell=0.0;
 	double cmass_leaf_gridcell=0.0;
 	double nmass_leaf_gridcell=0.0;
 	double cmass_veg_gridcell=0.0;
 	double nmass_veg_gridcell=0.0;
 	double clitter_gridcell=0.0;
-	double nlitter_gridcell= 0.0;
+	double nlitter_gridcell=0.0;
+	double csoil_gridcell=0.0;
+	double rsoil_gridcell=0.0;
 	double anpp_gridcell=0.0;
 	double agpp_gridcell=0.0;
 	double fpc_gridcell=0.0;
@@ -1178,6 +1172,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	NH3_mass_inc = NO_mass_inc = N2O_mass_inc = N2_mass_inc = 0.0;
 	gross_nitrif = gross_denitrif = net_nitrif = net_denitrif= 0.0;
 
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		soilc[lyr] = 0.0;
+		soilr[lyr] = 0.0;
+	}
+
 	double c_org_leach_lc[NLANDCOVERTYPES];
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
@@ -1289,6 +1288,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				N2O_mass += soillayer.N2O_mass * to_gridcell_average;
 				N2_mass += soillayer.N2_mass * to_gridcell_average;
 
+				soilc[lyr] += soillayer.ccont() * to_gridcell_average;
+				soilr[lyr] += soillayer.arespsum * to_gridcell_average;
+
 				c_fast += soillayer.cpool_fast * to_gridcell_average;
 				c_slow += soillayer.cpool_slow * to_gridcell_average;
 
@@ -1357,8 +1359,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mch4_plant[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
 				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
 				
-				for (int sl = 0; sl < patch.soilcolumn.nsoillayers; sl++) {
-					msoilt[m][sl] += patch.soilcolumn.soillayers[sl].mtemp[m] * to_gridcell_average; // DW_COMMENT ASSUMING ALL PATCHES HAS THE SAME DEPTH
+				for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
+					mtemp[slyr][m] += patch.soilcolumn.snow.mtemp[abs(slyr - (NSNOWLAYERS_MAX - 1))][m] * to_gridcell_average;
+				}
+
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+					mtemp[lyr + NSNOWLAYERS_MAX][m] += soilcolumn.soillayers[lyr].mtemp[m] * to_gridcell_average;
 				}
 			}
 
@@ -1394,6 +1400,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	for (m=0;m<12;m++) {
 		mnpp[m] = mgpp[m] - mra[m];
 		mnee[m] = mrh[m] - mnpp[m];
+	}
+
+	// Total gridcell soil C
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		csoil_gridcell += soilc[lyr];
+		rsoil_gridcell += soilr[lyr];
 	}
 
 	// Print gridcell totals to files
@@ -1482,6 +1494,19 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	// Print soil layer variables
+	// Total gridcell soil C
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		outlimit(out, out_csoil, soilc[lyr]);
+		outlimit(out, out_rsoil, soilr[lyr]);
+	}
+	outlimit(out, out_csoil, csoil_gridcell);
+	outlimit(out, out_rsoil, rsoil_gridcell);
+
+	for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
+		outlimit(out, out_temp, mtemp[lyr][0]);
+	}
+
 	// Print monthly output variables
 	for (m=0;m<12;m++) {
 		outlimit(out,out_mnpp,         mnpp[m]);
@@ -1509,23 +1534,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		arunoff += mrunoff[m];
 		aintercep += mintercep[m];
 
-		// Arctic and wetland output
-		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.  
-		outlimit(out,out_msoiltempdepth5, msoilt[m][0]);
-		outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
-		outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
-		outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
-		outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
-		outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
-		outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
-		outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
-		outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
-		outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
-		outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
-		outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
-		outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
-		outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
-		outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
 		outlimit(out,out_mch4, mch4[m]);
 		outlimit(out,out_mch4diff, mch4_diff[m]);
 		outlimit(out,out_mch4plan, mch4_plant[m]);

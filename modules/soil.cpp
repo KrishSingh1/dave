@@ -2303,6 +2303,21 @@ double Soilcolumn::to_depth(double depth, std::vector<double> var, std::vector<d
 	return !negligible((double)scal.size()) ? acc_var / acc_scalar : acc_var;
 }
 
+double Soilcolumn::to_depth(double depth, std::vector<double> var) { // DW_COMMENT Don't want this one!
+
+	// Calculate variable values for layers down to depth
+	double acc_depth = 0.0;
+	double acc_var = 0.0;
+	int lyr = 0;
+	while (acc_depth < depth && lyr < var.size()) {
+		double layer_depth = acc_depth + soillayers[lyr].depth < depth ? soillayers[lyr].depth : depth - acc_depth;
+		acc_var += var[lyr] * layer_depth / soillayers[lyr].depth;
+		acc_depth += layer_depth;
+		lyr++;
+	}
+	return acc_var;
+}
+
 // add water to a certain soil layer and return the water that cannot be added due to limited capacity
 double Soilcolumn::add_wmass(int layer, double extrawmass) {
 

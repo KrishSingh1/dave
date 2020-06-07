@@ -3821,9 +3821,9 @@ public:
 	/// Get soil property 
 	std::vector<double> get_prop(soilproptype SPT, int m = 0);
 	/// Get soil layers total cmass fractions
-	std::vector<double> Soilcolumn::get_ccontfrac();
+	std::vector<double> get_ccontfrac();
 	/// Get soil layers avail nmass fraction
-	std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref);
+	std::vector<double> get_nfrac(n_pref_type pref);
 	/// Get soil layers root fractions
 	std::vector<double> get_rootfrac();
 	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 
@@ -3871,11 +3871,13 @@ public:
 	/// Set b parameter for orography influence on surface runoff
 	double set_b(double sigma);
 	/// Return static soil organic carbon fractions
-	std::vector<double> Soilcolumn::get_static_socfrac();
+	std::vector<double> get_static_socfrac();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(std::vector<double> rootdist);
 	/// variable down to a depth 
-	double to_depth(double depth, std::vector<double> var, std::vector<double> scal = {});
+	double to_depth(double depth, std::vector<double> var);
+	/// variable down to a depth 
+	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);// = {}); // DW_COMMENT
 	/// add water and return the water that cannot be added due to limited capacity
 	double add_wmass(int layer, double extrawmass);
 	/// Update moisture diffusivity and conductivity

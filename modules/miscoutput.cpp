@@ -284,11 +284,6 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
 
-	ColumnDescriptors climate_columns;
-	climate_columns += ColumnDescriptor("Temp", 8, 2);
-	climate_columns += ColumnDescriptor("Prec", 8, 2);
-	climate_columns += ColumnDescriptor("Rad", 16, 0);
-
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass_cropland, file_cmass_cropland, cmass_columns_lc);

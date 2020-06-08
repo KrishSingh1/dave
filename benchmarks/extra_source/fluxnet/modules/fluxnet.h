@@ -10,15 +10,15 @@
 #define LPJ_GUESS_FLUXNET_H
 
 #include "guess.h"
-#include <vector>
 #include "inputmodule.h"
-#include "spinupdata.h"
+#include <vector>
+#include "gutil.h"
 #include "globalco2file.h"
 #include "soilinput.h"
+#include "spinupdata.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"
 #include "externalinput.h"
-#include <gutil.h>
 
 class FluxnetInput : public InputModule {
 public:

@@ -132,7 +132,7 @@ void FluxnetInput::init() {
 	tmute.settimer(MUTESEC);
 
 
-};
+}
 
 void FluxnetInput::get_monthly_ndep(int calendar_year,
 	double* mNHxdrydep, double* mNOydrydep,
@@ -147,7 +147,7 @@ void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
 			double hist_mprec[NYEAR_HIST][12], double hist_msun[NYEAR_HIST][12],
 			double fluxnet_temp[12], double fluxnet_prec[12], double fluxnet_rad[12]) {
 
-};
+}
 
 bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 	/*

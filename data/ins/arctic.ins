@@ -490,18 +490,19 @@ pft "BNS" (
 	tcmin_est -1000		! no limit
 	tcmax_est -2
 	twmin_est -1000		! no limit
-	twminusc 43		! AA from TH 03-11 added this
-	gdd5min_est 350		! Stefan added new value, old 500
-	phengdd5ramp 100	! Stefan added new value, old 200
+	twminusc 43		! continentality condition
+	gdd5min_est 300
+	phengdd5ramp 50
 	longevity 300
-	root_beta 0.938		! ! A bit closer to tundra in Jackson et al., 1996
-	ltor_max 1.5		! overrides tree group
+	root_beta 0.938		! Tundra profile (Jackson et al, 1996)	
 	!rootdist 0.26 0.19 0.14 0.11 0.08 0.06 0.05 0.03 0.02 0.02 0.01 0.01 0.01 0.01 0.0
 	fireresist 0.3
+
+	greff_min 0.04		! more like the shade tolerant value (Zhang et al. 2013)		
 	eps_iso 8.0
 	seas_iso 1
 	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	
 )
 
 pft "IBS" (
@@ -522,7 +523,7 @@ pft "IBS" (
 	longevity 300
 	fireresist 0.1
 
-	greff_min 0.06	! override shade intolerant value
+	greff_min 0.075	! override shade intolerant value
 	wooddens 250	! was 200
 
 	eps_iso 45.0
@@ -584,6 +585,7 @@ pft "C3G" (
 	include 1
 	C3G
 	gdd0_min 1000 ! Wolf et al. (2008) have 800. 1000 matches the gdd0_max limit for GFT, minimizing overlap
+	ltor_max 0.33 	! overrides grass group value
 )
 
 
@@ -638,7 +640,8 @@ group "lowshrub" (
 
 	! Bioclimatic limits
 	tcmax_est 5
-	gdd0_min 250
+	gdd0_min 300		! Wolf et al (2008), Zhang et al (2013)
+	gdd5min_est 100 	! Wolf et al (2008), Zhang et al (2013)
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b)
 	est_max 0.75
@@ -785,7 +788,7 @@ pft "HSS" (
 	k_allom1 30
 
 	wooddens 200	! was 250
-	k_latosa 600	! FL change, set to the same relative difference as broadleafed/needleleafed, was 500
+	k_latosa 600	! Set to the same relative difference as broadleafed/needleleafed, was 500
 
 	tcmin_est -32.5 ! Estimated from map
 	gdd5min_est 200
@@ -816,10 +819,8 @@ pft "LSE" (
 
  	leaflong 3
 	turnover_leaf 0.33
-
-	gdd5min_est 500 ! was 75. 500 as BNE
-
-	est_max 0.35 	! overrides group value
+ 
+	est_max 0.2 		! overrides group value
 
 	! BVOC values, Tang et al., 2016
 	eps_iso 1.75  ! Jing updated 2020
@@ -842,10 +843,9 @@ pft "LSS" (
 	boreal
 	summergreen
 
-	gdd5min_est 100
 	phengdd5ramp 20
 
-	k_latosa 150	! FL change, set to the same relative difference as broadleafed/needleleafed, was 125
+	k_latosa 150	! Set to the same relative difference as broadleafed/needleleafed, was 125
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 6.9  ! Jing updated 2020
@@ -869,7 +869,7 @@ pft "GRT" (
 	boreal
 
 	pathway "c3"
-	ltor_max 0.4 ! overrides grass group value
+	ltor_max 0.2 	! overrides grass group value - Wolf et al (2008)
 	
 	gdd5min_est 0
 	phengdd5ramp 10 ! Overrides grass group value

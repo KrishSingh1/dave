@@ -523,7 +523,7 @@ pft "IBS" (
 	longevity 300
 	fireresist 0.1
 
-	greff_min 0.075	! override shade intolerant value
+	greff_min 0.06	! override shade intolerant value
 	wooddens 250	! was 200
 
 	eps_iso 45.0
@@ -640,7 +640,7 @@ group "lowshrub" (
 
 	! Bioclimatic limits
 	tcmax_est 5
-	gdd0_min 300		! Wolf et al (2008), Zhang et al (2013)
+	gdd0_min 250		! Wolf et al (2008), Zhang et al (2013) have 300
 	gdd5min_est 100 	! Wolf et al (2008), Zhang et al (2013)
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b)
@@ -676,8 +676,8 @@ group "prostratedwarfshrub" (
 	! Bioclimatic limits
 	tcmax_est 5
 	gdd5min_est 0
-	gdd0_min 150
-	gdd0_max 500 ! as in Zhang et al. (2013)
+	gdd0_min 100	! Wolf et al (2008) have 150 
+	gdd0_max 500	! as in Zhang et al. (2013)
 	min_snow 20.0
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b) - Assumed to be the same as low shrubs
@@ -820,7 +820,7 @@ pft "LSE" (
  	leaflong 3
 	turnover_leaf 0.33
  
-	est_max 0.2 		! overrides group value
+	est_max 0.25 		! overrides group value
 
 	! BVOC values, Tang et al., 2016
 	eps_iso 1.75  ! Jing updated 2020
@@ -869,7 +869,7 @@ pft "GRT" (
 	boreal
 
 	pathway "c3"
-	ltor_max 0.2 	! overrides grass group value - Wolf et al (2008)
+	ltor_max 0.25 	! overrides grass group value - Wolf et al (2008) has 0.2
 	
 	gdd5min_est 0
 	phengdd5ramp 10 ! Overrides grass group value
@@ -927,7 +927,7 @@ pft "SPDS" (
 
 	k_latosa 120	! set to the same relative difference as broadleafed/needleleafed, was 100	
 
-	phengdd5ramp 20
+	phengdd5ramp 10
 
 	! BVOC
 	eps_iso 14.11

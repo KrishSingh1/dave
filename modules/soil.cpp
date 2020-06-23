@@ -1961,17 +1961,13 @@ double Soilcolumn::animmob() {
 double Soilcolumn::runoff_drain() {
 	double runoff_drainage = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		runoff_drainage += soillayers[lyr].runoff_drain;
+		runoff_drainage += max(0.0, soillayers[lyr].runoff_drain);
 	}
 	return runoff_drainage;
 }
 
 double Soilcolumn::runoff_baseflow() {
-	double runoff_base_flow = 0.0;
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		runoff_base_flow += soillayers[lyr].runoff_baseflow;
-	}
-	return runoff_base_flow;
+	return max(0.0, soillayers[nsoillayers - 1].runoff_baseflow);
 }
 
 /// C content of soil column
@@ -2448,7 +2444,7 @@ void solve_tridiagonal(std::vector<double> upper, std::vector<double> main, std:
 	}
 }
 
-void Soilcolumn::calc_wflow(double infil) {
+void Soilcolumn::calc_wflow(double infil, std::vector<double> aet) {
 
 	bool ifbedrock = false; // 1 (Bedrock) or 0 (free drainage)
 
@@ -2467,6 +2463,7 @@ void Soilcolumn::calc_wflow(double infil) {
 			wpara.dz[lyr] = soillayers[lyr].depth * M_PER_MM;
 			wpara.diff[lyr] = soillayers[lyr].Dw;
 			wpara.cond[lyr] = soillayers[lyr].Kw;
+			wpara.sink[lyr] = -aet[lyr] / date.dt;
 			wpara.psi[lyr] = soillayers[lyr].wmass / soillayers[lyr].depth;
 		}
 
@@ -2519,12 +2516,19 @@ void Soilcolumn::calc_wflow(double infil) {
 	wfluxes[0] = infil;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain);
+		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet[lyr]);
 
 		// Remove very small water flux values
-		if (negligible(abs(wfluxes[lyr + 1]), -10))
+		if (negligible(abs(wfluxes[lyr + 1]), -10)) {
 			wfluxes[lyr + 1] = 0.0;
+		}
 	}
+
+	if (wfluxes[nsoillayers] < 0.0) 
+		dprintf("Year %d Day %d Baseflow %g\n", date.year, date.day, wfluxes[nsoillayers]);
+
+	// Calculate baseflow
+	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
 }
 
 void padding::serialize(ArchiveStream& arch) {
@@ -3391,14 +3395,14 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise???????
 			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
-			soillayers[lyr].wmass -= aet;
+	//		soillayers[lyr].wmass -= aet;
 			aet_layer[lyr] += aet;
 			aet_total += aet;
 		}
 		vegetation.nextobj();
 	}
 
-	// Evaporation
+	// Evaporation DW_COMMENT LSM will calculate this differently
 
 	// Calculate wcont and awc for evaporation layers (only up to awc)
 	wcont_evap = to_depth(SOILDEPTH_EVAP, get_prop(WCONT), get_prop(AWC));
@@ -3409,20 +3413,27 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Added the snowdepth restriction too.
 	// evap only if snow depth < 10mm
 	double evap = 0.0;
-	if (snow.depth() < 10.0) {
+	if (snow.depth() < 10.0 && !negligible(fevap)) {
 		evap = climate.eet * PRIESTLEY_TAYLOR * min(1.0, wcont_evap) * min(1.0, wcont_evap) * fevap;
+
+		// Remove small evaporations (less than 1mm3 per day and m2, 1mm == 1dm3 -> no less than 1.0e-6)
+		if (evap < 1.0e-6)
+			evap = 0.0;
 	}
 
+	// Calculate evaporation that influence soil water after rain_melt initially meets the evaporation demand
+	double evap_actual = max(0.0, evap - rain_melt);
+	double rain_melt_actual = max(0.0, rain_melt - evap);
+
 	// Extract evaporation from soil layers as a fraction of available water
-	if (!negligible(evap)) {
+	if (!negligible(evap_actual)) {
 
 		// Evaporation cannot exceed available water down to evaporation depth
 		double avail_evap = wcont_evap * to_depth(SOILDEPTH_EVAP, get_prop(AWC));
-		evap = min(evap, avail_evap);
 
 		double acc_evap = 0.0;
 		double acc_depth = 0.0;
-		double evap_frac = evap / avail_evap;
+		double evap_frac = evap_actual / avail_evap;
 		int lyr = 0;
 
 		while (acc_depth < SOILDEPTH_EVAP) {
@@ -3430,10 +3441,10 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			double lyr_depth = acc_depth + soillayers[lyr].depth < SOILDEPTH_EVAP ? soillayers[lyr].depth : SOILDEPTH_EVAP - acc_depth;
 			
 			// Available water for evaporation
-			double avail_wmass_lyr = soillayers[lyr].wcont() * soillayers[lyr].awc * lyr_depth / soillayers[lyr].depth;
+			double avail_wmass_lyr = max(0.0, soillayers[lyr].wmass - soillayers[lyr].wp) * lyr_depth / soillayers[lyr].depth;
 
 			// Evaporation in this soil layer
-			double evap_lyr = avail_wmass_lyr * evap_frac;
+			double evap_lyr = avail_wmass_lyr * min(1.0, evap_frac);
 
 			// Extract water
 			soillayers[lyr].wmass -= evap_lyr;
@@ -3444,9 +3455,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			lyr++;
 		}
 
-		if (!negligible(acc_evap - evap, -12))
-			dprintf("ERROR: Year %d Day %d EVAP not correct %g %g Diff %g\n",date.year,date.day, acc_evap, evap, acc_evap - evap);
+		evap -= evap_actual - acc_evap;
+
+		if (!negligible(evap_actual - acc_evap, -10))
+			dprintf("ERROR: Year %d Day %d EVAP not correct %g %g Diff %g\n",date.year,date.day, evap_actual, acc_evap, evap_actual - acc_evap);
 	}
+
 
 	// Surface infiltration and runoff
 
@@ -3458,24 +3472,18 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Calculate runoff if there is any throughfall or snow melt (Balsamo 2009, eqn 6 and 11)
 	double runoff_surf = 0.0;
-	if (!negligible(rain_melt)) {
-		runoff_surf = max(0.0, rain_melt - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
+	if (!negligible(rain_melt_actual)) {
+		runoff_surf = max(0.0, rain_melt_actual - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
 			pow(max(0.0, pow(1.0 - totwcont_infilt, 1.0 / (1.0 + b)) -
 				rain_melt / (wsats_infilt * (1.0 + b))), b + 1.0));
 	}
 
 	// Calculate infiltration (mm)
-	double infilt = max(0.0, rain_melt - runoff_surf);
+	double infilt = max(0.0, rain_melt_actual - runoff_surf);
 	rain_melt = 0.0;
 
 	// Calculate water profile and fluxes
-	calc_wflow(infilt);
-
-	// Calculate baseflow
-	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]); // DW_COMMENT should be resolved if negative!!!
-
-	if (wfluxes[nsoillayers] < 0.0)
-		dprintf("Year %d Day %d Baseflow %g\n",date.year,date.day, wfluxes[nsoillayers]);
+	calc_wflow(infilt, aet_layer);
 
 	// Total runoff
 	double runoff = runoff_surf + runoff_drain() + runoff_baseflow();
@@ -3498,7 +3506,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 				soillayers[lyr].runoff_baseflow = 0.0;
 			}
 			runoff = 0.0;
-
 		}
 		else if (runoff > patch.wetland_wmass_added_today  && runoff > 0.0) {
 
@@ -3514,7 +3521,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 			// Reset wetland_water_added
 			patch.wetland_wmass_added_today = 0.0;
-
 		}
 	}
 

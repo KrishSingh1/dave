@@ -503,7 +503,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = 110;// nyear_spinup; // DW_COMMENT
+		start_year = 250;// nyear_spinup; // DW_COMMENT
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -3883,7 +3883,7 @@ public:
 	/// Update moisture diffusivity and conductivity
 	void update_moisture_diff_and_cond();
 	/// Calculate soil column water flow
-	void calc_wflow(double infilt);
+	void calc_wflow(double infilt, std::vector<double> aet);
 	/// Update heat capacity and conductivity for soil layers
 	void update_heatcap_and_cond(bool combine_snow);
 	/// Set padding layers depth

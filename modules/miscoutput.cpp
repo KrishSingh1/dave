@@ -100,6 +100,13 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_nuptake",&file_daily_nuptake,300,"Daily output.");
 
 	declare_parameter("file_daily_climate",&file_daily_climate,300,"Daily output.");
+	declare_parameter("file_daily_snow_depth", &file_daily_snow_depth, 300, "Daily snow depth output.");
+	declare_parameter("file_daily_snow_density", &file_daily_snow_density, 300, "Daily snow density output.");
+	declare_parameter("file_daily_snow_k", &file_daily_snow_k, 300, "Daily snow thermal conductivity output.");
+	declare_parameter("file_daily_snow_d", &file_daily_snow_d, 300, "Daily snow diffusivity output.");
+	declare_parameter("file_daily_snow_c", &file_daily_snow_c, 300, "Daily snow heat capacity output.");
+
+	declare_parameter("file_daily_temp", &file_daily_temp, 300, "Daily air, snow and soil temperature output.");
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
 
@@ -238,7 +245,7 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("temp_mean",  10, 1);
 	seasonality_columns += ColumnDescriptor("mtemp_max",  10, 1);
 	seasonality_columns += ColumnDescriptor("temp_seas",  10, 0);
-	seasonality_columns += ColumnDescriptor("gdd5",  10, 0);
+	seasonality_columns += ColumnDescriptor("gdd5",       10, 0);
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
@@ -277,9 +284,27 @@ void MiscOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
 
 	ColumnDescriptors daily_climate_columns;
-	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Rad",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Temp",   7, 2);
+	daily_climate_columns += ColumnDescriptor("Prec",   7, 1);
+	daily_climate_columns += ColumnDescriptor("Rad",   12, 1);
+
+	// Create snow layer columns
+	xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4" };
+	ColumnDescriptors daily_snow_columns, daily_snow_k_columns, daily_snow_d_columns, daily_snow_c_columns;
+	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+		daily_snow_columns += ColumnDescriptor(snowlayers[lyr], 8, 2);
+		daily_snow_k_columns += ColumnDescriptor(snowlayers[lyr], 10, 3);
+		daily_snow_d_columns += ColumnDescriptor(snowlayers[lyr], 15, 9);
+		daily_snow_c_columns += ColumnDescriptor(snowlayers[lyr], 10, 1);
+	}
+
+	// Create snow and soil layer columns
+	ColumnDescriptors snowsoillyr_columns;
+	xtring snowsoillayers[] = { "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9" };
+	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
+	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX; lyr++) {
+		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
+	}
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
@@ -368,7 +393,15 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_lower_wcont,			file_daily_lower_wcont,         daily_columns);
 	create_output_table(out_daily_irrigation,			file_daily_irrigation,			daily_columns);
 
-	create_output_table(out_daily_climate,					file_daily_climate,					daily_climate_columns);
+	create_output_table(out_daily_climate,              file_daily_climate,             daily_climate_columns);
+
+	create_output_table(out_daily_snow_depth,           file_daily_snow_depth,          daily_snow_columns);
+	create_output_table(out_daily_snow_density,         file_daily_snow_density,        daily_snow_columns);
+	create_output_table(out_daily_snow_k,               file_daily_snow_k,              daily_snow_k_columns);
+	create_output_table(out_daily_snow_d,               file_daily_snow_d,              daily_snow_d_columns);
+	create_output_table(out_daily_snow_c,               file_daily_snow_c,              daily_snow_c_columns);
+
+	create_output_table(out_daily_temp,                 file_daily_temp,                snowsoillyr_columns);
 
 	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
 
@@ -397,7 +430,7 @@ void MiscOutput::define_output_tables() {
   */
 void outlimit_misc(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=nyear_spinup)
+	if (date.year>=0)//nyear_spinup)
 		out.add_value(table, d);
 }
 
@@ -1099,15 +1132,102 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
-	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTDAY, date.day + 1);
 
-	if (date.year < nyear_spinup) {
+	if (date.year > FIRST_FREEZE_YEAR + 10 || date.year < FIRST_FREEZE_YEAR + 5){//nyear_spinup) {
 		return;
 	}
 
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+
+	double snow_depth[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_temp[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_density[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_k[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_d[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_c[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_frac[NSNOWLAYERS_MAX] = { 0.0 };
+
+	double soil_temp[NSOILLAYER_MAX] = { 0.0 };
+
+	// Loop through Stands
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+
+		//Loop through Patches
+		while (stand.isobj) {
+			Soilcolumn& soilcolumn = stand.getobj().soilcolumn;
+			Snow& snow = soilcolumn.snow;
+
+			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+
+				if (lyr < snow.nsnowlayers) {
+					snow_depth[lyr] += snow.snowlayers[lyr].depth * to_gridcell_average;
+					snow_temp[lyr] += snow.snowlayers[lyr].temp * to_gridcell_average;
+					snow_density[lyr] += snow.snowlayers[lyr].dens * to_gridcell_average;
+					snow_k[lyr] += snow.snowlayers[lyr].Kh * to_gridcell_average;
+					snow_d[lyr] += snow.snowlayers[lyr].Dh * to_gridcell_average;
+					snow_c[lyr] += snow.snowlayers[lyr].Ch * to_gridcell_average;
+					snow_frac[lyr] += to_gridcell_average;
+				}
+			}
+
+			for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+				if (lyr < soilcolumn.nsoillayers) {
+					soil_temp[lyr] += soilcolumn.soillayers[lyr].temp * to_gridcell_average;
+				}
+				else {
+					soil_temp[lyr] = -999.9;
+				}
+			}
+
+			stand.nextobj();
+		} // patch loop
+		++gc_itr;
+	} // stand loop
+
+	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+		outlimit_misc(out, out_daily_snow_depth, snow_depth[lyr]);
+		if (!negligible(snow_frac[lyr])) {
+			outlimit_misc(out, out_daily_snow_density, snow_density[lyr] / snow_frac[lyr]);
+			outlimit_misc(out, out_daily_snow_k, snow_k[lyr] / snow_frac[lyr]);
+			outlimit_misc(out, out_daily_snow_d, snow_d[lyr] / snow_frac[lyr]);
+			outlimit_misc(out, out_daily_snow_c, snow_c[lyr] / snow_frac[lyr]);
+		}
+		else {
+			outlimit_misc(out, out_daily_snow_density, -999.9);
+			outlimit_misc(out, out_daily_snow_k, -999.9);
+			outlimit_misc(out, out_daily_snow_d, -999.9);
+			outlimit_misc(out, out_daily_snow_c, -999.9);
+		}
+	}
+
+	// Daily temperatures
+
+	// Air temperature
+	outlimit_misc(out, out_daily_temp, gridcell.climate.temp);
+
+	// Snow temperature, air temperature if no snow layer
+	for (int lyr = NSNOWLAYERS_MAX - 1; lyr >= 0; lyr--) {
+		if (!negligible(snow_frac[lyr])) {
+			outlimit_misc(out, out_daily_temp, snow_temp[lyr] / snow_frac[lyr]);
+		}
+		else {
+			outlimit_misc(out, out_daily_temp, gridcell.climate.temp);
+		}
+	}
+
+	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
+	}
 }
 
 void MiscOutput::openlocalfiles(Gridcell& gridcell) {

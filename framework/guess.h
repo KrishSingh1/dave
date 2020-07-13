@@ -291,9 +291,6 @@ public:
 	/// number of subdaily periods in a day (to be set in IO module)
 	int subdaily;
 
-	/// length of each model time step (s)
-	int dt;
-
 	/// time steps within each modelled time step (dt)
 	int timesteps;
 
@@ -335,8 +332,7 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
-		dt = 24 * 60 * 60; // Daily timestep as standard
-		timesteps = 6; // DW_COMMENT shouldn't be set here!!!!
+		timesteps = 6; // 4h to manage 10cm resolution in water and temperature calculations
 		first_calendar_year = 0;
 	}
 
@@ -352,8 +348,6 @@ public:
 		islastmonth = islastday = ismidday = false;
 		if (nyear == 1) islastyear = true;
 		else islastyear = false;
-		dt = timesteplength * 60;
-		timesteps = int(ceil(dt / (4 * 60 * 60))); // DW_COMMENT 4h to manage 10cm resolution in water and temperature calculations
 	}
 
 	/// Call at end of every simulation day to update member variables.
@@ -1663,7 +1657,7 @@ public:
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	std::vector<double> rootdist;
 	/// vegetation root profile input in an array containing fraction of roots in each soil layer, [0=upper layer]
-	double root_dist[NSOILLAYER_MAX];
+	double root_dist[NSOILLAYER_SIMPLE];
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -2048,7 +2042,7 @@ public:
 		for (int i = 0; i<3; i++)
 			photo[i] = 0.0;
 
-		for (int i = 0; i<NSOILLAYER_MAX; i++)
+		for (int i = 0; i<NSOILLAYER_SIMPLE; i++)
 			root_dist[i] = 0.0;
 	}
 
@@ -2167,54 +2161,38 @@ public:
 	}
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-	void init_rootdist(rootdisttype rootdistribution, std::vector<double> soil_lyr_depth) {
+	void init_rootdist(std::vector<double> soil_lyr_depth) {
 
 		// Number of soil layers
-		int nsoillayers = soil_lyr_depth.size();
+		int nsoillayers = (int)soil_lyr_depth.size();
 		double tot_depth;
 
-		if (!iftwolayersoil) { 
+		if (!iftwolayersoil) {
 
+			// Multi layer soil scheme uses Jackson root distribution
+			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+			
 			rootdist.resize(nsoillayers, 0.0);
 
-			if (rootdistribution == ROOTDIST_JACKSON) {
+			double tot = 0.0;
+			tot_depth = soil_lyr_depth[0] * CM_PER_MM;
 
-				// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+			// init first layer
+			rootdist[0] = 1.0 - pow(root_beta, tot_depth);
+			tot += rootdist[0];
 
-				double tot = 0.0;
-				tot_depth = soil_lyr_depth[0] * CM_PER_MM;
-
-				// init first layer
-				rootdist[0] = 1.0 - pow(root_beta, tot_depth);
-				tot += rootdist[0];
-
-				for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
-					tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
-					rootdist[lyr] = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
-					tot += rootdist[lyr];
-				}
-
-				// Add the remaining rootdist in last soil layer
-				rootdist[nsoillayers - 1] = 1.0 - tot;
+			for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
+				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
+				rootdist[lyr] = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
+				tot += rootdist[lyr];
 			}
-			else { // ROOTDIST_FIXED 
-				double tot = 0.0;
-				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					rootdist[lyr] = root_dist[lyr];
-					tot += root_dist[lyr];
-				}
 
-				// If not maximum number of soil layers, then distribute evenly the rest of root_dist
-				double missing_rootdist = 1.0 - tot;
-				if (fabs(missing_rootdist) > 1.0e-10) {
-					missing_rootdist /= nsoillayers;
-					for (int lyr = 0; lyr < nsoillayers; lyr++) {
-						rootdist[lyr] += missing_rootdist;
-					}
-				}
-			}
+			// Add the remaining rootdist in last soil layer
+			rootdist[nsoillayers - 1] = 1.0 - tot;
 		}
-		else { // Old two layer scheme
+		else { 
+			
+			// Old two layer scheme
 			rootdist.resize(2, 0.0);
 			rootdist[0] = root_dist[0];
 			rootdist[1] = root_dist[1];
@@ -3453,6 +3431,8 @@ public:
 	/// Calculates CENTURY instantaneous decay rates
 	void decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent);
 
+	void update_temp(double add_temp, double add_mass, double add_Ch);
+
 	void update_moisture_diff_and_cond();
 
 	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
@@ -3536,7 +3516,13 @@ struct Snowlayer : public Serializable {
 
 	void clear();
 
+	void update_temp(double add_temp, double add_mass, double add_Ch);
+
+	/// Update snow properties
 	void update_heatcap_and_cond();
+
+	/// Update snow water holding capacity
+	void update_whc();
 
 	/// Balancing snow density when a non-overfull layer increases/decreases
 	void mix_dens(double prec, double snowfall_dens);
@@ -3561,7 +3547,7 @@ public:
 	double NO3_mass;
 	/// Standard snow layer depth (50mm, except bottom) [mm]
 	double snow_depth_standard;
-	/// Limit for creating/deleting a snow layer compared to standard depth (20%)
+	/// Limit for creating/deleting a snow layer compared to standard depth
 	double snow_depth_limit;
 	/// Daily snow depth [mm]
 	double ddepth[Date::MAX_YEAR_LENGTH];
@@ -3588,28 +3574,34 @@ public:
 	void update_whc();
 
 	/// redistribute snow when all snow layers are full due to melt or compaction
-	void redist_layers_full(double snowpack_depth);
+	void redist_layers_full();
 
 	/// Redistribute snow when a non-overfull layer increases/decreases due to melt or compaction
-	void redist_layers(double current_ice);
+	void redist_layers(double snowpack_depth);
 
 	/// Accumulate snow in bottom layer if all other layers are already full
 	void update_layers(double snowfall_depth, double snowfall_dens, double airT);
 
+	/// DW_COMMENT
+	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
+
 	/// Snow accumulation
-	void snowfall(double airT, double& prec, double u10, double& rain_melt);
+	void snowfall(double airT, double& prec, double u10);
+
+	/// Rain melts snowpack
+	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow fractions
-	void phase_change(double airT);
+	void phase_change();
 
 	/// Snow compaction
-	void compaction();
+	void compaction(double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow thermal properties for each snow layer
 	void update_heatcap_and_cond();
 
 	/// Balance ice and water in snow layers after melt
-	void balance_snow(double& rain_melt);
+	void balance_snow(double& rain_melt, double& rain_melt_temp);
 
 	/// Mean snow depth for the three months with largest snowpack
 	double snowpack_avrmax3mth();
@@ -3718,6 +3710,8 @@ public:
 	std::vector<double> wfluxes;
 	/// rainfall and snowmelt today (mm)
 	double rain_melt;
+	/// rainfall and snowmelt temperature today (C)
+	double rain_melt_temp;
 	/// upper limit for percolation (mm)
 	double max_rain_melt;
 	/// whether to percolate today
@@ -3882,8 +3876,10 @@ public:
 	double add_wmass(int layer, double extrawmass);
 	/// Update moisture diffusivity and conductivity
 	void update_moisture_diff_and_cond();
+	/// Update soil layer temperatures due to water fluxes
+	void wflow_temp();
 	/// Calculate soil column water flow
-	void calc_wflow(double infilt, std::vector<double> aet);
+	void calc_wflow(double winfilt, std::vector<double> aet);
 	/// Update heat capacity and conductivity for soil layers
 	void update_heatcap_and_cond(bool combine_snow);
 	/// Set padding layers depth

@@ -106,7 +106,7 @@ const double Fgas = 0.00; // Possible to reintroduce - was 0.08 in Wania et al (
 const double peat_wp = 0.066;
 
 /// First year when phase change is allowed
-const int FIRST_FREEZE_YEAR = 90;
+const int FIRST_FREEZE_YEAR = 10;
 
 /// time step [day]
 const double Dt = 1;

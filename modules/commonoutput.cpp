@@ -40,7 +40,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_clitter", &file_clitter, 300, "Litter C output file");
 	declare_parameter("file_csoil", &file_csoil, 300, "Soil layer C output file");
 	declare_parameter("file_rsoil", &file_rsoil, 300, "Soil layer C respiration output file");
-	declare_parameter("file_temp", &file_temp, 300, "Snow and soil layer temperature output file");
+	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
 
@@ -173,10 +173,10 @@ void CommonOutput::define_output_tables() {
 	soillyr_columns += ColumnDescriptor("Total", 13, 8);
 
 	// Create soil layer columns
-	ColumnDescriptors snowsoillyr_columns;
-	xtring snowsoillayers[] = { "slyr4", "slyr3", "slyr2", "slyr1", "slyr0", "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
-	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX; lyr++) {
-		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 9, 2);
+	ColumnDescriptors temp_columns;
+	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9" };
+	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + 1; lyr++) {
+		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 9, 2);
 	}
 
 	// Create the columns for each output file
@@ -403,7 +403,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 	create_output_table(out_csoil,          file_csoil,          soillyr_columns);
 	create_output_table(out_rsoil,          file_rsoil,          soillyr_columns);
-	create_output_table(out_temp,           file_temp,           snowsoillyr_columns);
+	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -1503,9 +1503,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_csoil, csoil_gridcell);
 	outlimit(out, out_rsoil, rsoil_gridcell);
 
-	for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
-		outlimit(out, out_temp, mtemp[lyr][0]);
-	}
+	
 
 	// Print monthly output variables
 	for (m=0;m<12;m++) {
@@ -1779,6 +1777,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+
+	// Monthly row output
+	for (int mth = 0; mth < 12; mth++) {
+		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTMONTH, mth + 1);
+
+		outlimit(out, out_mtemp, gridcell.climate.hmtemp_20[mth].lastadd());
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
+			outlimit(out, out_mtemp, mtemp[lyr][mth]);
+		}
+	}
 }
 
 /// Output of simulation results at the end of each day

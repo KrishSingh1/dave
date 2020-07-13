@@ -112,7 +112,6 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
 				! see documentation for water_uptake()
-rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -122,7 +121,6 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
 soil_depth 1500.0		! Soil depth (mm)
-timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -143,8 +141,6 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
-				! rootdistribution must be "fixed"
 
 ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
@@ -240,7 +236,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	root_dist 0.14 0.14 0.14 0.14 0.14 0.06 0.06 0.06 0.06 0.06
+	root_dist 0.6 0.4
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67

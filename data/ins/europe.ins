@@ -119,7 +119,6 @@ ifstochmort 1         		! Whether mortality stochastic
 ifcdebt 1             		! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"		! "wcont", "rootdist", "smart" or "speciesspecific",
                       		! See documentation for water_uptake()
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	      		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -148,8 +147,6 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
-				! rootdistribution must be "fixed"
 
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 

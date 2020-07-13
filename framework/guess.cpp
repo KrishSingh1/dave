@@ -2369,12 +2369,12 @@ void Gridcell::set_soil_depth() {
 
 	std::vector<double> soil_lyr_depth = soil_layer_depths();
 
-	double nsoillayers = soil_lyr_depth.size();
+	int nsoillayers = (int)soil_lyr_depth.size();
 
 	// Set fixed rootdist per PFT depending on soil depth and layer thickness
 	for (unsigned int p = 0; p<pftlist.nobj; p++) {
 		//pft[p].pft.rootdist.resize(nsoillayers);
-		pft[p].pft.init_rootdist(rootdistribution, soil_lyr_depth);
+		pft[p].pft.init_rootdist(soil_lyr_depth);
 	}
 
 	// Create soil layers for each patch

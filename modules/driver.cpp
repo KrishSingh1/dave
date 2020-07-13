@@ -768,7 +768,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
-	// Calculate soil layer temperatures
+	// Calculate snow and soil layer temperatures
 	soilcolumn.temp();
 
 	/*dprintf("Year %d Day %d ",date.year,date.day);

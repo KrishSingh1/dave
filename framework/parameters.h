@@ -76,9 +76,6 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
-///How to determine root distribution in soil layers
-typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -146,9 +143,6 @@ extern bool ifcdebt;
 
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
-
-/// Parameterisation of root distribution
-extern rootdisttype rootdistribution;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
@@ -276,8 +270,6 @@ extern bool grassforcrop;
 /// Soil depth
 extern double soil_depth;
 
-/// Length of a simulated timestep (minutes)
-extern int timesteplength;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files

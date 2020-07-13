@@ -41,7 +41,6 @@ int estinterval;
 double distinterval;
 bool ifcdebt;
 double soil_depth;
-int timesteplength;
 
 bool ifcentury;
 bool ifnlim;
@@ -82,7 +81,6 @@ int iforganicsoilproperties;		// Whether soil C pool input is used to update soi
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
 wateruptaketype wateruptake;
-rootdisttype rootdistribution;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -179,7 +177,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
+	CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
 	CB_FIREMODEL, CB_WEATHERGENERATOR
 };
 
@@ -244,7 +242,6 @@ void initsettings() {
 	disturb_pasture = false;
 	grassforcrop = false;
 	soil_depth = 1500.0;
-	timesteplength = 24 * 60; // A day == 1440 minutes
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -469,8 +466,6 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
-		declareitem("rootdistribution", &strparam, 20, CB_ROOTDISTRIBUTION,
-			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
 
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
 			"Weather Generator (\"INTERP\", \"GWGEN\")");
@@ -555,7 +550,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("soil_depth", &soil_depth, 0, 100000, 1, CB_NONE, "Soil depth (mm)");
-		declareitem("timesteplength", &timesteplength, 0, 1440, 1, CB_NONE, "Length of a simulated timestep (minutes)");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
@@ -650,7 +644,7 @@ void plib_declarations(int id,xtring setname) {
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0, 1.0, 1, CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
-		declareitem("root_dist", ppft->root_dist, 0.0, 1.0, NSOILLAYER_MAX, CB_ROOTFRAC,
+		declareitem("root_dist", ppft->root_dist, 0.0, 1.0, NSOILLAYER_SIMPLE, CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");
@@ -1005,8 +999,6 @@ void badins(xtring missing) {
 void plib_callback(int callback) {
 
 	xtring message;
-	int i;
-	double numval;
 
 	switch (callback) {
 
@@ -1050,15 +1042,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-		case CB_ROOTDISTRIBUTION:
-		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
-		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
-		else {
-			sendmessage("Error",
-				"Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
-			plibabort();
-		}
-			break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
@@ -1198,17 +1181,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_ROOTFRAC:
-		/*numval = 0.0;
-		ppft->init_rootdist(rootdistribution);
-		
-		for (i=0;i<ppft->rootdist.size();i++) numval+=ppft->rootdist[i];
-		if (fabs(1.0-numval)>1.0e-10) {
-			sendmessage("Error","Specified root fractions do not sum to 1.0");
-			plibabort();
-		}
-		ppft->rootdist[ppft->rootdist.size() -1]+=1.0-numval;*/
-		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound
 	break;
@@ -1233,9 +1205,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-		if (!itemparsed("rootdistribution")) badins("rootdistribution");
 		if (!itemparsed("soil_depth")) badins("soil_depth");
-		if (!itemparsed("timesteplength")) badins("timesteplength");
 
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
@@ -1622,12 +1592,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("pstemp_high")) badins("pstemp_high");
 			if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			if (!itemparsed("lambda_max")) badins("lambda_max");
-			if (rootdistribution == ROOTDIST_FIXED) {
-				if (!itemparsed("root_dist")) badins("root_dist");
-			}
-			if (rootdistribution == ROOTDIST_JACKSON) {
-				if (!itemparsed("root_beta")) badins("root_beta");
-			}
 			if (!itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");

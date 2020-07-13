@@ -39,10 +39,14 @@
 #include "config.h"
 #include "soilwater.h"
 
+/// DW_COMMENT
+/*
+ *
+ */
 void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
-	// snow pack; update of snow pack with new snow and snow melt and snow melt
+	// snow pack; update of snow pack with new snow and snow melt
 
 	// INPUT PARAMETERS
 	// prec = precipitation today (mm)
@@ -51,11 +55,11 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// INPUT AND OUTPUT PARAMETER
 	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
-	// Add snow if snowfall (temp < 0)
-	soilcolumn.snow.snowfall(temp, prec, u10, soilcolumn.rain_melt);
+	// Snowfall, precipitation or snowmelt 
+	soilcolumn.snow.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
 
 	// Update snow density after mechanical compaction
-	soilcolumn.snow.compaction();
+	soilcolumn.snow.compaction(soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
 
 	// Save monthly snow values
 	soilcolumn.save_snow();
@@ -168,8 +172,12 @@ void irrigation(Patch& patch) {
 		}
 	}
 	patch.fluxes.report_flux(Fluxes::WIRRI, irrigation_d);
+
+	soilcolumn.rain_melt_temp = (soilcolumn.rain_melt * soilcolumn.rain_melt_temp + irrigation_d * patch.get_climate().temp) / (soilcolumn.rain_melt + irrigation_d);
 	soilcolumn.rain_melt += irrigation_d;
 	soilcolumn.max_rain_melt += irrigation_d;
+
+
 }
 
 // Inundation stress

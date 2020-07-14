@@ -2396,7 +2396,7 @@ void Gridcell::set_soil_depth() {
 				patch.pft[i].fwuptake.resize(nsoillayers);
 			}
 
-			patch.soilcolumn.init_soillayers(soil_lyr_depth);
+			patch.soilcolumn.init_soillayers(soil_lyr_depth); // PMSoil
 			
 			stand.nextobj();
 		}// End of loop through patches

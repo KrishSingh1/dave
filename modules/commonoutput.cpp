@@ -174,9 +174,9 @@ void CommonOutput::define_output_tables() {
 
 	// Create soil layer columns
 	ColumnDescriptors temp_columns;
-	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9" };
-	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + 1; lyr++) {
-		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 9, 2);
+	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
+	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS + 1; lyr++) {
+		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
 	}
 
 	// Create the columns for each output file
@@ -717,7 +717,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double msnowdepth[12];
 	double mwtp[12];
 	double mald[12];
-	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX][12];
+	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX+PAD_LAYERS][12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -730,7 +730,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
 		}
 	}
@@ -1363,8 +1363,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mtemp[slyr][m] += patch.soilcolumn.snow.mtemp[abs(slyr - (NSNOWLAYERS_MAX - 1))][m] * to_gridcell_average;
 				}
 
-				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-					mtemp[lyr + NSNOWLAYERS_MAX][m] += soilcolumn.soillayers[lyr].mtemp[m] * to_gridcell_average;
+				for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+					if (lyr < soilcolumn.nsoillayers)
+						mtemp[lyr + NSNOWLAYERS_MAX][m] += soilcolumn.soillayers[lyr].mtemp[m] * to_gridcell_average;
+					else
+						mtemp[lyr + NSNOWLAYERS_MAX][m] += -999.9 * to_gridcell_average;
+				}
+
+				for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYER_MAX][m] += soilcolumn.pad[plyr].mtemp[m] * to_gridcell_average;
 				}
 			}
 
@@ -1783,7 +1790,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTMONTH, mth + 1);
 
 		outlimit(out, out_mtemp, gridcell.climate.hmtemp_20[mth].lastadd());
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			outlimit(out, out_mtemp, mtemp[lyr][mth]);
 		}
 	}

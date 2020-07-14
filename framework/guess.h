@@ -237,6 +237,7 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
+class Soillayer; // PMSoil
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -3129,12 +3130,14 @@ private:
 /**
 *
 */
-class Soillayer : public Serializable {
+class Soillayer /*: public Serializable*/ { // PMSoil
 
 	// MEMBER VARIABLES
 
 public:
 
+	/// reference to parent Patch object
+	Patch& patch; // PMSoil
 	/// Soil layer middle depth (mm)
 	double depth_profile;
 	/// soil layer depth (mm)
@@ -3401,7 +3404,7 @@ public:
 	/// Constructs a Soillayer
 	/**  \param d         The soil layer depth
 	*/
-	Soillayer(double d = 0, double dp = 0, bool acrotelm = false, bool catotelm = false);
+	Soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil
 
 	// Set soil layer properties
 	void set_properties(Soiltype soiltype, double socfrac, int first_year, double& wadded); // DW_COMMENT soillayer needs to know which soilcolumn it belongs to!!!!!! first_year and wadded should be able to get from it!
@@ -3437,7 +3440,7 @@ public:
 
 	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
-	void serialize(ArchiveStream& arch);
+	//void serialize(ArchiveStream& arch);
 };
 
 /// Container for soil padding parameters
@@ -3450,8 +3453,12 @@ struct padding : public Serializable {
 		Ch = 0.0;
 	}
 
-	/// Soil padding layer temperatures
+	/// Soil padding layer temperatures [deg C]
 	double temp;
+	/// daily temperatures for the last month (deg C)
+	double dtemp[31];
+	/// Record the monthly average padding temperature [deg C]
+	double mtemp[12];
 	/// Soil padding layer depth
 	double depth;
 	/// Soil padding layer thermal conductivities (J m-1 K-1 s-1)
@@ -3810,7 +3817,8 @@ public:
 
 	void initdrivers();
 
-	void init_soillayers(std::vector<double> soil_layer_depths);
+	void init_soillayers(std::vector<double> soil_layer_depths); // PMSoil
+	Soillayer& create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil
 
 	/// Get soil property 
 	std::vector<double> get_prop(soilproptype SPT, int m = 0);

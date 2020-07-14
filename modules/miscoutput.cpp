@@ -300,9 +300,9 @@ void MiscOutput::define_output_tables() {
 
 	// Create snow and soil layer columns
 	ColumnDescriptors snowsoillyr_columns;
-	xtring snowsoillayers[] = { "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9" };
+	xtring snowsoillayers[] = { "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
-	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS; lyr++) {
 		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
 	}
 
@@ -1152,7 +1152,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double snow_c[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_frac[NSNOWLAYERS_MAX] = { 0.0 };
 
-	double soil_temp[NSOILLAYER_MAX] = { 0.0 };
+	double soil_temp[NSOILLAYER_MAX+PAD_LAYERS] = { 0.0 };
 
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
@@ -1179,8 +1179,12 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				}
 			}
 
-			for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-				if (lyr < soilcolumn.nsoillayers) {
+			for (int lyr = 0; lyr < NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
+
+				if (lyr >= NSOILLAYER_MAX) {
+					soil_temp[lyr] += soilcolumn.pad[lyr - NSOILLAYER_MAX].temp * to_gridcell_average;
+				}
+				else if (lyr < soilcolumn.nsoillayers) {
 					soil_temp[lyr] += soilcolumn.soillayers[lyr].temp * to_gridcell_average;
 				}
 				else {
@@ -1225,7 +1229,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	}
 
 	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYER_MAX+PAD_LAYERS; lyr++) {
 		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
 	}
 }

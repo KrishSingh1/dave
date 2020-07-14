@@ -934,7 +934,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 	// If no snow layers
 	if (nsnowlayers == 0) {
 		snowlayers.resize(nsnowlayers + 1);
-		snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
+		snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
 		nsnowlayers++;
 	}
 
@@ -1027,7 +1027,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 			}
 			else if (top_snow_lyr == nsnowlayers) {
 				snowlayers.resize(nsnowlayers + 1);
-				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
+				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
 				nsnowlayers++;
 			}
 		}
@@ -1232,7 +1232,7 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 			// If no snow layers
 			if (nsnowlayers == 0) {
 				snowlayers.resize(nsnowlayers + 1);
-				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
+				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
 				snowlayers[0].dens = SNOWDENSITY;
 				nsnowlayers++;
 			}
@@ -1285,7 +1285,7 @@ void Snow::serialize(ArchiveStream& arch) {
 // Implementation of Soillayer member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Soillayer::Soillayer(double d, double dp, bool a, bool c) : depth(d), depth_profile(dp), acrotelm(a), catotelm(c) {
+Soillayer::Soillayer(Patch& p, double d, double dp, bool a, bool c) : patch(p), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) { // PMSoil
 
 	// Initialises certain member variables
 
@@ -1812,7 +1812,7 @@ double Soillayer::wcont_max() {
 	return (wsats - wp) / awc;
 }
 
-void Soillayer::serialize(ArchiveStream& arch) {
+/*void Soillayer::serialize(ArchiveStream& arch) {
 	arch & depth
 		& wmass
 		& imass
@@ -1845,7 +1845,7 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& decomp_litter_mean
 		& k_soilfast_mean
 		& k_soilslow_mean;
-}
+}*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soilcolumn member functions
@@ -1914,6 +1914,11 @@ void Soilcolumn::initdrivers() {
 	savesomcent = false;
 }
 
+Soillayer& Soilcolumn::create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm) { // PMSoil
+	Soillayer* soillayer = new Soillayer(p, d, dp, acrotelm, catotelm);
+	return *soillayer;
+}
+
 
 void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 
@@ -1948,7 +1953,8 @@ void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		soillayers[lyr] = Soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
+		Soillayer& soillayer = create_soillayer(patch, soil_layer_depths[lyr], depth_profile, acrotelm, catotelm); // PMSoil
+		soillayers.push_back(soillayer);
 	}
 
 	// Set sizes of water flow calculation parameters
@@ -2260,6 +2266,10 @@ void Soilcolumn::set_dtemp() {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		soillayers[lyr].dtemp[date.dayofmonth] = soillayers[lyr].temp;
 	}
+
+	for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+		pad[plyr].dtemp[date.dayofmonth] = pad[plyr].temp;
+	}
 }
 
 void Soilcolumn::set_mwcont() {
@@ -2281,6 +2291,10 @@ void Soilcolumn::set_mwcont() {
 void Soilcolumn::set_mtemp() {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		soillayers[lyr].mtemp[date.month] = mean(soillayers[lyr].dtemp, date.ndaymonth[date.month]);
+	}
+
+	for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+		pad[plyr].mtemp[date.month] = mean(pad[plyr].dtemp, date.ndaymonth[date.month]);
 	}
 }
 

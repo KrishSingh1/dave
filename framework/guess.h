@@ -237,6 +237,7 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
+class Soilcolumn; // PMSoil_new
 class Soillayer; // PMSoil
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3130,14 +3131,15 @@ private:
 /**
 *
 */
-class Soillayer /*: public Serializable*/ { // PMSoil
+class Soillayer : public Serializable { // PMSoil
 
 	// MEMBER VARIABLES
 
 public:
 
-	/// reference to parent Patch object
-	Patch& patch; // PMSoil
+	/// reference to parent Soilcolumn object
+	Soilcolumn* parentcolumn; // PMSoil_new
+	
 	/// Soil layer middle depth (mm)
 	double depth_profile;
 	/// soil layer depth (mm)
@@ -3404,7 +3406,28 @@ public:
 	/// Constructs a Soillayer
 	/**  \param d         The soil layer depth
 	*/
-	Soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil
+	Soillayer() : parentcolumn(NULL) {}; // PMSoil_new
+
+	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
+
+	// 1. copy constructor
+	Soillayer(const Soillayer& that) : parentcolumn(that.parentcolumn)
+	{
+		// other variables
+	}
+
+	// 2. copy assignment operator
+	Soillayer& operator=(const Soillayer& that)
+	{
+		// etc.
+		return *this;
+	}
+
+	// 3. destructor
+	~Soillayer()
+	{
+		// etc.
+	}
 
 	// Set soil layer properties
 	void set_properties(Soiltype soiltype, double socfrac, int first_year, double& wadded); // DW_COMMENT soillayer needs to know which soilcolumn it belongs to!!!!!! first_year and wadded should be able to get from it!
@@ -3440,7 +3463,7 @@ public:
 
 	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
-	//void serialize(ArchiveStream& arch);
+	void serialize(ArchiveStream& arch); // PMSoil_new
 };
 
 /// Container for soil padding parameters
@@ -3676,6 +3699,10 @@ struct KNpara {
 *  static parameters for this soil is included as a member variable. Soilcolumn holds the
 *  object array of soil layers
 */
+
+// PMSoil_new suggestion:
+//class Soilcolumn : public GuessContainer<Soillayer>, public Serializable {
+
 class Soilcolumn : public Serializable {
 
 	// MEMBER VARIABLES
@@ -3687,7 +3714,7 @@ public:
 	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
 	/// vector with soil layers
-	std::vector<Soillayer> soillayers;
+	std::vector<Soillayer> soillayers; // PMSoil_new
 	/// number of soil layers
 	int nsoillayers;
 	/// number of acrotelm soil layers
@@ -3810,15 +3837,34 @@ private:
 
 public:
 
+	void initdrivers();
+
+
 	/// constructor (initialises member variable patch)
-	Soilcolumn(Patch& p, Soiltype& s) :patch(p), soiltype(s) {
+	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) { // PMSoil_new - added soillayers
 		initdrivers();
 	}
 
-	void initdrivers();
+
+	// 1. copy constructor - PMSoil_new
+	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype)
+	{
+		soillayers = that.soillayers;
+		// other variables
+	}
+
+	// 2. copy assignment operator - PMSoil_new
+	Soilcolumn& operator=(const Soilcolumn& that)
+	{
+		// etc.
+		soillayers = that.soillayers;	
+		soiltype = that.soiltype;
+		return *this;
+	}
 
 	void init_soillayers(std::vector<double> soil_layer_depths); // PMSoil
-	Soillayer& create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil
+	// Soillayer& create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
+	Soillayer& create_soillayer(double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
 
 	/// Get soil property 
 	std::vector<double> get_prop(soilproptype SPT, int m = 0);

@@ -224,6 +224,9 @@ int framework(const CommandLineArguments& args) {
 		// data files for the spinup period and create stands
 		landcover_init(gridcell, input_module.get());
 
+		// PMSoil_new - must be called after the stands have been created
+		gridcell.set_soil_depth(); // DW_COMMENT
+
 		if (restart) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);

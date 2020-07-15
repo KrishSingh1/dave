@@ -1285,7 +1285,7 @@ void Snow::serialize(ArchiveStream& arch) {
 // Implementation of Soillayer member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Soillayer::Soillayer(Patch& p, double d, double dp, bool a, bool c) : patch(p), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) { // PMSoil
+Soillayer::Soillayer(Soilcolumn* soilcol, double d, double dp, bool a, bool c) : parentcolumn(soilcol), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) { // PMSoil_new
 
 	// Initialises certain member variables
 
@@ -1812,7 +1812,8 @@ double Soillayer::wcont_max() {
 	return (wsats - wp) / awc;
 }
 
-/*void Soillayer::serialize(ArchiveStream& arch) {
+// PMSoil_new - uncommented
+void Soillayer::serialize(ArchiveStream& arch) {
 	arch & depth
 		& wmass
 		& imass
@@ -1845,13 +1846,17 @@ double Soillayer::wcont_max() {
 		& decomp_litter_mean
 		& k_soilfast_mean
 		& k_soilslow_mean;
-}*/
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soilcolumn member functions
 ////////////////////////////////////////////////////////////////////////////////
 
 void Soilcolumn::initdrivers() {
+
+	// PMSoil_new - these lines might be needed
+	// soillayers.resize(1);
+	// soillayers[0].parentcolumn = this;
 
 	// Padding layers
 	pad.resize(PAD_LAYERS);
@@ -1914,8 +1919,8 @@ void Soilcolumn::initdrivers() {
 	savesomcent = false;
 }
 
-Soillayer& Soilcolumn::create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm) { // PMSoil
-	Soillayer* soillayer = new Soillayer(p, d, dp, acrotelm, catotelm);
+Soillayer& Soilcolumn::create_soillayer(double d, double dp, bool acrotelm, bool catotelm) { // PMSoil
+	Soillayer* soillayer = new Soillayer(this, d, dp, acrotelm, catotelm); // PMSoil_new
 	return *soillayer;
 }
 
@@ -1953,7 +1958,7 @@ void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		Soillayer& soillayer = create_soillayer(patch, soil_layer_depths[lyr], depth_profile, acrotelm, catotelm); // PMSoil
+		Soillayer& soillayer = create_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm); // PMSoil
 		soillayers.push_back(soillayer);
 	}
 
@@ -4426,6 +4431,8 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& solvesomcent_beginyr
 		& solvesomcent_endyr;
 }
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

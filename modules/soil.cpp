@@ -1285,7 +1285,17 @@ void Snow::serialize(ArchiveStream& arch) {
 // Implementation of Soillayer member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Soillayer::Soillayer(Soilcolumn* soilcol, double d, double dp, bool a, bool c) : parentcolumn(soilcol), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) { // PMSoil_new
+Soillayer::Soillayer(Soilcolumn* sc) : soilcolumn(sc) {
+
+}
+
+
+void Soillayer::init(double d, double dp, bool a, bool c) {
+
+	depth = d;
+	depth_profile = dp;
+	acrotelm = a;
+	catotelm = c;
 
 	// Initialises certain member variables
 
@@ -1864,7 +1874,7 @@ void Soilcolumn::initdrivers() {
 	// Set padding layers depth
 	set_padding_depth();
 
-	b = set_b(300.0); // standard deviation of orography (300) 
+	b = set_b(300.0); // standard deviation of orography (300) // DW_COMMENT should be read in!!!
 	wcont_evap = 0.0;
 	NH4_input = 0.0;
 	NO3_input = 0.0;
@@ -1919,8 +1929,8 @@ void Soilcolumn::initdrivers() {
 	savesomcent = false;
 }
 
-Soillayer& Soilcolumn::create_soillayer(double d, double dp, bool acrotelm, bool catotelm) { // PMSoil
-	Soillayer* soillayer = new Soillayer(this, d, dp, acrotelm, catotelm); // PMSoil_new
+Soillayer& Soilcolumn::create_soillayer() {
+	Soillayer* soillayer = new Soillayer(this);
 	return *soillayer;
 }
 
@@ -1929,8 +1939,10 @@ void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 
 	nsoillayers = (int)soil_layer_depths.size();
 
-	// Set number of soil layers
-	soillayers.resize(nsoillayers);
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		Soillayer& soillayer = create_soillayer();
+		soillayers.push_back(soillayer);
+	}
 
 	double acc_depth = 0.0;
 	double depth_profile = 0.0;
@@ -1958,8 +1970,7 @@ void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		Soillayer& soillayer = create_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm); // PMSoil
-		soillayers.push_back(soillayer);
+		soillayers[lyr].init(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
 	}
 
 	// Set sizes of water flow calculation parameters

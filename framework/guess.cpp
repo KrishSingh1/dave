@@ -2357,15 +2357,6 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 }
 
 void Gridcell::set_soil_depth() {
-	
-	// soil_Depth is defined in global.ins
-	// if zero then use input map of soil depth
-	if (negligible(soil_depth)) {
-		soil_depth = soiltype.soildepth;
-	}
-	else {
-		soiltype.soildepth = soil_depth; // DW_COMMENT soiltype doesn't need to know depth!!!!!!
-	}
 
 	std::vector<double> soil_lyr_depth = soil_layer_depths();
 

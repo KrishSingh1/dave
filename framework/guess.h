@@ -2996,8 +2996,6 @@ public:
 	double pH;
 	/// carbon content (kg C m-2)
 	double soilC;
-	/// soil depth (m)
-	double soildepth;
 
 	/// soilcode, 0 to 8
 	int soilcode;
@@ -3138,7 +3136,7 @@ class Soillayer : public Serializable { // PMSoil
 public:
 
 	/// reference to parent Soilcolumn object
-	Soilcolumn* parentcolumn; // PMSoil_new
+	Soilcolumn* soilcolumn; // PMSoil_new
 	
 	/// Soil layer middle depth (mm)
 	double depth_profile;
@@ -3406,12 +3404,12 @@ public:
 	/// Constructs a Soillayer
 	/**  \param d         The soil layer depth
 	*/
-	Soillayer() : parentcolumn(NULL) {}; // PMSoil_new
+	Soillayer() : soilcolumn(NULL) {};
 
-	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
+	Soillayer(Soilcolumn* soilcolumn);
 
 	// 1. copy constructor
-	Soillayer(const Soillayer& that) : parentcolumn(that.parentcolumn)
+	Soillayer(const Soillayer& that) : soilcolumn(that.soilcolumn)
 	{
 		// other variables
 	}
@@ -3429,6 +3427,8 @@ public:
 		// etc.
 	}
 
+	// Initialise soil layer properties
+	void init(double d, double dp, bool a, bool c);
 	// Set soil layer properties
 	void set_properties(Soiltype soiltype, double socfrac, int first_year, double& wadded); // DW_COMMENT soillayer needs to know which soilcolumn it belongs to!!!!!! first_year and wadded should be able to get from it!
 	/// C content of soil layer
@@ -3862,9 +3862,8 @@ public:
 		return *this;
 	}
 
-	void init_soillayers(std::vector<double> soil_layer_depths); // PMSoil
-	// Soillayer& create_soillayer(Patch& p, double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
-	Soillayer& create_soillayer(double d, double dp, bool acrotelm, bool catotelm); // PMSoil_new
+	void init_soillayers(std::vector<double> soil_layer_depths);
+	Soillayer& create_soillayer(); // PMSoil_new
 
 	/// Get soil property 
 	std::vector<double> get_prop(soilproptype SPT, int m = 0);

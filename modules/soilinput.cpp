@@ -481,7 +481,11 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.soilC = soilprop.soilC;
 
 	// Soil depth
-	soiltype.soildepth = depth_map[c] * MM_PER_M;
+	// soil_depth is defined in global.ins
+	// if zero then use input map of soil depth
+	if (negligible(soil_depth)) {
+		soil_depth = depth_map[c] * MM_PER_M;
+	}
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period

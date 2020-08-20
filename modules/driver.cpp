@@ -544,9 +544,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 						soillayer.mwcontabove = 0.0;
 					}
 
-					double wadded = 0.0;
-					soillayer.set_properties(soilcolumn.soiltype, socfrac[lyr], stand.first_year, wadded);
-					patch.fluxes.report_flux(Fluxes::WADDED, wadded); // DW_COMMENT should be within set_properties
+					soillayer.set_properties(socfrac[lyr]);
 
 					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
 				}

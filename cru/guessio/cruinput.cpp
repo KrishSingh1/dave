@@ -271,9 +271,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	
 		soilinput.get_soil(lon, lat, gridcell);
 
-		// PMSoil_new
-		// gridcell.set_soil_depth(); // DW_COMMENT
-
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
 		clear_all_graphs();

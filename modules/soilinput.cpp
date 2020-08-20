@@ -312,6 +312,14 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.wilting_point = data[soilcode][5];
 
+	// hydraulic conductivity at saturation (m s-1)
+	soiltype.Kw_max = data[soilcode][12];
+
+	// van Genuchten soil parameters
+	soiltype.alpha = data[soilcode][13];
+	soiltype.n = data[soilcode][14];
+	soiltype.l = data[soilcode][15];
+
 	// Soil pH
 	soiltype.pH = 6.5;
 
@@ -359,6 +367,22 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	// Mineral silt fraction
 	double silt = 1.0 - soil.sand - soil.clay;
 
+	// Soilcode for van Genuchten soil parameters
+	// Soil code definition from Wösen 1999
+	int soilcode;
+
+	if (soil.clay > 0.6)
+		soilcode = 9; // Very Fine
+	else if (soil.clay > 0.35)
+		soilcode = 3; // Fine
+	else if (soil.sand > 0.65)
+		soilcode = 1; // Coarse
+	else if (soil.sand < 0.2 && soil.clay < 0.35)
+		soilcode = 6; // Fine-Medium
+	else
+		soilcode = 2; // Medium
+
+
 	// Equation 1 from Cosby 1984
 	// Psi = Psi_s * (Theta/Theta_s)^b
 	// Psi is the pressure head in cm
@@ -404,6 +428,14 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	soiltype.volumetric_whc_field_capacity = (Theta_whc - Theta_wilt);
 	soiltype.saturation_capacity = Theta_s;
 	soiltype.wilting_point = Theta_wilt;
+
+	// hydraulic conductivity at saturation (m s-1)
+	soiltype.Kw_max = data[soilcode][12];
+	
+	// van Genuchten soil parameters
+	soiltype.alpha = data[soilcode][13];
+	soiltype.n = data[soilcode][14];
+	soiltype.l = data[soilcode][15];
 
 	// Soil pH
 	soiltype.pH = soil.pH;
@@ -473,6 +505,16 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.wsats_org = data[organic_soilcode][6];
 	soiltype.awc_org = data[organic_soilcode][1];
 	soiltype.wp_org = data[organic_soilcode][5];
+
+	// van Genuchten soil parameters
+	soiltype.Kw_max = soilprop.Kw_max;
+	soiltype.alpha = soilprop.alpha;
+	soiltype.n = soilprop.n;
+	soiltype.l = soilprop.l;
+	soiltype.Kw_max_org = data[organic_soilcode][12];
+	soiltype.alpha_org = data[organic_soilcode][13];
+	soiltype.n_org = data[organic_soilcode][14];
+	soiltype.l_org = data[organic_soilcode][15];
 
 	// Soil pH
 	soiltype.pH = soilprop.pH;

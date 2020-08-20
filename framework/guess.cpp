@@ -2358,13 +2358,13 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 
 void Gridcell::set_soil_depth() {
 
-	std::vector<double> soil_lyr_depth = soil_layer_depths();
-
-	int nsoillayers = (int)soil_lyr_depth.size();
+	std::vector<double> soil_lyr_depth;
+	int nsoillayers = 0;
+	
+	soil_layer_depths(soil_lyr_depth, nsoillayers);  // DW_COMMENT här
 
 	// Set fixed rootdist per PFT depending on soil depth and layer thickness
 	for (unsigned int p = 0; p<pftlist.nobj; p++) {
-		//pft[p].pft.rootdist.resize(nsoillayers);
 		pft[p].pft.init_rootdist(soil_lyr_depth);
 	}
 
@@ -2387,7 +2387,8 @@ void Gridcell::set_soil_depth() {
 				patch.pft[i].fwuptake.resize(nsoillayers);
 			}
 
-			patch.soilcolumn.init_soillayers(soil_lyr_depth); // PMSoil
+			// Create soil layers and initalise them
+			patch.soilcolumn.create_soillayers(soil_lyr_depth);
 			
 			stand.nextobj();
 		}// End of loop through patches
@@ -2482,13 +2483,11 @@ double Gridcell::wflux() {
 	return wflux;
 }
 
-std::vector<double> Gridcell::soil_layer_depths() {
+void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillayers) {
 
 	if (soil_depth < SOILDEPTH_EVAP) {
 		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
 	}
-
-	std::vector<double> lyr_depths;
 
 	if (!iftwolayersoil) {
 		
@@ -2546,6 +2545,7 @@ std::vector<double> Gridcell::soil_layer_depths() {
 				}
 				lyr++;
 			}
+			nsoillayers = lyr;
 		}
 	}
 	else {
@@ -2558,9 +2558,8 @@ std::vector<double> Gridcell::soil_layer_depths() {
 			lyr_depths[0] = SOILDEPTH_UPPER;
 			lyr_depths[1] = soil_depth - SOILDEPTH_UPPER;
 		}
+		nsoillayers = 2;
 	}
-
-	return lyr_depths;
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {

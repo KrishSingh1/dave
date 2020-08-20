@@ -1285,17 +1285,15 @@ void Snow::serialize(ArchiveStream& arch) {
 // Implementation of Soillayer member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Soillayer::Soillayer(Soilcolumn* sc) : soilcolumn(sc) {
+//Soillayer::Soillayer(Soilcolumn* sc) : soilcolumn(sc) {
+//}
 
+Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool a, bool c) : soilcolumn(sc), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) {
+	init();
 }
 
 
-void Soillayer::init(double d, double dp, bool a, bool c) {
-
-	depth = d;
-	depth_profile = dp;
-	acrotelm = a;
-	catotelm = c;
+void Soillayer::init() {
 
 	// Initialises certain member variables
 
@@ -1417,10 +1415,13 @@ void Soillayer::init(double d, double dp, bool a, bool c) {
  * thermal properties for analytic temperature calculation
  * and two layer soil perculation parameters
 */
-void Soillayer::set_properties(Soiltype soiltype, double socfrac, int first_year, double& wadded) {
+void Soillayer::set_properties(double socfrac) {
+
+	// Get soil type
+	Soiltype soiltype = (*soilcolumn).soiltype;
 
 	// Only enter first year except if dynamic soil organic C influence soil properties (iforganicsoilproperties == 2)
-	if (first_year != date.year && (iforganicsoilproperties != 2 || acrotelm || catotelm)) // DW_COMMENT restart years needs to update it then as well!
+	if ((*soilcolumn).patch.stand.first_year != date.year && (iforganicsoilproperties != 2 || acrotelm || catotelm)) // DW_COMMENT restart years needs to update it then as well!
 		return;
 
 	clay_frac = soiltype.clay_frac;
@@ -1430,13 +1431,19 @@ void Soillayer::set_properties(Soiltype soiltype, double socfrac, int first_year
 	// Soil pH
 	pH = soiltype.pH;
 
-	/////////////////////////
-	// soiltype variable for Medium - fine // DW_COMMENT needs to be changed
-	alpha = 0.83; // DW_COMMENT should come from input
-	Kw_max = 2.63E-07; // DW_COMMENT should come from input
-	m = 1.0 - 1.0 / 1.2539; // DW_COMMENT should come from input
-	lambda = -0.5884; // DW_COMMENT should come from input
-	/////////////////////////
+	// DW_COMMENT Flytta van Genuchten soil parameters till soilcolumn
+
+	// hydraulic conductivity at saturation (m s-1)
+	Kw_max = soiltype.Kw_max;
+	Kw_max_org = soiltype.Kw_max_org;
+
+	// van Genuchten soil parameters
+	alpha = soiltype.alpha; 
+	m = 1.0 - 1.0 / soiltype.n;
+	lambda = soiltype.l;
+	alpha_org = soiltype.alpha_org;
+	m_org = 1.0 - 1.0 / soiltype.n_org;
+	lambda_org = soiltype.l_org;
 
 	// Analytic temp calc parameters
 	thermdiff_0 = soiltype.thermdiff_0;
@@ -1453,10 +1460,10 @@ void Soillayer::set_properties(Soiltype soiltype, double socfrac, int first_year
 		peat_frac = 1.0 - acrotelm_por;
 
 		// Initially saturated
-		if (first_year == date.year && !restart) {
-			wadded = wsats - (wmass + imass);
+		if ((*soilcolumn).patch.stand.first_year == date.year && !restart) {
+			double wadded = wsats - (wmass + imass);
 			wmass += wadded;
-			// patch.fluxes.report_flux(Fluxes::WADDED, wadded); // DW_COMMENT
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 		}
 	}
 	else if (catotelm) {
@@ -1469,10 +1476,10 @@ void Soillayer::set_properties(Soiltype soiltype, double socfrac, int first_year
 		peat_frac = 1.0 - catotelm_por;
 
 		// Initially saturated
-		if (first_year == date.year && !restart) {
-			wadded = wsats - (wmass + imass);
+		if ((*soilcolumn).patch.stand.first_year == date.year && !restart) {
+			double wadded = wsats - (wmass + imass);
 			wmass += wadded;
-			// patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 		}
 	}
 	// Mineral soil and no influence of soil organic C
@@ -1491,6 +1498,9 @@ void Soillayer::set_properties(Soiltype soiltype, double socfrac, int first_year
 		perc_exp = soiltype.perc_exp;
 	}
 	// Soil organic content influences soil properties
+	// Hudson (1994) showed that for each 1-percent increase in soil organic matter, the available water holding 
+	// capacity in the soil increased by 3.7 percent. Soil water is held by adhesive and cohesive forces within 
+	// the soil and an increase in pore space will lead to an increase in water holding capacity of the soil.
 	else {
 
 		// Soil layer C content (kg C m-2)
@@ -1623,9 +1633,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		else {
 			double r = nmass - NH4_mass;
 			NH4_mass = 0.0;
-			//patch.fluxes.report_flux(Fluxes::NH3_SOIL, r); // DW_COMMENT
-		dprintf("Year %d Day %d NH4 mass %f N substr %f \n", date.year ,date.day, NH4_mass, nmass);
-			//fail("tried to subtract more NH4 than available");
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NH3_SOIL, r);
+			dprintf("Year %d Day %d NH4 mass %f N substr %f Diff %f\n", date.year ,date.day, NH4_mass, nmass, r);
 		}
 	}
 	else if (pref == NO3) {
@@ -1635,9 +1644,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		else {
 			double r = nmass - NO3_mass;
 			NO3_mass = 0.0;
-			//patch.fluxes.report_flux(Fluxes::NO_SOIL, r); // DW_COMMENT
-			dprintf("Year %d Day %d NO3 mass %f N substr %f \n", date.year, date.day, NO3_mass, nmass);
-			//fail("tried to subtract more NO3 than available");
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NO_SOIL, r);
+			dprintf("Year %d Day %d NO3 mass %f N substr %f Diff %f\n", date.year, date.day, NO3_mass, nmass, r);
 		}
 	}
 }
@@ -1680,8 +1688,6 @@ void Soillayer::nmass_multiplic_inc(double inc, n_pref_type pref) {
 		NO3_mass *= inc;
 	}
 }
-
-
 
 void Soillayer::nmass_remove_small_values(n_pref_type pref) {
 	double EPS = -1.0e-18;
@@ -1746,12 +1752,14 @@ void Soillayer::update_moisture_diff_and_cond() {
 	double the = (theta - W_res) / (W_sat - W_res);
 	double po = pow(the, (1 / m));
 
+	// DW_COMMENT Dessa måste räknas ut för organic osså ifall vi skall räckna med soil C!!!!!!!!!!!!!!!!!!!
+
 	// Diffusivity (m2 s-1; van Genuchten 1980 eqn 11, adopted from HTESSEL code)
-	Dw = ((1.0 - m) * Kw_max / (alpha * m * (W_sat - W_res))) * pow(the, (lambda - 1.0 / m)) * (pow(1.0 - po, m) + pow(1.0 - po, -m) - 2);
+	Dw = ((1.0 - m) * Kw_max / (alpha * m * (W_sat - W_res))) * pow(the, (lambda - 1.0 / m)) * (pow(1.0 - po, m) + pow(1.0 - po, -m) - 2); // DW_COMMENT lookup table to speed up code?
 
 	// Conductivity (m s-1; van Genuchten 1980 eqn 8, adopted from HTESSEL code)
 	if (W_tot > 1.001 * W_res && W_tot <= 0.999 * W_sat) {
-		Kw = Kw_max * pow(the, lambda) * pow(1.0 - pow(1.0 - pow(the, 1.0 / m), m), 2);
+		Kw = Kw_max * pow(the, lambda) * pow(1.0 - pow(1.0 - pow(the, 1.0 / m), m), 2); // DW_COMMENT lookup table to speed up code?
 	}
 }
 
@@ -1822,7 +1830,7 @@ double Soillayer::wcont_max() {
 	return (wsats - wp) / awc;
 }
 
-// PMSoil_new - uncommented
+// DW_COMMENT need to fill when finished!
 void Soillayer::serialize(ArchiveStream& arch) {
 	arch & depth
 		& wmass
@@ -1830,7 +1838,7 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& temp
 		& temp_old;
 
-	for (int i = 0; i<NSOMPOOL; i++) {
+	for (int i = 0; i < NSOMPOOL; i++) {
 		arch & sompool[i];
 	}
 
@@ -1863,10 +1871,6 @@ void Soillayer::serialize(ArchiveStream& arch) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Soilcolumn::initdrivers() {
-
-	// PMSoil_new - these lines might be needed
-	// soillayers.resize(1);
-	// soillayers[0].parentcolumn = this;
 
 	// Padding layers
 	pad.resize(PAD_LAYERS);
@@ -1929,20 +1933,10 @@ void Soilcolumn::initdrivers() {
 	savesomcent = false;
 }
 
-Soillayer& Soilcolumn::create_soillayer() {
-	Soillayer* soillayer = new Soillayer(this);
-	return *soillayer;
-}
 
-
-void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
+void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 
 	nsoillayers = (int)soil_layer_depths.size();
-
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		Soillayer& soillayer = create_soillayer();
-		soillayers.push_back(soillayer);
-	}
 
 	double acc_depth = 0.0;
 	double depth_profile = 0.0;
@@ -1970,7 +1964,8 @@ void Soilcolumn::init_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		soillayers[lyr].init(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
+		Soillayer* soillayer = new Soillayer(this, soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
+		soillayers.push_back((*soillayer));
 	}
 
 	// Set sizes of water flow calculation parameters

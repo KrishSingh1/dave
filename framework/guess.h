@@ -237,8 +237,8 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
-class Soilcolumn; // PMSoil_new
-class Soillayer; // PMSoil
+class Soilcolumn;
+class Soillayer;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -2961,6 +2961,14 @@ public:
 	/// saturation point. Cosby et al 1984
 	double wsats;
 
+	/// hydraulic conductivity at saturation (m s-1)
+	double Kw_max;
+
+	/// van Genuchten soil parameters
+	double alpha;
+	double n;
+	double l;
+
 	/// Organic soil properties
 	
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
@@ -2979,6 +2987,14 @@ public:
 	double wp_org;
 	/// saturation point. Cosby et al 1984
 	double wsats_org;
+
+	/// hydraulic conductivity at saturation (m s-1)
+	double Kw_max_org;
+
+	/// van Genuchten soil parameters
+	double alpha_org;
+	double n_org;
+	double l_org;
 
 	/// year at which to calculate equilibrium soil carbon
 	int solvesom_end;
@@ -3129,15 +3145,14 @@ private:
 /**
 *
 */
-class Soillayer : public Serializable { // PMSoil
+class Soillayer : public Serializable {
 
 	// MEMBER VARIABLES
 
 public:
 
 	/// reference to parent Soilcolumn object
-	Soilcolumn* soilcolumn; // PMSoil_new
-	
+	Soilcolumn* soilcolumn;
 	/// Soil layer middle depth (mm)
 	double depth_profile;
 	/// soil layer depth (mm)
@@ -3172,14 +3187,17 @@ public:
 	double perc_base;
 	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_exp;
-	///
-	double alpha;
-	///  max soil moisture conductivity (m s-1)
+	/// hydraulic conductivity at saturation (m s-1)
 	double Kw_max;
-	/// 
+	/// hydraulic conductivity at saturation (m s-1)
+	double Kw_max_org;
+	/// van Genuchten soil parameters
+	double alpha;
 	double m;
-	/// 
 	double lambda;
+	double alpha_org;
+	double m_org;
+	double lambda_org;
 	/// soil moisture diffusivity (m2 s-1)
 	double Dw;
 	/// soil moisture conductivity (m s-1)
@@ -3406,12 +3424,17 @@ public:
 	*/
 	Soillayer() : soilcolumn(NULL) {};
 
-	Soillayer(Soilcolumn* soilcolumn);
+	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm);
 
 	// 1. copy constructor
 	Soillayer(const Soillayer& that) : soilcolumn(that.soilcolumn)
 	{
-		// other variables
+		depth = that.depth; 
+		depth_profile = that.depth_profile;
+		acrotelm = that.acrotelm;
+		catotelm = that.catotelm;
+
+		init(); // DW_COMMENT migh need to copy all variablies!!!
 	}
 
 	// 2. copy assignment operator
@@ -3428,9 +3451,9 @@ public:
 	}
 
 	// Initialise soil layer properties
-	void init(double d, double dp, bool a, bool c);
+	void init();
 	// Set soil layer properties
-	void set_properties(Soiltype soiltype, double socfrac, int first_year, double& wadded); // DW_COMMENT soillayer needs to know which soilcolumn it belongs to!!!!!! first_year and wadded should be able to get from it!
+	void set_properties(double socfrac);
 	/// C content of soil layer
 	double ccont();
 	/// N content of soil layer
@@ -3463,7 +3486,7 @@ public:
 
 	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
-	void serialize(ArchiveStream& arch); // PMSoil_new
+	void serialize(ArchiveStream& arch);
 };
 
 /// Container for soil padding parameters
@@ -3714,7 +3737,7 @@ public:
 	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
 	/// vector with soil layers
-	std::vector<Soillayer> soillayers; // PMSoil_new
+	std::vector<Soillayer> soillayers;
 	/// number of soil layers
 	int nsoillayers;
 	/// number of acrotelm soil layers
@@ -3841,19 +3864,19 @@ public:
 
 
 	/// constructor (initialises member variable patch)
-	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) { // PMSoil_new - added soillayers
+	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
 		initdrivers();
 	}
 
 
-	// 1. copy constructor - PMSoil_new
+	// 1. copy constructor
 	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype)
 	{
 		soillayers = that.soillayers;
 		// other variables
 	}
 
-	// 2. copy assignment operator - PMSoil_new
+	// 2. copy assignment operator
 	Soilcolumn& operator=(const Soilcolumn& that)
 	{
 		// etc.
@@ -3861,10 +3884,8 @@ public:
 		soiltype = that.soiltype;
 		return *this;
 	}
-
-	void init_soillayers(std::vector<double> soil_layer_depths);
-	Soillayer& create_soillayer(); // PMSoil_new
-
+	/// Create soillayers
+	void create_soillayers(std::vector<double> soil_layer_depths);
 	/// Get soil property 
 	std::vector<double> get_prop(soilproptype SPT, int m = 0);
 	/// Get soil layers total cmass fractions
@@ -5129,8 +5150,8 @@ public:
 	double nflux();
 	/// Total gridcell water fluxes so far this year
 	double wflux();
-	/// Returns each soil layer dept
-	std::vector<double> soil_layer_depths();
+	/// Calculates soil layer depths and number of soil layers
+	void soil_layer_depths(std::vector<double>& soil_lyr_depth, int& nsoillayers);
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

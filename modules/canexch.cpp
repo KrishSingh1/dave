@@ -1031,8 +1031,8 @@ void vegetation_n_uptake(Patch& patch) {
 		NO3_uptake_tot = NO3_avail;
 	}
 
-	//if (NH4_uptake_tot > soilcolumn.nmass_avail(NH4, false) || NO3_uptake_tot > soilcolumn.nmass_avail(NO3, false))
-	//	dprintf("Year %d Day %d UP ERROR NH4 up %g av %g diff %g NO3 up %g av %g diff %g\n",date.year, date.day, NH4_uptake_tot, NH4_avail, NH4_uptake_tot - NH4_avail, NO3_uptake_tot, NO3_avail, NO3_uptake_tot - NO3_avail);
+	if (NH4_uptake_tot > NH4_avail || NO3_uptake_tot > NO3_avail)
+		dprintf("Year %d Day %d UP ERROR NH4 up %g av %g diff %g NO3 up %g av %g diff %g\n", date.year, date.day, NH4_uptake_tot, NH4_avail, NH4_uptake_tot - NH4_avail, NO3_uptake_tot, NO3_avail, NO3_uptake_tot - NO3_avail);
 
 	//double ncont_after = patch.ncont() - NH4_uptake_tot - NO3_uptake_tot;
 
@@ -1047,15 +1047,15 @@ void vegetation_n_uptake(Patch& patch) {
 
 	if (soilcolumn.savesomcent) {
 		if (!negligible(NH4_avail)) {
-			double frac_nmass_remain = 1.0 - soilcolumn.nmass_avail(NH4) / NH4_avail;
+			double frac_nmass_uptake = NH4_uptake_tot / NH4_avail;
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				soilcolumn.soillayers[lyr].fNH4uptake_mean[date.month] += frac_nmass_remain / date.ndaymonth[date.month];
+				soilcolumn.soillayers[lyr].fNH4uptake_mean[date.month] += frac_nmass_uptake / date.ndaymonth[date.month];
 			}
 		}
 		if (!negligible(NO3_avail)) {
-			double frac_nmass_remain = 1.0 - soilcolumn.nmass_avail(NO3) / NO3_avail;
+			double frac_nmass_uptake = NO3_uptake_tot / NO3_avail;
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				soilcolumn.soillayers[lyr].fNO3uptake_mean[date.month] += frac_nmass_remain / date.ndaymonth[date.month];
+				soilcolumn.soillayers[lyr].fNO3uptake_mean[date.month] += frac_nmass_uptake / date.ndaymonth[date.month];
 			}
 		}
 	}

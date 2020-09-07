@@ -232,7 +232,7 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 			soilc_i = i;
 		}
 	}
-	if (soilc_i == -1 && iforganicsoilproperties) {
+	if (soilc_i == -1 && iforganicsoilproperties == 1) {
 		fail("Error! No Soil C column found in %s. \nTip: do not use iforganicsoilproperties 1 together with a soilmap file without a SoilC column\n", fname);
 	}
 
@@ -312,14 +312,6 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.wilting_point = data[soilcode][5];
 
-	// hydraulic conductivity at saturation (m s-1)
-	soiltype.Kw_max = data[soilcode][12];
-
-	// van Genuchten soil parameters
-	soiltype.alpha = data[soilcode][13];
-	soiltype.n = data[soilcode][14];
-	soiltype.l = data[soilcode][15];
-
 	// Soil pH
 	soiltype.pH = 6.5;
 
@@ -333,30 +325,6 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	return soiltype;
 }
 
-// Stores the basic properties of organic soil. 
-// Used only if scaling between pure mineral and organic soils is activated.
-SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
-
-	int soilcode = 8;
-
-	SoilProperties soiltype;
-	soiltype.sand = data[soilcode][7];
-	soiltype.clay = data[soilcode][8];
-
-	soiltype.b = data[soilcode][0];
-	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
-	soiltype.thermal_wilting_point = data[soilcode][2];
-	soiltype.thermal_15_whc = data[soilcode][3];
-	soiltype.thermal_field_capacity = data[soilcode][4];
-	soiltype.wilting_point = data[soilcode][5];
-	soiltype.saturation_capacity = data[soilcode][6];
-	soiltype.pH = 6.5;
-	soiltype.soil_OC = 0.05;
-	soiltype.soilC = 0.0; // default value (kgC/m2)
-	soiltype.porosity = data[soilcode][11];
-	return soiltype;
-}
-
 // Get and set soil properties based on mineral soil input.
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
@@ -366,22 +334,6 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
 	// Mineral silt fraction
 	double silt = 1.0 - soil.sand - soil.clay;
-
-	// Soilcode for van Genuchten soil parameters
-	// Soil code definition from Wösen 1999
-	int soilcode;
-
-	if (soil.clay > 0.6)
-		soilcode = 9; // Very Fine
-	else if (soil.clay > 0.35)
-		soilcode = 3; // Fine
-	else if (soil.sand > 0.65)
-		soilcode = 1; // Coarse
-	else if (soil.sand < 0.2 && soil.clay < 0.35)
-		soilcode = 6; // Fine-Medium
-	else
-		soilcode = 2; // Medium
-
 
 	// Equation 1 from Cosby 1984
 	// Psi = Psi_s * (Theta/Theta_s)^b
@@ -429,14 +381,6 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	soiltype.saturation_capacity = Theta_s;
 	soiltype.wilting_point = Theta_wilt;
 
-	// hydraulic conductivity at saturation (m s-1)
-	soiltype.Kw_max = data[soilcode][12];
-	
-	// van Genuchten soil parameters
-	soiltype.alpha = data[soilcode][13];
-	soiltype.n = data[soilcode][14];
-	soiltype.l = data[soilcode][15];
-
 	// Soil pH
 	soiltype.pH = soil.pH;
 
@@ -452,18 +396,40 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	return soiltype;
 }
 
-void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
-	
-	// Special case if soil properties are presumed to be influenced by the amount of soil carbon. Only valid if not using soil codes.
-	//if (iforganicsoilproperties) {
-	//	get_soil_organic(lon, lat, gridcell);
-	//} 
-	//else {
-		get_soil_mineral(lon, lat, gridcell);
-	//}
+int get_texture(double clay, double sand, double silt) {
+
+	int tc;
+
+	if (clay > 0.4 && sand < 0.55 && silt < 0.4)
+		tc = 0; // Clay
+	else if(clay > 0.4 && sand < 0.2)
+		tc = 1; // Silty Clay
+	else if(clay > 0.27 && sand < 0.2)
+		tc = 2; // Silty Clay Loam
+	else if(clay > 0.27 && sand < 0.45)
+		tc = 3; // Clay Loam
+	else if(clay > 0.35)
+		tc = 4; // Sandy Clay
+	else if(clay < 0.13 && sand < 0.2 && silt > 0.8)
+		tc = 5; // Silt
+	else if(silt > 0.5)
+		tc = 6; // Silt Loam
+	else if(clay > 0.08 && sand < 0.52 && silt > 0.28)
+		tc = 7; // Loam
+	else if(clay > 0.2)
+		tc = 8; // Sandy Clay Loam
+	else if(clay < (0.1 - 0.67 * silt) && sand > 0.85 && silt < 0.15)
+		tc = 9; // Sand
+	else if(clay > (0.15 - 0.5 * silt) && sand > 0.7 && silt < 0.3)
+		tc = 10; // Loamy Sand
+	else
+		tc = 11; // Sandy loam
+
+	return tc;
 }
 
-void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
+
+void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 	Soiltype& soiltype = gridcell.soiltype;
 
@@ -506,21 +472,26 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.awc_org = data[organic_soilcode][1];
 	soiltype.wp_org = data[organic_soilcode][5];
 
-	// van Genuchten soil parameters
-	soiltype.Kw_max = soilprop.Kw_max;
-	soiltype.alpha = soilprop.alpha;
-	soiltype.n = soilprop.n;
-	soiltype.l = soilprop.l;
-	soiltype.Kw_max_org = data[organic_soilcode][12];
-	soiltype.alpha_org = data[organic_soilcode][13];
-	soiltype.n_org = data[organic_soilcode][14];
-	soiltype.l_org = data[organic_soilcode][15];
+	// Soil texture class based on clay, sand and silt fractions
+	int texture = get_texture(soiltype.clay_frac, soiltype.sand_frac, soiltype.silt_frac);
+
+	// van Genuchten soil parameters (Carsel 1988)
+	soiltype.Kw_max = vG_data[texture][2];
+	soiltype.alpha = vG_data[texture][3];
+	soiltype.m = 1.0 - 1.0 / vG_data[texture][4];
+	soiltype.l = 0.5; // Default value
+	soiltype.Kw_max_org = vG_data[12][2];
+	soiltype.alpha_org = vG_data[12][3];
+	soiltype.m_org = 1.0 - 1.0 / vG_data[12][4];
 
 	// Soil pH
 	soiltype.pH = soilprop.pH;
 
 	// Soil carbon content
 	soiltype.soilC = soilprop.soilC;
+
+	// Bulk density (g cm-3) (eqn 8.3 Bonan 2019 with particle density set to 2650 kg m–3
+	soiltype.bulk_density = soilprop.bulk_density > 0.0 ? soilprop.bulk_density : (1.0 - soiltype.wsats) * 2.650;
 
 	// Soil depth
 	// soil_depth is defined in global.ins
@@ -598,3 +569,5 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
+// Carsel, R.F. and Parrish, R.S. 1988 Developing joint probability distributions of soil 
+//   water retention characteristics. Water Resources Research, 24: 755-769.

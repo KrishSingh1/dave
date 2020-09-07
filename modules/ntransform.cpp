@@ -116,18 +116,18 @@ struct Nsubpart {
 /** Daily calculation of NH3 volatilization from soil
  *
  */
-void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, double& n_budget_check) {
+void nh3_volatilization(Soillayer& soillayer, Fluxes& fluxes, double pH, double aprec_lastyear, double& n_budget_check) {
 
 	double nh3_max = 0.0, f_nit_T = 0.0, nh3_inc = 0.0;
 	double soil_T = soillayer.temp;
 	double wcont = min(1.0, soillayer.wcont());
 
 	// calculating soil pH value, aprec = daily mean precip, based on annual average
-	if (soillayer.pH == 0.0) {
-		soillayer.pH = 3810.0 / (762.0 + (climate.aprec_lastyear)) + 3.5; // Dawson -77
+	if (pH == 0.0) {
+		pH = 3810.0 / (762.0 + aprec_lastyear) + 3.5; // Dawson -77
 	}
 
-	if (soillayer.pH > 6.0) {
+	if (pH > 6.0) {
 		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas // DW_COMMENT a step change with 100 times difference? Not in XuRi 2008 table 5
 	}
 	else {
@@ -147,11 +147,11 @@ void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, do
 	}
 
 	// NH3 increment (table 5, eqn 2, 3, 4, 6, Xu-Ri 2008)
-	nh3_inc = min(soillayer.NH4_mass, nh3_max * (wcont * (1.0 - wcont)) * f_nit_T * f_nit_T * exp(2.0 * (soillayer.pH - 10.0)) * soillayer.NH4_mass);
+	nh3_inc = min(soillayer.NH4_mass, nh3_max * (wcont * (1.0 - wcont)) * f_nit_T * f_nit_T * exp(2.0 * (pH - 10.0)) * soillayer.NH4_mass);
 
 	soillayer.NH4_mass -= nh3_inc;
 
-	patch.fluxes.report_flux(Fluxes::NH3_SOIL, nh3_inc);
+	fluxes.report_flux(Fluxes::NH3_SOIL, nh3_inc);
 
 	// N budget check
 	// N lost as NH3 gas
@@ -162,7 +162,7 @@ void nh3_volatilization(Patch& patch, Soillayer& soillayer, Climate& climate, do
 /** Daily calculation of nitrification, and nitrification
  *  induced trace gas emissions 
  */
-void nitrification(Patch& patch, Soillayer& soillayer, Nsubpart& subpart) {
+void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 
 	double b = log(3.0) * 5.0;
 	double a = exp(-b * 6.0 / 10.0);
@@ -210,14 +210,14 @@ void nitrification(Patch& patch, Soillayer& soillayer, Nsubpart& subpart) {
 	subpart.NO2_mass_d = 0.0;
 
 	// Report gross nitrification
-	patch.fluxes.report_flux(Fluxes::GROSS_NITRIF, gross_nitrif);
+	fluxes.report_flux(Fluxes::GROSS_NITRIF, gross_nitrif);
 }
 
 /// Soil N denitrification
 /** Daily calculation of denitrification rate, and denitrification
  *  induced trace gas emissions 
  */
-void denitrification(Patch& patch,Soillayer& soillayer, Nsubpart& subpart) {
+void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 	
 	double soil_T = soillayer.temp;
 	double wcont = min(1.0, soillayer.wcont());
@@ -282,14 +282,14 @@ void denitrification(Patch& patch,Soillayer& soillayer, Nsubpart& subpart) {
 		gross_denitrif = 0.0;
 	}
 	// Report fluxes of gross denitrification
-	patch.fluxes.report_flux(Fluxes::GROSS_DENITRIF, gross_denitrif);
+	fluxes.report_flux(Fluxes::GROSS_DENITRIF, gross_denitrif);
 }
 
 /// Soil N gas emissions
 /** Daily calculation of soil N gas emissions 
 
  */
-void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, Nsubpart& subpart, double& n_budget_check) {
+void n_gas_emission(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart, double& n_budget_check) {
 
 	// for book keeping
 	soillayer.labile_carbon = subpart.labile_carbon_w + subpart.labile_carbon_d;
@@ -338,14 +338,14 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soillayer& soillayer, Nsubpart
 	soillayer.N2_mass -= n2_flux_inc;
 
 	//////////////////////////////////////////////
-	patch.fluxes.report_flux(Fluxes::NO_SOIL, no_d_flux_inc + no_w_flux_inc);
-	patch.fluxes.report_flux(Fluxes::N2O_SOIL, n2o_d_flux_inc + n2o_w_flux_inc);
+	fluxes.report_flux(Fluxes::NO_SOIL, no_d_flux_inc + no_w_flux_inc);
+	fluxes.report_flux(Fluxes::N2O_SOIL, n2o_d_flux_inc + n2o_w_flux_inc);
 	//////////////////////////////////////////////
 
 	//////////////////////////////////////////////
-	patch.fluxes.report_flux(Fluxes::N2_SOIL, n2_flux_inc);
-	patch.fluxes.report_flux(Fluxes::NET_NITRIF, net_nitrif);
-	patch.fluxes.report_flux(Fluxes::NET_DENITRIF, net_denitrif);
+	fluxes.report_flux(Fluxes::N2_SOIL, n2_flux_inc);
+	fluxes.report_flux(Fluxes::NET_NITRIF, net_nitrif);
+	fluxes.report_flux(Fluxes::NET_DENITRIF, net_denitrif);
 
 	// substrates after N gas emissions
 	soillayer.NH4_mass = subpart.NH4_mass_w + subpart.NH4_mass_d;
@@ -384,20 +384,20 @@ void ntransform(Patch& patch, Climate& climate) {
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 			// NH3 volatilization
-			nh3_volatilization(patch, soillayer, climate, n_budget_check);
+			nh3_volatilization(soillayer, fluxes, soilcolumn.soiltype.pH, climate.aprec_lastyear, n_budget_check);
 
 			// N substrate partition
 			Nsubpart subpart;
 			subpart.substrate_partition(soillayer);
 
 			// nitrification
-			nitrification(patch, soillayer, subpart);
+			nitrification(soillayer, fluxes, subpart);
 
 			// denitrification
-			denitrification(patch, soillayer, subpart);
+			denitrification(soillayer, fluxes, subpart);
 
 			// N gas emission
-			n_gas_emission(patch, fluxes, soillayer, subpart, n_budget_check);
+			n_gas_emission(soillayer, fluxes, subpart, n_budget_check);
 
 			// warning if soil N transform does not hold mass balance
 			assert(fabs(n_budget_check) < EPS);

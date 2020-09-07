@@ -121,7 +121,6 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         	! see documentation for water_uptake()
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
 				! greff_min values below calibrated for the smooth (1) option
@@ -129,7 +128,6 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
-soil_depth 0.0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to soil_depth
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -145,20 +143,24 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 
 
 !///////////////////////////////////////////////////////////////////////////////
-! ARCTIC AND WETLAND SWITCHES
+! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
+soil_depth 0.0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to soil_depth
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
+iforganicsoilproperties 2	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
 ifcarbonfreeze 0		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)
+!///////////////////////////////////////////////////////////////////////////////
+
 ifinundationstress 0		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.

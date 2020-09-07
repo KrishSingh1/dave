@@ -729,7 +729,7 @@ void Snow::phase_change() {
 		// The total amount of ice and water should not change in this routine
 		double wtotal_final = snowlayers[lyr].imass + snowlayers[lyr].wmass;
 
-		assert(abs(wtotal_initial - wtotal_final) < EPS);
+		assert(fabs(wtotal_initial - wtotal_final) < EPS);
 
 	} // end of loop through layers
 }
@@ -1181,7 +1181,7 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 		w_total_final += snowlayers[lyr].wmass + snowlayers[lyr].imass;
 	}
 	const double EPS = 1.0e-10;
-	assert(abs(w_total_initial - w_total_final) < EPS);
+	assert(fabs(w_total_initial - w_total_final) < EPS);
 }
 
 /// Snow accumulation
@@ -1302,9 +1302,6 @@ void Soillayer::init() {
 	Kh = 0.0;
 	Ch = 0.0;
 
-	// pH
-	pH = 6.5;
-
 	// Water
 	wmass = 0.0;
 	imass = 0.0;
@@ -1397,7 +1394,6 @@ void Soillayer::init() {
 		morgleach_mean[mth] = 0.0;
 		morgmove_mean[mth] = 0.0;
 		mminleach_mean[mth] = 0.0;
-		mminmove_mean[mth] = 0.0;
 	}
 
 	// Daily variables
@@ -1415,35 +1411,14 @@ void Soillayer::init() {
  * thermal properties for analytic temperature calculation
  * and two layer soil perculation parameters
 */
-void Soillayer::set_properties(double socfrac) {
+void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 
 	// Get soil type
 	Soiltype soiltype = (*soilcolumn).soiltype;
 
 	// Only enter first year except if dynamic soil organic C influence soil properties (iforganicsoilproperties == 2)
-	if ((*soilcolumn).patch.stand.first_year != date.year && (iforganicsoilproperties != 2 || acrotelm || catotelm)) // DW_COMMENT restart years needs to update it then as well!
+	if (!((date.day == 0 && (*soilcolumn).patch.stand.first_year == date.year) || (iforganicsoilproperties == 2 && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
 		return;
-
-	clay_frac = soiltype.clay_frac;
-	sand_frac = soiltype.sand_frac;
-	silt_frac = soiltype.silt_frac;
-
-	// Soil pH
-	pH = soiltype.pH;
-
-	// DW_COMMENT Flytta van Genuchten soil parameters till soilcolumn
-
-	// hydraulic conductivity at saturation (m s-1)
-	Kw_max = soiltype.Kw_max;
-	Kw_max_org = soiltype.Kw_max_org;
-
-	// van Genuchten soil parameters
-	alpha = soiltype.alpha; 
-	m = 1.0 - 1.0 / soiltype.n;
-	lambda = soiltype.l;
-	alpha_org = soiltype.alpha_org;
-	m_org = 1.0 - 1.0 / soiltype.n_org;
-	lambda_org = soiltype.l_org;
 
 	// Analytic temp calc parameters
 	thermdiff_0 = soiltype.thermdiff_0;
@@ -1460,11 +1435,9 @@ void Soillayer::set_properties(double socfrac) {
 		peat_frac = 1.0 - acrotelm_por;
 
 		// Initially saturated
-		if ((*soilcolumn).patch.stand.first_year == date.year && !restart) {
-			double wadded = wsats - (wmass + imass);
-			wmass += wadded;
-			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
-		}
+		double wadded = wsats - (wmass + imass);
+		wmass += wadded;
+		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 	}
 	else if (catotelm) {
 		wsats = catotelm_por * depth;
@@ -1476,11 +1449,9 @@ void Soillayer::set_properties(double socfrac) {
 		peat_frac = 1.0 - catotelm_por;
 
 		// Initially saturated
-		if ((*soilcolumn).patch.stand.first_year == date.year && !restart) {
-			double wadded = wsats - (wmass + imass);
-			wmass += wadded;
-			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
-		}
+		double wadded = wsats - (wmass + imass);
+		wmass += wadded;
+		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 	}
 	// Mineral soil and no influence of soil organic C
 	else if (!iforganicsoilproperties) {
@@ -1493,9 +1464,12 @@ void Soillayer::set_properties(double socfrac) {
 		mineral_frac = soiltype.mineral_frac;
 		peat_frac = 0.0;
 
-		// Two layer hydrology parameters
+		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
-		perc_exp = soiltype.perc_exp;
+
+		dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frec %g por_frac %g WSATS %g AWC %g WP %g\n", 
+			date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth);
+
 	}
 	// Soil organic content influences soil properties
 	// Hudson (1994) showed that for each 1-percent increase in soil organic matter, the available water holding 
@@ -1503,11 +1477,19 @@ void Soillayer::set_properties(double socfrac) {
 	// the soil and an increase in pore space will lead to an increase in water holding capacity of the soil.
 	else {
 
+		// added moved water and ice due to shrinking wsats
+		wmass += wmass_move;
+		imass += imass_move;
+		wmass_move = imass_move = 0.0;
+
 		// Soil layer C content (kg C m-2)
-		double soil_c = iforganicsoilproperties == 1 ? socfrac * soiltype.soilC : ccont();
+		double soil_c = iforganicsoilproperties == 1 ? soc_frac * soiltype.soilC : ccont(true);
 
 		// Maximum soil layer C content (kg C m-2)
 		double soil_c_max = maxSOCdensity * (depth / MM_PER_M);
+
+		if (soil_c > soil_c_max)
+			dprintf("Year %d Day %d Depth %g Soil C %g MAX %g\n",date.year,date.day,depth_profile,soil_c,soil_c_max); // DW_COMMENT move C downwards!!!!!!!!!!
 
 		// Soil C density in this soil layer (kg C m-3) 
 		double soil_density = soil_c / (depth / MM_PER_M);
@@ -1529,31 +1511,45 @@ void Soillayer::set_properties(double socfrac) {
 		mineral_frac = (1.0 - porosity) * min_frac;
 		peat_frac = 0.0;
 
+		// Move water downwards if water content exceeds wsats
+		if (wsats < wmass + imass) {
+			double wmass_frac = wmass / (wmass + imass);
+			double move = wmass + imass - wsats;
+			wmass_move = wmass_frac * move;
+			imass_move = (1 - wmass_frac) * move;
+			wmass -= wmass_move;
+			imass -= imass_move;
+		}
+
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
 		thermdiff_15 = min_frac * soiltype.thermdiff_15 + org_frac * soiltype.thermdiff_15_org;
 		thermdiff_100 = min_frac * soiltype.thermdiff_100 + org_frac * soiltype.thermdiff_100_org;
 
-		// Two layer hydrology parameters
+		// Two layer hydrology parameter
 		perc_base = min_frac * soiltype.perc_base + org_frac * soiltype.perc_base_org;
-		perc_exp = soiltype.perc_exp;
+
+		if (date.year == 1 || date.year == 100 || date.year == 200 || date.year == 300 || date.year == 400 || date.year == 500 || date.year == 600)
+			dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frac %g por_frac %g WSATS %g AWC %g WP %g\n",
+				date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth);
 	}
 
 	// If two layer soil scheme then wmass is never below wp
 	if (iftwolayersoil) {
-		wmass = wp;
+		wmass = max(wmass, wp);
 	}
 }
 
 /// C content of soil layer
-double Soillayer::ccont() {
+double Soillayer::ccont(bool exclude_surf) {
 	double ccont = 0.0;
 
 	ccont += cpool_fast;
 	ccont += cpool_slow;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
-		ccont += sompool[i].cmass;
+		if ( !(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD)) )
+			ccont += sompool[i].cmass;
 	}
 	return ccont;
 }
@@ -1581,7 +1577,7 @@ double Soillayer::fc() {
 }
 
 double Soillayer::fracair() {
-	return (por - (wmass + imass)) / depth;
+	return max(0.0, (por - (wmass + imass)) / depth);
 }
 
 
@@ -1721,19 +1717,23 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 void Soillayer::update_moisture_diff_and_cond() {
 
-	const double W_res = 0.01;
+	// Wösten 1999 table 5 has eqns to determin wsats, Kw_max, alpha, lambda, n from clay, sand, silt, org, bd
 
-	if ((wsats - imass) / depth <= 1.001 * W_res) {
-		Dw = 0.0;
-		Kw = 0.0;
-		return;
-	}
+	// van Genuchten soil parameters
+	Soiltype soiltype = (*soilcolumn).soiltype;
+	const double Kw_max = soiltype.Kw_max;
+	const double alpha = soiltype.alpha;
+	const double lambda = soiltype.l;
+	const double m = soiltype.m; 
 
-	double W_sat, W_tot;
+	double W_res = wp / depth;
+
+	double W_sat, W_tot, I_frac;
 
 	// Account for ice filling up space
-	W_sat = max(1.001 * W_res, (wsats - imass) / depth);
+	W_sat = wsats / depth;
 	W_tot = wmass / depth;
+	I_frac = min(1.0, imass / wsats);
 
 	// Moisture limits to be considered in D and K calculations
 	double theta;
@@ -1752,8 +1752,6 @@ void Soillayer::update_moisture_diff_and_cond() {
 	double the = (theta - W_res) / (W_sat - W_res);
 	double po = pow(the, (1 / m));
 
-	// DW_COMMENT Dessa måste räknas ut för organic osså ifall vi skall räckna med soil C!!!!!!!!!!!!!!!!!!!
-
 	// Diffusivity (m2 s-1; van Genuchten 1980 eqn 11, adopted from HTESSEL code)
 	Dw = ((1.0 - m) * Kw_max / (alpha * m * (W_sat - W_res))) * pow(the, (lambda - 1.0 / m)) * (pow(1.0 - po, m) + pow(1.0 - po, -m) - 2); // DW_COMMENT lookup table to speed up code?
 
@@ -1761,6 +1759,52 @@ void Soillayer::update_moisture_diff_and_cond() {
 	if (W_tot > 1.001 * W_res && W_tot <= 0.999 * W_sat) {
 		Kw = Kw_max * pow(the, lambda) * pow(1.0 - pow(1.0 - pow(the, 1.0 / m), m), 2); // DW_COMMENT lookup table to speed up code?
 	}
+
+
+	// If organic content affects soil properties
+	if (iforganicsoilproperties) {
+
+		// Calculate organic and mineral fraction
+		// This is the fraction of the material (i.e. 1 - porosity) that is organic
+		double org_frac = !negligible(organic_frac + mineral_frac) ? organic_frac / (organic_frac + mineral_frac) : 0.0;
+		double min_frac = 1.0 - org_frac;
+
+		if (!negligible(org_frac)) {
+
+			// Organis soil parameters
+			const double Kw_max_org = soiltype.Kw_max_org;
+			const double alpha_org = soiltype.alpha_org;
+			const double lambda_org = soiltype.l;
+			const double m_org = soiltype.m_org;
+
+			double po_org = pow(the, (1 / m_org));
+
+			// organic soil diffusivity
+			double Dw_org = ((1.0 - m_org) * Kw_max_org / (alpha_org * m_org * (W_sat - W_res))) * pow(the, (lambda_org - 1.0 / m_org)) * (pow(1.0 - po_org, m_org) + pow(1.0 - po_org, -m_org) - 2);
+
+			// Organic soil conductivity
+			double Kw_org;
+			if (W_tot <= 1.001 * W_res) {
+				Kw_org = 0.0;
+			}
+			else if (W_tot > 0.999 * W_sat) {
+				Kw_org = Kw_max_org;
+			}
+			else {
+				Kw_org = Kw_max_org * pow(the, lambda_org) * pow(1.0 - pow(1.0 - pow(the, 1.0 / m_org), m_org), 2);
+			}
+
+			// Scale diffusivity and conductivity depending on organic fraction
+			Dw = min_frac * Dw + org_frac * Dw_org;
+			Kw = min_frac * Kw + org_frac * Kw_org;
+		}
+	}
+
+	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
+	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
+	// at the permanent wilting point for frozen water (for convenience set to zero)
+	Dw *= (1.0 - I_frac);
+	Kw *= (1.0 - I_frac);
 }
 
 void Soillayer::update_heatcap_and_cond(bool combine_snow, double snow_depth, double snow_imass, double snow_wmass) {
@@ -1782,6 +1826,10 @@ void Soillayer::update_heatcap_and_cond(bool combine_snow, double snow_depth, do
 	double peat = peat_frac * depth;
 	double mineral = mineral_frac * depth;
 	double organic = organic_frac * depth;
+
+	//acrotelm catotelm DW_COMMENT
+
+
 
 	// Soil layer air (mm)
 	double air = por - (wmass + imass);
@@ -1857,7 +1905,6 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& morgleach_mean
 		& morgmove_mean
 		& mminleach_mean
-		& mminmove_mean
 
 		& cpool_slow
 		& cpool_fast
@@ -2319,7 +2366,7 @@ double Soilcolumn::set_b(double sigma) {
 }
 
 // Determines static soil layer organic fractions 
-std::vector<double> Soilcolumn::get_static_socfrac() {
+void Soilcolumn::set_static_socfrac() {
 
 	// Use a beta value to reproduce the global vertical SOC profile shown in Fig 4 of Jobbagy & Jackson (2010)
 	const double beta_SOC = 0.976;
@@ -2331,23 +2378,19 @@ std::vector<double> Soilcolumn::get_static_socfrac() {
 	// 60 - 80cm	:	0.10				:	0.11
 	// 80 - 100cm	:	0.06				:	0.09
 
-	std::vector<double> socfrac(nsoillayers);
-
 	double depth = soillayers[0].depth * CM_PER_MM; // [mm]
 
-	socfrac[0] = 1.0 - pow(beta_SOC, depth); // init first layer
-	double soc_frac_total = socfrac[0];
+	soillayers[0].soc_frac = 1.0 - pow(beta_SOC, depth); // init first layer
+	double soc_frac_total = soillayers[0].soc_frac;
 
 	for (int lyr = 1; lyr < nsoillayers; lyr++) {
 		depth += soillayers[lyr].depth * CM_PER_MM;
-		socfrac[lyr] = 1.0 - pow(beta_SOC, depth) - (1.0 - pow(beta_SOC, depth - soillayers[lyr].depth * CM_PER_MM));
-		soc_frac_total += socfrac[lyr];
+		soillayers[lyr].soc_frac = 1.0 - pow(beta_SOC, depth) - (1.0 - pow(beta_SOC, depth - soillayers[lyr].depth * CM_PER_MM));
+		soc_frac_total += soillayers[lyr].soc_frac;
 	}
 
 	// Put the residual SOC fraction in lowest soil layer
-	socfrac[nsoillayers - 1] += 1.0 - min(soc_frac_total, 1.0);
-
-	return socfrac;
+	soillayers[nsoillayers - 1].soc_frac += 1.0 - min(soc_frac_total, 1.0);
 }
 
 /// Average temperature down to a depth
@@ -2743,7 +2786,18 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
 	// Set new wmass
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		// Remove small negative numbers
+		if (wpara.psi1[lyr] > -1.0e-14 && wpara.psi1[lyr] < 0.0) {
+			if (lyr < nsoillayers - 1)
+				wpara.psi1[lyr + 1] += wpara.psi1[lyr];
+			wpara.psi1[lyr] = 0.0;
+		}
+
 		soillayers[lyr].wmass = wpara.psi1[lyr] * soillayers[lyr].depth;
+
+		if (soillayers[lyr].wmass < -1.0e-10)
+			dprintf("Year %d Day %d Lyr %d FIRST %g\n",date.year,date.day,lyr, soillayers[lyr].wmass);
 
 		// Calculate drainage
 
@@ -2755,6 +2809,9 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 		// Update total water after drainage 
 		// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
 		soillayers[lyr].wmass -= drained_wmass;
+
+		if (soillayers[lyr].wmass < -1.0e-10)
+			dprintf("Year %d Day %d Lyr %d DRAIN %g Depth %g %g\n", date.year, date.day, lyr, soillayers[lyr].wmass, soillayers[lyr].depth, soillayers[lyr].depth_profile);
 	}
 }
 
@@ -3462,7 +3519,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// Percolation from evaporation layer
 	double perc = 0.0;
 	if (percolate) {
-		perc = min(min(1.0, SOILDEPTH_EVAP / soillayers[0].depth) * soillayers[0].perc_base * pow(wcont_evap, soillayers[0].perc_exp),
+		perc = min(min(1.0, SOILDEPTH_EVAP / soillayers[0].depth) * soillayers[0].perc_base * pow(wcont_evap, soiltype.perc_exp),
 			max_rain_melt);
 	}
 	wcont_evap -= perc / (min(1.0, SOILDEPTH_EVAP / soillayers[0].depth) * soillayers[0].awc);
@@ -3479,7 +3536,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 
 		// Allow only on days with rain or snowmelt
 		if (percolate) {
-			perc = min(soillayers[lyr - 1].perc_base * pow(soillayers[lyr - 1].wcont(), soillayers[lyr - 1].perc_exp), max_rain_melt);
+			perc = min(soillayers[lyr - 1].perc_base * pow(soillayers[lyr - 1].wcont(), soiltype.perc_exp), max_rain_melt);
 		}
 		else {
 			perc = 0.0;
@@ -3506,7 +3563,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// Baseflow runoff (rain or snowmelt days only)
 	if (percolate) {
 		double perc_baseflow = BASEFLOW_FRAC * soillayers[nsoillayers - 1].perc_base * 
-			pow(soillayers[nsoillayers - 1].wcont(), soillayers[nsoillayers - 1].perc_exp);
+			pow(soillayers[nsoillayers - 1].wcont(), soiltype.perc_exp);
 		
 		// Check so baseflow doesn't exceed inflow of water
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
@@ -4450,6 +4507,8 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 //  https ://doi.org/10.5194/gmd-8-1493-2015, 2015
 // Jobbagy, E. G. & Jackson, R. B. (2000) The vertical distribution of soil carbon
 //  and its relation to climate and vegetation. Ecological Applications 10(2): 423-436
+// Lawrence, D. M. and Slater, A.: Incorporating organic soil into a global climate 
+//  model, Clim.Dynam., 30, 145–160, doi:10.1007/s00382-007-0278-1, 2008.
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling

@@ -2966,7 +2966,7 @@ public:
 
 	/// van Genuchten soil parameters
 	double alpha;
-	double n;
+	double m;
 	double l;
 
 	/// Organic soil properties
@@ -2993,8 +2993,7 @@ public:
 
 	/// van Genuchten soil parameters
 	double alpha_org;
-	double n_org;
-	double l_org;
+	double m_org;
 
 	/// year at which to calculate equilibrium soil carbon
 	int solvesom_end;
@@ -3021,9 +3020,10 @@ public:
 	double porosity;
 	/// organic porosity from AGRMET Handbook, 2002
 	double porosity_org;
-	// volumetric fraction of mineral material (m3 m-3) (Hillel, 1998)
-	// = 1 - organic_frac - porosity
+	/// volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
+	/// bulk density (kg m-3)
+	double bulk_density;
 
 	// MEMBER FUNCTIONS
 
@@ -3157,12 +3157,6 @@ public:
 	double depth_profile;
 	/// soil layer depth (mm)
 	double depth;
-	/// fraction of soil layer that is sand
-	double sand_frac;
-	/// fraction of soil layer that is clay
-	double clay_frac;
-	/// fraction of soil layer that is silt
-	double silt_frac;
 	/// water mass in soil layer (kg m-2)
 	double wmass;
 	/// ice mass in soil layer (kg m-2)
@@ -3185,19 +3179,6 @@ public:
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
-	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
-	double perc_exp;
-	/// hydraulic conductivity at saturation (m s-1)
-	double Kw_max;
-	/// hydraulic conductivity at saturation (m s-1)
-	double Kw_max_org;
-	/// van Genuchten soil parameters
-	double alpha;
-	double m;
-	double lambda;
-	double alpha_org;
-	double m_org;
-	double lambda_org;
 	/// soil moisture diffusivity (m2 s-1)
 	double Dw;
 	/// soil moisture conductivity (m s-1)
@@ -3214,6 +3195,8 @@ public:
 	double mineral_frac;
 	/// volumetric fraction of peat material (m3 m-3)
 	double peat_frac;
+	/// static SOC fraction
+	double soc_frac;
 	/// thermal diffusivity at 0% WHC (mm2/s)
 	double thermdiff_0;
 	/// thermal diffusivity at 15% WHC (mm2/s)
@@ -3283,11 +3266,6 @@ public:
 	double dcflux_soil;
 	/// Annual respiration [kg C m-2]
 	double arespsum; // DW_COMMENT Don't want it in this way!!!!!!!!
-
-/*	/// layer water volume [m3]
-	double volume_liquid_water;
-	/// layer water + ice volume [m3]
-	double total_volume_water;*/
 	/// tiller area
 	double tiller_area;
 
@@ -3387,9 +3365,6 @@ public:
 	/// soil N2 mass in pool (kgN/m2)
 	double N2_mass;
 
-	/// soil pH
-	double pH;
-
 	// soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
 
@@ -3405,8 +3380,6 @@ public:
 	double morgmove_mean[12];
 	/// monthly fraction of available mineral nitrogen leached
 	double mminleach_mean[12];
-	/// monthly fraction of available mineral nitrogen moved withing soil column
-	double mminmove_mean[12];
 
 	// Solving Century SOM pools
 
@@ -3452,10 +3425,10 @@ public:
 
 	// Initialise soil layer properties
 	void init();
-	// Set soil layer properties
-	void set_properties(double socfrac);
+	/// Set soil layer properties
+	void set_properties(double& wmass_move, double& imass_move);
 	/// C content of soil layer
-	double ccont();
+	double ccont(bool exclude_surf = false);
 	/// N content of soil layer
 	double ncont();
 	/// Water content of soil layer
@@ -3938,8 +3911,8 @@ public:
 	void set_mtemp();
 	/// Set b parameter for orography influence on surface runoff
 	double set_b(double sigma);
-	/// Return static soil organic carbon fractions
-	std::vector<double> get_static_socfrac();
+	/// Set static soil organic carbon fractions
+	void set_static_socfrac();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(std::vector<double> rootdist);
 	/// variable down to a depth 

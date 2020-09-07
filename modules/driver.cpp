@@ -525,12 +525,13 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				}
 
 				// Determine static soil carbon fractions
-				std::vector<double> socfrac(soilcolumn.nsoillayers);
 				if (iforganicsoilproperties == 1 && date.year == 0) {
-					socfrac = soilcolumn.get_static_socfrac(); // DW_COMMENT move to within set_properties()
+					soilcolumn.set_static_socfrac(); // DW_COMMENT move to within set_properties()???
 				}
 
-				double acc_depth = 0.0;
+				// Water to be moved due to decreases in wsats
+				double wmass_move = 0.0;
+				double imass_move = 0.0;
 
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -544,10 +545,15 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 						soillayer.mwcontabove = 0.0;
 					}
 
-					soillayer.set_properties(socfrac[lyr]);
+					// Set soil layer properties
+					soillayer.set_properties(wmass_move, imass_move);
 
 					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
 				}
+
+				// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 
+				if (!negligible(wmass_move + imass_move))
+					patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
 
 				// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 				pftlist.firstobj();

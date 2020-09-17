@@ -305,7 +305,10 @@ extern bool ifbvoc;
 // Arctic and wetland inputs
 
 /// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-extern bool iftwolayersoil; 
+extern bool iftwolayersoil;
+
+/// Whether to account for orography (1), or not (0)
+extern bool iforography;
 
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
@@ -325,6 +328,9 @@ extern bool ifmethane;
 /// Whether soil C pool input is used to update soil properties
 /* 0 - use soicode value, 1 - use soilinput static soil C content, 2 - use modelled soil layer C content */
 extern int iforganicsoilproperties;
+
+/// Whether to vertically mix soil organic matter
+extern bool ifverticalmixing;
 
 /// Whether to take water from runoff to saturate low latitide wetlands
 extern bool ifsaturatewetlands;

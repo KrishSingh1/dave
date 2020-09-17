@@ -203,8 +203,9 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 	int orgc_i = -1;
 	int ph_i = -1;
 	int bd_i = -1;
-	int cn_i = -1; 
+	int cn_i = -1;
 	int soilc_i = -1;
+	int sdor_i = -1;
 
 	for (int i = 0; it != header.end(); ++it, ++i) {
 		if (*it == "sand") {
@@ -230,6 +231,9 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 		}
 		else if (*it == "soilc") {
 			soilc_i = i;
+		}
+		else if (*it == "sdor") {
+			sdor_i = i;
 		}
 	}
 	if (soilc_i == -1 && iforganicsoilproperties == 1) {
@@ -266,6 +270,14 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 			}
 			else {
 				soildata.soilC = 0.0;
+			}
+
+			// If no standard deviation of orography input. then use standard value of 300
+			if (sdor_i != -1 && iforography) {
+				soildata.sdor = T[sdor_i];
+			}
+			else {
+				soildata.sdor = 300.0;
 			}
 				
 			// Not all data sets includes bulk density data, here it is set to a negative number if no column with that name. 
@@ -321,6 +333,9 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
 	// Soil carbon
 	soiltype.soilC = 0.0; // default value (kgC/m2)
+
+	// standard deviation of orography (default value 300)
+	soiltype.sdor = 300.0;
 
 	return soiltype;
 }
@@ -392,6 +407,9 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
 	// Porosity fractions
 	soiltype.porosity = Theta_s;
+
+	// Standard deviation of orography
+	soiltype.sdor = soil.sdor;
 	
 	return soiltype;
 }
@@ -492,6 +510,12 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 	// Bulk density (g cm-3) (eqn 8.3 Bonan 2019 with particle density set to 2650 kg m–3
 	soiltype.bulk_density = soilprop.bulk_density > 0.0 ? soilprop.bulk_density : (1.0 - soiltype.wsats) * 2.650;
+
+	// Accounts for the sub-grid variability related to orography
+	// Min and max standard deviation of orography (Balsamo et al. 2009 eqn 10)
+	double sigma_min = 100.0;
+	double sigma_max = 1000.0;
+	soiltype.b = (soilprop.sdor - sigma_min) / (soilprop.sdor + sigma_max);
 
 	// Soil depth
 	// soil_depth is defined in global.ins

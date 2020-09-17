@@ -167,8 +167,14 @@ void CommonOutput::define_output_tables() {
 	// Create soil layer columns
 	ColumnDescriptors soillyr_columns;
 	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8);
+	if (iftwolayersoil) {
+		soillyr_columns += ColumnDescriptor("lyr0", 13, 8);
+		soillyr_columns += ColumnDescriptor("lyr1", 13, 8);
+	}
+	else {
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+			soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8);
+		}
 	}
 	soillyr_columns += ColumnDescriptor("Total", 13, 8);
 
@@ -1503,14 +1509,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// Print soil layer variables
 	// Total gridcell soil C
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-		outlimit(out, out_csoil, soilc[lyr]);
-		outlimit(out, out_rsoil, soilr[lyr]);
+	if (iftwolayersoil) {
+		outlimit(out, out_csoil, soilc[0]);
+		outlimit(out, out_csoil, soilc[1]);
+		outlimit(out, out_rsoil, soilr[0]);
+		outlimit(out, out_rsoil, soilr[1]);
+	}
+	else {
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+			outlimit(out, out_csoil, soilc[lyr]);
+			outlimit(out, out_rsoil, soilr[lyr]);
+		}
 	}
 	outlimit(out, out_csoil, csoil_gridcell);
 	outlimit(out, out_rsoil, rsoil_gridcell);
-
-	
 
 	// Print monthly output variables
 	for (m=0;m<12;m++) {

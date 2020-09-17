@@ -72,12 +72,14 @@ bool ifbvoc;
 
 // Arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
+bool iforography;					// Whether to account for orography (1), or not (0) 
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
 bool ifmethane;						// Whether to run the methane model (for peatland only)
 int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
+bool ifverticalmixing;              // Whether vertically mix soil organic matter
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
 wateruptaketype wateruptake;
@@ -508,7 +510,9 @@ void plib_declarations(int id,xtring setname) {
 			"Whether or not BVOC calculations are performed (0,1)");
 
 		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
-			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)"); //COMMENT STEFAN, same here, better to define "not"
+			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
+		declareitem("iforography", &iforography, 1, CB_NONE,
+			"Whether to account for orography (1), or not (0)");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
@@ -521,6 +525,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to run the methane model (1), or not (0)");
 		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 0, 2, 1, CB_NONE,
 			"Whether soil C pool input is used to update soil properties, 0 - no, 1 - static, 2 - dynamic");
+		declareitem("ifverticalmixing", &ifverticalmixing, 1, CB_NONE,
+			"Whether to vertically mox soil organic matter (1), or not (0)");
 		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
 			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
 
@@ -1245,6 +1251,11 @@ void plib_callback(int callback) {
 		
 
 		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
+		if (!itemparsed("iforography")) badins("iforography");
+		if (iftwolayersoil == 1 && iforography == 1) {
+			sendmessage("Error", "Can't account for orography with two layer soil!");
+			plibabort();
+		}
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (iftwolayersoil == 1 && ifmultilayersnow == 1) {
 			sendmessage("Error", "Can't have multilayer snow scheme together with two layer soil!");
@@ -1259,6 +1270,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");
 		if (!itemparsed("ifmethane")) badins("ifmethane");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
+		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
 		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");

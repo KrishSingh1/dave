@@ -610,7 +610,6 @@ double Patch::cflux() {
 	double cflux = 0.0;
 
 	cflux += soilcolumn.aorgCleach();
-	//cflux += soilcolumn.aorgCleach(); // DW_COMMENT
 	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
 	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
 	cflux += fluxes.get_annual_flux(Fluxes::SOILC);

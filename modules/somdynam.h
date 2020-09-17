@@ -31,6 +31,6 @@ const double LIGCFRAC_ROOT = 0.16;
 const double LIGCFRAC_WOOD = 0.3;	// TODO Check wood fraction
 
 // Coarse woody root debris fraction
-const double FCWD_ROOT = 0.2;
+const double FCWD_ROOT = 0.22;
 
 #endif // LPJ_GUESS_SOMDYNAM_H

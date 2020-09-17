@@ -91,6 +91,8 @@ private:
  		double soilC;
  		// Porosity
         double porosity;
+		// Standard deviation of orography
+		double sdor;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);
@@ -108,6 +110,7 @@ private:
 		double pH;
 		double soilC;			// Initial soil C content (kgC/m2), from model output or a database
 		double CN;				// C:N ratio from database
+		double sdor;			// standard deviation of orography
 	};
 
 	std::map<coord, int> lpj_map;

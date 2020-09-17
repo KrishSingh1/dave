@@ -86,7 +86,7 @@ struct Nsubpart {
 	double labile_carbon_w;
 	double labile_carbon_d;
 
-	void substrate_partition(Soillayer soillayer) {
+	void substrate_partition(Soillayer& soillayer) {
 
 		// An S-curve fitted to the linear increase in
 		// denitrifier activity above roughly 50% WFPS with the steepest
@@ -218,7 +218,7 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
  *  induced trace gas emissions 
  */
 void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
-	
+
 	double soil_T = soillayer.temp;
 	double wcont = min(1.0, soillayer.wcont());
 	
@@ -243,7 +243,7 @@ void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 		// gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
 		no2_inc = min(subpart.NO3_mass_w, subpart.NO3_mass_w * f_denitri_max * d_N_max * f_den_T * subpart.NO3_mass_w / (k_N * water_cont_m3 + subpart.NO3_mass_w));
 
-		gross_denitrif   = no2_inc;
+		gross_denitrif = no2_inc;
 		subpart.NO3_mass_w -= no2_inc;
 		subpart.NO2_mass_w += no2_inc;
 

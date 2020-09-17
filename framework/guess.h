@@ -3024,6 +3024,8 @@ public:
 	double mineral_frac;
 	/// bulk density (kg m-3)
 	double bulk_density;
+	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
+	double b;
 
 	// MEMBER FUNCTIONS
 
@@ -3268,53 +3270,6 @@ public:
 	double arespsum; // DW_COMMENT Don't want it in this way!!!!!!!!
 	/// tiller area
 	double tiller_area;
-
-	// Peatland hydrology variables:
-
-/*	/// available water holding capacity taking into account the unavailability of frozen water. 
-	/// Default value: soiltype.awc[]
-	double whc;
-	/// Max water (mm) that can be held in each layer
-	double aw_max; // DW_COMMENT should e changed to wsats
-	/// Volumetric liquid water content. A fraction. Considers the entire (awc + Fpwp)
-	/// volumetric water content MINUS the ice fraction. Updated daily.
-	double alwhc; // DW_COMMENT SHOULD BE WSATS
-	/// Initial volumetric liquid water content. A fraction. Considers the entire
-	/// (awc + Fpwp) volumetric water content MINUS the ice fraction.
-	double alwhc_init;
-	/// fixed available water holding capacity of soil layers (mm)
-	double awc_peat;
-	/// saturation point. Cosby et al 1984
-	double wsats_peat;
-
-	// Ice and water variables for the soil layers, where Frac stands for Fraction
-
-	/// (Frac)tion of ice in layer: amount of ice / total volume of soil layer. Not associated with AWC. 
-	double Frac_imass;
-	/// ice fraction in layer YESTERDAY
-	double Frac_imass_yesterday;
-	/// fraction of water in layer: water / total volume of soil layer
-	double Frac_wmass;
-	/// air fraction in layer
-	double Frac_air;
-	/// porosity fraction in layer
-	double Frac_por;
-	/// root fraction in layer
-	double rootfrac;
-
-	// Layer composition and properties:
-	// Soil layer information:
-
-	/// organic soil fraction
-	double Frac_org;
-	/// peat fraction
-	double Frac_peat;
-	/// mineral soil fraction
-	double Frac_min;
-	/// Fraction of water held below permanent wilting point when no freezing
-	double Fpwp_ref;
-	/// fraction of water held below permanent wilting point.
-	double Frac_wmass_belowpwp;*/
 
 	// Old Soil Organic Matter (SOM) scheme
 
@@ -3650,7 +3605,7 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-struct KNpara {
+struct CNpara {
 
 	std::vector<double> dz, // Soil layer thicknesses [m]
 		z, // Soil layer depth at middle of soil layer [m]
@@ -3666,7 +3621,7 @@ struct KNpara {
 		lower,
 		rhs;
 
-	KNpara() {};
+	CNpara() {};
 
 	void set_sizes(int nlayers) {
 
@@ -3718,9 +3673,9 @@ public:
 	/// number of catotelm soil layers
 	int ncatotelm;
 	/// Water flow calculation variables
-	KNpara wpara;
+	CNpara wpara;
 	/// Temperature change calculation variables
-	KNpara tpara;
+	CNpara tpara;
 	/// soil NH4 mass input (kgN/m2)
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)
@@ -3746,8 +3701,6 @@ public:
 	double max_rain_melt;
 	/// whether to percolate today
 	bool percolate;
-	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
-	double b;
 	/// Soil temperature padding
 	std::vector<padding> pad;
 	/// Snow
@@ -3763,6 +3716,8 @@ public:
 	double mthaw[12];
 	/// daily thawing depth full, where ALL the ice has melted [mm]
 	double dthaw[Date::MAX_YEAR_LENGTH];
+	//
+	double mald_mean[12];
 
 	/// acrotelm CO2 level [mimil L-1]
 	double acro_co2;
@@ -3885,6 +3840,8 @@ public:
 	double runoff_drain();
 	/// Total baseflow
 	double runoff_baseflow();
+	/// Vertical mixing (diffusion) of SOM
+	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// C content of soil column
 	double ccont();
 	/// N content of soil column
@@ -3909,8 +3866,6 @@ public:
 	void set_mwcont();
 	/// Set this months average soil layer temperature
 	void set_mtemp();
-	/// Set b parameter for orography influence on surface runoff
-	double set_b(double sigma);
 	/// Set static soil organic carbon fractions
 	void set_static_socfrac();
 	/// gtemp weighted against root distribution
@@ -3931,12 +3886,6 @@ public:
 	void update_heatcap_and_cond(bool combine_snow);
 	/// Set padding layers depth
 	void set_padding_depth();
-	/// Inializes and updates fractions of water, mineral content, peat content, organic content, as well as porosity.
-	//void update_layer_fractions(); // DW_COMMENT remove
-	/// Updates the soil water contents in the soil layers
-	//bool update_layer_water_content(); // DW_COMMENT should be removed!!!!!!!!!!!!!
-	/// Update wcont_evap, whc[], Frac_water etc. based on wcont
-	//void update_soil_water(); // DW_COMMENT should be removed!!!!!!!!!!!!!
 	/// Soil water freezing allowed?
 	bool can_freeze() const;
 	/// Updates the CO2 concentration in the acrotelm water

@@ -128,7 +128,7 @@ void nh3_volatilization(Soillayer& soillayer, Fluxes& fluxes, double pH, double 
 	}
 
 	if (pH > 6.0) {
-		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas // DW_COMMENT a step change with 100 times difference? Not in XuRi 2008 table 5
+		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas
 	}
 	else {
 		nh3_max = 0.00001;
@@ -192,7 +192,7 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 	double wfps = soillayer.wfps();
 
 	// Pilegaard 2013
-	// only NO and N2O in nitrification // DW_COMMENT in substrate_partition() you use soil.wfps(0) directly. wfps not used again in this function.
+	// only NO and N2O in nitrification
 	double f_no = richards_curve(1.0, 0.5, 20.0, 0.375, wfps);
 
 	no_inc = f_no * ngas_inc;
@@ -376,7 +376,7 @@ void ntransform(Patch& patch, Climate& climate) {
 		// obtain reference to Soil object
 		Soilcolumn& soilcolumn = patch.soilcolumn;
 
-		// obtain referenc to flux objectRUN_BENCHMARKS //DW_COMMENT - RUN_BENCHMARKS???
+		// obtain referenc to flux object
 		Fluxes& fluxes = patch.fluxes;
 
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {

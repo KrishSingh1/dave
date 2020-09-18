@@ -39,7 +39,7 @@
 #include "config.h"
 #include "soilwater.h"
 
-/// DW_COMMENT
+/// 
 /*
  *
  */

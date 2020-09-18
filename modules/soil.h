@@ -21,20 +21,6 @@ const bool DEBUG_METHANE = false;
 
 // CONSTANTS
 
-
-/*Something like this header file: // DW_COMMENT
-
-// Protect against multiple inclusions in the same source file
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
-
-extern const int CONSTANT_1;
-
-#endif
-And this in a source file:
-
-const int CONSTANT_1 = 123;*/
-
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
 const int NSOILLAYER_SIMPLE = 2;
 
@@ -236,9 +222,6 @@ const double atm_press = 101325.0;
 
 /// coefficient for the calculation of the gas transport velocity, given in Riera et al. 1999
 const double n_coeff = -0.5;
-
-/// wind speed at 10m height [m s-1]
-const double U10 = 0.0; // DW_COMMENT WIND SPEED 10m
       
 ///  Henry's Law constants [L atm mol-1] at 298.15K. Wania et al. (2010), Table 2
 const double henry_k_CO2 = 29.41;
@@ -295,7 +278,7 @@ const double atomiccmass = 12.0;
 const double tiller_weight = 0.22;
      
 /// a threshold factor for a minimum water content in the layer [unitless]
-const double Fwmass_min = 0.1; // DW_COMMENT
+const double Fwmass_min = 0.1; // DW_COMMENT move to soilmethane.h
 
 /// Latitude (N). North of this and PEATLAND stands are treated as peatland as in Wania et al. (2009a, 2009b, 2010)
 // But south of this, then the PEATLAND stands are irrigated to avoid water stress, and can be a source of methane

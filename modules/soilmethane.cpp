@@ -281,7 +281,7 @@ bool Soilcolumn::update_daily_gas_parameters() {
 
 	// gas transport velocity of SF6.
 	// Wania et al. (2010) - Eqn. 6
-	double k_600 = 2.07 + 0.215 * pow(U10, 1.7); // cm h-1
+	double k_600 = 2.07 + 0.215 * pow(patch.get_climate().u10, 1.7); // cm h-1
 
 	// Schmidt number of O2
 	// Wania et al. (2010) - Eqn. 7

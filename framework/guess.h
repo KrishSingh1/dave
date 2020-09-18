@@ -3267,7 +3267,7 @@ public:
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double dcflux_soil;
 	/// Annual respiration [kg C m-2]
-	double arespsum; // DW_COMMENT Don't want it in this way!!!!!!!!
+	double arespsum;
 	/// tiller area
 	double tiller_area;
 
@@ -3873,7 +3873,7 @@ public:
 	/// variable down to a depth 
 	double to_depth(double depth, std::vector<double> var);
 	/// variable down to a depth 
-	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);// = {}); // DW_COMMENT
+	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);
 	/// add water and return the water that cannot be added due to limited capacity
 	double add_wmass(int layer, double extrawmass);
 	/// Update moisture diffusivity and conductivity
@@ -4155,7 +4155,7 @@ public:
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_root; // DW_COMMENT should be an array per layer!!!
+	double litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
 	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)

@@ -41,7 +41,7 @@ public:
 	void init(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
 
 	/// Initialises the soil depth.
-	void init_depth(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>()); // DW_COMMENT
+	void init_depth(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
 
 	/// Get and set the Soiltype-object in the current Gridcell-object.
 	void get_soil(double lon, double lat, Gridcell& gridcell);

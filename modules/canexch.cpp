@@ -1025,7 +1025,6 @@ void vegetation_n_uptake(Patch& patch) {
 		vegetation.nextobj();
 	}
 
-	// CROPLAND DW_COMMENT
 	if (NO3_uptake_tot > NO3_avail) {
 		NH4_uptake_tot += NO3_uptake_tot - NO3_avail;
 		NO3_uptake_tot = NO3_avail;
@@ -1042,7 +1041,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 	double ncont_after = patch.ncont();
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
+	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14)
 		dprintf("Year %d Day %d VUP diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 
 	if (soilcolumn.savesomcent) {
@@ -1304,7 +1303,6 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO, true) * min(1.0, patch.fpc_total);
-	//double tot_nmass_avail = patch.soilcolumn.nmass_avail(true, NO) * min(1.0, patch.fpc_total); DW_COMMENT
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {
@@ -1317,7 +1315,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	nstore_usage(vegetation);
 
 	// Vegetation nitrogen uptake
-	vegetation_n_uptake(patch); // DW_COMMENT
+	vegetation_n_uptake(patch);
 
 	// Calculate leaf nitrogen associated with photosynthesis, nitrogen limited photosynthesis,
 	// and annual otimal leaf nitrogen content and nitrogen limitation on vmax
@@ -1335,7 +1333,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Needs to be calculated for each individual due to possible water stress
 
 		if (indiv.phen > 0.0) {
-			indiv.nactive = max(0.0, indiv.nmass_leaf - N0 * indiv.cmass_leaf_today()); // DW_COMMENT
+			indiv.nactive = max(0.0, indiv.nmass_leaf - N0 * indiv.cmass_leaf_today());
 		}
 		else {
 			indiv.nactive = 0.0;
@@ -2416,7 +2414,7 @@ void forest_floor_conditions(Patch& patch) {
 
 			if (ppft.wstress_day) {
 
-				//PhotosynthesisStresses ps_stress; DW_COMMENT fix photosynthesis input
+				//PhotosynthesisStresses ps_stress;
 				//ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
 
 				assimilation_wstress(pft, pftco2, climate.temp, climate.par,

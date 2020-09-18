@@ -74,15 +74,11 @@ void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
  */
 void Snowlayer::update_heatcap_and_cond() {
 
-	double max_temp = 50.0; // DW_COMMENT
-	double min_temp = -50.0;
-	double snow_temp = min(max_temp, max(min_temp, temp));
-
 	// Snow density including water withing snow
 	double tot_dens = min(rho_ICE, (imass + wmass) / depth * MM_PER_M);
 
 	// C Snow - Fukusako, Eq. 2. [J m-3 K-1]
-	Ch = snowheatcap(snow_temp, tot_dens);
+	Ch = snowheatcap(temp, tot_dens);
 
 	// K Snow - Best et al. 2011, Eq. 23 [J m-1 K-1 s-1]
 	Kh = 2.22 * pow((tot_dens / rho_H2O), 1.88);
@@ -221,10 +217,6 @@ void Snow::potential_depth(double snowpack_depth, std::vector<double>& pot_depth
 		pot_depth[0] += snowpack_depth - snow_depth_standard * NSNOWLAYERS_MAX;
 
 		pot_nsnowlayers = NSNOWLAYERS_MAX;
-
-		//double add_snow_depth = snowpack_depth - snow_depth_standard * NSNOWLAYERS_MAX; // DW_COMMENT future snow development 2nd and 3rd snow layer should be the thick ones
-		//pot_depth[1] += add_snow_depth / 2.0;
-		//pot_depth[2] += add_snow_depth / 2.0;
 	}
 	else {
 		// fill layers so that depths are between snow_depth_standard and snow_depth_standard * snow_depth_limit
@@ -559,9 +551,6 @@ void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 	assert(fabs(initial_ice - final_ice) < EPS);
 	//assert(fabs(initial_water - final_water) < EPS);
 	//assert(fabs(initial_temp - final_temp) < EPS);
-
-	//if (fabs(initial_temp - final_temp) >= EPS) // DW_COMMENT error the whole time!!!!!!!!!!!
-	//	dprintf("Year %d Day %d ERROR: Snow temp difference %g\n",date.year, date.day, fabs(initial_temp - final_temp));
 }
 
 void Snow::phase_change() {
@@ -576,15 +565,13 @@ void Snow::phase_change() {
 	double delta_T;		// Temperature difference (current - previous)
 	double snow_depth;	// Snow layer depth [mm]
 	double snow_temp;	// Snow layer temperature [C]
-	double melt_factor;	// factor governing the rate of snowmelt (min depth allowed)
-	melt_factor = 1.0; // DW_COMMENT should check what is a ok value prefereable 1
 	const double EPS = 1.0e-10;
 
 	if (!ifmultilayersnow)
 		return;
 
 	// Minimum air volume that will influence snow layer (only affect top snow layer)
-	double min_snow_depth = snow_depth_standard * (snow_depth_limit - 1.0) * melt_factor;
+	double min_snow_depth = snow_depth_standard * (snow_depth_limit - 1.0);
 
 	// Going through snow layers
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
@@ -805,7 +792,7 @@ void Snow::update_layers(double snowfall_depth, double snowfall_dens, double air
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
 		// Total snow to move down to this layer
-		double tot_depth_move = lyr == 0 ? snowfall_depth : snow_depth_standard - snowlayers[lyr].depth; // DW_COMMENT always the same for all layers?
+		double tot_depth_move = lyr == 0 ? snowfall_depth : snow_depth_standard - snowlayers[lyr].depth;
 
 		// Layer to move snow from
 		int lyr_move = lyr + 1;
@@ -905,7 +892,6 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 	double snowfall_depth = prec / (snowfall_dens / rho_H2O);
 
 	/////////////////////////////////////////////////////////
-	// DW_COMMENT remove
 	// Check initial depth, snow, water and temperature
 	double EPS = 1.0e-12;
 	double initial_depth = snowfall_depth;
@@ -934,7 +920,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 	// If no snow layers
 	if (nsnowlayers == 0) {
 		snowlayers.resize(nsnowlayers + 1);
-		snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
+		snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
 		nsnowlayers++;
 	}
 
@@ -1021,20 +1007,19 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 				while (snowfall_depth > 0.0) {
 
 					double snow_depth_to_add = min(snowfall_depth, snow_depth_standard);
-					update_layers(snow_depth_to_add, snowfall_dens, airT);  // DW_COMMENT test by adding insane amount of snowfall 
+					update_layers(snow_depth_to_add, snowfall_dens, airT);
 					snowfall_depth -= snow_depth_to_add;
 				}
 			}
 			else if (top_snow_lyr == nsnowlayers) {
 				snowlayers.resize(nsnowlayers + 1);
-				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
+				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
 				nsnowlayers++;
 			}
 		}
 	}
 
 	/////////////////////////////////////////////////////////
-	// DW_COMMENT remove
 	double final_depth = 0.0;
 	double final_ice = 0.0;
 	double final_water = 0.0;
@@ -1232,7 +1217,7 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 			// If no snow layers
 			if (nsnowlayers == 0) {
 				snowlayers.resize(nsnowlayers + 1);
-				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT); // DW_COMMENT new and soilcolumn added to constructor
+				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
 				snowlayers[0].dens = SNOWDENSITY;
 				nsnowlayers++;
 			}
@@ -1364,7 +1349,7 @@ void Soillayer::init() {
 	aorgNleach = 0.0;
 	aorgCleach = 0.0;
 
-	// Gases
+	// Gases // DW_COMMENT are all needed?
 	CO2_soil = 0.0;
 	CO2_soil_yesterday = 0.0;
 	CO2_soil_prod = 0.0;
@@ -1380,7 +1365,7 @@ void Soillayer::init() {
 	CH4_diss_yesterday = 0.0;
 	CH4_gas_vol = 0.0;
 	CH4_vgc = 0.0;
-	O2 = 0.0; // DW_COMMENT Same as air above
+	O2 = 0.0;
 
 	// tiller area
 	tiller_area = 0.0001;
@@ -2155,7 +2140,7 @@ std::vector<double> Soilcolumn::get_peatland_rootfrac() {
 
 	double layermiddepth = -soillayers[0].depth / 2.0 * CM_PER_MM; // cm
 
-	double sumrootfrac = 0.0;  // DW_COMMENT CHECK rootfrac!!!!!!!
+	double sumrootfrac = 0.0;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -2407,7 +2392,7 @@ double Soilcolumn::gtemp_rootdist(std::vector<double> rootdist) {
 * \param climate   The climate to use to update soil water
 * \param depth     The depth at which the soil temperature is calculated
 */
-void Soilcolumn::calc_temp_analytic() { // DW_COMMENT
+void Soilcolumn::calc_temp_analytic() {
 
 	// DESCRIPTION
 	// Calculation of soil temperature at depth (m) (usually middle of upper soil layer).
@@ -2621,7 +2606,7 @@ void Soilcolumn::update_heatcap_and_cond(bool combine_snow) {
 			soillayers[lyr].update_heatcap_and_cond(combine_snow, snow.snowlayers[0].depth, snow.snowlayers[0].imass, snow.snowlayers[0].wmass);
 		}
 		else {
-			soillayers[lyr].update_heatcap_and_cond(); // DW_COMMENT NEED TO CHECK THESE!!!!!!!!!!!
+			soillayers[lyr].update_heatcap_and_cond();
 		}
 	}
 
@@ -2845,7 +2830,7 @@ void Soilcolumn::set_padding_depth() {
 	k_last = 0.0;
 
 	double func, dfunc;
-	double dz = 10000.0;// soillayers[nsoillayers - 1].depth; // DW_COMMENT
+	double dz = 10000.0;
 
 	// Do Newton-Raphson solve to find geometric sequence factor.
 	while (fabs(k_guess - k_last) > 1E-2) {
@@ -2857,7 +2842,7 @@ void Soilcolumn::set_padding_depth() {
 	}
 
 	// Build geometric sequence of padding layer depths.
-	for (layer = 0; layer<PAD_LAYERS; layer++) {
+	for (layer = 0; layer < PAD_LAYERS; layer++) {
 		pad[layer].depth = dz * pow(k_guess, layer + 1);
 	}
 }
@@ -4222,8 +4207,6 @@ bool Soilcolumn::can_freeze() const {
 
 void Soilcolumn::calc_temp() {
 
-	// Minimum dz for top snow layer [m] (should be calculated from Von Neumann Stability Analysis k=gamma deltaT/(deltaX)^2) DW_COMMENT
-
 	double airT = patch.get_climate().temp;
 
 	for (int ts = 0; ts < date.timesteps; ts++) {
@@ -4431,7 +4414,7 @@ void Soilcolumn::calc_temp() {
 */
 void Soilcolumn::temp() {
 
-	if (iftwolayersoil) { // DW_COMMENT analytic should work for multilayer but then with old snow!!!!!!!
+	if (iftwolayersoil) {
 		// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
 		// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.
 		calc_temp_analytic();

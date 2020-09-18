@@ -111,7 +111,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
 	if (!iftwolayersoil) {
-		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0 // DW_COMMENT only arctic pfts in the NH?
+		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
 		if (patch.soilcolumn.snow.snowpack_avrmax3mth() < pft.min_snow ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}

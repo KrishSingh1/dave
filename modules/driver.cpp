@@ -527,7 +527,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				// Determine static soil carbon fractions
 				if (iforganicsoilproperties == 1 && date.year == 0) {
-					soilcolumn.set_static_socfrac(); // DW_COMMENT move to within set_properties()???
+					soilcolumn.set_static_socfrac();
 				}
 
 				// Water to be moved due to decreases in wsats

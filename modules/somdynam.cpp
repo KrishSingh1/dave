@@ -1041,7 +1041,7 @@ void transfer_litter(Patch& patch) {
 				// SAP WOOD
 
 				if (date.day == 0 && lyr == 0) {
-					pft.litter_sap_year = pft.litter_sap; // DW_COMMENT calc daily litterfall insteed of yearly that needs to be divided all the time??!!!
+					pft.litter_sap_year = pft.litter_sap;
 					pft.nmass_litter_sap_year = pft.nmass_litter_sap;
 				}
 

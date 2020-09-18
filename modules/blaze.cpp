@@ -706,13 +706,13 @@ void blaze(Patch& patch, Climate& climate) {
 
 		// update transitional rest-of-year litter pools
 		// carbon
-		patchpft.litter_leaf -= (cmtb2atm + cstr2atm);
-		patchpft.litter_sap -= cfwd2atm;
+		patchpft.litter_leaf  -= (cmtb2atm + cstr2atm);
+		patchpft.litter_sap   -= cfwd2atm;
 		patchpft.litter_heart -= ccwd2atm;
 
 		// nitrogen
-		patchpft.nmass_litter_leaf -= (nmtb2atm + nstr2atm);
-		patchpft.nmass_litter_sap -= nfwd2atm;
+		patchpft.nmass_litter_leaf  -= (nmtb2atm + nstr2atm);
+		patchpft.nmass_litter_sap   -= nfwd2atm;
 		patchpft.nmass_litter_heart -= ncwd2atm;
 
 		// calculate total fluxes to atmosphere within patch
@@ -876,10 +876,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// ===== UPDATE POOLS ====
 
 	// live carbon
-	cmass_leaf -= (cleaf2atm + cleaf2met + cleaf2str);
-	cmass_sap -= (csapw2atm + csapw2str + csapw2fwd + csapr2fwd);
+	cmass_leaf  -= (cleaf2atm + cleaf2met + cleaf2str);
+	cmass_sap   -= (csapw2atm + csapw2str + csapw2fwd + csapr2fwd);
 	cmass_heart -= (chrtw2atm + chrtw2str + chrtw2cwd + chrtr2cwd);
-	cmass_root -= (croot2met + croot2str);
+	cmass_root  -= (croot2met + croot2str);
 
 	// Deal with c-debt before asserting to litter & atm pool
 	double saploss = csapw2atm + csapw2str + csapw2fwd + csapr2fwd;
@@ -923,35 +923,35 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 
 	// live nitrogen
-	nmass_leaf -= (nleaf2atm + nleaf2met + nleaf2str);
-	nmass_sap -= (nsapw2atm + nsapw2str + nsapw2fwd + nsapr2fwd);
+	nmass_leaf  -= (nleaf2atm + nleaf2met + nleaf2str);
+	nmass_sap   -= (nsapw2atm + nsapw2str + nsapw2fwd + nsapr2fwd);
 	nmass_heart -= (nhrtw2atm + nhrtw2str + nhrtw2cwd + nhrtr2cwd);
-	nmass_root -= (nroot2met + nroot2str);
+	nmass_root  -= (nroot2met + nroot2str);
 
 	double d_nstore = (nstore_longterm + nstore_labile) * (1. - frac_survive);
 	nstore_longterm *= frac_survive;
-	nstore_labile *= frac_survive;
+	nstore_labile   *= frac_survive;
 
 	// deal with accumulated NPP 
 	double anpp_loss = anpp * (1. - frac_survive);
 	double tot_loss = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met +
 		cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
 		csapr2fwd + chrtr2cwd + croot2met + croot2str;
-	double anpp2atm = 0.;
-	double anpp2met = 0.;
-	double anpp2str = 0.;
-	double anpp2fwd = 0.;
-	double anpp2cwd = 0.;
+	double anpp2atm  = 0.;
+	double anpp2met  = 0.;
+	double anpp2str  = 0.;
+	double anpp2fwd  = 0.;
+	double anpp2cwd  = 0.;
 	double anpp2smtb = 0.;
 	double anpp2sstr = 0.;
 	if (tot_loss > 0.) {
-		anpp2atm = anpp_loss * (cleaf2atm + csapw2atm + chrtw2atm) / tot_loss;
-		anpp2met = anpp_loss *                           cleaf2met / tot_loss;
-		anpp2str = anpp_loss * (cleaf2str + csapw2str + chrtw2str) / tot_loss;
-		anpp2fwd = anpp_loss *             (csapw2fwd + csapr2fwd) / tot_loss;
-		anpp2cwd = anpp_loss *             (chrtw2cwd + chrtr2cwd) / tot_loss;
-		anpp2smtb = anpp_loss *                          croot2met / tot_loss;
-		anpp2sstr = anpp_loss *                          croot2str / tot_loss;
+		anpp2atm  = anpp_loss * (cleaf2atm + csapw2atm + chrtw2atm) / tot_loss;
+		anpp2met  = anpp_loss *                           cleaf2met / tot_loss;
+		anpp2str  = anpp_loss * (cleaf2str + csapw2str + chrtw2str) / tot_loss;
+		anpp2fwd  = anpp_loss *             (csapw2fwd + csapr2fwd) / tot_loss;
+		anpp2cwd  = anpp_loss *             (chrtw2cwd + chrtr2cwd) / tot_loss;
+		anpp2smtb = anpp_loss *                           croot2met / tot_loss;
+		anpp2sstr = anpp_loss *                           croot2str / tot_loss;
 		anpp -= anpp_loss;
 	}
 
@@ -973,16 +973,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		// Surface litter
 		if (lyr == 0) {
 			// Carbon
-			soillayer.sompool[SURFMETA].cmass += anpp2met + cleaf2met;
+			soillayer.sompool[SURFMETA].cmass   += anpp2met + cleaf2met;
 			soillayer.sompool[SURFSTRUCT].cmass += anpp2str + cleaf2str + csapw2str + chrtw2str;
-			soillayer.sompool[SURFFWD].cmass += anpp2fwd + csapw2fwd;
-			soillayer.sompool[SURFCWD].cmass += anpp2cwd + chrtw2cwd;
+			soillayer.sompool[SURFFWD].cmass    += anpp2fwd + csapw2fwd;
+			soillayer.sompool[SURFCWD].cmass    += anpp2cwd + chrtw2cwd;
 
 			// Nitrogen 
-			soillayer.sompool[SURFMETA].nmass += nleaf2met;
+			soillayer.sompool[SURFMETA].nmass   += nleaf2met;
 			soillayer.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
-			soillayer.sompool[SURFFWD].nmass += nsapw2fwd;
-			soillayer.sompool[SURFCWD].nmass += nhrtw2cwd;
+			soillayer.sompool[SURFFWD].nmass    += nsapw2fwd;
+			soillayer.sompool[SURFCWD].nmass    += nhrtw2cwd;
 		}
 
 		// Root litter
@@ -991,16 +991,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		double rootdist_frac = pft.rootdist[lyr];
 
 		// Carbon
-		soillayer.sompool[SOILMETA].cmass += rootdist_frac * (anpp2smtb + croot2met);
+		soillayer.sompool[SOILMETA].cmass   += rootdist_frac * (anpp2smtb + croot2met);
 		soillayer.sompool[SOILSTRUCT].cmass += rootdist_frac * (anpp2sstr + croot2str);
-		soillayer.sompool[SOILFWD].cmass += rootdist_frac * csapr2fwd;
-		soillayer.sompool[SOILCWD].cmass += rootdist_frac * chrtr2cwd;
+		soillayer.sompool[SOILFWD].cmass    += rootdist_frac * csapr2fwd;
+		soillayer.sompool[SOILCWD].cmass    += rootdist_frac * chrtr2cwd;
 
 		// Nitrogen
-		soillayer.sompool[SOILMETA].nmass += rootdist_frac * nroot2met;
+		soillayer.sompool[SOILMETA].nmass   += rootdist_frac * nroot2met;
 		soillayer.sompool[SOILSTRUCT].nmass += rootdist_frac * nroot2str;
-		soillayer.sompool[SOILFWD].nmass += rootdist_frac * nsapr2fwd;
-		soillayer.sompool[SOILCWD].nmass += rootdist_frac * nhrtr2cwd;
+		soillayer.sompool[SOILFWD].nmass    += rootdist_frac * nsapr2fwd;
+		soillayer.sompool[SOILCWD].nmass    += rootdist_frac * nhrtr2cwd;
 	}
 
 	if (pft.lifeform != GRASS) {

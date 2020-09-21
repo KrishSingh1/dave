@@ -282,8 +282,7 @@ void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 }
 
 /// Soil N gas emissions
-/** Daily calculation of soil N gas emissions 
-
+/** Daily calculation of soil N gas emissions. 
  */
 void n_gas_emission(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart, double& n_budget_check) {
 

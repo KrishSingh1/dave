@@ -12,7 +12,11 @@
 #ifndef WEATHERGEN_H
 #define WEATHERGEN_H
 
-/// GWGen - A weathergenerator for the use with e.g. BLAZE when wind etc is needed
+/// GWGen - Global Weather GENerator
+/** 
+ * A weathergenerator for the use with e.g. BLAZE when wind and/or rel. 
+ * humidity is needed. 
+ */
 void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		   double* in_mwetm, double* in_msol, double* in_mdtr, 
 		   double* in_mwind, double* in_rhum, double* out_temp,

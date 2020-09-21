@@ -27,7 +27,7 @@ for y in $panyears; do
  
     # Read pan_regional data file and skip header 
     (( headlines = 4+cnt*5 ))
-    head -n $headlines ${DATAPATH}/biomass/Pan/Pan_regional_data.txt | tail -n 5 > pan_tmp_$y
+    head -n $headlines ${DATAPATH}/biomass/Pan/pan_regional_data.txt | tail -n 5 > pan_tmp_$y
     source pan_tmp_$y
     tslice cpool_natural.out -f $y -t $y -o cpool_natural_${y}.txt
 

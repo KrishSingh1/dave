@@ -130,12 +130,12 @@ joyn lu_cmass_agb_1993-2012_tot.txt cpool1993-2012_joyned.txt -i Lon Lat -o lu_c
 awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.txt > lu_cmass_agb_1993-2012_tot.txt_Liu.txt
 awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.txt > cpool1993-2012_joyned_VegC.txt
 delta cpool1993-2012_joyned_VegC.txt lu_cmass_agb_1993-2012_tot.txt_Liu.txt -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.txt
-gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
-describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass"
+gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.jpg -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED $GMAPSMOOTH -vert
+describe_image delta_cpool1993-2012_joyned_jackson.jpg "Modelled minus Liu et al. Above ground biomass"
     
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
-scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.png
-describe_image agb.png "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
+scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.jpg
+describe_image agb.jpg "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
 rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.txt delta_cpool1993-2012_joyned.txt cpool1993-2012_joyned_VegC.txt 
 
 . pan_regional_biomass.sh
@@ -146,17 +146,17 @@ gfed40_data=${DATAPATH}/fire/gfed40_c-emissions_1997-2016.dat
 tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.txt
 joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.txt
 
-gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
-    -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions Units: kg C m-2 y-1]"
-describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016"
+gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.jpg \
+    -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions Units: kg C m-2 y-1]" $GMAPSMOOTH -vert
+describe_image  cflux1997-2016_blaze.jpg "BLAZE Mean annual C-emissions 1997-2016"
 	
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_Fire.txt
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_gfed.txt
 delta  cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt -i Lon Lat -o delta_cflux1997-2016_joyned.txt
 gmap delta_cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait \
-    -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png \
-    -t "Fire C flux LPJ-GUESS - GFED4 Units: kg C m-2 y-1" -c BLUE RED -vert
-describe_image delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data"
+    -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.jpg \
+    -t "Fire C flux LPJ-GUESS - GFED4 Units: kg C m-2 y-1" -c BLUE RED $GMAPSMOOTH -vert
+describe_image delta_cflux1997-2016_joyned.jpg "Modelled minus GFED 4.0 data"
 
 # A-slicing over regions 0.5 degrees resolution
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS CEAS SEAS EQAS AUST)

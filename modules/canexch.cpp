@@ -1003,21 +1003,9 @@ void vegetation_n_uptake(Patch& patch) {
 		else
 			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 
-		// DW_COMMENT - some comments on the difference between crop and everything else in N uptake (NH4 vs NO3)
-		if (indiv.pft.phenology == CROPGREEN && ifnlim) {
-			if (nuptake_day + NO3_uptake_tot >= NO3_avail) {
-				NH4_uptake_tot += nuptake_day + NO3_uptake_tot - NO3_avail;
-				NO3_uptake_tot = NO3_avail;
-			}
-			else {
-				NO3_uptake_tot += nuptake_day;
-			}
-		}
-		else {
-			double ammonium = nuptake_day * ammonium_frac;
-			NH4_uptake_tot += ammonium;
-			NO3_uptake_tot += nuptake_day - ammonium;
-		}
+		double ammonium = nuptake_day * ammonium_frac;
+		NH4_uptake_tot += ammonium;
+		NO3_uptake_tot += nuptake_day - ammonium;
 
 		if (!negligible(indiv.phen))
 			indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max);
@@ -1104,7 +1092,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 					// nitrogen added to leaf from storage
 					double labile_nto_leaf = indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand);
-					
+
 					// new leaf nitrogen
 					indiv.nmass_leaf += labile_nto_leaf;
 
@@ -1693,8 +1681,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				std::vector<double> water_to_add_ly(nsoillayersupper);
 
 				for (int i = 0; i < nsoillayersupper; i++) {
-					water_to_add_ly[i] = (wcont_opt[i] - wcont_cp[i]) * soilcolumn.soillayers[i].awc;
-					water_to_add += water_to_add_ly[i];
+					if (add_water[i]) {
+						water_to_add_ly[i] = max((wcont_opt[i] - wcont_cp[i]) * soilcolumn.soillayers[i].awc, 0.0); // ensures that we add water
+						water_to_add += water_to_add_ly[i];
+					}
 				}
 
 				ppft.wmass_deficit_d += water_to_add;
@@ -1809,10 +1799,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
-				//std::vector<double> wcont_local(patch.soilcolumn.nsoillayers);
-				//wcont_local = patch.soilcolumn.wconts();
-
-				//wr = water_uptake(wcont_local, patch.soilcolumn.awcs(),
 				wr = water_uptake(patch.soilcolumn.get_prop(WCONT), patch.soilcolumn.get_prop(AWC),
 					pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);

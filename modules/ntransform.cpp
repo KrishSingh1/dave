@@ -3,7 +3,7 @@
 /// \file ntransform.cpp
 /// \brief Nitrogen transformation in soil - nitrification and denitrification
 ///
-/// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson
+/// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson, David Wårlind and Stefan Olin.
 /// $Date: 2013-10-14 14:12:00 +0100 (Mon, 10 Sep 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -14,8 +14,8 @@
 // Module:                Nitrogen transformation processes in Soil
 // Header file name:      ntransform.h
 // Source code file name: ntransform.cpp
-// Written by:            Xu-Ri
-// Version dated:         2007,08,18
+// Written by:            Stefan Olin, adopted from Xu-Ri 2007-08-18.
+// Version dated:         2019.
 //
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -43,9 +43,6 @@
 #include "ntransform.h"
 #include <assert.h>
 #include <numeric>
-
-///////////////////////////////////////////////////////////////////////////////////////
-// FILE SCOPE GLOBAL CONSTANTS
 
 /// Soil N substrate partitioning
 /** Daily calculation of nitrogen substrate partition
@@ -187,7 +184,6 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 	subpart.NH4_mass_d -= no3_inc;
 
 	double ngas_inc = f_denitri_gas_max * no3_inc;
-	//no3_inc -= ngas_inc;
 
 	double wfps = soillayer.wfps();
 
@@ -237,17 +233,17 @@ void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 		else {
 			f_den_T = 0.0;
 		}
-		// effect of labile carbon availability on denitrification (table 9, eqn 2, Xu-Ri 2008)
+		// Effect of labile carbon availability on denitrification (table 9, eqn 2, Xu-Ri 2008)
 		d_N_max = subpart.labile_carbon_w / (k_C * water_cont_m3 + subpart.labile_carbon_w);
 
-		// gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
+		// Gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
 		no2_inc = min(subpart.NO3_mass_w, subpart.NO3_mass_w * f_denitri_max * d_N_max * f_den_T * subpart.NO3_mass_w / (k_N * water_cont_m3 + subpart.NO3_mass_w));
 
 		gross_denitrif = no2_inc;
 		subpart.NO3_mass_w -= no2_inc;
 		subpart.NO2_mass_w += no2_inc;
 
-		// gross transformation of NO2 to N2 (table 9, eqn 4, Xu-Ri 2008)
+		// Gross transformation of NO2 to N2 (table 9, eqn 4, Xu-Ri 2008)
 
 		// Denitrification rate dependence on moisture, Weier et al. 1993
 		double f_den_w = min(1.0, exp(13.0360 * wfps - 11.6219));
@@ -340,9 +336,7 @@ void n_gas_emission(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart, dou
 	//////////////////////////////////////////////
 	fluxes.report_flux(Fluxes::NO_SOIL, no_d_flux_inc + no_w_flux_inc);
 	fluxes.report_flux(Fluxes::N2O_SOIL, n2o_d_flux_inc + n2o_w_flux_inc);
-	//////////////////////////////////////////////
 
-	//////////////////////////////////////////////
 	fluxes.report_flux(Fluxes::N2_SOIL, n2_flux_inc);
 	fluxes.report_flux(Fluxes::NET_NITRIF, net_nitrif);
 	fluxes.report_flux(Fluxes::NET_DENITRIF, net_denitrif);
@@ -373,10 +367,10 @@ void ntransform(Patch& patch, Climate& climate) {
 		const double EPS = 1.0e-14;
 		double n_budget_check;
 
-		// obtain reference to Soil object
+		// Obtain reference to Soil object
 		Soilcolumn& soilcolumn = patch.soilcolumn;
 
-		// obtain referenc to flux object
+		// Obtain referenc to flux object
 		Fluxes& fluxes = patch.fluxes;
 
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -390,16 +384,16 @@ void ntransform(Patch& patch, Climate& climate) {
 			Nsubpart subpart;
 			subpart.substrate_partition(soillayer);
 
-			// nitrification
+		// Nitrification
 			nitrification(soillayer, fluxes, subpart);
 
-			// denitrification
+		// Denitrification
 			denitrification(soillayer, fluxes, subpart);
 
 			// N gas emission
 			n_gas_emission(soillayer, fluxes, subpart, n_budget_check);
 
-			// warning if soil N transform does not hold mass balance
+		// Warning if soil N transform does not hold mass balance
 			assert(fabs(n_budget_check) < EPS);
 		}
 	}

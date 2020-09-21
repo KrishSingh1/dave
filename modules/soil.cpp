@@ -3347,6 +3347,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	int mdays = date.ndaymonth[date.month];
 	mwtp[date.month] += wtp[date.day] / (double)mdays;
 
+	// Calculate annual average WTP. Needed in update_acrotelm_co2
 	if (date.day == Date::MAX_YEAR_LENGTH - 1) {
 		awtp = 0.0;
 		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++)
@@ -4579,6 +4580,7 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& anfix
 		& anfix_mean
 		& mald_mean
+		& awtp
 		& anfix_calc
 		& pad
 		& solvesomcent_beginyr

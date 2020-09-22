@@ -4,9 +4,9 @@ GMAPSMOOTH=""		#="-smooth 10"
 GMAPPIXELSIZE=""	#="-pixsize 5 5"
 
 # Set data-dir
-# This path must start with '=/' and end with '/' in order to enable
+# This path must start with '/' and end with '/' in order to enable
 # automatic substition of path on other systems than simba.
-DATAPATH=/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/
+DATAPATH=/data/benchmark_data/2019-04-29/
 
 
 # Function for preparing data for a scatter plot using gnuplot.
@@ -131,11 +131,11 @@ awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb
 awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.txt > cpool1993-2012_joyned_VegC.txt
 delta cpool1993-2012_joyned_VegC.txt lu_cmass_agb_1993-2012_tot.txt_Liu.txt -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.txt
 gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.jpg -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED $GMAPSMOOTH -vert
-describe_image delta_cpool1993-2012_joyned_jackson.jpg "Modelled minus Liu et al. Above ground biomass"
+describe_image delta_cpool1993-2012_joyned_jackson.jpg "Modelled minus Liu et al. Above ground biomass (1993-2012 average)"
     
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
 scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.jpg
-describe_image agb.jpg "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
+describe_image agb.jpg "LPJ-GUESS modelled AGB compared to Liu et al. data (1993-2012 average). Units: kg m-2." embed
 rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.txt delta_cpool1993-2012_joyned.txt cpool1993-2012_joyned_VegC.txt 
 
 . pan_regional_biomass.sh
@@ -148,7 +148,7 @@ joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.t
 
 gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.jpg \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions Units: kg C m-2 y-1]" $GMAPSMOOTH -vert
-describe_image  cflux1997-2016_blaze.jpg "BLAZE Mean annual C-emissions 1997-2016"
+describe_image  cflux1997-2016_blaze.jpg "BLAZE  C-emissions (1997-2016 average)"
 	
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_Fire.txt
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_gfed.txt
@@ -156,7 +156,7 @@ delta  cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt -i Lon Lat 
 gmap delta_cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait \
     -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.jpg \
     -t "Fire C flux LPJ-GUESS - GFED4 Units: kg C m-2 y-1" -c BLUE RED $GMAPSMOOTH -vert
-describe_image delta_cflux1997-2016_joyned.jpg "Modelled minus GFED 4.0 data"
+describe_image delta_cflux1997-2016_joyned.jpg "Modelled minus GFED 4.0 data (1997-2016 average)"
 
 # A-slicing over regions 0.5 degrees resolution
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS CEAS SEAS EQAS AUST)
@@ -192,8 +192,9 @@ done
 # append regional descriptions
 echo ""  >> tot_cflux_reg_glob.txt 
 echo "Description of regions" >> tot_cflux_reg_glob.txt 
-awk '(FNR>1 && $1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
-describe_textfile tot_cflux_reg_glob.txt "Average Fire C-emissions (1997-2016) per GFED region: LPJ-GUESS vs GFED. Units: Tg C/y"
+#awk '(FNR>1 && $1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
+awk '($1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
+describe_textfile tot_cflux_reg_glob.txt "Fire C-emissions (1997-2016 average) per GFED region: LPJ-GUESS vs GFED. Units: Tg C/y"
 
 rm -f cflux1997-2016.txt cflux1997-2016_joyned.txt cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt \
    delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt tot_cflux_reg.txt 

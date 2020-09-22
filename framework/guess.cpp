@@ -2523,9 +2523,11 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			double scalar = (soil_depth - tot_depth) / (std_tot_depth - tot_depth);
 		
 			for (int lyr = NSOILLAYER_MAX - 3; lyr < NSOILLAYER_MAX; lyr++) {
-				lyr_depths[lyr] = std_depths[lyr] * scalar;
-				tot_depth += std_depths[lyr] * scalar;
+				lyr_depths[lyr] = floor(std_depths[lyr] * scalar / 100.0) * 100.0;
+				tot_depth += lyr_depths[lyr];
 			}
+
+			lyr_depths[NSOILLAYER_MAX - 1] += soil_depth - tot_depth;
 
 			if (fabs(soil_depth - tot_depth) > 1.0e-12)
 				dprintf("ERROR: Soil layers don't add up to total soil depth %g\n", fabs(soil_depth - tot_depth));
@@ -2543,8 +2545,8 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 				double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
 				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYER_MAX - 1) {
 					double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
-					lyr_depths[lyr] = lyr_depth;
-					tot_depth += lyr_depth;
+					lyr_depths[lyr] = floor(lyr_depth / 100.0) * 100.0;;
+					tot_depth += lyr_depths[lyr];
 					remain_depth = depth - tot_depth;
 				}
 				else {

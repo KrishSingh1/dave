@@ -193,7 +193,7 @@ done
 echo ""  >> tot_cflux_reg_glob.txt 
 echo "Description of regions" >> tot_cflux_reg_glob.txt 
 awk '(FNR>1 && $1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
-describe_textfile tot_cflux_reg_glob.txt "Fire C-emissions per GFED region: LPJ-GUESS vs GFED. Units: Pg C/y"
+describe_textfile tot_cflux_reg_glob.txt "Average Fire C-emissions (1997-2016) per GFED region: LPJ-GUESS vs GFED. Units: Tg C/y"
 
 rm -f cflux1997-2016.txt cflux1997-2016_joyned.txt cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt \
    delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt tot_cflux_reg.txt 

@@ -277,11 +277,11 @@ bool Soilcolumn::update_daily_gas_parameters() {
 
 	double surfT = soillayers[0].temp;
 
-	/* GAS TRANSPORT VELOCITIES */
+	// Gas transport velocities
 
 	// gas transport velocity of SF6.
-	// Wania et al. (2010) - Eqn. 6
-	double k_600 = 2.07 + 0.215 * pow(patch.get_climate().u10, 1.7); // cm h-1
+	// Wania et al. (2010) - Eqn. 6 (cm h-1)
+	double k_600 = 2.07 + 0.215 * pow(patch.get_climate().u10, 1.7);
 
 	// Schmidt number of O2
 	// Wania et al. (2010) - Eqn. 7
@@ -289,8 +289,9 @@ bool Soilcolumn::update_daily_gas_parameters() {
 
 	// gas transport velocity of O2 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
+	// converted from cm h-1 to m d-1
 	k_O2 = k_600 * pow(ScO2 / 600.0, n_coeff);
-	k_O2 *= 24.0 * M_PER_CM; // cm h-1 to m d-1
+	k_O2 *= 24.0 * M_PER_CM;
 
 	// Schmidt number of CH4
 	// Wania et al. (2010) - Eqn. 7
@@ -298,8 +299,9 @@ bool Soilcolumn::update_daily_gas_parameters() {
 
 	// gas transport velocity of CH4 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
+	// converted from cm h-1 to m d-1
 	k_CH4 = k_600 * pow(ScCH4 / 600.0, n_coeff);
-	k_CH4 *= 24.0 * M_PER_CM; // cm h-1 to m d-1
+	k_CH4 *= 24.0 * M_PER_CM;
 
 	// Schmidt number of CH4
 	// Wania et al. (2010) - Eqn. 7
@@ -307,34 +309,41 @@ bool Soilcolumn::update_daily_gas_parameters() {
 
 	// gas transport velocity of CO2 [cm h-1]
 	// Wania et al. (2010) - Eqn. 5
+	// converted from cm h-1 to m d-1
 	k_CO2 = k_600 * pow(ScCO2 / 600.0, n_coeff);
-	k_CO2 *= 24.0 * M_PER_CM; // cm h-1 to m d-1
+	k_CO2 *= 24.0 * M_PER_CM;
 
-	/* EQUILIBRIUM GAS CONCENTRATIONS */
+	// Equilibrium gas concentration
 	// See Wania et al. (2010) - Eqn. 8
 
-	double deg25 = K2degC + 25.0; // 25 degrees C
+	// 25 degrees C
+	double deg25 = K2degC + 25.0;
 
+	// [L atm mol-1] DW_COMMENT description
 	double henry_coeff_O2 = henry_k_O2 * exp(-1.0 * henry_C_O2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
-	// [L atm mol-1]
 
-	// pp_gas/MM2_PER_M2 converts to atm units
+	// Equilibrium gas concentrations (mmol m - 3) for O2
+	// pp_gas/MM2_PER_M2 (mol L-1) converts to atm units DW_COMMENT description
+	// mol L-1 to mmol m-3
+	Ceq_O2 = pp_O2 / MM2_PER_M2 / henry_coeff_O2;
+	Ceq_O2 *= MM2_PER_M2; 
 
-	Ceq_O2 = pp_O2 / MM2_PER_M2 / henry_coeff_O2; // mol L-1
-	Ceq_O2 *= MM2_PER_M2; // mol L-1 to mmol m-3
-
+	// [L atm mol-1] DW_COMMENT description
 	double henry_coeff_CO2 = henry_k_CO2 * exp(-1.0 * henry_C_CO2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
-	// [L atm mol-1]
 
+	// Equilibrium gas concentrations (mmol m - 3) for CO2
 	// Use this gridcell's CO2 concentration, not a fixed value as in Wania et al. (2010).
-	Ceq_CO2 = patch.get_climate().co2 / MM2_PER_M2 / henry_coeff_CO2; // mol L-1
-	Ceq_CO2 *= MM2_PER_M2; // mmol m-3
+	// mol L-1 to mmol m-3
+	Ceq_CO2 = patch.get_climate().co2 / MM2_PER_M2 / henry_coeff_CO2;
+	Ceq_CO2 *= MM2_PER_M2;
 
+	// [L atm mol-1] DW_COMMENT description
 	double henry_coeff_CH4 = henry_k_CH4 * exp(-1.0 * henry_C_CH4 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
-	// [L atm mol-1]
 
-	Ceq_CH4 = pp_CH4 / MM2_PER_M2 / henry_coeff_CH4; // mol L-1
-	Ceq_CH4 *= MM2_PER_M2; // mmol m-3
+	// Equilibrium gas concentrations (mmol m - 3) for CH4
+	// mol L-1 to mmol m-3
+	Ceq_CH4 = pp_CH4 / MM2_PER_M2 / henry_coeff_CH4;
+	Ceq_CH4 *= MM2_PER_M2;
 
 	return true;
 }
@@ -393,20 +402,23 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 	double Cnew;
 	if (thisgastype == O2gas || thisgastype == CH4gas) { // Could also run for CH4 here below.
 
-		if ((soillayers[0].wmass / soillayers[0]. depth) < Fwmass_min) { // Could add a snow restriction
-			// No diffusion if there's too little liquid water in the top layer
-			Cnew = C[0]; // Unchanged surface concentration
+		// No diffusion if there's too little liquid water in the top layer
+		// Could add a snow restriction
+		if ((soillayers[0].wmass / soillayers[0]. depth) < Fwmass_min) {
+			// Unchanged surface concentration
+			Cnew = C[0]; 
 			dailyDiff = 0.0;
 		} 
 		else {
-			
 			double volume_liquid_water = soillayers[0].wmass * M_PER_MM;
-			// Analytical solution to determine Csurf - see Wania et al. Sec 2.5
-			Cnew = Ceq + (C[0] - Ceq) * exp(-kgas / volume_liquid_water); // mmol m-3
-			dailyDiff = (C[0] - Cnew) * atomic_mass * volume_liquid_water / MMOL_PER_MOL; // mol layer-1 d-1 (O2)
-		}
 
-		C[0] = Cnew; // mmol m-3 - The new surface concentration
+			// Analytical solution to determine Csurf - see Wania et al. Sec 2.5 (mmol m-3)
+			Cnew = Ceq + (C[0] - Ceq) * exp(-kgas / volume_liquid_water);
+			// mol layer-1 d-1 (O2)
+			dailyDiff = (C[0] - Cnew) * atomic_mass * volume_liquid_water / MMOL_PER_MOL;
+		}
+		// The new surface concentration (mmol m-3) 
+		C[0] = Cnew; 
 	}
 
 	double surf_conc = C[0];
@@ -418,21 +430,22 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 
 		double maxD = -0.01;
 		// Maximum diffusivity today below the surface layer [m2 d-1]
+		// Excluding top layer as we've already considered in the top layer above
 		for (int lyr = 1; lyr < nsoillayers; lyr++) { 
-			// exclude top layer as we've already considered in the top layer above
 			if (D[lyr] > maxD) {
-				maxD = D[lyr]; // [m2 d-1]
+				maxD = D[lyr];
 			}
 		}
 
-		double max_timestep = (0.1 * 0.1) / (2.0 * maxD); // [day]
+		// Maximum timestep [day]
+		double max_timestep = (0.1 * 0.1) / (2.0 * maxD);
 
 		if (max_timestep < Dt_gas && verbosity >= INFO)
 			dprintf("%s%8.4f\n","Max gas diffusion timestep exceeded: ",maxD);
 
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			if ((soillayers[0].wmass / soillayers[0].depth) < Fwmass_min) {
+			if ((soillayers[lyr].wmass / soillayers[lyr].depth) < Fwmass_min) {
 				D[lyr] = 1e-9; // [m2 d-1]
 			}
 		}
@@ -440,8 +453,8 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 		std::vector<double> C_init(nsoillayers);
 		std::vector<double> C_last(nsoillayers);
 
-		// Determine initial and total concentrations
-		double totalConc = 0.0; // mmol m-3
+		// Determine initial and total concentrations [mmol m-3]
+		double totalConc = 0.0; 
 		double total_diff = 0.0;
 		double ratio = 0.0;
 		int cncount = 0;
@@ -472,7 +485,7 @@ double Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, doubl
 
 			ratio = total_diff / totalConc;
 			
-			// stable if the ratio is < 0.01 and we've passed a third of the max iterations 
+			// Stable if the ratio is < 0.01 and we've passed a third of the max iterations 
 			if (ratio < 0.01 && cncount > int(gasdiffix / 3))
 				stable = true;
 
@@ -585,7 +598,8 @@ bool Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 	double atomic_mass;
 
 	if (thisgastype != O2gas)
-		atomic_mass = atomiccmass; // i.e. CO2 or CH4 - 12 g/mol
+		// i.e. CO2 or CH4 - 12 g/mol
+		atomic_mass = atomiccmass;
 	else
 		atomic_mass = 1.0; 
 
@@ -601,14 +615,14 @@ bool Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 		double total_volume_water = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM;
 		double volume_liquid_water = soillayers[lyr].wmass * M_PER_MM;
 
+		// CH4 and CO2: gC layer-1 to mmol m-3
+		// O2: mol layer-1 to mmol m-3
 		if (thisgastype == O2gas)
 			Cgas[lyr] = soillayers[lyr].O2 / atomic_mass / total_volume_water * MMOL_PER_MOL;
 		else
 			Cgas[lyr] = soillayers[lyr].CH4 / atomic_mass / total_volume_water * MMOL_PER_MOL;
-		// CH4 and CO2: gC layer-1 to mmol m-3
-		// O2: mol layer-1 to mmol m-3
 
-		if ((soillayers[lyr].wmass) / soillayers[lyr].depth < Fwmass_min || negligible(soillayers[lyr].tiller_area) || volume_liquid_water < 0.0001) {
+		if (soillayers[lyr].wmass / soillayers[lyr].depth < Fwmass_min || negligible(soillayers[lyr].tiller_area) || volume_liquid_water < 0.0001) {
 			Cnew = Cgas[lyr]; // no plant transport to/from this layer
 		} 
 		else {
@@ -647,9 +661,14 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 	double waterheight = 0.0;
 	ebull_today = 0.0;
 
-	double wtpp = wtp[date.day];	// Today's water table position (-300 to +100) mm
-	bool emitToAtmosphere = true;	// Whether to emit CH4 directly to the atmosphere (true by default)
-	int bubbleToLayer = 0;		// The soil layer to bubble to.
+	// Today's water table position (-300 to +100) mm
+	double wtpp = wtp[date.day];
+
+	// Whether to emit CH4 directly to the atmosphere (true by default)
+	bool emitToAtmosphere = true;
+
+	// The soil layer to bubble to.
+	int bubbleToLayer = 0;
 
 	if (wtpp <= 0) {
 		if (wtpp >= -100.0)
@@ -680,21 +699,21 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 		// Bubble formation below the WT only
 		if (lyr > bubbleToLayer) {
 
-			// Max CH4 that can be dissolved (Wania et al. (2010), Eqn 15)
+			// Max CH4 that can be dissolved (Wania et al. (2010), Eqn 15) [ml CH4 ml-1 H2O]
 			double CH4_diss_max = 0.05708 - 0.001545 * max(0.0, soillayer.temp) +
-				0.00002069 * max(0.0, pow(soillayer.temp,2.0)); // ml CH4 ml-1 H2O
+				0.00002069 * max(0.0, pow(soillayer.temp,2.0));
 
-			// Water pressure
-			double hydro_press = rho_H2O * gravity * waterheight; // N, or kg m s-2
+			// Water pressure [N, or kg m s-2]
+			double hydro_press = rho_H2O * gravity * waterheight;
 
-			// Maximum volume that can be dissolved
-			double CH4_diss_max_m3 = CH4_diss_max * volume_liquid_water; // m3 CH4 layer-1
+			// Maximum volume that can be dissolved [m3 CH4 layer-1}
+			double CH4_diss_max_m3 = CH4_diss_max * volume_liquid_water;
 
 			// Use ideal gas law to convert to mol CH4 layer-1
-			double CH4_diss_max_mol = CH4_diss_max_m3 * (hydro_press + atm_press) / (R_gas * TsoilK); // mol CH4 layer-1
+			double CH4_diss_max_mol = CH4_diss_max_m3 * (hydro_press + atm_press) / (R_gas * TsoilK);
 
 			// Convert to g CH4-C layer-1
-			double CH4_diss_max_g = CH4_diss_max_mol * mr_C; // g CH4-C layer-1
+			double CH4_diss_max_g = CH4_diss_max_mol * mr_C;
 			
 			soillayer.CH4_ebull_ind = 0.0;
 			
@@ -725,23 +744,19 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 					// Update the amount of CH4 to emit today, from this layer
 					ebull_today += soillayer.CH4_ebull_ind; // g m-2 d-1
 				}
-
 				// Now recalculate the total CH4 amount in this layer, both dissolved and gaseous
 				soillayer.CH4 = soillayer.CH4_diss + soillayer.CH4_gas;
-
 			} 
 			else {
-			
 				// No change in the dissolved CH4 amount
 				soillayer.CH4_diss = soillayer.CH4_diss_yesterday;
-			} // Frac_water
+			}
 		} 
 		else {
-			
 			// No change in the dissolved CH4 amount
 			soillayer.CH4_diss = soillayer.CH4_diss_yesterday;
-		} // bubble layer check
-	} // for ii
+		}
+	} 
 
 	// If the water table is below the surface, then put the bubbled methane into the first unsaturated layer
 	if (!emitToAtmosphere) {
@@ -756,9 +771,12 @@ bool Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 		bubblelayer.CH4 /= atomiccmass; // mol layer-1
 		bubblelayer.CH4_oxid = min(bubblelayer.CH4, 0.5 * bubblelayer.O2); // usually 75%
 		bubblelayer.CH4 = (bubblelayer.CH4 - bubblelayer.CH4_oxid) * atomiccmass; // gC layer again	
-		bubblelayer.O2 -= 2.0 * bubblelayer.CH4_oxid; // subtract the moles used in oxidation
+		
+		// Subtract the moles used in oxidation
+		bubblelayer.O2 -= 2.0 * bubblelayer.CH4_oxid;
 
-		bubblelayer.CO2_soil += bubblelayer.CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
+		// Oxidised CH4 becomes CO2 (and water!)
+		bubblelayer.CO2_soil += bubblelayer.CH4_oxid * atomiccmass;
 	}
 
 	return true;
@@ -803,6 +821,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 	// Calculates daily methane fluxes and updates methane concentrations in peatland soil layers.
 	// Algorithm etc. from Wania et al. 2010
 	// This version coded by Paul Miller, based on Rita Wania's F90 code
+	// Layer depths in m, and volume of water in m3
 
 	if (!generatemethane) {
 
@@ -839,7 +858,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 		const double MAX_ERR_BALANCE = 0.0001;
 		const double LARGE_ERR = 0.01;
 
-		// variables for debugging
+		// Variables for debugging
 		bool allow_planttransport = true;
 		bool allow_ebullition = true;
 		bool allow_ch4diffusion = true;
@@ -886,47 +905,56 @@ bool Soilcolumn::methane(bool generatemethane) {
 		CO2_plant_today = 0.0;
 		O2_plant_today = 0.0;
 
-		// *** STEP 0 ***
+		// Step 0 
 
 		// C budget before today's methane calculations
 
-		calculate_carbon_store(daynum, false); // DW_COMMENT CAN BE DONE PER LAYER
+		calculate_carbon_store(daynum, false);
 		ch4_c_store_init = ch4_store;
 		co2_c_store_init = co2_store;
 
-		// *** STEP 1 ***
+		// Step 1
+
 		// Diffusivities and layer depths, and update of gas constants
 
-		// Set layer gas diffusivities 
-		calculate_gas_diffusivities(D_CH4, D_CO2, D_O2); // DW_COMMENT CAN BE DONE PER LAYER
-		// Units: m2 d-1
-
-		// Layer depths in m, and volume of water in m3
+		// Set layer gas diffusivities (m2 d-1)
+		calculate_gas_diffusivities(D_CH4, D_CO2, D_O2);
 
 		std::vector<double> volume_liquid_water(nsoillayers);
 		std::vector<double> total_volume_water(nsoillayers);
 
+		// Layer water and ice content (m3)
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			volume_liquid_water[lyr] = (soillayers[lyr].wmass + max(0.0, wtp[daynum])) * M_PER_MM;	// m3 water
-			total_volume_water[lyr] = (soillayers[lyr].wmass + soillayers[lyr].imass + max(0.0, wtp[daynum])) * M_PER_MM;	// m3 water + ice
+			volume_liquid_water[lyr] = soillayers[lyr].wmass * M_PER_MM;
+			total_volume_water[lyr] = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM; 
 		}
 
+		// If we have standing water add it to the top soil layer
+		if (wtp[daynum] > 0.0) {
+			volume_liquid_water[0] += wtp[daynum] * M_PER_MM;
+			total_volume_water[0] += wtp[daynum] * M_PER_MM;
+		}
+
+
 		// Update the temperature-dependent gas parameters
-		bool gasParamsOK = update_daily_gas_parameters(); // DW_COMMENT CAN BE DONE PER LAYER
 		// Units: 
 		// k_O2 etc: [m d-1]
 		// Ceq_O2: [mmol m-3]
+		bool gasParamsOK = update_daily_gas_parameters();
 
 		if (!gasParamsOK)
 			return false;
 
-		// *** STEP 2 ***
+		// Step 2
+
 		// Calculate CH4 & CO2 production
 
-		double c_input = 0.0; // conservation check - C in methane produced
+		// Conservation check - C in methane produced
+		double c_input = 0.0;
 		double total_ch4 = 0.0;
 		double total_drh = 0.0;
 
+		// Loop through soil layers
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 			Soillayer& soillayer = soillayers[lyr];
@@ -937,12 +965,11 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 			double anoxic = 1.0 - soillayer.fracair() - Fgas;
 
-			// *** CH4 PRODUCTION IN THIS LAYER ***
-
+			// CH4 production in the layer (gC/m2)
 			if (soillayer.wmass / soillayer.depth < Fwmass_min)
 				soillayer.CH4_prod = 0.0;
 			else
-				soillayer.CH4_prod = anoxic * CH4toCO2_peat * drh; // gC/m2
+				soillayer.CH4_prod = anoxic * CH4toCO2_peat * drh;
 
 			c_input += soillayer.CH4_prod;
 
@@ -950,8 +977,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 			soillayer.CH4 = soillayer.CH4_yesterday + soillayer.CH4_prod;
 			total_ch4 += soillayer.CH4;
 
-			// *** CO2 PRODUCTION ***
-
+			// CO2 production
 			soillayer.CO2_soil_prod = drh - soillayer.CH4_prod;
 			
 			c_input += soillayer.CO2_soil_prod;
@@ -961,7 +987,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 			soillayer.CO2_soil = soillayer.CO2_soil_yesterday + soillayer.CO2_soil_prod;
 		}
 
-		// debugging:
+		// Debugging:
 		if ((total_ch4 < 0.0000000 || total_ch4 > 10000000) && verbosity >= WARNING) {
 			dprintf("%s%8.5f\n","Bad total_ch4 at the start of Soil::methane()",total_ch4);	
 		}
@@ -974,45 +1000,57 @@ bool Soilcolumn::methane(bool generatemethane) {
 		if (fabs(check) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s%g\n","C imbalance in Soil::methane() : After C in: ",check);
 
-		// *** STEP 3 ***
+		// Step 3
+
 		// Diffusion of O2
 
 		double dailyO2diffusion = 0.0;
 		double molesO2IntoSoil = 0.0; 
-		if (allow_o2diffusion && snow.depth() < 50.0) // no O2 diffusion until snow depth < 50mm 
-			molesO2IntoSoil = diffuse_gas(D_O2, O2gas, Ceq_O2, k_O2, Dz_metre, dailyO2diffusion);
-		O2_diff_today = dailyO2diffusion; // mol O2 into the soil (and then diffused downwards) 
-		// Should be negative, i.e. O2 diffuses INTO the soil
 
-		// *** STEP 4 ***
+		// No O2 diffusion until snow depth < 50mm 
+		if (allow_o2diffusion && snow.depth() < 50.0) {
+			molesO2IntoSoil = diffuse_gas(D_O2, O2gas, Ceq_O2, k_O2, Dz_metre, dailyO2diffusion);
+		}
+
+		// mol O2 into the soil (and then diffused downwards)
+		// Should be negative, i.e. O2 diffuses INTO the soil
+		O2_diff_today = dailyO2diffusion;
+
+		// Step 4
+
 		// Plant transport of oxygen
 
 		// Tiller set-up
-		// Loop through the individuals present and sum the leaf carbon mass for C3-graminoids 
-		double tillers = calculate_tiller_areas(); // m-2 // DW_COMMENT CAN BE DONE PER LAYER
+		// Loop through the individuals present and sum the leaf carbon mass for C3-graminoids [m-2] 
+		double tillers = calculate_tiller_areas();
 	
 		// O2 plant transport
 		double plantTransportToday_O2 = 0.0;
 	
-		if (allow_planttransport && tillers > 0) // Only allow plant transport if there are graminoid tillers present
+		// Only allow plant transport if there are graminoid tillers present
+		if (allow_planttransport && tillers > 0)
 			plant_gas_transport(Ceq_O2, k_O2, O2gas, plantTransportToday_O2);
 
 		O2_plant_today = plantTransportToday_O2; // mol O2 into soil through plants
 	
-		// *** STEP 5 ***
+		// Step 5
+
 		// Diffusion of CH4
 
 		double ch4_before_diffusion = ch4_store;
 
 		double dailyCH4diffusion = 0.0;
 		double gramCH4IntoSoil = 0.0; 
-		if (allow_ch4diffusion && snow.depth() < 50.0) // no CH4 diffusion until snow depth < 50mm 
+		// No CH4 diffusion until snow depth < 50mm 
+		if (allow_ch4diffusion && snow.depth() < 50.0) {
 			gramCH4IntoSoil = diffuse_gas(D_CH4, CH4gas, Ceq_CH4, k_CH4, Dz_metre, dailyCH4diffusion);
-		CH4_diff_today = -dailyCH4diffusion; // SHOULD BE 0 - gC m-2 d-1
-		// Should be positive, i.e. upward flux
+		}
+		// Should be positive, i.e. upward flux [gC m-2 d-1] - should be ZERO?
+		CH4_diff_today = -dailyCH4diffusion;
 
+		// Remove tiny values
 		if (fabs(CH4_diff_today) < MAX_ERR)
-			CH4_diff_today = 0.0; // remove tiny values
+			CH4_diff_today = 0.0;
 
 		// C conservation test:
 		if ((CH4_diff_today < -0.1 || CH4_diff_today > 10000000) && verbosity >= WARNING) {
@@ -1025,26 +1063,32 @@ bool Soilcolumn::methane(bool generatemethane) {
 		if (fabs(check) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after diffusion of CH4: ",check);
 
-		// *** STEP 6 ***
+		// Step 6
+		
 		// CH4 oxidation
 
 		// CH4 units: gC layer-1 
 		// O2 units: mol layer-1
 
 		// Assume that 1/2 of the O2 is utilized by other electron
-		// acceptors and you need 2 moles of O2 to oxidise 1 mole of CH4.
+		// acceptors and 2 moles of O2 is needed to oxidise 1 mole of CH4.
+		// O2 is in [mol layer-1]
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			// O2 is in [mol layer-1]
-			soillayers[lyr].O2 *= oxid_frac; // since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
+			// Since ((1-oxid_frac)*100)% of O2 used by roots themselves... [mol layer-1] 
+			soillayers[lyr].O2 *= oxid_frac;
 			soillayers[lyr].CH4 /= atomiccmass; // mol layer-1
 			soillayers[lyr].CH4_oxid = min(soillayers[lyr].CH4, 0.5 * soillayers[lyr].O2); // usually 75%
-			soillayers[lyr].CH4 = (soillayers[lyr].CH4 - soillayers[lyr].CH4_oxid) * atomiccmass; // gC layer again	
-			soillayers[lyr].O2 -= 2.0 * soillayers[lyr].CH4_oxid; // subtract the moles used in oxidation
+			soillayers[lyr].CH4 = (soillayers[lyr].CH4 - soillayers[lyr].CH4_oxid) * atomiccmass; // gC layer again
 
-			soillayers[lyr].CO2_soil += soillayers[lyr].CH4_oxid * atomiccmass; // Oxidised CH4 becomes CO2 (and water!)
+			// Subtract the moles used in oxidation
+			soillayers[lyr].O2 -= 2.0 * soillayers[lyr].CH4_oxid;
+
+			// Oxidised CH4 becomes CO2 (and water!)
+			soillayers[lyr].CO2_soil += soillayers[lyr].CH4_oxid * atomiccmass;
 		}
 
-		// *** STEP 6b ***
+		// Step 6b
+
 		// CH4 diffusion from top layer AFTER diffusion and oxidation
 		// Now done after CN diffusion
 
@@ -1066,15 +1110,18 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		checkbefore = check;
 
-		// *** STEP 7 ***
+		// Step 7
+		
 		// Plant transport of CH4
 
 		double plantTransportToday_CH4 = 0.0;
 
-		if (allow_planttransport && tillers > 0) // Only allow plant transport of there are gramoinoid tillers present
-			plant_gas_transport(Ceq_CH4, k_CH4, CH4gas, plantTransportToday_CH4); // DW_COMMENT CAN BE DONE PER LAYER
-
-		CH4_plant_today = plantTransportToday_CH4; // CH4 into soil through plants (gC m-2)
+		// Only allow plant transport of there are gramoinoid tillers present
+		if (allow_planttransport && tillers > 0)
+			plant_gas_transport(Ceq_CH4, k_CH4, CH4gas, plantTransportToday_CH4);
+		
+		// CH4 into soil through plants (gC m-2)
+		CH4_plant_today = plantTransportToday_CH4;
 
 		// Check C budget
 		calculate_carbon_store(daynum, true);
@@ -1084,11 +1131,12 @@ bool Soilcolumn::methane(bool generatemethane) {
 			dprintf("%s%g\n","Soil::methane() - after plant transport of CH4: ",checkafter2);
 		checkbefore = check;
 
-		// *** STEP 8 ***
+		// Step 8
+
 		// Ebullition of CH4
+		// Reduces CH4 and updates CH4_ebull_today
 		if (allow_ebullition)
-			calculate_gas_ebullition(CH4_ebull_today); // DW_COMMENT CAN BE DONE PER LAYER
-		// reduces CH4 and updates CH4_ebull_today
+			calculate_gas_ebullition(CH4_ebull_today);
 
 		// Check C budget
 		calculate_carbon_store(daynum, true);
@@ -1099,11 +1147,11 @@ bool Soilcolumn::methane(bool generatemethane) {
 		if (fabs(checkafter3) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after ebullition of CH4: ",checkafter3);
 
-		// STEPS 9 & 10
+		// Steps 9
 		// Instead of calling diffusion and plant transport for CO2, I simply diffuse ALL the CO2. 
 		// This should improve C conservation
 		// In future one could look at how much IS emitted, especially as CO2 could be saved and emitted in 
-		// bursts during spring thaw
+		// bursts during spring thaw // DW_COMMENT something A. Pongracz could look at
 
 		CO2_diff_today = co2_store;
 		double tot_dcflux_soil = 0.0;
@@ -1119,7 +1167,8 @@ bool Soilcolumn::methane(bool generatemethane) {
 
 		CO2_plant_today = 0.0;
 
-		// *** STEP 9 ***
+		// Step 9
+
 		// Conservation steps
 
 		// Total C flux out of the soil today [gC m-2 d-1] 

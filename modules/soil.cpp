@@ -2210,7 +2210,7 @@ double Soilcolumn::anmin() {
 	return an_min;
 }
 
-double Soilcolumn::animmob() {
+double Soilcolumn::animmob() { // DW_COMMENT do i need all of these?
 	double an_immob = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		an_immob += soillayers[lyr].animmob;

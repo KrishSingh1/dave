@@ -3318,6 +3318,8 @@ public:
 	double anmin;
 	/// annual sum of nitrogen immobilisation
 	double animmob;
+	/// monthly sum of nitrogen net mineralisation
+	double mnetmin[12];
 	/// annual leaching from available nitrogen pool
 	double aminleach;
 	/// annual leaching of organics from active nitrogen pool

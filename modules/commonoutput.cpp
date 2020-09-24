@@ -72,6 +72,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mintercep", &file_mintercep, 300, "Monthly intercep output file");
 	declare_parameter("file_mrh", &file_mrh, 300, "Monthly heterotrophic respiration output file");
 	declare_parameter("file_mnee", &file_mnee, 300, "Monthly NEE output file");
+	declare_parameter("file_mnetmin", &file_mnetmin, 300, "Monthly net mineralisation output file");
 	declare_parameter("file_mwcont_upper", &file_mwcont_upper, 300, "Monthly wcont_upper output file");
 	declare_parameter("file_mwcont_lower", &file_mwcont_lower, 300, "Monthly wcont_lower output file");
 	// bvoc
@@ -451,6 +452,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mintercep,      file_mintercep,      month_columns);
 	create_output_table(out_mrh,            file_mrh,            month_columns);
 	create_output_table(out_mnee,           file_mnee,           month_columns);
+	create_output_table(out_mnetmin,        file_mnetmin,        month_columns);
 	create_output_table(out_mwcont_upper,   file_mwcont_upper,   month_columns);
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
@@ -709,6 +711,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mrh[12];
 	double mra[12];
 	double mnee[12];
+	double mnetmin[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
 	double miso[12];
@@ -734,7 +737,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
-		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
+		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
@@ -1370,10 +1373,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 
 				for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-					if (lyr < soilcolumn.nsoillayers)
+					if (lyr < soilcolumn.nsoillayers) {
 						mtemp[lyr + NSNOWLAYERS_MAX][m] += soilcolumn.soillayers[lyr].mtemp[m] * to_gridcell_average;
-					else
+						mnetmin[m] += soilcolumn.soillayers[lyr].mnetmin[m] * to_gridcell_average;
+					}
+					else {
 						mtemp[lyr + NSNOWLAYERS_MAX][m] += -999.9 * to_gridcell_average;
+					}
 				}
 
 				for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
@@ -1537,6 +1543,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mintercep,    mintercep[m]);
 		outlimit(out,out_mrh,          mrh[m]);
 		outlimit(out,out_mnee,         mnee[m]);
+		outlimit(out,out_mnetmin,      mnetmin[m] * M2_PER_HA);
 		outlimit(out,out_mwcont_upper, mwcont_upper[m]);
 		outlimit(out,out_mwcont_lower, mwcont_lower[m]);
 		outlimit(out,out_miso,         miso[m]);

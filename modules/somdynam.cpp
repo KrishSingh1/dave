@@ -831,6 +831,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		// Adding mineral nitrogen to soil available pool
 		double nmin_inc = nmin_actual_tot - nimmob_tot;
+		soillayer.mnetmin[date.month] += nmin_inc;
 
 		// Estimate of N flux from soil (simple CLM-CN approach)
 		if (!ifntransform) {

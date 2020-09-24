@@ -769,6 +769,7 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				soilcolumn.soillayers[lyr].mtemp[mth] = 0.0;
+				soilcolumn.soillayers[lyr].mnetmin[mth] = 0.0;
 			}
 			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
 				soilcolumn.pad[lyr].mtemp[mth] = 0.0;

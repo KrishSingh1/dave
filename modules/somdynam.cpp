@@ -856,6 +856,10 @@ double metabolic_litter_fraction(double lton) {
  */
 void transfer_litter(Patch& patch) {
 
+	// For CROPLAND only enter on harvest/turnover day
+	if (patch.stand.landcover == CROPLAND && !patch.is_litter_day)
+		return;
+
 	Soil& soil = patch.soil;
 
 	double lat = patch.get_climate().lat;

@@ -651,13 +651,13 @@ void dailyaccounting_patch_lc(Patch& patch) {
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 
-		lc.acflux_harvest_slow += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow = ppft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+		lc.acflux_harvest_slow += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.cmass_harvested_products_slow = ppft.cmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
-		lc.anflux_harvest_slow += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow_nmass = ppft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+		lc.anflux_harvest_slow += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.nmass_harvested_products_slow = ppft.nmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 		pftlist.nextobj();
 	}
@@ -691,6 +691,25 @@ void dailyaccounting_patch(Patch& patch) {
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+
+		// Reset month phen and set driest month for RAINGREENS
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			Patchpft& ppft = patch.pft[pft.id];
+			double phen_min = 1.0;
+			ppft.driest_mth = 0;
+			for (int mth = 0; mth < 12; mth++) {
+				if (ppft.pft.phenology == RAINGREEN) {
+					if (ppft.mphen[mth] < phen_min) {
+						phen_min = ppft.mphen[mth];
+						ppft.driest_mth = mth;
+					}
+				}
+				ppft.mphen[mth] = 0.0;
+			}
+			pftlist.nextobj();
+		}
 	}
 
 	if (date.dayofmonth == 0) {

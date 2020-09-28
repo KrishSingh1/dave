@@ -6,8 +6,7 @@ GMAPPIXELSIZE=""	#="-pixsize 5 5"
 # Set data-dir
 # This path must start with '=/' and end with '/' in order to enable
 # automatic substition of path on other systems than simba.
-DATAPATH=/data/benchmark_data/2019-04-29/
-
+DATAPATH=/data/benchmark_data/
 
 # Function for preparing data for a scatter plot using gnuplot.
 #
@@ -122,7 +121,7 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.txt
 prepare_agb cpool1993-2012.txt cpool1993-2012_agb.txt VegC
-joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.txt -i Lon Lat -fast -o cpool1993-2012_joyned.txt
+joyn ${DATAPATH}/2020_08_24/biomass/Liu_1993-2012/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.txt -i Lon Lat -fast -o cpool1993-2012_joyned.txt
     
 . postprocess_above_ground_biomass.sh # Get above-below ground partintioning based on Jackson et al.
 
@@ -142,7 +141,7 @@ rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.tx
 
 # Fire-related benchmarks
 
-gfed40_data=${DATAPATH}/fire/gfed40_c-emissions_1997-2016.dat
+gfed40_data=${DATAPATH}/2020_08_24/fire/gfed4.0/gfed40_c-emissions_1997-2016.dat
 tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.txt
 joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.txt
 
@@ -168,11 +167,11 @@ fi
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
     creg=${GFEDreg[${xx}]} 
-    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/fire/gfed_regions0.5.dat > reg.txt
+    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/2020_08_24/fire/gfed_regions0.5.dat > reg.txt
     joyn cflux1997-2016_joyned.txt reg.txt -i Lon Lat -fast -o cflux_reg_${x}_joyned.txt  
     aslice cflux_reg_${x}_joyned.txt -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.txt
 
-    long_desc=$(head -n $x ${DATAPATH}/fire/gfed_region_description.txt | tail -n 1)
+    long_desc=$(head -n $x ${DATAPATH}/2020_08_24/fire/gfed_region_description.txt | tail -n 1)
     awk -v reg=$creg '{ORS=" "; if(FNR==2){printf "%s      %6.2f   %6.2f    ",reg,$4*1000,$11*1000}}' \
 	tot_cflux_reg_${x}.txt >> tot_cflux_reg.txt
     echo $long_desc >> tot_cflux_reg.txt

@@ -27,7 +27,7 @@ for y in $panyears; do
  
     # Read pan_regional data file and skip header 
     (( headlines = 4+cnt*5 ))
-    head -n $headlines ${DATAPATH}/biomass/Pan/pan_regional_data.txt | tail -n 5 > pan_tmp_$y
+    head -n $headlines ${DATAPATH}/2020_08_24/biomass/Pan_2007/pan_regional_data.txt | tail -n 5 > pan_tmp_$y
     source pan_tmp_$y
     tslice cpool_natural.out -f $y -t $y -o cpool_natural_${y}.txt
 
@@ -35,7 +35,7 @@ for y in $panyears; do
     for reg in $regnames; do 
 
         # Joyn regional "grid_lists" with output files
-	joyn ${DATAPATH}/biomass/Pan/gridlist_${reg}.txt cpool_natural_${y}.txt -i Lon Lat -o cpool_natural_${y}_${reg}.txt
+	joyn ${DATAPATH}/2020_08_24/biomass/Pan_2007/gridlist_${reg}.txt cpool_natural_${y}.txt -i Lon Lat -o cpool_natural_${y}_${reg}.txt
 	aslice cpool_natural_${y}_${reg}.txt -n -sum "kg/m2->Pg" -o cpool_natural_${y}_${reg}_tot.txt
 
         # Here now weboutput

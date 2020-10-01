@@ -549,7 +549,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					// Set soil layer properties
 					soillayer.set_properties(wmass_move, imass_move);
 
-					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
+					total_water += soillayer.wsats;
 				}
 
 				// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 

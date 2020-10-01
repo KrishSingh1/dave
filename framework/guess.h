@@ -2972,20 +2972,20 @@ public:
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
 
-	/// fixed available water holding capacity of soil layers [0=upper layer] (mm)
-	double awc;
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double wp;
-	/// saturation point. Cosby et al 1984
-	double wsats;
+	/// Available water holding capacity of soil layers (mm)
+	double awc_min;
+	/// Wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
+	double wp_min;
+	/// Saturation point. Cosby et al 1984
+	double wsats_min;
 
-	/// hydraulic conductivity at saturation (m s-1)
-	double Kw_max;
+	/// Mineral exponential in Campbell (1974) parameterization for soil water retention curves
+	double b_min;
+	/// Mineral hydraulic conductivity at saturation (m s-1)
+	double Kw_max_min;
+	/// Saturated mineral matter water suction (matrix potential) (mm)
+	double Psi_max_min;
 
-	/// van Genuchten soil parameters
-	double alpha;
-	double m;
-	double l;
 
 	/// Organic soil properties
 	
@@ -2998,20 +2998,6 @@ public:
 	double thermdiff_15_org;
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100_org;
-
-	/// fixed available water holding capacity of soil layers [0=upper layer] (mm)
-	double awc_org;
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double wp_org;
-	/// saturation point. Cosby et al 1984
-	double wsats_org;
-
-	/// hydraulic conductivity at saturation (m s-1)
-	double Kw_max_org;
-
-	/// van Genuchten soil parameters
-	double alpha_org;
-	double m_org;
 
 	/// year at which to calculate equilibrium soil carbon
 	int solvesom_end;
@@ -3036,14 +3022,10 @@ public:
 	double organic_frac;
 	/// porosity from AGRMET Handbook, 2002
 	double porosity;
-	/// organic porosity from AGRMET Handbook, 2002
-	double porosity_org;
 	/// volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
-	/// bulk density (kg m-3)
-	double bulk_density;
 	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
-	double b;
+	double b_oro;
 
 	// MEMBER FUNCTIONS
 
@@ -3203,12 +3185,30 @@ public:
 	double Dw;
 	/// soil moisture conductivity (m s-1)
 	double Kw;
+	/// soil moisture conductivity at saturation (m s-1)
+	double Kw_max;
+	/// Exponential in Campbell (1974) parameterization for soil water retention curves
+	double b;
+	/// Soil matric potential at saturation
+	double Psi_max;
 	/// drainage runoff
 	double runoff_drain;
 	/// basefloww runoff
 	double runoff_baseflow;
 	/// porosity in layer (mm)
 	double por;
+	/// Organic available water holding fraction of soil layer (-)
+	double awc_org;
+	/// Organic wilting point of soil layer (-)
+	double wp_org;
+	/// Organic saturation point (-)
+	double wsats_org;
+	/// Organic exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_org;
+	/// Organic soil matric potential at saturation 
+	double Psi_max_org;
+	/// Hydraulic conductivity at saturation for organic matter (m s-1)
+	double Kw_max_org;
 	/// volumetric fraction of organic material (m3 m-3)
 	double organic_frac;
 	/// volumetric fraction of mineral material (m3 m-3)
@@ -3217,6 +3217,8 @@ public:
 	double peat_frac;
 	/// static SOC fraction
 	double soc_frac;
+	/// Bulk density (g cm-3)
+	double bulk_density;
 	/// thermal diffusivity at 0% WHC (mm2/s)
 	double thermdiff_0;
 	/// thermal diffusivity at 15% WHC (mm2/s)
@@ -3430,7 +3432,7 @@ public:
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
-	void update_moisture_diff_and_cond();
+	void update_moisture_cond();
 
 	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
@@ -3896,8 +3898,8 @@ public:
 	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);
 	/// add water and return the water that cannot be added due to limited capacity
 	double add_wmass(int layer, double extrawmass);
-	/// Update moisture diffusivity and conductivity
-	void update_moisture_diff_and_cond();
+	/// Update moisture conductivity
+	void update_moisture_cond();
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp();
 	/// Calculate soil column water flow

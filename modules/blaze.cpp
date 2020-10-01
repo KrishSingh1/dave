@@ -192,7 +192,7 @@ double available_fuel(Patch& patch, int fli_index, double k_tun_litter) {
 		patch.pft.nextobj();
 	}
 
-	Soillayer surflayer = patch.soilcolumn.soillayers[0];
+	Soillayer& surflayer = patch.soilcolumn.soillayers[0];
 
 	// compute readily available fuel load for given FLI-index in PATCH
 	double available_fuel = patch.litf_to_atm * (surflayer.sompool[SURFSTRUCT].cmass +

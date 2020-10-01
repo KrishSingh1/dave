@@ -844,7 +844,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			availn_lc[stand.landcover] += (patch.soilcolumn.snow.NH4_mass + patch.soilcolumn.snow.NO3_mass) * to_gridcell_average;
 
 			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-				Soillayer soillayer = patch.soilcolumn.soillayers[lyr];
+				Soillayer& soillayer = patch.soilcolumn.soillayers[lyr];
 
 				availn_lc[stand.landcover] += (soillayer.NH4_mass + soillayer.NO3_mass) * to_gridcell_average;
 

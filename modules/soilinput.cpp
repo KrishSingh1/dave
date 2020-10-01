@@ -354,24 +354,27 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	// Psi = Psi_s * (Theta/Theta_s)^b
 	// Psi is the pressure head in cm
 	// *_s is the values at saturation
-	// Theta is the volumetric moisture content in percent
+	// Theta is the volumetric moisture content
 	// Re-arranged to get the Theta
-	// Theta = Theta_s * (Psi/Psi_s)^(1/b)
+	// Theta = Theta_s * (Psi/Psi_s)^(-1/b)
 
-	// from Table 4, Cosby 1984
+	// Mineral exponential in Campbell (1974) parameterization for soil 
+	// water retention curves from Table 4, Cosby 1984
 	double b = 3.10 + 15.7 * soil.clay - 0.3 * soil.sand;
 
-	double logPsi_s = 1.54 - 0.95 * soil.sand + 0.63 * silt;
+	// Saturated soil water suction (cm)
+	double Psi_s = pow(10.0, 1.54 - 0.95 * soil.sand + 0.63 * silt);
 
-	// Theta_s in Cosby expressed as %
-	double Theta_s = 0.01 * (50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
+	// Volumetric soil water concentration at saturation point (porosity)
+	double Theta_s = 0.505 - 0.142 * soil.sand - 0.037 * soil.clay;
 
-	double Psi_s = pow(10.0, -logPsi_s);
-	double Psi_wilt = pow(10.0, -4.2);
-	double Psi_whc = pow(10.0, -2.0);
-
-	double Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / b);
-	double Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s),1.0 / b);
+	// Volumetric soil moisture concentration at Field Capacity
+	// Field capacity generally occurs at a suction of 100 cm
+	double Theta_whc = Theta_s * pow(100.0 / Psi_s, -1.0 / b);
+	
+	// Volumetric soil moisture concentration at wilting point
+	// Wilting point typically occurs at a suction of 15000 cm
+	double Theta_wilt = Theta_s * pow(15000.0 / Psi_s, -1.0 / b);
 
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established
@@ -414,38 +417,6 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	return soiltype;
 }
 
-int get_texture(double clay, double sand, double silt) {
-
-	int tc;
-
-	if (clay > 0.4 && sand < 0.55 && silt < 0.4)
-		tc = 0; // Clay
-	else if(clay > 0.4 && sand < 0.2)
-		tc = 1; // Silty Clay
-	else if(clay > 0.27 && sand < 0.2)
-		tc = 2; // Silty Clay Loam
-	else if(clay > 0.27 && sand < 0.45)
-		tc = 3; // Clay Loam
-	else if(clay > 0.35)
-		tc = 4; // Sandy Clay
-	else if(clay < 0.13 && sand < 0.2 && silt > 0.8)
-		tc = 5; // Silt
-	else if(silt > 0.5)
-		tc = 6; // Silt Loam
-	else if(clay > 0.08 && sand < 0.52 && silt > 0.28)
-		tc = 7; // Loam
-	else if(clay > 0.2)
-		tc = 8; // Sandy Clay Loam
-	else if(clay < (0.1 - 0.67 * silt) && sand > 0.85 && silt < 0.15)
-		tc = 9; // Sand
-	else if(clay > (0.15 - 0.5 * silt) && sand > 0.7 && silt < 0.3)
-		tc = 10; // Loamy Sand
-	else
-		tc = 11; // Sandy loam
-
-	return tc;
-}
-
 
 void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
@@ -466,7 +437,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.organic_frac = soilprop.soil_OC;
 	soiltype.porosity = soilprop.porosity;
 	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
-	soiltype.porosity_org = data[organic_soilcode][11];
 
 	// Percolation coefficients
 	soiltype.perc_base = soilprop.b;
@@ -483,24 +453,19 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.thermdiff_100_org = data[organic_soilcode][4];
 
 	// Water holding capacities for mineral and organic soil
-	soiltype.wsats = soilprop.saturation_capacity;
-	soiltype.awc = soilprop.volumetric_whc_field_capacity;
-	soiltype.wp = soilprop.wilting_point;	
-	soiltype.wsats_org = data[organic_soilcode][6];
-	soiltype.awc_org = data[organic_soilcode][1];
-	soiltype.wp_org = data[organic_soilcode][5];
+	soiltype.wsats_min = soilprop.saturation_capacity;
+	soiltype.awc_min = soilprop.volumetric_whc_field_capacity;
+	soiltype.wp_min = soilprop.wilting_point;
 
-	// Soil texture class based on clay, sand and silt fractions
-	int texture = get_texture(soiltype.clay_frac, soiltype.sand_frac, soiltype.silt_frac);
+	// Mineral exponential in Campbell (1974) parameterization for soil 
+	// water retention curves from Table 4, Cosby 1984
+	soiltype.b_min = 3.10 + 15.7 * soiltype.clay_frac - 0.3 * soiltype.sand_frac;
 
-	// van Genuchten soil parameters (Carsel 1988)
-	soiltype.Kw_max = vG_data[texture][2];
-	soiltype.alpha = vG_data[texture][3];
-	soiltype.m = 1.0 - 1.0 / vG_data[texture][4];
-	soiltype.l = 0.5; // Default value
-	soiltype.Kw_max_org = vG_data[12][2];
-	soiltype.alpha_org = vG_data[12][3];
-	soiltype.m_org = 1.0 - 1.0 / vG_data[12][4];
+	// Saturated mineral hydraulic conductivity (from inch h-1 to m s-1) from Table 4, Cosby 1984
+	soiltype.Kw_max_min = pow(10.0, -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac) * M_PER_INCH / SECS_PER_HOUR;
+
+	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
+	soiltype.Psi_max_min = pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
 
 	// Soil pH
 	soiltype.pH = soilprop.pH;
@@ -508,14 +473,11 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil carbon content
 	soiltype.soilC = soilprop.soilC;
 
-	// Bulk density (g cm-3) (eqn 8.3 Bonan 2019 with particle density set to 2650 kg m–3
-	soiltype.bulk_density = soilprop.bulk_density > 0.0 ? soilprop.bulk_density : (1.0 - soiltype.wsats) * 2.650;
-
 	// Accounts for the sub-grid variability related to orography
 	// Min and max standard deviation of orography (Balsamo et al. 2009 eqn 10)
 	double sigma_min = 100.0;
 	double sigma_max = 1000.0;
-	soiltype.b = (soilprop.sdor - sigma_min) / (soilprop.sdor + sigma_max);
+	soiltype.b_oro = (soilprop.sdor - sigma_min) / (soilprop.sdor + sigma_max);
 
 	// Soil depth
 	// soil_depth is defined in global.ins
@@ -555,6 +517,8 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 	const double PERC_EXP = 2.0;
 
+	int organic_soilcode = 8;
+
 	if (soilcode<0 || soilcode>9) {
 		fail("soil_parameters: invalid LPJ soil code (%d)", soilcode);
 	}
@@ -573,13 +537,18 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	soiltype.perc_base = data[soilcode][0];
 	soiltype.perc_base_evap = data[soilcode][0];
 	soiltype.perc_exp = PERC_EXP;
+	soiltype.perc_base_org = data[organic_soilcode][0];
+
 	soiltype.thermdiff_0 = data[soilcode][2];
 	soiltype.thermdiff_15 = data[soilcode][3];
 	soiltype.thermdiff_100 = data[soilcode][4];
+	soiltype.thermdiff_0_org = data[organic_soilcode][2];
+	soiltype.thermdiff_15_org = data[organic_soilcode][3];
+	soiltype.thermdiff_100_org = data[organic_soilcode][4];
 
-	soiltype.awc = data[soilcode][1];
-	soiltype.wp = data[soilcode][5];
-	soiltype.wsats =  data[soilcode][6];
+	soiltype.awc_min = data[soilcode][1];
+	soiltype.wp_min = data[soilcode][5];
+	soiltype.wsats_min =  data[soilcode][6];
 
 	// Store the soilcode and new soil properties
 	soiltype.soilcode = soilcode;

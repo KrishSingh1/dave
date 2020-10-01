@@ -51,8 +51,8 @@ const double maxh = 0.0;
 /// Slope of soil profile
 const double soil_slope = -.37;
 
-/// Maximum density of soil organic carbon [KgC/m3]
-const double maxSOCdensity = 130.0; // From Lawrence and Slater, 2008
+/// Maximum density of soil organic carbon [KgC/m3], standard bulk density of peat (Farouki 1981) DW_COMMENT ref!
+const double maxSOCdensity = 130.0;
 
 // SNOW PARAMETERS
 
@@ -76,9 +76,6 @@ const double rho_H2O = 1000.0;
 
 // POROSITIES
 
-/// Porosity of organic material
-const double organic_porosity = 0.8; // From Lawrence and Slater (2008) have 0.9, but 0.8 is consistent with organic soil code 8
-
 /// catotelm porosity
 const double catotelm_por = 0.92;
 
@@ -90,6 +87,14 @@ const double Fgas = 0.00; // Possible to reintroduce - was 0.08 in Wania et al (
 
 /// Wilting point in peat
 const double peat_wp = 0.066;
+
+// DW_COMMENT
+const double threshold_frac = 0.5;
+
+const double beta_perc = 0.139;
+
+/// Depth that organic matter takes on the characteristics of sapric peat
+const double sapric_depth = 500.0;
 
 /// First year when phase change is allowed
 const int FIRST_FREEZE_YEAR = 10;

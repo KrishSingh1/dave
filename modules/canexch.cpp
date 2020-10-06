@@ -972,7 +972,12 @@ void vegetation_n_uptake(Patch& patch) {
 	//     (2)  nuptake = ndemand * fnuptake
 	//     where fnuptake is individual uptake capacity calculated in fnuptake in canexch.cpp
 
+	double EPS = 1.0E-15;
+
 	double nuptake_day, NH4_uptake_tot, NO3_uptake_tot, NH4_avail, NO3_avail, ammonium_frac;
+
+	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO, true) * min(1.0, patch.fpc_total);
+	double tot_nmass_demand = patch.ndemand;
 
 	Vegetation& vegetation = patch.vegetation;
 	Soilcolumn& soilcolumn = patch.soilcolumn;
@@ -1018,8 +1023,11 @@ void vegetation_n_uptake(Patch& patch) {
 		NO3_uptake_tot = NO3_avail;
 	}
 
-	if (NH4_uptake_tot > NH4_avail || NO3_uptake_tot > NO3_avail)
-		dprintf("Year %d Day %d UP ERROR NH4 up %g av %g diff %g NO3 up %g av %g diff %g\n", date.year, date.day, NH4_uptake_tot, NH4_avail, NH4_uptake_tot - NH4_avail, NO3_uptake_tot, NO3_avail, NO3_uptake_tot - NO3_avail);
+	if ((NH4_uptake_tot > NH4_avail && fabs(NH4_uptake_tot - NH4_avail) > EPS) || (NO3_uptake_tot > NO3_avail && fabs(NO3_uptake_tot - NO3_avail) > EPS))
+		dprintf("Year %d Day %d UP ERROR NH4 up %g av %g diff %g NO3 up %g av %g diff %g AVAIL %g DEMAND %g DIFF %g\n", 
+			date.year, date.day, NH4_uptake_tot, NH4_avail, NH4_uptake_tot - NH4_avail, 
+			NO3_uptake_tot, NO3_avail, NO3_uptake_tot - NO3_avail,
+			tot_nmass_avail, tot_nmass_demand, tot_nmass_avail - tot_nmass_demand);
 
 	//double ncont_after = patch.ncont() - NH4_uptake_tot - NO3_uptake_tot;
 
@@ -1029,7 +1037,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 	double ncont_after = patch.ncont();
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14)
+	if (date.year > freenyears && fabs(ncont_before - ncont_after) > EPS)
 		dprintf("Year %d Day %d VUP diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 
 	if (soilcolumn.savesomcent) {

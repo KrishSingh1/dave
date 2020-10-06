@@ -140,6 +140,9 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen);
 
+			// Update monthly leaf-on sum
+			ppft.mphen[date.month] += ppft.phen / date.ndaymonth[date.month];
+
 			// Update annual leaf-on sum
 			if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
 				 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {

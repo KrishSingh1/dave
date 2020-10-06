@@ -1318,7 +1318,7 @@ void Soillayer::init() {
 	wp_org = wsats_org * pow(15000.0 / Psi_max_org, -1.0 / b_org);
 	// Organic available water holding capacity of soil layer (-)
 	awc_org = Theta_whc - wp_org;
-	// Hydraulic conductivity at saturation for organic matter (m s-1) (CLM5.0 - Documentation)
+	// Hydraulic conductivity at saturation for organic matter (m s-1) (CLM5.0 - Documentation; Hoag and Price 1995)
 	Kw_max_org = max(0.28 - 0.2799 * depth_profile / sapric_depth * M_PER_MM, (*soilcolumn).soiltype.Kw_max_min); // DW_COMMENT soiltype is NULL?
 
 	// Leaching
@@ -1496,8 +1496,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
 
-		dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frec %g por_frac %g WSATS %g AWC %g WP %g\n", 
-			date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth);
+		//dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frec %g por_frac %g WSATS %g AWC %g WP %g\n", 
+		//	date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth);
 
 	}
 	// Soil organic content influences soil properties
@@ -1515,13 +1515,13 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		double soil_c = iforganicsoilproperties == 1 ? soc_frac * soiltype.soilC : ccont(true);
 
 		// Maximum soil layer C content (kg C m-2)
-		double soil_c_max = maxSOCdensity * (depth / MM_PER_M);
+		double soil_c_max = maxSOCdensity * depth * M_PER_MM;
 
 		if (soil_c > soil_c_max)
 			dprintf("Year %d Day %d Depth %g Soil C %g MAX %g\n",date.year,date.day,depth_profile,soil_c,soil_c_max); // DW_COMMENT move C downwards!!!!!!!!!!
 
 		// Soil C density in this soil layer (kg C m-3) 
-		double soil_density = soil_c / (depth / MM_PER_M);
+		double soil_density = soil_c / (depth * M_PER_MM);
 
 		// Calculate organic fraction for soil layer
 		// This is the fraction of the material (i.e. 1 - porosity) that is organic
@@ -1576,9 +1576,9 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		// Two layer hydrology parameter
 		perc_base = min_frac * soiltype.perc_base + org_frac * soiltype.perc_base_org;
 
-		if (date.year == 0 || date.year == 100 || date.year == 200 || date.year == 300 || date.year == 400 || date.year == 500 || date.year == 600)
-			dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frac %g por_frac %g WSATS %g AWC %g WP %g b %g Psi_max %g Kw_max %g Bd %g wp_min %g wp_org %g\n",
-				date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth,b, Psi_max, Kw_max, bulk_density, soiltype.wp_min, wp_org);
+		//if (date.year == 0 || date.year == 100 || date.year == 200 || date.year == 300 || date.year == 400 || date.year == 500 || date.year == 600)
+		//	dprintf("Year %d Day %d set_properties depth %g org_frac %g min_frac %g por_frac %g WSATS %g AWC %g WP %g b %g Psi_max %g Kw_max %g Bd %g wp_min %g wp_org %g\n",
+		//		date.year, date.day, depth_profile, organic_frac, mineral_frac, por / depth, wsats / depth, awc / depth, wp / depth,b, Psi_max, Kw_max, bulk_density, soiltype.wp_min, wp_org);
 	}
 
 	// If two layer soil scheme then wmass is never below wp
@@ -1602,11 +1602,13 @@ double Soillayer::ccont(bool exclude_surf) {
 }
  
 /// N content of soil layer
-double Soillayer::ncont() {
+double Soillayer::ncont(bool exclude_surf) {
 	double ncont = NH4_mass + NO3_mass + NO2_mass + NO_mass + N2O_mass + N2_mass;
 
-	for (int i = 0; i < NSOMPOOL; i++)
-		ncont += sompool[i].nmass;
+	for (int i = 0; i < NSOMPOOL; i++) {
+		if (!(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD)))
+			ncont += sompool[i].nmass;
+	}
 
 	return ncont;
 }
@@ -2074,12 +2076,16 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 		soillayers.push_back((*soillayer));
 	}
 
+	// Set size of litter input vector
+	cmass_litter_input.resize(nsoillayers + 1, 0.0);
+
 	// Set sizes of water flow calculation parameters
 	wpara.set_sizes(nsoillayers);
 
 	// Set sizes of temperature change calculation parameters
 	tpara.set_sizes(nsoillayers + PAD_LAYERS);
 
+	// Set size of water flow vector
 	wfluxes.resize(nsoillayers + 1, 0.0);
 }
 
@@ -2772,7 +2778,7 @@ void solve_tridiagonal(std::vector<double> upper, std::vector<double> main, std:
 /*
  *
  */
-void Soilcolumn::wflow_temp() {
+void Soilcolumn::wflow_temp() { // DW_COMMENT ERROR!!!!!!!!!
 
 	const double EPS = 1.0e-12;
 
@@ -2786,7 +2792,7 @@ void Soilcolumn::wflow_temp() {
 		if (wfluxes[lyr] > EPS && lyr < nsoillayers) {
 			soillayers[lyr].update_temp(max(0.0, soillayers[lyr - 1].temp), wfluxes[lyr], Cp_water);
 		}
-		else if (wfluxes[lyr] < -EPS) {
+		else if (wfluxes[lyr] < -EPS && lyr < nsoillayers) {
 			soillayers[lyr - 1].update_temp(max(0.0, soillayers[lyr].temp), -wfluxes[lyr], Cp_water);
 		}
 	}
@@ -3795,6 +3801,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
 	}
 
+	if (date.year == 2 && date.day == 200)
+		int sch = 0;
+
 	// Calculate baseflow
 	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
 
@@ -4549,10 +4558,6 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	double f_top = 0.0;
 	double f_bot = 0.0;
 
-	// Mass balance check
-	double soilc_begin, soiln_begin, soilc_end, soiln_end;
-	soilc_begin = soiln_begin = soilc_end = soiln_end = 0.0;
-
 	CNpara VMpara;
 
 	VMpara.set_sizes(nsoillayers);
@@ -4577,15 +4582,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		else {
 			VMpara.diff[lyr] = Dc_0 * (1.0 - min(1.0, (VMpara.z[lyr] - ald) / ((k - 1.0) * ald)));
 		}
-
-		// Mass balance check
-		soilc_begin += soillayers[lyr].sompool[p].cmass;
-		soiln_begin += soillayers[lyr].sompool[p].nmass;
 	}
-
-	// No carbon in soil -> no vertical mixing
-	if (negligible(soilc_begin))
-		return;
 
 	// Build diagonals and RHS vector
 	build_diags_rhs(timestep, f_top, f_bot,
@@ -4596,30 +4593,35 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	// Solve tridiagonal system
 	solve_tridiagonal(VMpara.upper, VMpara.main, VMpara.lower, VMpara.rhs, VMpara.psi1);
 
-	// Calculate carbon fluxesbetween soil layers
-	std::vector<double> cfluxes(nsoillayers);
+	// Calculate carbon fluxes between soil layers
+	// Positive flow to layer below
+	// Negative flow from layer below
+	std::vector<double> cfluxes(nsoillayers - 1);
 	cfluxes[0] = (VMpara.psi[0] - VMpara.psi1[0]) * VMpara.dz[0];
-	for (int lyr = 1; lyr < nsoillayers; lyr++) {
+	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
 		cfluxes[lyr] = cfluxes[lyr - 1] + (VMpara.psi[lyr] - VMpara.psi1[lyr]) * VMpara.dz[lyr];
 	}
 
 	// Calculate C and N mass changes
 	std::vector<double> delta_cmass(nsoillayers);
 	std::vector<double> delta_nmass(nsoillayers);
-	double cmove, nmove;
-	double min_move = 1.0e-12;
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		if (cfluxes[lyr] > min_move && !negligible(soillayers[lyr].sompool[p].cmass)) {
-			nmove = cfluxes[lyr] / soillayers[lyr].sompool[p].cmass * soillayers[lyr].sompool[p].nmass;
-			cmove = cfluxes[lyr];
+	double cmove, nmove, frac;
+	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
+		if (cfluxes[lyr] > 0.0 && !negligible(soillayers[lyr].sompool[p].cmass)) {
+			frac = max(0.0, cfluxes[lyr] / soillayers[lyr].sompool[p].cmass);
+			cmove = frac * soillayers[lyr].sompool[p].cmass;
+			nmove = frac * soillayers[lyr].sompool[p].nmass;
+
 			delta_cmass[lyr] -= cmove;
 			delta_nmass[lyr] -= nmove;
 			delta_cmass[lyr + 1] += cmove;
 			delta_nmass[lyr + 1] += nmove;
 		}
-		else if (cfluxes[lyr] < -min_move && !negligible(soillayers[lyr + 1].sompool[p].cmass)) {
-			nmove = -cfluxes[lyr] / soillayers[lyr + 1].sompool[p].cmass * soillayers[lyr + 1].sompool[p].nmass;
-			cmove = -cfluxes[lyr];
+		else if (cfluxes[lyr] < 0.0 && !negligible(soillayers[lyr + 1].sompool[p].cmass)) {
+			frac = max(0.0, -cfluxes[lyr] / soillayers[lyr + 1].sompool[p].cmass);
+			cmove = frac * soillayers[lyr + 1].sompool[p].cmass;
+			nmove = frac * soillayers[lyr + 1].sompool[p].nmass;
+
 			delta_cmass[lyr + 1] -= cmove;
 			delta_nmass[lyr + 1] -= nmove;
 			delta_cmass[lyr] += cmove;
@@ -4632,18 +4634,6 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		soillayers[lyr].sompool[p].cmass += delta_cmass[lyr];
 		soillayers[lyr].sompool[p].nmass += delta_nmass[lyr];
 	}
-
-	// Mass balance C and N check
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		soilc_end += soillayers[lyr].sompool[p].cmass;
-		soiln_end += soillayers[lyr].sompool[p].nmass;
-	}
-
-	if (fabs(soilc_begin - soilc_end) > 1.0e-14)
-		dprintf("Year %d Day %d C diff %g\n", date.year, date.day, soilc_begin - soilc_end);
-
-	if (fabs(soiln_begin - soiln_end) > 1.0e-14)
-		dprintf("Year %d Day %d N diff %g\n", date.year, date.day, soiln_begin - soiln_end);
 }
 
 

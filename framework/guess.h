@@ -499,7 +499,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = 250;// nyear_spinup; // DW_COMMENT
+		start_year = 105;// nyear_spinup; // DW_COMMENT
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -3407,7 +3407,7 @@ public:
 	/// C content of soil layer
 	double ccont(bool exclude_surf = false);
 	/// N content of soil layer
-	double ncont();
+	double ncont(bool exclude_surf = false);
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -3690,6 +3690,8 @@ public:
 	std::vector<Soillayer> soillayers;
 	/// number of soil layers
 	int nsoillayers;
+	/// vector with surface and soil layer litter input
+	std::vector<double> cmass_litter_input;
 	/// number of acrotelm soil layers
 	int nacrotelm;
 	/// number of catotelm soil layers
@@ -4165,11 +4167,15 @@ public:
 	double wscal_mean_est;
 	/// vegetation phenological state (fraction of potential leaf cover), updated daily
 	double phen;
+	/// monthly sum of daily fractional leaf cover
+	double mphen[12];
 	/// annual sum of daily fractional leaf cover
 	/** equivalent number of days with full leaf cover
 	 *  (reset on expected coldest day of year)
 	 */
 	double aphen;
+	/// Month of lowest phen for RAINGREEN
+	int driest_mth;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
@@ -4269,12 +4275,16 @@ public:
 		anetps_ff = 0.0;
 		aphen = 0.0;
 		phen = 0.0;
+		driest_mth = 0;
 		wsupply = 0.0;
 		wsupply_leafon = 0.0;
 		anetps_ff_est = 0.0;
 		anetps_ff_est_initial = 0.0;
 		wscal_mean_est = 0.0;
 		nsapling = 0;
+
+		for (int mth = 0; mth < 12; mth++)
+			mphen[mth] = 0.0;
 
 		fwuptake.resize(pft.rootdist.size(), 0.0);
 

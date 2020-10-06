@@ -534,6 +534,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				double wmass_move = 0.0;
 				double imass_move = 0.0;
 
+				soilcolumn.cmass_litter_input[0] = 0.0;
+
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -541,6 +543,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					soillayer.aorgNleach = 0.0;
 					soillayer.aorgCleach = 0.0;
 					soillayer.aminleach = 0.0;
+					soilcolumn.cmass_litter_input[lyr + 1] = 0.0;
 
 					if (date.year == 0) {
 						soillayer.mwcontabove = 0.0;
@@ -735,6 +738,25 @@ void dailyaccounting_patch(Patch& patch) {
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+
+		// Reset month phen and set driest month for RAINGREENS
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			Patchpft& ppft = patch.pft[pft.id];
+			double phen_min = 1.0;
+			ppft.driest_mth = 0;
+			for (int mth = 0; mth < 12; mth++) {
+				if (ppft.pft.phenology == RAINGREEN) {
+					if (ppft.mphen[mth] < phen_min) {
+						phen_min = ppft.mphen[mth];
+						ppft.driest_mth = mth;
+					}
+				}
+				ppft.mphen[mth] = 0.0;
+			}
+			pftlist.nextobj();
+		}
 
 		
 		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {

@@ -371,6 +371,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& anetps_ff_est_initial
 		& wscal_mean_est
 		& phen
+		& mphen
 		& aphen
 		& establish
 		& nsapling
@@ -2529,9 +2530,7 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 
 			lyr_depths[NSOILLAYER_MAX - 1] += soil_depth - tot_depth;
 
-			if (fabs(soil_depth - tot_depth) > 1.0e-12)
-				dprintf("ERROR: Soil layers don't add up to total soil depth %g\n", fabs(soil_depth - tot_depth));
-
+			nsoillayers = NSOILLAYER_MAX;
 		}
 		else {
 

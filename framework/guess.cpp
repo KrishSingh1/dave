@@ -2883,7 +2883,7 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		
 		// N balance check:
 		if (!negligible(ncont_year - ncont + nflux_year, -9)) {
-			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
+			dprintf("\n(%.2f, %.2f): N balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
 			dprintf("N pool change: %.9f\n", ncont_year - ncont);
 			dprintf("N flux: %.9f\n",  nflux_year);
 		}

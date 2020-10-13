@@ -58,7 +58,7 @@ void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 		Ch = add_Ch;
 	}
 
-	// Add to existing snow layer with updated snow properties
+	// Add to existing snow layer with updated snow properties // DW_COMMENT should be volume minus add volume
 	if (!negligible(Ch) && !negligible(imass)) {
 		temp = (temp * (imass + wmass) * Ch + add_temp * add_mass * add_Ch) / ((imass + wmass) * Ch + add_mass * add_Ch);
 	}
@@ -359,9 +359,6 @@ void Snow::redist_layers(double snowpack_depth) {
 	assert(fabs(initial_ice - final_ice) < EPS);
 	assert(fabs(initial_water - final_water) < EPS);
 //	assert(fabs(initial_temp - final_temp) < EPS);
-
-	if (fabs(initial_temp - final_temp) >= EPS)
-		int sch = 0;
 }
 
 /// Redistribute snow when all snow layers are full due to melt or compaction
@@ -606,7 +603,7 @@ void Snow::phase_change() {
 
 				// Energy to freeze water [J m-3]
 				//energy = snowlayers[lyr].Ch * fabs(delta_T);
-				energy = Cp_water * fabs(delta_T);
+				energy = Cp_water * fabs(delta_T); // DW_COMMENT shouldn't this be ch?!?!?!?!
 
 				// Fraction water that would freeze [m3 m-3]
 				Ffreez = energy / Lheat;
@@ -638,7 +635,7 @@ void Snow::phase_change() {
 					if (snowlayers[lyr].temp > 0.0)
 						dprintf("ERROR: Year %d Day %d Snow layer %d temperature is above zero AFTER freezing %g\n",date.year,date.day,lyr, snowlayers[lyr].temp);
 
-					snowlayers[lyr].temp = min(0.0, snowlayers[lyr].temp);
+					snowlayers[lyr].temp = min(0.0, snowlayers[lyr].temp); // DW_COMMENT
 
 					// No liquid water left in snow layer
 					Fwmass = 0.0;
@@ -717,7 +714,6 @@ void Snow::phase_change() {
 		double wtotal_final = snowlayers[lyr].imass + snowlayers[lyr].wmass;
 
 		assert(fabs(wtotal_initial - wtotal_final) < EPS);
-
 	} // end of loop through layers
 }
 
@@ -1292,8 +1288,8 @@ void Soillayer::init() {
 	Kh = 0.0;
 	Ch = 0.0;
 
-	// Water
-	wmass = 0.0;
+	// Water (initiate water mass at wilting point)
+	wmass = (*soilcolumn).soiltype.wp_min * depth;
 	imass = 0.0;
 	por = 0.0;
 	Dw = 0.0;
@@ -1353,7 +1349,7 @@ void Soillayer::init() {
 
 	// Decay rate modifier depending on depth profile (Koven et al 2013)
 	// reference depth 10m
-	depth_mod = exp(-depth_profile / 10000.0);
+	depth_mod = ifdepthdecaymod ? exp(-depth_profile / 10000.0) : 1.0;
 
 	// N pools
 	NH4_mass = 0.0;
@@ -1558,7 +1554,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		// and span the soil space. Flow through these pathways interacts only with organic material, 
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
 		double perc_frac = org_frac >= threshold_frac ? 1.1 * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
-		double uncon_frac = 1.0 - perc_frac;
+		double uncon_frac = 1.0 - perc_frac; // DW_COMMENT chec when you have new calc_wflow
 		double Kw_max_uncon = uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - uncon_frac) / Kw_max_org);
 		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
 
@@ -1587,6 +1583,31 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 	}
 }
 
+/// Water content of soil layer
+double Soillayer::wcont() {
+
+	return max(0.0, wmass - wp) / awc;
+}
+
+/// Field capacity of soil layer
+double Soillayer::fc() {
+
+	return awc + wp;
+}
+
+double Soillayer::fracair() {
+	return max(0.0, (por - (max(0.0, wmass) + imass)) / depth);
+}
+
+// Get the Water Filled Pore Space of the layer
+double Soillayer::wfps() {
+	return max(0.0, wmass / wsats);
+}
+
+double Soillayer::wcont_max() {
+	return (wsats - wp) / awc;
+}
+
 /// C content of soil layer
 double Soillayer::ccont(bool exclude_surf) {
 	double ccont = 0.0;
@@ -1611,22 +1632,6 @@ double Soillayer::ncont(bool exclude_surf) {
 	}
 
 	return ncont;
-}
-
-/// Water content of soil layer
-double Soillayer::wcont() {
-
-	return max(0.0, wmass - wp) / awc;
-}
-
-/// Field capacity of soil layer
-double Soillayer::fc() {
-
-	return awc + wp;
-}
-
-double Soillayer::fracair() {
-	return max(0.0, (por - (wmass + imass)) / depth);
 }
 
 
@@ -1756,7 +1761,7 @@ void Soillayer::nmass_remove_small_values(n_pref_type pref) {
 	}
 }
 
-void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) { // DW_COMMENT ERROR!!!!!!!!!!!!!!!!!!!!!
+void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	if (negligible((imass + wmass) * Ch + add_mass * add_Ch))
 		dprintf("Year %d Day %d ERRRRRRRRRROOOORRRRRRRRR \n", date.year, date.day);
@@ -1769,7 +1774,7 @@ void Soillayer::update_moisture_cond() {
 	// Ice impedance factor (Swenson et al. 2012)
 	double imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
 
-	Kw = imp_ice * Kw_max * pow(wmass / wsats, 2.0 * b + 3.0);
+	Kw = imp_ice * Kw_max * pow(max(0.0, wmass) / wsats, 2.0 * b + 3.0);
 
 	// DW_COMMENT temp!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	Dw = 1.0e-8;
@@ -1928,15 +1933,6 @@ void Soillayer::update_heatcap_and_cond(bool combine_snow, double snow_depth, do
 
 	// Update thermal conductivity (J m-1 K-1 s-1)
 	Kh = (air * Kair + Stot * exp(lKfwater + lKfice + lKforg + lKfmin + lKfpeat)) / combined_depth;
-}
-
-// Get the Water Filled Pore Space of the layer
-double Soillayer::wfps() {
-	return wmass / wsats;
-}
-
-double Soillayer::wcont_max() {
-	return (wsats - wp) / awc;
 }
 
 // DW_COMMENT need to fill when finished!
@@ -2778,7 +2774,7 @@ void solve_tridiagonal(std::vector<double> upper, std::vector<double> main, std:
 /*
  *
  */
-void Soilcolumn::wflow_temp() { // DW_COMMENT ERROR!!!!!!!!!
+void Soilcolumn::wflow_temp() {
 
 	const double EPS = 1.0e-12;
 
@@ -2788,11 +2784,11 @@ void Soilcolumn::wflow_temp() { // DW_COMMENT ERROR!!!!!!!!!
 	}
 	
 	// Update soil layer temperature depending on moving water
-	for (int lyr = 1; lyr < nsoillayers + 1; lyr++) {
-		if (wfluxes[lyr] > EPS && lyr < nsoillayers) {
+	for (int lyr = 1; lyr < nsoillayers; lyr++) {
+		if (wfluxes[lyr] > EPS) {
 			soillayers[lyr].update_temp(max(0.0, soillayers[lyr - 1].temp), wfluxes[lyr], Cp_water);
 		}
-		else if (wfluxes[lyr] < -EPS && lyr < nsoillayers) {
+		else if (wfluxes[lyr] < -EPS) {
 			soillayers[lyr - 1].update_temp(max(0.0, soillayers[lyr].temp), -wfluxes[lyr], Cp_water);
 		}
 	}
@@ -2805,6 +2801,8 @@ void Soilcolumn::wflow_temp() { // DW_COMMENT ERROR!!!!!!!!!
 void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
 	bool ifbedrock = false;
+	bool negwmass = false;
+	std::vector<double> drained_wmass(nsoillayers);
 
 	// Calculate moisture conductivity
 	update_moisture_cond(); // DW_COMMENT might not be needed, could do within loop below
@@ -2840,28 +2838,53 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	// Set new wmass
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		// Remove small negative numbers
-		if (wpara.psi1[lyr] > -1.0e-14 && wpara.psi1[lyr] < 0.0) {
-			if (lyr < nsoillayers - 1)
-				wpara.psi1[lyr + 1] += wpara.psi1[lyr];
-			wpara.psi1[lyr] = 0.0;
-		}
-
 		soillayers[lyr].wmass = wpara.psi1[lyr] * soillayers[lyr].depth;
-
-		if (soillayers[lyr].wmass < -1.0e-10)
-			dprintf("ERROR: Year %d Day %d Lyr %d Negative wmass %g\n",date.year,date.day,lyr, soillayers[lyr].wmass);
 
 		// Calculate drainage
 
 		// Drainage of water above saturation including ice
-		double drained_wmass = max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats);
+		drained_wmass[lyr] = max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats);
 
-		soillayers[lyr].runoff_drain += drained_wmass;
+		soillayers[lyr].runoff_drain += drained_wmass[lyr];
 
 		// Update total water after drainage 
 		// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-		soillayers[lyr].wmass -= drained_wmass;
+		soillayers[lyr].wmass -= drained_wmass[lyr];
+	}
+}
+
+/// Resolves negative soil layer water mass
+/* Resolves negative soil layer water mass
+*
+*/
+void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
+
+	// Resolve negative wmass
+	for (int lyr = 0; lyr < neglyr.size(); lyr++) {
+		int lyr_neg = neglyr[lyr];
+
+		// If drained water then take negative wmass first from it
+		if (soillayers[lyr_neg].runoff_drain > 0.0) {
+			double wmass_move = min(soillayers[lyr_neg].runoff_drain, -soillayers[lyr_neg].wmass);
+			soillayers[lyr_neg].runoff_drain -= wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+		}
+
+		// Soil layer above have taken wmass from negative layer
+		if (wfluxes[lyr_neg] < 0.0 && soillayers[lyr_neg].wmass < 0.0) {
+			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
+			wfluxes[lyr_neg] += wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+			soillayers[lyr_neg - 1].wmass -= wmass_move;
+		}
+
+		// Soil layer below have taken wmass from negative layer
+		if (wfluxes[lyr_neg + 1] > 0.0 && soillayers[lyr_neg].wmass < 0.0) {
+			double wmass_move = min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass);
+			wfluxes[lyr_neg + 1] -= wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+			soillayers[lyr_neg + 1].wmass -= wmass_move;
+		}
 	}
 }
 
@@ -3256,9 +3279,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 				layerwater += sub_water[sublyr] * Dz_sub; // add mm of water for this sublayer 
 				sublyr++;
 			}
-
-			if (soillayers[lyr].wsats < layerwater)
-				int sch = 0;
 
 			// Water should exceed saturation
 			soillayers[lyr].wmass = min(soillayers[lyr].wsats, layerwater) - soillayers[lyr].imass;
@@ -3795,14 +3815,24 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		calc_wflow(winfilt_sd, aet_layer);
 	}
 
-	// Calculate water fluxes to, inbetween and out of soil layers
+	// Calculate water fluxes to, inbetween and out of soil layers and
+	// check for negative wmass
+
+	// Soil layers with negative water mass
+	std::vector<int> neglyr;
+
 	wfluxes[0] = winfilt;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
+
+		if (soillayers[lyr].wmass < 0.0)
+			neglyr.push_back(lyr);
 	}
 
-	if (date.year == 2 && date.day == 200)
-		int sch = 0;
+	// Negative soil layer wmass exists
+	if (neglyr.size()) {
+		resolve_neg_wmass(neglyr); // DW_COMMENT check Dw and Cw so they make sense when imass is high during spring!
+	}
 
 	// Calculate baseflow
 	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
@@ -4186,25 +4216,27 @@ void Soilcolumn::phase_change() {
 			// then the same fraction of water (ice) is freezed (thawed)
 			// in both the soil and snow layer
 			if (combine_snow && lyr == 0) {
+
 				if (!negligible(Ffreez)) {
 
 					// Fraction of water left after freezing
-					double frac = Fwmass * soil_depth / (soillayers[lyr].wmass + snow.snowlayers[0].wmass);
+					double frac = Fwmass / ((soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soil_depth);
 
 					// Update soil layer water and ice mass
 					double imass = (1.0 - frac) * soillayers[lyr].wmass;
 					soillayers[lyr].wmass -= imass;
 					soillayers[lyr].imass += imass;
 
-					// Update snow layer water and ice mass
+					// Update snow layer water and ice mass, and density
 					imass = (1.0 - frac) * snow.snowlayers[0].wmass;
 					snow.snowlayers[0].wmass -= imass;
 					snow.snowlayers[0].imass += imass;
+					snow.snowlayers[0].dens = snow.snowlayers[0].imass * rho_H2O / snow.snowlayers[0].depth;
 				}
 				else if (!negligible(Fthaw)) {
 
 					// Fraction of ice left after thawing
-					double frac = Fimass * soil_depth / (soillayers[lyr].imass + snow.snowlayers[0].imass);
+					double frac = Fimass / ((soillayers[lyr].imass + snow.snowlayers[0].imass) / soil_depth);
 
 					// Update soil layer water and ice mass
 					double wmass = (1.0 - frac) * soillayers[lyr].imass;
@@ -4233,6 +4265,12 @@ void Soilcolumn::phase_change() {
 				fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 
 		} // end of loop through layers
+	}
+	// Before FIRST_FREEZE_YEAR snow can become warmer than 0C if itt is combine with the top soil layer
+	else if (combine_snow) {
+		for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
+			snow.snowlayers[lyr].temp = min(0.0, snow.snowlayers[lyr].temp);
+		}
 	}
 
 	// Balance ice and water in snow layers after phase change

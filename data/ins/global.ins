@@ -50,6 +50,12 @@ file_npool "npool.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
 
+file_soildeclim "soildeclim.out"
+file_soilgrolim "soilgrolim.out"
+file_soiltotlim "soiltotlim.out"
+file_soilcuelim "soilcuelim.out"
+file_clitterinput "clitterinput.out"
+
 ! Monthly outputs
 !file_mnpp "mnpp.out"
 !file_mlai "mlai.out"
@@ -157,6 +163,7 @@ ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies 
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
+ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifverticalmixing 1              ! Whether to vertical mix soil organic matter
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 

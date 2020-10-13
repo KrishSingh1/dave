@@ -972,7 +972,7 @@ void vegetation_n_uptake(Patch& patch) {
 	//     (2)  nuptake = ndemand * fnuptake
 	//     where fnuptake is individual uptake capacity calculated in fnuptake in canexch.cpp
 
-	double EPS = 1.0E-15;
+	double EPS = 1.0E-12;
 
 	double nuptake_day, NH4_uptake_tot, NO3_uptake_tot, NH4_avail, NO3_avail, ammonium_frac;
 
@@ -1028,8 +1028,6 @@ void vegetation_n_uptake(Patch& patch) {
 			date.year, date.day, NH4_uptake_tot, NH4_avail, NH4_uptake_tot - NH4_avail, 
 			NO3_uptake_tot, NO3_avail, NO3_uptake_tot - NO3_avail,
 			tot_nmass_avail, tot_nmass_demand, tot_nmass_avail - tot_nmass_demand);
-
-	//double ncont_after = patch.ncont() - NH4_uptake_tot - NO3_uptake_tot;
 
 	// Available N is removed evenly (will be changed) from soil layers
 	soilcolumn.nmass_avail_uptake(NH4_uptake_tot, NH4);

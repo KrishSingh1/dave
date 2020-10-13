@@ -499,7 +499,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = 105;// nyear_spinup; // DW_COMMENT
+		start_year = 225;// nyear_spinup; // DW_COMMENT
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -3081,6 +3081,12 @@ public:
 	double cdec;
 	/// (potential) decrease in nitrogen following decomposition today (kgN/m2)
 	double ndec;
+	/// (potential) increase in C following decomposition today (kgC/m2)
+	double cinc;
+	/// (potential) increase in nitrogen following decomposition today (kgN/m2)
+	double ninc;
+	/// (potential) microbial respiration following decomposition today (kgP/m2)
+	double respsum;
 	/// daily change in carbon and nitrogen
 	double delta_cmass,delta_nmass;
 	/// lignin fractions
@@ -3328,6 +3334,10 @@ public:
 	double aorgNleach;
 	/// annual leaching of organics nitrogen from carbon pool
 	double aorgCleach;
+	/// annual C decomposition without and with N and/or P limitation
+	double acdec[2];
+	/// annual C mineralisation without and with N and/or P limitation
+	double acinc[2];
 
 	/// soil NH4 mass in pool (kgN/m2)
 	double NH4_mass;
@@ -3855,7 +3865,7 @@ public:
 	/// Total annual organic nitrogen leaching
 	double aorgNleach();
 	/// Total annual mineral nitrogen leaching
-	double aminleach();
+	double aminleach(); // DW_COMMENT all these needed?
 	/// Total annual nitrogen mineralisation
 	double anmin();
 	/// Total annual nitrogen immobilisation
@@ -3906,6 +3916,8 @@ public:
 	void wflow_temp();
 	/// Calculate soil column water flow
 	void calc_wflow(double winfilt, std::vector<double> aet);
+	/// Resolves negative soil layer water mass
+	void resolve_neg_wmass(std::vector<int> neglyr);
 	/// Update heat capacity and conductivity for soil layers
 	void update_heatcap_and_cond(bool combine_snow);
 	/// Set padding layers depth

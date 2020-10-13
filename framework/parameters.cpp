@@ -79,6 +79,7 @@ bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in u
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
 bool ifmethane;						// Whether to run the methane model (for peatland only)
 int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
+bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifverticalmixing;              // Whether vertically mix soil organic matter
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
@@ -525,6 +526,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to run the methane model (1), or not (0)");
 		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 0, 2, 1, CB_NONE,
 			"Whether soil C pool input is used to update soil properties, 0 - no, 1 - static, 2 - dynamic");
+		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,
+			"Whether to use depth soil organic matter decay rate modifier (1), or not (0)");
 		declareitem("ifverticalmixing", &ifverticalmixing, 1, CB_NONE,
 			"Whether to vertically mox soil organic matter (1), or not (0)");
 		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
@@ -1270,6 +1273,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");
 		if (!itemparsed("ifmethane")) badins("ifmethane");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
+		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
 		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
 

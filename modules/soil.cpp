@@ -4243,10 +4243,11 @@ void Soilcolumn::phase_change() {
 					soillayers[lyr].imass -= wmass;
 					soillayers[lyr].wmass += wmass;
 
-					// Update snow layer water and ice mass
+					// Update snow layer water and ice mass, and depth
 					wmass = (1.0 - frac) * snow.snowlayers[0].imass;
 					snow.snowlayers[0].imass -= wmass;
 					snow.snowlayers[0].wmass += wmass;
+					snow.snowlayers[0].depth = snow.snowlayers[0].imass * rho_H2O / snow.snowlayers[0].dens;
 				}
 
 				// Update snow temperature

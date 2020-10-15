@@ -732,7 +732,6 @@ void dailyaccounting_patch(Patch& patch) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			vegetation.getobj().set_nupscoeff(); // Calculate nitrogen uptake strength dependency on root distribution
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/

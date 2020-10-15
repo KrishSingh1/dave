@@ -1990,7 +1990,6 @@ public:
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
 		nlim = false;
-		//root_beta = 0.0;
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
@@ -2684,8 +2683,6 @@ public:
 	double ndemand;
 	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
-	/// coefficient to compensate for vertical distribution of fine root on nitrogen uptake
-	double nupscoeff;
 	/// annual nitrogen uptake
 	double anuptake;
 	/// maximum size of nitrogen storage
@@ -2905,9 +2902,6 @@ public:
 
 	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
-
-	/// Root distributions nitrogen uptake optimization
-	void set_nupscoeff();
 };
 
 
@@ -3853,7 +3847,7 @@ public:
 	/// Get soil layers total cmass fractions
 	std::vector<double> get_ccontfrac();
 	/// Get soil layers avail nmass fraction
-	std::vector<double> get_nfrac(n_pref_type pref);
+	std::vector<double> get_nfrac(n_pref_type pref, bool water_limited = false);
 	/// Get soil layers root fractions
 	std::vector<double> get_rootfrac();
 	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 

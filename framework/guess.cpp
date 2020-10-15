@@ -1751,11 +1751,6 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	return storendemand;
 }
 
-void Individual::set_nupscoeff() {
-
-	nupscoeff = 1.0; // DW_COMMENT Needs to be developed in association with dynamic root allocation
-}
-
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 

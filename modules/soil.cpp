@@ -43,24 +43,24 @@ double snowheatcap(double temp, double dens) {
  */
 void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
-	if (negligible((imass + wmass) * Ch + add_mass * add_Ch))
-		dprintf("Year %d Day %d ERRRRRRRRRROOOORRRRRRRRR \n",date.year,date.day);
+	if (negligible(depth * Ch + add_mass * add_Ch))
+		dprintf("Year %d Day %d Error snow temp \n",date.year,date.day);
 
-	if (negligible(add_mass))
+	if (negligible(add_mass)) // DW_COMMENT
 		int sch = 0;
 
 	// New snow layer but haven't updated snow properties yet 
-	if (!negligible(imass) && negligible(Ch)) {
+	if (!negligible(depth) && negligible(Ch)) {
 		update_heatcap_and_cond();
 	}
 
-	if (negligible(imass) && negligible(Ch)) {
+	if (negligible(depth) && negligible(Ch)) {
 		Ch = add_Ch;
 	}
 
-	// Add to existing snow layer with updated snow properties // DW_COMMENT should be volume minus add volume
-	if (!negligible(Ch) && !negligible(imass)) {
-		temp = (temp * (imass + wmass) * Ch + add_temp * add_mass * add_Ch) / ((imass + wmass) * Ch + add_mass * add_Ch);
+	// Add to existing snow layer with updated snow properties
+	if (!negligible(depth) && !negligible(Ch)) {
+		temp = (temp * depth * Ch + add_temp * add_mass * add_Ch) / (depth * Ch + add_mass * add_Ch);
 	}
 	else { 
 		// No existing snow layer, so added snow temperature is new snow layer temperature
@@ -1763,10 +1763,10 @@ void Soillayer::nmass_remove_small_values(n_pref_type pref) {
 
 void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
-	if (negligible((imass + wmass) * Ch + add_mass * add_Ch))
-		dprintf("Year %d Day %d ERRRRRRRRRROOOORRRRRRRRR \n", date.year, date.day);
+	if (negligible((depth - add_mass) * Ch + add_mass * add_Ch))
+		dprintf("Year %d Day %d Error soil temp \n", date.year, date.day);
 
-	temp = (temp * (imass + wmass) * Ch + add_temp * add_mass * add_Ch) / ((imass + wmass) * Ch + add_mass * add_Ch);
+	temp = (temp * (depth - add_mass) * Ch + add_temp * add_mass * add_Ch) / ((depth - add_mass) * Ch + add_mass * add_Ch);
 }
 
 void Soillayer::update_moisture_cond() {
@@ -2140,17 +2140,17 @@ std::vector<double> Soilcolumn::get_ccontfrac() {
 	return ccontfrac;
 }
 
-std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref) {
+std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref, bool wmass_limited) {
 
 	std::vector<double> nfrac(nsoillayers);
 
-	double ntot = nmass_avail(pref);
+	double ntot = nmass_avail(pref, wmass_limited);
 	double nfracsum = 0.0;
 
 	if (ntot > 1.0e-10) {
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			nfrac[lyr] += soillayers[lyr].nmass_avail(pref) / ntot;
-			nfracsum += soillayers[lyr].nmass_avail(pref) / ntot;
+			nfrac[lyr] = soillayers[lyr].nmass_avail(pref, wmass_limited) / ntot;
+			nfracsum += soillayers[lyr].nmass_avail(pref, wmass_limited) / ntot;
 		}
 		nfrac[0] += 1.0 - min(1.0, nfracsum);
 	}

@@ -922,8 +922,26 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
  *  A = (2^1/2 + 1) * PI * r^2
  *  -> A = const * cmass_root^2/3
  */
-double nitrogen_uptake_strength(const Individual& indiv) {
-	return pow(max(0.0, indiv.cmass_root_today()) * indiv.nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
+double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> nfrac) {
+	
+	// Calculate total absolute difference between N and root distribution in soil column
+	// Maximum difference would be 2 if all roots are in layers with no N,
+	// perfect match between N and roots would give 0 
+	double root_n_std = 0.0;
+	int nsoillayer = nfrac.size();
+	for (int lyr = 0; lyr < nsoillayer; lyr++) {
+		root_n_std += fabs(nfrac[lyr] - indiv.pft.rootdist[lyr]);
+	}
+	
+	// Indiv with perfect match will have N uptake coefficient 2
+	// and indiv with perfect mismatch will have 0
+	double nupscoeff = 2.0 - root_n_std; // DW_COMMENT need to check this!
+
+	// Calculate uptake strength
+	if (!negligible(indiv.cmass_root_today()))
+		return pow(max(0.0, indiv.cmass_root_today()) * nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
+	else
+		return 0.0;
 }
 
 /// Individual nitrogen uptake fraction
@@ -934,14 +952,14 @@ double nitrogen_uptake_strength(const Individual& indiv) {
  *  Function nitrogen_uptake_strength() determines how good individuals are at
  *  acquiring nitrogen.
  */
-void fnuptake(Vegetation& vegetation, double nmass_avail) {
+void fnuptake(Vegetation& vegetation, double nmass_avail, std::vector<double> nfrac) {
 
 	// Create vector describing the individuals to ncompete()
 	std::vector<NCompetingIndividual> individuals(vegetation.nobj);
 
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		individuals[i].ndemand = vegetation[i].ndemand;
-		individuals[i].strength = nitrogen_uptake_strength(vegetation[i]);
+		individuals[i].strength = nitrogen_uptake_strength(vegetation[i], nfrac);
 	}
 
 	// Let ncompete() do the actual distribution
@@ -1301,8 +1319,11 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {
 
+		// Get N distribution in soil column
+		std::vector<double> nfrac = patch.soilcolumn.get_nfrac(NO, true);
+
 		// Determine individual nitrogen uptake fractions
-		fnuptake(vegetation, tot_nmass_avail);
+		fnuptake(vegetation, tot_nmass_avail, nfrac);
 	}
 
 	// Resolve nitrogen stress with longterm stored nitrogen

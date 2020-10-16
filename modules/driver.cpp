@@ -484,6 +484,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
 		}
 
+		gridcell.landcover.wood_harvest.zero();
+
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
 			for (unsigned int d = 0; d < climate.dtemp_31.CAPACITY; d++) {

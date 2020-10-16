@@ -36,7 +36,7 @@ public:
 	void getlandcover(Gridcell& gridcell);
 
 	/// Obtains land management data for one day
-	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell, landcover_input);}
 
 	static const int NYEAR_SPINUP_DATA=30;
 

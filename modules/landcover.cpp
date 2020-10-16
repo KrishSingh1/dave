@@ -128,8 +128,25 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 
 			if(gcst.nstands > 1) {
 
+/*			Rules for selecting stands:
+
+			natural to cropland: young_stands_first=true
+			ifprimary_lc_transfer:
+				secondary lap: young_stands_first=true, secondary_harvest=true								(will use young -> old secondary stands over age limit)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stands before age-limited stands)
+				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stands)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+
+			natural to natural: young_stands_first=false
+			ifprimary_lc_transfer:
+				secondary lap: young_stands_first=false, secondary_harvest=true								(will use old -> young secondary stands over age limit)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stands before age-limited stands)
+				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stands)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+
+*/
 				int nlaps = 1;
-				if(ifprimary_lc_transfer)
+				if(use_primary_lc_transfer)
 					nlaps = 2;
 
 				for(int n=0; n<nlaps; n++) {
@@ -140,6 +157,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 
 							double st_change_remain = -st_frac_transfer[index(from, to)];
 
+							bool secondary_harvest = false;
 							bool young_stands_first = true;	//convert area from youngest stands first
 
 							if(st.landcover == NATURAL || st.landcover == FOREST) {
@@ -150,10 +168,11 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 									young_stands_first = true;
 							}
 
-							if(ifprimary_lc_transfer) {
+							if(use_primary_lc_transfer) {
 								if(n == 0) {
 									// First reduce secondary stands (fraction not in primary_st_frac_transfer array)
 									st_change_remain += primary_st_frac_transfer[index(from, to)];
+									secondary_harvest = true;
 								}
 								else {
 									// Then reduce primary stands (fraction in primary_st_frac_transfer array)
@@ -198,8 +217,11 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 										count_st++;
 										int first_year = max(stand.first_year, stand.clone_year);
 
+										if(secondary_harvest && stand.first_year == 0)
+											continue;
+
 										// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
-										if(date.year - first_year < age_limit_reduce && count_st != gcst.nstands && !reduce_all_stands && !restart_loop) 
+										if(date.year - first_year < age_limit_reduce && !reduce_all_stands && !restart_loop) 
 											continue;
 							
 										// convert equal percentage of areas from all stands
@@ -248,6 +270,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 									}
 									else {
 										young_stands_first = false;
+										secondary_harvest = false;
 										restart_loop = true;
 									}
 								}
@@ -1131,7 +1154,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	}
 
 	// Set the transfer fraction from primary stands within a stand type (simple case: equal primary/secondary ratio for all stand types in a lc->lc transfer)
-	if(ifprimary_lc_transfer) {
+	if(use_primary_lc_transfer) {
 		for(int from=0; from<nst; from++) {
 
 			StandType& st_donor = stlist[from];
@@ -1269,7 +1292,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						if(harv_params)
 							harvest_wood(cp, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
 						else
-						harvest_wood(cp, indiv.pft, indiv.alive, 1.0, 1.0, 0.95, 0.9);	// frac_cut=1, harv_eff=1, res_outtake_twig=0.95, res_outtake_coarse_root=0.9
+							harvest_wood(cp, indiv.pft, indiv.alive, 1.0, 1.0, 0.95, 0.9);	// frac_cut=1, harv_eff=1, res_outtake_twig=0.95, res_outtake_coarse_root=0.9
 						break;
 					case BARREN: // Assuming there is nothing to harvest on barren
 						break;
@@ -2137,11 +2160,9 @@ bool check_fractions4(Gridcell& gridcell) {
 /** Stores changes in area fractions for the stand types
  *
  *  OUTPUT PARAMETERS
- *  \param st_frac_transfer					array with this year's transitions in area fractions between the different landcovers
- *  \param primary_st_frac_transfer			array with this year's transitions in area fractions from primary stand types
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st_frac_transfer, bool& LCchangeCtransfer, InputModule* input_module) {
+bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_module) {
 
 	double stfrac_sum_old[NLANDCOVERTYPES] = {0.0};
 	double change_stand = 0.0;
@@ -2234,6 +2255,25 @@ bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st
 	return change;
 }
 
+/// Transfers harvested forest area to transition matrix
+bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+
+	bool transfer_harvest = false;
+
+	if(gridcell.landcover.wood_harvest.prim_frac > 0.0) {
+		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
+		primary_lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
+		use_primary_lc_transfer = true;
+		transfer_harvest = true;
+	}
+	if(harvest_secondary_to_new_stand && gridcell.landcover.wood_harvest.sec_frac > 0.0) {
+		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_frac;
+		transfer_harvest = true;
+	}
+
+	return transfer_harvest;
+}
+
 /// Updates all landcover, stand type and stand area fractions each year, possibly resulting in the creation and killing of stands.
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
  *  and (in the case of wood) to long-lived pools.
@@ -2291,6 +2331,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	bool no_changes = true;
 
+	// Transfer area to new stands during wood harvest.
+	if(transfer_harvested_fractions(gridcell, lc.frac_transfer, lc.primary_frac_transfer))
+		no_changes = false;
+
 	// Rescale stand fractions so sum is 1
 	stlist.firstobj();
 	while (stlist.isobj) {
@@ -2315,7 +2359,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(lc_changed(gridcell, st_frac_transfer, primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
+		if(lc_changed(gridcell, LCchangeCtransfer, input_module)) {
 			no_changes = false;
 		}
 	}
@@ -2786,7 +2830,7 @@ void landcover_change_transfer::allocate() {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
+//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

@@ -562,6 +562,23 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/// Struct containing wood harvest information
+class Wood_harvest_struct {
+
+public:
+	double prim_frac;
+	double prim_vol;
+	double sec_frac;
+	double sec_vol;
+
+	void zero() {
+		prim_frac = 0.0;
+		prim_vol = 0.0;
+		sec_frac = 0.0;
+		sec_vol = 0.0;
+	}
+};
+
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisResult : public Serializable {
@@ -1316,6 +1333,10 @@ public:
 	int sdate;
 	/// forced harvest date, unless hdate_force read from file
 	int hdate;
+	/// Harvested forest area fraction, unless woodharv_frac read from file
+	double woodharv_frac;
+	/// Wood harvest volume, unless woodharv_volume read from file
+	double woodharv_vol;
 	/// Nitrogen fertilisation amount, unless Nfert_read read from file
 	double nfert;
 	/// Whether grass is grown in fallow
@@ -1335,6 +1356,8 @@ public:
 		sdate = -1;
 		hdate = -1;
 		nfert = -1.0;
+		woodharv_frac = -1.0;
+		woodharv_vol = -1.0;
 		fallow = false;
 		multicrop = false;
 	}
@@ -3461,7 +3484,7 @@ public:
 	double anfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
-	/// annual leaching of organics nitrogen from carbon pool
+	/// annual leaching of organics from carbon pool
 	double aorgCleach;	
 
 	// Variables for fast spinup of SOM pools
@@ -4594,7 +4617,13 @@ public:
 	// current number of stands of this stand type
 	int nstands;
 
+	/// Nitrogen fertilisation amount
 	double nfert;
+
+	/// Harvested forest area fraction
+	double woodharv_frac;
+	/// Wood harvest volume
+	double woodharv_vol;
 
 	// MEMBER FUNCTIONS
 
@@ -4612,6 +4641,8 @@ public:
 		gross_frac_decrease = 0.0;
 		nstands = 0;
 		nfert = -1.0;
+		woodharv_frac = -1.0;
+		woodharv_vol = -1.0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -4635,6 +4666,9 @@ struct Landcover : public Serializable {
 	double frac_old[NLANDCOVERTYPES];
 
 	double frac_change[NLANDCOVERTYPES];
+
+	/// Wood harvest information read from input file.
+	Wood_harvest_struct wood_harvest;
 
 	/// Transfer matrices
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];

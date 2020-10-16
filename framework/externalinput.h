@@ -88,7 +88,7 @@ public:
 	/// Loads fertilisation, sowing and harvest dates from input files
 	bool loadmanagement(double lon, double lat);
 	/// Gets management data for a year
-	void getmanagement(Gridcell& gridcell);
+	void getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input);
 
 private:
 
@@ -98,9 +98,11 @@ private:
 	InData::TimeDataD Nfert;
 	InData::TimeDataD Nfert_st;
 	InData::TimeDataD NfertMan;
+	InData::TimeDataD woodharv_frac;
+	InData::TimeDataD woodharv_vol;
 
 	/// Files names for management input file
-	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan;
+		xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_vol;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
@@ -108,6 +110,8 @@ private:
 	void getharvestdates(Gridcell& gridcell);
 	/// Gets nitrogen fertilisation data for a year
 	void getNfert(Gridcell& gridcell);
+	/// Gets wood harvest data for a year
+	void getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input);
 };
 
 #endif // LPJ_GUESS_EXTERNALINPUT_H

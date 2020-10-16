@@ -1587,6 +1587,18 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert_st);
 			readNfert_st = true;
 		}
+		file_woodharv_frac = param["file_woodharv_frac"].str;
+		if(	file_woodharv_frac != "")	{
+			if(!woodharv_frac.Open(file_woodharv_frac, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_frac);
+			readwoodharvest_frac = true;
+		}
+		file_woodharv_vol = param["file_woodharv_vol"].str;
+		if(	file_woodharv_vol != "")	{
+			if(!woodharv_vol.Open(file_woodharv_vol, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_vol);
+			readwoodharvest_vol = true;
+		}
 	}
 
 	gridlist.killall();
@@ -1631,6 +1643,20 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 				LUerror = true;	// skip this stand
 			dprintf("N fertilization data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if(readwoodharvest_frac && !LUerror) {
+		if(!woodharv_frac.Load(c)) {
+				dprintf("Problems with wood harvest fraction input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+				LUerror = true;	// skip this stand
+			dprintf("Wood harvest fraction data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if(readwoodharvest_vol && !LUerror) {
+		if(!woodharv_vol.Load(c)) {
+				dprintf("Problems with wood harvest volume input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+				LUerror = true;	// skip this stand
+			dprintf("Wood harvest volume data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -1703,7 +1729,41 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 	}
 }
 
-void ManagementInput::getmanagement(Gridcell& gridcell) {
+void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
+
+	int calender_year = date.get_calendar_year();
+	int firsthistyear = landcover_input.getfirsthistyear();
+
+	gridcell.landcover.wood_harvest.zero();
+
+	/// Consistent with LUH2 transition input data: read previous year's values.
+	if((calender_year >= firsthistyear + 1)) {
+
+		double frac_transfer;
+		int year = calender_year - 1;
+
+		if(woodharv_frac.isloaded()) {
+			// Avoid using same data twice
+			if(!ifprimary_to_secondary_transfer) {
+				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primn_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			}
+			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secmf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secyf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+		if(woodharv_vol.isloaded()) {
+
+			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+	}
+}
+
+void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
 	if (!run_landcover || date.day) {
 		return;
@@ -1721,4 +1781,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell) {
 		if(readNfert || readNfert_st)		
 			getNfert(gridcell);
 	}
+	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct
+	if(readwoodharvest_frac || readwoodharvest_vol)		
+		getwoodharvest(gridcell, landcover_input);
 }

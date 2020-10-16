@@ -225,6 +225,9 @@ extern bool gross_input_present;
 // Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
 
+// Distinguish between primary and secondary natural stands at area reduction
+extern bool use_primary_lc_transfer;
+
 // Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
 extern bool ifprimary_to_secondary_transfer;
 
@@ -255,8 +258,17 @@ extern bool readNfert;
 /// Whether to read manure N fertilization from input file
 extern bool readNman;
 
-/// Whether to read N fertilization (stand tyoe level) from input file
+/// Whether to read N fertilization (stand type level) from input file
 extern bool readNfert_st;
+
+/// Whether to use forest harvested fraction from input file
+extern bool readwoodharvest_frac;
+
+/// Whether to use wood harvest volume from input file
+extern bool readwoodharvest_vol;
+
+/// Whether to create new stands at clearcut of secondary stands
+extern bool harvest_secondary_to_new_stand;
 
 /// Whether to print multiple stands within a land cover type (except cropland) separately
 extern bool printseparatestands;

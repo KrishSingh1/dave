@@ -13,6 +13,8 @@ param "file_lucrop"  (str "")
 param "file_lupasture"  (str "")
 param "file_lunatural"  (str "")
 param "file_luforest"  (str "")
+param "file_woodharv_frac"      (str "")
+param "file_woodharv_vol"      (str "")
 param "file_Nfert_st" (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +85,7 @@ gross_land_transfer 0			! Whether to use gross land transfer: simulate gross lcc
 ifprimary_lc_transfer 0			! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 ifprimary_to_secondary_transfer 0	! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
 					! transfer input file (1). or not (0)
+harvest_secondary_to_new_stand 1  ! Whether to create new stands at clearcut of secondary stands (1). or not (0)
 transfer_level 2			! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 iftransfer_to_new_stand 0		! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 

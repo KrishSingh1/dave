@@ -92,8 +92,9 @@ bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
 bool gross_input_present = false;
-bool ifprimary_lc_transfer;
-bool ifprimary_to_secondary_transfer;
+bool ifprimary_lc_transfer = false;
+bool use_primary_lc_transfer = false;
+bool ifprimary_to_secondary_transfer = false;
 int transfer_level;
 bool ifdyn_phu_limit;
 bool iftransfer_to_new_stand;
@@ -114,6 +115,9 @@ bool readharvestdates = false;
 bool readNfert = false;
 bool readNman = false;
 bool readNfert_st = false;
+bool readwoodharvest_frac = false;
+bool readwoodharvest_vol = false;
+bool harvest_secondary_to_new_stand = true;
 bool printseparatestands = false;
 bool iftillage = false;
 
@@ -542,6 +546,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
 		declareitem("ifprimary_to_secondary_transfer",&ifprimary_to_secondary_transfer,1,CB_NONE,
 			"Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)");
+		declareitem("harvest_secondary_to_new_stand",&harvest_secondary_to_new_stand,1,CB_NONE,
+			"Whether to create new stands at clearcut of secondary stands (1). or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
@@ -1289,6 +1295,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
+			if (!itemparsed("harvest_secondary_to_new_stand")) badins("harvest_secondary_to_new_stand");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");

@@ -258,8 +258,9 @@ group "tree" (
 
 	harv_eff 0.95
 	res_outtake 0.75
-	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
-	harvest_slow_frac 0.33	! Bondeau 0.33
+	turnover_harv_prod 0.04 	! Turnover rate for long-lived harvested products (wood): 
+					! 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
+	harvest_slow_frac 0.33		! Bondeau 0.33
 )
 
 group "shrub" (
@@ -291,7 +292,7 @@ group "shrub" (
 
 	fireresist 0.12 	! Common to all shrubs
 
-	turnover_harv_prod 1	! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	turnover_harv_prod 1	! Turnover rate for long-lived harvested products (wood): 1-year turnover time
 	harvest_slow_frac 0
 )
 
@@ -323,7 +324,7 @@ group "grass" (
 	intc 0.01
 	ga 0.030
 
-	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 1-year turnover time for GRASS
 	harvest_slow_frac 0
 )
 
@@ -419,7 +420,7 @@ group "shade_intolerant" (
 	turnover_sap 0.1
 )
 
-
+	
 pft "BNE" (
 
 	! Boreal needleleaved evergreen tree
@@ -430,7 +431,7 @@ pft "BNE" (
 	shade_tolerant
 	evergreen
 	boreal
-	leaflong 4	! global.ins has 3
+	leaflong 4		! global.ins has 3
 	turnover_leaf 0.25
 	tcmin_surv -31
 	tcmin_est -30
@@ -586,9 +587,10 @@ pft "C3G" (
 )
 
 
+!///////////////////////////////////////////////////////////////////////////////
 ! Arctic specific groups and PFTs
 ! Values from Wolf et al. and Wania et al., unless otherwise stated.
-! **********************************************************************
+!///////////////////////////////////////////////////////////////////////////////
 
 group "tallshrub" (
 
@@ -725,8 +727,8 @@ group "cushionforblichenmosstundra" (
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 1.29
 	seas_iso 0
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 		! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 	! Jing update 2020
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 		! Fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.030
 
 )
@@ -759,8 +761,8 @@ pft "HSE" (
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 0.0
 	seas_iso 0
-	eps_mon 0.462 0.246 0.292 0.124 0.13 0.108 0.13 0.276 0.232 	! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! Jing update 2020
+	eps_mon 0.462 0.246 0.292 0.124 0.13 0.108 0.13 0.276 0.232 	! Fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )
 
 
@@ -790,8 +792,8 @@ pft "HSS" (
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 4.0
 	seas_iso 1
-	eps_mon 0.462 0.246 0.292 0.124 0.13 0.108 0.13 0.276 0.232	! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 		! Jing update 2020
+	eps_mon 0.462 0.246 0.292 0.124 0.13 0.108 0.13 0.276 0.232	! Fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -815,10 +817,10 @@ pft "LSE" (
 	est_max 0.25 		! overrides group value
 
 	! BVOC values, Tang et al., 2016
-	eps_iso 1.75		! Jing updated 2020
+	eps_iso 1.75
 	seas_iso 0
-	eps_mon 0.02 0.01 0.01 0.01 0.01 0.00 0.01 0.01 0.01 		! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 		! Jing update 2020, this is from C3G
+	eps_mon 0.02 0.01 0.01 0.01 0.01 0.00 0.01 0.01 0.01 		! Fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! From C3G
 	ga 0.040
 )
 
@@ -840,10 +842,10 @@ pft "LSS" (
 	k_latosa 150		! Set to the same relative difference as broadleafed/needleleafed, was 125
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
-	eps_iso 6.9  		! Jing updated 2020
+	eps_iso 6.9 
 	seas_iso 1
-	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09		! Jing update 2020, but fraction from C3G
-	storfrac_mon  0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! Jing update 2020
+	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09		! Fraction from C3G
+	storfrac_mon  0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )
 
 
@@ -868,10 +870,10 @@ pft "GRT" (
 	gdd0_max 1000
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
-	eps_iso 9.82  		! Jing updated 2020
+	eps_iso 9.82
 	seas_iso 1
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 		! Jing updated 2020
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Jing update 2020, this is from C3G
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 			! Fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! From C3G
 	ga 0.030
 )
 
@@ -895,10 +897,10 @@ pft "EPDS" (
 	est_max 0.5		! overrides group value
 
 	! BVOC
-	eps_iso 1.4		! Jing updated 2020
+	eps_iso 1.4
 	seas_iso 0
-	eps_mon 0.30 0.16 0.19 0.08 0.08 0.07 0.08 0.18 0.15 	! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 	! Jing update 2020, this is from C3G
+	eps_mon 0.30 0.16 0.19 0.08 0.08 0.07 0.08 0.18 0.15 		! Fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! From C3G
 	ga 0.030
 )
 
@@ -922,8 +924,8 @@ pft "SPDS" (
 	! BVOC
 	eps_iso 14.11
 	seas_iso 1
-	eps_mon 0.10 0.05 0.06 0.03 0.03 0.02 0.03 0.06 0.05 	! Jing update 2020, but fraction from C3G
-	storfrac_mon  0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Jing update 2020, from C3G
+	eps_mon 0.10 0.05 0.06 0.03 0.03 0.02 0.03 0.06 0.05 		! Fraction from C3G
+	storfrac_mon  0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5		! From C3G
 	ga 0.030
 )
 
@@ -960,9 +962,9 @@ group "C4G" (
 	respcoeff 0.15
 	tcmin_surv 15.5
 	tcmin_est 15.5
-	tcmax_est 1000			! limit not implemented
-	twmin_est -1000			! limit not implemented
-	gdd5min_est 0			! limit not implemented
+	tcmax_est 1000		! limit not implemented
+	twmin_est -1000		! limit not implemented
+	gdd5min_est 0		! limit not implemented
 	parff_min 1000000
 	fireresist 0.5
 	intc 0.01

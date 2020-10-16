@@ -29,9 +29,10 @@ group "moss"(
 	root_beta 0.0
 	km_volume 0.000001876
 	fnstorage 0.3
-	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 ! C3G values
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! C3G values
+	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 	! C3G values
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 	! C3G values
 )
+
 
 ! Non peatland moss. Needs to be here since the group moss is here. Copy group moss
 ! and pft Np_moss to the instruction file to enable simulations with non-peatland mosses
@@ -65,8 +66,8 @@ pft "Np_moss" (
 	! copied from cushionforblichenmosstundra in arctic.ins
 	eps_iso 1.29
 	seas_iso 0
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0		! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0	! Jing update 2020
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0		! Fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.030
 )
 
@@ -97,11 +98,10 @@ pft "pLSE" (
     	! BVOC values, Tang et al., 2016
 	eps_iso 1.75  		! Jing updated 2020
 	seas_iso 0
-	eps_mon 0.02 0.01 0.01 0.01 0.01 0.00 0.01 0.01 0.01	! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Jing update 2020, this is from C3G
+	eps_mon 0.02 0.01 0.01 0.01 0.01 0.00 0.01 0.01 0.01	! Fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! From C3G
 	ga 0.040
 )
-
 
 
 pft "pLSS" (
@@ -130,10 +130,9 @@ pft "pLSS" (
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 6.9  		! Jing updated 2020
 	seas_iso 1
-	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09	! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0	! Jing update 2020
+	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09	! Fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
-
 
 
 pft "pCLM" (
@@ -186,8 +185,8 @@ pft "WetGRS" (
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 9.82  		! Jing updated 2020
 	seas_iso 1
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 		! Jing updated 2020
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Jing update 2020, this is from C3G
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! From C3G
 	ga 0.030
 )
 
@@ -227,8 +226,8 @@ pft "pmoss" (
 	! copied from cushionforblichenmosstundra in arctic.ins
 	eps_iso 1.29
 	seas_iso 0
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0		! Jing update 2020, but fraction from C3G
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0	! Jing update 2020
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0		! Fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.030
 )
 

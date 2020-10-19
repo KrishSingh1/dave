@@ -505,8 +505,8 @@ pft "BNS" (
 	tcmax_est -2
 	twmin_est -1000		! no limit
 	twminusc 43		! AA from TH 03-11 added this
-	gdd5min_est 350		! Original value 500
-	phengdd5ramp 100	! Original value 200
+	gdd5min_est 350		! Changed 2013-04-30 from value 500
+	phengdd5ramp 100	! Changed 2013-04-30 from value 200
 	longevity 300
 	fireresist 0.3
 	eps_iso 8.0
@@ -532,7 +532,7 @@ pft "TeNE" (
 	tcmin_est -2 		! As in Sitch et al. (2003), a little lower than TeBE
 	tcmax_est 10 		! Hickler et al. (2012) have 9 degC for Pin_hal
 	twmin_est 5  		! low, since Hickler et al. (2012) have -1000 for Jun_oxy
-	gdd5min_est 2000 	! Original value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
+	gdd5min_est 2000 	! Changed 2013-04-30 from value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
 	longevity 300  		! Hickler et al. (2012) have 350 for Pin_hal
 	fireresist 0.3 		! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
 	eps_iso 8.0		! Values set to be the same as those for BNE and BINE
@@ -784,14 +784,14 @@ pft "BLSE" (
 	fireresist 0.12
 
 	drought_tolerance 0.1
-	!gdd0_min 300		! Original value 300, change based on CAVM region simulations
+	!gdd0_min 300
 	nuptoroot 0.0028
 
 	! BVOC values
 	eps_iso 2.0
 	seas_iso 0
-	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Needs checking!
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Needs checking!
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Same values as PFT LSE in arctic.ins
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Same values as PFT LSE in arctic.ins
 	ga 0.040
 	!sla 12.56
 )
@@ -808,8 +808,8 @@ pft "BLSS" (
 	summergreen
 	shade_intolerant
 
-	tcmin_surv -40		! Original value -32,5, change, based on the CAVM region
-	tcmin_est -40		! Original value -32,5, change, based on the CAVM region
+	tcmin_surv -40		! Estimate from map is -32.5. Change based on the CAVM region
+	tcmin_est -40		! Estimate from map is -32.5. Change based on the CAVM region
 	tcmax_est 1000
 	twmin_est -1000
 	gdd5min_est 100
@@ -826,8 +826,8 @@ pft "BLSS" (
 	! BVOC values
 	eps_iso 2.0
 	seas_iso 1
-	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Needs checking!
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Needs checking!
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Same values as PFT LSS in arctic.ins
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Same values as PFT LSS in arctic.ins
 	ga 0.040
 	!sla 24.25
 )

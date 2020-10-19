@@ -2219,8 +2219,12 @@ Landcover::Landcover() {
 
 	acflux_harvest_slow = 0.0;
 	acflux_landuse_change = 0.0;
+	acflux_wood_harvest = 0.0;
+	acflux_clearing = 0.0;
 	anflux_harvest_slow = 0.0;
 	anflux_landuse_change = 0.0;
+	anflux_wood_harvest = 0.0;
+	anflux_clearing = 0.0;
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 
@@ -2228,9 +2232,13 @@ Landcover::Landcover() {
 		frac_old[i] = 0.0;
 		frac_change[i] = 0.0;
 		acflux_harvest_slow_lc[i] = 0.0;
+		acflux_wood_harvest_lc[i] = 0.0;
+		acflux_clearing_lc[i] = 0.0;
 		acflux_landuse_change_lc[i] = 0.0;
 		anflux_harvest_slow_lc[i] = 0.0;
 		anflux_landuse_change_lc[i] = 0.0;
+		anflux_wood_harvest_lc[i] = 0.0;
+		anflux_clearing_lc[i] = 0.0;
 
 		for(int j=0;j<NLANDCOVERTYPES;j++) {
 			frac_transfer[i][j] = 0.0;
@@ -2325,6 +2333,8 @@ double Gridcell::cflux() {
 
 	cflux += landcover.acflux_landuse_change;
 	cflux += landcover.acflux_harvest_slow;
+	cflux += landcover.acflux_wood_harvest;
+	cflux += landcover.acflux_clearing;
 
 	return cflux;
 }
@@ -2340,6 +2350,8 @@ double Gridcell::nflux() {
 
 	nflux += landcover.anflux_landuse_change;
 	nflux += landcover.anflux_harvest_slow;
+	nflux += landcover.anflux_wood_harvest;
+	nflux += landcover.anflux_clearing;
 
 	return nflux;
 }

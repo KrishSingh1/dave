@@ -1396,10 +1396,30 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					to.transfer_nmass_litter_sap[indiv.pft.id] += cp.nmass_litter_sap * scale;
 					to.transfer_nmass_litter_heart[indiv.pft.id] += cp.nmass_litter_heart * scale;
 
-					lc.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
-					lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
-					lc.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
-					lc.anflux_landuse_change_lc[stand.landcover] += cp.anflux_harvest * donor_area / (double)stand.nobj;
+					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+						lc.acflux_wood_harvest += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.anflux_wood_harvest += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
+
+						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
+						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.acflux_clearing_lc[stand.landcover] += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_clearing += clearing_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
+						lc.anflux_clearing_lc[stand.landcover] += clearing_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
+					}
+					else {
+						lc.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_landuse_change_orig += (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.anflux_landuse_change_orig += (cp.acflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
+						lc.anflux_landuse_change_lc[stand.landcover] += cp.anflux_harvest * donor_area / (double)stand.nobj;
+					}
 
 					// gridcell.acflux_landuse_change += -cp.debt_excess * donor_area / (double)stand.nobj;
 
@@ -3085,7 +3105,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems
-	nflux_tot += gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow;
+	nflux_tot += gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow + gridcell.landcover.anflux_wood_harvest + gridcell.landcover.anflux_clearing;
 
 	if(!negligible(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1, -12))
 		dprintf("WARNING ! N balance after lcc off\n");

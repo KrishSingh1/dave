@@ -1591,11 +1591,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (run_landcover) {
 			outlimit(out,out_cflux, flux_seed);
 			outlimit(out,out_cflux, flux_charvest);
-			outlimit(out,out_cflux, lc.acflux_landuse_change);
+			outlimit(out,out_cflux, lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change);
 			outlimit(out,out_cflux, lc.acflux_harvest_slow);
 	}
 	outlimit(out,out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + c_org_leach_gridcell +
-			flux_seed + flux_charvest + lc.acflux_landuse_change + lc.acflux_harvest_slow);
+				flux_seed + flux_charvest + lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change + lc.acflux_harvest_slow);
 
 	outlimit(out,out_doc, (c_org_leach_gridcell) * M2_PER_HA);
 
@@ -1607,7 +1607,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-
 	outlimit(out,out_nflux, -aNH4dep_gridcell * M2_PER_HA);
 	outlimit(out,out_nflux, -aNO3dep_gridcell * M2_PER_HA);
 	outlimit(out,out_nflux, -anfix_gridcell * M2_PER_HA);
@@ -1618,10 +1617,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (run_landcover) {
 			outlimit(out,out_nflux, flux_nseed * M2_PER_HA);
 			outlimit(out,out_nflux, flux_nharvest * M2_PER_HA);
-			outlimit(out,out_nflux, lc.anflux_landuse_change * M2_PER_HA);
+			outlimit(out,out_nflux, (lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change) * M2_PER_HA);
 			outlimit(out,out_nflux, lc.anflux_harvest_slow * M2_PER_HA);
 	}
-	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_landuse_change +
+	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change +
 				lc.anflux_harvest_slow + flux_nseed + flux_ntot +
 				n_min_leach_gridcell + n_org_leach_gridcell -
 					 (aNH4dep_gridcell + aNO3dep_gridcell + anfix_gridcell + anfert_gridcell)) * M2_PER_HA);

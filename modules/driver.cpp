@@ -473,14 +473,28 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
+		gridcell.landcover.acflux_landuse_change_orig=0.0;
 		gridcell.landcover.acflux_harvest_slow=0.0;
+		gridcell.landcover.acflux_wood_harvest_orig=0.0;
+		gridcell.landcover.acflux_wood_harvest=0.0;
 		gridcell.landcover.anflux_landuse_change=0.0;
+		gridcell.landcover.anflux_landuse_change_orig=0.0;
+		gridcell.landcover.acflux_clearing=0.0;
+		gridcell.landcover.acflux_clearing_orig=0.0;
 		gridcell.landcover.anflux_harvest_slow=0.0;
+		gridcell.landcover.anflux_wood_harvest=0.0;
+		gridcell.landcover.anflux_wood_harvest_orig=0.0;
+		gridcell.landcover.anflux_clearing=0.0;
+		gridcell.landcover.anflux_clearing_orig=0.0;
 
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.acflux_wood_harvest_lc[i]=0.0;
+			gridcell.landcover.acflux_clearing_lc[i]=0.0;
 			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
 			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.anflux_wood_harvest_lc[i]=0.0;
+			gridcell.landcover.anflux_clearing_lc[i]=0.0;
 			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
 		}
 

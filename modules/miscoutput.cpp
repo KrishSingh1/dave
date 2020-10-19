@@ -948,6 +948,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					outlimit_misc(out, *table_p, flux_fire_lc[i]);
 					outlimit_misc(out, *table_p, flux_est_lc[i]);
 
+					if (run_landcover) {
+						outlimit_misc(out, *table_p, flux_seed_lc[i]);
+						outlimit_misc(out, *table_p, flux_charvest_lc[i]);
+						outlimit_misc(out, *table_p, lc.acflux_wood_harvest_lc[i] + lc.acflux_clearing_lc[i] + lc.acflux_landuse_change_lc[i]);
+						outlimit_misc(out, *table_p, lc.acflux_harvest_slow_lc[i]);
+					}
+				}
+
+				if (table_p_N) {
 					outlimit_misc(out, *table_p_N, -andep_lc[i] * M2_PER_HA);
 					outlimit_misc(out, *table_p_N, -anfix_lc[i] * M2_PER_HA);
 					outlimit_misc(out, *table_p_N, -anfert_lc[i] * M2_PER_HA);
@@ -955,14 +964,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					outlimit_misc(out, *table_p_N, (n_min_leach_lc[i] + n_org_leach_lc[i]) * M2_PER_HA);
 
 					if (run_landcover) {
-						 outlimit_misc(out, *table_p, flux_seed_lc[i]);
-						 outlimit_misc(out, *table_p, flux_charvest_lc[i]);
-						 outlimit_misc(out, *table_p, lc.acflux_landuse_change_lc[i]);
-						 outlimit_misc(out, *table_p, lc.acflux_harvest_slow_lc[i]);
-						 outlimit_misc(out, *table_p_N, flux_nseed_lc[i] * M2_PER_HA);
-						 outlimit_misc(out, *table_p_N, flux_nharvest_lc[i] * M2_PER_HA);
-						 outlimit_misc(out, *table_p_N, lc.anflux_landuse_change_lc[i] * M2_PER_HA);
-						 outlimit_misc(out, *table_p_N, lc.anflux_harvest_slow_lc[i] * M2_PER_HA);
+						outlimit_misc(out, *table_p_N, flux_nseed_lc[i] * M2_PER_HA);
+						outlimit_misc(out, *table_p_N, flux_nharvest_lc[i] * M2_PER_HA);
+						outlimit_misc(out, *table_p_N, (lc.anflux_wood_harvest_lc[i] + lc.anflux_clearing_lc[i] + gridcell.landcover.anflux_landuse_change_lc[i]) * M2_PER_HA);
+						outlimit_misc(out, *table_p_N, lc.anflux_harvest_slow_lc[i] * M2_PER_HA);
 					}
 				}
 
@@ -972,15 +977,21 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if (run_landcover) {
 					cflux_total += flux_seed_lc[i];
 					cflux_total += flux_charvest_lc[i];
+					cflux_total += lc.acflux_wood_harvest_lc[i];
+					cflux_total += lc.acflux_clearing_lc[i];
 					cflux_total += lc.acflux_landuse_change_lc[i];
 					cflux_total += lc.acflux_harvest_slow_lc[i];
 					nflux_total += flux_nseed_lc[i];
 					nflux_total += flux_nharvest_lc[i];
+					nflux_total += lc.anflux_wood_harvest_lc[i];
+					nflux_total += lc.anflux_clearing_lc[i];
 					nflux_total += lc.anflux_landuse_change_lc[i];
 					nflux_total += lc.anflux_harvest_slow_lc[i];
 				}
 				if (table_p) {
 					outlimit_misc(out, *table_p,  cflux_total);
+				}
+				if (table_p_N) {
 					outlimit_misc(out, *table_p_N,  nflux_total * M2_PER_HA);
 				}
 			}

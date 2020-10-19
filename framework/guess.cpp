@@ -914,7 +914,7 @@ void Stand::rotate() {
 		int pftid_old = pftid;
 
 		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
-		ManagementType& mt = stlist[stid].get_management(current_rot);
+		ManagementType& mt = get_current_management();
 		pftid = pftlist.getpftid(mt.pftname);
 
 		// If fallow, use old pftid !

@@ -753,7 +753,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	// upper water stress lgp limit
 	const int max_lgp_wstress = 210;
 
-	if (stlist[patch.stand.stid].get_management(patch.stand.current_rot).multicrop) {
+	if (stlist[patch.stand.stid].rotation.multicrop) {
 		ppftcrop.hucountend = stepfromdate(date.day, lgp_def_multicrop);
 	}
 	else if (pft.ifsdautumn && temp_sdate) {

@@ -1344,8 +1344,8 @@ public:
 	double nfert;
 	/// Whether grass is grown in fallow
 	bool fallow;
-	/// Double cropping of one crop (e.g. rice)
-	bool multicrop;
+	/// Whether to ignore climate establishment limits
+	bool relaxed_establishment;
 
 	ManagementType() {
 
@@ -1362,7 +1362,7 @@ public:
 		woodharv_frac = -1.0;
 		woodharv_vol = -1.0;
 		fallow = false;
-		multicrop = false;
+		relaxed_establishment = false;
 	}
 
 	// Copy constructor
@@ -1375,12 +1375,13 @@ public:
 		hdate = from.hdate;
 		nfert = from.nfert;
 		fallow = from.fallow;
+		relaxed_establishment = from.relaxed_establishment;
 	}
 
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || relaxed_establishment || nfert > -1.0)
 			return true;
 		else
 			return false;
@@ -1467,10 +1468,13 @@ struct CropRotation {
 	int ncrops;
 	/// First rotation year
 	int firstrotyear;
+	/// Double cropping of one crop (e.g. rice)
+	bool multicrop;
 
 	CropRotation() {
 		ncrops = 0;
 		firstrotyear = 0;
+		multicrop = false;
 	}
 };
 
@@ -4440,6 +4444,10 @@ public:
 	*  \returns reference to the new stand
 	*/
 	Stand& clone(StandType& st, double fraction);
+
+	inline ManagementType& get_current_management() {
+		return stlist[stid].get_management(current_rot);
+	}
 
     /// Creates a duplicate stand with a new landcovertype
     /** The new stand is added to this stand's gridcell.

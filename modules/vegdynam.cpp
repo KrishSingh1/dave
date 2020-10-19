@@ -105,7 +105,9 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	//   tcmax_est   = maximum coldest month mean temperature for the last 20 years
 	//   twmin_est   = minimum warmest month mean temperature
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
-	if (!patch.managed && (climate.mtemp_min20 < pft.tcmin_est ||
+	ManagementType& mt = patch.stand.get_current_management();
+
+	if (!mt.relaxed_establishment && (climate.mtemp_min20 < pft.tcmin_est ||
 		climate.mtemp_min20 > pft.tcmax_est ||
 		climate.mtemp_max < pft.twmin_est ||
 		climate.agdd5 < pft.gdd5min_est)) return false;

@@ -245,9 +245,11 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 	Stand& stand = indiv.vegetation.patch.stand;
 	Landcover& lc = stand.get_gridcell().landcover;
 	lc.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-	lc.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 	lc.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-	lc.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	if(stand.lc_origin < NLANDCOVERTYPES) {
+		lc.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		lc.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	}
 }
 
 /// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
@@ -279,7 +281,7 @@ void clearcut(Individual& indiv, double anpp, bool& killed) {
 double cut_fraction(Patch& patch) {
 
 	Stand& stand = patch.stand;
-	xtring harvest_system = stlist[stand.stid].get_management(stand.current_rot).harvest_system;
+	xtring harvest_system = stand.get_current_management().harvest_system;
 	if(harvest_system == "")
 		return 0.0;
 
@@ -1314,15 +1316,15 @@ void crop_rotation(Stand& stand) {
 		}
 
 		// Adds sowing and harvest dates for the second crop in a double cropping system
-		if (stlist[stand.stid].get_management(stand.current_rot).multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
+		if (rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
 			if (stand.pft[stand.pftid].sdate_force < 0)
 				stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
 			if (stand.pft[stand.pftid].hdate_force < 0) {
 				stand.pft[stand.pftid].hdate_force = stepfromdate(stand.pft[old_pftid].sdate_force, -10);
-			}
+				}
 		}
 
-		if(stlist[stand.stid].get_management(stand.current_rot).fallow) {
+		if(stand.get_current_management().fallow) {
 			stand.infallow = true;
 			stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
 		}

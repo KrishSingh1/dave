@@ -505,8 +505,8 @@ pft "BNS" (
 	tcmax_est -2
 	twmin_est -1000		! no limit
 	twminusc 43		! AA from TH 03-11 added this
-	gdd5min_est 350		! Stefan added new value, old 500
-	phengdd5ramp 100	! Stefan added new value, old 200
+	gdd5min_est 350		! Original value 500
+	phengdd5ramp 100	! Original value 200
 	longevity 300
 	fireresist 0.3
 	eps_iso 8.0
@@ -783,8 +783,8 @@ pft "BLSE" (
 	gdd5min_est 100
 	fireresist 0.12
 
-	drought_tolerance 0.1 	! PaulM -  < Pinus
-	!gdd0_min 300		! orig is 300, change based on CAVM region simulations
+	drought_tolerance 0.1
+	!gdd0_min 300		! Original value 300, change based on CAVM region simulations
 	nuptoroot 0.0028
 
 	! BVOC values
@@ -808,15 +808,15 @@ pft "BLSS" (
 	summergreen
 	shade_intolerant
 
-	tcmin_surv -40		! orig is -32,5, change, based on the CAVM region
-	tcmin_est -40		! orig is -32,5, change, based on the CAVM region
+	tcmin_surv -40		! Original value -32,5, change, based on the CAVM region
+	tcmin_est -40		! Original value -32,5, change, based on the CAVM region
 	tcmax_est 1000
 	twmin_est -1000
 	gdd5min_est 100
 	phengdd5ramp 50
 	fireresist 0.12
 
-	drought_tolerance 0.1 	! PaulM -  < Pinus
+	drought_tolerance 0.1
 	!gdd0_min 300
 
 	! Found on the driest peatlands, or raised hummocks

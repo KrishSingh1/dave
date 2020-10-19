@@ -1161,6 +1161,8 @@ void growth(Stand& stand, Patch& patch) {
 
 		// For this individual
 
+		cmass_excess = 0.0;
+
 		// Calculate vegetation carbon and nitrogen mass before growth to determine vegetation C:N ratios
 		indiv.cmass_veg = indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 		indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
@@ -1254,7 +1256,7 @@ void growth(Stand& stand, Patch& patch) {
 			}
 
 			// All yearly harvest events
-			killed = harvest_year(indiv);
+			killed = harvest_year(indiv, indiv.anpp - cmass_excess);
 
 			if (!killed) {
 
@@ -1319,8 +1321,6 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Heartwood
 					indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
-
-					indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);
 
 					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
 					// (1.0 - nreloctrac) will go to storage

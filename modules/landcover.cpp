@@ -1724,7 +1724,7 @@ int copy_stand_type_from_stand(int stid_donor, int stid_receptor) {
 	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
 
 		if(landcover_receptor == FOREST || landcover_receptor == NATURAL) {
-			if(stlist[stid_receptor].get_management().harvest_system == "CONTINUOUS")
+			if(!stlist[stid_receptor].cutfirstyear)
 				copy_type = CLONESTAND;	// or CLONESTAND_KILLTREES/NEWSTAND_KILLALL for clearcut
 			else
 				copy_type = NONEWSTAND;
@@ -1877,17 +1877,21 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 								harvest_pasture(indiv, indiv.pft, indiv.alive, true);
 
 							if(!standpft.active) {
-								// Treatment of pft individuals not allowed to grow anymore in the new stand:
-								// Clearcut
-//								harvest_wood(indiv, 1.0, 0.9, 0.4, 0.1, true);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
-								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, true);	// Parameters as in donor_stand_change
-								// Grass killed, C+N goes to soil
-								kill_remaining_vegetation(indiv, false, true);
-								vegetation.killobj();
+								if(stlist[new_stand.stid].cutfirstyear_nonsel) {
+									// Treatment of pft individuals not allowed to grow anymore in the new stand:
+									// Clearcut
+									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, true);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+									// Grass killed, C+N goes to soil
+									kill_remaining_vegetation(indiv, false, true);
+									vegetation.killobj();
+								}
+								else {
+									// Set remaining pft:s outside of selection to active
+									standpft.active = true;
+								}
 							}
 							else if(copy_type == CLONESTAND_KILLTREES && indiv.pft.lifeform != GRASS) {
-//								harvest_wood(indiv, 1.0, 0.9, 0.4, 0.1, true);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
-								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, true);
+								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, true);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
 								vegetation.killobj();
 							}
 							else

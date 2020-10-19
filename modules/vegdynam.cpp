@@ -33,6 +33,9 @@
 #include "driver.h"
 
 
+/// Fixed plantsize in tree planting after clearcut
+const double PLANTSIZE = 0.01;
+
 /// Upper LAI limit for wetland species. No limit: 0 //TODO remove this after daily allocation.
 const double wetlandlailimit = 2.0;
 
@@ -105,18 +108,27 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	//   tcmax_est   = maximum coldest month mean temperature for the last 20 years
 	//   twmin_est   = minimum warmest month mean temperature
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
+	// Special rules for forestry after clearcut
 	ManagementType& mt = patch.stand.get_current_management();
+	bool pft_selection = mt.pftinselection((const char*)pft.name) || mt.planting_system == "MONOCULTURE" && mt.pftname == pft.name;
 
-	if (!mt.relaxed_establishment && (climate.mtemp_min20 < pft.tcmin_est ||
+	// Bypass temperature limits of establishment for selected species
+	bool relaxed_establishment = mt.relaxed_establishment && pft_selection;
+
+	if (!relaxed_establishment && (climate.mtemp_min20 < pft.tcmin_est ||
 		climate.mtemp_min20 > pft.tcmax_est ||
 		climate.mtemp_max < pft.twmin_est ||
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
-	if (!iftwolayersoil) {
+	if (!relaxed_establishment && !iftwolayersoil) {
 		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
 		if (((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0)<pft.min_snow ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
+
+	// Bypass all environmental limits except temperature for selected tree species after clearcut
+	if(patch.plant_this_year && (pft_selection || !stlist[patch.stand.stid].restrictpfts))
+		return true;
 
 	if(patch.stand.landcover != CROPLAND) {
 		if (vegmode != POPULATION && patch.par_grass_mean < pft.parff_min) return false;
@@ -425,6 +437,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	const bool establish_active_pfts_before_management = true;
 
+	ManagementType& mt = patch.stand.get_current_management();
+	if(patch.plant_this_year && mt.set_planting_density && mt.planting_system != "") {
+		planting(patch);
+	}
+
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -433,7 +450,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		Pft& pft=pftlist.getobj();
 		Standpft& standpft=stand.pft[pft.id];
 
-		bool force_planting = patch.plant_this_year && standpft.plant;
+		// Force planting if planting() not used
+		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management)
 			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
@@ -459,7 +477,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		bool init_clone = date.year == stand.clone_year && pft.landcover == stand.landcover;
 
 		// No grass establishment during planting year
-		bool force_planting = patch.plant_this_year && standpft.plant;
+		// Force planting if planting() not used
+		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management)
 			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
@@ -681,7 +700,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			// Reset running sums for next year (establishment years only in cohort mode)
 
-			if (vegmode!=COHORT || !(patch.age%estinterval) && !patch.plant_this_year) {
+			if (vegmode!=COHORT || !(patch.age%estinterval)) {
 				patch.pft[pft.id].nsapling=0.0;
 				patch.pft[pft.id].wscal_mean_est=0.0;
 				patch.pft[pft.id].anetps_ff_est=0.0;
@@ -1502,6 +1521,52 @@ void disturbance(Patch& patch, double disturb_prob) {
 	else patch.disturbed = false;
 }
 
+/// PLANTING
+// Planting of trees in managed forest
+
+void planting(Patch& patch) {
+
+	double ltor;
+	Stand& stand = patch.stand;
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft = pftlist.getobj();
+
+		ManagementType& mt = patch.stand.get_current_management();
+		bool pft_selection = mt.pftinselection((const char*)pft.name) || mt.planting_system == "MONOCULTURE" && mt.pftname == pft.name;
+
+		if(pft_selection) {
+
+			Standpft& spft = stand.pft[pft.id];
+			// plants per ha., could be modified by stand productivity
+			double plantnumber = 1000;	// temporary default value if not specified for pft
+			if(spft.plantdensity >= 0.0)
+				plantnumber = spft.plantdensity;
+			else if(pft.plantnumber)
+				plantnumber = pft.plantnumber;
+
+			if(plantnumber) {
+				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
+
+				indiv.densindiv = plantnumber / 10000.0;
+				ltor = patch.pft[pft.id].wscal_mean*pft.ltor_max;
+				allocation_init(PLANTSIZE, ltor, indiv);
+				allometry(indiv);
+
+				// Calculate storage pool size
+				indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
+				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / PLANTSIZE;
+			}
+		}
+
+		patch.pft[pft.id].nsapling=0.0;
+		patch.pft[pft.id].wscal_mean_est=0.0;
+		patch.pft[pft.id].anetps_ff_est=0.0;
+
+		pftlist.nextobj();
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // VEGETATION DYNAMICS
@@ -1559,7 +1624,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 										   date.year >= patch.soil.solvesomcent_beginyr &&
 										   date.year <= patch.soil.solvesomcent_endyr;
 
-			if (patch.age && !during_century_solvesom && date.year != stand.clone_year) {
+			if (patch.age && !during_century_solvesom) {
 				disturbance(patch,1.0 / distinterval);
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year
@@ -1575,6 +1640,15 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	}
 
 	patch.age++;
+
+	for (unsigned int i=0; i<patch.vegetation.nobj; i++) {
+
+		Individual& indiv = patch.vegetation[i];
+		if(indiv.pft.lifeform == TREE) {
+			indiv.cmass_wood_inc_5.add(indiv.cmass_wood() - indiv.cmass_wood_old);
+			indiv.cmass_wood_old = indiv.cmass_wood();
+		}
+	}
 }
 
 

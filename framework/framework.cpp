@@ -80,6 +80,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 		dailyaccounting_stand(stand);
 
+		if(run_landcover && date.day == 0)
+			forest_rotation(stand);
+
 		stand.firstobj();
 		while (stand.isobj) {
 

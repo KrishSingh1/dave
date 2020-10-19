@@ -516,7 +516,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			}
 		}
 
-		// Reset fluxes for all patches
+		// Reset fluxes and management variables for all patches
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before
 		// landcover_dynamics because harvest flux is generated there.
@@ -535,8 +535,21 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
 				patch.anfert = 0.0;
+				patch.man_strength = 0.0;
+				patch.harvest_to_litter = false;
+				patch.clearcut_this_year = false;
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
+				patch.distributed_cutting = false;
+
+				Vegetation& vegetation = patch.vegetation;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv = vegetation.getobj();
+					indiv.man_strength = 0.0;
+					vegetation.nextobj();
+				}
+
 				stand.nextobj();
 			}
 

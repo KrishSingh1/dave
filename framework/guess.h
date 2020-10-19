@@ -1379,6 +1379,8 @@ public:
 	double woodharv_vol;
 	/// Nitrogen fertilisation amount, unless Nfert_read read from file
 	double nfert;
+	/// Tillage intensity
+	double tillage_int;
 	/// Whether grass is grown in fallow
 	bool fallow;
 	/// Whether to ignore climate establishment limits
@@ -1413,6 +1415,7 @@ public:
 		sdate = -1;
 		hdate = -1;
 		nfert = -1.0;
+		tillage_int = 0.0;
 		woodharv_frac = -1.0;
 		woodharv_vol = -1.0;
 		fallow = false;

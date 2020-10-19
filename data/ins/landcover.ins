@@ -9,6 +9,7 @@
 !
 
 param "file_lu"      (str "")
+param "file_grossLUC" (str "")
 param "file_lucrop"  (str "")
 param "file_lupasture"  (str "")
 param "file_lunatural"  (str "")
@@ -107,6 +108,7 @@ group "crop_stand" (
 	restrictpfts 1			! Use only pft:s specified in stand type
 	planting_system "monoculture"
 	hydrology "rainfed"
+	tillage_int 1
 )
 
 st "Urban" (

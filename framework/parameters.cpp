@@ -920,6 +920,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
 		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
+		declareitem("tillage_int",&pmt->tillage_int,0.0,10.0,1,CB_NONE,"Tillage multiplier of TILLAGE_FACTOR");
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
 		declareitem("relaxed_establishment",&pmt->relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
 		declareitem("suppress_fire",&pmt->suppress_fire,1,CB_NONE,"Whether to suppress fires");
@@ -1009,6 +1010,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
 				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
+				declareitem("tillage_int",&pst->management.tillage_int,0.0,10.0,1,CB_NONE,"Tillage multiplier of TILLAGE_FACTOR");
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
 				declareitem("relaxed_establishment",&pst->management.relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
 				declareitem("suppress_fire",&pst->management.suppress_fire,1,CB_NONE,"Whether to suppress fires");
@@ -1555,7 +1557,7 @@ void plib_callback(int callback) {
 			}
 			if(st.landcover == CROPLAND && 
 				(st.rotation.ncrops == 0 ||
-				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
+				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !(st.get_management(0).fallow && st.rotation.ncrops > 1) ||
 				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
 				st.rotation.ncrops >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
 				fail("Check stand type rotation parameter setting, pftname missing\n");

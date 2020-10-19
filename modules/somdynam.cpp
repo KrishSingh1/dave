@@ -470,9 +470,11 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 				k *= texture_mod;
 		}
 
+		double tillage_fact = (TILLAGE_FACTOR - 1.0) * soil.patch.stand.get_current_management().tillage_int + 1.0;
+
 		// Increased HR for crops (tillage)
 		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
-			k *= TILLAGE_FACTOR;
+			k *= tillage_fact; 
 		}
 
 		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm

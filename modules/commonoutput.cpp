@@ -904,7 +904,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 
 			Standpft& standpft=stand.pft[pft.id];
-			if(standpft.active) {
+
 			// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 			standpft_cmass=0.0;
 			standpft_nmass=0.0;
@@ -1122,8 +1122,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						plot("leaf C:N [kgC/kg N]",pft.name,date.year,mean_standpft_cmass_leaf/mean_standpft_nmass_leaf);
 					}
 				}
-
-			}//if(active)
 			++gc_itr;
 		}//End of loop through stands
 

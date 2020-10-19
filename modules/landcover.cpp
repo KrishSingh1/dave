@@ -2740,7 +2740,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
-	if(!all_fracs_const) {
+	if(!all_fracs_const || !no_changes) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
 		if(lc_changed(gridcell, LCchangeCtransfer, input_module)) {
@@ -2776,7 +2776,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		set_lc_change_array(lc.frac_change, lc.frac_transfer);
 
-		if(gross_land_transfer && !simulate_st)
+		if(gross_land_transfer == 1 && !simulate_st)
 			simulate_gross_lc_transfer(gridcell, lc.frac_transfer);
 		// The lc_frac_transfer-array may contain overshoots if wood harvest with fraction transfer occurred.
 		double dummy;
@@ -2786,7 +2786,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
 
-		if(gross_land_transfer && simulate_st)
+		if(gross_land_transfer == 1 && simulate_st)
 			simulate_gross_st_transfer(gridcell, st_frac_transfer);
 	}
 

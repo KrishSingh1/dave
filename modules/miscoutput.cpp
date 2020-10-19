@@ -483,10 +483,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 
 			Standpft& standpft=stand.pft[pft.id];
-			if (!standpft.active) {
-				++gc_itr;
-				continue;
-			}
+
 			// Sum values across patches and PFTs
 			standpft_cmass=0.0;
 			standpft_nmass=0.0;
@@ -1119,7 +1116,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	if(!printseparatestands)
 		return;
 
-	if (!date.year) {
+	if (!date.year || restart && date.year == state_year) {
 		for(int id=0;id<MAXNUMBER_STANDS;id++) {
 			out_anpp_stand[id] = new Table[nst];
 			out_cmass_stand[id] = new Table[nst];
@@ -1174,7 +1171,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			int id = stand.id;
 			char outfilename[100]={'\0'}, buffer[50]={'\0'};
 
-			sprintf(buffer, "_%.1f_%.1f_%d",lon, lat, id);
+			sprintf(buffer, "_%.2f_%.2f_%d",lon, lat, id);
 			strcat(buffer, ".out");
 
 			// create a vector with the pft names
@@ -1186,8 +1183,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 				 Pft& pft=pftlist.getobj();	 
 				 Standpft& standpft=stand.pft[pft.id];
 
-				 if(standpft.active)
-					 pfts.push_back((char*)pft.name);
+				 pfts.push_back((char*)pft.name);
 
 				 pftlist.nextobj();
 			}

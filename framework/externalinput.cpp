@@ -106,9 +106,18 @@ void LandcoverInput::init() {
 	//Read LUC transitions
 		if(gross_land_transfer == 2) {
 			file_grossLUC=param["file_grossLUC"].str;
-			if(!grossLUC.Open(file_grossLUC, gridlist))
-				fail("initio: could not open %s for input",(char*)file_grossLUC);
+			if(file_grossLUC != "") {
+				if(!grossLUC.Open(file_grossLUC, gridlist))
+					fail("initio: could not open %s for input",(char*)file_grossLUC);
+				all_fracs_const = false;	// needed for some tests with static net land cover fractions
+			}
+			else {
+				gross_land_transfer = 0;
+			}
 		}
+	}
+	else {
+		gross_land_transfer = 0;
 	}
 
 	//Retrieve file name for stand type fraction files and open them if static equal-size values are not used.

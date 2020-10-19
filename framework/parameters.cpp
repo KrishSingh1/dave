@@ -180,8 +180,8 @@ bool Paramlist::isparam(xtring name) {
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
-	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTHYDROLOGY,
-	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
+	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTHYDROLOGY,
+	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
 	CB_FIREMODEL,CB_WEATHERGENERATOR};
 
@@ -910,6 +910,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
 		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
 		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities");
+		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft cmass target fractions");
+		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts");
+		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings");
+		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach target");
+		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
@@ -980,6 +985,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restrictpfts",&pst->restrictpfts,1,CB_NONE,"Whether to only allow pft:s specified in stand type");
 		declareitem("firstmanageyear",&pst->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 		declareitem("firstcutyear",&pst->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+		declareitem("firsttargetyear",&pst->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
+		declareitem("lasttargetyear",&pst->lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
 		declareitem("cutfirstyear",&pst->cutfirstyear,1,CB_NONE,"Whether to clearcut firstmanageyear or first stand year");
 		declareitem("cutfirstyear_nonsel",&pst->cutfirstyear_nonsel,1,CB_NONE,"Whether to cut pft:s outside of selection clone year or first year of new management in a rotation");
 
@@ -992,6 +999,11 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("plantdensity_pft",&pst->management.plantdensity_pft,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
 				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names of management 1");
 				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities of management 1");
+				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft cmass target fractions");
+				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
+				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
+				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach target");
+				declareitem("suppress_second_target",&pst->management.suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
@@ -1181,6 +1193,9 @@ void plib_callback(int callback) {
 	case CB_MTSELECTION:
 		pmt->selection = strparam;
 		break;
+	case CB_MTTARGETFRAC:
+		pmt->targetfrac = strparam;
+		break;
 	case CB_MTHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
@@ -1214,6 +1229,9 @@ void plib_callback(int callback) {
 		break;
 	case CB_STPLANTDENSITY:
 		pst->management.plantdensity = strparam;
+		break;
+	case CB_STTARGETFRAC:
+		pst->management.targetfrac = strparam;
 		break;
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;

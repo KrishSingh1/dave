@@ -17,6 +17,8 @@ void harvest_crop(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool isintercropgr
 void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grs);
 /// Sets forest management for all stands this year
 void manage_forests(Gridcell& gridcell);
+/// Sets management strength for individual trees to achieve prescribed tree pft composition
+void set_forest(Gridcell& gridcell);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.

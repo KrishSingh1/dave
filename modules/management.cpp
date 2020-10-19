@@ -603,6 +603,179 @@ int split_string(char* str) {
 	return count;
 }
 
+// Cut trees to attain pft cmass fraction targets:
+void set_forest(Gridcell& gridcell) {
+
+	const double DEVLIMIT = 0.1;
+
+	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+		Stand& stand = gridcell[s];
+		StandType& st = stlist[stand.stid];
+		ManagementType& mt = stand.get_current_management();
+
+		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
+		if(st.firsttargetyear < 100000)	// Initialised to 1000000; other values set in instruction file.
+			first_targetyear = st.firsttargetyear - date.first_calendar_year;
+
+		if(mt.planting_system != "SELECTION" || mt.targetfrac == "" || date.get_calendar_year() > st.lasttargetyear || date.year < first_targetyear)
+			continue;
+
+		double* target = new double[stand.npftsinselection];
+		memset(target, 0, sizeof(double)*stand.npftsinselection);
+
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			Standpft& spft = stand.pft[pft.id];
+			if(mt.pftinselection((const char*)pft.name))
+				target[spft.selection] = spft.targetfrac;
+			pftlist.nextobj();
+		}
+
+		// Check deviations at stand level:
+		double target_sum_stand = 0.0;
+
+		double* cmass_pft_stand = new double[stand.npftsinselection];
+		memset(cmass_pft_stand, 0, sizeof(double)*stand.npftsinselection);
+		double* cutstr_pft_stand = new double[stand.npftsinselection];
+		memset(cutstr_pft_stand, 0, sizeof(double)*stand.npftsinselection);
+
+		double cmass_unselected_stand = 0.0;
+		double cmass_total_stand = check_harvest_cmass(stand);
+
+		if(!cmass_total_stand)
+			continue;
+
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			for(unsigned int i = 0; i < patch.vegetation.nobj; i++) {
+				Individual& indiv = patch.vegetation[i];
+				Standpft& spft = stand.pft[indiv.pft.id];
+				if(mt.pftinselection((const char*)indiv.pft.name)) {
+					cmass_pft_stand[spft.selection] += check_harvest_cmass(indiv);
+				}
+				else if(indiv.pft.lifeform == TREE) {
+					cmass_unselected_stand += check_harvest_cmass(indiv);
+				}
+			}
+			stand.nextobj();
+		}
+
+		double remove_cmass_selected_stand = 0.0;
+		double cutstr_selected_stand = 0.0;
+
+		for(int i=0;i<stand.npftsinselection;i++) {
+			double remove_cmass_stand = max(0.0, (target[i] * cmass_total_stand - cmass_pft_stand[i]) / (target[i] - 1.0));
+			remove_cmass_selected_stand += remove_cmass_stand;
+			if(cmass_pft_stand[i])
+				cutstr_pft_stand[i] += remove_cmass_stand / cmass_pft_stand[i];
+			cutstr_selected_stand += cutstr_pft_stand[i];
+			target_sum_stand += target[i];
+		}
+		double fraction_unselected_stand = cmass_unselected_stand / cmass_total_stand;
+		double cutstr_unselected_stand = 0.0;
+		double remove_cmass_unselected_stand = max(0.0, ((1.0 - target_sum_stand) * cmass_total_stand - cmass_unselected_stand) / -target_sum_stand);
+		if(cmass_unselected_stand)
+			cutstr_unselected_stand = remove_cmass_unselected_stand / cmass_unselected_stand;
+
+		double cutstr_total_stand = cutstr_selected_stand + cutstr_unselected_stand;	// Equal importance to pft relative deviations in and outside of selection
+//		cutstr_total_stand = (remove_cmass_selected_stand + remove_cmass_unselected_stand) / cmass_total_stand;
+
+
+		// Check deviations at patch level and set man_strength>:
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+
+			double target_sum = 0.0;
+
+			double* cmass_pft = new double[stand.npftsinselection];
+			memset(cmass_pft, 0, sizeof(double)*stand.npftsinselection);
+			double* cutstr_pft = new double[stand.npftsinselection];
+			memset(cutstr_pft, 0, sizeof(double)*stand.npftsinselection);
+
+			double cmass_unselected = 0.0;
+			double cmass_total = check_harvest_cmass(patch); // check_harvest_cmass() gives values / npatch in this section, but this does not affect results
+
+			if(!cmass_total) {
+				stand.nextobj();
+				continue;
+			}
+
+			for(unsigned int i = 0; i < patch.vegetation.nobj; i++) {
+				Individual& indiv = patch.vegetation[i];
+				Standpft& spft = stand.pft[indiv.pft.id];
+				if(mt.pftinselection((const char*)indiv.pft.name)) {
+					cmass_pft[spft.selection] += check_harvest_cmass(indiv);
+				}
+				else if(indiv.pft.lifeform == TREE) {
+					cmass_unselected += check_harvest_cmass(indiv);
+				}
+			}
+
+			double remove_cmass_selected = 0.0;
+			double cutstr_selected = 0.0;
+
+			for(int i=0;i<stand.npftsinselection;i++) {
+				double remove_cmass = max(0.0, (target[i] * cmass_total - cmass_pft[i]) / (target[i] - 1.0));
+				remove_cmass_selected += remove_cmass;
+				if(cmass_pft[i])
+					cutstr_pft[i] = remove_cmass / cmass_pft[i];
+				cutstr_selected += cutstr_pft[i];
+				target_sum += target[i];
+			}
+			double fraction_unselected = cmass_unselected / cmass_total;
+			double cutstr_unselected = 0.0;
+			double remove_cmass_unselected = max(0.0, ((1.0 - target_sum) * cmass_total - cmass_unselected) / -target_sum);
+			if(cmass_unselected)
+				cutstr_unselected = remove_cmass_unselected / cmass_unselected;
+
+			double cutstr_total = cutstr_selected + cutstr_unselected;	// Equal importance to pft relative deviations in and outside of selection
+	//		cutstr_total = (remove_cmass_selected + remove_cmass_unselected) / cmass_total;
+
+			bool suppress_secondary = false;
+			if(mt.suppress_second_target && mt.secondintervalstart > -1 && patch.age >= mt.secondintervalstart)
+				suppress_secondary = true;
+
+			// Modes of cutting:
+			// 1: Cut when patch fraction deviations > DEVLIMIT, use patch overshoot values (default)
+			// 2: Cut when stand fraction deviations > DEVLIMIT, use patch overshoot values 
+			// 3: Cut when stand fraction deviations > DEVLIMIT, use stand overshoot values
+
+			int cutvariant = mt.targetcutmode;
+
+			double cutstr_total_use = cutstr_total;
+			double cutstr_unselected_use = cutstr_unselected;
+			double *cutstr_pft_use = cutstr_pft;
+
+
+			if(cutvariant > 1)
+				cutstr_total_use = cutstr_total_stand;
+			if(cutvariant == 3) {
+				cutstr_unselected_use = cutstr_unselected_stand;
+				cutstr_pft_use = cutstr_pft_stand;
+			}
+	
+			if(cutstr_total_use > DEVLIMIT && patch.age >= mt.targetstartage && !(patch.age % mt.targetcutinterval) && !patch.distributed_cutting && !patch.clearcut_this_year && !suppress_secondary)
+				distribute_cutting(patch, 2, 0, 3, cutstr_unselected_use, cutstr_pft_use);	// Cut largest trees first
+
+			if(cmass_pft)
+				delete[] cmass_pft;
+			if(cutstr_pft)
+				delete[] cutstr_pft;
+
+			stand.nextobj();
+		}
+		if(target)
+			delete[] target;
+		if(cmass_pft_stand)
+			delete[] cmass_pft_stand;
+		if(cutstr_pft_stand)
+			delete[] cutstr_pft_stand;
+	}
+}
+
 /// Set forest management intensity for all stands this year
 void manage_forests(Gridcell& gridcell) {
 
@@ -624,6 +797,8 @@ void manage_forests(Gridcell& gridcell) {
 		}
 		++gc_itr;
 	}
+
+	set_forest(gridcell);
 
 	Gridcell::iterator gc_itr2 = gridcell.begin();
 	while (gc_itr2 != gridcell.end()) {

@@ -1334,6 +1334,8 @@ public:
 	xtring selection;
 	/// string of pft planting densities
 	xtring plantdensity;
+	/// string of pft target cmass fractions
+	xtring targetfrac;
 	/// Wood cutting interval in years
 	int cutinterval;
 	/// Lower tree diameter limit (cm) for cutting
@@ -1354,6 +1356,14 @@ public:
 	int secondintervalstart;
 	/// Wood cutting interval in years in the contiuous cutting period
 	int secondcutinterval;
+	/// Patch age when target cutting starts
+	int targetstartage;
+	/// Interval of target cuttings
+	int targetcutinterval;
+	/// Mode of deciding when and how much to cut to reach target
+	int targetcutmode;
+	/// Whether to stop cutting to reach pft fraction targets when continuous period starts
+	bool suppress_second_target;
 
 	/// hydrology (RAINFED,IRRIGATED) 
 	hydrologytype hydrology;
@@ -1389,6 +1399,11 @@ public:
 		plantdensity_pft = -1;
 		selection = "";
 		plantdensity = "";
+		targetfrac = "";
+		targetstartage = 10;
+		targetcutinterval = 5;
+		targetcutmode = 1;
+		suppress_second_target = false;
 		cutinterval = 0;
 		secondintervalstart = -1;
 		secondcutinterval = 0;
@@ -1426,6 +1441,11 @@ public:
 		pftname = from.pftname;
 		selection = from.selection;
 		plantdensity = from.plantdensity;
+		targetfrac = from.targetfrac;
+		targetstartage = from.targetstartage;
+		targetcutinterval = from.targetcutinterval;
+		targetcutmode = from.targetcutmode;
+		suppress_second_target = from.suppress_second_target;
 		cutinterval = from.cutinterval;
 		secondintervalstart = from.secondintervalstart;
 		secondcutinterval = from.secondcutinterval;
@@ -1582,6 +1602,10 @@ public:
 	int firstmanageyear;
 	/// First year with wood harvest
 	int firstcutyear;
+	/// When to start cutting to reach target fractions
+	int firsttargetyear;
+	/// When to stop cutting to reach target fractions
+	int lasttargetyear;
 	/// Whether to clearcut first management year or first stand year
 	bool cutfirstyear;
 	/// Whether to cut pft:s outside of selection clone year or first year of new management in a rotation (if reestab "restricted" or "none")
@@ -1604,6 +1628,8 @@ public:
 		reestab = "ALL";
 		firstmanageyear = 100000;
 		firstcutyear = 100000;
+		firsttargetyear = 100000;
+		lasttargetyear = 100000;
 		cutfirstyear = true;
 		cutfirstyear_nonsel = false;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)
@@ -4382,6 +4408,8 @@ public:
 	bool reestab;
 	/// plants per ha
 	double plantdensity;
+	/// target cmass fraciton
+	double targetfrac;
 
 	/// Whether this PFT is irrigated in this stand
 	bool irrigated;
@@ -4401,6 +4429,7 @@ public:
 		plant = false;
 		reestab = false;
 		plantdensity = -1;
+		targetfrac = 0;
 		irrigated = false;
 		sdate_force = -1;
 		hdate_force = -1;

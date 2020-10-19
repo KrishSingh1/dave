@@ -636,6 +636,7 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& plant
 		& reestab
 		& plantdensity
+		& targetfrac
 		& irrigated;
 }
 
@@ -824,18 +825,20 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 void Stand::set_selection_params() {
 
 	ManagementType& mt = get_current_management();
-	char selection_cp[200] = {0}, plantdensity_cp[200] = {0};
-	char *p_sel = selection_cp, *p_dens = plantdensity_cp;
-	int count_sel = 0, count_dens = 0;
+	char selection_cp[200] = {0}, plantdensity_cp[200] = {0}, targetfrac_cp[200] = {0};
+	char *p_sel = selection_cp, *p_dens = plantdensity_cp, *p_frac = targetfrac_cp;
+	int count_sel = 0, count_dens = 0, count_frac = 0;
 
 	strcpy(selection_cp, mt.selection);
 	strcpy(plantdensity_cp, mt.plantdensity);
+	strcpy(targetfrac_cp, mt.targetfrac);
 
 	count_sel = split_string(selection_cp);
 	count_dens = split_string(plantdensity_cp);
+	count_frac = split_string(targetfrac_cp);
 	npftsinselection = count_sel;
 
-	if(count_dens && count_dens != count_sel)
+	if(count_dens && count_dens != count_sel || count_frac && count_frac != count_sel)
 		fail("Selection parameter number must correspond to number in selection\n");
 
 	for(int i=0;i<count_sel;i++) {
@@ -846,7 +849,10 @@ void Stand::set_selection_params() {
 			spft.plantdensity = strtod(p_dens, NULL);
 			p_dens += strlen(p_dens) + 1;
 		}
-		
+		if(count_frac) {
+			spft.targetfrac = strtod(p_frac, NULL);
+			p_frac += strlen(p_frac) + 1;
+		}				
 	}
 }
 

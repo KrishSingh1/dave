@@ -141,7 +141,7 @@ rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.tx
 
 # Fire-related benchmarks
 
-gfed40_data=${DATAPATH}/2020_08_24/fire/gfed4.0/gfed40_c-emissions_1997-2016.dat
+gfed40_data=${DATAPATH}/2020_08_24/fire/gfed40_c-emissions_1997-2016.dat
 tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.txt
 joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.txt
 
@@ -191,7 +191,6 @@ done
 # append regional descriptions
 echo ""  >> tot_cflux_reg_glob.txt 
 echo "Description of regions" >> tot_cflux_reg_glob.txt 
-#awk '(FNR>1 && $1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
 awk '($1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
 describe_textfile tot_cflux_reg_glob.txt "Fire C-emissions (1997-2016 average) per GFED region: LPJ-GUESS vs GFED. Units: Tg C/y"
 

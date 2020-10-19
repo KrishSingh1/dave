@@ -34,7 +34,7 @@ TU=0.13        # Tundra
 
 # Perform averaging over Liu time  
 tslice cmass.out -f 1993 -t 2012 -o cmass1993-2012.txt
-tslice ${DATAPATH}/benchmark_data/2019-04-29/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.txt
+tslice ${DATAPATH}/2020_08_24/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.txt
 tslice lai.out   -f 1993 -t 2012 -o lai_1993-2012.txt
 
 # Remove crops and pasture from lai.out (i.e. use only first 14 cols + Total!)

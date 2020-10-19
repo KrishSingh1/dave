@@ -4349,7 +4349,9 @@ public:
 	/// pointer to array of fractions transferred from this stand to other stand types
 	double *transfer_area_st;
 	/// land cover origin of this stand
-	landcovertype origin;
+	landcovertype lc_origin;
+	/// stand type origin of this stand
+	int st_origin; 
 	/// used for output from separate stands
 	double anpp;
 	/// used for output from separate stands
@@ -4418,7 +4420,7 @@ public:
 	/// Returns area transferred to other land cover during land cover change
 	double transfer_area_lc(landcovertype to);
 	/// Initiates new stand land cover settings
-	void init_stand_lu(StandType& st, double fraction);
+	void init_stand_lu(StandType& st, double fraction, bool suppress_disturbance = false);
 	/// Total stand carbon biomass and litter
 	double ccont(double scale_indiv = 1.0);
 	/// Total stand nitrogen biomass and litter
@@ -4438,6 +4440,13 @@ public:
 	*  \returns reference to the new stand
 	*/
 	Stand& clone(StandType& st, double fraction);
+
+    /// Creates a duplicate stand with a new landcovertype
+    /** The new stand is added to this stand's gridcell.
+     *
+     *  \returns reference to the new stand
+     */
+    Stand& clone(StandType& st, double fraction, bool suppress_disturbance = false);
 
 	void serialize(ArchiveStream& arch);
 
@@ -4865,7 +4874,7 @@ public:
 	Stand& create_stand(landcovertype lc, int no_patch = 0);
 
 	/// Creates new stand and initiates land cover settings when run_landcover==true
-	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0);
+	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0, bool suppress_disturbance = false);
 
 	/// Total gridcell carbon biomass and litter
 	double ccont();

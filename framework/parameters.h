@@ -237,6 +237,9 @@ extern int transfer_level;
 // Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 extern bool iftransfer_to_new_stand;
 
+// Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()
+extern bool suppress_disturbance_in_forestry_stands;
+
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 

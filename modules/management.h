@@ -22,7 +22,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 /// Harvest function for pasture, representing grazing.
-void harvest_pasture(Individual& indiv, Pft& pft, bool alive);
+void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change = false);
 /// Harvest function for managed forest
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
 /// Transfers all carbon and nitrogen from living tissue to litter.

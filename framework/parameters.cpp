@@ -98,6 +98,7 @@ bool ifprimary_to_secondary_transfer = false;
 int transfer_level;
 bool ifdyn_phu_limit;
 bool iftransfer_to_new_stand;
+bool suppress_disturbance_in_forestry_stands;
 int nyear_dyn_phu;
 int nyear_spinup;
 bool textured_soil;
@@ -551,6 +552,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
+		declareitem("suppress_disturbance_in_forestry_stands",&suppress_disturbance_in_forestry_stands,1,CB_NONE,"Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
@@ -1298,6 +1300,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("harvest_secondary_to_new_stand")) badins("harvest_secondary_to_new_stand");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
+			if (!itemparsed("suppress_disturbance_in_forestry_stands")) badins("suppress_disturbance_in_forestry_stands");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if(run[CROPLAND]) {

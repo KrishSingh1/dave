@@ -1741,6 +1741,10 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 
 void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
+	// Ignore harvest on "non-forested" land
+	bool ignore_non_forest_harvest = false;
+	// Ignore all wood harvest on gridcells with smaller average cmass_wood than limit
+	const double CMASS_WOOD_LIMIT = 0.1;
 	int calender_year = date.get_calendar_year();
 	int firsthistyear = landcover_input.getfirsthistyear();
 
@@ -1749,6 +1753,23 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 	/// Consistent with LUH2 transition input data: read previous year's values.
 	if((calender_year >= firsthistyear + 1)) {
 
+		double cmass_wood = 0.0;
+		int nstands = 0;
+		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+			Stand& stand = gridcell[i];
+			if(stand.landcover == NATURAL) {
+				for(unsigned int j=0;j<stand.nobj;j++) {
+					Patch& patch = stand[j];
+					cmass_wood += patch.cmass_wood() / stand.npatch();
+				}
+				nstands++;
+			}
+		}
+		cmass_wood /= double(nstands);
+
+		if(cmass_wood < CMASS_WOOD_LIMIT)
+			return;
+
 		double frac_transfer;
 		int year = calender_year - 1;
 
@@ -1756,11 +1777,13 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 			// Avoid using same data twice
 			if(!ifprimary_to_secondary_transfer) {
 				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primf_harv")) != NOTFOUND ? frac_transfer : 0.0;
-				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primn_harv")) != NOTFOUND ? frac_transfer : 0.0;
+				if(!ignore_non_forest_harvest)
+					gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primn_harv")) != NOTFOUND ? frac_transfer : 0.0;
 			}
 			gridcell.landcover.wood_harvest.sec_mature_frac += (frac_transfer = woodharv_frac.Get(year,"secmf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 			gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secyf_harv")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			if(!ignore_non_forest_harvest)
+				gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 		if(woodharv_vol.isloaded()) {
 

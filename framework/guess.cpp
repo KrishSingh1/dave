@@ -644,7 +644,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
    gridcell(gc),
    soiltype(st),
    landcover(landcoverX),
-   origin(landcoverX),
+   lc_origin(landcoverX),
    frac(1.0) {
 
 	// Constructor: initialises reference member of climate and
@@ -719,7 +719,7 @@ double Stand::get_gridcell_fraction() const {
   * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
   * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted" - only planted pft:s
   */
-void Stand::init_stand_lu(StandType& st, double fraction) {
+void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturbance) {
 
 	landcovertype lc = st.landcover;
 	landcover = lc;
@@ -729,6 +729,7 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 	frac_old = 0.0;
 	frac_change = fraction;
 	gross_frac_increase = fraction;
+	st_origin = st.id;
 
 	bool naturalveg = st.naturalveg == "ALL";
 	bool naturalgrass = st.naturalveg == "ALL" || st.naturalveg == "GRASSONLY";
@@ -754,7 +755,7 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 		pftlist.nextobj();
 	}
 
-	if(date.get_calendar_year() >= st.firstmanageyear) {
+	if(suppress_disturbance || date.get_calendar_year() >= st.firstmanageyear) {
 		for(unsigned int i=0;i<npatch();i++)
 			(*this)[i].managed = true;
 	}
@@ -1013,7 +1014,7 @@ bool Stand::is_true_wetland_stand() const {
 	return landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT;
 }
 
-Stand& Stand::clone(StandType& st, double fraction) {
+Stand& Stand::clone(StandType& st, double fraction, bool suppress_disturbance) {
 
 	// Serialize this stand to an in-memory stream
 	std::stringstream ss;
@@ -1032,13 +1033,14 @@ Stand& Stand::clone(StandType& st, double fraction) {
 	new_stand.clone_year = date.year;
 //	new_stand.seed = new_seed;	// ?
 
-	// Set land use settings for new stand
-	new_stand.init_stand_lu(st, fraction);
-
+	// reset managed before setting in init_stand_lu()
 	for (unsigned int p = 0; p < nobj; p++) {
 //		new_stand[p].age = 0;				// probably not what we want
 		new_stand[p].managed = false;		// or use value of mother stand ?
 	}
+
+	// Set land use settings for new stand
+	new_stand.init_stand_lu(st, fraction, suppress_disturbance);
 
 	return new_stand;
 }
@@ -1093,7 +1095,8 @@ void Stand::serialize(ArchiveStream& arch) {
 		& hasgrassintercrop
 		& gdd5_intercrop
 		& cloned
-		& origin
+		& lc_origin
+		& st_origin
 		& landcover
 		& seed;
 }
@@ -2279,10 +2282,10 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 	lat = latitude;
 }
 
-Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch) {
+Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, bool suppress_disturbance) {
 
 	Stand& stand = create_stand(st.landcover, no_patch);
-	stand.init_stand_lu(st, fraction);
+	stand.init_stand_lu(st, fraction, suppress_disturbance);
 
 	return stand;
 }

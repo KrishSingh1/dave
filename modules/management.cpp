@@ -245,9 +245,9 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 	Stand& stand = indiv.vegetation.patch.stand;
 	Landcover& lc = stand.get_gridcell().landcover;
 	lc.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-	lc.acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+	lc.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 	lc.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-	lc.anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	lc.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 }
 
 /// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
@@ -506,7 +506,7 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
  *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
  */
-void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
+void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
 
 	Harvest_CN indiv_cp;
 
@@ -514,8 +514,15 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
 
 	harvest_pasture(indiv_cp, pft, alive);
 
-	indiv_cp.copy_to_indiv(indiv);
+	indiv_cp.copy_to_indiv(indiv, false, lc_change);
 
+	if(lc_change) {
+		Stand& stand = indiv.vegetation.patch.stand;
+		stand.get_gridcell().landcover.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	}
 }
 
 /// Harvest function for cropland, including true crops, intercrop grass
@@ -988,9 +995,9 @@ void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 		Stand& stand = indiv.vegetation.patch.stand;
 		Landcover& lc = stand.get_gridcell().landcover;
 		lc.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		lc.acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		lc.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		lc.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-		lc.anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		lc.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 	}
 
 }

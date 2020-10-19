@@ -837,13 +837,15 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	}
 
 	if(ifprimary_lc_transfer) {
-		lc.primary_frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.primary_frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.primary_frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+
 		// Use transitions from virgin to secondary natural land.
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
-			lc.primary_frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 	}
 
@@ -857,7 +859,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	}
 
 	// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
-	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.primary_frac_transfer, tot_frac_ch);
+	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_frac_transfer_s, tot_frac_ch);
 
 	if(largerthanzero(tot_frac_ch, -14))
 		return true;
@@ -866,7 +868,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 }
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
-void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES], double& tot_frac_ch) {
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch) {
 
 	const bool print_adjustment_info = false;
 	bool error = false;
@@ -906,12 +908,18 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 	// Save forest class percentages before correcting transitions
 
 	double prim_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
+	double sec_young_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
+
+	memset(prim_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+	memset(sec_young_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
+
 		for(int to=0; to<NLANDCOVERTYPES; to++) {
-			prim_ratio[from][to] = 0.0;
+
 			if(lc_frac_transfer[from][to]) {
-				prim_ratio[from][to] = primary_lc_frac_transfer[from][to] / lc_frac_transfer[from][to];
+				prim_ratio[from][to] = forest_lc_frac_transfer_s.primary[from][to] / lc_frac_transfer[from][to];
+				sec_young_ratio[from][to] = forest_lc_frac_transfer_s.secondary_young[from][to] / lc_frac_transfer[from][to];
 			}
 		}
 	}
@@ -1527,8 +1535,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 	}
 	// Adjust primary land fractions
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
-		for(int to=0; to<NLANDCOVERTYPES; to++)
-			primary_lc_frac_transfer[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
+		for(int to=0; to<NLANDCOVERTYPES; to++) {
+			forest_lc_frac_transfer_s.primary[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
+			forest_lc_frac_transfer_s.secondary_young[from][to] = sec_young_ratio[from][to] * lc_frac_transfer[from][to];
+		}
 	}
 }
 
@@ -1748,17 +1758,17 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primn_harv")) != NOTFOUND ? frac_transfer : 0.0;
 			}
-			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secmf_harv")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secyf_harv")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_mature_frac += (frac_transfer = woodharv_frac.Get(year,"secmf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secyf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 		if(woodharv_vol.isloaded()) {
 
 			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
 			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_vol += (frac_transfer = woodharv_frac.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_mature_vol += (frac_transfer = woodharv_frac.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_vol += (frac_transfer = woodharv_frac.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_vol += (frac_transfer = woodharv_frac.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 	}
 }

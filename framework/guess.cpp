@@ -2231,7 +2231,6 @@ Landcover::Landcover() {
 
 		for(int j=0;j<NLANDCOVERTYPES;j++) {
 			frac_transfer[i][j] = 0.0;
-			primary_frac_transfer[i][j] = 0.0;
 		}
 
 		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);

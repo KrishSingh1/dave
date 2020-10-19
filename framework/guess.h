@@ -563,19 +563,22 @@ public:
 };
 
 /// Struct containing wood harvest information
-class Wood_harvest_struct {
+struct Wood_harvest_struct {
 
-public:
 	double prim_frac;
 	double prim_vol;
-	double sec_frac;
-	double sec_vol;
+	double sec_mature_frac;
+	double sec_mature_vol;
+	double sec_young_frac;
+	double sec_young_vol;
 
 	void zero() {
 		prim_frac = 0.0;
 		prim_vol = 0.0;
-		sec_frac = 0.0;
-		sec_vol = 0.0;
+		sec_mature_frac = 0.0;
+		sec_mature_vol = 0.0;
+		sec_young_frac = 0.0;
+		sec_young_vol = 0.0;
 	}
 };
 
@@ -4648,6 +4651,45 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+struct forest_lc_frac_transfer {
+
+	double primary[NLANDCOVERTYPES][NLANDCOVERTYPES];
+	double secondary_young[NLANDCOVERTYPES][NLANDCOVERTYPES];
+
+	forest_lc_frac_transfer() {
+		for(int i=0;i<NLANDCOVERTYPES;i++) {
+			for(int j=0;j<NLANDCOVERTYPES;j++) {
+				primary[i][j] = 0.0;
+				secondary_young[i][j] = 0.0;
+			}
+		}
+	};
+};
+
+struct forest_st_frac_transfer {
+
+	double* primary;
+	double* secondary_young;
+
+	forest_st_frac_transfer(int nst) {
+		primary = new double[nst * nst];
+		secondary_young = new double[nst * nst];
+
+		for(int i=0;i<nst*nst;i++) {
+			primary[i] = 0.0;
+			secondary_young[i] = 0.0;
+		}
+
+	};
+
+	~forest_st_frac_transfer(){
+		if(primary)
+			delete[] primary;
+		if(secondary_young)
+			delete[] secondary_young;
+	}
+};
+
 /// Storage of land cover fraction data and some land cover change-related pools and fluxes
 struct Landcover : public Serializable {
 
@@ -4672,7 +4714,7 @@ struct Landcover : public Serializable {
 
 	/// Transfer matrices
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	double primary_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
+	forest_lc_frac_transfer  forest_lc_frac_transfer_s;
 
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics

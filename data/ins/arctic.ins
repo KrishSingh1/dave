@@ -44,7 +44,7 @@ file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
 !file_nlitter "nlitter.out"
-
+!file_nuptake "nuptake.out"
 file_nflux "nflux.out"
 !file_vmaxnlim "vmaxnlim.out"
 
@@ -67,12 +67,12 @@ file_nflux "nflux.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
-! Soil temperature at 25cm depth
-!file_msoiltempdepth25 "soiltemp25cm.out"
+!file_msoiltempdepth25 "soiltemp25cm.out"	! Soil temperature at 25cm depth
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
+
 !file_msnow "msnowdepth.out"
 !file_mwtp "mwtp.out"
 !file_mald "mald.out"
@@ -81,7 +81,7 @@ file_nflux "nflux.out"
 !file_mburned_area_out "monthly_burned_area.out"
 
 !///////////////////////////////////////////////////////////////////////////////
-!// RUN PARAMETERS AND OPTIONS
+! RUN PARAMETERS AND OPTIONS
 !///////////////////////////////////////////////////////////////////////////////
 
 ! Settings recognised by Plib
@@ -175,7 +175,7 @@ run_landcover 0			! Whether to use (and change) landcover fractions (1) or not (
 
 
 !///////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR STAND TYPES
+! PARAMETERS FOR STAND TYPES
 !///////////////////////////////////////////////////////////////////////////////
 
 group "common_stand" (
@@ -194,8 +194,8 @@ st "Natural" (
 
 
 !///////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR PFTS
-!// Run GUESS with -help option for list of keywords and their meanings
+! PARAMETERS FOR PFTS
+! Run GUESS with -help option for list of keywords and their meanings
 !///////////////////////////////////////////////////////////////////////////////
 
 group "common" (
@@ -421,7 +421,7 @@ group "shade_intolerant" (
 	turnover_sap 0.1
 )
 
-	
+
 pft "BNE" (
 
 	! Boreal needleleaved evergreen tree

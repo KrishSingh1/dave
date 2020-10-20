@@ -4592,13 +4592,6 @@ public:
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_true_wetland_stand() const;
-	
-	/// Creates a duplicate stand with a new landcovertype
-	/** The new stand is added to this stand's gridcell.
-	*
-	*  \returns reference to the new stand
-	*/
-	Stand& clone(StandType& st, double fraction);
 
 	inline ManagementType& get_current_management() {
 		return stlist[stid].get_management(current_rot);

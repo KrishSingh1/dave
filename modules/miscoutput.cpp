@@ -580,9 +580,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					fail("Number of stands to high, increase MAXNUMBER_STANDS for output of individual stands !\n");
 
 				if(!out_anpp_stand[id][stand.stid].invalid())
-					out.add_value(out_anpp_stand[id][stand.stid],      standpft_anpp);
+					outlimit_misc(out, out_anpp_stand[id][stand.stid],      standpft_anpp);
 				if(!out_cmass_stand[id][stand.stid].invalid())
-					out.add_value(out_cmass_stand[id][stand.stid],      standpft_cmass);
+					outlimit_misc(out, out_cmass_stand[id][stand.stid],      standpft_cmass);
 				}
 
 			++gc_itr;
@@ -837,9 +837,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			int id = stand.id;;
 
 			if(!out_anpp_stand[id][stand.stid].invalid())
-				out.add_value(out_anpp_stand[id][stand.stid],      stand.anpp);
+				outlimit_misc(out, out_anpp_stand[id][stand.stid],      stand.anpp);
 			if(!out_cmass_stand[id][stand.stid].invalid())
-				out.add_value(out_cmass_stand[id][stand.stid],      stand.cmass);
+				outlimit_misc(out, out_cmass_stand[id][stand.stid],      stand.cmass);
 
 			++gc_itr;
 		}

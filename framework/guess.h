@@ -570,19 +570,19 @@ public:
 struct Wood_harvest_struct {
 
 	double prim_frac;
-	double prim_vol;
+	double prim_cmass;
 	double sec_mature_frac;
-	double sec_mature_vol;
+	double sec_mature_cmass;
 	double sec_young_frac;
-	double sec_young_vol;
+	double sec_young_cmass;
 
 	void zero() {
 		prim_frac = 0.0;
-		prim_vol = 0.0;
+		prim_cmass = 0.0;
 		sec_mature_frac = 0.0;
-		sec_mature_vol = 0.0;
+		sec_mature_cmass = 0.0;
 		sec_young_frac = 0.0;
-		sec_young_vol = 0.0;
+		sec_young_cmass = 0.0;
 	}
 };
 
@@ -1375,8 +1375,8 @@ public:
 	int hdate;
 	/// Harvested forest area fraction, unless woodharv_frac read from file
 	double woodharv_frac;
-	/// Wood harvest volume, unless woodharv_volume read from file
-	double woodharv_vol;
+	/// Wood harvest C mass for gridcell, unless woodharv_cmass read from file
+	double woodharv_cmass;
 	/// Nitrogen fertilisation amount, unless Nfert_read read from file
 	double nfert;
 	/// Tillage intensity
@@ -1417,7 +1417,7 @@ public:
 		nfert = -1.0;
 		tillage_int = 0.0;
 		woodharv_frac = -1.0;
-		woodharv_vol = -1.0;
+		woodharv_cmass = -1.0;
 		fallow = false;
 		relaxed_establishment = false;
 		suppress_fire = false;
@@ -1458,7 +1458,7 @@ public:
 		hdate = from.hdate;
 		nfert = from.nfert;
 		woodharv_frac = from.woodharv_frac;
-		woodharv_vol = from.woodharv_vol;
+		woodharv_cmass = from.woodharv_cmass;
 		fallow = from.fallow;
 		relaxed_establishment = from.relaxed_establishment;
 		set_planting_density = from.set_planting_density;
@@ -4798,7 +4798,7 @@ public:
 	/// Harvested forest area fraction
 	double woodharv_frac;
 	/// Wood harvest volume
-	double woodharv_vol;
+	double woodharv_cmass;
 	/// Lower tree diameter limit (cm) for cutting (dynamic variable)
 	double diam_limit;
 
@@ -4819,7 +4819,7 @@ public:
 		nstands = 0;
 		nfert = -1.0;
 		woodharv_frac = -1.0;
-		woodharv_vol = -1.0;
+		woodharv_cmass = -1.0;
 		diam_limit = 0.0;
 	}
 

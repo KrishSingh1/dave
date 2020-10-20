@@ -340,6 +340,195 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 	}
 }
 
+bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
+
+	bool frac_changed = false;
+
+	if(!(gridcell.landcover.wood_harvest.prim_cmass + gridcell.landcover.wood_harvest.sec_mature_cmass + gridcell.landcover.wood_harvest.sec_young_cmass))
+		return frac_changed;
+
+	for(int from=0; from<nst; from++) {
+
+		StandType& st = stlist[from];
+		Gridcellst& gcst = gridcell.st[from];
+
+		if(st.landcover == NATURAL) {
+
+/*			Rules for selecting stands:
+
+			natural to natural: young_stands_first=false
+			ifprimary_lc_transfer:
+				secondary mature lap: young_stands_first=false, secondary_harvest=true						(will use old -> young secondary stands over age limit)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
+				secondary young lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
+					restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands before primary stand)
+				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
+					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+
+*/
+			int nlaps = NFORESTCLASSES;
+
+			for(int n=0; n<nlaps; n++) {
+
+				for(int to=0; to<nst; to++) {
+
+					StandType& st_to = stlist[to];
+					Gridcellst& gcst_to = gridcell.st[to];
+					int transfer_index = index(from, to);
+
+					if(st_to.landcover == NATURAL) {
+
+						bool secondary_harvest = false;
+						double st_change_remain = 0.0;	// Biomass (negative)
+
+						bool young_stands_first = true;	//convert area from youngest stands first
+
+						if(st.landcover == NATURAL || st.landcover == FOREST) {
+
+							if(stlist[to].landcover == NATURAL || stlist[to].landcover == FOREST)
+								young_stands_first = false;
+							else
+								young_stands_first = true;
+						}
+
+						if(n == SECONDARY_MATURE) {
+							// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array + secondary_young_st_frac_transfer[index(from, to))
+							st_change_remain = -gridcell.landcover.wood_harvest.sec_mature_cmass;
+							secondary_harvest = true;
+						} else if(n == SECONDARY_YOUNG) {
+							// Then reduce young secondary stands
+							st_change_remain = -gridcell.landcover.wood_harvest.sec_young_cmass;
+							young_stands_first = true;
+							secondary_harvest = true;
+						}
+						else if(n == PRIMARY) {
+							// Finally, reduce primary stands (fraction in primary_st_frac_transfer array)
+							st_change_remain = -gridcell.landcover.wood_harvest.prim_cmass;
+							young_stands_first = false;
+						}
+
+						bool restart = false;
+
+						while(st_change_remain < 0.0) {
+
+							int count_st = 0;
+
+							for(unsigned int i = 0; i < gridcell.size(); i++) {
+								int index;
+
+								double stands_frac_sum = 0.0;
+
+								for(unsigned int j = 0; j < gridcell.nbr_stands(); j++) {
+									Stand& stand = gridcell[j];
+
+									if(stand.stid == st.id)
+										stands_frac_sum += stand.get_gridcell_fraction();
+								}
+
+								if(st_change_remain > -INPUT_RESOLUTION * 0.1 || stands_frac_sum == 0.0) {
+									if(st_change_remain <= -INPUT_RESOLUTION && stands_frac_sum == 0.0)
+										dprintf("\nWarning: year %d: no more wood left in stand type %d ! Residual harvest demand %.15f ignored.\n", date.get_calendar_year(), st.id, -st_change_remain);
+									st_change_remain = 0.0;
+									break;
+								}
+
+								if(young_stands_first)
+									index = gridcell.size() - 1 - i;
+								else
+									index = i;
+
+								Stand& stand = gridcell[index];
+
+								if(stand.stid == st.id) {
+									count_st++;
+									int first_year = max(stand.first_year, stand.clone_year);
+
+									if(secondary_harvest && first_year == 0)
+										continue;
+
+									// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
+									if(date.year - first_year < age_limit_reduce && !reduce_all_stands && !restart) continue;
+						
+									if(stand.get_gridcell_fraction() > 0.0) {
+
+										double harvestable_cmass = check_harvest_cmass(stand);
+
+										//all natural landcover decrease is taken from this stand
+										if(harvestable_cmass >= -st_change_remain) {
+											double change_frac = st_change_remain / harvestable_cmass * stand.get_gridcell_fraction();
+											stand.frac_change += change_frac;
+											stand.gross_frac_decrease -= change_frac;
+											stand.transfer_area_st[to] -= change_frac;
+											stand.set_gridcell_fraction(stand.get_gridcell_fraction() + change_frac);
+											st_frac_transfer[transfer_index] += -change_frac;
+											lc_frac_transfer[NATURAL][NATURAL] += -change_frac;
+											gcst_to.gross_frac_increase -= change_frac;
+											gcst_to.gross_frac_decrease -= change_frac;
+											if(first_year == 0) {
+												forest_st_frac_transfer_s.primary[transfer_index] += -change_frac;
+												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += -change_frac;
+											}
+
+											if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
+												gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
+												gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+												stand.set_gridcell_fraction(0.0);
+											}
+
+											st_change_remain = 0.0;
+											frac_changed = true;
+											break;
+										}
+										//more stands will have to be reduced
+										else {						
+											stand.frac_change -= stand.get_gridcell_fraction();
+											stand.gross_frac_decrease += stand.get_gridcell_fraction();
+											stand.transfer_area_st[to] += stand.get_gridcell_fraction();
+											st_change_remain += harvestable_cmass;
+											st_frac_transfer[transfer_index] += stand.get_gridcell_fraction();
+											lc_frac_transfer[NATURAL][NATURAL] += stand.get_gridcell_fraction();
+											gcst_to.gross_frac_increase += stand.get_gridcell_fraction();
+											gcst_to.gross_frac_decrease += stand.get_gridcell_fraction();
+											if(first_year == 0) {
+												forest_st_frac_transfer_s.primary[transfer_index] += stand.get_gridcell_fraction();
+												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += stand.get_gridcell_fraction();
+											}
+											stand.set_gridcell_fraction(0.0);	//will be killed below
+											frac_changed = true;
+										}				
+									}
+								}
+							}
+
+							// Restart loop and reduce oldest stand first if the rules above precluded reduction of the required area.
+							if(st_change_remain < 0.0) {
+								if(n != SECONDARY_YOUNG)
+									young_stands_first = false;
+								secondary_harvest = false;
+								restart = true;
+							}
+						}		
+					}
+				}
+			}
+		}
+	}
+	for(unsigned int j = 0; j < gridcell.nbr_stands(); j++) {
+		Stand& stand = gridcell[j];
+		StandType& st = stlist[stand.stid];
+		Gridcellst& gcst = gridcell.st[stand.stid];
+
+		if(!gcst.frac && stand.get_gridcell_fraction() < INPUT_RESOLUTION * 100.0) {
+			if(stand.get_gridcell_fraction() > INPUT_RESOLUTION * 10.0)
+				dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", date.year, st.id, stand.get_gridcell_fraction());
+			gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
+			gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+			stand.set_gridcell_fraction(0.0);
+		}
+	}
+	return frac_changed;
+}
+
 /// identifies which stands to expand in area
 /** Updates frac, frac_change, frac_old and gross_frac_increase for expanded stands
  * Should be preceded by a call to reduce_stands() and, optionally, transfer_to_new_stand()
@@ -2748,7 +2937,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
-	if(no_changes) {
+	if(no_changes && !readwoodharvest_cmass) {
 		delete[] st_frac_transfer;
 		return;
 	}
@@ -2820,6 +3009,18 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	// identify which stands to reduce in area
 	// set stand variables frac, frac_old, frac_temp, frac_change and gross_frac_decrease for reduced stands and stand types
 	reduce_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s);
+
+	// Wood harvest cmass input -> fraction harvested
+	if(harvest_secondary_to_new_stand) {
+		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s, lc.frac_transfer, lc.forest_lc_frac_transfer_s) && no_changes) {
+			delete[] st_frac_transfer;
+			return;
+		}
+	}
+	else if(no_changes) {
+		delete[] st_frac_transfer;
+		return;
+	}
 
 	int error = check_fractions2(gridcell, st_frac_transfer);
 	error += check_fractions3(gridcell);

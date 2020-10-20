@@ -99,10 +99,10 @@ private:
 	InData::TimeDataD Nfert_st;
 	InData::TimeDataD NfertMan;
 	InData::TimeDataD woodharv_frac;
-	InData::TimeDataD woodharv_vol;
+	InData::TimeDataD woodharv_cmass;
 
 	/// Files names for management input file
-		xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_vol;
+		xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);

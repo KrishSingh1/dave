@@ -1612,11 +1612,11 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_woodharv_frac);
 			readwoodharvest_frac = true;
 		}
-		file_woodharv_vol = param["file_woodharv_vol"].str;
-		if(	file_woodharv_vol != "")	{
-			if(!woodharv_vol.Open(file_woodharv_vol, gridlist))
-				fail("initio: could not open %s for input",(char*)file_woodharv_vol);
-			readwoodharvest_vol = true;
+		file_woodharv_cmass = param["file_woodharv_cmass"].str;
+		if(	file_woodharv_cmass != "")	{
+			if(!woodharv_cmass.Open(file_woodharv_cmass, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_cmass);
+			readwoodharvest_cmass = true;
 		}
 	}
 
@@ -1671,11 +1671,11 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 			dprintf("Wood harvest fraction data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-	if(readwoodharvest_vol && !LUerror) {
-		if(!woodharv_vol.Load(c)) {
+	if(readwoodharvest_cmass && !LUerror) {
+		if(!woodharv_cmass.Load(c)) {
 				dprintf("Problems with wood harvest volume input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 				LUerror = true;	// skip this stand
-			dprintf("Wood harvest volume data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+			dprintf("Wood harvest cmass data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -1794,13 +1794,14 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 			if(!ignore_non_forest_harvest)
 				gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 		}
-		if(woodharv_vol.isloaded()) {
+		if(woodharv_cmass.isloaded()) {
 
-			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.prim_vol += (frac_transfer = woodharv_frac.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_mature_vol += (frac_transfer = woodharv_frac.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_young_vol += (frac_transfer = woodharv_frac.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_young_vol += (frac_transfer = woodharv_frac.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			// All removed C mass (including branches and attached leaves); kg/m2
+			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_mature_cmass += (frac_transfer = woodharv_cmass.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 	}
 }
@@ -1824,6 +1825,6 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 			getNfert(gridcell);
 	}
 	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct
-	if(readwoodharvest_frac || readwoodharvest_vol)		
+	if(readwoodharvest_frac || readwoodharvest_cmass)		
 		getwoodharvest(gridcell, landcover_input);
 }

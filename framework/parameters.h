@@ -268,7 +268,7 @@ extern bool readNfert_st;
 extern bool readwoodharvest_frac;
 
 /// Whether to use wood harvest volume from input file
-extern bool readwoodharvest_vol;
+extern bool readwoodharvest_cmass;
 
 /// Whether to create new stands at clearcut of secondary stands
 extern bool harvest_secondary_to_new_stand;

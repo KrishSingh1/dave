@@ -1711,7 +1711,7 @@ void add_litter(Soillayer& soillayer, int timestep, int pool, double init_cpool)
 		timestep = timestep % (int)soillayer.solvesom.size();
 
 	// How big the litter pool can grow comparred to the initial size (20%)
-	const double litter_max_size_frac = 1.2;
+	const double litter_max_size_frac = 5.0;
 	double frac_added = 1.0;
 	double clitter_to_add = soillayer.solvesom[timestep].get_clitter(pool);
 
@@ -1731,13 +1731,7 @@ void add_litter(Soillayer& soillayer, int timestep, int pool, double init_cpool)
 void equilsom(Patch& patch) {
 
 	if (!(date.year == patch.soilcolumn.solvesomcent_endyr && date.islastmonth && date.islastday))
-		return;
-
-	// Number of years to run SOM pools, value chosen to get cold climates to equilibrium
-	const int EQUILSOM_YEARS = 40000; //40000
-
-	// Vertical mixing time step (every 1000 year)
-	const int VMTIMESTEP = 1000;
+		return;	
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 	const Climate& climate = soilcolumn.patch.get_climate();
@@ -1749,7 +1743,7 @@ void equilsom(Patch& patch) {
 	std::vector< std::vector<double> > save_litter_nmass(soilcolumn.nsoillayers, std::vector<double>(NSOMPOOL));
 
 	// Number of years with mean input data
-	int nyear = soilcolumn.solvesomcent_endyr - soilcolumn.solvesomcent_beginyr + 1;
+	int EQUILSOM_YEARS = soilcolumn.solvesomcent_endyr - soilcolumn.solvesomcent_beginyr + 1;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -1769,123 +1763,320 @@ void equilsom(Patch& patch) {
 
 			// Monthly average decay rates
 			for (int p = 0; p < NSOMPOOL; p++) {
-				soillayer.sompool[p].mfracremain_mean[m] = pow(min(1.0, soillayer.sompool[p].mfracremain_mean[m] / nyear), (double)date.ndaymonth[m]);
+				soillayer.sompool[p].mfracremain_mean[m] = pow(min(1.0, soillayer.sompool[p].mfracremain_mean[m] / EQUILSOM_YEARS), (double)date.ndaymonth[m]);
 			}
 
 			// Monthly average mineral nitrogen uptake
-			soillayer.fNH4uptake_mean[m] /= nyear;
-			soillayer.fNO3uptake_mean[m] /= nyear;
+			soillayer.fNH4uptake_mean[m] /= EQUILSOM_YEARS;
+			soillayer.fNO3uptake_mean[m] /= EQUILSOM_YEARS;
 
 			// Monthly average organic carbon and nitrogen leaching
-			soillayer.morgleach_mean[m] /= nyear;
+			soillayer.morgleach_mean[m] /= EQUILSOM_YEARS;
 
 			// Monthly average organic carbon and nitrogen moved within soil column
-			soillayer.morgmove_mean[m] /= nyear;
+			soillayer.morgmove_mean[m] /= EQUILSOM_YEARS;
 
 			// Monthly average mineral nitrogen leaching
-			soillayer.mminleach_mean[m] /= nyear;
+			soillayer.mminleach_mean[m] /= EQUILSOM_YEARS;
 
 			// Monthly average active layer depth
 			if (lyr == 0)
-				soilcolumn.mald_mean[m] /= nyear;
+				soilcolumn.mald_mean[m] /= EQUILSOM_YEARS;
 		}
 
 		// Annual average nitrogen fixation
 		if (lyr == 0)
-			soilcolumn.anfix_mean /= nyear;
+			soilcolumn.anfix_mean /= EQUILSOM_YEARS;
 	}
 
-	// Get soil layers total C mass fractions
-	std::vector<double> ccontfrac = soilcolumn.get_ccontfrac();
+	// Vertical mixing time step (every 4 year)
+	const int VMTIMESTEP = 4;
+	// Maximum number of iterations the trend needs to be the same for the multiplier to increase
+	const int SAME_TREND_MAX = 5;
+	// Maximum number of iterations the trend needs to flip for the multiplier to decrease
+	const int FLIP_MAX = 2;
+	// Maximum multiplier
+	const double MAX_MULTI = pow(2, 20);
+	// Minimum multiplier
+	const double MIN_MULTI = 0.2;
+	// Multiplier modifier
+	const double MULTI_MOD = 2.0;
+	// Maximum tries of iterations
+	const int MAX_TRIES = 10000;;
+	// Number of trends that doesn't meet the criteria
+	int bad_trend = 1;
+	// Iteration tries
+	int tries = 0;
+	// SOM pool N:C ratio
+	double ntoc;
+	// C mass increase
+	double cmass_inc;
 
-	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
-	// nitrogen uptake and leaching for EQUILSOM_YEARS years with monthly timesteps
-	for (int yr = 0; yr < EQUILSOM_YEARS; yr++) {
+	// Soil layers total C mass fractions
+	std::vector<double> ccontfrac(soilcolumn.nsoillayers);
+	// Initial SOM pool size per layer
+	std::vector<double> init_slow(soilcolumn.nsoillayers);
+	std::vector<double> init_passive(soilcolumn.nsoillayers);
+	// Maximum C change for SOM pools per layer
+	std::vector<double> max_change_slow(soilcolumn.nsoillayers);
+	std::vector<double> max_change_passive(soilcolumn.nsoillayers);
+	// Multiplier for SOM pools per layer
+	std::vector<double> multi_slow(soilcolumn.nsoillayers);
+	std::vector<double> multi_passive(soilcolumn.nsoillayers);
+	// Number of trend sign flipping for SOM pools per layer
+	std::vector<int> flip_slow(soilcolumn.nsoillayers);
+	std::vector<int> flip_passive(soilcolumn.nsoillayers);
+	// Current sign of trend for SOM pools per layer
+	std::vector<int> sign_slow_trend(soilcolumn.nsoillayers);
+	std::vector<int> sign_passive_trend(soilcolumn.nsoillayers);
+	// Number of iterations with same trend sign for SOM pools per layer
+	std::vector<int> same_trend_slow(soilcolumn.nsoillayers);
+	std::vector<int> same_trend_passive(soilcolumn.nsoillayers);
+	
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		multi_slow[lyr] = MAX_MULTI;
+		multi_passive[lyr] = MAX_MULTI;
+		sign_slow_trend[lyr] = 1;
+		sign_passive_trend[lyr] = 1;
+		max_change_slow[lyr] = 0.5 * soilcolumn.soillayers[lyr].depth * M_PER_MM;
+		max_change_passive[lyr] = max_change_slow[lyr];
+	}
 
-		// Which year in saved data set
-		int savedyear = yr%nyear;
+	// Spinup SOM pools until trends of slow and passive SOM pools 
+	// are within limits or maximum tries have been done
+	while (bad_trend && tries < MAX_TRIES) {
 
-		int vertmix = yr%VMTIMESTEP;
+		// Update soil layers total C mass fractions
+		ccontfrac = soilcolumn.get_ccontfrac();
 
-		// Monthly time steps
-		for (int m = 0; m < 12; m++) {
+		// Spin SOM pools with saved litter input, nitrogen addition and fractions of
+		// nitrogen uptake and leaching for NYEARS years with monthly timesteps
+		for (int yr = 0; yr < EQUILSOM_YEARS; yr++) {
 
-			// Go through each soil layer
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+			// To do vertical mixing this year
+			int vertmix = yr%VMTIMESTEP;
 
-				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			// Monthly time steps
+			for (int m = 0; m < 12; m++) {
 
-				// Transfer monthly mean litter (added a maximum litter pool size so a runaway pool doesn't occur)
-				int timestep = savedyear * 12 + m;
-				if (lyr == 0) {
-					add_litter(soillayer, timestep, SURFSTRUCT, save_litter_cmass[lyr][SURFSTRUCT]);
-					add_litter(soillayer, timestep, SURFMETA, save_litter_cmass[lyr][SURFMETA]);
-					add_litter(soillayer, timestep, SURFFWD, save_litter_cmass[lyr][SURFFWD]);
-					add_litter(soillayer, timestep, SURFCWD, save_litter_cmass[lyr][SURFCWD]);
-				}
-				add_litter(soillayer, timestep, SOILSTRUCT, save_litter_cmass[lyr][SOILSTRUCT]);
-				add_litter(soillayer, timestep, SOILMETA, save_litter_cmass[lyr][SOILMETA]);
-				add_litter(soillayer, timestep, SOILFWD, save_litter_cmass[lyr][SOILFWD]);
-				add_litter(soillayer, timestep, SOILCWD, save_litter_cmass[lyr][SOILCWD]);
+				// Go through each soil layer
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-				// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
-				if (lyr == 0) {
-					double litter_cmass = soillayer.sompool[SURFSTRUCT].cmass + soillayer.sompool[SURFMETA].cmass +
-						soillayer.sompool[SURFFWD].cmass + soillayer.sompool[SURFCWD].cmass;
-					double litter_nmass = soillayer.sompool[SURFSTRUCT].nmass + soillayer.sompool[SURFMETA].nmass +
-						soillayer.sompool[SURFFWD].nmass + soillayer.sompool[SURFCWD].nmass;
+					Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-					// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
-					if (!negligible(litter_cmass)) {
-						soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+					// Initial C for slow and passive SOM pools in this iteration
+					if (yr == 0 && m == 0) {
+						init_slow[lyr] = soillayer.sompool[SLOWSOM].cmass;
+						init_passive[lyr] = soillayer.sompool[PASSIVESOM].cmass;
 					}
+
+					// Transfer monthly mean litter (added a maximum litter pool size so a runaway pool doesn't occur)
+					int timestep = yr * 12 + m;
+					if (lyr == 0) {
+						add_litter(soillayer, timestep, SURFSTRUCT, save_litter_cmass[lyr][SURFSTRUCT]);
+						add_litter(soillayer, timestep, SURFMETA, save_litter_cmass[lyr][SURFMETA]);
+						add_litter(soillayer, timestep, SURFFWD, save_litter_cmass[lyr][SURFFWD]);
+						add_litter(soillayer, timestep, SURFCWD, save_litter_cmass[lyr][SURFCWD]);
+					}
+					add_litter(soillayer, timestep, SOILSTRUCT, save_litter_cmass[lyr][SOILSTRUCT]);
+					add_litter(soillayer, timestep, SOILMETA, save_litter_cmass[lyr][SOILMETA]);
+					add_litter(soillayer, timestep, SOILFWD, save_litter_cmass[lyr][SOILFWD]);
+					add_litter(soillayer, timestep, SOILCWD, save_litter_cmass[lyr][SOILCWD]);
+
+					// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
+					if (lyr == 0) {
+						double litter_cmass = soillayer.sompool[SURFSTRUCT].cmass + soillayer.sompool[SURFMETA].cmass +
+							soillayer.sompool[SURFFWD].cmass + soillayer.sompool[SURFCWD].cmass;
+						double litter_nmass = soillayer.sompool[SURFSTRUCT].nmass + soillayer.sompool[SURFMETA].nmass +
+							soillayer.sompool[SURFFWD].nmass + soillayer.sompool[SURFCWD].nmass;
+
+						// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
+						if (!negligible(litter_cmass)) {
+							soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+						}
+					}
+
+					// Monthly nitrogen uptake
+					soillayer.NH4_mass *= (1.0 - soillayer.fNH4uptake_mean[m]);
+					soillayer.NO3_mass *= (1.0 - soillayer.fNO3uptake_mean[m]);
+
+					// Monthly mineral nitrogen leaching
+					double nmass = soillayer.nmass_avail(NO3);
+					double nleach = nmass * (1.0 - soillayer.mminleach_mean[m]);
+					soillayer.nmass_subtract(nleach, NO3);
+
+					// Transferred to layer below if not bottom layer then N is lost
+					if (lyr < soilcolumn.nsoillayers - 1) {
+						soilcolumn.soillayers[lyr + 1].nmass_inc(nleach, NO3);
+					}
+
+					// Monthly nitrogen addition to the system
+					if (lyr == 0) {
+						soillayer.nmass_inc(gridcell.aNH4dep / 12.0, NH4);
+						soillayer.nmass_inc(gridcell.aNO3dep / 12.0, NO3);
+					}
+
+					// Monthly nitrogen addition from fixation to the soil layer
+					soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * ccontfrac[lyr], NH4);
+
+					// Monthly decomposition and fluxes between SOM pools
+
+					// Set this months decay rates
+					for (int p = 0; p < NSOMPOOL; p++) {
+						soillayer.sompool[p].fracremain = soillayer.sompool[p].mfracremain_mean[m];
+					}
+
+					// Set this months organic matter leaching and move fraction
+					soillayer.orgleachfrac = soillayer.morgleach_mean[m];
+					soillayer.orgmovefrac = soillayer.morgmove_mean[m];
 				}
-
-				// Monthly nitrogen uptake
-				soillayer.NH4_mass *= (1.0 - soillayer.fNH4uptake_mean[m]);
-				soillayer.NO3_mass *= (1.0 - soillayer.fNO3uptake_mean[m]);
-
-				// Monthly mineral nitrogen leaching
-				double nmass = soillayer.nmass_avail(NO3);
-				double nleach = nmass * (1.0 - soillayer.mminleach_mean[m]);
-				soillayer.nmass_subtract(nleach, NO3);
-
-				// Transferred to layer below if not bottom layer then N is lost
-				if (lyr < soilcolumn.nsoillayers - 1) {
-					soilcolumn.soillayers[lyr + 1].nmass_inc(nleach, NO3);
-				}
-
-				// Monthly nitrogen addition to the system
-				if (lyr == 0) {
-					soillayer.nmass_inc(gridcell.aNH4dep / 12.0, NH4);
-					soillayer.nmass_inc(gridcell.aNO3dep / 12.0, NO3);
-				}
-
-				// Monthly nitrogen addition from fixation to the soil layer
-				soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * ccontfrac[lyr], NH4);
 
 				// Monthly decomposition and fluxes between SOM pools
+				// and nitrogen flux from soil
+				somfluxes(patch, true, false);
 
-				// Set this months decay rates
-				for (int p = 0; p < NSOMPOOL; p++) {
-					soillayer.sompool[p].fracremain = soillayer.sompool[p].mfracremain_mean[m];
+				if (!vertmix && ifverticalmixing) {
+					soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
+					soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 				}
-
-				// Set this months organic matter leaching and move fraction
-				soillayer.orgleachfrac = soillayer.morgleach_mean[m];
-				soillayer.orgmovefrac = soillayer.morgmove_mean[m];
-			}
-
-			// Monthly decomposition and fluxes between SOM pools
-			// and nitrogen flux from soil
-			somfluxes(patch, true, false);
-
-			if (!vertmix && ifverticalmixing) {
-				soilcolumn.vertical_mixing(SOILMICRO, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
-				soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
-				soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 			}
 		}
+		
+		// Reset number of trends that doesn't meet the criteria
+		bad_trend = 0;
+
+		// Increase number of iterations
+		tries++;
+
+		//dprintf("Tries %d CCONT ", tries);
+
+		// Loop through layers and try and to solve equilibrium by appling the trend of pools
+		// by several order of magnitude
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+			// After 100 iterations, then maximum increase is allowed to be 10% of pool size
+			if (tries == 100) {
+				max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.1;
+				max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.1;
+			}
+
+			// Both slow and passive pool needs to be of some size
+			if (!negligible(soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, -15) &&
+				!negligible(soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, -15)) {
+
+				// Trend over NYEARS years
+				double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
+				double trend_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass - init_passive[lyr];
+				
+				// If trend changes sign a certain number of times then reduce multiplier
+				// If trend has the same sign a certain number of times then increase multiplier
+
+				// SLOW SOM
+
+				// Trend changed sign
+				if (trend_slow * sign_slow_trend[lyr] < 0.0) {
+
+					// Add to number of times trend has changed sign in a raw
+					flip_slow[lyr]++;
+
+					// Save trend sign and set same trend to zero
+					sign_slow_trend[lyr] *= -1;
+
+					// Flipped sign maximum times then reduce multiplier
+					if (flip_slow[lyr] == FLIP_MAX && multi_slow[lyr] > MIN_MULTI) {
+						multi_slow[lyr] /= MULTI_MOD;
+						flip_slow[lyr] = 0;
+					}
+
+					// Flipping so no same trend
+					same_trend_slow[lyr] = 0;
+				}
+				// Same sign trend
+				else {
+
+					// Add to number of times same trend has happen in a raw
+					same_trend_slow[lyr]++;
+
+					// Reached maximum same trend then increase multiplier
+					if (same_trend_slow[lyr] > SAME_TREND_MAX && multi_slow[lyr] < MAX_MULTI) {
+						multi_slow[lyr] *= MULTI_MOD;
+						same_trend_slow[lyr] = 0;
+					}
+
+					// Same trend so no flipping
+					flip_slow[lyr] = 0;
+				}
+
+				// N:C ratio of SOM pool
+				ntoc = soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
+
+				// C change
+				cmass_inc = min(max_change_slow[lyr], max(-max_change_slow[lyr], max(-soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.1, trend_slow * multi_slow[lyr])));
+
+				// Add C change
+				soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass += cmass_inc;
+
+				// Update N pool
+				soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
+
+
+				// PASSIVE SOM
+
+				// Trend changed sign
+				if (trend_passive * sign_passive_trend[lyr] < 0.0) {
+
+					// Add to number of times trend has changed sign in a raw
+					flip_passive[lyr]++;
+
+					// Save trend sign and set same trend to zero
+					sign_passive_trend[lyr] *= -1;
+
+					// Flipped sign maximum times then reduce multiplier
+					if (flip_passive[lyr] == FLIP_MAX && multi_passive[lyr] > MIN_MULTI) {
+						multi_passive[lyr] /= MULTI_MOD;
+						flip_passive[lyr] = 0;
+					}
+
+					// Flipping so no same trend
+					same_trend_passive[lyr] = 0;
+				}
+				// Same sign trend
+				else {
+					// Add to number of times same trend has happen in a raw
+					same_trend_passive[lyr]++;
+
+					// Reached maximum same trend then increase multiplier
+					if (same_trend_passive[lyr] > SAME_TREND_MAX && multi_passive[lyr] < MAX_MULTI) {
+						multi_passive[lyr] *= MULTI_MOD;
+						same_trend_passive[lyr] = 0;
+					}
+
+					// Same trend so no flipping
+					flip_passive[lyr] = 0;
+				}
+
+				// N:C ratio of SOM pool
+				ntoc = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+
+				// C change
+				cmass_inc = min(max_change_passive[lyr], max(-max_change_passive[lyr], max(-soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.1, trend_passive * multi_passive[lyr])));
+
+				// Add C change
+				soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass += cmass_inc;
+				
+				// Update N pool
+				soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+
+
+				// Calculte how many trends that are too big
+				if (iftwolayersoil || (lyr > 1 && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6))
+					bad_trend++;
+
+				//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.0f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
+			}
+		}
+
+		//dprintf("Bad %d \n", bad_trend);
 	}
 
 	// Reset mineral nitrogen status
@@ -1904,7 +2095,7 @@ void equilsom(Patch& patch) {
 			}
 		}
 
-		// Reset variables for next equilsom()
+		// Reset variables for next possible equilsom()
 		for (int m = 0; m < 12; m++) {
 
 			for (int p = 0; p < NSOMPOOL; p++) {

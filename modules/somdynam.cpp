@@ -1162,12 +1162,12 @@ void transfer_litter(Patch& patch) {
 
 					ligcmass_new = cmass_litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
 
-					if (negligible(soillayer.sompool[SURFSTRUCT].cmass)) {
+					if (negligible(soillayer.sompool[SURFSTRUCT].cmass, -16)) {
 						soillayer.sompool[SURFSTRUCT].ligcfrac = 0.0;
 					}
 					else {
-						soillayer.sompool[SURFSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
-							soillayer.sompool[SURFSTRUCT].cmass;
+						soillayer.sompool[SURFSTRUCT].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+							soillayer.sompool[SURFSTRUCT].cmass));
 					}
 				}
 
@@ -1200,12 +1200,12 @@ void transfer_litter(Patch& patch) {
 						soillayer.litterSolveSOM.add_litter(cmass_litter_root * pft.pft.rootdist[lyr] * fm, nmass_litter_root * pft.pft.rootdist[lyr] * fm, SOILMETA);
 					}
 
-					if (negligible(soillayer.sompool[SOILSTRUCT].cmass)) {
+					if (negligible(soillayer.sompool[SOILSTRUCT].cmass, -16)) {
 						soillayer.sompool[SOILSTRUCT].ligcfrac = 0.0;
 					}
 					else {
-						soillayer.sompool[SOILSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
-							soillayer.sompool[SOILSTRUCT].cmass;
+						soillayer.sompool[SOILSTRUCT].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+							soillayer.sompool[SOILSTRUCT].cmass));
 					}
 				}
 
@@ -1235,13 +1235,12 @@ void transfer_litter(Patch& patch) {
 							soillayer.litterSolveSOM.add_litter(cmass_litter_sap * (1.0 - FCWD_ROOT), nmass_litter_sap * (1.0 - FCWD_ROOT), SURFFWD);
 						}
 
-						if (negligible(soillayer.sompool[SURFFWD].cmass)) {
+						if (negligible(soillayer.sompool[SURFFWD].cmass), -16) {
 							soillayer.sompool[SURFFWD].ligcfrac = 0.0;
 						}
 						else {
-							double ligcfrac = (ligcmass_new + ligcmass_old) /
-								soillayer.sompool[SURFFWD].cmass;
-							soillayer.sompool[SURFFWD].ligcfrac = ligcfrac;
+							soillayer.sompool[SURFFWD].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+								soillayer.sompool[SURFFWD].cmass));
 						}
 
 						// Fire
@@ -1267,13 +1266,12 @@ void transfer_litter(Patch& patch) {
 						soillayer.litterSolveSOM.add_litter(cmass_litter_sap * FCWD_ROOT * pft.pft.rootdist[lyr], nmass_litter_sap * FCWD_ROOT * pft.pft.rootdist[lyr], SOILFWD);
 					}
 
-					if (negligible(soillayer.sompool[SOILFWD].cmass)) {
+					if (negligible(soillayer.sompool[SOILFWD].cmass, -16)) {
 						soillayer.sompool[SOILFWD].ligcfrac = 0.0;
 					}
 					else {
-						double ligcfrac = (ligcmass_new + ligcmass_old) /
-							soillayer.sompool[SOILFWD].cmass;
-						soillayer.sompool[SOILFWD].ligcfrac = ligcfrac;
+						soillayer.sompool[SOILFWD].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+							soillayer.sompool[SOILFWD].cmass));
 					}
 				}
 
@@ -1298,13 +1296,12 @@ void transfer_litter(Patch& patch) {
 							soillayer.litterSolveSOM.add_litter(cmass_litter_heart * (1.0 - FCWD_ROOT), nmass_litter_heart * (1.0 - FCWD_ROOT), SURFCWD);
 						}
 
-						if (negligible(soillayer.sompool[SURFCWD].cmass)) {
+						if (negligible(soillayer.sompool[SURFCWD].cmass, -16)) {
 							soillayer.sompool[SURFCWD].ligcfrac = 0.0;
 						}
 						else {
-							double ligcfrac = (ligcmass_new + ligcmass_old) /
-								soillayer.sompool[SURFCWD].cmass;
-							soillayer.sompool[SURFCWD].ligcfrac = ligcfrac;
+							soillayer.sompool[SURFCWD].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+								soillayer.sompool[SURFCWD].cmass));
 						}
 
 						// Fire
@@ -1330,13 +1327,12 @@ void transfer_litter(Patch& patch) {
 						soillayer.litterSolveSOM.add_litter(cmass_litter_heart * FCWD_ROOT * pft.pft.rootdist[lyr], nmass_litter_heart * FCWD_ROOT * pft.pft.rootdist[lyr], SOILCWD);
 					}
 
-					if (negligible(soillayer.sompool[SOILCWD].cmass)) {
+					if (negligible(soillayer.sompool[SOILCWD].cmass, -16)) {
 						soillayer.sompool[SOILCWD].ligcfrac = 0.0;
 					}
 					else {
-						double ligcfrac = (ligcmass_new + ligcmass_old) /
-							soillayer.sompool[SOILCWD].cmass;
-						soillayer.sompool[SOILCWD].ligcfrac = ligcfrac;
+						soillayer.sompool[SOILCWD].ligcfrac = max(0.01, min(0.99, (ligcmass_new + ligcmass_old) /
+							soillayer.sompool[SOILCWD].cmass));
 					}
 				}
 			}
@@ -1796,9 +1792,9 @@ void equilsom(Patch& patch) {
 	// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 	const int FLIP_MAX = 2;
 	// Maximum multiplier
-	const double MAX_MULTI = pow(2, 20);
+	double MAX_MULTI = pow(2, 20);
 	// Minimum multiplier
-	const double MIN_MULTI = 0.2;
+	const double MIN_MULTI = 0.01;
 	// Multiplier modifier
 	const double MULTI_MOD = 2.0;
 	// Maximum tries of iterations
@@ -1955,9 +1951,9 @@ void equilsom(Patch& patch) {
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			// After 100 iterations, then maximum increase is allowed to be 10% of pool size
-			if (tries == 100) {
-				max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.1;
-				max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.1;
+			if (tries >= 100) {
+				max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.01;
+				max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.01;
 			}
 
 			// Both slow and passive pool needs to be of some size
@@ -1972,6 +1968,8 @@ void equilsom(Patch& patch) {
 				// If trend has the same sign a certain number of times then increase multiplier
 
 				// SLOW SOM
+
+				multi_slow[lyr] = min(multi_slow[lyr], MAX_MULTI);
 
 				// Trend changed sign
 				if (trend_slow * sign_slow_trend[lyr] < 0.0) {
@@ -2022,6 +2020,8 @@ void equilsom(Patch& patch) {
 
 				// PASSIVE SOM
 
+				multi_passive[lyr] = min(multi_passive[lyr], MAX_MULTI);
+
 				// Trend changed sign
 				if (trend_passive * sign_passive_trend[lyr] < 0.0) {
 
@@ -2069,15 +2069,21 @@ void equilsom(Patch& patch) {
 
 
 				// Calculte how many trends that are too big
-				if (iftwolayersoil || (lyr > 1 && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6))
+				if (iftwolayersoil || (lyr > 2 && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6))
 					bad_trend++;
 
-				//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.0f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
+				//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
 			}
 		}
 
+		// Maximum multiplier should go down over time.
+		if (!(tries%100))
+			MAX_MULTI = max(100.0, MAX_MULTI / MULTI_MOD);
+
 		//dprintf("Bad %d \n", bad_trend);
 	}
+
+	dprintf("Tries %d\n", tries);
 
 	// Reset mineral nitrogen status
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {

@@ -1319,7 +1319,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				N2O_mass += soillayer.N2O_mass * to_gridcell_average;
 				N2_mass += soillayer.N2_mass * to_gridcell_average;
 
-				soilc[lyr] += soillayer.ccont() * to_gridcell_average;
+				// Soil layers total C mass excluding surface litter C mass
+				soilc[lyr] += soillayer.ccont(true) * to_gridcell_average;
 				soilr[lyr] += soillayer.arespsum * to_gridcell_average;
 				
 				cdec[lyr][0] += soillayer.acdec[0] * to_gridcell_average;

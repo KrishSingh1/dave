@@ -197,10 +197,10 @@ const double PRIESTLEY_TAYLOR = 1.32;
 
 // Solving Century SOM pools
 
-/// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN = 0.01;
-/// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND = 0.1;
+/// Fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
+const double SOLVESOMCENT_SPINBEGIN = 0.15;
+/// Fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
+const double SOLVESOMCENT_SPINEND = 0.25;
 
 /// Kelvin to deg C conversion
 const double K2degC = 273.15;
@@ -499,7 +499,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = 225;// nyear_spinup; // DW_COMMENT
+		start_year = nyear_spinup - 90; // DW_COMMENT
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -3061,6 +3061,11 @@ public:
 		fracremain = 0.0;
 		litterme = 0.0;
 		fireresist = 0.0;
+		cmass_init = 0.0;
+		multi = pow(2, 4);
+		sign_trend = 1;
+		flip = 0;
+		same_trend = 0;
 
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = 0.0;
@@ -3089,6 +3094,16 @@ public:
 	double fracremain;
 	/// nitrogen to carbon ratio
 	double ntoc;
+	/// Initial C mass in pool (kgC/m2) used for fast spinup
+	double cmass_init;
+	/// Multiplier for passive SOM C mass trend
+	double multi;
+	/// Sign of passive SOM C mass trend
+	int sign_trend;
+	/// How many times the passive SOM C mass trend has flipped sign in a raw
+	int flip;
+	/// How many times the passive SOM C mass trend has have the same sign in a raw
+	int same_trend;
 
 	// Fire
 	/// soil litter moisture flammability threshold (fraction of AWC)
@@ -3288,8 +3303,18 @@ public:
 	double dcflux_soil;
 	/// Annual respiration [kg C m-2]
 	double arespsum;
-	/// tiller area
-	double tiller_area;
+	/// Tiller area
+	double tiller_area;	
+	/// Passive SOM C mass in pool at an initial stage (kgC/m2)
+	double cmass_passive_init;
+	/// Multiplier for passive SOM C mass trend
+	double multi;
+	/// Sign of passive SOM C mass trend
+	int sign_trend;
+	/// How many times the passive SOM C mass trend has flipped sign in a raw
+	int flip;
+	/// How many times the passive SOM C mass trend has have the same sign in a raw
+	int same_trend;
 
 	// Old Soil Organic Matter (SOM) scheme
 

@@ -39,6 +39,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_cpool", &file_cpool, 300, "C output file");
 	declare_parameter("file_clitter", &file_clitter, 300, "Litter C output file");
 	declare_parameter("file_csoil", &file_csoil, 300, "Soil layer C output file");
+	declare_parameter("file_csoil_passive", &file_csoil_passive, 300, "Soil layer C output file");
+	declare_parameter("file_csoil_slow", &file_csoil_slow, 300, "Soil layer C output file");
+	declare_parameter("file_csoil_micro", &file_csoil_micro, 300, "Soil layer C output file");
+	declare_parameter("file_csom", &file_csom, 300, "Soil Organic Matter C output file");
 	declare_parameter("file_rsoil", &file_rsoil, 300, "Soil layer C respiration output file");
 	declare_parameter("file_soildeclim", &file_soildeclim, 300, "Annual nitrogen decay rate limitation on SOM decomposition output file");
 	declare_parameter("file_soilgrolim", &file_soilgrolim, 300, "Annual nitrogen growth rate limitation on SOM decomposition output file");
@@ -189,6 +193,13 @@ void CommonOutput::define_output_tables() {
 	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS + 1; lyr++) {
 		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
+	}
+
+	// Create soil layer columns
+	ColumnDescriptors soms_columns;
+	xtring soms[] = { "SURFSTRUCT", "SOILSTRUCT", "SOILMICRO", "SURFHUMUS", "SURFMICRO", "SURFMETA", "SURFFWD", "SURFCWD", "SOILFWD", "SOILCWD", "SOILMETA", "SLOWSOM", "PASSIVESOM" };
+	for (int p = 0; p < NSOMPOOL; p++) {
+		soms_columns += ColumnDescriptor(soms[p], 11, 6);
 	}
 
 	// Create the columns for each output file
@@ -414,6 +425,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 	create_output_table(out_csoil,          file_csoil,          soillyr_columns);
+	create_output_table(out_csoil_passive,  file_csoil_passive,  soillyr_columns);
+	create_output_table(out_csoil_slow,     file_csoil_slow,     soillyr_columns);
+	create_output_table(out_csoil_micro,    file_csoil_micro,    soillyr_columns);
+	create_output_table(out_csom,           file_csom,           soms_columns);
 	create_output_table(out_rsoil,          file_rsoil,          soillyr_columns);
 	create_output_table(out_soildeclim,     file_soildeclim,     soillyr_columns_short);
 	create_output_table(out_soilgrolim,     file_soilgrolim,     soillyr_columns_short);
@@ -707,6 +722,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
 	double soilc[NSOILLAYER_MAX];
+	double somc[NSOMPOOL][NSOILLAYER_MAX];
+	double soilc_p[NSOILLAYER_MAX];
+	double soilc_s[NSOILLAYER_MAX];
+	double soilc_m[NSOILLAYER_MAX];
 	double soilr[NSOILLAYER_MAX];
 	double cdec[NSOILLAYER_MAX][2];
 	double cinc[NSOILLAYER_MAX][2];
@@ -812,6 +831,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double clitter_gridcell=0.0;
 	double nlitter_gridcell=0.0;
 	double csoil_gridcell=0.0;
+	double csom_gridcell[NSOMPOOL] = { 0.0 };
+	double csoil_p_gridcell=0.0;
+	double csoil_s_gridcell=0.0;
+	double csoil_m_gridcell=0.0;
 	double rsoil_gridcell=0.0;
 	double anpp_gridcell=0.0;
 	double agpp_gridcell=0.0;
@@ -1197,6 +1220,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	clitterinput[0] = 0.0;
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 		soilc[lyr] = 0.0;
+		soilc_p[lyr] = 0.0;
+		soilc_s[lyr] = 0.0;
+		soilc_m[lyr] = 0.0;
 		soilr[lyr] = 0.0;
 		cdec[lyr][0] = 0.0;
 		cdec[lyr][1] = 0.0;
@@ -1204,6 +1230,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		cinc[lyr][1] = 0.0;
 
 		clitterinput[lyr + 1] = 0.0;
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			somc[p][lyr] = 0.0;
+		}
 	}
 
 	double c_org_leach_lc[NLANDCOVERTYPES];
@@ -1321,6 +1351,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				// Soil layers total C mass excluding surface litter C mass
 				soilc[lyr] += soillayer.ccont(true) * to_gridcell_average;
+				soilc_p[lyr] += soillayer.sompool[PASSIVESOM].cmass * to_gridcell_average;
+				soilc_s[lyr] += soillayer.sompool[SLOWSOM].cmass * to_gridcell_average;
+				soilc_m[lyr] += soillayer.sompool[SOILMICRO].cmass * to_gridcell_average;
 				soilr[lyr] += soillayer.arespsum * to_gridcell_average;
 				
 				cdec[lyr][0] += soillayer.acdec[0] * to_gridcell_average;
@@ -1355,6 +1388,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						centuryc += soillayer.sompool[r].cmass * to_gridcell_average;
 						centuryn += soillayer.sompool[r].nmass * to_gridcell_average;
 					}
+
+					somc[r][lyr] += soillayer.sompool[r].cmass * to_gridcell_average;
 				}
 			}
 
@@ -1462,7 +1497,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// Total gridcell soil C
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 		csoil_gridcell += soilc[lyr];
+		csoil_p_gridcell += soilc_p[lyr];
+		csoil_s_gridcell += soilc_s[lyr];
+		csoil_m_gridcell += soilc_m[lyr];
 		rsoil_gridcell += soilr[lyr];
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			csom_gridcell[p] += somc[p][lyr];
+		}
 	}
 
 	// Print gridcell totals to files
@@ -1560,6 +1602,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_clitterinput, clitterinput[0]);
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
 		outlimit(out, out_csoil, soilc[lyr]);
+		outlimit(out, out_csoil_passive, soilc_p[lyr]);
+		outlimit(out, out_csoil_slow, soilc_s[lyr]);
+		outlimit(out, out_csoil_micro, soilc_m[lyr]);
 		outlimit(out, out_rsoil, soilr[lyr]);
 
 		tot_cdec[0] += cdec[lyr][0];
@@ -1592,6 +1637,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out, out_csoil, csoil_gridcell);
+	outlimit(out, out_csoil_passive, csoil_p_gridcell);
+	outlimit(out, out_csoil_slow, csoil_s_gridcell);
+	outlimit(out, out_csoil_micro, csoil_m_gridcell);
 	outlimit(out, out_rsoil, rsoil_gridcell);
 	outlimit(out, out_soildeclim, sdl_decay_tot);
 	outlimit(out, out_soilgrolim, sdl_growth_tot);
@@ -1599,6 +1647,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_soilcuelim, sdl_cue_tot);
 
 	outlimit(out, out_clitterinput, clitterinput_tot);
+
+	for (int p = 0; p < NSOMPOOL; p++) {
+		outlimit(out, out_csom, csom_gridcell[p]);
+	}
 
 	// Print monthly output variables
 	for (m=0;m<12;m++) {

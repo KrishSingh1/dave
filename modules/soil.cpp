@@ -1391,6 +1391,13 @@ void Soillayer::init() {
 	// soil labile carbon availability
 	labile_carbon = 0.0;
 
+	// Trend variables
+	cmass_passive_init = 0.0;
+	multi = pow(2, 4);
+	sign_trend = 1;
+	flip = 0;
+	same_trend = 0;
+
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
 		mwcont[mth] = 0.0;

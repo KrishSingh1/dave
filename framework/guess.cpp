@@ -424,6 +424,41 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
+//
+void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
+
+	if (!iftwolayersoil && ifthawaffectrootdist) {
+
+		// Number of soil layers
+		int nsoillayers = soillyrdepth.size();
+
+		// Init first layer
+		rootdist[0] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[0]) * CM_PER_MM);
+		double rootdist_tot = rootdist[0];
+
+		for (int lyr = 1; lyr < nsoillayers; lyr++) {
+			rootdist[lyr] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+			rootdist_tot += rootdist[lyr];
+		}
+
+		if (rootdist_tot < 0.99 && rootdist_tot > 0.1) {
+
+			double rootdist_left = 1.0 - rootdist_tot;
+			double rootdist_add, rootdist_add_tot = 0.0;
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				rootdist_add = rootdist_left * rootdist[lyr] / rootdist_tot;
+				rootdist[lyr] += rootdist_add;
+				rootdist_add_tot += rootdist_add;
+			}
+			rootdist_tot += rootdist_add_tot;
+		}
+
+		// Add the remaining rootdist in last soil layer
+		rootdist[0] += 1.0 - rootdist_tot;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Patch member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -2386,6 +2421,7 @@ void Gridcell::set_soil_depth() {
 			Patch& patch = stand.getobj();
 
 			for (int i = 0; i < npft; i++) {
+				patch.pft[i].rootdist = pft[i].pft.rootdist;
 				patch.pft[i].fwuptake.resize(nsoillayers);
 			}
 

@@ -922,7 +922,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
  *  A = (2^1/2 + 1) * PI * r^2
  *  -> A = const * cmass_root^2/3
  */
-double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> nfrac) {
+double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> rootdist, std::vector<double> nfrac) {
 	
 	// Calculate total absolute difference between N and root distribution in soil column
 	// Maximum difference would be 2 if all roots are in layers with no N,
@@ -930,7 +930,7 @@ double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> nfr
 	double root_n_std = 0.0;
 	int nsoillayer = nfrac.size();
 	for (int lyr = 0; lyr < nsoillayer; lyr++) {
-		root_n_std += fabs(nfrac[lyr] - indiv.pft.rootdist[lyr]);
+		root_n_std += fabs(nfrac[lyr] - rootdist[lyr]);
 	}
 	
 	// Indiv with perfect match will have N uptake coefficient 2
@@ -959,7 +959,7 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, std::vector<double> nf
 
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		individuals[i].ndemand = vegetation[i].ndemand;
-		individuals[i].strength = nitrogen_uptake_strength(vegetation[i], nfrac);
+		individuals[i].strength = nitrogen_uptake_strength(vegetation[i], vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac);
 	}
 
 	// Let ncompete() do the actual distribution
@@ -1643,7 +1643,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	for (int lyr = 0; lyr < nsoillayersupper; lyr++) {
 		awc[lyr] = soilcolumn.soillayers[lyr].awc;
 		wcont_cp[lyr] = soilcolumn.soillayers[lyr].wcont();
-		grootdist[lyr] += pft.rootdist[lyr];
+		grootdist[lyr] += ppft.rootdist[lyr];
 	}
 
 	if (day.isstart) {
@@ -1672,8 +1672,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				wcont_opt[i] = (wr_opt * pft.emax - min(wcont_upper * awc_upper * patch.fpc_rescale,
 					pft.emax * grootdist[i])/ nsoillayersupper) / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
 			
-				if (wcont_opt[i] * soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
-					wcont_opt[i] = pft.emax * pft.rootdist[i] / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
+				if (wcont_opt[i] * soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * ppft.rootdist[i]) {
+					wcont_opt[i] = pft.emax * ppft.rootdist[i] / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
 				}
 
 				// DW_COMMENT CHECK SO THIS WORKS AS IT SHOULD!!!!!!!!
@@ -1784,7 +1784,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	// DW_COMMENT wcont_cp should equal patch.soilcolumn.wconts()
 
-	return water_uptake(wcont_cp, soilcolumn.get_prop(AWC), pft.rootdist, pft.emax, patch.fpc_rescale,
+	return water_uptake(wcont_cp, soilcolumn.get_prop(AWC), ppft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
 };
 
@@ -1827,7 +1827,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			} 
 			else {
 				wr = water_uptake(patch.soilcolumn.get_prop(WCONT), patch.soilcolumn.get_prop(AWC),
-					pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+					ppft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);
 			}
 
@@ -2319,7 +2319,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 
 		// Average soil gtemp weighted by root distribution 
-		double gtemp_soil = patch.soilcolumn.gtemp_rootdist(indiv.pft.rootdist);
+		double gtemp_soil = patch.soilcolumn.gtemp_rootdist(ppft.rootdist);
 
 		respiration(gtemp, gtemp_soil, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root,

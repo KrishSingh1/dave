@@ -744,6 +744,7 @@ void dailyaccounting_patch(Patch& patch) {
 			Pft& pft = pftlist.getobj();
 			Patchpft& ppft = patch.pft[pft.id];
 			double phen_min = 1.0;
+
 			ppft.driest_mth = 0;
 			for (int mth = 0; mth < 12; mth++) {
 				if (ppft.pft.phenology == RAINGREEN) {
@@ -754,6 +755,9 @@ void dailyaccounting_patch(Patch& patch) {
 				}
 				ppft.mphen[mth] = 0.0;
 			}
+
+			ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths);
+
 			pftlist.nextobj();
 		}
 

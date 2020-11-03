@@ -2003,7 +2003,7 @@ void Soilcolumn::initdrivers() {
 
 	// Peatland hydrology variables
 	thaw = 0.0;
-	maxthawdepththisyear = 0.0;
+	maxthaw = 0.0;
 	awtp = 0.0;
 	acro_co2 = 934.0; // [mimol L-1]
 	wtd = 0.0; // [-100, +300] mm
@@ -2049,6 +2049,8 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 
 	nsoillayers = (int)soil_layer_depths.size();
 
+	soillayerdepths.resize(nsoillayers);
+
 	double acc_depth = 0.0;
 	double depth_profile = 0.0;
 
@@ -2057,10 +2059,12 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 	nacrotelm = 0;
 	ncatotelm = 0;
 	thaw = soil_depth;
+	maxthaw_10.add(thaw);
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		acc_depth += soil_layer_depths[lyr];
+		soillayerdepths[lyr] = acc_depth;
 		depth_profile += lyr == 0 ? soil_layer_depths[lyr] / 2.0 : (soil_layer_depths[lyr - 1] + soil_layer_depths[lyr]) / 2.0;
 		if (patch.stand.is_highlatitude_peatland_stand()) {
 			if (acc_depth <= ACROTELM_DEPTH) {
@@ -2179,7 +2183,7 @@ std::vector<double> Soilcolumn::get_rootfrac() {
 		Individual& indiv = vegetation.getobj();
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			cmass_root[lyr] += indiv.cmass_root * indiv.pft.rootdist[lyr];
+			cmass_root[lyr] += indiv.cmass_root * patch.pft[indiv.pft.id].rootdist[lyr];
 		}
 		cmass_root_tot += indiv.cmass_root;
 
@@ -4316,8 +4320,8 @@ void Soilcolumn::thaw_depth() {
 	}
 
 	// Set maximum thaw depth this year
-	if (thaw > maxthawdepththisyear || date.day == 0)
-		maxthawdepththisyear = thaw;
+	if (thaw > maxthaw || date.day == 0)
+		maxthaw = thaw;
 
 	// Save daily thaw depth
 	dthaw[date.day] = thaw;
@@ -4326,6 +4330,10 @@ void Soilcolumn::thaw_depth() {
 	if (date.islastday)
 		mthaw[date.month] = mean(dthaw + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
+
+	if (date.islastmonth && date.islastday) {
+		maxthaw_10.add(maxthaw);
+	}
 }
 
 // True if phase changes allowed, false otherwise

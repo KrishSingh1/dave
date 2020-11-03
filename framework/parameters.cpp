@@ -81,6 +81,7 @@ bool ifmethane;						// Whether to run the methane model (for peatland only)
 int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifverticalmixing;              // Whether vertically mix soil organic matter
+bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
 wateruptaketype wateruptake;
@@ -532,6 +533,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to vertically mox soil organic matter (1), or not (0)");
 		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
 			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
+		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
+			"Whether thaw depth affects root distribution (1 by default), or not (0)");
 
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
@@ -1276,6 +1279,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
 		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
+		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {

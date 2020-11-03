@@ -993,7 +993,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		// Root litter
 
 		// Root fraction in this soil layer
-		double rootdist_frac = pft.rootdist[lyr];
+		double rootdist_frac = ppft.rootdist[lyr];
 
 		// Carbon
 		soillayer.sompool[SOILMETA].cmass   += rootdist_frac * (anpp2smtb + croot2met);

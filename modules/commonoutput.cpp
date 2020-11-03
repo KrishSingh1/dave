@@ -38,6 +38,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_dens", &file_dens, 300, "Tree density output file");
 	declare_parameter("file_cpool", &file_cpool, 300, "C output file");
 	declare_parameter("file_clitter", &file_clitter, 300, "Litter C output file");
+	declare_parameter("file_soildepth", &file_soildepth, 300, "Soil layer depths output file");
 	declare_parameter("file_csoil", &file_csoil, 300, "Soil layer C output file");
 	declare_parameter("file_csoil_passive", &file_csoil_passive, 300, "Soil layer C output file");
 	declare_parameter("file_csoil_slow", &file_csoil_slow, 300, "Soil layer C output file");
@@ -175,15 +176,17 @@ void CommonOutput::define_output_tables() {
 	}
 
 	// Create soil layer columns
-	ColumnDescriptors soillyr_columns, soillyr_columns_short, surfsoillyr_columns;
+	ColumnDescriptors soildepth_columns, soillyr_columns, soillyr_columns_short, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
 	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
 	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
+		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
 		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8);
 		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 11, 6);
 		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
 	}
+	soildepth_columns += ColumnDescriptor("Total", 6, 1);
 	soillyr_columns += ColumnDescriptor("Total", 13, 8);
 	surfsoillyr_columns += ColumnDescriptor("Total", 11, 6);
 	soillyr_columns_short += ColumnDescriptor("Total", 6, 3);
@@ -424,6 +427,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_doc,	        file_doc,			 doc_columns);
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
+	create_output_table(out_soildepth,      file_soildepth,      soildepth_columns);
 	create_output_table(out_csoil,          file_csoil,          soillyr_columns);
 	create_output_table(out_csoil_passive,  file_csoil_passive,  soillyr_columns);
 	create_output_table(out_csoil_slow,     file_csoil_slow,     soillyr_columns);
@@ -721,6 +725,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double NO_mass_inc,N2O_mass_inc,N2_mass_inc,NH3_mass_inc;
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
+	double soildepth[NSOILLAYER_MAX];
 	double soilc[NSOILLAYER_MAX];
 	double somc[NSOMPOOL][NSOILLAYER_MAX];
 	double soilc_p[NSOILLAYER_MAX];
@@ -1219,6 +1224,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	clitterinput[0] = 0.0;
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		soildepth[lyr] = 0.0;
 		soilc[lyr] = 0.0;
 		soilc_p[lyr] = 0.0;
 		soilc_s[lyr] = 0.0;
@@ -1349,6 +1355,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				N2O_mass += soillayer.N2O_mass * to_gridcell_average;
 				N2_mass += soillayer.N2_mass * to_gridcell_average;
 
+				// Soil layer depths
+				soildepth[lyr] += soilcolumn.soillayerdepths[lyr] * to_gridcell_average;
+
 				// Soil layers total C mass excluding surface litter C mass
 				soilc[lyr] += soillayer.ccont(true) * to_gridcell_average;
 				soilc_p[lyr] += soillayer.sompool[PASSIVESOM].cmass * to_gridcell_average;
@@ -1460,7 +1469,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			maxald_gridcell += patch.soilcolumn.maxthawdepththisyear*M_PER_MM*to_gridcell_average;	// mm to m
+			maxald_gridcell += patch.soilcolumn.maxthaw*M_PER_MM*to_gridcell_average;	// mm to m
 			
 			// Calculate monthly NPP and LAI
 
@@ -1601,6 +1610,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double clitterinput_tot = clitterinput[0];
 	outlimit(out, out_clitterinput, clitterinput[0]);
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
+		if (date.year == 0)//nyear_spinup) // DW_COMMENT
+			outlimit(out, out_soildepth, soildepth[lyr] * M_PER_MM);
+
 		outlimit(out, out_csoil, soilc[lyr]);
 		outlimit(out, out_csoil_passive, soilc_p[lyr]);
 		outlimit(out, out_csoil_slow, soilc_s[lyr]);
@@ -1636,6 +1648,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		sdl_cue_tot = tot_cinc[1] / tot_cdec[0];
 	}
 
+	if (date.year == 0)//nyear_spinup) // DW_COMMENT
+		outlimit(out, out_soildepth, soil_depth * M_PER_MM);
 	outlimit(out, out_csoil, csoil_gridcell);
 	outlimit(out, out_csoil_passive, csoil_p_gridcell);
 	outlimit(out, out_csoil_slow, csoil_s_gridcell);

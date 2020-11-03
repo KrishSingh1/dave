@@ -3717,6 +3717,8 @@ public:
 	Soiltype& soiltype;
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
+	/// vector with soil layer bottom depths
+	std::vector<double> soillayerdepths;
 	/// number of soil layers
 	int nsoillayers;
 	/// vector with surface and soil layer litter input
@@ -3762,7 +3764,7 @@ public:
 	// Daily storage:
 
 	/// Depth in mm of the maximum depth of thaw this year
-	double maxthawdepththisyear;
+	double maxthaw;
 	/// daily thaw depth. The depth to the first soil layer with a temperature greater than 0 degrees C [mm]
 	double thaw;
 	/// monthly thawing depth full, where ALL the ice has melted [mm]
@@ -3771,6 +3773,8 @@ public:
 	double dthaw[Date::MAX_YEAR_LENGTH];
 	//
 	double mald_mean[12];
+	//
+	Historic<double, 10> maxthaw_10;
 
 	/// acrotelm CO2 level [mimil L-1]
 	double acro_co2;
@@ -4246,6 +4250,9 @@ public:
 	/// daily value of the above variable (mm/s)
 	double gcbase_day;
 
+	/// Vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
+	std::vector<double> rootdist;
+
 	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
 	double wsupply_leafon;
@@ -4317,6 +4324,7 @@ public:
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
 
+		rootdist.resize(pft.rootdist.size(), 0.0);
 		fwuptake.resize(pft.rootdist.size(), 0.0);
 
 		cropphen = NULL;
@@ -4347,6 +4355,8 @@ public:
 	cropphen_struct* set_cropphen();
 
 	bool growingseason() const;
+
+	void calc_rootdist(double maxthaw, std::vector<double> soil_lyr_depth);
 
 	void serialize(ArchiveStream& arch);
 };

@@ -29,6 +29,7 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
+file_soildepth "soildepth.out"
 file_csoil "csoil.out"
 file_csoil_passive "csoil_passive.out"
 file_csoil_slow "csoil_slow.out"
@@ -94,13 +95,13 @@ file_msnow "msnowdepth.out"
 !file_mburned_area_out "monthly_burned_area.out"
 
 ! Daily output
-file_daily_climate "dclimate.out"
-file_daily_snow_depth "dsnow_depth.out"
+!file_daily_climate "dclimate.out"
+!file_daily_snow_depth "dsnow_depth.out"
 !!file_daily_snow_density "dsnow_density.out"
 !!file_daily_snow_k "dsnow_k.out"
 !!file_daily_snow_d "dsnow_d.out"
 !!file_daily_snow_c "dsnow_c.out"
-file_daily_temp "dtemp.out"
+!file_daily_temp "dtemp.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
@@ -157,7 +158,7 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-soil_depth 10000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to soil_depth
+soil_depth 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to soil_depth
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 iforography 1                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
@@ -170,6 +171,7 @@ iforganicsoilproperties 0	! Whether to update physical soil properties using soi
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifverticalmixing 1              ! Whether to vertical mix soil organic matter
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)

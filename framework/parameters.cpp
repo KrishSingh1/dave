@@ -664,7 +664,11 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum evapotranspiration rate (mm/day)");
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
-			"Respiration coefficient (0-1)");
+			"Respiration coefficient (0-1)"); 
+		declareitem("ligcfrac_root", &ppft->ligcfrac_root, 0.0, 0.5, 1, CB_NONE,
+			"Lignin fraction in root (0-0.5)");
+		declareitem("ligcfrac_wood", &ppft->ligcfrac_wood, 0.0, 0.5, 1, CB_NONE,
+			"Lignin fraction in wood (0-0.5)");
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
@@ -1587,6 +1591,9 @@ void plib_callback(int callback) {
 			// Calculate C:N ratio limits
 			ppft->init_cton_limits();
 
+			// Calculate leaf lignin fraction
+			ppft->init_ligcfrac_leaf();
+
 			// Calculate regeneration characteristics for population mode
 			ppft->initregen();
 
@@ -1615,6 +1622,8 @@ void plib_callback(int callback) {
 			if (!itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
+			if (!itemparsed("ligcfrac_root")) badins("ligcfrac_root");
+			if (!itemparsed("ligcfrac_wood")) badins("ligcfrac_wood");
 
 			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 				if (!itemparsed("sla")) badins("sla");

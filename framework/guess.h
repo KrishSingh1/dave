@@ -1686,6 +1686,12 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// Leaf lignin fraction
+	double ligcfrac_leaf;
+	/// Root lignin fraction
+	double ligcfrac_root;
+	/// Wood lignin fraction
+	double ligcfrac_wood;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2142,6 +2148,21 @@ public:
 		}
 		cton_stem_max = 1.0 / (2.0 * 0.0034); // Maize params
 		cton_stem_avr = 1.0 / (2.0 * 0.0068);
+	}
+
+	/// Calculates leaf lignin fraction from leaf SLA
+	void init_ligcfrac_leaf() {
+
+		// The lignin content is assumed constant for all but the leaf tissues. For the latter, an empirical 
+		// dependency between lignin content and SLA is used (White et al., 2000).
+		const double ligcfrac_leaf_max = 0.344;
+		const double kleaf2sla = -0.0052;
+
+		ligcfrac_leaf = ligcfrac_leaf_max + kleaf2sla * sla;
+		
+		if (ligcfrac_leaf < 0.0) {
+			fail("ERROR: Negative ligcfrac_leaf %g SLA too high %g for %s\n", ligcfrac_leaf, sla, (char*)name);
+		}
 	}
 
 	/// Initialises sapling/regen characteristics in population mode following LPJF formulation

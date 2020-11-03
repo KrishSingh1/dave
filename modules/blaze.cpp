@@ -697,7 +697,7 @@ void blaze(Patch& patch, Climate& climate) {
 		Patchpft& patchpft = patch.pft.getobj();
 
 		double lton = lignin_to_n_ratio(patchpft.litter_leaf, patchpft.nmass_litter_leaf,
-			LIGCFRAC_LEAF, patchpft.pft.cton_leaf_avr);
+			patchpft.pft.ligcfrac_leaf, patchpft.pft.cton_leaf_avr);
 		double fm_leaf = metabolic_litter_fraction(lton);
 
 		// Carbon transitional litter fluxes
@@ -817,7 +817,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Compute mass per area fluxes from live pools
 
 	Patchpft& ppft = patchpft();
-	double lton = lignin_to_n_ratio(ppft.litter_leaf, ppft.nmass_litter_leaf, LIGCFRAC_LEAF,
+	double lton = lignin_to_n_ratio(ppft.litter_leaf, ppft.nmass_litter_leaf, ppft.pft.ligcfrac_leaf,
 		ppft.pft.cton_leaf_avr);
 
 
@@ -862,7 +862,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 
 	// Fine root litter lignin:N ratio
-	lton = lignin_to_n_ratio(ppft.litter_root, ppft.nmass_litter_root, LIGCFRAC_ROOT,
+	lton = lignin_to_n_ratio(ppft.litter_root, ppft.nmass_litter_root, ppft.pft.ligcfrac_root,
 		ppft.pft.cton_root_avr);
 
 	// Metabolic litter fraction for root 

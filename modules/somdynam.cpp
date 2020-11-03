@@ -1167,11 +1167,12 @@ void transfer_litter(Patch& patch) {
 					// Calculate inputs to surface structural and metabolic litter
 
 					// Leaf litter lignin:N ratio
-					double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, LIGCFRAC_LEAF, ppft.pft.cton_leaf_avr);
+					double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, ppft.pft.ligcfrac_leaf, ppft.pft.cton_leaf_avr);
 
 					// Metabolic litter fraction for leaf litter
 					double fm = metabolic_litter_fraction(leaf_lton);
 
+					ligcmass_new = cmass_litter_leaf * (1.0 - fm) * ppft.pft.ligcfrac_leaf;
 					ligcmass_old = soillayer.sompool[SURFSTRUCT].cmass * soillayer.sompool[SURFSTRUCT].ligcfrac;
 
 					// Add to pools
@@ -1197,9 +1198,6 @@ void transfer_litter(Patch& patch) {
 						litterme[SURFMETA] += cmass_litter_leaf * fm * ppft.pft.litterme;
 						fireresist[SURFMETA] += cmass_litter_leaf * fm * ppft.pft.fireresist;
 					}
-					// NB: reproduction litter cannot contain nitrogen!!
-
-					ligcmass_new = cmass_litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
 
 					if (negligible(soillayer.sompool[SURFSTRUCT].cmass, -16)) {
 						soillayer.sompool[SURFSTRUCT].ligcfrac = 0.0;
@@ -1217,12 +1215,12 @@ void transfer_litter(Patch& patch) {
 					// Calculate inputs to soil structural and metabolic litter
 
 					// Root litter lignin:N ratio
-					double root_lton = lignin_to_n_ratio(cmass_litter_root, nmass_litter_root, LIGCFRAC_ROOT, ppft.pft.cton_root_avr);
+					double root_lton = lignin_to_n_ratio(cmass_litter_root, nmass_litter_root, ppft.pft.ligcfrac_root, ppft.pft.cton_root_avr);
 
 					// Metabolic litter fraction for root litter
 					double fm = metabolic_litter_fraction(root_lton);
 
-					ligcmass_new = cmass_litter_root * (1.0 - fm) * LIGCFRAC_ROOT;
+					ligcmass_new = cmass_litter_root * (1.0 - fm) * ppft.pft.ligcfrac_root;
 					ligcmass_old = soillayer.sompool[SOILSTRUCT].cmass * soillayer.sompool[SOILSTRUCT].ligcfrac;
 
 					// Add to pools and update lignin fraction in structural pool
@@ -1260,7 +1258,7 @@ void transfer_litter(Patch& patch) {
 					// Surface sap wood
 					if (lyr == 0) {
 
-						ligcmass_new = cmass_litter_sap * (1.0 - FCWD_ROOT) * LIGCFRAC_WOOD;
+						ligcmass_new = cmass_litter_sap * (1.0 - FCWD_ROOT) * ppft.pft.ligcfrac_wood;
 						ligcmass_old = soillayer.sompool[SURFFWD].cmass * soillayer.sompool[SURFFWD].ligcfrac;
 
 						// Add to fine woody pool and update lignin fraction in pool
@@ -1291,7 +1289,7 @@ void transfer_litter(Patch& patch) {
 
 					// Soil sap wood (fine woody roots)
 
-					ligcmass_new = cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr] * LIGCFRAC_WOOD;
+					ligcmass_new = cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr] * ppft.pft.ligcfrac_wood;
 					ligcmass_old = soillayer.sompool[SOILFWD].cmass * soillayer.sompool[SOILFWD].ligcfrac;
 
 					// Add to structural pool and update lignin fraction in pool
@@ -1321,7 +1319,7 @@ void transfer_litter(Patch& patch) {
 					// Surface heart wood
 					if (lyr == 0) {
 
-						ligcmass_new = cmass_litter_heart * (1.0 - FCWD_ROOT) * LIGCFRAC_WOOD;
+						ligcmass_new = cmass_litter_heart * (1.0 - FCWD_ROOT) * ppft.pft.ligcfrac_wood;
 						ligcmass_old = soillayer.sompool[SURFCWD].cmass * soillayer.sompool[SURFCWD].ligcfrac;
 
 						// Add to fine woody pool and update lignin fraction in pool
@@ -1352,7 +1350,7 @@ void transfer_litter(Patch& patch) {
 
 					// Soil heart wood (fine woody roots)
 
-					ligcmass_new = cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr] * LIGCFRAC_WOOD;
+					ligcmass_new = cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr] * ppft.pft.ligcfrac_wood;
 					ligcmass_old = soillayer.sompool[SOILCWD].cmass * soillayer.sompool[SOILCWD].ligcfrac;
 
 					// Add to structural pool and update lignin fraction in pool

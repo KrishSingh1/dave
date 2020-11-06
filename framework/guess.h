@@ -3561,10 +3561,10 @@ struct Snowlayer : public Serializable {
 	/// Thermal conductivity of snow [J m-1 K-1 s-1]
 	double Kh;
 
-	/// heat capacity of snow [J m-3 K-1]
+	/// Heat capacity of snow [J m-3 K-1]
 	double Ch;
 
-	/// Thermal conductivity of snow [m2 s-1]
+	/// Diffusivity of snow [m2 s-1]
 	double Dh;
 
 	void clear();
@@ -3633,7 +3633,7 @@ public:
 	void redist_layers(double snowpack_depth);
 
 	/// Accumulate snow in bottom layer if all other layers are already full
-	void update_layers(double snowfall_depth, double snowfall_dens, double airT);
+	void update_layers(double snowfall_depth, double snowfall_dens, double snowfall_Ch, double airT);
 
 	/// DW_COMMENT
 	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);

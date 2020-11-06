@@ -971,9 +971,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			double respsum_tot = 0.0;
 			double nmin_inc = 0.0;
 
-			if (date.year > 5)
-				int sch = 0;
-
 			for (int p = 0; p < NSOMPOOL; p++) {
 				// If not top soil layer
 				if (lyr) {
@@ -1991,7 +1988,7 @@ void equilsom(Patch& patch) {
 			// Increase number of iterations
 			tries++;
 
-			dprintf("Tries %d CCONT ", tries);
+			//dprintf("Tries %d CCONT ", tries);
 
 			// Loop through layers and try and to solve equilibrium by appling the trend of pools
 			// by several order of magnitude
@@ -2010,8 +2007,8 @@ void equilsom(Patch& patch) {
 				}
 
 				// Both slow and passive pool needs to be of some size
-				if (!negligible(soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, -15) &&
-					!negligible(soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, -15)) {
+				if (!negligible(soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, -13) &&
+					!negligible(soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, -13)) {
 
 					// Trend over NYEARS years
 					double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
@@ -2125,15 +2122,15 @@ void equilsom(Patch& patch) {
 					if (iftwolayersoil || (lyr > 2 && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6))
 						bad_trend++;
 
-					dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
+					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
 				}
 			}
 
 			// Maximum multiplier should go down over time.
-			if (!(tries%100))
+			if (!(tries%200))
 				MAX_MULTI = max(100.0, MAX_MULTI / MULTI_MOD);
 
-			dprintf("Bad %d \n", bad_trend);
+			//dprintf("Bad %d \n", bad_trend);
 		}
 
 		dprintf("Year %d Tries %d\n", date.year, tries);		

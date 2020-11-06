@@ -15,10 +15,11 @@
 #include "parameters.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-// Implementation of Snowlayer member functions
-////////////////////////////////////////////////////////////////////////////////
+// SNOWLAYER
 
-/// Clears all members
+/// Clears all snow layer members
+/* Clear all snow layer members
+ */
 void Snowlayer::clear() {
 	imass = 0.0;
 	wmass = 0.0;
@@ -32,28 +33,29 @@ void Snowlayer::clear() {
 	Dh = 0.0;
 }
 
-double snowheatcap(double temp, double dens) {
-	// C Snow - Fukusako, Eq. 2. [J m-3 K-1]
+/// Calculates heat capacity of snow
+/* Calculates heat capacity of snow
+ * Fukusako 1990, Eq. 2. [J m-3 K-1]
+ */
+double snowheatcap(double temp, double dens) { 
 	return (0.185 + 0.689 * (K2degC + temp) * 0.01) * dens * J_PER_KJ;
 }
 
-///
-/*
- *
+/// Updates snow layer temperature
+/* Updates snow layer temperature due to movement of mass 
+ * with different temperature
  */
 void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	if (negligible(depth * Ch + add_mass * add_Ch))
 		dprintf("Year %d Day %d Error snow temp \n",date.year,date.day);
 
-	if (negligible(add_mass)) // DW_COMMENT
-		int sch = 0;
-
 	// New snow layer but haven't updated snow properties yet 
 	if (!negligible(depth) && negligible(Ch)) {
 		update_heatcap_and_cond();
 	}
 
+	// No snow depth nor heat capacity
 	if (negligible(depth) && negligible(Ch)) {
 		Ch = add_Ch;
 	}
@@ -68,40 +70,56 @@ void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 	}
 }
 
-///
-/*
- *
+/// Update heat capacity and conductivity of snow layer
+/* Update heat capacity and conductivity of snow layer
  */
 void Snowlayer::update_heatcap_and_cond() {
 
 	// Snow density including water withing snow
 	double tot_dens = min(rho_ICE, (imass + wmass) / depth * MM_PER_M);
 
-	// C Snow - Fukusako, Eq. 2. [J m-3 K-1]
+	// Heat capacity of snow - Fukusako 1990, Eq. 2. [J m-3 K-1]
 	Ch = snowheatcap(temp, tot_dens);
 
-	// K Snow - Best et al. 2011, Eq. 23 [J m-1 K-1 s-1]
+	// Thermal conductivity of snow - Best et al. 2011, Eq. 23 [J m-1 K-1 s-1]
 	Kh = 2.22 * pow((tot_dens / rho_H2O), 1.88);
 
-	// D Snow
+	// Diffusivity of snow [m2 s-1]
 	Dh = Kh / Ch;
 }
 
-// Update snow water holding capacity
+/// Update snow water holding capacity
+/* Update snow water holding capacity
+ * based on eqn 10 Wang et al. 2013
+ */
 void Snowlayer::update_whc() {
-	// Calculate layer water holding capacity, based on eqn 10 Wang et al. 2013	
-	double dens_t = 400;	// kg m-3, reference density
+
+	// Reference density [kg m-3]
+	double dens_t = 400;	
+	// Minimum snow water holding capacity
 	double rw_min = 0.03;
+	// Maximum snow water holding capacity
 	double rw_max = 0.1;
 
+	// Water holding capacity of snow layer [mm]
 	whc = imass * (rw_min + (rw_max - rw_min) * max(0.0, dens_t - dens) / dens_t);
 }
 
-/// weigthed avg of new and old snow density
+/// Weigthed avg of new and old snow density
+/* Weigthed avg of new and old snow density
+ */
 void Snowlayer::mix_dens(double prec, double snowfall_dens) {
+
+	// Total water/ice mass
 	double sum = imass + wmass + prec;
+
+	// New water/ice mass fraction
 	double w_new = prec / sum;
+
+	// Old water/ice mass fraction
 	double w_old = 1.0 - w_new;
+
+	// New density
 	dens = min(rho_ICE, w_old * dens + w_new * snowfall_dens);
 }
 
@@ -116,16 +134,21 @@ void Snowlayer::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Implementation of Snow member functions
-////////////////////////////////////////////////////////////////////////////////
+// SNOW COLUMN
 
+/// Initial state of snow column
+/* Initial state of snow column
+ */
 void Snow::init_state() {
 
 	nsnowlayers = 0;
 	NO3_mass = 0.0;
 	NH4_mass = 0.0;
+
+	// Standard depth of a snow layer
 	snow_depth_standard = 100.0;
-	snow_depth_limit = 2.0; // Twice the standard snow layer depth
+	// New snow layer is created when standard depth is exceeded by a factor 
+	snow_depth_limit = 2.0; 
 
 	for (int mth = 0; mth < 12; mth++) {
 		mdepth[mth] = 0.0;
@@ -135,20 +158,30 @@ void Snow::init_state() {
 	}
 }
 
-
+/// Function returns total available N mass in snow column
+/* Function returns total available N mass in snow column
+ */
 double Snow::nmass_avail() {
 	return NO3_mass + NH4_mass;
 }
 
+/// Function returns total C mass in snow column
+/* Function returns total C mass in snow column
+ */
 double Snow::ccont() {
 	return 0.0;
 }
 
+/// Function returns total N mass in snow column
+/* Function returns total N mass in snow column
+ */
 double Snow::ncont() {
 	return NO3_mass + NH4_mass;
 }
 
-/// Water mass in snow layers
+/// Function returns total water and ice mass in snow column
+/* Function returns total water and ice mass in snow column
+ */
 double Snow::wcontent() {
 	double wcontent = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++)
@@ -156,6 +189,9 @@ double Snow::wcontent() {
 	return wcontent;
 }
 
+/// Function returns total snow depth
+/* Function returns total snow depth
+ */
 double Snow::depth() {
 	double sd = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
@@ -164,6 +200,10 @@ double Snow::depth() {
 	return sd;
 }
 
+/// Function returns average snow depth from the three months with highest snow depth
+/* Function returns average snow depth 
+ * from the three months with highest snow depth
+ */
 double Snow::snowpack_avrmax3mth() {
 	double snow_max_mths[3];
 	snow_max_mths[0] = snow_max_mths[1] = snow_max_mths[2] = 0.0;
@@ -176,20 +216,23 @@ double Snow::snowpack_avrmax3mth() {
 			snow_max_mths[1] = snow_max_mths[0];
 			snow_max_mths[0] = mdepth[mth];
 		}
-
 		// If mdepth[mth] is in between first and second then update second
 		else if (mdepth[mth] > snow_max_mths[1]) {
 			snow_max_mths[2] = snow_max_mths[1];
 			snow_max_mths[1] = mdepth[mth];
 		}
-
+		// If mdepth[mth] is larger than the third then update third
 		else if (mdepth[mth] > snow_max_mths[2])
 			snow_max_mths[2] = mdepth[mth];
 	}
 
+	// Return avergae snow depth of the three months of highest snow depth
 	return (snow_max_mths[0] + snow_max_mths[1] + snow_max_mths[2]) / 3.0;
 }
 
+/// Function returning total water and ice mass in snow column
+/* Function returning total water and ice mass in snow column
+ */
 double Snow::snowpack() {
 	double sp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
@@ -198,13 +241,18 @@ double Snow::snowpack() {
 	return sp;
 }
 
+/// Function updates heat capacity of each snow layer
+/* Function updates heat capacity of each snow layer
+ */
 void Snow::update_heatcap_and_cond() {
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		snowlayers[lyr].update_heatcap_and_cond();
 	}
 }
 
-/// Potential redistribution of ice/dens after melt
+/// Potential redistribution of ice and density after melt
+/* Potential redistribution of ice and density after melt
+ */
 void Snow::potential_depth(double snowpack_depth, std::vector<double>& pot_depth, int& pot_nsnowlayers) {
 
 	pot_nsnowlayers = 0;
@@ -238,29 +286,30 @@ void Snow::potential_depth(double snowpack_depth, std::vector<double>& pot_depth
 	}
 }
 
-/// Re-distributing snow after freeze/melt or compaction event
+/// Re-distributing snow after freeze, melt or compaction event
+/* Re-distributing snow after freeze, melt or compaction event
+ */
 void Snow::redist_layers(double snowpack_depth) {
 
-	const double EPS = 1.0e-10;
+	const double EPS = 1.0e-12;
 
-	double initial_depth = 0.0;
+	/*double initial_depth = 0.0;
 	double initial_ice = 0.0;
 	double initial_water = 0.0;
-	double initial_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		initial_depth += snowlayers[lyr].depth;
 		initial_ice += snowlayers[lyr].imass;
 		initial_water += snowlayers[lyr].wmass;
-		initial_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
-	}
-	initial_temp /= initial_depth;
-
+	}*/
 
 	// Potential depth
 	std::vector<double> pot_depth(NSNOWLAYERS_MAX);
 
 	// Potential number of snow layers
 	int pot_nsnowlayers;
+
+	// Movement variables
+	double frac_move, depth_move, imass_move, wmass_move, diff_lyr;
 
 	// Check potential snow layer depth
 	potential_depth(snowpack_depth, pot_depth, pot_nsnowlayers);
@@ -269,17 +318,17 @@ void Snow::redist_layers(double snowpack_depth) {
 	for (int lyr = 0; lyr < nsnowlayers - 1; lyr++) {
 		int lyr_above = lyr;
 
-		double diff_lyr = fabs(pot_depth[lyr] - snowlayers[lyr].depth);
+		diff_lyr = fabs(pot_depth[lyr] - snowlayers[lyr].depth);
 
 		// Move snow downwards in snowpack to fill every layer to pot_ice
 		while (!negligible(diff_lyr) && lyr_above < nsnowlayers - 1) {
 			lyr_above++;
 
-			// layer shrinks so that depth needs to be moved from thicker bottom layer
+			// Layer shrinks so that depth needs to be moved from thicker bottom layer
 			if (snowlayers[lyr].depth > pot_depth[lyr]) {
 
-				double depth_move = snowlayers[lyr].depth - pot_depth[lyr];
-				double frac_move = depth_move / snowlayers[lyr].depth;
+				depth_move = snowlayers[lyr].depth - pot_depth[lyr];
+				frac_move = depth_move / snowlayers[lyr].depth;
 
 				// Recalculate temperature
 				snowlayers[lyr_above].update_temp(snowlayers[lyr].temp, frac_move * (snowlayers[lyr].imass + snowlayers[lyr].wmass), snowlayers[lyr].Ch);
@@ -289,24 +338,26 @@ void Snow::redist_layers(double snowpack_depth) {
 				snowlayers[lyr_above].depth += depth_move;
 
 				// Move ice accordingly
-				snowlayers[lyr_above].imass += frac_move * snowlayers[lyr].imass;
-				snowlayers[lyr].imass *= 1.0 - frac_move;
+				imass_move = frac_move * snowlayers[lyr].imass;
+				snowlayers[lyr_above].imass += imass_move;
+				snowlayers[lyr].imass -= imass_move;
 
 				// Move water accordingly
-				snowlayers[lyr_above].wmass += frac_move * snowlayers[lyr].wmass;
-				snowlayers[lyr].wmass *= 1.0 - frac_move;
+				wmass_move = frac_move * snowlayers[lyr].wmass;
+				snowlayers[lyr_above].wmass += wmass_move;
+				snowlayers[lyr].wmass -= wmass_move;
 
 				// Update density
 				snowlayers[lyr_above].dens = snowlayers[lyr_above].imass * rho_H2O / snowlayers[lyr_above].depth;
 			}
 			else {
 
-				double depth_move = max(0.0, min(snowlayers[lyr_above].depth, pot_depth[lyr] - snowlayers[lyr].depth));
+				depth_move = max(0.0, min(snowlayers[lyr_above].depth, pot_depth[lyr] - snowlayers[lyr].depth));
 
 				// Add depth to be moved if it isn't negligible
 				if (!negligible(depth_move) && depth_move > 0.0) {
 
-					double frac_move = depth_move / snowlayers[lyr_above].depth;
+					frac_move = depth_move / snowlayers[lyr_above].depth;
 
 					// Recalculate temperature
 					snowlayers[lyr].update_temp(snowlayers[lyr_above].temp, frac_move * (snowlayers[lyr_above].imass + snowlayers[lyr_above].wmass), snowlayers[lyr_above].Ch);
@@ -316,12 +367,14 @@ void Snow::redist_layers(double snowpack_depth) {
 					snowlayers[lyr].depth += depth_move;
 
 					// Move ice accordingly
-					snowlayers[lyr].imass += frac_move * snowlayers[lyr_above].imass;
-					snowlayers[lyr_above].imass *= 1.0 - frac_move;
+					imass_move = frac_move * snowlayers[lyr_above].imass;
+					snowlayers[lyr].imass += imass_move;
+					snowlayers[lyr_above].imass -= imass_move;
 
 					// Move water accordingly
-					snowlayers[lyr].wmass += frac_move * snowlayers[lyr_above].wmass;
-					snowlayers[lyr_above].wmass *= 1.0 - frac_move;
+					wmass_move = frac_move * snowlayers[lyr_above].wmass;
+					snowlayers[lyr].wmass += wmass_move;
+					snowlayers[lyr_above].wmass -= wmass_move;
 
 					// Update density
 					snowlayers[lyr].dens = snowlayers[lyr].imass * rho_H2O / snowlayers[lyr].depth;
@@ -343,42 +396,40 @@ void Snow::redist_layers(double snowpack_depth) {
 		nsnowlayers = (int)snowlayers.size();
 	}
 
-	double final_depth = 0.0;
+	/*double final_depth = 0.0;
 	double final_ice = 0.0;
 	double final_water = 0.0;
-	double final_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		final_depth += snowlayers[lyr].depth;
 		final_ice += snowlayers[lyr].imass;
 		final_water += snowlayers[lyr].wmass;
-		final_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
 	}
-	final_temp /= final_depth;
 
 	assert(fabs(initial_depth - final_depth) < EPS);
 	assert(fabs(initial_ice - final_ice) < EPS);
-	assert(fabs(initial_water - final_water) < EPS);
-//	assert(fabs(initial_temp - final_temp) < EPS);
+	assert(fabs(initial_water - final_water) < EPS);*/
 }
 
 /// Redistribute snow when all snow layers are full due to melt or compaction
+/* Redistribute snow when all snow layers are full due to melt or compaction
+ */
 void Snow::redist_layers_full() {
 
-	const double EPS = 1.0e-10;
+	const double EPS = 1.0e-12;
 
-	double initial_depth = 0.0;
+	/*double initial_depth = 0.0;
 	double initial_ice = 0.0;
 	double initial_water = 0.0;
-	double initial_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		initial_depth += snowlayers[lyr].depth;
 		initial_ice += snowlayers[lyr].imass;
 		initial_water += snowlayers[lyr].wmass;
-		initial_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
-	}
-	initial_temp /= initial_depth;
+	}*/
 
-	// filling each layer to snow_depth_standard
+	// Movement variables
+	double frac_move, depth_move, imass_move, wmass_move;
+
+	// Filling each layer to snow_depth_standard
 	for (int lyr = nsnowlayers - 1; lyr > 0; lyr--) {
 		int lyr_move = lyr;
 
@@ -389,11 +440,16 @@ void Snow::redist_layers_full() {
 			lyr_move--;
 
 			if (!negligible(snowlayers[lyr_move].imass)) {
+
+				//double imass_before = snowlayers[lyr].imass + snowlayers[lyr_move].imass;
+				//double wmass_before = snowlayers[lyr].wmass + snowlayers[lyr_move].wmass;
+
+
 				// Move upwards maximum of what is in snow layer lyr_below
-				double depth_move = min(snowlayers[lyr_move].depth, lyr_diff);
+				depth_move = min(snowlayers[lyr_move].depth, lyr_diff);
 				lyr_diff -= depth_move;
 
-				double frac_move = !negligible(snowlayers[lyr_move].depth) ? depth_move / snowlayers[lyr_move].depth : 0.0;
+				frac_move = !negligible(snowlayers[lyr_move].depth) ? depth_move / snowlayers[lyr_move].depth : 0.0;
 
 				// Recalculate temperature
 				snowlayers[lyr].update_temp(snowlayers[lyr_move].temp, frac_move * (snowlayers[lyr_move].imass + snowlayers[lyr_move].wmass), snowlayers[lyr_move].Ch);
@@ -403,15 +459,26 @@ void Snow::redist_layers_full() {
 				snowlayers[lyr_move].depth -= depth_move;
 
 				// Move ice accordingly
-				snowlayers[lyr].imass += frac_move * snowlayers[lyr_move].imass;
-				snowlayers[lyr_move].imass *= 1.0 - frac_move;
+				imass_move = frac_move * snowlayers[lyr_move].imass;
+				snowlayers[lyr].imass += imass_move;
+				snowlayers[lyr_move].imass -= imass_move;
 
 				// Move water accordingly
-				snowlayers[lyr].wmass += frac_move * snowlayers[lyr_move].wmass;
-				snowlayers[lyr_move].wmass *= 1.0 - frac_move;
+				wmass_move = frac_move * snowlayers[lyr_move].wmass;
+				snowlayers[lyr].wmass += wmass_move;
+				snowlayers[lyr_move].wmass -= wmass_move;
 
 				// Update density
 				snowlayers[lyr].dens = snowlayers[lyr].imass * rho_H2O / snowlayers[lyr].depth;
+
+
+				/*double imass_after = snowlayers[lyr].imass + snowlayers[lyr_move].imass;
+				double wmass_after = snowlayers[lyr].wmass + snowlayers[lyr_move].wmass;
+
+				if (fabs(imass_after - imass_before) > EPS)
+					dprintf("Year %d Day %d Full Loop %d I %g\n", date.year, date.day, lyr, imass_after - imass_before);
+				if (fabs(wmass_after - wmass_before) > EPS)
+					dprintf("Year %d Day %d Full Loop %d W %g\n", date.year, date.day, lyr, imass_after - imass_before);*/
 			}
 		}
 	}
@@ -425,68 +492,72 @@ void Snow::redist_layers_full() {
 		}
 	}
 
-	double final_depth = 0.0;
+	/*double final_depth = 0.0;
 	double final_ice = 0.0;
 	double final_water = 0.0;
-	double final_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		final_depth += snowlayers[lyr].depth;
 		final_ice += snowlayers[lyr].imass;
 		final_water += snowlayers[lyr].wmass;
-		final_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
-	}
-	final_temp /= final_depth;
+	}*/
 
-	assert(fabs(initial_depth - final_depth) < EPS);
-	assert(fabs(initial_ice - final_ice) < EPS);
-	assert(fabs(initial_water - final_water) < EPS);
-	//assert(fabs(initial_temp - final_temp) < EPS);
+	//if (fabs(initial_depth - final_depth) > EPS)
+	//	dprintf("Year %d Day %d Full D %g\n",date.year,date.day, initial_depth - final_depth);
+	//if (fabs(initial_ice - final_ice) > EPS)
+	//	dprintf("Year %d Day %d Full I %g\n", date.year, date.day, initial_ice - final_ice);
+	//if (fabs(initial_water - final_water) > EPS)
+	//	dprintf("Year %d Day %d Full W %g\n", date.year, date.day, initial_water - final_water);
+
+	//assert(fabs(initial_depth - final_depth) < EPS);
+	//assert(fabs(initial_ice - final_ice) < EPS);
+	//assert(fabs(initial_water - final_water) < EPS);
 }
 
-// Update snow water holding capacity
+/// Update snow water holding capacity
+/* Update snow water holding capacity
+* based on eqn 10 Wang et al. 2013
+*/
 void Snow::update_whc() {
-	// Calculate layer water holding capacity, based on eqn 10 Wang et al. 2013
-
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		snowlayers[lyr].update_whc();
 	}
 }
 
 /// Balance ice and water in snow layers after melting and refreezing
+/* Balance ice and water in snow layers after melting and refreezing
+ */
 void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 
 	// No snow layers or not multilayer snow scheme then leave function
 	if (!nsnowlayers || !ifmultilayersnow)
 		return;
 
-	const double EPS = 1.0e-10;
+	const double EPS = 1.0e-11;
+	bool snowpack_removed = false;
 
 	double initial_depth = 0.0;
-	double initial_ice = 0.0;
 	double initial_water = rain_melt;
-	double initial_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		initial_depth += snowlayers[lyr].depth;
-		initial_ice += snowlayers[lyr].imass;
-		initial_water += snowlayers[lyr].wmass;
-		initial_temp += snowlayers[lyr].temp * (snowlayers[lyr].imass + snowlayers[lyr].wmass);
+		initial_water += snowlayers[lyr].wmass + snowlayers[lyr].imass;
 	}
-	initial_temp /= (initial_ice + initial_water);
 
-	// Re-distribute layers
+	// Redistribute layers
 	double max_snow = NSNOWLAYERS_MAX * snow_depth_standard;
 
 	// Balance layers depending on if snowpack is over maxumum or not
 	double snowpack_depth = depth();
-	
+
+	// Redistribute snow layers if layers are full up to standard depth
 	if (snowpack_depth > max_snow) {
 		redist_layers_full();
 	}
+	// Redistribute snow layers if snow exist
 	else if (!negligible(snowpack_depth)) {
 		redist_layers(snowpack_depth);
-	}	
+	}
+	// Insignificant snow depth. Remove all snow layers and turn it into melt water
 	else if (nsnowlayers) {
-		// Insignificant snow depth. Remove all snow layers
 		for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
 			double added_wmass = snowlayers[lyr].imass + snowlayers[lyr].wmass;
 			if (!negligible(added_wmass)) {
@@ -497,6 +568,7 @@ void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 			snowlayers.erase(snowlayers.begin() + lyr);
 		}
 		nsnowlayers = 0;
+		snowpack_removed = true;
 	}
 
 	// Update snow water holding capacity
@@ -506,7 +578,7 @@ void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 	double ts_melt = 0.0;
 	double ts_melt_temp = 0.0;
 
-	// Redistribute liquid water within the snow pack
+	// Redistribute water within the snow pack
 	// moving from top to bottom snow layers
 	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
 
@@ -532,38 +604,46 @@ void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 		rain_melt += ts_melt;
 	}
 
-	double final_depth = 0.0;
-	double final_ice = 0.0;
+	/*double final_depth = 0.0;
 	double final_water = rain_melt;
-	double final_temp = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		final_depth += snowlayers[lyr].depth;
-		final_ice += snowlayers[lyr].imass;
-		final_water += snowlayers[lyr].wmass;
-		final_temp += snowlayers[lyr].temp * (snowlayers[lyr].imass + snowlayers[lyr].wmass);
+		final_water += snowlayers[lyr].wmass + snowlayers[lyr].imass;
 	}
-	final_temp /= (final_ice + final_water);
 
-	assert(fabs(initial_depth - final_depth) < EPS);
-	assert(fabs(initial_ice - final_ice) < EPS);
-	//assert(fabs(initial_water - final_water) < EPS);
-	//assert(fabs(initial_temp - final_temp) < EPS);
+	if (!snowpack_removed) {
+		if(fabs(initial_depth - final_depth) > EPS)
+			dprintf("Year %d Day %d Balance_Snow Depth %g\n",date.year,date.day, initial_depth - final_depth);
+		//assert(fabs(initial_depth - final_depth) < EPS);
+	}
+	if (fabs(initial_water - final_water) > EPS)
+		dprintf("Year %d Day %d Balance_Snow Water %g\n", date.year, date.day, initial_water - final_water);
+	assert(fabs(initial_water - final_water) < EPS);*/
 }
 
+/// Phase change within the snow pack
+/* Phase change within the snow pack
+ * Calculate water, ice and air fraction in each layer
+ * and snow phase change
+ */
 void Snow::phase_change() {
 
-	// DESCRIPTION
-	// Calculate water, ice and air fraction in each layer
-	// and snow phase change
+	// Fraction of water which freezes
+	double Ffreez;
+	// Fraction of ice which thaws
+	double Fthaw;
+	// Energy per volume [J m-3]
+	double energy;
+	// Temperature difference (current - previous)
+	double delta_T;
+	// Snow layer depth [mm]
+	double snow_depth;
+	// Snow layer temperature [C]
+	double snow_temp;
 
-	double Ffreez;		// Fraction of water which freezes
-	double Fthaw;		// Fraction of ice which thaws
-	double energy;		// Energy per volume [J m-3]
-	double delta_T;		// Temperature difference (current - previous)
-	double snow_depth;	// Snow layer depth [mm]
-	double snow_temp;	// Snow layer temperature [C]
-	const double EPS = 1.0e-10;
+	//const double EPS = 1.0e-10;
 
+	// No phase change in simple snow scheme
 	if (!ifmultilayersnow)
 		return;
 
@@ -577,7 +657,7 @@ void Snow::phase_change() {
 		bool ifthawed = false;
 
 		// The total amount of ice and water should not change in this routine
-		double wtotal_initial = snowlayers[lyr].imass + snowlayers[lyr].wmass;
+		//double wtotal_initial = snowlayers[lyr].imass + snowlayers[lyr].wmass;
 
 		snow_depth = snowlayers[lyr].depth;
 		snow_temp = snowlayers[lyr].temp;
@@ -586,14 +666,11 @@ void Snow::phase_change() {
 		double Fwmass = snowlayers[lyr].wmass / snow_depth;
 		double Fimass = snowlayers[lyr].imass / snow_depth;
 
-		// Volume of snow layer [m-3]
-	//	snow_volume = snowlayers[lyr].depth * M_PER_MM;
-
 		// Temperature change from yesterday
 		delta_T = snow_temp - snowlayers[lyr].temp_old;
 
-		// Freezing
-		if (snow_temp < 0.0 && snow_temp < snowlayers[lyr].temp_old) { // Wania conditions 
+		// Freezing conditions Wania et al 2010
+		if (snow_temp < 0.0 && snow_temp < snowlayers[lyr].temp_old) {
 
 			iffreezed = true;
 			Fthaw = 0.0;
@@ -602,8 +679,8 @@ void Snow::phase_change() {
 			if (!negligible(Fwmass)) {
 
 				// Energy to freeze water [J m-3]
-				//energy = snowlayers[lyr].Ch * fabs(delta_T);
-				energy = Cp_water * fabs(delta_T); // DW_COMMENT shouldn't this be ch?!?!?!?!
+				// energy = snowlayers[lyr].Ch * fabs(delta_T); // DW_COMMENT shouldn't this be ch?!?!?!?!
+				energy = Cp_water * fabs(delta_T); 
 
 				// Fraction water that would freeze [m3 m-3]
 				Ffreez = energy / Lheat;
@@ -629,13 +706,13 @@ void Snow::phase_change() {
 					Fimass += Fwmass;
 
 					// Update snow temperature in this layer
-					// How much energy (temperature) the phase change needed
+					// How much energy (temperature) the phase change needed // DW_COMMENT
 					snowlayers[lyr].temp += Fwmass * Lheat / Cp_water;
 
 					if (snowlayers[lyr].temp > 0.0)
 						dprintf("ERROR: Year %d Day %d Snow layer %d temperature is above zero AFTER freezing %g\n",date.year,date.day,lyr, snowlayers[lyr].temp);
 
-					snowlayers[lyr].temp = min(0.0, snowlayers[lyr].temp); // DW_COMMENT
+					snowlayers[lyr].temp = min(0.0, snowlayers[lyr].temp); // DW_COMMENT shouldn't be here. Should not happen!!!!
 
 					// No liquid water left in snow layer
 					Fwmass = 0.0;
@@ -646,10 +723,10 @@ void Snow::phase_change() {
 				Fimass += Fwmass;
 				Fwmass = 0.0;
 			}
-		} // end of freezing
+		} // End of freezing
 
-		// Thawing  
-		else if (snow_temp >= 0.0  && snow_temp > snowlayers[lyr].temp_old) { // Wania conditions
+		// Thawing conditions Wania et al 2010
+		else if (snow_temp >= 0.0  && snow_temp > snowlayers[lyr].temp_old) {
 
 			ifthawed = true;
 			Ffreez = 0.0;
@@ -658,7 +735,7 @@ void Snow::phase_change() {
 			if (!negligible(Fimass)) {
 
 				// Energy to thaw ice [J m-3]
-				//energy = snowlayers[lyr].Ch  * fabs(delta_T);
+				// energy = snowlayers[lyr].Ch  * fabs(delta_T); // DW_COMMENT
 				energy = Cp_water  * fabs(delta_T);
 
 				// Fraction ice that would thaw [m3 m-3]
@@ -691,9 +768,9 @@ void Snow::phase_change() {
 				Fwmass += Fimass;
 				Fimass = 0.0;
 			}
-		} // end of thawing
+		} // End of thawing
 
-		  // New ice fraction in snow layer
+		// New ice fraction in snow layer
 		snowlayers[lyr].imass = Fimass * snow_depth;
 
 		// New water fraction in snow layer
@@ -711,16 +788,19 @@ void Snow::phase_change() {
 		}
 
 		// The total amount of ice and water should not change in this routine
-		double wtotal_final = snowlayers[lyr].imass + snowlayers[lyr].wmass;
+		//double wtotal_final = snowlayers[lyr].imass + snowlayers[lyr].wmass;
 
-		assert(fabs(wtotal_initial - wtotal_final) < EPS);
-	} // end of loop through layers
+		//assert(fabs(wtotal_initial - wtotal_final) < EPS);
+	} // End of loop through layers
 }
 
 
 /// Snow compaction and update density and depth
+/* Snow compaction and update density and depth
+ */
 void Snow::compaction(double& rain_melt, double& rain_melt_temp) {
 
+	// No compaction in simple snow scheme
 	if (!ifmultilayersnow)
 		return;
 
@@ -744,8 +824,10 @@ void Snow::compaction(double& rain_melt, double& rain_melt_temp) {
 
 		// Increase in layer density due to compaction (Best et. al. 2011, Eq.21)
 		double k_s = 4000.0;
-		double eta_0 = 1E7; // Compactive viscosity factor for snow
-		double rho_0 = 50.0; // Reference snow density [kg m-3]
+		// Compactive viscosity factor for snow
+		double eta_0 = 1E7;
+		// Reference snow density [kg m-3]
+		double rho_0 = 50.0;
 
 		if (snowlayers[lyr].dens < rho_ICE) {
 			double delta_dens = snowlayers[lyr].dens * gravity * M_k / eta_0 *
@@ -767,28 +849,36 @@ void Snow::compaction(double& rain_melt, double& rain_melt_temp) {
 }
 
 /// Accumulate snow in bottom layer if all other layers are already full
-void Snow::update_layers(double snowfall_depth, double snowfall_dens, double airT) {
+/* Accumulate snow in bottom layer if all other layers are already full
+ */
+void Snow::update_layers(double snowfall_depth, double snowfall_dens, double snowfall_Ch, double airT) {
 
-	// Check initial snow and water content
+	/*// Check initial snow and water content
 	const double EPS = 1.0e-10;
 
+	double snowfall_imass = snowfall_depth * snowfall_dens / rho_H2O;
+
+	double init_imass[5] = { 0.0 };
 	double initial_depth = snowfall_depth;
-	double initial_ice = snowfall_depth * snowfall_dens / rho_H2O;
+	double initial_ice = snowfall_imass;
 	double initial_water = 0.0;
-	double initial_temp = airT * snowfall_depth;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		initial_depth += snowlayers[lyr].depth;
 		initial_ice += snowlayers[lyr].imass;
 		initial_water += snowlayers[lyr].wmass;
-		initial_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
-	}
-	initial_temp /= initial_depth;
+		init_imass[lyr] = snowlayers[lyr].imass;
+	}*/
+
+	// Movement variables
+	double frac_move, depth_move, imass_move, wmass_move, tot_depth_move;
+	//double tot_imass_move;
 
 	// Loop through snow layers
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
 		// Total snow to move down to this layer
-		double tot_depth_move = lyr == 0 ? snowfall_depth : snow_depth_standard - snowlayers[lyr].depth;
+		tot_depth_move = lyr == 0 ? snowfall_depth : snow_depth_standard - snowlayers[lyr].depth;
+		//tot_imass_move = tot_depth_move * snowfall_dens / rho_H2O;
 
 		// Layer to move snow from
 		int lyr_move = lyr + 1;
@@ -796,16 +886,17 @@ void Snow::update_layers(double snowfall_depth, double snowfall_dens, double air
 		// Move snow until enough is moved (could be from more than one layer above)
 		while (!negligible(tot_depth_move)) {
 
-			double depth_move;
-
 			// Determine snow to move from snow layer above
 
 			// Snow layer above exist
 			if (lyr_move < nsnowlayers) {
 
+				//double imass_be1 = snowlayers[lyr].imass;
+				//double imass_be2 = snowlayers[lyr_move].imass;
+
 				// Move maximum what exist in layer to move from
 				depth_move = min(tot_depth_move, snowlayers[lyr_move].depth);
-				double frac_move = !negligible(snowlayers[lyr_move].depth) ? depth_move / snowlayers[lyr_move].depth : 0.0;
+				frac_move = !negligible(snowlayers[lyr_move].depth) ? depth_move / snowlayers[lyr_move].depth : 0.0;
 
 				// Recalculate temperature
 				snowlayers[lyr].update_temp(snowlayers[lyr_move].temp, frac_move * (snowlayers[lyr_move].imass + snowlayers[lyr_move].wmass), snowlayers[lyr_move].Ch);
@@ -815,27 +906,30 @@ void Snow::update_layers(double snowfall_depth, double snowfall_dens, double air
 				snowlayers[lyr_move].depth -= depth_move;
 
 				// Move ice accordingly
-				snowlayers[lyr].imass += frac_move * snowlayers[lyr_move].imass;
-				snowlayers[lyr_move].imass *= 1.0 - frac_move;
+				imass_move = frac_move * snowlayers[lyr_move].imass;
+				snowlayers[lyr].imass += imass_move;
+				snowlayers[lyr_move].imass -= imass_move;
 
 				// Move water accordingly
-				snowlayers[lyr].wmass += frac_move * snowlayers[lyr_move].wmass;
-				snowlayers[lyr_move].wmass *= 1.0 - frac_move;
+				wmass_move = frac_move * snowlayers[lyr_move].wmass;
+				snowlayers[lyr].wmass += wmass_move;
+				snowlayers[lyr_move].wmass -= wmass_move;
 
 				// Update density
 				snowlayers[lyr].dens = snowlayers[lyr].imass * rho_H2O / snowlayers[lyr].depth;
 			}
 			else { // No layer above so take from snowfall to fill layer
 				depth_move = min(tot_depth_move, snow_depth_standard - snowlayers[lyr].depth);
+				imass_move = depth_move * snowfall_dens / rho_H2O;
 
 				// Recalculate temperature
-				snowlayers[lyr].update_temp(airT, depth_move * snowfall_dens / rho_H2O, snowheatcap(airT, snowfall_dens));
+				snowlayers[lyr].update_temp(airT, imass_move, snowfall_Ch);
 
 				// Update depths
 				snowlayers[lyr].depth += depth_move;
 
 				// Move ice accordingly
-				snowlayers[lyr].imass += depth_move * snowfall_dens / rho_H2O;
+				snowlayers[lyr].imass += imass_move;
 
 				// Update density
 				snowlayers[lyr].dens = snowlayers[lyr].imass * rho_H2O / snowlayers[lyr].depth;
@@ -843,53 +937,60 @@ void Snow::update_layers(double snowfall_depth, double snowfall_dens, double air
 
 			// Remove added snow from this layer from the toal that needs to be moved
 			tot_depth_move -= depth_move;
+			//tot_imass_move -= imass_move;
 
 			// Go to the next layer above (if tot_snow_move > 0)
 			lyr_move++;
 		}
 	}
 
-	// Check final snow and water content
+	/*// Check final snow and water content
 	double final_depth = 0.0;
 	double final_ice = 0.0;
 	double final_water = 0.0;
-	double final_temp = 0.0;
+	double final_imass[5] = { 0.0 };
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		final_depth += snowlayers[lyr].depth;
 		final_ice += snowlayers[lyr].imass;
 		final_water += snowlayers[lyr].wmass;
-		final_temp += snowlayers[lyr].temp * snowlayers[lyr].depth;
+		final_imass[lyr] = snowlayers[lyr].imass;
 	}
-	final_temp /= final_depth;
 
 	assert(fabs(initial_depth - final_depth) < EPS);
 	assert(fabs(initial_ice - final_ice) < EPS);
-	assert(fabs(initial_water - final_water) < EPS);
-	//assert(fabs(initial_temp - final_temp) < EPS);
+	assert(fabs(initial_water - final_water) < EPS);*/
 }
 
-///
-/*
-*
+/// Snowfall
+/* Snowfall
+*  Calculate snowfall density and redistribute snow layers
 */
 void Snow::snowfall(double airT, double& prec, double u10) {
 
 	// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
-	int a = 109; // kg m-3, 
-	int b = 6;  // kg m-3 K-1
-	int c = 26;  // kg m-7/2 s -1/2
-	double dens_min = 100; // minimum snow density 
-	double Tmelt = 0; // temperature of the melting point for water
+	// Constant [kg m-3]
+	int a = 109;
+	// Constant [kg m-3 K-1]
+	int b = 6;
+	// Constant [kg m-7/2 s-1/2]
+	int c = 26;			 
+	// Minimum snow density 
+	double dens_min = 100;
+	// Temperature of the melting point for water
+	double Tmelt = 0;
 
+	// Snow fall density
 	double snowfall_dens = max(dens_min, a + b * (airT - Tmelt) + c * pow(u10, 0.5));
+
+	// Snow fall heat capacity
 	double snowfall_Ch = snowheatcap(airT, snowfall_dens);
 
-	// Calculate the depth of the newly fallen snow based on precipitation & density (Oleason 2013, Eq. 6.88)
+	// Depth of the newly fallen snow based on precipitation & density (Oleason 2013, Eq. 6.88)
 	double snowfall_depth = prec / (snowfall_dens / rho_H2O);
 
 	/////////////////////////////////////////////////////////
 	// Check initial depth, snow, water and temperature
-	double EPS = 1.0e-12;
+/*	double EPS = 1.0e-10;
 	double initial_depth = snowfall_depth;
 	double initial_ice = prec;
 	double initial_water = 0.0;
@@ -899,7 +1000,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 			initial_ice += snowlayers[lyr].imass;
 			initial_water += snowlayers[lyr].wmass;
 		}
-	}
+	}*/
 
 	/////////////////////////////////////////////////////////
 
@@ -915,6 +1016,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 
 	// If no snow layers
 	if (nsnowlayers == 0) {
+
 		snowlayers.resize(nsnowlayers + 1);
 		snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
 		nsnowlayers++;
@@ -930,7 +1032,8 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 		if (top_snow_lyr < NSNOWLAYERS_MAX - 1 && (snowlayers[top_snow_lyr].depth + transfer_depth + snowfall_depth) <= (snow_depth_standard * snow_depth_limit)) {
 			snow_depth_max = snow_depth_standard * snow_depth_limit;
 		}
-		else { // else add snow to standard depth and add additional snow to a new layer or start moving snow downwards in snowpack if snowpack is full
+		// Else add snow to standard depth and add additional snow to a new layer or start moving snow downwards in snowpack if snowpack is full
+		else {
 			snow_depth_max = snow_depth_standard;
 		}
 
@@ -947,7 +1050,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 			snowlayers[top_snow_lyr].wmass -= transfer_wmass;
 			snowlayers[top_snow_lyr].imass -= transfer_imass;
 		}
-		// else add snow to this snow layer
+		// Else add snow to this snow layer
 		else {
 
 			// Add transferred snow to a new empty layer
@@ -1003,11 +1106,12 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 				while (snowfall_depth > 0.0) {
 
 					double snow_depth_to_add = min(snowfall_depth, snow_depth_standard);
-					update_layers(snow_depth_to_add, snowfall_dens, airT);
+					update_layers(snow_depth_to_add, snowfall_dens, snowfall_Ch, airT);
 					snowfall_depth -= snow_depth_to_add;
 				}
 			}
 			else if (top_snow_lyr == nsnowlayers) {
+
 				snowlayers.resize(nsnowlayers + 1);
 				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
 				nsnowlayers++;
@@ -1016,7 +1120,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 	}
 
 	/////////////////////////////////////////////////////////
-	double final_depth = 0.0;
+/*	double final_depth = 0.0;
 	double final_ice = 0.0;
 	double final_water = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
@@ -1025,37 +1129,41 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 		final_water += snowlayers[lyr].wmass;
 	}
 
+//	if (fabs(initial_ice - final_ice) > EPS)
+//		int sch = 0;
+
 	assert(fabs(initial_depth - final_depth) < EPS);
 	assert(fabs(initial_ice - final_ice) < EPS);
-	assert(fabs(initial_water - final_water) < EPS);
+	assert(fabs(initial_water - final_water) < EPS);*/
 	/////////////////////////////////////////////////////////
 }
 
-/// Handld ROS events and rainwater distribution within the snowpack
-/* Calculate water, ice and air fraction in each layer
-* and snow phase changein layer based on the available energy
-*/
+/// Handle rain on snow event and rainwater distribution within the snowpack
+/* Handle rain on snow event and rainwater distribution within the snowpack
+ * Calculate water, ice and air fraction in each layer
+ * and snow phase change in layer based on the available energy
+ */
 void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp) {
 
-	// water balance check
-	double w_total_initial = prec;
+	// Water balance check
+	/*double w_total_initial = prec;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		w_total_initial += snowlayers[lyr].wmass + snowlayers[lyr].imass;
-	}
+	}*/
 
 	// Water transferred between snow layer and in the end to the soil
 	double water_transferred = prec;
 
-	// temperature difference between air temperture and zero
+	// Temperature difference between air temperture and zero
 	double delta_T = airT - 0.0;
 	
-	// total energy from rain [J]
+	// Total energy from rain [J]
 	double rain_energy = Cp_water * delta_T * prec * M_PER_MM;
 
-	// top snow lyr index
+	// Top snow lyr index
 	int lyr = nsnowlayers - 1;
 
-	// loop through layers as long as water still has a temperture above zero (still energy to melt ice) 
+	// Loop through layers as long as water still has a temperture above zero (still energy to melt ice) 
 	while (rain_energy > 0.0 && !negligible(snowlayers[lyr].imass)) {
 
 		// Fraction ice in snow layer
@@ -1066,7 +1174,7 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 		double heat_cap = snowlayers[lyr].Ch;
 		// Volume of snow layer [m-3]
 		double snow_volume = snowlayers[lyr].depth * M_PER_MM;
-		// Eenergy needed to bring snow layer to 0C [J]
+		// Energy needed to bring snow layer to 0C [J]
 		double energy_to_zero = fabs(snowlayers[lyr].temp - 0.0) * heat_cap / snow_volume;
 
 		// Enough energy to melt some snow
@@ -1086,14 +1194,14 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 				Fice = 0.0;
 				rain_energy = frac_change * Lheat;
 			}
-			// only melt a frac of ice
+			// Only melt a frac of ice
 			else {
 				Fwater += frac_change;
 				Fice -= frac_change;
 				rain_energy = 0.0;
 			}
 		}
-		// only enough energy to change temperature
+		// Only enough energy to change temperature
 		else {
 			snowlayers[lyr].temp += rain_energy * snow_volume / heat_cap;
 			rain_energy = 0.0;
@@ -1138,9 +1246,9 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 				break;
 		}
 
-		// go thorugh lyrs while rain_energy not 0
+		// Go thorugh lyrs while rain_energy not 0
 		lyr--;
-	} // end of while loop
+	} // End of while loop
 
 	// If water to be transferred to the soil
 	if (!negligible(water_transferred)) {
@@ -1157,16 +1265,21 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 	}
 
 	// Check final water content
-	double w_total_final = water_transferred;
+	/*double w_total_final = water_transferred;
 	for (int lyr = 0; lyr <  nsnowlayers; lyr++) {
 		w_total_final += snowlayers[lyr].wmass + snowlayers[lyr].imass;
 	}
 	const double EPS = 1.0e-10;
-	assert(fabs(w_total_initial - w_total_final) < EPS);
+	assert(fabs(w_total_initial - w_total_final) < EPS);*/
 }
 
 /// Snow accumulation
+/* Snow accumulation
+ * Rain or snowfall, and melt if simple snow scheme is used
+ */
 void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp) {
+
+	double wbefore = snowpack() + prec + rain_melt;
 
 	// Multi layer snow scheme
 	if (ifmultilayersnow) {
@@ -1210,20 +1323,20 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 		// Snowing today
 		if (airT < 0.0 && prec > 0.0) {
 
-			// If no snow layers
-			if (nsnowlayers == 0) {
-				snowlayers.resize(nsnowlayers + 1);
-				snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, airT);
-				snowlayers[0].dens = SNOWDENSITY;
-				nsnowlayers++;
-			}
-
 			// Snowfall up to max snowpack size
 			double snowfall = min(prec, SNOWPACK_MAX - snowlayers[0].imass);
 
-			snowlayers[0].imass += snowfall;
-
 			rain_melt += max(0.0, prec - snowfall);
+
+			// If no snow layers
+			if (nsnowlayers == 0) {
+				snowlayers.resize(nsnowlayers + 1);
+				snowlayers[nsnowlayers] = Snowlayer(snowfall, 0.0, SNOWDENSITY, airT);
+				nsnowlayers++;
+			}
+			else {
+				snowlayers[0].imass += snowfall;
+			}			
 		}
 		// Snow melting today
 		else if (airT > 0.0 && nsnowlayers) {
@@ -1256,6 +1369,51 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 			}
 		}
 	}
+
+	// Water balance might not meet mass balance in very low productive and saturated sites 
+	double wdiff = wbefore - (snowpack() + rain_melt);
+	if (wdiff > 0.0) {
+		rain_melt += wdiff;
+	}
+	else if (wdiff < 0.0) {
+		rain_melt += wdiff;
+		if (rain_melt < 0.0) {
+			if (snowpack() > 0.0) {
+				int lyr = nsnowlayers - 1;
+				while (rain_melt < 0.0 && lyr >= 0) {
+					snowlayers[lyr].wmass += rain_melt;
+					rain_melt = 0.0;
+					if (snowlayers[lyr].wmass < 0.0) {
+						rain_melt = snowlayers[lyr].wmass;
+						snowlayers[lyr].wmass = 0.0;
+					}
+
+					if (rain_melt < 0.0) {
+						snowlayers[lyr].imass += rain_melt;
+						rain_melt = 0.0;
+						
+						if (snowlayers[lyr].imass < 0.0) {
+							rain_melt = snowlayers[lyr].imass;
+							snowlayers[lyr].imass = 0.0;
+							snowlayers.erase(snowlayers.begin() + lyr);
+							nsnowlayers = (int)snowlayers.size();
+						}
+						else {
+							snowlayers[lyr].dens = snowlayers[lyr].imass / snowlayers[lyr].depth * rho_H2O;
+						}							
+					}
+					lyr--;
+				}
+			}
+			else {
+				rain_melt = 0.0;
+			}
+		}
+	}
+
+	/*wdiff = wbefore - (snowpack() + rain_melt);
+	if (fabs(wdiff) > 1.0e-11)
+		dprintf("Year %d Day %d Fix %g\n",date.year,date.day, wdiff);*/
 }
 
 void Snow::serialize(ArchiveStream& arch) {
@@ -1269,16 +1427,17 @@ void Snow::serialize(ArchiveStream& arch) {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soillayer member functions
-////////////////////////////////////////////////////////////////////////////////
 
-//Soillayer::Soillayer(Soilcolumn* sc) : soilcolumn(sc) {
-//}
-
+/// Soil layer
+/* Soil layer
+ */
 Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool a, bool c) : soilcolumn(sc), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) {
 	init();
 }
 
-
+/// Soil layer initialisation
+/* Soil layer initialisation
+*/
 void Soillayer::init() {
 
 	// Initialises certain member variables
@@ -1333,10 +1492,7 @@ void Soillayer::init() {
 	k_soilfast_mean = 0.0;
 	k_soilslow_mean = 0.0;
 
-	/////////////////////////////////////////////////////
-	// Initialise CENTURY pools
-
-	// Set initial CENTURY pool N:C ratios
+	// Initial CENTURY pool N:C ratios
 	// Parton et al 1993, Fig 4
 
 	sompool[SOILMICRO].ntoc = 1.0 / 15.0;
@@ -1344,11 +1500,11 @@ void Soillayer::init() {
 	sompool[SLOWSOM].ntoc = 1.0 / 20.0;
 	sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
-	// passive has a fixed value
+	// Passive SOM pool has a fixed value
 	sompool[PASSIVESOM].ntoc = 1.0 / 9.0;
 
 	// Decay rate modifier depending on depth profile (Koven et al 2013)
-	// reference depth 10m
+	// Reference depth set to 10m
 	depth_mod = ifdepthdecaymod ? exp(-depth_profile / 10000.0) : 1.0;
 
 	// N pools
@@ -1382,13 +1538,13 @@ void Soillayer::init() {
 	CH4_vgc = 0.0;
 	O2 = 0.0;
 
-	// tiller area
+	// Tiller area
 	tiller_area = 0.0001;
 
 	// Daily heterotrophic respiration
 	dcflux_soil = 0.0;
 
-	// soil labile carbon availability
+	// Soil labile carbon availability
 	labile_carbon = 0.0;
 
 	// Trend variables
@@ -1425,6 +1581,10 @@ void Soillayer::init() {
 */
 void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 
+	// Only enter first year except if dynamic soil organic C influence soil properties
+	if (!((date.day == 0 && (*soilcolumn).patch.stand.first_year == date.year) || (iforganicsoilproperties == 2 && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
+		return;
+
 	// Get soil type
 	Soiltype soiltype = (*soilcolumn).soiltype;
 
@@ -1433,15 +1593,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 	// Soil organic carbon density, standard bulk density of peat (g cm-3; Farouki 1981)
 	double org_density = maxSOCdensity * G_PER_KG * M3_PER_CM3;
 
-	// Only enter first year except if dynamic soil organic C influence soil properties (iforganicsoilproperties == 2)
-	if (!((date.day == 0 && (*soilcolumn).patch.stand.first_year == date.year) || (iforganicsoilproperties == 2 && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
-		return;
-
 	// Analytic temp calc parameters
 	thermdiff_0 = soiltype.thermdiff_0;
 	thermdiff_15 = soiltype.thermdiff_15;
 	thermdiff_100 = soiltype.thermdiff_100;
 
+	// Acrotelm
 	if (acrotelm) {
 		wsats = acrotelm_por * depth;
 		awc = acrotelm_por * depth;
@@ -1461,6 +1618,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		wmass += wadded;
 		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 	}
+	// Catotelm
 	else if (catotelm) {
 		wsats = catotelm_por * depth;
 		awc = catotelm_por * depth;
@@ -1591,31 +1749,44 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 }
 
 /// Water content of soil layer
+/* Water content of soil layer
+ */
 double Soillayer::wcont() {
-
 	return max(0.0, wmass - wp) / awc;
 }
 
 /// Field capacity of soil layer
+/* Field capacity of soil layer
+ */
 double Soillayer::fc() {
-
 	return awc + wp;
 }
 
+/// Fraction of air in soil layer
+/* Fraction of air in soil layer
+ */
 double Soillayer::fracair() {
 	return max(0.0, (por - (max(0.0, wmass) + imass)) / depth);
 }
 
-// Get the Water Filled Pore Space of the layer
+/// Get the water filled pore space of the layer
+/* Get the water filled pore space of the layer
+ */
 double Soillayer::wfps() {
 	return max(0.0, wmass / wsats);
 }
 
+/// Get the maximum wcont possible
+/* Get the maximum wcont possible
+ */
 double Soillayer::wcont_max() {
 	return (wsats - wp) / awc;
 }
 
 /// C content of soil layer
+/* C content of soil layer
+ * Could also include/exclude surface litter
+ */
 double Soillayer::ccont(bool exclude_surf) {
 	double ccont = 0.0;
 
@@ -1628,8 +1799,11 @@ double Soillayer::ccont(bool exclude_surf) {
 	}
 	return ccont;
 }
- 
+
 /// N content of soil layer
+/* N content of soil layer
+ * Could also include/exclude surface litter
+ */
 double Soillayer::ncont(bool exclude_surf) {
 	double ncont = NH4_mass + NO3_mass + NO2_mass + NO_mass + N2O_mass + N2_mass;
 
@@ -1641,7 +1815,10 @@ double Soillayer::ncont(bool exclude_surf) {
 	return ncont;
 }
 
-
+/// Available N content of soil layer
+/* Available N content of soil layer
+ * Could be type specific. Could also be water limited.
+ */
 double Soillayer::nmass_avail(n_pref_type pref, bool wmass_limited) {
 
 	double nmass = 0.0;
@@ -1664,6 +1841,9 @@ double Soillayer::nmass_avail(n_pref_type pref, bool wmass_limited) {
 	return nmass * (wmass_limited ? min(1.0, wcont()) : 1.0);
 }
 
+/// N substraction from soil layer
+/* N substraction from soil layer
+ */
 void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 
 	if (!ifntransform) {
@@ -1707,6 +1887,9 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 	}
 }
 
+/// N increment to soil layer
+/* N increment to soil layer
+ */
 void Soillayer::nmass_inc(double nmass, n_pref_type pref) {
 	if (nmass < 0.0) {
 		nmass_subtract(fabs(nmass), pref);
@@ -1729,6 +1912,9 @@ void Soillayer::nmass_inc(double nmass, n_pref_type pref) {
 	}
 }
 
+/// Multiplic N increment to soil layer
+/* Multiplic N increment to soil layer
+*/
 void Soillayer::nmass_multiplic_inc(double inc, n_pref_type pref) {
 	if (!ifntransform) {
 		pref = NH4;
@@ -1746,6 +1932,9 @@ void Soillayer::nmass_multiplic_inc(double inc, n_pref_type pref) {
 	}
 }
 
+/// Remove small N values from soil layer
+/* Remove small N values from soil layer
+*/
 void Soillayer::nmass_remove_small_values(n_pref_type pref) {
 	double EPS = -1.0e-18;
 
@@ -1768,6 +1957,9 @@ void Soillayer::nmass_remove_small_values(n_pref_type pref) {
 	}
 }
 
+/// Update soil layer temperature due to mass movement
+/* Update soil layer temperature due to mass movement
+*/
 void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	if (negligible((depth - add_mass) * Ch + add_mass * add_Ch))
@@ -1775,6 +1967,8 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	temp = (temp * (depth - add_mass) * Ch + add_temp * add_mass * add_Ch) / ((depth - add_mass) * Ch + add_mass * add_Ch);
 }
+
+/// DW_COMMENT KEEP COMMENTING
 
 void Soillayer::update_moisture_cond() {
 
@@ -3968,7 +4162,7 @@ void Soilcolumn::initial_percolation() {
 
 			if (patch.stand.is_highlatitude_peatland_stand()) {
 
-				// PEATLAND SOILS
+				// Peatland soils
 				// Distribute the water in the acrotelm in proportion to the capacity
 
 				// water that can still be added to each soil layer (kg m-2)
@@ -4043,7 +4237,7 @@ void Soilcolumn::initial_percolation() {
 
 		if (patch.stand.is_true_wetland_stand()) {
 
-			// MINERAL WETLANDS
+			// Mineral wetlands
 
 			// Water mass added to saturate soil
 			double wmass_added = 0.0;
@@ -4066,7 +4260,7 @@ void Soilcolumn::initial_percolation() {
 
 			rain_melt -= min(rain_melt, wmass_added);
 
-			// END MINERAL WETLANDS
+			// End mineral wetlands
 		}
 	}
 }
@@ -4722,4 +4916,8 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 // Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling
 //   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine,
 //   XXXV-XLIII, MIT Press, Mass.
+// Wang, T., C. Ottle´ , A. Boone, P. Ciais, E. Brun, S. Morin, G. Krinner, S. Piao, 
+//   and S. Peng (2013), Evaluation of an improved intermediate complexity snow scheme 
+//   in the ORCHIDEE land surface model, J. Geophys. Res. Atmos., 118, 6064–6079, 
+//   doi:10.1002/jgrd.50395
 // For Arctic and wetland references see soil.h

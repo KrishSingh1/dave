@@ -2960,7 +2960,7 @@ void MassBalance::check_year_W(Gridcell& gridcell) {
 		wflux += wflux_year;
 
 		// Water balance check:
-		if (!negligible(wcontent_year - wcontent + wflux_year, -9)) {
+		if (!negligible(wcontent_year - wcontent + wflux_year, -8)) {
 			dprintf("\n(%.2f, %.2f): Water balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent_year - wcontent + wflux_year);
 			dprintf("Water pool change: %.10f\n", wcontent_year - wcontent);
 			dprintf("Water flux: %.10f\n", wflux_year);

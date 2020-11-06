@@ -55,8 +55,16 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// INPUT AND OUTPUT PARAMETER
 	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
+	// Water mass balance check
+	//double wbefore = soilcolumn.snow.snowpack() + prec + soilcolumn.rain_melt;
+
 	// Snowfall, precipitation or snowmelt 
 	soilcolumn.snow.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
+
+	// Water mass balance check
+	//double wmid = soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
+	//if (fabs(wmid - wbefore) > 1.0e-11)
+	//	dprintf("Year %d Day %d mid() %g\n", date.year, date.day, wmid - wbefore);
 
 	// Update snow density after mechanical compaction
 	soilcolumn.snow.compaction(soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
@@ -69,6 +77,15 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 
 	// Save maximum rain and melt water
 	soilcolumn.max_rain_melt = soilcolumn.rain_melt;
+
+	// Water mass balance check
+	//double wafter = soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
+
+	//if (fabs(wafter - wmid) > 1.0e-11)
+	//	dprintf("Year %d Day %d comp() %g\n", date.year, date.day, wafter - wmid);
+
+	//if (fabs(wafter - wbefore) > 1.0e-11)
+	//	dprintf("Year %d Day %d snow() %g\n",date.year,date.day, wafter - wbefore);
 }
 
 /// SNOW_NINPUT
@@ -116,11 +133,11 @@ void snow_ninput(double prec, double snowpack, double rain_melt,
 	}
 }
 
-/// Derive and re-distribute available rain-melt for today
+/// Derive and redistribute available rain-melt for today
 /** Function to be called after interception and before canopy_exchange
  *  Calculate snowmelt
  *  If there's any rain-melt available, refill top layer, leaving any excessive
- *  rainmelt to be re-distributed later in hydrology_lpjf
+ *  rainmelt to be redistributed later in hydrology_lpjf
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
 
@@ -128,7 +145,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	// Water mass balance check
-	double wbefore = soilcolumn.wcontent() + soilcolumn.snow.snowpack() + climate.prec - patch.intercep + soilcolumn.rain_melt;
+	//double wbefore = soilcolumn.snow.snowpack() + climate.prec - patch.intercep + soilcolumn.rain_melt;
 
 	// Update snowpack
 	snow(soilcolumn, climate.prec - patch.intercep, climate.temp, climate.u10);
@@ -143,9 +160,9 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	soilcolumn.initial_percolation();
 
 	// Water mass balance check
-	double wafter = soilcolumn.wcontent() + soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
-	if (fabs(wbefore - wafter) > 1.0e-10)
-		dprintf("Year %d Day %d INITIALINFILT Before %g After %g Diff %g\n", date.year, date.day, wbefore, wafter, wbefore - wafter);
+	//double wafter = soilcolumn.snow.snowpack() + soilcolumn.rain_melt;
+	//if (fabs(wbefore - wafter) > 1.0e-10)
+	//	dprintf("Year %d Day %d INITIALINFILT Before %g After %g Diff %g\n", date.year, date.day, wbefore, wafter, wbefore - wafter);
 }
 
 /// Calculate required irrigation according to water deficiency.

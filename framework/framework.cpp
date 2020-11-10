@@ -80,9 +80,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 		dailyaccounting_stand(stand);
 
-		if(run_landcover && date.day == 0)
-			forest_rotation(stand);
-
 		stand.firstobj();
 		while (stand.isobj) {
 
@@ -270,8 +267,7 @@ int framework(const CommandLineArguments& args) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 
-		if(printseparatestands)
-			output_modules.closelocalfiles(gridcell);
+		output_modules.closelocalfiles(gridcell);
 
 		gridcell.balance.check_period(gridcell);
 

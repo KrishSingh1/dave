@@ -1020,8 +1020,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_aaet/=(double)stand.npatch();
 				standpft_lai/=(double)stand.npatch();
 				standpft_densindiv_total/=(double)stand.npatch();
-				standpft_aiso/=(double)stand.npatch(); // missing above!
-				standpft_amon/=(double)stand.npatch(); // missing above!
+				standpft_aiso/=(double)stand.npatch();
+				standpft_amon/=(double)stand.npatch();
 				standpft_amon_mt1/=(double)stand.npatch();
 				standpft_amon_mt2/=(double)stand.npatch();
 				standpft_nuptake/=(double)stand.npatch();

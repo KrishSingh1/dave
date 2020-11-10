@@ -32,9 +32,11 @@
 #include "growth.h"
 #include "driver.h"
 
+// Alternatives for forestry:
+const bool SMALL_SAPSIZE_POST_CUT = false;	// Whether to use smaller sapsize in managed forests after cutting (defined by PLANTSIZE) when not using planting()
 
-/// Fixed plantsize in tree planting after clearcut
-const double PLANTSIZE = 0.01;
+/// Fixed plantsize in tree planting after clearcut if SMALL_SAPSIZE_POST_CUT == true
+const double PLANTSIZE = 0.25;
 
 /// Upper LAI limit for wetland species. No limit: 0 //TODO remove this after daily allocation.
 const double wetlandlailimit = 2.0;
@@ -110,10 +112,11 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
 	// Special rules for forestry after clearcut
 	ManagementType& mt = patch.stand.get_current_management();
-	bool pft_selection = mt.pftinselection((const char*)pft.name) || mt.planting_system == "MONOCULTURE" && mt.pftname == pft.name;
+	Standpft& spft = patch.stand.pft[pft.id];
+	bool pft_selection = spft.plant;
 
 	// Bypass temperature limits of establishment for selected species
-	bool relaxed_establishment = mt.relaxed_establishment && pft_selection;
+	bool relaxed_establishment = patch.plant_this_year && mt.relaxed_establishment && pft_selection;
 
 	if (!relaxed_establishment && (climate.mtemp_min20 < pft.tcmin_est ||
 		climate.mtemp_min20 > pft.tcmax_est ||
@@ -126,8 +129,8 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 
-	// Bypass all environmental limits except temperature for selected tree species after clearcut
-	if(patch.plant_this_year && (pft_selection || !stlist[patch.stand.stid].restrictpfts))
+	// Bypass all environmental limits except temperature for selected tree species after clearcut (par_grass_mean not updated yet)
+	if(patch.plant_this_year && (pft_selection || mt.planting_system == ""))
 		return true;
 
 	if(patch.stand.landcover != CROPLAND) {
@@ -436,10 +439,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 
 	const bool establish_active_pfts_before_management = true;
+	const bool cloned_or_changed_man = stand.cloned || stand.current_rot;
 
 	ManagementType& mt = patch.stand.get_current_management();
 	if(patch.plant_this_year && mt.set_planting_density && mt.planting_system != "") {
-		planting(patch);
+		planting(patch);	// NB planting() gives small fixed sapsize
 	}
 
 	// guess2008 - determine the number of woody PFTs that can establish
@@ -454,7 +458,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management)
-			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
+			est_this_year = !patch.managed && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
 		else
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 
@@ -481,7 +485,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management)
-			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
+			est_this_year = !patch.managed && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
 		else
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 
@@ -491,7 +495,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
 
 				// BLARP
-				if (date.year==0 || date.year==stand.first_year || init_clone)
+				if (date.year==0 || date.year==stand.first_year || init_clone || force_planting)	// also establishment after clearcut
 					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
 
 			}
@@ -672,7 +676,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != ""))	
+							bminit = PLANTSIZE; // Fixed sap size after first cutting
+						else
+							bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
@@ -962,9 +969,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	// deterministic mode, cohort density is reduced by the fraction represented by
 	// the mortality rate.
 
-	if(patch.managed_this_year)
-		return;
-
 	// INPUT PARAMETER
 	// fireprob = probability of fire in this patch
 
@@ -1006,6 +1010,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	// Obtain reference to Vegetation object for this patch
 
 	Vegetation& vegetation=patch.vegetation;
+
+	ManagementType& mt = stand.get_current_management();
 
 	// FPC on peatlands
 	double fpc_grass = 0.0;
@@ -1068,7 +1074,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 					// TREE PFT
 
-					if (ifstochmort) {
+					if (ifstochmort && mt.stochmort) {
 
 						// Impose stochastic mortality
 						// Each individual in cohort dies with probability 'mort_fire'
@@ -1228,7 +1234,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				if (mort > 1.0 || mort < 0.0)
 					fail("error in mortality_guess: bad mort value");
 
-				if (ifstochmort) {
+				if (ifstochmort && mt.stochmort) {
 
 					// Impose stochastic mortality
 					// Each individual in cohort dies with probability 'mort'
@@ -1533,8 +1539,8 @@ void planting(Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft = pftlist.getobj();
 
-		ManagementType& mt = patch.stand.get_current_management();
-		bool pft_selection = mt.pftinselection((const char*)pft.name) || mt.planting_system == "MONOCULTURE" && mt.pftname == pft.name;
+		Standpft& spft = patch.stand.pft[pft.id];
+		bool pft_selection = spft.plant;
 
 		if(pft_selection) {
 
@@ -1548,9 +1554,8 @@ void planting(Patch& patch) {
 
 			if(plantnumber) {
 				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
-
 				indiv.densindiv = plantnumber / 10000.0;
-				ltor = patch.pft[pft.id].wscal_mean*pft.ltor_max;
+				ltor = pft.ltor_max;
 				allocation_init(PLANTSIZE, ltor, indiv);
 				allometry(indiv);
 

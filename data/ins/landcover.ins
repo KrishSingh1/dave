@@ -5,6 +5,8 @@
 !// LPJ-GUESS 3.0
 !// 
 !///////////////////////////////////////////////////////////////////////////////////////
+
+!///////////////////////////////////////////////////////////////////////////////////////
 ! Input files
 !
 
@@ -17,6 +19,7 @@ param "file_luforest"  (str "")
 param "file_woodharv_frac"      (str "")
 param "file_woodharv_cmass"      (str "")
 param "file_Nfert_st" (str "")
+param "file_cutinterval_st" (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
@@ -104,8 +107,7 @@ group "crop_management" (
 group "crop_stand" (
 
 	landcover "cropland"
-	intercrop "naturalgrass" 	! Use natural grass pft:s as covercrop
-	restrictpfts 1			! Use only pft:s specified in stand type
+	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
 	planting_system "monoculture"
 	hydrology "rainfed"
 	tillage_int 1

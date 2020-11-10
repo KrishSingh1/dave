@@ -26,9 +26,9 @@ struct Coord {
 
 namespace InData {
 
-const int MAXLINE = 20000;
+const int MAXLINE = 40000;
 const int MAXNAMESIZE = 50;
-const int MAXRECORDS = 200;
+const int MAXRECORDS = 400;
 const int MAXLINESPARSE = 30000;
 const int NOTFOUND = -999;
 const double MAX_SEARCHRADIUS = 1.0;
@@ -155,7 +155,7 @@ public:
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
-	double Get(int calender_year, const char* name) const;
+	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
 	/// Copies the data for the current gridcell for one year to an array.
 	void Get(int calender_year, double* dataX) const;
 	/// Copies all data for the current gridcell to an array.
@@ -260,7 +260,7 @@ public:
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;		// Returns a single value.
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
-	double Get(int calender_year, const char* name) const;
+	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
 
 	/// Returns the first year in the input data
 	int GetFirstyear() {return firstyear;}

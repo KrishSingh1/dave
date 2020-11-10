@@ -323,7 +323,7 @@ void MiscOutput::define_output_tables() {
 		create_output_table(out_fhi,        file_fhi,            crop_columns);
 	}
 
-        create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
+    create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
 
 	if(run_landcover)
 		create_output_table(out_irrigation, file_irrigation,     irrigation_columns); 
@@ -562,10 +562,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
 			mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
 
-			//Update pft mean for active stands in landcover
-			mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-			mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-			mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+				//Update pft mean for active stands in landcover
+				if(active_fraction_lc[stand.landcover]) {
+					mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+				}
 			}
 
 			//Update stand totals

@@ -879,7 +879,7 @@ bool allometry(Individual& indiv) {
 	// and a crown (i.e. foliage) cylinder of known diameter. Sapwood and heartwood are
 	// assumed to have the same, constant, density (wooddens). Tree height is related
 	// to sapwood cross-sectional area by the relation:
-	//   (1) height = cmass_sap / (sapwood xs area)
+	//   (1) height = cmass_sap / wooddens / (sapwood xs area)
 	// Sapwood cross-sectional area is also assumed to be a constant proportion of
 	// total leaf area (following the "pipe model"; Shinozaki et al. 1964a,b; Waring
 	// et al 1982), i.e.

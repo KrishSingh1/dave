@@ -204,6 +204,9 @@ extern bool lcfrac_fixed;
 /// Whether fractions of stand types of a specific land cover are not read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
 
+/// Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum
+extern bool no_barren_frac_corr;
+
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 
@@ -272,6 +275,9 @@ extern bool readwoodharvest_cmass;
 
 /// Whether to create new stands at clearcut of secondary stands
 extern bool harvest_secondary_to_new_stand;
+
+/// Whether to read cutinterval for stand types from input file
+extern bool readcutinterval_st;
 
 /// Whether to print multiple stands within a land cover type (except cropland) separately
 extern bool printseparatestands;

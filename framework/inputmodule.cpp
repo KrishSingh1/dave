@@ -47,4 +47,3 @@ void InputModuleRegistry::get_input_module_list(std::string& list) {
 	}
 
 }
-

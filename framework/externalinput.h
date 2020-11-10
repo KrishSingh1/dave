@@ -100,9 +100,10 @@ private:
 	InData::TimeDataD NfertMan;
 	InData::TimeDataD woodharv_frac;
 	InData::TimeDataD woodharv_cmass;
+	InData::TimeDataD cutinterval_st;
 
 	/// Files names for management input file
-		xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass;
+	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, file_cutinterval_st;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
@@ -112,6 +113,8 @@ private:
 	void getNfert(Gridcell& gridcell);
 	/// Gets wood harvest data for a year
 	void getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input);
+	/// Gets cutinterval
+	void getcutinterval(Gridcell& gridcell);
 };
 
 #endif // LPJ_GUESS_EXTERNALINPUT_H

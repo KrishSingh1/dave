@@ -170,7 +170,7 @@ double TimeDataD::Get(int calender_year, int column) const {
 	return data[nColumns * yearX + column];
 }
 
-double TimeDataD::Get(int calender_year, const char* name) const {
+double TimeDataD::Get(int calender_year, const char* name, bool suppress_warning) const {
 
 	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
 		return memory_copy->Get(calender_year, name);
@@ -187,8 +187,8 @@ double TimeDataD::Get(int calender_year, const char* name) const {
 
 	if(column == -1) {
 
-		if(calender_year == firstyear)
-		printf("WARNING: Value for %s not found in %s.\n", name, fileName);
+		if(calender_year == firstyear && !suppress_warning)
+			printf("WARNING: Value for %s not found in %s.\n", name, fileName);
 		return NOTFOUND;
 	}
 	else {
@@ -1752,7 +1752,7 @@ double TimeDataDmem::Get(int calender_year, int column) const {
 		return 0.0;
 }
 
-double TimeDataDmem::Get(int calender_year, const char* name) const {
+double TimeDataDmem::Get(int calender_year, const char* name, bool suppress_warning) const {
 
 	int column = -1;
 
@@ -1764,8 +1764,8 @@ double TimeDataDmem::Get(int calender_year, const char* name) const {
 	}
 
 	if(column == -1) {
-		if(calender_year == firstyear)	// firstyear set to -1 for static inputs
-		printf("WARNING: Value for %s not found in input file\n", name);
+		if(calender_year == firstyear && !suppress_warning)	// firstyear set to -1 for static inputs
+			printf("WARNING: Value for %s not found in input file\n", name);
 		return NOTFOUND;
 	}
 	else {

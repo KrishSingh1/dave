@@ -105,7 +105,7 @@ void LandcoverInput::init() {
 	if (!lcfrac_fixed) {
 	//Read LUC transitions
 		if(gross_land_transfer == 2) {
-			file_grossLUC=param["file_grossLUC"].str;
+			file_grossLUC = param["file_grossLUC"].str;
 			if(file_grossLUC != "") {
 				if(!grossLUC.Open(file_grossLUC, gridlist))
 					fail("initio: could not open %s for input",(char*)file_grossLUC);
@@ -262,7 +262,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 
 	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-	// transferred to gridcell.landcoverfrac each year in getlandcover()
+	// transferred to gridcell.landcover.frac each year in getlandcover()
 
 	if (!lcfrac_fixed) {
 
@@ -447,8 +447,18 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 					}
 
+					double sum_dynamic = sum_tot - lc.frac[BARREN];
+					double sum_dynamic_adjusted = 1.0 - lc.frac[BARREN];
+
 					for(int i=0; i<NLANDCOVERTYPES; i++) {
-						lc.frac[i] /= sum_tot;
+						if(no_barren_frac_corr) {
+							if(i != BARREN) {
+								lc.frac[i] /= sum_dynamic / sum_dynamic_adjusted;
+							}
+						}
+						else {
+							lc.frac[i] /= sum_tot;
+						}
 						sum_active += lc.frac[i];
 					}
 				}
@@ -856,6 +866,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
+		use_primary_lc_transfer = true;
 	}
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
@@ -1618,6 +1629,12 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_woodharv_cmass);
 			readwoodharvest_cmass = true;
 		}
+		file_cutinterval_st = param["file_cutinterval_st"].str;
+		if(file_cutinterval_st != "")	{
+			if(!cutinterval_st.Open(file_cutinterval_st, gridlist))
+				fail("initio: could not open %s for input",(char*)file_cutinterval_st);
+			readcutinterval_st = true;
+		}
 	}
 
 	gridlist.killall();
@@ -1678,7 +1695,12 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 			dprintf("Wood harvest cmass data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-
+	if(readcutinterval_st && !LUerror) { 
+		if(!cutinterval_st.Load(c)) {
+			LUerror = true;	// skip this stand
+			dprintf("cutinterval data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
 	return LUerror;
 }
 
@@ -1806,6 +1828,47 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 	}
 }
 
+void ManagementInput::getcutinterval(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+	bool keep_nonzero_value = true;
+	bool use_nextvalue = true;
+
+	// Retrieve disturbance for stand types
+	for(int i=0; i<nst; i++) {
+		if(cutinterval_st.isloaded()) {
+			Gridcellst& gcst = gridcell.st[i];
+			if(gcst.reset_cutinterval_st)
+				gcst.cutinterval_st = 0.0;
+
+			double cutinterval = cutinterval_st.Get(year, stlist[i].name, true);
+			if(cutinterval != NOTFOUND) {
+				if(!keep_nonzero_value || cutinterval) {
+					gcst.cutinterval_st = cutinterval;
+				}
+				else if(use_nextvalue && !gcst.cutinterval_st) {
+					// During the time input value is 0, use the first year with value > 0
+					int year = date.get_calendar_year();
+					int first_data_year = cutinterval_st.GetFirstyear();
+					int last_data_year = first_data_year + cutinterval_st.GetnYears() - 1;
+					// first_data_year is -1 for static data
+					if(first_data_year == -1) {
+						first_data_year = year;
+						last_data_year = year;
+					}
+					// if value is 0 this year, try the following years
+					for(int y=year;y<=max(year,last_data_year) + 1 && !cutinterval;y++) {
+						cutinterval = cutinterval_st.Get(y, stlist[i].name, true);
+						if(cutinterval)
+							gcst.cutinterval_st = cutinterval;
+					}
+				}
+			}
+			gcst.reset_cutinterval_st = false;
+		}
+	}
+}
+
 void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
 	if (!run_landcover || date.day) {
@@ -1827,4 +1890,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct
 	if(readwoodharvest_frac || readwoodharvest_cmass)		
 		getwoodharvest(gridcell, landcover_input);
+	// Read cutting interval from input file
+	if(readcutinterval_st)
+		getcutinterval(gridcell);
 }

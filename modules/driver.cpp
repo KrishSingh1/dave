@@ -31,6 +31,7 @@
 #include "driver.h"
 #include "blaze.h"
 #include "simfire.h"
+#include "cropsowing.h"
 
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
@@ -660,6 +661,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
 	}
+	// Calculate climate seasonality
+	climate_seasonality(gridcell);
 }
 
 void dailyaccounting_stand(Stand& stand) {

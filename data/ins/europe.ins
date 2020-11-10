@@ -187,7 +187,6 @@ run_landcover 0        		! Whether to use (and change) landcover fractions (1) o
 group "common_stand" (
 
 	intercrop "nointercrop"
-	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
 )
 
 st "Natural" (
@@ -295,6 +294,8 @@ group "shrub" (
 	root_beta 0.982
 	longevity 100
 
+	harv_eff 0.9		! Value for forestry
+	res_outtake 0.4		! Value for forestry
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
 	harvest_slow_frac 0
 )
@@ -724,6 +725,39 @@ pft "Jun_oxy" (
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
+pft "Lar_dec" (
+
+	include 0
+	tree
+	intermediate_shade_tolerant
+	boreal_tree
+	needle_leaved
+	k_latosa 5000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)	! Sch
+!	sla 9.3				! Not used if ifcalcsla is set
+	gmin 0.3		! needle-leaf value
+	phenology "summergreen"	! Sch
+	fnstorage 0.05		! needle-leaf value
+	leaflong 0.5		! Sch			
+	turnover_leaf 1		! (Sch)
+	phengdd5ramp 100	! Sch
+	tcmin_surv -30		! (Sch)
+	tcmin_est -30		! Sch -29
+	tcmax_est -2.0		! Sykes96	! Sch
+	twmin_est 5			! THdiff: -	! Picea, Pinus value
+	gdd5min_est 300		! Sykes96	! Sch
+	k_chilla 0		! needle-leaf value
+	k_chillb 100		! (Sch)
+	k_chillk 0.05		! needle-leaf value
+	fireresist 0.2		! ?
+	intc 0.06		! needle-leaf value
+	longevity 500		! THdiff: 500	! Sch
+	drought_tolerance 0.3	! Sch
+	eps_iso 0.
+	seas_iso 0
+	eps_mon 3.2 0.8 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	plantnumber 2000
+)
 
 pft "MRS" (
 

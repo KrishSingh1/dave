@@ -20,7 +20,7 @@ void manage_forests(Gridcell& gridcell);
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
 void set_forest(Gridcell& gridcell);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+void harvest_wood(Harvest_CN& indiv_cp, double height,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool lc_change = false);
 /// Harvest function for pasture, representing grazing.
@@ -66,7 +66,7 @@ class Rank_stands {
 	Gridcell& gridcell;
 	std::vector<double> cmass_harvest_vect;
 	std::vector<double> cmass_harvest_wood_vect;
-	std::vector<std::pair<double,int>> sort_vect;
+	std::vector<std::pair<double,int> > sort_vect;
 
 public:
 

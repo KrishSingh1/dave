@@ -1871,7 +1871,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 			double r = nmass - NH4_mass;
 			NH4_mass = 0.0;
 			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NH3_SOIL, r);
-			dprintf("Year %d Day %d NH4 mass %f N substr %f Diff %f\n", date.year ,date.day, NH4_mass, nmass, r);
+			//dprintf("Year %d Day %d NH4 mass %f N substr %f Diff %f\n", date.year ,date.day, NH4_mass, nmass, r);
 		}
 	}
 	else if (pref == NO3) {
@@ -1882,7 +1882,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 			double r = nmass - NO3_mass;
 			NO3_mass = 0.0;
 			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NO_SOIL, r);
-			dprintf("Year %d Day %d NO3 mass %f N substr %f Diff %f\n", date.year, date.day, NO3_mass, nmass, r);
+			//dprintf("Year %d Day %d NO3 mass %f N substr %f Diff %f\n", date.year, date.day, NO3_mass, nmass, r);
 		}
 	}
 }

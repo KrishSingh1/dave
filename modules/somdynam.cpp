@@ -2124,6 +2124,12 @@ void equilsom(Patch& patch) {
 
 					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
 				}
+
+				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 0.0)
+					dprintf("NEG SLOWSOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
+
+				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 0.0)
+					dprintf("NEG PASSIVESOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
 			}
 
 			// Maximum multiplier should go down over time.

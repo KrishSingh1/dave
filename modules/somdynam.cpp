@@ -2124,14 +2124,14 @@ void equilsom(Patch& patch) {
 					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
 				}
 
-				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 0.0 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 0.0) {
-					dprintf("NEG SLOWSOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
+				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 1.0e-14) {
+					dprintf("%d NEG SLOWSOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
 					soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
 					soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
 				}
 
-				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 0.0 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 0.0) {
-					dprintf("NEG PASSIVESOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
+				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 1.0e-14) {
+					dprintf("%d NEG PASSIVESOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
 					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
 					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
 				}
@@ -2275,6 +2275,7 @@ void equilsom(Patch& patch) {
 
 					// Add C change
 					soillayer.sompool[p].cmass += cmass_inc;
+					soillayer.sompool[p].cmass = max(0.0, soillayer.sompool[p].cmass);
 
 					//dprintf("%.6f ", soillayer.sompool[p].cmass);
 

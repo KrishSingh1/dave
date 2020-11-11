@@ -216,6 +216,7 @@ void CommonOutput::define_output_tables() {
 	// ALD
 	ColumnDescriptors mald_columns = month_columns;
 	mald_columns += ColumnDescriptor("MAXALD", 8, 3);
+	mald_columns += ColumnDescriptor("PF", 3, 0);
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
@@ -1704,6 +1705,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]
+	outlimit(out,out_mald, maxald_gridcell >= gridcell.soil_depth * M_PER_MM ? 0 : 1); // Permafrost?
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

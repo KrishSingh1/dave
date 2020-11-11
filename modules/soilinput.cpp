@@ -482,16 +482,19 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil depth
 	// soil_depth is defined in global.ins
 	// if zero then use input map of soil depth
-	if (negligible(soil_depth)) {
-		soil_depth = depth_map[c] * MM_PER_M;
+	if (negligible(depth_soil)) {
+		gridcell.soil_depth = depth_map[c] * MM_PER_M;
+	}
+	else {
+		gridcell.soil_depth = depth_soil;
 	}
 
 	// Soil depth need to be of 100mm intervals
-	double soil_depth_interval = round(soil_depth / 100.0) * 100.0;
+	double soil_depth_interval = round(gridcell.soil_depth / 100.0) * 100.0;
 
-	if (!negligible(fabs(soil_depth-soil_depth_interval))) {
-		dprintf("Soil depth needs to be of 100mm intervals. Input %g Used %g\n",soil_depth, soil_depth_interval);
-		soil_depth = soil_depth_interval;
+	if (!negligible(fabs(gridcell.soil_depth-soil_depth_interval))) {
+		dprintf("Soil depth needs to be of 100mm intervals. Input %g Used %g\n", gridcell.soil_depth, soil_depth_interval);
+		gridcell.soil_depth = soil_depth_interval;
 	}
 
 	if (!ifcentury) {

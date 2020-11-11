@@ -40,7 +40,7 @@ bool ifcalccton;
 int estinterval;
 double distinterval;
 bool ifcdebt;
-double soil_depth;
+double depth_soil;
 
 bool ifcentury;
 bool ifnlim;
@@ -245,7 +245,7 @@ void initsettings() {
 	textured_soil = true;
 	disturb_pasture = false;
 	grassforcrop = false;
-	soil_depth = 1500.0;
+	depth_soil = 1500.0;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -561,7 +561,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
-		declareitem("soil_depth", &soil_depth, 0, 100000, 1, CB_NONE, "Soil depth (mm)");
+		declareitem("depth_soil", &depth_soil, 0, 100000, 1, CB_NONE, "Soil depth (mm)");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
@@ -1221,7 +1221,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-		if (!itemparsed("soil_depth")) badins("soil_depth");
+		if (!itemparsed("depth_soil")) badins("depth_soil");
 
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");

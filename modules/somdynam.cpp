@@ -1677,7 +1677,7 @@ void vertical_mixing(Patch& patch) {
 		return;
 
 	// Average monthly active layer depth
-	double mald = min(soil_depth, max(0.0, patch.soilcolumn.mthaw[date.month])) * M_PER_MM;
+	double mald = min(patch.stand.get_gridcell().soil_depth, max(0.0, patch.soilcolumn.mthaw[date.month])) * M_PER_MM;
 
 	if (patch.soilcolumn.savesomcent) {
 		patch.soilcolumn.mald_mean[date.month] += mald;
@@ -2002,13 +2002,12 @@ void equilsom(Patch& patch) {
 					max_neg_change_passive = -max_change_passive[lyr];
 				}
 				else {
-					max_neg_change_slow = -soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.75;
-					max_neg_change_passive = -soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.75;
+					max_neg_change_slow = -soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.5;
+					max_neg_change_passive = -soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.5;
 				}
 
 				// Both slow and passive pool needs to be of some size
-				if (!negligible(soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, -13) &&
-					!negligible(soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, -13)) {
+				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass >= 1.0e-12 && soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass >= 1.0e-12) {
 
 					// Trend over NYEARS years
 					double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
@@ -2125,11 +2124,17 @@ void equilsom(Patch& patch) {
 					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
 				}
 
-				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 0.0)
+				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 0.0 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 0.0) {
 					dprintf("NEG SLOWSOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
+					soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
+					soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
+				}
 
-				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 0.0)
+				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 0.0 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 0.0) {
 					dprintf("NEG PASSIVESOM %d %g\n", tries, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
+					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
+					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
+				}
 			}
 
 			// Maximum multiplier should go down over time.
@@ -2214,7 +2219,7 @@ void equilsom(Patch& patch) {
 
 			for (int p = 0; p < NSOMPOOL; p++) {
 				// SOM pool needs to be of some size
-				if (!negligible(soillayer.sompool[p].cmass, -10)) {
+				if (soillayer.sompool[p].cmass > 1.0e-10) {
 
 					// Maximum positive and negative change
 					max_pos_change = soillayer.sompool[p].cmass_init * 0.1;

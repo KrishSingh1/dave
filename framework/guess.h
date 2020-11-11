@@ -5068,6 +5068,9 @@ public:
 
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
+	// SOIL
+	/// Soil depth for gridcell (mm)
+	double soil_depth;
 
 	// SIMFIRE
 	/// the region index to chosose from set of optimisations

@@ -1415,7 +1415,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC));
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
-				mwcont_lower[m] += (soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soil_depth, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC)) * soil_depth - mwcontupper * SOILDEPTH_UPPER) / (soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
+				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(gridcell.soil_depth, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC)) * gridcell.soil_depth - mwcontupper * SOILDEPTH_UPPER) / (gridcell.soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
 				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -1648,8 +1648,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		sdl_cue_tot = tot_cinc[1] / tot_cdec[0];
 	}
 
-	if (date.year == 0)//nyear_spinup) // DW_COMMENT
-		outlimit(out, out_soildepth, soil_depth * M_PER_MM);
+	if (date.year == 0)//nyear_spinup)
+		outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
 	outlimit(out, out_csoil, csoil_gridcell);
 	outlimit(out, out_csoil_passive, csoil_p_gridcell);
 	outlimit(out, out_csoil_slow, csoil_s_gridcell);

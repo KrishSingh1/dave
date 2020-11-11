@@ -2252,7 +2252,7 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 	bool catotelm = false;
 	nacrotelm = 0;
 	ncatotelm = 0;
-	thaw = soil_depth;
+	thaw = 0.0;
 	maxthaw_10.add(thaw);
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -3210,11 +3210,11 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double fpc_moss_total = 0.0;// Total fpc for mosses
 
 	// total soilcolumn water (mm)
-	double wtot = to_depth(soil_depth, get_prop(WMASS));
+	double wtot = to_depth(patch.stand.get_gridcell().soil_depth, get_prop(WMASS));
 	// total water in acrotelm layers (mm)
 	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get_prop(WMASS));
 	// total soilcolumn ice (mm)
-	double itot = to_depth(soil_depth, get_prop(IMASS));
+	double itot = to_depth(patch.stand.get_gridcell().soil_depth, get_prop(IMASS));
 	// total ice in acrotelm layers (mm)
 	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get_prop(IMASS));
 
@@ -3397,7 +3397,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtd = -wtp[date.day];
 
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
-		wtot = ACROTELM_DEPTH * acrotelm_por + (soil_depth - ACROTELM_DEPTH) * catotelm_por - itot;
+		wtot = ACROTELM_DEPTH * acrotelm_por + (patch.stand.get_gridcell().soil_depth - ACROTELM_DEPTH) * catotelm_por - itot;
 
 		// wtot does NOT include standing water
 		// we assume no standing water 
@@ -3427,7 +3427,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double Dz_sub = 10.0;
 
 	// Number of sublayers in acrotelm
-	int nsublayers_acro = (int)(min(ACROTELM_DEPTH, soil_depth) / Dz_sub);
+	int nsublayers_acro = (int)(min(ACROTELM_DEPTH, patch.stand.get_gridcell().soil_depth) / Dz_sub);
 
 	// Water content in each sublayer
 	double surfw_sat = 0.0;
@@ -3535,7 +3535,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	}
 
 	// Total water change during calculation of water content for each soil layer
-	double wafter = to_depth(soil_depth, get_prop(WMASS));
+	double wafter = to_depth(patch.stand.get_gridcell().soil_depth, get_prop(WMASS));
 	double wchange = wafter - wtot;
 
 	if (fabs(wchange) > 1.0e-10)
@@ -4292,7 +4292,7 @@ void Soilcolumn::phase_change() {
 	double Fimass;		// fraction of ice
 	double energy;		// Energy per volume [J m-3]
 	double delta_T;		// Temperature difference (current - previous)
-	double soil_depth;	// Soil layer depth [mm]
+	double soillyr_depth;	// Soil layer depth [mm]
 	double soil_temp;	// Soil layer temperature [C]
 	const double EPS = 1.0e-10;
 
@@ -4315,23 +4315,23 @@ void Soilcolumn::phase_change() {
 			Fthaw = 0.0;
 
 			// Soil layer depth
-			soil_depth = soillayers[lyr].depth;
+			soillyr_depth = soillayers[lyr].depth;
 
 			// Soil layer temperature
 			soil_temp = soillayers[lyr].temp;
 
 			// Water and ice fraction of full volume
 			if (combine_snow && lyr == 0) {
-				soil_depth += snow.snowlayers[0].depth;
-				Fwmass = (soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soil_depth;
-				Fimass = (soillayers[lyr].imass + snow.snowlayers[0].imass) / soil_depth;
+				soillyr_depth += snow.snowlayers[0].depth;
+				Fwmass = (soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soillyr_depth;
+				Fimass = (soillayers[lyr].imass + snow.snowlayers[0].imass) / soillyr_depth;
 
 				// NOTE: Heat capacity and temperature of top soil layer is already adjusted for thin 
 				// snow layer in temperature calculations
 			}
 			else {
-				Fwmass = soillayers[lyr].wmass / soil_depth;
-				Fimass = soillayers[lyr].imass / soil_depth;
+				Fwmass = soillayers[lyr].wmass / soillyr_depth;
+				Fimass = soillayers[lyr].imass / soillyr_depth;
 			}
 
 			// temperature difference
@@ -4425,7 +4425,7 @@ void Soilcolumn::phase_change() {
 				if (!negligible(Ffreez)) {
 
 					// Fraction of water left after freezing
-					double frac = Fwmass / ((soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soil_depth);
+					double frac = Fwmass / ((soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soillyr_depth);
 
 					// Update soil layer water and ice mass
 					double imass = (1.0 - frac) * soillayers[lyr].wmass;
@@ -4441,7 +4441,7 @@ void Soilcolumn::phase_change() {
 				else if (!negligible(Fthaw)) {
 
 					// Fraction of ice left after thawing
-					double frac = Fimass / ((soillayers[lyr].imass + snow.snowlayers[0].imass) / soil_depth);
+					double frac = Fimass / ((soillayers[lyr].imass + snow.snowlayers[0].imass) / soillyr_depth);
 
 					// Update soil layer water and ice mass
 					double wmass = (1.0 - frac) * soillayers[lyr].imass;
@@ -4460,8 +4460,8 @@ void Soilcolumn::phase_change() {
 			}
 			else {
 				// Water and ice fraction of full volume
-				soillayers[lyr].wmass = Fwmass * soil_depth;
-				soillayers[lyr].imass = Fimass * soil_depth;
+				soillayers[lyr].wmass = Fwmass * soillyr_depth;
+				soillayers[lyr].imass = Fimass * soillyr_depth;
 			}
 
 			double wtotal_final = soillayers[lyr].wmass + soillayers[lyr].imass;

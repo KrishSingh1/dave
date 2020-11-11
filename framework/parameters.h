@@ -268,7 +268,7 @@ extern bool disturb_pasture;
 extern bool grassforcrop;
 
 /// Soil depth
-extern double soil_depth;
+extern double depth_soil;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

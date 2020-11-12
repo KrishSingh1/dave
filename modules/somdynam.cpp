@@ -2125,13 +2125,13 @@ void equilsom(Patch& patch) {
 				}
 
 				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 1.0e-14) {
-					dprintf("%d NEG SLOWSOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
+					//dprintf("%d NEG SLOWSOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
 					soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
 					soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
 				}
 
 				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 1.0e-14) {
-					dprintf("%d NEG PASSIVESOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
+					//dprintf("%d NEG PASSIVESOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
 					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
 					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
 				}
@@ -2221,6 +2221,10 @@ void equilsom(Patch& patch) {
 				// SOM pool needs to be of some size
 				if (soillayer.sompool[p].cmass > 1.0e-10) {
 
+					// Initial C and N mass
+					double cmass_init = soillayer.sompool[p].cmass;
+					double nmass_init = soillayer.sompool[p].nmass;
+
 					// Maximum positive and negative change
 					max_pos_change = soillayer.sompool[p].cmass_init * 0.1;
 					max_neg_change = -soillayer.sompool[p].cmass * 0.5;
@@ -2275,15 +2279,23 @@ void equilsom(Patch& patch) {
 
 					// Add C change
 					soillayer.sompool[p].cmass += cmass_inc;
-					soillayer.sompool[p].cmass = max(0.0, soillayer.sompool[p].cmass);
 
 					//dprintf("%.6f ", soillayer.sompool[p].cmass);
 
 					// Update N pool
 					soillayer.sompool[p].nmass = ntoc * soillayer.sompool[p].cmass;
 
+					if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
+						soillayer.sompool[p].cmass = max(0.0, cmass_init);
+						soillayer.sompool[p].nmass = max(0.0, nmass_init);
+					}
+
 					// Save C mass as initial value for next equilsom trend
 					soillayer.sompool[p].cmass_init = soillayer.sompool[p].cmass;
+				}
+				else if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
+					soillayer.sompool[p].cmass = 0.0;
+					soillayer.sompool[p].nmass = 0.0;
 				}
 			}
 		}

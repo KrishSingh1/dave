@@ -135,7 +135,7 @@ describe_image delta_cpool1993-2012_joyned_jackson.jpg "Above ground biomass: Mo
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
 scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.jpg
 describe_image agb.jpg "Above ground biomass: LPJ-GUESS modelled AGB compared to Liu et al. data (1993-2012 average). Units: kg C m-2." embed
-rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.txt delta_cpool1993-2012_joyned.txt cpool1993-2012_joyned_VegC.txt 
+rm -f  scat_cpool2.txt cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.txt delta_cpool1993-2012_joyned.txt cpool1993-2012_joyned_VegC.txt 
 
 . pan_regional_biomass.sh
 

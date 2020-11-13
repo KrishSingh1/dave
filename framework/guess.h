@@ -4826,7 +4826,7 @@ public:
 
 	/// Harvested forest area fraction
 	double woodharv_frac;
-	/// Wood harvest volume
+	/// Wood harvest C mass / m2 for gridcell
 	double woodharv_cmass;
 	/// Lower tree diameter limit (cm) for cutting (dynamic variable)
 	double diam_limit;

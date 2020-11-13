@@ -501,6 +501,8 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
+	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
+	// fires in tropical peatlands, we disallow this for now.
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !(managed && (stand.get_current_management().suppress_fire || suppress_disturbance_in_forestry_stands)) &&
 		(stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
 }
@@ -908,7 +910,7 @@ void Stand::set_management() {
 			while (vegetation.isobj) {
 				Individual& indiv = vegetation.getobj();
 				if(indiv.pft.lifeform == TREE) {
-					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
+					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, clone_year == date.year);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
 					indiv.vegetation.killobj();
 				}
 				else {

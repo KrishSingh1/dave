@@ -572,7 +572,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			else {
 
 				if(year == st_data[lc].GetFirstyear() + st_data[lc].GetnYears())
-					dprintf("Last year of lc %d st fraction data used from year %d and onwards\n", lc, year);
+					dprintf("Last year of %s st fraction data used from year %d and onwards\n", lcnames[lc], year);
 
 				for(int i=0; i<nst; i++) {
 					if(stlist[i].landcover == lc)	{
@@ -649,7 +649,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			gcst.frac = gcst.frac_old;
 		if(gcst.frac < INPUT_RESOLUTION)
 			gcst.frac = 0.0; 
-		gcst.frac_change = gcst.frac - gcst.frac_old ;
+		gcst.frac_change = gcst.frac - gcst.frac_old;
 		stlist.nextobj();
 	}
 }
@@ -858,8 +858,10 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	if(ifprimary_lc_transfer) {
 		lc.forest_lc_frac_transfer_s.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.forest_lc_frac_transfer_s.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+		if(use_barren_transfers)
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+		if(use_urban_transfers)
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
 
 		// Use transitions from virgin to secondary natural land.
 		if(ifprimary_to_secondary_transfer) {

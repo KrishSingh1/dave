@@ -65,7 +65,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// Update dynamic management options
 	input_module->getmanagement(gridcell);
 
-	// Dynamic landcover and crop fraction data during historical
+	// Update dynamic landcover and crop fraction data during historical
 	// period and create/kill stands.
 	landcover_dynamics(gridcell, input_module);
 

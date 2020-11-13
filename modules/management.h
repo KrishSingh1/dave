@@ -57,8 +57,6 @@ double check_harvest_cmass(Patch& patch, bool wood_cmass_only = false, bool chec
 double check_harvest_cmass(Stand& stand, bool wood_cmass_only = false, bool check_selection = false);
 /// Splits string into "words"
 int split_string(char* str);
-/// Sets forest management for all stands this year
-void manage_forests(Gridcell& gridcell);
 
 /// Class for ranking stands by harvestable cmass etc.
 class Rank_stands {
@@ -329,7 +327,7 @@ struct Harvest_CN {
 		}
 	}
 
-	/// Copies C and N values from struct to individual, patchpft and patch (fluxes).
+	/// Copies C and N values from struct to individual, patchpft and patch (fluxes). Use only after a call to copy_from_indiv() before harvest function.
 	void copy_to_indiv(Individual& indiv, bool copy_grsC = false, bool lc_change = false) {
 
 		Patch& patch = indiv.vegetation.patch;

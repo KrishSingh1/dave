@@ -1080,10 +1080,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
 				}
 
-				//Update stand totals
-				stand.anpp += standpft_anpp;
-				stand.cmass += standpft_cmass;
-
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
 

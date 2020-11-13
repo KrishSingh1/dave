@@ -557,10 +557,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
 			if(active_fraction) {
-			//Update pft means for active stands
-			mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
-			mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
-			mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
+				//Update pft means for active stands
+				mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
 
 				//Update pft mean for active stands in landcover
 				if(active_fraction_lc[stand.landcover]) {

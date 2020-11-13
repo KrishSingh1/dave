@@ -12,6 +12,17 @@
 #define INDATA_H
 #include "guess.h"
 
+#ifdef _MSC_VER
+typedef __int64 filepos;
+#define fileseek _fseeki64
+#define filetell _ftelli64
+#else
+
+typedef long int filepos;
+#define fileseek fseek
+#define filetell ftell
+#endif
+
 using std::min;
 using std::max;
 
@@ -40,7 +51,7 @@ typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} f
 struct CoordPos {
 	double lon;
 	double lat;
-	long int pos;
+	filepos pos;
 };
 
 // Forward declaration of TimeDataDmem
@@ -117,7 +128,7 @@ class TimeDataD	{
 	/// Creates map of the file positions of all gridcells' data
 	void CreateFileMap();
 	/// Sets the file pointer to required position (found in the file map)
-	void SetPosition(long int pos) {fseek(ifp, pos, 0);}
+	void SetPosition(filepos pos) {fileseek(ifp, pos, 0);}
 	/// Rewinds the file pointer
 	void Rewind() {if(ifp) rewind(ifp);}
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
@@ -151,7 +162,7 @@ public:
 	/// Loads data for a certain coordinate. Returns false if coordinate not found.
 	bool Load(Coord c);
 	/// Steps through a data file, loading each coordinate's data consecutively. Returns false if error.
-	bool LoadNext(long int *pos = NULL);
+	bool LoadNext(filepos *pos = NULL);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.

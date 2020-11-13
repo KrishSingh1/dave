@@ -1663,8 +1663,8 @@ void stand_dynamics(Gridcell& gridcell) {
 				else
 					npatch = npatch_secondarystand;
 				Stand& stand = gridcell.create_stand_lu(st, gcst.gross_frac_increase, npatch);
-//				if(date.year)
-//					stand.lc_origin = NLANDCOVERTYPES;	// Represents unknown (possibly mixed) origin	from bugfix_lu r6085, requires r6073
+				if(date.year)
+					stand.lc_origin = NLANDCOVERTYPES;	// Represents unknown (possibly mixed) origin
 			}
 			// last stand killed
 			else if(gcst.frac_old > 0.0 && !gcst.frac) {
@@ -2218,13 +2218,6 @@ double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_fra
 			new_stand.lc_origin = lct_donor;
 			if(stid_donor >= 0)
 				new_stand.st_origin = stid_donor;
-#ifdef PRINT_GROSS_LC_CHANGE_INFO
-			if(stid_donor >= 0)
-				dprintf("Year %d: new stand %d st %d after transfer from st %d: ccont=%.15f\n\tfraction=%f\n", date.year, new_stand.id, new_stand.stid, stid_donor, new_stand.ccont(), new_stand_area);
-			else if(lc_donor >= 0)
-				dprintf("Year %d: new stand %d st %d after transfer from lc %d: ccont=%.15f\n\tfraction=%f\n", date.year, new_stand.id, new_stand.stid, lc_donor, new_stand.ccont(), new_stand_area);
-	//		dprintf("Year %d: new stand %d st %d after transfer from st %d: ncont=%.15f\n\tfraction=%f\n", date.year, new_stand.id, new_stand.stid, stid_donor, new_stand.ncont(), new_stand_area);
-#endif
 		}
 	}
 	return new_stand_area;
@@ -3368,7 +3361,7 @@ void landcover_change_transfer::allocate() {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
+//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

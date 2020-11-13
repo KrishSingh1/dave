@@ -1488,6 +1488,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai_daily
 		& lai_indiv_daily
 		& greff_5
+		& cmass_wood_inc_5
 		& age
 		& mlai
 		& fpar_leafon

@@ -216,7 +216,7 @@ void CommonOutput::define_output_tables() {
 	// ALD
 	ColumnDescriptors mald_columns = month_columns;
 	mald_columns += ColumnDescriptor("MAXALD", 8, 3);
-	mald_columns += ColumnDescriptor("PF", 3, 0);
+	mald_columns += ColumnDescriptor("PF", 5, 2);
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
@@ -862,6 +862,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double nuptake_gridcell=0.0;
 	double vmaxnlim_gridcell=0.0;
 	double maxald_gridcell=0.0;
+	double permafrost_gridcell=0.0;
 
 	double aNH4dep_gridcell=0.0;
 	double aNO3dep_gridcell=0.0;
@@ -1470,7 +1471,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			maxald_gridcell += patch.soilcolumn.maxthaw*M_PER_MM*to_gridcell_average;	// mm to m
+			maxald_gridcell += patch.soilcolumn.maxthaw * M_PER_MM * to_gridcell_average;	// mm to m
+			permafrost_gridcell += (patch.soilcolumn.maxthaw > gridcell.soil_depth ? 0 : 1) * to_gridcell_average; // Permafrost
 			
 			// Calculate monthly NPP and LAI
 
@@ -1705,7 +1707,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]
-	outlimit(out,out_mald, maxald_gridcell >= gridcell.soil_depth * M_PER_MM ? 0 : 1); // Permafrost?
+	outlimit(out,out_mald, permafrost_gridcell);
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

@@ -2195,7 +2195,7 @@ void equilsom(Patch& patch) {
 		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		double MAX_MULTI = pow(2, 4);
+		double MAX_MULTI = 16.0;
 		// Minimum multiplier
 		const double MIN_MULTI = 0.01;
 		// Multiplier modifier
@@ -2217,85 +2217,90 @@ void equilsom(Patch& patch) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-			for (int p = 0; p < NSOMPOOL; p++) {
-				// SOM pool needs to be of some size
-				if (soillayer.sompool[p].cmass > 1.0e-10) {
+			double ccont = soillayer.ccont();
 
-					// Initial C and N mass
-					double cmass_init = soillayer.sompool[p].cmass;
-					double nmass_init = soillayer.sompool[p].nmass;
+			if (ccont > 1.0e-8) {
 
-					// Maximum positive and negative change
-					max_pos_change = soillayer.sompool[p].cmass_init * 0.1;
-					max_neg_change = -soillayer.sompool[p].cmass * 0.5;
+				for (int p = 0; p < NSOMPOOL; p++) {
+					// SOM pool needs to be of some size
+					if (soillayer.sompool[p].cmass > 1.0e-10) {
 
-					// C mass trend
-					double trend = soillayer.sompool[p].cmass - soillayer.sompool[p].cmass_init;
+						// Initial C and N mass
+						double cmass_init = soillayer.sompool[p].cmass;
+						double nmass_init = soillayer.sompool[p].nmass;
 
-					// If trend changes sign a certain number of times then reduce multiplier
-					// If trend has the same sign a certain number of times then increase multiplier
+						// Maximum positive and negative change
+						max_pos_change = soillayer.sompool[p].cmass_init * 0.1;
+						max_neg_change = -soillayer.sompool[p].cmass * 0.5;
 
-					// Trend changed sign
-					if (trend * soillayer.sompool[p].sign_trend < 0.0) {
+						// C mass trend
+						double trend = soillayer.sompool[p].cmass - soillayer.sompool[p].cmass_init;
 
-						// Add to number of times trend has changed sign in a raw
-						soillayer.sompool[p].flip++;
+						// If trend changes sign a certain number of times then reduce multiplier
+						// If trend has the same sign a certain number of times then increase multiplier
 
-						// Save trend sign and set same trend to zero
-						soillayer.sompool[p].sign_trend *= -1;
+						// Trend changed sign
+						if (trend * soillayer.sompool[p].sign_trend < 0.0) {
 
-						// Flipped sign maximum times then reduce multiplier
-						if (soillayer.sompool[p].flip == FLIP_MAX && soillayer.sompool[p].multi > MIN_MULTI) {
-							soillayer.sompool[p].multi /= MULTI_MOD;
+							// Add to number of times trend has changed sign in a raw
+							soillayer.sompool[p].flip++;
+
+							// Save trend sign and set same trend to zero
+							soillayer.sompool[p].sign_trend *= -1;
+
+							// Flipped sign maximum times then reduce multiplier
+							if (soillayer.sompool[p].flip == FLIP_MAX && soillayer.sompool[p].multi > MIN_MULTI) {
+								soillayer.sompool[p].multi /= MULTI_MOD;
+								soillayer.sompool[p].flip = 0;
+							}
+
+							// Flipping so no same trend
+							soillayer.sompool[p].same_trend = 0;
+						}
+						// Same sign trend
+						else {
+
+							// Add to number of times same trend has happen in a raw
+							soillayer.sompool[p].same_trend++;
+
+							// Reached maximum same trend then increase multiplier
+							if (soillayer.sompool[p].same_trend > SAME_TREND_MAX && soillayer.sompool[p].multi < MAX_MULTI) {
+								soillayer.sompool[p].multi *= MULTI_MOD;
+								soillayer.sompool[p].same_trend = 0;
+							}
+
+							// Same trend so no flipping
 							soillayer.sompool[p].flip = 0;
 						}
 
-						// Flipping so no same trend
-						soillayer.sompool[p].same_trend = 0;
-					}
-					// Same sign trend
-					else {
+						// N:C ratio of SOM pool
+						ntoc = soillayer.sompool[p].nmass / soillayer.sompool[p].cmass;
 
-						// Add to number of times same trend has happen in a raw
-						soillayer.sompool[p].same_trend++;
+						// C change
+						cmass_inc = min(max_pos_change, max(max_neg_change, trend * soillayer.sompool[p].multi));
 
-						// Reached maximum same trend then increase multiplier
-						if (soillayer.sompool[p].same_trend > SAME_TREND_MAX && soillayer.sompool[p].multi < MAX_MULTI) {
-							soillayer.sompool[p].multi *= MULTI_MOD;
-							soillayer.sompool[p].same_trend = 0;
+						//dprintf("Lyr %d Pool %d C %.7f %.1f %.7f %.7f ", lyr, p, trend, soillayer.sompool[p].multi, cmass_inc, soillayer.sompool[p].cmass);
+
+						// Add C change
+						soillayer.sompool[p].cmass += cmass_inc;
+
+						//dprintf("%.6f ", soillayer.sompool[p].cmass);
+
+						// Update N pool
+						soillayer.sompool[p].nmass = ntoc * soillayer.sompool[p].cmass;
+
+						if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
+							soillayer.sompool[p].cmass = max(0.0, cmass_init);
+							soillayer.sompool[p].nmass = max(0.0, nmass_init);
 						}
 
-						// Same trend so no flipping
-						soillayer.sompool[p].flip = 0;
+						// Save C mass as initial value for next equilsom trend
+						soillayer.sompool[p].cmass_init = soillayer.sompool[p].cmass;
 					}
-
-					// N:C ratio of SOM pool
-					ntoc = soillayer.sompool[p].nmass / soillayer.sompool[p].cmass;
-
-					// C change
-					cmass_inc = min(max_pos_change, max(max_neg_change, trend * soillayer.sompool[p].multi));
-
-					//dprintf("Lyr %d Pool %d C %.7f %.1f %.7f %.7f ", lyr, p, trend, soillayer.sompool[p].multi, cmass_inc, soillayer.sompool[p].cmass);
-
-					// Add C change
-					soillayer.sompool[p].cmass += cmass_inc;
-
-					//dprintf("%.6f ", soillayer.sompool[p].cmass);
-
-					// Update N pool
-					soillayer.sompool[p].nmass = ntoc * soillayer.sompool[p].cmass;
-
-					if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
-						soillayer.sompool[p].cmass = max(0.0, cmass_init);
-						soillayer.sompool[p].nmass = max(0.0, nmass_init);
+					else if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
+						soillayer.sompool[p].cmass = 0.0;
+						soillayer.sompool[p].nmass = 0.0;
 					}
-
-					// Save C mass as initial value for next equilsom trend
-					soillayer.sompool[p].cmass_init = soillayer.sompool[p].cmass;
-				}
-				else if (soillayer.sompool[p].cmass < 1.0e-13 || soillayer.sompool[p].nmass < 1.0e-14) {
-					soillayer.sompool[p].cmass = 0.0;
-					soillayer.sompool[p].nmass = 0.0;
 				}
 			}
 		}

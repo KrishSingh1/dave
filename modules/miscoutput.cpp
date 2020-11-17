@@ -1118,6 +1118,14 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	if(!printseparatestands)
 		return;
 
+	char dirname[200]={'\0'};
+	strcpy(dirname, "stand_output/");
+#ifdef _MSC_VER
+	_mkdir(dirname);
+#else
+	mkdir(dirname, 0777);
+#endif
+
 	if (!date.year || restart && date.year == state_year) {
 		for(int id=0;id<MAXNUMBER_STANDS;id++) {
 			out_anpp_stand[id] = new Table[nst];
@@ -1195,6 +1203,8 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 
 			if(open[stand.landcover]) {
 
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
 				strcpy(outfilename, "anpp_");
 				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
@@ -1203,6 +1213,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 					create_output_table(out_anpp_stand[id][stand.stid], outfilename, anpp_columns);
 
 				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
 				strcpy(outfilename, "cmass_");
 				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);

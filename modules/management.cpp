@@ -30,9 +30,9 @@ double check_harvest_cmass(Individual& indiv, bool wood_cmass_only) {
 	// Harvest of transferred areas:
 	harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 	if(wood_cmass_only)
-		cmass_harvest = (cp.acflux_harvest_wood) * stand.get_gridcell_fraction() / (double)stand.nobj;
+		cmass_harvest = (cp.acflux_harvest_wood);
 	else
-		cmass_harvest = (cp.acflux_harvest + cp.harvested_products_slow) * stand.get_gridcell_fraction() / (double)stand.nobj;
+		cmass_harvest = (cp.acflux_harvest + cp.harvested_products_slow);
 
 	return cmass_harvest;
 }
@@ -60,7 +60,7 @@ double check_harvest_cmass(Stand& stand, bool wood_cmass_only, bool check_select
 
 	for(unsigned int i=0;i<stand.nobj;i++) {
 		Patch& patch = stand[i];
-		cmass_harvest += check_harvest_cmass(patch, wood_cmass_only, check_selection);
+		cmass_harvest += check_harvest_cmass(patch, wood_cmass_only, check_selection) / (double)stand.nobj;
 	}
 	return cmass_harvest;
 }
@@ -679,10 +679,10 @@ void set_forest(Gridcell& gridcell) {
 				Individual& indiv = patch.vegetation[i];
 				Standpft& spft = stand.pft[indiv.pft.id];
 				if(mt.pftinselection((const char*)indiv.pft.name) && spft.selection != -1) {
-					cmass_pft_stand[spft.selection] += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;;
+					cmass_pft_stand[spft.selection] += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;
 				}
 				else if(indiv.pft.lifeform == TREE) {
-					cmass_unselected_stand += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;;
+					cmass_unselected_stand += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;
 				}
 			}
 			stand.nextobj();
@@ -761,7 +761,7 @@ void set_forest(Gridcell& gridcell) {
 			memset(target_patch, 0, sizeof(double)*stand.npftsinselection);
 
 			double cmass_unselected = 0.0;
-			double cmass_total = check_harvest_cmass(patch, wood_cmass_only); // check_harvest_cmass() gives values / npatch in this section, but this does not affect results
+			double cmass_total = check_harvest_cmass(patch, wood_cmass_only);
 
 			if(!cmass_total) {
 				stand.nextobj();

@@ -184,11 +184,11 @@ printf "Total    %6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.txt
 if [ -f tot_cflux_reg_glob.txt ]; then
     rm -f tot_cflux_reg_glob.txt
 fi
-# flip line-column to make it work with the delta-tool
+
 for ((x=1; x<=3; x++))
   do awk -v r=$x '{ORS=" "; printf "%10s", $r} ; END {print "\n"}'  tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
 done
-# append regional descriptions
+
 echo ""  >> tot_cflux_reg_glob.txt 
 echo "Description of regions" >> tot_cflux_reg_glob.txt 
 awk '($1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 

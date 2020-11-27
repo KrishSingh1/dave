@@ -182,7 +182,7 @@ void CommonOutput::define_output_tables() {
 	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
 		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
-		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8);
+		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8); // DW_COMMENT less precision
 		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 11, 6);
 		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
 	}
@@ -1334,15 +1334,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			aNH4dep_gridcell += gridcell.aNH4dep  * to_gridcell_average;
 			aNO3dep_gridcell += gridcell.aNO3dep  * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
-			anmin_gridcell += soilcolumn.anmin() * to_gridcell_average;
-			animm_gridcell += soilcolumn.animmob() * to_gridcell_average;
+			anmin_gridcell += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
+			animm_gridcell += soilcolumn.get_sum(ANIMMOB) * to_gridcell_average;
 			anfix_gridcell += soilcolumn.anfix * to_gridcell_average;
-			n_min_leach_gridcell += soilcolumn.aminleach() * to_gridcell_average;
-			n_org_leach_gridcell += soilcolumn.aorgNleach() * to_gridcell_average;
-			c_org_leach_gridcell += soilcolumn.aorgCleach() * to_gridcell_average;
+			n_min_leach_gridcell += soilcolumn.get_sum(AMINLEACH) * to_gridcell_average;
+			n_org_leach_gridcell += soilcolumn.get_sum(AORGNLEACH) * to_gridcell_average;
+			c_org_leach_gridcell += soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
 			availn += (soilcolumn.nmass_avail() + soilcolumn.snow.nmass_avail()) * to_gridcell_average;
 
-			c_org_leach_lc[stand.landcover] += soilcolumn.aorgCleach() * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
 
 			clitterinput[0] += soilcolumn.cmass_litter_input[0] * to_gridcell_average;
 
@@ -1415,9 +1415,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mrunoff[m] += (patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
 				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
-				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC));
+				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC));
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
-				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(gridcell.soil_depth, soilcolumn.get_prop(MWCONT, m), soilcolumn.get_prop(AWC)) * gridcell.soil_depth - mwcontupper * SOILDEPTH_UPPER) / (gridcell.soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
+				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(gridcell.soil_depth, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC)) * gridcell.soil_depth - mwcontupper * SOILDEPTH_UPPER) / (gridcell.soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
 				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -1472,7 +1472,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 
 			maxald_gridcell += patch.soilcolumn.maxthaw * M_PER_MM * to_gridcell_average;	// mm to m
-			permafrost_gridcell += (patch.soilcolumn.maxthaw > gridcell.soil_depth ? 0 : 1) * to_gridcell_average; // Permafrost
+			permafrost_gridcell += (patch.soilcolumn.maxthaw >= gridcell.soil_depth ? 0 : 1) * to_gridcell_average; // Permafrost
 			
 			// Calculate monthly NPP and LAI
 
@@ -1724,8 +1724,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
 
 			if (!ifcentury) {
-				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soilcolumn.cpool_slow());
-				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soilcolumn.cpool_fast());
+				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soilcolumn.get_sum(CSLOW));
+				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soilcolumn.get_sum(CFAST));
 			}
 			else {
 				plot("N flux [kgN/ha/yr]","fix",   date.year, -anfix_gridcell * M2_PER_HA);

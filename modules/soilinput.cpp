@@ -363,18 +363,18 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	double b = 3.10 + 15.7 * soil.clay - 0.3 * soil.sand;
 
 	// Saturated soil water suction (cm)
-	double Psi_s = pow(10.0, 1.54 - 0.95 * soil.sand + 0.63 * silt);
+	double Psi_s = -pow(10.0, 1.54 - 0.95 * soil.sand + 0.63 * silt);
 
 	// Volumetric soil water concentration at saturation point (porosity)
 	double Theta_s = 0.505 - 0.142 * soil.sand - 0.037 * soil.clay;
 
 	// Volumetric soil moisture concentration at Field Capacity
 	// Field capacity generally occurs at a suction of 100 cm
-	double Theta_whc = Theta_s * pow(100.0 / Psi_s, -1.0 / b);
+	double Theta_whc = Theta_s * pow(-100.0 / Psi_s, -1.0 / b);
 	
 	// Volumetric soil moisture concentration at wilting point
 	// Wilting point typically occurs at a suction of 15000 cm
-	double Theta_wilt = Theta_s * pow(15000.0 / Psi_s, -1.0 / b);
+	double Theta_wilt = Theta_s * pow(-15000.0 / Psi_s, -1.0 / b);
 
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established
@@ -465,7 +465,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.Kw_max_min = pow(10.0, -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac) * M_PER_INCH / SECS_PER_HOUR;
 
 	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
-	soiltype.Psi_max_min = pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
+	soiltype.Psi_max_min = -pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
 
 	// Soil pH
 	soiltype.pH = soilprop.pH;

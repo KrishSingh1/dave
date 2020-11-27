@@ -828,12 +828,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += patch.soilcolumn.anmin() * to_gridcell_average;
-			animm_lc[stand.landcover] += patch.soilcolumn.animmob() * to_gridcell_average;
+			anmin_lc[stand.landcover] += patch.soilcolumn.get_sum(ANMIN) * to_gridcell_average;
+			animm_lc[stand.landcover] += patch.soilcolumn.get_sum(ANIMMOB) * to_gridcell_average;
 			anfix_lc[stand.landcover] += patch.soilcolumn.anfix * to_gridcell_average;
-			n_min_leach_lc[stand.landcover] += patch.soilcolumn.aminleach() * to_gridcell_average;
-			n_org_leach_lc[stand.landcover] += patch.soilcolumn.aorgNleach() * to_gridcell_average;
-			c_org_leach_lc[stand.landcover] += patch.soilcolumn.aorgCleach() * to_gridcell_average;
+			n_min_leach_lc[stand.landcover] += patch.soilcolumn.get_sum(AMINLEACH) * to_gridcell_average;
+			n_org_leach_lc[stand.landcover] += patch.soilcolumn.get_sum(AORGNLEACH) * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += patch.soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
 
 			//N-transform
 			flux_NH3_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;

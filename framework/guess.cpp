@@ -585,7 +585,7 @@ bool Patch::has_disturbances() const {
  */
 double Patch::ccont(double scale_indiv, bool luc) {
 
-	double ccont = soilcolumn.ccont();
+	double ccont = soilcolumn.get_sum(CCONT);
 
 	ccont += soilcolumn.snow.ccont();
 
@@ -616,7 +616,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 */
 double Patch::ncont(double scale_indiv, bool luc) {
 
-	double ncont = soilcolumn.ncont();
+	double ncont = soilcolumn.get_sum(NCONT);
 
 	ncont += soilcolumn.snow.ncont();
 
@@ -641,7 +641,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 /// Water content of patch
 double Patch::wcontent() {
 
-	double wcontent = soilcolumn.wcontent();
+	double wcontent = soilcolumn.get_sum(WCONTENT);
 
 	wcontent += soilcolumn.snow.wcontent();
 
@@ -653,7 +653,7 @@ double Patch::cflux() {
 
 	double cflux = 0.0;
 
-	cflux += soilcolumn.aorgCleach();
+	cflux += soilcolumn.get_sum(AORGCLEACH);
 	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
 	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
 	cflux += fluxes.get_annual_flux(Fluxes::SOILC);
@@ -675,8 +675,8 @@ double Patch::nflux() {
 	nflux += -(stand.get_gridcell().aNH4dep + stand.get_gridcell().aNO3dep);
 	nflux += -anfert;
 	nflux += -soilcolumn.anfix;
-	nflux += soilcolumn.aminleach();
-	nflux += soilcolumn.aorgNleach();
+	nflux += soilcolumn.get_sum(AMINLEACH);
+	nflux += soilcolumn.get_sum(AORGNLEACH);
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
@@ -2427,6 +2427,9 @@ void Gridcell::set_soil_depth() {
 
 			// Create soil layers and initalise them
 			patch.soilcolumn.create_soillayers(soil_lyr_depth);
+
+			// Set padding layers depth
+			patch.soilcolumn.set_padding_depth();
 			
 			stand.nextobj();
 		}// End of loop through patches
@@ -3005,8 +3008,8 @@ void MassBalance::check_period(Gridcell& gridcell) {
 	}
 
 		// Water balance check:
-	if (!negligible(wcontent - wcontent_zero + wflux, -9)) {
-		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), wcontent - wcontent_zero + wflux);
+	if (!negligible(wcontent - wcontent_zero + wflux, -6)) {
+		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.7f\n", gridcell.get_lon(), gridcell.get_lat(), wcontent - wcontent_zero + wflux);
 		dprintf("Water pool change: %.10f\n", wcontent - wcontent_zero);
 		dprintf("Water fluxes: %.10f\n", wflux);
 	}

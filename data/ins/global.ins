@@ -158,12 +158,12 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
-iforography 1                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+iforography 1                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content

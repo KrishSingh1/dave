@@ -383,16 +383,16 @@ void ntransform(Patch& patch, Climate& climate) {
 			Nsubpart subpart;
 			subpart.substrate_partition(soillayer);
 
-		// Nitrification
+			// Nitrification
 			nitrification(soillayer, fluxes, subpart);
 
-		// Denitrification
+			// Denitrification
 			denitrification(soillayer, fluxes, subpart);
 
 			// N gas emission
 			n_gas_emission(soillayer, fluxes, subpart, n_budget_check);
 
-		// Warning if soil N transform does not hold mass balance
+			// Warning if soil N transform does not hold mass balance
 			assert(fabs(n_budget_check) < EPS);
 		}
 	}

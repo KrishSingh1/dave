@@ -1261,6 +1261,10 @@ void plib_callback(int callback) {
 		
 
 		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
+		if (iftwolayersoil == 1 && depth_soil == 0) {
+			sendmessage("Error", "Need to specify soil depth with two layer soil!");
+			plibabort();
+		}
 		if (!itemparsed("iforography")) badins("iforography");
 		if (iftwolayersoil == 1 && iforography == 1) {
 			sendmessage("Error", "Can't account for orography with two layer soil!");

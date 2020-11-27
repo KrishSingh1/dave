@@ -607,8 +607,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	const double EPS = 1.0e-16;
 
-	double ncont_before = soilcolumn.ncont();
-	double ccont_before = soilcolumn.ccont();
+	double ncont_before = soilcolumn.get_sum(NCONT);
+	double ccont_before = soilcolumn.get_sum(CCONT);
 	double nextra = 0.0;
 	double cextra = 0.0;
 
@@ -979,7 +979,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 					soillayer.sompool[p].respsum = 0.0;
 				}
 				else {
-					soillayer.sompool[p].respsum += soillayer.sompool[p].cmass;
+					soillayer.sompool[p].respsum = soillayer.sompool[p].cmass;
 					respsum_tot += soillayer.sompool[p].respsum;
 					nmin_inc += soillayer.sompool[p].nmass;
 				}
@@ -1001,8 +1001,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		}
 	}
 
-	double ncont_after = soilcolumn.ncont() + nextra;
-	double ccont_after = soilcolumn.ccont() + cextra;
+	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
+	double ccont_after = soilcolumn.get_sum(CCONT) + cextra;
 
 	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
 		dprintf("Year %d Day %d NITROGEN SOM diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
@@ -1432,7 +1432,7 @@ void transfer_litter(Patch& patch) {
  */
 void leaching_LPJ(Soilcolumn& soilcolumn) {
 
-	double ncont_before = soilcolumn.ncont();
+	double ncont_before = soilcolumn.get_sum(NCONT);
 	double nextra = 0.0;
 
 	double minleachfrac, minmovefrac;
@@ -1499,7 +1499,7 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 		}
 	}
 
-	double ncont_after = soilcolumn.ncont() + nextra;
+	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
 
 	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
 		dprintf("Year %d Day %d NITROGEN LEACH diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
@@ -1684,7 +1684,7 @@ void vertical_mixing(Patch& patch) {
 	}
 
 	// Low carbon in soil -> no vertical mixing
-	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.ccont() < 1.0e-3)
+	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.get_sum(CCONT) < 1.0e-3)
 		return;
 
 	// Store pool sizes before mixing
@@ -2118,7 +2118,7 @@ void equilsom(Patch& patch) {
 
 
 					// Calculte how many trends that are too big
-					if (iftwolayersoil || (lyr > 2 && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6))
+					if ((iftwolayersoil || lyr > 2) && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6)
 						bad_trend++;
 
 					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
@@ -2144,7 +2144,7 @@ void equilsom(Patch& patch) {
 			//dprintf("Bad %d \n", bad_trend);
 		}
 
-		dprintf("Year %d Tries %d\n", date.year, tries);		
+		dprintf("EquilSOM Tries %d\n", tries);		
 
 		// Reset mineral nitrogen status
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {

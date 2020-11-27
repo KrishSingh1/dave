@@ -142,7 +142,10 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
-typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, NH_4, NO_3} soilproptype;
+typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
+WCONTENT, RUNOFFDRAIN, RUNOFFBASE, CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, 
+ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -3108,7 +3111,7 @@ public:
 	/// (potential) microbial respiration following decomposition today (kgP/m2)
 	double respsum;
 	/// daily change in carbon and nitrogen
-	double delta_cmass,delta_nmass;
+	double delta_cmass, delta_nmass;
 	/// lignin fractions
 	double ligcfrac;
 	/// fraction of pool remaining after decomposition
@@ -3199,6 +3202,8 @@ public:
 	double wmass;
 	/// ice mass in soil layer (kg m-2)
 	double imass;
+	/// Matrix potantial (mm)
+	double psi;
 	/// daily water content for each day of year
 	double dwcont[Date::MAX_YEAR_LENGTH];
 	/// monthly water content as fraction of available water holding capacity
@@ -3207,12 +3212,12 @@ public:
 	double mwcontabove;
 	/// average wcont over the growing season
 	double awcont;
+	/// saturation point of soil layer (mm) Cosby et al 1984
+	double wsats;
 	/// available water holding capacity of soil layer (mm)
 	double awc;
 	/// wilting point of soil layer (mm) Cosby et al 1984
 	double wp;
-	/// saturation point of soil layer (mm) Cosby et al 1984
-	double wsats;
 	/// percolation mass from this layer
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
@@ -3469,7 +3474,6 @@ public:
 	void nmass_subtract(double nmass, n_pref_type pref = NO);
 	void nmass_inc(double nmass, n_pref_type pref = NO);
 	void nmass_multiplic_inc(double inc, n_pref_type pref = NO);
-	void nmass_remove_small_values(n_pref_type pref);
 	/// Water filled pore space ([0-1])
 	double wfps();
 
@@ -3482,9 +3486,11 @@ public:
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
-	void update_moisture_cond();
+	void update_matric_potential();
 
-	void update_heatcap_and_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
+	void update_hydraulic_cond_diff();
+
+	void update_thermal_cap_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -3572,7 +3578,7 @@ struct Snowlayer : public Serializable {
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
 	/// Update snow properties
-	void update_heatcap_and_cond();
+	void update_thermal_cap_cond();
 
 	/// Update snow water holding capacity
 	void update_whc();
@@ -3651,7 +3657,7 @@ public:
 	void compaction(double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow thermal properties for each snow layer
-	void update_heatcap_and_cond();
+	void update_thermal_cap_cond();
 
 	/// Balance ice and water in snow layers after melt
 	void balance_snow(double& rain_melt, double& rain_melt_temp);
@@ -3818,7 +3824,7 @@ public:
 	double mwtp[12];
 	/// annual average water table position [mm]
 	double awtp;
-	/// water table depth from yesterday and updated today = -wtp [mm]
+	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
 	/// Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
 	double stand_wmass;
@@ -3892,8 +3898,10 @@ public:
 	}
 	/// Create soillayers
 	void create_soillayers(std::vector<double> soil_layer_depths);
-	/// Get soil property 
-	std::vector<double> get_prop(soilproptype SPT, int m = 0);
+	/// Get soil property per layer
+	std::vector<double> get(soilproptype SPT, int m = 0);
+	/// Get soil property totals
+	double get_sum(soilproptype SPT, int m = 0);
 	/// Get soil layers total cmass fractions
 	std::vector<double> get_ccontfrac();
 	/// Get soil layers avail nmass fraction
@@ -3904,34 +3912,8 @@ public:
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
-	/// Total annual organic carbon leaching
-	double aorgCleach();
-	/// Total annual organic nitrogen leaching
-	double aorgNleach();
-	/// Total annual mineral nitrogen leaching
-	double aminleach(); // DW_COMMENT all these needed?
-	/// Total annual nitrogen mineralisation
-	double anmin();
-	/// Total annual nitrogen immobilisation
-	double animmob();
-	/// Total drainage
-	double runoff_drain();
-	/// Total baseflow
-	double runoff_baseflow();
 	/// Vertical mixing (diffusion) of SOM
 	void vertical_mixing(pooltype p, double ald, double timestep);
-	/// C content of soil column
-	double ccont();
-	/// N content of soil column
-	double ncont();
-	/// water content of soil column
-	double wcontent();
-	/// water mass of soil column
-	double wmass();
-	/// Total cpool slow C mass
-	double cpool_slow();
-	/// Total cpool fast C mass
-	double cpool_fast();
 	/// Total cpool slow C mass
 	double cmass_sompool(pooltype pool);
 	/// Total cpool slow C mass
@@ -3954,8 +3936,10 @@ public:
 	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);
 	/// add water and return the water that cannot be added due to limited capacity
 	double add_wmass(int layer, double extrawmass);
-	/// Update moisture conductivity
-	void update_moisture_cond();
+	/// Update matric potential
+	void update_matric_potential();
+	/// Update hydraulic conductivity and diffusivity
+	void update_hydraulic_cond_diff();
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp();
 	/// Calculate soil column water flow
@@ -3963,7 +3947,7 @@ public:
 	/// Resolves negative soil layer water mass
 	void resolve_neg_wmass(std::vector<int> neglyr);
 	/// Update heat capacity and conductivity for soil layers
-	void update_heatcap_and_cond(bool combine_snow);
+	void update_thermal_cap_cond(bool combine_snow);
 	/// Set padding layers depth
 	void set_padding_depth();
 	/// Soil water freezing allowed?
@@ -4000,7 +3984,7 @@ public:
 	/// Calculate methane dynamics today
 	bool methane(bool generatemethane);
 	/// Update heat capacity and conductivity for padding layers
-	void update_heatcap_and_cond_for_pad();
+	void update_thermal_cap_cond_for_pad();
 	/// Calculate soil temperature
 	void temp();
 	/// Calculate multilayer soil temperature

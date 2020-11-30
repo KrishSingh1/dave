@@ -3331,8 +3331,6 @@ public:
 	double arespsum;
 	/// Tiller area
 	double tiller_area;	
-	/// Passive SOM C mass in pool at an initial stage (kgC/m2)
-	double cmass_passive_init;
 	/// Multiplier for passive SOM C mass trend
 	double multi;
 	/// Sign of passive SOM C mass trend

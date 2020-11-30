@@ -1563,7 +1563,6 @@ void Soillayer::init() {
 	labile_carbon = 0.0;
 
 	// Trend variables
-	cmass_passive_init = 0.0;
 	multi = 16.0;
 	sign_trend = 1;
 	flip = 0;

@@ -616,10 +616,20 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+		// Check for negative pools
+		if (date.year != 200) {
+			for (int p = 0; p < NSOMPOOL; p++) {
+				if (soillayer.sompool[p].cmass < -1.0e-15)
+					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
+				if (soillayer.sompool[p].nmass < -1.0e-15)
+					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
+			}
+		}
+
 		double cmass_before = soillayer.ccont();
 		double nmass_before = soillayer.ncont();
 
-		if (!negligible(cmass_before, -15)) {
+		//if (!negligible(cmass_before, -15)) {
 
 			// mineral nitrogen mass available
 			const double nmin_mass = soillayer.nmass_avail(NH4);
@@ -965,7 +975,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			if (date.year > freenyears && fabs(nmass_before - nmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
 				dprintf("Year %d Day %d Lyr %d N SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(nmass_before - nmass_after), nmass_before, nmass_after, leachsum_nmass);
-		}
+		/*}
 		// Very low total soil layer C mass, move C mass to layer above. If top layer, respire all C mass
 		else {
 			double respsum_tot = 0.0;
@@ -998,7 +1008,17 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			cextra += respsum_tot;
 
 			soillayer.nmass_inc(nmin_inc, NH4);
-		}
+		}*/
+
+		// Check for negative pools
+			if (date.year != 200) {
+				for (int p = 0; p < NSOMPOOL; p++) {
+					if (soillayer.sompool[p].cmass < -1.0e-15)
+						dprintf("Year %d Day %d Lyr %d Pool %d After  SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
+					if (soillayer.sompool[p].nmass < -1.0e-15)
+						dprintf("Year %d Day %d Lyr %d Pool %d After SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
+				}
+			}
 	}
 
 	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
@@ -2160,11 +2180,13 @@ void equilsom(Patch& patch) {
 					soillayer.sompool[p].cmass = save_litter_cmass[lyr][p];
 					soillayer.sompool[p].nmass = save_litter_nmass[lyr][p];
 				}
+
+				soillayer.sompool[p].cmass = max(0.0, soillayer.sompool[p].cmass);
+				soillayer.sompool[p].nmass = max(0.0, soillayer.sompool[p].nmass);
+
+				// Save cmass for trend based equilsom for every 10 year
 				soillayer.sompool[p].cmass_init = soillayer.sompool[p].cmass;
 			}
-
-			// Save cmass for trend based equilsom for every 10 year
-			soillayer.cmass_passive_init = soillayer.sompool[PASSIVESOM].cmass;
 
 			// Reset variables for next possible equilsom()
 			for (int m = 0; m < 12; m++) {

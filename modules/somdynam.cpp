@@ -617,14 +617,14 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 		// Check for negative pools
-		if (date.year != 200) {
+		/*if (date.year != 200) {
 			for (int p = 0; p < NSOMPOOL; p++) {
 				if (soillayer.sompool[p].cmass < -1.0e-15)
 					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
 				if (soillayer.sompool[p].nmass < -1.0e-15)
 					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
 			}
-		}
+		}*/
 
 		double cmass_before = soillayer.ccont();
 		double nmass_before = soillayer.ncont();
@@ -1011,14 +1011,14 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		}*/
 
 		// Check for negative pools
-			if (date.year != 200) {
-				for (int p = 0; p < NSOMPOOL; p++) {
-					if (soillayer.sompool[p].cmass < -1.0e-15)
-						dprintf("Year %d Day %d Lyr %d Pool %d After  SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
-					if (soillayer.sompool[p].nmass < -1.0e-15)
-						dprintf("Year %d Day %d Lyr %d Pool %d After SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
-				}
+		/*if (date.year != 200) {
+			for (int p = 0; p < NSOMPOOL; p++) {
+				if (soillayer.sompool[p].cmass < -1.0e-15)
+					dprintf("Year %d Day %d Lyr %d Pool %d After  SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
+				if (soillayer.sompool[p].nmass < -1.0e-15)
+					dprintf("Year %d Day %d Lyr %d Pool %d After SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
 			}
+		}*/
 	}
 
 	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
@@ -1765,12 +1765,22 @@ void add_litter(Soillayer& soillayer, int timestep, int pool, double init_cpool)
 	double frac_added = 1.0;
 	double clitter_to_add = soillayer.solvesom[timestep].get_clitter(pool);
 
-	if (soillayer.sompool[pool].cmass + clitter_to_add > litter_max_size_frac * init_cpool)
-		frac_added = (litter_max_size_frac * init_cpool - soillayer.sompool[pool].cmass) / clitter_to_add;
+//	if (clitter_to_add < 0.0)
+//		dprintf("ERROR EquilSOM C litter input %g\n", clitter_to_add);
+//	if (soillayer.solvesom[timestep].get_nlitter(pool) < 0.0)
+//		dprintf("ERROR EquilSOM N litter input %g\n", soillayer.solvesom[timestep].get_nlitter(pool));
 
-	// Add to litter pools
-	soillayer.sompool[pool].cmass += frac_added * clitter_to_add;
-	soillayer.sompool[pool].nmass += frac_added * soillayer.solvesom[timestep].get_nlitter(pool);
+	if (soillayer.sompool[pool].cmass + clitter_to_add > litter_max_size_frac * init_cpool && !negligible(init_cpool, -14)) {
+		// Set litter pool to max
+		double ntoc = soillayer.sompool[pool].nmass / soillayer.sompool[pool].cmass;
+		soillayer.sompool[pool].cmass = litter_max_size_frac * init_cpool;
+		soillayer.sompool[pool].nmass = ntoc * soillayer.sompool[pool].cmass;
+	}
+	else {
+		// Add to litter pools
+		soillayer.sompool[pool].cmass += frac_added * clitter_to_add;
+		soillayer.sompool[pool].nmass += frac_added * soillayer.solvesom[timestep].get_nlitter(pool);
+	}
 }
 
 /// Iteratively solving differential flux equations for century SOM pools
@@ -1909,6 +1919,15 @@ void equilsom(Patch& patch) {
 			// Update soil layers total C mass fractions
 			ccontfrac = soilcolumn.get_ccontfrac();
 
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				for (int p = 0; p < NSOMPOOL; p++) {
+					if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
+						dprintf("CMASS neg lyr %d pool %d C %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
+					if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
+						dprintf("NMASS neg lyr %d pool %d N %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
+				}
+			}
+
 			// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 			// nitrogen uptake and leaching for NYEARS years with monthly timesteps
 			for (int yr = 0; yr < EQUILSOM_YEARS; yr++) {
@@ -1995,10 +2014,28 @@ void equilsom(Patch& patch) {
 					// and nitrogen flux from soil
 					somfluxes(patch, true, false);
 
+					/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+						for (int p = 0; p < NSOMPOOL; p++) {
+							if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
+								dprintf("SPIN neg yr %d mth %d lyr %d pool %d C %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
+							if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
+								dprintf("SPIN neg yr %d mth %d lyr %d pool %d N %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
+						}
+					}*/
+
 					if (!vertmix && ifverticalmixing) {
 						soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 						soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 					}
+
+					/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+						for (int p = 0; p < NSOMPOOL; p++) {
+							if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
+								dprintf("VERT neg yr %d mth %d lyr %d pool %d C %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
+							if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
+								dprintf("VERT neg yr %d mth %d lyr %d pool %d N %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
+						}
+					}*/
 				}
 			}
 
@@ -2156,6 +2193,15 @@ void equilsom(Patch& patch) {
 					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
 				}
 			}
+
+			/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				for (int p = 0; p < NSOMPOOL; p++) {
+					if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
+						dprintf("TREND neg lyr %d pool %d C %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
+					if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
+						dprintf("TREND neg lyr %d pool %d N %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
+				}
+			}*/
 
 			// Maximum multiplier should go down over time.
 			if (!(tries%200))

@@ -4849,13 +4849,44 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	// Negative flow from layer below
 	std::vector<double> cfluxes(nsoillayers - 1);
 	cfluxes[0] = (VMpara.psi[0] - VMpara.psi1[0]) * VMpara.dz[0];
+	cfluxes[0] = negligible(cfluxes[0], -12) ? 0.0 : cfluxes[0];
 	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
 		cfluxes[lyr] = cfluxes[lyr - 1] + (VMpara.psi[lyr] - VMpara.psi1[lyr]) * VMpara.dz[lyr];
+		cfluxes[lyr] = negligible(cfluxes[lyr], -12) ? 0.0 : cfluxes[lyr];
 	}
 
-	// Calculate C and N mass changes
+	// Check for inconsistencies in downwards flux
+	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
+		if (lyr == 0) {
+			if (soillayers[lyr].sompool[p].cmass - cfluxes[lyr] < 0.0) {
+				cfluxes[lyr] = soillayers[lyr].sompool[p].cmass;
+			}
+		}
+		else {
+			if (soillayers[lyr].sompool[p].cmass + cfluxes[lyr - 1] - cfluxes[lyr] < 0.0 && cfluxes[lyr] > 0.0) {
+				double neg_c = soillayers[lyr].sompool[p].cmass + cfluxes[lyr - 1] - cfluxes[lyr];
+				cfluxes[lyr] += max(neg_c, -cfluxes[lyr]);
+			}
+		}
+	}
+
+	// Check for inconsistencies in upwards flux
+	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
+		if (soillayers[lyr].sompool[p].cmass + cfluxes[lyr - 1] - cfluxes[lyr] < 0.0) {
+			if (cfluxes[lyr - 1] < 0.0) {
+				double neg_c = soillayers[lyr].sompool[p].cmass + cfluxes[lyr - 1] - cfluxes[lyr];
+				cfluxes[lyr - 1] -= neg_c;
+			}
+			if (cfluxes[lyr - 1] > 0.0)
+				dprintf("ERROR: VERTICAL_MIX lyr %d flux should be negative or zer %g\n", lyr, cfluxes[lyr - 1]);
+		}
+	}
+
+
 	std::vector<double> delta_cmass(nsoillayers);
 	std::vector<double> delta_nmass(nsoillayers);
+
+	// Calculate C and N mass changes
 	double cmove, nmove, frac;
 	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
 		if (cfluxes[lyr] > 0.0 && !negligible(soillayers[lyr].sompool[p].cmass)) {

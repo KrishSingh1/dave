@@ -29,7 +29,9 @@ CommonOutput::CommonOutput() {
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
-	declare_parameter("file_agpp", &file_agpp, 300, "Annual GPP output file");
+	declare_parameter("file_agpp", &file_agpp, 300, "Annual GPP with all stress output file");
+	declare_parameter("file_agpp_no", &file_agpp_no, 300, "Annual GPP with no stresses output file");
+	declare_parameter("file_agpp_ns", &file_agpp_ns, 300, "Annual GPP with N stress output file");
 	declare_parameter("file_fpc", &file_fpc, 300, "FPC output file");
 	declare_parameter("file_aaet", &file_aaet, 300, "Annual AET output file");
 	declare_parameter("file_lai", &file_lai, 300, "LAI output file");
@@ -182,13 +184,13 @@ void CommonOutput::define_output_tables() {
 	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
 		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
-		soillyr_columns += ColumnDescriptor(soillayers[lyr], 13, 8); // DW_COMMENT less precision
-		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 11, 6);
+		soillyr_columns += ColumnDescriptor(soillayers[lyr], 10, 5); // DW_COMMENT less precision
+		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 10, 5);
 		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
 	}
 	soildepth_columns += ColumnDescriptor("Total", 6, 1);
-	soillyr_columns += ColumnDescriptor("Total", 13, 8);
-	surfsoillyr_columns += ColumnDescriptor("Total", 11, 6);
+	soillyr_columns += ColumnDescriptor("Total", 10, 5);
+	surfsoillyr_columns += ColumnDescriptor("Total", 10, 5);
 	soillyr_columns_short += ColumnDescriptor("Total", 6, 3);
 
 	// Create soil layer columns
@@ -420,6 +422,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
 	create_output_table(out_anpp,           file_anpp,           anpp_columns);
 	create_output_table(out_agpp,           file_agpp,           agpp_columns);
+	create_output_table(out_agpp_no,        file_agpp_no,        agpp_columns);
+	create_output_table(out_agpp_ns,        file_agpp_ns,        agpp_columns);
 	create_output_table(out_fpc,            file_fpc,            fpc_columns);
 	create_output_table(out_aaet,           file_aaet,           aaet_columns);
 	create_output_table(out_dens,           file_dens,           dens_columns);
@@ -695,7 +699,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year >= 0)//nyear_spinup)
+	if (date.year >= nyear_spinup)
 		out.add_value(table, d);
 }
 
@@ -795,6 +799,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double landcover_nlitter[NLANDCOVERTYPES]={0.0};
 	double landcover_anpp[NLANDCOVERTYPES]={0.0};
 	double landcover_agpp[NLANDCOVERTYPES]={0.0};
+	double landcover_agpp_no[NLANDCOVERTYPES]={0.0};
+	double landcover_agpp_ns[NLANDCOVERTYPES]={0.0};
 	double landcover_fpc[NLANDCOVERTYPES]={0.0};
 	double landcover_aaet[NLANDCOVERTYPES]={0.0};
 	double landcover_lai[NLANDCOVERTYPES]={0.0};
@@ -816,6 +822,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_nlitter=0.0;
 	double mean_standpft_anpp=0.0;
 	double mean_standpft_agpp=0.0;
+	double mean_standpft_agpp_no=0.0;
+	double mean_standpft_agpp_ns=0.0;
 	double mean_standpft_fpc=0.0;
 	double mean_standpft_aaet=0.0;
 	double mean_standpft_lai=0.0;
@@ -844,6 +852,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double rsoil_gridcell=0.0;
 	double anpp_gridcell=0.0;
 	double agpp_gridcell=0.0;
+	double agpp_no_gridcell=0.0;
+	double agpp_ns_gridcell=0.0;
 	double fpc_gridcell=0.0;
 	double aaet_gridcell=0.0;
 	double lai_gridcell=0.0;
@@ -884,6 +894,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_nlitter=0.0;
 	double standpft_anpp=0.0;
 	double standpft_agpp=0.0;
+	double standpft_agpp_no=0.0;
+	double standpft_agpp_ns=0.0;
 	double standpft_fpc=0.0;
 	double standpft_aaet=0.0;
 	double standpft_lai=0.0;
@@ -915,6 +927,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_nlitter=0.0;
 		mean_standpft_anpp=0.0;
 		mean_standpft_agpp=0.0;
+		mean_standpft_agpp_no=0.0;
+		mean_standpft_agpp_ns=0.0;
 		mean_standpft_fpc=0.0;
 		mean_standpft_aaet=0.0;
 		mean_standpft_lai=0.0;
@@ -962,6 +976,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_nlitter=0.0;
 			standpft_anpp=0.0;
 			standpft_agpp=0.0;
+			standpft_agpp_no=0.0;
+			standpft_agpp_ns=0.0;
 			standpft_fpc=0.0;
 			standpft_aaet=0.0;
 			standpft_lai=0.0;
@@ -984,6 +1000,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 				standpft_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
+				standpft_agpp_no += patch.fluxes.get_annual_flux(Fluxes::GPPno, pft.id);
+				standpft_agpp_ns += patch.fluxes.get_annual_flux(Fluxes::GPPns, pft.id);
 				standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id); 					
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
@@ -1062,6 +1080,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_nlitter/=(double)stand.npatch();
 				standpft_anpp/=(double)stand.npatch();
 				standpft_agpp/=(double)stand.npatch();
+				standpft_agpp_no/=(double)stand.npatch();
+				standpft_agpp_ns/=(double)stand.npatch();
 				standpft_fpc/=(double)stand.npatch();
 				standpft_aaet/=(double)stand.npatch();
 				standpft_lai/=(double)stand.npatch();
@@ -1088,6 +1108,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_nlitter[stand.landcover]+=standpft_nlitter*stand.get_landcover_fraction();
 				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
 				landcover_agpp[stand.landcover]+=standpft_agpp*stand.get_landcover_fraction();
+				landcover_agpp_no[stand.landcover]+=standpft_agpp_no*stand.get_landcover_fraction();
+				landcover_agpp_ns[stand.landcover]+=standpft_agpp_ns*stand.get_landcover_fraction();
 				if(!pft.isintercropgrass) {
 					landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
 					landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
@@ -1113,6 +1135,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_nlitter += standpft_nlitter * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_anpp += standpft_anpp * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_agpp += standpft_agpp * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_agpp_no += standpft_agpp_no * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_agpp_ns += standpft_agpp_ns * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_fpc += standpft_fpc * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_aaet += standpft_aaet * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
@@ -1143,6 +1167,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				nlitter_gridcell+=standpft_nlitter*fraction_of_gridcell;
 				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 				agpp_gridcell+=standpft_agpp*fraction_of_gridcell;
+				agpp_no_gridcell+=standpft_agpp_no*fraction_of_gridcell;
+				agpp_ns_gridcell+=standpft_agpp_ns*fraction_of_gridcell;
 				if(!pft.isintercropgrass) {
 					fpc_gridcell+=standpft_fpc*fraction_of_gridcell;
 					lai_gridcell+=standpft_lai*fraction_of_gridcell;
@@ -1180,6 +1206,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_cmass,     mean_standpft_cmass);
 		outlimit(out,out_anpp,      mean_standpft_anpp);
 		outlimit(out,out_agpp,      mean_standpft_agpp);
+		outlimit(out,out_agpp_no,   mean_standpft_agpp_no);
+		outlimit(out,out_agpp_ns,   mean_standpft_agpp_ns);
 		outlimit(out,out_fpc,       mean_standpft_fpc);
 		outlimit(out,out_aaet,      mean_standpft_aaet);
 		outlimit(out,out_clitter,   mean_standpft_clitter);
@@ -1531,7 +1559,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	outlimit(out,out_cmass,					cmass_gridcell);
 	outlimit(out,out_anpp,					anpp_gridcell);
-	outlimit(out,out_agpp,					agpp_gridcell);
+	outlimit(out, out_agpp,                 agpp_gridcell);
+	outlimit(out, out_agpp_no,              agpp_no_gridcell);
+	outlimit(out, out_agpp_ns,              agpp_ns_gridcell);
 	outlimit(out,out_fpc,					fpc_gridcell);
 	outlimit(out,out_aaet,					aaet_gridcell);
 	outlimit(out,out_dens,					dens_gridcell);
@@ -1578,7 +1608,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			if(run[i]) {
 				outlimit(out,out_cmass, landcover_cmass[i]);
 				outlimit(out,out_anpp,  landcover_anpp[i]);
-				outlimit(out,out_agpp,  landcover_agpp[i]);
+				outlimit(out,out_agpp, landcover_agpp[i]);
+				outlimit(out,out_agpp_no, landcover_agpp_no[i]);
+				outlimit(out,out_agpp_ns, landcover_agpp_ns[i]);
 				outlimit(out,out_fpc,   landcover_fpc[i]);
 				outlimit(out,out_aaet,  landcover_aaet[i]);
 				outlimit(out,out_dens,  landcover_densindiv_total[i]);
@@ -1613,7 +1645,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double clitterinput_tot = clitterinput[0];
 	outlimit(out, out_clitterinput, clitterinput[0]);
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
-		if (date.year == 0)//nyear_spinup) // DW_COMMENT
+		if (date.year == nyear_spinup)
 			outlimit(out, out_soildepth, soildepth[lyr] * M_PER_MM);
 
 		outlimit(out, out_csoil, soilc[lyr]);
@@ -1646,12 +1678,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;
 	if (!negligible(tot_cdec[1]) && !negligible(tot_cinc[0]) && !negligible(tot_cdec[0])) {
 		sdl_decay_tot = tot_cdec[1] / tot_cdec[0];
-		sdl_growth_tot = (tot_cinc[1] / tot_cdec[1]) / (tot_cinc[0] / tot_cdec[0]); // DW_COMMENT error???
+		sdl_growth_tot = (tot_cinc[1] / tot_cdec[1]) / (tot_cinc[0] / tot_cdec[0]);
 		sdl_total_tot = (tot_cinc[1] / tot_cdec[0]) / (tot_cinc[0] / tot_cdec[0]);
 		sdl_cue_tot = tot_cinc[1] / tot_cdec[0];
 	}
 
-	if (date.year == 0)//nyear_spinup)
+	if (date.year == nyear_spinup)
 		outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
 	outlimit(out, out_csoil, csoil_gridcell);
 	outlimit(out, out_csoil_passive, csoil_p_gridcell);

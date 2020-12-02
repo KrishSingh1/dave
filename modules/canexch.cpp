@@ -892,6 +892,9 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
+		indiv.dgpp_no = max(0.0, indiv.photosynthesis.net_assimilation());
+		indiv.report_flux(Fluxes::GPPno, indiv.dgpp_no);
+
 		if (date.diurnal()) {
 
 			indiv.gpterms.assign(date.subdaily, 0);
@@ -1373,6 +1376,9 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
+			double dgpp_ns = max(0.0, indiv.photosynthesis.net_assimilation());
+			indiv.report_flux(Fluxes::GPPns, dgpp_ns);
+
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
 					PhotosynthesisResult& ps_result = indiv.phots[i];
@@ -1387,6 +1393,9 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
+		}
+		else {
+			indiv.report_flux(Fluxes::GPPns, indiv.dgpp_no);
 		}
 
 		// Sum annual average nitrogen limitation on vmax

@@ -2122,6 +2122,7 @@ void Soilcolumn::initdrivers() {
 	// Padding layers
 	pad.resize(PAD_LAYERS);
 
+	depth = 0.0;
 	nsoillayers = 0;
 
 	wcont_evap = 0.0;
@@ -2200,7 +2201,7 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 	bool catotelm = false;
 	nacrotelm = 0;
 	ncatotelm = 0;
-	thaw = patch.stand.get_gridcell().soil_depth;
+	thaw = depth;
 	maxthaw_10.add(thaw);
 
 	// Loop over number of soil layers to create
@@ -2377,15 +2378,35 @@ double Soilcolumn::get_sum(soilproptype SPT, int m) {
 /// Returns a vector with soillayer C fractions
 /** Returns a vector with soillayer C fractions
  */
-std::vector<double> Soilcolumn::get_ccontfrac() {
+std::vector<double> Soilcolumn::get_ccontfrac(bool ald_limited) {
 
 	std::vector<double> ccontfrac(nsoillayers);
 
-	double cconttot = get_sum(CCONT);
+	double cconttot;
+	if (ald_limited && thaw < depth) {
+		cconttot = to_depth(thaw, get(CCONT));
+	}
+	else {
+		cconttot = get_sum(CCONT);
+	}
 
 	if (!negligible(cconttot)) {
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			ccontfrac[lyr] += soillayers[lyr].ccont() / cconttot;
+		if (ald_limited && thaw < depth) {
+			int lyr = 0;
+			double acc_ccontfrac = 0.0;
+			double cconfrac_lyr = soillayers[0].ccont() / cconttot;
+			while (acc_ccontfrac + cconfrac_lyr < 1.0) {
+				ccontfrac[lyr] = cconfrac_lyr;
+				acc_ccontfrac += cconfrac_lyr;
+				lyr++;
+				cconfrac_lyr = soillayers[lyr].ccont() / cconttot;
+			}
+			ccontfrac[lyr] = 1.0 - acc_ccontfrac;
+		}
+		else {
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				ccontfrac[lyr] = soillayers[lyr].ccont() / cconttot;
+			}
 		}
 	}
 	else {
@@ -3063,20 +3084,20 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
 			soillayers[lyr_neg].wmass += wmass_move;
 		}
 
-		// Soil layer above have taken wmass from negative layer
-		if (wfluxes[lyr_neg] < 0.0 && soillayers[lyr_neg].wmass < 0.0) {
-			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
-			wfluxes[lyr_neg] += wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-			soillayers[lyr_neg - 1].wmass -= wmass_move;
-		}
-
 		// Soil layer below have taken wmass from negative layer
 		if (wfluxes[lyr_neg + 1] > 0.0 && soillayers[lyr_neg].wmass < 0.0) {
 			double wmass_move = min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass);
 			wfluxes[lyr_neg + 1] -= wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
 			soillayers[lyr_neg + 1].wmass -= wmass_move;
+		}
+
+		// Soil layer above have taken wmass from negative layer
+		if (wfluxes[lyr_neg] < 0.0 && soillayers[lyr_neg].wmass < 0.0) {
+			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
+			wfluxes[lyr_neg] += wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+			soillayers[lyr_neg - 1].wmass -= wmass_move;
 		}
 	}
 }
@@ -3198,11 +3219,11 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double fpc_moss_total = 0.0;
 
 	// Total soilcolumn water (mm)
-	double wtot = to_depth(patch.stand.get_gridcell().soil_depth, get(WMASS));
+	double wtot = to_depth(depth, get(WMASS));
 	// Total water in acrotelm layers (mm)
 	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get(WMASS));
 	// Total soilcolumn ice (mm)
-	double itot = to_depth(patch.stand.get_gridcell().soil_depth, get(IMASS));
+	double itot = to_depth(depth, get(IMASS));
 	// Total ice in acrotelm layers (mm)
 	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get(IMASS));
 
@@ -3385,7 +3406,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtd = -wtp[date.day];
 
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
-		wtot = ACROTELM_DEPTH * acrotelm_por + (patch.stand.get_gridcell().soil_depth - ACROTELM_DEPTH) * catotelm_por - itot;
+		wtot = ACROTELM_DEPTH * acrotelm_por + (depth - ACROTELM_DEPTH) * catotelm_por - itot;
 
 		// wtot does NOT include standing water
 		// we assume no standing water 
@@ -3415,7 +3436,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double Dz_sub = 10.0;
 
 	// Number of sublayers in acrotelm
-	int nsublayers_acro = (int)(min(ACROTELM_DEPTH, patch.stand.get_gridcell().soil_depth) / Dz_sub);
+	int nsublayers_acro = (int)(min(ACROTELM_DEPTH, depth) / Dz_sub);
 
 	// Water content in each sublayer
 	double surfw_sat = 0.0;
@@ -3523,7 +3544,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	}
 
 	// Total water change during calculation of water content for each soil layer
-	double wafter = to_depth(patch.stand.get_gridcell().soil_depth, get(WMASS));
+	double wafter = to_depth(depth, get(WMASS));
 	double wchange = wafter - wtot;
 
 	if (fabs(wchange) > 1.0e-10)
@@ -4022,7 +4043,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Negative soil layer wmass exists
 	if (neglyr.size()) {
-		resolve_neg_wmass(neglyr); // DW_COMMENT check Dw and Cw so they make sense when imass is high during spring!
+		resolve_neg_wmass(neglyr);
 	}
 
 	// Calculate baseflow
@@ -4362,7 +4383,8 @@ void Soilcolumn::phase_change() {
 						// How much energy (temperature) the phase change needed
 						soillayers[lyr].temp += Fwmass * Lheat / Cp_water;
 
-						if (soillayers[lyr].temp > 0.0)
+						// If something went very wrong
+						if (soillayers[lyr].temp > 1.0)
 							dprintf("ERROR: Year %d Day %d Soil layer %d temperature is above zero AFTER freezing %g\n", date.year, date.day, lyr, soillayers[lyr].temp);
 
 						soillayers[lyr].temp = min(0.0, soillayers[lyr].temp);
@@ -4402,7 +4424,8 @@ void Soilcolumn::phase_change() {
 						// How much energy (temperature) the phase change needed
 						soillayers[lyr].temp -= Fimass * Lheat / Cp_water;
 
-						if (soillayers[lyr].temp < 0.0)
+						// If something went very wrong
+						if (soillayers[lyr].temp < -1.0)
 							dprintf("ERROR: Year %d Day %d Soil layer %d temperature is below zero AFTER thawing %g\n", date.year, date.day, lyr, soillayers[lyr].temp);
 
 						soillayers[lyr].temp = max(0.0, soillayers[lyr].temp);
@@ -4855,7 +4878,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		cfluxes[lyr] = negligible(cfluxes[lyr], -12) ? 0.0 : cfluxes[lyr];
 	}
 
-	// Check for inconsistencies in downwards flux
+	// Check for inconsistencies in downwards flux, no negative C mass
 	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
 		if (lyr == 0) {
 			if (soillayers[lyr].sompool[p].cmass - cfluxes[lyr] < 0.0) {
@@ -4870,7 +4893,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		}
 	}
 
-	// Check for inconsistencies in upwards flux
+	// Check for inconsistencies in upwards flux, no negative C mass
 	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
 		if (soillayers[lyr].sompool[p].cmass + cfluxes[lyr - 1] - cfluxes[lyr] < 0.0) {
 			if (cfluxes[lyr - 1] < 0.0) {

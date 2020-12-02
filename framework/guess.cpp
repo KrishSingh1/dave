@@ -1331,6 +1331,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	dnpp              = 0.0;
+	dgpp_no           = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -2424,6 +2425,9 @@ void Gridcell::set_soil_depth() {
 				patch.pft[i].rootdist = pft[i].pft.rootdist;
 				patch.pft[i].fwuptake.resize(nsoillayers);
 			}
+
+			// Set soilcolumn depth
+			patch.soilcolumn.depth = soil_depth;
 
 			// Create soil layers and initalise them
 			patch.soilcolumn.create_soillayers(soil_lyr_depth);

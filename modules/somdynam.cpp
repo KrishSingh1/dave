@@ -513,7 +513,12 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		double k = K_MAX[p] * temp_mod * moist_mod * depth_mod;
+		double scalar = 1.0;
+
+		//if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
+		//	scalar = 4.0;
+
+		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
@@ -937,6 +942,12 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			// Adding mineral nitrogen to soil available pool
 			double nmin_inc = nmin_actual - nimmob;
+
+			// If no nitrogen limitation or during free nitrogen years
+			// net mineralisation could be negative. Set to zero
+			// in that case
+			if (!ifnlim || date.year <= freenyears)
+				nmin_inc = max(0.0, nmin_inc);
 
 			if (!ifequilsom) {
 				soillayer.mnetmin[date.month] += nmin_inc;
@@ -1638,8 +1649,8 @@ void soilnadd(Patch& patch) {
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
 
-	// Get soil layers total C mass fractions
-	std::vector<double> ccontfrac = soilcolumn.get_ccontfrac();
+	// Get soil layers total C mass fractions down to ald
+	std::vector<double> ccontfrac = soilcolumn.get_ccontfrac(true);
 
 	// Nitrogen fixation in each soil layer
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -1647,7 +1658,7 @@ void soilnadd(Patch& patch) {
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 		// Nitrogen mass saturation level
-		double NMASS_SAT_LYR = NMASS_SAT * ccontfrac[lyr];
+		double NMASS_SAT_LYR = NMASS_SAT;// *ccontfrac[lyr]; // DW_COMMENT
 
 		// NH4 in soil layer
 		const double nmin_avail = soillayer.nmass_avail(NH4);
@@ -1697,7 +1708,7 @@ void vertical_mixing(Patch& patch) {
 		return;
 
 	// Average monthly active layer depth
-	double mald = min(patch.stand.get_gridcell().soil_depth, max(0.0, patch.soilcolumn.mthaw[date.month])) * M_PER_MM;
+	double mald = min(patch.soilcolumn.depth, max(0.0, patch.soilcolumn.mthaw[date.month])) * M_PER_MM;
 
 	if (patch.soilcolumn.savesomcent) {
 		patch.soilcolumn.mald_mean[date.month] += mald;

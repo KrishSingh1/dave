@@ -1219,7 +1219,7 @@ public:
 	enum PerPFTFluxType {
 		/// NPP (kgC/m2)
 		NPP,
-		/// GPP (kgC/m2)
+		/// GPP (kgC/m2) with all stresses
 		GPP,
 		/// Autotrophic respiration (kgC/m2)
 		RA,
@@ -1235,6 +1235,10 @@ public:
 		MT_TRIC,
 		MT_TBOC,
 		MT_OTHR,
+		/// GPP (kgC/m2) with no stress
+		GPPno,
+		/// GPP (kgC/m2) with N stress
+		GPPns,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
@@ -2766,6 +2770,8 @@ public:
 	bool alive;
 	/// NPP this day
 	double dnpp;
+	/// GPP this day without any stresses
+	double dgpp_no;
 
 	// bvoc
 
@@ -3740,6 +3746,8 @@ public:
 	Patch& patch;
 	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
+	/// Soilcolumn depth
+	double depth;
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
 	/// vector with soil layer bottom depths
@@ -3901,7 +3909,7 @@ public:
 	/// Get soil property totals
 	double get_sum(soilproptype SPT, int m = 0);
 	/// Get soil layers total cmass fractions
-	std::vector<double> get_ccontfrac();
+	std::vector<double> get_ccontfrac(bool ald_limited = false);
 	/// Get soil layers avail nmass fraction
 	std::vector<double> get_nfrac(n_pref_type pref, bool water_limited = false);
 	/// Get soil layers root fractions

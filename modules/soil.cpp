@@ -2395,7 +2395,7 @@ std::vector<double> Soilcolumn::get_ccontfrac(bool ald_limited) {
 			int lyr = 0;
 			double acc_ccontfrac = 0.0;
 			double cconfrac_lyr = soillayers[0].ccont() / cconttot;
-			while (acc_ccontfrac + cconfrac_lyr < 1.0) {
+			while (acc_ccontfrac + cconfrac_lyr < 1.0 && lyr < nsoillayers - 1) {
 				ccontfrac[lyr] = cconfrac_lyr;
 				acc_ccontfrac += cconfrac_lyr;
 				lyr++;

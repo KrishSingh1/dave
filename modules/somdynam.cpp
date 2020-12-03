@@ -513,10 +513,11 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		double scalar = 1.0;
+		double scalar = 1.0; // DW_COMMENT
 
 		//if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-		//	scalar = 4.0;
+		//if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD))
+		//	scalar = 4.0; // DW_COMMENT
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 

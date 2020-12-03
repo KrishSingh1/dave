@@ -1118,7 +1118,7 @@ void nstore_usage(Vegetation& vegetation) {
 					double cton_leaf = (indiv.cmass_leaf_today() + indiv.cmass_root_today() * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr)) / tot_nmass;
 
 					// nitrogen added to leaf from storage
-					double labile_nto_leaf = indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand);
+					double labile_nto_leaf = max(0.0, indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand));
 
 					// new leaf nitrogen
 					indiv.nmass_leaf += labile_nto_leaf;
@@ -1264,6 +1264,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
 		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
+
+		//maxnup = max_indiv_avail; // DW_COMMENT
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;

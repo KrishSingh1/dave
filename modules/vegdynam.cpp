@@ -534,7 +534,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Calculate storage pool size
 						if(indiv.pft.phenology == CROPGREEN) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
+							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min / CMASS_SEED; // DW_COMMENT should be avr noy min
 						}
 						else {
 							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;

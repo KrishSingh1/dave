@@ -243,6 +243,8 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
 	                                           turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
 
+	actual_nrelocfrac = 0.5;
+
 	// TREES AND GRASSES:
 
 	// Leaf turnover
@@ -1487,13 +1489,13 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Max longterm nitrogen storage
 					if (indiv.pft.lifeform == TREE)
-						indiv.max_n_storage = max(0.0, min(indiv.cmass_sap * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+						indiv.max_n_storage = max(0.0, min(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min, retransn_nextyear)); // DW_COMMENT cton_leaf_bg
 					else // GRASS
-						indiv.max_n_storage = max(0.0, min(indiv.cmass_root * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+						indiv.max_n_storage = max(0.0, min(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_min, retransn_nextyear));
 
 					// Scale this year productivity to max storage
 					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
+						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * indiv.pft.cton_leaf_min / indiv.anpp;
 					} // else use last years scaling factor
 				}
 			}

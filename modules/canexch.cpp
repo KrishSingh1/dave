@@ -1268,7 +1268,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		//maxnup = max_indiv_avail; // DW_COMMENT
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
-		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
+		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot, 1.0) : 0.0;
 
 		// Root and leaf demand from storage pools
 		indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);

@@ -1477,7 +1477,7 @@ void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, do
 
 	double ratio = cton_root / cton_leaf;
 
-	double leaf_ndemand = (cmass_leaf * ratio * (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio);
+	double leaf_ndemand = max(0.0, (cmass_leaf * ratio * (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio));
 	double root_ndemand = nstore - leaf_ndemand;
 
 	nmass_leaf += leaf_ndemand;
@@ -1623,14 +1623,14 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 	if (!negligible(cmass_root) && !negligible(nmass_root)) {
 		if (use_phen) {
 			if (!negligible(cmass_root_today())) {
-				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
+				return max(pft.cton_root_min, cmass_root_today() / nmass_root);
 			}
 			else {
 				return pft.cton_root_avr;
 			}
 		}
 		else {
-			return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
+			return max(pft.cton_root_min, cmass_root / nmass_root);
 		}
 	}
 	else {

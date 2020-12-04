@@ -1706,6 +1706,8 @@ public:
 	double cton_leaf_max;
 	/// average leaf C:N mass ratio (between min and max)
 	double cton_leaf_avr;
+	/// minimum fine root C:N mass ratio (connected cton_leaf_min)
+	double cton_root_min;
 	/// average fine root C:N mass ratio (connected cton_leaf_avr)
 	double cton_root_avr;
 	/// maximum fine root C:N mass ratio (used when mass is negligible)
@@ -2133,7 +2135,8 @@ public:
 		// Maximum fine root C:N ratio
 		cton_root_max = cton_leaf_max * frac_leaftoroot;
 
-		double cton_root_min = cton_root_max * frac_maxtomin;
+		// Minimum fine root C:N ratio
+		cton_root_min = cton_root_max * frac_maxtomin;
 
 		// Average fine root C:N ratio
 		cton_root_avr = avg_cton(cton_root_min, cton_root_max);

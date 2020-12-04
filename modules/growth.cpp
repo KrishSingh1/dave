@@ -1489,9 +1489,11 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Max longterm nitrogen storage
 					if (indiv.pft.lifeform == TREE)
-						indiv.max_n_storage = max(0.0, min(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min, retransn_nextyear)); // DW_COMMENT cton_leaf_bg
+						indiv.max_n_storage = max(0.0, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
+							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong))); // DW_COMMENT
 					else // GRASS
-						indiv.max_n_storage = max(0.0, min(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_min, retransn_nextyear));
+						indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
+							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong))); // DW_COMMENT
 
 					// Scale this year productivity to max storage
 					if (indiv.anpp > 0.0) {

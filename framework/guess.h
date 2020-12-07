@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, 
-ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+ALRH, ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -1138,6 +1138,8 @@ public:
 	enum PerPatchFluxType {
 		/// Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
 		FIREC,
+		/// Carbon flux to atmosphere from litter respiration (kgC/m2)
+		LITTERC,
 		/// Carbon flux to atmosphere from soil respiration (kgC/m2)
 		SOILC,
 		/// Flux from atmosphere to vegetation associated with establishment (kgC/m2)
@@ -3117,7 +3119,7 @@ public:
 	double cinc;
 	/// (potential) increase in nitrogen following decomposition today (kgN/m2)
 	double ninc;
-	/// (potential) microbial respiration following decomposition today (kgP/m2)
+	/// (potential) microbial respiration following decomposition today (kgC/m2)
 	double respsum;
 	/// daily change in carbon and nitrogen
 	double delta_cmass, delta_nmass;
@@ -3336,7 +3338,9 @@ public:
 	/// daily carbon flux to atmosphere from soil respiration
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double dcflux_soil;
-	/// Annual respiration [kg C m-2]
+	/// Annual litter respiration [kg C m-2]
+	double aresplitsum;
+	/// Annual soil respiration [kg C m-2]
 	double arespsum;
 	/// Tiller area
 	double tiller_area;	
@@ -3907,6 +3911,8 @@ public:
 	}
 	/// Create soillayers
 	void create_soillayers(std::vector<double> soil_layer_depths);
+	/// Returns surface litter C content
+	double get_surflitterC();
 	/// Get soil property per layer
 	std::vector<double> get(soilproptype SPT, int m = 0);
 	/// Get soil property totals

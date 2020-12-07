@@ -515,9 +515,8 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 
 		double scalar = 1.0; // DW_COMMENT
 
-		//if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-		if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD))
-			scalar = 2.0; // DW_COMMENT
+		if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
+			scalar = 2.0;
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 
@@ -902,6 +901,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			soillayer.acinc[0] += cinc_save[0];
 			soillayer.acinc[1] += cinc_save[1];
 
+			double resplitsum_tot = 0.0;
 			double respsum_tot = 0.0;
 
 			// Update pool sizes
@@ -910,7 +910,12 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				soillayer.sompool[p].cmass += soillayer.sompool[p].delta_cmass;
 				soillayer.sompool[p].nmass += soillayer.sompool[p].delta_nmass;
 
-				respsum_tot += soillayer.sompool[p].respsum;
+				if (p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS) {
+					resplitsum_tot += soillayer.sompool[p].respsum;
+				}
+				else {
+					respsum_tot += soillayer.sompool[p].respsum;
+				}
 			}
 
 			if (!ifequilsom) {
@@ -921,8 +926,11 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				else
 					soillayer.dcflux_soil = respsum_tot;
 
-				cextra += respsum_tot;
+				patch.fluxes.report_flux(Fluxes::LITTERC, resplitsum_tot);
 
+				cextra += respsum_tot + resplitsum_tot;
+
+				soillayer.aresplitsum += resplitsum_tot;
 				soillayer.arespsum += respsum_tot;
 
 				// Sum annual organic nitrogen leaching
@@ -939,7 +947,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			}
 
 			// Fraction of microbial resp. is assumed to produce labile carbon
-			soillayer.labile_carbon = respsum_tot * frac_labile_carbon;
+			soillayer.labile_carbon = (respsum_tot + resplitsum_tot) * frac_labile_carbon;
 
 			// Adding mineral nitrogen to soil available pool
 			double nmin_inc = nmin_actual - nimmob;
@@ -979,7 +987,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				}
 			}
 
-			double cmass_after = soillayer.ccont() + respsum_tot + leachsum_cmass;
+			double cmass_after = soillayer.ccont() + respsum_tot + resplitsum_tot + leachsum_cmass;
 			double nmass_after = soillayer.ncont() + nflux_tmp + leachsum_nmass;
 
 			if (date.year > freenyears && fabs(cmass_before - cmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove

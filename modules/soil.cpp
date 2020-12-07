@@ -1800,7 +1800,7 @@ double Soillayer::ccont(bool exclude_surf) {
 	ccont += cpool_slow;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if ( !(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD)) )
+		if ( !(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SURFMICRO || i == SURFHUMUS)) )
 			ccont += sompool[i].cmass;
 	}
 	return ccont;
@@ -1814,7 +1814,7 @@ double Soillayer::ncont(bool exclude_surf) {
 	double ncont = NH4_mass + NO3_mass + NO2_mass + NO_mass + N2O_mass + N2_mass;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if (!(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD)))
+		if (!(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SURFMICRO || i == SURFHUMUS)))
 			ncont += sompool[i].nmass;
 	}
 
@@ -2243,6 +2243,15 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 	wfluxes.resize(nsoillayers + 1, 0.0);
 }
 
+/// Returns surface litter C content
+/** Returns surface litter C content
+ */
+double Soilcolumn::get_surflitterC() {
+	return soillayers[0].sompool[SURFMETA].cmass + soillayers[0].sompool[SURFSTRUCT].cmass +
+		soillayers[0].sompool[SURFFWD].cmass + soillayers[0].sompool[SURFCWD].cmass +
+		soillayers[0].sompool[SURFMICRO].cmass + soillayers[0].sompool[SURFHUMUS].cmass;
+}
+
 /// Returns a vector with soillayer values for a certain property
 /** Returns a vector with soillayer values for a certain property
  */
@@ -2293,6 +2302,10 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			prop[lyr] = soillayers[lyr].cpool_slow;
 		else if (SPT == CFAST)
 			prop[lyr] = soillayers[lyr].cpool_fast;
+		else if (SPT == ALRH)
+			prop[lyr] = soillayers[lyr].aresplitsum;
+		else if (SPT == ARH)
+			prop[lyr] = soillayers[lyr].arespsum;
 		else if (SPT == ANMIN)
 			prop[lyr] = soillayers[lyr].anmin;
 		else if (SPT == ANIMMOB)
@@ -2359,6 +2372,10 @@ double Soilcolumn::get_sum(soilproptype SPT, int m) {
 			prop += soillayers[lyr].cpool_slow;
 		else if (SPT == CFAST)
 			prop += soillayers[lyr].cpool_fast;
+		else if (SPT == ALRH)
+			prop += soillayers[lyr].aresplitsum;
+		else if (SPT == ARH)
+			prop += soillayers[lyr].arespsum;
 		else if (SPT == ANMIN)
 			prop += soillayers[lyr].anmin;
 		else if (SPT == ANIMMOB)

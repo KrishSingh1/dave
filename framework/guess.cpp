@@ -656,6 +656,7 @@ double Patch::cflux() {
 	cflux += soilcolumn.get_sum(AORGCLEACH);
 	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
 	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
+	cflux += fluxes.get_annual_flux(Fluxes::LITTERC);
 	cflux += fluxes.get_annual_flux(Fluxes::SOILC);
 	cflux += fluxes.get_annual_flux(Fluxes::FIREC);
 	cflux += fluxes.get_annual_flux(Fluxes::ESTC);

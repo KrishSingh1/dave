@@ -3089,7 +3089,10 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
 			double wmass_move = min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass);
 			wfluxes[lyr_neg + 1] -= wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
-			soillayers[lyr_neg + 1].wmass -= wmass_move;
+			if (lyr_neg < nsoillayers - 1)
+				soillayers[lyr_neg + 1].wmass -= wmass_move;
+			else
+				soillayers[lyr_neg].runoff_baseflow -= wmass_move;
 		}
 
 		// Soil layer above have taken wmass from negative layer
@@ -4041,13 +4044,13 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			neglyr.push_back(lyr);
 	}
 
+	// Calculate baseflow
+	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
+
 	// Negative soil layer wmass exists
 	if (neglyr.size()) {
 		resolve_neg_wmass(neglyr);
 	}
-
-	// Calculate baseflow
-	soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
 
 	// Update soil layer temperatures due to soil water fluxes
 	wflow_temp();

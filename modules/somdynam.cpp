@@ -516,8 +516,8 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		double scalar = 1.0; // DW_COMMENT
 
 		//if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-		//if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD))
-		//	scalar = 4.0; // DW_COMMENT
+		if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD))
+			scalar = 2.0; // DW_COMMENT
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 

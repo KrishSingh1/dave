@@ -976,7 +976,7 @@ bool allometry(Individual& indiv) {
 			// FPC (Eqn 8)
 
 			fpc_new = indiv.crownarea * indiv.densindiv *
-				(1.0 - lambertbeer(indiv.lai_indiv));
+				(1.0 - lambertbeer(Kb, indiv.lai_indiv));
 
 			// Increment deltafpc
 			indiv.deltafpc += fpc_new - indiv.fpc;
@@ -1006,7 +1006,7 @@ bool allometry(Individual& indiv) {
 				indiv.lai_indiv = indiv.cmass_leaf * indiv.pft.sla;
 
 				// FPC (Eqn 10)
-				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+				indiv.fpc = 1.0 - lambertbeer(Kb, indiv.lai_indiv);
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;

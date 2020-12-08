@@ -515,8 +515,8 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 
 		double scalar = 1.0; // DW_COMMENT
 
-		if (p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-			scalar = 2.0;
+		if (p == SLOWSOM || p == PASSIVESOM)
+			scalar = 6.0;
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 
@@ -525,7 +525,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		// Kirschbaum et al 2001 changed the exponential term
 		// from 3 to 5.
 
-		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFFWD || p == SURFCWD) {
+		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFFWD || p == SOILFWD || p == SURFCWD || p == SOILCWD) {
 			k *= exp(-5.0 * sompool[p].ligcfrac);
 		}
 		else if (p == SOILMICRO && !ispeatland) {

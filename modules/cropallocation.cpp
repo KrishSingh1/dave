@@ -65,7 +65,7 @@ void lai_crop(Patch& patch) {
 				if(indiv.lai_daily < 0.0)
 					indiv.lai_daily = 0.0;
 
-				indiv.fpc_daily = 1.0 - lambertbeer(indiv.lai_daily);
+				indiv.fpc_daily = 1.0 - lambertbeer(Kb, indiv.lai_daily);
 
 				indiv.lai_indiv_daily = indiv.lai_daily;
 			}
@@ -890,7 +890,7 @@ void allometry_crop(Individual& indiv) {
 				(char*)indiv.pft.name, indiv.vegetation.patch.stand.id, date.year, indiv.lai_indiv);
 
 		// FPC (Eqn 10)
-		indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+		indiv.fpc = 1.0 - lambertbeer(Kb, indiv.lai_indiv);
 
 		// Stand-level LAI
 		indiv.lai = indiv.lai_indiv;
@@ -903,7 +903,7 @@ void allometry_crop(Individual& indiv) {
 			indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.pft.sla;
 
 			// FPC (Eqn 10)
-//			indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+//			indiv.fpc = 1.0 - lambertbeer(Kb, indiv.lai_indiv);
 			indiv.fpc = 1.0;
 
 			// Stand-level LAI

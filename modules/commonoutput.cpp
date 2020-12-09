@@ -177,9 +177,10 @@ void CommonOutput::define_output_tables() {
 	// Create soil depth columns
 	ColumnDescriptors soildepths_columns;
 	soildepths_columns += ColumnDescriptor("0.3m", 9, 3);
+	soildepths_columns += ColumnDescriptor("0.5m", 9, 3);
 	soildepths_columns += ColumnDescriptor("1.0m", 9, 3);
+	soildepths_columns += ColumnDescriptor("1.5m", 9, 3);
 	soildepths_columns += ColumnDescriptor("2.0m", 9, 3);
-	soildepths_columns += ColumnDescriptor("3.0m", 9, 3);
 	soildepths_columns += ColumnDescriptor("Total", 9, 3);
 
 	// Create soil layer columns
@@ -716,7 +717,8 @@ void outlimit(OutputRows& out, const Table& table, double d) {
 void CommonOutput::outannual(Gridcell& gridcell) {
 
 	int c, m;
-	int const NSOILDEPTHPOOLS = 5;
+	const int NSOILDEPTHPOOLS = 6;
+	const double DEPTHS[NSOILDEPTHPOOLS - 1] = {300.0, 500.0, 1000.0, 1500.0, 2000.0};
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
 	double c_fast, c_slow, c_harv_slow;
 
@@ -1426,16 +1428,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflitterC();
-			soilc[0] += (soilcolumn.to_depth(300.0, soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
-			soilr[0] += soilcolumn.to_depth(300.0, soilcolumn.get(ARH)) * to_gridcell_average;
-			soilc[1] += (soilcolumn.to_depth(1000.0, soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
-			soilr[1] += soilcolumn.to_depth(1000.0, soilcolumn.get(ARH)) * to_gridcell_average;
-			soilc[2] += (soilcolumn.to_depth(2000.0, soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
-			soilr[2] += soilcolumn.to_depth(2000.0, soilcolumn.get(ARH)) * to_gridcell_average;
-			soilc[3] += (soilcolumn.to_depth(3000.0, soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
-			soilr[3] += soilcolumn.to_depth(3000.0, soilcolumn.get(ARH)) * to_gridcell_average;
-			soilc[4] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
-			soilr[4] += soilcolumn.get_sum(ARH) * to_gridcell_average;
+			
+			for (int i = 0; i < NSOILDEPTHPOOLS - 1; i++) {
+				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
+				soilr[i] += soilcolumn.to_depth(DEPTHS[i], soilcolumn.get(ARH)) * to_gridcell_average;
+			}
+			soilc[NSOILDEPTHPOOLS - 1] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
+			soilr[NSOILDEPTHPOOLS - 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
 			// Monthly output variables
 

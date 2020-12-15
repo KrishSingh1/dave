@@ -190,7 +190,8 @@ void irrigation(Patch& patch) {
 	}
 	patch.fluxes.report_flux(Fluxes::WIRRI, irrigation_d);
 
-	soilcolumn.rain_melt_temp = (soilcolumn.rain_melt * soilcolumn.rain_melt_temp + irrigation_d * patch.get_climate().temp) / (soilcolumn.rain_melt + irrigation_d);
+	soilcolumn.rain_melt_temp = soilcolumn.rain_melt + irrigation_d > 0.0 ? (soilcolumn.rain_melt * soilcolumn.rain_melt_temp + irrigation_d * patch.get_climate().temp) / (soilcolumn.rain_melt + irrigation_d) : soilcolumn.rain_melt_temp;
+
 	//soilcolumn.rain_melt += irrigation_d;
 	//soilcolumn.max_rain_melt += irrigation_d;
 }

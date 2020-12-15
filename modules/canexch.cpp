@@ -1770,8 +1770,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 						potential_layer[s] -= water_input_ly;
 						wcont_cp[s] = Faw_layer[s] / soilcolumn.soillayers[s].awc;
 				
-						// Update wcont (and wcont_evap, Frac_water etc.) too
-						//patch.soilcolumn.soillayers[s].wcont = Faw_layer[s] / patch.soilcolumn.soillayers[s].awc; // DW_COMMENT
+						// Update wmass
 						soilcolumn.soillayers[s].wmass += water_input_ly;
 					}
 					
@@ -1796,9 +1795,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		}
 	}
 
-	// DW_COMMENT wcont_cp should equal patch.soilcolumn.wconts()
-
-	return water_uptake(wcont_cp, soilcolumn.get(AWC), ppft.rootdist, pft.emax, patch.fpc_rescale,
+	return water_uptake(soilcolumn.get(WCONT), soilcolumn.get(AWC), ppft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
 };
 

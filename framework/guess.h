@@ -3090,6 +3090,7 @@ public:
 
 		cmass = 0.0;
 		nmass = 0.0;
+		ntoc = 0.0;
 		ligcfrac = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
@@ -3105,6 +3106,56 @@ public:
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = 0.0;
 		}
+	}
+
+	/// Copy constructor
+	Sompool(const Sompool& that) {
+		cmass = that.cmass;
+		nmass = that.nmass;
+		ntoc = that.ntoc;
+		ligcfrac = that.ligcfrac;
+		delta_cmass = that.delta_cmass;
+		delta_nmass = that.delta_nmass;
+		fracremain = that.fracremain;
+		litterme = that.litterme;
+		fireresist = that.fireresist;
+		cmass_init = that.cmass_init;
+		multi = that.multi;
+		sign_trend = that.sign_trend;
+		flip = that.flip;
+		same_trend = that.same_trend;
+
+		for (int m = 0; m < 12; m++) {
+			mfracremain_mean[m] = that.mfracremain_mean[m];
+		}
+	}
+
+	/// Copy assignment operator
+	Sompool& operator=(const Sompool& that) {
+		cmass = that.cmass;
+		nmass = that.nmass;
+		ntoc = that.ntoc;
+		ligcfrac = that.ligcfrac;
+		delta_cmass = that.delta_cmass;
+		delta_nmass = that.delta_nmass;
+		fracremain = that.fracremain;
+		litterme = that.litterme;
+		fireresist = that.fireresist;
+		cmass_init = that.cmass_init;
+		multi = that.multi;
+		sign_trend = that.sign_trend;
+		flip = that.flip;
+		same_trend = that.same_trend;
+
+		for (int m = 0; m < 12; m++) {
+			mfracremain_mean[m] = that.mfracremain_mean[m];
+		}
+		return *this;
+	}
+
+	/// Destructor
+	~Sompool() {
+		// etc.
 	}
 
 	/// C mass in pool kgC/m2
@@ -3157,9 +3208,32 @@ public:
 /// This struct contains litter for solving Century SOM pools.
 /** \see equilsom() */
 struct LitterSolveSOM : public Serializable {
+
 	/// Constructs an empty result
 	LitterSolveSOM() {
 		clear();
+	}
+
+	/// Copy constructor
+	LitterSolveSOM(const LitterSolveSOM& that) {
+		for (int p = 0; p < NSOMPOOL; p++) {
+			clitter[p] = that.clitter[p];
+			nlitter[p] = that.nlitter[p];
+		}
+	}
+
+	/// Copy assignment operator
+	LitterSolveSOM& operator=(const LitterSolveSOM& that) {
+		for (int p = 0; p < NSOMPOOL; p++) {
+			clitter[p] = that.clitter[p];
+			nlitter[p] = that.nlitter[p];
+		}
+		return *this;
+	}
+
+	/// Destructor
+	~LitterSolveSOM() {
+		// etc.
 	}
 
 	/// Clears all members
@@ -3442,27 +3516,260 @@ public:
 
 	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm);
 
-	// 1. copy constructor
-	Soillayer(const Soillayer& that) : soilcolumn(that.soilcolumn)
-	{
+	/// Copy constructor
+	Soillayer(const Soillayer& that) : soilcolumn(that.soilcolumn) {
+
 		depth = that.depth; 
 		depth_profile = that.depth_profile;
 		acrotelm = that.acrotelm;
 		catotelm = that.catotelm;
+		wmass = that.wmass;
+		imass = that.imass;
+		psi = that.psi;
+		mwcontabove = that.mwcontabove;
+		awcont = that.awcont;
+		wsats = that.wsats;
+		awc = that.awc;
+		wp = that.wp;
+		perc_mass = that.perc_mass;
+		perc_base = that.perc_base;
+		Dw = that.Dw;
+		Kw = that.Kw;
+		Kw_max = that.Kw_max;
+		b = that.b;
+		Psi_max = that.Psi_max;
+		runoff_drain = that.runoff_drain;
+		runoff_baseflow = that.runoff_baseflow;
+		por = that.por;
+		awc_org = that.awc_org;
+		wp_org = that.wp_org;
+		wsats_org = that.wsats_org;
+		b_org = that.b_org;
+		Psi_max_org = that.Psi_max_org;
+		Kw_max_org = that.Kw_max_org;
+		organic_frac = that.organic_frac;
+		mineral_frac = that.mineral_frac;
+		peat_frac = that.peat_frac;
+		soc_frac = that.soc_frac;
+		bulk_density = that.bulk_density;
+		thermdiff_0 = that.thermdiff_0;
+		thermdiff_15 = that.thermdiff_15;
+		thermdiff_100 = that.thermdiff_100;
+		temp = that.temp;
+		temp_old = that.temp_old;
+		gtemp = that.gtemp;
+		alag = that.alag;
+		exp_alag = that.exp_alag;
+		Kh = that.Kh;
+		Ch = that.Ch;
+		CO2_soil = that.CO2_soil;
+		CO2_soil_yesterday = that.CO2_soil_yesterday;
+		CO2_soil_prod = that.CO2_soil_prod;
+		CH4 = that.CH4;
+		CH4_yesterday = that.CH4_yesterday;
+		CH4_prod = that.CH4_prod;
+		CH4_oxid = that.CH4_oxid;
+		CH4_ebull_ind = that.CH4_ebull_ind;
+		CH4_ebull_vol = that.CH4_ebull_vol;
+		CH4_gas = that.CH4_gas;
+		CH4_diss = that.CH4_diss;
+		CH4_gas_yesterday = that.CH4_gas_yesterday;
+		CH4_diss_yesterday = that.CH4_diss_yesterday;
+		CH4_gas_vol = that.CH4_gas_vol;
+		CH4_vgc = that.CH4_vgc;
+		O2 = that.O2;
+		dcflux_soil = that.dcflux_soil;
+		aresplitsum = that.aresplitsum;
+		arespsum = that.arespsum;
+		tiller_area = that.tiller_area;
+		multi = that.multi;
+		sign_trend = that.sign_trend;
+		flip = that.flip;
+		same_trend = that.same_trend;
+		cpool_slow = that.cpool_slow;
+		cpool_fast = that.cpool_fast;
+		decomp_litter_mean = that.decomp_litter_mean;
+		k_soilfast_mean = that.k_soilfast_mean;
+		k_soilslow_mean = that.k_soilslow_mean;
+		depth_mod = that.depth_mod;
+		orgleachfrac = that.orgleachfrac;
+		orgmovefrac = that.orgmovefrac;
+		anmin = that.anmin;
+		animmob = that.animmob;
+		aminleach = that.aminleach;
+		aorgNleach = that.aorgNleach;
+		aorgCleach = that.aorgCleach;
+		NH4_mass = that.NH4_mass;
+		NO3_mass = that.NO3_mass;
+		NO2_mass = that.NO2_mass;
+		NO_mass = that.NO_mass;
+		N2O_mass = that.N2O_mass;
+		N2_mass = that.N2_mass;
+		labile_carbon = that.labile_carbon;
+		litterSolveSOM = that.litterSolveSOM;
+		acdec[0] = that.acdec[0];
+		acdec[1] = that.acdec[1];
+		acinc[0] = that.acinc[0];
+		acinc[1] = that.acinc[1];
 
-		init(); // DW_COMMENT migh need to copy all variablies!!!
+		for (int mth = 0; mth < 12; mth++) {
+			mwcont[mth] = that.mwcont[mth];
+			mtemp[mth] = that.mtemp[mth];
+			mnetmin[mth] = that.mnetmin[mth];
+			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
+			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
+			morgleach_mean[mth] = that.morgleach_mean[mth];
+			morgmove_mean[mth] = that.morgmove_mean[mth];
+			mminleach_mean[mth] = that.mminleach_mean[mth];
+		}
+
+		for (int d = 0; d < 31; d++) {
+			dtemp[d] = that.dtemp[d];
+		}
+
+		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
+			dwcont[d] = that.dwcont[d];
+		}
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			sompool[p] = that.sompool[p];
+		}
+
+		solvesom.resize(that.solvesom.size());
+		for (int s = 0; s < that.solvesom.size(); s++) {
+			solvesom[s] = that.solvesom[s];
+		}
 	}
 
-	// 2. copy assignment operator
-	Soillayer& operator=(const Soillayer& that)
-	{
-		// etc.
+	/// Copy assignment operator
+	Soillayer& operator=(const Soillayer& that) {
+		depth = that.depth;
+		depth_profile = that.depth_profile;
+		acrotelm = that.acrotelm;
+		catotelm = that.catotelm;
+		wmass = that.wmass;
+		imass = that.imass;
+		psi = that.psi;
+		mwcontabove = that.mwcontabove;
+		awcont = that.awcont;
+		wsats = that.wsats;
+		awc = that.awc;
+		wp = that.wp;
+		perc_mass = that.perc_mass;
+		perc_base = that.perc_base;
+		Dw = that.Dw;
+		Kw = that.Kw;
+		Kw_max = that.Kw_max;
+		b = that.b;
+		Psi_max = that.Psi_max;
+		runoff_drain = that.runoff_drain;
+		runoff_baseflow = that.runoff_baseflow;
+		por = that.por;
+		awc_org = that.awc_org;
+		wp_org = that.wp_org;
+		wsats_org = that.wsats_org;
+		b_org = that.b_org;
+		Psi_max_org = that.Psi_max_org;
+		Kw_max_org = that.Kw_max_org;
+		organic_frac = that.organic_frac;
+		mineral_frac = that.mineral_frac;
+		peat_frac = that.peat_frac;
+		soc_frac = that.soc_frac;
+		bulk_density = that.bulk_density;
+		thermdiff_0 = that.thermdiff_0;
+		thermdiff_15 = that.thermdiff_15;
+		thermdiff_100 = that.thermdiff_100;
+		temp = that.temp;
+		temp_old = that.temp_old;
+		gtemp = that.gtemp;
+		alag = that.alag;
+		exp_alag = that.exp_alag;
+		Kh = that.Kh;
+		Ch = that.Ch;
+		CO2_soil = that.CO2_soil;
+		CO2_soil_yesterday = that.CO2_soil_yesterday;
+		CO2_soil_prod = that.CO2_soil_prod;
+		CH4 = that.CH4;
+		CH4_yesterday = that.CH4_yesterday;
+		CH4_prod = that.CH4_prod;
+		CH4_oxid = that.CH4_oxid;
+		CH4_ebull_ind = that.CH4_ebull_ind;
+		CH4_ebull_vol = that.CH4_ebull_vol;
+		CH4_gas = that.CH4_gas;
+		CH4_diss = that.CH4_diss;
+		CH4_gas_yesterday = that.CH4_gas_yesterday;
+		CH4_diss_yesterday = that.CH4_diss_yesterday;
+		CH4_gas_vol = that.CH4_gas_vol;
+		CH4_vgc = that.CH4_vgc;
+		O2 = that.O2;
+		dcflux_soil = that.dcflux_soil;
+		aresplitsum = that.aresplitsum;
+		arespsum = that.arespsum;
+		tiller_area = that.tiller_area;
+		multi = that.multi;
+		sign_trend = that.sign_trend;
+		flip = that.flip;
+		same_trend = that.same_trend;
+		cpool_slow = that.cpool_slow;
+		cpool_fast = that.cpool_fast;
+		decomp_litter_mean = that.decomp_litter_mean;
+		k_soilfast_mean = that.k_soilfast_mean;
+		k_soilslow_mean = that.k_soilslow_mean;
+		depth_mod = that.depth_mod;
+		orgleachfrac = that.orgleachfrac;
+		orgmovefrac = that.orgmovefrac;
+		anmin = that.anmin;
+		animmob = that.animmob;
+		aminleach = that.aminleach;
+		aorgNleach = that.aorgNleach;
+		aorgCleach = that.aorgCleach;
+		NH4_mass = that.NH4_mass;
+		NO3_mass = that.NO3_mass;
+		NO2_mass = that.NO2_mass;
+		NO_mass = that.NO_mass;
+		N2O_mass = that.N2O_mass;
+		N2_mass = that.N2_mass;
+		labile_carbon = that.labile_carbon;
+		litterSolveSOM = that.litterSolveSOM;
+		acdec[0] = that.acdec[0];
+		acdec[1] = that.acdec[1];
+		acinc[0] = that.acinc[0];
+		acinc[1] = that.acinc[1];
+
+		for (int mth = 0; mth < 12; mth++) {
+			mwcont[mth] = that.mwcont[mth];
+			mtemp[mth] = that.mtemp[mth];
+			mnetmin[mth] = that.mnetmin[mth];
+			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
+			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
+			morgleach_mean[mth] = that.morgleach_mean[mth];
+			morgmove_mean[mth] = that.morgmove_mean[mth];
+			mminleach_mean[mth] = that.mminleach_mean[mth];
+		}
+
+		for (int d = 0; d < 31; d++) {
+			dtemp[d] = that.dtemp[d];
+		}
+
+		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
+			dwcont[d] = that.dwcont[d];
+		}
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			sompool[p] = that.sompool[p];
+		}
+
+		solvesom.resize(that.solvesom.size());
+		for (int s = 0; s < that.solvesom.size(); s++) {
+			solvesom[s] = that.solvesom[s];
+		}
+
 		return *this;
 	}
 
-	// 3. destructor
-	~Soillayer()
-	{
+	// Destructor
+	~Soillayer() {
+
 		// etc.
 	}
 

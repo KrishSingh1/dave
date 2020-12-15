@@ -157,20 +157,20 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+iftwolayersoil 1		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 1500			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
-iforography 1                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+iforography 0                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
+ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
-ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
-ifverticalmixing 1              ! Whether to vertical mix soil organic matter
-ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
-ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
+ifdepthdecaymod 0               ! Whether to use depth soil organic matter decay rate modifier
+ifverticalmixing 0              ! Whether to vertical mix soil organic matter
+ifcarbonfreeze 0		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifthawaffectrootdist 0          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)

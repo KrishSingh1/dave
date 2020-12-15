@@ -1476,8 +1476,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m]*M_PER_MM*to_gridcell_average;
-				mald[m] += patch.soilcolumn.mthaw[m]*M_PER_MM*to_gridcell_average;			// mm to m
-				mwtp[m] += patch.soilcolumn.mwtp[m]*M_PER_MM*to_gridcell_average;				// mm to m
+				mald[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m])*M_PER_MM*to_gridcell_average;
+				mwtp[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m])*M_PER_MM*to_gridcell_average;
 				
 				mch4[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				mch4_diff[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
@@ -1503,8 +1503,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			maxald_gridcell += patch.soilcolumn.maxthaw * M_PER_MM * to_gridcell_average;	// mm to m
-			permafrost_gridcell += (patch.soilcolumn.maxthaw >= gridcell.soil_depth ? 0 : 1) * to_gridcell_average; // Permafrost
+			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
+			permafrost_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= gridcell.soil_depth ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI
 

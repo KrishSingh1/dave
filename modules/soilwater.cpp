@@ -318,7 +318,10 @@ void soilwater(Patch& patch, Climate& climate) {
 	else {	
 		
 		// HYDROLOGY FOR MINERAL SOILS 
-		if (iftwolayersoil)
+		if (patch.stand.is_true_wetland_stand())
+			// Mineral wetland hydrology
+			soilcolumn.hydrology_wetland(climate, bare_ground);
+		else if (iftwolayersoil)
 			// Standard two layer LPJ-GUESS hydrology
 			soilcolumn.hydrology_lpjf_twolayer(climate, bare_ground);
 		else

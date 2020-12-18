@@ -335,9 +335,6 @@ extern bool ifdepthdecaymod;
 /// Whether to vertically mix soil organic matter
 extern bool ifverticalmixing;
 
-/// Whether to take water from runoff to saturate low latitide wetlands
-extern bool ifsaturatewetlands;
-
 /// Whether thaw depth affects root distribution
 extern bool ifthawaffectrootdist;
 

@@ -3208,7 +3208,8 @@ void Soilcolumn::set_padding_depth() {
  * needed
  */
 void Soilcolumn::update_acrotelm_co2(double atmo_co2) {
-	acro_co2 = min(PORE_WATER_CO2, PORE_WATER_CO2 + ((PORE_WATER_CO2 - atmo_co2) / ACROTELM_DEPTH) * awtp); // DW_COMMENT check so it is correct
+	if (date.day == 0)
+		acro_co2 = min(PORE_WATER_CO2, PORE_WATER_CO2 + ((PORE_WATER_CO2 - atmo_co2) / ACROTELM_DEPTH) * awtp);
 }
 
 /// Updates the water content for each soil layer in peatland soils
@@ -3227,6 +3228,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Total AET (mm)
 	double aet_total = 0.0;
+	// Transpiration from the acrotelm (mm)
+	double aet_acrotelm = 0.0;
 	// Runoff from upper soil layer (mm)
 	double runoff_surf;
 	// Runoff (drainage) from lower soil layers (mm)
@@ -3235,31 +3238,30 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double evap;
 	// Evapotranspiration (mm/day)
 	double evapotranspiration;
-	// Total fpc for mosses
+	// Wetland runon set externally (mm)
+	double runon = 0.0;
+	// Water added to keep water mass balance (mm)
+	double waddon = 0.0;
+	// Total fpc for mosses. Not used at the moment
 	double fpc_moss_total = 0.0;
-
-	// Total soilcolumn water (mm)
-	double wtot = to_depth(depth, get(WMASS));
 	// Total water in acrotelm layers (mm)
 	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get(WMASS));
-	// Total soilcolumn ice (mm)
-	double itot = to_depth(depth, get(IMASS));
 	// Total ice in acrotelm layers (mm)
 	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get(IMASS));
-
-	/// Surface water content when WTD is at 20 mm
-	const double surfw = 0.34;
 	/// Minimum fractional water content at surface in mm3/mm3 - see Wania et al (2009a), Eqn 22. Granberg et al. (1999), Eqns. 1-3.
 	const double minvtot = 0.25;
 	/// The soil water characteristics in the upper peat are considered to be linear in the suction interval 0-zmin and constant 
 	/// in the interval zmin - acrotelm depth (normally 300mm). See: Granberg et al. (1999), Eqns. 1-3.
 	const double zmin = 100.0;
-	/// Gradient limit of upper gradient [mm]
-	const double grad_lim = 50.0;
 	/// The soil water characteristics in the upper peat are considered
 	/// to be linear in the suction interval 0 - 0.1 m
 	/// Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
+	/// Unit here being mm, m in Granberg (1999)
 	double az = (acrotelm_por - minvtot) / zmin;
+
+
+
+	//double wbefore = get_sum(WMASS); // DW_COMMENT
 
 	
 	// Transpiration
@@ -3273,6 +3275,17 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+		double pft_acro_root_frac = 0.0;
+
+		int lyr = 0;
+		while (soillayers[lyr].acrotelm) {
+			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[lyr];
+			lyr++;
+		}
+
+		// Fraction of the aet from the acrotelm only.
+		aet_acrotelm += indiv.aet * pft_acro_root_frac;
+
 		// Total aet, assumed from acrotelm and catotelm combined 
 		aet_total += indiv.aet;
 
@@ -3281,6 +3294,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		vegetation.nextobj();
 	}
+
+	// Water extracted from catotelm
+	waddon += aet_total - aet_acrotelm;
 
 	
 	// Evaporation
@@ -3297,6 +3313,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Evapotranspiration
 
 	bool empirical_evapotranspiration = false;
+	double evap_excess = 0.0;
 
 	if (empirical_evapotranspiration) {
 
@@ -3330,47 +3347,41 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		// Evapotranspiration can't exceed available water in the acrotelm
 		evapotranspiration = min(wtot_acrotelm, evapotranspiration);
-
 	}
 	else {
-
-		// An assumption is that the catotelm should be constantly saturated
-		// So AET affecting the catotelm should be replenished with water from 
-		// the acrotelm. Hence all AET could directly be taken from the acrotelm.
-
-		// Check so evapotranspiration doesn't exceed available water in the acrotelm
-		// If so, then decrease evap accordingly (if negative, water will be added as runon)
-		if (aet_total + evap > wtot_acrotelm) {
-			evap -= aet_total + evap - wtot_acrotelm;
-		}
-		evapotranspiration = aet_total + evap;
+		// This is JUST evapotranspiration from the acrotelm
+		evapotranspiration = aet_acrotelm + evap;
 	}
-
-
-	// Update acrotelm and total water volume
 
 	// Drainage - could possibly be read in for site-specific studies
 	runoff_drain = 0;
 
-	// Water fluxes in and out of the acrotelm 
-	wtot_acrotelm += rain_melt - evapotranspiration - runoff_drain;
-	wtot += rain_melt - evapotranspiration - runoff_drain;
-	rain_melt = 0.0;
+	// Check so evapotranspiration doesn't exceed available water in the acrotelm
+		// If so, then decrease evap accordingly (if negative, water will be added as runon) // DW_COMMENT
+	if (evapotranspiration + runoff_drain > wtot_acrotelm + rain_melt) {
+		evap_excess += evapotranspiration + runoff_drain - (wtot_acrotelm + rain_melt);
+	}
 
+	// Add water that has been taken about available
+	waddon += evap_excess;
+
+	double rain_melt_init = rain_melt; // DW_COMMENT
+
+	// Update acrotelm water mass
+
+	// Water fluxes in and out of the acrotelm 
+	wtot_acrotelm += rain_melt + evap_excess - evapotranspiration - runoff_drain;
+	rain_melt = 0.0;	
 
 	// Water runoff (Granberg et al. 1999 eqn 10, table 1)
 	double ideal_runoff = exp(-0.01 * wtd);
-	if (wtot_acrotelm > 0.0 && soillayers[0].imass / soillayers[0].depth < 0.7)
+	if (wtot_acrotelm > 0.0 && soillayers[0].imass / soillayers[0].wsats < 0.7)
 		runoff_surf = min(ideal_runoff, wtot_acrotelm);
 	else
-		runoff_surf = 0.0;
-
-	// .ins file option: 
-	// run on or off - but only when there's flowing water
+		runoff_surf = 0.0;	
 
 	// Water runon
-	// wetland_runon set in global.ins
-	double runon = 0.0;
+	// External run on or off - but only when there's flowing water
 	if (runoff_surf > 0.0) {
 
 		// e.g. 3 mm/day for bog-like/hummock conditions
@@ -3382,10 +3393,11 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 			runon += wetland_runon;		
 	}
 
+	// Save initial water mass in the acrotelm
 	double wtot_acrotelm_init = wtot_acrotelm;
 
+	// Update acrotelm water mass
 	wtot_acrotelm += runon - runoff_surf + stand_wmass;
-	wtot += runon - runoff_surf + stand_wmass;
 
 	// If negative total water, then all initial water has gone to runoff and water is set to zero
 	if (wtot_acrotelm < 0.0) {
@@ -3415,20 +3427,19 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		wtp[date.day] = wtot_acrotelm + itot_acrotelm - ACROTELM_DEPTH * acrotelm_por;
 		
-		// wtp > 0 above the surface
+		// WTP > 0 above the surface
 		if (wtp[date.day] > maxh) {
 			// Update runoff from the surface
 			runoff_surf += wtp[date.day] - maxh;
 			wtp[date.day] = maxh;
 		}
 
-		// wtd defined as < 0 above the surface
+		// WTD defined as < 0 above the surface
 		wtd = -wtp[date.day];
 
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
-		wtot = ACROTELM_DEPTH * acrotelm_por + (depth - ACROTELM_DEPTH) * catotelm_por - itot;
 
-		// wtot does NOT include standing water
+		// Wetlands does NOT include standing water
 		// we assume no standing water 
 		stand_wmass = 0.0;
 	}
@@ -3444,13 +3455,16 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		wtp[date.day] = -wtd;
 
-		// wtot does NOT include standing water
+		// Wetlands does NOT include standing water
 		// we assume no standing water 
 		stand_wmass = 0.0;
 	}
 
 
 	// Water content in each acrotelm soil layer depending on wtd
+
+	// Save acrotelm water mass before update
+	wtot_acrotelm_init = wtot_acrotelm;
 
 	// Depth of acrotelm sublayers - 10 mm
 	double Dz_sub = 10.0;
@@ -3466,14 +3480,14 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Water table below surface
 	if (wtd > 0.0) {
 
-		// Determine the subsurface layer (0 to nsublayers_acro) within which wtd lies. 
+		// Determine the subsurface layer (0 to nsublayers_acro) within which wtd lies
 		// Possible values:
 		// = 0 if wtd < 10 mm 
 		// = nsublayers_acro if wtd = ACROTELM_DEPTH
 		int wtd_layer = (int)(wtd / Dz_sub);
 
 		// Water content at the surface (Granberg et al. 1999 eqn 3)
-		surfw_sat = max(minvtot, acrotelm_por - az * wtd); 
+		surfw_sat = max(minvtot, acrotelm_por - az * wtd);
 
 		if (wtd_layer == 0) {
 			// Total saturation throughout the acrotelm (from 10mm down)
@@ -3484,7 +3498,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		else {
 			// Unsaturated zone in the acrotelm (Granberg et al. 1999 eqn 1)			
 			for (int lyr = 0; lyr < wtd_layer; lyr++) {
-				double z = (lyr + 1) * Dz_sub; // mm
+				double z = (lyr + 1) * Dz_sub;
 				value[lyr] = min(acrotelm_por, surfw_sat + (acrotelm_por - surfw_sat) * pow(z / wtd, 2));
 			}
 
@@ -3501,7 +3515,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		}
 
 		// Water content in each acrotelm layer
-		double wtot_acrotelm_new = 0.0;
+		wtot_acrotelm = 0.0;
 		int sublyr = 0;
 		for (int lyr = 0; lyr < nacrotelm; lyr++) {
 
@@ -3510,51 +3524,23 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 			double layerwater = 0.0;
 			for (int sl = 0; sl < sublayers_per_layer; sl++) {
-				layerwater += sub_water[sublyr] * Dz_sub; // add mm of water for this sublayer 
+				layerwater += sub_water[sublyr] * Dz_sub;
 				sublyr++;
 			}
 
 			// Water should exceed saturation
-			soillayers[lyr].wmass = min(soillayers[lyr].wsats, layerwater) - soillayers[lyr].imass;
-			wtot_acrotelm_new += min(soillayers[lyr].wsats, layerwater) - soillayers[lyr].imass;
-		}
-
-		// If new total acrotelm water is different than before, adjust water content accordingly
-		if (!negligible(fabs(wtot_acrotelm_new - wtot_acrotelm))) {
-			double werror = wtot_acrotelm_new - wtot_acrotelm;
-
-			if (werror < 0.0) {
-				// Too little water, add missing water from bottom acrotelm layer
-				double lyr = nacrotelm - 1;
-				while (!negligible(werror)) {
-
-					// Add water no more than to saturation
-					double wadd = min(soillayers[lyr].wsats - (soillayers[lyr].wmass + soillayers[lyr].imass), -werror);
-					soillayers[lyr].wmass += wadd;
-					werror += wadd;
-					lyr--;
-				}
-			}
-			else {
-				// Too much water, remove excees from top acrotelm layer
-				double lyr = 0;
-				while (!negligible(werror)) {
-
-					// Remove no more than water in layer
-					double wremove = min(soillayers[lyr].wmass, werror);
-					soillayers[lyr].wmass -= wremove;
-					werror -= wremove;
-					lyr++;
-				}
-			}
+			soillayers[lyr].wmass = min(soillayers[lyr].wsats - soillayers[lyr].imass, max(0.0, layerwater - soillayers[lyr].imass));
+			wtot_acrotelm += soillayers[lyr].wmass;
 		}
 	}
 	else {
-		// WTD <= 0.0, at or above the surface - standing water
 
-		// acrotelm saturated (subtract ice content)
+		// WTD <= 0.0, at or above the surface - standing water
+		wtot_acrotelm = 0.0;
+		// Acrotelm saturated (subtract ice content)
 		for (int lyr = 0; lyr < nacrotelm; lyr++) {
 			soillayers[lyr].wmass = soillayers[lyr].wsats - soillayers[lyr].imass;
+			wtot_acrotelm += soillayers[lyr].wmass;
 		}
 	}
 
@@ -3563,34 +3549,33 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		soillayers[lyr].wmass = soillayers[lyr].wsats - soillayers[lyr].imass;
 	}
 
-	// Total water change during calculation of water content for each soil layer
-	double wafter = to_depth(depth, get(WMASS));
-	double wchange = wafter - wtot;
+	// Total water change during calculation of water content based on WTD
+	waddon += wtot_acrotelm - wtot_acrotelm_init;
 
-	if (fabs(wchange) > 1.0e-10)
-		dprintf("Year %d Day %d ERROR: Peat hydrology water inbalance %g\n",date.year, date.day, wchange);
+	// Remove missing water from runoff
+	double wmass_moved = min(runoff_surf, waddon);
+	runoff_surf -= wmass_moved;
+	waddon -= wmass_moved;
+
+	double wafter = get_sum(WMASS); // DW_COMMENT
+
+	//if (!negligible(fabs((wbefore - evap - aet_total - runoff_surf + runon + waddon1 + waddon2 + waddon4 + rain_melt_init) - wafter),-10))
+	/*if (date.year == 14)
+		dprintf("Year %d Day %d WB %g EVAP %g AET %g RO %g ADD %g RM %g WA %g WB+ %g Diff %g\n", 
+			date.year, date.day, wbefore, evap, aet_total, runoff_surf, runon + waddon, rain_melt_init, wafter,
+			wbefore - evap - aet_total - runoff_surf + runon + waddon + rain_melt_init,
+			(wbefore - evap - aet_total - runoff_surf + runon + waddon + rain_melt_init) - wafter);*/
 
 
 	// Report water fluxes
 
 	// Evapotranspiration data
 	if (empirical_evapotranspiration) {
-
 		patch.fluxes.report_flux(Fluxes::WEVAP, fevap * evapotranspiration);
 		patch.fluxes.report_flux(Fluxes::WAET, (1.0 - fevap) * evapotranspiration);
 	}
 	else {
-
-		if (evap >= 0.0) {
-			patch.fluxes.report_flux(Fluxes::WEVAP, evap);
-		}
-		else {
-			// If acrotelm water couldn't meet catotelm water decrease, 
-			// then evap would have become negative and is then assumed 
-			// to have been added to the water as runon
-			patch.fluxes.report_flux(Fluxes::WADDED, -evap);
-		}
-
+		patch.fluxes.report_flux(Fluxes::WEVAP, evap);
 		patch.fluxes.report_flux(Fluxes::WAET, aet_total);
 	}
 
@@ -3598,15 +3583,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
 
 	// Runon
-	patch.fluxes.report_flux(Fluxes::WADDED, runon);
-
-
-	/*if (date.year >= 100 && date.year <= 10) {
-		dprintf("%d %d %g %g %g %g ", date.year, date.day, aet_total, evap, runoff_surf, wtd);
-		for (int lyr = 0; lyr < nsoillayers; lyr++)
-			dprintf("%g ", soillayers[lyr].wcont());
-		dprintf("\n");
-	}*/
+	patch.fluxes.report_flux(Fluxes::WADDED, runon + waddon);
 
 
 	// UPDATE CO2 LEVEL IN ACROTELM
@@ -3625,14 +3602,17 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	const double wtp_moss_lower = -280.0;
 	const double moss_wtp_limit_lowerlimit = 0.3;
 
+	// No limit
 	if (wtp[date.day] > wtp_moss_upper) {
-		dmoss_wtp_limit = 1.0; // No limit
+		dmoss_wtp_limit = 1.0;
 	}
+	// Middle
 	else if (wtp[date.day] > wtp_moss_lower) {
 		dmoss_wtp_limit = 1.0 - (-wtp[date.day] + wtp_moss_upper) * (1.0 - moss_wtp_limit_lowerlimit) / (wtp_moss_upper - wtp_moss_lower);
 	}
+	// Lower limit for wtp between -300mm and -280mm
 	else {
-		dmoss_wtp_limit = moss_wtp_limit_lowerlimit; // between -300mm and -280mm
+		dmoss_wtp_limit = moss_wtp_limit_lowerlimit; 
 	}
 
 
@@ -3650,20 +3630,26 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// mgpp(m,pft) = mgpp(m,pft) + mgpp(m,pft) *
 	//               (mwtp(m) + 100) / 200
 
-	const double wtp_graminoid_upper = -10; // -50.0;		// mm - Wania et al. 2009b have -100
-	const double wtp_graminoid_lower = -100; // -200.0;	// mm - Wania et al. 2009b have -300 mm
-	const double graminoid_wtp_limit_lowerlimit = 0.0;
+	// Upper limit (mm - Wania et al. 2009b have -100, could be -50.0)
+	const double wtp_graminoid_upper = -10;
+	// Lower limit (mm - Wania et al. 2009b have -300, could be -200.0)
+	const double wtp_graminoid_lower = -100;
+	// Lowest limit (mm)
+	const double wtp_graminoid_lowestlimit = 0.0;
 
 	// More restrictive than Wania et al., otherwise graminoids become too dominant as they never suffer from inundation stress
 	// The cap drops from 1 as soon as wtp goes below wtp_graminoid_upper
+	// No limit
 	if (wtp[date.day] >= wtp_graminoid_upper) {
-		dgraminoid_wtp_limit = 1.0; // i.e. no limit!
+		dgraminoid_wtp_limit = 1.0;
 	}
+	// Lower limit
 	else if (wtp[date.day] > wtp_graminoid_lower) {
-		dgraminoid_wtp_limit = 1.0 - (-wtp[date.day] + wtp_graminoid_upper) * (1.0 - graminoid_wtp_limit_lowerlimit) / (wtp_graminoid_upper - wtp_graminoid_lower);
+		dgraminoid_wtp_limit = 1.0 - (-wtp[date.day] + wtp_graminoid_upper) * (1.0 - wtp_graminoid_lowestlimit) / (wtp_graminoid_upper - wtp_graminoid_lower);
 	}
+	// Lowest limit
 	else {
-		dgraminoid_wtp_limit = graminoid_wtp_limit_lowerlimit; // between -300mm and -200mm
+		dgraminoid_wtp_limit = wtp_graminoid_lowestlimit;
 	}
 
 
@@ -3687,6 +3673,130 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	}
 
 	return; // ...if no problems
+}
+
+/// Updates the water content for each soil layer in mineral wetland soils
+/**
+* Call each simulation day (if is_true_wetland_stand true).
+* Soil class method used to calculate water need to keep saturation or 
+* surface runoff if water exceeds saturation depending on given
+* snow melt, rainfall, evapotranspiration from vegetation (AET) 
+*
+* \param climate   The climate to use to update soil water
+* \param fevap     fraction of modelled area (grid cell or patch) subject to
+*                  evaporation from soil surface
+*/
+void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
+
+	// Daily update of water content for each soil layer given snow melt, rainfall,
+	// evapotranspiration from vegetation (AET), evaporation and runoff
+	// Evaporation depth is set to the top soil layer
+
+	// INPUT PARAMETERS
+	// fevap      = fraction of modelled area (grid cell or patch) subject to
+	//              evaporation from soil surface
+
+	// OUTPUT PARAMETER
+	// runoff     = total daily runoff from all soil layers (mm/day)
+	// evap       = evaporation (mm/day)
+	// wetland_wmass_added_today = water added to soil to keep saturation (mm)
+
+	// Minimum water considerred (equals to a 0.1 mm3)
+	const double EPS = 1.0e-9;
+
+	double wmass_begin = get_sum(WMASS) + rain_melt - patch.wetland_wmass_added_today;
+
+	double evap = 0.0;
+
+	double runoff_surf = 0.0;
+
+	// AET for a particular layer and individual (mm/day)
+	double aet;
+	// total AET for each soil layer (mm/day)
+	std::vector<double> aet_layer(nsoillayers);
+	// total AET (mm/day)
+	double aet_total = 0.0;
+
+	// Actual Evapotranspiration
+
+	// Sum AET for across all vegetation individuals and extract it from soil lalyers
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
+			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			aet_total += aet;
+		}
+		vegetation.nextobj();
+	}
+
+	// Calculate wcont for top layer (evaporation layer)
+	wcont_evap = min(1.0, soillayers[0].wcont());
+
+	// Calculate total evaporation only if snow depth < 10mm
+	if (snow.depth() < 10.0 && !negligible(fevap)) {
+		evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
+	}
+	else {
+		evap = 0.0;
+	}
+
+	// Water budget
+	double wbudget = rain_melt - evap - aet_total;
+	rain_melt = 0.0;
+
+	// Missing water
+	if (wbudget <= 0.0) {
+		patch.wetland_wmass_added_today -= wbudget;
+	}
+	// Excess was is lost through surface runoff
+	else {
+		runoff_surf = wbudget;
+	}
+
+	// Save fluxes
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, 0.0);
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, 0.0);
+	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
+	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
+	patch.fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
+
+	// Calculate annual wcont for growing season (temperature > 5C)
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		// Reset the awcont array on the first day of every year
+		if (date.day == 0) {
+			soillayers[lyr].awcont = 0.0;
+			if (lyr == 0) patch.growingseasondays = 0;
+		}
+
+		// If it's warm enough for growth, update awcont with this day's wcont
+		if (climate.temp > 5.0) {
+			soillayers[lyr].awcont += soillayers[lyr].wcont();
+			if (lyr == 0) patch.growingseasondays++;
+		}
+
+		// Do the averaging on the last day of every year
+		if (date.islastday && date.islastmonth) {
+
+			// In case it's never warm enough:
+			if (!patch.growingseasondays) {
+				soillayers[lyr].awcont = 1.0;
+			}
+			else {
+				soillayers[lyr].awcont /= (double)patch.growingseasondays;
+			}
+		}
+	}
+
+	// Water balance check
+	double wmass_end = get_sum(WMASS) + runoff_surf + evap + aet_total - patch.wetland_wmass_added_today;
+
+	if (fabs(wmass_begin - wmass_end) > 1.0e-10)
+		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, wmass_begin - wmass_end, wmass_begin, wmass_end);
 }
 
 /// Updates the water content for each soil layer
@@ -3956,8 +4066,10 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	double wmass_begin = get_sum(WMASS) + rain_melt;
 
-	double evap, runoff_surf;
-
+	// Evaposation (mm)
+	double evap = 0.0;
+	// Surface runoff (mm)
+	double runoff_surf = 0.0;
 	// AET for a particular layer and individual (mm/day)
 	double aet;
 	// total AET for each soil layer (mm/day)
@@ -3988,8 +4100,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
 	double winfilt = 0.0;
-	evap = 0.0;
-	runoff_surf = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		soillayers[lyr].runoff_drain = 0.0;
 		wpara.psi0[lyr] = soillayers[lyr].wmass / soillayers[lyr].depth;
@@ -4075,52 +4185,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Reset ran_melt as water has entered the soil
 	rain_melt = 0.0;
 
-	// Total runoff
-	double runoff = runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE);
-
-	// water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
-	// in proportion to its components
-	if (patch.stand.is_true_wetland_stand() && ifsaturatewetlands) {
-
-		if (runoff <= patch.wetland_wmass_added_today && runoff > 0.0) {
-
-			// Not enough runoff to balance the water added to the wetland, i.e. we added more than was run off.
-
-			// Update wetland_water_added by taking back the amount used for runoff.
-			patch.wetland_wmass_added_today -= runoff;
-
-			// All runoff removed 
-			runoff_surf = 0.0;
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				soillayers[lyr].runoff_drain = 0.0;
-				soillayers[lyr].runoff_baseflow = 0.0;
-			}
-			runoff = 0.0;
-		}
-		else if (runoff > patch.wetland_wmass_added_today  && runoff > 0.0) {
-
-			// Enough runoff to balance the water added to the wetland so we take it back.
-			// Recalculate runoff 
-			runoff_surf -= patch.wetland_wmass_added_today * runoff_surf / runoff;
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				soillayers[lyr].runoff_drain = patch.wetland_wmass_added_today * soillayers[lyr].runoff_drain / runoff;
-				soillayers[lyr].runoff_baseflow = patch.wetland_wmass_added_today * soillayers[lyr].runoff_baseflow / runoff;
-			}
-			
-			runoff = runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE);
-
-			// Reset wetland_water_added
-			patch.wetland_wmass_added_today = 0.0;
-		}
-	}
-
 	// Save fluxes
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
 	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
 	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
-	patch.fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4151,8 +4221,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Water balance check
-	double wmass_end = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total + patch.wetland_wmass_added_today;
-	
+	double wmass_end = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
+
 	if (fabs(wmass_begin - wmass_end) > 1.0e-10)
 		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, wmass_begin - wmass_end, wmass_begin, wmass_end);
 }
@@ -4222,8 +4292,8 @@ void Soilcolumn::initial_percolation() {
 					imass_fraction = imass_tot / wsats_tot;
 
 					// Impedance - this is the fraction of water that can infiltrate initially 
-					// imass_fraction = 0 (e.g. summer, no phase change etc.) = 1
-					// imass_fraction = 1 (e.g. winter, saturated soil to field capacity, all soil water frozen) = 0.000000
+					// imass_fraction = 0 (e.g. summer, no phase change etc.)
+					// imass_fraction = 1 (e.g. winter, saturated soil to field capacity, all soil water frozen)
 					// CLM4.5 - see Swenson et al (2012) Eqn. (8)
 					if (IMASS_IMPEDANCE && can_freeze()) {
 
@@ -4256,8 +4326,8 @@ void Soilcolumn::initial_percolation() {
 
 						soillayers[lyr].wmass += wmass_in * (potential_layer[lyr] / total_potential);
 
-						if (soillayers[lyr].wmass > soillayers[lyr].wsats)
-							fail("initial_infiltration - error too much water added! - is_highlatitude_peatland_stand\n");
+						if (soillayers[lyr].wmass - soillayers[lyr].wsats > 1.0e-12)
+							fail("ERROR: Year %d Day %d Lyr %d initial_infiltration - TOO much water added! - is_highlatitude_peatland_stand\n", date.year,date.day,lyr);
 					}
 				}
 			}
@@ -4283,8 +4353,7 @@ void Soilcolumn::initial_percolation() {
 			}
 
 			// Record the water added to this wetland today
-			if (ifsaturatewetlands)
-				patch.wetland_wmass_added_today = max(0.0, wmass_added - rain_melt);
+			patch.wetland_wmass_added_today = max(0.0, wmass_added - rain_melt);
 
 			rain_melt -= min(rain_melt, wmass_added);
 

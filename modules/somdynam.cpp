@@ -1881,7 +1881,7 @@ void equilsom(Patch& patch) {
 		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		double MAX_MULTI = pow(2, 20);
+		double MAX_MULTI = pow(2.0, 20);
 		// Minimum multiplier
 		const double MIN_MULTI = 0.01;
 		// Multiplier modifier

@@ -452,7 +452,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		ifinundationstress = false;
 		wetland_runon = 0.0;
 		ifmethane = false;
-		ifsaturatewetlands = false;
 
 		// Fail in these cases
 		if (ifcarbonfreeze || ifmultilayersnow) { // iforganicsoilproperties is now available for two layer soil scheme

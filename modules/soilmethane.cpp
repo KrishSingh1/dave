@@ -202,7 +202,7 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 }
 
 
-bool Soilcolumn::calculate_gas_diffusivities(std::vector<double> dCH4, std::vector<double> dCO2, std::vector<double> dO2) {
+bool Soilcolumn::calculate_gas_diffusivities(std::vector<double>& dCH4, std::vector<double>& dCO2, std::vector<double>& dO2) {
 
 	// Calculate and return diffusivities, in units of m2 d-1
 	// Called each day
@@ -244,7 +244,7 @@ bool Soilcolumn::calculate_gas_diffusivities(std::vector<double> dCH4, std::vect
 		// Fraction air in soil layer
 		double frac_air = soillayers[lyr].fracair();
 	
-		if (frac_air > 0.05 && lyr < nacrotelm) {
+		if (frac_air > 0.05 && soillayers[lyr].acrotelm) {
 			// Wania et al. (2010), Eqn. 11 
 			double airpow = pow(frac_air, 10 / 3) / pow(acrotelm_por, 2.0);
 			dCH4[lyr] = airpow * D_CH4_air;
@@ -558,7 +558,7 @@ double Soilcolumn::calculate_tiller_areas() {
 
 	double tiller_frac = 0.0;
 
-	std::vector<double> rootfrac = get_peatland_rootfrac();
+	std::vector<double> rootfrac = get_peatland_rootfrac(); // DW_COMMENT saved in soilcolumn in trunk and only updated on 1st Jan
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -789,20 +789,20 @@ void Soilcolumn::calculate_carbon_store(int dy, bool today) {
 
 	int day = 0;
 
+	// Reset the stores
+	co2_store = 0.0;
+	ch4_store = 0.0;
+
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soillayers[0];
-
-		// Reset the stores
-		co2_store = 0.0;
-		ch4_store = 0.0;
 
 		if (today)
 			day = dy;
 		else
 			day = dy - 1;
 
-		if (dy > 0 || today) {
+		if (day > 0 || today) {
 			co2_store += soillayer.CO2_soil;
 			ch4_store += soillayer.CH4;
 		}
@@ -853,6 +853,11 @@ bool Soilcolumn::methane(bool generatemethane) {
 		}
 	} 
 	else {
+
+		if (date.day == 200)
+			int sch = 0;
+
+
         // Max allowed error in checks
         const double MAX_ERR = 0.000001;
 		const double MAX_ERR_BALANCE = 0.0001;
@@ -998,7 +1003,7 @@ bool Soilcolumn::methane(bool generatemethane) {
 		co2_c_store_now = co2_store;
 		double check = ch4_c_store_now + co2_c_store_now - ch4_c_store_init - co2_c_store_init - total_drh;
 		if (fabs(check) > MAX_ERR && verbosity >= WARNING)
-			dprintf("%s%g\n","C imbalance in Soil::methane() : After C in: ",check);
+			dprintf("C imbalance in Soil::methane() : After C in: %g\n",check);
 
 		// Step 3
 

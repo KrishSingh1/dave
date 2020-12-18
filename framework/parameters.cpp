@@ -82,7 +82,6 @@ int iforganicsoilproperties;		// Whether soil C pool input is used to update soi
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifverticalmixing;              // Whether vertically mix soil organic matter
 bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
-bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 
 wateruptaketype wateruptake;
 
@@ -531,8 +530,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use depth soil organic matter decay rate modifier (1), or not (0)");
 		declareitem("ifverticalmixing", &ifverticalmixing, 1, CB_NONE,
 			"Whether to vertically mox soil organic matter (1), or not (0)");
-		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
-			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
 		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
 			"Whether thaw depth affects root distribution (1 by default), or not (0)");
 
@@ -1286,7 +1283,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
-		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
 		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");

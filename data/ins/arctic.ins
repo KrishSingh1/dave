@@ -20,6 +20,8 @@ outputdirectory "./"
 file_cmass "cmass.out"
 file_anpp "anpp.out"
 file_agpp "agpp.out"
+file_agpp_no "agpp_no.out"
+file_agpp_ns "agpp_ns.out"
 file_fpc "fpc.out"
 file_aaet "aaet.out"
 file_lai "lai.out"
@@ -29,7 +31,9 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
+file_soildepth "soildepth.out"
 file_csoil "csoil.out"
+file_rsoil "rsoil.out"
 !file_aburned_area_out "annual_burned_area.out"
 !file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -45,9 +49,15 @@ file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
 !file_nlitter "nlitter.out"
-!
 file_nflux "nflux.out"
 !file_vmaxnlim "vmaxnlim.out"
+
+file_soildeclim "soildeclim.out"
+file_soilgrolim "soilgrolim.out"
+file_soiltotlim "soiltotlim.out"
+file_soilcuelim "soilcuelim.out"
+file_clitterinput "clitterinput.out"
+file_csom "csom.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -56,6 +66,7 @@ file_nflux "nflux.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
 !file_mnee "mnee.out"
+file_mnetmin "mnetmin.out"
 !file_maet "maet.out"
 !file_mpet "mpet.out"
 !file_mevap "mevap.out"
@@ -68,18 +79,27 @@ file_nflux "nflux.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
-! Soil temperature at 25cm depth
-!file_msoiltempdepth25 "soiltemp25cm.out"
-!file_mch4 "mch4.out"
-!file_mch4diff "mch4_diffusion.out"
-!file_mch4plan "mch4_plant.out"
-!file_mch4ebull "mch4_ebullition.out"
-!file_msnow "msnowdepth.out"
+file_mtemp "mtemp.out"
+file_mch4 "mch4.out"
+file_mch4diff "mch4_diffusion.out"
+file_mch4plan "mch4_plant.out"
+file_mch4ebull "mch4_ebullition.out"
+
+file_msnow "msnowdepth.out"
 file_mwtp "mwtp.out"
 file_mald "mald.out"
 file_wetland_water_added "wetland_water_added.out"
 
 !file_mburned_area_out "monthly_burned_area.out"
+
+! Daily output
+!file_daily_climate "dclimate.out"
+!file_daily_snow_depth "dsnow_depth.out"
+!file_daily_snow_density "dsnow_density.out"
+!file_daily_snow_k "dsnow_k.out"
+!file_daily_snow_d "dsnow_d.out"
+!file_daily_snow_c "dsnow_c.out"
+!file_daily_temp "dtemp.out"
 
 !///////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
@@ -112,7 +132,6 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
 				! see documentation for water_uptake()
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
 				! greff_min values below calibrated for the smooth (1) option
@@ -120,7 +139,6 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
-depth_soil 1500.0		! Soil depth (mm)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -135,25 +153,32 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 
 
 !///////////////////////////////////////////////////////////////////////////////
-! ARCTIC AND WETLAND SWITCHES
+! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-
-ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+iforography 0                   ! Whether to account for orography (1), or not (0 == default value of 300 used for sdor)
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
+ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
+ifverticalmixing 1              ! Whether to vertical mix soil organic matter
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)
-ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
+!///////////////////////////////////////////////////////////////////////////////
+
+ifinundationstress 0		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
-ifmethane 0			! Whether to run the methane model and calculate methane fluxes
-ifsaturatewetlands 1		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
+ifmethane 1			! Whether to run the methane model and calculate methane fluxes
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -284,8 +309,8 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	root_dist 0.14 0.14 0.14 0.14 0.14 0.06 0.06 0.06 0.06 0.06
-	root_beta 0.982
+	root_dist 0.6 0.4
+	root_beta 0.938
 	longevity 100
 
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -301,7 +326,7 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
+	root_dist 0.9 0.1
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
@@ -314,6 +339,8 @@ group "grass" (
 	nuptoroot 0.00551
 	km_volume 0.000001876
 	fnstorage 0.3
+	ligcfrac_root 0.25
+	ligcfrac_wood 0.0
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008
 	fireresist 0.5			! 1.0 hos Thomas
@@ -335,6 +362,8 @@ group "broadleaved" (
 	gmin 0.5
 	intc 0.02
 	ga 0.040
+	ligcfrac_root 0.25
+	ligcfrac_wood 0.25
 )
 
 group "needleleaved" (
@@ -348,6 +377,8 @@ group "needleleaved" (
 	gmin 0.3
 	intc 0.06
 	ga 0.140
+	ligcfrac_root 0.35
+	ligcfrac_wood 0.3
 )
 
 group "evergreen" (
@@ -591,7 +622,8 @@ group "tallshrub" (
 	k_allom2 6
 	k_latosa 500
 	longevity 100 ! Wolf et al have 40. Juniper can live for > 100 years
-	root_dist 0.15 0.15 0.15 0.15 0.15 0.05 0.05 0.05 0.05 0.05
+	root_dist 0.75 0.25
+	root_beta 0.975 ! DW_COMMENT need to calculate from root_dist
 	turnover_root 0.7
 
 	! Bioclimatic limits
@@ -626,7 +658,8 @@ group "lowshrub" (
 	k_allom2 4
 	k_latosa 125
 	longevity 25
-	root_dist 0.17 0.17 0.17 0.17 0.17 0.03 0.03 0.03 0.03 0.03	
+	root_dist 0.85 0.15
+	root_beta 0.965 ! DW_COMMENT need to calculate from root_dist	
 	turnover_root 0.7
 
 	! Bioclimatic limits
@@ -650,8 +683,8 @@ group "prostratedwarfshrub" (
 	shrub
 	landcover "peatland"
 	! Allometry
-	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
-	!root_beta 0.9555
+	root_dist 0.9 0.1
+	root_beta 0.9555
 	turnover_root 0.5
 
 	! Bioclimatic limits
@@ -715,7 +748,7 @@ group "cushionforblichenmosstundra" (
 	wtp_max -200 ! mm
 	inund_duration 10 ! days
 
-	root_dist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01
+	root_dist 0.9 0.1
 	root_beta 0.9555
 
 	! BVOC values - Guy Schurgers, October/November 2011
@@ -993,7 +1026,8 @@ group "C4G" (
 
 	grass
 	pathway "c4"
-	root_dist 0.18 0.18 0.18 0.18 0.18 0.02 0.02 0.02 0.02 0.02
+	root_dist 0.9 0.1
+	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
 	leaflong 0.5

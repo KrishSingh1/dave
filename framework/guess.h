@@ -4278,6 +4278,8 @@ public:
 	void update_acrotelm_co2(double atmo_co2);
 	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
 	void hydrology_peat(const Climate& climate, double fevap);
+	/// Mineral wetland hydrology (simplistic placeholder)
+	void hydrology_wetland(const Climate& climate, double fevap);
 	/// simpler hydrology routine from LPJ-GUESS v4.0
 	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
 	/// main hydrology routine
@@ -4288,7 +4290,7 @@ public:
 	/// Carbon accounting routine - updates co2_store and ch4_store
 	void calculate_carbon_store(int dy, bool today);
 	/// Calculate and return diffusivities
-	bool calculate_gas_diffusivities(std::vector<double> CH4, std::vector<double> CO2, std::vector<double> O2);
+	bool calculate_gas_diffusivities(std::vector<double>& CH4, std::vector<double>& CO2, std::vector<double>& O2);
 	/// Update gas transport velocities[m d - 1] and equilibrium gas concentrations[mmol m - 3] for CH4, CO2 and O2
 	bool update_daily_gas_parameters();
 	/// Generic gas diffusion method that works with CO2, CH4 and O2

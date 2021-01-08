@@ -1536,28 +1536,18 @@ void Soillayer::init() {
 	aorgCleach = 0.0;
 
 	// Gases // DW_COMMENT are all needed?
-	CO2_soil = 0.0;
-	CO2_soil_yesterday = 0.0;
-	CO2_soil_prod = 0.0;
+	CO2 = 0.0;
 	CH4 = 0.0;
-	CH4_yesterday = 0.0;
-	CH4_prod = 0.0;
-	CH4_oxid = 0.0;
 	CH4_ebull_ind = 0.0;
-	CH4_ebull_vol = 0.0;
 	CH4_gas = 0.0;
 	CH4_diss = 0.0;
-	CH4_gas_yesterday = 0.0;
-	CH4_diss_yesterday = 0.0;
-	CH4_gas_vol = 0.0;
-	CH4_vgc = 0.0;
 	O2 = 0.0;
 
 	// Tiller area
 	tiller_area = 0.0001;
 
 	// Daily heterotrophic respiration
-	dcflux_soil = 0.0;
+	respsum = 0.0;
 
 	// Soil labile carbon availability
 	labile_carbon = 0.0;
@@ -1615,7 +1605,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 	// Acrotelm
 	if (acrotelm) {
 		wsats = acrotelm_por * depth;
-		awc = acrotelm_por * depth;
+		// Field capacity is set at 75% of saturation (Chaudhary 2017)
+		awc = (acrotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
 		por = acrotelm_por * depth;
 		organic_frac = 0.0;
@@ -1635,7 +1626,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 	// Catotelm
 	else if (catotelm) {
 		wsats = catotelm_por * depth;
-		awc = catotelm_por * depth;
+		// Field capacity is set at 75% of saturation (Chaudhary 2017)
+		awc = (catotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
 		por = catotelm_por * depth;
 		organic_frac = 0.0;
@@ -1803,6 +1795,7 @@ double Soillayer::ccont(bool exclude_surf) {
 		if ( !(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SURFMICRO || i == SURFHUMUS)) )
 			ccont += sompool[i].cmass;
 	}
+
 	return ccont;
 }
 
@@ -2144,8 +2137,6 @@ void Soilcolumn::initdrivers() {
 	acro_co2 = 934.0;
 	wtd = 0.0;
 	stand_wmass = 0.0;
-	ch4_store = 0.0;
-	co2_store = 0.0;
 
 	for (int mth = 0; mth < 12; mth++) {
 		mthaw[mth] = 0.0;
@@ -2288,6 +2279,12 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			prop[lyr] = soillayers[lyr].NH4_mass;
 		else if (SPT == NO_3)
 			prop[lyr] = soillayers[lyr].NO3_mass;
+		else if (SPT == CH4)
+			prop[lyr] = soillayers[lyr].CH4;
+		else if (SPT == CO2)
+			prop[lyr] = soillayers[lyr].CO2;
+		else if (SPT == RESPSUM)
+			prop[lyr] = soillayers[lyr].respsum;
 		else if (SPT == WCONTENT)
 			prop[lyr] = soillayers[lyr].wmass + soillayers[lyr].imass;
 		else if (SPT == RUNOFFDRAIN)
@@ -2358,6 +2355,12 @@ double Soilcolumn::get_sum(soilproptype SPT, int m) {
 			prop += soillayers[lyr].NH4_mass;
 		else if (SPT == NO_3)
 			prop += soillayers[lyr].NO3_mass;
+		else if (SPT == CH4)
+			prop += soillayers[lyr].CH4;
+		else if (SPT == CO2)
+			prop += soillayers[lyr].CO2;
+		else if (SPT == RESPSUM)
+			prop += soillayers[lyr].respsum;
 		else if (SPT == WCONTENT)
 			prop += soillayers[lyr].wmass + soillayers[lyr].imass;
 		else if (SPT == RUNOFFDRAIN)
@@ -2489,34 +2492,6 @@ std::vector<double> Soilcolumn::get_rootfrac() {
 	}
 	else {
 		rootfrac[0] = 1.0;
-	}
-
-	return rootfrac;
-}
-
-/// Returns a vector with soillayer C root fractions for peatland
-/** Initialise the root fractions in each layer of the wetland, assuming an exponential decrease of root biomass with depth
- * in accordance with observations from peat cores (Wania et al. (2010) - Section 2.2.2).
- */
-std::vector<double> Soilcolumn::get_peatland_rootfrac() {
-
-	const double b = 25.1695;
-	const double corr = 2.49994026;
-
-	std::vector<double> rootfrac(nsoillayers);
-
-	double sumrootfrac = 0.0;
-
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-		if (lyr == nsoillayers - 1) {
-			rootfrac[lyr] = 1.0 - sumrootfrac;
-		}
-		else {
-			rootfrac[lyr] = exp(soillayers[lyr].depth_profile * CM_PER_MM / b) / corr; // DW_COMMENT check so it is correct
-		}
-
-		sumrootfrac += rootfrac[lyr];
 	}
 
 	return rootfrac;
@@ -4765,82 +4740,6 @@ void Soilcolumn::calc_temp() {
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
 		phase_change();
-
-	/*	if (snow.nsnowlayers) {
-			dprintf("Year %d Day %d SNOW ", date.year, date.day);
-			for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
-				dprintf("%g ", snow.snowlayers[lyr].depth);
-			}
-			dprintf("\n");
-		}*/
-
-		/*if (date.year == 0) {
-		dprintf("%d %d %g %g ", date.day, ts, patch.get_climate().temp, f_top);
-		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-		dprintf("%g ", tpara.psi1[lyr]);
-		}
-		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-		dprintf("%g ", tpara.z[lyr]);
-		}
-		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-		dprintf("%g ", tpara.dz[lyr]);
-		}
-		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-		dprintf("%g ", tpara.cap[lyr]);
-		}
-		for (int lyr = 0; lyr < snow.nsnowlayers + nsoillayers + PAD_LAYERS; lyr++) {
-		dprintf("%g ", tpara.diff[lyr]);
-		}
-		dprintf("\n");
-		}*/
-
-		/*//PRINTING OUT DAILY SNOW AND SOIL PROPERTIES
-		if (date.year == 0 && date.day == 0 && ts == 0) {
-			dprintf("Year Day cnstep dailyair f_top Snow1 Snow2 Snow3 Snow4 Snow5 Soil1 Soil3 Soil3 Soil4 Soil5 Soil6 snowdz1 snowdz2 snowdz3 snowdz4 snowdz5 soildz1 soildz2 soildz3 cap_C1 cap_C2 cap_C3 cap_C4 cap_C5 cap_C6 cap_C7 cap_C8 diff_C1 diff_C2 diff_C3 diff_C4 diff_C5 diff_C6 diff_C7 diff_C8 \n");
-		}
-		//
-		if (date.year < 5){// && date.day < 100) {
-
-			dprintf("%d %d %d %g %g", date.year, date.day, ts, patch.get_climate().temp, f_top);
-
-			// Temp
-			for (int i = 4; i >= 0; i--) {
-				if (snow.nsnowlayers - 1 >= i)
-					dprintf(" %g", snow.snowlayers[i].temp);
-				else
-					dprintf(" %g", patch.get_climate().temp);
-			}
-			dprintf(" %g %g %g %g %g %g", soillayers[0].temp, soillayers[1].temp, soillayers[2].temp, soillayers[3].temp, soillayers[4].temp, soillayers[5].temp);
-
-			// Snow depth
-			for (int i = 4; i >= 0; i--) {
-				if (snow.nsnowlayers - 1 >= i)
-					dprintf(" %g", snow.snowlayers[i].depth);
-				else
-					dprintf(" %g", 100.0);
-			}
-			dprintf(" %g %g %g", tpara.dz[tmp_snowlayers], tpara.dz[tmp_snowlayers + 1], tpara.dz[tmp_snowlayers + 2]);
-
-			// cap_C
-			for (int i = 4; i >= 0; i--) {
-				if (snow.nsnowlayers - 1 >= i)
-					dprintf(" %g", snow.snowlayers[i].Ch);
-				else
-					dprintf(" %g", 0.0);
-			}
-			dprintf(" %g %g %g", tpara.cap[tmp_snowlayers], tpara.cap[tmp_snowlayers +1], tpara.cap[tmp_snowlayers +2]);
-
-			// diff_K
-			for (int i = 4; i >= 0; i--) {
-				if (snow.nsnowlayers - 1 >= i)
-					dprintf(" %g", snow.snowlayers[i].Kh);
-				else
-					dprintf(" %g", 0.0);
-			}
-			dprintf(" %g %g %g", tpara.diff[tmp_snowlayers], tpara.diff[tmp_snowlayers + 1], tpara.diff[tmp_snowlayers + 2]);
-
-			dprintf("\n");
-		}*/
 	}
 
 	// Not the first time this method is called	
@@ -4848,6 +4747,13 @@ void Soilcolumn::calc_temp() {
 
 	// Thaw depth calculation
 	thaw_depth();
+
+	// Update padding layers temperature so they faster comes to an equilibrium
+	if (date.year < 300 && !(date.year%10) && date.islastmonth && date.islastday) {
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			pad[lyr].temp = soillayers[nsoillayers - 1].temp;
+		}
+	}
 }
 
 
@@ -4898,6 +4804,80 @@ void Soilcolumn::save_snow() {
 			snow.mtemp[lyr][date.month] += patch.get_climate().temp / date.ndaymonth[date.month];
 		}
 	}
+}
+
+/// Vertical movement of organic matter if C density of soil layer exceed maximum
+/** Vertical movement of organic matter if C density of soil layer exceed maximum
+*  Downwards movement of SOM if soil layer C exceeds maximum
+*/
+void Soilcolumn::vertical_movement() {
+
+	double cbefore = get_sum(CCONT);
+
+	int donor, receiver;
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		// If soil layer C exceed maximu, then move SOM downwards
+		if (soillayers[lyr].ccont() > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+			donor = lyr;
+			receiver = lyr + 1;
+
+			/*if (donor == nsoillayers) {
+				// SOM to move from layer below bottom layer
+				// Do nothing as bottom layer is deminishing
+
+				// should shrink if layer is thicker than original thickness???
+			}
+			else if (receiver == nsoillayers) {
+				// Bottom soillayer is full
+
+				// Expand!!!
+
+				if (soillayers[donor].ccont() > maxSOCdensity * soillayers[donor].depth * M_PER_MM) {
+					dprintf("Year %d Bottom Peat layer is full %g\n", date.year, (soillayers[donor].ccont() - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / maxSOCdensity);
+				}
+			}
+			else {*/
+			if (receiver < nsoillayers) {
+
+				double ccont_donor = soillayers[donor].ccont();
+				double ccont_receiver = soillayers[receiver].ccont();
+
+				if (!negligible(ccont_donor)) {
+
+					double move_frac;
+
+					// Downwards movement of SOM
+					if (receiver > donor) {
+
+						move_frac = (ccont_donor - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / ccont_donor;
+					}
+					// Upward movement of SOM
+					else if (receiver < donor) {
+
+						move_frac = min(maxSOCdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
+					}
+
+					for (int p = 0; p < NSOMPOOL; p++) {
+						double cmove = soillayers[donor].sompool[p].cmass * move_frac;
+						double nmove = soillayers[donor].sompool[p].nmass * move_frac;
+
+						soillayers[donor].sompool[p].cmass -= cmove;
+						soillayers[donor].sompool[p].nmass -= nmove;
+
+						soillayers[receiver].sompool[p].cmass += cmove;
+						soillayers[receiver].sompool[p].nmass += nmove;
+					}
+				}
+			}
+		}
+	}	
+
+	double cafter = get_sum(CCONT);
+
+	if (fabs(cbefore - cafter) > 1.0e-12)
+		dprintf("year %d Day %d VM ERROR %g\n",date.year,date.day, cbefore - cafter);
 }
 
 /// Vertical mixing (diffusion) of soil organic matter

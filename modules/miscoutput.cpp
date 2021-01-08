@@ -432,7 +432,7 @@ void MiscOutput::define_output_tables() {
   */
 void outlimit_misc(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=0)//nyear_spinup)
+	if (date.year>=nyear_spinup)
 		out.add_value(table, d);
 }
 

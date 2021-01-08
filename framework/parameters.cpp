@@ -70,7 +70,7 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
-// Arctic and wetland options
+// Soil, arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
 bool iforography;					// Whether to account for orography (1), or not (0) 
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
@@ -78,6 +78,7 @@ bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), o
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
 bool ifmethane;						// Whether to run the methane model (for peatland only)
+int peat_age;
 int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifverticalmixing;              // Whether vertically mix soil organic matter
@@ -524,6 +525,7 @@ void plib_declarations(int id,xtring setname) {
 			"Optional additional wetland run-on (mm/day)");
 		declareitem("ifmethane",&ifmethane,1,CB_NONE,
 			"Whether to run the methane model (1), or not (0)");
+		declareitem("peat_age", &peat_age, 0, 100000, 1, CB_NONE, "Age of peat (0 peatland will be spun up to equilibrium)");
 		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 0, 2, 1, CB_NONE,
 			"Whether soil C pool input is used to update soil properties, 0 - no, 1 - static, 2 - dynamic");
 		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,
@@ -1280,6 +1282,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");
 		if (!itemparsed("ifmethane")) badins("ifmethane");
+		if (!itemparsed("peat_age")) badins("peat_age");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");

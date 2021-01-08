@@ -1683,6 +1683,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		sdl_cue_tot = tot_cinc[1] / tot_cdec[0];
 	}
 
+	if (date.year == nyear_spinup) {
+		for (int lyr = number_of_layers; lyr < NSNOWLAYERS_MAX; lyr++) {
+			outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
+		}
+	}
+
 	if (date.year == nyear_spinup)
 		outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
 	outlimit(out, out_soildeclim, sdl_decay_tot);

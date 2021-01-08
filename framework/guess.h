@@ -143,7 +143,8 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
-WCONTENT, RUNOFFDRAIN, RUNOFFBASE, CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, 
+WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
+CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH4, CO2, RESPSUM, 
 ALRH, ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1076,8 +1077,9 @@ public:
 		temp_seasonality_lastyear=COLD;
 		biseasonal=false;
 
-		eet=0.0;
-
+		eet = 0.0;
+		var_prec = 0.0;
+		var_temp = 0.0;;
 		gdd0 = 0.0;
 		agdd0 = 0.0;
 	};
@@ -3044,6 +3046,8 @@ public:
 	double pH;
 	/// carbon content (kg C m-2)
 	double soilC;
+	/// SOC–microorganism collocation factor for decomposition (Yan 2018)
+	double a;
 
 	/// soilcode, 0 to 8
 	int soilcode;
@@ -3378,40 +3382,20 @@ public:
 	double Ch;
 
 	/// dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
-	double CO2_soil;
-	/// dissolved CO2 concentration in each layer yesterday [g CO2-C layer-1 d-1]
-	double CO2_soil_yesterday;
-	/// daily CO2 production in each layer [g CO2-C layer-1 d-1]
-	double CO2_soil_prod;
+	double CO2;
 	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4;
-	/// dissolved CH4 concentration in each layer yesterday [g CH4-C layer-1 d-1]
-	double CH4_yesterday;
-	/// daily CH4 production in each layer [g CH4-C layer-1 d-1]
-	double CH4_prod;
-	/// daily CH4 oxidation in each layer [g CH4-C layer-1 d-1]
-	double CH4_oxid;
 	/// CH4 which bubbles out [g CH4-C layer-1]
 	double CH4_ebull_ind;
-	/// Volume of CH4 which bubbles out [m3]
-	double CH4_ebull_vol;
 	/// gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4_gas;
 	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4_diss;
-	/// gaseous CH4 concentration in each layer [g CH4-C layer-1] yesterday
-	double CH4_gas_yesterday;
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1] yesterday
-	double CH4_diss_yesterday;
-	/// gaseous CH4 volume in each layer [m3]
-	double CH4_gas_vol;
-	/// volumetric CH4 content [unitless]
-	double CH4_vgc;
 	/// dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
 	double O2;
 	/// daily carbon flux to atmosphere from soil respiration
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
-	double dcflux_soil;
+	double respsum;
 	/// Annual litter respiration [kg C m-2]
 	double aresplitsum;
 	/// Annual soil respiration [kg C m-2]
@@ -3562,23 +3546,13 @@ public:
 		exp_alag = that.exp_alag;
 		Kh = that.Kh;
 		Ch = that.Ch;
-		CO2_soil = that.CO2_soil;
-		CO2_soil_yesterday = that.CO2_soil_yesterday;
-		CO2_soil_prod = that.CO2_soil_prod;
+		CO2 = that.CO2;
 		CH4 = that.CH4;
-		CH4_yesterday = that.CH4_yesterday;
-		CH4_prod = that.CH4_prod;
-		CH4_oxid = that.CH4_oxid;
 		CH4_ebull_ind = that.CH4_ebull_ind;
-		CH4_ebull_vol = that.CH4_ebull_vol;
 		CH4_gas = that.CH4_gas;
 		CH4_diss = that.CH4_diss;
-		CH4_gas_yesterday = that.CH4_gas_yesterday;
-		CH4_diss_yesterday = that.CH4_diss_yesterday;
-		CH4_gas_vol = that.CH4_gas_vol;
-		CH4_vgc = that.CH4_vgc;
 		O2 = that.O2;
-		dcflux_soil = that.dcflux_soil;
+		respsum = that.respsum;
 		aresplitsum = that.aresplitsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
@@ -3686,23 +3660,13 @@ public:
 		exp_alag = that.exp_alag;
 		Kh = that.Kh;
 		Ch = that.Ch;
-		CO2_soil = that.CO2_soil;
-		CO2_soil_yesterday = that.CO2_soil_yesterday;
-		CO2_soil_prod = that.CO2_soil_prod;
+		CO2 = that.CO2;
 		CH4 = that.CH4;
-		CH4_yesterday = that.CH4_yesterday;
-		CH4_prod = that.CH4_prod;
-		CH4_oxid = that.CH4_oxid;
 		CH4_ebull_ind = that.CH4_ebull_ind;
-		CH4_ebull_vol = that.CH4_ebull_vol;
 		CH4_gas = that.CH4_gas;
 		CH4_diss = that.CH4_diss;
-		CH4_gas_yesterday = that.CH4_gas_yesterday;
-		CH4_diss_yesterday = that.CH4_diss_yesterday;
-		CH4_gas_vol = that.CH4_gas_vol;
-		CH4_vgc = that.CH4_vgc;
 		O2 = that.O2;
-		dcflux_soil = that.dcflux_soil;
+		respsum = that.respsum;
 		aresplitsum = that.aresplitsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
@@ -3800,7 +3764,8 @@ public:
 	/// Set target N:C ratios for SOM pools
 	void setntoc(double fac, pooltype pool, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
-	void decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent);
+	void decayrates_century(bool tillage, bool savesomcent);
+	//void decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent); // DW_COMMENT
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
@@ -4125,9 +4090,6 @@ public:
 
 	/// acrotelm CO2 level [mimil L-1]
 	double acro_co2;
-	/// CH4 and CO2 stores in the soil column - updated daily 
-	double ch4_store;
-	double co2_store;
 
 	// Daily photosynthetic limits:
 
@@ -4236,6 +4198,8 @@ public:
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
 	/// Vertical mixing (diffusion) of SOM
 	void vertical_mixing(pooltype p, double ald, double timestep);
+	/// Vertical movement of peat organic matter
+	void vertical_movement();
 	/// Total cpool slow C mass
 	double cmass_sompool(pooltype pool);
 	/// Total cpool slow C mass
@@ -4287,26 +4251,26 @@ public:
 	/// initial percolation
 	void initial_percolation();
 	// CH4 methods
-	/// Carbon accounting routine - updates co2_store and ch4_store
-	void calculate_carbon_store(int dy, bool today);
 	/// Calculate and return diffusivities
-	bool calculate_gas_diffusivities(std::vector<double>& CH4, std::vector<double>& CO2, std::vector<double>& O2);
+	void calculate_gas_diffusivities(std::vector<double>& CH4, std::vector<double>& CO2, std::vector<double>& O2);
+	/// Calculate CH4 and CO2 production 
+	void calculate_ch4_and_co2_production();
 	/// Update gas transport velocities[m d - 1] and equilibrium gas concentrations[mmol m - 3] for CH4, CO2 and O2
-	bool update_daily_gas_parameters();
+	void update_daily_gas_parameters();
 	/// Generic gas diffusion method that works with CO2, CH4 and O2
-	double diffuse_gas(std::vector<double> D, gastype thisgastype, double Ceq,
-		double kgas, std::vector<double> Dz_m, double &dailyDiff);
+	void diffuse_gas(std::vector<double> D, gastype thisgastype, double Ceq,
+		double kgas, double &dailyDiff);
 	/// Plant transport of O2 or CH4
-	bool plant_gas_transport(double Ceq, double kgas, gastype thisgastyp,
-		double& plantCH4TransportToday);
+	void plant_gas_transport(double Ceq, double kgas, gastype thisgastyp,
+		double tillers, double& plantCH4TransportToday);
 	/// Calculate the area of tillers
-	double calculate_tiller_areas();
+	void calculate_tiller_areas(double& tiller_density);
+	/// CH4 oxidation
+	void oxidation_ch4();
 	/// Gas ebullition
-	bool calculate_gas_ebullition(double& ebull_today);
-	/// get root fractions in each layer of the wetland - see Wania et al. (2010)
-	std::vector<double> get_peatland_rootfrac();
+	void calculate_gas_ebullition(double& ebull_today);
 	/// Calculate methane dynamics today
-	bool methane(bool generatemethane);
+	void methane(bool generatemethane);
 	/// Update heat capacity and conductivity for padding layers
 	void update_thermal_cap_cond_for_pad();
 	/// Calculate soil temperature

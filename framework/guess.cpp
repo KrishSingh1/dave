@@ -454,7 +454,7 @@ void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
 			rootdist_tot += rootdist_add_tot;
 		}
 
-		// Add the remaining rootdist in last soil layer
+		// Add the remaining rootdist in the top soil layer
 		rootdist[0] += 1.0 - rootdist_tot;
 	}
 }
@@ -586,6 +586,8 @@ bool Patch::has_disturbances() const {
 double Patch::ccont(double scale_indiv, bool luc) {
 
 	double ccont = soilcolumn.get_sum(CCONT);
+
+	ccont += soilcolumn.get_sum(CH4) * KG_PER_G;
 
 	ccont += soilcolumn.snow.ccont();
 

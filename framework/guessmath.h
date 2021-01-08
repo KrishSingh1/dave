@@ -27,12 +27,17 @@ double const PI = M_PI;
 #endif
 const double DEGTORAD = PI / 180.;
 
-const double SECS_PER_DAY	= 24.0*60.0*60.0;
-const double SECS_PER_HOUR  = 60.0*60.0;
+const double SECS_PER_MIN   = 60.0;
+const double MIN_PER_HOUR   = 60.0;
+const double HOUR_PER_DAY   = 24.0;
+const double SECS_PER_HOUR  = SECS_PER_MIN*MIN_PER_HOUR;
+const double SECS_PER_DAY	= HOUR_PER_DAY*SECS_PER_HOUR;
 const double M3_PER_MM3     = 1E-9;
 const double MM3_PER_M3     = 1E9;
 const double M3_PER_CM3     = 1E-6;
 const double CM3_PER_M3     = 1E6;
+const double DM3_PER_M3     = 1E3;
+const double M3_PER_DM3     = 1E-3;
 const double HA_PER_M2		= 1E-4;
 const double M2_PER_HA		= 1E4;
 const double CM2_PER_M2		= 1E4;

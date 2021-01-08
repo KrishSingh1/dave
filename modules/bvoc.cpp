@@ -34,7 +34,7 @@
 #include "bvoc.h"
 #include "canexch.h"
 
-const double CO2 = 370;            // standard CO2 concentration
+const double CO2_conc = 370;       // standard CO2 concentration
 const double Tstand = 30;          // standard temperature, oC
 
 void initbvoc(){

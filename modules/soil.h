@@ -211,13 +211,10 @@ const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to
 const double gravity = 9.81;
 
 /// Molecular mass of CH4 [g mol-1]
-const double mr_CH4 = 16.0;
+const double molecularmass_CH4 = 16.0;
 
-/// Molecular mass of carbon [g mol-1]
-const double mr_C = 12.0;
-
-/// molecular weight of water
-const double mr_h2o = 18.0;
+/// molecular weight of water [g mol-1]
+const double molecularmass_H2O = 18.0;
 
 /// universal gas constant [J mol-1 K-1]
 const double R_gas = 8.314472;
@@ -291,7 +288,7 @@ const double PEATLAND_WETLAND_LATITUDE_LIMIT = 40.0;
 
 // INLINE FUNCTIONS
 
-inline void tridiag(int n, std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r, std::vector<double> u) {
+inline void tridiag(int n, std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r, std::vector<double>& u) {
 
 	// Tridiagonal system solver from Numerical Recipes.
 

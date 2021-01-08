@@ -282,11 +282,14 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 		soillayer.cpool_fast *= fr_soilfast;
 		soillayer.cpool_slow *= fr_soilslow;
 
-		// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
-		if (patch.stand.landcover != PEATLAND)
+		// Updated soil fluxes. In wetlands, some portion of respiration can be emitted as CH4, so save respiration as respsum until Soil::methane() is called.  
+		if (patch.stand.landcover != PEATLAND) {
 			patch.fluxes.report_flux(Fluxes::SOILC, cflux);
-		else
-			soillayer.dcflux_soil = cflux;
+			soillayer.respsum = 0.0;
+		}
+		else {
+			soillayer.respsum = cflux;
+		}
 	}
 
 	// Solve SOM pool sizes at end of year given by soilcolumn.solvesom_end
@@ -418,7 +421,8 @@ void Soillayer::setntoc(double fac, pooltype pool, double cton_max, double cton_
 /** Calculates CENTURY instantaneous decay rates given soil layer temperature,
 *  water content, texture etc
 */
-void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent) {
+void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
+//void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -462,22 +466,70 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 	}
 
 	// Calculate decomposition moisture modifier (in range 0-1)
-	// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
-
-	// Water Filled Pore Spaces (wfps) %
-	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
-	// is calculated with the help of Cosby et al 1984;
-	// use Gerten equivalents here, but wfps COULD be made depth equivalent
-	const double wfps100 = wfps() * 100.0;
-
 	double moist_mod;
 
-	if (wfps100 < 60.0)
-		moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
-	else
-		moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;
+	// If soillayer is an acrotelm or catotelm (peat) then follow 
+	// Ise et al 2008 and Chaudhary et al 2017 (eqn 5)
+	if (acrotelm || catotelm) {
 
-	// Additional moist modifier for saturated soils
+		// Dry condition decomposition rate
+		double beta = 0.064;
+
+		// Total water
+		double theta = wmass + imass;
+
+		if (theta < 0.01) {
+			moist_mod = beta;
+		}
+		else if (theta > fc()) {
+			moist_mod = 1.0 - 0.975 * pow((theta - fc()) / (wsats - fc()), 5);
+		}
+		else {
+			moist_mod = 1.0 - pow((fc() - theta) / fc(), 5);
+		}
+	}
+	else {
+		// Mineral soil
+		// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
+
+		// Water Filled Pore Spaces (wfps) %
+		// water holding capacity at wilting point (wp) and saturation capacity (wsats)
+		// is calculated with the help of Cosby et al 1984;
+		// use Gerten equivalents here, but wfps COULD be made depth equivalent
+		const double wfps100 = wfps() * 100.0;
+
+		if (wfps100 < 60.0)
+			moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
+		else
+			moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;
+
+
+		/*// Yan et al 2018 - A moisture function of soil heterotrophic
+		// respiration that incorporates microscale processes
+
+		double K_theta = 0.1;
+		double bb = 0.75;
+		double n_s = 2.0;
+		double theta = wmass + imass;
+
+		if (theta < fc()) {
+			moist_mod = (K_theta + fc()) / (K_theta + theta) * pow(theta / fc(), 1.0 + (*soilcolumn).soiltype.a * n_s);
+		}
+		else if (wsats - theta > 1.0e-12) {
+			moist_mod = pow((wsats - theta) / (wsats - fc()), bb);
+		}
+		else {
+			moist_mod = 0.0;
+		}
+
+		// Frozen fraction does not decompose
+		if (imass > 0.0) {
+			moist_mod *= (1.0 - imass / wsats);
+		}*/
+	}
+
+
+	/*// Additional moist modifier for saturated soils
 	// no effect unless this is a peat soil
 	double moist_mod_saturated = 1.0; 
 
@@ -504,7 +556,7 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 	if (ismineralwetland) {
 		// 100% WFPS for wetlands on mineral soils, 0.36 approx
 		moist_mod = 0.000371 * 100.0 * 100.0 - 0.0748 * 100 + 4.13;
-	}
+	}*/
 
 	// Combined moisture and temperature modifier
 
@@ -528,18 +580,13 @@ void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineral
 		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFFWD || p == SOILFWD || p == SURFCWD || p == SOILCWD) {
 			k *= exp(-5.0 * sompool[p].ligcfrac);
 		}
-		else if (p == SOILMICRO && !ispeatland) {
+		else if (p == SOILMICRO && !acrotelm && !catotelm) {
 			k *= texture_mod;
 		}
 
 		// Increased decay rates for crops (tillage)
-		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
+		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
 			k *= TILLAGE_FACTOR;
-		}
-
-		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm
-		if (p == PASSIVESOM || p == SLOWSOM) {
-			k *= moist_mod_saturated; // ensures that a modifier of RMOIST_ANAEROBIC is used.
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
@@ -664,7 +711,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 				// Calculate potential fraction remaining following decay today for all pools
 				// (assumes no nitrogen limitation)
-				soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), soilcolumn.savesomcent);
+				soillayer.decayrates_century(tillage, soilcolumn.savesomcent);
+				//soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), soilcolumn.savesomcent); // DW_COMMENT
 			}
 
 			// Calculate decomposition in all pools assuming these decay rates
@@ -920,11 +968,14 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			if (!ifequilsom) {
 
-				// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
-				if (patch.stand.landcover != PEATLAND)
+				// Updated soil fluxes. In wetlands, some portion of respiration can be emitted as CH4, so save respiration as respsum until Soil::methane() is called.  
+				if (patch.stand.landcover != PEATLAND) {
 					patch.fluxes.report_flux(Fluxes::SOILC, respsum_tot);
-				else
-					soillayer.dcflux_soil = respsum_tot;
+					soillayer.respsum = 0.0;
+				}
+				else {
+					soillayer.respsum = respsum_tot;
+				}
 
 				patch.fluxes.report_flux(Fluxes::LITTERC, resplitsum_tot);
 
@@ -1183,6 +1234,8 @@ void transfer_litter(Patch& patch) {
 					// Soil object for this layer
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+					double root_lyr_frac = ppft.rootdist[lyr];
+
 					if (firemodel == GLOBFIRM && lyr == 0) {
 						litterme[SURFSTRUCT] = soillayer.sompool[SURFSTRUCT].cmass * soillayer.sompool[SURFSTRUCT].litterme;
 						litterme[SURFMETA] = soillayer.sompool[SURFMETA].cmass * soillayer.sompool[SURFMETA].litterme;
@@ -1260,17 +1313,17 @@ void transfer_litter(Patch& patch) {
 						ligcmass_old = soillayer.sompool[SOILSTRUCT].cmass * soillayer.sompool[SOILSTRUCT].ligcfrac;
 
 						// Add to pools and update lignin fraction in structural pool
-						soillayer.sompool[SOILSTRUCT].cmass += cmass_litter_root * ppft.rootdist[lyr] * (1.0 - fm);
-						soillayer.sompool[SOILSTRUCT].nmass += nmass_litter_root * ppft.rootdist[lyr] * (1.0 - fm);
-						soillayer.sompool[SOILMETA].cmass += cmass_litter_root * ppft.rootdist[lyr] * fm;
-						soillayer.sompool[SOILMETA].nmass += nmass_litter_root * ppft.rootdist[lyr] * fm;
+						soillayer.sompool[SOILSTRUCT].cmass += cmass_litter_root * root_lyr_frac * (1.0 - fm);
+						soillayer.sompool[SOILSTRUCT].nmass += nmass_litter_root * root_lyr_frac * (1.0 - fm);
+						soillayer.sompool[SOILMETA].cmass += cmass_litter_root * root_lyr_frac * fm;
+						soillayer.sompool[SOILMETA].nmass += nmass_litter_root * root_lyr_frac * fm;
 
-						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_root * ppft.rootdist[lyr];
+						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_root * root_lyr_frac;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
-							soillayer.litterSolveSOM.add_litter(cmass_litter_root * ppft.rootdist[lyr] * (1.0 - fm), nmass_litter_root * ppft.rootdist[lyr] * (1.0 - fm), SOILSTRUCT);
-							soillayer.litterSolveSOM.add_litter(cmass_litter_root * ppft.rootdist[lyr] * fm, nmass_litter_root * ppft.rootdist[lyr] * fm, SOILMETA);
+							soillayer.litterSolveSOM.add_litter(cmass_litter_root * root_lyr_frac * (1.0 - fm), nmass_litter_root * root_lyr_frac * (1.0 - fm), SOILSTRUCT);
+							soillayer.litterSolveSOM.add_litter(cmass_litter_root * root_lyr_frac * fm, nmass_litter_root * root_lyr_frac * fm, SOILMETA);
 						}
 
 						if (negligible(soillayer.sompool[SOILSTRUCT].cmass, -16)) {
@@ -1325,18 +1378,18 @@ void transfer_litter(Patch& patch) {
 
 						// Soil sap wood (fine woody roots)
 
-						ligcmass_new = cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr] * ppft.pft.ligcfrac_wood;
+						ligcmass_new = cmass_litter_sap * FCWD_ROOT * root_lyr_frac * ppft.pft.ligcfrac_wood;
 						ligcmass_old = soillayer.sompool[SOILFWD].cmass * soillayer.sompool[SOILFWD].ligcfrac;
 
 						// Add to structural pool and update lignin fraction in pool
-						soillayer.sompool[SOILFWD].nmass += nmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr];
-						soillayer.sompool[SOILFWD].cmass += cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr];
+						soillayer.sompool[SOILFWD].nmass += nmass_litter_sap * FCWD_ROOT * root_lyr_frac;
+						soillayer.sompool[SOILFWD].cmass += cmass_litter_sap * FCWD_ROOT * root_lyr_frac;
 
-						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr];
+						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_sap * FCWD_ROOT * root_lyr_frac;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
-							soillayer.litterSolveSOM.add_litter(cmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr], nmass_litter_sap * FCWD_ROOT * ppft.rootdist[lyr], SOILFWD);
+							soillayer.litterSolveSOM.add_litter(cmass_litter_sap * FCWD_ROOT * root_lyr_frac, nmass_litter_sap * FCWD_ROOT * root_lyr_frac, SOILFWD);
 						}
 
 						if (negligible(soillayer.sompool[SOILFWD].cmass, -16)) {
@@ -1386,18 +1439,18 @@ void transfer_litter(Patch& patch) {
 
 						// Soil heart wood (fine woody roots)
 
-						ligcmass_new = cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr] * ppft.pft.ligcfrac_wood;
+						ligcmass_new = cmass_litter_heart * FCWD_ROOT * root_lyr_frac * ppft.pft.ligcfrac_wood;
 						ligcmass_old = soillayer.sompool[SOILCWD].cmass * soillayer.sompool[SOILCWD].ligcfrac;
 
 						// Add to structural pool and update lignin fraction in pool
-						soillayer.sompool[SOILCWD].nmass += nmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr];
-						soillayer.sompool[SOILCWD].cmass += cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr];
+						soillayer.sompool[SOILCWD].nmass += nmass_litter_heart * FCWD_ROOT * root_lyr_frac;
+						soillayer.sompool[SOILCWD].cmass += cmass_litter_heart * FCWD_ROOT * root_lyr_frac;
 
-						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr];
+						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_heart * FCWD_ROOT * root_lyr_frac;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
-							soillayer.litterSolveSOM.add_litter(cmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr], nmass_litter_heart * FCWD_ROOT * ppft.rootdist[lyr], SOILCWD);
+							soillayer.litterSolveSOM.add_litter(cmass_litter_heart * FCWD_ROOT * root_lyr_frac, nmass_litter_heart * FCWD_ROOT * root_lyr_frac, SOILCWD);
 						}
 
 						if (negligible(soillayer.sompool[SOILCWD].cmass, -16)) {
@@ -1706,14 +1759,19 @@ void soilnadd(Patch& patch) {
 	}
 }
 
-/// Vertical mixing (diffusion) of soil organic matter
-/** Vertical mixing (diffusion) of soil organic matter
+/// Vertical mixing (diffusion) or movement of soil organic matter
+/** Vertical mixing (diffusion) or movement of soil organic matter
 *  Cryoturbation processes on the vertical profile of SOM stocks are captured
 *  by considering a simple diffusion scheme.
+*  And if organic C exceed maximum in soil layer, SOM is moved downwards
 */
-void vertical_mixing(Patch& patch) {
+void vertical_movement(Patch& patch) {
 
-	if (!date.islastday || !ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr)
+	if (!date.islastday || !(ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr))
+		return;
+
+	// Low carbon in soil -> no vertical mixing
+	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.get_sum(CCONT) < 1.0e-3)
 		return;
 
 	// Average monthly active layer depth
@@ -1722,10 +1780,6 @@ void vertical_mixing(Patch& patch) {
 	if (patch.soilcolumn.savesomcent) {
 		patch.soilcolumn.mald_mean[date.month] += mald;
 	}
-
-	// Low carbon in soil -> no vertical mixing
-	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.get_sum(CCONT) < 1.0e-3)
-		return;
 
 	// Store pool sizes before mixing
 	std::vector<double> cpools(3);
@@ -1771,6 +1825,9 @@ void vertical_mixing(Patch& patch) {
 	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].nmass += npools[1] - npools_after[1];
 	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].cmass += cpools[2] - cpools_after[2];
 	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].nmass += npools[2] - npools_after[2];
+
+	// Vertical movement of organic matter if C density of soil layer exceed maximum
+	patch.soilcolumn.vertical_movement();
 }
 
 /// Add litter to equilsom()
@@ -1932,6 +1989,8 @@ void equilsom(Patch& patch) {
 			max_change_passive[lyr] = max_change_slow[lyr];
 		}
 
+		int peat_years = 0;
+
 		// Spinup SOM pools until trends of slow and passive SOM pools 
 		// are within limits or maximum tries have been done
 		while ((bad_trend && tries < MAX_TRIES) || tries < MIN_TRIES) {
@@ -2034,29 +2093,15 @@ void equilsom(Patch& patch) {
 					// and nitrogen flux from soil
 					somfluxes(patch, true, false);
 
-					/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-						for (int p = 0; p < NSOMPOOL; p++) {
-							if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
-								dprintf("SPIN neg yr %d mth %d lyr %d pool %d C %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
-							if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
-								dprintf("SPIN neg yr %d mth %d lyr %d pool %d N %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
-						}
-					}*/
-
 					if (!vertmix && ifverticalmixing) {
+
 						soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 						soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 					}
-
-					/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-						for (int p = 0; p < NSOMPOOL; p++) {
-							if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
-								dprintf("VERT neg yr %d mth %d lyr %d pool %d C %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
-							if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
-								dprintf("VERT neg yr %d mth %d lyr %d pool %d N %g\n", yr, m, lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
-						}
-					}*/
 				}
+
+				// Vertical movement of organic matter if C density of soil layer exceed maximum
+				patch.soilcolumn.vertical_movement();
 			}
 
 			// Reset number of trends that doesn't meet the criteria
@@ -2065,172 +2110,171 @@ void equilsom(Patch& patch) {
 			// Increase number of iterations
 			tries++;
 
-			//dprintf("Tries %d CCONT ", tries);
+			// If peat age is defined, then only do soil spinup for peat_age minus nyear_spinup
+			if (peat_age && (patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand())) {
+				peat_years += EQUILSOM_YEARS;
 
-			// Loop through layers and try and to solve equilibrium by appling the trend of pools
-			// by several order of magnitude
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				// If peat age is to short, then set bad_trend to 1 so while loop continues
+				if (peat_years < peat_age - nyear_spinup)
+					bad_trend = 1;
+				else
+					bad_trend = 0;
+			}
+			else {
 
-				// After 100 iterations, then maximum change is following pool sizes
-				if (tries >= 100) {
-					max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.01;
-					max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.01;
-					max_neg_change_slow = -max_change_slow[lyr];
-					max_neg_change_passive = -max_change_passive[lyr];
-				}
-				else {
-					max_neg_change_slow = -soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.5;
-					max_neg_change_passive = -soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.5;
-				}
+				// Loop through layers and try and to solve equilibrium by appling the trend of pools
+				// by several order of magnitude
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-				// Both slow and passive pool needs to be of some size
-				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass >= 1.0e-12 && soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass >= 1.0e-12) {
+					// After 100 iterations, then maximum change is following pool sizes
+					if (tries >= 100) {
+						max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.01;
+						max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.01;
+						max_neg_change_slow = -max_change_slow[lyr];
+						max_neg_change_passive = -max_change_passive[lyr];
+					}
+					else {
+						max_neg_change_slow = -soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.5;
+						max_neg_change_passive = -soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.5;
+					}
 
-					// Trend over NYEARS years
-					double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
-					double trend_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass - init_passive[lyr];
+					// Both slow and passive pool needs to be of some size
+					if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass >= 1.0e-12 && soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass >= 1.0e-12) {
 
-					// If trend changes sign a certain number of times then reduce multiplier
-					// If trend has the same sign a certain number of times then increase multiplier
+						// Trend over NYEARS years
+						double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
+						double trend_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass - init_passive[lyr];
 
-					// SLOW SOM
+						// If trend changes sign a certain number of times then reduce multiplier
+						// If trend has the same sign a certain number of times then increase multiplier
 
-					multi_slow[lyr] = min(multi_slow[lyr], MAX_MULTI);
+						// SLOW SOM
 
-					// Trend changed sign
-					if (trend_slow * sign_slow_trend[lyr] < 0.0) {
+						multi_slow[lyr] = min(multi_slow[lyr], MAX_MULTI);
 
-						// Add to number of times trend has changed sign in a raw
-						flip_slow[lyr]++;
+						// Trend changed sign
+						if (trend_slow * sign_slow_trend[lyr] < 0.0) {
 
-						// Save trend sign and set same trend to zero
-						sign_slow_trend[lyr] *= -1;
+							// Add to number of times trend has changed sign in a raw
+							flip_slow[lyr]++;
 
-						// Flipped sign maximum times then reduce multiplier
-						if (flip_slow[lyr] == FLIP_MAX && multi_slow[lyr] > MIN_MULTI) {
-							multi_slow[lyr] /= MULTI_MOD;
+							// Save trend sign and set same trend to zero
+							sign_slow_trend[lyr] *= -1;
+
+							// Flipped sign maximum times then reduce multiplier
+							if (flip_slow[lyr] == FLIP_MAX && multi_slow[lyr] > MIN_MULTI) {
+								multi_slow[lyr] /= MULTI_MOD;
+								flip_slow[lyr] = 0;
+							}
+
+							// Flipping so no same trend
+							same_trend_slow[lyr] = 0;
+						}
+						// Same sign trend
+						else {
+
+							// Add to number of times same trend has happen in a raw
+							same_trend_slow[lyr]++;
+
+							// Reached maximum same trend then increase multiplier
+							if (same_trend_slow[lyr] > SAME_TREND_MAX && multi_slow[lyr] < MAX_MULTI) {
+								multi_slow[lyr] *= MULTI_MOD;
+								same_trend_slow[lyr] = 0;
+							}
+
+							// Same trend so no flipping
 							flip_slow[lyr] = 0;
 						}
 
-						// Flipping so no same trend
-						same_trend_slow[lyr] = 0;
-					}
-					// Same sign trend
-					else {
+						// N:C ratio of SOM pool
+						ntoc = soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
 
-						// Add to number of times same trend has happen in a raw
-						same_trend_slow[lyr]++;
+						// C change
+						cmass_inc = min(max_change_slow[lyr], max(max_neg_change_slow, trend_slow * multi_slow[lyr]));
 
-						// Reached maximum same trend then increase multiplier
-						if (same_trend_slow[lyr] > SAME_TREND_MAX && multi_slow[lyr] < MAX_MULTI) {
-							multi_slow[lyr] *= MULTI_MOD;
-							same_trend_slow[lyr] = 0;
+						// Add C change
+						soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass += cmass_inc;
+
+						// Update N pool
+						soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
+
+
+						// PASSIVE SOM
+
+						multi_passive[lyr] = min(multi_passive[lyr], MAX_MULTI);
+
+						// Trend changed sign
+						if (trend_passive * sign_passive_trend[lyr] < 0.0) {
+
+							// Add to number of times trend has changed sign in a raw
+							flip_passive[lyr]++;
+
+							// Save trend sign and set same trend to zero
+							sign_passive_trend[lyr] *= -1;
+
+							// Flipped sign maximum times then reduce multiplier
+							if (flip_passive[lyr] == FLIP_MAX && multi_passive[lyr] > MIN_MULTI) {
+								multi_passive[lyr] /= MULTI_MOD;
+								flip_passive[lyr] = 0;
+							}
+
+							// Flipping so no same trend
+							same_trend_passive[lyr] = 0;
 						}
+						// Same sign trend
+						else {
+							// Add to number of times same trend has happen in a raw
+							same_trend_passive[lyr]++;
 
-						// Same trend so no flipping
-						flip_slow[lyr] = 0;
-					}
+							// Reached maximum same trend then increase multiplier
+							if (same_trend_passive[lyr] > SAME_TREND_MAX && multi_passive[lyr] < MAX_MULTI) {
+								multi_passive[lyr] *= MULTI_MOD;
+								same_trend_passive[lyr] = 0;
+							}
 
-					// N:C ratio of SOM pool
-					ntoc = soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-
-					// C change
-					cmass_inc = min(max_change_slow[lyr], max(max_neg_change_slow, trend_slow * multi_slow[lyr]));
-
-					// Add C change
-					soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass += cmass_inc;
-
-					// Update N pool
-					soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-
-
-					// PASSIVE SOM
-
-					multi_passive[lyr] = min(multi_passive[lyr], MAX_MULTI);
-
-					// Trend changed sign
-					if (trend_passive * sign_passive_trend[lyr] < 0.0) {
-
-						// Add to number of times trend has changed sign in a raw
-						flip_passive[lyr]++;
-
-						// Save trend sign and set same trend to zero
-						sign_passive_trend[lyr] *= -1;
-
-						// Flipped sign maximum times then reduce multiplier
-						if (flip_passive[lyr] == FLIP_MAX && multi_passive[lyr] > MIN_MULTI) {
-							multi_passive[lyr] /= MULTI_MOD;
+							// Same trend so no flipping
 							flip_passive[lyr] = 0;
 						}
 
-						// Flipping so no same trend
-						same_trend_passive[lyr] = 0;
-					}
-					// Same sign trend
-					else {
-						// Add to number of times same trend has happen in a raw
-						same_trend_passive[lyr]++;
+						// N:C ratio of SOM pool
+						ntoc = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
 
-						// Reached maximum same trend then increase multiplier
-						if (same_trend_passive[lyr] > SAME_TREND_MAX && multi_passive[lyr] < MAX_MULTI) {
-							multi_passive[lyr] *= MULTI_MOD;
-							same_trend_passive[lyr] = 0;
+						// C change
+						cmass_inc = min(max_change_passive[lyr], max(max_neg_change_passive, trend_passive * multi_passive[lyr]));
+
+						// Add C change
+						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass += cmass_inc;
+
+						// Update N pool
+						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+
+
+						// Calculte how many trends that are too big
+						if ((iftwolayersoil || lyr > 2) && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6) {
+							bad_trend++;
 						}
 
-						// Same trend so no flipping
-						flip_passive[lyr] = 0;
 					}
 
-					// N:C ratio of SOM pool
-					ntoc = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+					if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 1.0e-14) {
+						soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
+						soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
+					}
 
-					// C change
-					cmass_inc = min(max_change_passive[lyr], max(max_neg_change_passive, trend_passive * multi_passive[lyr]));
-
-					// Add C change
-					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass += cmass_inc;
-
-					// Update N pool
-					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
-
-
-					// Calculte how many trends that are too big
-					if ((iftwolayersoil || lyr > 2) && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6)
-						bad_trend++;
-
-					//dprintf("%.5f %.5f %.5f %.10f %.10f %.10f %.2f ", (soilcolumn.soillayers[lyr].ccont() / (soilcolumn.soillayers[lyr].depth * M_PER_MM)) / maxSOCdensity, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, trend_slow / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, trend_passive / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, cmass_inc, multi_passive[lyr]);
+					if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 1.0e-14) {
+						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
+						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
+					}
 				}
 
-				if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 1.0e-14) {
-					//dprintf("%d NEG SLOWSOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
-					soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
-					soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
-				}
+				// Maximum multiplier should go down over time.
+				if (!(tries % 200))
+					MAX_MULTI = max(100.0, MAX_MULTI / MULTI_MOD);
 
-				if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 1.0e-14) {
-					//dprintf("%d NEG PASSIVESOM %d %g\n", tries, lyr, soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
-					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
-					soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
-				}
 			}
-
-			/*for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				for (int p = 0; p < NSOMPOOL; p++) {
-					if (soilcolumn.soillayers[lyr].sompool[p].cmass < 0.0)
-						dprintf("TREND neg lyr %d pool %d C %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].cmass);
-					if (soilcolumn.soillayers[lyr].sompool[p].nmass < 0.0)
-						dprintf("TREND neg lyr %d pool %d N %g\n", lyr, p, soilcolumn.soillayers[lyr].sompool[p].nmass);
-				}
-			}*/
-
-			// Maximum multiplier should go down over time.
-			if (!(tries%200))
-				MAX_MULTI = max(100.0, MAX_MULTI / MULTI_MOD);
-
-			//dprintf("Bad %d \n", bad_trend);
 		}
 
-		dprintf("EquilSOM Tries %d\n", tries);		
+		dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.get_sum(CCONT));		
 
 		// Reset mineral nitrogen status
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -2275,8 +2319,8 @@ void equilsom(Patch& patch) {
 		// Reset soil column annual N fixation
 		soilcolumn.anfix_mean = 0.0;
 	}
-	// Trend based equilsom
-	else {
+	// Trend based equilsom (not if peat age is defined)
+	else if (!(peat_age && (patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()))) {
 
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
 		const int SAME_TREND_MAX = 4;
@@ -2420,8 +2464,8 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 	// Nitrogen transformation in soil
 	ntransform(patch, climate);
 
-	// Vertical mixing(diffusion) of soil organic matter
-	vertical_mixing(patch);
+	// Vertical movement of soil organic matter
+	vertical_movement(patch);
 
 	// Solve SOM pool sizes at end of year given by soilcolumn.solvesomcent_endyr
 	equilsom(patch);
@@ -2448,6 +2492,9 @@ void som_dynamics(Patch& patch, Climate& climate) {
 //	 for quantifying tillage effects on soil carbon stocks. Eur.J.Soil.Sci., 60:924-934.
 // CENTURY Soil Organic Matter Model Version 5; Century User's Guide and Reference.
 //  http://www.nrel.colostate.edu/projects/century5/reference/index.htm; accessed Oct.7, 2016.
+// Chaudhary, N., Miller, P.A., and Smith, B.: Modelling Holocene peatland dynamics with an 
+//   individual - based dynamic vegetation model, Biogeosciences, 14, 2571–2596, 
+//   https://doi.org/10.5194/bg-14-2571-2017, 2017.
 // Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited
 //   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models.
 //   Ecological Applications, 3, 666-681.
@@ -2463,6 +2510,8 @@ void som_dynamics(Patch& patch, Climate& climate) {
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Kirschbaum, M. U. F. and K. I. Paul (2002). "Modelling C and N dynamics in forest soils
 //   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
+// Ise, T., Dunn, A., Wofsy, S. et al. High sensitivity of peat decomposition to climate change 
+//   through water-table feedback. Nature Geosci 1, 763–766 (2008). https://doi.org/10.1038/ngeo331
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
 // Mikan, C. J., Schimel, J. P., and Doyle, A. P. 2002. Temperature controls of microbial respiration 

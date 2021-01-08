@@ -302,7 +302,7 @@ extern bool ifrainonwetdaysonly;
 extern bool ifbvoc;
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// Arctic and wetland inputs
+// Soil, arctic and wetland inputs
 
 /// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
 extern bool iftwolayersoil;
@@ -324,6 +324,9 @@ extern double wetland_runon;
 
 /// Whether methane calculations are included
 extern bool ifmethane;
+
+/// Age of peat (0 peatland will be spun up to equilibrium)
+extern int peat_age;
 
 /// Whether soil C pool input is used to update soil properties
 /* 0 - use soicode value, 1 - use soilinput static soil C content, 2 - use modelled soil layer C content */

@@ -19,7 +19,7 @@ using namespace InData;
 const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
 
 /// Write land use fraction data to memory; enables efficient usage of randomised gridlists for parallell simulations
-const bool LUTOMEMORY = true;
+const bool LUTOMEMORY = false;
 
 // Mapping of input file data when LUTOMEMORY not defined
 const bool MAPFILE = true;

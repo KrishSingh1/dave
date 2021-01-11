@@ -4596,6 +4596,9 @@ void Soilcolumn::thaw_depth() {
 		}
 	}
 
+	// Remove very small negative values
+	thaw = max(0.0, thaw);
+
 	// Set maximum thaw depth this year
 	if (thaw > maxthaw || date.day == 0)
 		maxthaw = thaw;

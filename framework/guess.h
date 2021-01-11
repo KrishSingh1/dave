@@ -2069,8 +2069,6 @@ public:
 	double frootend;
 	/// autumn/spring sowing of pft:s with tempautumn = 1
 	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
-	/// N limited version of pft
-	bool nlim;
 
 	double avg_cton(const double& min, const double& max) {
 		return 2.0 / (1. / min + 1. / max);
@@ -2084,7 +2082,6 @@ public:
 
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
-		nlim = false;
 		root_beta = 0.0;
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.

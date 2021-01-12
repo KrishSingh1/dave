@@ -70,6 +70,17 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_natural", &file_soil_nflux_natural, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_forest", &file_soil_nflux_forest, 300, "Soil N fluxes output file");
+
+	declare_parameter("file_anpp_sts", &file_anpp_sts, 300, "stand type anpp output file");
+	declare_parameter("file_cmass_sts", &file_cmass_sts, 300, "stand type cmass output file");
+	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
+	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
+	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
+	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
+	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
+	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
+	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
+
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
 	declare_parameter("file_daily_npp",&file_daily_npp,300,"Daily output.");
@@ -145,6 +156,16 @@ void MiscOutput::define_output_tables() {
 			crop_pfts.push_back((char*)pft.name);
 
 		pftlist.nextobj();
+	}
+
+	// create a vector with the stand type names
+	std::vector<std::string> sts;
+
+	stlist.firstobj();
+	while (stlist.isobj) {
+		 StandType& st = stlist.getobj();
+		 sts.push_back((char*)st.name);
+		 stlist.nextobj();
 	}
 
 	// create a vector with the landcover column titles
@@ -276,6 +297,12 @@ void MiscOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
 
+	// ST
+	ColumnDescriptors st_columns;
+	st_columns += ColumnDescriptors(sts,            12, 3);
+	ColumnDescriptors st_dens_columns;
+	st_dens_columns += ColumnDescriptors(sts,       12, 4);
+
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
@@ -343,6 +370,16 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_soil_nflux_natural,  file_soil_nflux_natural,  soil_nflux_columns);
 	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
+
+	create_output_table(out_anpp_sts,				file_anpp_sts,					st_columns);
+	create_output_table(out_cmass_sts,				file_cmass_sts,					st_columns);
+	create_output_table(out_cmass_tree_sts,			file_cmass_tree_sts,			st_columns);
+	create_output_table(out_cmass_wood_sts,			file_cmass_wood_sts,			st_columns);
+	create_output_table(out_cmass_wood_harv_sts,	file_cmass_wood_harv_sts,		st_columns);
+	create_output_table(out_diam_g_sts,				file_diam_g_sts,				st_dens_columns);
+	create_output_table(out_dens_sts,				file_dens_sts,					st_dens_columns);
+	create_output_table(out_csoil_sts,				file_csoil_sts,					st_columns);
+	create_output_table(out_clitter_sts,			file_clitter_sts,				st_columns);
 
 	// *** DAILY OUTPUT VARIABLES ***
 
@@ -420,6 +457,20 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	// output table
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year());
 
+	for(int i=0;i<nst;i++) {
+	
+		StandType& st = stlist[i];
+		st.anpp = 0.0;
+		st.cmass = 0.0;
+		st.cmass_tree = 0.0;
+		st.cmass_wood = 0.0;
+		st.cmass_wood_harv = 0.0;
+		st.densindiv = 0.0;
+		st.diam_g = 0.0;
+		st.csoil = 0.0;
+		st.clitter = 0.0;
+	}
+
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
 	double landcover_nmass[NLANDCOVERTYPES]={0.0};
 	double landcover_clitter[NLANDCOVERTYPES]={0.0};
@@ -434,6 +485,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double irrigation_gridcell=0.0;
 
 	double standpft_cmass=0.0;
+	double standpft_cmass_wood=0.0;
+	double standpft_diam_g=0.0;
+	double standpft_cmass_wood_harv=0.0;
 	double standpft_nmass=0.0;
 	double standpft_clitter=0.0;
 	double standpft_nlitter=0.0;
@@ -486,6 +540,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			// Sum values across patches and PFTs
 			standpft_cmass=0.0;
+			standpft_cmass_wood=0.0;
+			standpft_cmass_wood_harv=0.0;
+			standpft_diam_g=0.0;
 			standpft_nmass=0.0;
 			standpft_clitter=0.0;
 			standpft_nlitter=0.0;
@@ -504,6 +561,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				Vegetation& vegetation = patch.vegetation;
 
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
+				standpft_cmass_wood_harv += patch.fluxes.get_annual_flux(Fluxes::HARVWOODC, pft.id);
 
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
@@ -515,6 +573,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					if (indiv.id!=-1 && indiv.alive && indiv.pft.id==pft.id) {
 
 						standpft_cmass += indiv.ccont();
+						standpft_cmass_wood += indiv.cmass_wood();
 						standpft_nmass += indiv.ncont();
 
 						if (pft.landcover == CROPLAND) {
@@ -528,6 +587,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 								if (pft.lifeform==TREE) {
 									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+									standpft_diam_g += pow(diam, 2) * indiv.densindiv;
 								}
 							}
 						}
@@ -539,6 +599,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			} // end of patch loop
 
 			standpft_cmass/=(double)stand.npatch();
+			standpft_cmass_wood/=(double)stand.npatch();
+			standpft_diam_g/=(double)stand.npatch();
+			standpft_cmass_wood_harv/=(double)stand.npatch();
 			standpft_nmass/=(double)stand.npatch();
 			standpft_clitter/=(double)stand.npatch();
 			standpft_nlitter/=(double)stand.npatch();
@@ -585,7 +648,23 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					outlimit_misc(out, out_anpp_stand[id][stand.stid],      standpft_anpp);
 				if(!out_cmass_stand[id][stand.stid].invalid())
 					outlimit_misc(out, out_cmass_stand[id][stand.stid],      standpft_cmass);
-				}
+			}
+
+			//Update stand type totals
+			StandType& st = stlist[stand.stid];
+			Gridcellst& gcst = gridcell.st[stand.stid];
+
+			if(gcst.frac) {
+				st.anpp += standpft_anpp * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
+				st.clitter += standpft_clitter * stand.get_gridcell_fraction() / gcst.frac;
+				if(pft.lifeform == TREE)
+					st.cmass_tree += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_wood += standpft_cmass_wood * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_wood_harv += standpft_cmass_wood_harv * stand.get_gridcell_fraction() / gcst.frac;
+				st.densindiv += standpft_densindiv_total * stand.get_gridcell_fraction() / gcst.frac;
+				st.diam_g += standpft_diam_g * stand.get_gridcell_fraction() / gcst.frac;
+			}
 
 			++gc_itr;
 		}//End of loop through stands
@@ -751,6 +830,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
+		StandType& st = stlist[stand.stid];
+		Gridcellst& gcst = gridcell.st[st.id];	
 		stand.firstobj();
 
 		//Loop through Patches
@@ -822,6 +903,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				else {
 					centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					centuryn_lc[stand.landcover]  += patch.soil.sompool[r].nmass * to_gridcell_average;
+					st.csoil += patch.soil.sompool[r].cmass * to_gridcell_average / gcst.frac;
 				}
 			}
 			stand.nextobj();
@@ -845,6 +927,26 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			++gc_itr;
 		}
+	}
+
+	// Print stand type totals
+	for(int i=0;i<nst;i++) {
+		StandType& st = stlist[i];
+		outlimit_misc(out, out_anpp_sts, st.anpp);
+		outlimit_misc(out, out_cmass_sts, st.cmass);
+		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
+		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
+		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
+		outlimit_misc(out, out_dens_sts, st.densindiv);
+		outlimit_misc(out, out_csoil_sts, st.csoil);
+		outlimit_misc(out, out_clitter_sts, st.clitter);
+
+		double diam_g = 0.0;
+		if(st.densindiv) {
+			diam_g = st.diam_g / st.densindiv;
+			diam_g = pow(diam_g, 0.5);
+		}
+		outlimit_misc(out, out_diam_g_sts, diam_g);
 	}
 
 	if (run[CROPLAND]) {

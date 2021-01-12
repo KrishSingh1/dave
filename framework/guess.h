@@ -1236,6 +1236,8 @@ public:
 		MT_TRIC,
 		MT_TBOC,
 		MT_OTHR,
+		/// Harvested wood C before removing part to the product pool (mgC/m2)
+		HARVWOODC,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
@@ -1646,6 +1648,17 @@ public:
 	xtring naturalveg; // "", "GRASSONLY", "ALL"
 	/// whether planted pft:s or all active pft:s are allowed to established after planting in a forest stand ("", "RESTRICTED", "ALL")
 	xtring reestab;
+
+	/// used for output from separate stand types
+	double anpp;
+	double cmass;
+	double cmass_tree;
+	double cmass_wood;
+	double cmass_wood_harv;
+	double densindiv;
+	double diam_g;
+	double csoil;
+	double clitter;
 
 	StandType() {
 

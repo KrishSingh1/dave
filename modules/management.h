@@ -388,6 +388,8 @@ struct Harvest_CN {
 			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at land use change
 		}
 
+		indiv.report_flux(Fluxes::HARVWOODC, acflux_harvest_wood);
+	
 //		indiv.report_flux(Fluxes::NPP, debt_excess);
 //		indiv.report_flux(Fluxes::RA, -debt_excess);
 

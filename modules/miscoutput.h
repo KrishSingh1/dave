@@ -71,6 +71,11 @@ private:
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
 		   file_anpp_peatland;
 
+	// stand type output
+	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_wood_sts, 
+		   file_cmass_wood_harv_sts, file_dens_sts, file_diam_g_sts,
+		   file_csoil_sts, file_clitter_sts;
+
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
 		   file_daily_cton, file_daily_ndemand, file_daily_cmass_leaf,
@@ -103,6 +108,9 @@ private:
 		  out_cflux_peatland, out_cpool_peatland,
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
 		  out_anpp_peatland;
+
+	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts, out_dens_sts,
+		  out_diam_g_sts, out_csoil_sts, out_clitter_sts;
 
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_stand[MAXNUMBER_STANDS];

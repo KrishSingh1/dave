@@ -11,6 +11,7 @@
 #include "miscoutput.h"
 #include "parameters.h"
 #include "guess.h"
+#include <sys/stat.h>
 
 namespace GuessOutput {
 

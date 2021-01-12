@@ -544,8 +544,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
-		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,
-			"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
 		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,
 			"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
 		declareitem("ifprimary_to_secondary_transfer",&ifprimary_to_secondary_transfer,1,CB_NONE,
@@ -1401,7 +1399,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("run_barren")) badins("run_barren");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
-			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
 			if (!itemparsed("harvest_secondary_to_new_stand")) badins("harvest_secondary_to_new_stand");

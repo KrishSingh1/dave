@@ -2906,12 +2906,12 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	// Transfer all landcover changes to stand type transition matrix, if not already done.
 
-	if(gross_land_transfer == 3) {
+	if(gross_land_transfer == 2) {
 
 		// Option to read stand type transitions from file.
-		fail("Currently no code for option gross_land_transfer==3\n");
+		fail("Currently no code for option gross stand type transfer\n");
 	}
-	else if(gross_land_transfer == 2 && gross_input_present) {
+	else if(gross_land_transfer == 1 && gross_input_present) {
 
 		// Option to read landcover transitions from file. Update the st_frac_transfer array.
 		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_frac_transfer_s, forest_st_frac_transfer_s);
@@ -2920,14 +2920,16 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 	else {
 
-		// Option not to read landcover or stand type transitions or to simulate these.
+		// Option not to read landcover or stand type transitions or to simulate these
 		// The st_frac_transfer array always needs to be updated.
 
-		const bool simulate_st = true;	// gross lcc simulation at land cover level (false) or stand type level (true)
+		// Simulation of land transitions for test purposes only
+		const bool simulate_lc = false;	// simulate gross lcc simulation at land cover level
+		const bool simulate_st = false;	// simulate gross lcc simulation at stand type level, overrides simulate_lc
 
 		set_lc_change_array(lc.frac_change, lc.frac_transfer);
 
-		if(gross_land_transfer == 1 && !simulate_st)
+		if(simulate_lc && !simulate_st)
 			simulate_gross_lc_transfer(gridcell, lc.frac_transfer);
 		// The lc_frac_transfer-array may contain overshoots if wood harvest with fraction transfer occurred.
 		double dummy;
@@ -2937,7 +2939,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
 
-		if(gross_land_transfer == 1 && simulate_st)
+		if(simulate_st)
 			simulate_gross_st_transfer(gridcell, st_frac_transfer);
 	}
 

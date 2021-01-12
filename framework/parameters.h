@@ -219,7 +219,7 @@ extern bool ifintercropgrass;
 // Whether to calculate dynamic potential heat units
 extern bool ifcalcdynamic_phu;
 
-// Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+// Whether to use gross land transfer: read landcover transfer matrix input file (1), read stand type transfer matrix input file (2), or not (0)
 extern int gross_land_transfer;
 
 // Whether gross land transfer input read for this gridcell

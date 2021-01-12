@@ -103,17 +103,16 @@ void LandcoverInput::init() {
 	}
 
 	if (!lcfrac_fixed) {
-	//Read LUC transitions
-		if(gross_land_transfer == 2) {
-			file_grossLUC = param["file_grossLUC"].str;
-			if(file_grossLUC != "") {
-				if(!grossLUC.Open(file_grossLUC, gridlist))
-					fail("initio: could not open %s for input",(char*)file_grossLUC);
-				all_fracs_const = false;	// needed for some tests with static net land cover fractions
-			}
-			else {
-				gross_land_transfer = 0;
-			}
+		// Open file for LUC transitions
+		file_grossLUC = param["file_grossLUC"].str;
+		if(file_grossLUC != "") {
+			if(!grossLUC.Open(file_grossLUC, gridlist))
+				fail("initio: could not open %s for input",(char*)file_grossLUC);
+			all_fracs_const = false;	// needed for some tests with static net land cover fractions
+			gross_land_transfer = 1;
+		}
+		else {
+			gross_land_transfer = 0;
 		}
 	}
 	else {
@@ -282,7 +281,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 		}
 
 		//Read LUC transitions
-		if(gross_land_transfer == 2 && !LUerror) {
+		if(gross_land_transfer == 1 && !LUerror) {
 
 			if(!grossLUC.Load(c)) {
 				dprintf("Data for %.3f,%.3f missing in gross LUC transitions input file.\n",c.lon,c.lat);

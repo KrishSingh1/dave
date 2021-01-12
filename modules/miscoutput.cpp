@@ -1305,18 +1305,16 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 
 			if(open[stand.landcover]) {
 
-				outfilename[0] = '\0';
 				strcpy(outfilename, dirname);
-				strcpy(outfilename, "anpp_");
+				strcat(outfilename, "anpp_");
 				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
 
 				if(out_anpp_stand[id][stand.stid].invalid())
 					create_output_table(out_anpp_stand[id][stand.stid], outfilename, anpp_columns);
 
-				outfilename[0] = '\0';
 				strcpy(outfilename, dirname);
-				strcpy(outfilename, "cmass_");
+				strcat(outfilename, "cmass_");
 				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
 

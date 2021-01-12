@@ -1572,7 +1572,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
-						kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
+					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;

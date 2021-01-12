@@ -263,8 +263,6 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 
 	double CH4_prod, CO2_prod;
 
-	double anoxic_tot = 0.0;
-
 	// Loop through soil layers
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -274,7 +272,6 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 		double drh = soillayer.respsum * G_PER_KG;
 
 		double anoxic = 1.0 - soillayer.fracair() - Fgas;
-		anoxic_tot += anoxic * soillayer.respsum;
 
 		// CH4 production in the layer (gC/m2)
 		if (soillayer.wmass / soillayer.depth < Fwmass_min)
@@ -295,13 +292,7 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 
 	double total_CH4 = get_sum(CH4);
 	double total_CO2 = get_sum(CO2);
-
 	double respsum_tot = get_sum(RESPSUM);
-
-	if (respsum_tot > 1.0e-12)
-		anoxic_tot /= respsum_tot;
-	else
-		anoxic_tot = 0.0;
 
 	if (fabs((initial_CH4 + initial_CO2) - (total_CH4 + total_CO2)) > 1.0e-12)
 		dprintf("Year %d Day %d ERROR: CH4 production %g\n",date.year,date.day, (initial_CH4 + initial_CO2) - (total_CH4 + total_CO2));
@@ -392,7 +383,7 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 	// Called like this (e.g. for O2): 
 	// diffuse_gas(O2, D_O2, O2gas, Ceq_O2, k_O2, dailyO2diffusion);
 
-	// No diffusion until snow depth < 50mm 
+	// No diffusion until snow depth < 50mm // DW_COMMENT top boundary condition should be zero, but diffusion within the unfrozen soil
 	if (snow.depth() >= 50.0)
 		return;
 

@@ -206,7 +206,8 @@ void CommonOutput::define_output_tables() {
 
 	// Create soil layer columns
 	ColumnDescriptors soms_columns;
-	xtring soms[] = { "SURFSTRUCT", "SOILSTRUCT", "SOILMICRO", "SURFHUMUS", "SURFMICRO", "SURFMETA", "SURFFWD", "SURFCWD", "SOILFWD", "SOILCWD", "SOILMETA", "SLOWSOM", "PASSIVESOM" };
+	//xtring soms[] = { "SURFSTRUCT", "SOILSTRUCT", "SOILMICRO", "SURFHUMUS", "SURFMICRO", "SURFMETA", "SURFFWD", "SURFCWD", "SOILFWD", "SOILCWD", "SOILMETA", "SLOWSOM", "PASSIVESOM" };
+	xtring soms[] = { "SURFMETA", "SURFSTRUCT", "SURFFWD", "SURFCWD", "SURFMICRO", "SURFHUMUS", "SOILMETA", "SOILSTRUCT", "SOILFWD", "SOILCWD", "SOILMICRO", "SLOWSOM", "PASSIVESOM" };
 	for (int p = 0; p < NSOMPOOL; p++) {
 		soms_columns += ColumnDescriptor(soms[p], 11, 6);
 	}

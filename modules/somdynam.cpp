@@ -427,9 +427,10 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
-	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILFWD,SOILCWD,SOILMETA,SLOWSOM,PASSIVESOM
-	const double K_MAX[] = { 9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6 };
-	
+	// pools SURFMETA,SURFSTRUCT,SURFFWD,SURFCWD,SURFMICRO,SURFHUMUS,SOILMETA,SOILSTRUCT,SOILFWD,SOILCWD,SOILMICRO,SLOWSOM,PASSIVESOM
+	//const double K_MAX[] = { 3.8e-2, 9.5e-3, 1.1e-2, 2.2e-3, 2.7e-2, 4.8e-4, 7.0e-2, 1.9e-2, 1.1e-2, 2.2e-3, 4.2e-2, 1.7e-3, 1.9e-6 };
+	const double K_MAX[] = { 8.0e-2, 2.2e-2, 1.1e-2, 2.2e-3, 4.0e-2, 2.7e-4, 1.0e-1, 2.7e-2, 1.4e-2, 2.7e-3, 5.0e-2, 2.7e-4, 4.2e-6 };
+
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
@@ -468,24 +469,57 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// Calculate decomposition moisture modifier (in range 0-1)
 	double moist_mod;
 
-	// If soillayer is an acrotelm or catotelm (peat) then follow 
-	// Ise et al 2008 and Chaudhary et al 2017 (eqn 5)
-	if (acrotelm || catotelm) {
+	// Additional moistmodifier for saturated peatland, else no effect
+	double moist_mod_saturated = 1.0;
 
-		// Dry condition decomposition rate
-		double beta = 0.064;
+	// If soillayer is a peat
+	if ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand()) {
 
-		// Total water
-		double theta = wmass + imass;
+		// Moist modifier as in Ise et al 2008 and Chaudhary et al 2017 (eqn 5)
+		if (true) {
 
-		if (theta < 0.01) {
-			moist_mod = beta;
-		}
-		else if (theta > fc()) {
-			moist_mod = 1.0 - 0.975 * pow((theta - fc()) / (wsats - fc()), 5);
+			// Total water
+			double theta = wmass + imass;
+
+			// Dry condition decomposition rate
+			if (theta < 0.01) {
+				moist_mod = 0.064;
+			}
+			else if (theta > fc()) {
+				moist_mod = 1.0 - 0.975 * pow((theta - fc()) / (wsats - fc()), 5);
+			}
+			else {
+				moist_mod = 1.0 - pow((fc() - theta) / fc(), 5);
+			}
 		}
 		else {
-			moist_mod = 1.0 - pow((fc() - theta) / fc(), 5);
+
+			// High-latitude peatland
+			if ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand()) {
+
+				double cmass_total = ccont();
+
+				// Max C content in deep acrotelm [kg C m-3] - see Wania et al. (2009b)
+				double acrotelm_climit = 25.0;
+
+				// Soil layer max C
+				double climit = acrotelm_climit * depth * M_PER_MM;
+
+				// Take a weighted average of the aerobic and anaerobic moisture modifiers 
+				if (cmass_total > climit) { 
+					moist_mod = (climit * RMOIST + (cmass_total - climit) * RMOIST_ANAEROBIC) / cmass_total;
+				}
+				else {
+					moist_mod = RMOIST;
+				}
+
+				moist_mod_saturated = RMOIST_ANAEROBIC / moist_mod;
+			}
+
+			// Wetland on mineral soils
+			if ((*soilcolumn).patch.stand.is_true_wetland_stand()) {
+				moist_mod = 0.36;
+			}
 		}
 	}
 	else {
@@ -528,36 +562,6 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}*/
 	}
 
-
-	/*// Additional moist modifier for saturated soils
-	// no effect unless this is a peat soil
-	double moist_mod_saturated = 1.0; 
-
-	// Moisture modifiers for peat soils
-	if (ispeatland) {
-
-		moist_mod = RMOIST;
-
-		double cmass_total = 0.0;
-		for (int p = 0; p < NSOMPOOL; p++) {
-			cmass_total += sompool[p].cmass;
-		}
-
-		double acrotelm_climit = 2.5 * depth * DM_PER_MM; // kgC/m2 - 7.5 kgC m-2 is max C content in a 30cm-deep acrotelm - see Wania et al. (2009b) so 2.5 kg C m-2 per 10cm
-		if (cmass_total > acrotelm_climit) { // take a weighted average of the aerobic and anaerobic moisture modifiers 
-			moist_mod = (acrotelm_climit * RMOIST + (cmass_total - acrotelm_climit) * RMOIST_ANAEROBIC) / cmass_total;
-			// moist_mod approaches a value of RMOIST_ANAEROBIC asymptotically as cmass_total increases
-		}
-
-		moist_mod_saturated = RMOIST_ANAEROBIC / moist_mod;
-	}
-
-	// Moisture modifiers for wetlands on mineral soils
-	if (ismineralwetland) {
-		// 100% WFPS for wetlands on mineral soils, 0.36 approx
-		moist_mod = 0.000371 * 100.0 * 100.0 - 0.0748 * 100 + 4.13;
-	}*/
-
 	// Combined moisture and temperature modifier
 
 	for (int p = 0; p < NSOMPOOL; p++) {
@@ -567,8 +571,10 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 
 		double scalar = 1.0; // DW_COMMENT
 
-		if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-			scalar = 6.0;
+		//if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
+		//	scalar = 3.5;
+		if (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)
+			scalar = 10.0;
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 
@@ -587,6 +593,11 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		// Increased decay rates for crops (tillage)
 		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
 			k *= TILLAGE_FACTOR;
+		}
+
+		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm
+		if (p == PASSIVESOM || p == SLOWSOM) {
+			k *= moist_mod_saturated; // ensures that a modifier of RMOIST_ANAEROBIC is used.
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition

@@ -224,7 +224,7 @@ void CommonOutput::define_output_tables() {
 		 cflux_columns += ColumnDescriptor("Seed",         8, 3);
 		 cflux_columns += ColumnDescriptor("Harvest",      9, 3);
 		 cflux_columns += ColumnDescriptor("LU_ch",        9, 3);
-		 cflux_columns += ColumnDescriptor("Slow_h",       9, 3);
+		 cflux_columns += ColumnDescriptor("Slow_h",       9, 4);
 	}
 	cflux_columns += ColumnDescriptor("NEE",              10 + bm_extra_prec, 5 + bm_extra_prec);
 

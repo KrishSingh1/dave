@@ -213,7 +213,7 @@ void MiscOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
 	cflux_columns += ColumnDescriptor("Repr",              8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns += ColumnDescriptor("Fire",              8, 3);
+	cflux_columns += ColumnDescriptor("Fire",              10, 5);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
 	cflux_columns += ColumnDescriptor("Seed",         8, 3);
 	cflux_columns += ColumnDescriptor("Harvest",      9, 3);

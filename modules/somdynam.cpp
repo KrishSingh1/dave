@@ -1321,7 +1321,7 @@ void transfer_litter(Patch& patch) {
 						// Metabolic litter fraction for root litter
 						double fm = metabolic_litter_fraction(root_lton);
 
-						ligcmass_new = cmass_litter_root * (1.0 - fm) * ppft.pft.ligcfrac_root;
+						ligcmass_new = cmass_litter_root * root_lyr_frac * (1.0 - fm) * ppft.pft.ligcfrac_root;
 						ligcmass_old = soillayer.sompool[SOILSTRUCT].cmass * soillayer.sompool[SOILSTRUCT].ligcfrac;
 
 						// Add to pools and update lignin fraction in structural pool
@@ -1373,7 +1373,7 @@ void transfer_litter(Patch& patch) {
 								soillayer.litterSolveSOM.add_litter(cmass_litter_sap * (1.0 - FCWD_ROOT), nmass_litter_sap * (1.0 - FCWD_ROOT), SURFFWD);
 							}
 
-							if (negligible(soillayer.sompool[SURFFWD].cmass), -16) {
+							if (negligible(soillayer.sompool[SURFFWD].cmass, -16)) {
 								soillayer.sompool[SURFFWD].ligcfrac = 0.0;
 							}
 							else {

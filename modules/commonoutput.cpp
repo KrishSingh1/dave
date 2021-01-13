@@ -54,7 +54,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_ngases", &file_ngases, 300, "Annual nitrogen gases output file");
 	declare_parameter("file_soil_npool", &file_soil_npool, 300, "Annual soil N pools output file");
 	declare_parameter("file_soil_nflux", &file_soil_nflux, 300, "Annual soil N fluxes output file");
-
+	declare_parameter("file_speciesdiam", &file_speciesdiam, 300, "Mean species diameter");
 	declare_parameter("file_speciesheights", &file_speciesheights, 300, "Mean species heights");
 
 	// Monthly output variables
@@ -410,6 +410,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_runoff,			file_runoff,         runoff_columns);
 	create_output_table(out_wetland_water_added, file_wetland_water_added, wetland_water_added_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
+	create_output_table(out_speciesdiam,	file_speciesdiam,	 speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
 	create_output_table(out_amon,           file_amon,           amon_columns);
 	create_output_table(out_amon_mt1,       file_amon_mt1,       amon_columns);
@@ -782,6 +783,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_lai=0.0;
 	double mean_standpft_densindiv_total=0.0;
 	double mean_standpft_heightindiv_total=0.0;
+	double mean_standpft_diamindiv_total=0.0;
 	double mean_standpft_aiso=0.0;
 	double mean_standpft_amon=0.0;
 	double mean_standpft_amon_mt1=0.0;
@@ -843,6 +845,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_lai=0.0;
 	double standpft_densindiv_total=0.0;
 	double standpft_heightindiv_total = 0.0;
+	double standpft_diamindiv_total = 0.0;
 	double standpft_aiso=0.0;
 	double standpft_amon=0.0;
 	double standpft_amon_mt1=0.0;
@@ -879,8 +882,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_amon_mt2=0.0;
 		mean_standpft_nuptake=0.0;
 		mean_standpft_vmaxnlim=0.0;
-
 		mean_standpft_heightindiv_total = 0.0;
+		mean_standpft_diamindiv_total = 0.0;
 
 		// Determine area fraction of stands where this pft is active:
 		double active_fraction = 0.0;
@@ -921,6 +924,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_lai=0.0;
 			standpft_densindiv_total = 0.0;
 			standpft_heightindiv_total = 0.0;
+			standpft_diamindiv_total = 0.0;
 			standpft_aiso=0.0;
 			standpft_amon=0.0;
 			standpft_amon_mt1=0.0;
@@ -977,8 +981,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
-								if (pft.lifeform==TREE) {	
+								if (pft.lifeform==TREE) {
+									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									standpft_densindiv_total += indiv.densindiv;
+									standpft_diamindiv_total += diam * indiv.densindiv;
 									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
@@ -1027,6 +1033,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
 				standpft_heightindiv_total/=(double)stand.npatch();
+				standpft_diamindiv_total/=(double)stand.npatch();
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;
@@ -1072,6 +1079,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_heightindiv_total += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_diamindiv_total += standpft_diamindiv_total * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
@@ -1145,10 +1153,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// print species heights
 		double height = 0.0;
-		if (mean_standpft_densindiv_total > 0.0)
+			double diam = 0.0;
+		if (mean_standpft_densindiv_total > 0.0) {
 			height = mean_standpft_heightindiv_total / mean_standpft_densindiv_total;
+			diam = mean_standpft_diamindiv_total / mean_standpft_densindiv_total;
+		}
 
-		outlimit(out,out_speciesheights, height);
+		out.add_value(out_speciesheights, height);
+		out.add_value(out_speciesdiam, diam * 100.0);	//diameter output in cm
 
 		pftlist.nextobj();
 

@@ -3321,6 +3321,8 @@ public:
 	double b;
 	/// Soil matric potential at saturation
 	double Psi_max;
+	/// Soil organic C microorganism collocation factor
+	double a;
 	/// drainage runoff
 	double runoff_drain;
 	/// basefloww runoff
@@ -3522,6 +3524,7 @@ public:
 		Kw_max = that.Kw_max;
 		b = that.b;
 		Psi_max = that.Psi_max;
+		a = that.a;
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
@@ -3636,6 +3639,7 @@ public:
 		Kw_max = that.Kw_max;
 		b = that.b;
 		Psi_max = that.Psi_max;
+		a = that.a;
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;

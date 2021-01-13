@@ -466,106 +466,43 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}
 	}
 
-	// Calculate decomposition moisture modifier (in range 0-1)
+	// Moisture modifiers
+
+	// Calculate decomposition moisture modifier
 	double moist_mod;
 
-	// If soillayer is a peat
-	if ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand()) {
+	/*// Water Filled Pore Spaces (wfps) %
+	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
+	// is calculated with the help of Cosby et al 1984;
+	// use Gerten equivalents here, but wfps COULD be made depth equivalent
+	const double wfps100 = wfps() * 100.0;
 
-		// Moist modifier as in Ise et al 2008 and Chaudhary et al 2017 (eqn 5)
-		if (false) {
+	// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
+	if (wfps100 < 60.0)
+		moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
+	else
+		moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;*/
 
-			// Total water
-			double theta = wmass + imass;
+	// Yan et al 2018 - A moisture function of soil heterotrophic
+	// respiration that incorporates microscale processes
 
-			// Dry condition decomposition rate
-			if (theta < 0.01) {
-				moist_mod = 0.064;
-			}
-			else if (theta > fc()) {
-				moist_mod = 1.0 - 0.975 * pow((theta - fc()) / (wsats - fc()), 5);
-			}
-			else {
-				moist_mod = 1.0 - pow((fc() - theta) / fc(), 5);
-			}
-		}
-		else {
+	// Minimum moist modifier for dry soils
+	double moist_mod_dry = 0.064;
 
-			// High-latitude peatland
-			if ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand()) {
+	// Maximum moist modifier at optimal moisture
+	double moist_mod_max = ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand()) ? RMOIST : 1.0;
 
-				if (acrotelm) {
-					// Acrotelm moisture decomosition modifier follow Wania et al. (2009b)
+	// Total water mass
+	double theta = wmass + imass;
 
-					// Total soil layer C
-					double cmass_total = ccont();
-
-					// Max C content in deep acrotelm [kg C m-3] - see Wania et al. (2009b)
-					double acrotelm_climit = 25.0;
-
-					// Soil layer max C
-					double climit = acrotelm_climit * depth * M_PER_MM;
-
-					// Take a weighted average of the aerobic and anaerobic moisture modifiers 
-					if (cmass_total > climit) {
-						moist_mod = (climit * RMOIST + (cmass_total - climit) * RMOIST_ANAEROBIC) / cmass_total;
-					}
-					else {
-						moist_mod = RMOIST;
-					}
-				}
-				else if (catotelm) {
-					// Catotelm has a fixed decomposition rate
-					moist_mod = RMOIST_ANAEROBIC;
-				}
-				else
-					fail("High latitude peatland soil layer should either be acrotelm or catotelm!\n");
-			}
-
-			// Wetland on mineral soils
-			if ((*soilcolumn).patch.stand.is_true_wetland_stand()) {
-				moist_mod = 0.36;
-			}
-		}
+	if (theta < fc()) {
+		moist_mod = max(moist_mod_dry, moist_mod_max * (fc() + 0.1) / (theta + 0.1) * pow(theta / fc(), 1.0 + a * 2.0));
+	}
+	else if (wsats - theta > 1.0e-12) {
+		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * pow((wsats - theta) / (wsats - fc()), 0.75));
 	}
 	else {
-		// Mineral soil
-		// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
-
-		// Water Filled Pore Spaces (wfps) %
-		// water holding capacity at wilting point (wp) and saturation capacity (wsats)
-		// is calculated with the help of Cosby et al 1984;
-		// use Gerten equivalents here, but wfps COULD be made depth equivalent
-		const double wfps100 = wfps() * 100.0;
-
-		if (wfps100 < 60.0)
-			moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
-		else
-			moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;
-
-
-		/*// Yan et al 2018 - A moisture function of soil heterotrophic
-		// respiration that incorporates microscale processes
-
-		double K_theta = 0.1;
-		double bb = 0.75;
-		double n_s = 2.0;
-		double theta = wmass + imass;
-
-		if (theta < fc()) {
-			moist_mod = (K_theta + fc()) / (K_theta + theta) * pow(theta / fc(), 1.0 + (*soilcolumn).soiltype.a * n_s);
-		}
-		else if (wsats - theta > 1.0e-12) {
-			moist_mod = pow((wsats - theta) / (wsats - fc()), bb);
-		}
-		else {
-			moist_mod = 0.0;
-		}
-
-		// Frozen fraction does not decompose
-		if (imass > 0.0) {
-			moist_mod *= (1.0 - imass / wsats);
-		}*/
+		moist_mod = RMOIST_ANAEROBIC;
 	}
 
 	// Combined moisture and temperature modifier
@@ -576,9 +513,6 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
 		double scalar = 1.0; // DW_COMMENT
-
-		//if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
-		//	scalar = 3.5;
 		if (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)
 			scalar = 1.0;
 

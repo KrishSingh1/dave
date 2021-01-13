@@ -1468,7 +1468,9 @@ void Soillayer::init() {
 	por = 0.0;
 	Dw = 0.0;
 	Kw = 0.0;
+	b = 0.0;
 	Kw_max = 0.0;
+	a = 0.0;
 	perc_mass = 0.0;
 	runoff_drain = 0.0;
 	runoff_baseflow = 0.0;
@@ -1617,6 +1619,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		Kw_max = Kw_max_org;
 		b = b_org;
 		Psi_max = Psi_max_org;
+		a = 0.0;
 
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
@@ -1638,6 +1641,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		Kw_max = Kw_max_org;
 		b = b_org;
 		Psi_max = Psi_max_org;
+		a = 0.0;
 
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
@@ -1659,6 +1663,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		Kw_max = soiltype.Kw_max_min;
 		b = soiltype.b_min;
 		Psi_max = soiltype.Psi_max_min;
+		a = soiltype.a;
 
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
@@ -1676,12 +1681,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 
 		// Soil layer C content (kg C m-2)
 		double soil_c = iforganicsoilproperties == 1 ? soc_frac * soiltype.soilC : ccont(true);
-
-		// Maximum soil layer C content (kg C m-2)
-		double soil_c_max = maxSOCdensity * depth * M_PER_MM;
-
-		if (soil_c > soil_c_max)
-			dprintf("Year %d Day %d Depth %g Soil C %g MAX %g\n",date.year,date.day,depth_profile,soil_c,soil_c_max); // DW_COMMENT move C downwards!!!!!!!!!!
 
 		// Soil C density in this soil layer (kg C m-3) 
 		double soil_density = soil_c / (depth * M_PER_MM);
@@ -1730,6 +1729,9 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 
 		// Saturated soil water suction (mm)
 		Psi_max = min_frac * soiltype.Psi_max_min + org_frac * Psi_max_org;
+
+		// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
+		soiltype.a = min_frac * soiltype.clay_frac < 0.016 ? 0.0 : (min_frac * soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * min_frac * soiltype.clay_frac - 0.046);
 
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;

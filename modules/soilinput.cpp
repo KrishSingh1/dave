@@ -473,7 +473,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil carbon content
 	soiltype.soilC = soilprop.soilC;
 
-	// SOC–microorganism collocation factor for decomposition (Yan 2018)
+	// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 	soiltype.a = soiltype.clay_frac < 0.016 ? 0.0 : (soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * soiltype.clay_frac - 0.046);
 
 	// Accounts for the sub-grid variability related to orography

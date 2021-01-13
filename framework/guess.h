@@ -1653,6 +1653,9 @@ public:
 	double cmass_tree;
 	double cmass_wood;
 	double cmass_wood_harv;
+	double cmass_wood_harv_toprod;
+	double cmass_harv_tolitter;
+	double cmass_killed_harv;
 	double densindiv;
 	double diam_g;
 	double csoil;
@@ -4071,8 +4074,14 @@ public:
 	double litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
+	/// carbon in biomass killed in harvest this year (kgC/m2)
+	double cmass_killed_harv;
 	/// harvested wood C before removing part to the product pool (kgC/m2)
 	double cmass_wood_harv;
+	/// harvested wood C removed to the product pool (kgC/m2)
+	double cmass_wood_harv_toprod;
+	/// harvested tree C left as litter (kgC/m2)
+	double cmass_harv_tolitter;
 
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
@@ -4170,6 +4179,9 @@ public:
 		inund_stress=1.0; // No stress by default
 
 		cmass_wood_harv = 0.0;
+		cmass_wood_harv_toprod = 0.0;
+		cmass_harv_tolitter = 0.0;
+		cmass_killed_harv = 0.0;
 	}
 
 	~Patchpft() {

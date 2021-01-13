@@ -77,6 +77,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
 	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
@@ -372,15 +373,16 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
-	create_output_table(out_anpp_sts,				file_anpp_sts,					st_columns);
-	create_output_table(out_cmass_sts,				file_cmass_sts,					st_columns);
-	create_output_table(out_cmass_tree_sts,			file_cmass_tree_sts,			st_columns);
-	create_output_table(out_cmass_wood_sts,			file_cmass_wood_sts,			st_columns);
-	create_output_table(out_cmass_wood_harv_sts,	file_cmass_wood_harv_sts,		st_columns);
-	create_output_table(out_diam_g_sts,				file_diam_g_sts,				st_dens_columns);
-	create_output_table(out_dens_sts,				file_dens_sts,					st_dens_columns);
-	create_output_table(out_csoil_sts,				file_csoil_sts,					st_columns);
-	create_output_table(out_clitter_sts,			file_clitter_sts,				st_columns);
+	create_output_table(out_anpp_sts,					file_anpp_sts,					st_columns);
+	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
+	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
+	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
+	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
+	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
+	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_dens_columns);
+	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
+	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
+	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
 
 	// *** DAILY OUTPUT VARIABLES ***
 
@@ -466,6 +468,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass_tree = 0.0;
 		st.cmass_wood = 0.0;
 		st.cmass_wood_harv = 0.0;
+		st.cmass_wood_harv_toprod = 0.0;
+		st.cmass_killed_harv = 0.0;
+		st.cmass_harv_tolitter = 0.0;
 		st.densindiv = 0.0;
 		st.diam_g = 0.0;
 		st.csoil = 0.0;
@@ -489,6 +494,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_cmass_wood=0.0;
 	double standpft_diam_g=0.0;
 	double standpft_cmass_wood_harv=0.0;
+	double standpft_cmass_wood_harv_toprod=0.0;
+	double standpft_cmass_killed_harv=0.0;
+	double standpft_cmass_harv_tolitter=0.0;
 	double standpft_nmass=0.0;
 	double standpft_clitter=0.0;
 	double standpft_nlitter=0.0;
@@ -543,6 +551,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass=0.0;
 			standpft_cmass_wood=0.0;
 			standpft_cmass_wood_harv=0.0;
+			standpft_cmass_wood_harv_toprod=0.0;
+			standpft_cmass_killed_harv=0.0;
+			standpft_cmass_harv_tolitter=0.0;
 			standpft_diam_g=0.0;
 			standpft_nmass=0.0;
 			standpft_clitter=0.0;
@@ -564,6 +575,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 
 				standpft_cmass_wood_harv += patchpft.cmass_wood_harv;
+				standpft_cmass_wood_harv_toprod += patchpft.cmass_wood_harv_toprod;
+				standpft_cmass_harv_tolitter += patchpft.cmass_harv_tolitter;
+				standpft_cmass_killed_harv += patchpft.cmass_killed_harv;
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
@@ -603,6 +617,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_wood/=(double)stand.npatch();
 			standpft_diam_g/=(double)stand.npatch();
 			standpft_cmass_wood_harv/=(double)stand.npatch();
+			standpft_cmass_wood_harv_toprod/=(double)stand.npatch();
+			standpft_cmass_harv_tolitter/=(double)stand.npatch();
+			standpft_cmass_killed_harv/=(double)stand.npatch();
 			standpft_nmass/=(double)stand.npatch();
 			standpft_clitter/=(double)stand.npatch();
 			standpft_nlitter/=(double)stand.npatch();
@@ -663,6 +680,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					st.cmass_tree += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood += standpft_cmass_wood * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_harv += standpft_cmass_wood_harv * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_wood_harv_toprod += standpft_cmass_wood_harv_toprod * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_harv_tolitter += standpft_cmass_harv_tolitter * stand.get_gridcell_fraction() / gcst.frac;
 				st.densindiv += standpft_densindiv_total * stand.get_gridcell_fraction() / gcst.frac;
 				st.diam_g += standpft_diam_g * stand.get_gridcell_fraction() / gcst.frac;
 			}
@@ -938,6 +958,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
 		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
 		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
+		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);
 		outlimit_misc(out, out_dens_sts, st.densindiv);
 		outlimit_misc(out, out_csoil_sts, st.csoil);
 		outlimit_misc(out, out_clitter_sts, st.clitter);

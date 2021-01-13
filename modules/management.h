@@ -50,7 +50,7 @@ void forest_rotation(Stand& stand);
 /// Sets forest management for patch this year
 double manage_forest(Patch& patch);
 // Returns harvestable cmass for individual
-double check_harvest_cmass(Individual& indiv, bool wood_cmass_only = false);
+double check_harvest_cmass(Individual& indiv, bool wood_cmass_only = false, bool to_product_pool = false);
 // Returns harvestable cmass for patch
 double check_harvest_cmass(Patch& patch, bool wood_cmass_only = false, bool check_selection = false);
 // Returns harvestable cmass for stand
@@ -245,6 +245,8 @@ struct Harvest_CN {
 	double harvested_products_slow_nmass;
 	// Part of acflux_harvest; not to be included in copy functions.
 	double acflux_harvest_wood;
+	double acflux_harvest_wood_toprod;
+	double acflux_harvest_tolitter;
 
 	Harvest_CN() {
 
@@ -254,7 +256,7 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		acflux_harvest_wood = 0.0;
+		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.
@@ -389,6 +391,8 @@ struct Harvest_CN {
 		}
 
 		ppft.cmass_wood_harv += acflux_harvest_wood;
+		ppft.cmass_wood_harv_toprod += acflux_harvest_wood_toprod;
+		ppft.cmass_harv_tolitter += acflux_harvest_tolitter;
 	
 //		indiv.report_flux(Fluxes::NPP, debt_excess);
 //		indiv.report_flux(Fluxes::RA, -debt_excess);

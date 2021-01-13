@@ -532,7 +532,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				for(unsigned int i=0;i<pftlist.nobj;i++) {
 					Patchpft& patchpft = patch.pft[i];
+					patchpft.cmass_killed_harv = 0.0;
+					patchpft.cmass_harv_tolitter = 0.0;
 					patchpft.cmass_wood_harv = 0.0;
+					patchpft.cmass_wood_harv_toprod = 0.0;
 				}
 
 				patch.fluxes.reset();

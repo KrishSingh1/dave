@@ -14,7 +14,7 @@ const int DENSTARGET_NL = 250;
 const int DENSTARGET_BL = 100;
 
 /// Functions to check available wood for harvest at individual, patch and stand levels
-double check_harvest_cmass(Individual& indiv, bool wood_cmass_only) {
+double check_harvest_cmass(Individual& indiv, bool wood_cmass_only, bool to_product_pool) {
 
 	double cmass_harvest;
 	Stand& stand = indiv.vegetation.patch.stand;
@@ -29,8 +29,10 @@ double check_harvest_cmass(Individual& indiv, bool wood_cmass_only) {
 
 	// Harvest of transferred areas:
 	harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
-	if(wood_cmass_only)
-		cmass_harvest = (cp.acflux_harvest_wood);
+	if(to_product_pool)
+		cmass_harvest = cp.acflux_harvest_wood_toprod;
+	else if(wood_cmass_only)
+		cmass_harvest = cp.acflux_harvest_wood;
 	else
 		cmass_harvest = (cp.acflux_harvest + cp.harvested_products_slow);
 
@@ -129,6 +131,7 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 	if (alive) {
 
 		i.litter_root += i.cmass_root * frac_cut;
+		i.acflux_harvest_tolitter += i.cmass_root * frac_cut;
 		i.cmass_root *= (1.0 - frac_cut);
 	}
 
@@ -151,6 +154,7 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if (ifslowharvestpool) {
 				i.harvested_products_slow += harvest * harvest_slow_frac;
+				i.acflux_harvest_wood_toprod += harvest * harvest_slow_frac;
 				harvest = harvest * (1.0 - harvest_slow_frac);
 			}
 
@@ -171,6 +175,7 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 
 			// not removed residues are put into litter
 			i.litter_leaf += i.cmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
+			i.acflux_harvest_tolitter += i.cmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
 
 			double to_partition_sap   = 0.0;
 			double to_partition_heart = 0.0;
@@ -184,7 +189,9 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 //				dprintf("ATTENTION: pft %s: cmass_debt > cmass_heart; difference=%f\n", (char*)pft.name, i.cmass_debt-i.cmass_heart);
 			}
 			i.litter_sap += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+			i.acflux_harvest_tolitter += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
 			i.litter_heart += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+			i.acflux_harvest_tolitter += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
 		}
 		// debt larger than existing wood biomass
 		else {
@@ -1286,6 +1293,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 			res_outtake_twig_wood_harvest = 0.0;
 			res_outtake_coarse_root_wood_harvest = 0.0;
 		}
+		ppft.cmass_killed_harv += man_strength * indiv.ccont();
 
 		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 
@@ -1786,6 +1794,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 	if (alive || istruecrop_or_intercropgrass)  {
 		cp.litter_root += cp.cmass_root;
+		cp.acflux_harvest_tolitter += cp.cmass_root;
 
 		if (burn) {
 			cp.acflux_harvest += cp.cmass_leaf;
@@ -1796,6 +1805,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 			cp.litter_leaf += cp.cmass_leaf;
 			cp.litter_sap += cp.cmass_sap;
 			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
+			cp.acflux_harvest_tolitter += cp.cmass_leaf + cp.cmass_sap + cp.cmass_heart - cp.cmass_debt;
 		}
 	}
 

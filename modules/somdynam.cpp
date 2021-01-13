@@ -580,7 +580,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		//if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM)
 		//	scalar = 3.5;
 		if (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)
-			scalar = 10.0;
+			scalar = 1.0;
 
 		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
 

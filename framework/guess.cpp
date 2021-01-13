@@ -708,7 +708,9 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	cloned_fraction = 0.0;
 	cloned = false;
 	anpp = 0.0;
+	lai = 0.0;
 	cmass = 0.0;
+	cmass_wood = 0.0;
 	scale_LC_change = 1.0;
 }
 

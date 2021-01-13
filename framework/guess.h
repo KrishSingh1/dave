@@ -4563,10 +4563,17 @@ public:
 	landcovertype lc_origin;
 	/// stand type origin of this stand
 	int st_origin; 
-	/// used for output from separate stands
+	/// Variables used for output from separate stands
+	/// NPP
 	double anpp;
-	/// used for output from separate stands
+	/// LAI
+	double lai;
+	/// C mass
 	double cmass;
+	/// Wood C
+	double cmass_wood;
+	/// Harvested wood C
+	double cmass_wood_harv;
 
 	/// Seed for generating random numbers within this Stand
 	/** The reason why Stand has its own seed, rather than using for instance

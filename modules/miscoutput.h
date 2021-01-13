@@ -113,7 +113,13 @@ private:
 		  out_dens_sts, out_diam_g_sts, out_csoil_sts, out_clitter_sts;
 
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
+	Table* out_lai_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_stand[MAXNUMBER_STANDS];
+	Table* out_diam_stand[MAXNUMBER_STANDS];
+	Table* out_height_stand[MAXNUMBER_STANDS];
+	Table* out_dens_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_wood_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_wood_harv_stand[MAXNUMBER_STANDS];
 
 	//daily
 	Table out_daily_lai, out_daily_npp, out_daily_cton, out_daily_nmass,

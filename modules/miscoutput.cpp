@@ -501,10 +501,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_clitter=0.0;
 	double standpft_nlitter=0.0;
 	double standpft_anpp=0.0;
+	double standpft_lai=0.0;
 	double standpft_yield=0.0;
 	double standpft_yield1=0.0;
 	double standpft_yield2=0.0;
-	double standpft_densindiv_total=0.0;
+	double standpft_densindiv_total = 0.0;
+	double standpft_heightindiv_total = 0.0;
+	double standpft_diamindiv_total = 0.0;
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
@@ -559,10 +562,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_clitter=0.0;
 			standpft_nlitter=0.0;
 			standpft_anpp=0.0;
+			standpft_lai=0.0;
 			standpft_yield=0.0;
 			standpft_yield1=0.0;
 			standpft_yield2=0.0;
 			standpft_densindiv_total = 0.0;
+			standpft_heightindiv_total = 0.0;
+			standpft_diamindiv_total = 0.0;
 
 			stand.firstobj();
 
@@ -590,6 +596,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						standpft_cmass += indiv.ccont();
 						standpft_cmass_wood += indiv.cmass_wood();
 						standpft_nmass += indiv.ncont();
+						standpft_lai += indiv.lai;
 
 						if (pft.landcover == CROPLAND) {
 							standpft_yield += indiv.cropindiv->harv_yield;
@@ -601,7 +608,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 								if (pft.lifeform==TREE) {
 									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-									standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+									standpft_densindiv_total += indiv.densindiv; // indiv/m2
+									standpft_diamindiv_total += diam * indiv.densindiv;
+									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 									standpft_diam_g += pow(diam, 2) * indiv.densindiv;
 								}
 							}
@@ -624,7 +633,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_clitter/=(double)stand.npatch();
 			standpft_nlitter/=(double)stand.npatch();
 			standpft_anpp/=(double)stand.npatch();
+			standpft_lai/=(double)stand.npatch();
 			standpft_densindiv_total/=(double)stand.npatch();
+			standpft_heightindiv_total/=(double)stand.npatch();
+			standpft_diamindiv_total/=(double)stand.npatch();
 			standpft_yield/=(double)stand.npatch();
 			standpft_yield1/=(double)stand.npatch();
 			standpft_yield2/=(double)stand.npatch();
@@ -653,7 +665,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			//Update stand totals
 			stand.anpp += standpft_anpp;
+			stand.lai += standpft_lai;
 			stand.cmass += standpft_cmass;
+			stand.cmass_wood += standpft_cmass_wood;
+			stand.cmass_wood_harv += standpft_cmass_wood_harv;
 
 			// Print per-stand pft values
 			if (printseparatestands) {
@@ -664,8 +679,27 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				if(!out_anpp_stand[id][stand.stid].invalid())
 					outlimit_misc(out, out_anpp_stand[id][stand.stid],      standpft_anpp);
+				if(!out_lai_stand[id][stand.stid].invalid())
+					outlimit_misc(out, out_lai_stand[id][stand.stid],      standpft_lai);
 				if(!out_cmass_stand[id][stand.stid].invalid())
 					outlimit_misc(out, out_cmass_stand[id][stand.stid],      standpft_cmass);
+				if(!out_cmass_wood_stand[id][stand.stid].invalid())
+					outlimit_misc(out, out_cmass_wood_stand[id][stand.stid],      standpft_cmass_wood);
+				if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
+					out.add_value(out_cmass_wood_harv_stand[id][stand.stid],      standpft_cmass_wood_harv);
+
+				double height = 0.0;
+				double diam = 0.0;
+				if (standpft_densindiv_total > 0.0) {
+					height = standpft_heightindiv_total / standpft_densindiv_total;
+					diam = standpft_diamindiv_total / standpft_densindiv_total;
+				}
+				if(!out_height_stand[id][stand.stid].invalid())
+					outlimit_misc(out, out_height_stand[id][stand.stid], height);
+				if(!out_diam_stand[id][stand.stid].invalid())
+					outlimit_misc(out, out_diam_stand[id][stand.stid], diam * 100.0);	//diameter output in cm
+				if(!out_dens_stand[id][stand.stid].invalid())
+					outlimit_misc(out, out_dens_stand[id][stand.stid], standpft_densindiv_total);
 			}
 
 			//Update stand type totals
@@ -943,8 +977,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			if(!out_anpp_stand[id][stand.stid].invalid())
 				outlimit_misc(out, out_anpp_stand[id][stand.stid],      stand.anpp);
+			if(!out_lai_stand[id][stand.stid].invalid())
+				outlimit_misc(out, out_lai_stand[id][stand.stid],      stand.lai);
 			if(!out_cmass_stand[id][stand.stid].invalid())
 				outlimit_misc(out, out_cmass_stand[id][stand.stid],      stand.cmass);
+			if(!out_cmass_wood_stand[id][stand.stid].invalid())
+				outlimit_misc(out, out_cmass_wood_stand[id][stand.stid],      stand.cmass_wood);
+			if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
+				outlimit_misc(out, out_cmass_wood_harv_stand[id][stand.stid], stand.cmass_wood_harv);
 
 			++gc_itr;
 		}
@@ -1253,7 +1293,13 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	if (!date.year || restart && date.year == state_year) {
 		for(int id=0;id<MAXNUMBER_STANDS;id++) {
 			out_anpp_stand[id] = new Table[nst];
+			out_lai_stand[id] = new Table[nst];
 			out_cmass_stand[id] = new Table[nst];
+			out_diam_stand[id] = new Table[nst];
+			out_height_stand[id] = new Table[nst];
+			out_dens_stand[id] = new Table[nst];
+			out_cmass_wood_stand[id] = new Table[nst];
+			out_cmass_wood_harv_stand[id] = new Table[nst];
 		}
 	}
 
@@ -1274,7 +1320,10 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		Stand& stand = *gc_itr;
 
 		stand.anpp=0.0;
+		stand.lai=0.0;
 		stand.cmass=0.0;
+		stand.cmass_wood=0.0;
+		stand.cmass_wood_harv=0.0;
 
 		if(stand.first_year == date.year || stand.clone_year == date.year) {
 			if(stand.landcover == NATURAL) {
@@ -1325,23 +1374,86 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			anpp_columns += ColumnDescriptors(pfts,               8, 3);
 			anpp_columns += ColumnDescriptor("Total",             8, 3);
 
+			ColumnDescriptors diam_columns;
+			diam_columns += ColumnDescriptors(pfts,               8, 3);
+
+			ColumnDescriptors dens_columns;
+			dens_columns += ColumnDescriptors(pfts,               8, 4);
+
 			if(open[stand.landcover]) {
 
-				strcpy(outfilename, dirname);
-				strcat(outfilename, "anpp_");
-				strcat(outfilename, (char*)st.name);
-				strcat(outfilename, buffer);
+				if(print_anpp_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "anpp_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
 
-				if(out_anpp_stand[id][stand.stid].invalid())
-					create_output_table(out_anpp_stand[id][stand.stid], outfilename, anpp_columns);
+					if(out_anpp_stand[id][stand.stid].invalid())
+						create_output_table(out_anpp_stand[id][stand.stid], outfilename, anpp_columns);
+				}
+				if(print_lai_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "lai_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
 
-				strcpy(outfilename, dirname);
-				strcat(outfilename, "cmass_");
-				strcat(outfilename, (char*)st.name);
-				strcat(outfilename, buffer);
+					if(out_lai_stand[id][stand.stid].invalid())
+						create_output_table(out_lai_stand[id][stand.stid], outfilename, anpp_columns);
+				}
+				if(print_cmass_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "cmass_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
 
-				if(out_cmass_stand[id][stand.stid].invalid())
-					create_output_table(out_cmass_stand[id][stand.stid], outfilename, anpp_columns);
+					if(out_cmass_stand[id][stand.stid].invalid())
+						create_output_table(out_cmass_stand[id][stand.stid], outfilename, anpp_columns);
+				}
+				if(print_cmass_wood_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "cmass_wood_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_cmass_wood_stand[id][stand.stid].invalid())
+						create_output_table(out_cmass_wood_stand[id][stand.stid], outfilename, anpp_columns);
+				}
+				if(print_cmass_wood_harv_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "cmass_wood_harv_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_cmass_wood_harv_stand[id][stand.stid].invalid())
+						create_output_table(out_cmass_wood_harv_stand[id][stand.stid], outfilename, anpp_columns);
+				}
+				if(print_diam_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "diam_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_diam_stand[id][stand.stid].invalid())
+						create_output_table(out_diam_stand[id][stand.stid], outfilename, diam_columns);
+				}
+				if(print_height_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "height_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_height_stand[id][stand.stid].invalid())
+						create_output_table(out_height_stand[id][stand.stid], outfilename, diam_columns);
+				}
+				if(print_dens_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "dens_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_dens_stand[id][stand.stid].invalid())
+						create_output_table(out_dens_stand[id][stand.stid], outfilename, dens_columns);
+				}
 			}
 
 			++gc_itr;
@@ -1359,15 +1471,39 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 		for(int st=0;st<nst;st++) {
 			if(!out_anpp_stand[id][st].invalid())
 				close_output_table(out_anpp_stand[id][st]);
+			if(!out_lai_stand[id][st].invalid())
+				close_output_table(out_lai_stand[id][st]);
 			if(!out_cmass_stand[id][st].invalid())
 				close_output_table(out_cmass_stand[id][st]);
+			if(!out_diam_stand[id][st].invalid())
+				close_output_table(out_diam_stand[id][st]);
+			if(!out_height_stand[id][st].invalid())
+				close_output_table(out_height_stand[id][st]);
+			if(!out_dens_stand[id][st].invalid())
+				close_output_table(out_dens_stand[id][st]);
+			if(!out_cmass_wood_stand[id][st].invalid())
+				close_output_table(out_cmass_wood_stand[id][st]);
+			if(!out_cmass_wood_harv_stand[id][st].invalid())
+				close_output_table(out_cmass_wood_harv_stand[id][st]);
 	}
 }
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 		if(out_anpp_stand[id])
 			delete[] out_anpp_stand[id];
+		if(out_lai_stand[id])
+			delete[] out_lai_stand[id];
 		if(out_cmass_stand[id])
 			delete[] out_cmass_stand[id];
+		if(out_diam_stand[id])
+			delete[] out_diam_stand[id];
+		if(out_height_stand[id])
+			delete[] out_height_stand[id];
+		if(out_dens_stand[id])
+			delete[] out_dens_stand[id];
+		if(out_cmass_wood_stand[id])
+			delete[] out_cmass_wood_stand[id];
+		if(out_cmass_wood_harv_stand[id])
+			delete[] out_cmass_wood_harv_stand[id];
 	}
 }
 

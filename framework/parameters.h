@@ -281,6 +281,14 @@ extern bool readcutinterval_st;
 
 /// Whether to print multiple stands within a land cover type (except cropland) separately
 extern bool printseparatestands;
+extern bool print_anpp_stand;
+extern bool print_lai_stand;
+extern bool print_cmass_stand;
+extern bool print_cmass_wood_stand;
+extern bool print_cmass_wood_harv_stand;
+extern bool print_height_stand;
+extern bool print_diam_stand;
+extern bool print_dens_stand;
 
 /// Whether to simulate tillage by increasing soil respiration
 extern bool iftillage;

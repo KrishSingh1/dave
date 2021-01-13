@@ -530,6 +530,11 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
 
+				for(unsigned int i=0;i<pftlist.nobj;i++) {
+					Patchpft& patchpft = patch.pft[i];
+					patchpft.cmass_wood_harv = 0.0;
+				}
+
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
 				patch.soil.aorgNleach = 0.0;

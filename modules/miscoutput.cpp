@@ -562,8 +562,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				Vegetation& vegetation = patch.vegetation;
 
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
-				standpft_cmass_wood_harv += patch.fluxes.get_annual_flux(Fluxes::HARVWOODC, pft.id);
 
+				standpft_cmass_wood_harv += patchpft.cmass_wood_harv;
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 

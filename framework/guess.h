@@ -1236,8 +1236,6 @@ public:
 		MT_TRIC,
 		MT_TBOC,
 		MT_OTHR,
-		/// Harvested wood C before removing part to the product pool (mgC/m2)
-		HARVWOODC,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
@@ -4073,6 +4071,8 @@ public:
 	double litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
+	/// harvested wood C before removing part to the product pool (kgC/m2)
+	double cmass_wood_harv;
 
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
@@ -4168,6 +4168,8 @@ public:
 
 		inund_count=0;
 		inund_stress=1.0; // No stress by default
+
+		cmass_wood_harv = 0.0;
 	}
 
 	~Patchpft() {

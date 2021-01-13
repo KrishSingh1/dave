@@ -123,9 +123,22 @@ MiscOutput::MiscOutput() {
 		declare_parameter("file_daily_root",&file_daily_root,300,"Daily root allocation output file");
 		declare_parameter("file_daily_storage",&file_daily_storage,300,"Daily storage allocation output file");
 	}
+
+	printstandtypes = false;
+
+	declare_parameter("printstandtypes", &printstandtypes, "Whether stand type output enabled (0,1)");
 }
 
 MiscOutput::~MiscOutput() {
+
+	if(printstandtypes) {
+		for(int st=0;st<nst;st++) {
+			if(!out_cmass_pft_st[st].invalid())
+				close_output_table(out_cmass_pft_st[st]);
+		}
+		if(out_cmass_pft_st)
+			delete[] out_cmass_pft_st;
+	}
 }
 
 /// Define all output tables and their formats
@@ -384,6 +397,33 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
 
+	if(printstandtypes) {
+		char dirname[200]={'\0'};
+		strcpy(dirname, "st_output/");
+#ifdef _MSC_VER
+		_mkdir(dirname);
+#else
+		mkdir(dirname, 0777);
+#endif
+		out_cmass_pft_st = new Table[nst];
+
+		for(int i=0;i<nst;i++) {
+			StandType& st = stlist[i];
+
+			char outfilename[100]={'\0'}, buffer[50]={'\0'};
+
+			strcat(buffer, "_pft_st.out");
+
+			outfilename[0] = '\0';
+			strcpy(outfilename, dirname);
+			strcat(outfilename, "cmass_");
+			strcat(outfilename, (char*)st.name);
+			strcat(outfilename, buffer);
+
+			create_output_table(out_cmass_pft_st[i], outfilename, cmass_columns_lc);
+		}
+	}
+
 	// *** DAILY OUTPUT VARIABLES ***
 
 	create_output_table(out_daily_lai,					file_daily_lai,					daily_columns);
@@ -509,8 +549,19 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_heightindiv_total = 0.0;
 	double standpft_diamindiv_total = 0.0;
 
+	double* st_pft_cmass = new double[nst];
+	double* st_total_cmass = new double[nst];
+
+	for(int stid=0; stid<nst; stid++) {
+		st_total_cmass[stid] = 0.0;
+	}
+
 	pftlist.firstobj();
 	while (pftlist.isobj) {
+
+		for(int stid=0; stid<nst; stid++) {
+			st_pft_cmass[stid] = 0.0;
+		}
 
 		Pft& pft=pftlist.getobj();
 
@@ -706,6 +757,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			StandType& st = stlist[stand.stid];
 			Gridcellst& gcst = gridcell.st[stand.stid];
 
+			st_pft_cmass[stand.stid] += standpft_cmass * stand.get_gridcell_fraction();
+			st_total_cmass[stand.stid] += standpft_cmass * stand.get_gridcell_fraction();
+
 			if(gcst.frac) {
 				st.anpp += standpft_anpp * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
@@ -723,6 +777,19 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			++gc_itr;
 		}//End of loop through stands
+
+		// Print to pft per stand type output
+		if(printstandtypes) {
+			for(int stid=0; stid<nst; stid++) {
+				Gridcellst& gcst = gridcell.st[stid];
+				if(gcst.frac) {
+					outlimit_misc(out, out_cmass_pft_st[stid],     st_pft_cmass[stid] / gcst.frac);
+				}
+				else {
+					outlimit_misc(out, out_cmass_pft_st[stid],     0.0);
+				}
+			}
+		}
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 		if (run_landcover) {
@@ -815,6 +882,20 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		pftlist.nextobj();
 
 	} // *** End of PFT loop ***
+
+	if(printstandtypes) {
+		for(int stid=0; stid<nst; stid++) {
+			Gridcellst& gcst = gridcell.st[stid];
+			if(gcst.frac) {
+				if(!out_cmass_pft_st[stid].invalid())
+					outlimit_misc(out, out_cmass_pft_st[stid],     st_total_cmass[stid] / gcst.frac);
+			}
+			else {
+				if(!out_cmass_pft_st[stid].invalid())
+					outlimit_misc(out, out_cmass_pft_st[stid],     0.0);
+			}
+		}
+	}
 
 	double flux_veg_lc[NLANDCOVERTYPES], flux_repr_lc[NLANDCOVERTYPES],
 		 flux_soil_lc[NLANDCOVERTYPES], flux_fire_lc[NLANDCOVERTYPES],
@@ -1257,6 +1338,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.prec_range);
+
+	if(st_pft_cmass)
+		delete[] st_pft_cmass;
+	if(st_total_cmass)
+		delete[] st_total_cmass;
 }
 
 /// Output of simulation results at the end of each day

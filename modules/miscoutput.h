@@ -112,6 +112,8 @@ private:
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts, out_cmass_wood_harv_toprod_sts,
 		  out_dens_sts, out_diam_g_sts, out_csoil_sts, out_clitter_sts;
 
+	Table* out_cmass_pft_st;
+
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
 	Table* out_lai_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_stand[MAXNUMBER_STANDS];
@@ -132,6 +134,8 @@ private:
 		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
+
+	bool printstandtypes;
 };
 
 }

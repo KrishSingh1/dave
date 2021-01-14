@@ -488,11 +488,17 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.anflux_clearing=0.0;
 		gridcell.landcover.anflux_clearing_orig=0.0;
 
+		gridcell.landcover.roundwood_harvest=0.0;
+		gridcell.landcover.roundwood_toprod=0.0;
+		gridcell.landcover.harv_killed_c=0.0;
+		gridcell.landcover.harv_tolitt=0.0;
+
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
 			gridcell.landcover.acflux_wood_harvest_lc[i]=0.0;
 			gridcell.landcover.acflux_clearing_lc[i]=0.0;
 			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
+			gridcell.landcover.cloned_c_lc[i]=0.0;
 			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
 			gridcell.landcover.anflux_wood_harvest_lc[i]=0.0;
 			gridcell.landcover.anflux_clearing_lc[i]=0.0;
@@ -731,6 +737,16 @@ void dailyaccounting_patch(Patch& patch) {
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+
+		for(unsigned int i=0;i<pftlist.nobj;i++) {
+			Patchpft& patchpft = patch.pft[i];
+			patchpft.cmass_mort = 0.0;
+			patchpft.cmass_fire = 0.0;
+			patchpft.cmass_dist = 0.0;
+			patchpft.cmass_turnover = 0.0;
+			patchpft.cmass_repr = 0.0;
+			patchpft.cmass_est = 0.0;
+		}
 	}
 
 	if (date.dayofmonth == 0) {

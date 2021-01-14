@@ -1652,6 +1652,14 @@ public:
 	double cmass;
 	double cmass_tree;
 	double cmass_wood;
+	double cmass_wood_potharv;
+	double cmass_wood_potharv_products;
+	double cmass_mort;
+	double cmass_fire;
+	double cmass_dist;
+	double cmass_turnover;
+	double cmass_repr;
+	double cmass_est;
 	double cmass_wood_harv;
 	double cmass_wood_harv_toprod;
 	double cmass_harv_tolitter;
@@ -4074,6 +4082,18 @@ public:
 	double litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
+	/// carbon lost during mortality
+	double cmass_mort;
+	/// carbon lost during fire
+	double cmass_fire;
+	/// carbon lost during ´disturbance
+	double cmass_dist;
+	/// carbon lost during turnover
+	double cmass_turnover;
+	/// carbon lost to reproduction
+	double cmass_repr;
+	/// carbon added at establishment
+	double cmass_est;
 	/// carbon in biomass killed in harvest this year (kgC/m2)
 	double cmass_killed_harv;
 	/// harvested wood C before removing part to the product pool (kgC/m2)
@@ -4975,6 +4995,14 @@ struct Landcover : public Serializable {
 	double acflux_clearing;
 	/// Gridcell-level C removal at clearing for cropland and pasture
 	double acflux_clearing_orig;
+	/// Gridcell-level C removal of harvested roundwood
+	double roundwood_harvest;
+	/// Gridcell-level C harvested roundwood going to the product pool
+	double roundwood_toprod;
+	/// Gridcell-level C of killed trees in wood harvest
+	double harv_killed_c;
+	/// Gridcell-level C of killed trees in wood harvest left on site
+	double harv_tolitt;
 
 	/// Gridcell-level N flux from slow harvested products
 	double anflux_harvest_slow;
@@ -5001,6 +5029,8 @@ struct Landcover : public Serializable {
 	double acflux_wood_harvest_lc[NLANDCOVERTYPES];
 	/// Landcover-level C flux from clearing for cropland and pasture (donating landcover)
 	double acflux_clearing_lc[NLANDCOVERTYPES];
+	/// Landcover-level C flux transferred during cloning of stands
+	double cloned_c_lc[NLANDCOVERTYPES];
 
 	/// Landcover-level N flux from slow harvested products (donating landcover)
 	double anflux_harvest_slow_lc[NLANDCOVERTYPES];

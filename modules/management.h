@@ -247,6 +247,7 @@ struct Harvest_CN {
 	double acflux_harvest_wood;
 	double acflux_harvest_wood_toprod;
 	double acflux_harvest_tolitter;
+	double acflux_harvest_killed;
 
 	Harvest_CN() {
 
@@ -256,7 +257,7 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
+		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = acflux_harvest_killed = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.

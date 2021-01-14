@@ -905,6 +905,30 @@ void Stand::set_management() {
 		pftlist.nextobj();
 	}
 
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pftx = pftlist.getobj();
+
+		for(unsigned int p = 0; p < nobj; p++) {
+			Patch& patch = (*this)[p];
+			Vegetation& vegetation = patch.vegetation;
+			vegetation.firstobj();
+			while (vegetation.isobj) {
+				Individual& indiv = vegetation.getobj();
+				Patchpft& ppft = patch.pft[indiv.pft.id];
+				if(indiv.pft.id == pftx.id) {
+					if(clone_year == date.year) {
+						// vegetation C transferred during cloning (may be harvested below)
+						get_gridcell().landcover.cloned_c_lc[lc_origin] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+						get_gridcell().landcover.cloned_c_lc[landcover] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+					}
+				}
+				vegetation.nextobj();
+			}
+		}
+		pftlist.nextobj();
+	}
+
 	if(mt.cutfirstyear) {
 		for(unsigned int p = 0; p < nobj; p++) {
 			Patch& patch = (*this)[p];
@@ -1032,6 +1056,10 @@ void Stand::set_management() {
 									if(indiv.pft.id == pftx.id && pftx.id != id) {
 										if(clone_year == date.year) {
 											// cut at cloning (LUC)
+											get_gridcell().landcover.harv_killed_c += indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+											// subtract harvested C from transferred living C
+											get_gridcell().landcover.cloned_c_lc[lc_origin] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+											get_gridcell().landcover.cloned_c_lc[landcover] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
 										}
 										else {
 											// cut at rotation
@@ -1117,6 +1145,10 @@ void Stand::set_management() {
 								if(indiv.pft.id == pftx.id) {
 									if(clone_year == date.year) {
 										// cut at cloning (LUC)
+										get_gridcell().landcover.harv_killed_c += indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+										// subtract harvested C from transferred living C
+										get_gridcell().landcover.cloned_c_lc[lc_origin] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+										get_gridcell().landcover.cloned_c_lc[landcover] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
 									}
 									else {
 										// cut at rotation
@@ -1696,6 +1728,8 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 
 		// Reduce this Individual's biomass values
+
+		ppft.cmass_fire += mortality_fire * ccont();
 
 		const double remaining = 1.0 - mortality;
 

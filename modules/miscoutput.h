@@ -75,7 +75,8 @@ private:
 		   file_aaet_natural, file_aaet_forest, file_agpp_natural, file_agpp_forest,
 		   file_speciesdiam_natural, file_speciesdiam_forest,
 		   file_speciesheights_natural, file_speciesheights_forest,
-		   file_lai_natural, file_lai_forest, file_fpc_natural, file_fpc_forest;
+		   file_lai_natural, file_lai_forest, file_fpc_natural, file_fpc_forest,
+		   file_cmass_killed_harv, file_vegc, file_cflux_veg, file_wood_harvest;
 
 	// stand type output
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_wood_sts, 
@@ -118,7 +119,8 @@ private:
 		  out_diamstruct_forest, out_diamstruct_cmass_natural, out_diamstruct_cmass_forest,
 		  out_aaet_natural, out_aaet_forest, out_speciesdiam_natural, out_speciesdiam_forest,
 		  out_speciesheights_natural, out_speciesheights_forest,
-		  out_lai_natural, out_lai_forest, out_fpc_natural, out_fpc_forest;
+		  out_lai_natural, out_lai_forest, out_fpc_natural, out_fpc_forest,
+		  out_wood_harvest, out_vegc, out_cflux_veg, out_cmass_killed_harv;
 
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts, out_cmass_wood_harv_toprod_sts,
 		  out_dens_sts, out_diam_g_sts, out_cutinterval_sts, out_csoil_sts, out_clitter_sts;

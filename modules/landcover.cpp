@@ -1559,18 +1559,6 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						fail("Modify code to deal with landcover harvest at landcover change!\n");
 					}
 
-					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
-						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
-						cp.cmass_leaf, cp.cmass_root, cp.cmass_sap, cp.cmass_heart,
-						cp.nmass_leaf, cp.nmass_root, cp.nmass_sap, cp.nmass_heart,
-						cp.litter_leaf,
-						cp.litter_root,
-						cp.nmass_litter_leaf,
-						cp.nmass_litter_root,
-						cp.nstore_longterm, cp.max_n_storage,
-						indiv.alive);
-
-
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
 					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
@@ -1592,6 +1580,11 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						lc.anflux_wood_harvest += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
+
+						lc.roundwood_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
+						lc.roundwood_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
+						lc.harv_tolitt += wood_harvest_ratio * cp.acflux_harvest_tolitter * donor_area / (double)stand.nobj;
+						lc.harv_killed_c += wood_harvest_ratio * indiv.ccont() * donor_area / (double)stand.nobj;
 
 						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
 						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;

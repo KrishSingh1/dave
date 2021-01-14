@@ -205,6 +205,57 @@ st "Forest" (
 	suppress_disturbance 1
 )
 
+
+! Example forestry stand types using functional tree pft classes and automated harvest methods
+
+group "st_man" (
+
+	landcover "forest"
+	naturalveg "all"
+	reestab "restricted"
+)
+
+group "mt_man" (
+	suppress_fire 1
+	suppress_disturbance 1
+	harvest_system "clearcut"
+	ifclearcut_by_density 1
+	ifthin_reineke 1
+	stochmort 0
+)
+
+st "ForestNE" (
+
+	st_man
+	stinclude 0
+	mt_man
+	planting_system "NEEDLELEAF_EVERGREEN"
+)
+
+st "ForestND" (
+
+	st_man
+	stinclude 0
+	mt_man
+	planting_system "NEEDLELEAF_DECIDUOUS"
+)
+
+st "ForestBE" (
+
+	st_man
+	stinclude 0
+	mt_man
+	planting_system "BROADLEAF_EVERGREEN"
+)
+
+st "ForestBD" (
+
+	st_man
+	stinclude 0
+	mt_man
+	planting_system "BROADLEAF_DECIDUOUS"
+)
+
 st "Barren" (
 
 	common_stand

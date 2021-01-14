@@ -1179,6 +1179,60 @@ void Stand::set_management() {
 	else if(mt.planting_system != "") {
 
 		// planting systems (pft selections) defined here
+
+
+		// Functional tree pft classes
+
+		const bool natural_reestab_only = false;
+
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pftx = pftlist.getobj();
+
+			if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+
+				if(mt.planting_system == "NEEDLELEAF_EVERGREEN" &&
+					pftx.leafphysiognomy == NEEDLELEAF && pftx.phenology == EVERGREEN ||
+					mt.planting_system == "NEEDLELEAF_DECIDUOUS" &&
+					pftx.leafphysiognomy == NEEDLELEAF && pftx.phenology == SUMMERGREEN ||
+					mt.planting_system == "BROADLEAF_EVERGREEN" &&
+					pftx.leafphysiognomy == BROADLEAF && pftx.phenology == EVERGREEN ||
+					mt.planting_system == "BROADLEAF_DECIDUOUS" &&
+					pftx.leafphysiognomy == BROADLEAF && (pftx.phenology == SUMMERGREEN || pftx.phenology == RAINGREEN)
+					 && pftx.crownarea_max > 10) {
+
+
+					if(pftx.landcover == landcover || !natural_reestab_only) {
+						pft[pftx.id].active = true;
+						pft[pftx.id].plant = true;
+					}
+
+					// Alternative options here are only relevant when planted trees (FOREST) and regenerated growth 
+					// (FOREST and/or NATURAL) needs to be distinguished in the output
+					if(st.reestab == "RESTRICTED") {
+						// 1-2. reestablishment by both forest and natural planted pfts
+//						{
+						// 3. reestablishment only by natural pfts (when active)
+						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							pft[pftx.id].active = true;
+							pft[pftx.id].reestab = true;
+						}
+					}
+					else if(st.reestab == "ALL") {
+						// 1. reestablishment by both forest and natural pfts
+//						{
+						// 2. reestablishment by natural pfts (when active) and planted forest pfts
+//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+						// 3. reestablishment only by natural pfts (when active)
+						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							pft[pftx.id].active = true;
+							pft[pftx.id].reestab = true;
+						}
+					}
+				}
+			}
+			pftlist.nextobj();
+		}
 	}
 }
 

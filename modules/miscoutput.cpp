@@ -78,6 +78,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
+	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000, "Latest cutting interval (patch age at year of clearcut) output file");
 	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
@@ -317,6 +318,8 @@ void MiscOutput::define_output_tables() {
 	st_columns += ColumnDescriptors(sts,            12, 3);
 	ColumnDescriptors st_dens_columns;
 	st_dens_columns += ColumnDescriptors(sts,       12, 4);
+	ColumnDescriptors st_columns_age;
+	st_columns_age += ColumnDescriptors(sts,       12, 1);
 
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
@@ -393,6 +396,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
 	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_dens_columns);
+	create_output_table(out_cutinterval_sts,			file_cutinterval_sts,			st_columns_age);
 	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
@@ -1090,6 +1094,30 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			diam_g = pow(diam_g, 0.5);
 		}
 		outlimit_misc(out, out_diam_g_sts, diam_g);
+
+		// Determine number of patches of this stand type that have been clear-cut this yéar (area fraction not considered)
+		int npatches_cc = 0;
+		double cutinterval_mean = 0.0;
+
+		Gridcell::iterator gc_itr = gridcell.begin();
+
+		// Loop through Stands
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+
+			//Loop through Patches
+			stand.firstobj();
+			while (stand.stid == i && stand.isobj) {
+				Patch& patch = stand.getobj();
+				if(patch.cutinterval_actual) {
+					npatches_cc++;
+					cutinterval_mean += patch.cutinterval_actual;
+				}
+				stand.nextobj();
+			}
+			++gc_itr;
+		}
+		outlimit_misc(out, out_cutinterval_sts, cutinterval_mean / max(1, npatches_cc));
 	}
 
 	if (run[CROPLAND]) {

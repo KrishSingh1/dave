@@ -393,6 +393,7 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	man_strength = 0.0;
 	harvest_to_litter = false;
 	clearcut_this_year = false;
+	cutinterval_actual = 0;
 	managed_this_year = false;
 	plant_this_year = false;
 	distributed_cutting = false;

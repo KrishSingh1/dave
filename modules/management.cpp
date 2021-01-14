@@ -1226,6 +1226,7 @@ double manage_forest(Patch& patch) {
 	if(clearcut_now) {
 		cut_fraction = 1.0;
 		patch.man_strength = cut_fraction;
+		patch.cutinterval_actual = patch.age;
 		patch.age = 0;
 		patch.plant_this_year = true;
 		patch.clearcut_this_year = true;

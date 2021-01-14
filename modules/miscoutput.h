@@ -71,7 +71,11 @@ private:
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
 		   file_anpp_peatland,
 		   file_agestruct_natural, file_agestruct_forest, file_diamstruct_natural,
-		   file_diamstruct_forest, file_diamstruct_cmass_natural, file_diamstruct_cmass_forest;
+		   file_diamstruct_forest, file_diamstruct_cmass_natural, file_diamstruct_cmass_forest,
+		   file_aaet_natural, file_aaet_forest, file_agpp_natural, file_agpp_forest,
+		   file_speciesdiam_natural, file_speciesdiam_forest,
+		   file_speciesheights_natural, file_speciesheights_forest,
+		   file_lai_natural, file_lai_forest, file_fpc_natural, file_fpc_forest;
 
 	// stand type output
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_wood_sts, 
@@ -111,7 +115,10 @@ private:
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
 		  out_anpp_peatland,
 		  out_agestruct_natural, out_agestruct_forest, out_diamstruct_natural,
-		  out_diamstruct_forest, out_diamstruct_cmass_natural, out_diamstruct_cmass_forest;
+		  out_diamstruct_forest, out_diamstruct_cmass_natural, out_diamstruct_cmass_forest,
+		  out_aaet_natural, out_aaet_forest, out_speciesdiam_natural, out_speciesdiam_forest,
+		  out_speciesheights_natural, out_speciesheights_forest,
+		  out_lai_natural, out_lai_forest, out_fpc_natural, out_fpc_forest;
 
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts, out_cmass_wood_harv_toprod_sts,
 		  out_dens_sts, out_diam_g_sts, out_cutinterval_sts, out_csoil_sts, out_clitter_sts;

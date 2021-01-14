@@ -66,6 +66,16 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_npool_natural", &file_npool_natural, 300, "Soil N output file");
 	declare_parameter("file_npool_forest", &file_npool_forest, 300, "Soil N output file");
 	declare_parameter("file_npool_peatland", &file_npool_peatland, 300, "Soil N output file");
+	declare_parameter("file_aaet_natural", &file_aaet_natural, 300, "Annual natural vegetation AET output file");
+	declare_parameter("file_aaet_forest", &file_aaet_forest, 300, "Annual managed forest AET output file");
+	declare_parameter("file_fpc_natural", &file_fpc_natural, 300, "Annual natural vegetation FPC output file");
+	declare_parameter("file_fpc_forest", &file_fpc_forest, 300, "Annual managed forest FPC output file");
+	declare_parameter("file_lai_natural", &file_lai_natural, 300, "Annual natural vegetation LAI output file");
+	declare_parameter("file_lai_forest", &file_lai_forest, 300, "Annual managed forest LAI output file");
+	declare_parameter("file_speciesdiam_natural", &file_speciesdiam_natural, 300, "Mean species diameter");
+	declare_parameter("file_speciesdiam_forest", &file_speciesdiam_forest, 300, "Mean species diameter");
+	declare_parameter("file_speciesheights_natural", &file_speciesheights_natural, 300, "Mean species heights");
+	declare_parameter("file_speciesheights_forest", &file_speciesheights_forest, 300, "Mean species heights");
 
 	declare_parameter("file_soil_nflux_cropland", &file_soil_nflux_cropland, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
@@ -286,6 +296,11 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors anpp_columns = cmass_columns;
 	ColumnDescriptors anpp_columns_lc = cmass_columns_lc;
 
+	// AET
+	ColumnDescriptors aaet_columns_lc;
+	aaet_columns_lc += ColumnDescriptors(pfts,                8, 2);
+	aaet_columns_lc += ColumnDescriptor("Total",              8, 2);
+
 	// DENS
 	ColumnDescriptors dens_columns;
 	dens_columns += ColumnDescriptors(pfts,                8, 4);
@@ -348,6 +363,10 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
+
+	// SPECIESHEIGHTS
+	ColumnDescriptors speciesheights_columns;
+	speciesheights_columns += ColumnDescriptors(pfts,      8, 2);
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
@@ -430,6 +449,16 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cpool_natural,  file_cpool_natural,  cpool_columns);
 	create_output_table(out_cpool_forest,	file_cpool_forest,   cpool_columns);
 	create_output_table(out_cpool_peatland, file_cpool_peatland, cpool_columns);
+	create_output_table(out_aaet_natural,   file_aaet_natural,   aaet_columns_lc);
+	create_output_table(out_aaet_forest,    file_aaet_forest,    aaet_columns_lc);
+	create_output_table(out_lai_natural,    file_lai_natural,    dens_columns_lc);
+	create_output_table(out_lai_forest,     file_lai_forest,     dens_columns_lc);
+	create_output_table(out_fpc_natural,    file_fpc_natural,    cmass_columns_lc);
+	create_output_table(out_fpc_forest,     file_fpc_forest,     cmass_columns_lc);
+	create_output_table(out_speciesdiam_natural,   file_speciesdiam_natural,   speciesheights_columns);
+	create_output_table(out_speciesdiam_forest,    file_speciesdiam_forest,    speciesheights_columns);
+	create_output_table(out_speciesheights_natural, file_speciesheights_natural, speciesheights_columns);
+	create_output_table(out_speciesheights_forest,  file_speciesheights_forest,  speciesheights_columns);
 
 	if (run_landcover && run[CROPLAND]) {
 		create_output_table(out_yield,      file_yield,          crop_columns);
@@ -620,11 +649,19 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double landcover_clitter[NLANDCOVERTYPES]={0.0};
 	double landcover_nlitter[NLANDCOVERTYPES]={0.0};
 	double landcover_anpp[NLANDCOVERTYPES]={0.0};
+	double landcover_fpc[NLANDCOVERTYPES]={0.0};
+	double landcover_aaet[NLANDCOVERTYPES]={0.0};
+	double landcover_lai[NLANDCOVERTYPES]={0.0};
 	double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
 
 	double mean_standpft_anpp_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_cmass_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_densindiv_total_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_aaet_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_lai_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_fpc_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_diamindiv_total_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_heightindiv_total_lc[NLANDCOVERTYPES]={0.0};
 
 	double irrigation_gridcell=0.0;
 
@@ -639,7 +676,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_clitter=0.0;
 	double standpft_nlitter=0.0;
 	double standpft_anpp=0.0;
+	double standpft_aaet=0.0;
 	double standpft_lai=0.0;
+	double standpft_fpc=0.0;
 	double standpft_yield=0.0;
 	double standpft_yield1=0.0;
 	double standpft_yield2=0.0;
@@ -672,6 +711,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_anpp_lc[i]=0.0;
 			mean_standpft_cmass_lc[i]=0.0;
 			mean_standpft_densindiv_total_lc[i]=0.0;
+
+			mean_standpft_aaet_lc[i]=0.0;
+			mean_standpft_lai_lc[i]=0.0;
+			mean_standpft_fpc_lc[i]=0.0;
+			mean_standpft_diamindiv_total_lc[i] = 0.0;
+			mean_standpft_heightindiv_total_lc[i] = 0.0;
 		}
 
 		// Determine area fraction of stands where this pft is active:
@@ -711,6 +756,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_clitter=0.0;
 			standpft_nlitter=0.0;
 			standpft_anpp=0.0;
+			standpft_fpc=0.0;
+			standpft_aaet=0.0;
 			standpft_lai=0.0;
 			standpft_yield=0.0;
 			standpft_yield1=0.0;
@@ -745,6 +792,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						standpft_cmass += indiv.ccont();
 						standpft_cmass_wood += indiv.cmass_wood();
 						standpft_nmass += indiv.ncont();
+						standpft_fpc += indiv.fpc;
+						standpft_aaet += indiv.aaet;
 						standpft_lai += indiv.lai;
 
 						if (pft.landcover == CROPLAND) {
@@ -782,6 +831,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_clitter/=(double)stand.npatch();
 			standpft_nlitter/=(double)stand.npatch();
 			standpft_anpp/=(double)stand.npatch();
+			standpft_fpc/=(double)stand.npatch();
+			standpft_aaet/=(double)stand.npatch();
 			standpft_lai/=(double)stand.npatch();
 			standpft_densindiv_total/=(double)stand.npatch();
 			standpft_heightindiv_total/=(double)stand.npatch();
@@ -796,6 +847,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			landcover_clitter[stand.landcover]+=standpft_clitter*stand.get_landcover_fraction();
 			landcover_nlitter[stand.landcover]+=standpft_nlitter*stand.get_landcover_fraction();
 			landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
+			if(!pft.isintercropgrass) {
+				landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
+				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+			}
+			landcover_aaet[stand.landcover]+=standpft_aaet*stand.get_landcover_fraction();
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
 			if(active_fraction) {
@@ -809,6 +865,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
 					mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
 					mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+
+					mean_standpft_aaet_lc[stand.landcover] += standpft_aaet * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_lai_lc[stand.landcover] += standpft_lai * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_fpc_lc[stand.landcover] += standpft_fpc * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_heightindiv_total_lc[stand.landcover]  += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+					mean_standpft_diamindiv_total_lc[stand.landcover]  += standpft_diamindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
 				}
 			}
 
@@ -913,6 +975,18 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_anpp_natural,			mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_natural,			mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
+							outlimit_misc(out, out_aaet_natural,			mean_standpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_natural,				mean_standpft_lai_lc[i]);
+							outlimit_misc(out, out_fpc_natural,				mean_standpft_fpc_lc[i]);
+
+							double height = 0.0;
+							double diam = 0.0;
+							if (mean_standpft_densindiv_total_lc[i] > 0.0) {
+								height = mean_standpft_heightindiv_total_lc[i] / mean_standpft_densindiv_total_lc[i];
+								diam = mean_standpft_diamindiv_total_lc[i] / mean_standpft_densindiv_total_lc[i];
+							}
+							outlimit_misc(out, out_speciesheights_natural, height);
+							outlimit_misc(out, out_speciesdiam_natural, diam * 100.0);	//diameter output in cm
 						}
 						break;
 					case FOREST:
@@ -920,6 +994,18 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_anpp_forest,				mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_forest,			mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_forest,				mean_standpft_densindiv_total_lc[i]);
+							outlimit_misc(out, out_aaet_forest,			mean_standpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_forest,			mean_standpft_lai_lc[i]);
+							outlimit_misc(out, out_fpc_forest,			mean_standpft_fpc_lc[i]);
+
+							double height = 0.0;
+							double diam = 0.0;
+							if (mean_standpft_densindiv_total_lc[i] > 0.0) {
+								height = mean_standpft_heightindiv_total_lc[i] / mean_standpft_densindiv_total_lc[i];
+								diam = mean_standpft_diamindiv_total_lc[i] / mean_standpft_densindiv_total_lc[i];
+							}
+							outlimit_misc(out, out_speciesheights_forest, height);
+							outlimit_misc(out, out_speciesdiam_forest, diam * 100.0);	//diameter output in cm
 						}
 						break;
 					case URBAN:
@@ -1354,8 +1440,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					break;
 				case PASTURE:
 					if (run[NATURAL]) {
-						outlimit_misc(out, out_anpp_pasture,     landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_pasture,	landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_pasture,		landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_pasture,		landcover_cmass[i]);
 					}
 					break;
 				case BARREN:
@@ -1366,6 +1452,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, out_anpp_natural,		landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_natural,		landcover_cmass[i]);
 						outlimit_misc(out, out_dens_natural,		landcover_densindiv_total[i]);
+						outlimit_misc(out, out_aaet_natural,		landcover_aaet[i]);
+						outlimit_misc(out, out_lai_natural,			landcover_lai[i]);
+						outlimit_misc(out, out_fpc_natural,			landcover_fpc[i]);
 					}
 					break;
 				case FOREST:
@@ -1373,6 +1462,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, out_anpp_forest,			landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_forest,		landcover_cmass[i]);
 						outlimit_misc(out, out_dens_forest,			landcover_densindiv_total[i]);
+						outlimit_misc(out, out_aaet_forest,			landcover_aaet[i]);
+						outlimit_misc(out, out_lai_forest,			landcover_lai[i]);
+						outlimit_misc(out, out_fpc_forest,			landcover_fpc[i]);
 					}
 					break;
 				case URBAN:

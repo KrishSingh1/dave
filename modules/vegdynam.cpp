@@ -1123,6 +1123,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		Patchpft& patchpft = patch.pft[indiv.pft.id];
 
 		// For this individual ...
 
@@ -1133,6 +1134,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 		if (!survive(climate,indiv.pft)) {
 
 			// Kill cohort/individual, transfer biomass to litter
+
+			patchpft.cmass_mort += indiv.ccont();
 
 			indiv.kill();
 
@@ -1254,6 +1257,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Deterministic mortality (cohort mode only)
 
 				else frac_survive=1.0-mort;
+
+				patchpft.cmass_mort += (1.0 - frac_survive) * indiv.ccont();
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
@@ -1514,6 +1519,10 @@ void disturbance(Patch& patch, double disturb_prob) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
+			Patchpft& patchpft = patch.pft[indiv.pft.id];
+
+			if(indiv.alive)
+				patchpft.cmass_dist += indiv.ccont();
 
 			indiv.kill();
 

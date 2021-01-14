@@ -121,6 +121,7 @@ bool readcutinterval_st = false;
 bool readwoodharvest_frac = false;
 bool readwoodharvest_cmass = false;
 bool harvest_secondary_to_new_stand = true;
+bool harvest_burn_thin_trees = false;
 bool printseparatestands = false;
 bool print_anpp_stand = true;
 bool print_lai_stand = true;
@@ -579,6 +580,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("print_diamstruct_stand",&print_diamstruct_stand,1,CB_NONE,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,1,CB_NONE,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
+		declareitem("harvest_burn_thin_trees",&harvest_burn_thin_trees,1,CB_NONE,"Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");

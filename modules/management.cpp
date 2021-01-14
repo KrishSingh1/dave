@@ -127,6 +127,17 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 
 	double harvest_slow_frac = pft.harvest_slow_frac;
 
+	if(harvest_burn_thin_trees) {
+		double diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
+		if(pft.leafphysiognomy == NEEDLELEAF && diam < 0.2 ||
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 10 && diam < 0.2 ||		// boreal
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 15 && diam < 0.3 ||		// temperate
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 25 && diam < 0.35 )		// tropical
+			harvest_slow_frac = 0.0;
+		else
+			harvest_slow_frac = 1.0;
+	}
+
 	// all root carbon and nitrogen goes to litter
 	if (alive) {
 

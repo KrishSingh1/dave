@@ -279,6 +279,9 @@ extern bool harvest_secondary_to_new_stand;
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 
+/// Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)
+extern bool harvest_burn_thin_trees;
+
 /// Whether to print multiple stands within a stand type (except cropland) separately
 extern bool printseparatestands;
 extern bool print_anpp_stand;

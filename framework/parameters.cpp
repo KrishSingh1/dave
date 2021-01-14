@@ -130,6 +130,9 @@ bool print_cmass_wood_harv_stand = false;
 bool print_height_stand = false;
 bool print_diam_stand = false;
 bool print_dens_stand = false;
+bool print_agestruct_stand = true;
+bool print_diamstruct_stand = false;
+bool print_diamstruct_cmass_stand = true;
 bool iftillage = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -572,6 +575,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("print_height_stand",&print_height_stand,1,CB_NONE,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_diam_stand",&print_diam_stand,1,CB_NONE,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_dens_stand",&print_dens_stand,1,CB_NONE,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_agestruct_stand",&print_agestruct_stand,1,CB_NONE,"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_diamstruct_stand",&print_diamstruct_stand,1,CB_NONE,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,1,CB_NONE,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");

@@ -69,7 +69,9 @@ private:
 		   file_soil_nflux_natural, file_soil_nflux_forest,
 		   file_cmass_peatland, file_cflux_peatland,
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
-		   file_anpp_peatland;
+		   file_anpp_peatland,
+		   file_agestruct_natural, file_agestruct_forest, file_diamstruct_natural,
+		   file_diamstruct_forest, file_diamstruct_cmass_natural, file_diamstruct_cmass_forest;
 
 	// stand type output
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_wood_sts, 
@@ -107,12 +109,15 @@ private:
 		  out_soil_nflux_natural, out_soil_nflux_forest,
 		  out_cflux_peatland, out_cpool_peatland,
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
-		  out_anpp_peatland;
+		  out_anpp_peatland,
+		  out_agestruct_natural, out_agestruct_forest, out_diamstruct_natural,
+		  out_diamstruct_forest, out_diamstruct_cmass_natural, out_diamstruct_cmass_forest;
 
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts, out_cmass_wood_harv_toprod_sts,
 		  out_dens_sts, out_diam_g_sts, out_cutinterval_sts, out_csoil_sts, out_clitter_sts;
 
 	Table* out_cmass_pft_st;
+	Table* out_diamstruct_cmass_st;
 
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
 	Table* out_lai_stand[MAXNUMBER_STANDS];
@@ -122,6 +127,9 @@ private:
 	Table* out_dens_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_wood_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_wood_harv_stand[MAXNUMBER_STANDS];
+	Table* out_agestruct_stand[MAXNUMBER_STANDS];
+	Table* out_diamstruct_stand[MAXNUMBER_STANDS];
+	Table* out_diamstruct_cmass_stand[MAXNUMBER_STANDS];
 
 	//daily
 	Table out_daily_lai, out_daily_npp, out_daily_cton, out_daily_nmass,
@@ -136,6 +144,8 @@ private:
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
 
 	bool printstandtypes;
+	bool print_cmass_pft_st;
+	bool print_diamstruct_cmass_st;
 };
 
 }

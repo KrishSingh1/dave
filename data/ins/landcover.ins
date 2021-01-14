@@ -73,6 +73,13 @@ param "file_cutinterval_st" (str "")
 !file_csoil_sts "csoil_sts.out"
 !file_clitter_sts "clitter_sts.out"
 
+!file_agestruct_natural "agestruct_dens_natural.out"
+!file_agestruct_forest "agestruct_dens_forest.out"
+!file_diamstruct_natural "diamstruct_dens_natural.out"
+!file_diamstruct_forest "diamstruct_dens_forest.out"
+!file_diamstruct_cmass_natural "diamstruct_cmass_natural.out"
+!file_diamstruct_cmass_forest "diamstruct_cmass_forest.out"
+
 printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
 
 print_anpp_stand 0
@@ -85,6 +92,8 @@ print_diam_stand 0
 print_dens_stand 0
 
 printstandtypes 0
+print_cmass_pft_st 1
+print_diamstruct_cmass_st 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 

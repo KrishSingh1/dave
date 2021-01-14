@@ -278,8 +278,8 @@ void CommonOutput::define_output_tables() {
 		cpool_columns += ColumnDescriptor("SoilsC",        8, 3);
 	}
 	else {
-		cpool_columns += ColumnDescriptor("LitterC",       8, 3);
-		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
+		cpool_columns += ColumnDescriptor("LitterC",       9, 3);
+		cpool_columns += ColumnDescriptor("SoilC",         9, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
@@ -1294,7 +1294,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
 			flux_repr+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
-			flux_soil+=(patch.fluxes.get_annual_flux(Fluxes::SOILC)+patch.fluxes.get_annual_flux(Fluxes::LITTERC))*to_gridcell_average;
+			flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
 			flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
 			flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 			flux_seed+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
@@ -1446,7 +1446,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mevap[m] += patch.fluxes.get_monthly_flux(Fluxes::WEVAP, m) * to_gridcell_average;
 				mintercep[m] += patch.fluxes.get_monthly_flux(Fluxes::WINTERCEP, m) * to_gridcell_average;
 				mrunoff[m] += (patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
-				mrh[m] += (patch.fluxes.get_monthly_flux(Fluxes::SOILC, m) + patch.fluxes.get_monthly_flux(Fluxes::LITTERC, m))*to_gridcell_average;
+				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
 				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC));
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;

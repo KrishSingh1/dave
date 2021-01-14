@@ -767,7 +767,6 @@ void dailyaccounting_patch(Patch& patch) {
 				soilcolumn.soillayers[lyr].temp = 0.0;
 			}
 
-			soilcolumn.soillayers[lyr].aresplitsum = 0.0;
 			soilcolumn.soillayers[lyr].arespsum = 0.0;
 		}
 	}

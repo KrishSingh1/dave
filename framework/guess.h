@@ -145,7 +145,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH4, CO2, RESPSUM, 
-ALRH, ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -1140,8 +1140,6 @@ public:
 	enum PerPatchFluxType {
 		/// Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
 		FIREC,
-		/// Carbon flux to atmosphere from litter respiration (kgC/m2)
-		LITTERC,
 		/// Carbon flux to atmosphere from soil respiration (kgC/m2)
 		SOILC,
 		/// Flux from atmosphere to vegetation associated with establishment (kgC/m2)
@@ -3398,8 +3396,6 @@ public:
 	/// daily carbon flux to atmosphere from soil respiration
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double respsum;
-	/// Annual litter respiration [kg C m-2]
-	double aresplitsum;
 	/// Annual soil respiration [kg C m-2]
 	double arespsum;
 	/// Tiller area
@@ -3556,7 +3552,6 @@ public:
 		CH4_diss = that.CH4_diss;
 		O2 = that.O2;
 		respsum = that.respsum;
-		aresplitsum = that.aresplitsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
 		multi = that.multi;
@@ -3671,7 +3666,6 @@ public:
 		CH4_diss = that.CH4_diss;
 		O2 = that.O2;
 		respsum = that.respsum;
-		aresplitsum = that.aresplitsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
 		multi = that.multi;

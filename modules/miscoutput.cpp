@@ -216,8 +216,8 @@ void MiscOutput::define_output_tables() {
 		cpool_columns += ColumnDescriptor("SoilsC",        8, 3);
 	}
 	else {
-		cpool_columns += ColumnDescriptor("LitterC",       8, 3);
-		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
+		cpool_columns += ColumnDescriptor("LitterC",       9, 3);
+		cpool_columns += ColumnDescriptor("SoilC",         9, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
@@ -814,7 +814,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			flux_veg_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
 			flux_repr_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
-			flux_soil_lc[stand.landcover]+=(patch.fluxes.get_annual_flux(Fluxes::SOILC)+patch.fluxes.get_annual_flux(Fluxes::LITTERC))*to_gridcell_average;
+			flux_soil_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
 			flux_fire_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
 			flux_est_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 			flux_seed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;

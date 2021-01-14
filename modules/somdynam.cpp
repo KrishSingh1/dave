@@ -516,7 +516,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		if (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)
 			scalar = 1.0;
 
-		double k = scalar * K_MAX[p] * temp_mod * moist_mod * depth_mod;
+		double k = scalar * K_MAX[p] * temp_mod * moist_mod;
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
@@ -528,6 +528,11 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}
 		else if (p == SOILMICRO && !acrotelm && !catotelm) {
 			k *= texture_mod;
+		}
+
+		// Decay rate modifier depending on depth only after non wetland soils
+		if (!((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand())) {
+			k *= depth_mod;
 		}
 
 		// Increased decay rates for crops (tillage)
@@ -614,428 +619,364 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		// Check for negative pools
-		/*if (date.year != 200) {
-			for (int p = 0; p < NSOMPOOL; p++) {
-				if (soillayer.sompool[p].cmass < -1.0e-15)
-					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
-				if (soillayer.sompool[p].nmass < -1.0e-15)
-					dprintf("Year %d Day %d Lyr %d Pool %d Before SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
-			}
-		}*/
-
 		double cmass_before = soillayer.ccont();
 		double nmass_before = soillayer.ncont();
 
-		//if (!negligible(cmass_before, -15)) {
+		// mineral nitrogen mass available
+		const double nmin_mass = soillayer.nmass_avail(NH4);
+		if (date.day == 0) {
+			soillayer.anmin = 0.0;
+			soillayer.animmob = 0.0;
+			soillayer.acinc[0] = 0.0;
+			soillayer.acinc[1] = 0.0;
+			soillayer.acdec[0] = 0.0;
+			soillayer.acdec[1] = 0.0;
+		}
 
-			// mineral nitrogen mass available
-			const double nmin_mass = soillayer.nmass_avail(NH4);
-			if (date.day == 0) {
-				soillayer.anmin = 0.0;
-				soillayer.animmob = 0.0;
-				soillayer.acinc[0] = 0.0;
-				soillayer.acinc[1] = 0.0;
-				soillayer.acdec[0] = 0.0;
-				soillayer.acdec[1] = 0.0;
-			}
+		// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
+		if (ifnlim) {
+			assert(soillayer.NH4_mass > -EPS);
+		}
 
-			// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
-			if (ifnlim) {
-				assert(soillayer.NH4_mass > -EPS);
-			}
+		// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
+		// (Parton et al 1993, Fig 4)
 
-			// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
-			// (Parton et al 1993, Fig 4)
+		// ForCent (Parton 2010) values
+		soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
 
-			// ForCent (Parton 2010) values
-			soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
-			soillayer.setntoc(nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
-			soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
+		if (!ifequilsom) {
 
-			if (!ifequilsom) {
+			// Calculate potential fraction remaining following decay today for all pools
+			// (assumes no nitrogen limitation)
+			soillayer.decayrates_century(tillage, soilcolumn.savesomcent);
+			//soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), soilcolumn.savesomcent); // DW_COMMENT
+		}
 
-				// Calculate potential fraction remaining following decay today for all pools
-				// (assumes no nitrogen limitation)
-				soillayer.decayrates_century(tillage, soilcolumn.savesomcent);
-				//soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), soilcolumn.savesomcent); // DW_COMMENT
-			}
+		// Calculate decomposition in all pools assuming these decay rates
+
+		// Save delta carbon and nitrogen mass
+
+		bool net_mineralization = false;
+		int times = 0;
+		double decay_reduction[NSOMPOOL];
+		double growth_reduction[NSOMPOOL];
+		for (int p = 0; p < NSOMPOOL; p++) {
+			decay_reduction[p] = 1.0;
+			growth_reduction[p] = 1.0;
+		}
+		double init_negative_nmass, init_ntoc_reduction;
+		double ntoc_reduction = 0.8;
+		double cdec_save[2] = { 0.0 }, cinc_save[2] = { 0.0 };
+
+		// If mineralization together with soil available nitrogen is negative then decay rates are decreased
+		// The SOM system have five try to get a positive result, after that all pools decay rate has been
+		// affected by nitrogen limitation
+		while (!net_mineralization && times < 2) {
+
+			leachsum_cmass = leachsum_nmass = 0.0;
+			nmin_actual = nimmob = 0.0;
 
 			// Calculate decomposition in all pools assuming these decay rates
-
-			// Save delta carbon and nitrogen mass
-
-			bool net_mineralization = false;
-			int times = 0;
-			double decay_reduction[NSOMPOOL];
-			double growth_reduction[NSOMPOOL];
 			for (int p = 0; p < NSOMPOOL; p++) {
-				decay_reduction[p] = 1.0;
-				growth_reduction[p] = 1.0;
+				soillayer.sompool[p].cdec = soillayer.sompool[p].cmass * (1.0 - soillayer.sompool[p].fracremain) * decay_reduction[p];
+				soillayer.sompool[p].ndec = soillayer.sompool[p].nmass * (1.0 - soillayer.sompool[p].fracremain) * decay_reduction[p];
+
+				soillayer.sompool[p].delta_cmass = -soillayer.sompool[p].cdec;
+				soillayer.sompool[p].delta_nmass = -soillayer.sompool[p].ndec;
+
+				soillayer.sompool[p].cinc = 0.0;
+				soillayer.sompool[p].ninc = 0.0;
+
+				soillayer.sompool[p].respsum = 0.0;
 			}
-			double init_negative_nmass, init_ntoc_reduction;
-			double ntoc_reduction = 0.8;
-			double cdec_save[2] = { 0.0 }, cinc_save[2] = { 0.0 };
 
-			// If mineralization together with soil available nitrogen is negative then decay rates are decreased
-			// The SOM system have five try to get a positive result, after that all pools decay rate has been
-			// affected by nitrogen limitation
-			while (!net_mineralization && times < 2) {
+			// Partition potential decomposition among receiver pools
 
-				leachsum_cmass = leachsum_nmass = 0.0;
-				nmin_actual = nimmob = 0.0;
+			// Donor pool SURFACE STRUCTURAL
 
-				// Calculate decomposition in all pools assuming these decay rates
-				for (int p = 0; p < NSOMPOOL; p++) {
-					soillayer.sompool[p].cdec = soillayer.sompool[p].cmass * (1.0 - soillayer.sompool[p].fracremain) * decay_reduction[p];
-					soillayer.sompool[p].ndec = soillayer.sompool[p].nmass * (1.0 - soillayer.sompool[p].fracremain) * decay_reduction[p];
+			transferdecomp(soillayer, SURFSTRUCT, SURFMICRO, 1.0 - soillayer.sompool[SURFSTRUCT].ligcfrac,
+				0.6, growth_reduction[SURFSTRUCT], nmin_actual, nimmob);
 
-					soillayer.sompool[p].delta_cmass = -soillayer.sompool[p].cdec;
-					soillayer.sompool[p].delta_nmass = -soillayer.sompool[p].ndec;
+			transferdecomp(soillayer, SURFSTRUCT, SURFHUMUS, soillayer.sompool[SURFSTRUCT].ligcfrac, 0.3,
+				growth_reduction[SURFSTRUCT], nmin_actual, nimmob);
 
-					soillayer.sompool[p].cinc = 0.0;
-					soillayer.sompool[p].ninc = 0.0;
+			// Donor pool SURFACE METABOLIC
 
-					soillayer.sompool[p].respsum = 0.0;
+			transferdecomp(soillayer, SURFMETA, SURFMICRO, 1.0, 0.6, growth_reduction[SURFMETA], nmin_actual, nimmob);
+
+			// Donor pool SOIL STRUCTURAL
+
+			transferdecomp(soillayer, SOILSTRUCT, SOILMICRO, 1.0 - soillayer.sompool[SOILSTRUCT].ligcfrac,
+				0.55, growth_reduction[SOILSTRUCT], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SOILSTRUCT, SLOWSOM, soillayer.sompool[SOILSTRUCT].ligcfrac, 0.3,
+				growth_reduction[SOILSTRUCT], nmin_actual, nimmob);
+
+			// Donor pool SOIL METABOLIC
+
+			transferdecomp(soillayer, SOILMETA, SOILMICRO, 1.0, 0.55, growth_reduction[SOILMETA], nmin_actual, nimmob);
+
+			// Donor pool SURFACE FINE WOODY DEBRIS
+
+			transferdecomp(soillayer, SURFFWD, SURFMICRO, 1.0 - soillayer.sompool[SURFFWD].ligcfrac,
+				0.76, growth_reduction[SURFFWD], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SURFFWD, SURFHUMUS, soillayer.sompool[SURFFWD].ligcfrac, 0.4,
+				growth_reduction[SURFFWD], nmin_actual, nimmob);
+
+			// Donor pool SURFACE COARSE WOODY DEBRIS
+
+			transferdecomp(soillayer, SURFCWD, SURFMICRO, 1.0 - soillayer.sompool[SURFCWD].ligcfrac,
+				0.9, growth_reduction[SURFCWD], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SURFCWD, SURFHUMUS, soillayer.sompool[SURFCWD].ligcfrac, 0.5,
+				growth_reduction[SURFCWD], nmin_actual, nimmob);
+
+			// Donor pool SURFACE MICROBE
+
+			transferdecomp(soillayer, SURFMICRO, SURFHUMUS, 1.0, 0.6, growth_reduction[SURFMICRO], nmin_actual, nimmob);
+
+			// Donor pool SURFACE HUMUS
+
+			transferdecomp(soillayer, SURFHUMUS, SLOWSOM, 1.0, 0.6, growth_reduction[SURFHUMUS], nmin_actual, nimmob);
+
+			// Donor pool SOIL FINE WOODY DEBRIS
+
+			transferdecomp(soillayer, SOILFWD, SOILMICRO, 1.0 - soillayer.sompool[SOILFWD].ligcfrac,
+				0.76, growth_reduction[SOILFWD], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SOILFWD, SLOWSOM, soillayer.sompool[SOILFWD].ligcfrac, 0.4,
+				growth_reduction[SOILFWD], nmin_actual, nimmob);
+
+			// Donor pool SOIL COARSE WOODY DEBRIS
+
+			transferdecomp(soillayer, SOILCWD, SOILMICRO, 1.0 - soillayer.sompool[SOILCWD].ligcfrac,
+				0.9, growth_reduction[SOILCWD], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SOILCWD, SLOWSOM, soillayer.sompool[SOILCWD].ligcfrac, 0.5,
+				growth_reduction[SOILCWD], nmin_actual, nimmob);
+
+			// Donor pool SLOW SOM
+
+			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
+			double respfrac = 0.55;
+			double csp = max(0.0, 0.003 - 0.009 * soiltype.clay_frac);
+			double csa = 1.0 - csp - respfrac;
+			double frac_csp = csp / (csp + csa);
+			double frac_csa = 1.0 - frac_csp;
+
+			transferdecomp(soillayer, SLOWSOM, SOILMICRO, frac_csa, respfrac, growth_reduction[SLOWSOM], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SLOWSOM, PASSIVESOM, frac_csp, respfrac, growth_reduction[SLOWSOM], nmin_actual, nimmob);
+
+			// Donor pool SOIL MICROBE
+
+			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
+			// Fraction lost to  microbial respiration (F_t, Parton et al 1993 Eqn 7)
+			respfrac = max(0.0, 0.85 - 0.68 * (soiltype.clay_frac + soiltype.silt_frac));
+
+			// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
+			double cap = 0.003 + 0.032 * soiltype.clay_frac;
+
+			// Fraction entering slow SOM pool
+			double cas = 1.0 - respfrac - soillayer.orgleachfrac - cap;
+
+			double frac_cap = cap / (cap + cas) * (1.0 - soillayer.orgleachfrac);
+			double frac_cas = cas / (cap + cas) * (1.0 - soillayer.orgleachfrac);
+			respfrac /= (1.0 - soillayer.orgleachfrac);
+
+
+			transferdecomp(soillayer, SOILMICRO, PASSIVESOM, frac_cap, respfrac, growth_reduction[SOILMICRO], nmin_actual, nimmob);
+
+			transferdecomp(soillayer, SOILMICRO, SLOWSOM, frac_cas, respfrac, growth_reduction[SOILMICRO], nmin_actual, nimmob);
+
+			// Account for organic carbon and nitrogen leaching loss
+			leachsum_cmass = soillayer.orgleachfrac * soillayer.sompool[SOILMICRO].cdec;
+
+			if (!negligible(soillayer.sompool[SOILMICRO].cmass)) {
+				leachsum_nmass = soillayer.orgleachfrac * soillayer.sompool[SOILMICRO].cdec * soillayer.sompool[SOILMICRO].nmass / soillayer.sompool[SOILMICRO].cmass;
+			}
+
+			// Donor pool PASSIVE SOM
+
+			transferdecomp(soillayer, PASSIVESOM, SOILMICRO, 1.0, 0.55, growth_reduction[PASSIVESOM], nmin_actual, nimmob);
+
+			// Total net mineralization
+			double tot_net_min = nmin_actual - nimmob;
+
+			// Estimate daily soil mineral nitrogen pool after decomposition
+			// (negative value = immobilisation)
+			if (tot_net_min + EPS >= 0.0) {
+
+				net_mineralization = true;
+			}
+			else if (ifnlim && date.year > freenyears) {
+
+				// Net N and/or P mineralisation is negative -> reduce decay rates and microbial CUE
+				if (times < 1) {
+
+					double cdec[NSOMPOOL], ndec[NSOMPOOL], ninc[NSOMPOOL], respsum[NSOMPOOL];
+					for (int p = 0; p < NSOMPOOL; p++) {
+						cdec[p] = soillayer.sompool[p].cdec;
+						ndec[p] = soillayer.sompool[p].ndec;
+						ninc[p] = soillayer.sompool[p].ninc;
+						respsum[p] = soillayer.sompool[p].respsum;
+					}
+					reduce_decay_growth_rates(decay_reduction, growth_reduction, cdec, ndec, ninc, respsum, tot_net_min);
 				}
-
-				// Partition potential decomposition among receiver pools
-
-				// Donor pool SURFACE STRUCTURAL
-
-				transferdecomp(soillayer, SURFSTRUCT, SURFMICRO, 1.0 - soillayer.sompool[SURFSTRUCT].ligcfrac,
-					0.6, growth_reduction[SURFSTRUCT], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SURFSTRUCT, SURFHUMUS, soillayer.sompool[SURFSTRUCT].ligcfrac, 0.3,
-					growth_reduction[SURFSTRUCT], nmin_actual, nimmob);
-
-				// Donor pool SURFACE METABOLIC
-
-				transferdecomp(soillayer, SURFMETA, SURFMICRO, 1.0, 0.6, growth_reduction[SURFMETA], nmin_actual, nimmob);
-
-				// Donor pool SOIL STRUCTURAL
-
-				transferdecomp(soillayer, SOILSTRUCT, SOILMICRO, 1.0 - soillayer.sompool[SOILSTRUCT].ligcfrac,
-					0.55, growth_reduction[SOILSTRUCT], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SOILSTRUCT, SLOWSOM, soillayer.sompool[SOILSTRUCT].ligcfrac, 0.3,
-					growth_reduction[SOILSTRUCT], nmin_actual, nimmob);
-
-				// Donor pool SOIL METABOLIC
-
-				transferdecomp(soillayer, SOILMETA, SOILMICRO, 1.0, 0.55, growth_reduction[SOILMETA], nmin_actual, nimmob);
-
-				// Donor pool SURFACE FINE WOODY DEBRIS
-
-				transferdecomp(soillayer, SURFFWD, SURFMICRO, 1.0 - soillayer.sompool[SURFFWD].ligcfrac,
-					0.76, growth_reduction[SURFFWD], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SURFFWD, SURFHUMUS, soillayer.sompool[SURFFWD].ligcfrac, 0.4,
-					growth_reduction[SURFFWD], nmin_actual, nimmob);
-
-				// Donor pool SURFACE COARSE WOODY DEBRIS
-
-				transferdecomp(soillayer, SURFCWD, SURFMICRO, 1.0 - soillayer.sompool[SURFCWD].ligcfrac,
-					0.9, growth_reduction[SURFCWD], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SURFCWD, SURFHUMUS, soillayer.sompool[SURFCWD].ligcfrac, 0.5,
-					growth_reduction[SURFCWD], nmin_actual, nimmob);
-
-				// Donor pool SURFACE MICROBE
-
-				transferdecomp(soillayer, SURFMICRO, SURFHUMUS, 1.0, 0.6, growth_reduction[SURFMICRO], nmin_actual, nimmob);
-
-				// Donor pool SURFACE HUMUS
-
-				transferdecomp(soillayer, SURFHUMUS, SLOWSOM, 1.0, 0.6, growth_reduction[SURFHUMUS], nmin_actual, nimmob);
-
-				// Donor pool SOIL FINE WOODY DEBRIS
-
-				transferdecomp(soillayer, SOILFWD, SOILMICRO, 1.0 - soillayer.sompool[SOILFWD].ligcfrac,
-					0.76, growth_reduction[SOILFWD], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SOILFWD, SLOWSOM, soillayer.sompool[SOILFWD].ligcfrac, 0.4,
-					growth_reduction[SOILFWD], nmin_actual, nimmob);
-
-				// Donor pool SOIL COARSE WOODY DEBRIS
-
-				transferdecomp(soillayer, SOILCWD, SOILMICRO, 1.0 - soillayer.sompool[SOILCWD].ligcfrac,
-					0.9, growth_reduction[SOILCWD], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SOILCWD, SLOWSOM, soillayer.sompool[SOILCWD].ligcfrac, 0.5,
-					growth_reduction[SOILCWD], nmin_actual, nimmob);
-
-				// Donor pool SLOW SOM
-
-				// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
-				double respfrac = 0.55;
-				double csp = max(0.0, 0.003 - 0.009 * soiltype.clay_frac);
-				double csa = 1.0 - csp - respfrac;
-				double frac_csp = csp / (csp + csa);
-				double frac_csa = 1.0 - frac_csp;
-
-				transferdecomp(soillayer, SLOWSOM, SOILMICRO, frac_csa, respfrac, growth_reduction[SLOWSOM], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SLOWSOM, PASSIVESOM, frac_csp, respfrac, growth_reduction[SLOWSOM], nmin_actual, nimmob);
-
-				// Donor pool SOIL MICROBE
-
-				// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
-				// Fraction lost to  microbial respiration (F_t, Parton et al 1993 Eqn 7)
-				respfrac = max(0.0, 0.85 - 0.68 * (soiltype.clay_frac + soiltype.silt_frac));
-
-				// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-				double cap = 0.003 + 0.032 * soiltype.clay_frac;
-
-				// Fraction entering slow SOM pool
-				double cas = 1.0 - respfrac - soillayer.orgleachfrac - cap;
-
-				double frac_cap = cap / (cap + cas) * (1.0 - soillayer.orgleachfrac);
-				double frac_cas = cas / (cap + cas) * (1.0 - soillayer.orgleachfrac);
-				respfrac /= (1.0 - soillayer.orgleachfrac);
-
-
-				transferdecomp(soillayer, SOILMICRO, PASSIVESOM, frac_cap, respfrac, growth_reduction[SOILMICRO], nmin_actual, nimmob);
-
-				transferdecomp(soillayer, SOILMICRO, SLOWSOM, frac_cas, respfrac, growth_reduction[SOILMICRO], nmin_actual, nimmob);
-
-				// Account for organic carbon and nitrogen leaching loss
-				leachsum_cmass = soillayer.orgleachfrac * soillayer.sompool[SOILMICRO].cdec;
-
-				if (!negligible(soillayer.sompool[SOILMICRO].cmass)) {
-					leachsum_nmass = soillayer.orgleachfrac * soillayer.sompool[SOILMICRO].cdec * soillayer.sompool[SOILMICRO].nmass / soillayer.sompool[SOILMICRO].cmass;
+				else {
+					if (!ifequilsom)
+						dprintf("Year %d Day %d FAIL: Lyr %d Times %d Min %g Imm %g NetMin %g\n", date.year, date.day, lyr, times, nmin_actual, nimmob, tot_net_min);
 				}
+				net_mineralization = false;
+			}
+			else {
 
-				// Donor pool PASSIVE SOM
+				// Not minding immobilisation higher than nmass_avail during free nitrogen years
+				if (date.year > freenyears) {
 
-				transferdecomp(soillayer, PASSIVESOM, SOILMICRO, 1.0, 0.55, growth_reduction[PASSIVESOM], nmin_actual, nimmob);
-
-				// Total net mineralization
-				double tot_net_min = nmin_actual - nimmob;
-
-				// Estimate daily soil mineral nitrogen pool after decomposition
-				// (negative value = immobilisation)
-				if (tot_net_min + EPS >= 0.0) {
-
-					net_mineralization = true;
-				}
-				else if (ifnlim && date.year > freenyears) {
-
-					// Net N and/or P mineralisation is negative -> reduce decay rates and microbial CUE
-					if (times < 1) {
-
-						double cdec[NSOMPOOL], ndec[NSOMPOOL], ninc[NSOMPOOL], respsum[NSOMPOOL];
-						for (int p = 0; p < NSOMPOOL; p++) {
-							cdec[p] = soillayer.sompool[p].cdec;
-							ndec[p] = soillayer.sompool[p].ndec;
-							ninc[p] = soillayer.sompool[p].ninc;
-							respsum[p] = soillayer.sompool[p].respsum;
-						}
-						reduce_decay_growth_rates(decay_reduction, growth_reduction, cdec, ndec, ninc, respsum, tot_net_min);
+					// Immobilization larger than soil available nitrogen -> reduce targeted N concentration in SOM pool with flexible N:C ratios
+					if (times == 0) {
+						// initial reduction
+						init_negative_nmass = tot_net_min + nmin_mass;
+						init_ntoc_reduction = ntoc_reduction;
 					}
 					else {
-						if (!ifequilsom)
-							dprintf("Year %d Day %d FAIL: Lyr %d Times %d Min %g Imm %g NetMin %g\n", date.year, date.day, lyr, times, nmin_actual, nimmob, tot_net_min);
+						// trying to match needed N:C reduction
+						ntoc_reduction = min(init_ntoc_reduction, pow(init_ntoc_reduction, 1.0 / (1.0 - (tot_net_min + nmin_mass) / init_negative_nmass) + 1.0));
 					}
+
+					soillayer.sompool[SLOWSOM].ntoc *= ntoc_reduction;
+					soillayer.sompool[SOILMICRO].ntoc *= ntoc_reduction;
+					soillayer.sompool[SURFHUMUS].ntoc *= ntoc_reduction;
+
 					net_mineralization = false;
 				}
 				else {
-
-					// Not minding immobilisation higher than nmass_avail during free nitrogen years
-					if (date.year > freenyears) {
-
-						// Immobilization larger than soil available nitrogen -> reduce targeted N concentration in SOM pool with flexible N:C ratios
-						if (times == 0) {
-							// initial reduction
-							init_negative_nmass = tot_net_min + nmin_mass;
-							init_ntoc_reduction = ntoc_reduction;
-						}
-						else {
-							// trying to match needed N:C reduction
-							ntoc_reduction = min(init_ntoc_reduction, pow(init_ntoc_reduction, 1.0 / (1.0 - (tot_net_min + nmin_mass) / init_negative_nmass) + 1.0));
-						}
-
-						soillayer.sompool[SLOWSOM].ntoc *= ntoc_reduction;
-						soillayer.sompool[SOILMICRO].ntoc *= ntoc_reduction;
-						soillayer.sompool[SURFHUMUS].ntoc *= ntoc_reduction;
-
-						net_mineralization = false;
-					}
-					else {
-						net_mineralization = true;
-					}
-				}
-
-				// Save initial and final decrease and increase in C pools
-				// Used for annual output files of nutrient limitation on 
-				// decomposition and growth
-				if (!ifequilsom) {
-					if (times > 0) {
-						cdec_save[1] = 0.0;
-						cinc_save[1] = 0.0;
-					}
-
-					for (int p = 0; p < NSOMPOOL; p++) {
-						if (times == 0) {
-							cdec_save[0] += soillayer.sompool[p].cdec;
-							cinc_save[0] += soillayer.sompool[p].cinc;
-						}
-						cdec_save[1] += soillayer.sompool[p].cdec;
-						cinc_save[1] += soillayer.sompool[p].cinc;
-					}
-				}
-
-				times++;
-			}
-
-			// Sum annual C increase and decrease to be able to
-			// calculate annual nutient limitation on decomposition
-			soillayer.acdec[0] += cdec_save[0];
-			soillayer.acdec[1] += cdec_save[1];
-			soillayer.acinc[0] += cinc_save[0];
-			soillayer.acinc[1] += cinc_save[1];
-
-			double resplitsum_tot = 0.0;
-			double respsum_tot = 0.0;
-
-			// Update pool sizes
-
-			for (int p = 0; p < NSOMPOOL; p++) {
-				soillayer.sompool[p].cmass += soillayer.sompool[p].delta_cmass;
-				soillayer.sompool[p].nmass += soillayer.sompool[p].delta_nmass;
-
-				if (p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS) {
-					resplitsum_tot += soillayer.sompool[p].respsum;
-				}
-				else {
-					respsum_tot += soillayer.sompool[p].respsum;
+					net_mineralization = true;
 				}
 			}
 
+			// Save initial and final decrease and increase in C pools
+			// Used for annual output files of nutrient limitation on 
+			// decomposition and growth
 			if (!ifequilsom) {
-
-				// Updated soil fluxes. In wetlands, some portion of respiration can be emitted as CH4, so save respiration as respsum until Soil::methane() is called.  
-				if (patch.stand.landcover != PEATLAND) {
-					patch.fluxes.report_flux(Fluxes::SOILC, respsum_tot);
-					soillayer.respsum = 0.0;
-				}
-				else {
-					soillayer.respsum = respsum_tot;
+				if (times > 0) {
+					cdec_save[1] = 0.0;
+					cinc_save[1] = 0.0;
 				}
 
-				patch.fluxes.report_flux(Fluxes::LITTERC, resplitsum_tot);
-
-				cextra += respsum_tot + resplitsum_tot;
-
-				soillayer.aresplitsum += resplitsum_tot;
-				soillayer.arespsum += respsum_tot;
-
-				// Sum annual organic nitrogen leaching
-				soillayer.aorgNleach += leachsum_nmass;
-				nextra += leachsum_nmass;
-
-				// Sum annual organic carbon leaching
-				soillayer.aorgCleach += leachsum_cmass;
-				cextra += leachsum_cmass;
-
-				// Sum annuals
-				soillayer.anmin += nmin_actual;
-				soillayer.animmob += nimmob;
-			}
-
-			// Fraction of microbial resp. is assumed to produce labile carbon
-			soillayer.labile_carbon = (respsum_tot + resplitsum_tot) * frac_labile_carbon;
-
-			// Adding mineral nitrogen to soil available pool
-			double nmin_inc = nmin_actual - nimmob;
-
-			// If no nitrogen limitation or during free nitrogen years
-			// net mineralisation could be negative. Set to zero
-			// in that case
-			if (!ifnlim || date.year <= freenyears)
-				nmin_inc = max(0.0, nmin_inc);
-
-			if (!ifequilsom) {
-				soillayer.mnetmin[date.month] += nmin_inc;
-			}
-			double nflux_tmp = 0.0;
-			// Estimate of N flux from soil (simple CLM-CN approach)
-			if (!ifntransform) {
-				double nflux = nmin_inc > 0.0 ? (nmin_inc) * 0.01 : 0.0;
-				nmin_inc -= nflux;
-				nextra += nflux;
-				nflux_tmp += nflux;
-
-				if (!ifequilsom) {
-					patch.fluxes.report_flux(Fluxes::NH3_SOIL, nflux);
-				}
-			}
-			soillayer.nmass_inc(nmin_inc, NH4);
-
-			// If no nitrogen limitation or during free nitrogen years set soil
-			// available nitrogen to its saturation level.
-			if (!ifnlim || date.year <= freenyears) {
-				if (ifntransform) {
-					soillayer.NH4_mass = NMASS_SAT / 2.0;
-					soillayer.NO3_mass = NMASS_SAT / 2.0;
-				}
-				else {
-					soillayer.NH4_mass = NMASS_SAT;
+				for (int p = 0; p < NSOMPOOL; p++) {
+					if (times == 0) {
+						cdec_save[0] += soillayer.sompool[p].cdec;
+						cinc_save[0] += soillayer.sompool[p].cinc;
+					}
+					cdec_save[1] += soillayer.sompool[p].cdec;
+					cinc_save[1] += soillayer.sompool[p].cinc;
 				}
 			}
 
-			double cmass_after = soillayer.ccont() + respsum_tot + resplitsum_tot + leachsum_cmass;
-			double nmass_after = soillayer.ncont() + nflux_tmp + leachsum_nmass;
+			times++;
+		}
 
-			if (date.year > freenyears && fabs(cmass_before - cmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-				dprintf("Year %d Day %d Lyr %d C SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(cmass_before - cmass_after), cmass_before, cmass_after, leachsum_cmass);
+		// Sum annual C increase and decrease to be able to
+		// calculate annual nutient limitation on decomposition
+		soillayer.acdec[0] += cdec_save[0];
+		soillayer.acdec[1] += cdec_save[1];
+		soillayer.acinc[0] += cinc_save[0];
+		soillayer.acinc[1] += cinc_save[1];
 
-			if (date.year > freenyears && fabs(nmass_before - nmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-				dprintf("Year %d Day %d Lyr %d N SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(nmass_before - nmass_after), nmass_before, nmass_after, leachsum_nmass);
-		/*}
-		// Very low total soil layer C mass, move C mass to layer above. If top layer, respire all C mass
-		else {
-			double respsum_tot = 0.0;
-			double nmin_inc = 0.0;
+		double respsum_tot = 0.0;
 
-			for (int p = 0; p < NSOMPOOL; p++) {
-				// If not top soil layer
-				if (lyr) {
-					soilcolumn.soillayers[lyr - 1].sompool[p].cmass += soillayer.sompool[p].cmass;
-					soilcolumn.soillayers[lyr - 1].sompool[p].nmass += soillayer.sompool[p].nmass;
-					soillayer.sompool[p].respsum = 0.0;
-				}
-				else {
-					soillayer.sompool[p].respsum = soillayer.sompool[p].cmass;
-					respsum_tot += soillayer.sompool[p].respsum;
-					nmin_inc += soillayer.sompool[p].nmass;
-				}
-				soillayer.sompool[p].cmass = 0.0;
-				soillayer.sompool[p].nmass = 0.0;
-			}
+		// Update pool sizes
 
-			if (patch.stand.landcover != PEATLAND)
+		for (int p = 0; p < NSOMPOOL; p++) {
+			soillayer.sompool[p].cmass += soillayer.sompool[p].delta_cmass;
+			soillayer.sompool[p].nmass += soillayer.sompool[p].delta_nmass;
+
+			respsum_tot += soillayer.sompool[p].respsum;
+		}
+
+		if (!ifequilsom) {
+
+			// Updated soil fluxes. In wetlands, some portion of respiration can be emitted as CH4, so save respiration as respsum until Soil::methane() is called.  
+			if (patch.stand.landcover != PEATLAND) {
 				patch.fluxes.report_flux(Fluxes::SOILC, respsum_tot);
-			else
-				soillayer.dcflux_soil = respsum_tot;
-
-			// Fraction of microbial resp. is assumed to produce labile carbon
-			soillayer.labile_carbon = respsum_tot * frac_labile_carbon;
+				soillayer.respsum = 0.0;
+			}
+			else {
+				soillayer.respsum = respsum_tot;
+			}
 
 			cextra += respsum_tot;
 
-			soillayer.nmass_inc(nmin_inc, NH4);
-		}*/
+			soillayer.arespsum += respsum_tot;
 
-		// Check for negative pools
-		/*if (date.year != 200) {
-			for (int p = 0; p < NSOMPOOL; p++) {
-				if (soillayer.sompool[p].cmass < -1.0e-15)
-					dprintf("Year %d Day %d Lyr %d Pool %d After  SOMFLUXES C %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass);
-				if (soillayer.sompool[p].nmass < -1.0e-15)
-					dprintf("Year %d Day %d Lyr %d Pool %d After SOMFLUXES N %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].nmass);
+			// Sum annual organic nitrogen leaching
+			soillayer.aorgNleach += leachsum_nmass;
+			nextra += leachsum_nmass;
+
+			// Sum annual organic carbon leaching
+			soillayer.aorgCleach += leachsum_cmass;
+			cextra += leachsum_cmass;
+
+			// Sum annuals
+			soillayer.anmin += nmin_actual;
+			soillayer.animmob += nimmob;
+		}
+
+		// Fraction of microbial resp. is assumed to produce labile carbon
+		soillayer.labile_carbon = respsum_tot * frac_labile_carbon;
+
+		// Adding mineral nitrogen to soil available pool
+		double nmin_inc = nmin_actual - nimmob;
+
+		// If no nitrogen limitation or during free nitrogen years
+		// net mineralisation could be negative. Set to zero
+		// in that case
+		if (!ifnlim || date.year <= freenyears)
+			nmin_inc = max(0.0, nmin_inc);
+
+		if (!ifequilsom) {
+			soillayer.mnetmin[date.month] += nmin_inc;
+		}
+		double nflux_tmp = 0.0;
+		// Estimate of N flux from soil (simple CLM-CN approach)
+		if (!ifntransform) {
+			double nflux = nmin_inc > 0.0 ? (nmin_inc) * 0.01 : 0.0;
+			nmin_inc -= nflux;
+			nextra += nflux;
+			nflux_tmp += nflux;
+
+			if (!ifequilsom) {
+				patch.fluxes.report_flux(Fluxes::NH3_SOIL, nflux);
 			}
-		}*/
+		}
+		soillayer.nmass_inc(nmin_inc, NH4);
+
+		// If no nitrogen limitation or during free nitrogen years set soil
+		// available nitrogen to its saturation level.
+		if (!ifnlim || date.year <= freenyears) {
+			if (ifntransform) {
+				soillayer.NH4_mass = NMASS_SAT / 2.0;
+				soillayer.NO3_mass = NMASS_SAT / 2.0;
+			}
+			else {
+				soillayer.NH4_mass = NMASS_SAT;
+			}
+		}
+
+		double cmass_after = soillayer.ccont() + respsum_tot + leachsum_cmass;
+		double nmass_after = soillayer.ncont() + nflux_tmp + leachsum_nmass;
+
+		if (date.year > freenyears && fabs(cmass_before - cmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
+			dprintf("Year %d Day %d Lyr %d C SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(cmass_before - cmass_after), cmass_before, cmass_after, leachsum_cmass);
+
+		if (date.year > freenyears && fabs(nmass_before - nmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
+			dprintf("Year %d Day %d Lyr %d N SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(nmass_before - nmass_after), nmass_before, nmass_after, leachsum_nmass);
+
 	}
 
 	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
@@ -1181,6 +1122,11 @@ void transfer_litter(Patch& patch) {
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 					double root_lyr_frac = ppft.rootdist[lyr];
+
+					// For peatland all litter enter the top layer
+					if (soilcolumn.patch.stand.is_highlatitude_peatland_stand() || soilcolumn.patch.stand.is_true_wetland_stand()) {
+						root_lyr_frac = !lyr ? 1.0 : 0.0;
+					}
 
 					if (firemodel == GLOBFIRM && lyr == 0) {
 						litterme[SURFSTRUCT] = soillayer.sompool[SURFSTRUCT].cmass * soillayer.sompool[SURFSTRUCT].litterme;

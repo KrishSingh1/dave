@@ -2301,8 +2301,6 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			prop[lyr] = soillayers[lyr].cpool_slow;
 		else if (SPT == CFAST)
 			prop[lyr] = soillayers[lyr].cpool_fast;
-		else if (SPT == ALRH)
-			prop[lyr] = soillayers[lyr].aresplitsum;
 		else if (SPT == ARH)
 			prop[lyr] = soillayers[lyr].arespsum;
 		else if (SPT == ANMIN)
@@ -2377,8 +2375,6 @@ double Soilcolumn::get_sum(soilproptype SPT, int m) {
 			prop += soillayers[lyr].cpool_slow;
 		else if (SPT == CFAST)
 			prop += soillayers[lyr].cpool_fast;
-		else if (SPT == ALRH)
-			prop += soillayers[lyr].aresplitsum;
 		else if (SPT == ARH)
 			prop += soillayers[lyr].arespsum;
 		else if (SPT == ANMIN)
@@ -4309,33 +4305,33 @@ void Soilcolumn::initial_percolation() {
 				}
 			}
 		}
+	}
 
-		if (patch.stand.is_true_wetland_stand()) {
+	if (patch.stand.is_true_wetland_stand()) {
 
-			// Mineral wetlands
+		// Mineral wetlands
 
-			// Water mass added to saturate soil
-			double wmass_added = 0.0;
+		// Water mass added to saturate soil
+		double wmass_added = 0.0;
 
-			// Saturate the soil
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		// Saturate the soil
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-				Soillayer& soillayer = soillayers[lyr];
+			Soillayer& soillayer = soillayers[lyr];
 
-				double wmass_input = soillayer.wsats - (soillayer.wmass + soillayer.imass);
+			double wmass_input = soillayer.wsats - (soillayer.wmass + soillayer.imass);
 
-				// Add water to the layer
-				soillayer.wmass += wmass_input;
-				wmass_added += wmass_input;
-			}
-
-			// Record the water added to this wetland today
-			patch.wetland_wmass_added_today = max(0.0, wmass_added - rain_melt);
-
-			rain_melt -= min(rain_melt, wmass_added);
-
-			// End mineral wetlands
+			// Add water to the layer
+			soillayer.wmass += wmass_input;
+			wmass_added += wmass_input;
 		}
+
+		// Record the water added to this wetland today
+		patch.wetland_wmass_added_today = max(0.0, wmass_added - rain_melt);
+
+		rain_melt -= min(rain_melt, wmass_added);
+
+		// End mineral wetlands
 	}
 }
 
@@ -4823,8 +4819,10 @@ void Soilcolumn::vertical_movement() {
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		double ccont = soillayers[lyr].ccont();
+
 		// If soil layer C exceed maximu, then move SOM downwards
-		if (soillayers[lyr].ccont() > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		if (ccont > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
 			donor = lyr;
 			receiver = lyr + 1;
 
@@ -4846,7 +4844,7 @@ void Soilcolumn::vertical_movement() {
 			else {*/
 			if (receiver < nsoillayers) {
 
-				double ccont_donor = soillayers[donor].ccont();
+				double ccont_donor = ccont;
 				double ccont_receiver = soillayers[receiver].ccont();
 
 				if (!negligible(ccont_donor)) {
@@ -4871,18 +4869,67 @@ void Soilcolumn::vertical_movement() {
 						soillayers[donor].sompool[p].cmass -= cmove;
 						soillayers[donor].sompool[p].nmass -= nmove;
 
+						int p_receiver = p;
+
+						if (p_receiver == SURFMETA) {
+							p_receiver = SOILMETA;
+						}
+						else if (p_receiver == SURFSTRUCT) {
+							p_receiver = SOILSTRUCT;
+						}
+						else if (p_receiver == SURFFWD) {
+							p_receiver = SOILFWD;
+						}
+						else if (p_receiver == SURFCWD) {
+							p_receiver = SOILCWD;
+						}
+						else if (p_receiver == SURFMICRO) {
+							p_receiver = SOILMICRO;
+						}
+						else if (p_receiver == SURFHUMUS) {
+							p_receiver = SLOWSOM;
+						}
+
+						soillayers[receiver].sompool[p_receiver].cmass += cmove;
+						soillayers[receiver].sompool[p_receiver].nmass += nmove;
+					}
+				}
+			}
+		}
+		else if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && ccont < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+			// Check if SOM can be moved upwards
+
+			donor = lyr + 1;
+			receiver = lyr;
+
+			if (donor < nsoillayers) {
+
+				double ccont_donor = soillayers[donor].ccont();
+				double ccont_receiver = ccont;
+
+				if (!negligible(ccont_donor)) {
+
+					double move_frac = min(maxSOCdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
+
+					for (int p = 0; p < NSOMPOOL; p++) {
+						double cmove = soillayers[donor].sompool[p].cmass * move_frac;
+						double nmove = soillayers[donor].sompool[p].nmass * move_frac;
+
+						soillayers[donor].sompool[p].cmass -= cmove;
+						soillayers[donor].sompool[p].nmass -= nmove;
+
 						soillayers[receiver].sompool[p].cmass += cmove;
 						soillayers[receiver].sompool[p].nmass += nmove;
 					}
 				}
 			}
 		}
-	}	
+	}
 
 	double cafter = get_sum(CCONT);
 
 	if (fabs(cbefore - cafter) > 1.0e-12)
-		dprintf("year %d Day %d VM ERROR %g\n",date.year,date.day, cbefore - cafter);
+		dprintf("Year %d Day %d VM ERROR %g\n",date.year,date.day, cbefore - cafter);
 }
 
 /// Vertical mixing (diffusion) of soil organic matter

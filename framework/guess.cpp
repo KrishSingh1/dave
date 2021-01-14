@@ -1320,6 +1320,10 @@ double Stand::get_landcover_fraction() const {
 		return 0.0;
 }
 
+double Stand::get_distinterval () const { 
+	return get_gridcell().st[stid].distinterval_st;
+}
+
 void Stand::set_gridcell_fraction(double fraction) {
 	frac = fraction;
 }
@@ -2555,6 +2559,8 @@ Gridcell::Gridcell():climate(*this) {
 	}
 
 	seed = 12345678;
+
+	distinterval_gc = 1.0e10;
 }
 
 double Gridcell::get_lon() const {

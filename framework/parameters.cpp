@@ -117,6 +117,8 @@ bool readharvestdates = false;
 bool readNfert = false;
 bool readNman = false;
 bool readNfert_st = false;
+bool readdisturbance = false;
+bool readdisturbance_st = false;
 bool readcutinterval_st = false;
 bool readwoodharvest_frac = false;
 bool readwoodharvest_cmass = false;
@@ -1020,6 +1022,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("reestab",&strparam,16,CB_STREESTAB,
 			"Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 
+		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Disturbance interval");	// ??
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
 		declareitem("firstmanageyear",&pst->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");

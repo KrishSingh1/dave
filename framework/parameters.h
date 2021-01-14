@@ -276,6 +276,12 @@ extern bool readwoodharvest_cmass;
 /// Whether to create new stands at clearcut of secondary stands
 extern bool harvest_secondary_to_new_stand;
 
+/// Whether to read disturbance intervals from input file
+extern bool readdisturbance;
+
+/// Whether to read disturbance intervals for stand types from input file
+extern bool readdisturbance_st;
+
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 

@@ -1640,6 +1640,8 @@ public:
 	/// Whether to wait for clearcut before moving to next mt in a forestry rotation
 	bool rot_wait_for_cc;
 
+	double distinterval;
+
 	/// intercrop (NOINTERCROP,NATURALGRASS)
 	intercroptype intercrop;
 	/// whether natural pft:s are allowed to grow in stand type
@@ -1681,6 +1683,7 @@ public:
 		firsttargetyear = 100000;
 		lasttargetyear = 100000;
 		rot_wait_for_cc = false;
+		distinterval = 1.0e10;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)
 			mtstartyear[m] = -1;
 	}
@@ -4645,6 +4648,8 @@ public:
 	/// Gives the fraction of this Stand relative to its land cover type; NB: unsafe to use within landcover_dynamics() !
 	double get_landcover_fraction() const;
 
+	double get_distinterval() const;
+
 	/// Set the fraction of this Stand relative to the gridcell
 	void set_gridcell_fraction(double fraction);
 
@@ -4866,6 +4871,8 @@ public:
 	double gross_frac_increase;
 	/// gross fraction decrease
 	double gross_frac_decrease;
+	/// disturbance interval
+	double distinterval_st;
 	/// switch to reset cutinterval_st this year
 	bool reset_cutinterval_st;
 	/// cutting interval
@@ -4905,6 +4912,7 @@ public:
 		diam_limit = 0.0;
 		reset_cutinterval_st = false;
 		cutinterval_st = 0.0;
+		distinterval_st = 1.0e10;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -5130,6 +5138,8 @@ public:
 	double dNH4dep;
 	/// daily NO3 deposition (kgN/m2)
 	double dNO3dep;
+
+	double distinterval_gc;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

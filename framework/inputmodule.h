@@ -83,6 +83,11 @@ public:
 
 	/// Obtains land management data for one day
 	virtual void getmanagement(Gridcell& gridcell) = 0;
+
+	/// Obtains additional environmental data that are not dynamic
+	virtual void getenviron(Gridcell& gridcell) = 0;
+	/// Obtains additional environmental data for one year
+	virtual void getenviron_yearly(Gridcell& gridcell) = 0;
 };
 
 

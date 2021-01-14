@@ -130,6 +130,8 @@ void CRUInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
@@ -202,6 +204,13 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
 									     hist_mfrs, hist_mwet, hist_mdtr, 
 									     hist_mwind, hist_mrhum);
+
+				if(gridfound) {
+					if(readdisturbance || readdisturbance_st) {
+						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+						// Not all gridcells are included in input file
+					}
+				}
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);

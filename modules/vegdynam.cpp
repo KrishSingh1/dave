@@ -1638,8 +1638,9 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 										   date.year >= patch.soil.solvesomcent_beginyr &&
 										   date.year <= patch.soil.solvesomcent_endyr;
 
+			double distinterval_ = stand.get_distinterval();	
 			if (patch.age && !during_century_solvesom) {
-				disturbance(patch,1.0 / distinterval);
+				disturbance(patch,1.0 / distinterval_);
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year
 				}

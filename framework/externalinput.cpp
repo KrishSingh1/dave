@@ -43,6 +43,86 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
+void MiscInput::init() {
+
+	ListArray_id<Coord> gridlist;
+	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	file_disturbance = param["file_disturbance"].str;
+	if(file_disturbance != "")	{
+		if(!disturbance.Open(file_disturbance, gridlist))
+			fail("initio: could not open %s for input",(char*)file_disturbance);
+		readdisturbance = true;
+	}
+
+	file_disturbance_st = param["file_disturbance_st"].str;
+	if(file_disturbance_st != "")	{
+		if(!disturbance_st.Open(file_disturbance_st, gridlist))
+			fail("initio: could not open %s for input",(char*)file_disturbance_st);
+		readdisturbance_st = true;
+	}
+}
+
+bool MiscInput::loaddisturbance(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells are included in input file
+	if(readdisturbance) { 
+		if(!disturbance.Load(c)) {
+			disterror = true;
+		}
+	}
+	if(readdisturbance_st) { 
+		if(!disturbance_st.Load(c)) {
+			disterror = true;
+		}
+	}
+	return disterror;
+}
+
+void MiscInput::getdisturbance(Gridcell& gridcell) {
+
+	if(!date.year && !readdisturbance_st) {
+		for(int i=0; i<nst; i++) {
+			StandType& st = stlist[i];
+			gridcell.st[st.id].distinterval_st = st.distinterval;
+		}
+	}
+
+	int year = date.get_calendar_year();
+
+	// Retrieve disturbance for grid cell
+	if(disturbance.isloaded())
+		gridcell.distinterval_gc = disturbance.Get(year, "Return");
+	else
+		gridcell.distinterval_gc = distinterval;
+
+	// Retrieve disturbance for stand types
+	for(int i=0; i<nst; i++) {
+		if(disturbance_st.isloaded()) {
+			double dist = disturbance_st.Get(year, stlist[i].name, true);
+			if(dist != NOTFOUND)
+				gridcell.st[i].distinterval_st = dist;
+		}
+		if(gridcell.st[i].distinterval_st == 1.0e10)
+			gridcell.st[i].distinterval_st = gridcell.distinterval_gc;
+//		if(!date.year)
+//			dprintf("st %d distinterval_st =%f\n", i, gridcell.st[i].distinterval_st);
+	}
+}
+
+void MiscInput::getenviron_yearly(Gridcell& gridcell) {
+
+	if (date.day) {
+		return;
+	}
+	getdisturbance(gridcell);
+}
+
 LandcoverInput::LandcoverInput()
 	: nyears_cropland_ramp(0) {
 

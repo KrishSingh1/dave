@@ -18,6 +18,37 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
 void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch);
 
+/// Class that deals with additional environmental input from text files
+class MiscInput {
+
+public:
+
+	/// Constructor
+	MiscInput() {;}
+
+	/// Opens land cover input files
+	void init();
+
+	/// Loads disturbance from input file
+	bool loaddisturbance(double lon, double lat);
+
+	/// Gets disturbance intervals (in years)
+	void getdisturbance(Gridcell& gridcell);
+
+	/// Gets all yearly extra input data
+	void getenviron_yearly(Gridcell& gridcell);
+
+private:
+
+	// Objects handling additional environmental data input
+	InData::TimeDataD disturbance;
+	InData::TimeDataD disturbance_st;
+
+	/// Files names for additional environmental input files
+	xtring file_disturbance;
+	xtring file_disturbance_st;
+};
+
 /// Class that deals with all land cover input from text files
 class LandcoverInput {
 

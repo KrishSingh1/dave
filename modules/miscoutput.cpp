@@ -266,11 +266,13 @@ void MiscOutput::define_output_tables() {
 	// create a vector with the landcover column titles
 	std::vector<std::string> landcovers;
 
-	const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum",
-			"Forest_sum", "Natural_sum", "Peatland_sum", "Barren_sum"};
-	for (int i=0; i<NLANDCOVERTYPES; i++) {
-		if (run[i]) {
-			landcovers.push_back(landcover_string[i]);
+	if(run_landcover) {
+		const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum",
+				"Forest_sum", "Natural_sum", "Peatland_sum", "Barren_sum"};
+		for (int i=0; i<NLANDCOVERTYPES; i++) {
+			if (run[i]) {
+				landcovers.push_back(landcover_string[i]);
+			}
 		}
 	}
 

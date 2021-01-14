@@ -50,6 +50,9 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cflux_natural", &file_cflux_natural, 300, "C fluxes output file");
 	declare_parameter("file_cflux_forest", &file_cflux_forest, 300, "C fluxes output file");
 	declare_parameter("file_cflux_peatland", &file_cflux_peatland, 300, "C fluxes output file");
+	declare_parameter("file_cflux_forestry", &file_cflux_forestry, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_regrowth", &file_cflux_regrowth, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_primary", &file_cflux_primary, 300, "C fluxes per gridcell area output file");
 	declare_parameter("file_dens_natural", &file_dens_natural, 300, "Natural vegetation tree density output file");
 	declare_parameter("file_dens_forest", &file_dens_forest, 300, "Managed forest tree density output file");
 	declare_parameter("file_cpool_cropland", &file_cpool_cropland, 300, "Soil C output file");
@@ -57,6 +60,9 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cpool_natural", &file_cpool_natural, 300, "Soil C output file");
 	declare_parameter("file_cpool_forest", &file_cpool_forest, 300, "Soil C output file");
 	declare_parameter("file_cpool_peatland", &file_cpool_peatland, 300, "Soil C output file");
+	declare_parameter("file_cpool_forestry", &file_cpool_forestry, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_regrowth", &file_cpool_regrowth, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_primary", &file_cpool_primary, 300, "C pool per gridcell area output file");
 	declare_parameter("file_nflux_cropland", &file_nflux_cropland, 300, "N fluxes output file");
 	declare_parameter("file_nflux_pasture", &file_nflux_pasture, 300, "N fluxes output file");
 	declare_parameter("file_nflux_natural", &file_nflux_natural, 300, "N fluxes output file");
@@ -107,6 +113,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_vegc", &file_vegc, 300, "forest vegetation output file");
 	declare_parameter("file_cflux_veg", &file_cflux_veg, 300, "C fluxes to and from vegetation output file");
 	declare_parameter("file_wood_harvest", &file_wood_harvest, 300, "wood harvest output file");
+	declare_parameter("file_wood_harvest_luh2", &file_wood_harvest_luh2, 300, "luh2 wood harvest output file");
 
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
@@ -329,6 +336,29 @@ void MiscOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("Slow_h",       9, 5);
 	cflux_columns += ColumnDescriptor("NEE",              10, 5);
 
+	// C FLUXES FOR FORESTS WITH LUC HISTORY (E.G. LUH2)
+	ColumnDescriptors woodharv_columns_luh2;
+	woodharv_columns_luh2 += ColumnDescriptor("forharv_gross",        14, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("forharv_toprod",       15, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("clearing_gross",       15, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("clearing_toprod",      16, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("lucharv_gross",        14, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("lucharv_toprod",       15, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("fromprod",              9, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("prod_balance",         13, 5);
+	woodharv_columns_luh2 += ColumnDescriptor("harv_balance",		 13, 5);
+
+	ColumnDescriptors cflux_columns_for_regr;
+	cflux_columns_for_regr += ColumnDescriptor("Veg",               8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Repr",              8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Soil",              8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Fire",              8, 5);
+	cflux_columns_for_regr += ColumnDescriptor("Est",               8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("DOC",			    8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Seed",				8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Harvest",			9, 5);
+	cflux_columns_for_regr += ColumnDescriptor("NEE-LU",           10, 5);
+
 	// WOOD HARVEST
 	ColumnDescriptors harv_columns;
 	harv_columns += ColumnDescriptors(pfts,                10, 5);
@@ -445,6 +475,13 @@ void MiscOutput::define_output_tables() {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
 	cpool_columns += ColumnDescriptor("Total",            10, 3);
+
+	// C POOLS FOR FORESTS WITH LUC HISTORY (E.G. LUH2)
+	ColumnDescriptors cpool_columns_for_regr;
+	cpool_columns_for_regr += ColumnDescriptor("VegC",              8, 3);
+	cpool_columns_for_regr += ColumnDescriptor("LitterC",			8, 3);
+	cpool_columns_for_regr += ColumnDescriptor("SoilC",				8, 3);
+	cpool_columns_for_regr += ColumnDescriptor("Total-prod",	   11, 3);
 
 	//CROP YIELD
 	ColumnDescriptors crop_columns;
@@ -621,6 +658,14 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_vegc,				file_vegc,					vegc_columns);
 	create_output_table(out_cflux_veg,			file_cflux_veg,				cflux_veg_columns);
 
+	create_output_table(out_cflux_forestry,					file_cflux_forestry,          cflux_columns_for_regr);
+	create_output_table(out_cflux_regrowth,					file_cflux_regrowth,          cflux_columns_for_regr);
+	create_output_table(out_cflux_primary,					file_cflux_primary,           cflux_columns_for_regr);
+	create_output_table(out_cpool_forestry,					file_cpool_forestry,          cpool_columns_for_regr);
+	create_output_table(out_cpool_regrowth,					file_cpool_regrowth,          cpool_columns_for_regr);
+	create_output_table(out_cpool_primary,					file_cpool_primary,           cpool_columns_for_regr);
+	create_output_table(out_wood_harvest_luh2,				file_wood_harvest_luh2,       woodharv_columns_luh2);
+
 	create_output_table(out_agestruct_natural, file_agestruct_natural, agestruct_columns);
 	create_output_table(out_agestruct_forest, file_agestruct_forest, agestruct_columns);
 	create_output_table(out_diamstruct_natural, file_diamstruct_natural, diamstruct_columns);
@@ -736,6 +781,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 
+	double flux_veg_regrowth, flux_repr_regrowth, flux_soil_regrowth, flux_fire_regrowth, flux_est_regrowth, flux_seed_regrowth, flux_charvest_regrowth;
+	double flux_veg_forestry, flux_repr_forestry, flux_soil_forestry, flux_fire_forestry, flux_est_forestry, flux_seed_forestry, flux_charvest_forestry;
+	double flux_veg_primary, flux_repr_primary, flux_soil_primary, flux_fire_primary, flux_est_primary, flux_seed_primary, flux_charvest_primary;
+	double surfsoillitterc_regrowth, surfsoillitterc_forestry, surfsoillitterc_primary;
+	double cwdc_regrowth, cwdc_forestry, cwdc_primary;
+	double centuryc_regrowth, centuryc_forestry, centuryc_primary;
+
 	Landcover& lc = gridcell.landcover;
 	// The OutputRows object manages the next row of output for each
 	// output table
@@ -789,6 +841,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_heightindiv_total_lc[NLANDCOVERTYPES]={0.0};
 
 	double gridcellpft_cmass_killed_harv=0.0;
+
+	double cmass_gridcell_forestry=0.0;
+	double cmass_gridcell_regrowth=0.0;
+	double cmass_gridcell_primary=0.0;
+	double clitter_gridcell_forestry=0.0;
+	double clitter_gridcell_regrowth=0.0;
+	double clitter_gridcell_primary=0.0;
+	double c_org_leach_gridcell_regrowth=0.0;
+	double c_org_leach_gridcell_forestry=0.0;
+	double c_org_leach_gridcell_primary=0.0;
 
 	double irrigation_gridcell=0.0;
 
@@ -1114,6 +1176,23 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			double fraction_of_gridcell = stand.get_gridcell_fraction();
 			cmass_killed_harv_gridcell+=standpft_cmass_killed_harv*fraction_of_gridcell;
 
+			if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+				if(stand.first_year) {
+					if(stand.lc_origin == NATURAL) {
+						cmass_gridcell_forestry+=standpft_cmass*fraction_of_gridcell;
+						clitter_gridcell_forestry+=standpft_clitter*fraction_of_gridcell;
+					}
+					else {
+						cmass_gridcell_regrowth+=standpft_cmass*fraction_of_gridcell;
+						clitter_gridcell_regrowth+=standpft_clitter*fraction_of_gridcell;
+					}
+				}
+				else {
+					cmass_gridcell_primary+=standpft_cmass*fraction_of_gridcell;
+					clitter_gridcell_primary+=standpft_clitter*fraction_of_gridcell;
+				}
+			}
+
 			++gc_itr;
 		}//End of loop through stands
 
@@ -1264,6 +1343,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	flux_veg_regrowth = flux_repr_regrowth = flux_soil_regrowth = flux_fire_regrowth = flux_est_regrowth = flux_seed_regrowth = flux_charvest_regrowth = 0.0;
+	flux_veg_forestry = flux_repr_forestry = flux_soil_forestry = flux_fire_forestry = flux_est_forestry = flux_seed_forestry = flux_charvest_forestry = 0.0;
+	flux_veg_primary = flux_repr_primary = flux_soil_primary = flux_fire_primary = flux_est_primary = flux_seed_primary = flux_charvest_primary = 0.0;
+	c_org_leach_gridcell_regrowth = c_org_leach_gridcell_forestry = c_org_leach_gridcell_primary = 0.0;
+	surfsoillitterc_regrowth = surfsoillitterc_forestry = surfsoillitterc_primary = 0.0;
+	cwdc_regrowth = cwdc_forestry = cwdc_primary = 0.0;
+	centuryc_regrowth = centuryc_forestry = centuryc_primary = 0.0;
+
 	double flux_veg_lc[NLANDCOVERTYPES], flux_repr_lc[NLANDCOVERTYPES],
 		 flux_soil_lc[NLANDCOVERTYPES], flux_fire_lc[NLANDCOVERTYPES],
 		 flux_est_lc[NLANDCOVERTYPES], flux_seed_lc[NLANDCOVERTYPES];
@@ -1328,6 +1415,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	// Sum C fluxes, dead C pools and runoff across patches
 
+	double forestry_frac = 0.0;
+	double regrowth_frac = 0.0;
+	double primary_frac = 0.0;
+
 	Gridcell::iterator gc_itr = gridcell.begin();
 
 	// Loop through Stands
@@ -1337,11 +1428,60 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		Gridcellst& gcst = gridcell.st[st.id];	
 		stand.firstobj();
 
+		if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+			if(stand.first_year) {
+				if(stand.lc_origin == NATURAL) {
+					forestry_frac+=stand.get_gridcell_fraction();
+				}
+				else {
+					regrowth_frac+=stand.get_gridcell_fraction();
+				}
+			}
+			else {
+				primary_frac+=stand.get_gridcell_fraction();
+			}
+		}
+
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+
+			if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+				if(stand.first_year) {
+					if(stand.lc_origin == NATURAL) {
+						flux_veg_forestry+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+						flux_repr_forestry+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+						flux_soil_forestry+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+						flux_fire_forestry+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+						flux_est_forestry+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+						flux_seed_forestry+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+						flux_charvest_forestry+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+						c_org_leach_gridcell_forestry += patch.soil.aorgCleach * to_gridcell_average;
+					}
+					else {
+						flux_veg_regrowth+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+						flux_repr_regrowth+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+						flux_soil_regrowth+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+						flux_fire_regrowth+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+						flux_est_regrowth+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+						flux_seed_regrowth+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+						flux_charvest_regrowth+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+						c_org_leach_gridcell_regrowth += patch.soil.aorgCleach * to_gridcell_average;
+					}
+				}
+				else {
+					flux_veg_primary+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+					flux_repr_primary+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+					flux_soil_primary+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+					flux_fire_primary+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+					flux_est_primary+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+					flux_seed_primary+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+					flux_charvest_primary+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+					c_org_leach_gridcell_primary += patch.soil.aorgCleach * to_gridcell_average;
+				}
+			}
 
 			flux_nseed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
 			flux_nharvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
@@ -1398,15 +1538,57 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 					surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					surfsoillittern_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
+
+					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+						if(stand.first_year) {
+							if(stand.lc_origin == NATURAL) {
+								surfsoillitterc_forestry += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+							else {
+								surfsoillitterc_regrowth += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+						}
+						else {
+							surfsoillitterc_primary += patch.soil.sompool[r].cmass * to_gridcell_average;
+						}
+					}
 				}
 				else if (r == SURFFWD || r == SURFCWD) {
 					cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					cwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
+
+					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+						if(stand.first_year) {
+							if(stand.lc_origin == NATURAL) {
+								cwdc_forestry += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+							else {	
+								cwdc_regrowth += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+						}
+						else {
+							cwdc_primary += patch.soil.sompool[r].cmass * to_gridcell_average;
+						}
+					}
 				}
 				else {
 					centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					centuryn_lc[stand.landcover]  += patch.soil.sompool[r].nmass * to_gridcell_average;
 					st.csoil += patch.soil.sompool[r].cmass * to_gridcell_average / gcst.frac;
+
+					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+						if(stand.first_year) {
+							if(stand.lc_origin == NATURAL) {
+								centuryc_forestry += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+							else {
+								centuryc_regrowth += patch.soil.sompool[r].cmass * to_gridcell_average;
+							}
+						}
+						else {
+							centuryc_primary += patch.soil.sompool[r].cmass * to_gridcell_average;
+						}
+					}
 				}
 			}
 			stand.nextobj();
@@ -1827,6 +2009,47 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	// Print C fluxes of forests with LUC history
+	outlimit_misc(out, out_cflux_forestry, flux_veg_forestry);
+	outlimit_misc(out, out_cflux_forestry, -flux_repr_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_soil_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_fire_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_est_forestry);
+	outlimit_misc(out, out_cflux_forestry, c_org_leach_gridcell_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_seed_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_charvest_forestry);
+	outlimit_misc(out, out_cflux_forestry, flux_veg_forestry - flux_repr_forestry + flux_soil_forestry + flux_fire_forestry + flux_est_forestry + c_org_leach_gridcell_forestry + flux_seed_forestry);
+
+	outlimit_misc(out, out_cflux_regrowth, flux_veg_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, -flux_repr_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_soil_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_fire_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_est_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, c_org_leach_gridcell_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_seed_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_charvest_regrowth);
+	outlimit_misc(out, out_cflux_regrowth, flux_veg_regrowth - flux_repr_regrowth + flux_soil_regrowth + flux_fire_regrowth + flux_est_regrowth + c_org_leach_gridcell_regrowth + flux_seed_regrowth);
+
+	outlimit_misc(out, out_cflux_primary, flux_veg_primary);
+	outlimit_misc(out, out_cflux_primary, -flux_repr_primary);
+	outlimit_misc(out, out_cflux_primary, flux_soil_primary);
+	outlimit_misc(out, out_cflux_primary, flux_fire_primary);
+	outlimit_misc(out, out_cflux_primary, flux_est_primary);
+	outlimit_misc(out, out_cflux_primary, c_org_leach_gridcell_primary);
+	outlimit_misc(out, out_cflux_primary, flux_seed_primary);
+	outlimit_misc(out, out_cflux_primary, flux_charvest_primary);
+	outlimit_misc(out, out_cflux_primary, flux_veg_primary - flux_repr_primary + flux_soil_primary + flux_fire_primary + flux_est_primary + c_org_leach_gridcell_primary + flux_seed_primary);
+
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig + gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig + gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest + gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
+
 	// Print C fluxes to per-landcover files
 	if (run_landcover) {
 		for (int i=0;i<NLANDCOVERTYPES;i++) {
@@ -1925,6 +2148,22 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 		}
+
+		// Print C pools of forests with LUC history
+		outlimit_misc(out, out_cpool_forestry, cmass_gridcell_forestry);
+		outlimit_misc(out, out_cpool_forestry, clitter_gridcell_forestry + surfsoillitterc_forestry + cwdc_forestry);
+		outlimit_misc(out, out_cpool_forestry, centuryc_forestry);
+		outlimit_misc(out, out_cpool_forestry, cmass_gridcell_forestry + clitter_gridcell_forestry + centuryc_forestry + surfsoillitterc_forestry + cwdc_forestry);
+
+		outlimit_misc(out, out_cpool_regrowth, cmass_gridcell_regrowth);
+		outlimit_misc(out, out_cpool_regrowth, clitter_gridcell_regrowth + surfsoillitterc_regrowth + cwdc_regrowth);
+		outlimit_misc(out, out_cpool_regrowth, centuryc_regrowth);
+		outlimit_misc(out, out_cpool_regrowth, cmass_gridcell_regrowth + clitter_gridcell_regrowth + centuryc_regrowth + surfsoillitterc_regrowth + cwdc_regrowth);
+
+		outlimit_misc(out, out_cpool_primary, cmass_gridcell_primary);
+		outlimit_misc(out, out_cpool_primary, clitter_gridcell_primary + surfsoillitterc_primary + cwdc_primary);
+		outlimit_misc(out, out_cpool_primary, centuryc_primary);
+		outlimit_misc(out, out_cpool_primary, cmass_gridcell_primary + clitter_gridcell_primary + centuryc_primary + surfsoillitterc_primary + cwdc_primary);
 
 		// Print C pools to per-landcover files
 		for (int i=0;i<NLANDCOVERTYPES;i++) {

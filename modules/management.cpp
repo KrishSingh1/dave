@@ -128,14 +128,22 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 	double harvest_slow_frac = pft.harvest_slow_frac;
 
 	if(harvest_burn_thin_trees) {
+		// Put all harvested wood into product pool above a diameter limit, burn the smaller trees (limits from Anne-Sofie Lanso, personal communication, as used with ORCIDEE,
+		// except for tropical broadleaves, which is the reported limit for general harvesting purposes in Guyana (R.Heinrich, FAO: SUSTAINABLE FOREST HARVESTING 1) 
+		const double DIAMETER_LIMIT_NEEDLELAF = 0.2;
+		const double DIAMETER_LIMIT_BROADLEAF_BOREAL = 0.2;
+		const double DIAMETER_LIMIT_BROADLEAF_TEMPERATE = 0.3;
+		const double DIAMETER_LIMIT_BROADLEAF_TROPICAL = 0.35;
 		double diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
-		if(pft.leafphysiognomy == NEEDLELEAF && diam < 0.2 ||
-			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 10 && diam < 0.2 ||		// boreal
-			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 15 && diam < 0.3 ||		// temperate
-			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low == 25 && diam < 0.35 )		// tropical
+		if(pft.leafphysiognomy == NEEDLELEAF && diam < DIAMETER_LIMIT_NEEDLELAF ||
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low <= 12 && diam < DIAMETER_LIMIT_BROADLEAF_BOREAL ||								// boreal, pft.pstemp_low = 10
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low > 12 && pft.pstemp_low <= 20 && diam < DIAMETER_LIMIT_BROADLEAF_TEMPERATE ||		// temperate, pft.pstemp_low = 15
+			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low > 20 && diam < DIAMETER_LIMIT_BROADLEAF_TROPICAL ) {								// tropical, pft.pstemp_low = 25
 			harvest_slow_frac = 0.0;
-		else
+		}
+		else {
 			harvest_slow_frac = 1.0;
+		}
 	}
 
 	// all root carbon and nitrogen goes to litter

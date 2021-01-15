@@ -99,6 +99,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_anpp_sts", &file_anpp_sts, 300, "stand type anpp output file");
 	declare_parameter("file_cmass_sts", &file_cmass_sts, 300, "stand type cmass output file");
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
+	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300, "stand type cmass of trees killed by mortality output file");
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
@@ -645,6 +646,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_anpp_sts,					file_anpp_sts,					st_columns);
 	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
 	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
+	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_columns);
 	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
 	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
@@ -799,6 +801,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.anpp = 0.0;
 		st.cmass = 0.0;
 		st.cmass_tree = 0.0;
+		st.cmass_tree_mort = 0.0;
 		st.cmass_wood = 0.0;
 		st.cmass_wood_potharv = 0.0;
 		st.cmass_wood_potharv_products = 0.0;
@@ -1153,8 +1156,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				st.anpp += standpft_anpp * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
 				st.clitter += standpft_clitter * stand.get_gridcell_fraction() / gcst.frac;
-				if(pft.lifeform == TREE)
+				if(pft.lifeform == TREE) {
 					st.cmass_tree += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
+					st.cmass_tree_mort += standpft_cmass_mort * stand.get_gridcell_fraction() / gcst.frac;
+				}
 				st.cmass_wood += standpft_cmass_wood * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_potharv += standpft_cmass_wood_potharv * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_potharv_products += standpft_cmass_wood_potharv_products * stand.get_gridcell_fraction() / gcst.frac;
@@ -1779,6 +1784,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_anpp_sts, st.anpp);
 		outlimit_misc(out, out_cmass_sts, st.cmass);
 		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
+		outlimit_misc(out, out_cmass_tree_mort_sts, st.cmass_tree_mort);
 		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
 		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
 		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);

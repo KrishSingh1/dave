@@ -1308,6 +1308,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 						// Reduce C biomass to account for biomass lost through shading mortality
 						if (mort_shade> 0.0) {
+							patchpft.cmass_mort += mort_shade * indiv.ccont();
 							indiv.reduce_biomass(mort_shade, 0.0);
 							allometry(indiv);
 						}

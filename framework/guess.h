@@ -2016,6 +2016,10 @@ public:
 	double harvest_slow_frac;
 	/// yearly turnover fraction of patchpft.harvested_products_slow (goes to gridcell.acflux_harvest_slow)
 	double turnover_harv_prod;
+	/// Fraction of wood cmass that belongs to stems
+	double stem_frac;
+	/// Fraction of wood cmass that belongs to twigs
+	double twig_frac;
 	/// whether pft may grow as cover crop
 	bool isintercropgrass;
 	/// whether autumn temperature dependent sowing date is calculated

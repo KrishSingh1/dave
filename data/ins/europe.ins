@@ -237,6 +237,8 @@ group "common" (
 	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
+	stem_frac 1
+	twig_frac 0
 )
 
 group "tree" (
@@ -272,6 +274,8 @@ group "tree" (
 	res_outtake 0.4		! Value for forestry
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
+	stem_frac 0.65
+	twig_frac 0.13
 )
 
 group "shrub" (

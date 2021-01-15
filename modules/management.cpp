@@ -113,9 +113,9 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 	double harvest = 0.0;
 	double residue_outtake = 0.0;
 	/// Fraction of wood cmass that are stems
-	double stem_frac = 0.65;	// Temporary values, should be pft-specific
+	double stem_frac = pft.stem_frac; // Default 0.65
 	/// Fraction of wood cmass that are twigs
-	double twig_frac = 0.13;
+	double twig_frac = pft.twig_frac; // Default 0.13
 	/// Fraction of wood cmass that are coarse roots
 	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
 	/// Fraction of leaves adhering to twigs at the time of removal

@@ -4895,8 +4895,24 @@ void Soilcolumn::vertical_movement() {
 					}
 				}
 			}
+			else {
+				// Last layer has too much soil C 
+				// Instead of creating a new layer, the existing last layer
+				// is expanded by 100mm. If new layer was created then it would
+				// create issues for output files, the need to update all 
+				// individuals and with LUC
+				double depth_increase = 100.0;
+				soillayers[donor].depth += depth_increase;
+				soillayers[donor].depth_profile += depth_increase / 2.0;
+				soillayerdepths[donor] += depth_increase;
+
+				// Update affected soil properties
+				double wmass_add = 0.0;
+				double imass_add = 0.0;
+				soillayers[donor].set_properties(wmass_add, imass_add);
+			}
 		}
-		else if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && ccont < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		else if (patch.stand.landcover == PEATLAND && ccont < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
 			// Check if SOM can be moved upwards
 
 			donor = lyr + 1;

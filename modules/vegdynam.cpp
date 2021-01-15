@@ -1001,7 +1001,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	double fpc_moss = 0.0;
 	double fpc_other = 0.0;
 
-	if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0) {
+	if (patch.stand.landcover == PEATLAND && wetlandlailimit > 0) {
 
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -1259,7 +1259,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// MORTALITY in PEATLAND stands
 				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
 				// biomass is reduced (ends up in litter) to be consistent with the given LAI limit (maxlai_peatland)
-				if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0.0) {
+				if (patch.stand.landcover == PEATLAND && wetlandlailimit > 0.0) {
 
 					double mort_shade = 0.0;
 

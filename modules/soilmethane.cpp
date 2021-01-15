@@ -31,7 +31,7 @@
 */
 void methane_dynamics(Patch& patch) {
 
-	if (ifmethane && patch.stand.landcover == PEATLAND && date.year > 10){//nyear_spinup-100) { // DW_COMMENT check how long it takes to get to equilibrium of CH4
+	if (ifmethane && patch.stand.landcover == PEATLAND && date.year > nyear_spinup-100) {
 		patch.soilcolumn.methane(true);
 	} 
 	else {

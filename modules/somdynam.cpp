@@ -490,7 +490,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	double moist_mod_dry = 0.064;
 
 	// Maximum moist modifier at optimal moisture
-	double moist_mod_max = ((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand()) ? RMOIST : 1.0;
+	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
 
 	// Total water mass
 	double theta = wmass + imass;
@@ -531,7 +531,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}
 
 		// Decay rate modifier depending on depth only after non wetland soils
-		if (!((*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || (*soilcolumn).patch.stand.is_true_wetland_stand())) {
+		if ((*soilcolumn).patch.stand.landcover != PEATLAND) {
 			k *= depth_mod;
 		}
 
@@ -1124,7 +1124,7 @@ void transfer_litter(Patch& patch) {
 					double root_lyr_frac = ppft.rootdist[lyr];
 
 					// For peatland all litter enter the top layer
-					if (soilcolumn.patch.stand.is_highlatitude_peatland_stand() || soilcolumn.patch.stand.is_true_wetland_stand()) {
+					if (soilcolumn.patch.stand.landcover == PEATLAND) {
 						root_lyr_frac = !lyr ? 1.0 : 0.0;
 					}
 
@@ -1659,7 +1659,12 @@ void soilnadd(Patch& patch) {
 */
 void vertical_movement(Patch& patch) {
 
-	if (!date.islastday || !(ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr))
+	// Vertical movement of organic matter if C density of soil layer exceed maximum
+	if (date.islastday && date.islastmonth)
+		patch.soilcolumn.vertical_movement();
+
+
+	if (patch.stand.landcover == PEATLAND || !date.islastday || !(ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr))
 		return;
 
 	// Low carbon in soil -> no vertical mixing
@@ -1717,9 +1722,6 @@ void vertical_movement(Patch& patch) {
 	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].nmass += npools[1] - npools_after[1];
 	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].cmass += cpools[2] - cpools_after[2];
 	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].nmass += npools[2] - npools_after[2];
-
-	// Vertical movement of organic matter if C density of soil layer exceed maximum
-	patch.soilcolumn.vertical_movement();
 }
 
 /// Add litter to equilsom()
@@ -1985,7 +1987,7 @@ void equilsom(Patch& patch) {
 					// and nitrogen flux from soil
 					somfluxes(patch, true, false);
 
-					if (!vertmix && ifverticalmixing) {
+					if (patch.stand.landcover != PEATLAND && !vertmix && ifverticalmixing) {
 
 						soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 						soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
@@ -2003,7 +2005,7 @@ void equilsom(Patch& patch) {
 			tries++;
 
 			// If peat age is defined, then only do soil spinup for peat_age minus nyear_spinup
-			if (peat_age && (patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand())) {
+			if (peat_age && patch.stand.landcover == PEATLAND) {
 				peat_years += EQUILSOM_YEARS;
 
 				// If peat age is to short, then set bad_trend to 1 so while loop continues
@@ -2212,7 +2214,7 @@ void equilsom(Patch& patch) {
 		soilcolumn.anfix_mean = 0.0;
 	}
 	// Trend based equilsom (not if peat age is defined)
-	else if (!(peat_age && (patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()))) {
+	else if (!(peat_age && patch.stand.landcover == PEATLAND)) {
 
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
 		const int SAME_TREND_MAX = 4;

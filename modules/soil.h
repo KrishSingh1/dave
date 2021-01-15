@@ -206,7 +206,7 @@ const double CH4toCO2_peat = 0.085;
 /// CH4:CO2 ratio for inundated soils (< PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Spahni et al. (2011)
 //const double CH4toCO2_inundated = 0.024; // SC1 value in Spahni et al. SC2 is 0.0415
 //const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to match global emissions   
-const double CH4toCO2_inundated = 0.0415; // Updated from Spahni et al. (2011) to match global emissions            
+const double CH4toCO2_inundated = 0.0415; // Spahni et al. (2011)           
 	
 /// acceleration due to gravity [m s-2]
 const double gravity = 9.81;

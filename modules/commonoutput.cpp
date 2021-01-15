@@ -1427,6 +1427,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
+			for (int lyr = soilcolumn.nsoillayers; lyr < NSOILLAYER_MAX; lyr++) {
+				// Soil layer depths
+				soildepth[lyr] += soilcolumn.soillayerdepths[soilcolumn.nsoillayers-1] * to_gridcell_average;
+			}
+
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflitterC();
 			
@@ -1684,14 +1689,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		sdl_cue_tot = tot_cinc[1] / tot_cdec[0];
 	}
 
-	if (date.year == nyear_spinup) {
-		for (int lyr = number_of_layers; lyr < NSNOWLAYERS_MAX; lyr++) {
-			outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
-		}
-	}
-
 	if (date.year == nyear_spinup)
-		outlimit(out, out_soildepth, gridcell.soil_depth * M_PER_MM);
+		outlimit(out, out_soildepth, soildepth[number_of_layers - 1] * M_PER_MM);
 	outlimit(out, out_soildeclim, sdl_decay_tot);
 	outlimit(out, out_soilgrolim, sdl_growth_tot);
 	outlimit(out, out_soiltotlim, sdl_total_tot);

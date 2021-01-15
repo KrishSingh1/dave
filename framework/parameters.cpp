@@ -128,6 +128,7 @@ bool printseparatestands = false;
 bool print_anpp_stand = true;
 bool print_lai_stand = true;
 bool print_cmass_stand = true;
+bool print_cmass_mort_stand = false;
 bool print_cmass_wood_stand = false;
 bool print_cmass_wood_harv_stand = false;
 bool print_height_stand = false;
@@ -575,6 +576,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("print_cmass_stand",&print_cmass_stand,1,CB_NONE,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_cmass_wood_stand",&print_cmass_wood_stand,1,CB_NONE,"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,1,CB_NONE,"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_cmass_mort_stand",&print_cmass_mort_stand,1,CB_NONE,"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
+
 		declareitem("print_height_stand",&print_height_stand,1,CB_NONE,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_diam_stand",&print_diam_stand,1,CB_NONE,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_dens_stand",&print_dens_stand,1,CB_NONE,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");

@@ -4604,6 +4604,8 @@ public:
 	double cmass_wood;
 	/// Harvested wood C
 	double cmass_wood_harv;
+	/// C lost in mortality
+	double cmass_mort;
 
 	/// Seed for generating random numbers within this Stand
 	/** The reason why Stand has its own seed, rather than using for instance

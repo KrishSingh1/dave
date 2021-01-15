@@ -1112,6 +1112,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			stand.cmass += standpft_cmass;
 			stand.cmass_wood += standpft_cmass_wood;
 			stand.cmass_wood_harv += standpft_cmass_wood_harv;
+			stand.cmass_mort += standpft_cmass_mort;
 
 			// Print per-stand pft values
 			if (printseparatestands) {
@@ -1130,6 +1131,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					outlimit_misc(out, out_cmass_wood_stand[id][stand.stid],      standpft_cmass_wood);
 				if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
 					out.add_value(out_cmass_wood_harv_stand[id][stand.stid],      standpft_cmass_wood_harv);
+				if(!out_cmass_mort_stand[id][stand.stid].invalid())
+					out.add_value(out_cmass_mort_stand[id][stand.stid],      standpft_cmass_mort);
 
 				double height = 0.0;
 				double diam = 0.0;
@@ -1622,6 +1625,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				outlimit_misc(out, out_cmass_wood_stand[id][stand.stid],      stand.cmass_wood);
 			if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
 				outlimit_misc(out, out_cmass_wood_harv_stand[id][stand.stid], stand.cmass_wood_harv);
+			if(!out_cmass_mort_stand[id][stand.stid].invalid())
+				out.add_value(out_cmass_mort_stand[id][stand.stid], stand.cmass_mort);
 
 			++gc_itr;
 		}
@@ -2316,6 +2321,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			out_dens_stand[id] = new Table[nst];
 			out_cmass_wood_stand[id] = new Table[nst];
 			out_cmass_wood_harv_stand[id] = new Table[nst];
+			out_cmass_mort_stand[id] = new Table[nst];
 			out_agestruct_stand[id] = new Table[nst];
 			out_diamstruct_stand[id] = new Table[nst];
 			out_diamstruct_cmass_stand[id] = new Table[nst];
@@ -2343,6 +2349,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		stand.cmass=0.0;
 		stand.cmass_wood=0.0;
 		stand.cmass_wood_harv=0.0;
+		stand.cmass_mort=0.0;
 
 		if(stand.first_year == date.year || stand.clone_year == date.year) {
 			if(stand.landcover == NATURAL) {
@@ -2455,6 +2462,15 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 
 					if(out_cmass_wood_harv_stand[id][stand.stid].invalid())
 						create_output_table(out_cmass_wood_harv_stand[id][stand.stid], outfilename, anpp_columns);
+				}		
+				if(print_cmass_mort_stand) {
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "cmass_mort_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_cmass_mort_stand[id][stand.stid].invalid())
+						create_output_table(out_cmass_mort_stand[id][stand.stid], outfilename, anpp_columns);
 				}
 				if(print_diam_stand) {
 					strcpy(outfilename, dirname);
@@ -2541,6 +2557,8 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 				close_output_table(out_cmass_wood_stand[id][st]);
 			if(!out_cmass_wood_harv_stand[id][st].invalid())
 				close_output_table(out_cmass_wood_harv_stand[id][st]);
+			if(!out_cmass_mort_stand[id][st].invalid())
+				close_output_table(out_cmass_mort_stand[id][st]);
 			if(!out_agestruct_stand[id][st].invalid())
 				close_output_table(out_agestruct_stand[id][st]);
 			if(!out_diamstruct_stand[id][st].invalid())
@@ -2566,6 +2584,8 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 			delete[] out_cmass_wood_stand[id];
 		if(out_cmass_wood_harv_stand[id])
 			delete[] out_cmass_wood_harv_stand[id];
+		if(out_cmass_mort_stand[id])
+			delete[] out_cmass_mort_stand[id];
 		if(out_agestruct_stand[id])
 			delete[] out_agestruct_stand[id];
 		if(out_diamstruct_stand[id])

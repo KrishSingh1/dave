@@ -295,6 +295,7 @@ extern bool print_lai_stand;
 extern bool print_cmass_stand;
 extern bool print_cmass_wood_stand;
 extern bool print_cmass_wood_harv_stand;
+extern bool print_cmass_mort_stand;
 extern bool print_height_stand;
 extern bool print_diam_stand;
 extern bool print_dens_stand;

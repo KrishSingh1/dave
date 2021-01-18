@@ -338,16 +338,16 @@ void MiscOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("NEE",              10, 5);
 
 	// C FLUXES FOR FORESTS WITH LUC HISTORY (E.G. LUH2)
-	ColumnDescriptors woodharv_columns_luh2;
-	woodharv_columns_luh2 += ColumnDescriptor("forharv_gross",        14, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("forharv_toprod",       15, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("clearing_gross",       15, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("clearing_toprod",      16, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("lucharv_gross",        14, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("lucharv_toprod",       15, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("fromprod",              9, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("prod_balance",         13, 5);
-	woodharv_columns_luh2 += ColumnDescriptor("harv_balance",		 13, 5);
+	ColumnDescriptors harv_columns_luc;
+	harv_columns_luc += ColumnDescriptor("forharv_gross",        14, 5);
+	harv_columns_luc += ColumnDescriptor("forharv_toprod",       15, 5);
+	harv_columns_luc += ColumnDescriptor("clearing_gross",       15, 5);
+	harv_columns_luc += ColumnDescriptor("clearing_toprod",      16, 5);
+	harv_columns_luc += ColumnDescriptor("lucharv_gross",        14, 5);
+	harv_columns_luc += ColumnDescriptor("lucharv_toprod",       15, 5);
+	harv_columns_luc += ColumnDescriptor("fromprod",              9, 5);
+	harv_columns_luc += ColumnDescriptor("prod_balance",         13, 5);
+	harv_columns_luc += ColumnDescriptor("harv_balance",		 13, 5);
 
 	ColumnDescriptors cflux_columns_for_regr;
 	cflux_columns_for_regr += ColumnDescriptor("Veg",               8, 3);
@@ -666,7 +666,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cpool_forestry,				file_cpool_forestry,			cpool_columns_for_regr);
 	create_output_table(out_cpool_regrowth,				file_cpool_regrowth,			cpool_columns_for_regr);
 	create_output_table(out_cpool_primary,				file_cpool_primary,				cpool_columns_for_regr);
-	create_output_table(out_harvest_luc,				file_harvest_luc,				woodharv_columns_luh2);
+	create_output_table(out_harvest_luc,				file_harvest_luc,				harv_columns_luc);
 
 	create_output_table(out_agestruct_natural, file_agestruct_natural, agestruct_columns);
 	create_output_table(out_agestruct_forest, file_agestruct_forest, agestruct_columns);

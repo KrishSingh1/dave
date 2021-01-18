@@ -109,12 +109,12 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
 	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
 
-	declare_parameter("file_cmass_killed_harv", &file_cmass_killed_harv, 300, "Killed C biomass during wood harvest output file");
+	declare_parameter("file_forest_cmass_killed_harv", &file_forest_cmass_killed_harv, 300, "Killed forest C biomass during wood harvest output file");
 
-	declare_parameter("file_vegc", &file_vegc, 300, "forest vegetation output file");
-	declare_parameter("file_cflux_veg", &file_cflux_veg, 300, "C fluxes to and from vegetation output file");
-	declare_parameter("file_wood_harvest", &file_wood_harvest, 300, "wood harvest output file");
-	declare_parameter("file_wood_harvest_luh2", &file_wood_harvest_luh2, 300, "luh2 wood harvest output file");
+	declare_parameter("file_forest_vegc", &file_forest_vegc, 300, "Forest vegetation output file");
+	declare_parameter("file_forest_cflux_veg", &file_forest_cflux_veg, 300, "Forest C fluxes to and from vegetation output file");
+	declare_parameter("file_forest_wood_harvest", &file_forest_wood_harvest, 300, "Forest wood harvest output file");
+	declare_parameter("file_harvest_luc", &file_harvest_luc, 300, "Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
 
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
@@ -573,7 +573,7 @@ void MiscOutput::define_output_tables() {
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
-	create_output_table(out_cmass_killed_harv,  file_cmass_killed_harv,     harv_columns);
+	create_output_table(out_forest_cmass_killed_harv,  file_forest_cmass_killed_harv,     harv_columns);
 
 	create_output_table(out_cmass_cropland, file_cmass_cropland, cmass_columns_lc);
 	create_output_table(out_cmass_pasture,  file_cmass_pasture,  cmass_columns_lc);
@@ -656,17 +656,17 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
 
-	create_output_table(out_wood_harvest,		file_wood_harvest,			woodharv_columns);
-	create_output_table(out_vegc,				file_vegc,					vegc_columns);
-	create_output_table(out_cflux_veg,			file_cflux_veg,				cflux_veg_columns);
+	create_output_table(out_forest_wood_harvest,		file_forest_wood_harvest,		woodharv_columns);
+	create_output_table(out_forest_vegc,				file_forest_vegc,				vegc_columns);
+	create_output_table(out_forest_cflux_veg,			file_forest_cflux_veg,			cflux_veg_columns);
 
-	create_output_table(out_cflux_forestry,					file_cflux_forestry,          cflux_columns_for_regr);
-	create_output_table(out_cflux_regrowth,					file_cflux_regrowth,          cflux_columns_for_regr);
-	create_output_table(out_cflux_primary,					file_cflux_primary,           cflux_columns_for_regr);
-	create_output_table(out_cpool_forestry,					file_cpool_forestry,          cpool_columns_for_regr);
-	create_output_table(out_cpool_regrowth,					file_cpool_regrowth,          cpool_columns_for_regr);
-	create_output_table(out_cpool_primary,					file_cpool_primary,           cpool_columns_for_regr);
-	create_output_table(out_wood_harvest_luh2,				file_wood_harvest_luh2,       woodharv_columns_luh2);
+	create_output_table(out_cflux_forestry,				file_cflux_forestry,			cflux_columns_for_regr);
+	create_output_table(out_cflux_regrowth,				file_cflux_regrowth,			cflux_columns_for_regr);
+	create_output_table(out_cflux_primary,				file_cflux_primary,				cflux_columns_for_regr);
+	create_output_table(out_cpool_forestry,				file_cpool_forestry,			cpool_columns_for_regr);
+	create_output_table(out_cpool_regrowth,				file_cpool_regrowth,			cpool_columns_for_regr);
+	create_output_table(out_cpool_primary,				file_cpool_primary,				cpool_columns_for_regr);
+	create_output_table(out_harvest_luc,				file_harvest_luc,				woodharv_columns_luh2);
 
 	create_output_table(out_agestruct_natural, file_agestruct_natural, agestruct_columns);
 	create_output_table(out_agestruct_forest, file_agestruct_forest, agestruct_columns);
@@ -1219,7 +1219,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 		}
 
-		outlimit_misc(out, out_cmass_killed_harv,     mean_standpft_cmass_killed_harv);
+		outlimit_misc(out, out_forest_cmass_killed_harv,     mean_standpft_cmass_killed_harv);
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 		if (run_landcover) {
@@ -1604,7 +1604,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		++gc_itr;
 	} // stand loop
 
-	outlimit_misc(out, out_cmass_killed_harv,     cmass_killed_harv_gridcell);
+	outlimit_misc(out, out_forest_cmass_killed_harv,     cmass_killed_harv_gridcell);
 
 	// Print per-stand totals
 	if (printseparatestands) {
@@ -1861,58 +1861,58 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	Landcover& lcC = gridcell.landcover;
 
 	// Print forest vegetation total, wood and AG compartments
-	outlimit_misc(out, out_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL]);	
-	outlimit_misc(out, out_vegc, cmass_wood_natural);
-	outlimit_misc(out, out_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] * 0.8);	// AG fraction 0.8
-	outlimit_misc(out, out_vegc, cmass_wood_natural * 0.78);											// stem_frac 0.65, twig_frac 0.13
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_natural);
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_products_natural);
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL]);	
+	outlimit_misc(out, out_forest_vegc, cmass_wood_natural);
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] * 0.8);	// AG fraction 0.8
+	outlimit_misc(out, out_forest_vegc, cmass_wood_natural * 0.78);											// stem_frac 0.65, twig_frac 0.13
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural);
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural);
 
-	outlimit_misc(out, out_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_vegc, cmass_wood_forest);
-	outlimit_misc(out, out_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST] * 0.8);		// AG fraction 0.8
-	outlimit_misc(out, out_vegc, cmass_wood_forest * 0.78);												// stem_frac 0.65, twig_frac 0.13
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_forest);
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_products_forest);
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_vegc, cmass_wood_forest);
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST] * 0.8);		// AG fraction 0.8
+	outlimit_misc(out, out_forest_vegc, cmass_wood_forest * 0.78);												// stem_frac 0.65, twig_frac 0.13
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_forest);
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_forest);
 
-	outlimit_misc(out, out_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_vegc, cmass_wood_natural + cmass_wood_forest);
-	outlimit_misc(out, out_vegc, (landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]) * 0.8);
-	outlimit_misc(out, out_vegc, (cmass_wood_natural + cmass_wood_forest) * 0.78);						// stem_frac 0.65, twig_frac 0.13
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_natural + cmass_wood_potharv_forest);
-	outlimit_misc(out, out_vegc, cmass_wood_potharv_products_natural + cmass_wood_potharv_products_forest);
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_vegc, cmass_wood_natural + cmass_wood_forest);
+	outlimit_misc(out, out_forest_vegc, (landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]) * 0.8);
+	outlimit_misc(out, out_forest_vegc, (cmass_wood_natural + cmass_wood_forest) * 0.78);						// stem_frac 0.65, twig_frac 0.13
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural + cmass_wood_potharv_forest);
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural + cmass_wood_potharv_products_forest);
 
 	// Print wood harvest total killed and fate of compartments
-	outlimit_misc(out, out_wood_harvest, lcC.harv_killed_c);
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, lcC.harv_killed_c * 0.8);						// AG fraction 0.8
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_harvest);
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_toprod);
-	outlimit_misc(out, out_wood_harvest, lcC.acflux_wood_harvest);
-	outlimit_misc(out, out_wood_harvest, lcC.harv_tolitt);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c * 0.8);						// AG fraction 0.8
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt);
 
-	outlimit_misc(out, out_wood_harvest, cmass_killed_harv_forest);
-	outlimit_misc(out, out_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, cmass_killed_harv_forest * 0.8);				// AG fraction 0.8
-	outlimit_misc(out, out_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, cmass_wood_harv_forest);
-	outlimit_misc(out, out_wood_harvest, cmass_wood_harv_toprod_forest);
-	outlimit_misc(out, out_wood_harvest, flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_wood_harvest, cmass_harv_tolitter_forest);
+	outlimit_misc(out, out_forest_wood_harvest, cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, cmass_killed_harv_forest * 0.8);				// AG fraction 0.8
+	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest);
+	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_toprod_forest);
+	outlimit_misc(out, out_forest_wood_harvest, flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_wood_harvest, cmass_harv_tolitter_forest);
 	
-	outlimit_misc(out, out_wood_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
-	outlimit_misc(out, out_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9);		// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, (lcC.harv_killed_c + cmass_killed_harv_forest) * 0.8);					// AG fraction 0.8
-	outlimit_misc(out, out_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_harvest + cmass_wood_harv_forest);
-	outlimit_misc(out, out_wood_harvest, lcC.roundwood_toprod + cmass_wood_harv_toprod_forest);
-	outlimit_misc(out, out_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_wood_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9);		// with stem_frac 0.65 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, (lcC.harv_killed_c + cmass_killed_harv_forest) * 0.8);					// AG fraction 0.8
+	outlimit_misc(out, out_forest_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest + cmass_wood_harv_forest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod + cmass_wood_harv_toprod_forest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
 
-	outlimit_misc(out, out_wood_harvest, gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_wood_harvest, -lcC.roundwood_toprod - cmass_wood_harv_toprod_forest + lcC.acflux_harvest_slow);
-	outlimit_misc(out, out_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST] + lcC.acflux_harvest_slow);
+	outlimit_misc(out, out_forest_wood_harvest, gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_forest_wood_harvest, -lcC.roundwood_toprod - cmass_wood_harv_toprod_forest + lcC.acflux_harvest_slow);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST] + lcC.acflux_harvest_slow);
 
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
@@ -1925,41 +1925,41 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double NAI_tot = NAI_forest + NAI_natural;
 
 	// Print C fluxes to and from vegetation
-	outlimit_misc(out, out_cflux_veg, -anpp_natural);
-	outlimit_misc(out, out_cflux_veg, lcC.harv_killed_c);
-	outlimit_misc(out, out_cflux_veg, cmass_mort_natural);
-	outlimit_misc(out, out_cflux_veg, cmass_fire_natural);
-	outlimit_misc(out, out_cflux_veg, cmass_est_natural);
-	outlimit_misc(out, out_cflux_veg, cmass_dist_natural);
-	outlimit_misc(out, out_cflux_veg, cmass_turnover_natural);
-	outlimit_misc(out, out_cflux_veg, cmass_repr_natural);
-	outlimit_misc(out, out_cflux_veg, lcC.cloned_c_lc[NATURAL]);
-	outlimit_misc(out, out_cflux_veg, cflux_veg_natural);
-	outlimit_misc(out, out_cflux_veg, NAI_natural);
+	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL]);
+	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_natural);
+	outlimit_misc(out, out_forest_cflux_veg, NAI_natural);
 
-	outlimit_misc(out, out_cflux_veg, -anpp_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_killed_harv_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_mort_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_fire_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_est_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_dist_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_turnover_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_repr_forest);
-	outlimit_misc(out, out_cflux_veg, lcC.cloned_c_lc[FOREST]);
-	outlimit_misc(out, out_cflux_veg, cflux_veg_forest);
-	outlimit_misc(out, out_cflux_veg, NAI_forest);
+	outlimit_misc(out, out_forest_cflux_veg, -anpp_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_est_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_forest);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[FOREST]);
+	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_forest);
+	outlimit_misc(out, out_forest_cflux_veg, NAI_forest);
 
-	outlimit_misc(out, out_cflux_veg, -anpp_natural - anpp_forest);
-	outlimit_misc(out, out_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_mort_natural + cmass_mort_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_fire_natural + cmass_fire_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_est_natural + cmass_est_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_dist_natural + cmass_dist_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_turnover_natural + cmass_turnover_forest);
-	outlimit_misc(out, out_cflux_veg, cmass_repr_natural + cmass_repr_forest);
-	outlimit_misc(out, out_cflux_veg, lcC.cloned_c_lc[NATURAL] + lcC.cloned_c_lc[FOREST]);
-	outlimit_misc(out, out_cflux_veg, cflux_veg_tot);
-	outlimit_misc(out, out_cflux_veg, NAI_tot);
+	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural - anpp_forest);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural + cmass_mort_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural + cmass_fire_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural + cmass_est_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural + cmass_dist_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_natural + cmass_turnover_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural + cmass_repr_forest);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL] + lcC.cloned_c_lc[FOREST]);
+	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_tot);
+	outlimit_misc(out, out_forest_cflux_veg, NAI_tot);
 
 	if (run[CROPLAND]) {
 		outlimit_misc(out, out_irrigation,   irrigation_gridcell);
@@ -1970,7 +1970,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		for (int i=0;i<NLANDCOVERTYPES;i++) {
 			if (run[i]) {
 
-				outlimit_misc(out, out_cmass_killed_harv,  landcover_cmass_killed_harv[i]);
+				outlimit_misc(out, out_forest_cmass_killed_harv,  landcover_cmass_killed_harv[i]);
 
 				switch (i) {
 				case CROPLAND:
@@ -2051,15 +2051,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_cflux_primary, flux_charvest_primary);
 	outlimit_misc(out, out_cflux_primary, flux_veg_primary - flux_repr_primary + flux_soil_primary + flux_fire_primary + flux_est_primary + c_org_leach_gridcell_primary + flux_seed_primary);
 
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_clearing_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_landuse_change_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig + gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig + gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_wood_harvest_luh2, gridcell.landcover.acflux_wood_harvest + gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig + gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig + gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest + gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
 
 	// Print C fluxes to per-landcover files
 	if (run_landcover) {

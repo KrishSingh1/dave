@@ -1859,13 +1859,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_wood_harvest, cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_toprod_forest);
-	outlimit_misc(out, out_forest_wood_harvest, flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_wood_harvest, flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_wood_harvest, cmass_harv_tolitter_forest);
 	// Total forest harvest
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest + cmass_wood_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod + cmass_wood_harv_toprod_forest);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
 
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values

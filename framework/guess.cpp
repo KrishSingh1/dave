@@ -935,6 +935,7 @@ void Stand::set_management() {
 			Vegetation& vegetation = patch.vegetation;
 			vegetation.firstobj();
 			while (vegetation.isobj) {
+				// Program only enters here when cutfirstyear == 2 (copy_type = CLONESTAND_KILLTREES)
 				Individual& indiv = vegetation.getobj();
 				Patchpft& ppft = patch.pft[indiv.pft.id];
 				if(indiv.pft.lifeform == TREE) {
@@ -1054,17 +1055,8 @@ void Stand::set_management() {
 									Individual& indiv = vegetation.getobj();
 									Patchpft& ppft = patch.pft[indiv.pft.id];
 									if(indiv.pft.id == pftx.id && pftx.id != id) {
-										if(clone_year == date.year) {
-											// cut at cloning (LUC)
-											get_gridcell().landcover.harv_killed_c += indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-											// subtract harvested C from transferred living C
-											get_gridcell().landcover.cloned_c_lc[lc_origin] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-											get_gridcell().landcover.cloned_c_lc[landcover] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-										}
-										else {
-											// cut at rotation
-											ppft.cmass_killed_harv += indiv.ccont();
-										}
+										// cut at cloning (LUC) or at rotation
+										ppft.cmass_killed_harv += indiv.ccont();
 										harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 										indiv.vegetation.killobj();
 									}
@@ -1143,17 +1135,8 @@ void Stand::set_management() {
 								Individual& indiv = vegetation.getobj();
 								Patchpft& ppft = patch.pft[indiv.pft.id];
 								if(indiv.pft.id == pftx.id) {
-									if(clone_year == date.year) {
-										// cut at cloning (LUC)
-										get_gridcell().landcover.harv_killed_c += indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-										// subtract harvested C from transferred living C
-										get_gridcell().landcover.cloned_c_lc[lc_origin] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-										get_gridcell().landcover.cloned_c_lc[landcover] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-									}
-									else {
-										// cut at rotation
-										ppft.cmass_killed_harv += indiv.ccont();
-									}
+									// cut at cloning (LUC) or at rotation
+									ppft.cmass_killed_harv += indiv.ccont();
 									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 									indiv.vegetation.killobj();
 								}

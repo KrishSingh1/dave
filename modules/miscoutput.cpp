@@ -360,104 +360,104 @@ void MiscOutput::define_output_tables() {
 	cflux_columns_for_regr += ColumnDescriptor("Harvest",			9, 5);
 	cflux_columns_for_regr += ColumnDescriptor("NEE-LU",           10, 5);
 
-	// WOOD HARVEST
+	// FOREST WOOD HARVEST
 	ColumnDescriptors harv_columns;
 	harv_columns += ColumnDescriptors(pfts,                10, 5);
 	harv_columns += ColumnDescriptor("Total",              10, 5);
 	harv_columns += ColumnDescriptors(landcovers,         13, 5);
 
-	ColumnDescriptors woodharv_columns;
-	woodharv_columns += ColumnDescriptor("lucharv_totvegC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_totwoodC",	 17, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_AGvegC",		 15, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_AGwoodC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_grossrw",		 16, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_toprod",       15, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_toflux",       15, 5);
-	woodharv_columns += ColumnDescriptor("lucharv_tolitt",       15, 5);
+	ColumnDescriptors forest_woodharv_columns;
+	forest_woodharv_columns += ColumnDescriptor("lucharv_totvegC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_totwoodC",	 17, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_AGvegC",		 15, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_AGwoodC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_grossrw",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_toprod",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_toflux",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_tolitt",       15, 5);
 
-	woodharv_columns += ColumnDescriptor("forharv_totvegC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("forharv_totwoodC",     17, 5);
-	woodharv_columns += ColumnDescriptor("forharv_AGvegC",		 15, 5);
-	woodharv_columns += ColumnDescriptor("forharv_AGwoodC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("forharv_grossrw",      16, 5);
-	woodharv_columns += ColumnDescriptor("forharv_toprod",       15, 5);
-	woodharv_columns += ColumnDescriptor("forharv_toflux",       15, 5);
-	woodharv_columns += ColumnDescriptor("forharv_tolitt",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_totvegC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_totwoodC",     17, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_AGvegC",		 15, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_AGwoodC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_grossrw",      16, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_toprod",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_toflux",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_tolitt",       15, 5);
 
-	woodharv_columns += ColumnDescriptor("totharv_totvegC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("totharv_totwoodC",     17, 5);
-	woodharv_columns += ColumnDescriptor("totharv_AGvegC",		 15, 5);
-	woodharv_columns += ColumnDescriptor("totharv_AGwoodC",		 16, 5);
-	woodharv_columns += ColumnDescriptor("totharv_grossrw",      16, 5);
-	woodharv_columns += ColumnDescriptor("totharv_toprod",       15, 5);
-	woodharv_columns += ColumnDescriptor("totharv_toflux",       15, 5);
-	woodharv_columns += ColumnDescriptor("totharv_tolitt",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_totvegC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_totwoodC",     17, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_AGvegC",		 15, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_AGwoodC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_grossrw",      16, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_toprod",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_toflux",       15, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_tolitt",       15, 5);
 
-	woodharv_columns += ColumnDescriptor("fromprod",              9, 5);
-	woodharv_columns += ColumnDescriptor("prod_balance",         13, 5);
-	woodharv_columns += ColumnDescriptor("harv_balance",		 13, 5);
+	forest_woodharv_columns += ColumnDescriptor("fromprod",              9, 5);
+	forest_woodharv_columns += ColumnDescriptor("prod_balance",         13, 5);
+	forest_woodharv_columns += ColumnDescriptor("harv_balance",		 13, 5);
 
-	// VEGC
-	ColumnDescriptors vegc_columns;
-	vegc_columns += ColumnDescriptor("nat_vegC",				  9, 5);
-	vegc_columns += ColumnDescriptor("nat_woodC",				 10, 5);
-	vegc_columns += ColumnDescriptor("nat_AGvegC",				 11, 5);
-	vegc_columns += ColumnDescriptor("nat_AGwoodC",				 12, 5); 
-	vegc_columns += ColumnDescriptor("nat_rwC",					  9, 5);
-	vegc_columns += ColumnDescriptor("nat_prod",				  9, 5);
+	// FOREST VEGC
+	ColumnDescriptors forest_vegc_columns;
+	forest_vegc_columns += ColumnDescriptor("nat_vegC",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_woodC",				 10, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_AGvegC",				 11, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_AGwoodC",				 12, 5); 
+	forest_vegc_columns += ColumnDescriptor("nat_rwC",					  9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_prod",				  9, 5);
 
-	vegc_columns += ColumnDescriptor("for_vegC",				  9, 5);
-	vegc_columns += ColumnDescriptor("for_woodC",				 10, 5);
-	vegc_columns += ColumnDescriptor("fot_AGvegC",				 11, 5);
-	vegc_columns += ColumnDescriptor("for_AGwoodC",				 12, 5); 
-	vegc_columns += ColumnDescriptor("for_rwC",					  9, 5);
-	vegc_columns += ColumnDescriptor("for_prod",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_vegC",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_woodC",				 10, 5);
+	forest_vegc_columns += ColumnDescriptor("fot_AGvegC",				 11, 5);
+	forest_vegc_columns += ColumnDescriptor("for_AGwoodC",				 12, 5); 
+	forest_vegc_columns += ColumnDescriptor("for_rwC",					  9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_prod",				  9, 5);
 
-	vegc_columns += ColumnDescriptor("tot_vegC",				  9, 5);
-	vegc_columns += ColumnDescriptor("tot_woodC",				 10, 5);
-	vegc_columns += ColumnDescriptor("tot_AGvegC",				 11, 5);
-	vegc_columns += ColumnDescriptor("tot_AGwoodC",				 12, 5); 
-	vegc_columns += ColumnDescriptor("tot_rwC",					  9, 5);
-	vegc_columns += ColumnDescriptor("tot_prod",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_vegC",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_woodC",				 10, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_AGvegC",				 11, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_AGwoodC",				 12, 5); 
+	forest_vegc_columns += ColumnDescriptor("tot_rwC",					  9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_prod",				  9, 5);
 
-	// CFLUX_VEG
-	ColumnDescriptors cflux_veg_columns;
-	cflux_veg_columns += ColumnDescriptor("nat_npp",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_harvC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_mortC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_fireC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_estC",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_distC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_turnoverC",			  14, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_reprC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_clonedC",			  12, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_cflux",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("nat_NAI",				   9, 5);
+	// FOREST CFLUX_VEG
+	ColumnDescriptors forest_cflux_veg_columns;
+	forest_cflux_veg_columns += ColumnDescriptor("nat_npp",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_harvC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_mortC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_fireC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_estC",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_distC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_turnoverC",			  14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_reprC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_clonedC",			  12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_cflux",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_NAI",				   9, 5);
 
-	cflux_veg_columns += ColumnDescriptor("for_npp",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("for_harvC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_mortC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_fireC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_estC",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("for_distC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_turnoverC",			  14, 5);
-	cflux_veg_columns += ColumnDescriptor("for_reprC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_clonedC",			  12, 5);
-	cflux_veg_columns += ColumnDescriptor("for_cflux",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("for_NAI",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_npp",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_harvC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_mortC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_fireC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_estC",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_distC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_turnoverC",			  14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_reprC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_clonedC",			  12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_cflux",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_NAI",				   9, 5);
 
-	cflux_veg_columns += ColumnDescriptor("tot_npp",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_harvC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_mortC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_fireC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_estC",				   9, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_distC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_turnoverC",			  14, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_reprC",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_clonedC",			  12, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_cflux",				  10, 5);
-	cflux_veg_columns += ColumnDescriptor("tot_NAI",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_npp",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_harvC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_mortC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_fireC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_estC",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_distC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_turnoverC",			  14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_reprC",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_clonedC",			  12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_cflux",				  10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_NAI",				   9, 5);
 
 	// CPOOL
 	ColumnDescriptors cpool_columns;
@@ -656,9 +656,9 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
 
-	create_output_table(out_forest_wood_harvest,		file_forest_wood_harvest,		woodharv_columns);
-	create_output_table(out_forest_vegc,				file_forest_vegc,				vegc_columns);
-	create_output_table(out_forest_cflux_veg,			file_forest_cflux_veg,			cflux_veg_columns);
+	create_output_table(out_forest_wood_harvest,		file_forest_wood_harvest,		forest_woodharv_columns);
+	create_output_table(out_forest_vegc,				file_forest_vegc,				forest_vegc_columns);
+	create_output_table(out_forest_cflux_veg,			file_forest_cflux_veg,			forest_cflux_veg_columns);
 
 	create_output_table(out_cflux_forestry,				file_cflux_forestry,			cflux_columns_for_regr);
 	create_output_table(out_cflux_regrowth,				file_cflux_regrowth,			cflux_columns_for_regr);

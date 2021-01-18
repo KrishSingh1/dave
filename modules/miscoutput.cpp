@@ -326,138 +326,116 @@ void MiscOutput::define_output_tables() {
 
 	// CFLUX
 	ColumnDescriptors cflux_columns;
-	cflux_columns += ColumnDescriptor("Veg",               8, 3);
-	cflux_columns += ColumnDescriptor("Repr",              8, 3);
-	cflux_columns += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns += ColumnDescriptor("Fire",              10, 5);
-	cflux_columns += ColumnDescriptor("Est",               8, 3);
-	cflux_columns += ColumnDescriptor("Seed",         8, 3);
-	cflux_columns += ColumnDescriptor("Harvest",      9, 5);
-	cflux_columns += ColumnDescriptor("LU_ch",        9, 5);
-	cflux_columns += ColumnDescriptor("Slow_h",       9, 5);
-	cflux_columns += ColumnDescriptor("NEE",              10, 5);
+	cflux_columns += ColumnDescriptor("Veg",					 8, 3);
+	cflux_columns += ColumnDescriptor("Repr",					 8, 3);
+	cflux_columns += ColumnDescriptor("Soil",					 8, 3);
+	cflux_columns += ColumnDescriptor("Fire",					10, 5);
+	cflux_columns += ColumnDescriptor("Est",					 8, 3);
+	cflux_columns += ColumnDescriptor("Seed",					 8, 3);
+	cflux_columns += ColumnDescriptor("Harvest",				 9, 5);
+	cflux_columns += ColumnDescriptor("LU_ch",					 9, 5);
+	cflux_columns += ColumnDescriptor("Slow_h",					 9, 5);
+	cflux_columns += ColumnDescriptor("NEE",					10, 5);
 
 	// C FLUXES FOR FORESTS WITH LUC HISTORY (E.G. LUH2)
 	ColumnDescriptors harv_columns_luc;
-	harv_columns_luc += ColumnDescriptor("forharv_gross",        14, 5);
-	harv_columns_luc += ColumnDescriptor("forharv_toprod",       15, 5);
-	harv_columns_luc += ColumnDescriptor("clearing_gross",       15, 5);
-	harv_columns_luc += ColumnDescriptor("clearing_toprod",      16, 5);
-	harv_columns_luc += ColumnDescriptor("lucharv_gross",        14, 5);
-	harv_columns_luc += ColumnDescriptor("lucharv_toprod",       15, 5);
-	harv_columns_luc += ColumnDescriptor("fromprod",              9, 5);
-	harv_columns_luc += ColumnDescriptor("prod_balance",         13, 5);
-	harv_columns_luc += ColumnDescriptor("harv_balance",		 13, 5);
+	harv_columns_luc += ColumnDescriptor("forharv_gross",				14, 5);
+	harv_columns_luc += ColumnDescriptor("forharv_toprod",				15, 5);
+	harv_columns_luc += ColumnDescriptor("clearing_gross",				15, 5);
+	harv_columns_luc += ColumnDescriptor("clearing_toprod",				16, 5);
+	harv_columns_luc += ColumnDescriptor("lucharv_gross",				14, 5);
+	harv_columns_luc += ColumnDescriptor("lucharv_toprod",				15, 5);
+	harv_columns_luc += ColumnDescriptor("fromprod",					 9, 5);
+	harv_columns_luc += ColumnDescriptor("prod_balance",				13, 5);
+	harv_columns_luc += ColumnDescriptor("harv_balance",				13, 5);
 
 	ColumnDescriptors cflux_columns_for_regr;
-	cflux_columns_for_regr += ColumnDescriptor("Veg",               8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("Repr",              8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("Fire",              8, 5);
-	cflux_columns_for_regr += ColumnDescriptor("Est",               8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("DOC",			    8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("Seed",				8, 3);
-	cflux_columns_for_regr += ColumnDescriptor("Harvest",			9, 5);
-	cflux_columns_for_regr += ColumnDescriptor("NEE-LU",           10, 5);
+	cflux_columns_for_regr += ColumnDescriptor("Veg",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Repr",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Soil",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Fire",					 8, 5);
+	cflux_columns_for_regr += ColumnDescriptor("Est",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("DOC",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Seed",					 8, 3);
+	cflux_columns_for_regr += ColumnDescriptor("Harvest",				 9, 5);
+	cflux_columns_for_regr += ColumnDescriptor("NEE-LU",				10, 5);
 
 	// FOREST WOOD HARVEST
 	ColumnDescriptors harv_columns;
-	harv_columns += ColumnDescriptors(pfts,                10, 5);
-	harv_columns += ColumnDescriptor("Total",              10, 5);
-	harv_columns += ColumnDescriptors(landcovers,         13, 5);
+	harv_columns += ColumnDescriptors(pfts,								10, 5);
+	harv_columns += ColumnDescriptor("Total",							10, 5);
+	harv_columns += ColumnDescriptors(landcovers,						13, 5);
 
 	ColumnDescriptors forest_woodharv_columns;
-	forest_woodharv_columns += ColumnDescriptor("lucharv_totvegC",		 16, 5);
-	forest_woodharv_columns += ColumnDescriptor("lucharv_totwoodC",	 17, 5);
-	forest_woodharv_columns += ColumnDescriptor("lucharv_AGvegC",		 15, 5);
-	forest_woodharv_columns += ColumnDescriptor("lucharv_AGwoodC",		 16, 5);
-	forest_woodharv_columns += ColumnDescriptor("lucharv_grossrw",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_totvegC",		16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_grossrw",		16, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_tolitt",       15, 5);
 
-	forest_woodharv_columns += ColumnDescriptor("forharv_totvegC",		 16, 5);
-	forest_woodharv_columns += ColumnDescriptor("forharv_totwoodC",     17, 5);
-	forest_woodharv_columns += ColumnDescriptor("forharv_AGvegC",		 15, 5);
-	forest_woodharv_columns += ColumnDescriptor("forharv_AGwoodC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_totvegC",		16, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_grossrw",      16, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_tolitt",       15, 5);
 
-	forest_woodharv_columns += ColumnDescriptor("totharv_totvegC",		 16, 5);
-	forest_woodharv_columns += ColumnDescriptor("totharv_totwoodC",     17, 5);
-	forest_woodharv_columns += ColumnDescriptor("totharv_AGvegC",		 15, 5);
-	forest_woodharv_columns += ColumnDescriptor("totharv_AGwoodC",		 16, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_totvegC",		16, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_grossrw",      16, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_tolitt",       15, 5);
 
-	forest_woodharv_columns += ColumnDescriptor("fromprod",              9, 5);
-	forest_woodharv_columns += ColumnDescriptor("prod_balance",         13, 5);
-	forest_woodharv_columns += ColumnDescriptor("harv_balance",		 13, 5);
-
 	// FOREST VEGC
 	ColumnDescriptors forest_vegc_columns;
-	forest_vegc_columns += ColumnDescriptor("nat_vegC",				  9, 5);
-	forest_vegc_columns += ColumnDescriptor("nat_woodC",				 10, 5);
-	forest_vegc_columns += ColumnDescriptor("nat_AGvegC",				 11, 5);
-	forest_vegc_columns += ColumnDescriptor("nat_AGwoodC",				 12, 5); 
-	forest_vegc_columns += ColumnDescriptor("nat_rwC",					  9, 5);
-	forest_vegc_columns += ColumnDescriptor("nat_prod",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_vegC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_prod",					 9, 5);
 
-	forest_vegc_columns += ColumnDescriptor("for_vegC",				  9, 5);
-	forest_vegc_columns += ColumnDescriptor("for_woodC",				 10, 5);
-	forest_vegc_columns += ColumnDescriptor("fot_AGvegC",				 11, 5);
-	forest_vegc_columns += ColumnDescriptor("for_AGwoodC",				 12, 5); 
-	forest_vegc_columns += ColumnDescriptor("for_rwC",					  9, 5);
-	forest_vegc_columns += ColumnDescriptor("for_prod",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_vegC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_prod",					 9, 5);
 
-	forest_vegc_columns += ColumnDescriptor("tot_vegC",				  9, 5);
-	forest_vegc_columns += ColumnDescriptor("tot_woodC",				 10, 5);
-	forest_vegc_columns += ColumnDescriptor("tot_AGvegC",				 11, 5);
-	forest_vegc_columns += ColumnDescriptor("tot_AGwoodC",				 12, 5); 
-	forest_vegc_columns += ColumnDescriptor("tot_rwC",					  9, 5);
-	forest_vegc_columns += ColumnDescriptor("tot_prod",				  9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_vegC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_prod",					 9, 5);
 
 	// FOREST CFLUX_VEG
 	ColumnDescriptors forest_cflux_veg_columns;
-	forest_cflux_veg_columns += ColumnDescriptor("nat_npp",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_harvC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_mortC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_fireC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_estC",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_distC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_turnoverC",			  14, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_reprC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_clonedC",			  12, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_cflux",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_NAI",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_npp",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_harvC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_mortC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_fireC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_estC",			 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_distC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_turnoverC",		14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_reprC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_clonedC",			12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_cflux",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_NAI",				 9, 5);
 
-	forest_cflux_veg_columns += ColumnDescriptor("for_npp",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_harvC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_mortC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_fireC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_estC",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_distC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_turnoverC",			  14, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_reprC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_clonedC",			  12, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_cflux",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_NAI",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_npp",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_harvC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_mortC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_fireC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_estC",			 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_distC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_turnoverC",		14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_reprC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_clonedC",			12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_cflux",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_NAI",				 9, 5);
 
-	forest_cflux_veg_columns += ColumnDescriptor("tot_npp",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_harvC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_mortC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_fireC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_estC",				   9, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_distC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_turnoverC",			  14, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_reprC",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_clonedC",			  12, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_cflux",				  10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_NAI",				   9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_npp",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_harvC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_mortC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_fireC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_estC",			 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_distC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_turnoverC",		14, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_reprC",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_clonedC",			12, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_cflux",			10, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_NAI",				 9, 5);
 
 	// CPOOL
 	ColumnDescriptors cpool_columns;
@@ -1769,9 +1747,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_turnover_forest = 0.0;
 	double cmass_repr_forest = 0.0;
 	double cmass_est_forest = 0.0;
-	double cmass_wood_forest = 0.0;
 
-	double cmass_wood_natural = 0.0;
 	double cmass_wood_potharv_natural = 0.0;
 	double cmass_wood_potharv_products_natural = 0.0;
 	double cmass_mort_natural = 0.0;
@@ -1841,12 +1817,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_turnover_forest += st.cmass_turnover * gcst.frac;
 			cmass_repr_forest += st.cmass_repr * gcst.frac;
 			cmass_est_forest += st.cmass_est * gcst.frac;
-
-			cmass_wood_forest += st.cmass_wood * gcst.frac;
 			cmass_wood_potharv_products_forest += st.cmass_wood_potharv_products * gcst.frac;
 		}
 		else if(st.landcover == NATURAL) {
-			cmass_wood_natural += st.cmass_wood * gcst.frac;
+
 			cmass_wood_potharv_natural += st.cmass_wood_potharv * gcst.frac;
 			cmass_wood_potharv_products_natural += st.cmass_wood_potharv_products * gcst.frac;
 			cmass_mort_natural += st.cmass_mort * gcst.frac;
@@ -1861,58 +1835,38 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	Landcover& lcC = gridcell.landcover;
 
 	// Print forest vegetation total, wood and AG compartments
-	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL]);	
-	outlimit_misc(out, out_forest_vegc, cmass_wood_natural);
-	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] * 0.8);	// AG fraction 0.8
-	outlimit_misc(out, out_forest_vegc, cmass_wood_natural * 0.78);											// stem_frac 0.65, twig_frac 0.13
-	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural);
-	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural);
-
+	// Primary forest
+	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL]);		// Total vegetation cmass
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural);						// Potential harvestable stem wood, taking harvest efficiency into account
+	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural);				// Potential wood products, taking harvest efficiency into account
+	// Managed forest
 	outlimit_misc(out, out_forest_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_forest_vegc, cmass_wood_forest);
-	outlimit_misc(out, out_forest_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST] * 0.8);		// AG fraction 0.8
-	outlimit_misc(out, out_forest_vegc, cmass_wood_forest * 0.78);												// stem_frac 0.65, twig_frac 0.13
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_forest);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_forest);
-
+	// Total forest
 	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]);
-	outlimit_misc(out, out_forest_vegc, cmass_wood_natural + cmass_wood_forest);
-	outlimit_misc(out, out_forest_vegc, (landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]) * 0.8);
-	outlimit_misc(out, out_forest_vegc, (cmass_wood_natural + cmass_wood_forest) * 0.78);						// stem_frac 0.65, twig_frac 0.13
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural + cmass_wood_potharv_forest);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural + cmass_wood_potharv_products_forest);
 
 	// Print wood harvest total killed and fate of compartments
-	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c * 0.8);						// AG fraction 0.8
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt);
-
+	// Primary forest harvest
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c);							// Killed tree cmass during harvest
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest);						// Harvested stem wood cmass; wood products and fuelwood from stems
+	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod);						// Harvested wood product cmass
+	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest);					// Fuel wood cmass from products and residues
+	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt);							// Killed tree cmass entering litter pool
+	// Managed forest harvest
 	outlimit_misc(out, out_forest_wood_harvest, cmass_killed_harv_forest);
-	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9);			// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_forest_wood_harvest, cmass_killed_harv_forest * 0.8);				// AG fraction 0.8
-	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
 	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, cmass_wood_harv_toprod_forest);
 	outlimit_misc(out, out_forest_wood_harvest, flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
 	outlimit_misc(out, out_forest_wood_harvest, cmass_harv_tolitter_forest);
-	
+	// Total forest harvest
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
-	outlimit_misc(out, out_forest_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9);		// with stem_frac 0.65 and harv_eff 0.9
-	outlimit_misc(out, out_forest_wood_harvest, (lcC.harv_killed_c + cmass_killed_harv_forest) * 0.8);					// AG fraction 0.8
-	outlimit_misc(out, out_forest_wood_harvest, (lcC.roundwood_harvest + cmass_wood_harv_forest) / 0.65 / 0.9 * 0.78);	// with stem_frac+twig_frac 0.78 and harv_eff 0.9
 	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest + cmass_wood_harv_forest);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod + cmass_wood_harv_toprod_forest);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST]);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
-
-	outlimit_misc(out, out_forest_wood_harvest, gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_forest_wood_harvest, -lcC.roundwood_toprod - cmass_wood_harv_toprod_forest + lcC.acflux_harvest_slow);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST] * lcC.frac[FOREST] + lcC.acflux_harvest_slow);
 
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
@@ -1925,6 +1879,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double NAI_tot = NAI_forest + NAI_natural;
 
 	// Print C fluxes to and from vegetation
+	// Primary forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural);
@@ -1936,7 +1891,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_natural);
 	outlimit_misc(out, out_forest_cflux_veg, NAI_natural);
-
+	// Managed forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_forest);
@@ -1948,7 +1903,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[FOREST]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_forest);
 	outlimit_misc(out, out_forest_cflux_veg, NAI_forest);
-
+	// Total forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural - anpp_forest);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural + cmass_mort_forest);

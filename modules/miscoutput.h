@@ -76,7 +76,7 @@ private:
 		   file_speciesdiam_natural, file_speciesdiam_forest,
 		   file_speciesheights_natural, file_speciesheights_forest,
 		   file_lai_natural, file_lai_forest, file_fpc_natural, file_fpc_forest,
-		   file_forest_cmass_killed_harv, file_forest_vegc, file_forest_cflux_veg, file_forest_wood_harvest,
+		   file_forest_cmass_killed_harv, file_forest_vegc, file_forest_cflux_veg, file_forest_harvest,
 		   file_harvest_luc, file_cflux_forestry, file_cflux_regrowth, file_cflux_primary,
 		   file_cpool_forestry, file_cpool_regrowth, file_cpool_primary;
 
@@ -122,7 +122,7 @@ private:
 		  out_aaet_natural, out_aaet_forest, out_speciesdiam_natural, out_speciesdiam_forest,
 		  out_speciesheights_natural, out_speciesheights_forest,
 		  out_lai_natural, out_lai_forest, out_fpc_natural, out_fpc_forest,
-		  out_forest_wood_harvest, out_forest_vegc, out_forest_cflux_veg, out_forest_cmass_killed_harv,
+		  out_forest_harvest, out_forest_vegc, out_forest_cflux_veg, out_forest_cmass_killed_harv,
 		  out_harvest_luc, out_cflux_forestry, out_cflux_regrowth, out_cflux_primary,
 		  out_cpool_forestry, out_cpool_regrowth, out_cpool_primary;
 

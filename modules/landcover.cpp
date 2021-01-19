@@ -1576,7 +1576,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 						lc.acflux_wood_harvest += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
 						lc.acflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.acflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
@@ -1588,7 +1588,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
 						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.acflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
 						lc.acflux_clearing_lc[stand.landcover] += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_clearing += clearing_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_clearing_orig += clearing_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
@@ -1596,7 +1596,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					}
 					else {
 						lc.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_landuse_change_orig += (cp.acflux_harvest + cp.harvested_products_slow) * donor_area / (double)stand.nobj;
+						lc.acflux_landuse_change_orig += (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
 						lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_landuse_change_orig += (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;

@@ -14,7 +14,17 @@ const int DENSTARGET_NL = 250;
 const int DENSTARGET_BL = 100;
 
 /// Functions to check available wood for harvest at individual, patch and stand levels
-double check_harvest_cmass(Individual& indiv, bool wood_cmass_only, bool to_product_pool) {
+
+/** 
+ *  With default parameters, the function returns total potential harvested C for an individual, both potential harvest products and potential fuel wood+residues.
+ *  Harvest efficiency is accounted for.
+ *  
+ *  INPUT PARAMETERS
+ *
+ *  \param stem_cmass_only				if true, returns potential removed stem C
+ *  \param to_product_pool				if true, returns potential removed stem products C
+ */
+double check_harvest_cmass(Individual& indiv, bool stem_cmass_only, bool to_product_pool) {
 
 	double cmass_harvest;
 	Stand& stand = indiv.vegetation.patch.stand;
@@ -31,15 +41,24 @@ double check_harvest_cmass(Individual& indiv, bool wood_cmass_only, bool to_prod
 	harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 	if(to_product_pool)
 		cmass_harvest = cp.acflux_harvest_wood_toprod;
-	else if(wood_cmass_only)
+	else if(stem_cmass_only)
 		cmass_harvest = cp.acflux_harvest_wood;
 	else
-		cmass_harvest = (cp.acflux_harvest + cp.harvested_products_slow);
+		cmass_harvest = (cp.acflux_harvest + cp.acflux_harvest_wood_toprod);
 
 	return cmass_harvest;
 }
 
-double check_harvest_cmass(Patch& patch, bool wood_cmass_only, bool check_selection) {
+/** 
+ *  With default parameters, the function returns total potential harvested C for a patch, both potential harvest products and potential fuel wood+residues.
+ *  Harvest efficiency is accounted for.
+ *  
+ *  INPUT PARAMETERS
+ *
+ *  \param stem_cmass_only				if true, returns potential removed stem C
+ *  \param check_selection				if true, check only value for PFTs in selection
+ */
+double check_harvest_cmass(Patch& patch, bool stem_cmass_only, bool check_selection) {
 
 	double cmass_harvest = 0.0;
 	ManagementType& mt = patch.stand.get_current_management();
@@ -51,18 +70,27 @@ double check_harvest_cmass(Patch& patch, bool wood_cmass_only, bool check_select
 		Standpft& spft = patch.stand.pft[indiv.pft.id];
 
 		if(!check_selection || spft.plant || mt.planting_system == "")
-			cmass_harvest += check_harvest_cmass(indiv, wood_cmass_only);
+			cmass_harvest += check_harvest_cmass(indiv, stem_cmass_only);
 	}
 	return cmass_harvest;
 }
 
-double check_harvest_cmass(Stand& stand, bool wood_cmass_only, bool check_selection) {
+/** 
+ *  With default parameters, the function returns total potential harvested C for a stand, both potential harvest products and potential fuel wood+residues.
+ *  Harvest efficiency is accounted for.
+ *  
+ *  INPUT PARAMETERS
+ *
+ *  \param stem_cmass_only				if true, returns potential removed stem C
+ *  \param check_selection				if true, check only value for PFTs in selection
+ */
+double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_selection) {
 
 	double cmass_harvest = 0.0;
 
 	for(unsigned int i=0;i<stand.nobj;i++) {
 		Patch& patch = stand[i];
-		cmass_harvest += check_harvest_cmass(patch, wood_cmass_only, check_selection) / (double)stand.nobj;
+		cmass_harvest += check_harvest_cmass(patch, stem_cmass_only, check_selection) / (double)stand.nobj;
 	}
 	return cmass_harvest;
 }
@@ -396,9 +424,9 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 	ManagementType& mt = patch.stand.get_current_management();
 	Stand& stand = patch.stand;
 	StandType& st = stlist[stand.stid];
-	const bool wood_cmass_only = true;
-	double cmass_harvest_patch = check_harvest_cmass(patch, wood_cmass_only);
-	double cmass_harvest_patch_selection = check_harvest_cmass(patch, wood_cmass_only, true);
+	const bool stem_cmass_only = true;
+	double cmass_harvest_patch = check_harvest_cmass(patch, stem_cmass_only);
+	double cmass_harvest_patch_selection = check_harvest_cmass(patch, stem_cmass_only, true);
 	double cmass_harvest_remain = cmass_harvest_patch * patch.man_strength;
 	double cmass_harvest_remain_init = cmass_harvest_remain;
 	double cmass_harvest_patch_unsel = cmass_harvest_patch - cmass_harvest_patch_selection;
@@ -425,14 +453,14 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		
 		assert(indiv.age < MAXAGE);
 
-		cmass_harvest_ageclass[(int)indiv.age] += check_harvest_cmass(indiv, wood_cmass_only);
+		cmass_harvest_ageclass[(int)indiv.age] += check_harvest_cmass(indiv, stem_cmass_only);
 		if(pft_selection) {
 			if(select_species == 4)
-				cmass_harvest_patch_selection += check_harvest_cmass(indiv, wood_cmass_only);
-			cmass_harvest_ageclass_selection[(int)indiv.age] += check_harvest_cmass(indiv, wood_cmass_only);
+				cmass_harvest_patch_selection += check_harvest_cmass(indiv, stem_cmass_only);
+			cmass_harvest_ageclass_selection[(int)indiv.age] += check_harvest_cmass(indiv, stem_cmass_only);
 			if(str_sel) {
-				cmass_pft[stand.pft[indiv.pft.id].selection] += check_harvest_cmass(indiv, wood_cmass_only);
-				cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] += str_sel[stand.pft[indiv.pft.id].selection] * check_harvest_cmass(indiv, wood_cmass_only);
+				cmass_pft[stand.pft[indiv.pft.id].selection] += check_harvest_cmass(indiv, stem_cmass_only);
+				cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] += str_sel[stand.pft[indiv.pft.id].selection] * check_harvest_cmass(indiv, stem_cmass_only);
 			}
 		}
 	}
@@ -515,7 +543,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			age_save = (int)indiv.age;
 
 			// Harvestable cmass_wood for this individual/cohort
-			double cmass_harvest_cohort = check_harvest_cmass(indiv, wood_cmass_only);
+			double cmass_harvest_cohort = check_harvest_cmass(indiv, stem_cmass_only);
 
 			// select_diam overrides select_age
 			if(select_diam) {
@@ -655,7 +683,7 @@ void set_forest(Gridcell& gridcell) {
 		Stand& stand = gridcell[s];
 		StandType& st = stlist[stand.stid];
 		ManagementType& mt = stand.get_current_management();
-		const bool wood_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
+		const bool stem_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
 
 		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
 		if(st.firsttargetyear < 100000)	// Initialised to 1000000; other values set in instruction file.
@@ -694,7 +722,7 @@ void set_forest(Gridcell& gridcell) {
 		memset(cutstr_pft_stand, 0, sizeof(double)*stand.npftsinselection);
 
 		double cmass_unselected_stand = 0.0;
-		double cmass_total_stand = check_harvest_cmass(stand, wood_cmass_only);
+		double cmass_total_stand = check_harvest_cmass(stand, stem_cmass_only);
 
 		if(!cmass_total_stand)
 			continue;
@@ -706,10 +734,10 @@ void set_forest(Gridcell& gridcell) {
 				Individual& indiv = patch.vegetation[i];
 				Standpft& spft = stand.pft[indiv.pft.id];
 				if(mt.pftinselection((const char*)indiv.pft.name) && spft.selection != -1) {
-					cmass_pft_stand[spft.selection] += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;
+					cmass_pft_stand[spft.selection] += check_harvest_cmass(indiv, stem_cmass_only) / stand.nobj;
 				}
 				else if(indiv.pft.lifeform == TREE) {
-					cmass_unselected_stand += check_harvest_cmass(indiv, wood_cmass_only) / stand.nobj;
+					cmass_unselected_stand += check_harvest_cmass(indiv, stem_cmass_only) / stand.nobj;
 				}
 			}
 			stand.nextobj();
@@ -788,7 +816,7 @@ void set_forest(Gridcell& gridcell) {
 			memset(target_patch, 0, sizeof(double)*stand.npftsinselection);
 
 			double cmass_unselected = 0.0;
-			double cmass_total = check_harvest_cmass(patch, wood_cmass_only);
+			double cmass_total = check_harvest_cmass(patch, stem_cmass_only);
 
 			if(!cmass_total) {
 				stand.nextobj();
@@ -799,10 +827,10 @@ void set_forest(Gridcell& gridcell) {
 				Individual& indiv = patch.vegetation[i];
 				Standpft& spft = stand.pft[indiv.pft.id];
 				if(mt.pftinselection((const char*)indiv.pft.name) && spft.selection != -1) {
-					cmass_pft[spft.selection] += check_harvest_cmass(indiv, wood_cmass_only);
+					cmass_pft[spft.selection] += check_harvest_cmass(indiv, stem_cmass_only);
 				}
 				else if(indiv.pft.lifeform == TREE) {
-					cmass_unselected += check_harvest_cmass(indiv, wood_cmass_only);
+					cmass_unselected += check_harvest_cmass(indiv, stem_cmass_only);
 				}
 			}
 

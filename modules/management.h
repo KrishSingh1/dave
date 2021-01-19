@@ -50,11 +50,11 @@ void forest_rotation(Stand& stand);
 /// Sets forest management for patch this year
 double manage_forest(Patch& patch);
 // Returns harvestable cmass for individual
-double check_harvest_cmass(Individual& indiv, bool wood_cmass_only = false, bool to_product_pool = false);
+double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool to_product_pool = false);
 // Returns harvestable cmass for patch
-double check_harvest_cmass(Patch& patch, bool wood_cmass_only = false, bool check_selection = false);
+double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool check_selection = false);
 // Returns harvestable cmass for stand
-double check_harvest_cmass(Stand& stand, bool wood_cmass_only = false, bool check_selection = false);
+double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
 /// Splits string into "words"
 int split_string(char* str);
 
@@ -241,11 +241,11 @@ struct Harvest_CN {
 	double nmass_litter_heart;
 	double acflux_harvest;
 	double anflux_harvest;
-	double harvested_products_slow;
+	double harvested_products_slow;		// May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
 	double harvested_products_slow_nmass;
-	// Part of acflux_harvest; not to be included in copy functions.
+	// Partly overlapping with acflux_harvest; not to be included in copy functions.
 	double acflux_harvest_wood;
-	double acflux_harvest_wood_toprod;
+	double acflux_harvest_wood_toprod;	// Always zero before harvest
 	double acflux_harvest_tolitter;
 	double acflux_harvest_killed;
 

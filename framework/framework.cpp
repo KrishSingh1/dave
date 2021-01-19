@@ -72,7 +72,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// period and create/kill stands.
 	landcover_dynamics(gridcell, input_module);
 
-	// Set forest management for all stands this year
+	// Perform forest management for all stands this year
 	manage_forests(gridcell);
 
 	Gridcell::iterator gc_itr = gridcell.begin();
@@ -248,8 +248,7 @@ int framework(const CommandLineArguments& args) {
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
-				if(printseparatestands)
-					output_modules.openlocalfiles(gridcell);
+				output_modules.openlocalfiles(gridcell);
 				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);

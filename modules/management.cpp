@@ -69,9 +69,9 @@ double check_harvest_cmass(Stand& stand, bool wood_cmass_only, bool check_select
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
- *  A fraction of wood is harvested (pft.harv_eff). A fraction of harvested wood
- *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest is returned as acflux_harvest.
- *  The rest, including leaves and roots, is returned as litter, unless a fraction of twigs or roots removed.
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood
+ *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest plus residue outtake is returned as acflux_harvest.
+ *  The rest, including leaves and roots, is returned as litter.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *
  *  INPUT PARAMETER
@@ -269,14 +269,15 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
- *  A fraction of wood is harvested (pft.harv_eff). A fraction of harvested wood
- *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest is returned as acflux_harvest.
- *  The rest, including leaves and roots, is returned as litter, unless a fraction of twigs or roots removed.
- *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood
+ *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest plus residue outtake is returned as acflux_harvest.
+ *  The rest, including leaves and roots, is returned as litter
+ *  Called from harvest_forest() first day of the year for normal wood harvest.
+ *  Also called first day of the year from and landcover_dynamics() if any natural vegetation is transferred to another land use
  *
  *  This function copies variables from an individual and it's associated patchpft and patch to
- *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
- *  After the execution of the main harvest_crop function, the output variables are copied
+ *  a Harvest_CN struct, which is then passed on to the main harvest_wood function.
+ *  After the execution of the main harvest_wood function, the output variables are copied
  *  back to the individual and patchpft and the patch-level fluxes are updated.
  *
  *  INPUT PARAMETER
@@ -1428,8 +1429,8 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
  *  This calls for a scaling factor, when the pasture area has increased.
  *
  *  This function copies variables from an individual and it's associated patchpft and patch to
- *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
- *  After the execution of the main harvest_crop function, the output variables are copied
+ *  a Harvest_CN struct, which is then passed on to the main harvest_pasture function.
+ *  After the execution of the main harvest_pasture function, the output variables are copied
  *  back to the individual and patchpft and the patch-level fluxes are updated.
  *
  *  INPUT/OUTPUT PARAMETERS

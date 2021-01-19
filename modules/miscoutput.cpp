@@ -368,19 +368,19 @@ void MiscOutput::define_output_tables() {
 
 	ColumnDescriptors forest_woodharv_columns;
 	forest_woodharv_columns += ColumnDescriptor("lucharv_totvegC",		16, 5);
-	forest_woodharv_columns += ColumnDescriptor("lucharv_grossrw",		16, 5);
+	forest_woodharv_columns += ColumnDescriptor("lucharv_stemC",		14, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("lucharv_tolitt",       15, 5);
 
 	forest_woodharv_columns += ColumnDescriptor("forharv_totvegC",		16, 5);
-	forest_woodharv_columns += ColumnDescriptor("forharv_grossrw",      16, 5);
+	forest_woodharv_columns += ColumnDescriptor("forharv_stemC",		14, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("forharv_tolitt",       15, 5);
 
 	forest_woodharv_columns += ColumnDescriptor("totharv_totvegC",		16, 5);
-	forest_woodharv_columns += ColumnDescriptor("totharv_grossrw",      16, 5);
+	forest_woodharv_columns += ColumnDescriptor("totharv_stemC",		14, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_toprod",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_toflux",       15, 5);
 	forest_woodharv_columns += ColumnDescriptor("totharv_tolitt",       15, 5);
@@ -388,17 +388,17 @@ void MiscOutput::define_output_tables() {
 	// FOREST VEGC
 	ColumnDescriptors forest_vegc_columns;
 	forest_vegc_columns += ColumnDescriptor("nat_vegC",					 9, 5);
-	forest_vegc_columns += ColumnDescriptor("nat_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_stemC",				10, 5);
 	forest_vegc_columns += ColumnDescriptor("nat_prod",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("nat_fuel",					 9, 5);
 
 	forest_vegc_columns += ColumnDescriptor("for_vegC",					 9, 5);
-	forest_vegc_columns += ColumnDescriptor("for_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_stemC",				10, 5);
 	forest_vegc_columns += ColumnDescriptor("for_prod",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("for_fuel",					 9, 5);
 
 	forest_vegc_columns += ColumnDescriptor("tot_vegC",					 9, 5);
-	forest_vegc_columns += ColumnDescriptor("tot_rwC",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_stemC",				10, 5);
 	forest_vegc_columns += ColumnDescriptor("tot_prod",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("tot_fuel",					 9, 5);
 
@@ -1867,8 +1867,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	// Print wood harvest total killed and fate of compartments
 	// Primary forest harvest
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c);							// Killed tree cmass during harvest
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest);						// Harvested stem wood cmass; wood products and fuelwood from stems
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod);						// Harvested wood product cmass
+	outlimit_misc(out, out_forest_wood_harvest, lcC.stem_harvest);							// Harvested stem wood cmass; wood products and fuelwood from stems
+	outlimit_misc(out, out_forest_wood_harvest, lcC.stem_toprod);							// Harvested wood product cmass
 	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest);					// Fuel wood cmass from products and residues
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt);							// Killed tree cmass entering litter pool
 	// Managed forest harvest
@@ -1879,8 +1879,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_wood_harvest, cmass_harv_tolitter_forest);
 	// Total forest harvest
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_harvest + cmass_wood_harv_forest);
-	outlimit_misc(out, out_forest_wood_harvest, lcC.roundwood_toprod + cmass_wood_harv_toprod_forest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.stem_harvest + cmass_wood_harv_forest);
+	outlimit_misc(out, out_forest_wood_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_forest);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_wood_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
 

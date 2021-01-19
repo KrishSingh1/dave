@@ -5011,10 +5011,10 @@ struct Landcover : public Serializable {
 	double acflux_clearing;
 	/// Gridcell-level C removal at clearing for cropland and pasture
 	double acflux_clearing_orig;
-	/// Gridcell-level C removal of harvested roundwood
-	double roundwood_harvest;
-	/// Gridcell-level C harvested roundwood going to the product pool
-	double roundwood_toprod;
+	/// Gridcell-level C removal of harvested tree stem
+	double stem_harvest;
+	/// Gridcell-level C harvested tree stem going to the product pool
+	double stem_toprod;
 	/// Gridcell-level C of killed trees in wood harvest
 	double harv_killed_c;
 	/// Gridcell-level C of killed trees in wood harvest left on site

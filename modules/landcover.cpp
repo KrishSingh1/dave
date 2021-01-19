@@ -1581,8 +1581,8 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
 
-						lc.roundwood_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
-						lc.roundwood_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
+						lc.stem_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
+						lc.stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
 						lc.harv_tolitt += wood_harvest_ratio * cp.acflux_harvest_tolitter * donor_area / (double)stand.nobj;
 						lc.harv_killed_c += wood_harvest_ratio * indiv.ccont() * donor_area / (double)stand.nobj;
 

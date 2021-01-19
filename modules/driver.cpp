@@ -488,8 +488,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.anflux_clearing=0.0;
 		gridcell.landcover.anflux_clearing_orig=0.0;
 
-		gridcell.landcover.roundwood_harvest=0.0;
-		gridcell.landcover.roundwood_toprod=0.0;
+		gridcell.landcover.stem_harvest=0.0;
+		gridcell.landcover.stem_toprod=0.0;
 		gridcell.landcover.harv_killed_c=0.0;
 		gridcell.landcover.harv_tolitt=0.0;
 

@@ -390,14 +390,17 @@ void MiscOutput::define_output_tables() {
 	forest_vegc_columns += ColumnDescriptor("nat_vegC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("nat_rwC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("nat_prod",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("nat_fuel",					 9, 5);
 
 	forest_vegc_columns += ColumnDescriptor("for_vegC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("for_rwC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("for_prod",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("for_fuel",					 9, 5);
 
 	forest_vegc_columns += ColumnDescriptor("tot_vegC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("tot_rwC",					 9, 5);
 	forest_vegc_columns += ColumnDescriptor("tot_prod",					 9, 5);
+	forest_vegc_columns += ColumnDescriptor("tot_fuel",					 9, 5);
 
 	// FOREST CFLUX_VEG
 	ColumnDescriptors forest_cflux_veg_columns;
@@ -783,6 +786,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass_wood = 0.0;
 		st.cmass_wood_potharv = 0.0;
 		st.cmass_wood_potharv_products = 0.0;
+		st.cmass_potfuel = 0.0;
 		st.cmass_mort = 0.0;
 		st.cmass_fire = 0.0;
 		st.cmass_dist = 0.0;
@@ -841,6 +845,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_cmass_wood=0.0;
 	double standpft_cmass_wood_potharv=0.0;
 	double standpft_cmass_wood_potharv_products=0.0;
+	double standpft_cmass_potfuel=0.0;
 	double standpft_diam_g=0.0;
 	double standpft_cmass_wood_harv=0.0;
 	double standpft_cmass_wood_harv_toprod=0.0;
@@ -937,6 +942,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_wood=0.0;
 			standpft_cmass_wood_potharv=0.0;
 			standpft_cmass_wood_potharv_products=0.0;
+			standpft_cmass_potfuel=0.0;
 			standpft_cmass_wood_harv=0.0;
 			standpft_cmass_wood_harv_toprod=0.0;
 			standpft_cmass_killed_harv=0.0;
@@ -989,6 +995,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						standpft_cmass_wood += indiv.cmass_wood();
 						standpft_cmass_wood_potharv += check_harvest_cmass(indiv, true);
 						standpft_cmass_wood_potharv_products += check_harvest_cmass(indiv, true, true);
+						standpft_cmass_potfuel += (check_harvest_cmass(indiv) - check_harvest_cmass(indiv, true, true));
 						standpft_nmass += indiv.ncont();
 						standpft_fpc += indiv.fpc;
 						standpft_aaet += indiv.aaet;
@@ -1022,6 +1029,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_wood/=(double)stand.npatch();
 			standpft_cmass_wood_potharv/=(double)stand.npatch();
 			standpft_cmass_wood_potharv_products/=(double)stand.npatch();
+			standpft_cmass_potfuel/=(double)stand.npatch();
 			standpft_cmass_mort/=(double)stand.npatch();
 			standpft_cmass_fire/=(double)stand.npatch();
 			standpft_cmass_dist/=(double)stand.npatch();
@@ -1144,6 +1152,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				st.cmass_wood += standpft_cmass_wood * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_potharv += standpft_cmass_wood_potharv * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_potharv_products += standpft_cmass_wood_potharv_products * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_potfuel += standpft_cmass_potfuel * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_mort += standpft_cmass_mort * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_fire += standpft_cmass_fire * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_dist += standpft_cmass_dist * stand.get_gridcell_fraction() / gcst.frac;
@@ -1737,6 +1746,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	double cmass_wood_potharv_forest = 0.0;
 	double cmass_wood_potharv_products_forest = 0.0;
+	double cmass_potfuel_forest = 0.0;
 	double cmass_wood_harv_forest = 0.0;
 	double cmass_wood_harv_toprod_forest = 0.0;
 	double cmass_harv_tolitter_forest = 0.0;
@@ -1750,6 +1760,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	double cmass_wood_potharv_natural = 0.0;
 	double cmass_wood_potharv_products_natural = 0.0;
+	double cmass_potfuel_natural = 0.0;
 	double cmass_mort_natural = 0.0;
 	double cmass_fire_natural = 0.0;
 	double cmass_dist_natural = 0.0;
@@ -1818,11 +1829,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_repr_forest += st.cmass_repr * gcst.frac;
 			cmass_est_forest += st.cmass_est * gcst.frac;
 			cmass_wood_potharv_products_forest += st.cmass_wood_potharv_products * gcst.frac;
+			cmass_potfuel_forest += st.cmass_potfuel * gcst.frac;
 		}
 		else if(st.landcover == NATURAL) {
 
 			cmass_wood_potharv_natural += st.cmass_wood_potharv * gcst.frac;
 			cmass_wood_potharv_products_natural += st.cmass_wood_potharv_products * gcst.frac;
+			cmass_potfuel_natural += st.cmass_potfuel * gcst.frac;
 			cmass_mort_natural += st.cmass_mort * gcst.frac;
 			cmass_fire_natural += st.cmass_fire * gcst.frac;
 			cmass_dist_natural += st.cmass_dist * gcst.frac;
@@ -1839,14 +1852,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL]);		// Total vegetation cmass
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural);						// Potential harvestable stem wood, taking harvest efficiency into account
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural);				// Potential wood products, taking harvest efficiency into account
+	outlimit_misc(out, out_forest_vegc, cmass_potfuel_natural);								// Potential fuel wood, taking harvest efficiency and residue outtake into account
 	// Managed forest
 	outlimit_misc(out, out_forest_vegc, landcover_cmass[FOREST] * lcC.frac[FOREST]);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_forest);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_forest);
+	outlimit_misc(out, out_forest_vegc, cmass_potfuel_forest);
 	// Total forest
 	outlimit_misc(out, out_forest_vegc, landcover_cmass[NATURAL] * lcC.frac[NATURAL] + landcover_cmass[FOREST] * lcC.frac[FOREST]);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_natural + cmass_wood_potharv_forest);
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural + cmass_wood_potharv_products_forest);
+	outlimit_misc(out, out_forest_vegc, cmass_potfuel_natural + cmass_potfuel_forest);
 
 	// Print wood harvest total killed and fate of compartments
 	// Primary forest harvest

@@ -1657,6 +1657,7 @@ public:
 	double cmass_wood;
 	double cmass_wood_potharv;
 	double cmass_wood_potharv_products;
+	double cmass_potfuel;
 	double cmass_mort;
 	double cmass_fire;
 	double cmass_dist;

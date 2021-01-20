@@ -3047,16 +3047,20 @@ public:
 	/// SOC–microorganism collocation factor for decomposition (Yan 2018)
 	double a;
 
-	/// soilcode, 0 to 8
+	/// Soilcode, 0 to 8
 	int soilcode;
-	/// volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
+	/// Volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
 	double organic_frac;
-	/// porosity from AGRMET Handbook, 2002
+	/// Porosity from AGRMET Handbook, 2002
 	double porosity;
-	/// volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
+	/// Volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
-	/// parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
+	/// Parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
 	double b_oro;
+	/// Slope gradient [m m-1]
+	double slope;
+	/// Slope length [m] which is inversely related to slope gradient 
+	double slope_length;
 
 	// MEMBER FUNCTIONS
 
@@ -3321,11 +3325,13 @@ public:
 	double Psi_max;
 	/// Soil organic C microorganism collocation factor
 	double a;
-	/// drainage runoff
+	/// Lateral drainage runoff
 	double runoff_drain;
-	/// basefloww runoff
+	/// Lateral drainage runoff fraction (h-1)
+	double runoff_drain_frac;
+	/// Baseflow runoff
 	double runoff_baseflow;
-	/// porosity in layer (mm)
+	/// Porosity in layer (mm)
 	double por;
 	/// Organic available water holding fraction of soil layer (-)
 	double awc_org;

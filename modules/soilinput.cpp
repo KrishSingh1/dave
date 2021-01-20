@@ -147,6 +147,34 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 	ifs.close();
 }
 
+// Initialises the soil input class and determines the format of the supplied input file.
+void SoilInput::init_sdor(const char* fname, const std::vector<coord>& gridlist) {
+
+	std::set<coord> coords(gridlist.begin(), gridlist.end());
+
+	std::ifstream ifs(fname, std::ifstream::in);
+
+	std::string line;
+
+	while (getline(ifs, line)) {
+		std::istringstream iss(line);
+
+		double lon, lat;
+		double sdor;
+		if (iss >> lon >> lat >> sdor) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.count(c) == 0) {
+				continue;
+			}
+			sdor_map[c] = sdor;
+			if (sdor_map.size() == coords.size()) {
+				break;
+			}
+		}
+	}
+	ifs.close();
+}
+
 // Read in routine for text file with LPJ soil codes.
 void SoilInput::load_lpj_soilcodes(const char* fname, const std::set<coord>& coords) {
 	std::ifstream ifs(fname, std::ifstream::in);
@@ -205,7 +233,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 	int bd_i = -1;
 	int cn_i = -1;
 	int soilc_i = -1;
-	int sdor_i = -1;
 
 	for (int i = 0; it != header.end(); ++it, ++i) {
 		if (*it == "sand") {
@@ -231,9 +258,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 		}
 		else if (*it == "soilc") {
 			soilc_i = i;
-		}
-		else if (*it == "sdor") {
-			sdor_i = i;
 		}
 	}
 	if (soilc_i == -1 && iforganicsoilproperties == 1) {
@@ -270,14 +294,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 			}
 			else {
 				soildata.soilC = 0.0;
-			}
-
-			// If no standard deviation of orography input. then use standard value of 300
-			if (sdor_i != -1 && iforography) {
-				soildata.sdor = T[sdor_i];
-			}
-			else {
-				soildata.sdor = 300.0;
 			}
 				
 			// Not all data sets includes bulk density data, here it is set to a negative number if no column with that name. 
@@ -333,9 +349,6 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
 	// Soil carbon
 	soiltype.soilC = 0.0; // default value (kgC/m2)
-
-	// standard deviation of orography (default value 300)
-	soiltype.sdor = 300.0;
 
 	return soiltype;
 }
@@ -410,9 +423,6 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
 	// Porosity fractions
 	soiltype.porosity = Theta_s;
-
-	// Standard deviation of orography
-	soiltype.sdor = soil.sdor;
 	
 	return soiltype;
 }
@@ -476,11 +486,23 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 	soiltype.a = soiltype.clay_frac < 0.016 ? 0.0 : (soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * soiltype.clay_frac - 0.046);
 
+	// Standard deviation of orography (300.0 standard value)
+	double sdor = 300.0; 
+	if (sdor_map.size()) {
+		sdor = sdor_map[c];
+	}
+
 	// Accounts for the sub-grid variability related to orography
 	// Min and max standard deviation of orography (Balsamo et al. 2009 eqn 10)
-	double sigma_min = 100.0;
+	double sigma_min = 10.0;
 	double sigma_max = 1000.0;
-	soiltype.b_oro = (soilprop.sdor - sigma_min) / (soilprop.sdor + sigma_max);
+	soiltype.b_oro = max(0.01, min(0.5, (sdor - sigma_min) / (sdor + sigma_max)));
+
+	// Slope gradient [m m-1] // DW_COMMENT sdor for now, but will be changed to slope input
+	soiltype.slope = min(1.0, max(0.01, sdor * 0.001));
+
+	// Slope length [m] which is inversely related to slope gradient 
+	soiltype.slope_length = 2.5 * pow(soiltype.slope, -1.5);
 
 	// Soil depth
 	// soil_depth is defined in global.ins

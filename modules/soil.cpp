@@ -1621,6 +1621,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		Psi_max = Psi_max_org;
 		a = 0.0;
 
+		runoff_drain_frac = 0.0;
+
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
 		wmass += wadded;
@@ -1643,6 +1645,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		Psi_max = Psi_max_org;
 		a = 0.0;
 
+		runoff_drain_frac = 0.0;
+
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
 		wmass += wadded;
@@ -1664,6 +1668,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		b = soiltype.b_min;
 		Psi_max = soiltype.Psi_max_min;
 		a = soiltype.a;
+
+		// Fraction [h-1] lost in the lateral flow of excees water (water above fc) (Steenhuis 2019 eqn 14)
+		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
+
+		// Update lateral drainage fraction to hydrology timestep
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, HOUR_PER_DAY / date.timesteps);
 
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
@@ -1732,6 +1742,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 
 		// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 		soiltype.a = min_frac * soiltype.clay_frac < 0.016 ? 0.0 : (min_frac * soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * min_frac * soiltype.clay_frac - 0.046);
+
+		// Fraction [h-1] lost in the lateral flow of excees water (water above fc) (Steenhuis 2019 eqn 14)
+		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
+
+		// Update lateral drainage fraction to hydrology timestep
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, HOUR_PER_DAY / date.timesteps);
 
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
@@ -2055,7 +2071,8 @@ void Soillayer::update_thermal_cap_cond(bool combine_snow, double snow_depth, do
 	Stot = mineral + organic + ice + water + peat;
 
 	if ((Stot + air) / combined_depth > 1.000001)
-		fail("Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g", Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
+		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g", 
+			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
 
 	// Calculate log terms
 	lKforg = (organic / Stot) * log(Korg);
@@ -3006,7 +3023,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
 	bool ifbedrock = false;
 	bool negwmass = false;
-	std::vector<double> drained_wmass(nsoillayers);
+	double drained_wmass;
 
 	// Calculate matrix potential (not used yet)
 	// update_matric_potential();
@@ -3045,16 +3062,26 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
 		soillayers[lyr].wmass = wpara.psi1[lyr] * soillayers[lyr].depth;
 
-		// Calculate drainage
+		// Calculate lateral drainage
 
-		// Drainage of water above saturation including ice
-		drained_wmass[lyr] = max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats);
+		// Liquid water above saturation is drained laterally
+		drained_wmass = min(soillayers[lyr].wmass, max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats));
 
-		soillayers[lyr].runoff_drain += drained_wmass[lyr];
+		// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
+		if (iforography && (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc())) {
+
+			// Excees liquid water above field capacity
+			double wmass_excees = min(soillayers[lyr].wmass, min(soillayers[lyr].wsats, soillayers[lyr].wmass + soillayers[lyr].imass) - soillayers[lyr].fc());
+
+			// Slope dependant drainage of liquid water above field capacity
+			drained_wmass += wmass_excees * soillayers[lyr].runoff_drain_frac;
+		}
+
+		soillayers[lyr].runoff_drain += drained_wmass;
 
 		// Update total water after drainage 
 		// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-		soillayers[lyr].wmass -= drained_wmass[lyr];
+		soillayers[lyr].wmass -= drained_wmass;
 	}
 }
 
@@ -4037,6 +4064,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Minimum water considerred (equals to a 0.1 mm3)
 	const double EPS = 1.0e-9;
 
+	// Effective depth of surface runoff - 0.5m
+	const double INFILT_DEPTH = 500.0;
+
 	double wmass_begin = get_sum(WMASS) + rain_melt;
 
 	// Evaposation (mm)
@@ -4067,8 +4097,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Calculate static ice mass and saturation level for infiltation depth (top layer)
-	double imass_infilt = soillayers[0].imass;
-	double wsats_infilt = soillayers[0].wsats;
+	double imass_infilt = to_depth(INFILT_DEPTH, get(IMASS));
+	double wsats_infilt = to_depth(INFILT_DEPTH, get(WSATS));
 
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
@@ -4108,17 +4138,25 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Surface infiltration and runoff
 
 		// Calculate changing water content for infiltration layers
-		double wmass_infilt = soillayers[0].wmass;
+		double wmass_infilt = to_depth(INFILT_DEPTH, get(WMASS));// soillayers[0].wmass;
 
 		// Fraction pore spaces that are filled with water and ice
 		double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
 
-		// Calculate runoff if there is any throughfall or snow melt (Balsamo 2009, eqn 6 and 11)
+		// Calculate runoff if there is any throughfall or snow melt 
 		double runoff_surf_sd = 0.0;
-		if (winflux_sd > EPS) {
-			runoff_surf_sd = max(0.0, winflux_sd - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
-				pow(max(0.0, pow(1.0 - totwcont_infilt, 1.0 / (1.0 + soiltype.b_oro)) -
-					winflux_sd / (wsats_infilt * (1.0 + soiltype.b_oro))), soiltype.b_oro + 1.0));
+
+		// Surface runoff depends on orography (Balsamo 2009, eqn 6 and 11)
+		if (iforography) {
+			if (winflux_sd > EPS) {
+				runoff_surf_sd = max(0.0, winflux_sd - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
+					pow(max(0.0, pow(1.0 - totwcont_infilt, 1.0 / (1.0 + soiltype.b_oro)) -
+						winflux_sd / (wsats_infilt * (1.0 + soiltype.b_oro))), soiltype.b_oro + 1.0));
+			}
+		}
+		else {
+			// Surface runoff is equal to excees water above infiltation capacity
+			runoff_surf_sd = max(0.0, (winflux_sd + wmass_infilt + imass_infilt) - wsats_infilt);
 		}
 		runoff_surf += runoff_surf_sd / date.timesteps;
 

@@ -137,6 +137,8 @@ void CRUInput::init() {
 
 	soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
 
+	soilinput.init_sdor(param["file_soilsdor"].str, translate_gridlist_to_coord(gridlist));
+
 	// Set timers
 	tprogress.init();
 	tmute.init();

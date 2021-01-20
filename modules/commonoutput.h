@@ -45,7 +45,7 @@ private:
 	// Output file names ...
 	xtring file_cmass,file_anpp,file_agpp,file_agpp_no,file_agpp_ns,file_fpc,file_aaet,file_dens,file_lai,file_cflux,file_doc,file_cpool,file_clitter,file_csom,file_soildepth,file_csoil,file_rsoil,file_runoff;
 	xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
-	xtring file_mnee,file_mnetmin,file_mwcont_upper,file_mwcont_lower;
+	xtring file_mnee,file_mnetmin,file_mwmass,file_mwcont_upper,file_mwcont_lower;
 	xtring file_firert,file_speciesheights;
 	xtring file_wetland_water_added;
 	xtring file_soildeclim, file_soilgrolim, file_soiltotlim, file_soilcuelim, file_clitterinput;
@@ -76,7 +76,7 @@ private:
 	Table out_soildeclim, out_soilgrolim, out_soiltotlim, out_soilcuelim, out_clitterinput;
 
 	Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
-	Table out_mrh, out_mnee, out_mnetmin, out_mwcont_upper, out_mwcont_lower;
+	Table out_mrh, out_mnee, out_mnetmin, out_mwmass, out_mwcont_upper, out_mwcont_lower;
 	
 	// bvoc
 	Table out_aiso, out_miso, out_amon, out_mmon, out_amon_mt1, out_amon_mt2, out_mmon_mt1, out_mmon_mt2;

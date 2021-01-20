@@ -1562,6 +1562,7 @@ void Soillayer::init() {
 
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
+		mwmass[mth] = 0.0;
 		mwcont[mth] = 0.0;
 		fNH4uptake_mean[mth] = 0.0;
 		fNO3uptake_mean[mth] = 0.0;
@@ -1572,6 +1573,7 @@ void Soillayer::init() {
 
 	// Daily variables
 	std::fill_n(dwcont, Date::MAX_YEAR_LENGTH, 0.0);
+	std::fill_n(dwmass, Date::MAX_YEAR_LENGTH, 0.0);
 }
 
 
@@ -2278,6 +2280,8 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			prop[lyr] = soillayers[lyr].temp;
 		else if (SPT == WMASS)
 			prop[lyr] = soillayers[lyr].wmass;
+		else if (SPT == MWMASS)
+			prop[lyr] = soillayers[lyr].mwmass[m];
 		else if (SPT == IMASS)
 			prop[lyr] = soillayers[lyr].imass;
 		else if (SPT == WCONT)
@@ -2352,6 +2356,8 @@ double Soilcolumn::get_sum(soilproptype SPT, int m) {
 			prop += soillayers[lyr].temp * soillayers[lyr].depth / depth_soil;
 		else if (SPT == WMASS)
 			prop += soillayers[lyr].wmass;
+		else if (SPT == MWMASS)
+			prop += soillayers[lyr].mwmass[m];
 		else if (SPT == IMASS)
 			prop += soillayers[lyr].imass;
 		else if (SPT == WCONT)
@@ -2564,6 +2570,7 @@ double Soilcolumn::nmass_sompool(pooltype pool) {
  */
 void Soilcolumn::set_dwcont() {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		soillayers[lyr].dwmass[date.day] = soillayers[lyr].wmass;
 		soillayers[lyr].dwcont[date.day] = soillayers[lyr].wcont();
 	}
 }
@@ -2588,6 +2595,12 @@ void Soilcolumn::set_mwcont() {
 	double acc_wcont = 0.0;
 	double acc_awc = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		// Monthly wmass
+		soillayers[lyr].mwmass[date.month] = mean(soillayers[lyr].dwmass + date.day - date.ndaymonth[date.month] + 1,
+			date.ndaymonth[date.month]);
+
+		// Monthly wcont
 		soillayers[lyr].mwcont[date.month] = mean(soillayers[lyr].dwcont + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
 

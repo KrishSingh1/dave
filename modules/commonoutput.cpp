@@ -82,6 +82,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mrh", &file_mrh, 300, "Monthly heterotrophic respiration output file");
 	declare_parameter("file_mnee", &file_mnee, 300, "Monthly NEE output file");
 	declare_parameter("file_mnetmin", &file_mnetmin, 300, "Monthly net mineralisation output file");
+	declare_parameter("file_mwmass", &file_mwmass, 300, "Monthly liquid water output file");
 	declare_parameter("file_mwcont_upper", &file_mwcont_upper, 300, "Monthly wcont_upper output file");
 	declare_parameter("file_mwcont_lower", &file_mwcont_lower, 300, "Monthly wcont_lower output file");
 	// bvoc
@@ -166,12 +167,12 @@ void CommonOutput::define_output_tables() {
 	}
 
 	// Create the month columns
-	ColumnDescriptors month_columns;
-	ColumnDescriptors month_columns_wide;
+	ColumnDescriptors month_columns, month_columns_wide,  month_columns_large;
 	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 	for (int i = 0; i < 12; i++) {
 		month_columns      += ColumnDescriptor(months[i], 8,  3);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
+		month_columns_large += ColumnDescriptor(months[i], 7, 0);
 	}
 
 	// Create soil depth columns
@@ -489,6 +490,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mrh,            file_mrh,            month_columns);
 	create_output_table(out_mnee,           file_mnee,           month_columns);
 	create_output_table(out_mnetmin,        file_mnetmin,        month_columns);
+	create_output_table(out_mwmass,         file_mwmass,         month_columns_large);
 	create_output_table(out_mwcont_upper,   file_mwcont_upper,   month_columns);
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
@@ -755,6 +757,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mra[12];
 	double mnee[12];
 	double mnetmin[12];
+	double mwmass[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
 	double miso[12];
@@ -780,7 +783,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
-		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
+		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwmass[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
@@ -1453,6 +1456,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mrunoff[m] += (patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
 				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
+				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
 				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC));
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
 				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(gridcell.soil_depth, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC)) * gridcell.soil_depth - mwcontupper * SOILDEPTH_UPPER) / (gridcell.soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
@@ -1716,6 +1720,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mrh,          mrh[m]);
 		outlimit(out,out_mnee,         mnee[m]);
 		outlimit(out,out_mnetmin,      mnetmin[m] * M2_PER_HA);
+		outlimit(out,out_mwmass,       mwmass[m]);
 		outlimit(out,out_mwcont_upper, mwcont_upper[m]);
 		outlimit(out,out_mwcont_lower, mwcont_lower[m]);
 		outlimit(out,out_miso,         miso[m]);

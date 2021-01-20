@@ -142,7 +142,7 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
-typedef enum {TEMP, DEPTH, WMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
+typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH4, CO2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
@@ -3291,6 +3291,10 @@ public:
 	double depth;
 	/// water mass in soil layer (kg m-2)
 	double wmass;
+	/// daily water mass for each day of year
+	double dwmass[Date::MAX_YEAR_LENGTH];
+	/// monthly water mass in soil layer (kg m-2)
+	double mwmass[12];
 	/// ice mass in soil layer (kg m-2)
 	double imass;
 	/// Matrix potantial (mm)
@@ -3591,6 +3595,7 @@ public:
 		acinc[1] = that.acinc[1];
 
 		for (int mth = 0; mth < 12; mth++) {
+			mwmass[mth] = that.mwmass[mth];
 			mwcont[mth] = that.mwcont[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
@@ -3606,6 +3611,7 @@ public:
 		}
 
 		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
+			dwmass[d] = that.dwmass[d];
 			dwcont[d] = that.dwcont[d];
 		}
 
@@ -3705,6 +3711,7 @@ public:
 		acinc[1] = that.acinc[1];
 
 		for (int mth = 0; mth < 12; mth++) {
+			mwmass[mth] = that.mwmass[mth];
 			mwcont[mth] = that.mwcont[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
@@ -3720,6 +3727,7 @@ public:
 		}
 
 		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
+			dwmass[d] = that.dwmass[d]; 
 			dwcont[d] = that.dwcont[d];
 		}
 

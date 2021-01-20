@@ -1415,6 +1415,18 @@ public:
 	bool killgrass_at_cc;
 	/// Whether to use stochastic mortality
 	bool stochmort;
+	/// Harvest efficiency during thinning for all tree pft:s
+	double harv_eff_thin;
+	/// Residue removal fraction during thinning for twigs and branches for all tree pft:s
+	double res_outtake_twig_thin;
+	/// Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s
+	double res_outtake_coarse_root_thin;
+	/// Harvest efficiency during clearcut for all tree pft:s
+	double harv_eff_cc;
+	/// Residue removal fraction during clearcut for twigs and branches for all tree pft:s
+	double res_outtake_twig_cc;
+	/// Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s
+	double res_outtake_coarse_root_cc;
 
 	ManagementType() {
 
@@ -1471,6 +1483,12 @@ public:
 				thinning_select_diam[n][t] = 0;
 			}
 		}
+		harv_eff_thin = -1.0;
+		res_outtake_twig_thin = -1.0;
+		res_outtake_coarse_root_thin = -1.0;
+		harv_eff_cc = -1.0;
+		res_outtake_twig_cc = -1.0;
+		res_outtake_coarse_root_cc = -1.0;
 	}
 
 	// Copy constructor
@@ -1523,6 +1541,12 @@ public:
 				thinning_select_diam[n][t] = from.thinning_select_diam[n][t];
 			}
 		}
+		harv_eff_thin = from.harv_eff_thin;
+		res_outtake_twig_thin = from.res_outtake_twig_thin;
+		res_outtake_coarse_root_thin = from.res_outtake_coarse_root_thin;
+		harv_eff_cc = from.harv_eff_cc;
+		res_outtake_twig_cc = from.res_outtake_twig_cc;
+		res_outtake_coarse_root_cc = from.res_outtake_coarse_root_cc;
 	}
 
 	bool is_managed() {

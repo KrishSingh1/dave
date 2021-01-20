@@ -990,6 +990,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("distribute_patch_ages",&pmt->distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
 		declareitem("distribute_clearcuts",&pmt->distribute_clearcuts,1,CB_NONE,"Whether to distribute clearcuts in a managed forest stand among patches");
 		declareitem("distribute_continuous_cuttings",&pmt->distribute_continuous_cuttings,1,CB_NONE,"Whether to distribute continuous cuttings in a managed forest stand among patches");
+		declareitem("harv_eff_thin",&pmt->harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
+		declareitem("res_outtake_twig_thin",&pmt->res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
+		declareitem("res_outtake_coarse_root_thin",&pmt->res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");
+		declareitem("harv_eff_cc",&pmt->harv_eff_cc,0.0,1.0,1,CB_NONE,"Harvest efficiancy during clearcut for all tree pft:s");
+		declareitem("res_outtake_twig_cc",&pmt->res_outtake_twig_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for twigs and branches for all tree pft:s");
+		declareitem("res_outtake_coarse_root_cc",&pmt->res_outtake_coarse_root_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
 
 		callwhendone(CB_CHECKMT);
 
@@ -1094,6 +1100,12 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("distribute_patch_ages",&pst->management.distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
 				declareitem("distribute_clearcuts",&pst->management.distribute_clearcuts,1,CB_NONE,"Whether to distribute clearcuts in a managed forest stand among patches");
 				declareitem("distribute_continuous_cuttings",&pst->management.distribute_continuous_cuttings,1,CB_NONE,"Whether to distribute continuous cuttings in a managed forest stand among patches");
+				declareitem("harv_eff_thin",&pst->management.harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
+				declareitem("res_outtake_twig_thin",&pst->management.res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
+				declareitem("res_outtake_coarse_root_thin",&pst->management.res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");
+				declareitem("harv_eff_cc",&pst->management.harv_eff_cc,0.0,1.0,1,CB_NONE,"Harvest efficiancy during clearcut for all tree pft:s");
+				declareitem("res_outtake_twig_cc",&pst->management.res_outtake_twig_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for twigs and branches for all tree pft:s");
+				declareitem("res_outtake_coarse_root_cc",&pst->management.res_outtake_coarse_root_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
 				declareitem("startman1",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 1 (if reverting from another mt");
 			}
 			else if(i == 1) {

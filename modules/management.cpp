@@ -32,10 +32,18 @@ double check_harvest_cmass(Individual& indiv, bool stem_cmass_only, bool to_prod
 
 	cp.copy_from_indiv(indiv, indiv.has_daily_turnover(), false);
 
-	// Forestry:
+	// Default forestry harvest parameters: pft values
 	double harv_eff_wood_harvest = indiv.pft.harv_eff;				// 0.9
 	double res_outtake_twig_wood_harvest = indiv.pft.res_outtake;	// 0.4
 	double res_outtake_coarse_root_wood_harvest = 0.1;
+	// Use ManagementType values, if defined
+	ManagementType& mt = indiv.vegetation.patch.stand.get_current_management();
+	if(mt.harv_eff_cc != -1.0)
+		harv_eff_wood_harvest = mt.harv_eff_cc;
+	if(mt.res_outtake_twig_cc != -1.0)
+		res_outtake_twig_wood_harvest = mt.res_outtake_twig_cc;
+	if(mt.res_outtake_coarse_root_cc != -1.0)
+		res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
 
 	// Harvest of transferred areas:
 	harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
@@ -138,13 +146,13 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  */
 void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
 
-	double harvest = 0.0;
+	double stem_harvest = 0.0;
 	double residue_outtake = 0.0;
 	/// Fraction of wood cmass that are stems
 	double stem_frac = pft.stem_frac; // Default 0.65
 	/// Fraction of wood cmass that are twigs
 	double twig_frac = pft.twig_frac; // Default 0.13
-	/// Fraction of wood cmass that are coarse roots
+	/// Fraction of wood cmass that are coarse roots, including stumps
 	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
 	/// Fraction of leaves adhering to twigs at the time of removal
 	double adhering_leaf_frac = 0.75;
@@ -153,7 +161,7 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 	if (pft.lifeform == GRASS)
 		return;
 
-	double harvest_slow_frac = pft.harvest_slow_frac;
+	double harvest_slow_frac = pft.harvest_slow_frac;	// Default 0.33
 
 	if(harvest_burn_thin_trees) {
 		// Put all harvested wood into product pool above a diameter limit, burn the smaller trees (limits from Anne-Sofie Lanso, personal communication, as used with ORCIDEE,
@@ -195,18 +203,18 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 		if (i.cmass_debt <= i.cmass_sap + i.cmass_heart) {
 
 			// harvested stem wood
-			harvest += harv_eff * stem_frac * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
-			i.acflux_harvest_wood += harvest;
+			stem_harvest += harv_eff * stem_frac * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
+			i.acflux_harvest_wood += stem_harvest;
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if (ifslowharvestpool) {
-				i.harvested_products_slow += harvest * harvest_slow_frac;
-				i.acflux_harvest_wood_toprod += harvest * harvest_slow_frac;
-				harvest = harvest * (1.0 - harvest_slow_frac);
+				i.harvested_products_slow += stem_harvest * harvest_slow_frac;
+				i.acflux_harvest_wood_toprod += stem_harvest * harvest_slow_frac;
+				stem_harvest *= (1.0 - harvest_slow_frac);
 			}
 
 			// harvested products consumed (oxidised) this year put into acflux_harvest
-			i.acflux_harvest += harvest;
+			i.acflux_harvest += stem_harvest;
 
 			// removed leaves adhering to twigs
 			residue_outtake += res_outtake_twig * adhering_leaf_frac * i.cmass_leaf * frac_cut;
@@ -255,19 +263,19 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 
 		//Nitrogen:
 
-		harvest = 0.0;
+		stem_harvest = 0.0;
 
 		// harvested products
-		harvest += harv_eff * stem_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
+		stem_harvest += harv_eff * stem_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// harvested products not consumed this year put into harvested_products_slow_nmass
 		if (ifslowharvestpool) {
-			i.harvested_products_slow_nmass += harvest * harvest_slow_frac;
-			harvest = harvest * (1.0 - harvest_slow_frac);
+			i.harvested_products_slow_nmass += stem_harvest * harvest_slow_frac;
+			stem_harvest = stem_harvest * (1.0 - harvest_slow_frac);
 		}
 
 		// harvested products consumed this year put into anflux_harvest
-		i.anflux_harvest += harvest;
+		i.anflux_harvest += stem_harvest;
 
 		residue_outtake = 0.0;
 
@@ -1333,10 +1341,28 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 
 	if (pft.lifeform == TREE && man_strength > 0.00 || killgrass) {
 
+		// Default forestry harvest parameters: pft values
 		double harv_eff_wood_harvest = indiv.pft.harv_eff;				// 0.9
 		double res_outtake_twig_wood_harvest = indiv.pft.res_outtake;	// 0.4
 		double res_outtake_coarse_root_wood_harvest = 0.1;
-
+		// Use ManagementType values, if defined
+		if (patch.man_strength == 1.00) {
+			if(mt.harv_eff_cc != -1.0)
+				harv_eff_wood_harvest = mt.harv_eff_cc;
+			if(mt.res_outtake_twig_cc != -1.0)
+				res_outtake_twig_wood_harvest = mt.res_outtake_twig_cc;
+			if(mt.res_outtake_coarse_root_cc != -1.0)
+				res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
+		}
+		else {
+			if(mt.harv_eff_thin != -1.0)
+				harv_eff_wood_harvest = mt.harv_eff_thin;
+			if(mt.res_outtake_twig_thin != -1.0)
+				res_outtake_twig_wood_harvest = mt.res_outtake_twig_thin;
+			if(mt.res_outtake_coarse_root_thin != -1.0)
+				res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_thin;
+		}
+		// Non-commercial harvest, set to true during first thinning in a clearcut management scheme
 		if(patch.harvest_to_litter) {
 			harv_eff_wood_harvest = 0.0;
 			res_outtake_twig_wood_harvest = 0.0;

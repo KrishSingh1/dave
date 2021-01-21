@@ -2919,7 +2919,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	if(gross_land_transfer == 2) {
 
 		// Option to read stand type transitions from file.
-		fail("Currently no code for option gross stand type transfer\n");
+		fail("Currently no code for gross stand type transfer option\n");
 	}
 	else if(gross_land_transfer == 1 && gross_input_present) {
 

@@ -862,14 +862,14 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 
 	bool result = false;
-	if(gross_land_transfer == 3) {
+	if(gross_land_transfer == 2) {
 
 		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
 		// return get_st_transfer(gridcell);
-		dprintf("Currently no code for option gross_land_transfer==3\n");
+		dprintf("Currently no code for gross stand type transfer option\n");
 	}
-	else if(gross_land_transfer == 2) {
+	else if(gross_land_transfer == 1) {
 
 		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.

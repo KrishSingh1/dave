@@ -15,6 +15,8 @@
 #include "landcover.h"
 #include "guessmath.h"
 
+enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
+
 /// Query whether a date is within a period spanned by two dates.
 bool dayinperiod(int day, int start, int end) {
 
@@ -86,15 +88,16 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	}
 }
 
-enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
 
-/// identifies which stands to reduce in area and sets standtype.nstands
+
+/// Identifies which stands to reduce in area and sets standtype.nstands
 /** Updates frac, frac_change, frac_old and gross_frac_decrease for reduced stands
  *  Updates frac_old and frac_temp for all stands
  *
  *  INTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
+ *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
  */
 void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s) {
 
@@ -339,6 +342,18 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 	}
 }
 
+/// Identifies which stands to reduce in area when using wood harvest C mass from input file (using LUC functionality)
+/** Updates frac, frac_change, frac_old and gross_frac_decrease for reduced stands
+ *  Updates frac_old and frac_temp for all stands
+ *  Updates st_frac_transfer, lc_frac_transfer, forest_st_frac_transfer_s and forest_lc_frac_transfer_s
+ *
+ *  OUTPUT PARAMETERS
+ *
+ *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
+ *  \param lc_frac_transfer				array with this year's transferred area fractions between the different landcover types
+ *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
+ */
 bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
 
 	bool frac_changed = false;
@@ -528,7 +543,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 	return frac_changed;
 }
 
-/// identifies which stands to expand in area
+/// Identifies which stands to expand in area
 /** Updates frac, frac_change, frac_old and gross_frac_increase for expanded stands
  * Should be preceded by a call to reduce_stands() and, optionally, transfer_to_new_stand()
  *
@@ -572,7 +587,7 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 	}
 }
 
-/// sets land cover transfer matrix from gross land cover change data when no input is available
+/// Sets land cover transfer matrix from gross land cover change data when no input is available
 /** Uses rules to select preferred transfers between land covers
  *  NB. New land cover types must be included in the preference arrays !
  *  Also, PEATLAND, URBAN and BARREN needs to be included when using dynamic fractions for these land cover types.
@@ -750,7 +765,7 @@ void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[
 	}
 }
 
-/// sets stand type transfer matrix from land cover transfer matrix when no stand type transfer input is available
+/// Sets stand type transfer matrix from land cover transfer matrix when no stand type transfer input is available
 /** Distributes land cover transfers equally between stand types within a land cover but may use
  *  rules to select preferred transfers between stand types/land covers (see set_lc_change_array()) if
  *  equal_distribution is set to false.
@@ -761,6 +776,8 @@ void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[
  *  OUTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
+ *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
  */
 void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer, forest_lc_frac_transfer& forest_lc_frac_transfer_s, forest_st_frac_transfer& forest_st_frac_transfer_s) {
 
@@ -2216,8 +2233,8 @@ double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_fra
 	return new_stand_area;
 }
 
-/// Creates unique stands from transfer events according to rules in copy_stand_type_ functions are
-/** Either clones donor stand or creates new stand from scratch
+/// Creates unique stands from transfer events according to rules in copy_stand_type_ functions
+/** Either clones donor stand or creates new stand from bare ground
  *  New stands are created from each donor stand in transfer_to_new_stand_from_stand() according to rules in 
  *  copy_stand_type_from_stand().
  *  New stands are created from either each donor stand type or each donor land cover in transfer_to_new_stand_from_st_lc() 
@@ -2966,7 +2983,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	// set stand variables frac, frac_old, frac_temp, frac_change and gross_frac_decrease for reduced stands and stand types
 	reduce_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s);
 
-	// Wood harvest cmass input -> fraction harvested
+	// Wood harvest cmass input -> fraction harvested (using LUC functionality)
 	if(harvest_secondary_to_new_stand) {
 		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s, lc.frac_transfer, lc.forest_lc_frac_transfer_s) && no_changes) {
 			delete[] st_frac_transfer;

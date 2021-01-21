@@ -240,7 +240,7 @@ extern int transfer_level;
 // Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 extern bool iftransfer_to_new_stand;
 
-// Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()
+// Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
 extern bool suppress_disturbance_in_forestry_stands;
 
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
@@ -267,13 +267,13 @@ extern bool readNman;
 /// Whether to read N fertilization (stand type level) from input file
 extern bool readNfert_st;
 
-/// Whether to use forest harvested fraction from input file
+/// Whether to use forest harvested fraction from input file (using LUC functionality)
 extern bool readwoodharvest_frac;
 
-/// Whether to use wood harvest volume from input file
+/// Whether to use wood harvest C mass from input file (using LUC functionality)
 extern bool readwoodharvest_cmass;
 
-/// Whether to create new stands at clearcut of secondary stands
+/// Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality)
 extern bool harvest_secondary_to_new_stand;
 
 /// Whether to read disturbance intervals from input file

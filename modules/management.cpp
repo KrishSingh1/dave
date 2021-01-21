@@ -1103,7 +1103,7 @@ void manage_forests(Gridcell& gridcell) {
 		stand.firstobj();
 		while (stand.isobj && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
 			Patch& patch = stand.getobj();
-			if(harvest_secondary_to_new_stand)	{	// avoid when sending harv_cmass to man_frac
+			if(harvest_secondary_to_new_stand)	{	// avoid when sending harv_cmass to man_strength (harvest_secondary_to_new_stand = false, not currently implemented)
 				manage_forest(patch);
 			}
 			stand.nextobj();
@@ -1395,7 +1395,6 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 				allometry(indiv);
 			}
 		}
-		// Will tell the program to skip mortality if management has been performed on this patch,
 		patch.managed_this_year = true;		
 		patch.has_been_cut = true;
 	}

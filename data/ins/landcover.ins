@@ -148,10 +148,11 @@ ifslowharvestpool 1			! If a slow harvested product pool is included in patchpft
 ifprimary_lc_transfer 0			! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 ifprimary_to_secondary_transfer 0	! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
 					! transfer input file (1). or not (0)
-harvest_secondary_to_new_stand 1  ! Whether to create new stands at clearcut of secondary stands (1). or not (0)
+harvest_secondary_to_new_stand 1  	! Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality) (1). or not (0)
 transfer_level 2			! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 iftransfer_to_new_stand 0		! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
-suppress_disturbance_in_forestry_stands 0 ! Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()
+suppress_disturbance_in_forestry_stands 0 ! Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() 
+					  ! or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
 
 harvest_burn_thin_trees 0
 

@@ -3080,21 +3080,29 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 		// Liquid water above saturation is drained laterally
 		drained_wmass = min(soillayers[lyr].wmass, max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats));
 
-		// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
-		if (iforography && (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc())) {
-
-			// Excees liquid water above field capacity
-			double wmass_excees = min(soillayers[lyr].wmass, min(soillayers[lyr].wsats, soillayers[lyr].wmass + soillayers[lyr].imass) - soillayers[lyr].fc());
-
-			// Slope dependant drainage of liquid water above field capacity
-			drained_wmass += wmass_excees * soillayers[lyr].runoff_drain_frac;
-		}
-
+		// Sum todays lateral drainage
 		soillayers[lyr].runoff_drain += drained_wmass;
 
 		// Update total water after drainage 
 		// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
 		soillayers[lyr].wmass -= drained_wmass;
+
+		// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
+		if (iforography && (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc())) {
+
+			// Excees liquid water above field capacity
+			double wmass_excees = min(soillayers[lyr].wmass, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].fc());
+
+			// Slope dependant drainage of liquid water above field capacity
+			drained_wmass = wmass_excees * soillayers[lyr].runoff_drain_frac;
+
+			// Sum todays lateral drainage
+			soillayers[lyr].runoff_drain += drained_wmass;
+
+			// Update total water after drainage 
+			// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
+			soillayers[lyr].wmass -= drained_wmass;
+		}
 	}
 }
 

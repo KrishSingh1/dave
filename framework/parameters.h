@@ -306,6 +306,9 @@ extern bool print_diamstruct_cmass_stand;
 /// Whether to simulate tillage by increasing soil respiration
 extern bool iftillage;
 
+/// Whether to harvest (remove) wood at natural-to-forest transitions
+extern bool harvest_natural_to_forest;
+
 /// Use silt/sand fractions per soiltype
 extern bool textured_soil;
 

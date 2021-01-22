@@ -1534,6 +1534,12 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					double res_outtake_twig_wood_harvest = indiv.pft.res_outtake;	// 0.4
 					double res_outtake_coarse_root_wood_harvest = 0.1;
 
+					if(!harvest_natural_to_forest) {
+						harv_eff_wood_harvest = 0.0;
+						res_outtake_twig_wood_harvest = 0.0;
+						res_outtake_coarse_root_wood_harvest = 0.0;
+					}
+
 					// Calculate harvest parameters (average if several receptor land covers)
 					double harv_eff_mean = clearing_to_cropland_ratio * harv_eff_clearing_to_cropland;
 					double res_outtake_twig_mean = clearing_to_cropland_ratio * res_outtake_twig_clearing_to_cropland;

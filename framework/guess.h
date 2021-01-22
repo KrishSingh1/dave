@@ -5027,13 +5027,13 @@ struct Landcover : public Serializable {
 	double acflux_landuse_change;
 	/// Gridcell-level C removal from harvest associated with landcover change other than wood harvest and clearing for cropland and pasture
 	double acflux_landuse_change_orig;
-	/// Gridcell-level C flux from wood harvest
+	/// Gridcell-level C flux from wood harvest at LUC among NATURAL and FOREST stands
 	double acflux_wood_harvest;
-	/// Gridcell-level C removal at wood harvest
+	/// Gridcell-level C removal at wood harvest at LUC among NATURAL and FOREST stands
 	double acflux_wood_harvest_orig;
-	/// Gridcell-level C flux from clearing for cropland and pasture
+	/// Gridcell-level C flux from clearing NATURAL and FOREST stands for cropland and pasture
 	double acflux_clearing;
-	/// Gridcell-level C removal at clearing for cropland and pasture
+	/// Gridcell-level C removal at clearing NATURAL and FOREST stands for cropland and pasture
 	double acflux_clearing_orig;
 	/// Gridcell-level C removal of harvested tree stem
 	double stem_harvest;
@@ -5051,13 +5051,13 @@ struct Landcover : public Serializable {
 	double anflux_landuse_change;
 	/// Gridcell-level N removal from harvest associated with landcover change other than wood harvest and clearing for cropland and pasture
 	double anflux_landuse_change_orig;
-	/// Gridcell-level N flux from wood harvest
+	/// Gridcell-level N flux from wood harvest at LUC among NATURAL and FOREST stands
 	double anflux_wood_harvest;
-	/// Gridcell-level N removal at wood harvest
+	/// Gridcell-level N removal at wood harvest at LUC among NATURAL and FOREST stands
 	double anflux_wood_harvest_orig;
-	/// Gridcell-level N flux from clearing for cropland and pasture
+	/// Gridcell-level N flux from clearing NATURAL and FOREST stands for cropland and pasture
 	double anflux_clearing;
-	/// Gridcell-level N removal at clearing for cropland and pasture
+	/// Gridcell-level N removal at clearing NATURAL and FOREST stands for cropland and pasture
 	double anflux_clearing_orig;
 
 	/// Landcover-level C flux from slow harvested products (donating landcover)
@@ -5065,9 +5065,9 @@ struct Landcover : public Serializable {
 
 	/// Landcover-level C flux from harvest associated with landcover change other than wood harvest and clearing for cropland and pasture (donating landcover)
 	double acflux_landuse_change_lc[NLANDCOVERTYPES];
-	/// Landcover-level C flux from wood harvest (donating landcover)
+	/// Landcover-level C flux from wood harvest at LUC among NATURAL and FOREST stands (donating landcover)
 	double acflux_wood_harvest_lc[NLANDCOVERTYPES];
-	/// Landcover-level C flux from clearing for cropland and pasture (donating landcover)
+	/// Landcover-level C flux from clearing NATURAL and FOREST stands for cropland and pasture (donating landcover)
 	double acflux_clearing_lc[NLANDCOVERTYPES];
 	/// Landcover-level C flux transferred during cloning of stands
 	double cloned_c_lc[NLANDCOVERTYPES];
@@ -5077,9 +5077,9 @@ struct Landcover : public Serializable {
 
 	/// Landcover-level N flux from harvest associated with landcover change other than wood harvest and clearing for cropland and pasture (donating landcover)
 	double anflux_landuse_change_lc[NLANDCOVERTYPES];
-	/// Landcover-level N flux from wood harvest (donating landcover)
+	/// Landcover-level N flux from wood harvest at LUC among NATURAL and FOREST stands (donating landcover)
 	double anflux_wood_harvest_lc[NLANDCOVERTYPES];
-	/// Landcover-level N flux from clearing for cropland and pasture (donating landcover)
+	/// Landcover-level N flux from clearing NATURAL and FOREST stands for cropland and pasture (donating landcover)
 	double anflux_clearing_lc[NLANDCOVERTYPES];
 
 	/// Which landcover types create new stands when area increases.

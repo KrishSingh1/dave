@@ -1380,6 +1380,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 				else
 					patch.fluxes.report_flux(Fluxes::HARVESTC, anpp);
 			}
+			// Grass if killgrass == true
 			indiv.kill();
 			indiv.vegetation.killobj();
 			killed = true;

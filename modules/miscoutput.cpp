@@ -1991,7 +1991,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-	// Print C fluxes of forests with LUC history
+	// Print C fluxes of forests (typically PNV, so potentially grassland) with LUC history
 	outlimit_misc(out, out_cflux_forestry, flux_veg_forestry);
 	outlimit_misc(out, out_cflux_forestry, -flux_repr_forestry);
 	outlimit_misc(out, out_cflux_forestry, flux_soil_forestry);

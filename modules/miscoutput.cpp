@@ -114,7 +114,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_forest_vegc", &file_forest_vegc, 300, "Forest vegetation output file");
 	declare_parameter("file_forest_cflux_veg", &file_forest_cflux_veg, 300, "Forest C fluxes to and from vegetation output file");
 	declare_parameter("file_forest_harvest", &file_forest_harvest, 300, "Forest harvest output file");
-	declare_parameter("file_harvest_luc", &file_harvest_luc, 300, "Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
+	declare_parameter("file_harvest_flux_luc", &file_harvest_flux_luc, 300, "Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
 
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
@@ -647,7 +647,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cpool_forestry,				file_cpool_forestry,			cpool_columns_for_regr);
 	create_output_table(out_cpool_regrowth,				file_cpool_regrowth,			cpool_columns_for_regr);
 	create_output_table(out_cpool_primary,				file_cpool_primary,				cpool_columns_for_regr);
-	create_output_table(out_harvest_luc,				file_harvest_luc,				harv_columns_luc);
+	create_output_table(out_harvest_flux_luc,			file_harvest_flux_luc,				harv_columns_luc);
 
 	create_output_table(out_agestruct_natural, file_agestruct_natural, agestruct_columns);
 	create_output_table(out_agestruct_forest, file_agestruct_forest, agestruct_columns);
@@ -2022,15 +2022,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_cflux_primary, flux_charvest_primary);
 	outlimit_misc(out, out_cflux_primary, flux_veg_primary - flux_repr_primary + flux_soil_primary + flux_fire_primary + flux_est_primary + c_org_leach_gridcell_primary + flux_seed_primary);
 
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_clearing_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_landuse_change_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig + gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig + gridcell.landcover.acflux_harvest_slow);
-	outlimit_misc(out, out_harvest_luc, gridcell.landcover.acflux_wood_harvest + gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_wood_harvest - gridcell.landcover.acflux_wood_harvest_orig + gridcell.landcover.acflux_clearing - gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change - gridcell.landcover.acflux_landuse_change_orig + gridcell.landcover.acflux_harvest_slow);
+	outlimit_misc(out, out_harvest_flux_luc, gridcell.landcover.acflux_wood_harvest + gridcell.landcover.acflux_clearing_orig + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
 
 	// Print C fluxes to per-landcover files
 	if (run_landcover) {

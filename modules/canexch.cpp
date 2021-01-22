@@ -1157,8 +1157,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	/// daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
-	// soil available mineral nitrogen (kg N m-2)
-	const double nmin_avail = soilcolumn.nmass_avail(NO, true);
+	// Soil available mineral nitrogen (kg N m-2)
+	double nmin_avail = soilcolumn.nmass_avail(NO, true);
 
 	// Average soil temperature down to active layer depth scaled by available N fraction in layers
 	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get(TEMP), soilcolumn.get_nfrac(NO));
@@ -1266,9 +1266,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
-
-		//maxnup = max_indiv_avail; // DW_COMMENT
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail); // DW_COMMENT should split per layer and make ndemand and navail per layer
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot, 1.0) : 0.0;

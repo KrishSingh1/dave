@@ -2235,12 +2235,15 @@ public:
 
 			for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
 				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
-				rootdist[lyr] = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
+				double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
+
+				// Don't allow too small root fractions
+				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
 				tot += rootdist[lyr];
 			}
 
-			// Add the remaining rootdist in last soil layer
-			rootdist[nsoillayers - 1] = 1.0 - tot;
+			// Add the remaining rootdist in top soil layer
+			rootdist[0] += 1.0 - tot;
 		}
 		else { 
 			
@@ -3442,8 +3445,6 @@ public:
 	double depth_mod;
 	/// fraction of decayed organic matter leached each day;
 	double orgleachfrac;
-	/// fraction of decayed organic matter moved in soil column each day;
-	double orgmovefrac;
 	/// annual sum of nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
@@ -3485,8 +3486,6 @@ public:
 	double fNO3uptake_mean[12];
 	/// monthly fraction of organic carbon/nitrogen leached
 	double morgleach_mean[12];
-	/// monthly fraction of organic carbon/nitrogen moved withing soil column
-	double morgmove_mean[12];
 	/// monthly fraction of available mineral nitrogen leached
 	double mminleach_mean[12];
 
@@ -3575,7 +3574,6 @@ public:
 		k_soilslow_mean = that.k_soilslow_mean;
 		depth_mod = that.depth_mod;
 		orgleachfrac = that.orgleachfrac;
-		orgmovefrac = that.orgmovefrac;
 		anmin = that.anmin;
 		animmob = that.animmob;
 		aminleach = that.aminleach;
@@ -3602,7 +3600,6 @@ public:
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
 			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
 			morgleach_mean[mth] = that.morgleach_mean[mth];
-			morgmove_mean[mth] = that.morgmove_mean[mth];
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
 
@@ -3691,7 +3688,6 @@ public:
 		k_soilslow_mean = that.k_soilslow_mean;
 		depth_mod = that.depth_mod;
 		orgleachfrac = that.orgleachfrac;
-		orgmovefrac = that.orgmovefrac;
 		anmin = that.anmin;
 		animmob = that.animmob;
 		aminleach = that.aminleach;
@@ -3718,7 +3714,6 @@ public:
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
 			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
 			morgleach_mean[mth] = that.morgleach_mean[mth];
-			morgmove_mean[mth] = that.morgmove_mean[mth];
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
 

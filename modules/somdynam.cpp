@@ -638,20 +638,18 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			assert(soillayer.NH4_mass > -EPS);
 		}
 
-		// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
+		// Set N:C ratios for humus, soil microbial, slow and passive pool based on estimated mineral nitrogen pool
 		// (Parton et al 1993, Fig 4)
-
 		// ForCent (Parton 2010) values
-		soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 10.0, 0.0, NMASS_SAT);
 		soillayer.setntoc(nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
-		soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
+		soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 10.0, 0.0, NMASS_SAT);
 
 		if (!ifequilsom) {
 
 			// Calculate potential fraction remaining following decay today for all pools
 			// (assumes no nitrogen limitation)
 			soillayer.decayrates_century(tillage, soilcolumn.savesomcent);
-			//soillayer.decayrates_century(tillage, patch.stand.is_highlatitude_peatland_stand(), patch.stand.is_true_wetland_stand(), soilcolumn.savesomcent); // DW_COMMENT
 		}
 
 		// Calculate decomposition in all pools assuming these decay rates
@@ -1420,18 +1418,25 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 	double ncont_before = soilcolumn.get_sum(NCONT);
 	double nextra = 0.0;
 
-	double minleachfrac, minmovefrac;
+	double minleachfrac, minmovefrac, runoff;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		if (!negligible(soillayer.perc_mass + soillayer.runoff_drain)) {
+		if (lyr == 0) {
+			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day);
+		}
+		else {
+			runoff = soillayer.runoff_drain;
+		}
+
+		if (!negligible(soillayer.perc_mass + runoff)) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water precolated and drained
-			minleachfrac = soillayer.runoff_drain / (soillayer.perc_mass + soillayer.runoff_drain + soillayer.wmass);
-			minmovefrac = soillayer.perc_mass / (soillayer.perc_mass + soillayer.runoff_drain + soillayer.wmass);
+			minleachfrac = runoff / (soillayer.perc_mass + runoff + soillayer.wmass);
+			minmovefrac = soillayer.perc_mass / (soillayer.perc_mass + runoff + soillayer.wmass);
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1443,7 +1448,7 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 			double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
 
 			// precolation and drainage results in direct loss of organic C
-			soillayer.orgleachfrac = min(1.0, (soillayer.perc_mass + soillayer.runoff_drain) / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
+			soillayer.orgleachfrac = min(1.0, (soillayer.perc_mass + runoff) / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
 		}
 		else {
 			minleachfrac = 0.0;
@@ -1504,25 +1509,33 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 	std::vector<double> wfluxes = soilcolumn.wfluxes;
 
 	// Nitrogen moved to other layers
-	std::vector<double> NO3_delta(soilcolumn.nsoillayers); // DW_COMMENT
+	std::vector<double> NO3_delta(soilcolumn.nsoillayers);
+
+	double runoff;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+		// Water runoff for this time step
+		if (lyr == 0) {
+			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day);
+		}
+		else {
+			runoff = soillayer.runoff_drain;
+		}
+
 		double minleachfrac, minmovefrac;
 
-		// Water percolation and drainage for this time step
+		// Water percolation for this time step
 		double dperc = wfluxes[lyr + 1];
-		double drain = soillayer.runoff_drain;
 
-		if (!negligible(fabs(dperc) + drain, -10)) {
-		//if (!negligible(fabs(dperc) + drain + soillayer.wmass, -10)) { // DW_COMMENT
+		if (!negligible(fabs(dperc) + runoff, -10)) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water percolated or drainage
-			minleachfrac = drain / (fabs(dperc) + drain + soillayer.wmass);
-			minmovefrac = dperc / (fabs(dperc) + drain + soillayer.wmass);
+			minleachfrac = runoff / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
+			minmovefrac = dperc / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1531,16 +1544,14 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 			double OMLECH_1 = 0.03;
 			double OMLECH_2 = 0.12;
 			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H20/month)
-			double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
+			double cmpermonth_to_mmperday = MM_PER_CM * MONTH_PER_YEAR / date.year_length();
 
-			soillayer.orgleachfrac = min(1.0, drain / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
-			soillayer.orgmovefrac = 0.0;// min(1.0, dperc / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.sand_frac);
+			soillayer.orgleachfrac = min(1.0, runoff / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
 		}
 		else {
 			minleachfrac = 0.0;
 			minmovefrac = 0.0;
 			soillayer.orgleachfrac = 0.0;
-			soillayer.orgmovefrac = 0.0;
 		}
 
 		// Leaching of soil mineral nitrogen
@@ -1553,13 +1564,17 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 			double move = nmin_avail * fabs(minmovefrac);
 			NO3_delta[lyr] -= (leach + move);
 			soillayer.aminleach += leach;
-			int move_lyr = min(soilcolumn.nsoillayers - 1, max(0, (minmovefrac > 0.0) ? lyr + 1 : lyr - 1));
-			NO3_delta[move_lyr] += move;
+			int move_lyr = min(soilcolumn.nsoillayers, max(0, (minmovefrac > 0.0) ? lyr + 1 : lyr - 1));
+			if (move_lyr == soilcolumn.nsoillayers) {
+				soillayer.aminleach += move;
+			}
+			else {
+				NO3_delta[move_lyr] += move;
+			}
 		}
 
 		if (soilcolumn.savesomcent) {
 			soillayer.morgleach_mean[date.month] += soillayer.orgleachfrac / date.ndaymonth[date.month];
-			soillayer.morgmove_mean[date.month] += soillayer.orgmovefrac / date.ndaymonth[date.month];
 			soillayer.mminleach_mean[date.month] += fabs(minleachfrac) / date.ndaymonth[date.month];
 		}
 	}
@@ -1809,9 +1824,6 @@ void equilsom(Patch& patch) {
 				// Monthly average organic carbon and nitrogen leaching
 				soillayer.morgleach_mean[m] /= EQUILSOM_YEARS;
 
-				// Monthly average organic carbon and nitrogen moved within soil column
-				soillayer.morgmove_mean[m] /= EQUILSOM_YEARS;
-
 				// Monthly average mineral nitrogen leaching
 				soillayer.mminleach_mean[m] /= EQUILSOM_YEARS;
 
@@ -1978,9 +1990,8 @@ void equilsom(Patch& patch) {
 							soillayer.sompool[p].fracremain = soillayer.sompool[p].mfracremain_mean[m];
 						}
 
-						// Set this months organic matter leaching and move fraction
+						// Set this months organic matter leaching
 						soillayer.orgleachfrac = soillayer.morgleach_mean[m];
-						soillayer.orgmovefrac = soillayer.morgmove_mean[m];
 					}
 
 					// Monthly decomposition and fluxes between SOM pools
@@ -2202,7 +2213,6 @@ void equilsom(Patch& patch) {
 				soillayer.fNH4uptake_mean[m] = 0.0;
 				soillayer.fNO3uptake_mean[m] = 0.0;
 				soillayer.morgleach_mean[m] = 0.0;
-				soillayer.morgmove_mean[m] = 0.0;
 				soillayer.mminleach_mean[m] = 0.0;
 			}
 

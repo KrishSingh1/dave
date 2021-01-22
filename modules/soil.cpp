@@ -1498,7 +1498,6 @@ void Soillayer::init() {
 	aorgCleach = 0.0;
 	aorgNleach = 0.0;
 	aminleach = 0.0;
-	orgmovefrac = 0.0;
 
 	// Old SOM module
 	alag = 0.0;
@@ -1567,7 +1566,6 @@ void Soillayer::init() {
 		fNH4uptake_mean[mth] = 0.0;
 		fNO3uptake_mean[mth] = 0.0;
 		morgleach_mean[mth] = 0.0;
-		morgmove_mean[mth] = 0.0;
 		mminleach_mean[mth] = 0.0;
 	}
 
@@ -2102,7 +2100,6 @@ void Soillayer::serialize(ArchiveStream& arch) { // DW_COMMENT need to fill when
 	}
 
 	arch & orgleachfrac
-		& orgmovefrac
 		& NH4_mass
 		& NO3_mass
 		& anmin
@@ -2114,7 +2111,6 @@ void Soillayer::serialize(ArchiveStream& arch) { // DW_COMMENT need to fill when
 		& fNH4uptake_mean
 		& fNO3uptake_mean
 		& morgleach_mean
-		& morgmove_mean
 		& mminleach_mean
 
 		& cpool_slow

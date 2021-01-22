@@ -425,8 +425,8 @@ bool Patchpft::growingseason() const {
 }
 
 
-/// Update patch pfts root distribution
-/** Update patch pfts root distribution
+/// Update patch pfts root distribution if frozen soil layers
+/** Update patch pfts root distribution if frozen soil layers
  * Root distribution follow Jackson et al 1996 and is limited to 
  * maximum thaw depth during the year
  */
@@ -452,7 +452,10 @@ void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
 			double rootdist_tot = rootdist[0];
 
 			for (int lyr = 1; lyr < nsoillayers; lyr++) {
-				rootdist[lyr] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+				double root_frac = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+
+				// Don't allow too small root fractions
+				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
 				rootdist_tot += rootdist[lyr];
 			}
 

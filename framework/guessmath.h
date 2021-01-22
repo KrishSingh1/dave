@@ -32,6 +32,7 @@ const double MIN_PER_HOUR   = 60.0;
 const double HOUR_PER_DAY   = 24.0;
 const double SECS_PER_HOUR  = SECS_PER_MIN*MIN_PER_HOUR;
 const double SECS_PER_DAY	= HOUR_PER_DAY*SECS_PER_HOUR;
+const double MONTH_PER_YEAR = 12.0;
 const double M3_PER_MM3     = 1E-9;
 const double MM3_PER_M3     = 1E9;
 const double M3_PER_CM3     = 1E-6;

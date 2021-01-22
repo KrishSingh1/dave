@@ -353,6 +353,7 @@ void CommonOutput::define_output_tables() {
 	npool_columns += ColumnDescriptor("VegN",              9, 4);
 	npool_columns += ColumnDescriptor("LitterN",           9, 4);
 	npool_columns += ColumnDescriptor("SoilN",             9, 4);
+	npool_columns += ColumnDescriptor("AvailN",           11, 6);
 
 	if (run_landcover && ifslowharvestpool) {
 		npool_columns += ColumnDescriptor("HarvSlowN",    10, 4);
@@ -1883,7 +1884,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (ifcentury) {
 		outlimit(out,out_npool, nmass_gridcell + nlitter_gridcell);
 		outlimit(out,out_npool, surflittern + surfcwdn + surfhumusn);
-		outlimit(out,out_npool, centuryn + availn + soillittern + soilcwdn);
+		outlimit(out,out_npool, centuryn + soillittern + soilcwdn);
+		outlimit(out,out_npool, availn);
 
 		if(run_landcover && ifslowharvestpool) {
 			outlimit(out,out_npool, n_harv_slow);

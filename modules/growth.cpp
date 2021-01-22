@@ -183,15 +183,30 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass_leaf,
 	double turnover_root, double nmass_root, double turnover_sap, double nmass_sap, double max_n_storage, double longterm_nstore) {
 
+	// Maximum retranslocation fraction is set to 50% over standard level
+	const double MAX_NRELOCFRAC = 1.5;
+	// Maximum retranslocation level
+	double nrelocfrac_max = min(1.0, MAX_NRELOCFRAC * nrelocfrac);
+
 	double turnover_nmass = turnover_leaf * nmass_leaf + turnover_root * nmass_root;
 
 	if (lifeform == TREE)
 		turnover_nmass += turnover_sap * nmass_sap;
 
-	if (max_n_storage < longterm_nstore)
+
+	// No N from turnover
+	if (negligible(turnover_nmass))
+		return 1.0;
+	// Storage is already larger than maximum level, no retranslocation
+	else if (max_n_storage < longterm_nstore)
 		return 0.0;
-	else if (max_n_storage < longterm_nstore + turnover_nmass * nrelocfrac && !negligible(turnover_nmass))
-		return (max_n_storage - longterm_nstore) / (turnover_nmass);
+	// Less N retranslocation is needed than standard nrelocfrac to fill maximum
+	else if ((max_n_storage - longterm_nstore) / turnover_nmass < nrelocfrac)
+		return (max_n_storage - longterm_nstore) / turnover_nmass;
+	else if ((max_n_storage - longterm_nstore) / turnover_nmass > nrelocfrac) {
+		double val = sqrt(0.1 * ((max_n_storage - longterm_nstore) / turnover_nmass - nrelocfrac));
+		return min(nrelocfrac_max, val * (nrelocfrac_max - nrelocfrac) + nrelocfrac);
+	}
 	else
 		return nrelocfrac;
 }
@@ -242,8 +257,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// Calculate actual nitrogen retranslocation so maximum nitrogen storage capacity is not exceeded
 	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
 	                                           turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
-
-	actual_nrelocfrac = 0.5;
 
 	// TREES AND GRASSES:
 

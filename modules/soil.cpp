@@ -2530,11 +2530,11 @@ double Soilcolumn::nmass_avail(n_pref_type pref, bool wmass_limited) {
 /** Extracts N from soillayers
  */
 void Soilcolumn::nmass_avail_uptake(double uptake, n_pref_type pref) {
-	double tot_nmass_avail = nmass_avail(pref, true);
+	double tot_nmass_avail = nmass_avail(pref);
 
 	if (!negligible(tot_nmass_avail)) {
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].nmass_subtract(uptake * soillayers[lyr].nmass_avail(pref, true) / tot_nmass_avail, pref);
+			soillayers[lyr].nmass_subtract(uptake * soillayers[lyr].nmass_avail(pref) / tot_nmass_avail, pref);
 		}
 	}
 }

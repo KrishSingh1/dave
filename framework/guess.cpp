@@ -435,7 +435,7 @@ void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
 	// Number of soil layers
 	int nsoillayers = soillyrdepth.size();
 
-	if (!iftwolayersoil && ifthawaffectrootdist) {
+	if (!iftwolayersoil) {
 
 		// Max thaw doesn't exceed first soil layer
 		// All roots in top soil layer
@@ -447,33 +447,65 @@ void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
 			}
 		}
 		else {
-			// Init first layer
-			rootdist[0] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[0]) * CM_PER_MM);
-			double rootdist_tot = rootdist[0];
 
-			for (int lyr = 1; lyr < nsoillayers; lyr++) {
-				double root_frac = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+			/*if (pft.lifeform == TREE) {
 
-				// Don't allow too small root fractions
-				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
-				rootdist_tot += rootdist[lyr];
-			}
+				// Boreal forest values values (Keuper 2020)
+				double D50 = 0.19 * maxthaw;
+				double c = -2.32;
 
-			if (rootdist_tot < 0.99 && rootdist_tot > 0.1) {
+				// Init first layer
+				rootdist[0] = 1.0 / (1.0 + pow(soillyrdepth[0] / D50, c));
+				double rootdist_tot = rootdist[0];
 
-				double rootdist_left = 1.0 - rootdist_tot;
-				double rootdist_add, rootdist_add_tot = 0.0;
+				for (int lyr = 1; lyr < nsoillayers; lyr++) {
+					double root_frac = 1.0 / (1.0 + pow(min(maxthaw, soillyrdepth[lyr]) / D50, c)) - 1.0 / (1.0 + pow(min(maxthaw, soillyrdepth[lyr - 1]) / D50, c));
 
-				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					rootdist_add = rootdist_left * rootdist[lyr] / rootdist_tot;
-					rootdist[lyr] += rootdist_add;
-					rootdist_add_tot += rootdist_add;
+					// Don't allow too small root fractions
+					rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
+					rootdist_tot += rootdist[lyr];
 				}
-				rootdist_tot += rootdist_add_tot;
-			}
 
-			// Add the remaining rootdist in the top soil layer
-			rootdist[0] += 1.0 - rootdist_tot;
+				double rootdist_left = (1.0 - rootdist_tot) / maxthaw;
+				rootdist[0] += rootdist_left * soillyrdepth[0];
+				rootdist_tot = rootdist[0];
+				for (int lyr = 1; lyr < nsoillayers; lyr++) {
+					double root_frac = rootdist_left * (min(maxthaw, soillyrdepth[lyr]) - min(maxthaw, soillyrdepth[lyr - 1]));
+					rootdist[lyr] += root_frac;
+					rootdist_tot += rootdist[lyr];
+				}
+				rootdist[0] += 1.0 - rootdist_tot;
+			}
+			else {*/
+
+				// Init first layer
+				rootdist[0] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[0]) * CM_PER_MM);
+				double rootdist_tot = rootdist[0];
+
+				for (int lyr = 1; lyr < nsoillayers; lyr++) {
+					double root_frac = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+
+					// Don't allow too small root fractions
+					rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
+					rootdist_tot += rootdist[lyr];
+				}
+
+				if (rootdist_tot < 0.99 && rootdist_tot > 0.1) {
+
+					double rootdist_left = 1.0 - rootdist_tot;
+					double rootdist_add, rootdist_add_tot = 0.0;
+
+					for (int lyr = 0; lyr < nsoillayers; lyr++) {
+						rootdist_add = rootdist_left * rootdist[lyr] / rootdist_tot;
+						rootdist[lyr] += rootdist_add;
+						rootdist_add_tot += rootdist_add;
+					}
+					rootdist_tot += rootdist_add_tot;
+				}
+
+				// Add the remaining rootdist in the top soil layer
+				rootdist[0] += 1.0 - rootdist_tot;
+			//}
 		}
 	}
 }

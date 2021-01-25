@@ -755,7 +755,9 @@ void dailyaccounting_patch(Patch& patch) {
 				ppft.mphen[mth] = 0.0;
 			}
 
-			ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths);
+			// Update root distribution if you have permafrost
+			if (ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile)
+				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths);
 
 			pftlist.nextobj();
 		}

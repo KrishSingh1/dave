@@ -997,7 +997,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 	double nuptake_day, NH4_uptake_tot, NO3_uptake_tot, NH4_avail, NO3_avail, ammonium_frac;
 
-	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO, true) * min(1.0, patch.fpc_total);
+	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO) * min(1.0, patch.fpc_total);
 	double tot_nmass_demand = patch.ndemand;
 
 	Vegetation& vegetation = patch.vegetation;
@@ -1005,8 +1005,8 @@ void vegetation_n_uptake(Patch& patch) {
 
 	double ncont_before = patch.ncont();
 
-	NH4_avail = soilcolumn.nmass_avail(NH4, true);
-	NO3_avail = soilcolumn.nmass_avail(NO3, true);
+	NH4_avail = soilcolumn.nmass_avail(NH4);
+	NO3_avail = soilcolumn.nmass_avail(NO3);
 	ammonium_frac = (NH4_avail + NO3_avail) ? NH4_avail / (NH4_avail + NO3_avail) : 0.0;
 	NH4_uptake_tot = NO3_uptake_tot = 0.0;
 
@@ -1158,7 +1158,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	patch.ndemand = 0.0;
 
 	// Soil available mineral nitrogen (kg N m-2)
-	double nmin_avail = soilcolumn.nmass_avail(NO, true);
+	double nmin_avail = soilcolumn.nmass_avail(NO);
 
 	// Average soil temperature down to active layer depth scaled by available N fraction in layers
 	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get(TEMP), soilcolumn.get_nfrac(NO));
@@ -1320,13 +1320,13 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// to down-regulation of vmax.
 
 	// Nitrogen within projective cover of all individuals
-	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO, true) * min(1.0, patch.fpc_total);
+	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO) * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {
 
 		// Get N distribution in soil column
-		std::vector<double> nfrac = patch.soilcolumn.get_nfrac(NO, true);
+		std::vector<double> nfrac = patch.soilcolumn.get_nfrac(NO);
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail, nfrac);

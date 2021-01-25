@@ -176,6 +176,9 @@ const double AIR_THICKNESS = 100.0;
 // (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
 static const double TILLAGE_FACTOR = 33.0 / 17.0;
 
+/// Increased soil decoposition due to tillage only down to a certain depth  
+static const double TILLAGE_DEPTH = 300.0;
+
 /// reduce infiltration and percolation rates sharply when there is ice present in the soil
 // See CLM4.5 - Swenson et al. (2012)
 const bool IMASS_IMPEDANCE = false;

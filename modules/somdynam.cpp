@@ -536,7 +536,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}
 
 		// Increased decay rates for crops (tillage)
-		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
+		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && depth_profile < TILLAGE_DEPTH) {
 			k *= TILLAGE_FACTOR;
 		}
 
@@ -1557,7 +1557,7 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 		// Leaching of soil mineral nitrogen
 		// Allowed on days with residual nitrogen following vegetation uptake
 		// in proportion to amount of water drainage
-		const double nmin_avail = soillayer.nmass_avail(NO3, true);
+		const double nmin_avail = soillayer.nmass_avail(NO3);
 		if (nmin_avail > 0.0) {
 
 			double leach = nmin_avail * minleachfrac;
@@ -2356,11 +2356,11 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 	// Transfer litter to SOM pools
 	transfer_litter(patch);
 
-	// Daily nitrogen addition to the soil
-	soilnadd(patch);
-
 	// Daily mineral and organic nitrogen leaching
 	leaching(patch);
+
+	// Daily nitrogen addition to the soil
+	soilnadd(patch);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage);

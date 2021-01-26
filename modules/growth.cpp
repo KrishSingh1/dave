@@ -1490,8 +1490,8 @@ void growth(Stand& stand, Patch& patch) {
 					// Update nitrogen longtime storage
 
 					// Nitrogen approx retranslocated next year
-					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+					double retransn_nextyear = max(0.0, indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac);
 
 					if (indiv.pft.lifeform == TREE)
 						retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
@@ -1502,11 +1502,10 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Max longterm nitrogen storage
 					if (indiv.pft.lifeform == TREE)
-						indiv.max_n_storage = max(0.0, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
-							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong))); // DW_COMMENT
+						indiv.max_n_storage = max(retransn_nextyear, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
+							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong)));
 					else // GRASS
-						indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
-							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong))); // DW_COMMENT
+						indiv.max_n_storage = max(retransn_nextyear, indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_min);
 
 					// Scale this year productivity to max storage
 					if (indiv.anpp > 0.0) {

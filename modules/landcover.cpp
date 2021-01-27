@@ -1352,7 +1352,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 			Gridcellst& gcst_receptor = gridcell.st[to];
 			double transfer_frac = st_frac_transfer[index(from, to)];
 			if(transfer_frac > (gcst_donor.frac_old) || transfer_frac > (gcst_receptor.frac)) {
-				if((transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION || (transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION) {
+				if((transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION || (transfer_frac - gcst_donor.frac_old) > INPUT_RESOLUTION) {
 					dprintf("\nYear %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", date.year, from, to);
 					dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f\n", transfer_frac, gcst_donor.frac_old, gcst_receptor.frac);
 				}

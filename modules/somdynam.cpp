@@ -1618,33 +1618,35 @@ void soilnadd(Patch& patch) {
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
 
-	// Get soil layers total C mass fractions down to ald
-	std::vector<double> ccontfrac = soilcolumn.get_ccontfrac(true);
+	// Get soil layers total C mass
+	double cconttot = soilcolumn.get_sum(CCONT);
 
-	// Nitrogen fixation in each soil layer
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+	if (!negligible(cconttot)) {
+		// Nitrogen fixation in each soil layer
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		// Nitrogen mass saturation level
-		double NMASS_SAT_LYR = NMASS_SAT;// *ccontfrac[lyr]; // DW_COMMENT
+			// Nitrogen mass saturation level
+			double NMASS_SAT_LYR = NMASS_SAT;
 
-		// NH4 in soil layer
-		const double nmin_avail = soillayer.nmass_avail(NH4);
+			// NH4 in soil layer
+			const double nmin_avail = soillayer.get(NAVAIL);
 
-		// Nitrogen fixation
-		// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
-		// nitrogen fixation is reduced (nitrogen rich soils)
-		if (nmin_avail < NMASS_SAT_LYR) {
+			// Nitrogen fixation
+			// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
+			// nitrogen fixation is reduced (nitrogen rich soils)
+			if (nmin_avail < NMASS_SAT_LYR) {
 
-			double daily_nfix = soilcolumn.anfix_calc * ccontfrac[lyr] / date.year_length();
+				double daily_nfix = soilcolumn.anfix_calc * (soillayer.get(CCONT) / cconttot) / date.year_length();
 
-			if (nmin_avail + daily_nfix > NMASS_SAT_LYR) {
-				daily_nfix = NMASS_SAT_LYR - nmin_avail;
+				if (nmin_avail + daily_nfix > NMASS_SAT_LYR) {
+					daily_nfix = NMASS_SAT_LYR - nmin_avail;
+				}
+
+				soillayer.nmass_inc(daily_nfix, NH4);
+				soilcolumn.anfix += daily_nfix;
 			}
-
-			soillayer.nmass_inc(daily_nfix, NH4);
-			soilcolumn.anfix += daily_nfix;
 		}
 	}
 
@@ -1864,9 +1866,9 @@ void equilsom(Patch& patch) {
 		// Max negative C mass change
 		double max_neg_change_slow;
 		double max_neg_change_passive;
+		// Total SOM
+		double cconttot;
 
-		// Soil layers total C mass fractions
-		std::vector<double> ccontfrac(soilcolumn.nsoillayers);
 		// Initial SOM pool size per layer
 		std::vector<double> init_slow(soilcolumn.nsoillayers);
 		std::vector<double> init_passive(soilcolumn.nsoillayers);
@@ -1902,7 +1904,7 @@ void equilsom(Patch& patch) {
 		while ((bad_trend && tries < MAX_TRIES) || tries < MIN_TRIES) {
 
 			// Update soil layers total C mass fractions
-			ccontfrac = soilcolumn.get_ccontfrac();
+			cconttot = soilcolumn.get_sum(CCONT);
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				for (int p = 0; p < NSOMPOOL; p++) {
@@ -1981,7 +1983,7 @@ void equilsom(Patch& patch) {
 						}
 
 						// Monthly nitrogen addition from fixation to the soil layer
-						soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * ccontfrac[lyr], NH4);
+						soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.get(CCONT) / cconttot, NH4);
 
 						// Monthly decomposition and fluxes between SOM pools
 

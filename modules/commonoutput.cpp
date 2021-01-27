@@ -1440,8 +1440,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			double surflitc = soilcolumn.get_surflitterC();
 			
 			for (int i = 0; i < NSOILDEPTHPOOLS - 1; i++) {
-				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], soilcolumn.get(CCONT)) - surflitc) * to_gridcell_average;
-				soilr[i] += soilcolumn.to_depth(DEPTHS[i], soilcolumn.get(ARH)) * to_gridcell_average;
+				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], CCONT) - surflitc) * to_gridcell_average;
+				soilr[i] += soilcolumn.to_depth(DEPTHS[i], ARH) * to_gridcell_average;
 			}
 			soilc[NSOILDEPTHPOOLS - 1] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
 			soilr[NSOILDEPTHPOOLS - 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
@@ -1458,9 +1458,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
 				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
-				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC));
+				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, MWCONT, AWC, m);
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
-				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(gridcell.soil_depth, soilcolumn.get(MWCONT, m), soilcolumn.get(AWC)) * gridcell.soil_depth - mwcontupper * SOILDEPTH_UPPER) / (gridcell.soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
+				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soilcolumn.depth, MWCONT, AWC, m) * soilcolumn.depth - mwcontupper * SOILDEPTH_UPPER) / (soilcolumn.depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
 				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -1515,7 +1515,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 
 			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
-			permafrost_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= gridcell.soil_depth ? 0.0 : 1.0) * to_gridcell_average;
+			permafrost_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI
 
@@ -1550,7 +1550,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Total gridcell soil C
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
 		csoil_gridcell += soilc[lyr];
 		rsoil_gridcell += soilr[lyr];
 

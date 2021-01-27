@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH4, CO2, RESPSUM, 
+CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NAVAIL, NH_4, NO_3, CH4, CO2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3744,8 +3744,10 @@ public:
 		// etc.
 	}
 
-	// Initialise soil layer properties
+	/// Initialise soil layer properties
 	void init();
+	/// Get property of soil layer
+	double get(soilproptype SPT, int m = 0);
 	/// Set soil layer properties
 	void set_properties(double& wmass_move, double& imass_move);
 	/// C content of soil layer
@@ -4193,8 +4195,6 @@ public:
 	std::vector<double> get(soilproptype SPT, int m = 0);
 	/// Get soil property totals
 	double get_sum(soilproptype SPT, int m = 0);
-	/// Get soil layers total cmass fractions
-	std::vector<double> get_ccontfrac(bool ald_limited = false);
 	/// Get soil layers avail nmass fraction
 	std::vector<double> get_nfrac(n_pref_type pref, bool water_limited = false);
 	/// Get soil layers root fractions
@@ -4223,10 +4223,10 @@ public:
 	void set_static_socfrac();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(std::vector<double> rootdist);
-	/// variable down to a depth 
-	double to_depth(double depth, std::vector<double> var);
-	/// variable down to a depth 
-	double to_depth(double depth, std::vector<double> var, std::vector<double> scal);
+	/// Returns the value of some vector down to a depth
+	double to_depth(double depth, soilproptype SPT_var);
+	/// Returns the value of some vector down to a depth with a scalar
+	double to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
 	/// add water and return the water that cannot be added due to limited capacity
 	double add_wmass(int layer, double extrawmass);
 	/// Update matric potential

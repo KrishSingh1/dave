@@ -1574,6 +1574,76 @@ void Soillayer::init() {
 	std::fill_n(dwmass, Date::MAX_YEAR_LENGTH, 0.0);
 }
 
+/// Returns certain properties of soil layer
+/* Returns certain properties of soil layer
+*/
+double Soillayer::get(soilproptype SPT, int m) {
+
+	// Return property
+	if (SPT == DEPTH)
+		return depth;
+	else if (SPT == TEMP)
+		return temp;
+	else if (SPT == WMASS)
+		return wmass;
+	else if (SPT == MWMASS)
+		return mwmass[m];
+	else if (SPT == IMASS)
+		return imass;
+	else if (SPT == WCONT)
+		return wcont();
+	else if (SPT == MWCONT)
+		return mwcont[m];
+	else if (SPT == AWCONT)
+		return awcont;
+	else if (SPT == WSATS)
+		return wsats;
+	else if (SPT == AWC)
+		return awc;
+	else if (SPT == WP)
+		return wp;
+	else if (SPT == WCONTMAX)
+		return wcont_max();
+	else if (SPT == NAVAIL)
+		return NH4_mass + NO3_mass;
+	else if (SPT == NH_4)
+		return NH4_mass;
+	else if (SPT == NO_3)
+		return NO3_mass;
+	else if (SPT == CH4)
+		return CH4;
+	else if (SPT == CO2)
+		return CO2;
+	else if (SPT == RESPSUM)
+		return respsum;
+	else if (SPT == WCONTENT)
+		return wmass + imass;
+	else if (SPT == RUNOFFDRAIN)
+		return runoff_drain;
+	else if (SPT == RUNOFFBASE)
+		return runoff_baseflow;
+	else if (SPT == CCONT)
+		return ccont();
+	else if (SPT == NCONT)
+		return ncont();
+	else if (SPT == CSLOW)
+		return cpool_slow;
+	else if (SPT == CFAST)
+		return cpool_fast;
+	else if (SPT == ARH)
+		return arespsum;
+	else if (SPT == ANMIN)
+		return anmin;
+	else if (SPT == ANIMMOB)
+		return animmob;
+	else if (SPT == AORGCLEACH)
+		return aorgCleach;
+	else if (SPT == AORGNLEACH)
+		return aorgNleach;
+	else if (SPT == AMINLEACH)
+		return aminleach;
+}
+
 
 // Set soil layer properties
 /** Set soil layer properties
@@ -1789,7 +1859,7 @@ double Soillayer::fracair() {
 /** Get the water filled pore space of the layer
  */
 double Soillayer::wfps() {
-	return max(0.0, wmass / wsats);
+	return max(0.0, min(1.0, (wmass + imass) / wsats));
 }
 
 /// Get the maximum wcont possible
@@ -2339,118 +2409,18 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 /// Returns a vector with soillayer values for a certain property
 /** Returns a vector with soillayer values for a certain property
  */
-double Soilcolumn::get_sum(soilproptype SPT, int m) {
+double Soilcolumn::get_sum(soilproptype SPT, int mth) {
 
 	// Variable to return
 	double prop = 0.0;
 
 	// Loop over soil layers and extract property
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		if (SPT == DEPTH)
-			prop += soillayers[lyr].depth;
-		else if (SPT == TEMP)
-			prop += soillayers[lyr].temp * soillayers[lyr].depth / depth_soil;
-		else if (SPT == WMASS)
-			prop += soillayers[lyr].wmass;
-		else if (SPT == MWMASS)
-			prop += soillayers[lyr].mwmass[m];
-		else if (SPT == IMASS)
-			prop += soillayers[lyr].imass;
-		else if (SPT == WCONT)
-			prop += soillayers[lyr].wcont();
-		else if (SPT == MWCONT)
-			prop += soillayers[lyr].mwcont[m];
-		else if (SPT == AWCONT)
-			prop += soillayers[lyr].awcont;
-		else if (SPT == WSATS)
-			prop += soillayers[lyr].wsats;
-		else if (SPT == AWC)
-			prop += soillayers[lyr].awc;
-		else if (SPT == WP)
-			prop += soillayers[lyr].wp;
-		else if (SPT == WCONTMAX)
-			prop += soillayers[lyr].wcont_max();
-		else if (SPT == NH_4)
-			prop += soillayers[lyr].NH4_mass;
-		else if (SPT == NO_3)
-			prop += soillayers[lyr].NO3_mass;
-		else if (SPT == CH4)
-			prop += soillayers[lyr].CH4;
-		else if (SPT == CO2)
-			prop += soillayers[lyr].CO2;
-		else if (SPT == RESPSUM)
-			prop += soillayers[lyr].respsum;
-		else if (SPT == WCONTENT)
-			prop += soillayers[lyr].wmass + soillayers[lyr].imass;
-		else if (SPT == RUNOFFDRAIN)
-			prop += soillayers[lyr].runoff_drain;
-		else if (SPT == RUNOFFBASE)
-			prop += soillayers[lyr].runoff_baseflow;
-		else if (SPT == CCONT)
-			prop += soillayers[lyr].ccont();
-		else if (SPT == NCONT)
-			prop += soillayers[lyr].ncont();
-		else if (SPT == CSLOW)
-			prop += soillayers[lyr].cpool_slow;
-		else if (SPT == CFAST)
-			prop += soillayers[lyr].cpool_fast;
-		else if (SPT == ARH)
-			prop += soillayers[lyr].arespsum;
-		else if (SPT == ANMIN)
-			prop += soillayers[lyr].anmin;
-		else if (SPT == ANIMMOB)
-			prop += soillayers[lyr].animmob;
-		else if (SPT == AORGCLEACH)
-			prop += soillayers[lyr].aorgCleach;
-		else if (SPT == AORGNLEACH)
-			prop += soillayers[lyr].aorgNleach;
-		else if (SPT == AMINLEACH)
-			prop += soillayers[lyr].aminleach;
+		prop += soillayers[lyr].get(SPT, mth);
 	}
 
 	// Return vector
 	return prop;
-}
-
-/// Returns a vector with soillayer C fractions
-/** Returns a vector with soillayer C fractions
- */
-std::vector<double> Soilcolumn::get_ccontfrac(bool ald_limited) {
-
-	std::vector<double> ccontfrac(nsoillayers);
-
-	double cconttot;
-	if (ald_limited && thaw < depth) {
-		cconttot = to_depth(thaw, get(CCONT));
-	}
-	else {
-		cconttot = get_sum(CCONT);
-	}
-
-	if (!negligible(cconttot)) {
-		if (ald_limited && thaw < depth) {
-			int lyr = 0;
-			double acc_ccontfrac = 0.0;
-			double cconfrac_lyr = soillayers[0].ccont() / cconttot;
-			while (acc_ccontfrac + cconfrac_lyr < 1.0 && lyr < nsoillayers - 1) {
-				ccontfrac[lyr] = cconfrac_lyr;
-				acc_ccontfrac += cconfrac_lyr;
-				lyr++;
-				cconfrac_lyr = soillayers[lyr].ccont() / cconttot;
-			}
-			ccontfrac[lyr] = 1.0 - acc_ccontfrac;
-		}
-		else {
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				ccontfrac[lyr] = soillayers[lyr].ccont() / cconttot;
-			}
-		}
-	}
-	else {
-		ccontfrac[0] = 1.0;
-	}
-
-	return ccontfrac;
 }
 
 /// Returns a vector with soillayer N fractions
@@ -2807,36 +2777,37 @@ void Soilcolumn::calc_temp_analytic() {
 /// Returns the value of some vector down to a depth with a scalar
 /** Returns the value of some vector down to a depth with a scalar
  */
-double Soilcolumn::to_depth(double depth, std::vector<double> var, std::vector<double> scal) {
+double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth) {
 
 	// Calculate variable values for layers down to depth
+	double layer_depth, scalar;
 	double acc_depth = 0.0;
 	double acc_var = 0.0;
 	double acc_scalar = 0.0;
 	int lyr = 0;
-	while (acc_depth < depth && lyr < var.size()) {
-		double layer_depth = acc_depth + soillayers[lyr].depth < depth ? soillayers[lyr].depth : depth - acc_depth;
-		double scalar = !negligible((double)scal.size()) ? scal[lyr] : 1.0;
-		acc_var += var[lyr] * scalar * layer_depth / soillayers[lyr].depth;
+	while (acc_depth < depth && lyr < nsoillayers) {
+		layer_depth = acc_depth + soillayers[lyr].depth < depth ? soillayers[lyr].depth : depth - acc_depth;
+		scalar = soillayers[lyr].get(SPT_scal);
+		acc_var += soillayers[lyr].get(SPT_var, mth) * scalar * layer_depth / soillayers[lyr].depth;
 		acc_depth += layer_depth;
 		acc_scalar += scalar * layer_depth / soillayers[lyr].depth;
 		lyr++;
 	}
-	return !negligible((double)scal.size()) ? acc_var / acc_scalar : acc_var;
+	return !negligible(acc_scalar) ? acc_var / acc_scalar : acc_var;
 }
 
 /// Returns the value of some vector down to a depth
 /** Returns the value of some vector down to a depth
  */
-double Soilcolumn::to_depth(double depth, std::vector<double> var) { // DW_COMMENT Don't want this one!
+double Soilcolumn::to_depth(double depth, soilproptype SPT_var) { // DW_COMMENT Don't want this one!
 
 	// Calculate variable values for layers down to depth
 	double acc_depth = 0.0;
 	double acc_var = 0.0;
 	int lyr = 0;
-	while (acc_depth < depth && lyr < var.size()) {
+	while (acc_depth < depth && lyr < nsoillayers) {
 		double layer_depth = acc_depth + soillayers[lyr].depth < depth ? soillayers[lyr].depth : depth - acc_depth;
-		acc_var += var[lyr] * layer_depth / soillayers[lyr].depth;
+		acc_var += soillayers[lyr].get(SPT_var) * layer_depth / soillayers[lyr].depth;
 		acc_depth += layer_depth;
 		lyr++;
 	}
@@ -3262,9 +3233,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Total fpc for mosses. Not used at the moment
 	double fpc_moss_total = 0.0;
 	// Total water in acrotelm layers (mm)
-	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, get(WMASS));
+	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, WMASS);
 	// Total ice in acrotelm layers (mm)
-	double itot_acrotelm = to_depth(ACROTELM_DEPTH, get(IMASS));
+	double itot_acrotelm = to_depth(ACROTELM_DEPTH, IMASS);
 	/// Minimum fractional water content at surface in mm3/mm3 - see Wania et al (2009a), Eqn 22. Granberg et al. (1999), Eqns. 1-3.
 	const double minvtot = 0.25;
 	/// The soil water characteristics in the upper peat are considered to be linear in the suction interval 0-zmin and constant 
@@ -4114,8 +4085,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Calculate static ice mass and saturation level for infiltation depth (top layer)
-	double imass_infilt = to_depth(INFILT_DEPTH, get(IMASS));
-	double wsats_infilt = to_depth(INFILT_DEPTH, get(WSATS));
+	double imass_infilt = to_depth(INFILT_DEPTH, IMASS);
+	double wsats_infilt = to_depth(INFILT_DEPTH, WSATS);
 
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
@@ -4155,7 +4126,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Surface infiltration and runoff
 
 		// Calculate changing water content for infiltration layers
-		double wmass_infilt = to_depth(INFILT_DEPTH, get(WMASS));// soillayers[0].wmass;
+		double wmass_infilt = to_depth(INFILT_DEPTH, WMASS);
 
 		// Fraction pore spaces that are filled with water and ice
 		double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;

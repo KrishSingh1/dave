@@ -1006,7 +1006,7 @@ void daylengthinsoleet(Climate& climate) {
 		// deal with the fact that insolation can be radiation during
 		// daylight hours or during whole time step
 
-		double averaging_period = 24 * 3600;
+		double averaging_period = 24.0 * 3600.0;
 
 		if (climate.instype == NETSWRAD || climate.instype == SWRAD) {
 			// insolation is provided as radiation during daylight hours

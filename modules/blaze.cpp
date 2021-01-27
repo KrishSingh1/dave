@@ -1151,7 +1151,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 		// Update running mean of average annual rainfall		
 		if (date.year < RAINFALL_AVERAGING_SPAN) {
-			weighting = date.year + 1;
+			weighting =(double)date.year + 1.0;
 		}
 		else {
 			weighting = RAINFALL_AVERAGING_SPAN;

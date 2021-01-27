@@ -1161,7 +1161,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	double nmin_avail = soilcolumn.nmass_avail(NO);
 
 	// Average soil temperature down to active layer depth scaled by available N fraction in layers
-	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, soilcolumn.get(TEMP), soilcolumn.get_nfrac(NO));
+	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, TEMP, NAVAIL);
 
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double temp_scale = soil_temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil_temp, 1.652) - pow(soil_temp / 41.748, 7.19)) : 0.0;
@@ -1530,7 +1530,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
  *                   tolerance species (lower species_drought_tolerance values)
  *                   having greater relative uptake rates.
  */
-double water_uptake(std::vector<double>  wcont, std::vector<double> awc,
+double water_uptake(std::vector<double> wcont, std::vector<double> awc,
 	std::vector<double> rootdist, double emax, double fpc_rescale,
 	std::vector<double>& fwuptake, bool ifsmart, double species_drought_tolerance, int nsoillayers) {
 	// INPUT PARAMETERS:
@@ -1670,8 +1670,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
 
-	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(WCONT), soilcolumn.get(AWC));
-	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(AWC));
+	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, WCONT, AWC);
+	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, AWC);
 
 	if (wcont_upper < 0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
@@ -1712,7 +1712,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		if (irrigate_soil && soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
-			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, soilcolumn.get(IMASS))) {
+			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, IMASS)) {
 
 				// Irrigation water for this PFT:
 
@@ -1810,6 +1810,9 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Base value for actual canopy conductance calculated here for water-stressed
 	// individuals and used to derive actual photosynthesis in function npp (below)
 
+	std::vector<double> wcont = patch.soilcolumn.get(WCONT);
+	std::vector<double> awc = patch.soilcolumn.get(AWC);
+
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
 
@@ -1835,8 +1838,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
-				wr = water_uptake(patch.soilcolumn.get(WCONT), patch.soilcolumn.get(AWC),
-					ppft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+				wr = water_uptake(wcont, awc, ppft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, patch.soilcolumn.nsoillayers);
 			}
 

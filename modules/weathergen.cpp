@@ -2551,7 +2551,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					break;
 				}
 
-				double metric = abs(pdaydiff)*20/((double)pday_thresh + 1.0)  + fabs(precdiff) ;
+				double metric = abs(pdaydiff) * 20.0 / ((double)pday_thresh + 1.0) + fabs(precdiff);
 				
 				// Save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file management.cpp
-/// \brief Harvest functions for cropland, managed forest and pasture
+/// \brief Management functions for cropland, managed forest and pasture
 /// \author Mats Lindeskog
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -12,6 +12,19 @@
 // Clearcut density targets for needle-leaf and broad-leaf trees
 const int DENSTARGET_NL = 250;
 const int DENSTARGET_BL = 100;
+
+/// Help function that splits string into "words"
+int split_string(char* str) {
+
+	char *p = strtok(str, "\t\n ");
+	int count = 0;
+	while(p) {
+		count++;
+		p = strtok(NULL, "\t\n ");
+	}
+
+	return count;
+}
 
 /// Functions to check available wood for harvest at individual, patch and stand levels
 
@@ -105,9 +118,9 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
- *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood
- *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest plus residue outtake is returned as acflux_harvest.
- *  The rest, including leaves and roots, is returned as litter.
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of trees 
+ *  above a diameter limit if harvest_burn_thin_trees == true) is returned as harvested_products_slow and the rest plus residue outtake 
+ *  is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *
  *  INPUT PARAMETER
@@ -305,9 +318,9 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
- *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood
- *  (pft.harvest_slow_frac) is returned as harvested_products_slow and the rest plus residue outtake is returned as acflux_harvest.
- *  The rest, including leaves and roots, is returned as litter
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of trees 
+ *  above a diameter limit if harvest_burn_thin_trees == true) is returned as harvested_products_slow and the rest plus residue outtake 
+ *  is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
  *  Called from harvest_forest() first day of the year for normal wood harvest.
  *  Also called first day of the year from and landcover_dynamics() if any natural vegetation is transferred to another land use
  *
@@ -670,18 +683,6 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 	return;
 }
 
-int split_string(char* str) {
-
-	char *p = strtok(str, "\t\n ");
-	int count = 0;
-	while(p) {
-		count++;
-		p = strtok(NULL, "\t\n ");
-	}
-
-	return count;
-}
-
 // Cut trees to attain pft cmass fraction targets:
 void set_forest(Gridcell& gridcell) {
 
@@ -1003,6 +1004,8 @@ void thin_reineke_init(Patch& patch) {
 	if(patch.age == 1)
 		patch.dens_start = dens;
 }
+
+/// Automated thinning routine based on Reineke's self-thinning rule
 void thin_reineke(Patch& patch) {
 
 	// Based on Reineke's self-thinning rule, as in Bellassen (2010)
@@ -1089,7 +1092,9 @@ void thin_reineke(Patch& patch) {
 	}
 }
 
-/// Set forest management intensity for all stands this year
+/// Performs forest management in all stands this year
+/** Methods described in Lindeskog et al. 2021.
+ */
 void manage_forests(Gridcell& gridcell) {
 
 	if (!run_landcover || date.day) {
@@ -2084,7 +2089,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	indiv.check_N_mass();
 }
 
-/// Yearly function for harvest of all land covers that have yearly allocation, turnover and gridcell.expand_to_new_stand[lc] = false.
+/// Yearly function for harvest of cropland and pasture stands that have yearly allocation, turnover and gridcell.expand_to_new_stand[lc] = false.
 /** Should only be called from growth().
 //  Harvest functions are preceded by rescaling of living C.
 //  Only affects natural stands if gridcell.expand_to_new_stand[NATURAL] is false.
@@ -2107,7 +2112,6 @@ bool harvest_year(Individual& indiv, double anpp) {
 	else if (stand.landcover == PASTURE) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
-
 
 	return killed;
 }
@@ -2379,4 +2383,7 @@ void crop_rotation(Stand& stand) {
 // REFERENCES
 //
 // Bellassen, V, Le Maire, G, Dhôte, JF & Viovy, N (2010) Modelling forest management within a global vegetation model - Part 1: 
-// Model Structure and general behaviour. Ecol. Modelling 221: 2458-2474.
+//   Model Structure and general behaviour. Ecol. Modelling 221: 2458-2474.
+// Lindeskog, M., Lagergren, F., Smith, B., and Rammig, A.: Accounting for forest management in the estimation of forest carbon 
+//   balance using the dynamic vegetation model LPJ-GUESS (v4.0, r9333): Implementation and evaluation of simulations for Europe, 
+//   Geosci. Model Dev. Discuss. 2021.

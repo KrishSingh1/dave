@@ -259,7 +259,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			if(readdisturbance || readdisturbance_st) {
 				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
-				// Not all gridcells are included in input file
+				// Not all gridcells have to be included in input file
 			}
 
 			// Load environmental data for this grid cell from files

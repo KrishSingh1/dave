@@ -798,6 +798,7 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 */
 }
 
+/// Setting of management parameters for PFT selections at stand creation and forest rotation
 void Stand::set_selection_params() {
 
 	ManagementType& mt = get_current_management();

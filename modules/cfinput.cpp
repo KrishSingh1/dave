@@ -537,7 +537,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	if(readdisturbance || readdisturbance_st) {
 		misc_input.loaddisturbance(lon, lat);
-		// Not all gridcells are included in input file
+		// Not all gridcells have to be included in input file
 	}
 
 	if (run_landcover) {

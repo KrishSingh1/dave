@@ -147,8 +147,9 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 const int NSOILLAYER_UPPER = 5;
 const int NSOILLAYER_LOWER = NSOILLAYER - NSOILLAYER_UPPER;
 
-/// maximum number of thinnings in a clearcut management scheme
+/// maximum number of thinnings in a forest management scheme
 const int NTHINNINGS = 5;
+/// maximum number of thinning loops in a forest management scheme (e.g. regrowth and continuous loops)
 const int NTHINNINGLOOPS = 2;
 
 /// bvoc: number of monoterpene species used
@@ -566,7 +567,7 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-/// Struct containing wood harvest information
+/// Struct containing wood harvest information from from forest stands created by LUC functionality
 struct Wood_harvest_struct {
 
 	double prim_frac;
@@ -1332,7 +1333,7 @@ public:
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
-	/// Wood cutting interval in years
+	/// Rotation time in years
 	int cutinterval;
 	/// Whether to use Reineke's rule-based automatic thinning
 	bool ifthin_reineke;
@@ -1344,7 +1345,7 @@ public:
 	bool ifclearcut_by_density;
 	/// Tree density target for clearcut (ind/ha)
 	int dens_target_cc;
-	/// Whether to use tree density as a trigger for clearcut
+	/// Whether to use optimum rotation age as a trigger for clearcut
 	bool ifclearcut_optimal_age;
 	/// Whether to distribute patch ages in a new managed forest stand
 	bool distribute_patch_ages;
@@ -1358,13 +1359,13 @@ public:
 	double thinning_strength[NTHINNINGLOOPS][NTHINNINGS];
 	/// Strength (percent cut) of thinning events for unselected pft:s
 	double thinning_strength_unsel[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, or no preference (0)
+	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)
 	int thinning_select_pft[NTHINNINGLOOPS][NTHINNINGS];
 	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings
 	int thinning_select_age[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0)
 	int thinning_select_diam[NTHINNINGLOOPS][NTHINNINGS];
-	/// When to start start contiuous cutting period
+	/// When to start start contiuous cutting period (years after start of regeneration period)
 	int secondintervalstart;
 	/// Wood cutting interval in years in the contiuous cutting period
 	int secondcutinterval;
@@ -1646,24 +1647,24 @@ public:
 	ManagementType management;
 	/// Management types in a rotation cycle
 	xtring mtnames[NROTATIONPERIODS_MAX];
-	/// Start of the managements in a rotation cycle
+	/// Start of the managements in a rotation cycle (calendar year)
 	int mtstartyear[NROTATIONPERIODS_MAX];
-	/// First management year: sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
+	/// First management year (calendar year): sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
 	/** \this currently only applies for stands with wood havest */
 	int firstmanageyear;
-	/// First year with wood harvest
+	/// First year with wood harvest (calendar year)
 	int firstcutyear;
-	/// First year with clearcut
+	/// First year with clearcut (calendar year)
 	int firstclearcutyear;
 	/// Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)
 	int delayduecutting;
-	/// When to start cutting to reach target fractions
+	/// When to start cutting to reach pft target fractions (calendar year)
 	int firsttargetyear;
-	/// When to stop cutting to reach target fractions
+	/// When to stop cutting to reach pft target fractions (calendar year)
 	int lasttargetyear;
 	/// Whether to wait for clearcut before moving to next mt in a forestry rotation
 	bool rot_wait_for_cc;
-
+	/// Disturbance interval (years)
 	double distinterval;
 
 	/// intercrop (NOINTERCROP,NATURALGRASS)
@@ -4351,7 +4352,9 @@ public:
 	bool plant_this_year;
 	/// Whether man_strength has been partitioned on individuals this year
 	bool distributed_cutting;
+	/// Whether tree density is below limit after firstclearcutyear (when using tree density as a trigger for clearcut)
 	bool cut_due;
+	/// Initial tree density (when using Reineke's rule-based automatic thinning)
 	double dens_start;
 
 	/// DLE - the number of days over which wcont is averaged for this patch

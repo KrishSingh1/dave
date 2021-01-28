@@ -1008,11 +1008,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 
 	// Save forest class percentages before correcting transitions
 
-	double prim_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	double sec_young_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
-
-	memset(prim_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-	memset(sec_young_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+	double prim_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
+	double sec_young_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
 
@@ -1854,7 +1851,7 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
 	// Ignore harvest on "non-forested" land
-	bool ignore_non_forest_harvest = false;
+	const bool ignore_non_forest_harvest = false;
 	// Ignore all wood harvest on gridcells with smaller average cmass_wood than limit
 	const double CMASS_WOOD_LIMIT = 0.1;
 	int calender_year = date.get_calendar_year();

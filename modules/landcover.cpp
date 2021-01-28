@@ -16,6 +16,7 @@
 #include "guessmath.h"
 
 enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
+enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
 
 /// Query whether a date is within a period spanned by two dates.
 bool dayinperiod(int day, int start, int end) {
@@ -90,7 +91,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 
 
 
-/// Identifies which stands to reduce in area and sets standtype.nstands
+/// Identifies which stands to reduce in area and Gridcellst.nstands
 /** Updates frac, frac_change, frac_old and gross_frac_decrease for reduced stands
  *  Updates frac_old and frac_temp for all stands
  *
@@ -1896,16 +1897,14 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 	}
 }
 
-enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
-
-/// contains rules for creation of new stands at land cover change from each donor stand
+/// Contains rules for creation of new stands at land cover change from each donor stand
 /** Options CLONESTAND and CLONESTAND_KILLTREES require that the receptor landcover
  *  allows growth of natural grass and/or tree PFTs
  *
  *  INTPUT PARAMETERS
  *
- *  \param landcover_donor				landcover type of donor stand
- *  \param landcover_receptor			landcover type of receptor stand
+ *  \param stid_donor				stand type id of donor stand
+ *  \param stid_receptor			stand type id of receptor stand
  */
 int copy_stand_type_from_stand(int stid_donor, int stid_receptor) {
 
@@ -1947,7 +1946,7 @@ int copy_stand_type_from_stand(int stid_donor, int stid_receptor) {
 	return copy_type;
 }
 
-/// contains rules for creation of new stands at land cover change from each donor stand type
+/// Contains rules for creation of new stands at land cover change from each donor stand type
 /** Options CLONESTAND and CLONESTAND_KILLTREES require that the receptor landcover
  *  allows growth of natural grass and/or tree PFTs
  *
@@ -1987,13 +1986,13 @@ int copy_stand_type_from_st(int stid_donor, int stid_receptor) {
 	return copy_type;
 }
 
-/// contains rules for creation of new stands at land cover change from each donor land cover
+/// Contains rules for creation of new stands at land cover change from each donor land cover
 /** Options CLONESTAND and CLONESTAND_KILLTREES require that the receptor landcover
  *  allows growth of natural grass and/or tree PFTs
  *
  *  INTPUT PARAMETERS
  *
- *  \param landcover_donor				landcover type of donor stand
+ *  \param landcover_donor			landcover type of donor stand
  *  \param stid_receptor			stand type of receptor stand
  */
 int copy_stand_type_from_lc(int landcover_donor, int stid_receptor) {
@@ -2245,6 +2244,10 @@ double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_fra
  *  copy_stand_type_from_stand().
  *  New stands are created from either each donor stand type or each donor land cover in transfer_to_new_stand_from_st_lc() 
  *  according to rules in copy_stand_type_from_st() and copy_stand_type_from_lc().
+ *	The rules for the transfer types (mainly based on donor and receptor landcover type) in the copy-functions are applied sequentially 
+ *	in the landcover/stand type loop in this function in the order copy_stand_type_from_stand() (called from transfer_to_new_stand_from_stand()),
+ *	copy_stand_type_from_st() and copy_stand_type_from_lc() (both called from transfer_to_new_stand_from_st_lc()).
+ *  If rules for a transfer type is present in several of these functions, only the first occurrence in the loop is used.
  *
  *  INPUT PARAMETERS
  *
@@ -2270,7 +2273,7 @@ bool transfer_to_new_stand(Gridcell& gridcell, double* st_frac_transfer) {
 
 				lc_transfer += st_frac_transfer[index(from_st, to_st)];
 
-				if(true && st_frac_transfer[index(from_st, to_st)] > 0.0) {
+				if(st_frac_transfer[index(from_st, to_st)] > 0.0) {
 					double st_transfer = st_frac_transfer[index(from_st, to_st)];
 					new_stand_frac = transfer_to_new_stand_from_stand(gridcell, st_frac_transfer, to_st, from_st);
 					lc_transfer -= new_stand_frac;
@@ -3273,8 +3276,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
 	}
 
-	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, -11))
-		dprintf("WARNING ! C balance after lcc off year %d by %.12f\n",date.year, cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
+//	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, -11))
+//		dprintf("WARNING ! C balance after lcc off year %d by %.12f\n",date.year, cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
 
 	double ncont_tot = 0.0;
 	double nflux_tot = 0.0;

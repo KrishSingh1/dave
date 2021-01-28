@@ -213,40 +213,43 @@ extern bool all_fracs_const;
 /// If a slow harvested product pool is included in patchpft.
 extern bool ifslowharvestpool;
 
-// If grass is allowed to grow between crop growingseasons
+/// If grass is allowed to grow between crop growingseasons
 extern bool ifintercropgrass;
 
-// Whether to calculate dynamic potential heat units
+/// Whether to calculate dynamic potential heat units
 extern bool ifcalcdynamic_phu;
 
-// Whether to use gross land transfer: read landcover transfer matrix input file (1), read stand type transfer matrix input file (2), or not (0)
+/// Whether to use gross land transfer: read landcover transfer matrix input file (1), read stand type transfer matrix input file (2), or not (0)
 extern int gross_land_transfer;
 
-// Whether gross land transfer input read for this gridcell
+/// Whether gross land transfer input read for this gridcell
 extern bool gross_input_present;
 
-// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+/// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
 
-// Distinguish between primary and secondary natural stands at area reduction
+/// Distinguish between primary and secondary natural stands at area reduction
 extern bool use_primary_lc_transfer;
 
-// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
+/// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
 extern bool ifprimary_to_secondary_transfer;
 
-// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+/// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 extern int transfer_level;
 
-// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+/// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 extern bool iftransfer_to_new_stand;
 
-// Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
+/// Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
 extern bool suppress_disturbance_in_forestry_stands;
 
-// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+/// Whether to harvest (remove) wood at natural-to-forest transitions
+extern bool harvest_natural_to_forest;
+
+/// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 
-// Number of years to calculate dynamic phu if dynamic_phu_limit is true
+/// Number of years to calculate dynamic phu if dynamic_phu_limit is true
 extern int nyear_dyn_phu;
 
 /// number of spinup years
@@ -305,9 +308,6 @@ extern bool print_diamstruct_cmass_stand;
 
 /// Whether to simulate tillage by increasing soil respiration
 extern bool iftillage;
-
-/// Whether to harvest (remove) wood at natural-to-forest transitions
-extern bool harvest_natural_to_forest;
 
 /// Use silt/sand fractions per soiltype
 extern bool textured_soil;

@@ -1492,46 +1492,28 @@ public:
 		res_outtake_coarse_root_cc = -1.0;
 	}
 
-	// Copy constructor
+	// Copy constructor; used in plib_callback()
 	ManagementType(const ManagementType& from) {
 
+		id = from.id;
+		name = from.name;
 		planting_system = from.planting_system;
 		harvest_system = from.harvest_system;
-		name = from.name;
 		pftname = from.pftname;
+		plantdensity_pft = from.plantdensity_pft;
 		selection = from.selection;
 		plantdensity = from.plantdensity;
 		targetfrac = from.targetfrac;
-		targetstartage = from.targetstartage;
-		targetcutinterval = from.targetcutinterval;
-		targetcutmode = from.targetcutmode;
-		suppress_second_target = from.suppress_second_target;
 		cutinterval = from.cutinterval;
 		ifthin_reineke = from.ifthin_reineke;
 		alpha_st = from.alpha_st;
 		rdi_target = from.rdi_target;
 		ifclearcut_by_density = from.ifclearcut_by_density;
+		dens_target_cc = from.dens_target_cc;
 		ifclearcut_optimal_age = from.ifclearcut_optimal_age;
 		distribute_patch_ages = from.distribute_patch_ages;
-		dens_target_cc = from.dens_target_cc;
-		secondintervalstart = from.secondintervalstart;
-		secondcutinterval = from.secondcutinterval;
-		distribute_clearcuts = from.distribute_clearcuts;
-		distribute_continuous_cuttings = from.distribute_continuous_cuttings;
 		diam_limit = from.diam_limit;
-		hydrology = from.hydrology;
-		sdate = from.sdate;
-		hdate = from.hdate;
-		nfert = from.nfert;
-		woodharv_frac = from.woodharv_frac;
-		woodharv_cmass = from.woodharv_cmass;
-		fallow = from.fallow;
-		relaxed_establishment = from.relaxed_establishment;
-		suppress_fire = from.suppress_fire;
-		suppress_disturbance = from.suppress_disturbance;
-		set_planting_density = from.set_planting_density;
-		cutfirstyear = from.cutfirstyear;
-		cutfirstyear_nonsel = from.cutfirstyear_nonsel;
+		adapt_diam_limit = from.adapt_diam_limit;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				thinning_time[n][t] = from.thinning_time[n][t];
@@ -1542,6 +1524,32 @@ public:
 				thinning_select_diam[n][t] = from.thinning_select_diam[n][t];
 			}
 		}
+		secondintervalstart = from.secondintervalstart;
+		secondcutinterval = from.secondcutinterval;
+		distribute_clearcuts = from.distribute_clearcuts;
+		distribute_continuous_cuttings = from.distribute_continuous_cuttings;
+		targetstartage = from.targetstartage;
+		targetcutinterval = from.targetcutinterval;
+		targetcutmode = from.targetcutmode;
+		suppress_second_target = from.suppress_second_target;
+
+		hydrology = from.hydrology;
+//		firr = from.firr;
+		sdate = from.sdate;
+		hdate = from.hdate;
+		woodharv_frac = from.woodharv_frac;
+		woodharv_cmass = from.woodharv_cmass;
+		nfert = from.nfert;
+		tillage_int = from.tillage_int;
+		fallow = from.fallow;
+		relaxed_establishment = from.relaxed_establishment;
+		suppress_fire = from.suppress_fire;
+		suppress_disturbance = from.suppress_disturbance;
+		set_planting_density = from.set_planting_density;
+		cutfirstyear = from.cutfirstyear;
+		cutfirstyear_nonsel = from.cutfirstyear_nonsel;
+		killgrass_at_cc = from.killgrass_at_cc;
+		stochmort = from.stochmort;
 		harv_eff_thin = from.harv_eff_thin;
 		res_outtake_twig_thin = from.res_outtake_twig_thin;
 		res_outtake_coarse_root_thin = from.res_outtake_coarse_root_thin;

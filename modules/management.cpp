@@ -453,9 +453,12 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 	double cmass_harvest_patch_unsel = cmass_harvest_patch - cmass_harvest_patch_selection;
 
 	double* cmass_pft = new double[stand.npftsinselection];
-	memset(cmass_pft, 0, sizeof(double)*stand.npftsinselection);
 	double* cmass_harvest_remain_pft = new double[stand.npftsinselection];
-	memset(cmass_harvest_remain_pft, 0, sizeof(double)*stand.npftsinselection);
+
+	for(int i = 0; i < stand.npftsinselection; i++) {
+		cmass_pft[i] = 0.0;
+		cmass_harvest_remain_pft[i] = 0.0;
+	}
 
 	if(select_species == 4)
 		cmass_harvest_patch_selection = 0.0;
@@ -702,7 +705,9 @@ void set_forest(Gridcell& gridcell) {
 			continue;
 
 		double* target = new double[stand.npftsinselection];
-		memset(target, 0, sizeof(double)*stand.npftsinselection);
+		for(int i = 0; i < stand.npftsinselection; i++) {
+			target[i] = 0.0;
+		}
 		double target_sum = 0.0;
 
 		pftlist.firstobj();
@@ -724,11 +729,14 @@ void set_forest(Gridcell& gridcell) {
 		// Check deviations at stand level:
 		double target_sum_stand = 0.0;
 		double* target_stand = new double[stand.npftsinselection];
-		memset(target_stand, 0, sizeof(double)*stand.npftsinselection);
 		double* cmass_pft_stand = new double[stand.npftsinselection];
-		memset(cmass_pft_stand, 0, sizeof(double)*stand.npftsinselection);
 		double* cutstr_pft_stand = new double[stand.npftsinselection];
-		memset(cutstr_pft_stand, 0, sizeof(double)*stand.npftsinselection);
+
+		for(int i = 0; i < stand.npftsinselection; i++) {
+			target_stand[i] = 0.0;
+			cmass_pft_stand[i] = 0.0;
+			cutstr_pft_stand[i] = 0.0;
+		}
 
 		double cmass_unselected_stand = 0.0;
 		double cmass_total_stand = check_harvest_cmass(stand, stem_cmass_only);
@@ -818,11 +826,14 @@ void set_forest(Gridcell& gridcell) {
 			double target_sum_patch = 0.0;
 
 			double* cmass_pft = new double[stand.npftsinselection];
-			memset(cmass_pft, 0, sizeof(double)*stand.npftsinselection);
 			double* cutstr_pft = new double[stand.npftsinselection];
-			memset(cutstr_pft, 0, sizeof(double)*stand.npftsinselection);
 			double* target_patch = new double[stand.npftsinselection];
-			memset(target_patch, 0, sizeof(double)*stand.npftsinselection);
+
+			for(int i = 0; i < stand.npftsinselection; i++) {
+				cmass_pft[i] = 0.0;
+				cutstr_pft[i] = 0.0;
+				target_patch[i] = 0.0;
+			}
 
 			double cmass_unselected = 0.0;
 			double cmass_total = check_harvest_cmass(patch, stem_cmass_only);

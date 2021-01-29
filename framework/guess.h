@@ -2885,6 +2885,8 @@ public:
 	double leafndemand_store;
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
+	// Raingreen nitrogen demand for leaves dropped during last year
+	double raingreen_ndemand_save;
 
 	/// The daily C lossed from leaves due to senescense, only crops.
 	double daily_cmass_leafloss;

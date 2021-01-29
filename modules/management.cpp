@@ -375,6 +375,21 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 
 	indiv_cp.copy_to_indiv(indiv, false, lc_change);
 
+	// Nitrogen approx retranslocated N updated this year after harvest
+	double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf(false) * nrelocfrac +
+		indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root(false) * nrelocfrac;
+
+	if (indiv.pft.lifeform == TREE)
+		retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / indiv.cton_sap() * nrelocfrac;
+
+	// Assume that raingreen will lose same amount of N through extra leaves next year
+	if (indiv.alive && indiv.pft.phenology == RAINGREEN)
+		retransn_nextyear -= min(indiv.raingreen_ndemand_save, retransn_nextyear);
+
+	// Max longterm nitrogen storage
+	if (indiv.pft.lifeform == TREE)
+		indiv.max_n_storage = max(0.0, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.cton_leaf(false), retransn_nextyear));
+
 	if (!lc_change) {
 		return;
 	}

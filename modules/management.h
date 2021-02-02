@@ -370,6 +370,7 @@ struct Harvest_CN {
 		indiv.nmass_heart = nmass_heart;
 		indiv.nstore_longterm = nstore_longterm;
 		indiv.nstore_labile = nstore_labile;
+		indiv.max_n_storage = max_n_storage;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->nmass_ho = nmass_ho;

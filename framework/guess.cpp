@@ -1501,7 +1501,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	storefndemand     = 0.0;
 	leafndemand_store = 0.0;
 	rootndemand_store = 0.0;
-	raingreen_ndemand_save = 0.0;
 
 	nstress           = false;
 

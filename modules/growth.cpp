@@ -1227,7 +1227,6 @@ void growth(Stand& stand, Patch& patch) {
 				patchpft.cmass_repr += cmass_repr;
 
 			raingreen_ndemand = 0.0;
-			indiv.raingreen_ndemand_save = 0.0;
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
 			//
@@ -1261,7 +1260,6 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].nmass_litter_leaf += raingreen_ndemand * (1.0 - nrelocfrac);
 					indiv.nstore_longterm += raingreen_ndemand * nrelocfrac;
 					indiv.nmass_leaf -= raingreen_ndemand;
-					indiv.raingreen_ndemand_save = raingreen_ndemand;
 				}
 
 				// Deduct from this year's C biomass increment

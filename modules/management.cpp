@@ -314,6 +314,7 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 		i.nmass_sap *= (1.0 - frac_cut);
 		i.nmass_heart *= (1.0 - frac_cut);
 
+		// rescale max_n_storage
 		i.max_n_storage *= (1.0 - frac_cut);
 	}
 }

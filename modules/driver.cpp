@@ -515,55 +515,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				soilcolumn.anfix = 0.0;
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
-				double total_water = 0.0;
-
-				if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
-					soilcolumn.savesomcent = true;
-				}
-				else {
-					soilcolumn.savesomcent = false;
-				}
-
-				// Determine static soil carbon fractions
-				if (iforganicsoilproperties == 1 && date.year == 0) {
-					soilcolumn.set_static_socfrac();
-				}
-
-				// Water to be moved due to decreases in wsats
-				double wmass_move = 0.0;
-				double imass_move = 0.0;
-
-				soilcolumn.cmass_litter_input[0] = 0.0;
-
-				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-
-					Soillayer& soillayer = soilcolumn.soillayers[lyr];
-
-					soillayer.aorgNleach = 0.0;
-					soillayer.aorgCleach = 0.0;
-					soillayer.aminleach = 0.0;
-					soilcolumn.cmass_litter_input[lyr + 1] = 0.0;
-
-					if (date.year == 0) {
-						soillayer.mwcontabove = 0.0;
-					}
-
-					// Set soil layer properties
-					soillayer.set_properties(wmass_move, imass_move);
-
-					total_water += soillayer.wsats;
-				}
-
-				// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 
-				if (!negligible(wmass_move + imass_move))
-					patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
-
-				// Initialise gridcellpfts Michaelis-Menten kinetic Km value
-				pftlist.firstobj();
-				while (pftlist.isobj) {
-					patch.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * total_water;
-					pftlist.nextobj();
-				}
 
 				stand.nextobj();
 			}
@@ -756,19 +707,64 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			// Update root distribution if you have permafrost
-			if (ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile)
+			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile) || date.year == patch.stand.first_year)
 				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths);
 
 			pftlist.nextobj();
 		}
 
-		
-		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+
+		double total_water = 0.0;
+
+		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
+			soilcolumn.savesomcent = true;
+		}
+		else {
+			soilcolumn.savesomcent = false;
+		}
+
+		// Determine static soil carbon fractions
+		if (iforganicsoilproperties == 1 && date.year == 0) {
+			soilcolumn.set_static_socfrac();
+		}
+
+		// Water to be moved due to decreases in wsats
+		double wmass_move = 0.0;
+		double imass_move = 0.0;
+
+		soilcolumn.cmass_litter_input[0] = 0.0;
+
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
+			soillayer.aorgNleach = 0.0;
+			soillayer.aorgCleach = 0.0;
+			soillayer.aminleach = 0.0;
+			soilcolumn.cmass_litter_input[lyr + 1] = 0.0;
+
 			if (date.year == 0) {
-				soilcolumn.soillayers[lyr].temp_old = 0.0;
-				soilcolumn.soillayers[lyr].temp = 0.0;
+				soillayer.mwcontabove = 0.0;
 			}
 
+			// Set soil layer properties
+			soillayer.set_properties(wmass_move, imass_move);
+
+			total_water += soillayer.wsats;
+		}
+
+		// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 
+		if (!negligible(wmass_move + imass_move))
+			patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
+
+		// Initialise gridcellpfts Michaelis-Menten kinetic Km value
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			patch.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * total_water;
+			pftlist.nextobj();
+		}
+		
+		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 			soilcolumn.soillayers[lyr].arespsum = 0.0;
 		}
 	}

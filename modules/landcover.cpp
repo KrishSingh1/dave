@@ -1497,73 +1497,117 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							patchpft.harvested_products_slow = (patchpft.harvested_products_slow * old_frac + from.transfer_harvested_products_slow[i] * added_frac) / new_frac;
 							patchpft.harvested_products_slow_nmass = (patchpft.harvested_products_slow_nmass * old_frac + from.transfer_harvested_products_slow_nmass[i] * added_frac) / new_frac;
 						}
-					}					
+					}
 
-					for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+					// Soil
+					patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					double aaet_5_cp[NYEARAAET] = { 0.0 };
+					patch.aaet_5.to_array(aaet_5_cp);
+					for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++)
+						patch.aaet_5.add((aaet_5_cp[i] * old_frac + from.transfer_aaet_5[i] * added_frac) / new_frac);
+					double maxthaw_10_cp[10] = { 0.0 };
+					patch.soilcolumn.maxthaw_10.to_array(maxthaw_10_cp);
+					for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++)
+						patch.soilcolumn.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
+
+					patch.soilcolumn.anfix_calc = (patch.soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
+
+					int nsoillayers = max(patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers);
+
+					if (!patch.soilcolumn.soillayerdepths.size())
+						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
+
+					// Soil layers
+					for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+						// Create soil layer if it doesn't exist in patch
+						if (lyr >= patch.soilcolumn.nsoillayers) {
+
+							// Add a new soil layer
+							patch.soilcolumn.add_soillayer(from.transfer_soil_depth[lyr], from.transfer_soil_depth_profile[lyr], false, false);
+
+							// update number of soil layers
+							patch.soilcolumn.nsoillayers++;
+						}
+
+						patch.soilcolumn.soillayerdepths[lyr] = (patch.soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
 
 						// Soil object for this layer
 						Soillayer& soillayer = patch.soilcolumn.soillayers[lyr];
 
-						for (int i = 0; i < NSOMPOOL; i++) {
-							soillayer.sompool[i].cmass = (soillayer.sompool[i].cmass * old_frac + from.transfer_sompool[lyr][i].cmass * added_frac) / new_frac;
-							soillayer.sompool[i].fireresist = (soillayer.sompool[i].fireresist * old_frac + from.transfer_sompool[lyr][i].fireresist * added_frac) / new_frac;
-							soillayer.sompool[i].fracremain = (soillayer.sompool[i].fracremain * old_frac + from.transfer_sompool[lyr][i].fracremain * added_frac) / new_frac;
-							soillayer.sompool[i].ligcfrac = (soillayer.sompool[i].ligcfrac * old_frac + from.transfer_sompool[lyr][i].ligcfrac * added_frac) / new_frac;
-							soillayer.sompool[i].litterme = (soillayer.sompool[i].litterme * old_frac + from.transfer_sompool[lyr][i].litterme * added_frac) / new_frac;
-							soillayer.sompool[i].nmass = (soillayer.sompool[i].nmass * old_frac + from.transfer_sompool[lyr][i].nmass * added_frac) / new_frac;
-							soillayer.sompool[i].ntoc = (soillayer.sompool[i].ntoc * old_frac + from.transfer_sompool[lyr][i].ntoc * added_frac) / new_frac;
+						soillayer.depth = (soillayer.depth * old_frac + from.transfer_soil_depth[lyr] * added_frac) / new_frac;
+						soillayer.depth_profile = (soillayer.depth_profile * old_frac + from.transfer_soil_depth_profile[lyr] * added_frac) / new_frac;
+						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_soil_wmass[lyr] * added_frac) / new_frac;
+						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
+						soillayer.temp = (soillayer.temp * old_frac + from.transfer_soil_temp[lyr] * added_frac) / new_frac;
+						soillayer.temp_old = (soillayer.temp_old * old_frac + from.transfer_soil_temp_old[lyr] * added_frac) / new_frac;
+						soillayer.CO2 = (soillayer.CO2 * old_frac + from.transfer_soil_CO2[lyr] * added_frac) / new_frac;
+						soillayer.CH4 = (soillayer.CH4 * old_frac + from.transfer_soil_CH4[lyr] * added_frac) / new_frac;
+						soillayer.O2 = (soillayer.O2 * old_frac + from.transfer_soil_O2[lyr] * added_frac) / new_frac;
+						soillayer.NH4_mass = (soillayer.NH4_mass * old_frac + from.transfer_soil_NH4[lyr] * added_frac) / new_frac;
+						soillayer.NO3_mass = (soillayer.NO3_mass * old_frac + from.transfer_soil_NO3[lyr] * added_frac) / new_frac;
+						soillayer.NO2_mass = (soillayer.NO2_mass * old_frac + from.transfer_soil_NO2[lyr] * added_frac) / new_frac;
+						soillayer.NO_mass = (soillayer.NO_mass * old_frac + from.transfer_soil_NO[lyr] * added_frac) / new_frac;
+						soillayer.N2O_mass = (soillayer.N2O_mass * old_frac + from.transfer_soil_N2O[lyr] * added_frac) / new_frac;
+						soillayer.N2_mass = (soillayer.N2_mass * old_frac + from.transfer_soil_N2[lyr] * added_frac) / new_frac;
+						soillayer.depth_mod = (soillayer.depth_mod * old_frac + from.transfer_soil_depth_mod[lyr] * added_frac) / new_frac;
+						soillayer.cpool_fast = (soillayer.cpool_fast * old_frac + from.transfer_soil_cpool_fast[lyr] * added_frac) / new_frac;
+						soillayer.cpool_slow = (soillayer.cpool_slow * old_frac + from.transfer_soil_cpool_slow[lyr] * added_frac) / new_frac;
+
+						for (int p = 0; p < NSOMPOOL; p++) {
+							soillayer.sompool[p].cmass = (soillayer.sompool[p].cmass * old_frac + from.transfer_soil_sompool_cmass[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].nmass = (soillayer.sompool[p].nmass * old_frac + from.transfer_soil_sompool_nmass[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].ntoc = (soillayer.sompool[p].ntoc * old_frac + from.transfer_soil_sompool_ntoc[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].fireresist = (soillayer.sompool[p].fireresist * old_frac + from.transfer_soil_sompool_fireresist[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].fracremain = (soillayer.sompool[p].fracremain * old_frac + from.transfer_soil_sompool_fracremain[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].ligcfrac = (soillayer.sompool[p].ligcfrac * old_frac + from.transfer_soil_sompool_ligcfrac[lyr][p] * added_frac) / new_frac;
+							soillayer.sompool[p].litterme = (soillayer.sompool[p].litterme * old_frac + from.transfer_soil_sompool_litterme[lyr][p] * added_frac) / new_frac;
 						}
+					}
+					patch.soilcolumn.cmass_litter_input.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
+					patch.soilcolumn.wpara.set_sizes(patch.soilcolumn.nsoillayers);
+					patch.soilcolumn.tpara.set_sizes(patch.soilcolumn.nsoillayers + PAD_LAYERS);
+					patch.soilcolumn.wfluxes.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
 
-						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_wmass[lyr] * added_frac) / new_frac;
-						soillayer.imass = (soillayer.imass * old_frac + from.transfer_imass[lyr] * added_frac) / new_frac;
-
-						soillayer.NH4_mass = (soillayer.NH4_mass * old_frac + from.transfer_NH4_mass[lyr] * added_frac) / new_frac;
-						soillayer.NO3_mass = (soillayer.NO3_mass * old_frac + from.transfer_NO3_mass[lyr] * added_frac) / new_frac;
-						soillayer.NO2_mass = (soillayer.NO2_mass * old_frac + from.transfer_NO2_mass[lyr] * added_frac) / new_frac;
-						soillayer.NO_mass = (soillayer.NO_mass * old_frac + from.transfer_NO_mass[lyr] * added_frac) / new_frac;
-						soillayer.N2O_mass = (soillayer.N2O_mass * old_frac + from.transfer_N2O_mass[lyr] * added_frac) / new_frac;
-						soillayer.N2_mass = (soillayer.N2_mass * old_frac + from.transfer_N2_mass[lyr] * added_frac) / new_frac;
-
-						/*soillayer.NH4_mass_w = (soillayer.NH4_mass_w * old_frac + from.transfer_NH4_mass_w[lyr] * added_frac) / new_frac; // DW_COMMENT
-						soillayer.NO3_mass_w = (soillayer.NO3_mass_w * old_frac + from.transfer_NO3_mass_w[lyr] * added_frac) / new_frac;
-						soillayer.NO2_mass_w = (soillayer.NO2_mass_w * old_frac + from.transfer_NO2_mass_w[lyr] * added_frac) / new_frac;
-						soillayer.NO_mass_w = (soillayer.NO_mass_w * old_frac + from.transfer_NO_mass_w[lyr] * added_frac) / new_frac;
-						soillayer.N2O_mass_w = (soillayer.N2O_mass_w * old_frac + from.transfer_N2O_mass_w[lyr] * added_frac) / new_frac;
-
-						soillayer.NH4_mass_d = (soillayer.NH4_mass_d * old_frac + from.transfer_NH4_mass_d[lyr] * added_frac) / new_frac;
-						soillayer.NO3_mass_d = (soillayer.NO3_mass_d * old_frac + from.transfer_NO3_mass_d[lyr] * added_frac) / new_frac;
-						soillayer.NO2_mass_d = (soillayer.NO2_mass_d * old_frac + from.transfer_NO2_mass_d[lyr] * added_frac) / new_frac;
-						soillayer.NO_mass_d = (soillayer.NO_mass_d * old_frac + from.transfer_NO_mass_d[lyr] * added_frac) / new_frac;
-						soillayer.N2O_mass_d = (soillayer.N2O_mass_d * old_frac + from.transfer_N2O_mass_d [lyr] * added_frac) / new_frac;*/
-
-						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_wmass[lyr] * added_frac) / new_frac;
-						soillayer.imass = (soillayer.imass * old_frac + from.transfer_imass[lyr] * added_frac) / new_frac;						
-
-						// old SOM scheme
-						soillayer.cpool_fast = (soillayer.cpool_fast * old_frac + from.transfer_cpool_fast[lyr] * added_frac) / new_frac;
-						soillayer.cpool_slow = (soillayer.cpool_slow * old_frac + from.transfer_cpool_slow[lyr] * added_frac) / new_frac;
-						soillayer.decomp_litter_mean = (soillayer.decomp_litter_mean * old_frac + from.transfer_decomp_litter_mean[lyr] * added_frac) / new_frac;
-						soillayer.k_soilfast_mean = (soillayer.k_soilfast_mean * old_frac + from.transfer_k_soilfast_mean[lyr] * added_frac) / new_frac;
-						soillayer.k_soilslow_mean = (soillayer.k_soilslow_mean * old_frac + from.transfer_k_soilslow_mean[lyr] * added_frac) / new_frac;
+					// Soil padding
+					for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+						patch.soilcolumn.pad[lyr].depth = (patch.soilcolumn.pad[lyr].depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
+						patch.soilcolumn.pad[lyr].temp = (patch.soilcolumn.pad[lyr].temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
 
-					//patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac; // DW_COMMENT needed?
+					// Snow
+					patch.soilcolumn.snow.NH4_mass = (patch.soilcolumn.snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
+					patch.soilcolumn.snow.NO3_mass = (patch.soilcolumn.snow.NO3_mass * old_frac + from.transfer_snow_NO3_mass * added_frac) / new_frac;
+					patch.soilcolumn.snow.snow_depth_standard = (patch.soilcolumn.snow.snow_depth_standard * old_frac + from.transfer_snow_snow_depth_standard * added_frac) / new_frac;
+					patch.soilcolumn.snow.snow_depth_limit = (patch.soilcolumn.snow.snow_depth_limit * old_frac + from.transfer_snow_snow_depth_limit * added_frac) / new_frac;
 
 
-					//patch.soilcolumn.snow = (patch.soilcolumn.snow * old_frac + from.transfer_snow * added_frac) / new_frac; // DW_COMMENT snow transfer
+					int nsnowlayers = max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers);
 
-					//patch.soil.snowpack = (patch.soil.snowpack * old_frac + from.transfer_snowpack * added_frac) / new_frac;
-					//patch.soil.snowpack_NH4_mass = (patch.soil.snowpack_NH4_mass * old_frac + from.transfer_snowpack_NH4_mass * added_frac) / new_frac;
-					//patch.soil.snowpack_NO3_mass = (patch.soil.snowpack_NO3_mass * old_frac + from.transfer_snowpack_NO3_mass * added_frac) / new_frac;
+					for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
-					
+						// Create snow layer if it doesn't exist in patch
+						if (lyr >= patch.soilcolumn.snow.nsnowlayers) {
 
-					double aaet_5_cp[NYEARAAET] = {0.0};
-					patch.aaet_5.to_array(aaet_5_cp);
-					for(unsigned int i=0;i<from.transfer_aaet_5.size();i++)
-						patch.aaet_5.add((aaet_5_cp[i] * old_frac + from.transfer_aaet_5[i] * added_frac) / new_frac);
+							patch.soilcolumn.snow.snowlayers.resize(nsnowlayers + 1);
+							patch.soilcolumn.snow.snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, 0.0);
+							patch.soilcolumn.snow.nsnowlayers++;
+						}
 
-					patch.soilcolumn.anfix_calc = (patch.soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
+						// Snow object for this layer
+						Snowlayer& snowlayer = patch.soilcolumn.snow.snowlayers[lyr];
+
+						snowlayer.imass = (snowlayer.imass * old_frac + from.transfer_snow_imass[lyr] * added_frac) / new_frac;
+						snowlayer.wmass = (snowlayer.wmass * old_frac + from.transfer_snow_wmass[lyr] * added_frac) / new_frac;
+						snowlayer.depth = (snowlayer.depth * old_frac + from.transfer_snow_depth[lyr] * added_frac) / new_frac;
+						snowlayer.temp = (snowlayer.temp * old_frac + from.transfer_snow_temp[lyr] * added_frac) / new_frac;
+						snowlayer.temp_old = (snowlayer.temp_old * old_frac + from.transfer_snow_temp_old[lyr] * added_frac) / new_frac;
+						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
+					}
+
+					// Balance snow layers
+					double dval = 0.0;
+					patch.soilcolumn.snow.balance_snow(dval, dval);
 
 					// save individual C and N content for use in scale_indiv()
 					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {
@@ -2390,10 +2434,12 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
-	double ccont_tot_1 = gridcell.ccont();
-	double cflux_tot_1 = gridcell.cflux();
-	double ncont_tot_1 = gridcell.ncont();
-	double nflux_tot_1 = gridcell.nflux();
+	// Mass balance
+	// double ccont_tot_1 = gridcell.ccont();
+	// double cflux_tot_1 = gridcell.cflux();
+	// double ncont_tot_1 = gridcell.ncont();
+	// double nflux_tot_1 = gridcell.nflux();
+	// double wcont_tot_1 = gridcell.wcontent();
 
 	// check how many stands of each stand type exist
 	// identify which stands to reduce in area
@@ -2676,6 +2722,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			delete[] transfer_st_from;
 	}
 
+	/*// Mass balance
 	double ccont_tot = 0.0;
 	double cflux_tot = gridcell.cflux();
 
@@ -2687,7 +2734,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, -11))
-		dprintf("WARNING ! C balance after lcc off by %.12f\n",cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
+		dprintf("WARNING ! Year %d C balance after lcc off by %.12f\n",date.year, cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
 
 	double ncont_tot = 0.0;
 	double nflux_tot = 0.0;
@@ -2704,7 +2751,19 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	nflux_tot += gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow;
 
 	if(!negligible(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1, -12))
-		dprintf("WARNING ! N balance after lcc off\n");
+		dprintf("WARNING ! Year %d N balance after lcc off by %.12f\n", date.year, nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1);
+
+	double wcont_tot = 0.0;
+	for (unsigned int i = 0; i < gridcell.size(); i++) {
+		Stand& stand = gridcell[i];
+
+		double wcont_stand = stand.wcontent();
+		wcont_tot += wcont_stand * stand.get_gridcell_fraction();
+	}
+
+	if (!negligible(wcont_tot - wcont_tot_1, -12))
+		dprintf("WARNING ! Year %d Water balance after lcc off by %.12f\n",date.year, wcont_tot - wcont_tot_1);
+	*/
 
 	if(st_frac_transfer)
 		delete[] st_frac_transfer;
@@ -2725,26 +2784,38 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
 	transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
 
-	//transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = transfer_anfix_calc = 0.0; // DW_COMMENT
-	transfer_acflux_harvest = transfer_anflux_harvest = transfer_anfix_calc = 0.0;
+	transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = transfer_anfix_calc = 0.0;
 
+	// Sum soil layers
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-		transfer_wmass[lyr] = 0.0;
-		transfer_imass[lyr] = 0.0;
-		transfer_cpool_fast[lyr] = transfer_cpool_slow[lyr] = transfer_decomp_litter_mean[lyr] = 0.0;
-		transfer_k_soilfast_mean[lyr] = transfer_k_soilslow_mean[lyr] = 0.0;
-		transfer_NH4_mass[lyr] = transfer_NO3_mass[lyr] = 0.0;
-		transfer_N2O_mass[lyr] = transfer_N2_mass[lyr] = transfer_NO2_mass[lyr] = transfer_NO_mass[lyr] = 0.0;
-		//transfer_NH4_mass_d[lyr] = transfer_NO3_mass_d[lyr] = transfer_N2O_mass_d[lyr] = transfer_NO2_mass_d[lyr] = transfer_NO_mass_d[lyr] = 0.0; DW_COMMENT
-		//transfer_NH4_mass_w[lyr] = transfer_NO3_mass_w[lyr] = transfer_N2O_mass_w[lyr] = transfer_NO2_mass_w[lyr] = transfer_NO_mass_w[lyr] = 0.0;
-
-		for (int i = 0; i < NSOMPOOL; i++)
-			transfer_sompool[lyr][i].ntoc = 0.0;
+		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
+		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
+		transfer_soil_temp[lyr] = transfer_soil_temp_old[lyr] = 0.0;
+		transfer_soil_CO2[lyr] = transfer_soil_CH4[lyr] = transfer_soil_O2[lyr] = 0.0;
+		transfer_soil_NH4[lyr] = transfer_soil_NO3[lyr] = transfer_soil_NO2[lyr] = 0.0;
+		transfer_soil_NO[lyr] = transfer_soil_N2O[lyr] = transfer_soil_N2[lyr] = 0.0;
+		transfer_soil_depth_mod[lyr] = 0.0;
+		transfer_soil_cpool_slow[lyr] = transfer_soil_cpool_fast[lyr] = 0.0;
+		for (int p = 0; p < NSOMPOOL; p++) {
+			transfer_soil_sompool_cmass[lyr][p] = transfer_soil_sompool_nmass[lyr][p] = 0.0;
+			transfer_soil_sompool_ntoc[lyr][p] = 0.0;
+			transfer_soil_sompool_fireresist[lyr][p] = transfer_soil_sompool_fracremain[lyr][p] = 0.0;
+			transfer_soil_sompool_ligcfrac[lyr][p] = transfer_soil_sompool_litterme[lyr][p] = 0.0;
+		}
 	}
 
-	for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
-		// SNOW DW_COMMENT 
-		transfer_snowpack_NH4_mass[slyr] = transfer_snowpack_NO3_mass[slyr] = 0.0;
+	// Soil padding
+	for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		transfer_soilpad_depth[lyr] = transfer_soilpad_temp[lyr] = 0.0;
+	}
+
+	// Sum snow
+	transfer_snow_NH4_mass = transfer_snow_NO3_mass = 0.0;
+	transfer_snow_snow_depth_standard = transfer_snow_snow_depth_limit = 0.0;
+	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+		transfer_snow_wmass[lyr] = transfer_snow_imass[lyr] = 0.0;
+		transfer_snow_depth[lyr] = 0.0;
+		transfer_snow_temp[lyr] = transfer_snow_temp_old[lyr] = 0.0;
 	}
 
 	allocate();

@@ -51,7 +51,7 @@ const double maxh = 0.0;
 /// Slope of soil profile
 const double soil_slope = -.37;
 
-/// Maximum density of soil organic carbon [KgC/m3], standard bulk density of peat (Farouki 1981) DW_COMMENT ref!
+/// Maximum density of soil organic carbon [KgC/m3], standard bulk density of peat (Farouki 1981)
 const double maxSOCdensity = 130.0;
 
 // SNOW PARAMETERS
@@ -82,15 +82,16 @@ const double catotelm_por = 0.92;
 /// acrotelm porosity
 const double acrotelm_por = 0.98;
 
-/// Gas fraction in peat
-const double Fgas = 0.00; // Possible to reintroduce - was 0.08 in Wania et al (2010)
+/// Gas fraction in peat (Possible to reintroduce - was 0.08 in Wania et al (2010))
+const double Fgas = 0.00;
 
 /// Wilting point in peat
 const double peat_wp = 0.066;
 
-// DW_COMMENT
+/// Threshold for randomly distributed organic and mineral fractions for connecting flow pathways
 const double threshold_frac = 0.5;
 
+/// Variable for power function of organic fraction for flow pathways
 const double beta_perc = 0.139;
 
 /// Depth that organic matter takes on the characteristics of sapric peat
@@ -284,7 +285,7 @@ const double atomiccmass = 12.0;
 const double tiller_weight = 0.22;
      
 /// a threshold factor for a minimum water content in the layer [unitless]
-const double Fwmass_min = 0.1; // DW_COMMENT move to soilmethane.h
+const double Fwmass_min = 0.1;
 
 /// Latitude (N). North of this and PEATLAND stands are treated as peatland as in Wania et al. (2009a, 2009b, 2010)
 // But south of this, then the PEATLAND stands are irrigated to avoid water stress, and can be a source of methane

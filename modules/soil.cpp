@@ -1459,6 +1459,7 @@ void Soillayer::init() {
 
 	// Energy
 	temp = 0.0;
+	temp_old = 0.0;
 	Kh = 0.0;
 	Ch = 0.0;
 
@@ -1536,7 +1537,7 @@ void Soillayer::init() {
 	aorgNleach = 0.0;
 	aorgCleach = 0.0;
 
-	// Gases // DW_COMMENT are all needed?
+	// Gases
 	CO2 = 0.0;
 	CH4 = 0.0;
 	CH4_ebull_ind = 0.0;
@@ -1800,7 +1801,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 		// and span the soil space. Flow through these pathways interacts only with organic material, 
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
 		double perc_frac = org_frac >= threshold_frac ? 1.1 * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
-		double uncon_frac = 1.0 - perc_frac; // DW_COMMENT chec when you have new calc_wflow
+		double uncon_frac = 1.0 - perc_frac;
 		double Kw_max_uncon = uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - uncon_frac) / Kw_max_org);
 		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
 
@@ -1838,7 +1839,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move) {
 /** Water content of soil layer
  */
 double Soillayer::wcont() {
-	return max(0.0, wmass - wp) / awc;
+	return min(1.0, max(0.0, wmass - wp) / awc);
 }
 
 /// Field capacity of soil layer
@@ -1930,7 +1931,7 @@ double Soillayer::nmass_avail(n_pref_type pref, bool wmass_limited) {
 	}
 
 	// return N value with water scalar if water limited
-	return nmass * (wmass_limited ? min(1.0, wcont()) : 1.0);
+	return nmass * (wmass_limited ? wcont() : 1.0);
 }
 
 /// N substraction from soil layer
@@ -2118,8 +2119,6 @@ void Soillayer::update_thermal_cap_cond(bool combine_snow, double snow_depth, do
 	double mineral = mineral_frac * depth;
 	double organic = organic_frac * depth;
 
-	//acrotelm catotelm DW_COMMENT
-
 	// Soil layer air (mm)
 	double air = max(0.0, por - (wmass + imass));
 
@@ -2158,7 +2157,7 @@ void Soillayer::update_thermal_cap_cond(bool combine_snow, double snow_depth, do
 /// Serialize soil layer variables
 /** Serialize soil layer variables
  */
-void Soillayer::serialize(ArchiveStream& arch) { // DW_COMMENT need to fill when finished!
+void Soillayer::serialize(ArchiveStream& arch) {
 	arch & depth
 		& wmass
 		& imass
@@ -2301,11 +2300,7 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		// Create soil layer
-		Soillayer* soillayer = new Soillayer(this, soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
-		
-		// Add soil layer to soillayer vector
-		soillayers.push_back((*soillayer));
+		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
 	}
 
 	// Set size of litter input vector (surface as well)
@@ -2319,6 +2314,18 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 
 	// Set size of water flow vector
 	wfluxes.resize(nsoillayers + 1, 0.0);
+}
+
+/// Add a single soil layer
+/** Add a single soil layer to the bottom with a specific depth
+ */
+void Soilcolumn::add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm) {
+
+	// Create soil layer
+	Soillayer* soillayer = new Soillayer(this, soil_layer_depth, soil_layer_depth_profile, acrotelm, catotelm);
+
+	// Add soil layer to soillayer vector
+	soillayers.push_back((*soillayer));
 }
 
 /// Returns surface litter C content
@@ -2799,7 +2806,7 @@ double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT
 /// Returns the value of some vector down to a depth
 /** Returns the value of some vector down to a depth
  */
-double Soilcolumn::to_depth(double depth, soilproptype SPT_var) { // DW_COMMENT Don't want this one!
+double Soilcolumn::to_depth(double depth, soilproptype SPT_var) {
 
 	// Calculate variable values for layers down to depth
 	double acc_depth = 0.0;
@@ -3246,11 +3253,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	/// Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
 	/// Unit here being mm, m in Granberg (1999)
 	double az = (acrotelm_por - minvtot) / zmin;
-
-
-
-	//double wbefore = get_sum(WMASS); // DW_COMMENT
-
 	
 	// Transpiration
 
@@ -3345,15 +3347,13 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	runoff_drain = 0;
 
 	// Check so evapotranspiration doesn't exceed available water in the acrotelm
-		// If so, then decrease evap accordingly (if negative, water will be added as runon) // DW_COMMENT
+	// If so, then decrease evap accordingly (if negative, water will be added as runon) 
 	if (evapotranspiration + runoff_drain > wtot_acrotelm + rain_melt) {
 		evap_excess += evapotranspiration + runoff_drain - (wtot_acrotelm + rain_melt);
 	}
 
 	// Add water that has been taken about available
 	waddon += evap_excess;
-
-	double rain_melt_init = rain_melt; // DW_COMMENT
 
 	// Update acrotelm water mass
 
@@ -3545,15 +3545,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	runoff_surf -= wmass_moved;
 	waddon -= wmass_moved;
 
-	double wafter = get_sum(WMASS); // DW_COMMENT
-
-	//if (!negligible(fabs((wbefore - evap - aet_total - runoff_surf + runon + waddon1 + waddon2 + waddon4 + rain_melt_init) - wafter),-10))
-	/*if (date.year == 14)
-		dprintf("Year %d Day %d WB %g EVAP %g AET %g RO %g ADD %g RM %g WA %g WB+ %g Diff %g\n", 
-			date.year, date.day, wbefore, evap, aet_total, runoff_surf, runon + waddon, rain_melt_init, wafter,
-			wbefore - evap - aet_total - runoff_surf + runon + waddon + rain_melt_init,
-			(wbefore - evap - aet_total - runoff_surf + runon + waddon + rain_melt_init) - wafter);*/
-
 
 	// Report water fluxes
 
@@ -3721,7 +3712,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	}
 
 	// Calculate wcont for top layer (evaporation layer)
-	wcont_evap = min(1.0, soillayers[0].wcont());
+	wcont_evap = soillayers[0].wcont();
 
 	// Calculate total evaporation only if snow depth < 10mm
 	if (snow.depth() < 10.0 && !negligible(fevap)) {
@@ -4106,7 +4097,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		// in top soil layer changes with each time step
 
 		// Calculate wcont for top layer (evaporation layer)
-		wcont_evap = min(1.0, soillayers[0].wcont());
+		wcont_evap = soillayers[0].wcont();
 
 		// Calculate total evaporation only if snow depth < 10mm
 		double evap_sd = 0.0;
@@ -4839,7 +4830,8 @@ void Soilcolumn::save_snow() {
 */
 void Soilcolumn::vertical_movement() {
 
-	double cbefore = get_sum(CCONT);
+	// Mass balance
+	// double cbefore = get_sum(CCONT);
 
 	int donor, receiver;
 
@@ -4852,22 +4844,6 @@ void Soilcolumn::vertical_movement() {
 			donor = lyr;
 			receiver = lyr + 1;
 
-			/*if (donor == nsoillayers) {
-				// SOM to move from layer below bottom layer
-				// Do nothing as bottom layer is deminishing
-
-				// should shrink if layer is thicker than original thickness???
-			}
-			else if (receiver == nsoillayers) {
-				// Bottom soillayer is full
-
-				// Expand!!!
-
-				if (soillayers[donor].ccont() > maxSOCdensity * soillayers[donor].depth * M_PER_MM) {
-					dprintf("Year %d Bottom Peat layer is full %g\n", date.year, (soillayers[donor].ccont() - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / maxSOCdensity);
-				}
-			}
-			else {*/
 			if (receiver < nsoillayers) {
 
 				double ccont_donor = ccont;
@@ -4968,10 +4944,11 @@ void Soilcolumn::vertical_movement() {
 		}
 	}
 
-	double cafter = get_sum(CCONT);
+	// Mass balance
+	// double cafter = get_sum(CCONT);
 
-	if (fabs(cbefore - cafter) > 1.0e-12)
-		dprintf("Year %d Day %d VM ERROR %g\n",date.year,date.day, cbefore - cafter);
+	// if (fabs(cbefore - cafter) > 1.0e-12)
+	//	dprintf("Year %d Day %d VM ERROR %g\n",date.year,date.day, cbefore - cafter);
 }
 
 /// Vertical mixing (diffusion) of soil organic matter

@@ -91,7 +91,7 @@ struct Nsubpart {
 		// Meaning that there is no nitrification at that WFPS.
 		// Derived from Pilegaard 2013
 
-		double moist = iftwolayersoil ? min(1.0, soillayer.wcont()) : soillayer.wfps();
+		double moist = iftwolayersoil ? soillayer.wcont() : soillayer.wfps();
 
 		double wet = richards_curve(0.01, 0.99, 7.5, 0.5, moist);
 
@@ -119,7 +119,7 @@ void nh3_volatilization(Soillayer& soillayer, Fluxes& fluxes, double pH, double 
 
 	double nh3_max = 0.0, f_nit_T = 0.0, nh3_inc = 0.0;
 	double soil_T = soillayer.temp;
-	double wcont = iftwolayersoil ? min(1.0, soillayer.wcont()) : soillayer.wfps();
+	double wcont = iftwolayersoil ? soillayer.wcont() : soillayer.wfps();
 
 	// calculating soil pH value, aprec = daily mean precip, based on annual average
 	if (pH == 0.0) {
@@ -165,7 +165,7 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 
 	double b = log(3.0) * 5.0;
 	double a = exp(-b * 6.0 / 10.0);
-	double wcont = iftwolayersoil ? min(1.0, soillayer.wcont()) : soillayer.wfps();
+	double wcont = iftwolayersoil ? soillayer.wcont() : soillayer.wfps();
 	double act_dry = a * exp(wcont * b);
 	double act_wet = max(0.0, 4.0 - 5.0 * wcont);
 	double nit_act = min(act_dry, act_wet);
@@ -218,7 +218,7 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 
 	double soil_T = soillayer.temp;
-	double wcont = iftwolayersoil ? min(1.0, soillayer.wcont()) : soillayer.wfps();
+	double wcont = iftwolayersoil ? soillayer.wcont() : soillayer.wfps();
 	
 	// used to remove the per m3 from the constants KC and KN.
 	double water_cont_m3 = wcont * soillayer.awc / 1000.0;
@@ -292,7 +292,7 @@ void n_gas_emission(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart, dou
 	soillayer.labile_carbon = subpart.labile_carbon_w + subpart.labile_carbon_d;
 
 	double soil_T = soillayer.temp;
-	double wcont = iftwolayersoil ? min(1.0, soillayer.wcont()) : soillayer.wfps();
+	double wcont = iftwolayersoil ? soillayer.wcont() : soillayer.wfps();
 	double ftemp, no_d_flux_inc, n2o_d_flux_inc, no_w_flux_inc, n2o_w_flux_inc, n2_flux_inc;
 	double net_nitrif = 0.0;
 	double net_denitrif = 0.0;

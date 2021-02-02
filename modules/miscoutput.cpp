@@ -1156,7 +1156,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double lat = gridcell.get_lat();
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTDAY, date.day + 1);
 
-	if (date.year > FIRST_FREEZE_YEAR + 10 || date.year < FIRST_FREEZE_YEAR + 5){//nyear_spinup) { DW_COMMENT
+	if (date.year > nyear_spinup) {
 		return;
 	}
 

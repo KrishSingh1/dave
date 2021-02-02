@@ -61,17 +61,17 @@ file_clitterinput "clitterinput.out"
 file_csom "csom.out"
 
 ! Monthly outputs
-!file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
-!file_mrh "mrh.out"
-!file_mgpp "mgpp.out"
-!file_mra "mra.out"
-!file_mnee "mnee.out"
+file_mnpp "mnpp.out"
+file_mlai "mlai.out"
+file_mrh "mrh.out"
+file_mgpp "mgpp.out"
+file_mra "mra.out"
+file_mnee "mnee.out"
 file_mnetmin "mnetmin.out"
-!file_maet "maet.out"
-!file_mpet "mpet.out"
-!file_mevap "mevap.out"
-!file_mintercep "mintercep.out"
+file_maet "maet.out"
+file_mpet "mpet.out"
+file_mevap "mevap.out"
+file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwmass "mwmass.out"
 file_mwcont_upper "mwcont_upper.out"
@@ -92,7 +92,7 @@ file_mwtp "mwtp.out"
 file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
-!file_mburned_area_out "monthly_burned_area.out"
+file_mburned_area_out "monthly_burned_area.out"
 
 ! Daily output
 !file_daily_climate "dclimate.out"
@@ -120,7 +120,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-npatch 1			! Number of replicate patches to simulate
+npatch 5			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled

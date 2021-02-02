@@ -503,7 +503,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = nyear_spinup - 90; // DW_COMMENT
+		start_year = nyear_spinup - 20;
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -3774,7 +3774,6 @@ public:
 	void setntoc(double fac, pooltype pool, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
 	void decayrates_century(bool tillage, bool savesomcent);
-	//void decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent); // DW_COMMENT
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
@@ -3933,7 +3932,7 @@ public:
 	/// Accumulate snow in bottom layer if all other layers are already full
 	void update_layers(double snowfall_depth, double snowfall_dens, double snowfall_Ch, double airT);
 
-	/// DW_COMMENT
+	/// Snow or rainfall, and melt if simple snow scheme is used
 	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
 
 	/// Snow accumulation
@@ -4189,6 +4188,8 @@ public:
 	}
 	/// Create soillayers
 	void create_soillayers(std::vector<double> soil_layer_depths);
+	/// Add a soil layer
+	void add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm);
 	/// Returns surface litter C content
 	double get_surflitterC();
 	/// Get soil property per layer

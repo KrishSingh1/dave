@@ -308,7 +308,7 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 void Soilcolumn::update_daily_gas_parameters() {
 
 	double surfT = soillayers[0].temp;
-	double U10 = 0.0; // patch.get_climate().u10 // DW_COMMENT not activated surface wind speed yet
+	double U10 = 0.0; // patch.get_climate().u10
 
 	// Gas transport velocities
 
@@ -349,15 +349,15 @@ void Soilcolumn::update_daily_gas_parameters() {
 	// 25 degrees C
 	double deg25 = K2degC + 25.0;
 
-	// [L atm mol-1] DW_COMMENT description
+	// Henry's Law [L atm mol-1]
 	double henry_coeff_O2 = henry_k_O2 * exp(-1.0 * henry_C_O2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
 
 	// Equilibrium gas concentrations (mmol m - 3) for O2
-	// pp_gas/MM2_PER_M2 (mol L-1) converts to atm units DW_COMMENT description
+	// pp_gas/MM2_PER_M2 (mol L-1) converts to atm units
 	// mol L-1 to mmol m-3
 	Ceq_O2 = pp_O2 / henry_coeff_O2 * MMOL_PER_MOL * M3_PER_DM3;
 
-	// [L atm mol-1] DW_COMMENT description
+	// Henry's Law [L atm mol-1]
 	double henry_coeff_CO2 = henry_k_CO2 * exp(-1.0 * henry_C_CO2 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
 
 	// Equilibrium gas concentrations (mmol m - 3) for CO2
@@ -365,7 +365,7 @@ void Soilcolumn::update_daily_gas_parameters() {
 	// mol L-1 to mmol m-3
 	Ceq_CO2 = patch.get_climate().co2 / henry_coeff_CO2 * MMOL_PER_MOL * M3_PER_DM3;
 
-	// [L atm mol-1] DW_COMMENT description
+	// Henry's Law [L atm mol-1]
 	double henry_coeff_CH4 = henry_k_CH4 * exp(-1.0 * henry_C_CH4 * (1.0 / (surfT + K2degC) - 1.0 / deg25));
 
 	// Equilibrium gas concentrations (mmol m - 3) for CH4
@@ -383,11 +383,10 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 	// Called like this (e.g. for O2): 
 	// diffuse_gas(O2, D_O2, O2gas, Ceq_O2, k_O2, dailyO2diffusion);
 
-	// No diffusion until snow depth < 50mm // DW_COMMENT top boundary condition should be zero, but diffusion within the unfrozen soil
+	// No diffusion until snow depth < 50mm 
+	// Top boundary condition should be zero, but diffusion within the unfrozen soil
 	if (snow.depth() >= 50.0)
 		return;
-
-	//dprintf("CHECK mass balance in diffuse_gas(std...\n"); // DW_COMMENT
 	
 	// Atomic mass of this gas [gC/mol]
 	double atomic_mass;
@@ -951,7 +950,7 @@ void Soilcolumn::methane(bool generatemethane) {
 		// Instead of calling diffusion and plant transport for CO2, I simply diffuse ALL the CO2. 
 		// This should improve C conservation
 		// In future one could look at how much IS emitted, especially as CO2 could be saved and emitted in 
-		// bursts during spring thaw // DW_COMMENT something A. Pongracz could look at
+		// bursts during spring thaw
 
 		// Step 10
 

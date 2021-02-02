@@ -38,6 +38,7 @@ int stepfromdate(int day, int step);
 /// struct storing carbon, nitrogen and water (plus aaet_5 and anfix_calc) during landcover change
 struct landcover_change_transfer {
 
+	// Patchpft litter
 	double *transfer_litter_leaf;
 	double *transfer_litter_sap;
 	double *transfer_litter_heart;
@@ -53,38 +54,56 @@ struct landcover_change_transfer {
 	double transfer_acflux_harvest;
 	double transfer_anflux_harvest;
 
-	double transfer_cpool_fast[NSOILLAYER_MAX];
-	double transfer_cpool_slow[NSOILLAYER_MAX];
-	double transfer_wmass[NSOILLAYER_MAX];
-	double transfer_imass[NSOILLAYER_MAX];
-	// double transfer_wcont_evap; // DW_COMMENT
-	double transfer_decomp_litter_mean[NSOILLAYER_MAX];
-	double transfer_k_soilfast_mean[NSOILLAYER_MAX];
-	double transfer_k_soilslow_mean[NSOILLAYER_MAX];
-	Sompool transfer_sompool[NSOMPOOL][NSOILLAYER_MAX];
-	double transfer_NH4_mass[NSOILLAYER_MAX];
-	double transfer_NO3_mass[NSOILLAYER_MAX];
-	double transfer_snowpack[NSNOWLAYERS_MAX];
-	double transfer_snowpack_NH4_mass[NSNOWLAYERS_MAX];
-	double transfer_snowpack_NO3_mass[NSNOWLAYERS_MAX];
-
-	double transfer_N2_mass[NSOILLAYER_MAX];
-	double transfer_N2O_mass[NSOILLAYER_MAX];
-	double transfer_NO_mass[NSOILLAYER_MAX];
-	double transfer_NO2_mass[NSOILLAYER_MAX];
-
-/*	double transfer_NH4_mass_w[NSOILLAYER_MAX]; // DW_COMMENT
-	double transfer_NO3_mass_w[NSOILLAYER_MAX];
-	double transfer_NH4_mass_d[NSOILLAYER_MAX];
-	double transfer_NO3_mass_d[NSOILLAYER_MAX];
-	double transfer_N2O_mass_w[NSOILLAYER_MAX];
-	double transfer_NO_mass_w[NSOILLAYER_MAX];
-	double transfer_NO2_mass_w[NSOILLAYER_MAX];
-	double transfer_N2O_mass_d[NSOILLAYER_MAX];
-	double transfer_NO_mass_d[NSOILLAYER_MAX];
-	double transfer_NO2_mass_d[NSOILLAYER_MAX];*/
+	// Soil
+	double transfer_wcont_evap;
 	Historic<double, NYEARAAET> transfer_aaet_5;
+	Historic<double, 10> transfer_maxthaw_10;
 	double transfer_anfix_calc;
+	int transfer_soil_nsoillayers;
+
+	// Soil layers
+	double transfer_soil_soillayerdepths[NSOILLAYER_MAX];
+	double transfer_soil_depth[NSOILLAYER_MAX];
+	double transfer_soil_depth_profile[NSOILLAYER_MAX];
+	double transfer_soil_wmass[NSOILLAYER_MAX];
+	double transfer_soil_imass[NSOILLAYER_MAX];
+	double transfer_soil_temp[NSOILLAYER_MAX];
+	double transfer_soil_temp_old[NSOILLAYER_MAX];
+	double transfer_soil_CO2[NSOILLAYER_MAX];
+	double transfer_soil_CH4[NSOILLAYER_MAX];
+	double transfer_soil_O2[NSOILLAYER_MAX];
+	double transfer_soil_NH4[NSOILLAYER_MAX];
+	double transfer_soil_NO3[NSOILLAYER_MAX];
+	double transfer_soil_NO2[NSOILLAYER_MAX];
+	double transfer_soil_NO[NSOILLAYER_MAX];
+	double transfer_soil_N2O[NSOILLAYER_MAX];
+	double transfer_soil_N2[NSOILLAYER_MAX];
+	double transfer_soil_depth_mod[NSOILLAYER_MAX];
+	double transfer_soil_cpool_slow[NSOILLAYER_MAX];
+	double transfer_soil_cpool_fast[NSOILLAYER_MAX];
+	double transfer_soil_sompool_cmass[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_nmass[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_ntoc[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_fireresist[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_fracremain[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_ligcfrac[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_sompool_litterme[NSOILLAYER_MAX][NSOMPOOL];
+
+	// Soil padding
+	double transfer_soilpad_depth[PAD_LAYERS];
+	double transfer_soilpad_temp[PAD_LAYERS];
+
+	// Snow
+	int transfer_snow_nsnowlayers;
+	double transfer_snow_NH4_mass;
+	double transfer_snow_NO3_mass;
+	double transfer_snow_snow_depth_standard; 
+	double transfer_snow_snow_depth_limit;
+	double transfer_snow_wmass[NSNOWLAYERS_MAX];
+	double transfer_snow_imass[NSNOWLAYERS_MAX];
+	double transfer_snow_depth[NSNOWLAYERS_MAX];
+	double transfer_snow_temp[NSNOWLAYERS_MAX];
+	double transfer_snow_temp_old[NSNOWLAYERS_MAX];
 
 	landcover_change_transfer();
 	~landcover_change_transfer();
@@ -103,8 +122,10 @@ struct landcover_change_transfer {
 			ccont += transfer_harvested_products_slow[i];
 		}
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-			for (int i = 0; i < NSOMPOOL; i++)
-				ccont += transfer_sompool[lyr][i].cmass;
+			for (int i = 0; i < NSOMPOOL; i++) {
+				ccont += transfer_soil_sompool_cmass[lyr][i];
+			}
+			ccont += transfer_soil_CH4[lyr] + transfer_soil_CO2[lyr];
 		}
 
 		return ccont;
@@ -124,21 +145,28 @@ struct landcover_change_transfer {
 
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 			for (int i = 0; i < NSOMPOOL; i++)
-				ncont += transfer_sompool[lyr][i].nmass;
+				ncont += transfer_soil_sompool_nmass[lyr][i];
 
-			ncont += transfer_N2_mass[lyr] + transfer_NH4_mass[lyr] + transfer_NO3_mass[lyr];
-			ncont += transfer_N2O_mass[lyr] + transfer_NO_mass[lyr] + transfer_NO2_mass[lyr];
-		/*	ncont += transfer_N2O_mass_w[lyr] + transfer_NO_mass_w[lyr] + transfer_NO2_mass_w[lyr]; // DW_COMMENT
-			ncont += transfer_N2O_mass_d[lyr] + transfer_NO_mass_d[lyr] + transfer_NO2_mass_d[lyr];
-			ncont += transfer_NH4_mass_w[lyr] + transfer_NO3_mass_w[lyr];
-			ncont += transfer_NH4_mass_d[lyr] + transfer_NO3_mass_d[lyr];*/
+			ncont += transfer_soil_N2[lyr] + transfer_soil_NH4[lyr] + transfer_soil_NO3[lyr];
+			ncont += transfer_soil_N2O[lyr] + transfer_soil_NO[lyr] + transfer_soil_NO2[lyr];
 		}
 
-		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
-			ncont += transfer_snowpack_NH4_mass[slyr] + transfer_snowpack_NO3_mass[slyr];
-		}
+		ncont += transfer_snow_NH4_mass + transfer_snow_NO3_mass;
 
 		return ncont;
+	}
+
+	double wcont() {
+
+		double wcont = 0.0;
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+			wcont += transfer_soil_wmass[lyr] + transfer_soil_imass[lyr];
+		}
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+			wcont += transfer_snow_wmass[lyr] + transfer_snow_imass[lyr];
+		}
+
+		return wcont;
 	}
 
 	// Adds non-living C, N and water from a stand
@@ -148,9 +176,8 @@ struct landcover_change_transfer {
 		while(stand.isobj) {
 			Patch& patch = stand.getobj();
 
-			// sum original litter C & N:
-			for(int n=0; n<npft; n++)
-			{
+			// Sum patchpft litter
+			for(int n=0; n<npft; n++) {
 				transfer_litter_leaf[n] += patch.pft[n].litter_leaf * scale;
 				transfer_litter_root[n] += patch.pft[n].litter_root * scale;
 				transfer_litter_sap[n] += patch.pft[n].litter_sap * scale;
@@ -158,7 +185,7 @@ struct landcover_change_transfer {
 				transfer_litter_repr[n] += patch.pft[n].litter_repr * scale;
 
 				transfer_nmass_litter_leaf[n] += patch.pft[n].nmass_litter_leaf * scale;
-				transfer_nmass_litter_root[n] += patch.pft[n].nmass_litter_root*scale;
+				transfer_nmass_litter_root[n] += patch.pft[n].nmass_litter_root * scale;
 				transfer_nmass_litter_sap[n] += patch.pft[n].nmass_litter_sap * scale;
 				transfer_nmass_litter_heart[n] += patch.pft[n].nmass_litter_heart * scale;
 
@@ -168,61 +195,72 @@ struct landcover_change_transfer {
 				}
 			}
 
-			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-				// sum litter C & N:
-				transfer_cpool_fast[lyr] += patch.soilcolumn.soillayers[lyr].cpool_fast * scale;
-				transfer_cpool_slow[lyr] += patch.soilcolumn.soillayers[lyr].cpool_slow * scale;
-
-				// sum soil C & N:
-				for (int i = 0; i < NSOMPOOL; i++) {
-					transfer_sompool[lyr][i].cmass += patch.soilcolumn.soillayers[lyr].sompool[i].cmass * scale;
-					transfer_sompool[lyr][i].fireresist += patch.soilcolumn.soillayers[lyr].sompool[i].fireresist * scale;
-					transfer_sompool[lyr][i].fracremain += patch.soilcolumn.soillayers[lyr].sompool[i].fracremain * scale;
-					transfer_sompool[lyr][i].ligcfrac += patch.soilcolumn.soillayers[lyr].sompool[i].ligcfrac * scale;
-					transfer_sompool[lyr][i].litterme += patch.soilcolumn.soillayers[lyr].sompool[i].litterme * scale;
-					transfer_sompool[lyr][i].nmass += patch.soilcolumn.soillayers[lyr].sompool[i].nmass * scale;
-					transfer_sompool[lyr][i].ntoc += patch.soilcolumn.soillayers[lyr].sompool[i].ntoc * scale;
-				}
-
-				transfer_NH4_mass[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass * scale;
-				transfer_NO3_mass[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass * scale;
-				transfer_N2_mass[lyr] += patch.soilcolumn.soillayers[lyr].N2_mass * scale;
-				transfer_NO_mass[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass * scale;
-				transfer_NO2_mass[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass * scale;
-				transfer_N2O_mass[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass * scale;
-
-			/*	transfer_NH4_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass_w * scale; // DW_COMMENT
-				transfer_NO3_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass_w * scale;
-				transfer_NO_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass_w * scale;
-				transfer_NO2_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass_w * scale;
-				transfer_N2O_mass_w[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass_w * scale;
-
-				transfer_NH4_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass_d * scale;
-				transfer_NO3_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass_d * scale;
-				transfer_NO_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass_d * scale;
-				transfer_NO2_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass_d * scale;
-				transfer_N2O_mass_d[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass_d * scale;*/
-
-				transfer_wmass[lyr] += patch.soilcolumn.soillayers[lyr].wmass * scale;
-				transfer_imass[lyr] += patch.soilcolumn.soillayers[lyr].imass * scale;
-
-				transfer_decomp_litter_mean[lyr] += patch.soilcolumn.soillayers[lyr].decomp_litter_mean * scale;
-				transfer_k_soilfast_mean[lyr] += patch.soilcolumn.soillayers[lyr].k_soilfast_mean * scale;
-				transfer_k_soilslow_mean[lyr] += patch.soilcolumn.soillayers[lyr].k_soilslow_mean * scale;
-			}
-
-			for (int lyr = 0; lyr < patch.soilcolumn.snow.nsnowlayers; lyr++) {
-				transfer_snowpack_NH4_mass[lyr] += patch.soilcolumn.snow.NH4_mass * scale; // DW_COMMENT SNOW
-				transfer_snowpack_NO3_mass[lyr] += patch.soilcolumn.snow.NO3_mass * scale;
-			}
-
-			//transfer_wcont_evap += patch.soilcolumn.wcont_evap * scale; // DW_COMMENT do we need to transfer this?????
-			double aaet_5_cp[NYEARAAET] = {0.0};
+			// Sum soil
+			transfer_wcont_evap += patch.soilcolumn.wcont_evap * scale;
+			double aaet_5_cp[NYEARAAET] = { 0.0 };
 			transfer_aaet_5.to_array(aaet_5_cp);
-			for(unsigned int i=0;i<patch.aaet_5.size();i++)
+			for (unsigned int i = 0; i < patch.aaet_5.size(); i++) {
 				transfer_aaet_5.add(aaet_5_cp[i] + patch.aaet_5[i] * scale);
-
+			}
+			double maxthaw_10_cp[10] = { 0.0 };
+			transfer_maxthaw_10.to_array(maxthaw_10_cp);
+			for (unsigned int i = 0; i < patch.soilcolumn.maxthaw_10.size(); i++) {
+				transfer_maxthaw_10.add(maxthaw_10_cp[i] + patch.soilcolumn.maxthaw_10[i] * scale);
+			}
 			transfer_anfix_calc += patch.soilcolumn.anfix_calc * scale;
+			transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, patch.soilcolumn.nsoillayers);
+
+			// Sum soil layers
+			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+				transfer_soil_soillayerdepths[lyr] += patch.soilcolumn.soillayerdepths[lyr] * scale;
+				transfer_soil_depth[lyr] += patch.soilcolumn.soillayers[lyr].depth * scale;
+				transfer_soil_depth_profile[lyr] += patch.soilcolumn.soillayers[lyr].depth_profile * scale;
+				transfer_soil_wmass[lyr] += patch.soilcolumn.soillayers[lyr].wmass * scale;
+				transfer_soil_imass[lyr] += patch.soilcolumn.soillayers[lyr].imass * scale;
+				transfer_soil_temp[lyr] += patch.soilcolumn.soillayers[lyr].temp * scale;
+				transfer_soil_temp_old[lyr] += patch.soilcolumn.soillayers[lyr].temp_old * scale;
+				transfer_soil_CO2[lyr] += patch.soilcolumn.soillayers[lyr].CO2 * scale;
+				transfer_soil_CH4[lyr] += patch.soilcolumn.soillayers[lyr].CH4 * scale;
+				transfer_soil_O2[lyr] += patch.soilcolumn.soillayers[lyr].O2 * scale;
+				transfer_soil_NH4[lyr] += patch.soilcolumn.soillayers[lyr].NH4_mass * scale;
+				transfer_soil_NO3[lyr] += patch.soilcolumn.soillayers[lyr].NO3_mass * scale;
+				transfer_soil_NO2[lyr] += patch.soilcolumn.soillayers[lyr].NO2_mass * scale;
+				transfer_soil_NO[lyr] += patch.soilcolumn.soillayers[lyr].NO_mass * scale;
+				transfer_soil_N2O[lyr] += patch.soilcolumn.soillayers[lyr].N2O_mass * scale;
+				transfer_soil_N2[lyr] += patch.soilcolumn.soillayers[lyr].N2_mass * scale;
+				transfer_soil_depth_mod[lyr] += patch.soilcolumn.soillayers[lyr].depth_mod * scale;
+				transfer_soil_cpool_slow[lyr] += patch.soilcolumn.soillayers[lyr].cpool_slow * scale;
+				transfer_soil_cpool_fast[lyr] += patch.soilcolumn.soillayers[lyr].cpool_fast * scale;
+				for (int p = 0; p < NSOMPOOL; p++) {
+					transfer_soil_sompool_cmass[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].cmass * scale;
+					transfer_soil_sompool_nmass[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].nmass * scale;
+					transfer_soil_sompool_ntoc[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].ntoc * scale;
+					transfer_soil_sompool_fireresist[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].fireresist * scale;
+					transfer_soil_sompool_fracremain[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].fracremain * scale;
+					transfer_soil_sompool_ligcfrac[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].ligcfrac * scale;
+					transfer_soil_sompool_litterme[lyr][p] += patch.soilcolumn.soillayers[lyr].sompool[p].litterme * scale;
+				}
+			}
+
+			// Soil padding
+			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+				transfer_soilpad_depth[lyr] += patch.soilcolumn.pad[lyr].depth * scale;
+				transfer_soilpad_temp[lyr] += patch.soilcolumn.pad[lyr].temp * scale;
+			}
+
+			// Sum snow
+			transfer_snow_nsnowlayers = max(transfer_snow_nsnowlayers, patch.soilcolumn.snow.nsnowlayers);
+			transfer_snow_NH4_mass += patch.soilcolumn.snow.NH4_mass * scale;
+			transfer_snow_NO3_mass += patch.soilcolumn.snow.NO3_mass * scale;
+			transfer_snow_snow_depth_standard += patch.soilcolumn.snow.snow_depth_standard * scale;
+			transfer_snow_snow_depth_limit += patch.soilcolumn.snow.snow_depth_limit * scale;
+			for (int lyr = 0; lyr < patch.soilcolumn.snow.nsnowlayers; lyr++) {
+				transfer_snow_wmass[lyr] += patch.soilcolumn.snow.snowlayers[lyr].wmass * scale;
+				transfer_snow_imass[lyr] += patch.soilcolumn.snow.snowlayers[lyr].imass * scale;
+				transfer_snow_depth[lyr] += patch.soilcolumn.snow.snowlayers[lyr].depth * scale;
+				transfer_snow_temp[lyr] += patch.soilcolumn.snow.snowlayers[lyr].temp * scale;
+				transfer_snow_temp_old[lyr] += patch.soilcolumn.snow.snowlayers[lyr].temp_old * scale;
+			}
 
 			stand.nextobj();
 		}
@@ -232,78 +270,94 @@ struct landcover_change_transfer {
 
 	void copy(landcover_change_transfer& from) {
 
-		if(transfer_litter_leaf)
+		if (transfer_litter_leaf)
 			memcpy(transfer_litter_leaf, from.transfer_litter_leaf, sizeof(double) * npft);
-		if(transfer_litter_sap)
+		if (transfer_litter_sap)
 			memcpy(transfer_litter_sap, from.transfer_litter_sap, sizeof(double) * npft);
-		if(transfer_litter_heart)
+		if (transfer_litter_heart)
 			memcpy(transfer_litter_heart, from.transfer_litter_heart, sizeof(double) * npft);
-		if(transfer_litter_root)
+		if (transfer_litter_root)
 			memcpy(transfer_litter_root, from.transfer_litter_root, sizeof(double) * npft);
-		if(transfer_litter_repr)
+		if (transfer_litter_repr)
 			memcpy(transfer_litter_repr, from.transfer_litter_repr, sizeof(double) * npft);
-		if(transfer_harvested_products_slow)
+		if (transfer_harvested_products_slow)
 			memcpy(transfer_harvested_products_slow, from.transfer_harvested_products_slow, sizeof(double) * npft);
-		if(transfer_nmass_litter_leaf)
+		if (transfer_nmass_litter_leaf)
 			memcpy(transfer_nmass_litter_leaf, from.transfer_nmass_litter_leaf, sizeof(double) * npft);
-		if(transfer_nmass_litter_sap)
+		if (transfer_nmass_litter_sap)
 			memcpy(transfer_nmass_litter_sap, from.transfer_nmass_litter_sap, sizeof(double) * npft);
-		if(transfer_nmass_litter_heart)
+		if (transfer_nmass_litter_heart)
 			memcpy(transfer_nmass_litter_heart, from.transfer_nmass_litter_heart, sizeof(double) * npft);
-		if(transfer_nmass_litter_root)
+		if (transfer_nmass_litter_root)
 			memcpy(transfer_nmass_litter_root, from.transfer_nmass_litter_root, sizeof(double) * npft);
-		if(transfer_harvested_products_slow_nmass)
+		if (transfer_harvested_products_slow_nmass)
 			memcpy(transfer_harvested_products_slow_nmass, from.transfer_harvested_products_slow_nmass, sizeof(double) * npft);
 
 		transfer_acflux_harvest = from.transfer_acflux_harvest;
 		transfer_anflux_harvest = from.transfer_anflux_harvest;
-		//transfer_wcont_evap = from.transfer_wcont_evap; // DW_COMMENT do we need to transfer this?
 
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-			transfer_cpool_fast[lyr] = from.transfer_cpool_fast[lyr];
-			transfer_cpool_slow[lyr] = from.transfer_cpool_slow[lyr];
-			transfer_wmass[lyr] = from.transfer_wmass[lyr];
-			transfer_imass[lyr] = from.transfer_imass[lyr];
-			transfer_decomp_litter_mean[lyr] = from.transfer_decomp_litter_mean[lyr];
-			transfer_k_soilfast_mean[lyr] = from.transfer_k_soilfast_mean[lyr];
-			for (int i = 0; i < NSOMPOOL; i++) {
-				transfer_sompool[lyr][i].cmass = from.transfer_sompool[lyr][i].cmass;
-				transfer_sompool[lyr][i].fireresist = from.transfer_sompool[lyr][i].fireresist;
-				transfer_sompool[lyr][i].fracremain = from.transfer_sompool[lyr][i].fracremain;
-				transfer_sompool[lyr][i].ligcfrac = from.transfer_sompool[lyr][i].ligcfrac;
-				transfer_sompool[lyr][i].litterme = from.transfer_sompool[lyr][i].litterme;
-				transfer_sompool[lyr][i].nmass = from.transfer_sompool[lyr][i].nmass;
-				transfer_sompool[lyr][i].ntoc = from.transfer_sompool[lyr][i].ntoc;
-			}
-			transfer_NH4_mass[lyr] = from.transfer_NH4_mass[lyr];
-			transfer_NO3_mass[lyr] = from.transfer_NO3_mass[lyr];
-			transfer_NO_mass[lyr] = from.transfer_NO_mass[lyr];
-			transfer_NO2_mass[lyr] = from.transfer_NO2_mass[lyr];
-			transfer_N2O_mass[lyr] = from.transfer_N2O_mass[lyr];
-			transfer_N2_mass[lyr] = from.transfer_N2_mass[lyr];
-
-		/*	transfer_NH4_mass_w[lyr] = from.transfer_NH4_mass_w[lyr]; // DW_COMMENT
-			transfer_NO3_mass_w[lyr] = from.transfer_NO3_mass_w[lyr];
-			transfer_NO_mass_w[lyr] = from.transfer_NO_mass_w[lyr];
-			transfer_NO2_mass_w[lyr] = from.transfer_NO2_mass_w[lyr];
-			transfer_N2O_mass_w[lyr] = from.transfer_N2O_mass_w[lyr];
-
-			transfer_NH4_mass_d[lyr] = from.transfer_NH4_mass_d[lyr];
-			transfer_NO3_mass_d[lyr] = from.transfer_NO3_mass_d[lyr];
-			transfer_NO_mass_d[lyr] = from.transfer_NO_mass_d[lyr];
-			transfer_NO2_mass_d[lyr] = from.transfer_NO2_mass_d[lyr];
-			transfer_N2O_mass_d[lyr] = from.transfer_N2O_mass_d[lyr];*/
-		}
-
-		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
-			transfer_snowpack_NH4_mass[slyr] = from.transfer_snowpack_NH4_mass[slyr];
-			transfer_snowpack_NO3_mass[slyr] = from.transfer_snowpack_NO3_mass[slyr];
-		}
-
-		for(unsigned int i=0;i<from.transfer_aaet_5.size();i++)
+		// Soil
+		transfer_wcont_evap = from.transfer_wcont_evap;
+		for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++) {
 			transfer_aaet_5.add(from.transfer_aaet_5[i]);
-
+		}
+		for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++) {
+			transfer_maxthaw_10.add(from.transfer_maxthaw_10[i]);
+		}
 		transfer_anfix_calc = from.transfer_anfix_calc;
+		transfer_soil_nsoillayers = from.transfer_soil_nsoillayers;
+
+		// Sum soil layers
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+			transfer_soil_soillayerdepths[lyr] = from.transfer_soil_soillayerdepths[lyr];
+			transfer_soil_depth[lyr] = from.transfer_soil_depth[lyr];
+			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
+			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
+			transfer_soil_imass[lyr] = from.transfer_soil_imass[lyr];
+			transfer_soil_temp[lyr] = from.transfer_soil_temp[lyr];
+			transfer_soil_temp_old[lyr] = from.transfer_soil_temp_old[lyr];
+			transfer_soil_CO2[lyr] = from.transfer_soil_CO2[lyr];
+			transfer_soil_CH4[lyr] = from.transfer_soil_CH4[lyr];
+			transfer_soil_O2[lyr] = from.transfer_soil_O2[lyr];
+			transfer_soil_NH4[lyr] = from.transfer_soil_NH4[lyr];
+			transfer_soil_NO3[lyr] = from.transfer_soil_NO3[lyr];
+			transfer_soil_NO2[lyr] = from.transfer_soil_NO2[lyr];
+			transfer_soil_NO[lyr] = from.transfer_soil_NO[lyr];
+			transfer_soil_N2O[lyr] = from.transfer_soil_N2O[lyr];
+			transfer_soil_N2[lyr] = from.transfer_soil_N2[lyr];
+			transfer_soil_depth_mod[lyr] = from.transfer_soil_depth_mod[lyr];
+			transfer_soil_cpool_slow[lyr] = from.transfer_soil_cpool_slow[lyr];
+			transfer_soil_cpool_fast[lyr] = from.transfer_soil_cpool_fast[lyr];
+			for (int p = 0; p < NSOMPOOL; p++) {
+				transfer_soil_sompool_cmass[lyr][p] = from.transfer_soil_sompool_cmass[lyr][p];
+				transfer_soil_sompool_nmass[lyr][p] = from.transfer_soil_sompool_nmass[lyr][p];
+				transfer_soil_sompool_ntoc[lyr][p] = from.transfer_soil_sompool_ntoc[lyr][p];
+				transfer_soil_sompool_fireresist[lyr][p] = from.transfer_soil_sompool_fireresist[lyr][p];
+				transfer_soil_sompool_fracremain[lyr][p] = from.transfer_soil_sompool_fracremain[lyr][p];
+				transfer_soil_sompool_ligcfrac[lyr][p] = from.transfer_soil_sompool_ligcfrac[lyr][p];
+				transfer_soil_sompool_litterme[lyr][p] = from.transfer_soil_sompool_litterme[lyr][p];
+			}
+		}
+
+		// Soil padding
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr];
+			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr];
+		}
+
+		// Sum snow
+		transfer_snow_nsnowlayers = from.transfer_snow_nsnowlayers;
+		transfer_snow_NH4_mass = from.transfer_snow_NH4_mass;
+		transfer_snow_NO3_mass = from.transfer_snow_NO3_mass;
+		transfer_snow_snow_depth_standard = from.transfer_snow_snow_depth_standard;
+		transfer_snow_snow_depth_limit = from.transfer_snow_snow_depth_limit;
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+			transfer_snow_wmass[lyr] = from.transfer_snow_wmass[lyr];
+			transfer_snow_imass[lyr] = from.transfer_snow_imass[lyr];
+			transfer_snow_depth[lyr] = from.transfer_snow_depth[lyr];
+			transfer_snow_temp[lyr] = from.transfer_snow_temp[lyr];
+			transfer_snow_temp_old[lyr] = from.transfer_snow_temp_old[lyr];
+		}
 	}
 
 	void add(landcover_change_transfer& from, double multiplier = 1.0) {
@@ -334,56 +388,73 @@ struct landcover_change_transfer {
 		}
 		transfer_acflux_harvest += from.transfer_acflux_harvest * multiplier;
 		transfer_anflux_harvest += from.transfer_anflux_harvest * multiplier;
-		//transfer_wcont_evap += from.transfer_wcont_evap * multiplier; // DW_COMMENT do we need to transfer this????????
 
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
-			transfer_cpool_fast[lyr] += from.transfer_cpool_fast[lyr] * multiplier;
-			transfer_cpool_slow[lyr] += from.transfer_cpool_slow[lyr] * multiplier;
-			transfer_wmass[lyr] += from.transfer_wmass[lyr] * multiplier;
-			transfer_imass[lyr] += from.transfer_imass[lyr] * multiplier;
-			transfer_decomp_litter_mean[lyr] += from.transfer_decomp_litter_mean[lyr] * multiplier;
-			transfer_k_soilfast_mean[lyr] += from.transfer_k_soilfast_mean[lyr] * multiplier;
-			for (int i = 0; i < NSOMPOOL; i++) {
-				transfer_sompool[lyr][i].cmass += from.transfer_sompool[lyr][i].cmass * multiplier;
-				transfer_sompool[lyr][i].fireresist += from.transfer_sompool[lyr][i].fireresist * multiplier;
-				transfer_sompool[lyr][i].fracremain += from.transfer_sompool[lyr][i].fracremain * multiplier;
-				transfer_sompool[lyr][i].ligcfrac += from.transfer_sompool[lyr][i].ligcfrac * multiplier;
-				transfer_sompool[lyr][i].litterme += from.transfer_sompool[lyr][i].litterme * multiplier;
-				transfer_sompool[lyr][i].nmass += from.transfer_sompool[lyr][i].nmass * multiplier;
-				transfer_sompool[lyr][i].ntoc += from.transfer_sompool[lyr][i].ntoc * multiplier;
-			}
-			transfer_NH4_mass[lyr] += from.transfer_NH4_mass[lyr] * multiplier;
-			transfer_NO3_mass[lyr] += from.transfer_NO3_mass[lyr] * multiplier;
-			transfer_N2O_mass[lyr] += from.transfer_N2O_mass[lyr] * multiplier;
-			transfer_N2_mass[lyr] += from.transfer_N2_mass[lyr] * multiplier;
-			transfer_NO_mass[lyr] += from.transfer_NO_mass[lyr] * multiplier;
-			transfer_NO2_mass[lyr] += from.transfer_NO2_mass[lyr] * multiplier;
-
-			/*transfer_NH4_mass_w[lyr] += from.transfer_NH4_mass_w[lyr] * multiplier; // DW_COMMENT
-			transfer_NO3_mass_w[lyr] += from.transfer_NO3_mass_w[lyr] * multiplier;
-			transfer_N2O_mass_w[lyr] += from.transfer_N2O_mass_w[lyr] * multiplier;
-			transfer_NO_mass_w[lyr] += from.transfer_NO_mass_w[lyr] * multiplier;
-			transfer_NO2_mass_w[lyr] += from.transfer_NO2_mass_w[lyr] * multiplier;
-
-			transfer_NH4_mass_d[lyr] += from.transfer_NH4_mass_d[lyr] * multiplier;
-			transfer_NO3_mass_d[lyr] += from.transfer_NO3_mass_d[lyr] * multiplier;
-			transfer_N2O_mass_d[lyr] += from.transfer_N2O_mass_d[lyr] * multiplier;
-			transfer_NO_mass_d[lyr] += from.transfer_NO_mass_d[lyr] * multiplier;
-			transfer_NO2_mass_d[lyr] += from.transfer_NO2_mass_d[lyr] * multiplier;*/
-		}
-
-		for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
-			transfer_snowpack_NH4_mass[slyr] += from.transfer_snowpack_NH4_mass[slyr] * multiplier;
-			transfer_snowpack_NO3_mass[slyr] += from.transfer_snowpack_NO3_mass[slyr] * multiplier;
-		}
-
-		double aaet_5_cp[NYEARAAET] = {0.0};
-		for(unsigned int i=0;i<transfer_aaet_5.size();i++)
+		// Soil
+		transfer_wcont_evap += from.transfer_wcont_evap * multiplier;
+		double aaet_5_cp[NYEARAAET] = { 0.0 };
+		for (unsigned int i = 0; i < transfer_aaet_5.size(); i++)
 			aaet_5_cp[i] = transfer_aaet_5[i];
-		for(unsigned int i=0;i<from.transfer_aaet_5.size();i++)
+		for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++)
 			transfer_aaet_5.add(aaet_5_cp[i] + from.transfer_aaet_5[i] * multiplier);
-
+		double maxthaw_10_cp[10] = { 0.0 };
+		for (unsigned int i = 0; i < transfer_maxthaw_10.size(); i++)
+			maxthaw_10_cp[i] = transfer_maxthaw_10[i];
+		for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++)
+			transfer_maxthaw_10.add(maxthaw_10_cp[i] + from.transfer_maxthaw_10[i] * multiplier);
 		transfer_anfix_calc += from.transfer_anfix_calc * multiplier;
+		transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, from.transfer_soil_nsoillayers);
+
+		// Soil layers
+		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+			transfer_soil_soillayerdepths[lyr] += from.transfer_soil_soillayerdepths[lyr] * multiplier;
+			transfer_soil_depth[lyr] += from.transfer_soil_depth[lyr] * multiplier;
+			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
+			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;
+			transfer_soil_imass[lyr] += from.transfer_soil_imass[lyr] * multiplier;
+			transfer_soil_temp[lyr] += from.transfer_soil_temp[lyr] * multiplier;
+			transfer_soil_temp_old[lyr] += from.transfer_soil_temp_old[lyr] * multiplier;
+			transfer_soil_CO2[lyr] += from.transfer_soil_CO2[lyr] * multiplier;
+			transfer_soil_CH4[lyr] += from.transfer_soil_CH4[lyr] * multiplier;
+			transfer_soil_O2[lyr] += from.transfer_soil_O2[lyr] * multiplier;
+			transfer_soil_NH4[lyr] += from.transfer_soil_NH4[lyr] * multiplier;
+			transfer_soil_NO3[lyr] += from.transfer_soil_NO3[lyr] * multiplier;
+			transfer_soil_NO2[lyr] += from.transfer_soil_NO2[lyr] * multiplier;
+			transfer_soil_NO[lyr] += from.transfer_soil_NO[lyr] * multiplier;
+			transfer_soil_N2O[lyr] += from.transfer_soil_N2O[lyr] * multiplier;
+			transfer_soil_N2[lyr] += from.transfer_soil_N2[lyr] * multiplier;
+			transfer_soil_depth_mod[lyr] += from.transfer_soil_depth_mod[lyr] * multiplier;
+			transfer_soil_cpool_slow[lyr] += from.transfer_soil_cpool_slow[lyr] * multiplier;
+			transfer_soil_cpool_fast[lyr] += from.transfer_soil_cpool_fast[lyr] * multiplier;
+			for (int p = 0; p < NSOMPOOL; p++) {
+				transfer_soil_sompool_cmass[lyr][p] += from.transfer_soil_sompool_cmass[lyr][p] * multiplier;
+				transfer_soil_sompool_nmass[lyr][p] += from.transfer_soil_sompool_nmass[lyr][p] * multiplier;
+				transfer_soil_sompool_ntoc[lyr][p] += from.transfer_soil_sompool_ntoc[lyr][p] * multiplier;
+				transfer_soil_sompool_fireresist[lyr][p] += from.transfer_soil_sompool_fireresist[lyr][p] * multiplier;
+				transfer_soil_sompool_fracremain[lyr][p] += from.transfer_soil_sompool_fracremain[lyr][p] * multiplier;
+				transfer_soil_sompool_ligcfrac[lyr][p] += from.transfer_soil_sompool_ligcfrac[lyr][p] * multiplier;
+				transfer_soil_sompool_litterme[lyr][p] += from.transfer_soil_sompool_litterme[lyr][p] * multiplier;
+			}
+		}
+
+		// Soil padding
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr] * multiplier;
+			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr] * multiplier;
+		}
+
+		// Snow
+		transfer_snow_nsnowlayers = max(transfer_snow_nsnowlayers, from.transfer_snow_nsnowlayers);
+		transfer_snow_NH4_mass += from.transfer_snow_NH4_mass * multiplier;
+		transfer_snow_NO3_mass += from.transfer_snow_NO3_mass * multiplier;
+		transfer_snow_snow_depth_standard += from.transfer_snow_snow_depth_standard * multiplier;
+		transfer_snow_snow_depth_limit += from.transfer_snow_snow_depth_limit * multiplier;
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+			transfer_snow_wmass[lyr] += from.transfer_snow_wmass[lyr] * multiplier;
+			transfer_snow_imass[lyr] += from.transfer_snow_imass[lyr] * multiplier;
+			transfer_snow_depth[lyr] += from.transfer_snow_depth[lyr] * multiplier;
+			transfer_snow_temp[lyr] += from.transfer_snow_temp[lyr] * multiplier;
+			transfer_snow_temp_old[lyr] += from.transfer_snow_temp_old[lyr] * multiplier;
+		}		
 	}
 };
 

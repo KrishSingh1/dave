@@ -2591,8 +2591,6 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 		
 		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 1000.0, 2000.0, 4000.0 };
 
-		// DW_COMMENT soil layers should be 100mm intervals always!!!!!!!!!
-
 		double std_tot_depth = 0.0;
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) std_tot_depth += std_depths[lyr];
 

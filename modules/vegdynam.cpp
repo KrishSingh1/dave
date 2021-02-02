@@ -425,8 +425,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	const bool establish_active_pfts_before_management = true;
 
-	double ncont_before = patch.ncont();
-
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -695,11 +693,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		// ... on to next PFT
 		pftlist.nextobj();
 	}
-
-	double ncont_after = patch.ncont();
-
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
-		dprintf("Year %d Day %d NITROGEN ESTAB diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 }
 
 

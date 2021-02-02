@@ -938,7 +938,7 @@ double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> roo
 	
 	// Indiv with perfect match will have N uptake coefficient 2
 	// and indiv with perfect mismatch will have 0
-	double nupscoeff = 2.0 - root_n_std; // DW_COMMENT need to check this!
+	double nupscoeff = 2.0 - root_n_std;
 
 	// Calculate uptake strength
 	if (!negligible(indiv.cmass_root_today()))
@@ -1003,7 +1003,8 @@ void vegetation_n_uptake(Patch& patch) {
 	Vegetation& vegetation = patch.vegetation;
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	double ncont_before = patch.ncont();
+	// Mass balance
+	// double ncont_before = patch.ncont();
 
 	NH4_avail = soilcolumn.nmass_avail(NH4);
 	NO3_avail = soilcolumn.nmass_avail(NO3);
@@ -1054,10 +1055,11 @@ void vegetation_n_uptake(Patch& patch) {
 	soilcolumn.nmass_avail_uptake(NH4_uptake_tot, NH4);
 	soilcolumn.nmass_avail_uptake(NO3_uptake_tot, NO3);
 
-	double ncont_after = patch.ncont();
+	// Mass balance
+	// double ncont_after = patch.ncont();
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > EPS)
-		dprintf("Year %d Day %d VUP diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
+	//if (date.year > freenyears && fabs(ncont_before - ncont_after) > EPS)
+	//	dprintf("Year %d Day %d VUP diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 
 	if (soilcolumn.savesomcent) {
 		if (!negligible(NH4_avail)) {
@@ -1266,7 +1268,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail); // DW_COMMENT should split per layer and make ndemand and navail per layer
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot, 1.0) : 0.0;
@@ -1595,8 +1597,6 @@ double water_uptake(std::vector<double> wcont, std::vector<double> awc,
 			// from different layers according to layer water content for trees, and according
 			// to prescribed root distribution for grasses
 
-			// DW_COMMENT NOT WORKING AS IT SHOULD 
-
 			double wcsum = 0.0;
 			double wcfrac;
 
@@ -1646,7 +1646,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	int nsoillayersupper = min(4,soilcolumn.nsoillayers); // DW_COMMENT calculate
+	// Irrigation should maximum affect the top 50cm, so no more than the top 4 soil layers
+	int nsoillayersupper = min(4,soilcolumn.nsoillayers);
 
 	std::vector<double> awc(nsoillayersupper);
 	std::vector<double> wcont_cp(nsoillayersupper);
@@ -1687,8 +1688,6 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				if (wcont_opt[i] * soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * ppft.rootdist[i]) {
 					wcont_opt[i] = pft.emax * ppft.rootdist[i] / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
 				}
-
-				// DW_COMMENT CHECK SO THIS WORKS AS IT SHOULD!!!!!!!!
 
 				if (wcont_cp[i] > wcont_opt[i]) {
 					// Do not change wcont for layers that already have enough available water, or add water to them
@@ -1775,14 +1774,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 					total_available_water += wcont_cp[s] * soilcolumn.soillayers[s].awc; // mm
 					total_capacity += soilcolumn.soillayers[s].wsats; // mm
 
-					//oob_check_wcont(wcont_cp[s], patch.soilcolumn.soillayers[s].wcont_max());
-
-					// Error check // DW_COMMENT need to check this full function so it makes sense!!!!!!!!!!!!!!
+					// Error check
 					if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {
 						dprintf("irrigated_water_uptake - error in the water balance!\n");
 						return -9999.0;
 					}
-
 				}
 			}
 		}

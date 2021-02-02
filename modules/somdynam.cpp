@@ -123,7 +123,7 @@ void decayrates(double wcont, double gtemp_soil, double& k_soilfast, double& k_s
 	// Calculate response of soil respiration rate to moisture content of upper soil layer
 	// Foley 1995 Eqn 19
 
-	moist_response = 0.25 + 0.75 * min(1.0, wcont);
+	moist_response = 0.25 + 0.75 * wcont;
 
 	// Calculate litter and SOM fractions remaining following today's decomposition
 	// (Sitch et al 2000 Eqn 71) adjusting exponential decay constants by moisture and
@@ -201,6 +201,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	double decomp_litter; // litter decomposition today/this month (kgC/m2)
 	double cflux; // accumulated C flux to atmosphere today/this month (kgC/m2)
 	int p;
+	bool tillage_lyr;
 
 	// Obtain reference to Soil object
 	Soilcolumn& soilcolumn = patch.soilcolumn;
@@ -209,11 +210,17 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+		// Tillage in this layer
+		if (lyr == 0 && tillage)
+			tillage_lyr = true;
+		else
+			tillage_lyr = false;
+
 		// Calculate decay constants and rates given today's soil moisture and
 		// temperature
 
 		decayrates(soillayer.wcont(), soillayer.gtemp, k_soilfast, k_soilslow, fr_litter,
-			fr_soilfast, fr_soilslow, tillage); // DW_COMMENT tillage depth
+			fr_soilfast, fr_soilslow, tillage_lyr);
 
 		// From year soilcolumn.solvesom_begin, update running means for later solution
 		// (at year soilcolumn.solvesom_end) of equilibrium SOM pool sizes
@@ -610,17 +617,19 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	const double EPS = 1.0e-16;
 
-	double ncont_before = soilcolumn.get_sum(NCONT);
-	double ccont_before = soilcolumn.get_sum(CCONT);
-	double nextra = 0.0;
-	double cextra = 0.0;
+	// Check mass balances
+	// double ncont_before = soilcolumn.get_sum(NCONT);
+	// double ccont_before = soilcolumn.get_sum(CCONT);
+	// double nextra = 0.0;
+	// double cextra = 0.0;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		double cmass_before = soillayer.ccont();
-		double nmass_before = soillayer.ncont();
+		// Mass balance check
+		// double cmass_before = soillayer.ccont();
+		// double nmass_before = soillayer.ncont();
 
 		// mineral nitrogen mass available
 		const double nmin_mass = soillayer.nmass_avail(NH4);
@@ -908,17 +917,22 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				soillayer.respsum = respsum_tot;
 			}
 
-			cextra += respsum_tot;
+			// Mass balance check
+			// cextra += respsum_tot;
 
 			soillayer.arespsum += respsum_tot;
 
 			// Sum annual organic nitrogen leaching
 			soillayer.aorgNleach += leachsum_nmass;
-			nextra += leachsum_nmass;
+
+			// Mass balance check
+			// nextra += leachsum_nmass;
 
 			// Sum annual organic carbon leaching
 			soillayer.aorgCleach += leachsum_cmass;
-			cextra += leachsum_cmass;
+
+			// Mass balance check
+			// cextra += leachsum_cmass;
 
 			// Sum annuals
 			soillayer.anmin += nmin_actual;
@@ -945,7 +959,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		if (!ifntransform) {
 			double nflux = nmin_inc > 0.0 ? (nmin_inc) * 0.01 : 0.0;
 			nmin_inc -= nflux;
-			nextra += nflux;
+			// Mass balance check
+			// nextra += nflux;
 			nflux_tmp += nflux;
 
 			if (!ifequilsom) {
@@ -966,26 +981,27 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			}
 		}
 
-		double cmass_after = soillayer.ccont() + respsum_tot + leachsum_cmass;
-		double nmass_after = soillayer.ncont() + nflux_tmp + leachsum_nmass;
+		// Mass balance check
+		// double cmass_after = soillayer.ccont() + respsum_tot + leachsum_cmass;
+		// double nmass_after = soillayer.ncont() + nflux_tmp + leachsum_nmass;
 
-		if (date.year > freenyears && fabs(cmass_before - cmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-			dprintf("Year %d Day %d Lyr %d C SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(cmass_before - cmass_after), cmass_before, cmass_after, leachsum_cmass);
+		// if (date.year > freenyears && fabs(cmass_before - cmass_after) > 1.0e-12 && !ifequilsom)
+		//	dprintf("Year %d Day %d Lyr %d C SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(cmass_before - cmass_after), cmass_before, cmass_after, leachsum_cmass);
 
-		if (date.year > freenyears && fabs(nmass_before - nmass_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-			dprintf("Year %d Day %d Lyr %d N SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(nmass_before - nmass_after), nmass_before, nmass_after, leachsum_nmass);
+		// if (date.year > freenyears && fabs(nmass_before - nmass_after) > 1.0e-12 && !ifequilsom)
+		//	dprintf("Year %d Day %d Lyr %d N SOM diff %g %g %g Leach %g\n", date.year, date.day, lyr, fabs(nmass_before - nmass_after), nmass_before, nmass_after, leachsum_nmass);
 
 	}
 
-	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
-	double ccont_after = soilcolumn.get_sum(CCONT) + cextra;
+	// Mass balance check
+	// double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
+	// double ccont_after = soilcolumn.get_sum(CCONT) + cextra;
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-		dprintf("Year %d Day %d NITROGEN SOM diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
+	//if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-12 && !ifequilsom)
+	//	dprintf("Year %d Day %d NITROGEN SOM diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 
-	if (date.year > freenyears && fabs(ccont_before - ccont_after) > 1.0e-12 && !ifequilsom) // DW_COMMENT remove
-		dprintf("Year %d Day %d CARBON SOM diff %g %g %g\n", date.year, date.day, fabs(ccont_before - ccont_after), ccont_before, ccont_after);
-
+	//if (date.year > freenyears && fabs(ccont_before - ccont_after) > 1.0e-12 && !ifequilsom)
+	//	dprintf("Year %d Day %d CARBON SOM diff %g %g %g\n", date.year, date.day, fabs(ccont_before - ccont_after), ccont_before, ccont_after);
 }
 
 /// Litter lignin to N ratio (for leaf and root litter)
@@ -1415,8 +1431,9 @@ void transfer_litter(Patch& patch) {
  */
 void leaching_LPJ(Soilcolumn& soilcolumn) {
 
-	double ncont_before = soilcolumn.get_sum(NCONT);
-	double nextra = 0.0;
+	// Mass balance check
+	// double ncont_before = soilcolumn.get_sum(NCONT);
+	// double nextra = 0.0;
 
 	double minleachfrac, minmovefrac, runoff;
 
@@ -1466,7 +1483,9 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 
 			soillayer.nmass_subtract(leaching, NO3);
 			soillayer.aminleach += leaching;
-			nextra += leaching;
+
+			// Mass balance 
+			// nextra += leaching;
 
 			leaching = nmin_avail * minmovefrac;
 
@@ -1475,7 +1494,8 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 			// Bottom layer then N is lost
 			if (lyr == soilcolumn.nsoillayers - 1) {
 				soillayer.aminleach += leaching;
-				nextra += leaching;
+				// Mass balance
+				//nextra += leaching;
 			}
 			// else if is transferred to layer below
 			else {
@@ -1489,10 +1509,11 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 		}
 	}
 
-	double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
+	// Mass balance
+	// double ncont_after = soilcolumn.get_sum(NCONT) + nextra;
 
-	if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14) // DW_COMMENT remove
-		dprintf("Year %d Day %d NITROGEN LEACH diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
+	// if (date.year > freenyears && fabs(ncont_before - ncont_after) > 1.0e-14)
+	//	dprintf("Year %d Day %d NITROGEN LEACH diff %g %g %g\n", date.year, date.day, fabs(ncont_before - ncont_after), ncont_before, ncont_after);
 }
 
 /// LEACHING
@@ -1584,7 +1605,7 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 		soilcolumn.soillayers[lyr].nmass_inc(NO3_delta[lyr], NO3);
 }
 
-void leaching(Patch& patch) { // DW_COMMENT should be able to be the same function!!!!!
+void leaching(Patch& patch) {
 
 	if (iftwolayersoil)
 		leaching_LPJ(patch.soilcolumn);

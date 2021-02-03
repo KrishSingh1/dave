@@ -1478,6 +1478,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 				while(stand.isobj) {
 					Patch& patch=stand.getobj();
 
+					if (date.year >= 500)
+						dprintf("Year %d PPFT\n", date.year);
+
 					// add litter C & N:
 					for (int i=0; i<npft; i++) {
 						Patchpft& patchpft = patch.pft[i];
@@ -1499,6 +1502,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						}
 					}
 
+					if (date.year >= 500)
+						dprintf("Year %d Soil\n", date.year);
+
 					// Soil
 					patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					double aaet_5_cp[NYEARAAET] = { 0.0 };
@@ -1517,8 +1523,14 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					if (!patch.soilcolumn.soillayerdepths.size())
 						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
 
+					if (date.year >= 500)
+						dprintf("Year %d SoilLayers %d \n", date.year, nsoillayers);
+
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+						if (date.year >= 500)
+							dprintf("Year %d SoilLayer %d \n", date.year, lyr);
 
 						// Create soil layer if it doesn't exist in patch
 						if (lyr >= patch.soilcolumn.nsoillayers) {
@@ -1529,6 +1541,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							// update number of soil layers
 							patch.soilcolumn.nsoillayers++;
 						}
+
+						if (date.year >= 500)
+							dprintf("Year %d SoilLayer created %d \n", date.year, lyr);
 
 						patch.soilcolumn.soillayerdepths[lyr] = (patch.soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
 
@@ -1569,11 +1584,17 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soilcolumn.tpara.set_sizes(patch.soilcolumn.nsoillayers + PAD_LAYERS);
 					patch.soilcolumn.wfluxes.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
 
+					if (date.year >= 500)
+						dprintf("Year %d Padding\n", date.year);
+
 					// Soil padding
 					for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
 						patch.soilcolumn.pad[lyr].depth = (patch.soilcolumn.pad[lyr].depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
 						patch.soilcolumn.pad[lyr].temp = (patch.soilcolumn.pad[lyr].temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
+
+					if (date.year >= 500)
+						dprintf("Year %d Snow\n", date.year);
 
 					// Snow
 					patch.soilcolumn.snow.NH4_mass = (patch.soilcolumn.snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
@@ -1584,7 +1605,13 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					int nsnowlayers = max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers);
 
+					if (date.year >= 500)
+						dprintf("Year %d Snowlayers %d \n", date.year, nsnowlayers);
+
 					for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+
+						if (date.year >= 500)
+							dprintf("Year %d Snowlayer %d \n", date.year, lyr);
 
 						// Create snow layer if it doesn't exist in patch
 						if (lyr >= patch.soilcolumn.snow.nsnowlayers) {
@@ -1593,6 +1620,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							patch.soilcolumn.snow.snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, 0.0);
 							patch.soilcolumn.snow.nsnowlayers++;
 						}
+
+						if (date.year >= 500)
+							dprintf("Year %d Created Snowlayer %d \n", date.year, lyr);
 
 						// Snow object for this layer
 						Snowlayer& snowlayer = patch.soilcolumn.snow.snowlayers[lyr];
@@ -1605,6 +1635,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
 					}
 
+					if (date.year >= 500)
+						dprintf("Year %d Snowbalance\n", date.year);
+
 					// Balance snow layers
 					double dval = 0.0;
 					patch.soilcolumn.snow.balance_snow(dval, dval);
@@ -1616,6 +1649,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						indiv.save_cmass_luc();
 						indiv.save_nmass_luc();
 					}
+
+					if (date.year >= 500)
+						dprintf("Year %d Finished\n", date.year);
 
 					stand.nextobj();
 				}

@@ -2726,7 +2726,12 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			StandType& st = stlist[to];
 			Gridcellst& gcst = gridcell.st[to];
 
+			if (date.year >= 500)
+				dprintf("Year %d LD TL%d To %d\n", date.year, transfer_level, to);
+
 			if(gridcell.landcover.pool_from_all_landcovers[st.landcover]) {
+				if (date.year >= 500)
+					dprintf("Year %d LD TL%d To %d FIRST\n", date.year, transfer_level, to);
 				// Alt.a: All donor st:s are pooled into receiving st:s
 				if(gcst.gross_frac_increase > 0.0) {
 					receiving_stand_change(gridcell, transfer_st[to], LCchangeCtransfer, -1, to);
@@ -2736,14 +2741,23 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 				for(int from=0; from<nst; from++) {
 
+					if (date.year >= 500)
+						dprintf("Year %d LD TL%d To %d from %d Frac Transfer %g\n", date.year, transfer_level, to, from, st_frac_transfer[index(from, to)]);
+
 					if(st_frac_transfer[index(from, to)] > 0.0) {
 						StandType& st_from = stlist[from];
 						Gridcellst& gcst_from = gridcell.st[from];
 						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] || gcst_from.nstands == 1)) {
+
+							if (date.year >= 500)
+								dprintf("Year %d LD TL%d To %d from %d Independent\n", date.year, transfer_level, to, from);
 							// Alt.b: Transfers between donor and receptor st:s are independent:
 							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 						else {
+
+							if (date.year >= 500)
+								dprintf("Year %d LD TL%d To %d from %d Pooled before\n", date.year, transfer_level, to, from);
 							// Alt.c: Donor stands in a stand type are pooled before transfer to recipients:
 							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}

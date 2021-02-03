@@ -2314,6 +2314,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		return;
 	}
 
+	if (date.year >= 500)
+		dprintf("Year %d LD 1\n",date.year);
+
 	double* st_frac_transfer = NULL;
 	double* primary_st_frac_transfer = NULL;
 	bool LCchangeCtransfer = true;
@@ -2335,6 +2338,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		st_frac_transfer[i] = 0.0;
 		primary_st_frac_transfer[i] = 0.0;
 	}
+
+	if (date.year >= 500)
+		dprintf("Year %d LD 2\n", date.year);
 
 	gridcell.landcover.updated = false;
 
@@ -2362,6 +2368,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 		stlist.nextobj();
 	}
+
+	if (date.year >= 500)
+		dprintf("Year %d LD 3\n", date.year);
 
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const) {
@@ -2416,6 +2425,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer);
 	check_fractions1(gridcell);
 
+	if (date.year >= 500)
+		dprintf("Year %d LD 4\n", date.year);
 
 	for(int i=0; i<nst; i++) {
 
@@ -2433,6 +2444,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 	}
+
+	if (date.year >= 500)
+		dprintf("Year %d LD 5\n", date.year);
 
 	// Mass balance
 	// double ccont_tot_1 = gridcell.ccont();
@@ -2452,8 +2466,15 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		fail("Fraction error after reduce_stands()\n\n");
 	}
 
+	if (date.year >= 500)
+		dprintf("Year %d LD 6\n", date.year);
+
 	// Create new stands for land cover transitions when natural vegetation remains or when each transition requires a new stand:
 	if(iftransfer_to_new_stand) {
+
+		if (date.year >= 500)
+			dprintf("Year %d LD NS\n", date.year);
+
 		bool new_stand = false;
 		for(int from=0; from<nst; from++) {
 			for(int to=0; to<nst; to++) {
@@ -2477,6 +2498,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
+	if (date.year >= 500)
+		dprintf("Year %d LD 7\n", date.year);
+
 	// set stand variables frac, frac_change and gross_frac_increase for expanding stands and stand types
 	expand_stands(gridcell, st_frac_transfer);
 
@@ -2485,6 +2509,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	if(error)
 		fail("Fraction error after expand_stands()\n");
 
+	if (date.year >= 500)
+		dprintf("Year %d LD 8 TL %d\n", date.year, transfer_level);
 
 	// Pooling options
 	// transfer_level: 0: one big pool; 1: land cover-level; 2: stand type-level
@@ -2622,6 +2648,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		landcover_change_transfer* transfer_st;
 		landcover_change_transfer* transfer_st_from;
 
+		if (date.year >= 500)
+			dprintf("Year %d LD TL%d 1\n", date.year, transfer_level);
+
 		transfer_st_2d = new landcover_change_transfer[nst * nst];
 		transfer_st = new landcover_change_transfer[nst];
 		transfer_st_from = new landcover_change_transfer[nst];
@@ -2641,6 +2670,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 				}
 			}
 		}
+
+		if (date.year >= 500)
+			dprintf("Year %d LD TL%d 2\n", date.year, transfer_level);
 
 		for(int to=0;to<nst;to++) {
 
@@ -2676,11 +2708,17 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 
+		if (date.year >= 500)
+			dprintf("Year %d LD TL%d 3\n", date.year, transfer_level);
+
 		// create and kill stands at landcover change
 		stand_dynamics(gridcell);
 		error += check_fractions4(gridcell);
 		if(error)
 			fail("Fraction error after stand_dynamics()\n");
+
+		if (date.year >= 500)
+			dprintf("Year %d LD TL%d 4\n", date.year, transfer_level);
 
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		for(int to=0; to<nst; to++) {
@@ -2714,6 +2752,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 
+		if (date.year >= 500)
+			dprintf("Year %d LD TL%d 5\n", date.year, transfer_level);
+
 		if(transfer_st_2d)
 			delete[] transfer_st_2d;
 		if(transfer_st)
@@ -2721,6 +2762,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		if(transfer_st_from)
 			delete[] transfer_st_from;
 	}
+
+	if (date.year >= 500)
+		dprintf("Year %d LD 9\n", date.year);
 
 	/*// Mass balance
 	double ccont_tot = 0.0;

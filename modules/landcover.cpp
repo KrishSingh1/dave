@@ -1518,13 +1518,13 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					patch.soilcolumn.anfix_calc = (patch.soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
 
-					int nsoillayers = max(patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers);
+					int nsoillayers = from.transfer_soil_nsoillayers;
 
 					if (!patch.soilcolumn.soillayerdepths.size())
 						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
 
 					if (date.year >= 500)
-						dprintf("Year %d SoilLayers %d \n", date.year, nsoillayers);
+						dprintf("Year %d SoilLayers %d Patch %d From %d \n", date.year, nsoillayers, patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers);
 
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {

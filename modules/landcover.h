@@ -59,7 +59,7 @@ struct landcover_change_transfer {
 	Historic<double, NYEARAAET> transfer_aaet_5;
 	Historic<double, 10> transfer_maxthaw_10;
 	double transfer_anfix_calc;
-	int transfer_soil_nsoillayers = 0;
+	int transfer_soil_nsoillayers;
 
 	// Soil layers
 	double transfer_soil_soillayerdepths[NSOILLAYER_MAX];

@@ -1616,8 +1616,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						// Create snow layer if it doesn't exist in patch
 						if (lyr >= patch.soilcolumn.snow.nsnowlayers) {
 
-							patch.soilcolumn.snow.snowlayers.resize(nsnowlayers + 1);
-							patch.soilcolumn.snow.snowlayers[nsnowlayers] = Snowlayer(0.0, 0.0, 0.0, 0.0);
+							patch.soilcolumn.snow.snowlayers.resize(lyr + 1);
+							patch.soilcolumn.snow.snowlayers[lyr] = Snowlayer(0.0, 0.0, 0.0, 0.0);
 							patch.soilcolumn.snow.nsnowlayers++;
 						}
 
@@ -2881,6 +2881,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = transfer_anfix_calc = 0.0;
 
 	// Sum soil layers
+	transfer_soil_nsoillayers = 0;
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
@@ -2904,6 +2905,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	}
 
 	// Sum snow
+	transfer_snow_nsnowlayers = 0;
 	transfer_snow_NH4_mass = transfer_snow_NO3_mass = 0.0;
 	transfer_snow_snow_depth_standard = transfer_snow_snow_depth_limit = 0.0;
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {

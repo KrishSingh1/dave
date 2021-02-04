@@ -1518,7 +1518,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					patch.soilcolumn.anfix_calc = (patch.soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
 
-					int nsoillayers = from.transfer_soil_nsoillayers;
+					int nsoillayers = min(NSOILLAYER_MAX, max(patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
 
 					if (!patch.soilcolumn.soillayerdepths.size())
 						patch.soilcolumn.soillayerdepths.resize(nsoillayers);

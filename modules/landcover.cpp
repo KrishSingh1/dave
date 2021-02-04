@@ -1603,10 +1603,10 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soilcolumn.snow.snow_depth_limit = (patch.soilcolumn.snow.snow_depth_limit * old_frac + from.transfer_snow_snow_depth_limit * added_frac) / new_frac;
 
 
-					int nsnowlayers = max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers);
+					int nsnowlayers = min(NSNOWLAYERS_MAX, max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers));
 
 					if (date.year >= 500)
-						dprintf("Year %d Snowlayers %d \n", date.year, nsnowlayers);
+						dprintf("Year %d Snowlayers %d Max %d Patch %d From %d\n", date.year, nsnowlayers, NSNOWLAYERS_MAX, patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers);
 
 					for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 

@@ -1476,7 +1476,7 @@ void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage);
 
-	// Nitrogen transformation in soil DW_COMMENT bring if statement into ntransform to make code cleaner?
+	// Nitrogen transformation in soil
 	ntransform(patch, climate);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr

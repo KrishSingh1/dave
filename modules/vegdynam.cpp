@@ -125,7 +125,8 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 
 	if (!relaxed_establishment && !iftwolayersoil) {
 		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
-		if (((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0)<pft.min_snow ||
+		if ((climate.lat >= 0.0 && ((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0) < pft.min_snow) ||
+			(climate.lat < 0.0 && ((patch.soil.msnowdepth[5] + patch.soil.msnowdepth[6] + patch.soil.msnowdepth[7]) / 3.0) < pft.min_snow) ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 

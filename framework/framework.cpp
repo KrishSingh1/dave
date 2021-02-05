@@ -240,8 +240,6 @@ int framework(const CommandLineArguments& args) {
 		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
-			//if (date.day == 0)
-			//	dprintf("Year %d Day %d\n",date.year,date.day);
 
 			simulate_day(gridcell, input_module.get());
 

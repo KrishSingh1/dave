@@ -1478,9 +1478,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 				while(stand.isobj) {
 					Patch& patch=stand.getobj();
 
-					if (date.year >= 500)
-						dprintf("Year %d PPFT\n", date.year);
-
 					// add litter C & N:
 					for (int i=0; i<npft; i++) {
 						Patchpft& patchpft = patch.pft[i];
@@ -1502,9 +1499,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						}
 					}
 
-					if (date.year >= 500)
-						dprintf("Year %d Soil\n", date.year);
-
 					// Soil
 					patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					double aaet_5_cp[NYEARAAET] = { 0.0 };
@@ -1523,14 +1517,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					if (!patch.soilcolumn.soillayerdepths.size())
 						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
 
-					if (date.year >= 500)
-						dprintf("Year %d SoilLayers %d Patch %d From %d \n", date.year, nsoillayers, patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers);
-
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-						if (date.year >= 500)
-							dprintf("Year %d SoilLayer %d \n", date.year, lyr);
 
 						// Create soil layer if it doesn't exist in patch
 						if (lyr >= patch.soilcolumn.nsoillayers) {
@@ -1541,9 +1529,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							// update number of soil layers
 							patch.soilcolumn.nsoillayers++;
 						}
-
-						if (date.year >= 500)
-							dprintf("Year %d SoilLayer created %d \n", date.year, lyr);
 
 						patch.soilcolumn.soillayerdepths[lyr] = (patch.soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
 
@@ -1584,17 +1569,11 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soilcolumn.tpara.set_sizes(patch.soilcolumn.nsoillayers + PAD_LAYERS);
 					patch.soilcolumn.wfluxes.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
 
-					if (date.year >= 500)
-						dprintf("Year %d Padding\n", date.year);
-
 					// Soil padding
 					for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
 						patch.soilcolumn.pad[lyr].depth = (patch.soilcolumn.pad[lyr].depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
 						patch.soilcolumn.pad[lyr].temp = (patch.soilcolumn.pad[lyr].temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
-
-					if (date.year >= 500)
-						dprintf("Year %d Snow\n", date.year);
 
 					// Snow
 					patch.soilcolumn.snow.NH4_mass = (patch.soilcolumn.snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
@@ -1605,13 +1584,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					int nsnowlayers = min(NSNOWLAYERS_MAX, max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers));
 
-					if (date.year >= 500)
-						dprintf("Year %d Snowlayers %d Max %d Patch %d From %d\n", date.year, nsnowlayers, NSNOWLAYERS_MAX, patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers);
-
 					for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-
-						if (date.year >= 500)
-							dprintf("Year %d Snowlayer %d \n", date.year, lyr);
 
 						// Create snow layer if it doesn't exist in patch
 						if (lyr >= patch.soilcolumn.snow.nsnowlayers) {
@@ -1620,9 +1593,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							patch.soilcolumn.snow.snowlayers[lyr] = Snowlayer(0.0, 0.0, 0.0, 0.0);
 							patch.soilcolumn.snow.nsnowlayers++;
 						}
-
-						if (date.year >= 500)
-							dprintf("Year %d Created Snowlayer %d \n", date.year, lyr);
 
 						// Snow object for this layer
 						Snowlayer& snowlayer = patch.soilcolumn.snow.snowlayers[lyr];
@@ -1635,9 +1605,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
 					}
 
-					if (date.year >= 500)
-						dprintf("Year %d Snowbalance\n", date.year);
-
 					// Balance snow layers
 					double dval = 0.0;
 					patch.soilcolumn.snow.balance_snow(dval, dval);
@@ -1649,9 +1616,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						indiv.save_cmass_luc();
 						indiv.save_nmass_luc();
 					}
-
-					if (date.year >= 500)
-						dprintf("Year %d Finished\n", date.year);
 
 					stand.nextobj();
 				}
@@ -2350,9 +2314,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		return;
 	}
 
-	if (date.year >= 500)
-		dprintf("Year %d LD 1\n",date.year);
-
 	double* st_frac_transfer = NULL;
 	double* primary_st_frac_transfer = NULL;
 	bool LCchangeCtransfer = true;
@@ -2374,9 +2335,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		st_frac_transfer[i] = 0.0;
 		primary_st_frac_transfer[i] = 0.0;
 	}
-
-	if (date.year >= 500)
-		dprintf("Year %d LD 2\n", date.year);
 
 	gridcell.landcover.updated = false;
 
@@ -2404,9 +2362,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 		stlist.nextobj();
 	}
-
-	if (date.year >= 500)
-		dprintf("Year %d LD 3\n", date.year);
 
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const) {
@@ -2461,9 +2416,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer);
 	check_fractions1(gridcell);
 
-	if (date.year >= 500)
-		dprintf("Year %d LD 4\n", date.year);
-
 	for(int i=0; i<nst; i++) {
 
 		gridcell.st[i].gross_frac_increase = 0.0;
@@ -2480,9 +2432,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 	}
-
-	if (date.year >= 500)
-		dprintf("Year %d LD 5\n", date.year);
 
 	// Mass balance
 	// double ccont_tot_1 = gridcell.ccont();
@@ -2502,14 +2451,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		fail("Fraction error after reduce_stands()\n\n");
 	}
 
-	if (date.year >= 500)
-		dprintf("Year %d LD 6\n", date.year);
-
 	// Create new stands for land cover transitions when natural vegetation remains or when each transition requires a new stand:
 	if(iftransfer_to_new_stand) {
-
-		if (date.year >= 500)
-			dprintf("Year %d LD NS\n", date.year);
 
 		bool new_stand = false;
 		for(int from=0; from<nst; from++) {
@@ -2534,9 +2477,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
-	if (date.year >= 500)
-		dprintf("Year %d LD 7\n", date.year);
-
 	// set stand variables frac, frac_change and gross_frac_increase for expanding stands and stand types
 	expand_stands(gridcell, st_frac_transfer);
 
@@ -2544,9 +2484,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	error += check_fractions2(gridcell, st_frac_transfer);
 	if(error)
 		fail("Fraction error after expand_stands()\n");
-
-	if (date.year >= 500)
-		dprintf("Year %d LD 8 TL %d\n", date.year, transfer_level);
 
 	// Pooling options
 	// transfer_level: 0: one big pool; 1: land cover-level; 2: stand type-level
@@ -2684,9 +2621,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		landcover_change_transfer* transfer_st;
 		landcover_change_transfer* transfer_st_from;
 
-		if (date.year >= 500)
-			dprintf("Year %d LD TL%d 1\n", date.year, transfer_level);
-
 		transfer_st_2d = new landcover_change_transfer[nst * nst];
 		transfer_st = new landcover_change_transfer[nst];
 		transfer_st_from = new landcover_change_transfer[nst];
@@ -2706,9 +2640,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 				}
 			}
 		}
-
-		if (date.year >= 500)
-			dprintf("Year %d LD TL%d 2\n", date.year, transfer_level);
 
 		for(int to=0;to<nst;to++) {
 
@@ -2744,17 +2675,11 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 
-		if (date.year >= 500)
-			dprintf("Year %d LD TL%d 3\n", date.year, transfer_level);
-
 		// create and kill stands at landcover change
 		stand_dynamics(gridcell);
 		error += check_fractions4(gridcell);
 		if(error)
 			fail("Fraction error after stand_dynamics()\n");
-
-		if (date.year >= 500)
-			dprintf("Year %d LD TL%d 4\n", date.year, transfer_level);
 
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		for(int to=0; to<nst; to++) {
@@ -2762,12 +2687,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			StandType& st = stlist[to];
 			Gridcellst& gcst = gridcell.st[to];
 
-			if (date.year >= 500)
-				dprintf("Year %d LD TL%d To %d\n", date.year, transfer_level, to);
-
 			if(gridcell.landcover.pool_from_all_landcovers[st.landcover]) {
-				if (date.year >= 500)
-					dprintf("Year %d LD TL%d To %d FIRST\n", date.year, transfer_level, to);
 				// Alt.a: All donor st:s are pooled into receiving st:s
 				if(gcst.gross_frac_increase > 0.0) {
 					receiving_stand_change(gridcell, transfer_st[to], LCchangeCtransfer, -1, to);
@@ -2777,23 +2697,16 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 				for(int from=0; from<nst; from++) {
 
-					if (date.year >= 500)
-						dprintf("Year %d LD TL%d To %d from %d Frac Transfer %g\n", date.year, transfer_level, to, from, st_frac_transfer[index(from, to)]);
-
 					if(st_frac_transfer[index(from, to)] > 0.0) {
 						StandType& st_from = stlist[from];
 						Gridcellst& gcst_from = gridcell.st[from];
 						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] || gcst_from.nstands == 1)) {
 
-							if (date.year >= 500)
-								dprintf("Year %d LD TL%d To %d from %d Independent\n", date.year, transfer_level, to, from);
 							// Alt.b: Transfers between donor and receptor st:s are independent:
 							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 						else {
 
-							if (date.year >= 500)
-								dprintf("Year %d LD TL%d To %d from %d Pooled before\n", date.year, transfer_level, to, from);
 							// Alt.c: Donor stands in a stand type are pooled before transfer to recipients:
 							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
@@ -2802,9 +2715,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			}
 		}
 
-		if (date.year >= 500)
-			dprintf("Year %d LD TL%d 5\n", date.year, transfer_level);
-
 		if(transfer_st_2d)
 			delete[] transfer_st_2d;
 		if(transfer_st)
@@ -2812,9 +2722,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		if(transfer_st_from)
 			delete[] transfer_st_from;
 	}
-
-	if (date.year >= 500)
-		dprintf("Year %d LD 9\n", date.year);
 
 	/*// Mass balance
 	double ccont_tot = 0.0;

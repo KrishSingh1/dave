@@ -3,7 +3,7 @@
 /// \file ntransform.cpp
 /// \brief Nitrogen transformation in soil - nitrification and denitrification
 ///
-/// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson
+/// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson, David Wårlind and Stefan Olin.
 /// $Date: 2013-10-14 14:12:00 +0100 (Mon, 10 Sep 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -14,8 +14,8 @@
 // Module:                Nitrogen transformation processes in Soil
 // Header file name:      ntransform.h
 // Source code file name: ntransform.cpp
-// Written by:            Xu-Ri
-// Version dated:         2007,08,18
+// Written by:            Stefan Olin, adopted from Xu-Ri 2007-08-18.
+// Version dated:         2019.
 //
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -44,9 +44,6 @@
 #include <assert.h>
 #include <numeric>
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FILE SCOPE GLOBAL CONSTANTS
-
 /// Soil NH3 volatilization
 /** Daily calculation of NH3 volatilization from soil
  *
@@ -66,7 +63,7 @@ void nh3_volatilization(Patch& patch, Soil& soil, Climate& climate, double& n_bu
 	}
 
 	if (soil.pH > 6.0) { 
-		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas // DW_COMMENT a step change with 100 times difference? Not in XuRi 2008 table 5
+		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas
 	}
 	else {
 		nh3_max = 0.00001;
@@ -115,11 +112,15 @@ void substrate_partition(Soil& soil){
 	soil.NH4_mass_w = soil.NH4_mass * wet;
 	soil.NO3_mass_w = soil.NO3_mass * wet;
 	soil.NO2_mass_w = soil.NO2_mass * wet;
+	soil.N2O_mass_w = soil.N2O_mass * wet;
+	soil.NO_mass_w = soil.NO_mass * wet;
 	soil.labile_carbon_w = soil.labile_carbon * wet;
 
 	soil.NH4_mass_d = soil.NH4_mass - soil.NH4_mass_w;
 	soil.NO3_mass_d = soil.NO3_mass - soil.NO3_mass_w;
 	soil.NO2_mass_d = soil.NO2_mass - soil.NO2_mass_w;
+	soil.N2O_mass_d = soil.N2O_mass - soil.N2O_mass_w;
+	soil.NO_mass_d  = soil.NO_mass  - soil.NO_mass_w;
 	soil.labile_carbon_d = soil.labile_carbon - soil.labile_carbon_w;
 
 }
@@ -153,12 +154,11 @@ void nitrification(Patch& patch, Soil& soil) {
 	soil.NH4_mass_d -= no3_inc;
 
 	double ngas_inc = f_denitri_gas_max * no3_inc;
-	//no3_inc -= ngas_inc;
 
 	double wfps = soil.wfps(0);
 
 	// Pilegaard 2013
-	// only NO and N2O in nitrification // DW_COMMENT in substrate_partition() you use soil.wfps(0) directly. wfps not used again in this function.
+	// only NO and N2O in nitrification 
 	double f_no = richards_curve(1.0, 0.5, 20.0, 0.375, wfps);
 
 	no_inc          = f_no * ngas_inc;
@@ -200,17 +200,17 @@ void denitrification(Patch& patch,Soil& soil) {
 		else {
 			f_den_T = 0.0;
 		}
-		// effect of labile carbon availability on denitrification (table 9, eqn 2, Xu-Ri 2008)
+		// Effect of labile carbon availability on denitrification (table 9, eqn 2, Xu-Ri 2008)
 		d_N_max = soil.labile_carbon_w / (k_C * water_cont_m3 + soil.labile_carbon_w);
 
-		// gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
+		// Gross denitrification ratio NO3 to NO2 (table 9, eqn 3, Xu-Ri 2008)
 		no2_inc = min(soil.NO3_mass_w, soil.NO3_mass_w * f_denitri_max * d_N_max * f_den_T * soil.NO3_mass_w / (k_N * water_cont_m3 + soil.NO3_mass_w));
 
 		gross_denitrif   = no2_inc;
 		soil.NO3_mass_w -= no2_inc;
 		soil.NO2_mass_w += no2_inc;
 
-		// gross transformation of NO2 to N2 (table 9, eqn 4, Xu-Ri 2008)
+		// Gross transformation of NO2 to N2 (table 9, eqn 4, Xu-Ri 2008)
 
 		// Denitrification rate dependence on moisture, Weier et al. 1993
 		double f_den_w = min(1.0, exp(13.0360 * wfps_upper - 11.6219));
@@ -223,7 +223,7 @@ void denitrification(Patch& patch,Soil& soil) {
 
 		double f_n2_n2o_T = 1.0 / (1.0 + exp(-(soil_T - 5.0) / 10.0));
 
-		double f_n2o_n2_w = richards_curve(1.0, 0.0, 62.0, 0.875, wfps_upper); // DW_COMMENT added decimals to be consistent with other richards_curve calls
+		double f_n2o_n2_w = richards_curve(1.0, 0.0, 62.0, 0.875, wfps_upper); // decimals added to be consistent with other richards_curve calls
 
 		// Above 0.7 WFPS, no NO is produced and below the same threshold no N2 production. Pilegaard 2013
 		if (wfps_upper < 0.7){
@@ -249,8 +249,7 @@ void denitrification(Patch& patch,Soil& soil) {
 }
 
 /// Soil N gas emissions
-/** Daily calculation of soil N gas emissions 
-
+/** Daily calculation of soil N gas emissions. 
  */
 void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_check) {
 
@@ -260,7 +259,6 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 	double soil_T = soil.get_soil_temp_25();
 	double wcont = soil.get_soil_water_upper();
 	double ftemp, no_d_flux_inc, n2o_d_flux_inc, no_w_flux_inc, n2o_w_flux_inc, n2_flux_inc;
-	double no_flux_inc, n2o_flux_inc;
 	double net_nitrif = 0.0;
 	double net_denitrif = 0.0;
 
@@ -271,52 +269,35 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 	else {
 		ftemp = 0.0;
 	}
-	// Nitrification flux
 
-	// daily NO gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	// Nitrification fluxes
+	// Daily NO gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
 	no_d_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.NO_mass_d;
 	soil.NO_mass_d -= no_d_flux_inc;
 	net_nitrif     += no_d_flux_inc;
-
-	// daily N2O gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	// Daily N2O gas released from aerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
 	n2o_d_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.N2O_mass_d;
 	soil.N2O_mass_d -= n2o_d_flux_inc;
 	net_nitrif      += n2o_d_flux_inc;
 
 
 	// Denitrification fluxes
-
-	// daily NO gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	// Daily NO gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
 	no_w_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.NO_mass_w;
 	soil.NO_mass_w -= no_w_flux_inc;
 	net_denitrif   += no_w_flux_inc;
-
-	// daily N2O gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	// Daily N2O gas released from anaerobic soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
 	n2o_w_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.N2O_mass_w;
 	soil.N2O_mass_w -= n2o_w_flux_inc;
 	net_denitrif    += n2o_w_flux_inc;
 
-	/////////////////////////////////////////////
-	//TOTAL fluxes: nitrification + denitrification
-	//no_flux
-	no_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.NO_mass;
-	soil.NO_mass -=no_flux_inc;
-
-	//n2o flux
-	n2o_flux_inc   = ftemp * (1.0 - min(1.0, wcont)) * soil.N2O_mass;
-	soil.N2O_mass -= n2o_flux_inc;
-	//////////////////////////////////////////////
-
-	// daily N2 gas released from soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
+	// Daily N2 gas released from soil to atmosphere (table 10, eqn 2, Xu-Ri 2008)
 	n2_flux_inc     = ftemp * (1.0 - min(1.0, wcont)) * soil.N2_mass;
 	soil.N2_mass   -= n2_flux_inc;
 
-	//////////////////////////////////////////////
 	patch.fluxes.report_flux(Fluxes::NO_SOIL,     no_d_flux_inc + no_w_flux_inc);
 	patch.fluxes.report_flux(Fluxes::N2O_SOIL,    n2o_d_flux_inc + n2o_w_flux_inc);
-	//////////////////////////////////////////////
 
-	//////////////////////////////////////////////
 	patch.fluxes.report_flux(Fluxes::N2_SOIL,     n2_flux_inc); 
 	patch.fluxes.report_flux(Fluxes::NET_NITRIF,  net_nitrif);
 	patch.fluxes.report_flux(Fluxes::NET_DENITRIF,net_denitrif);
@@ -346,10 +327,10 @@ void ntransform(Patch& patch, Climate& climate) {
 		const double EPS = 1.0e-14;
 		double n_budget_check;
 
-		// obtain reference to Soil object
+		// Obtain reference to Soil object
 		Soil& soil = patch.soil;
 
-		// obtain referenc to flux objectRUN_BENCHMARKS //DW_COMMENT - RUN_BENCHMARKS???
+		// Obtain referenc to flux object
 		Fluxes& fluxes = patch.fluxes;
 
 		// NH3 volatilization
@@ -358,16 +339,16 @@ void ntransform(Patch& patch, Climate& climate) {
 		// N substrate partition
 		substrate_partition(soil);
 
-		// nitrification
+		// Nitrification
 		nitrification(patch, soil);
 
-		// denitrification
+		// Denitrification
 		denitrification(patch, soil);
 
 		// N gas emission
 		n_gas_emission(patch, fluxes, soil, n_budget_check);
 
-		// warning if soil N transform does not hold mass balance
+		// Warning if soil N transform does not hold mass balance
 		assert(fabs(n_budget_check) < EPS);
 	}
 }

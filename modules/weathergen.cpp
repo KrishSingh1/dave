@@ -27,6 +27,15 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.GLOBFIRM
 
+/* This code has been translated from the original FORTRAN-90 code provided with the article
+ * describing GWGEN. Therefore, the commenting has been taken from the original with some additions.
+ * For description and details please refer to:
+ *   Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
+ *     from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
+ *     doi:10.5194/gmd-10-3771-2017, 2017.
+ *   Original Code in Fortran available at: https://arve-research.github.io/gwgen/
+ */
+
 #include "config.h"
 #include "weathergen.h"
 #include <limits>
@@ -38,7 +47,7 @@ const double D_EPSILON = std::numeric_limits<double>::min();
 const float R_EPSILON  = std::numeric_limits<float>::min() ;
 
 // Parameters used witin GWGEN
-// freezing temperature of freshwater (K)
+// Freezing temperature of freshwater (K)
 const double TFREEZE = 273.15;      
 
 // -----------------------------------------------------------------------------
@@ -63,7 +72,6 @@ class MetVariables{
 public:
 	// MEMBER VARIABLES
 
-	// new ones
 	int month;
 
 	// Derived datatype for the monthly weather generator input
@@ -96,43 +104,36 @@ public:
 	double wnd;
 	double cld;
 
-	//    type daymetvars
-	// Derived datatype for monthly climate variables
-
+	// Derived datatype (F90: type_daymetvars) for monthly climate variables
 	double dmtmax_mn; // maximum temperature monthly mean (degC)
 	double dmtmin_mn; // minimum temperature mothly mean (degC)
 	double dmcldf_mn; // mean cloud fraction (fraction)
 	double dmwind_mn; // wind speed
-
 	// Standard deviations of corresponding variable above
 	double dmtmax_sd; 
 	double dmtmin_sd; 
 	double dmcldf_sd; 
 	double dmwind_sd; 
 
-	//end type daymetvars
-
 	// the following parameters are computed by the cloud_params subroutine
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
 	double cldf_sd_w, cldf_sd_d;
 
-	/// Constructor function: initialise cell member
-	
-}metvars;
+} metvars;
 
 // Threshold for transition from gamma to gp distribution
 double thresh = 5.0; 
 
-// interpret the thresh as percentile
+// Interpret the thresh as percentile
 bool thresh_pctl = false; 
 
 // Coefficient to estimate the gamma scale parameter via
 // g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
-// following Geng et al., 1986
+// following Geng et al., 1986.
 // coefficient to esimate the gamma scale parameter
 double g_scale_coeff = 1.268022;
  
-// shape parameter for the Generalized Pareto distribution
+// Shape parameter for the Generalized Pareto distribution
 double gp_shape = 1.5; 
 
 // A matrix used for cross correlation following Richardson_1984 equation (4)
@@ -148,7 +149,7 @@ double B[4][4] = {
 	{0.144862,-0.060622, 0.782791, 0.0}, 
 	{0.080593,-0.015829, 0.066186, 0.736713}};
 
-// transition probability correlations
+// Transition probability correlations
 double p11_1  = 0.254877   ; // intercept of p11 best line fit
 double p11_2  = 0.745123   ; // slope of p11 best line fit
 double p101_1 = 0.0       ; // intercept of p101 best line fit
@@ -156,15 +157,16 @@ double p101_2 = 0.846326  ; // slope of p101 best line fit
 double p001_1 = 0.0       ; // intercept of p001 best line fit
 double p001_2 = 0.724019  ; // slope of p001 best line fit
 
-// temperature and cloud correlation parameters corresponding to wet or dry day
-// minimum temperature regression results
+/* Temperature and cloud correlation parameters corresponding to wet or dry day
+ * minimum temperature regression results.
+ */
 double tmin_w1 = 1.164653; // intercept of best line fit of tmin on wet days (see `meansd`)
 double tmin_w2 = 0.955787; // slope of best line fit of tmin on wet days (see `meansd`)
 double tmin_d1 =-0.528308; // intercept of best line fit of tmin on dry days (see `meansd`)
 double tmin_d2 = 1.020964; // slope of best line fit of tmin on dry days (see `meansd`)
 double tmin_sd_breaks[3] = { -40., 0.0, 25. };  // breaks of tmin sd correlation
 
-// polynomial coefficients for correlating tmin sd on wet days
+// Polynomial coefficients for correlating tmin sd on wet days
 double tmin_sd_w[6][4]  = { 
 	// < -40       -40 - 0     0 - 25	> 25
 	{9.72715668, 3.05498827, 3.21874237, 0.55707042}, 
@@ -174,7 +176,7 @@ double tmin_sd_w[6][4]  = {
 	{0.0,        3.686e-05,   9.818e-05, 0.0},
 	{0.0,        3.2e-07,     -1.13e-06, 0.0}} ;
 
-// polynomial coefficients for correlating tmin sd on dry days
+// Polynomial coefficients for correlating tmin sd on dry days
 double tmin_sd_d[6][4] = {
 	//  < -40       -40 - 0     0 - 25        > 25
 	{10.89900605, 3.56755661,  3.79411755, -4.61943457}, 
@@ -184,14 +186,14 @@ double tmin_sd_d[6][4] = {
 	{0.0,         4.314e-05,  -0.00011362,  0.0},
 	{0.0,         3.2e-07,     2.13e-06,    0.0} };
 
-// maximum temperature regression results
+// Maximum temperature regression results
 double tmax_w1 = -0.586296 ; // intercept of best line fit of tmax on wet days (see `meansd`)
 double tmax_w2 = 0.948669  ; // slope of best line fit of tmax on wet days (see `meansd`)
 double tmax_d1 = 0.386508  ; // intercept of best line fit of tmax on dry days (see `meansd`)
 double tmax_d2 = 1.0061    ; // slope of best line fit of tmax on dry days (see `meansd`)
 double tmax_sd_breaks[3] = { -30., 0.0, 35. };  // polynomial coefficients for the breaks of tmax sd correlation
 
-// polynomial coefficients for correlating tmax sd on wet days
+// Polynomial coefficients for correlating tmax sd on wet days
 double tmax_sd_w[6][4] = {
 	//   < -30       -30 - 0     0 - 35        > 35
 	{6.67200351,  3.86010858,  3.79193207,  5.55292835}, 
@@ -201,7 +203,7 @@ double tmax_sd_w[6][4] = {
 	{0.0,         6.059e-05,   2.912e-05,   0.0},
 	{0.0,         7.4e-07,    -2.4e-07,     0.0}}; 
 
-// polynomial coefficients for correlating tmax sd on dry days
+// Polynomial coefficients for correlating tmax sd on dry days
 double tmax_sd_d[6][4] = {
 	//   < -30       -30 - 0     0 - 35	> 35
 	{7.37455165,  4.61701866,  4.74550991,  3.25541815}, 
@@ -211,44 +213,45 @@ double tmax_sd_d[6][4] = {
 	{0.0,         3.5e-06,     3.209e-05,   0.0}, 
 	{0.0,         1.1e-07,    -2.5e-07,     0.0}};  
 
-// cloud regression results
-double cldf_w    = -0.738271; // *a* parameter for cloud fit on wet days (see `meansd`)
-double cldf_d    =  0.420534; // *a* parameter for cloud fit on dry days (see `meansd`)
-double cldf_sd_w = 0.981917;  // *a* parameter for std. dev. of cloud fit on wet days (see `meansd`)
-double cldf_sd_d = 1.041732;  // *a* parameter for std. dev. of cloud fit on dry days (see `meansd`)
+// Cloud regression results
+double cldf_w    = -0.738271; // parameter for cloud fit on wet days (see `meansd`)
+double cldf_d    =  0.420534; // parameter for cloud fit on dry days (see `meansd`)
+double cldf_sd_w = 0.981917;  // parameter for std. dev. of cloud fit on wet days (see `meansd`)
+double cldf_sd_d = 1.041732;  // parameter for std. dev. of cloud fit on dry days (see `meansd`)
 
-// wind regression results
-double wind_w1 = 0.0      ; // intercept of best line fit of wind on wet days (see `meansd`)
-double wind_w2 = 1.092938 ; // slope of best line fit of wind on wet days (see `meansd`)
-double wind_d1 = 0.0      ; // intercept of best line fit of wind on dry days (see `meansd`)
-double wind_d2 = 0.945229 ; // slope of best line fit of wind on wet days (see `meansd`)
+// Wind regression results
+double wind_w1 = 0.0      ;   // intercept of best line fit of wind on wet days (see `meansd`)
+double wind_w2 = 1.092938 ;   // slope of best line fit of wind on wet days (see `meansd`)
+double wind_d1 = 0.0      ;   // intercept of best line fit of wind on dry days (see `meansd`)
+double wind_d2 = 0.945229 ;   // slope of best line fit of wind on wet days (see `meansd`)
 
-// polygon coefficients for wind standard deviation on wet days
+// Polygon coefficients for wind standard deviation on wet days
 double wind_sd_w[6] = { 0.0, 0.81840997, -0.12633931, 0.00933591, 0.0, 0.0};
 
-// polygon coefficients for wind standard deviation on dry days
+// Polygon coefficients for wind standard deviation on dry days
 double wind_sd_d[6] = { 0.0, 1.08596114, -0.24073323, 0.02216454, 0.0, 0.0};
 
-// wind bias correction (Note: Default is no correction)
-// min. and max range for bias correction (1st and 99th percentile)
+// Wind bias correction (Note: Default is no correction)
+// min and max range for bias correction (1st and 99th percentile)
 double wind_bias_min =-2.3263478740;
-double wind_bias_max = 2.3263478740; // min. and max range for bias correction
+double wind_bias_max = 2.3263478740; 
 
-// parameters for the exponential intercept correction
+// Parameters for the exponential intercept correction
 double wind_intercept_bias_a = 1.1582245720322826;  // slope in the exponent
 double wind_intercept_bias_b =-1.3358916953022832;  // intercept in the exponent
 
-// parameters of the slope - unorm best fit line
-// coefficients for the bias correction of wind speed
+// Parameters of the slope - unorm best fit line
+// Coefficients for the bias correction of wind speed
 double wind_bias_coeffs[6] = {0.995353879899162,   0.8507947091050573, 0.027799823700343333, 
 			      -0.06710144300871658, 0.0, 0.0};
 double wind_intercept_bias_coeffs[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+
 // Alternative slope bias correction using a logistic function
 double wind_slope_bias_L  = -9999.; // maximum value of logistic function of wind bias correction
 double wind_slope_bias_k  = -9999.; // steepness of logistic function of wind bias correction
 double wind_slope_bias_x0 = -9999.; // x-value of sigmoid's midpoint of logistic function of wind bias co
 
-// coefficients for the bias correction of minimum temperature
+// Coefficients for the bias correction of minimum temperature
 // (Note: Default is no correction)
 double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the bias correction of minimum temperature
 
@@ -256,7 +259,7 @@ double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the b
 double tmin_bias_min =-2.3263478740;
 double tmin_bias_max = 2.3263478740; 
 
-// Matrix Multiplication
+// Matrix multiplication
 void matrixmult(double AA[4][4], double B[4], double CC[4]) {
 	// 
 	int xy = 4;
@@ -301,7 +304,7 @@ void get_seed_by_location(double lat, double lon, WeatherGenState& state) {
 
 int refill(WeatherGenState& state) {
 	
-	// reset a random state
+	// Reset random state
 
 	int s;
 	int z;
@@ -319,14 +322,16 @@ int refill(WeatherGenState& state) {
 	return s;
 }
 
+/* Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
+ * based on the 32-bit super KISS random number generator by George Marsaglia, published online
+ * and translated to Fortran 90 by user "mecej4" and Marsaglia, 
+ * http://forums.silverfrost.com/viewtopic.php?t=1480
+ * Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
+ * 
+ * Do not use this function outside of this weathergen.cpp module. 
+ * Instead use the standard random number generator of LPJ-GUESS.
+ */
 int ranu(WeatherGenState& state) {
-
-	// DESCRIPTION
-	// Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
-	// based on the 32-bit super KISS random number generator by George Marsaglia, published online
-	// and translated to Fortran 90 by user "mecej4" and Marsaglia, 
-	// http://forums.silverfrost.com/viewtopic.php?t=1480
-	// Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
 
 	int supr, ranu;
 	if (state.indx < QSIZ) {
@@ -347,9 +352,11 @@ int ranu(WeatherGenState& state) {
 	return ranu;
 }
 
+// Generate a random number in the range (0,1)
+/* Do not use this function outside of this weathergen.cpp module. 
+ * Instead use the standard random number generator of LPJ-GUESS.
+ */
 double ranur(WeatherGenState& state) {
-
-	// generate a random number in the range (0,1)
 
 	double ranur;
 	
@@ -357,12 +364,12 @@ double ranur(WeatherGenState& state) {
 	return ranur ;
 }
 
+/* Calculate the parameters used for the first approximation in "meansd"
+ * This subroutine calculates the necessary parameters for the adjustment of
+ * the monthly cloud fraction mean depending on the wet/dry state
+ */
 void calc_cloud_params(MetVariables& metvars) {
 	
-	// DESCRIPTION
-	// Calculate the parameters used for the first approximation in "meansd"
-	// This subroutine calculates the necessary parameters for the adjustment of
-	// the monthly cloud fraction mean depending on the wet/dry state
 
 	metvars.cldf_w1   = -cldf_w - 1.0;
 	metvars.cldf_w2   = cldf_w * cldf_w;
@@ -414,48 +421,46 @@ void temp_sd(MetVariables& metvars) {
 	}
 
 	metvars.dmtmin_sd = dmtmin_sd;
-	metvars.dmtmax_sd = dmtmax_sd;
-	
+	metvars.dmtmax_sd = dmtmax_sd;	
 } 
 
+/* Adjust the monthly means of temperature, cloud and wind corresponding to the wet/dry state
+ *
+ * This routine makes the first approximation inside the weather generator to adjust the monthly
+ * mean according to the wet/dry state using the best fit lines from the parameterization.
+ *
+ * Min. and max. temperature, as well as the wind speed, are calculated via
+ *
+ * .. math::
+ *
+ *     x_{w/d} = x_{w/d1} + x_{w/d2} \cdot \bar{x}
+ *
+ * Where :math:`x` stands either for the :math:`T_{min}, T_{max}, T_{min, sd}, T_{max, sd}, wind`
+ * or :math:`wind_{sd}`. :math:`w/d` stands for the wet dry state deterimined by `pday`.
+ *
+ * The cloud fraction is calculated via
+ *
+ * .. math::
+ *
+ *     c_{w/d} = \frac{-a_{w/d} - 1}{a_{w/d}^2 * \bar{c} - a_{w/d}^2 - a_{w/d}}  - \frac{1}{a_{w/d}}
+ *
+ * and it's standard deviation via
+ *
+ * .. math::
+ *
+ *     c_{sd, w/d} = a_{sd, w/d}^2 \cdot c_{w/d} \cdot (1 - c_{w/d})
+ *
+ * Input
+ *  pday      : precipitation status (mm/day)
+ *  tmn       : smooth interpolation of monthly minimum temperature (degC)
+ *  tmx       : smooth interpolation of monthly maximum temperature (degC)
+ *  cld       : fraction (0-1)
+ *  wind      : wind speed (m/s)
+ * Output
+ *  metvars.dm* : first guess for the first daily approximation
+ */
 void meansd(MetVariables& metvars) {
 	
-	// DESCRIPTION
-	// Adjust the monthly means of temperature, cloud and wind corresponding to the wet/dry state
-	//
-	// This routine makes the first approximation inside the weather generator to adjust the monthly
-	// mean according to the wet/dry state using the best fit lines from the parameterization.
-	//
-	// Min. and max. temperature, as well as the wind speed, are calculated via
-	//
-	// .. math::
-	//
-	//     x_{w/d} = x_{w/d1} + x_{w/d2} \cdot \bar{x}
-	//
-	// Where :math:`x` stands either for the :math:`T_{min}, T_{max}, T_{min, sd}, T_{max, sd}, wind`
-	// or :math:`wind_{sd}`. :math:`w/d` stands for the wet dry state deterimined by `pday`.
-	//
-	// The cloud fraction is calculated via
-	//
-	// .. math::
-	//
-	//     c_{w/d} = \frac{-a_{w/d} - 1}{a_{w/d}^2 * \bar{c} - a_{w/d}^2 - a_{w/d}}  - \frac{1}{a_{w/d}}
-	//
-	// and it's standard deviation via
-	//
-	// .. math::
-	//
-	//     c_{sd, w/d} = a_{sd, w/d}^2 \cdot c_{w/d} \cdot (1 - c_{w/d})
-	//
-	// Input
-	//  pday      : precipitation status (mm/day)
-	//  tmn       : smooth interpolation of monthly minimum temperature (degC)
-	//  tmx       : smooth interpolation of monthly maximum temperature (degC)
-	//  cld       : fraction (0-1)
-	//  wind      : wind speed (m/s)
-	// Output
-	//  metvars.dm* : first guess for the first daily approximation
-
 	// calculate mean and SD for a wet day
 	if (metvars.pday[0]) {  
 
@@ -488,15 +493,13 @@ void meansd(MetVariables& metvars) {
 
 } 
 
+/* Sampler for the normal distribution centered at 0 with std. dev. of unity,
+ * based on Marsaglia polar method
+ * state : state of the uniform random number generator
+ * nval  : output: The random number from the normal distribution
+ */
 double ran_normal(WeatherGenState& state) {
 	
-	// DESCRIPTION
-	// Sampler for the normal distribution centered at 0 with std. dev. of unity,
-	// based on Marsaglia polar method
-
-	// state : state of the uniform random number generator
-	// nval  : output: The random number from the normal distribution
-
 	double vals[2], v[2];
 
 	int u[2];
@@ -540,23 +543,22 @@ double ran_normal(WeatherGenState& state) {
  	return nval;
 }
 
+/* Select a random number from a Gamma distribution
+ *
+ * adapted from the cpp adaptation of the Marsaglia & Tsang random gamma algorithm in:
+ * http://www.johndcook.com/SimpleRNG.cpp
+ *
+ * Uses the algorithm in
+ * Marsaglia, G. and Tsang, W.W. (2000), *A simple method for generating
+ * gamma variables*, Trans. om Math. Software (TOMS), vol.26(3), pp.363-372.
+ *
+ * state  : state of the uniform random number generator
+ * first  : flag if this is the first call to the distribution with this shape
+ * shape  : shape parameter of the Gamma distribution (k or alpha, unitless) > 0
+ * scale  : scale parameter of the Gamma distribution (theta = 1/beta)
+ */
 double ran_gamma(WeatherGenState& state,bool first, double shape, double scale) {
 	
-	// DESCRIPTION
-	// Select a random number from a Gamma distribution
-	//
-	// adapted from the cpp adaptation of the Marsaglia & Tsang random gamma algorithm in:
-	// http://www.johndcook.com/SimpleRNG.cpp
-	//
-	// Uses the algorithm in
-	// Marsaglia, G. and Tsang, W.W. (2000), *A simple method for generating
-	// gamma variables*, Trans. om Math. Software (TOMS), vol.26(3), pp.363-372.
-	//
-	// state  : state of the uniform random number generator
-	// first  : flag if this is the first call to the distribution with this shape
-	// shape  : shape parameter of the Gamma distribution (k or alpha, unitless) > 0
-	// scale  : scale parameter of the Gamma distribution (theta = 1/beta)
-
 	static double c;
 	static double d;
 	double u;
@@ -587,22 +589,21 @@ double ran_gamma(WeatherGenState& state,bool first, double shape, double scale) 
 		}
 	}
 	else {
-		// order is important w.r.t.  state -> reversed as in FORTRAN!!!
+		// Order is important w.r.t.  state -> reversed as in FORTRAN!!!
 		ret = scale * pow(ranur(state),(1. / shape)) * ran_gamma(state,first,shape + 1.,1.) ;
 	}
 	return ret;
 }
 
+/* Select a random number from a generalized pareto (GP) distribution
+ *
+ * state  : state of the uniform random number generator
+ * shape  : shape parameter of the GP distribution (k or alpha, unitless) > 0
+ * scale  : scale parameter of the GP distribution (theta = 1/beta)
+ * loc    : the location of the GP distribution
+ */
 double ran_gp(WeatherGenState& state,double shape,double scale, double loc) {
 	
-	// DESCRIPTION
-	// Select a random number from a generalized pareto (GP) distribution
-	//
-	// state  : state of the uniform random number generator
-	// shape  : shape parameter of the GP distribution (k or alpha, unitless) > 0
-	// scale  : scale parameter of the GP distribution (theta = 1/beta)
-	// loc    : the location of the GP distribution
-
 	double u, rangp;
 
 	u = ranur(state); // generate uniform variable u in the range (0,1)
@@ -616,19 +617,18 @@ double ran_gp(WeatherGenState& state,double shape,double scale, double loc) {
 	return rangp;
 }
 
+/* Select a random number from a hybrid Gamma-GP distribution
+ * Variables
+ * state     : state of the uniform random number generator
+ * first     : flag if this is the first call to the distribution with this shape
+ * shape     : shape parameter of the Gamma distribution (k or alpha, unitless) > 0
+ * scale     : scale parameter of the Gamma distribution (theta = 1/beta)
+ * thresh    : the threshold above which to choose the GP distribution
+ * shape_gp  : shape parameter of the GP distribution
+ * scale_gp  : scale parameter of the GP distribution
+ */
 double ran_gamma_gp(WeatherGenState& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
 	
-	// DESCRIPTION
-	// Select a random number from a hybrid Gamma-GP distribution
-	// Variables
-	// state     : state of the uniform random number generator
-	// first     : flag if this is the first call to the distribution with this shape
-	// shape     : shape parameter of the Gamma distribution (k or alpha, unitless) > 0
-	// scale     : scale parameter of the Gamma distribution (theta = 1/beta)
-	// thresh    : the threshold above which to choose the GP distribution
-	// shape_gp  : shape parameter of the GP distribution
-	// scale_gp  : scale parameter of the GP distribution
-
 	double ret;
 	
 	ret = ran_gamma(state,first,shape,scale);
@@ -638,71 +638,70 @@ double ran_gamma_gp(WeatherGenState& state,bool first,double shape,double scale,
 	return ret;
 }
 
+/* Calculate the natural logarithm of GAMMA ( X ).
+ *
+ * Computation is based on an algorithm outlined in references 1 and 2.
+ * The program uses rational functions that theoretically approximate
+ * :math:`\log(\Gamma(X))` to at least 18 significant decimal digits.  The
+ * approximation for 12 < X is from Hart et al, while approximations
+ * for X < 12.0E+00 are similar to those in Cody and Hillstrom,
+ * but are unpublished.
+ *
+ * The accuracy achieved depends on the arithmetic system, the compiler,
+ * intrinsic functions, and proper selection of the machine dependent
+ * constants.
+ *
+ *  Licensing:
+ *    This code is distributed under the GNU LGPL license.
+ *  Modified:
+ *    - 16 June 1999
+ *    - Extracted June, 2016
+ *  Author:
+ *    - Original FORTRAN77 version by William Cody, Laura Stoltz.
+ *    - FORTRAN90 version by John Burkardt.
+ *    - Extracted by Philipp Sommer
+ *  Reference:
+ *      - William Cody, Kenneth Hillstrom,
+ *        Chebyshev Approximations for the Natural Logarithm of the Gamma Function,
+ *        Mathematics of Computation,
+ *        Volume 21, 1967, pages 198-203.
+ *      - Kenneth Hillstrom,
+ *        ANL/AMD Program ANLC366S, DGAMMA/DLGAMA,
+ *        May 1969.
+ *      - John Hart, Ward Cheney, Charles Lawson, Hans Maehly,
+ *        Charles Mesztenyi, John Rice, Henry Thacher, Christoph Witzgall,
+ *        Computer Approximations, Wiley, 1968.
+ *
+ *  Local Parameters:
+ *
+ *    Local, real ( kind = 8 ) BETA, the radix for the floating-point
+ *    representation.
+ *
+ *    Local, integer MAXEXP, the smallest positive power of BETA that overflows.
+ *
+ *    Local, real ( kind = 8 ) XBIG, the largest argument for which
+ *    LN(GAMMA(X)) is representable in the machine, the solution to the equation
+ *      LN(GAMMA(XBIG)) = BETA**MAXEXP.
+ *
+ *    Local, real ( kind = 8 ) FRTBIG, a rough estimate of the fourth root
+ *    of XBIG.
+ *
+ *  Approximate values for some important machines are:
+ *
+ *                            BETA      MAXEXP         XBIG     FRTBIG
+ *
+ *  CRAY-1        (S.P.)        2        8191       9.62E+2461  3.13E+615
+ *  Cyber 180/855 (S.P.)        2        1070       1.72E+319   6.44E+79
+ *  IEEE (IBM/XT) (S.P.)        2         128       4.08E+36    1.42E+9
+ *  IEEE (IBM/XT) (D.P.)        2        1024       2.55E+305   2.25E+76
+ *  IBM 3033      (D.P.)       16          63       4.29E+73    2.56E+18
+ *  VAX D-Format  (D.P.)        2         127       2.05E+36    1.20E+9
+ *  VAX G-Format  (D.P.)        2        1023       1.28E+305   1.89E+76
+ *
+ * Input
+ *  x : the argument of the Gamma function (> 0.0)
+ */
 double gamma_log( double x ) { 
-
-	// DESCRIPTION
-	// Calculate the natural logarithm of GAMMA ( X ).
-	//
-	// Computation is based on an algorithm outlined in references 1 and 2.
-	// The program uses rational functions that theoretically approximate
-	// :math:`\log(\Gamma(X))` to at least 18 significant decimal digits.  The
-	// approximation for 12 < X is from Hart et al, while approximations
-	// for X < 12.0E+00 are similar to those in Cody and Hillstrom,
-	// but are unpublished.
-	//
-	// The accuracy achieved depends on the arithmetic system, the compiler,
-	// intrinsic functions, and proper selection of the machine dependent
-	// constants.
-	//
-	//  Licensing:
-	//    This code is distributed under the GNU LGPL license.
-	//  Modified:
-	//    - 16 June 1999
-	//    - Extracted June, 2016
-	//  Author:
-	//    - Original FORTRAN77 version by William Cody, Laura Stoltz.
-	//    - FORTRAN90 version by John Burkardt.
-	//    - Extracted by Philipp Sommer
-	//  Reference:
-	//      - William Cody, Kenneth Hillstrom,
-	//        Chebyshev Approximations for the Natural Logarithm of the Gamma Function,
-	//        Mathematics of Computation,
-	//        Volume 21, 1967, pages 198-203.
-	//      - Kenneth Hillstrom,
-	//        ANL/AMD Program ANLC366S, DGAMMA/DLGAMA,
-	//        May 1969.
-	//      - John Hart, Ward Cheney, Charles Lawson, Hans Maehly,
-	//        Charles Mesztenyi, John Rice, Henry Thacher, Christoph Witzgall,
-	//        Computer Approximations, Wiley, 1968.
-	//
-	//  Local Parameters:
-	//
-	//    Local, real ( kind = 8 ) BETA, the radix for the floating-point
-	//    representation.
-	//
-	//    Local, integer MAXEXP, the smallest positive power of BETA that overflows.
-	//
-	//    Local, real ( kind = 8 ) XBIG, the largest argument for which
-	//    LN(GAMMA(X)) is representable in the machine, the solution to the equation
-	//      LN(GAMMA(XBIG)) = BETA**MAXEXP.
-	//
-	//    Local, real ( kind = 8 ) FRTBIG, a rough estimate of the fourth root
-	//    of XBIG.
-	//
-	//  Approximate values for some important machines are:
-	//
-	//                            BETA      MAXEXP         XBIG     FRTBIG
-	//
-	//  CRAY-1        (S.P.)        2        8191       9.62E+2461  3.13E+615
-	//  Cyber 180/855 (S.P.)        2        1070       1.72E+319   6.44E+79
-	//  IEEE (IBM/XT) (S.P.)        2         128       4.08E+36    1.42E+9
-	//  IEEE (IBM/XT) (D.P.)        2        1024       2.55E+305   2.25E+76
-	//  IBM 3033      (D.P.)       16          63       4.29E+73    2.56E+18
-	//  VAX D-Format  (D.P.)        2         127       2.05E+36    1.20E+9
-	//  VAX G-Format  (D.P.)        2        1023       1.28E+305   1.89E+76
-	//
-	// Input
-	//  x : the argument of the Gamma function (> 0.0)
 
 	double c[7] = { 
 		-1.910444077728E-03, 
@@ -866,32 +865,31 @@ double gamma_log( double x ) {
 	return res;
 }
 
+/* Evaluate a polynomial using Horner's method.
+ *
+ * The polynomial
+ *
+ * .. math::
+ *
+ *     p(x) = c_0 + c_1 * x + c_2 * x^2 + ... + c_m * x^m
+ *
+ * is to be evaluated at the value X.
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *     - 02 January 2014
+ *     - Extracted: November, 2016
+ * Author:
+ *     - John Burkardt
+ *     - Extracted by Philipp Sommer
+ * Input
+ *  m      : the degree
+ *  c(0:m) : the polynomial coefficients. C(I) is the coefficient of  :math:`X^I`
+ *  x      : the polynomial value
+ */
 double r8poly_value_horner ( int m, double *c, double x ) {
 	
-	// DESCRIPTION
-	// Evaluate a polynomial using Horner's method.
-	//
-	// The polynomial
-	//
-	// .. math::
-	//
-	//     p(x) = c_0 + c_1 * x + c_2 * x^2 + ... + c_m * x^m
-	//
-	// is to be evaluated at the value X.
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//     - 02 January 2014
-	//     - Extracted: November, 2016
-	// Author:
-	//     - John Burkardt
-	//     - Extracted by Philipp Sommer
-	// Input
-	//  m      : the degree
-	//  c(0:m) : the polynomial coefficients. C(I) is the coefficient of  :math:`X^I`
-	//  x      : the polynomial value
-
 	double value;
 
 	value = c[m]; 
@@ -901,37 +899,36 @@ double r8poly_value_horner ( int m, double *c, double x ) {
 	return value;
 }
 
+/* Invert the standard normal CDF.
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *    - 05 June 2007
+ *    - Extracted: November, 2016
+ * Author:
+ *     - Original FORTRAN77 version by Michael Wichura.
+ *     - FORTRAN90 version by John Burkardt.
+ *     - Extracted by Philipp Sommer
+ * Reference:
+ *     Michael Wichura,
+ *     Algorithm AS241:
+ *     The Percentage Points of the Normal Distribution,
+ *     Applied Statistics,
+ *     Volume 37, Number 3, pages 477-484, 1988.
+ *
+ * .. note::
+ *
+ *     The result is accurate to about 1 part in 10^16.
+ *
+ * Input
+ *  p : the value of the cumulative probability densitity function.  0 < P < 1.
+ *      If P is outside this range, an "infinite" value will be returned.
+ *  x : the normal deviate value with the property that the probability of a
+ *      standard normal deviate being less than or equal to the value is P.
+ */
 void normal_01_cdf_inv (double p,double x) {
 	
-	// DESCRIPTION
-	// Invert the standard normal CDF.
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//    - 05 June 2007
-	//    - Extracted: November, 2016
-	// Author:
-	//     - Original FORTRAN77 version by Michael Wichura.
-	//     - FORTRAN90 version by John Burkardt.
-	//     - Extracted by Philipp Sommer
-	// Reference:
-	//     Michael Wichura,
-	//     Algorithm AS241:
-	//     The Percentage Points of the Normal Distribution,
-	//     Applied Statistics,
-	//     Volume 37, Number 3, pages 477-484, 1988.
-	//
-	// .. note::
-	//
-	//     The result is accurate to about 1 part in 10^16.
-	//
-	// Input
-	//  p : the value of the cumulative probability densitity function.  0 < P < 1.
-	//      If P is outside this range, an "infinite" value will be returned.
-	//  x : the normal deviate value with the property that the probability of a
-	//      standard normal deviate being less than or equal to the value is P.
-
 	double a[8] = {
 		3.3871328727963666080E+00,
 		1.3314166789178437745E+02,
@@ -1040,29 +1037,28 @@ void normal_01_cdf_inv (double p,double x) {
 	}
 }
 
+/* Evaluate the Normal 01 CDF.
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *     - 10 February 1999
+ *     - Extracted: June, 2016
+ * Author:
+ *     - John Burkardt
+ *     - Extracted by Philipp Sommer
+ * Reference:
+ *     AG Adams,
+ *     Algorithm 39,
+ *     Areas Under the Normal Curve,
+ *     Computer Journal,
+ *     Volume 12, pages 197-198, 1969.
+ * Input
+ *  x   : the argument of the CDF.
+ *  cdf : the value of the CDF.
+ */
 void normal_01_cdf ( double x, double cdf ) {
 	
-	// DESCRIPTION
-	// Evaluate the Normal 01 CDF.
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//    - 10 February 1999
-	//    - Extracted: June, 2016
-	// Author:
-	//     - John Burkardt
-	//     - Extracted by Philipp Sommer
-	// Reference:
-	//     AG Adams,
-	//     Algorithm 39,
-	//     Areas Under the Normal Curve,
-	//     Computer Journal,
-	//     Volume 12, pages 197-198, 1969.
-	// Input
-	//  x   : the argument of the CDF.
-	//  cdf : the value of the CDF.
-
 	const double A1 = 0.398942280444E+00 ;
 	const double A2 = 0.399903438504E+00 ;
 	const double A3 = 5.75885480458E+00  ;
@@ -1122,26 +1118,25 @@ void normal_01_cdf ( double x, double cdf ) {
 	}
 }
 
+/* Invert the Normal CDF.
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *     - 23 February 1999
+ *     - Extracted: November, 2016
+ * Author:
+ *     - John Burkardt
+ *     - Extracted by Philipp Sommer
+ *
+ * Input
+ *  cdf : the value of the CDF. 0.0 <= CDF <= 1.0.
+ *  a   : the mean of the pdf
+ *  b   : the standard deviation of the pdf
+ *  x   : the corresponding argument
+ */
 void normal_cdf_inv ( double cdf, double a, double b, double x ) {
 	
-	// DESCRIPTION
-	// Invert the Normal CDF.
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//     - 23 February 1999
-	//     - Extracted: November, 2016
-	// Author:
-	//     - John Burkardt
-	//     - Extracted by Philipp Sommer
-	//
-	// Input
-	//  cdf : the value of the CDF. 0.0 <= CDF <= 1.0.
-	//  a   : the mean of the pdf
-	//  b   : the standard deviation of the pdf
-	//  x   : the corresponding argument
-
 	double x2 = 0.;
 
 	if ( cdf < 0.0E+00 || 1.0E+00 < cdf ) {
@@ -1154,16 +1149,15 @@ void normal_cdf_inv ( double cdf, double a, double b, double x ) {
 	x = a + b * x2;
 }
 
+/* chi-square approximation for the :f:func:`gamma_cdf_inv` function
+ *
+ * p   : the quantile
+ * nu  : twice the gamma shape
+ * g   : the logarithm of the gamma function at the gamma shape
+ * tol : the tolerance for the approximation
+ */
 double qchisq_appr(double p, double nu, double g, double tol) {
 	
-	// DESCRIPTION
-	// chi-square approximation for the :f:func:`gamma_cdf_inv` function
-	//
-	// p   : the quantile
-	// nu  : twice the gamma shape
-	// g   : the logarithm of the gamma function at the gamma shape
-	// tol : the tolerance for the approximation
-
 	double alpha, a, c, ch, p1;
 	double p2, t, lgam1pa;
 
@@ -1173,7 +1167,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 	p1 = log(p);
 
 	if (nu < (-1.24) * p1) {
-		// for small chi-squared 
+		// For small chi-squared 
 		//    log(alpha) + g = log(alpha) + log(gamma(alpha)) =
 		//       = log(alpha*gamma(alpha)) = lgamma(alpha+1) suffers from
 		//    catastrophic cancellation when alpha << 1
@@ -1189,7 +1183,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 		normal_cdf_inv(p, (double) 0., (double) 1., x);
 		p1 = 2. / (9.0 * nu);
 		ch = nu * pow((x * sqrt(p1) + 1.0 - p1),3);
-		// approximation for p tending to 1:
+		// Approximation for p tending to 1:
 		if (ch > 2.2 * nu + 6)
 			ch = -2.0 * (log(1 - p) - c * log(0.5 * ch) + g);
 	}
@@ -1208,41 +1202,40 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 	return ch;
 }
 
+/* Compute the incomplete Gamma function.
+ *
+ * Formulas:
+ *     .. math::
+ *         \Gamma_{inc}(P, 0) = 0
+ *
+ *     .. math::
+ *         \Gamma_{inc}(P, \infty) = 1.
+ *
+ *     .. math::
+ *         \Gamma_{inc}(P,X) = \int_0^x{T^{P-1} \exp{(-T)} \mathrm{d}t} / \Gamma(P)
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *     - 01 May 2001
+ *     - Extracted: June, 2016
+ * Author:
+ *     - Original FORTRAN77 version by B L Shea.
+ *     - FORTRAN90 version by John Burkardt
+ *     - Extracted by Philipp Sommer
+ * Reference:
+ *    BL Shea,
+ *    Chi-squared and Incomplete Gamma Integral,
+ *    Algorithm AS239,
+ *    Applied Statistics,
+ *    Volume 37, Number 3, 1988, pages 466-473.
+ *
+ * Input
+ *  p  : the exponent parameter (0.0 < P)
+ *  x  : the integral limit parameter. If X is less than or equal to 0, GAMMA_INC is returned as 0.
+ */
 double gamma_inc ( double p, double x ) {
 	
-	// DESCRIPTION
-	// Compute the incomplete Gamma function.
-	//
-	// Formulas:
-	//     .. math::
-	//         \Gamma_{inc}(P, 0) = 0
-	//
-	//     .. math::
-	//         \Gamma_{inc}(P, \infty) = 1.
-	//
-	//     .. math::
-	//         \Gamma_{inc}(P,X) = \int_0^x{T^{P-1} \exp{(-T)} \mathrm{d}t} / \Gamma(P)
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//     - 01 May 2001
-	//     - Extracted: June, 2016
-	// Author:
-	//     - Original FORTRAN77 version by B L Shea.
-	//     - FORTRAN90 version by John Burkardt
-	//     - Extracted by Philipp Sommer
-	// Reference:
-	//    BL Shea,
-	//    Chi-squared and Incomplete Gamma Integral,
-	//    Algorithm AS239,
-	//    Applied Statistics,
-	//    Volume 37, Number 3, 1988, pages 466-473.
-	//
-	// Input
-	//  p  : the exponent parameter (0.0 < P)
-	//  x  : the integral limit parameter. If X is less than or equal to 0, GAMMA_INC is returned as 0.
-
 	double  a;
 	double  arg;
 	double  b;
@@ -1368,26 +1361,25 @@ double gamma_inc ( double p, double x ) {
 	return gamma_inc;
 }
 
+/* Evaluate the Gamma CDF.
+ * 
+ *  Licensing:
+ *    This code is distributed under the GNU LGPL license.
+ *  Modified:
+ *    02 January 2000
+ *    Extracted: June, 2016
+ *  Author:
+ *    John Burkardt
+ *    Extracted by Philipp Sommer
+ * Input
+ *  x    : the input value for which to compute the CDF
+ *  a    : the location (< `x`) of the gamma distribution (usually 0)
+ *  b    : the shape (> 0.0) of the distribution
+ *  c    : the scale (>0.0) of the distribution
+ * Output
+ *  cdf  : the returned value of the CDF
+ */
 double gamma_cdf( double x, double a, double b, double c ) {
-
-	// DESCRIPTION
-	// Evaluate the Gamma CDF.
-	// 
-	//  Licensing:
-	//    This code is distributed under the GNU LGPL license.
-	//  Modified:
-	//    02 January 2000
-	//    Extracted: June, 2016
-	//  Author:
-	//    John Burkardt
-	//    Extracted by Philipp Sommer
-	// Input
-	//  x    : the input value for which to compute the CDF
-	//  a    : the location (< `x`) of the gamma distribution (usually 0)
-	//  b    : the shape (> 0.0) of the distribution
-	//  c    : the scale (>0.0) of the distribution
-	// Output
-	//  cdf  : the returned value of the CDF
 
 	double p2, x2;
 
@@ -1397,27 +1389,27 @@ double gamma_cdf( double x, double a, double b, double c ) {
 	return cdf;
 }
 
+/* Compute the quantile function of the gamma distribution.
+ *
+ * This function is based on the Applied Statistics Algorithm AS 91
+ * ("ppchi2") and via pgamma(.) AS 239.
+ *
+ * References
+ *	    Best, D. J. and D. E. Roberts (1975).
+ *	    Percentage Points of the Chi-Squared Distribution.
+ *	    Applied Statistics 24, page 385.
+ *
+ * .. note::
+ *
+ *     Compared to the original R function, we do not use the final
+ *     newton step which might lead to values going to infinity for
+ *     quantiles close to 1
+ * p:       the quantile between 0 and 1
+ * alpha:   the shape of the gamma distribution
+ * scale:   the scale of the gamma distribution
+ */
 double gamma_cdf_inv(double p, double alpha, double scale) {
 	
-	// DESCRIPTION
-	//	Compute the quantile function of the gamma distribution.
-	//
-	// This function is based on the Applied Statistics Algorithm AS 91
-	// ("ppchi2") and via pgamma(.) AS 239.
-	//
-	// References
-	//	    Best, D. J. and D. E. Roberts (1975).
-	//	    Percentage Points of the Chi-Squared Distribution.
-	//	    Applied Statistics 24, page 385.
-	//
-	// .. note::
-	//
-	//     Compared to the original R function, we do not use the final
-	//     newton step which might lead to values going to infinity for
-	//     quantiles close to 1
-	// p:       the quantile between 0 and 1
-	// alpha:   the shape of the gamma distribution
-	// scale:   the scale of the gamma distribution
 	double a, b, c, g, ch, ch0, p1;
 	double p2, q, s1, s2, s3, s4, s5, s6, t;
 
@@ -1444,7 +1436,7 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		return gamma_cdf_inv = 0;
 	
 	// Phase II: Iteration
-	// Call pgamma() [AS 239]	and calculate seven term taylor series
+	// Call pgamma() [AS 239] and calculate seven term taylor series
 	c  = alpha - 1.0;
 	s6 = (120.0 + c * (346.0 + 127.0 * c)) / 5040.0;
 
@@ -1489,43 +1481,42 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 	return gamma_cdf_inv;
 }
  
+/* Evaluate Gamma(X) for a real argument.
+ *
+ * This routine calculates the gamma function for a real argument X.
+ *
+ * Computation is based on an algorithm outlined in reference 1.
+ * The program uses rational functions that approximate the gamma
+ * function to at least 20 significant decimal digits.  Coefficients
+ * for the approximation over the interval (1,2) are unpublished.
+ * Those for the approximation for 12 <= X are from reference 2.
+ *
+ * Modified:
+ *     - 11 February 2008
+ *     - Extracted: June, 2016
+ *
+ * Author:
+ *     - Original FORTRAN77 version by William Cody, Laura Stoltz.
+ *     - FORTRAN90 version by John Burkardt.
+ *     - Extracted by Philipp Sommer
+ * Reference:
+ *     - William Cody,
+ *       An Overview of Software Development for Special Functions,
+ *       in Numerical Analysis Dundee, 1975,
+ *       edited by GA Watson, Lecture Notes in Mathematics 506,
+ *       Springer, 1976.
+ *     - John Hart, Ward Cheney, Charles Lawson, Hans Maehly,
+ *       Charles Mesztenyi, John Rice, Henry Thatcher,
+ *       Christoph Witzgall, Computer Approximations, Wiley, 1968,
+ *       LC: QA297.C64.
+ *
+ * Input
+ *  x : the argument of the function.
+ *
+ *  Coefficients for minimax approximation over (12, INF).
+ */
 double r8_gamma ( double x ) {
 	
-	// DESCRIPTION
-	// Evaluate Gamma(X) for a real argument.
-	//
-	// This routine calculates the gamma function for a real argument X.
-	//
-	// Computation is based on an algorithm outlined in reference 1.
-	// The program uses rational functions that approximate the gamma
-	// function to at least 20 significant decimal digits.  Coefficients
-	// for the approximation over the interval (1,2) are unpublished.
-	// Those for the approximation for 12 <= X are from reference 2.
-	//
-	// Modified:
-	//     - 11 February 2008
-	//     - Extracted: June, 2016
-	//
-	// Author:
-	//     - Original FORTRAN77 version by William Cody, Laura Stoltz.
-	//     - FORTRAN90 version by John Burkardt.
-	//     - Extracted by Philipp Sommer
-	// Reference:
-	//     - William Cody,
-	//       An Overview of Software Development for Special Functions,
-	//       in Numerical Analysis Dundee, 1975,
-	//       edited by GA Watson, Lecture Notes in Mathematics 506,
-	//       Springer, 1976.
-	//     - John Hart, Ward Cheney, Charles Lawson, Hans Maehly,
-	//       Charles Mesztenyi, John Rice, Henry Thatcher,
-	//       Christoph Witzgall, Computer Approximations, Wiley, 1968,
-	//       LC: QA297.C64.
-	//
-	// Input
-	//  x : the argument of the function.
-	//
-	//  Coefficients for minimax approximation over (12, INF).
-
 	double c[7] = {
 		-1.910444077728E-03,
 		8.4171387781295E-04, 
@@ -1688,36 +1679,35 @@ double r8_gamma ( double x ) {
 	return r8_gamma ;
 }
 
+/* Evaluate the Gamma PDF.
+ *
+ * .. math::
+ *
+ *     PDF(a,b,c;x) = \exp({-(x-a)/b}) \cdot ((x-a)/b)^{c-1} / (b \cdot \Gamma(c))
+ *
+ * - GAMMA_PDF(A,B,C;X), where C is an integer, is the Erlang PDF.
+ * - GAMMA_PDF(A,B,1;X) is the Exponential PDF.
+ * - GAMMA_PDF(0,2,C/2;X) is the Chi Squared PDF with C degrees of freedom.
+ *
+ * Licensing:
+ *     This code is distributed under the GNU LGPL license.
+ * Modified:
+ *     - 02 January 2000
+ *     - Extracted: June, 2016
+ * Author:
+ *     - John Burkardt
+ *     - Extracted by Philipp Sommer
+ *
+ * Input
+ *  x    : the argument of the PDF. A <= X
+ *  a    : the location of the peak;  A is often chosen to be 0.0.
+ *  b    : the "scale" parameter; 0.0 < B, and is often 1.0.
+ *  c    : the "shape" parameter; 0.0 < C, and is often 1.0.
+ * Output
+ *  pdf  : the returned value of the PDF.
+ */
 double gamma_pdf ( double x, double a, double b, double c ) {
 	
-	// DESCRIPTION
-	// Evaluate the Gamma PDF.
-	//
-	// .. math::
-	//
-	//     PDF(a,b,c;x) = \exp({-(x-a)/b}) \cdot ((x-a)/b)^{c-1} / (b \cdot \Gamma(c))
-	//
-	// - GAMMA_PDF(A,B,C;X), where C is an integer, is the Erlang PDF.
-	// - GAMMA_PDF(A,B,1;X) is the Exponential PDF.
-	// - GAMMA_PDF(0,2,C/2;X) is the Chi Squared PDF with C degrees of freedom.
-	//
-	// Licensing:
-	//     This code is distributed under the GNU LGPL license.
-	// Modified:
-	//     - 02 January 2000
-	//     - Extracted: June, 2016
-	// Author:
-	//     - John Burkardt
-	//     - Extracted by Philipp Sommer
-	//
-	// Input
-	//  x    : the argument of the PDF. A <= X
-	//  a    : the location of the peak;  A is often chosen to be 0.0.
-	//  b    : the "scale" parameter; 0.0 < B, and is often 1.0.
-	//  c    : the "shape" parameter; 0.0 < C, and is often 1.0.
-	// Output
-	//  pdf  : the returned value of the PDF.
-
 	double y;
 	double pdf = 0.;
 
@@ -1731,23 +1721,22 @@ double gamma_pdf ( double x, double a, double b, double c ) {
 	return pdf;
 }
 									     
+/* Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
+ * From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
+ * Input
+ *  lm     : left margin month
+ *  rm     : right margin month
+ *  m      : vector of mean values at super-time step (e.g., monthly), minimum three values
+ *  dmonth : vector of number of intervals for the time step (e.g., days per month)
+ *  bcond  : boundary conditions for the result vector (1=left side, 2=right side)
+ *  r      : result vector of values at chosen time step
+ */
 void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_curr) {
 	
-	// DESCRIPTION
-	// Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
-	// From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
-	// Input
-	//  lm     : left margin month
-	//  rm     : right margin month
-	//  m      : vector of mean values at super-time step (e.g., monthly), minimum three values
-	//  dmonth : vector of number of intervals for the time step (e.g., days per month)
-	//  bcond  : boundary conditions for the result vector (1=left side, 2=right side)
-	//  r      : result vector of values at chosen time step
-
-	//parameters
+	// Parameters
 	double const OT = 1. / 3.;
 
-	//local variables
+	// Local variables
 	int g[100];	
 	double r[100];
 
@@ -1761,7 +1750,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	bc[0] = bcond[0];
 	bc[1] = bcond[1];
 
-	//initialize the result vector
+	// Initialize the result vector
 	int i = 0;
 	int j = 0;
 	int a = 0;
@@ -1775,7 +1764,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 		}
 	}
 	
-	// iteratively smooth and correct the result to preserve the mean
+	// Iteratively smooth and correct the result to preserve the mean
 	for (i=0;i<ni;i++) {
 		for (j=1;j<ni-1;j++) {
 			r[j] = OT * (r[j-1] + r[j] + r[j+1]);   //Eqn. 1
@@ -1794,12 +1783,12 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 			}
 			ck /= (double)ni;       // !Eqn. 4
 
-			// apply the correction to all timestep values in the super-timestep		
+			// Apply the correction to all timestep values in the super-timestep		
 			for(int l=0; l<dmonth[k]; l++) { 
 				r[j] += ck;
 				j++;
 			}
-			// correction for circular conditions when using climatology 
+			// Correction for circular conditions when using climatology 
 			// (do not use for transient simulations)
 			bc[0] = r[ni-1];
 			bc[1] = r[0];
@@ -1815,10 +1804,9 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	}
 }
 
+// Initialize the weather generator	
 void init_weathergen(MetVariables& metvars, WeatherGenState& rndst) {
 
-	// Initialize the weather generator
-	
 	metvars.pday[0] = false;
 	metvars.pday[1] = false;
 	
@@ -1841,16 +1829,15 @@ void init_weathergen(MetVariables& metvars, WeatherGenState& rndst) {
 	}
 }
 
+/* Calculation of daylength, insolation, and equilibrium evapotranspiration
+ * for each day, given mean daily temperature, insolation (as percentage
+ * of full sunshine or mean daily instantaneous downward shortwave
+ * radiation flux, W/m2), latitude and day of year
+ *
+ * INPUT AND OUTPUT PARAMETER
+ * climate = gridcell climate
+ */
 double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
-
-	// DESCRIPTION
-	// Calculation of daylength, insolation and equilibrium evapotranspiration
-	// for each day, given mean daily temperature, insolation (as percentage
-	// of full sunshine or mean daily instantaneous downward shortwave
-	// radiation flux, W/m2), latitude and day of year
-	//
-	// INPUT AND OUTPUT PARAMETER
-	// climate = gridcell climate
 
 	const double QOO = 1360.0;
 	const double BETA = 0.17;
@@ -1967,24 +1954,25 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	}
 }
 
+// Compute daily weather data from monthly input
 void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
-	//local variables
+	// Local variables
 	int i = 0;
 
-	// monthly total precipitation amount (mm)
+	// Monthly total precipitation amount (mm)
 	double pre = metvars.mprec; 
-	// number of days in month with precipitation (fraction)
+	// Number of days in month with precipitation (fraction)
 	double wetd= metvars.mwetd;  
-	// fraction of days in month with precipitation (fraction) 
+	// Fraction of days in month with precipitation (fraction) 
 	double wetf= metvars.mwetf;
-	// minumum temperture (C)
+	// Minumum temperture (C)
 	double tmn = metvars.dtmin; 
-	// maximum temperture (C)
+	// Maximum temperture (C)
 	double tmx = metvars.dtmax;  
-	// cloud fraction (0=clear sky, 1=overcast) (fraction)
+	// Cloud fraction (0=clear sky, 1=overcast) (fraction)
 	double cld = metvars.dcldf;  
-	// wind (m/s)
+	// Wind (m/s)
 	double wnd = metvars.dwind;  
 
 	double prec;
@@ -2002,7 +1990,7 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 	double gp_scale	   = 0.;
 	double thresh2use  = 0.;
 
-	// bias correction
+	// Bias correction
 	double slopecorr       = 0.;  // slope correction for wind
 	double intercept_corr  = 0.;  // intercept correction for wind
 	double tmin_bias       = 0.;  // intercept correction for tmin
@@ -2012,28 +2000,28 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 	double unorm[4];  // vector of uniformly distributed random numbers (0-1)
 	
-	/// Precipitation occurrence
-	/// if there is precipitation this month, calculate the precipitation state for today
+	// Precipitation occurrence
+	// If there is precipitation this month, calculate the precipitation state for today
 	if (wetf > 0. && pre > 0.) {
 		
-		// calculate transitional probabilities for dry to wet and wet to wet days
-		// Relationships from Geng & Auburn, 1986, Weather simulation models 
+		// Calculate transitional probabilities for dry to wet and wet to wet days
+		// relationships from Geng & Auburn, 1986, Weather simulation models 
 		// based on summaries of long-term data
 		
-		// if yesterday was raining, use p11
+		// If yesterday was raining, use p11
 		if (metvars.pday[0]) { 
 			pwet = p11_1 + p11_2 * wetf;
 		}
-		// if yesterday was not raining but the day before yesterday was raining, use p101
+		// If yesterday was not raining but the day before yesterday was raining, use p101
 		else if (metvars.pday[1]) { 
 			pwet = p101_1 + p101_2 * wetf;
 		}
-		// both yesterday and the day before were dry, use p001
+		// Both yesterday and the day before were dry, use p001
 		else {  
 			pwet = p001_1 + p001_2 * wetf;
 		}
 
-		// determine the precipitation state of the current day 
+		// Determine the precipitation state of the current day 
 		// using the Markov chain approach
 		u = ranur(rndst);
 		
@@ -2045,10 +2033,10 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 			metvars.pday[0] = false;
 		}
 
-		// precipitation amount
+		// Precipitation amount
 		
 		if (metvars.pday[0]) { //today is a wet day, calculate the rain amount
-			//calculate parameters for the distribution function of precipitation amount
+			// Calculate parameters for the distribution function of precipitation amount
 			pbar = pre / wetd;
 
 			g_scale = g_scale_coeff * pbar;
@@ -2068,9 +2056,9 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 			
 			for  (i=0; i<1000; i++) { // enforce positive precipitation
 				
-				// today's precipitation
+				// Today's precipitation
 				prec = ran_gamma_gp(rndst,true,g_shape,g_scale,thresh2use,gp_shape,gp_scale);
-				//simulated precipitation should have no more precision than the input (0.1mm)
+				// Simulated precipitation should have no more precision than the input (0.1mm)
 				prec = roundoff(prec,1) ;
 				
 				if (prec > 0. && prec <= 1.05 * pre) {
@@ -2092,8 +2080,8 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 		prec = 0.;
 	}
 
-	// temperature min and max, cloud fraction
-	//calculate a baseline mean and SD for today's weather dependent on precip status
+	// Temperature min and max, cloud fraction, wind.
+	// Calculate a baseline mean and SD for today's weather depending on precip status.
 	metvars.tmn = tmn;
 	metvars.tmx = tmx;
 	metvars.cld = cld;
@@ -2101,12 +2089,12 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 	meansd(metvars);
 
-	// use random number generator for the normal distribution
+	// Use random number generator for the normal distribution
 	for (i=0;i<4;i++) {
 		unorm[i] = ran_normal(rndst);
 	}
 
-	//calculate today's residuals for weather variables
+	// Calculate today's residuals for weather variables
 	double CC[4],DD[4];
 	matrixmult(A,metvars.resid,CC);
 	matrixmult(B,unorm,DD);
@@ -2155,13 +2143,12 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 	}
 	tmin = tmin - roundoff(tmin_bias, 1);
 
-	//add checks for invalid values here
+	// Add checks for invalid values here
 	if (cldf>1.) {
 		cldf = 1.0;
 	}
 	else if (cldf < 0.0) {
-		//cldf = 0.0; 
-		//below bugfix for negative cldf allows for redistr on initial vals
+		// Bugfix for negative cldf allows for redistr on initial vals
 		cldf = metvars.dcldf * 0.001;
 	}
 
@@ -2178,8 +2165,8 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 		exit(-1);
 	}
 
-	// repopulate
-	metvars.dprec  = prec;
+	// Repopulate daily arrays
+ 	metvars.dprec  = prec;
 	metvars.dtmin  = tmin;
 	metvars.dtmax  = tmax;
 	metvars.dcldf  = cldf;
@@ -2187,13 +2174,12 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 }
 
+/* Redistribute daily values when there is a max,min limit or both
+ * while ensuring conservation and relative distribution (in terms of <=,>=)
+ * like cloud-fraction or relative humidity ([0,1]).
+ */
 void redist_restricted_vals(double *inval, int ll, double scalval, double *limit, double *wght) {   
 	
-	// DESCRIPTION
-	// redistribute daily values when there is a limit max/min limit or both
-	// while ensuring conservation and relative distribution (in terms of <=,>=)
-	// like cloud-fraction or relative humidity ([0,1])
-
 	int cnt       = 0;
 	double rest   = 0.;
 	bool flag[31] ;		
@@ -2218,7 +2204,7 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 		}
 		corfac  = remsum / ( scalval - gonsum );
 
-		// now check if active values have exceeded upper limit
+		// Now check if active values have exceeded upper limit
 		rest = 0.;
 		for (int i=0; i<ll; i++) {
 			if ( flag[i] ) {
@@ -2239,15 +2225,15 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 	}
 }
 
+/* Compute relative humidity dericed from Buck 1981
+ * input
+ * T_avg: daily mean temperature[°C]
+ * T_dew: dew-point temperature[°C]
+ * output
+ * relhum: estimated daily mean relative humidity [fract.]
+ */
 double get_arden_rh(double T_avg, double T_dew) {
 	
-	// DESCRIPTION
-	// input
-	// T_avg: daily mean temperature[°C]
-	// T_dew: dew-point temperature[°C]
-	// output
-	// relhum: estimated daily mean relative humidity [fract.]
-
 	const double B = 18.678;
 	const double C = 257.14; // °C
 	const double D = 234.5 ; // °C
@@ -2280,12 +2266,13 @@ double correlation(int len, double *xarr, double *yarr) {
 	return correlation;
 }
 
+/* The driver routine of GWGEN.
+ * Computes one year's daily met data from monthly averages.
+ */
 void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetd, 
 		   double* in_msol, double* in_mdtr, double* in_mwind, double* in_mrhum, 
 		   double* out_dtemp, double* out_dprec, double* out_dsol,double* out_ddtr,
 		   double* out_dwind, double* out_drhum) {
-
-	// Compute one year's daily met data from monthly averages
 
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 		( restart && date.year == state_year ) ) );
@@ -2295,14 +2282,14 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	double lat = gridcell.get_lat();
 	double lon = gridcell.get_lon();
 
-	//met vars derived from input vars mtemp,mdtr,msol
+	// Meteorological vars derived from input vars mtemp,mdtr,msol
 	double in_mtmin[12];
 	double in_mtmax[12];
 	double in_mcldf[12];
 
 	int doy = 1;  
 	for (int m=0; m<12; m++) {
-		// have mid month length_of_day 
+		// Use mid-of-month length-of-day 
 		int ndaymon = date.ndaymonth[m];
 		in_mtmin[m] = in_mtemp[m] - 0.5 * in_mdtr[m];
 		in_mtmax[m] = in_mtemp[m] + 0.5 * in_mdtr[m];
@@ -2313,7 +2300,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			doy++;
 		}
 		in_mcldf[m] /= (double)ndaymon;
-		// have a min cldf of 1% to introduce a monthly variability 
+		// Have a min cldf of 1% to introduce a monthly variability 
 		// to fit lower sol vals with rainfall
 		in_mcldf[m] = max(0.01,in_mcldf[m]);
 	}
@@ -2332,7 +2319,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double mcloud_curr[NDAYMONTH];
 		double mwind_curr [NDAYMONTH];
 
-		// intermediate daily values
+		// Intermediate daily values
 		double dprec[NDAYMONTH];
 		double dtmin[NDAYMONTH];
 		double dtmax[NDAYMONTH];
@@ -2347,18 +2334,18 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double dcldf_sav[NDAYMONTH];
 		double dwind_sav[NDAYMONTH];
 		
-		// break-off parameters
+		// Break-off parameters
 		int pdaydiff    = 0;
 		double precdiff = 0.; 
 		double tmindiff = 0.;
 
 		int i_count = 1;
-		// initially populate cloud params
+		// Initially populate cloud params
 		if ( is_first_day ) {
 
 			calc_cloud_params(metvars);
 
-			// set initial vals if spinning up
+			// Set initial vals if spinning up
 			if ( ! restart ) {
 				init_weathergen(metvars, rndst);
 				get_seed_by_location(lat,lon ,rndst);
@@ -2366,7 +2353,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			}
 			else {
 
-				// get restart values from WeatherGen-class
+				// Get restart values from WeatherGen-class
 				metvars.pday[0] = rndst.pday[0];
 				metvars.pday[1] = rndst.pday[1];
 				for (int i=0; i<4;i++) {
@@ -2388,7 +2375,8 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		// Index for annual arrays
 		int lm = max(mon-1,0); 
 		int rm = min(11,mon+1);
-		// index for rmsmooth
+
+		// Index for rmsmooth
 		int ilm = 0;
 		int irm = 2;
 		if ( mon == 0 ) {
@@ -2455,15 +2443,15 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			i_count = 1;
 		}
 		
-		//set quality threshold for preciptation amount
+		// Set quality threshold for preciptation amount
 		double prec_t = max(2.,0.5 * in_mprec[mon]);  
 		
 		metvars.mprec = in_mprec[mon];
 
 		MetVariables metvar_sav = metvars;
 		
-		// Here a bugfix for CRU data is applied , when there is non-zero rain
-		// but no wet days
+		// Here, a bugfix for CRU data is applied when there is non-zero rain
+		// but no wet days.
 		if ( metvars.mprec > 0. ) {
 			metvars.mwetd = max(1.,in_mwetd[mon]);
 		} else {
@@ -2481,7 +2469,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double chk_drhum = 0.;
 
 		// Set breakoff-threshold for raindays according to
-		// total amount of raindays in month
+		// total amount of raindays in month.
 		int pday_thresh;
 		if((int)roundoff(metvars.mwetd,0) <= 5) {
 			pday_thresh = 0;
@@ -2531,7 +2519,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				}
 				tmin_acc += metvars.dtmin;
 			} 
-			// Break off criteria
+			// Break off criterium
 			tmindiff = fabs(in_mtmin[mon] - tmin_acc / (double)ndaymon);
 			
 			// Reset met_out_save after initialization
@@ -2582,8 +2570,8 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					}
 				}
 
-				// After max amount of iterations is reached take 
-				// best set of data so far 
+				// After max amount of iterations is reached, use 
+				// best set of data so far.
 				if (i_count==MAXITER) {
 					for (int day=0; day<ndaymon; day++) {
 						dprec[day]= dprec_sav[day];
@@ -2622,7 +2610,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double tot_cldwght = 0.;
 		doy = accumday;
 		for (int day=0; day<ndaymon;day++) {
-			// sometimes negative dtr can occur at values around 0. -> swap min,max
+			// Sometimes negative dtr can occur at values around 0. -> swap min,max
 			if ( dtmin[day] > dtmax[day]) {
 				double dummy = dtmin[day];
 				dtmin[day]   = dtmax[day];
@@ -2668,15 +2656,14 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			// Correct cldfr by factor
 			cldwght[day] /= tot_cldwght;
 
-			// Compute relative humidity 
-			// use daylight avg temp following Running et al. 1987
+			// Compute relative humidity. 
+			// Use daylight avg temp following Running et al. 1987.
 			double tdavg = 0.606*dtmax[day] + 0.394*dtmin[day];
 			tdavg        = -1.14 + 1.12*tdavg;
 			drhum[day]   = get_arden_rh(tdavg,dtmin[day]);
 		}
 
-		// Redistribute limited parameters like relhum and 
-		// cloud-fraction		
+		// Redistribute limited parameters like relhum and cloud-fraction		
 		double limit[2] = {0.,1.};
 		if ( in_msol[mon] > 0. ) {
 	
@@ -2732,8 +2719,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-//
+// Buck, A. L., New equations for computing vapor pressure and enhancement factor, J. Appl.
+//   Meteorol., 20, 1527-1532, 1981
+// Prentice IC, Sykes MT, Cramer W, 1993. A simulation model of the transient effects of
+//   climate change on forest landscapes. Ecological Modelling, 65, 51-70.
 // Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
 //   from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
 //   doi:10.5194/gmd-10-3771-2017, 2017.
-// Original Code in Fortran available at: https://arve-research.github.io/gwgen/
+// Original Code available in Fortran at: https://arve-research.github.io/gwgen/

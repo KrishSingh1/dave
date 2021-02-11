@@ -185,6 +185,14 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
+	return daily_fluxes_pft[day][flux_type];
+}
+
+double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const {
+	return daily_fluxes_patch[day][flux_type];
+}
+
 double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 	return monthly_fluxes_pft[month][flux_type];
 }
@@ -1224,7 +1232,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 			cropindiv->isintercropgrass = true;
 		}
 	}
-//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 void Individual::serialize(ArchiveStream& arch) {

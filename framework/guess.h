@@ -1434,6 +1434,8 @@ public:
 	bool killgrass_at_cc;
 	/// Whether to use stochastic mortality
 	bool stochmort;
+	/// Whether to use stochastic establishment
+	bool stochestab;
 	/// Harvest efficiency during thinning for all tree pft:s
 	double harv_eff_thin;
 	/// Residue removal fraction during thinning for twigs and branches for all tree pft:s
@@ -1498,6 +1500,7 @@ public:
 		cutfirstyear_nonsel = false;
 		killgrass_at_cc = false;
 		stochmort = true;
+		stochestab = true;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				thinning_time[n][t] = 0.0;
@@ -1580,6 +1583,7 @@ public:
 		cutfirstyear_nonsel = from.cutfirstyear_nonsel;
 		killgrass_at_cc = from.killgrass_at_cc;
 		stochmort = from.stochmort;
+		stochestab = from.stochestab;
 		harv_eff_thin = from.harv_eff_thin;
 		res_outtake_twig_thin = from.res_outtake_twig_thin;
 		res_outtake_coarse_root_thin = from.res_outtake_coarse_root_thin;

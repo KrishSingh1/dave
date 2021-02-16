@@ -84,6 +84,10 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 	return disterror;
 }
 
+/// Read disturbance interval from file
+/** This implementation uses disturbance input at gridcell or stand type level in standard text format input files (see guess.doc).
+ *  The column for the gridcell disturbance interval has a header name of "Return" and columns for stand type disturbance have headers with the stand type names.
+ */
 void MiscInput::getdisturbance(Gridcell& gridcell) {
 
 	if(!date.year && !readdisturbance_st) {
@@ -879,7 +883,13 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 }
 
 
-/// Read LUC transitions
+/// Read LUC transitions from file
+/** This implementation uses LUH2 gross transfer standard text format input files (see guess.doc). Transitions to and from cropland (c), pasture (p),  
+ *  barren land (b), urban land (u), primary PNV (v) and secondary PNV (s) are represented as columns with header names, e.g. "cp" denoting.
+ *  cropland to pasture transfers.
+ *  The function call to adjust_gross_transfers() tries to solve inconsistencies between net landcover and gross land transfer input and adjusts the
+ *	gross transfer two-dimensional array, keeping the net landcover change array intact.
+ */
 bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	double tot_frac_ch = 0.0;
@@ -898,6 +908,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
 	// in killing of vegetation and creating a new NATURAL stand.
 
+	// Options to not include barren and urban transfers in the input file (avoiding warnings if absent in file)
 	const bool use_barren_transfers = true;
 	const bool use_urban_transfers = true;
 	double frac_transfer;
@@ -934,6 +945,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		lc.frac_transfer[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
 	}
 
+	// Distinguish between primary and secondary PNV in the input file (default true)
 	if(ifprimary_lc_transfer) {
 		lc.forest_lc_frac_transfer_s.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.forest_lc_frac_transfer_s.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
@@ -942,7 +954,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		if(use_urban_transfers)
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
 
-		// Use transitions from virgin to secondary natural land.
+		// Use transitions from virgin to secondary natural land (default false).
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
@@ -1848,6 +1860,11 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 	}
 }
 
+/// Read wood harvest from file
+/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see guess.doc). Harvest of primary forest, primary non-forested land, 
+ *  mature secondary and young secondary forest and secondary non-forested land are represented in columns with header names "primf_harv", "primn_harv", "secmf_harv", "secyf_harv"
+ *  and "secnf_harv" in area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass input files.
+ */
 void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
 	// Ignore harvest on "non-forested" land

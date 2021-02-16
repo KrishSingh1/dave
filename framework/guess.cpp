@@ -739,12 +739,13 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 	gross_frac_increase = fraction;
 	st_origin = st.id;
 
-	if(suppress_disturbance || date.get_calendar_year() >= st.firstmanageyear) {
+	ManagementType& mt0 = st.get_management(0);
+
+	if(suppress_disturbance || date.get_calendar_year() >= mt0.firstmanageyear) {
 		for(unsigned int i=0;i<npatch();i++)
 			(*this)[i].managed = true;
 	}
 
-	ManagementType& mt0 = st.get_management(0);
 	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
 	if(pftid < 0) {
 			// In case rotation starts with fallow

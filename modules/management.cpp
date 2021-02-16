@@ -701,10 +701,10 @@ void set_forest(Gridcell& gridcell) {
 		const bool stem_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
 
 		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
-		if(st.firsttargetyear < 100000)	// Initialised to 1000000; other values set in instruction file.
-			first_targetyear = st.firsttargetyear - date.first_calendar_year;
+		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
+			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
 
-		if(mt.planting_system != "SELECTION" || mt.targetfrac == "" || date.get_calendar_year() > st.lasttargetyear || date.year < first_targetyear)
+		if(mt.planting_system != "SELECTION" || mt.targetfrac == "" || date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear)
 			continue;
 
 		double* target = new double[stand.npftsinselection];
@@ -956,7 +956,7 @@ bool clearcut_by_density(Patch& patch) {
 	ManagementType& mt = patch.stand.get_current_management();
 	StandType& st = stlist[patch.stand.stid];
 
-	if(date.get_calendar_year() < st.firstclearcutyear - 1)
+	if(date.get_calendar_year() < mt.firstclearcutyear - 1)
 		return false;
 
 	double dens_target_cc = 150.0;	// Default value if not set below
@@ -987,11 +987,11 @@ bool clearcut_by_density(Patch& patch) {
 
 	if(patch.age > 10 && dens < dens_target_cc && dens) {
 
-			if(date.get_calendar_year() == st.firstclearcutyear - 1)
+			if(date.get_calendar_year() == mt.firstclearcutyear - 1)
 				patch.cut_due = true;
 
-			if(date.get_calendar_year() >= st.firstclearcutyear &&
-			 (date.get_calendar_year() >= st.firstclearcutyear + st.delayduecutting || !patch.cut_due || !(patch.age % st.delayduecutting))) {
+			if(date.get_calendar_year() >= mt.firstclearcutyear &&
+			 (date.get_calendar_year() >= mt.firstclearcutyear + mt.delayduecutting || !patch.cut_due || !(patch.age % mt.delayduecutting))) {
 				patch.cut_due = false;
 				return true;
 			}
@@ -1169,13 +1169,13 @@ double manage_forest(Patch& patch) {
 
 	int first_manageyear = nyear_spinup; // Simulation year when forestry management starts; default is directly after spinup.
 
-	if(st.firstmanageyear < 100000)	// Initialised to 1000000; other values set in instruction file.
-		first_manageyear = st.firstmanageyear - date.first_calendar_year;
+	if(mt.firstmanageyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
+		first_manageyear = mt.firstmanageyear - date.first_calendar_year;
 
 	if(date.year < first_manageyear || !mt.is_managed())
 		return 0.0;
 
-	if(stand.get_current_management().is_managed())
+	if(mt.is_managed())
 		patch.managed = true;
 	else
 		return 0.0;
@@ -1200,8 +1200,8 @@ double manage_forest(Patch& patch) {
 		thin_reineke_init(patch);
 
 	int first_cutyear = first_manageyear; // Simulation year when forestry harvesting starts; default is same year as first_manageyear.
-	if(st.firstcutyear < 100000)	// Initialised to 1000000; other values set in instruction file.
-		first_cutyear = st.firstcutyear - date.first_calendar_year;
+	if(mt.firstcutyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
+		first_cutyear = mt.firstcutyear - date.first_calendar_year;
 
 	// cutinterval from input file overwrites mt cutinterval value and other clearcut triggers
 	if(readcutinterval_st)
@@ -1269,7 +1269,7 @@ double manage_forest(Patch& patch) {
 				}
 			}
 
-			if(date.get_calendar_year() < st.firstclearcutyear)
+			if(date.get_calendar_year() < mt.firstclearcutyear)
 				clearcut_now = false;
 
 			// Thinnings
@@ -1325,7 +1325,7 @@ double manage_forest(Patch& patch) {
 			if(mt.distribute_continuous_cuttings) {
 				int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 				age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
-//				age = date.get_calendar_year() - st.firstcutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
+//				age = date.get_calendar_year() - mt.firstcutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
 			}
 		}
 

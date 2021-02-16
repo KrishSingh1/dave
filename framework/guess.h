@@ -233,6 +233,11 @@ const int AVG_INTERVAL_FAPAR = 3;
 /// Averaging interval for biome averaging (SIMFIRE)
 const int N_YEAR_BIOMEAVG = 3;
 
+/// Default year in the future never expected to be covered during the simulation
+const int FAR_FUTURE_YEAR = 100000;
+/// Default year in the past never expected to be covered during the simulation
+const int FAR_PREHISTORIC_YEAR = -100000;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -1319,6 +1324,19 @@ public:
 	/// name of management type
 	xtring name;
 
+	/// First management year (calendar year): sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
+	/** \this currently only applies for stands with wood havest */
+	int firstmanageyear;
+	/// First year with wood harvest (calendar year)
+	int firstcutyear;
+	/// First year with clearcut (calendar year)
+	int firstclearcutyear;
+	/// Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)
+	int delayduecutting;
+	/// When to start cutting to reach pft target fractions (calendar year)
+	int firsttargetyear;
+	/// When to stop cutting to reach pft target fractions (calendar year)
+	int lasttargetyear;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
@@ -1432,6 +1450,12 @@ public:
 	ManagementType() {
 
 		id = -1;
+		firstmanageyear = FAR_FUTURE_YEAR;
+		firstcutyear = FAR_FUTURE_YEAR;
+		firstclearcutyear = FAR_PREHISTORIC_YEAR;
+		delayduecutting = 0;
+		firsttargetyear = FAR_FUTURE_YEAR;
+		lasttargetyear = FAR_FUTURE_YEAR;
 		planting_system = "";
 		harvest_system = "";
 		pftname = "";
@@ -1492,11 +1516,17 @@ public:
 		res_outtake_coarse_root_cc = -1.0;
 	}
 
-	// Copy constructor; used in plib_callback()
+	// Copy constructor;
 	ManagementType(const ManagementType& from) {
 
 		id = from.id;
 		name = from.name;
+		firstmanageyear = from.firstmanageyear;
+		firstcutyear = from.firstcutyear;
+		firstclearcutyear = from.firstclearcutyear;
+		delayduecutting = from.delayduecutting;
+		firsttargetyear = from.firsttargetyear;
+		lasttargetyear = from.lasttargetyear;
 		planting_system = from.planting_system;
 		harvest_system = from.harvest_system;
 		pftname = from.pftname;
@@ -1561,7 +1591,8 @@ public:
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED 
+			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR)
 			return true;
 		else
 			return false;
@@ -1657,19 +1688,6 @@ public:
 	xtring mtnames[NROTATIONPERIODS_MAX];
 	/// Start of the managements in a rotation cycle (calendar year)
 	int mtstartyear[NROTATIONPERIODS_MAX];
-	/// First management year (calendar year): sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
-	/** \this currently only applies for stands with wood havest */
-	int firstmanageyear;
-	/// First year with wood harvest (calendar year)
-	int firstcutyear;
-	/// First year with clearcut (calendar year)
-	int firstclearcutyear;
-	/// Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)
-	int delayduecutting;
-	/// When to start cutting to reach pft target fractions (calendar year)
-	int firsttargetyear;
-	/// When to stop cutting to reach pft target fractions (calendar year)
-	int lasttargetyear;
 	/// Whether to wait for clearcut before moving to next mt in a forestry rotation
 	bool rot_wait_for_cc;
 	/// Disturbance interval (years)
@@ -1711,12 +1729,6 @@ public:
 		intercrop = NOINTERCROP;
 		naturalveg = "";
 		reestab = "ALL";
-		firstmanageyear = 100000;
-		firstcutyear = 100000;
-		firstclearcutyear = -100000;
-		delayduecutting = 0;
-		firsttargetyear = 100000;
-		lasttargetyear = 100000;
 		rot_wait_for_cc = false;
 		distinterval = 1.0e10;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)

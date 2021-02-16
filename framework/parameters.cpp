@@ -939,6 +939,12 @@ void plib_declarations(int id,xtring setname) {
 		}
 
 		declareitem("mtinclude",&includemt,1,CB_NONE,"Include ManagementType in analysis");
+		declareitem("firstmanageyear",&pmt->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
+		declareitem("firstcutyear",&pmt->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+		declareitem("firstclearcutyear",&pmt->firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
+		declareitem("delayduecutting",&pmt->delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
+		declareitem("firsttargetyear",&pmt->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
+		declareitem("lasttargetyear",&pmt->lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
 		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
@@ -1038,17 +1044,17 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Disturbance interval");	// ??
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
-		declareitem("firstmanageyear",&pst->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
-		declareitem("firstcutyear",&pst->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
-		declareitem("firsttargetyear",&pst->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
-		declareitem("lasttargetyear",&pst->lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
 		declareitem("rot_wait_for_cc",&pst->rot_wait_for_cc,1,CB_NONE,"Whether to wait for clearcut before moving to next mt in a forestry rotation");
-		declareitem("firstclearcutyear",&pst->firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
-		declareitem("delayduecutting",&pst->delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
 
 		for(int i = 0; i < NROTATIONPERIODS_MAX; ++i) {
 			if(i == 0) {
 				declareitem("management1",&strparam,32,CB_MANAGEMENT1,"");
+				declareitem("firstmanageyear",&pst->management.firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
+				declareitem("firstcutyear",&pst->management.firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+				declareitem("firstclearcutyear",&pst->management.firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
+				declareitem("delayduecutting",&pst->management.delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
+				declareitem("firsttargetyear",&pst->management.firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
+				declareitem("lasttargetyear",&pst->management.lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
 				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");

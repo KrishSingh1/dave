@@ -47,23 +47,13 @@ endif (UNIX)
 # (used by cmake when the include() command is used in a cmake file)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-# NetCDF - look for libraries and include files, and use them if found.
-# If this CMakeList script does not find the path to the NetCDF library
-# on your system, then consult LPJ-GUESS/reference/guessdoc.doc on how 
-# to modify this section, using the out-commented line below.
-#set(CMAKE_PREFIX_PATH $ENV{NETCDF_PREFIX_PATH})
-if ($ENV{ARCH} STREQUAL "aurora")
-  # For easybuild systems
-  set(CMAKE_PREFIX_PATH $ENV{EBROOTNETCDF})
-endif()
+# NetCDF - look for libraries and include files, and use them if found
 find_package(NetCDF QUIET)
 
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
   add_definitions(-DHAVE_NETCDF)
-else()
-  message("find_package: not found: NETCDF_C_LIBRARY and NETCDF_INCLUDE_DIR. See LPJ-GUESS documentation." )
 endif()
 
 # MPI - used if found (not needed on Windows)

@@ -2597,11 +2597,11 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 		// Calculate number of soil layers and their individual depths
 		if (soil_depth > std_tot_depth) {
 
-			double tot_depth = 0.0;
-
 			lyr_depths.resize(NSOILLAYER_MAX);
 
 			// Deeper soil than standard soil layer depths
+		
+			double tot_depth = 0.0;
 			// Bottom three soil layers will adjust for
 			// deeper soil than standard depth
 			for (int lyr = 0; lyr < NSOILLAYER_MAX - 3; lyr++) {
@@ -2653,8 +2653,8 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			lyr_depths[1] = soil_depth - SOILDEPTH_EVAP;
 		}
 		else {
-			lyr_depths[0] = SOILDEPTH_UPPER;
-			lyr_depths[1] = soil_depth - SOILDEPTH_UPPER;
+			lyr_depths[0] = min(SOILDEPTH_UPPER, soil_depth / 2.0);
+			lyr_depths[1] = soil_depth - lyr_depths[0];
 		}
 		nsoillayers = 2;
 	}

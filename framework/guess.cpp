@@ -1067,7 +1067,6 @@ void Stand::set_management() {
 									}
 								}
 							}
-							pft[pftx.id].active = false;
 						}
 					}
 					pftlist.nextobj();			
@@ -1147,8 +1146,6 @@ void Stand::set_management() {
 								}
 							}
 						}
-						// Allow unselected individuals to stay alive if cutfirstyear_nonsel is false after rotation or cloning
-						pft[pftx.id].active = false;
 					}
 				}
 				pftlist.nextobj();

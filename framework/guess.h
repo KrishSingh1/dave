@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NAVAIL, NH_4, NO_3, CH4, CO2, RESPSUM, 
+CCONT, NCONT, CSLOW, CFAST, NAVAIL, NH_4, NO_3, CH4, CO2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1166,7 +1166,6 @@ public:
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
-		//---- Soil N transformation -----
 		/// NH3 flux from soil (ntransform)
 		NH3_SOIL,
 		/// NO flux from soil (ntransform)
@@ -2430,7 +2429,7 @@ struct cropindiv_struct : public Serializable {
 	/// year's stem C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_stem;
 
-	///NITROGEN
+	/// Nitrogen
 	/// nitrogen content of harvestable organs
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
@@ -3099,18 +3098,23 @@ public:
 
 		cmass = 0.0;
 		nmass = 0.0;
-		ntoc = 0.0;
-		ligcfrac = 0.0;
+		cdec = 0.0; 
+		ndec = 0.0; 
+		cinc = 0.0;
+		ninc = 0.0;
+		respsum = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
+		ligcfrac = 0.0;
 		fracremain = 0.0;
-		litterme = 0.0;
-		fireresist = 0.0;
+		ntoc = 0.0;
 		cmass_init = 0.0;
 		multi = pow(2, 4);
 		sign_trend = 1;
 		flip = 0;
 		same_trend = 0;
+		litterme = 0.0;
+		fireresist = 0.0;
 
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = 0.0;
@@ -3121,6 +3125,11 @@ public:
 	Sompool(const Sompool& that) {
 		cmass = that.cmass;
 		nmass = that.nmass;
+		cdec = that.cdec;
+		ndec = that.ndec;
+		cinc = that.cinc;
+		ninc = that.ninc;
+		respsum = that.respsum;
 		ntoc = that.ntoc;
 		ligcfrac = that.ligcfrac;
 		delta_cmass = that.delta_cmass;
@@ -3143,6 +3152,11 @@ public:
 	Sompool& operator=(const Sompool& that) {
 		cmass = that.cmass;
 		nmass = that.nmass;
+		cdec = that.cdec;
+		ndec = that.ndec;
+		cinc = that.cinc;
+		ninc = that.ninc;
+		respsum = that.respsum;
 		ntoc = that.ntoc;
 		ligcfrac = that.ligcfrac;
 		delta_cmass = that.delta_cmass;
@@ -3412,15 +3426,7 @@ public:
 	/// Annual soil respiration [kg C m-2]
 	double arespsum;
 	/// Tiller area
-	double tiller_area;	
-	/// Multiplier for passive SOM C mass trend
-	double multi;
-	/// Sign of passive SOM C mass trend
-	int sign_trend;
-	/// How many times the passive SOM C mass trend has flipped sign in a raw
-	int flip;
-	/// How many times the passive SOM C mass trend has have the same sign in a raw
-	int same_trend;
+	double tiller_area;
 
 	// Old Soil Organic Matter (SOM) scheme
 
@@ -3563,10 +3569,6 @@ public:
 		respsum = that.respsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
-		multi = that.multi;
-		sign_trend = that.sign_trend;
-		flip = that.flip;
-		same_trend = that.same_trend;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
 		decomp_litter_mean = that.decomp_litter_mean;
@@ -3677,10 +3679,6 @@ public:
 		respsum = that.respsum;
 		arespsum = that.arespsum;
 		tiller_area = that.tiller_area;
-		multi = that.multi;
-		sign_trend = that.sign_trend;
-		flip = that.flip;
-		same_trend = that.same_trend;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
 		decomp_litter_mean = that.decomp_litter_mean;
@@ -3848,12 +3846,6 @@ struct Snowlayer : public Serializable {
 
 	/// Previous time step snow temperature [C]
 	double temp_old;
-
-	/// Monthly minimum snow temperature [C]
-	double mtemp_min[12];
-
-	/// Previous time step snow temperature [C]
-	double mtemp_max[12];
 
 	/// Thermal conductivity of snow [J m-1 K-1 s-1]
 	double Kh;
@@ -4162,9 +4154,6 @@ private:
 
 public:
 
-	void initdrivers();
-
-
 	/// constructor (initialises member variable patch)
 	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
 		initdrivers();
@@ -4172,20 +4161,21 @@ public:
 
 
 	// 1. copy constructor
-	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype)
-	{
+	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype) {
 		soillayers = that.soillayers;
-		// other variables
+		// other variables // DW_COMMENT
 	}
 
 	// 2. copy assignment operator
-	Soilcolumn& operator=(const Soilcolumn& that)
-	{
+	Soilcolumn& operator=(const Soilcolumn& that) {
 		// etc.
 		soillayers = that.soillayers;	
 		soiltype = that.soiltype;
 		return *this;
 	}
+
+	/// Initialize variables
+	void initdrivers();
 	/// Create soillayers
 	void create_soillayers(std::vector<double> soil_layer_depths);
 	/// Add a soil layer
@@ -4208,10 +4198,6 @@ public:
 	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// Vertical movement of peat organic matter
 	void vertical_movement();
-	/// Total cpool slow C mass
-	double cmass_sompool(pooltype pool);
-	/// Total cpool slow C mass
-	double nmass_sompool(pooltype pool);
 	/// Set daily wcont
 	void set_dwcont();
 	/// Set daily soil layer temperature for this month
@@ -5348,6 +5334,7 @@ public:
 
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
+	
 	// SOIL
 	/// Soil depth for gridcell (mm)
 	double soil_depth;

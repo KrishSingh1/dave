@@ -379,13 +379,13 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 		}
 	}
 
-	// Calculate growth fraction decrease to satify N deficit
+	// Calculate growth fraction decrease to satisfy N deficit
 
 	// Calculate total growth fraction after reduced decay rates
 	double tot_cinc = tot_cdec - tot_resp;
 	double tot_growthfrac = tot_cinc / tot_cdec;
 
-	// Calculate needed growth fraction to satify a neutral net mineralisation
+	// Calculate needed growth fraction to satisfy a neutral net mineralisation
 	// and the C:N ratio of receiver pools
 
 	// Receiver total C:N ratio
@@ -609,11 +609,12 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 	Soiltype soiltype = soilcolumn.soiltype;
 
-	double leachsum_cmass, leachsum_nmass;
+	double leachsum_cmass = 0.0;
+	double leachsum_nmass = 0.0;
 	// Actual (not net) nitrogen mineralisation
-	double nmin_actual;
+	double nmin_actual = 0.0;
 	// Nitrogen immobilisation
-	double nimmob;		
+	double nimmob = 0.0;		
 
 	const double EPS = 1.0e-16;
 
@@ -673,7 +674,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			decay_reduction[p] = 1.0;
 			growth_reduction[p] = 1.0;
 		}
-		double init_negative_nmass, init_ntoc_reduction;
+		double init_negative_nmass;
+		double init_ntoc_reduction = 1.0;
 		double ntoc_reduction = 0.8;
 		double cdec_save[2] = { 0.0 }, cinc_save[2] = { 0.0 };
 
@@ -2004,7 +2006,8 @@ void equilsom(Patch& patch) {
 						}
 
 						// Monthly nitrogen addition from fixation to the soil layer
-						soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.get(CCONT) / cconttot, NH4);
+						if (!negligible(cconttot, -12)) // DW_COMMENT
+							soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.get(CCONT) / cconttot, NH4);
 
 						// Monthly decomposition and fluxes between SOM pools
 

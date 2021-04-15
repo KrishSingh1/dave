@@ -153,7 +153,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 }
 
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
-             double lai_today, double fpar, double fpc, double fpc_today) {
+             double lai_today, double fpar, double fpc_today) {
 
 	// Canopy temperature is calculated from the air temperature and the energy balance (longwave
 	// radiation, shortwave radiation and sensible and latent heat loss).
@@ -262,7 +262,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	double temp_leaf_daytime;
 	double temp_leaf = leafT(temp, hours, pft.ga, rad, indiv.aet,
-                                 indiv.lai_today(),indiv.fpar,indiv.fpc,indiv.fpc_today());
+                                 indiv.lai_today(),indiv.fpar,indiv.fpc_today());
 
 	if (date.diurnal()) {
 			temp_leaf_daytime = temp_leaf;
@@ -273,7 +273,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
-		                          indiv.lai_today(),indiv.fpar,indiv.fpc, indiv.fpc_today());
+		                          indiv.lai_today(),indiv.fpar, indiv.fpc_today());
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1

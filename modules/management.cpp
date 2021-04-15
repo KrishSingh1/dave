@@ -1001,7 +1001,6 @@ void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 void scale_indiv(Individual& indiv, bool scale_grsC) {
 
 	Stand& stand = indiv.vegetation.patch.stand;
-	Gridcell& gridcell = stand.get_gridcell();
 
 	if (stand.scale_LC_change >= 1.0) {
 		return;

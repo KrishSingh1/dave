@@ -1153,7 +1153,6 @@ void nstore_usage(Vegetation& vegetation) {
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
-	Gridcell& gridcell = patch.stand.get_gridcell();
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	/// daily nitrogen demand for patch (kgN/m2)

@@ -2480,7 +2480,7 @@ void Gridcell::set_soil_depth() {
 			}
 
 			// Set soilcolumn depth
-			patch.soilcolumn.depth = soil_depth;
+			patch.soilcolumn.depth = soil_depth; // DW_COMMENT
 
 			// Create soil layers and initalise them
 			patch.soilcolumn.create_soillayers(soil_lyr_depth);
@@ -2771,7 +2771,7 @@ void MassBalance::init_indiv(Individual& indiv) {
 	Stand& stand = patch.stand;
 	if (!stand.is_true_crop_stand())
 		return;
-	Gridcell& gridcell = stand.get_gridcell();
+	// Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
 	if (patch.stand.get_gridcell().landcover.updated && (patch.nharv == 0 || date.day == 0))
@@ -2799,7 +2799,7 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 	Stand& stand = patch.stand;
 	if(!stand.is_true_crop_stand())
 		return balance;
-	Gridcell& gridcell = stand.get_gridcell();
+	// Gridcell& gridcell = stand.get_gridcell();
 	double ccont = indiv.ccont();
 	ccont += patch.ccont(0.0);
 	double cflux = patch.cflux();
@@ -2825,7 +2825,7 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 	Stand& stand = patch.stand;
 	if(!stand.is_true_crop_stand())
 		return balance;
-	Gridcell& gridcell = stand.get_gridcell();
+	// Gridcell& gridcell = stand.get_gridcell();
 	double ncont = indiv.ncont();
 	ncont += patch.ncont(0.0);
 	double nflux = patch.nflux();

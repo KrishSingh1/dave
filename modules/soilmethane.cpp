@@ -870,13 +870,11 @@ void Soilcolumn::methane(bool generatemethane) {
 		// Daily diffusion
 		// mol O2 into the soil (and then diffused downwards). Should be negative, i.e. O2 diffuses INTO the soil
 		double O2_diff_today = 0.0;
-		double CO2_diff_today = 0.0;
 		double CH4_diff_today = 0.0;
 	
 		// Daily plant transport
 		double O2_plant_today = 0.0;
 		double CH4_plant_today = 0.0;
-		double CO2_plant_today = 0.0;
 	
 		// Total daily ebullition [g CH4-C d-1]
 		double CH4_ebull_today = 0.0;

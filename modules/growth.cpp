@@ -1161,7 +1161,6 @@ void growth(Stand& stand, Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction

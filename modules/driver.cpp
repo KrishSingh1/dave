@@ -714,7 +714,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 
-		double total_water = 0.0;
+		double total_water = 0.0;  // DW_COMMENT whole section moved from dailyaccounting_gridcell
 
 		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
 			soilcolumn.savesomcent = true;

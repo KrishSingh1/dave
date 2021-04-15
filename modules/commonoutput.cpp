@@ -916,7 +916,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	while (pftlist.isobj) {
 
 		Pft& pft=pftlist.getobj();
-		Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
 		// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 		mean_standpft_cmass=0.0;

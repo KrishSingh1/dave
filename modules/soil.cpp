@@ -159,6 +159,8 @@ void Snow::init_state() {
 			mtemp[lyr][mth] = 0.0;
 		}
 	}
+
+	std::fill_n(ddepth, Date::MAX_YEAR_LENGTH, 0.0);
 }
 
 /// Function returns total available N mass in snow column
@@ -1445,15 +1447,15 @@ void Snow::serialize(ArchiveStream& arch) {
 /// Soil layer constructor
 /** Soil layer constructor: initialises soilcolumn, depth, profile depth
  * and if soil layer is an acrotelm or catotelm
- */
+ */ // DW_COMMENT
 Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool a, bool c) : soilcolumn(sc), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) {
-	init();
-}
+//	init();
+//}
 
 /// Soil layer initialisation
 /** Soil layer initialisation
 */
-void Soillayer::init() {
+//void Soillayer::init() {
 
 	// Initialises certain member variables
 
@@ -1462,6 +1464,10 @@ void Soillayer::init() {
 	temp_old = 0.0;
 	Kh = 0.0;
 	Ch = 0.0;
+	thermdiff_0 = 0.0;
+	thermdiff_15 = 0.0;
+	thermdiff_100 = 0.0;
+	gtemp = 0.0;
 
 	// Water (initiate water mass at wilting point)
 	wmass = (*soilcolumn).soiltype.wp_min * depth;
@@ -1475,6 +1481,15 @@ void Soillayer::init() {
 	perc_mass = 0.0;
 	runoff_drain = 0.0;
 	runoff_baseflow = 0.0;
+	runoff_drain_frac = 0.0;
+	psi = 0.0;
+	mwcontabove = 0.0;
+	awcont = 0.0;
+	wsats = 0.0;
+	awc = 0.0;
+	wp = 0.0;
+	perc_base = 0.0;
+	Psi_max = 0.0;
 
 	// Organic exponential in Campbell (1974) parameterization for soil 
 	// water retention curves from CLM5.0 documentation 
@@ -1533,9 +1548,6 @@ void Soillayer::init() {
 	N2_mass = 0.0;
 	anmin = 0.0;
 	animmob = 0.0;
-	aminleach = 0.0;
-	aorgNleach = 0.0;
-	aorgCleach = 0.0;
 
 	// Gases
 	CO2 = 0.0;
@@ -1550,24 +1562,36 @@ void Soillayer::init() {
 
 	// Daily heterotrophic respiration
 	respsum = 0.0;
+	arespsum = 0.0;
+	acdec[0] = 0.0;
+	acdec[1] = 0.0;
+	acinc[0] = 0.0;
+	acinc[1] = 0.0;
 
 	// Soil labile carbon availability
 	labile_carbon = 0.0;
 
-	// Trend variables
-	multi = 16.0;
-	sign_trend = 1;
-	flip = 0;
-	same_trend = 0;
+	organic_frac = 0.0;
+	mineral_frac = 0.0;
+	peat_frac = 0.0;
+	soc_frac = 0.0;
+	bulk_density = 0.0;
+
 
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
 		mwmass[mth] = 0.0;
 		mwcont[mth] = 0.0;
+		mnetmin[mth] = 0.0;
+		mtemp[mth] = 0.0;
 		fNH4uptake_mean[mth] = 0.0;
 		fNO3uptake_mean[mth] = 0.0;
 		morgleach_mean[mth] = 0.0;
 		mminleach_mean[mth] = 0.0;
+	}
+
+	for (int d = 0; d < 31; d++) {
+		dtemp[d] = 0.0;
 	}
 
 	// Daily variables
@@ -1578,7 +1602,7 @@ void Soillayer::init() {
 /// Returns certain properties of soil layer
 /* Returns certain properties of soil layer
 */
-double Soillayer::get(soilproptype SPT, int m) {
+double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 
 	// Return property
 	if (SPT == DEPTH)
@@ -2200,6 +2224,9 @@ void Soilcolumn::initdrivers() {
 
 	// Padding layers
 	pad.resize(PAD_LAYERS);
+	soillayerdepths.resize(1);
+	cmass_litter_input.resize(1);
+	wfluxes.resize(1);
 
 	depth = 0.0;
 	nsoillayers = 0;
@@ -2300,7 +2327,7 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 			}
 		}
 
-		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
+		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm); // DW_COMMENT
 	}
 
 	// Set size of litter input vector (surface as well)
@@ -2514,28 +2541,6 @@ void Soilcolumn::nmass_avail_uptake(double uptake, n_pref_type pref) {
 			soillayers[lyr].nmass_subtract(uptake * soillayers[lyr].nmass_avail(pref) / tot_nmass_avail, pref);
 		}
 	}
-}
-
-/// Total cpool slow C content
-/** Total cpool slow C content
- */
-double Soilcolumn::cmass_sompool(pooltype pool) {
-	double ccont = 0.0;
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		ccont += soillayers[lyr].sompool[pool].cmass;
-	}
-	return ccont;
-}
-
-/// Total cpool slow C content
-/** Total cpool slow C content
- */
-double Soilcolumn::nmass_sompool(pooltype pool) {
-	double ncont = 0.0;
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		ncont += soillayers[lyr].sompool[pool].nmass;
-	}
-	return ncont;
 }
 
 /// Save daily water content
@@ -2784,7 +2789,7 @@ void Soilcolumn::calc_temp_analytic() {
 /// Returns the value of some vector down to a depth with a scalar
 /** Returns the value of some vector down to a depth with a scalar
  */
-double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth) {
+double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth) { // DW_COMMENT
 
 	// Calculate variable values for layers down to depth
 	double layer_depth, scalar;
@@ -2806,7 +2811,7 @@ double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT
 /// Returns the value of some vector down to a depth
 /** Returns the value of some vector down to a depth
  */
-double Soilcolumn::to_depth(double depth, soilproptype SPT_var) {
+double Soilcolumn::to_depth(double depth, soilproptype SPT_var) { // DW_COMMENT
 
 	// Calculate variable values for layers down to depth
 	double acc_depth = 0.0;
@@ -3047,35 +3052,43 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	// Set new wmass
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		soillayers[lyr].wmass = wpara.psi1[lyr] * soillayers[lyr].depth;
+		Soillayer& soillayer = soillayers[lyr];
+
+
+		soillayer.wmass = wpara.psi1[lyr] * soillayer.depth;
 
 		// Calculate lateral drainage
 
-		// Liquid water above saturation is drained laterally
-		drained_wmass = min(soillayers[lyr].wmass, max(0.0, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].wsats));
+		// wmass can have a small negative value (resolved later when mass balance can be kept)
+		// if so, no lateral drainage is calculated
+		if (soillayer.wmass > 0.0) {
 
-		// Sum todays lateral drainage
-		soillayers[lyr].runoff_drain += drained_wmass;
-
-		// Update total water after drainage 
-		// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-		soillayers[lyr].wmass -= drained_wmass;
-
-		// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
-		if (iforography && (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc())) {
-
-			// Excees liquid water above field capacity
-			double wmass_excees = min(soillayers[lyr].wmass, soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].fc());
-
-			// Slope dependant drainage of liquid water above field capacity
-			drained_wmass = wmass_excees * soillayers[lyr].runoff_drain_frac;
+			// Liquid water above saturation is drained laterally
+			drained_wmass = min(soillayer.wmass, max(0.0, soillayer.wmass + soillayer.imass - soillayer.wsats));
 
 			// Sum todays lateral drainage
-			soillayers[lyr].runoff_drain += drained_wmass;
+			soillayer.runoff_drain += drained_wmass;
 
 			// Update total water after drainage 
 			// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-			soillayers[lyr].wmass -= drained_wmass;
+			soillayer.wmass -= drained_wmass;
+
+			// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
+			if (iforography && (soillayer.wmass + soillayer.imass > soillayer.fc())) {
+
+				// Excees liquid water above field capacity
+				double wmass_excees = min(soillayer.wmass, soillayer.wmass + soillayer.imass - soillayer.fc());
+
+				// Slope dependant drainage of liquid water above field capacity
+				drained_wmass = wmass_excees * soillayer.runoff_drain_frac;
+
+				// Sum todays lateral drainage
+				soillayer.runoff_drain += drained_wmass;
+
+				// Update total water after drainage 
+				// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
+				soillayer.wmass -= drained_wmass;
+			}
 		}
 	}
 }
@@ -3134,12 +3147,6 @@ void padding::serialize(ArchiveStream& arch) {
  */
 void Soilcolumn::set_padding_depth() {
 
-	/// Total depth [mm] of padding layers
-	const double PAD_DEPTH = 48000;
-
-	// Use the global variables PAD_DEPTH and PAD_LAYERS
-	double pad_depth = PAD_DEPTH;
-
 	// Iterative improvements of geometric factor
 	double k_guess, k_last;
 
@@ -3167,8 +3174,8 @@ void Soilcolumn::set_padding_depth() {
 		while (fabs(k_guess - k_last) > 1E-2) {
 			k_last = k_guess;
 
-			func = pow(k_guess, (PAD_LAYERS + 1)) - k_guess * (1.0 + pad_depth / dz) + pad_depth / dz;
-			dfunc = (PAD_LAYERS + 1) * pow(k_guess, PAD_LAYERS) - (1.0 + pad_depth / dz);
+			func = pow(k_guess, (PAD_LAYERS + 1)) - k_guess * (1.0 + PAD_DEPTH / dz) + PAD_DEPTH / dz;
+			dfunc = (PAD_LAYERS + 1) * pow(k_guess, PAD_LAYERS) - (1.0 + PAD_DEPTH / dz);
 			k_guess = k_guess - func / dfunc;
 		}
 	}
@@ -3831,9 +3838,6 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
 
-	// Depth of sublayer at top of upper soil layer, from which evaporation is
-	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
-	const double SOILDEPTH_EVAP = 200.0;
 	// Fraction of standard percolation amount from lower soil layer that is
 	// diverted to baseflow runoff
 	const double BASEFLOW_FRAC = 0.5;
@@ -4767,7 +4771,7 @@ void Soilcolumn::calc_temp() {
 	thaw_depth();
 
 	// Update padding layers temperature so they faster comes to an equilibrium
-	if (date.year < 300 && !(date.year%10) && date.islastmonth && date.islastday) {
+	if (date.year < nyear_spinup / 2 && !(date.year%10) && date.islastmonth && date.islastday) {
 		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
 			pad[lyr].temp = soillayers[nsoillayers - 1].temp;
 		}
@@ -4851,7 +4855,7 @@ void Soilcolumn::vertical_movement() {
 
 				if (!negligible(ccont_donor)) {
 
-					double move_frac;
+					double move_frac = 0.0;
 
 					// Downwards movement of SOM
 					if (receiver > donor) {

@@ -494,7 +494,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 	// Accounts for the sub-grid variability related to orography
 	// Min and max standard deviation of orography (Balsamo et al. 2009 eqn 10)
-	double sigma_min = 10.0;
+	double sigma_min = 100.0;
 	double sigma_max = 1000.0;
 	soiltype.b_oro = max(0.01, min(0.5, (sdor - sigma_min) / (sdor + sigma_max)));
 
@@ -513,6 +513,8 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	else {
 		gridcell.soil_depth = depth_soil;
 	}
+
+	gridcell.soil_depth = max(500.0, gridcell.soil_depth); // DW_COMMENT
 
 	// Soil depth need to be of 100mm intervals
 	double soil_depth_interval = round(gridcell.soil_depth / 100.0) * 100.0;

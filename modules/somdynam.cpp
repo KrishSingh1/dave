@@ -1719,16 +1719,18 @@ void vertical_movement(Patch& patch) {
 	}
 
 	// Store pool sizes before mixing
-	std::vector<double> cpools(3);
-	std::vector<double> npools(3);
+	std::vector<double> cpools(4);
+	std::vector<double> npools(4);
 
 	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-		cpools[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILMICRO].cmass;
-		npools[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILMICRO].nmass;
-		cpools[1] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-		npools[1] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass;
-		cpools[2] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
-		npools[2] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass;
+		cpools[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILFWD].cmass;
+		npools[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILFWD].nmass;
+		cpools[1] += patch.soilcolumn.soillayers[lyr].sompool[SOILCWD].cmass;
+		npools[1] += patch.soilcolumn.soillayers[lyr].sompool[SOILCWD].nmass;
+		cpools[2] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
+		npools[2] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass;
+		cpools[3] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+		npools[3] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass;
 	}
 
 	// Timestep in Crank-Nicholson method 
@@ -1736,62 +1738,49 @@ void vertical_movement(Patch& patch) {
 	// the timestep will be 1 / 12
 	double timestep = 1.0 / 12.0;
 
-	patch.soilcolumn.vertical_mixing(SOILMICRO, mald, timestep);
+	patch.soilcolumn.vertical_mixing(SOILFWD, mald, timestep);
+	patch.soilcolumn.vertical_mixing(SOILCWD, mald, timestep);
 	patch.soilcolumn.vertical_mixing(SLOWSOM, mald, timestep);
 	patch.soilcolumn.vertical_mixing(PASSIVESOM, mald, timestep);
 
 
 	// Check pool sizes after mixing
-	std::vector<double> cpools_after(3);
-	std::vector<double> npools_after(3);
+	std::vector<double> cpools_after(4);
+	std::vector<double> npools_after(4);
 
 	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-		cpools_after[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILMICRO].cmass;
-		npools_after[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILMICRO].nmass;
-		cpools_after[1] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-		npools_after[1] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass;
-		cpools_after[2] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
-		npools_after[2] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass;
+		cpools_after[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILFWD].cmass;
+		npools_after[0] += patch.soilcolumn.soillayers[lyr].sompool[SOILFWD].nmass;
+		cpools_after[1] += patch.soilcolumn.soillayers[lyr].sompool[SOILCWD].cmass;
+		npools_after[1] += patch.soilcolumn.soillayers[lyr].sompool[SOILCWD].nmass;
+		cpools_after[2] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
+		npools_after[2] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass;
+		cpools_after[3] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
+		npools_after[3] += patch.soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass;
 	}
 
 	// Might be small rounding errors
 	// Add to/subtract from top pool
-	patch.soilcolumn.soillayers[0].sompool[SOILMICRO].cmass += cpools[0] - cpools_after[0];
-	patch.soilcolumn.soillayers[0].sompool[SOILMICRO].nmass += npools[0] - npools_after[0];
-	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].cmass += cpools[1] - cpools_after[1];
-	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].nmass += npools[1] - npools_after[1];
-	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].cmass += cpools[2] - cpools_after[2];
-	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].nmass += npools[2] - npools_after[2];
+	patch.soilcolumn.soillayers[0].sompool[SOILFWD].cmass += cpools[0] - cpools_after[0];
+	patch.soilcolumn.soillayers[0].sompool[SOILFWD].nmass += npools[0] - npools_after[0];
+	patch.soilcolumn.soillayers[0].sompool[SOILCWD].cmass += cpools[1] - cpools_after[1];
+	patch.soilcolumn.soillayers[0].sompool[SOILCWD].nmass += npools[1] - npools_after[1];
+	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].cmass += cpools[2] - cpools_after[2];
+	patch.soilcolumn.soillayers[0].sompool[SLOWSOM].nmass += npools[2] - npools_after[2];
+	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].cmass += cpools[3] - cpools_after[3];
+	patch.soilcolumn.soillayers[0].sompool[PASSIVESOM].nmass += npools[3] - npools_after[3];
 }
 
 /// Add litter to equilsom()
-void add_litter(Soillayer& soillayer, int timestep, int pool, double init_cpool) {
+void add_litter(Soillayer& soillayer, int timestep, int pool) {
 
 	// If LUC have occurred in between solvesomcent_beginyr and solvesomcent_endyr then array might be too smalll
 	if (timestep >= (int)soillayer.solvesom.size())
 		timestep = timestep % (int)soillayer.solvesom.size();
 
-	// How big the litter pool can grow comparred to the initial size (20%)
-	const double litter_max_size_frac = 5.0;
-	double frac_added = 1.0;
-	double clitter_to_add = soillayer.solvesom[timestep].get_clitter(pool);
-
-//	if (clitter_to_add < 0.0)
-//		dprintf("ERROR EquilSOM C litter input %g\n", clitter_to_add);
-//	if (soillayer.solvesom[timestep].get_nlitter(pool) < 0.0)
-//		dprintf("ERROR EquilSOM N litter input %g\n", soillayer.solvesom[timestep].get_nlitter(pool));
-
-	if (soillayer.sompool[pool].cmass + clitter_to_add > litter_max_size_frac * init_cpool && !negligible(init_cpool, -14)) {
-		// Set litter pool to max
-		double ntoc = soillayer.sompool[pool].nmass / soillayer.sompool[pool].cmass;
-		soillayer.sompool[pool].cmass = litter_max_size_frac * init_cpool;
-		soillayer.sompool[pool].nmass = ntoc * soillayer.sompool[pool].cmass;
-	}
-	else {
-		// Add to litter pools
-		soillayer.sompool[pool].cmass += frac_added * clitter_to_add;
-		soillayer.sompool[pool].nmass += frac_added * soillayer.solvesom[timestep].get_nlitter(pool);
-	}
+	// Add to litter pools
+	soillayer.sompool[pool].cmass += soillayer.solvesom[timestep].get_clitter(pool);
+	soillayer.sompool[pool].nmass += soillayer.solvesom[timestep].get_nlitter(pool);
 }
 
 /// Iteratively solving differential flux equations for century SOM pools
@@ -1815,8 +1804,6 @@ void equilsom(Patch& patch) {
 
 		std::vector<double> save_NH4_avail(soilcolumn.nsoillayers);
 		std::vector<double> save_NO3_avail(soilcolumn.nsoillayers);
-		std::vector< std::vector<double> > save_litter_cmass(soilcolumn.nsoillayers, std::vector<double>(NSOMPOOL));
-		std::vector< std::vector<double> > save_litter_nmass(soilcolumn.nsoillayers, std::vector<double>(NSOMPOOL));
 
 		// Number of years with mean input data
 		int EQUILSOM_YEARS = soilcolumn.solvesomcent_endyr - soilcolumn.solvesomcent_beginyr + 1;
@@ -1828,12 +1815,6 @@ void equilsom(Patch& patch) {
 			// Save soil mineral nitrogen status
 			save_NH4_avail[lyr] = soillayer.nmass_avail(NH4);
 			save_NO3_avail[lyr] = soillayer.nmass_avail(NO3);
-
-			// Save C and N soil status
-			for (int p = 0; p < NSOMPOOL; p++) {
-				save_litter_cmass[lyr][p] = soillayer.sompool[p].cmass;
-				save_litter_nmass[lyr][p] = soillayer.sompool[p].nmass;
-			}
 
 			for (int m = 0; m < 12; m++) {
 
@@ -1866,10 +1847,8 @@ void equilsom(Patch& patch) {
 		const int VMTIMESTEP = 4;
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
 		const int SAME_TREND_MAX = 5;
-		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
-		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		double MAX_MULTI = pow(2.0, 20);
+		double MAX_MULTI = pow(2.0, 15);
 		// Minimum multiplier
 		const double MIN_MULTI = 0.01;
 		// Multiplier modifier
@@ -1877,7 +1856,9 @@ void equilsom(Patch& patch) {
 		// Minimum tries of iterations
 		const int MIN_TRIES = 200;
 		// Maximum tries of iterations
-		const int MAX_TRIES = 10000;
+		const int MAX_TRIES = 1000;
+		// Maximum trend
+		const double EPS_trend = 1.0e-6;
 		// Number of trends that doesn't meet the criteria
 		int bad_trend = 1;
 		// Iteration tries
@@ -1887,40 +1868,43 @@ void equilsom(Patch& patch) {
 		// C mass increase
 		double cmass_inc;
 		// Max negative C mass change
-		double max_neg_change_slow;
-		double max_neg_change_passive;
+		double max_neg_change;
+		// Max C change for SOM pools
+		double max_change;
 		// Total SOM
 		double cconttot;
 
 		// Initial SOM pool size per layer
-		std::vector<double> init_slow(soilcolumn.nsoillayers);
-		std::vector<double> init_passive(soilcolumn.nsoillayers);
-		// Maximum C change for SOM pools per layer
-		std::vector<double> max_change_slow(soilcolumn.nsoillayers);
-		std::vector<double> max_change_passive(soilcolumn.nsoillayers);
+		std::vector< std::vector<double> > init(soilcolumn.nsoillayers, std::vector<double>(NSOMPOOL));
 		// Multiplier for SOM pools per layer
-		std::vector<double> multi_slow(soilcolumn.nsoillayers);
-		std::vector<double> multi_passive(soilcolumn.nsoillayers);
-		// Number of trend sign flipping for SOM pools per layer
-		std::vector<int> flip_slow(soilcolumn.nsoillayers);
-		std::vector<int> flip_passive(soilcolumn.nsoillayers);
+		std::vector< std::vector<double> > multi(soilcolumn.nsoillayers, std::vector<double>(NSOMPOOL));
 		// Current sign of trend for SOM pools per layer
-		std::vector<int> sign_slow_trend(soilcolumn.nsoillayers);
-		std::vector<int> sign_passive_trend(soilcolumn.nsoillayers);
+		std::vector< std::vector<int> > sign(soilcolumn.nsoillayers, std::vector<int>(NSOMPOOL));
 		// Number of iterations with same trend sign for SOM pools per layer
-		std::vector<int> same_trend_slow(soilcolumn.nsoillayers);
-		std::vector<int> same_trend_passive(soilcolumn.nsoillayers);
+		std::vector< std::vector<int> > same_trend(soilcolumn.nsoillayers, std::vector<int>(NSOMPOOL));
+
+		// Historical values Soilc CWD, slow and passive SOM, and total soillayer C
+		std::vector< Historic<double, 50> > hist_cwd(soilcolumn.nsoillayers);
+		std::vector< Historic<double, 50> > hist_slow(soilcolumn.nsoillayers);
+		std::vector< Historic<double, 50> > hist_passive(soilcolumn.nsoillayers);
+		std::vector< Historic<double, 50> > hist_ccont(soilcolumn.nsoillayers);
 
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-			multi_slow[lyr] = MAX_MULTI;
-			multi_passive[lyr] = MAX_MULTI;
-			sign_slow_trend[lyr] = 1;
-			sign_passive_trend[lyr] = 1;
-			max_change_slow[lyr] = 0.5 * soilcolumn.soillayers[lyr].depth * M_PER_MM;
-			max_change_passive[lyr] = max_change_slow[lyr];
+
+			for (int p = 0; p < NSOMPOOL; p++) {
+				multi[lyr][p] = MAX_MULTI;
+				sign[lyr][p] = 1;
+				same_trend[lyr][p] = 0;
+			}
 		}
 
 		int peat_years = 0;
+
+		//dprintf("Tries ", tries);
+		//for (int i=0;i<soilcolumn.nsoillayers;i++)
+		//	dprintf("C%d MC%d S%d MS%d P%d MP%d CCC%d SC%d SS%d SP%d SCC%d STDC%d STDS%d STDP%d STDCC%d ", i, i, i, i, i, i, i, i, i, i, i, i, i, i, i);
+		//dprintf("Bad CCONT\n");
+		
 
 		// Spinup SOM pools until trends of slow and passive SOM pools 
 		// are within limits or maximum tries have been done
@@ -1953,24 +1937,25 @@ void equilsom(Patch& patch) {
 
 						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-						// Initial C for slow and passive SOM pools in this iteration
+						// Initial C for SOM pools in this iteration
 						if (yr == 0 && m == 0) {
-							init_slow[lyr] = soillayer.sompool[SLOWSOM].cmass;
-							init_passive[lyr] = soillayer.sompool[PASSIVESOM].cmass;
+							for (int p = 0; p < NSOMPOOL; p++) {
+								init[lyr][p] = soillayer.sompool[p].cmass;
+							}
 						}
 
 						// Transfer monthly mean litter (added a maximum litter pool size so a runaway pool doesn't occur)
 						int timestep = yr * 12 + m;
 						if (lyr == 0) {
-							add_litter(soillayer, timestep, SURFSTRUCT, save_litter_cmass[lyr][SURFSTRUCT]);
-							add_litter(soillayer, timestep, SURFMETA, save_litter_cmass[lyr][SURFMETA]);
-							add_litter(soillayer, timestep, SURFFWD, save_litter_cmass[lyr][SURFFWD]);
-							add_litter(soillayer, timestep, SURFCWD, save_litter_cmass[lyr][SURFCWD]);
+							add_litter(soillayer, timestep, SURFSTRUCT);
+							add_litter(soillayer, timestep, SURFMETA);
+							add_litter(soillayer, timestep, SURFFWD);
+							add_litter(soillayer, timestep, SURFCWD);
 						}
-						add_litter(soillayer, timestep, SOILSTRUCT, save_litter_cmass[lyr][SOILSTRUCT]);
-						add_litter(soillayer, timestep, SOILMETA, save_litter_cmass[lyr][SOILMETA]);
-						add_litter(soillayer, timestep, SOILFWD, save_litter_cmass[lyr][SOILFWD]);
-						add_litter(soillayer, timestep, SOILCWD, save_litter_cmass[lyr][SOILCWD]);
+						add_litter(soillayer, timestep, SOILSTRUCT);
+						add_litter(soillayer, timestep, SOILMETA);
+						add_litter(soillayer, timestep, SOILFWD);
+						add_litter(soillayer, timestep, SOILCWD);
 
 						// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
 						if (lyr == 0) {
@@ -2026,6 +2011,8 @@ void equilsom(Patch& patch) {
 
 					if (patch.stand.landcover != PEATLAND && !vertmix && ifverticalmixing) {
 
+						soilcolumn.vertical_mixing(SOILFWD, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
+						soilcolumn.vertical_mixing(SOILCWD, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 						soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 						soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
 					}
@@ -2057,151 +2044,113 @@ void equilsom(Patch& patch) {
 				// by several order of magnitude
 				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-					// After 100 iterations, then maximum change is following pool sizes
-					if (tries >= 100) {
-						max_change_slow[lyr] = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.01;
-						max_change_passive[lyr] = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.01;
-						max_neg_change_slow = -max_change_slow[lyr];
-						max_neg_change_passive = -max_change_passive[lyr];
-					}
-					else {
-						max_neg_change_slow = -soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass * 0.5;
-						max_neg_change_passive = -soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass * 0.5;
-					}
-
-					// Both slow and passive pool needs to be of some size
-					if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass >= 1.0e-12 && soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass >= 1.0e-12) {
-
-						// Trend over NYEARS years
-						double trend_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass - init_slow[lyr];
-						double trend_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass - init_passive[lyr];
-
-						// If trend changes sign a certain number of times then reduce multiplier
-						// If trend has the same sign a certain number of times then increase multiplier
-
-						// SLOW SOM
-
-						multi_slow[lyr] = min(multi_slow[lyr], MAX_MULTI);
-
-						// Trend changed sign
-						if (trend_slow * sign_slow_trend[lyr] < 0.0) {
-
-							// Add to number of times trend has changed sign in a raw
-							flip_slow[lyr]++;
-
-							// Save trend sign and set same trend to zero
-							sign_slow_trend[lyr] *= -1;
-
-							// Flipped sign maximum times then reduce multiplier
-							if (flip_slow[lyr] == FLIP_MAX && multi_slow[lyr] > MIN_MULTI) {
-								multi_slow[lyr] /= MULTI_MOD;
-								flip_slow[lyr] = 0;
-							}
-
-							// Flipping so no same trend
-							same_trend_slow[lyr] = 0;
+					for (int p = 0; p < NSOMPOOL; p++) {
+						if (tries >= 100) {
+							max_change = soilcolumn.soillayers[lyr].sompool[p].cmass * 0.01;
+							max_neg_change = -max_change;
 						}
-						// Same sign trend
 						else {
+							max_change = 0.5 * soilcolumn.soillayers[lyr].depth * M_PER_MM;
+							max_neg_change = -soilcolumn.soillayers[lyr].sompool[p].cmass * 0.5;
+						}
 
-							// Add to number of times same trend has happen in a raw
-							same_trend_slow[lyr]++;
+						if (soilcolumn.soillayers[lyr].sompool[p].cmass >= 1.0e-12) {
 
-							// Reached maximum same trend then increase multiplier
-							if (same_trend_slow[lyr] > SAME_TREND_MAX && multi_slow[lyr] < MAX_MULTI) {
-								multi_slow[lyr] *= MULTI_MOD;
-								same_trend_slow[lyr] = 0;
+							// Trend over NYEARS years
+							double trend = soilcolumn.soillayers[lyr].sompool[p].cmass - init[lyr][p];
+
+							multi[lyr][p] = min(multi[lyr][p], MAX_MULTI);
+
+							// Trend changed sign
+							if (trend * sign[lyr][p] < 0.0) {
+
+								// Save trend sign and set same trend to zero
+								sign[lyr][p] *= -1;
+
+								// Flipped sign maximum times then reduce multiplier
+								if (multi[lyr][p] > MIN_MULTI) {
+									multi[lyr][p] /= MULTI_MOD;
+								}
+
+								// Flipping so no same trend
+								same_trend[lyr][p] = 0;
+							}
+							// Same sign trend
+							else {
+
+								// Add to number of times same trend has happen in a raw
+								same_trend[lyr][p]++;
+
+								// Reached maximum same trend then increase multiplier
+								if (same_trend[lyr][p] > SAME_TREND_MAX && multi[lyr][p] < MAX_MULTI) {
+									multi[lyr][p] *= MULTI_MOD;
+									same_trend[lyr][p] = 0;
+								}
 							}
 
-							// Same trend so no flipping
-							flip_slow[lyr] = 0;
+							// N:C ratio of SOM pool
+							ntoc = soilcolumn.soillayers[lyr].sompool[p].nmass / soilcolumn.soillayers[lyr].sompool[p].cmass;
+
+							// C change
+							cmass_inc = min(max_change, max(max_neg_change, trend * multi[lyr][p]));
+
+							// Add C change
+							soilcolumn.soillayers[lyr].sompool[p].cmass += cmass_inc;
+
+							// Update N pool
+							soilcolumn.soillayers[lyr].sompool[p].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[p].cmass;
 						}
-
-						// N:C ratio of SOM pool
-						ntoc = soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass / soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-
-						// C change
-						cmass_inc = min(max_change_slow[lyr], max(max_neg_change_slow, trend_slow * multi_slow[lyr]));
-
-						// Add C change
-						soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass += cmass_inc;
-
-						// Update N pool
-						soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
-
-
-						// PASSIVE SOM
-
-						multi_passive[lyr] = min(multi_passive[lyr], MAX_MULTI);
-
-						// Trend changed sign
-						if (trend_passive * sign_passive_trend[lyr] < 0.0) {
-
-							// Add to number of times trend has changed sign in a raw
-							flip_passive[lyr]++;
-
-							// Save trend sign and set same trend to zero
-							sign_passive_trend[lyr] *= -1;
-
-							// Flipped sign maximum times then reduce multiplier
-							if (flip_passive[lyr] == FLIP_MAX && multi_passive[lyr] > MIN_MULTI) {
-								multi_passive[lyr] /= MULTI_MOD;
-								flip_passive[lyr] = 0;
-							}
-
-							// Flipping so no same trend
-							same_trend_passive[lyr] = 0;
-						}
-						// Same sign trend
-						else {
-							// Add to number of times same trend has happen in a raw
-							same_trend_passive[lyr]++;
-
-							// Reached maximum same trend then increase multiplier
-							if (same_trend_passive[lyr] > SAME_TREND_MAX && multi_passive[lyr] < MAX_MULTI) {
-								multi_passive[lyr] *= MULTI_MOD;
-								same_trend_passive[lyr] = 0;
-							}
-
-							// Same trend so no flipping
-							flip_passive[lyr] = 0;
-						}
-
-						// N:C ratio of SOM pool
-						ntoc = soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
-
-						// C change
-						cmass_inc = min(max_change_passive[lyr], max(max_neg_change_passive, trend_passive * multi_passive[lyr]));
-
-						// Add C change
-						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass += cmass_inc;
-
-						// Update N pool
-						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = ntoc * soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass;
-
-
-						// Calculte how many trends that are too big
-						if ((iftwolayersoil || lyr > 2) && fabs(trend_passive) / soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass > 1.0e-6) {
-							bad_trend++;
-						}
-
 					}
 
-					if (soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass < 1.0e-14) {
-						soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass = 0.0;
-						soilcolumn.soillayers[lyr].sompool[SLOWSOM].nmass = 0.0;
+					// Save C pools in historical arrays					
+					hist_cwd[lyr].add(soilcolumn.soillayers[lyr].sompool[SOILCWD].cmass);
+					hist_slow[lyr].add(soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass);
+					hist_passive[lyr].add(soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass);
+					hist_ccont[lyr].add(soilcolumn.soillayers[lyr].ccont());
+
+					// Calculate historical mean
+					double hcwd_mean = hist_cwd[lyr].mean();
+					double hslow_mean = hist_slow[lyr].mean();
+					double hpas_mean = hist_passive[lyr].mean();
+					double hccont_mean = hist_ccont[lyr].mean();
+
+					// Calculate trend normalised against historical mean
+					double hscwd = !negligible(hcwd_mean, -12) ? hist_cwd[lyr].slope() / hcwd_mean : 0.0;
+					double hsslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].slope() / hslow_mean : 0.0;
+					double hspas = !negligible(hpas_mean, -12) ? hist_passive[lyr].slope() / hpas_mean : 0.0;
+					double hsccont = !negligible(hist_ccont[lyr].mean(), -12) ? hist_ccont[lyr].slope() / hist_ccont[lyr].mean() : 0.0;
+
+					// Calculate std normalised against historical mean
+					double hstdcwd = !negligible(hcwd_mean, -12) ? hist_cwd[lyr].std() / hcwd_mean : 0.0;
+					double hstdslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].std() / hslow_mean : 0.0;
+					double hstdpas = !negligible(hpas_mean, -12) ? hist_passive[lyr].std() / hpas_mean : 0.0;
+					double hstdccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
+
+					// Calculte how many trends and stds that are too big
+					if ((iftwolayersoil || lyr > 0) && (fabs(hscwd) > EPS_trend || fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend || fabs(hsccont) > EPS_trend) &&
+						(fabs(hstdcwd) > EPS_trend || fabs(hstdslow) > EPS_trend || fabs(hstdpas) > EPS_trend || fabs(hstdccont) > EPS_trend)) {
+
+						bad_trend++;
 					}
 
-					if (soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass < 1.0e-13 || soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass < 1.0e-14) {
-						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass = 0.0;
-						soilcolumn.soillayers[lyr].sompool[PASSIVESOM].nmass = 0.0;
-					}
+					//if (lyr == 0) {
+					//	dprintf("%d ", tries);
+					//}
+					//dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g ", soilcolumn.soillayers[lyr].sompool[SOILCWD].cmass, multi[lyr][SOILCWD],
+					//	soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass, multi[lyr][SLOWSOM],
+					//	soilcolumn.soillayers[lyr].sompool[PASSIVESOM].cmass, multi[lyr][PASSIVESOM], 
+					//	soilcolumn.soillayers[lyr].ccont(),
+					//	hscwd, hsslow, hspas, hsccont, hstdcwd, hstdslow, hstdpas, hstdccont);
+
+					//if (lyr == soilcolumn.nsoillayers - 1) {
+					//	dprintf("%d %g\n", bad_trend, soilcolumn.get_sum(CCONT));
+					//}
 				}
 
 				// Maximum multiplier should go down over time.
-				if (!(tries % 200))
-					MAX_MULTI = max(100.0, MAX_MULTI / MULTI_MOD);
-
+				if (!(tries % 20)) {
+					MAX_MULTI = max(8.0, MAX_MULTI / MULTI_MOD);
+				}
 			}
 		}
 
@@ -2217,10 +2166,6 @@ void equilsom(Patch& patch) {
 
 			// Reset C and N litter status
 			for (int p = 0; p < NSOMPOOL; p++) {
-				if (p != SURFMICRO && p != SURFHUMUS && p != SOILMICRO && p != SLOWSOM && p != PASSIVESOM) {
-					soillayer.sompool[p].cmass = save_litter_cmass[lyr][p];
-					soillayer.sompool[p].nmass = save_litter_nmass[lyr][p];
-				}
 
 				soillayer.sompool[p].cmass = max(0.0, soillayer.sompool[p].cmass);
 				soillayer.sompool[p].nmass = max(0.0, soillayer.sompool[p].nmass);
@@ -2259,7 +2204,7 @@ void equilsom(Patch& patch) {
 		// Maximum multiplier
 		double MAX_MULTI = 16.0;
 		// Minimum multiplier
-		const double MIN_MULTI = 0.01;
+		const double MIN_MULTI = 0.1;
 		// Multiplier modifier
 		const double MULTI_MOD = 2.0;
 		// SOM pool N:C ratio
@@ -2293,7 +2238,7 @@ void equilsom(Patch& patch) {
 
 						// Maximum positive and negative change
 						max_pos_change = soillayer.sompool[p].cmass_init * 0.1;
-						max_neg_change = -soillayer.sompool[p].cmass * 0.5;
+						max_neg_change = -soillayer.sompool[p].cmass * 0.1;
 
 						// C mass trend
 						double trend = soillayer.sompool[p].cmass - soillayer.sompool[p].cmass_init;
@@ -2304,16 +2249,12 @@ void equilsom(Patch& patch) {
 						// Trend changed sign
 						if (trend * soillayer.sompool[p].sign_trend < 0.0) {
 
-							// Add to number of times trend has changed sign in a raw
-							soillayer.sompool[p].flip++;
-
 							// Save trend sign and set same trend to zero
 							soillayer.sompool[p].sign_trend *= -1;
 
 							// Flipped sign maximum times then reduce multiplier
-							if (soillayer.sompool[p].flip == FLIP_MAX && soillayer.sompool[p].multi > MIN_MULTI) {
+							if (soillayer.sompool[p].multi > MIN_MULTI) {
 								soillayer.sompool[p].multi /= MULTI_MOD;
-								soillayer.sompool[p].flip = 0;
 							}
 
 							// Flipping so no same trend
@@ -2330,9 +2271,6 @@ void equilsom(Patch& patch) {
 								soillayer.sompool[p].multi *= MULTI_MOD;
 								soillayer.sompool[p].same_trend = 0;
 							}
-
-							// Same trend so no flipping
-							soillayer.sompool[p].flip = 0;
 						}
 
 						// N:C ratio of SOM pool

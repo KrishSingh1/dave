@@ -4962,6 +4962,16 @@ void Soilcolumn::vertical_movement() {
 */
 void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 
+	// No vertical mixing if CWD pool is empty (not woody PFT individuals)
+	if (p == SOILCWD || p == SOILFWD ) {
+		int cmass_tot = 0.0;
+		for (int lyr = 0; lyr < nsoillayers; lyr++)
+			cmass_tot += soillayers[lyr].sompool[p].cmass;
+
+		if (negligible(cmass_tot, -15))
+			return;
+	}
+
 	// Fixed multiplier to the active layer depth for maximum mixing depth
 	double k = 3.0;
 

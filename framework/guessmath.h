@@ -292,6 +292,43 @@ public:
 		}
 	}
 
+	T slope() const {
+
+		const size_t nvalues = size();
+		if (nvalues < 2) {
+			return 0;
+		}
+		else {
+			T xSum = 0, ySum = 0, xxSum = 0, xySum = 0;
+			for (size_t i = 0; i < nvalues; ++i) {
+				xSum += i + 1;
+				xxSum += (i + 1) * (i + 1);
+				ySum += values[i];
+				xySum += (i + 1) * values[i];
+			}
+
+			return (nvalues * xySum - xSum * ySum) / (nvalues * xxSum - xSum * xSum);
+		}
+	}
+
+	T std() const {
+
+		const size_t nvalues = size();
+		if (nvalues < 2) {
+			return 0;
+		}
+		else {
+			T avr = mean();
+
+			// Compute sum squared differences with mean.
+			double sqdiff = 0;
+			for (int i = 0; i < nvalues; i++)
+				sqdiff += (values[i] - avr) * (values[i] - avr);
+
+			return sqrt(sqdiff / nvalues);
+		}
+	}
+
 	/// Writes all values to a plain buffer
 	/** The values will be ordered by age, the oldest value has index 0.
 	 *

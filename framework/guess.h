@@ -202,9 +202,9 @@ const double PRIESTLEY_TAYLOR = 1.32;
 // Solving Century SOM pools
 
 /// Fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN = 0.15;
+const double SOLVESOMCENT_SPINBEGIN = 0.2;
 /// Fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND = 0.25;
+const double SOLVESOMCENT_SPINEND = 0.4;
 
 /// Kelvin to deg C conversion
 const double K2degC = 273.15;
@@ -3111,7 +3111,6 @@ public:
 		cmass_init = 0.0;
 		multi = pow(2, 4);
 		sign_trend = 1;
-		flip = 0;
 		same_trend = 0;
 		litterme = 0.0;
 		fireresist = 0.0;
@@ -3140,7 +3139,6 @@ public:
 		cmass_init = that.cmass_init;
 		multi = that.multi;
 		sign_trend = that.sign_trend;
-		flip = that.flip;
 		same_trend = that.same_trend;
 
 		for (int m = 0; m < 12; m++) {
@@ -3167,7 +3165,6 @@ public:
 		cmass_init = that.cmass_init;
 		multi = that.multi;
 		sign_trend = that.sign_trend;
-		flip = that.flip;
 		same_trend = that.same_trend;
 
 		for (int m = 0; m < 12; m++) {
@@ -3209,8 +3206,6 @@ public:
 	double multi;
 	/// Sign of passive SOM C mass trend
 	int sign_trend;
-	/// How many times the passive SOM C mass trend has flipped sign in a raw
-	int flip;
 	/// How many times the passive SOM C mass trend has have the same sign in a raw
 	int same_trend;
 

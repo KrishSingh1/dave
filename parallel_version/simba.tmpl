@@ -15,7 +15,7 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NPROCESS=15
+NPROCESS=12
 WALLTIME=150:00:00
 WALLTIME_APPEND=20:00:00   # Does not need to be as long as guess walltime
 INSFILE=guess.ins
@@ -167,6 +167,7 @@ cat <<EOF > append.cmd
 #!/bin/bash
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
+#SBATCH --oversubscribe
 #SBATCH --mail-type=$MAILTYPE
 set -e
 

@@ -642,6 +642,18 @@ public:
 	/// Random state's residuals
 	double resid[4];
 
+	WeatherGenState() {
+		for (int i = 0; i<10; i++) q[i] = 0;
+		carry = 0;
+		xcng = 0;
+		xs = 0;
+		indx = 0;
+		have = false;
+		for (int i = 0; i<2; i++) gamma_vals[i] = 0.0;
+		for (int i = 0; i<2; i++) pday[i] = false;
+		for (int i = 0; i<4; i++) resid[i] = 0.0;
+	}
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3327,9 +3339,6 @@ public:
 	// available water holding capacity of soil layers [0=upper layer] [mm], taking into
 	// account the unavailability of frozen water. Default value: soiltype.awc[]
 	double whc[NSOILLAYER];
- 	// available water holding capacity of evap soil layers [mm], taking into
-	// account the unavailability of frozen water. Default value: (2/5) * soiltype.awc[]
-	double whc_evap;
 	/// Max water (mm) that can be held in each layer
 	double aw_max[NSOILLAYER];
 	// Volumetric liquid water content. A fraction. Considers the entire (awc + Fpwp)

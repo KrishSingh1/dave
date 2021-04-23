@@ -268,7 +268,7 @@ void CommonOutput::define_output_tables() {
 	simfireanalysis_columns += ColumnDescriptor("MxNest",	7, 0);
 	simfireanalysis_columns += ColumnDescriptor("PopDens",	10, 3);
 	simfireanalysis_columns += ColumnDescriptor("AMxFApar",	10, 7);
-	simfireanalysis_columns += ColumnDescriptor("BurnFr",	10, 7);
+	simfireanalysis_columns += ColumnDescriptor("FireProb",	10, 7);
 	simfireanalysis_columns += ColumnDescriptor("Region",	7, 0);
 	
 	// RUNOFF
@@ -1413,6 +1413,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_simfireanalysis,			gridcell.simfire_biome);
 	outlimit(out,out_simfireanalysis,			gridcell.max_nesterov);
 	outlimit(out,out_simfireanalysis,			gridcell.pop_density);
+	outlimit(out,out_simfireanalysis,			gridcell.ann_max_fapar);
+	outlimit(out,out_simfireanalysis,			gridcell.simfire_annual_burned_area);
 	outlimit(out,out_simfireanalysis,			gridcell.simfire_region);
 	outlimit(out,out_firert,				firert_gridcell);
 	outlimit(out,out_firert,				burned_area_gridcell);

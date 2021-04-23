@@ -4082,8 +4082,6 @@ public:
 	double avg_fshrb[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Total fapar
 	double avg_ftot[N_YEAR_BIOMEAVG];
-	/// SIMFIRE BIOME
-	int simfire_biome;
 
 	/// whether management has started on this patch
 	bool managed;
@@ -4752,9 +4750,11 @@ public:
 	double monthly_fire_risk[12];
 	/// current burned area from SIMFIRE (fract.)
 	double burned_area;
+	/// effectively burned area (after randFrac in BLAZE)
 	double effective_burned_area;
 	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
 	double burned_area_accumulated;
+	/// accumulated simfire burned area
 	double simfire_annual_burned_area;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;

@@ -60,9 +60,6 @@ int update_fire_biome(Patch& patch, double lat) {
 	double ftot   = 0.0; // total FPAR of all individuals
 	int biome     = 0;   // biome number
 
-	// set default biome 0
-	patch.simfire_biome = 0;
-
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
@@ -177,8 +174,6 @@ int update_fire_biome(Patch& patch, double lat) {
 		biome = SF_SAVANNA; 
 	}
 
-	patch.simfire_biome = biome;
-	
 	return biome;
 }
 

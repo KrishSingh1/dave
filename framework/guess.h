@@ -4076,10 +4076,14 @@ public:
 	double avg_fndlt[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Broad-leaf tree
 	double avg_fbrlt[N_YEAR_BIOMEAVG];
+	/// SIMFIRE fapar: TrBR (Savanna)
+	double avg_ftrbr[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Shrubs
 	double avg_fshrb[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Total fapar
 	double avg_ftot[N_YEAR_BIOMEAVG];
+	/// SIMFIRE BIOME
+	int simfire_biome;
 
 	/// whether management has started on this patch
 	bool managed;
@@ -4748,8 +4752,10 @@ public:
 	double monthly_fire_risk[12];
 	/// current burned area from SIMFIRE (fract.)
 	double burned_area;
+	double effective_burned_area;
 	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
 	double burned_area_accumulated;
+	double simfire_annual_burned_area;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
 	/// annual burned area from SIMFIRE (fract.)

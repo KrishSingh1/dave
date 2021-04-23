@@ -409,6 +409,7 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 
 	for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
 		avg_fbrlt[i] = 0.0;
+		avg_ftrbr[i] = 0.0;
 		avg_fgrass[i] = 0.0;
 		avg_fndlt[i] = 0.0;
 		avg_fshrb[i] = 0.0;
@@ -481,6 +482,8 @@ void Patch::serialize(ArchiveStream& arch) {
 			arch & avg_fndlt[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fbrlt[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_ftrbr[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fshrb[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)

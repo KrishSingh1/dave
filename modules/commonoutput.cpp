@@ -256,17 +256,19 @@ void CommonOutput::define_output_tables() {
 	// FIRERT
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",			8, 1);
-	firert_columns += ColumnDescriptor("BurntAr",			8, 5);
+	firert_columns += ColumnDescriptor("BurntFr",			8, 5);
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("BurntAr",			9, 5);
+	blaze_columns += ColumnDescriptor("BurntFr",			9, 5);
 
 	// SIMFIRE Analysis 
 	ColumnDescriptors simfireanalysis_columns;
 	simfireanalysis_columns += ColumnDescriptor("Biome",	6, 0);
 	simfireanalysis_columns += ColumnDescriptor("MxNest",	7, 0);
 	simfireanalysis_columns += ColumnDescriptor("PopDens",	10, 3);
+	simfireanalysis_columns += ColumnDescriptor("AMxFApar",	10, 7);
+	simfireanalysis_columns += ColumnDescriptor("BurnFr",	10, 7);
 	simfireanalysis_columns += ColumnDescriptor("Region",	7, 0);
 	
 	// RUNOFF

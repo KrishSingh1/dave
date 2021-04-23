@@ -54,20 +54,25 @@ const double TURNOVERFRACT[13][5] = {
 	{ .0 ,  .0 ,  .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
-// tuning faktors for litter ready for combustion
-// boreal
-const double K_LITTER_BOREAL = 0.8 ;
-// temperate region
-const double K_LITTER_TEMPERATE = 0.8 ;
-// tropics
-const double K_LITTER_TROPICS = 1. ;
+// Tuning faktors for litter ready for combustion
+// Boreal
+const double K_LITTER_BOREAL    = 0.24;
+// Temperate region
+const double K_LITTER_TEMPERATE = 0.003;
+// Tropics
+const double K_LITTER_TROPICS   = 0.2;
+// Savanna
+const double K_LITTER_SAVANNA   = 0.5 ;
+
+// Grassy vegetation burn-rate for cohort and individual mode
+const double MAX_GRASS_BURN = 0.75;
 
 // fraction of life woody biomass that is branch
 const double F_BRANCH   = 0.05;
 // fraction of life woody biomass that is bark
 const double F_BARK     = 0.01;
 // minimum available fuel to start a fire [gC/m2]
-const double MIN_FUEL   = 120.;
+const double MIN_FUEL   = 200.;
 
 const double RAINFALL_AVERAGING_SPAN = 3;
 	
@@ -142,7 +147,7 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	// relative fluxes from litter pools to atmosphere
 	patch.litf_to_atm = TURNOVERFRACT[11][fli_index];
 	patch.lfwd_to_atm = TURNOVERFRACT[10][fli_index];
-	patch.lcwd_to_atm = TURNOVERFRACT[ 9][fli_index];
+	patch.lcwd_to_atm = TURNOVERFRACT[ 9][fli_index] * k_tun_litter;
 	return;
 }
 
@@ -231,25 +236,18 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 	
-	for ( int i=0; i<4; i++ ) {
-
-		// Get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
-		avail_fuel = available_fuel(patch,fire_line_intensity_index,gridcell.k_tun_litter) * G_PER_KG;
-		// Check whether there is enough fuel to ignite a fire
-		if ( avail_fuel < MIN_FUEL ) { 
-			fire_line_intensity  =  -1. ;
-			break;
-		}
+	// Get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
+	avail_fuel = available_fuel(patch,fire_line_intensity_index,gridcell.k_tun_litter) * G_PER_KG;
+	// Check whether there is enough fuel to ignite a fire
+	if ( avail_fuel < MIN_FUEL ) { 
+		fire_line_intensity  =  -1. ;
+	}
+	else {
 		// Compute Rate-of-spread [m/s]
 		rate_of_spread = A * climate.mcarthur_forest_fire_index * avail_fuel;
 		
 		// Fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
 		fire_line_intensity = HEAT_YIELD * avail_fuel * rate_of_spread;
-
-		// Re-copmute FLI index 
-		fire_line_intensity_index = get_fire_line_intensity_index(fire_line_intensity);
-		
-		if (i >= fire_line_intensity_index ) break;
 	}
 	patch.fire_line_intensity = fire_line_intensity;
 }
@@ -315,7 +313,7 @@ double survival_probability_temp_broadleaf(double dbh, double fli, bool is_respr
 	return survival_probability_temp_broadleaf;
 }
 
-// Survival probability for tropical trees following Nieuwstadt 2005
+// Survival probability for tropical trees following van Nieustadt 2005
 double survival_probability_tropics(double dbh, double fire_line_intensity) {
 
 	// DBH in cm
@@ -494,21 +492,25 @@ double survival_probability(Patch& patch, Individual& indiv) {
  */
 void blaze(Patch& patch, Climate& climate) {
 
-	// Grassy vegetation burn-rate for cohort and individual mode
-	const double MAX_GRASS_BURN = 0.75;
-
 	Gridcell& gridcell = climate.gridcell;
 	
-	double area_burned  = gridcell.burned_area;
+	// Flammable area witin gridcell
+	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[FOREST]+gridcell.landcover.frac[NATURAL]+gridcell.landcover.frac[PEATLAND];
 
-	// Correction fractions burned earlier in the same year (vegmode = POPULATION only)
-	double accumulated_fraction_burned= 1.  / (1. - gridcell.burned_area_accumulated);
-
-	// Check whether it burns
-	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) {
+	// Return if total burnable area has already burned
+	if (flammable_area < 0.00001 ) {
+		return;
+	}
+	if (gridcell.burned_area_accumulated >= flammable_area) {
 		return;
 	}
 	
+	// Effective area burned as fraction of burnable area
+	double area_burned = gridcell.burned_area / flammable_area;
+
+	// Correction fractions burned earlier in the same year (vegmode = POPULATION only)
+	double accumulated_fraction_burned= 1.  / (1. - gridcell.burned_area_accumulated / flammable_area);
+
 	// Get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 	
@@ -517,12 +519,19 @@ void blaze(Patch& patch, Climate& climate) {
 		return;
 	}
 
+	// Check whether it burns
+	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) {
+		return;
+	}
+	
 	// Adjustment factor for fluxes
 	double fab = 1.0;
 	if ( vegmode == POPULATION ) {
 		fab = max(area_burned * accumulated_fraction_burned,1.);
 	}
-
+	
+	gridcell.effective_burned_area += flammable_area;
+	
 	get_combustion_rates(patch,fli_index,gridcell.k_tun_litter);
 
 	// Compute fluxes from soil litter pools to atmosphere first
@@ -1005,23 +1014,22 @@ void blaze_accounting_gridcell(Climate& climate) {
 		for (int x=0; x<30; x++) {
 			climate.months_ffdi[x] = 0.;
 		}
-		gridcell.can_burn            = 0;   // Indicator whether a fire can burn to be carried through patches
 		gridcell.burned_area         = 0.0; // area burned [frac.]
 	}
 
 	// To keep track of burned area over the year
 	// reset accumulated area_burned to 0 on begining of year
 	if (date.day == 0 ) {
-		gridcell.burned_area_accumulated = 0.0;
-		gridcell.annual_burned_area      = 0.0;
+		gridcell.burned_area_accumulated    = 0.0;
+		gridcell.annual_burned_area         = 0.0;
+		gridcell.simfire_annual_burned_area = 0.0;
 		
 		for (int i = 0; i < 12; i++) {
 			gridcell.monthly_burned_area[i] = 0.0;
 		}
 	}
-	gridcell.can_burn = 0;
 
-	if ( is_first_day ) {
+	if ( date.day == 0 ) {
 
 		double lat = climate.gridcell.get_lat();
 
@@ -1031,6 +1039,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 		}
 		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
 			gridcell.k_tun_litter = K_LITTER_TEMPERATE;
+		}
+		else if ( gridcell.simfire_biome == SF_SAVANNA ) {
+			gridcell.k_tun_litter = K_LITTER_SAVANNA;
 		}
 		else {
 			gridcell.k_tun_litter = K_LITTER_TROPICS;
@@ -1069,7 +1080,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 		else {
 			dkbdi = 0.0;
 		}
-	} 
+	}
 	else {
 		dkbdi = (( 800. - climate.kbdi) * (.968 * exp(.0486 * (t * 9./5. + 32.)) 
 			 - 8.3) / 1000. / (1. + 10.88 * exp(-.0441 * 
@@ -1096,6 +1107,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.mcarthur_forest_fire_index = climate.months_ffdi[x];
 		}
 	}
+	gridcell.effective_burned_area = 0.;
 
 	// Get burned area
 	gridcell.burned_area = simfire_burned_area(gridcell);
@@ -1175,11 +1187,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	// Get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 
-	// Determine whether burned area shall be added to output
-	// if no fire -> no burned area
-	if ( fli_index >= 0 ) 
-		gridcell.can_burn += 1;
-	
 	if (!negligible(gridcell.burned_area)) {
 		blaze(patch, climate);
 	}
@@ -1188,10 +1195,12 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	patch.fire_line_intensity = 0.0;
 	if ( patch.id == patch.stand.nobj-1 ) {
 		// Now add Burned Area to output if there was enough fuel...
-		if ( gridcell.can_burn > 0 ) {
-			gridcell.annual_burned_area              += gridcell.burned_area;
-			gridcell.monthly_burned_area[date.month] += gridcell.burned_area;
-		}
+		gridcell.effective_burned_area           /= patch.stand.nobj;
+		gridcell.annual_burned_area              += gridcell.effective_burned_area;
+		gridcell.monthly_burned_area[date.month] += gridcell.effective_burned_area;
+		gridcell.burned_area_accumulated         += gridcell.effective_burned_area;
+		gridcell.simfire_annual_burned_area      += gridcell.burned_area;
+		gridcell.burned_area = 0.0;
 	}
 }
 

@@ -202,9 +202,9 @@ const double PRIESTLEY_TAYLOR = 1.32;
 // Solving Century SOM pools
 
 /// Fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN = 0.2;
+const double SOLVESOMCENT_SPINBEGIN = 0.1;
 /// Fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND = 0.4;
+const double SOLVESOMCENT_SPINEND = 0.3;
 
 /// Kelvin to deg C conversion
 const double K2degC = 273.15;

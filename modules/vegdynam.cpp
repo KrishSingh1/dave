@@ -1309,7 +1309,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			if (indiv.pft.lifeform == TREE) {
 
 				// Kill 20% of standing woody biomass 
-				frac_survive = 0.4;
+				frac_survive = 0.5;
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals

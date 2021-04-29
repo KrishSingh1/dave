@@ -1857,8 +1857,9 @@ void equilsom(Patch& patch) {
 		const int MIN_TRIES = 200;
 		// Maximum tries of iterations
 		const int MAX_TRIES = 1000;
-		// Maximum trend
+		// Maximum trend / std
 		const double EPS_trend = 1.0e-6;
+		const double EPS_trend_passive = 1.0e-8;
 		// Number of trends that doesn't meet the criteria
 		int bad_trend = 1;
 		// Iteration tries
@@ -2127,8 +2128,8 @@ void equilsom(Patch& patch) {
 					double hstdccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
 
 					// Calculte how many trends and stds that are too big
-					if ((iftwolayersoil || lyr > 0) && (fabs(hscwd) > EPS_trend || fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend || fabs(hsccont) > EPS_trend) &&
-						(fabs(hstdcwd) > EPS_trend || fabs(hstdslow) > EPS_trend || fabs(hstdpas) > EPS_trend || fabs(hstdccont) > EPS_trend)) {
+					if ((iftwolayersoil || lyr > 0) && (fabs(hscwd) > EPS_trend || fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend_passive || fabs(hsccont) > EPS_trend) &&
+						(fabs(hstdcwd) > EPS_trend || fabs(hstdslow) > EPS_trend || fabs(hstdpas) > EPS_trend_passive || fabs(hstdccont) > EPS_trend)) {
 
 						bad_trend++;
 					}
@@ -2198,13 +2199,13 @@ void equilsom(Patch& patch) {
 	else if (!(peat_age && patch.stand.landcover == PEATLAND)) {
 
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
-		const int SAME_TREND_MAX = 4;
+		const int SAME_TREND_MAX = 0;
 		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		double MAX_MULTI = 16.0;
+		const double MAX_MULTI = 16.0;
 		// Minimum multiplier
-		const double MIN_MULTI = 0.1;
+		const double MIN_MULTI = 0.25;
 		// Multiplier modifier
 		const double MULTI_MOD = 2.0;
 		// SOM pool N:C ratio

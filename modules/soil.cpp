@@ -4837,67 +4837,59 @@ void Soilcolumn::vertical_movement() {
 	// Mass balance
 	// double cbefore = get_sum(CCONT);
 
+	// Root C biomass in soil layers
+	// 
+	// Coarse woody root debris fraction of total woody biomass
+	const double FCWD_ROOT = 0.22; // DW_COMMENT already defined in somdynam.h
+
+	std::vector<double> ccont_roots(nsoillayers);
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			ccont_roots[lyr] += (indiv.cmass_root + FCWD_ROOT * (indiv.cmass_sap + indiv.cmass_heart)) * indiv.pft.rootdist[lyr];
+		}
+
+		vegetation.nextobj();
+	}
+
 	int donor, receiver;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		double ccont = soillayers[lyr].ccont();
+		double ccont_soil = soillayers[lyr].ccont(true);
 
 		// If soil layer C exceed maximu, then move SOM downwards
-		if (ccont > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		if (ccont_soil + ccont_roots[lyr] > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
 			donor = lyr;
 			receiver = lyr + 1;
 
 			if (receiver < nsoillayers) {
 
-				double ccont_donor = ccont;
-				double ccont_receiver = soillayers[receiver].ccont();
+				double ccont_donor = ccont_soil + ccont_roots[lyr];
+				double ccont_receiver = soillayers[receiver].ccont(true) + ccont_roots[receiver];
 
-				if (!negligible(ccont_donor)) {
+				if (!negligible(ccont_soil)) {
 
 					double move_frac = 0.0;
 
 					// Downwards movement of SOM
-					if (receiver > donor) {
-
-						move_frac = (ccont_donor - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / ccont_donor;
-					}
-					// Upward movement of SOM
-					else if (receiver < donor) {
-
-						move_frac = min(maxSOCdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
-					}
+					move_frac = (ccont_donor - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / ccont_soil;
 
 					for (int p = 0; p < NSOMPOOL; p++) {
-						double cmove = soillayers[donor].sompool[p].cmass * move_frac;
-						double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 
-						soillayers[donor].sompool[p].cmass -= cmove;
-						soillayers[donor].sompool[p].nmass -= nmove;
+						if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS)) {
+							double cmove = soillayers[donor].sompool[p].cmass * move_frac;
+							double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 
-						int p_receiver = p;
+							soillayers[donor].sompool[p].cmass -= cmove;
+							soillayers[donor].sompool[p].nmass -= nmove;
 
-						if (p_receiver == SURFMETA) {
-							p_receiver = SOILMETA;
+							soillayers[receiver].sompool[p].cmass += cmove;
+							soillayers[receiver].sompool[p].nmass += nmove;
 						}
-						else if (p_receiver == SURFSTRUCT) {
-							p_receiver = SOILSTRUCT;
-						}
-						else if (p_receiver == SURFFWD) {
-							p_receiver = SOILFWD;
-						}
-						else if (p_receiver == SURFCWD) {
-							p_receiver = SOILCWD;
-						}
-						else if (p_receiver == SURFMICRO) {
-							p_receiver = SOILMICRO;
-						}
-						else if (p_receiver == SURFHUMUS) {
-							p_receiver = SLOWSOM;
-						}
-
-						soillayers[receiver].sompool[p_receiver].cmass += cmove;
-						soillayers[receiver].sompool[p_receiver].nmass += nmove;
 					}
 				}
 			}
@@ -4918,7 +4910,7 @@ void Soilcolumn::vertical_movement() {
 				soillayers[donor].set_properties(wmass_add, imass_add);
 			}
 		}
-		else if (patch.stand.landcover == PEATLAND && ccont < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		else if (patch.stand.landcover == PEATLAND && ccont_soil + ccont_roots[lyr] < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
 			// Check if SOM can be moved upwards
 
 			donor = lyr + 1;
@@ -4926,22 +4918,25 @@ void Soilcolumn::vertical_movement() {
 
 			if (donor < nsoillayers) {
 
-				double ccont_donor = soillayers[donor].ccont();
-				double ccont_receiver = ccont;
+				double ccont_donor = soillayers[donor].ccont(true);
+				double ccont_receiver = ccont_soil + ccont_roots[lyr];
 
 				if (!negligible(ccont_donor)) {
 
 					double move_frac = min(maxSOCdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
 
 					for (int p = 0; p < NSOMPOOL; p++) {
-						double cmove = soillayers[donor].sompool[p].cmass * move_frac;
-						double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 
-						soillayers[donor].sompool[p].cmass -= cmove;
-						soillayers[donor].sompool[p].nmass -= nmove;
+						if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS)) {
+							double cmove = soillayers[donor].sompool[p].cmass * move_frac;
+							double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 
-						soillayers[receiver].sompool[p].cmass += cmove;
-						soillayers[receiver].sompool[p].nmass += nmove;
+							soillayers[donor].sompool[p].cmass -= cmove;
+							soillayers[donor].sompool[p].nmass -= nmove;
+
+							soillayers[receiver].sompool[p].cmass += cmove;
+							soillayers[receiver].sompool[p].nmass += nmove;
+						}
 					}
 				}
 			}

@@ -1896,16 +1896,16 @@ double Soillayer::wcont_max() {
 
 /// C content of soil layer
 /** C content of soil layer
- * Could also include/exclude surface litter
+ * Could also include/exclude litter
  */
-double Soillayer::ccont(bool exclude_surf) {
+double Soillayer::ccont(bool exclude_litter) {
 	double ccont = 0.0;
 
 	ccont += cpool_fast;
 	ccont += cpool_slow;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if ( !(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SURFMICRO || i == SURFHUMUS)) )
+		if ( !(exclude_litter && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SOILMETA || i == SOILSTRUCT || i == SOILFWD || i == SOILCWD)))
 			ccont += sompool[i].cmass;
 	}
 
@@ -1914,13 +1914,13 @@ double Soillayer::ccont(bool exclude_surf) {
 
 /// N content of soil layer
 /** N content of soil layer
- * Could also include/exclude surface litter
+ * Could also include/exclude litter
  */
-double Soillayer::ncont(bool exclude_surf) {
+double Soillayer::ncont(bool exclude_litter) {
 	double ncont = NH4_mass + NO3_mass + NO2_mass + NO_mass + N2O_mass + N2_mass;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if (!(exclude_surf && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SURFMICRO || i == SURFHUMUS)))
+		if (!(exclude_litter && (i == SURFMETA || i == SURFSTRUCT || i == SURFFWD || i == SURFCWD || i == SOILMETA || i == SOILSTRUCT || i == SOILFWD || i == SOILCWD)))
 			ncont += sompool[i].nmass;
 	}
 
@@ -4843,7 +4843,7 @@ void Soilcolumn::vertical_movement() {
 	const double FCWD_ROOT = 0.22; // DW_COMMENT already defined in somdynam.h
 
 	std::vector<double> ccont_roots(nsoillayers);
-	Vegetation& vegetation = patch.vegetation;
+	/*Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
@@ -4853,9 +4853,9 @@ void Soilcolumn::vertical_movement() {
 		}
 
 		vegetation.nextobj();
-	}
+	}*/
 
-	int donor, receiver;
+	int donor, receiver, p_receiver;;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -4880,15 +4880,22 @@ void Soilcolumn::vertical_movement() {
 
 					for (int p = 0; p < NSOMPOOL; p++) {
 
-						if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS)) {
+						if (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
 							double cmove = soillayers[donor].sompool[p].cmass * move_frac;
 							double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 
 							soillayers[donor].sompool[p].cmass -= cmove;
 							soillayers[donor].sompool[p].nmass -= nmove;
 
-							soillayers[receiver].sompool[p].cmass += cmove;
-							soillayers[receiver].sompool[p].nmass += nmove;
+							if (p == SURFHUMUS)
+								p_receiver = SLOWSOM;
+							else if (SURFMICRO)
+								p_receiver = SOILMICRO;
+							else
+								p_receiver = p;
+
+							soillayers[receiver].sompool[p_receiver].cmass += cmove;
+							soillayers[receiver].sompool[p_receiver].nmass += nmove;
 						}
 					}
 				}
@@ -4927,7 +4934,7 @@ void Soilcolumn::vertical_movement() {
 
 					for (int p = 0; p < NSOMPOOL; p++) {
 
-						if (!(p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD || p == SURFMICRO || p == SURFHUMUS)) {
+						if (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
 							double cmove = soillayers[donor].sompool[p].cmass * move_frac;
 							double nmove = soillayers[donor].sompool[p].nmass * move_frac;
 

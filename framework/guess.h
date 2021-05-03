@@ -3744,9 +3744,9 @@ public:
 	/// Set soil layer properties
 	void set_properties(double& wmass_move, double& imass_move);
 	/// C content of soil layer
-	double ccont(bool exclude_surf = false);
+	double ccont(bool exclude_litter = false);
 	/// N content of soil layer
-	double ncont(bool exclude_surf = false);
+	double ncont(bool exclude_litter = false);
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer

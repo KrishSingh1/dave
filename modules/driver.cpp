@@ -724,15 +724,11 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		// Determine static soil carbon fractions
-		if (iforganicsoilproperties == 1 && date.year == 0) {
-			soilcolumn.set_static_socfrac();
-		}
+		soilcolumn.set_static_socfrac();
 
 		// Water to be moved due to decreases in wsats
 		double wmass_move = 0.0;
 		double imass_move = 0.0;
-
-		soilcolumn.cmass_litter_input[0] = 0.0;
 
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -741,7 +737,7 @@ void dailyaccounting_patch(Patch& patch) {
 			soillayer.aorgNleach = 0.0;
 			soillayer.aorgCleach = 0.0;
 			soillayer.aminleach = 0.0;
-			soilcolumn.cmass_litter_input[lyr + 1] = 0.0;
+			soilcolumn.cmass_litter_input[lyr] = 0.0;
 
 			if (date.year == 0) {
 				soillayer.mwcontabove = 0.0;
@@ -751,6 +747,12 @@ void dailyaccounting_patch(Patch& patch) {
 			soillayer.set_properties(wmass_move, imass_move);
 
 			total_water += soillayer.wsats;
+		}
+
+		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			soilcolumn.csom_litter_input[p] = 0.0;
 		}
 
 		// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 

@@ -2149,9 +2149,16 @@ void Soillayer::update_thermal_cap_cond(bool combine_snow, double snow_depth, do
 	// Add snow properties if to combine thin snow layer to top soil layer
 	if (combine_snow) {
 		combined_depth += snow_depth;
-		air += snow_depth - (snow_imass + snow_wmass);
-		ice += snow_imass;
-		water += snow_wmass;
+		if (snow_imass + snow_wmass > snow_depth) {
+			ice += snow_imass * snow_depth / (snow_imass + snow_wmass);
+			water += snow_wmass * snow_depth / (snow_imass + snow_wmass);
+			// No air
+		}
+		else {
+			air += snow_depth - (snow_imass + snow_wmass);
+			ice += snow_imass;
+			water += snow_wmass;
+		}
 	}
 
 	// Update heat capacity (J m-3 K-1)
@@ -2164,8 +2171,8 @@ void Soillayer::update_thermal_cap_cond(bool combine_snow, double snow_depth, do
 	Stot = mineral + organic + ice + water + peat;
 
 	if ((Stot + air) / combined_depth > 1.000001)
-		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g", 
-			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
+		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\nCombined depth %g Snow depth %g Air %g Ice %g Air %g", 
+			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth, combined_depth, snow_depth, snow_depth-snow_imass-snow_wmass, snow_imass, snow_wmass);
 
 	// Calculate log terms
 	lKforg = (organic / Stot) * log(Korg);
@@ -2226,6 +2233,7 @@ void Soilcolumn::initdrivers() {
 	pad.resize(PAD_LAYERS);
 	soillayerdepths.resize(1);
 	cmass_litter_input.resize(1);
+	csom_litter_input.resize(1);
 	wfluxes.resize(1);
 
 	depth = 0.0;
@@ -2282,8 +2290,11 @@ void Soilcolumn::initdrivers() {
 	solvesom_begin = static_cast<int>(0.7 * nyear_spinup);
 
 	// Solve CENTURY SOM pools
-	solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
-	solvesomcent_endyr = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
+	//solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
+	//solvesomcent_endyr = (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears);
+
+	solvesomcent_beginyr = (int)0.5*freenyears;
+	solvesomcent_endyr = (int)freenyears;
 	savesomcent = false;
 }
 
@@ -2332,6 +2343,9 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 
 	// Set size of litter input vector (surface as well)
 	cmass_litter_input.resize(nsoillayers + 1, 0.0);
+
+	// Set size of SOM litter input vector
+	csom_litter_input.resize(NSOMPOOL, 0.0);
 
 	// Set sizes of water flow calculation parameters
 	wpara.set_sizes(nsoillayers);
@@ -2607,6 +2621,10 @@ void Soilcolumn::set_mtemp() {
 /** Determines static soil layer organic fractions 
  */
 void Soilcolumn::set_static_socfrac() {
+
+	// Only enter first year except if dynamic soil organic C influence soil properties
+	if (!(date.day == 0 && patch.stand.first_year == date.year && iforganicsoilproperties == 1))
+		return;
 
 	// Use a beta value to reproduce the global vertical SOC profile shown in Fig 4 of Jobbagy & Jackson (2010)
 	const double beta_SOC = 0.976;

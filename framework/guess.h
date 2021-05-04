@@ -3109,7 +3109,7 @@ public:
 		fracremain = 0.0;
 		ntoc = 0.0;
 		cmass_init = 0.0;
-		multi = pow(2, 4);
+		multi = 1.0;
 		sign_trend = 1;
 		same_trend = 0;
 		litterme = 0.0;
@@ -4030,6 +4030,8 @@ public:
 	int nsoillayers;
 	/// vector with surface and soil layer litter input
 	std::vector<double> cmass_litter_input;
+	/// vector with SOM pool litter input
+	std::vector<double> csom_litter_input;
 	/// number of acrotelm soil layers
 	int nacrotelm;
 	/// number of catotelm soil layers

@@ -49,6 +49,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_soiltotlim", &file_soiltotlim, 300, "Annual nitrogen total limitation on SOM decomposition output file");
 	declare_parameter("file_soilcuelim", &file_soilcuelim, 300, "Annual carbon use efficiency on SOM decomposition output file");
 	declare_parameter("file_clitterinput", &file_clitterinput, 300, "Annual carbon litter input to soil column output file");
+	declare_parameter("file_csomlitterinput", &file_csomlitterinput, 300, "Annual carbon litter input to SOM pools output file");
 	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
@@ -448,6 +449,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_soiltotlim,     file_soiltotlim,     soillyr_columns_short);
 	create_output_table(out_soilcuelim,     file_soilcuelim,     soillyr_columns_short);
 	create_output_table(out_clitterinput,   file_clitterinput,   surfsoillyr_columns);
+	create_output_table(out_csomlitterinput,file_csomlitterinput,soms_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
 
 	if ( firemodel == BLAZE ) {
@@ -744,6 +746,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double cdec[NSOILLAYER_MAX][2];
 	double cinc[NSOILLAYER_MAX][2];
 	double clitterinput[NSOILLAYER_MAX + 1];
+	double csomlitterinput[NSOMPOOL];
 
 	// hold the monthly average across patches
 	double mnpp[12];
@@ -1268,6 +1271,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	for (int p = 0; p < NSOMPOOL; p++) {
+		csomlitterinput[p] = 0.0;
+	}
+
 	for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
 		soilc[lyr] = 0.0;
 		soilr[lyr] = 0.0;
@@ -1375,6 +1382,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			clitterinput[0] += soilcolumn.cmass_litter_input[0] * to_gridcell_average;
 
+			for (int p = 0; p < NSOMPOOL; p++) {
+				csomlitterinput[p] += soilcolumn.csom_litter_input[p] * to_gridcell_average;
+			}
+
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -1399,34 +1410,34 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				c_fast += soillayer.cpool_fast * to_gridcell_average;
 				c_slow += soillayer.cpool_slow * to_gridcell_average;
 
-				for (int r = 0; r < NSOMPOOL; r++) {
+				for (int p = 0; p < NSOMPOOL; p++) {
 
-					if (r == SURFMETA || r == SURFSTRUCT) {
-						surflitterc += soillayer.sompool[r].cmass * to_gridcell_average;
-						surflittern += soillayer.sompool[r].nmass * to_gridcell_average;
+					if (p == SURFMETA || p == SURFSTRUCT) {
+						surflitterc += soillayer.sompool[p].cmass * to_gridcell_average;
+						surflittern += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
-					else if (r == SURFFWD || r == SURFCWD) {
-						surfcwdc += soillayer.sompool[r].cmass * to_gridcell_average;
-						surfcwdn += soillayer.sompool[r].nmass * to_gridcell_average;
+					else if (p == SURFFWD || p == SURFCWD) {
+						surfcwdc += soillayer.sompool[p].cmass * to_gridcell_average;
+						surfcwdn += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
-					else if (r == SURFMICRO || r == SURFHUMUS) {
-						surfhumusc += soillayer.sompool[r].cmass * to_gridcell_average;
-						surfhumusn += soillayer.sompool[r].nmass * to_gridcell_average;
+					else if (p == SURFMICRO || p == SURFHUMUS) {
+						surfhumusc += soillayer.sompool[p].cmass * to_gridcell_average;
+						surfhumusn += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
-					else if (r == SOILMETA || r == SOILSTRUCT) {
-						soillitterc += soillayer.sompool[r].cmass * to_gridcell_average;
-						soillittern += soillayer.sompool[r].nmass * to_gridcell_average;
+					else if (p == SOILMETA || p == SOILSTRUCT) {
+						soillitterc += soillayer.sompool[p].cmass * to_gridcell_average;
+						soillittern += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
-					else if (r == SOILFWD || r == SOILCWD) {
-						soilcwdc += soillayer.sompool[r].cmass * to_gridcell_average;
-						soilcwdn += soillayer.sompool[r].nmass * to_gridcell_average;
+					else if (p == SOILFWD || p == SOILCWD) {
+						soilcwdc += soillayer.sompool[p].cmass * to_gridcell_average;
+						soilcwdn += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
 					else {
-						centuryc += soillayer.sompool[r].cmass * to_gridcell_average;
-						centuryn += soillayer.sompool[r].nmass * to_gridcell_average;
+						centuryc += soillayer.sompool[p].cmass * to_gridcell_average;
+						centuryn += soillayer.sompool[p].nmass * to_gridcell_average;
 					}
 
-					somc[r][lyr] += soillayer.sompool[r].cmass * to_gridcell_average;
+					somc[p][lyr] += soillayer.sompool[p].cmass * to_gridcell_average;
 				}
 			}
 
@@ -1704,6 +1715,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	for (int p = 0; p < NSOMPOOL; p++) {
 		outlimit(out, out_csom, csom_gridcell[p]);
+		outlimit(out, out_csomlitterinput, csomlitterinput[p]);
 	}
 
 	// Print monthly output variables
@@ -1777,9 +1789,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				plot("N mineralization [kgN/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 
-				plot("Soil C [kgC/m2]","fine litter",   date.year, surflitterc + soillitterc + surfhumusc);
+				plot("Soil C [kgC/m2]","fine litter",   date.year, surflitterc + soillitterc);
 				plot("Soil C [kgC/m2]","coarse litter", date.year, surfcwdc + soilcwdc);
-				plot("Soil C [kgC/m2]","soil",          date.year, centuryc);
+				plot("Soil C [kgC/m2]","soil",          date.year, centuryc + surfhumusc);
 				plot("Soil C [kgC/m2]","total",         date.year, surflitterc + soillitterc + surfcwdc + soilcwdc + centuryc + surfhumusc);
 
 				plot("Soil N [kgN/m2]","fine litter",   date.year, surflittern + soillittern + surfhumusn);
@@ -1852,8 +1864,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_cpool, c_slow);
 	}
 	else {
-		outlimit(out,out_cpool, clitter_gridcell + surflitterc + surfcwdc + surfhumusc);
-		outlimit(out,out_cpool, centuryc + soillitterc + soilcwdc);
+		outlimit(out,out_cpool, clitter_gridcell + surflitterc + surfcwdc);
+		outlimit(out,out_cpool, centuryc + surfhumusc + soillitterc + soilcwdc);
 	}
 
 	if (run_landcover && ifslowharvestpool) {

@@ -1179,6 +1179,8 @@ void transfer_litter(Patch& patch) {
 						soillayer.sompool[SURFMETA].nmass += nmass_litter_leaf * fm;
 
 						soilcolumn.cmass_litter_input[0] += cmass_litter_leaf;
+						soilcolumn.csom_litter_input[SURFSTRUCT] += cmass_litter_leaf * (1.0 - fm);
+						soilcolumn.csom_litter_input[SURFMETA] += cmass_litter_leaf * fm;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
@@ -1227,6 +1229,8 @@ void transfer_litter(Patch& patch) {
 						soillayer.sompool[SOILMETA].nmass += nmass_litter_root * root_lyr_frac * fm;
 
 						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_root * root_lyr_frac;
+						soilcolumn.csom_litter_input[SOILSTRUCT] += cmass_litter_root * root_lyr_frac * (1.0 - fm);
+						soilcolumn.csom_litter_input[SOILMETA] += cmass_litter_root * root_lyr_frac * fm;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
@@ -1263,6 +1267,7 @@ void transfer_litter(Patch& patch) {
 							soillayer.sompool[SURFFWD].nmass += nmass_litter_sap * (1.0 - FCWD_ROOT);
 
 							soilcolumn.cmass_litter_input[0] += cmass_litter_sap * (1.0 - FCWD_ROOT);
+							soilcolumn.csom_litter_input[SURFFWD] += cmass_litter_sap * (1.0 - FCWD_ROOT);
 
 							// Save litter input for equilsom()
 							if (soilcolumn.savesomcent) {
@@ -1290,10 +1295,11 @@ void transfer_litter(Patch& patch) {
 						ligcmass_old = soillayer.sompool[SOILFWD].cmass * soillayer.sompool[SOILFWD].ligcfrac;
 
 						// Add to structural pool and update lignin fraction in pool
-						soillayer.sompool[SOILFWD].nmass += nmass_litter_sap * FCWD_ROOT * root_lyr_frac;
 						soillayer.sompool[SOILFWD].cmass += cmass_litter_sap * FCWD_ROOT * root_lyr_frac;
+						soillayer.sompool[SOILFWD].nmass += nmass_litter_sap * FCWD_ROOT * root_lyr_frac;
 
 						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_sap * FCWD_ROOT * root_lyr_frac;
+						soilcolumn.csom_litter_input[SOILFWD] += cmass_litter_sap * FCWD_ROOT * root_lyr_frac;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
@@ -1324,6 +1330,7 @@ void transfer_litter(Patch& patch) {
 							soillayer.sompool[SURFCWD].nmass += nmass_litter_heart * (1.0 - FCWD_ROOT);
 
 							soilcolumn.cmass_litter_input[0] += cmass_litter_heart * (1.0 - FCWD_ROOT);
+							soilcolumn.csom_litter_input[SURFCWD] += cmass_litter_heart * (1.0 - FCWD_ROOT);
 
 							// Save litter input for equilsom()
 							if (soilcolumn.savesomcent) {
@@ -1351,10 +1358,11 @@ void transfer_litter(Patch& patch) {
 						ligcmass_old = soillayer.sompool[SOILCWD].cmass * soillayer.sompool[SOILCWD].ligcfrac;
 
 						// Add to structural pool and update lignin fraction in pool
-						soillayer.sompool[SOILCWD].nmass += nmass_litter_heart * FCWD_ROOT * root_lyr_frac;
 						soillayer.sompool[SOILCWD].cmass += cmass_litter_heart * FCWD_ROOT * root_lyr_frac;
+						soillayer.sompool[SOILCWD].nmass += nmass_litter_heart * FCWD_ROOT * root_lyr_frac;
 
 						soilcolumn.cmass_litter_input[lyr + 1] += cmass_litter_heart * FCWD_ROOT * root_lyr_frac;
+						soilcolumn.csom_litter_input[SOILCWD] += cmass_litter_heart * FCWD_ROOT * root_lyr_frac;
 
 						// Save litter input for equilsom()
 						if (soilcolumn.savesomcent) {
@@ -1780,7 +1788,7 @@ void equilsom(Patch& patch) {
 
 	// Do large SOM size prediction on year solvesomcent_endyr
 	// after solvesomcent_endyr every 10 year until spinup-100 extrapolate trends
-	if (!((date.year == patch.soilcolumn.solvesomcent_endyr || (date.year > patch.soilcolumn.solvesomcent_endyr + 10 && date.year <= nyear_spinup - 100 && !(date.year%5))) && date.islastmonth && date.islastday))
+	if (!((date.year == patch.soilcolumn.solvesomcent_endyr || (date.year > patch.soilcolumn.solvesomcent_endyr + 50 && date.year <= nyear_spinup - 100 && !(date.year % 5))) && date.islastmonth && date.islastday))
 		return;	
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
@@ -2164,13 +2172,13 @@ void equilsom(Patch& patch) {
 	else if (!(peat_age && patch.stand.landcover == PEATLAND)) {
 
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
-		const int SAME_TREND_MAX = 0;
+		const int SAME_TREND_MAX = 1;
 		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		const double MAX_MULTI = pow(2.0, 7);
+		const double MAX_MULTI = 8;
 		// Minimum multiplier
-		const double MIN_MULTI = 0.25;
+		const double MIN_MULTI = 0.125;
 		// Multiplier modifier
 		const double MULTI_MOD = 2.0;
 		// SOM pool N:C ratio
@@ -2201,8 +2209,8 @@ void equilsom(Patch& patch) {
 						double nmass_init = soillayer.sompool[p].nmass;
 
 						// Maximum positive and negative change
-						max_pos_change = soillayer.sompool[p].cmass_init * 0.5;
-						max_neg_change = -soillayer.sompool[p].cmass * 0.2;
+						max_pos_change = soillayer.sompool[p].cmass_init * 0.1;
+						max_neg_change = -soillayer.sompool[p].cmass * 0.1;
 
 						// C mass trend
 						double trend = soillayer.sompool[p].cmass - soillayer.sompool[p].cmass_init;

@@ -1565,6 +1565,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						}
 					}
 					patch.soilcolumn.cmass_litter_input.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
+					patch.soilcolumn.csom_litter_input.resize(NSOMPOOL, 0.0);
 					patch.soilcolumn.wpara.set_sizes(patch.soilcolumn.nsoillayers);
 					patch.soilcolumn.tpara.set_sizes(patch.soilcolumn.nsoillayers + PAD_LAYERS);
 					patch.soilcolumn.wfluxes.resize(patch.soilcolumn.nsoillayers + 1, 0.0);

@@ -1308,15 +1308,26 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			if (indiv.pft.lifeform == TREE) {
 
-				// Kill 20% of standing woody biomass 
+				// Fraction of standing woody biomass that will survive 
 				frac_survive = 0.5;
+				if (date.year == patch.soilcolumn.solvesomcent_endyr - 1)
+					frac_survive = 0.0;
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
 				indiv.reduce_biomass(1.0 - frac_survive, 0.0);
 
-				// Update allometry
-				allometry(indiv);
+				// Remove this cohort completely if all individuals killed
+				// (in individual mode: removes individual if killed)
+
+				if (negligible(indiv.densindiv)) {
+					vegetation.killobj();
+					killed = true;
+				}
+				else {
+					// Update allometry
+					allometry(indiv);
+				}
 			}
 			vegetation.nextobj();
 		}

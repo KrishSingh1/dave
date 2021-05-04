@@ -209,7 +209,7 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 		if (indiv.pft.lifeform == GRASS) {
-			available_fuel += 0.5 * indiv.cmass_leaf ;
+			available_fuel += 0.5 * indiv.cmass_leaf_today() ;
 		}
 		vegetation.nextobj();
 	}
@@ -826,9 +826,9 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double fm_leaf = metabolic_litter_fraction(lton);
 
 	// Leaves
-	double cleaf2atm = fab * leaf_to_atm * cmass_leaf;
-	double cleaf2met = fab * leaf_to_lit * cmass_leaf * fm_leaf;
-	double cleaf2str = fab * leaf_to_lit * cmass_leaf * (1. - fm_leaf);
+	double cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
+	double cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
+	double cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
 	double nleaf2atm = fab * leaf_to_atm * nmass_leaf;
 	double nleaf2met = fab * leaf_to_lit * nmass_leaf * fm_leaf;
 	double nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);

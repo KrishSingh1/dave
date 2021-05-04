@@ -55,6 +55,7 @@ struct landcover_change_transfer {
 	double transfer_anflux_harvest;
 
 	// Soil
+	double transfer_depth;
 	double transfer_wcont_evap;
 	Historic<double, NYEARAAET> transfer_aaet_5;
 	Historic<double, 10> transfer_maxthaw_10;
@@ -196,6 +197,7 @@ struct landcover_change_transfer {
 			}
 
 			// Sum soil
+			transfer_depth += patch.soilcolumn.depth * scale;
 			transfer_wcont_evap += patch.soilcolumn.wcont_evap * scale;
 			double aaet_5_cp[NYEARAAET] = { 0.0 };
 			transfer_aaet_5.to_array(aaet_5_cp);
@@ -297,6 +299,7 @@ struct landcover_change_transfer {
 		transfer_anflux_harvest = from.transfer_anflux_harvest;
 
 		// Soil
+		transfer_depth = from.transfer_depth;
 		transfer_wcont_evap = from.transfer_wcont_evap;
 		for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++) {
 			transfer_aaet_5.add(from.transfer_aaet_5[i]);
@@ -390,6 +393,7 @@ struct landcover_change_transfer {
 		transfer_anflux_harvest += from.transfer_anflux_harvest * multiplier;
 
 		// Soil
+		transfer_depth += from.transfer_depth * multiplier;
 		transfer_wcont_evap += from.transfer_wcont_evap * multiplier;
 		double aaet_5_cp[NYEARAAET] = { 0.0 };
 		for (unsigned int i = 0; i < transfer_aaet_5.size(); i++)

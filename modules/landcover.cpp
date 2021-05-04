@@ -1499,6 +1499,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					}
 
 					// Soil
+					patch.soilcolumn.depth = (patch.soilcolumn.depth * old_frac + from.transfer_depth * added_frac) / new_frac;
 					patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					double aaet_5_cp[NYEARAAET] = { 0.0 };
 					patch.aaet_5.to_array(aaet_5_cp);
@@ -1513,7 +1514,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					int nsoillayers = min(NSOILLAYER_MAX, max(patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
 
-					if (!patch.soilcolumn.soillayerdepths.size())
+					//if (!patch.soilcolumn.soillayerdepths.size())
 						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
 
 					// Soil layers
@@ -2784,7 +2785,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
 	transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
 
-	transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = transfer_anfix_calc = 0.0;
+	transfer_acflux_harvest = transfer_anflux_harvest = transfer_depth = transfer_wcont_evap = transfer_anfix_calc = 0.0;
 
 	// Sum soil layers
 	transfer_soil_nsoillayers = 0;

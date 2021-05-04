@@ -1664,7 +1664,7 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 }
 
 
-/// Help function for reduce_biomass(), partitions nstore into leafs and roots
+/// Help function for reduce_biomass(), partitions nstore into leaves and roots
 /**
  *  As leaf and roots can have a very low N concentration after growth and allocation,
  *  N in nstore() is split between them to saticfy relationship between their average C:N ratios
@@ -2597,6 +2597,11 @@ Gridcell::Gridcell():climate(*this) {
 	seed = 12345678;
 
 	distinterval_gc = 1.0e10;
+	for (int i=0;i<12;i++) {
+		monthly_burned_area[i] = 0.0;
+		monthly_fire_risk[i] = 0.0;
+
+	}
 }
 
 double Gridcell::get_lon() const {

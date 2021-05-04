@@ -104,21 +104,28 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
+
 			// Interception
 			interception(patch, gridcell.climate);
 			initial_infiltration(patch, gridcell.climate);
+
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
+
 			// Sum total required irrigation
 			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
+
 			// Daily C allocation (cropland)
 			growth_daily(patch);
+
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);
+
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
+
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
 

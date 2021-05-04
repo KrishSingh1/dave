@@ -1021,6 +1021,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 			gridcell.monthly_burned_area[i] = 0.0;
 		}
 	}
+	gridcell.can_burn = 0;
 
 	if ( is_first_day ) {
 
@@ -1192,9 +1193,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		if ( gridcell.can_burn > 0 ) {
 			gridcell.annual_burned_area              += gridcell.burned_area;
 			gridcell.monthly_burned_area[date.month] += gridcell.burned_area;
-			gridcell.can_burn = 0;
 		}
-		gridcell.burned_area = 0.0;
 	}
 }
 

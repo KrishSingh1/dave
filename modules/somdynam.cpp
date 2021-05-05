@@ -2176,7 +2176,8 @@ void equilsom(Patch& patch) {
 		// Maximum number of iterations the trend needs to flip for the multiplier to decrease
 		const int FLIP_MAX = 2;
 		// Maximum multiplier
-		const double MAX_MULTI = 8;
+		const double MAX_MULTI = 8.0;
+		const double MAX_MULTI_passive = 1024.0;
 		// Minimum multiplier
 		const double MIN_MULTI = 0.125;
 		// Multiplier modifier
@@ -2239,7 +2240,7 @@ void equilsom(Patch& patch) {
 							soillayer.sompool[p].same_trend++;
 
 							// Reached maximum same trend then increase multiplier
-							if (soillayer.sompool[p].same_trend > SAME_TREND_MAX && soillayer.sompool[p].multi < MAX_MULTI) {
+							if (soillayer.sompool[p].same_trend > SAME_TREND_MAX && ((soillayer.sompool[p].multi < MAX_MULTI && p != PASSIVESOM) || (soillayer.sompool[p].multi < MAX_MULTI_passive && p == PASSIVESOM))) {
 								soillayer.sompool[p].multi *= MULTI_MOD;
 								soillayer.sompool[p].same_trend = 0;
 							}

@@ -1635,9 +1635,9 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 		return NH4_mass;
 	else if (SPT == NO_3)
 		return NO3_mass;
-	else if (SPT == CH4)
+	else if (SPT == CH_4)
 		return CH4;
-	else if (SPT == CO2)
+	else if (SPT == CO_2)
 		return CO2;
 	else if (SPT == RESPSUM)
 		return respsum;
@@ -1668,7 +1668,7 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 	else if (SPT == AMINLEACH)
 		return aminleach;
 	else
-		fail("Property doesn't exist in soillayer\n");
+		fail("Property doesn't exist in soillayer %d\n", SPT);
 }
 
 
@@ -2418,9 +2418,9 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			prop[lyr] = soillayers[lyr].NH4_mass;
 		else if (SPT == NO_3)
 			prop[lyr] = soillayers[lyr].NO3_mass;
-		else if (SPT == CH4)
+		else if (SPT == CH_4)
 			prop[lyr] = soillayers[lyr].CH4;
-		else if (SPT == CO2)
+		else if (SPT == CO_2)
 			prop[lyr] = soillayers[lyr].CO2;
 		else if (SPT == RESPSUM)
 			prop[lyr] = soillayers[lyr].respsum;

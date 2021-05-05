@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CCONT, NCONT, CSLOW, CFAST, NAVAIL, NH_4, NO_3, CH4, CO2, RESPSUM, 
+CCONT, NCONT, CSLOW, CFAST, NAVAIL, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////

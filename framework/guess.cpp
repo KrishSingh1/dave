@@ -638,7 +638,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 
 	double ccont = soilcolumn.get_sum(CCONT);
 
-	ccont += soilcolumn.get_sum(CH4) * KG_PER_G;
+	ccont += soilcolumn.get_sum(CH_4) * KG_PER_G;
 
 	ccont += soilcolumn.snow.ccont();
 

@@ -29,6 +29,10 @@
 
 #include <memory>
 
+#include <chrono>
+using namespace std;
+using namespace std::chrono;
+
 /// Prints the date and time together with the name of this simulation
 void print_logfile_heading() {
 	xtring datetime;
@@ -78,7 +82,13 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 
+		// Get starting timepoint
+		auto time00 = high_resolution_clock::now();
+
 		dailyaccounting_stand(stand);
+
+		// Get starting timepoint
+		auto time01 = high_resolution_clock::now();
 
 		stand.firstobj();
 		while (stand.isobj) {
@@ -88,8 +98,14 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
 
+			// Get starting timepoint
+			auto time0 = high_resolution_clock::now();
+
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
+
+			// Get starting timepoint
+			auto time1 = high_resolution_clock::now();
 
 			// Determine nitrogen fertilisation amount 
 			if(run_landcover)
@@ -101,35 +117,93 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Crop phenology
 			crop_phenology(patch);
 
+			// Get starting timepoint
+			auto time2 = high_resolution_clock::now();
+
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
+
+			// Get starting timepoint
+			auto time3 = high_resolution_clock::now();
 
 			// Interception
 			interception(patch, gridcell.climate);
 
+			// Get starting timepoint
+			auto time4 = high_resolution_clock::now();
+
 			// Initial infiltration
 			initial_infiltration(patch, gridcell.climate);
+
+			// Get starting timepoint
+			auto time5 = high_resolution_clock::now();
 
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
 
+			// Get starting timepoint
+			auto time6 = high_resolution_clock::now();
+
 			// Sum total required irrigation
 			irrigation(patch);
+
+			// Get starting timepoint
+			auto time7 = high_resolution_clock::now();
 			
 			// Soil water and snow pack accounting
 			soilwater(patch, gridcell.climate);
 
+			// Get starting timepoint
+			auto time8 = high_resolution_clock::now();
+
 			// Daily C allocation (cropland)
 			growth_daily(patch);
+
+			// Get starting timepoint
+			auto time9 = high_resolution_clock::now();
 
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);
 
+			// Get starting timepoint
+			auto time10 = high_resolution_clock::now();
+
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
 
+			// Get starting timepoint
+			auto time11 = high_resolution_clock::now();
+
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
+
+			// Get starting timepoint
+			auto time12 = high_resolution_clock::now();
+
+			// Get duration. Substart timepoints to 
+			// get durarion. To cast it to proper unit
+			// use duration cast method
+			auto duration0 = duration_cast<microseconds>(time01 - time00);
+			auto duration1 = duration_cast<microseconds>(time1 - time0);
+			auto duration2 = duration_cast<microseconds>(time2 - time1);
+			auto duration3 = duration_cast<microseconds>(time3 - time2);
+			auto duration4 = duration_cast<microseconds>(time4 - time3);
+			auto duration5 = duration_cast<microseconds>(time5 - time4);
+			auto duration6 = duration_cast<microseconds>(time6 - time5);
+			auto duration7 = duration_cast<microseconds>(time7 - time6);
+			auto duration8 = duration_cast<microseconds>(time8 - time7);
+			auto duration9 = duration_cast<microseconds>(time9 - time8);
+			auto duration10 = duration_cast<microseconds>(time10 - time9);
+			auto duration11 = duration_cast<microseconds>(time11 - time10);
+			auto duration12 = duration_cast<microseconds>(time12 - time11);
+
+			dprintf("dailyac_s %d dailyac_p %d crop %d phen %d inter %d infil %d canex %d irri %d soilw %d dgrowth %d somdyn %d methane %d blaze %d\n",
+				duration0.count(), duration1.count(), duration2.count(), duration3.count(), duration4.count(), duration5.count(), duration6.count(),
+				duration7.count(), duration8.count(), duration9.count(), duration10.count(), duration11.count(), duration12.count());
+
+			/*dprintf("Year %d Day %d dailyac_s %d dailyac_p %d crop %d phen %d inter %d infil %d canex %d irri %d soilw %d dgrowth %d somdyn %d methane %d blaze %d\n",
+				date.year, date.day, duration0.count(), duration1.count(), duration2.count(), duration3.count(), duration4.count(), duration5.count(), duration6.count(),
+				duration7.count(), duration8.count(), duration9.count(), duration10.count(), duration11.count(), duration12.count());*/
 
 			if (date.islastday && date.islastmonth) {
 

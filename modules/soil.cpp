@@ -1667,6 +1667,8 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 		return aorgNleach;
 	else if (SPT == AMINLEACH)
 		return aminleach;
+	else
+		fail("Property doesn't exist in soillayer\n");
 }
 
 
@@ -2935,71 +2937,67 @@ void Soilcolumn::update_thermal_cap_cond_for_pad() {
 /// Build diagonals and right hand side vector
 /** Build diagonals and right hand side vector
  */
-void build_diags_rhs(double dt, double f_top, double f_bot,
-	std::vector<double> cap, std::vector<double> diff, std::vector<double> cond,
-	std::vector<double>& upper, std::vector<double>& main, std::vector<double>& lower, std::vector<double>& rhs,
-	std::vector<double> z, std::vector<double> dz, std::vector<double> psi, std::vector<double> sink,
-	int n_soil_layers) {
+void build_diags_rhs(double dt, double f_top, double f_bot, CNpara& para, int n_soil_layers) {
 
 	// Upper boundary conditions
-	double l_p12 = diff[0] + (diff[1] - diff[0]) / (z[1] - z[0]) * dz[0] / 2.0; // Interpolate lambda_+1/2
-	double g_p12 = cond[0] + (cond[1] - cond[0]) / (z[1] - z[0]) * dz[0] / 2.0; // Interpolate gamma_+1/2
-	double beta_p = dt / 2.0 * l_p12 / dz[0] / (z[1] - z[0]) / cap[0];
+	double l_p12 = para.diff[0] + (para.diff[1] - para.diff[0]) / (para.z[1] - para.z[0]) * para.dz[0] / 2.0; // Interpolate lambda_+1/2
+	double g_p12 = para.cond[0] + (para.cond[1] - para.cond[0]) / (para.z[1] - para.z[0]) * para.dz[0] / 2.0; // Interpolate gamma_+1/2
+	double beta_p = dt / 2.0 * l_p12 / para.dz[0] / (para.z[1] - para.z[0]) / para.cap[0];
 
-	lower[0] = 1.0e6; // Not used, initialize to known value
-	main[0] = 1.0 + beta_p;
-	upper[0] = -beta_p;
+	para.lower[0] = 1.0e6; // Not used, initialize to known value
+	para.main[0] = 1.0 + beta_p;
+	para.upper[0] = -beta_p;
 
-	rhs[0] = (1. - beta_p) * psi[0] + beta_p * psi[1] - dt / cap[0] / dz[0] * (g_p12 - f_top) + sink[0] * dt;
+	para.rhs[0] = (1. - beta_p) * para.psi[0] + beta_p * para.psi[1] - dt / para.cap[0] / para.dz[0] * (g_p12 - f_top) + para.sink[0] * dt;
 
 	// Middle terms
 	double l_m12, g_m12, beta_m;
 	for (int i = 1; i < n_soil_layers - 1; i++) {
 		l_m12 = l_p12;
-		l_p12 = diff[i] + (diff[i + 1] - diff[i]) / (z[i + 1] - z[i]) * dz[i] / 2.0;
-		beta_m = beta_p * dz[i - 1] / dz[i] * cap[i - 1] / cap[i];
-		beta_p = dt / 2.0 * l_p12 / dz[i] / (z[i + 1] - z[i]) / cap[i];
+		l_p12 = para.diff[i] + (para.diff[i + 1] - para.diff[i]) / (para.z[i + 1] - para.z[i]) * para.dz[i] / 2.0;
+		beta_m = beta_p * para.dz[i - 1] / para.dz[i] * para.cap[i - 1] / para.cap[i];
+		beta_p = dt / 2.0 * l_p12 / para.dz[i] / (para.z[i + 1] - para.z[i]) / para.cap[i];
 
 		g_m12 = g_p12;
-		g_p12 = cond[i] + (cond[i + 1] - cond[i]) / (z[i + 1] - z[i]) * dz[i] / 2.;
+		g_p12 = para.cond[i] + (para.cond[i + 1] - para.cond[i]) / (para.z[i + 1] - para.z[i]) * para.dz[i] / 2.;
 
-		lower[i] = -beta_m;
-		upper[i] = -beta_p;
-		main[i] = 1.0 + beta_m + beta_p;
-		rhs[i] = beta_m * psi[i - 1] + (1.0 - beta_m - beta_p) * psi[i] + beta_p * psi[i + 1]
-			- dt / cap[i] / dz[i] * (g_p12 - g_m12) + sink[i] * dt;
+		para.lower[i] = -beta_m;
+		para.upper[i] = -beta_p;
+		para.main[i] = 1.0 + beta_m + beta_p;
+		para.rhs[i] = beta_m * para.psi[i - 1] + (1.0 - beta_m - beta_p) * para.psi[i] + beta_p * para.psi[i + 1]
+			- dt / para.cap[i] / para.dz[i] * (g_p12 - g_m12) + para.sink[i] * dt;
 	}
 
-	beta_m = beta_p * dz[n_soil_layers - 2] / dz[n_soil_layers - 1] * cap[n_soil_layers - 2] / cap[n_soil_layers - 1];
+	beta_m = beta_p * para.dz[n_soil_layers - 2] / para.dz[n_soil_layers - 1] * para.cap[n_soil_layers - 2] / para.cap[n_soil_layers - 1];
 	g_m12 = g_p12;
 
-	upper[n_soil_layers - 1] = 1.0e6; // Dummy value
-	main[n_soil_layers - 1] = 1.0 + beta_m;
-	lower[n_soil_layers - 1] = -beta_m;
+	para.upper[n_soil_layers - 1] = 1.0e6; // Dummy value
+	para.main[n_soil_layers - 1] = 1.0 + beta_m;
+	para.lower[n_soil_layers - 1] = -beta_m;
 
-	rhs[n_soil_layers - 1] = beta_m * psi[n_soil_layers - 2] + (1.0 - beta_m) * psi[n_soil_layers - 1]
-		- dt / cap[n_soil_layers - 1] / dz[n_soil_layers - 1] * (f_bot - g_m12)
-		+ sink[n_soil_layers - 1] * dt;
+	para.rhs[n_soil_layers - 1] = beta_m * para.psi[n_soil_layers - 2] + (1.0 - beta_m) * para.psi[n_soil_layers - 1]
+		- dt / para.cap[n_soil_layers - 1] / para.dz[n_soil_layers - 1] * (f_bot - g_m12)
+		+ para.sink[n_soil_layers - 1] * dt;
 }
 
 /// Solve tridiagonal system
 /** Solve tridiagonal system
  */
-void solve_tridiagonal(std::vector<double> upper, std::vector<double> main, std::vector<double> lower, std::vector<double> rhs, std::vector<double>& solution) {
+void solve_tridiagonal(CNpara& para) {
 
-	int n = (int)main.size();
-	assert(n == solution.size());
+	int n = (int)para.main.size();
+	assert(n == para.psi1.size());
 
 	for (int i = 1; i < n; i++) {
-		double w = lower[i] / main[i - 1];
-		main[i] -= w * upper[i - 1];
-		rhs[i] -= w * rhs[i - 1];
+		double w = para.lower[i] / para.main[i - 1];
+		para.main[i] -= w * para.upper[i - 1];
+		para.rhs[i] -= w * para.rhs[i - 1];
 	}
 
-	solution[n - 1] = rhs[n - 1] / main[n - 1];
+	para.psi1[n - 1] = para.rhs[n - 1] / para.main[n - 1];
 
 	for (int i = n - 2; i >= 0; i--) {
-		solution[i] = (rhs[i] - upper[i] * solution[i + 1]) / main[i];
+		para.psi1[i] = (para.rhs[i] - para.upper[i] * para.psi1[i + 1]) / para.main[i];
 	}
 }
 
@@ -3059,13 +3057,10 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	double f_bot = ifbedrock ? 0.0 : wpara.cond[nsoillayers - 1];
 
 	// Build diagonals and RHS vector
-	build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot,
-		wpara.cap, wpara.diff, wpara.cond,
-		wpara.upper, wpara.main, wpara.lower, wpara.rhs,
-		wpara.z, wpara.dz, wpara.psi, wpara.sink, nsoillayers);
+	build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot, wpara, nsoillayers);
 
 	// Solve tridiagonal system
-	solve_tridiagonal(wpara.upper, wpara.main, wpara.lower, wpara.rhs, wpara.psi1);
+	solve_tridiagonal(wpara);
 
 	// Set new wmass
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4748,13 +4743,10 @@ void Soilcolumn::calc_temp() {
 		double f_bot = 0.0;
 
 		// Build diagonals and RHS vector
-		build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot,
-			tpara.cap, tpara.diff, tpara.cond,
-			tpara.upper, tpara.main, tpara.lower, tpara.rhs,
-			tpara.z, tpara.dz, tpara.psi, tpara.sink, nsnowsoilpadlayers);
+		build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
 
 		// Solve tridiagonal system
-		solve_tridiagonal(tpara.upper, tpara.main, tpara.lower, tpara.rhs, tpara.psi1);
+		solve_tridiagonal(tpara);
 
 		// Update temperatures
 
@@ -4984,7 +4976,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 
 	// No vertical mixing if CWD pool is empty (not woody PFT individuals)
 	if (p == SOILCWD || p == SOILFWD ) {
-		int cmass_tot = 0.0;
+		double cmass_tot = 0.0;
 		for (int lyr = 0; lyr < nsoillayers; lyr++)
 			cmass_tot += soillayers[lyr].sompool[p].cmass;
 
@@ -5033,13 +5025,10 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	}
 
 	// Build diagonals and RHS vector
-	build_diags_rhs(timestep, f_top, f_bot,
-		VMpara.cap, VMpara.diff, VMpara.cond,
-		VMpara.upper, VMpara.main, VMpara.lower, VMpara.rhs,
-		VMpara.z, VMpara.dz, VMpara.psi, VMpara.sink, nsoillayers);
+	build_diags_rhs(timestep, f_top, f_bot, VMpara, nsoillayers);
 
 	// Solve tridiagonal system
-	solve_tridiagonal(VMpara.upper, VMpara.main, VMpara.lower, VMpara.rhs, VMpara.psi1);
+	solve_tridiagonal(VMpara);
 
 	// Calculate carbon fluxes between soil layers
 	// Positive flow to layer below

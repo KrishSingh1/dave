@@ -804,14 +804,6 @@ void dailyaccounting_patch(Patch& patch) {
 	// Calculate snow and soil layer temperatures
 	soilcolumn.temp();
 
-	/*dprintf("Year %d Day %d ",date.year,date.day);
-	for (int lyr = 0; lyr < soilcolumn.snow.nsnowlayers; lyr++) {
-		dprintf("%g ", soilcolumn.snow.snowlayers[lyr].temp);
-	}
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-		dprintf("%g ", soilcolumn.soillayers[lyr].temp);
-	}
-	dprintf("\n");*/
 
 	// Calculate respiration temperature response
 	respiration_temperature_response(soilcolumn);

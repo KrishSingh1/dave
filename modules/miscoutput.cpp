@@ -103,6 +103,8 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
+	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300, "stand type thinning wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_clearcut_sts", &file_cmass_wood_clearcut_sts, 300, "stand type clearcut wood harvest cmass output file");
 	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000, "Latest cutting interval (patch age at year of clearcut) output file");
 	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
@@ -633,6 +635,8 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
 	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
+	create_output_table(out_cmass_wood_thin_sts,		file_cmass_wood_thin_sts,		st_columns);
+	create_output_table(out_cmass_wood_clearcut_sts,	file_cmass_wood_clearcut_sts,   st_columns);
 	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_dens_columns);
 	create_output_table(out_cutinterval_sts,			file_cutinterval_sts,			st_columns_age);
 	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
@@ -797,6 +801,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass_est = 0.0;
 		st.cmass_wood_harv = 0.0;
 		st.cmass_wood_harv_toprod = 0.0;
+		st.cmass_wood_clearcut = 0.0;
 		st.cmass_killed_harv = 0.0;
 		st.cmass_harv_tolitter = 0.0;
 		st.densindiv = 0.0;
@@ -851,6 +856,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_diam_g=0.0;
 	double standpft_cmass_wood_harv=0.0;
 	double standpft_cmass_wood_harv_toprod=0.0;
+	double standpft_cmass_wood_clearcut=0.0;
 	double standpft_cmass_killed_harv=0.0;
 	double standpft_cmass_harv_tolitter=0.0;
 	double standpft_cmass_mort=0.0;
@@ -947,6 +953,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_potfuel=0.0;
 			standpft_cmass_wood_harv=0.0;
 			standpft_cmass_wood_harv_toprod=0.0;
+			standpft_cmass_wood_clearcut=0.0;
 			standpft_cmass_killed_harv=0.0;
 			standpft_cmass_harv_tolitter=0.0;
 			standpft_diam_g=0.0;
@@ -976,6 +983,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				standpft_cmass_wood_harv += patchpft.cmass_wood_harv;
 				standpft_cmass_wood_harv_toprod += patchpft.cmass_wood_harv_toprod;
+				standpft_cmass_wood_clearcut += patchpft.cmass_wood_clearcut;
 				standpft_cmass_harv_tolitter += patchpft.cmass_harv_tolitter;
 				standpft_cmass_killed_harv += patchpft.cmass_killed_harv;
 				standpft_cmass_mort += patchpft.cmass_mort;
@@ -1041,6 +1049,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_diam_g/=(double)stand.npatch();
 			standpft_cmass_wood_harv/=(double)stand.npatch();
 			standpft_cmass_wood_harv_toprod/=(double)stand.npatch();
+			standpft_cmass_wood_clearcut/=(double)stand.npatch();
 			standpft_cmass_harv_tolitter/=(double)stand.npatch();
 			standpft_cmass_killed_harv/=(double)stand.npatch();
 			standpft_nmass/=(double)stand.npatch();
@@ -1163,6 +1172,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				st.cmass_est += standpft_cmass_est * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_harv += standpft_cmass_wood_harv * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_harv_toprod += standpft_cmass_wood_harv_toprod * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_wood_clearcut += standpft_cmass_wood_clearcut * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_harv_tolitter += standpft_cmass_harv_tolitter * stand.get_gridcell_fraction() / gcst.frac;
 				st.densindiv += standpft_densindiv_total * stand.get_gridcell_fraction() / gcst.frac;
@@ -1782,6 +1792,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
 		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
 		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);
+		outlimit_misc(out, out_cmass_wood_thin_sts, st.cmass_wood_harv - st.cmass_wood_clearcut);
+		outlimit_misc(out, out_cmass_wood_clearcut_sts, st.cmass_wood_clearcut);
 		outlimit_misc(out, out_dens_sts, st.densindiv);
 		outlimit_misc(out, out_csoil_sts, st.csoil);
 		outlimit_misc(out, out_clitter_sts, st.clitter);

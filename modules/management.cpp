@@ -1372,6 +1372,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 				res_outtake_twig_wood_harvest = mt.res_outtake_twig_cc;
 			if(mt.res_outtake_coarse_root_cc != -1.0)
 				res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
+			ppft.cmass_wood_clearcut += man_strength * check_harvest_cmass(indiv, true);
 		}
 		else {
 			if(mt.harv_eff_thin != -1.0)

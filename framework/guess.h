@@ -1733,6 +1733,7 @@ public:
 	double cmass_est;
 	double cmass_wood_harv;
 	double cmass_wood_harv_toprod;
+	double cmass_wood_clearcut;
 	double cmass_harv_tolitter;
 	double cmass_killed_harv;
 	double densindiv;
@@ -4167,6 +4168,8 @@ public:
 	double cmass_wood_harv;
 	/// harvested wood C removed to the product pool (kgC/m2)
 	double cmass_wood_harv_toprod;
+	/// trunk part of carbon harvested in clearcut
+	double cmass_wood_clearcut;
 	/// harvested tree C left as litter (kgC/m2)
 	double cmass_harv_tolitter;
 
@@ -4267,6 +4270,7 @@ public:
 
 		cmass_wood_harv = 0.0;
 		cmass_wood_harv_toprod = 0.0;
+		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
 		cmass_killed_harv = 0.0;
 	}

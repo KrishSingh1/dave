@@ -1779,6 +1779,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_turnover_natural = 0.0;
 	double cmass_repr_natural = 0.0;
 	double cmass_est_natural = 0.0;
+	double cmass_wood_harv_natural = 0.0;
+	double cmass_wood_harv_toprod_natural = 0.0;
+	double cmass_harv_tolitter_natural = 0.0;
+	double cmass_killed_harv_natural = 0.0;
 
 	// Print stand type totals
 	for(int i=0;i<nst;i++) {
@@ -1856,6 +1860,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_turnover_natural += st.cmass_turnover * gcst.frac;
 			cmass_repr_natural += st.cmass_repr * gcst.frac;
 			cmass_est_natural += st.cmass_est * gcst.frac;
+			cmass_wood_harv_natural += st.cmass_wood_harv * gcst.frac;
+			cmass_wood_harv_toprod_natural += st.cmass_wood_harv_toprod * gcst.frac;
+			cmass_harv_tolitter_natural += st.cmass_harv_tolitter * gcst.frac;
+			cmass_killed_harv_natural += st.cmass_killed_harv * gcst.frac;
 		}
 	}
 
@@ -1880,11 +1888,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	// Print wood harvest total killed and fate of compartments
 	// Primary forest harvest
-	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c);							// Killed tree cmass during harvest
-	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest);							// Harvested stem wood cmass; wood products and fuelwood from stems
-	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod);							// Harvested wood product cmass
-	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest);					// Fuel wood cmass from products and residues
-	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt);							// Killed tree cmass entering litter pool
+	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c + cmass_killed_harv_natural);							// Killed tree cmass during harvest
+	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest + cmass_wood_harv_natural);								// Harvested stem wood cmass; wood products and fuelwood from stems
+	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_natural);						// Harvested wood product cmass
+	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[NATURAL]);					// Fuel wood cmass from products and residues
+	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt + cmass_harv_tolitter_natural);							// Killed tree cmass entering litter pool
 	// Managed forest harvest
 	outlimit_misc(out, out_forest_harvest, cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_harvest, cmass_wood_harv_forest);
@@ -1892,26 +1900,26 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_harvest, flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_harvest, cmass_harv_tolitter_forest);
 	// Total forest harvest
-	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c + cmass_killed_harv_forest);
-	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest + cmass_wood_harv_forest);
-	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_forest);
-	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[FOREST]);
-	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt + cmass_harv_tolitter_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c + cmass_killed_harv_natural + cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest + cmass_wood_harv_natural + cmass_wood_harv_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_natural + cmass_wood_harv_toprod_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[NATURAL] + flux_charvest_lc[FOREST]);
+	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt + cmass_harv_tolitter_natural + cmass_harv_tolitter_forest);
 
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
 
-	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.harv_killed_c + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_turnover_natural + cmass_repr_natural;
+	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.harv_killed_c + cmass_killed_harv_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_turnover_natural + cmass_repr_natural;
 	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_killed_harv_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_turnover_forest + cmass_repr_forest;
 	double cflux_veg_tot = cflux_veg_forest + cflux_veg_natural;
-	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.harv_killed_c);
+	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.harv_killed_c - cmass_killed_harv_natural);
 	double NAI_forest = -(cflux_veg_forest - lcC.cloned_c_lc[FOREST] - cmass_killed_harv_forest);
 	double NAI_tot = NAI_forest + NAI_natural;
 
 	// Print C fluxes to and from vegetation
 	// Primary forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural);
@@ -1935,7 +1943,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, NAI_forest);
 	// Total forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural - anpp_forest);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_natural + cmass_killed_harv_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural + cmass_mort_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural + cmass_fire_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural + cmass_est_forest);

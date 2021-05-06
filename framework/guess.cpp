@@ -1213,6 +1213,26 @@ void Stand::set_management() {
 						}
 					}
 				}
+				else if(mt.cutfirstyear_nonsel && pftx.lifeform == TREE) {
+					for(unsigned int p = 0; p < nobj; p++) {
+						Patch& patch = (*this)[p];
+						Vegetation& vegetation = patch.vegetation;
+						vegetation.firstobj();
+						while (vegetation.isobj) {
+							Individual& indiv = vegetation.getobj();
+							Patchpft& ppft = patch.pft[indiv.pft.id];
+							if(indiv.pft.id == pftx.id) {
+								// cut at cloning (LUC) or at rotation
+								ppft.cmass_killed_harv += indiv.ccont();
+								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+								indiv.vegetation.killobj();
+							}
+							else {
+								vegetation.nextobj();
+							}
+						}
+					}
+				}
 			}
 			pftlist.nextobj();
 		}

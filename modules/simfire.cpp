@@ -108,12 +108,12 @@ int update_fire_biome(Patch& patch, double lat) {
 
 	// Save current 
 	int idx = date.year % N_YEAR_BIOMEAVG;  
-	patch.avg_ftot  [idx] = ftot   ;
-	patch.avg_fgrass[idx] = fgrass ;
-	patch.avg_fndlt [idx] = fndlt  ;
-	patch.avg_fbrlt [idx] = fbrlt  ;
-	patch.avg_ftrbr [idx] = ftrbr  ;
-	patch.avg_fshrb [idx] = fshrb  ;
+	patch.fapar_total_avg  [idx] = ftot   ;
+	patch.fapar_grass_avg[idx] = fgrass ;
+	patch.fapar_ndlt_avg [idx] = fndlt  ;
+	patch.fapar_brlt_avg [idx] = fbrlt  ;
+	patch.fapar_trbr_avg [idx] = ftrbr  ;
+	patch.fapar_shrub_avg [idx] = fshrb  ;
 	
 	// Generate running avereage 
 	ftot   = 0.;
@@ -123,12 +123,12 @@ int update_fire_biome(Patch& patch, double lat) {
 	ftrbr  = 0.;
 	fshrb  = 0.;
 	for (int i = 0; i<N_YEAR_BIOMEAVG; i++) {
-		ftot   += patch.avg_ftot  [i];
-		fgrass += patch.avg_fgrass[i];
-		fndlt  += patch.avg_fndlt [i];
-		fbrlt  += patch.avg_fbrlt [i];
-		ftrbr  += patch.avg_ftrbr [i];
-		fshrb  += patch.avg_fshrb [i];
+		ftot   += patch.fapar_total_avg  [i];
+		fgrass += patch.fapar_grass_avg[i];
+		fndlt  += patch.fapar_ndlt_avg [i];
+		fbrlt  += patch.fapar_brlt_avg [i];
+		ftrbr  += patch.fapar_trbr_avg [i];
+		fshrb  += patch.fapar_shrub_avg [i];
 	}
 	ftot   /=  (double)N_YEAR_BIOMEAVG;
 	fgrass /=  (double)N_YEAR_BIOMEAVG;
@@ -433,11 +433,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			// Initialise averaging array
 			if (date.year == 0 && date.day == 0) {
 				for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
-					patch.avg_ftot  [i] = 0. ;
-					patch.avg_fgrass[i] = 0. ;
-					patch.avg_fndlt [i] = 0. ;
-					patch.avg_fbrlt [i] = 0. ;
-					patch.avg_fshrb [i] = 0. ;
+					patch.fapar_total_avg  [i] = 0. ;
+					patch.fapar_grass_avg[i] = 0. ;
+					patch.fapar_ndlt_avg [i] = 0. ;
+					patch.fapar_brlt_avg [i] = 0. ;
+					patch.fapar_shrub_avg [i] = 0. ;
 				}
 			}
 			cnt += 1;

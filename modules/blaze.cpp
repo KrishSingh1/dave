@@ -54,7 +54,7 @@ const double TURNOVERFRACT[13][5] = {
 	{ .0 ,  .0 ,  .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
-// Tuning faktors for litter ready for combustion
+// Tuning factors for litter ready for combustion
 // Boreal
 const double K_LITTER_BOREAL    = 0.24;
 // Temperate region

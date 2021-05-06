@@ -4071,17 +4071,17 @@ public:
 
 	// Storage for averaging of different Fapars for biome mapping in SIMFIRE
 	/// SIMFIRE fapar: Grasses
-	double avg_fgrass[N_YEAR_BIOMEAVG];
+	double fapar_grass_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Needle-leaf tree
-	double avg_fndlt[N_YEAR_BIOMEAVG];
+	double fapar_ndlt_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Broad-leaf tree
-	double avg_fbrlt[N_YEAR_BIOMEAVG];
+	double fapar_brlt_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: TrBR (Savanna)
-	double avg_ftrbr[N_YEAR_BIOMEAVG];
+	double fapar_trbr_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Shrubs
-	double avg_fshrb[N_YEAR_BIOMEAVG];
+	double fapar_shrub_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Total fapar
-	double avg_ftot[N_YEAR_BIOMEAVG];
+	double fapar_total_avg[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
 	bool managed;

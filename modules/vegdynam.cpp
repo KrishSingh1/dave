@@ -1293,45 +1293,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 		if (!killed) vegetation.nextobj();
 	}
-
-	// Mortality assicciated with fast soil spinup
-	// Have to make sure some woody litter is created
-	if (date.year == (int)(patch.soilcolumn.solvesomcent_beginyr + (patch.soilcolumn.solvesomcent_endyr - patch.soilcolumn.solvesomcent_beginyr) * 0.5) || date.year == patch.soilcolumn.solvesomcent_endyr-1) {
-		
-		// Loop through individuals
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-
-			// For this individual ...
-
-			if (indiv.pft.lifeform == TREE) {
-
-				// Fraction of standing woody biomass that will survive 
-				frac_survive = 0.5;
-				if (date.year == patch.soilcolumn.solvesomcent_endyr - 1)
-					frac_survive = 0.0;
-
-				// Reduce individual density and biomass on patch area basis
-				// to account for loss of killed individuals
-				indiv.reduce_biomass(1.0 - frac_survive, 0.0);
-
-				// Remove this cohort completely if all individuals killed
-				// (in individual mode: removes individual if killed)
-
-				if (negligible(indiv.densindiv)) {
-					vegetation.killobj();
-					killed = true;
-				}
-				else {
-					// Update allometry
-					allometry(indiv);
-				}
-			}
-			vegetation.nextobj();
-		}
-	}
 }
 
 
@@ -1585,7 +1546,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// Patch-destroying disturbance
 
 		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
-		if (ifcentury && ifnlim && date.year == freenyears-20){
+		if (ifcentury && ifnlim && (date.year == patch.soilcolumn.solvesomcent_beginyr - 2 || date.year == patch.soilcolumn.solvesomcent_endyr - 2)){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year

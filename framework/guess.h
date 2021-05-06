@@ -3112,6 +3112,7 @@ public:
 		multi = 1.0;
 		sign_trend = 1;
 		same_trend = 0;
+		changed_trend = 0;
 		litterme = 0.0;
 		fireresist = 0.0;
 
@@ -3140,6 +3141,7 @@ public:
 		multi = that.multi;
 		sign_trend = that.sign_trend;
 		same_trend = that.same_trend;
+		changed_trend = that.changed_trend;
 
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = that.mfracremain_mean[m];
@@ -3166,6 +3168,7 @@ public:
 		multi = that.multi;
 		sign_trend = that.sign_trend;
 		same_trend = that.same_trend;
+		changed_trend = that.changed_trend;
 
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = that.mfracremain_mean[m];
@@ -3208,6 +3211,8 @@ public:
 	int sign_trend;
 	/// How many times the passive SOM C mass trend has have the same sign in a raw
 	int same_trend;
+	/// How many times the passive SOM C mass trend has have changed sign in a raw
+	int changed_trend;
 
 	// Fire
 	/// soil litter moisture flammability threshold (fraction of AWC)

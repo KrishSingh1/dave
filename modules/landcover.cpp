@@ -74,9 +74,8 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
 	input_module->getlandcover(gridcell);
 
-	stlist.firstobj();
-	while (stlist.isobj) {
-		StandType& st = stlist.getobj();
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
 		Gridcellst& gcst = gridcell.st[st.id];
 
 		gcst.frac_old = gcst.frac;
@@ -84,8 +83,6 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 		if(gcst.frac > 0.0) {
 			gridcell.create_stand_lu(st, gcst.frac);
 		}
-
-		stlist.nextobj();
 	}
 }
 
@@ -1652,9 +1649,8 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
  */
 void stand_dynamics(Gridcell& gridcell) {
 
-	stlist.firstobj();
-	while (stlist.isobj) {
-		StandType& st=stlist.getobj();
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
 		Gridcellst& gcst = gridcell.st[st.id];
 		landcovertype lc = st.landcover;
 
@@ -1724,8 +1720,6 @@ void stand_dynamics(Gridcell& gridcell) {
 				}
 			}
 		}
-
-		stlist.nextobj();
 	}
 }
 

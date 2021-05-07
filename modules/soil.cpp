@@ -1134,9 +1134,6 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 		final_water += snowlayers[lyr].wmass;
 	}
 
-//	if (fabs(initial_ice - final_ice) > EPS)
-//		int sch = 0;
-
 	assert(fabs(initial_depth - final_depth) < EPS);
 	assert(fabs(initial_ice - final_ice) < EPS);
 	assert(fabs(initial_water - final_water) < EPS);*/

@@ -36,6 +36,7 @@
 #include "q10.h"
 #include "bvoc.h"
 #include "ncompete.h"
+#include "somdynam.h"
 #include <assert.h>
 
 
@@ -1165,7 +1166,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, TEMP, NAVAIL);
 
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
-	double temp_scale = soil_temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil_temp, 1.652) - pow(soil_temp / 41.748, 7.19)) : 0.0;
+	double temp_scale = temperature_modifier(soil_temp);
 
 	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
 	double kNmin = 0.05;
@@ -1191,7 +1192,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
+			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves
 			// Peltoniemi et al. 2012
 			//double Kn = 0.19;
 			//double nextin_correct = Kb / Kn * (1.0 - lambertbeer(Kn, indiv.lai_indiv_today())) / (1.0 - lambertbeer(Kb, indiv.lai_indiv_today()));

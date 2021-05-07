@@ -644,6 +644,18 @@ public:
 	/// Random state's residuals
 	double resid[4];
 
+	WeatherGenState() {
+		for (int i = 0; i<10; i++) q[i] = 0;
+		carry = 0;
+		xcng = 0;
+		xs = 0;
+		indx = 0;
+		have = false;
+		for (int i = 0; i<2; i++) gamma_vals[i] = 0.0;
+		for (int i = 0; i<2; i++) pday[i] = false;
+		for (int i = 0; i<4; i++) resid[i] = 0.0;
+	}
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3772,6 +3784,8 @@ public:
 	void setntoc(double fac, pooltype pool, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
 	void decayrates_century(bool tillage, bool savesomcent);
+
+	double moisture_modifier();
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 

@@ -659,7 +659,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				// Make sure we don't end up with negative cmass_root
 				cmass_root_inc = max(-cmass_root, cmass_root_inc);
 
-				// If biomass of roots and leafs can't meet biomass decrease then
+				// If biomass of roots and leaves can't meet biomass decrease then
 				// sapwood also needs to decrease
 				cmass_sap_inc = bminc - cmass_leaf_inc - cmass_root_inc;
 

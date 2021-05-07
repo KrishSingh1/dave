@@ -424,12 +424,85 @@ void Soillayer::setntoc(double fac, pooltype pool, double cton_max, double cton_
 	}
 }
 
+
+/// Temperature modifier for decomposition
+/** Calculate decomposition temperature modifier (in range 0-1)
+ *  [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
+ *  effect of soil temperature, Parton et al 1993, Fig 2)
+ *
+ *  \param temp_soil  Soil temperature at 25 cm depth
+ */
+double temperature_modifier(double temp_soil) {
+
+	double temp_mod = temp_soil > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(temp_soil, 1.652) - pow(temp_soil / 41.748, 7.19)) : 0.0;
+
+	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
+	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
+	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && !iftwolayersoil) {
+
+		double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
+		bool linear_decrease_below_freezing = false;
+
+		if (linear_decrease_below_freezing) {
+			// Alternative: Linear approach (Koven et al. 2011)
+			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
+		} 
+		else {
+			// Default: Q10 relationship (Schaefer & Jafarov, 2016)
+			double q10_freeze = 2.9; // (Natali et al., 2019)
+			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp_soil / 10.0);
+		}
+	}
+
+	return temp_mod;
+}
+
+
+/// Water Modifier for Decomposition
+/** Calculate decomposition moisture modifier (in range 0-1)
+ *  Friend et al 1997, Eqn 53 (Parton et al 1993, Fig 2)
+ *
+ *  \param wfps  Water-filled pore space
+ *  \param theta  Total water mass (ice + water)
+ */
+double Soillayer::moisture_modifier() {
+
+	// double moist_mod = wfps < 60.0 ? exp((wfps - 60.0) * (wfps - 60.0) / -800.0) : 0.000371 * wfps * wfps - 0.0748 * wfps + 4.13;
+
+	// Yan et al 2018 - A moisture function of soil heterotrophic
+	// respiration that incorporates microscale processes
+
+	// Minimum moist modifier for dry soils
+	double moist_mod_dry = 0.064;
+
+	// Maximum moist modifier at optimal moisture
+	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
+
+	// Total water mass
+	double theta = wmass + imass;
+
+
+	double moist_mod;
+
+	if (theta < fc()) {
+		moist_mod = max(moist_mod_dry, moist_mod_max * (fc() + 0.1) / (theta + 0.1) * pow(theta / fc(), 1.0 + a * 2.0));
+	}
+	else if (wsats - theta > 1.0e-12) {
+		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * pow((wsats - theta) / (wsats - fc()), 0.75));
+	}
+	else {
+		moist_mod = RMOIST_ANAEROBIC;
+	}
+	
+	return moist_mod;
+}
+
 /// Calculates CENTURY instantaneous decay rates
 /** Calculates CENTURY instantaneous decay rates given soil layer temperature,
 *  water content, texture etc
 */
 void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
-//void Soillayer::decayrates_century(bool tillage, bool ispeatland, bool ismineralwetland, bool savesomcent) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -444,73 +517,10 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	const double texture_mod = 1.0 - 0.75 * ((*soilcolumn).soiltype.clay_frac + (*soilcolumn).soiltype.silt_frac);
 
 	// Calculate decomposition temperature modifier (in range 0-1)
-	// [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
-	// effect of soil temperature, Parton et al 1993, Fig 2)
-
-	double temp_mod = 0.0;
-
-	if (temp > 0.0) {
-		temp_mod = max(0.0,
-			0.0326 + 0.00351 * pow(temp, 1.652) - pow(temp / 41.748, 7.19));
-	}
-
-	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
-	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
-	if (ifcarbonfreeze && temp <= 0.0 && temp >= MIN_DECOMP_TEMP && !iftwolayersoil) {
-
-		double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
-		bool linear_decrease_below_freezing = false;
-
-		if (linear_decrease_below_freezing) {
-			// Linear approach (Koven et al. 2011)
-			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-			temp_mod = slope * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
-		}
-		else {
-			// Alternative Q10 relationship (Schaefer & Jafarov, 2016)
-			double q10_freeze = 2.9; // (Natali et al., 2019)
-			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp / 10.0);
-		}
-	}
-
-	// Moisture modifiers
+	double temp_mod = temperature_modifier(temp);
 
 	// Calculate decomposition moisture modifier
-	double moist_mod;
-
-	/*// Water Filled Pore Spaces (wfps) %
-	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
-	// is calculated with the help of Cosby et al 1984;
-	// use Gerten equivalents here, but wfps COULD be made depth equivalent
-	const double wfps100 = wfps() * 100.0;
-
-	// Friend et al 1997, Eqn 53 and Parton et al 1993, Fig 2
-	if (wfps100 < 60.0)
-		moist_mod = exp((wfps100 - 60.0) * (wfps100 - 60.0) / -800.0);
-	else
-		moist_mod = 0.000371 * wfps100 * wfps100 - 0.0748 * wfps100 + 4.13;*/
-
-	// Yan et al 2018 - A moisture function of soil heterotrophic
-	// respiration that incorporates microscale processes
-
-	// Minimum moist modifier for dry soils
-	double moist_mod_dry = 0.064;
-
-	// Maximum moist modifier at optimal moisture
-	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
-
-	// Total water mass
-	double theta = wmass + imass;
-
-	if (theta < fc()) {
-		moist_mod = max(moist_mod_dry, moist_mod_max * (fc() + 0.1) / (theta + 0.1) * pow(theta / fc(), 1.0 + a * 2.0));
-	}
-	else if (wsats - theta > 1.0e-12) {
-		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * pow((wsats - theta) / (wsats - fc()), 0.75));
-	}
-	else {
-		moist_mod = RMOIST_ANAEROBIC;
-	}
+	double moist_mod = moisture_modifier();	
 
 	// Combined moisture and temperature modifier
 

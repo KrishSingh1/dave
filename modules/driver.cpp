@@ -523,8 +523,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		}
 	}
 	
-	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
-	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
+	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) || 
+		 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
 		climate.ifsensechill = false;
@@ -623,7 +623,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			climate.mtemp_max20 /= (double)(21 - startyear);
 			climate.mtemp_min_20[19] = climate.mtemp_min;
 			climate.mtemp_max_20[19] = climate.mtemp_max;
-
 			climate.agdd0_20.add(climate.agdd0);
 		}
 

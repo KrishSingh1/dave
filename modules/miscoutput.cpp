@@ -246,7 +246,7 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("temp_max",   10, 1);
 	seasonality_columns += ColumnDescriptor("mtemp_max",  10, 1);
 	seasonality_columns += ColumnDescriptor("temp_seas",  10, 0);
-	seasonality_columns += ColumnDescriptor("gdd0",       10, 0); 
+	seasonality_columns += ColumnDescriptor("gdd0",       10, 0);
 	seasonality_columns += ColumnDescriptor("gdd5",       10, 0);
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);

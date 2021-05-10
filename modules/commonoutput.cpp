@@ -1411,9 +1411,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_clitter,				clitter_gridcell);
 	outlimit(out,out_aburned_area,				gridcell.annual_burned_area);
 	outlimit(out,out_simfireanalysis,			gridcell.simfire_biome);
-	outlimit(out,out_simfireanalysis,			gridcell.max_nesterov);
+	outlimit(out,out_simfireanalysis,			gridcell.nesterov_max);
 	outlimit(out,out_simfireanalysis,			gridcell.pop_density);
-	outlimit(out,out_simfireanalysis,			gridcell.ann_max_fapar);
+	outlimit(out,out_simfireanalysis,			gridcell.fapar_annual_max);
 	outlimit(out,out_simfireanalysis,			gridcell.simfire_annual_burned_area);
 	outlimit(out,out_simfireanalysis,			gridcell.simfire_region);
 	outlimit(out,out_firert,				firert_gridcell);

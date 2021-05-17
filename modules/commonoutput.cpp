@@ -1470,7 +1470,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
 				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, MWCONT, AWC, m);
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
-				mwcont_lower[m] += (gridcell.soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soilcolumn.depth, MWCONT, AWC, m) * soilcolumn.depth - mwcontupper * SOILDEPTH_UPPER) / (soilcolumn.depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
+				mwcont_lower[m] += (patch.soilcolumn.depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soilcolumn.depth, MWCONT, AWC, m) * soilcolumn.depth - mwcontupper * SOILDEPTH_UPPER) / (soilcolumn.depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
 				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;

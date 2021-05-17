@@ -1068,8 +1068,8 @@ void transfer_litter(Patch& patch) {
 		double ligcmass_new, ligcmass_old;
 
 		// Fire (GlobFIRM)
-		double litterme[NSOMPOOL];
-		double fireresist[NSOMPOOL];
+		double litterme[NSOMPOOL] = { 0.0 };
+		double fireresist[NSOMPOOL] = { 0.0 };
 
 		patch.pft.firstobj();
 		while (patch.pft.isobj) {
@@ -1728,11 +1728,11 @@ void vertical_movement(Patch& patch) {
 		patch.soilcolumn.vertical_movement();
 
 
-	if (patch.stand.landcover == PEATLAND || !date.islastday || !(ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr))
+	if (patch.stand.landcover == PEATLAND || !date.islastday || !ifverticalmixing || date.year < patch.soilcolumn.solvesomcent_beginyr)
 		return;
 
 	// Low carbon in soil -> no vertical mixing
-	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.get_sum(CCONT) < 1.0e-3)
+	if (date.year <= patch.soilcolumn.solvesomcent_endyr || patch.soilcolumn.get_sum(CCONT) < 1.0e-5)
 		return;
 
 	// Average monthly active layer depth

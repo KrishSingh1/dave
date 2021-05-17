@@ -203,7 +203,7 @@ void irrigation(Patch& patch) {
 void inundation_stress(Patch& patch) {
 	for (int p = 0; p<npft; p++) {
 
-		double wtpp = patch.soilcolumn.wtp[date.day]; // [-300,100] mm
+		double wtpp = patch.soilcolumn.wtp; // [-300,100] mm
 		double wtpm = patch.pft[p].pft.wtp_max; // mm
 
 		if (date.day == 0)

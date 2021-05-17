@@ -159,8 +159,6 @@ void Snow::init_state() {
 			mtemp[lyr][mth] = 0.0;
 		}
 	}
-
-	std::fill_n(ddepth, Date::MAX_YEAR_LENGTH, 0.0);
 }
 
 /// Function returns total available N mass in snow column
@@ -1445,7 +1443,7 @@ void Snow::serialize(ArchiveStream& arch) {
 /** Soil layer constructor: initialises soilcolumn, depth, profile depth
  * and if soil layer is an acrotelm or catotelm
  */ // DW_COMMENT
-Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool a, bool c) : soilcolumn(sc), depth(d), depth_profile(dp), acrotelm(a), catotelm(c) {
+Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : soilcolumn(sc), depth(d), depth_profile(dp), acrotelm(at), catotelm(ct) {
 //	init();
 //}
 
@@ -1589,11 +1587,9 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool a, bool c) : soil
 
 	for (int d = 0; d < 31; d++) {
 		dtemp[d] = 0.0;
+		dwmass[d] = 0.0;
+		dwcont[d] = 0.0;
 	}
-
-	// Daily variables
-	std::fill_n(dwcont, Date::MAX_YEAR_LENGTH, 0.0);
-	std::fill_n(dwmass, Date::MAX_YEAR_LENGTH, 0.0);
 }
 
 /// Returns certain properties of soil layer
@@ -1665,7 +1661,7 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 	else if (SPT == AMINLEACH)
 		return aminleach;
 	else
-		fail("Property doesn't exist in soillayer %d\n", SPT);
+		fail("Property (%d) doesn't exist in soillayer\n", SPT);
 }
 
 
@@ -1679,10 +1675,10 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
  * thermal properties for analytic temperature calculation
  * and two layer soil perculation parameters
 */
-void Soillayer::set_properties(double& wmass_move, double& imass_move) {
+void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must_set) {
 
 	// Only enter first year except if dynamic soil organic C influence soil properties
-	if (!((date.day == 0 && (*soilcolumn).patch.stand.first_year == date.year) || (iforganicsoilproperties == 2 && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
+	if (!must_set && !((date.day == 0 && (*soilcolumn).patch.stand.first_year == date.year) || (iforganicsoilproperties == 2 && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
 		return;
 
 	// Get soil type
@@ -2256,17 +2252,13 @@ void Soilcolumn::initdrivers() {
 	awtp = 0.0;
 	acro_co2 = 934.0;
 	wtd = 0.0;
+	wtp = 0.0;
 	stand_wmass = 0.0;
 
 	for (int mth = 0; mth < 12; mth++) {
 		mthaw[mth] = 0.0;
 		mwtp[mth] = 0.0;
 		mald_mean[mth] = 0.0;
-	}
-
-	for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
-		wtp[d] = 0.0;
-		dthaw[d] = 0.0;
 	}
 
 	dmoss_wtp_limit = 1.0;
@@ -2293,7 +2285,7 @@ void Soilcolumn::initdrivers() {
 	//solvesomcent_endyr = (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears);
 
 	solvesomcent_beginyr = (int)0.5*freenyears;
-	solvesomcent_endyr = (int)freenyears;
+	solvesomcent_endyr = (int)freenyears+10;
 	savesomcent = false;
 }
 
@@ -2366,6 +2358,8 @@ void Soilcolumn::add_soillayer(double soil_layer_depth, double soil_layer_depth_
 
 	// Add soil layer to soillayer vector
 	soillayers.push_back((*soillayer));
+
+	delete soillayer;
 }
 
 /// Returns surface litter C content
@@ -2561,8 +2555,8 @@ void Soilcolumn::nmass_avail_uptake(double uptake, n_pref_type pref) {
  */
 void Soilcolumn::set_dwcont() {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		soillayers[lyr].dwmass[date.day] = soillayers[lyr].wmass;
-		soillayers[lyr].dwcont[date.day] = soillayers[lyr].wcont();
+		soillayers[lyr].dwmass[date.dayofmonth] = soillayers[lyr].wmass;
+		soillayers[lyr].dwcont[date.dayofmonth] = soillayers[lyr].wcont();
 	}
 }
 
@@ -2588,12 +2582,10 @@ void Soilcolumn::set_mwcont() {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		// Monthly wmass
-		soillayers[lyr].mwmass[date.month] = mean(soillayers[lyr].dwmass + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
+		soillayers[lyr].mwmass[date.month] = mean(soillayers[lyr].dwmass, date.ndaymonth[date.month]);
 
 		// Monthly wcont
-		soillayers[lyr].mwcont[date.month] = mean(soillayers[lyr].dwcont + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
+		soillayers[lyr].mwcont[date.month] = mean(soillayers[lyr].dwcont, date.ndaymonth[date.month]);
 
 		acc_wcont += lyr == 0 ? soillayers[lyr].mwcont[date.month] * soillayers[lyr].awc / 2.0 : 
 			(soillayers[lyr-1].mwcont[date.month] * soillayers[lyr-1].awc + soillayers[lyr].mwcont[date.month] * soillayers[lyr].awc) / 2.0;
@@ -3430,17 +3422,17 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		// Saturated acrotelm
 
-		wtp[date.day] = wtot_acrotelm + itot_acrotelm - ACROTELM_DEPTH * acrotelm_por;
+		wtp = wtot_acrotelm + itot_acrotelm - ACROTELM_DEPTH * acrotelm_por;
 		
 		// WTP > 0 above the surface
-		if (wtp[date.day] > maxh) {
+		if (wtp > maxh) {
 			// Update runoff from the surface
-			runoff_surf += wtp[date.day] - maxh;
-			wtp[date.day] = maxh;
+			runoff_surf += wtp - maxh;
+			wtp = maxh;
 		}
 
 		// WTD defined as < 0 above the surface
-		wtd = -wtp[date.day];
+		wtd = -wtp;
 
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
 
@@ -3458,7 +3450,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		
 		wtd = min(ACROTELM_DEPTH, wtd);
 
-		wtp[date.day] = -wtd;
+		wtp = -wtd;
 
 		// Wetlands does NOT include standing water
 		// we assume no standing water 
@@ -3599,12 +3591,12 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	const double moss_wtp_limit_lowerlimit = 0.3;
 
 	// No limit
-	if (wtp[date.day] > wtp_moss_upper) {
+	if (wtp > wtp_moss_upper) {
 		dmoss_wtp_limit = 1.0;
 	}
 	// Middle
-	else if (wtp[date.day] > wtp_moss_lower) {
-		dmoss_wtp_limit = 1.0 - (-wtp[date.day] + wtp_moss_upper) * (1.0 - moss_wtp_limit_lowerlimit) / (wtp_moss_upper - wtp_moss_lower);
+	else if (wtp > wtp_moss_lower) {
+		dmoss_wtp_limit = 1.0 - (-wtp + wtp_moss_upper) * (1.0 - moss_wtp_limit_lowerlimit) / (wtp_moss_upper - wtp_moss_lower);
 	}
 	// Lower limit for wtp between -300mm and -280mm
 	else {
@@ -3636,12 +3628,12 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// More restrictive than Wania et al., otherwise graminoids become too dominant as they never suffer from inundation stress
 	// The cap drops from 1 as soon as wtp goes below wtp_graminoid_upper
 	// No limit
-	if (wtp[date.day] >= wtp_graminoid_upper) {
+	if (wtp >= wtp_graminoid_upper) {
 		dgraminoid_wtp_limit = 1.0;
 	}
 	// Lower limit
-	else if (wtp[date.day] > wtp_graminoid_lower) {
-		dgraminoid_wtp_limit = 1.0 - (-wtp[date.day] + wtp_graminoid_upper) * (1.0 - wtp_graminoid_lowestlimit) / (wtp_graminoid_upper - wtp_graminoid_lower);
+	else if (wtp > wtp_graminoid_lower) {
+		dgraminoid_wtp_limit = 1.0 - (-wtp + wtp_graminoid_upper) * (1.0 - wtp_graminoid_lowestlimit) / (wtp_graminoid_upper - wtp_graminoid_lower);
 	}
 	// Lowest limit
 	else {
@@ -3653,20 +3645,14 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Reset monthly wtp and mmoss_wtp_limit averages on Jan 1
 	if (date.day == 0) {
+		awtp = 0.0;
 		for (int mth = 0; mth < 12; mth++) {
 			mwtp[mth] = 0.0;
 		}
 	}
 
-	int mdays = date.ndaymonth[date.month];
-	mwtp[date.month] += wtp[date.day] / (double)mdays;
-
-	// Calculate annual average WTP. Needed in update_acrotelm_co2
-	if (date.day == Date::MAX_YEAR_LENGTH - 1) {
-		awtp = 0.0;
-		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++)
-			awtp += wtp[d] / (double)Date::MAX_YEAR_LENGTH;
-	}
+	mwtp[date.month] += wtp / (double)date.ndaymonth[date.month];
+	awtp += wtp / (double)date.year_length();
 
 	return; // ...if no problems
 }
@@ -4632,13 +4618,8 @@ void Soilcolumn::thaw_depth() {
 	if (thaw > maxthaw || date.day == 0)
 		maxthaw = thaw;
 
-	// Save daily thaw depth
-	dthaw[date.day] = thaw;
-
 	// Calculate mean monthly thaw depth
-	if (date.islastday)
-		mthaw[date.month] = mean(dthaw + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
+	mthaw[date.month] += thaw / date.ndaymonth[date.month];
 
 	if (date.islastmonth && date.islastday) {
 		maxthaw_10.add(maxthaw);
@@ -4816,15 +4797,10 @@ void Soilcolumn::temp() {
 */
 void Soilcolumn::save_snow() {
 
-	// Save daily snow depth
-	snow.ddepth[date.day] = snow.depth();
-
 	// Calculate mean monthly snow depth
-	if (date.islastday) {
-		snow.mdepth[date.month] = mean(snow.ddepth + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
-	}
-
+	snow.mdepth[date.month] += snow.depth() / date.ndaymonth[date.month];
+	
+	// Calculate mean monthly snow temperature
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 		if (lyr < snow.nsnowlayers) {
 			snow.mtemp[lyr][date.month] += snow.snowlayers[lyr].temp / date.ndaymonth[date.month];
@@ -4921,7 +4897,7 @@ void Soilcolumn::vertical_movement() {
 				// Update affected soil properties
 				double wmass_add = 0.0;
 				double imass_add = 0.0;
-				soillayers[donor].set_properties(wmass_add, imass_add);
+				soillayers[donor].set_properties(wmass_add, imass_add, true);
 			}
 		}
 		else if (patch.stand.landcover == PEATLAND && ccont_soil + ccont_roots[lyr] < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {

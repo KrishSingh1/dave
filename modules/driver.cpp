@@ -539,7 +539,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);
-	if (climate.temp < 5.0 && climate.chilldays <= Date::MAX_YEAR_LENGTH)
+	if (climate.temp < 5.0 && climate.chilldays <= date.year_length())
 		climate.chilldays++;
 
 	climate.gdd0 += max(0.0, climate.temp);

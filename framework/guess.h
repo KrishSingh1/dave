@@ -3320,16 +3320,16 @@ public:
 	double depth;
 	/// water mass in soil layer (kg m-2)
 	double wmass;
-	/// daily water mass for each day of year
-	double dwmass[Date::MAX_YEAR_LENGTH];
+	/// daily water mass for the last month
+	double dwmass[31];
 	/// monthly water mass in soil layer (kg m-2)
 	double mwmass[12];
 	/// ice mass in soil layer (kg m-2)
 	double imass;
 	/// Matrix potantial (mm)
 	double psi;
-	/// daily water content for each day of year
-	double dwcont[Date::MAX_YEAR_LENGTH];
+	/// daily water content for the last month
+	double dwcont[31];
 	/// monthly water content as fraction of available water holding capacity
 	double mwcont[12];
 	/// mean water content above current soil layer for last month
@@ -3549,6 +3549,7 @@ public:
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
+		runoff_drain_frac = that.runoff_drain_frac;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
 		awc_org = that.awc_org;
@@ -3619,9 +3620,6 @@ public:
 
 		for (int d = 0; d < 31; d++) {
 			dtemp[d] = that.dtemp[d];
-		}
-
-		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
 			dwmass[d] = that.dwmass[d];
 			dwcont[d] = that.dwcont[d];
 		}
@@ -3659,6 +3657,7 @@ public:
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
+		runoff_drain_frac = that.runoff_drain_frac;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
 		awc_org = that.awc_org;
@@ -3729,10 +3728,7 @@ public:
 
 		for (int d = 0; d < 31; d++) {
 			dtemp[d] = that.dtemp[d];
-		}
-
-		for (int d = 0; d < Date::MAX_YEAR_LENGTH; d++) {
-			dwmass[d] = that.dwmass[d]; 
+			dwmass[d] = that.dwmass[d];
 			dwcont[d] = that.dwcont[d];
 		}
 
@@ -3759,7 +3755,7 @@ public:
 	/// Get property of soil layer
 	double get(soilproptype SPT, int m = 0);
 	/// Set soil layer properties
-	void set_properties(double& wmass_move, double& imass_move);
+	void set_properties(double& wmass_move, double& imass_move, bool must_set = false);
 	/// C content of soil layer
 	double ccont(bool exclude_litter = false);
 	/// N content of soil layer
@@ -3905,8 +3901,6 @@ public:
 	double snow_depth_standard;
 	/// Limit for creating/deleting a snow layer compared to standard depth
 	double snow_depth_limit;
-	/// Daily snow depth [mm]
-	double ddepth[Date::MAX_YEAR_LENGTH];
 	/// Monthly snow depth (average) [mm]
 	double mdepth[12];
 	/// Monthly snow layer temperature [C]
@@ -4097,8 +4091,6 @@ public:
 	double thaw;
 	/// monthly thawing depth full, where ALL the ice has melted [mm]
 	double mthaw[12];
-	/// daily thawing depth full, where ALL the ice has melted [mm]
-	double dthaw[Date::MAX_YEAR_LENGTH];
 	//
 	double mald_mean[12];
 	//
@@ -4117,7 +4109,7 @@ public:
 	// Peatland hydrology variables:
 
 	/// daily water table position [mm]
-	double wtp[Date::MAX_YEAR_LENGTH];
+	double wtp;
 	/// monthly average water table position [mm]
 	double mwtp[12];
 	/// annual average water table position [mm]

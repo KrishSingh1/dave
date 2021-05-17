@@ -1563,6 +1563,11 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							soillayer.sompool[p].ligcfrac = (soillayer.sompool[p].ligcfrac * old_frac + from.transfer_soil_sompool_ligcfrac[lyr][p] * added_frac) / new_frac;
 							soillayer.sompool[p].litterme = (soillayer.sompool[p].litterme * old_frac + from.transfer_soil_sompool_litterme[lyr][p] * added_frac) / new_frac;
 						}
+
+						// Update soil layer properties
+						double wmass_add = 0.0;
+						double imass_add = 0.0;
+						soillayer.set_properties(wmass_add, imass_add, true);
 					}
 					patch.soilcolumn.cmass_litter_input.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
 					patch.soilcolumn.csom_litter_input.resize(NSOMPOOL, 0.0);

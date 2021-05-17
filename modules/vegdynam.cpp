@@ -1381,11 +1381,11 @@ void fire(Patch& patch, double& fireprob) {
 	// NOTE: error in Eqn 2, Thonicke et al - multiplier should be PI/4, not PI
 
 	n = 0.0;
-	for (int day = 0; day < date.year_length(); day++) {
+	for (int mth = 0; mth < 12; mth++) {
 
 		// No fires unless there is some soil melt.
-		if (iftwolayersoil || (patch.soilcolumn.dthaw[day] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
-			pm = exp(-PI * surflayer.dwcont[day] / me_mean * surflayer.dwcont[day] / me_mean);		// Eqn 2
+		if (iftwolayersoil || (patch.soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+			pm = exp(-PI * surflayer.mwcont[mth] / me_mean * surflayer.mwcont[mth] / me_mean) * date.ndaymonth[mth];		// Eqn 2
 		}
 		else {
 			pm = 0.0;

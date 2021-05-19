@@ -16,6 +16,12 @@
 
 #include "guess.h"
 
+// computes the decomposition temperature modifier (in range 0-1)
+double temperature_modifier(double temp);
+
+// computes the decomposition moisture modifier (in range 0-1)
+double moisture_modifier(double wfps);
+
 void som_dynamics(Patch& patch, Climate& climate);
 
 // computes the fraction of leaf and root that goes to metabolic litter (used by BLAZE)

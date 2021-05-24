@@ -49,7 +49,7 @@ double randfrac(long& seed) {
 	const long q = 127773;
 	const long r = 2836;
 
-	seed = multiplier * (seed % q) - r * seed / q;
+	seed = multiplier * (seed % q) - r * (seed / q);
 	if (!seed) seed++; // increment seed to 1 in unlikely event of 0 value
 	else if (seed < 0) seed += modulus;
 	return (double)seed / fmodulus;
@@ -529,8 +529,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		}
 	}
 	
-	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) || 
-		 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
+	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+	     (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
 		climate.ifsensechill = false;

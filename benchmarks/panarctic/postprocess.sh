@@ -41,7 +41,7 @@ describe_image ALDmax.jpg "Measured vs. Modelled 2000 to 2015 maximum Active lay
 tslice soiltemp25cm.out -o soiltemp1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
 compute soiltemp1961to1990.txt -o soiltemp1961to1990season.txt -n  -i Lon Lat 'winter=(Jan+Feb+Dec)/3.0' 'spring=(Mar+Apr+May)/3.0' 'summer=(Jun+Jul+Aug)/3.0' 'autumn=(Sep+Oct+Nov)/3.0'
 
-gmapall soiltemp1961to1990season.txt -P soiltemp_ -p npolar
+gmapall soiltemp1961to1990season.txt -P soiltemp_ -p npolar -vert
 describe_images "Seasonal soil temperatures (1961-90 average). Units: degr C" soiltemp_*.jpg
 
 
@@ -51,7 +51,7 @@ gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "Dominant PFT
 describe_images "PFT maximum C mass per gridcell. Units: kgC m-2" cmass1961to1990max.jpg
 gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total -legend legend_cmass_arctic.txt -vert
 describe_images "Total C mass. Units: kgC m-2" cmass1961to1990.jpg
-gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend legend_cmass_arctic.txt
+gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend legend_cmass_arctic.txt -vert
 describe_images "PFT specific cmass. Units: kgC m-2" cmass_*.jpg
 
 dominance lai1961to1990.txt lai1961to1990max.txt
@@ -62,16 +62,16 @@ describe_images "Total Arctic LAI (1961-90)" lai1961to1990.jpg
 
 
 # Pools and fluxes
-gmapall cpool1961to1990.txt -P cpool_ -p npolar -legend common/legend_cmass_global.txt
+gmapall cpool1961to1990.txt -P cpool_ -p npolar -legend common/legend_cmass_global.txt -vert
 describe_images "Panarctic - Total Cpools (1961-90 average). Units: kgC m-2" cpool_*.jpg
 
-gmapall npool1961to1990.txt -P npool_ -p npolar
+gmapall npool1961to1990.txt -P npool_ -p npolar -vert
 describe_images "Panarctic - Npool (1961-90 average). Units: kgC m-2" npool_*.jpg
 
-gmapall cflux1961to1990.txt -P cflux_ -p npolar
+gmapall cflux1961to1990.txt -P cflux_ -p npolar -vert
 describe_images "Panarctic - Cfluxes (1961-90 average). Units kgC m-2 yr-1" cflux_*.jpg
 
-gmapall nflux1961to1990.txt -P nflux_ -p npolar
+gmapall nflux1961to1990.txt -P nflux_ -p npolar -vert
 describe_images "Panarctic - Nfluxes (1961-90 average). Units kgN m-2 yr-1" nflux_*.jpg
 
 gmap tot_runoff1961to1990.txt -o total_runoff.jpg -i Total -t "Total runoff" -p npolar -vert

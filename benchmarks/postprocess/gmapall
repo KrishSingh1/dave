@@ -48,4 +48,4 @@ fi
 extra=$@
 
 # Send the first line of input to the awk script which does the work
-head -n 1 $file | GMAP_EXTRA=$extra awk -v file=$file -v prefix=$prefix -f `dirname $0`/gmapall.awk
+head -n 1 $file | GMAP_EXTRA="$extra -vert" awk -v file=$file -v prefix=$prefix -f `dirname $0`/gmapall.awk

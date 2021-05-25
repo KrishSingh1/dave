@@ -12,16 +12,16 @@ describe_images "CMASS For All Species (1961-90 average). Units: kgC m-2" cmass_
 gmapall cton_leaf1961to1990.txt -P cton_leaf_ -legend common/legend_cton.txt -portrait
 describe_images "Leaf C:N Ratio For All Species (1961-90 average). Units: kgC kgN-1" cton_leaf_*.jpg
 
-gmap lai1961to1990max.txt -t 'Dominant Species (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_europe.txt -o maxLAIeurope.jpg -pixoffset 0.0 0.0
+gmap lai1961to1990max.txt -t 'Dominant Species (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_europe.txt -o maxLAIeurope.jpg -pixoffset 0.0 0.0 -vert
 describe_image maxLAIeurope.jpg "Species With the Highest LAI in Each Gridcell (1961-90 average)"
 
-gmap cmass1961to1990max.txt -t 'Dominant Species (greatest cmass)' -lon 1 -lat 2 -i 3 -legend legend_europe.txt -o maxCMASSeurope.jpg -pixoffset 0.0 0.0
+gmap cmass1961to1990max.txt -t 'Dominant Species (greatest cmass)' -lon 1 -lat 2 -i 3 -legend legend_europe.txt -o maxCMASSeurope.jpg -pixoffset 0.0 0.0 -vert
 describe_image maxCMASSeurope.jpg "Species With the Highest CMASS in Each Gridcell (1961-90 average)"
 
 tslice aiso.out -o aiso1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3 
 tslice amon.out -o amon1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3 
-gmap aiso1961to1990.txt -t 'Isoprene flux (mg C/m2/y)' -legend legend_bvoc_europe.txt -lon 1 -lat 2 -i 'Total' -o aiso_tot.jpg -pixoffset 0.0 0.0
-gmap amon1961to1990.txt -t 'Monoterpene flux (mg C/m2/y)' -legend legend_bvoc_europe.txt -lon 1 -lat 2 -i 'Total' -o amon_tot.jpg -pixoffset 0.0 0.0
+gmap aiso1961to1990.txt -t 'Isoprene flux (mg C/m2/y)' -legend legend_bvoc_europe.txt -lon 1 -lat 2 -i 'Total' -o aiso_tot.jpg -pixoffset 0.0 0.0 -vert
+gmap amon1961to1990.txt -t 'Monoterpene flux (mg C/m2/y)' -legend legend_bvoc_europe.txt -lon 1 -lat 2 -i 'Total' -o amon_tot.jpg -pixoffset 0.0 0.0 -vert
 describe_image aiso_tot.jpg "Annual isoprene flux (1961-90 average)"
 describe_image amon_tot.jpg "Annual monoterpene flux (1961-90 average)"
 

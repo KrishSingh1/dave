@@ -20,7 +20,7 @@ common1961to1990.sh
 # Arctic benchmark specific Output
 # Active layer depth
 tslice mald.out -o ald1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
-gmap ald1961to1990.txt -o aldmax1961to1990.jpg -p npolar -t "Maximum ALD 1961-1990" -i MAXALD
+gmap ald1961to1990.txt -o aldmax1961to1990.jpg -p npolar -t "Maximum ALD 1961-1990" -i MAXALD -vert
 describe_images "Maximum Active Layer Depth (1961-90 average). Units: m" aldmax1961to1990.jpg
 
 tslice mald.out -o ald2000to2015.txt -f 2000 -t 2015 -lon 1 -lat 2 -y 3
@@ -47,17 +47,17 @@ describe_images "Seasonal soil temperatures (1961-90 average). Units: degr C" so
 
 # PFT
 dominance cmass1961to1990.txt cmass1961to1990max.txt
-gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "Dominant PFT (cmass)" -legend legend_arctic.txt
+gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "Dominant PFT (cmass)" -legend legend_arctic.txt -vert
 describe_images "PFT maximum C mass per gridcell. Units: kgC m-2" cmass1961to1990max.jpg
-gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total -legend legend_cmass_arctic.txt
+gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total -legend legend_cmass_arctic.txt -vert
 describe_images "Total C mass. Units: kgC m-2" cmass1961to1990.jpg
 gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend legend_cmass_arctic.txt
 describe_images "PFT specific cmass. Units: kgC m-2" cmass_*.jpg
 
 dominance lai1961to1990.txt lai1961to1990max.txt
-gmap lai1961to1990max.txt -o lai1961to1990max.jpg -p npolar -t "Dominant PFT (LAI)" -legend legend_arctic.txt
+gmap lai1961to1990max.txt -o lai1961to1990max.jpg -p npolar -t "Dominant PFT (LAI)" -legend legend_arctic.txt -vert
 describe_images "PFT With the Highest LAI in Each Gridcell (1961-90 average)" lai1961to1990max.jpg
-gmap lai1961to1990.txt -o lai1961to1990.jpg -p npolar -i Total -t "Total LAI" -legend legend_lai_arctic.txt
+gmap lai1961to1990.txt -o lai1961to1990.jpg -p npolar -i Total -t "Total LAI" -legend legend_lai_arctic.txt -vert
 describe_images "Total Arctic LAI (1961-90)" lai1961to1990.jpg
 
 
@@ -74,14 +74,14 @@ describe_images "Panarctic - Cfluxes (1961-90 average). Units kgC m-2 yr-1" cflu
 gmapall nflux1961to1990.txt -P nflux_ -p npolar
 describe_images "Panarctic - Nfluxes (1961-90 average). Units kgN m-2 yr-1" nflux_*.jpg
 
-gmap tot_runoff1961to1990.txt -o total_runoff.jpg -i Total -t "Total runoff" -p npolar
+gmap tot_runoff1961to1990.txt -o total_runoff.jpg -i Total -t "Total runoff" -p npolar -vert
 describe_images "Panarctic - Total runoff (1961-90 average)" total_runoff.jpg
 
 
 # Treeline
 tslice fpc.out -f 2005 -t 2015 -lon 1 -lat 2 -y 3 -o fpc2005to2015.txt
 compute fpc2005to2015.txt -i 'TreeFPC=BNE+BINE+BNS+IBS+TeBS' -o treefpc.txt
-gmap treefpc.txt -p MERCATOR -s 0 0.01 10 -i TreeFPC -horiz -o treefpc.jpg
+gmap treefpc.txt -p MERCATOR -s 0 0.01 10 -i TreeFPC -horiz -o treefpc.jpg -vert
 describe_images "Panarctic - Tree FPC and treeline (2005-2015 average)" treefpc.jpg
 
 

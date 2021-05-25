@@ -262,20 +262,20 @@ double survival_probability_boreal(double fire_line_intensity) {
 // Survival probability for temperate Needleleaf trees following Kobziar 2006
 double survival_probability_temp_needleleaf(double diameter_at_breast_height, double fire_line_intensity, double mass_cwd) {
 
-	double daimeter_at_breast_height_cm  = diameter_at_breast_height * CM_PER_M; // in cm
+	double diameter_at_breast_height_cm  = diameter_at_breast_height * CM_PER_M; // in cm
 	double cwd = mass_cwd * 0.1; // in Mg/ha
 	// survival probability at intensity below 750 kW/m
-	double sruvival_probability_750;
+	double survival_probability_750;
 	double survival_probability;
 
 	if ( fire_line_intensity < 750. ) {
-		sruvival_probability_750   = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*750. 
-						- .221*daimeter_at_breast_height_cm + .0219*cwd))));
-		survival_probability = 1. - (fire_line_intensity/750. * (1. - sruvival_probability_750) );
+		survival_probability_750   = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*750. 
+						- .221*diameter_at_breast_height_cm + .0219*cwd))));
+		survival_probability = 1. - (fire_line_intensity/750. * (1. - survival_probability_750) );
 	}
 	else {
 		survival_probability = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fire_line_intensity
-						- .221*daimeter_at_breast_height_cm + .0219*cwd))));
+						- .221*diameter_at_breast_height_cm + .0219*cwd))));
 	}
 
 	return survival_probability;

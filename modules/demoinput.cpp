@@ -170,7 +170,7 @@ void DemoInput::init() {
 
 	// Demo input currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
 	if (weathergenerator == GWGEN || firemodel == BLAZE) {
-		fail("Demo input currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins, europe.ins, and arctic.ins.");
+		fail("Demo input currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
 	}
 
 	// Read list of grid coordinates and store in global Coord object 'gridlist'

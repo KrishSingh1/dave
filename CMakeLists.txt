@@ -51,10 +51,10 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # If this CMakeList script does not find the path to the NetCDF library
 # on your system, then consult LPJ-GUESS/reference/guessdoc.doc on how 
 # to modify this section, using the out-commented line below.
-#set(CMAKE_PREFIX_PATH $ENV{NETCDF_PREFIX_PATH})
-if ($ENV{ARCH} STREQUAL "aurora")
+#set(CMAKE_PREFIX_PATH "$ENV{NETCDF_PREFIX_PATH}")
+if ("$ENV{ARCH}" STREQUAL "aurora")
   # For easybuild systems
-  set(CMAKE_PREFIX_PATH $ENV{EBROOTNETCDF})
+  set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}")
 endif()
 find_package(NetCDF QUIET)
 

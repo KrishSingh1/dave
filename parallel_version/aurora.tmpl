@@ -177,7 +177,6 @@ cat <<EOF > append.cmd
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
 #SBATCH --mem-per-cpu=12000
-#SBATCH --exclusive
 set -e
 
 function append_files {

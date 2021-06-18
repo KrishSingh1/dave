@@ -101,6 +101,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
 	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300, "stand type cmass of trees killed by mortality output file");
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
+	declare_parameter("file_cmass_killed_harv_sts", &file_cmass_killed_harv_sts, 300, "stand type whole tree harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
 	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300, "stand type thinning wood harvest cmass output file");
@@ -110,6 +111,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
 	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
+	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
 
 	declare_parameter("file_forest_cmass_killed_harv", &file_forest_cmass_killed_harv, 300, "Killed forest C biomass during wood harvest output file");
 
@@ -632,6 +634,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
 	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
 	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_columns);
+	create_output_table(out_cmass_killed_harv_sts,		file_cmass_killed_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
 	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
@@ -642,6 +645,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
+	create_output_table(out_csink_sts,					file_csink_sts,					st_columns);
 
 	create_output_table(out_forest_harvest,				file_forest_harvest,			forest_harv_columns);
 	create_output_table(out_forest_vegc,				file_forest_vegc,				forest_vegc_columns);
@@ -789,6 +793,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass = 0.0;
 		st.cmass_tree = 0.0;
 		st.cmass_tree_mort = 0.0;
+		st.cmass_harv_killed = 0.0;
 		st.cmass_wood = 0.0;
 		st.cmass_wood_potharv = 0.0;
 		st.cmass_wood_potharv_products = 0.0;
@@ -808,6 +813,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.diam_g = 0.0;
 		st.csoil = 0.0;
 		st.clitter = 0.0;
+		st.csink = 0.0;
 	}
 
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
@@ -1598,6 +1604,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					}
 				}
 			}
+
+			st.csink -= (-patch.fluxes.get_annual_flux(Fluxes::NPP) + patch.fluxes.get_annual_flux(Fluxes::REPRC) + patch.fluxes.get_annual_flux(Fluxes::SOILC) + patch.fluxes.get_annual_flux(Fluxes::FIREC)
+				+ patch.fluxes.get_annual_flux(Fluxes::ESTC) + patch.fluxes.get_annual_flux(Fluxes::SEEDC) + patch.soil.aorgCleach) * to_gridcell_average / gcst.frac;
+
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
@@ -1793,6 +1803,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_cmass_sts, st.cmass);
 		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
 		outlimit_misc(out, out_cmass_tree_mort_sts, st.cmass_tree_mort);
+		outlimit_misc(out, out_cmass_killed_harv_sts, st.cmass_killed_harv);
 		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
 		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
 		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);
@@ -1801,6 +1812,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_dens_sts, st.densindiv);
 		outlimit_misc(out, out_csoil_sts, st.csoil);
 		outlimit_misc(out, out_clitter_sts, st.clitter);
+		outlimit_misc(out, out_csink_sts, st.csink);
 
 		double diam_g = 0.0;
 		if(st.densindiv) {

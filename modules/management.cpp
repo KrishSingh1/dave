@@ -1102,7 +1102,7 @@ void thin_reineke(Patch& patch) {
 		// Pre-commercial thinning: harvested biomass to litter
 //		if(patch.age < 20)
 //			patch.harvest_to_litter = true;
-		distribute_cutting(patch, 0, 1, 4);	// Cut young trees first (1) & Cut shrubs and shade-intolerant species first (4)
+		distribute_cutting(patch, 0, mt.target_thinning_select_age, 4);	// Cut young trees first (1) default & Cut shrubs and shade-intolerant species first (4)
 	}
 }
 

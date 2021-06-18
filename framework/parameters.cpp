@@ -945,6 +945,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("delayduecutting",&pmt->delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
 		declareitem("firsttargetyear",&pmt->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
 		declareitem("lasttargetyear",&pmt->lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
+		declareitem("targetthinselectage",&pmt->target_thinning_select_age,0,2,1,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+		declareitem("targetthinselectdiam",&pmt->target_thinning_select_diam,0,2,1,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
 		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
@@ -1056,6 +1058,8 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("delayduecutting",&pst->management.delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
 				declareitem("firsttargetyear",&pst->management.firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
 				declareitem("lasttargetyear",&pst->management.lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
+				declareitem("targetthinselectage",&pst->management.target_thinning_select_age,0,2,1,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+				declareitem("targetthinselectdiam",&pst->management.target_thinning_select_diam,0,2,1,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
 				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");

@@ -1349,6 +1349,10 @@ public:
 	int firsttargetyear;
 	/// When to stop cutting to reach pft target fractions (calendar year)
 	int lasttargetyear;
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings in target cuttings
+	int	target_thinning_select_age;
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0) in target cuttings
+	int	target_thinning_select_diam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
@@ -1480,6 +1484,8 @@ public:
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;
+		target_thinning_select_age = 1;
+		target_thinning_select_diam = 0;
 		suppress_second_target = false;
 		cutinterval = 0;
 		ifthin_reineke = false;
@@ -1542,6 +1548,8 @@ public:
 		delayduecutting = from.delayduecutting;
 		firsttargetyear = from.firsttargetyear;
 		lasttargetyear = from.lasttargetyear;
+		target_thinning_select_age = from.target_thinning_select_age;
+		target_thinning_select_diam = from.target_thinning_select_diam;
 		planting_system = from.planting_system;
 		harvest_system = from.harvest_system;
 		pftname = from.pftname;

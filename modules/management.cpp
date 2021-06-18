@@ -1331,7 +1331,7 @@ double manage_forest(Patch& patch) {
 
 		for(int t=0;t<NTHINNINGS;t++) {
 
-			if((mt.thinning_strength[n][t] || mt.thinning_strength_unsel[n][t]) && (age % cut_interval) == (int)(cut_interval * mt.thinning_time[n][t])) {
+			if((mt.thinning_strength[n][t] || mt.thinning_strength_unsel[n][t]) && (age % cut_interval) == (int)(floor((cut_interval * mt.thinning_time[n][t]) + 0.5))) {
 				cut_fraction = mt.thinning_strength[n][t];
 				cut_fraction_unsel = mt.thinning_strength_unsel[n][t];
 				patch.man_strength = cut_fraction;

@@ -4046,6 +4046,8 @@ public:
 	/// probability of fire this year (GlobFIRM)
 	double fireprob;
 
+	/// BLAZE if patch has burnt this year
+	bool burned;
 	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
 
@@ -4753,14 +4755,12 @@ public:
 	/// effectively burned area (after randFrac in BLAZE)
 	double effective_burned_area;
 	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
-	double burned_area_accumulated;
-	/// accumulated simfire burned area
 	double simfire_annual_burned_area;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
-	/// annual burned area from SIMFIRE (fract.)
+	/// annual burned area
 	double annual_burned_area;
-	/// monthly burned area from SIMFIRE (fract.)
+	/// monthly burned area
 	double monthly_burned_area[12];
 
 	// Nitrogen deposition

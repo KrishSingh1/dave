@@ -499,9 +499,9 @@ double simfire_burned_area(Gridcell& gridcell) {
 	burned_area *= gridcell.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 
-	// Keep track of area burned so far this year
-	gridcell.burned_area_accumulated += burned_area;
-
+	// For annual simfire firebrobability
+	gridcell.simfire_annual_burned_area += burned_area;
+	
 	return burned_area;
 }
 

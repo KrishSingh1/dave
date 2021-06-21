@@ -495,13 +495,10 @@ void blaze(Patch& patch, Climate& climate) {
 	Gridcell& gridcell = climate.gridcell;
 	
 	// Flammable area witin gridcell
-	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[FOREST]+gridcell.landcover.frac[NATURAL]+gridcell.landcover.frac[PEATLAND];
+	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[NATURAL];
 
 	// Return if total burnable area has already burned
 	if (flammable_area < 0.00001 ) {
-		return;
-	}
-	if (gridcell.burned_area_accumulated >= flammable_area) {
 		return;
 	}
 	
@@ -509,7 +506,7 @@ void blaze(Patch& patch, Climate& climate) {
 	double area_burned = gridcell.burned_area / flammable_area;
 
 	// Correction fractions burned earlier in the same year (vegmode = POPULATION only)
-	double accumulated_fraction_burned= 1.  / (1. - gridcell.burned_area_accumulated / flammable_area);
+	double accumulated_fraction_burned= 1.  / (1. - gridcell.annual_burned_area / flammable_area);
 
 	// Get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
@@ -529,9 +526,7 @@ void blaze(Patch& patch, Climate& climate) {
 	if ( vegmode == POPULATION ) {
 		fab = max(area_burned * accumulated_fraction_burned,1.);
 	}
-	
-	gridcell.effective_burned_area += flammable_area;
-	
+		
 	get_combustion_rates(patch,fli_index,gridcell.k_tun_litter);
 
 	// Compute fluxes from soil litter pools to atmosphere first
@@ -992,9 +987,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
  */
 void blaze_accounting_gridcell(Climate& climate) {
 
-	// To initialise on start of spinup or after restart
-	bool is_first_day = (date.day == 0 && (date.year == 0 || (restart && date.year == state_year)));
-
 	Gridcell& gridcell = climate.gridcell;
 	
 	// Initialise fields
@@ -1005,11 +997,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 		}
 
 		climate.rainfall_annual_avg = 0.0; // average annual rainfall [mm]
-		climate.rainfall_cur        = 0.0; // sum of this years rainfall so far [mm]
-		climate.days_since_last_rainfall                = 0  ; // #Days-since-last-rainfall >3mm
+		climate.days_since_last_rainfall = 0  ; // #Days-since-last-rainfall >3mm
 		climate.last_rainfall       = 0.0; // rainfall of last day of previous year [mm]
 		climate.kbdi                = 0.0; // Keetch-Byram-Drought-index []
-		climate.mcarthur_forest_fire_index = 0.;
 
 		for (int x=0; x<30; x++) {
 			climate.ffdi_monthly[x] = 0.;
@@ -1020,16 +1010,13 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// To keep track of burned area over the year
 	// reset accumulated area_burned to 0 on begining of year
 	if (date.day == 0 ) {
-		gridcell.burned_area_accumulated    = 0.0;
 		gridcell.annual_burned_area         = 0.0;
 		gridcell.simfire_annual_burned_area = 0.0;
-		
+		climate.rainfall_cur                = 0.0;
+
 		for (int i = 0; i < 12; i++) {
 			gridcell.monthly_burned_area[i] = 0.0;
 		}
-	}
-
-	if ( date.day == 0 ) {
 
 		double lat = climate.gridcell.get_lat();
 
@@ -1047,7 +1034,22 @@ void blaze_accounting_gridcell(Climate& climate) {
 			gridcell.k_tun_litter = K_LITTER_TROPICS;
 		}
 	}
-
+	// Reset patch variables
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			patch.fire_line_intensity = 0.;
+			if (date.day==0) {
+				patch.burned = false;
+			}
+			stand.nextobj();
+		}
+		++gc_itr;
+	}
+	
 	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.days_since_last_rainfall > 0) {
@@ -1109,7 +1111,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 	gridcell.effective_burned_area = 0.;
 
-	// Get burned area
+	// Get burned area from SIMFIRE
 	gridcell.burned_area = simfire_burned_area(gridcell);
 	
 	// End of year clean-up
@@ -1174,6 +1176,11 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 
+	// If patch has already burned this year
+	if (patch.burned) {
+		return;
+	}
+
 	Gridcell& gridcell = climate.gridcell;
 	
 	// Initialise patch fire-line intensity
@@ -1187,21 +1194,20 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	// Get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 
-	if (!negligible(gridcell.burned_area)) {
-		blaze(patch, climate);
+	if (negligible(gridcell.burned_area) || fli_index < 0) {
+		return;
 	}
-
-	// After burning of the last patch reset accumulated variables
-	patch.fire_line_intensity = 0.0;
-	if ( patch.id == patch.stand.nobj-1 ) {
-		// Now add Burned Area to output if there was enough fuel...
-		gridcell.effective_burned_area           /= patch.stand.nobj;
-		gridcell.annual_burned_area              += gridcell.effective_burned_area;
-		gridcell.monthly_burned_area[date.month] += gridcell.effective_burned_area;
-		gridcell.burned_area_accumulated         += gridcell.effective_burned_area;
-		gridcell.simfire_annual_burned_area      += gridcell.burned_area;
-		gridcell.burned_area = 0.0;
-	}
+	
+	// Call combustion model blaze
+	blaze(patch, climate);
+	
+	// Now add Burned Area to output if there was enough fuel, as the whole patch burns we use the full area as burnt area.
+	Stand& stand = patch.stand;
+	double gridcell_fraction =  stand.get_gridcell_fraction() / (double)stand.npatch();
+	gridcell.effective_burned_area           += gridcell_fraction;
+	gridcell.annual_burned_area              += gridcell_fraction;
+	gridcell.monthly_burned_area[date.month] += gridcell_fraction;
+	patch.burned = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

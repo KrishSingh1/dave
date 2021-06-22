@@ -180,7 +180,7 @@ void LandcoverInput::init() {
 				all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
-				if(LUdata.GetNCells() > 50)
+				if(LUdata.GetNCells() > 100)
 					printseparatestands = false;
 			}
 		}

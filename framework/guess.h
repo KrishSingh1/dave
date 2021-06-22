@@ -1729,7 +1729,6 @@ public:
 	double cmass;
 	double cmass_tree;
 	double cmass_tree_mort;
-	double cmass_harv_killed;
 	double cmass_wood;
 	double cmass_wood_potharv;
 	double cmass_wood_potharv_products;

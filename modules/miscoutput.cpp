@@ -793,7 +793,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass = 0.0;
 		st.cmass_tree = 0.0;
 		st.cmass_tree_mort = 0.0;
-		st.cmass_harv_killed = 0.0;
 		st.cmass_wood = 0.0;
 		st.cmass_wood_potharv = 0.0;
 		st.cmass_wood_potharv_products = 0.0;

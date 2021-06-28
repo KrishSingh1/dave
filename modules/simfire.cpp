@@ -52,13 +52,13 @@ int update_fire_biome(Patch& patch, double lat) {
 	 * 8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 	 */
 	
-	double fgrass = 0.0; // grass fraction of all vegetation
-	double fndlt  = 0.0; // fraction of needle-leaf tress
-	double fbrlt  = 0.0; // fraction of broad-leaf trees
-	double ftrbr  = 0.0; // fraction of TrBR (for african savannah)
-	double fshrb  = 0.0; // fraction of woody vegetation that is shrubs
-	double ftot   = 0.0; // total FPAR of all individuals
-	int biome     = 0;   // biome number
+	double fpar_grass      = 0.0; // grass fraction of all vegetation
+	double fpar_needleleaf = 0.0; // fraction of needle-leaf tress
+	double fpar_broadleaf  = 0.0; // fraction of broad-leaf trees
+	double fpar_trop_broadleaf_raingreen  = 0.0; // fraction of TrBR (for african savannah)
+	double fpar_shrubs     = 0.0; // fraction of woody vegetation that is shrubs
+	double fpar_total      = 0.0; // total FPAR of all individuals
+	int biome = 0;   // biome number
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
@@ -71,103 +71,103 @@ int update_fire_biome(Patch& patch, double lat) {
 		if (indiv.id!=-1 && indiv.alive) { 
 	
 			if (indiv.pft.lifeform==GRASS) {
-				fgrass += indiv.fpar_leafon;
+				fpar_grass += indiv.fpar_leafon;
 			}
 			else { // tree or shrub
 				if (indiv.height>=2.0) { // tree
 					if (indiv.pft.leafphysiognomy==NEEDLELEAF) {
-						fndlt += indiv.fpar_leafon;
+						fpar_needleleaf += indiv.fpar_leafon;
 					}
 					else { // broadleaf tree
 						// For savannas this is accounted for separately
 						if (indiv.pft.phenology==RAINGREEN){
-							ftrbr+=indiv.fpar_leafon; 
+							fpar_trop_broadleaf_raingreen+=indiv.fpar_leafon; 
 						}
-						fbrlt += indiv.fpar_leafon;
+						fpar_broadleaf += indiv.fpar_leafon;
 					}
 				}
 				else { // shrub
-					fshrb += indiv.fpar_leafon;
+					fpar_shrubs += indiv.fpar_leafon;
 				}
 			}
-			ftot += indiv.fpar_leafon;
+			fpar_total += indiv.fpar_leafon;
 		}
 		vegetation.nextobj(); // ... on to next individual
 	}
 	
-	if ( ftot < 0.00000001 ) {
+	if ( fpar_total < 0.00000001 ) {
 		return SF_NOVEG; // no data
 	}
 
 	// Re-normalize
-	fgrass /= ftot;
-	fndlt  /= ftot;
-	fbrlt  /= ftot;
-	ftrbr  /= ftot;
-	fshrb  /= (1.00001-fgrass);
+	fpar_grass                     /= fpar_total;
+	fpar_needleleaf                /= fpar_total;
+	fpar_broadleaf                 /= fpar_total;
+	fpar_trop_broadleaf_raingreen  /= fpar_total;
+	fpar_shrubs                    /= (1.00001-fpar_grass);
 
 	// Save current 
 	int idx = date.year % N_YEAR_BIOMEAVG;  
-	patch.fapar_total_avg[idx] = ftot   ;
-	patch.fapar_grass_avg[idx] = fgrass ;
-	patch.fapar_ndlt_avg [idx] = fndlt  ;
-	patch.fapar_brlt_avg [idx] = fbrlt  ;
-	patch.fapar_trbr_avg [idx] = ftrbr  ;
-	patch.fapar_shrub_avg[idx] = fshrb  ;
+	patch.fapar_total_avg[idx] = fpar_total;
+	patch.fapar_grass_avg[idx] = fpar_grass;
+	patch.fapar_ndlt_avg [idx] = fpar_needleleaf;
+	patch.fapar_brlt_avg [idx] = fpar_broadleaf;
+	patch.fapar_trbr_avg [idx] = fpar_trop_broadleaf_raingreen;
+	patch.fapar_shrub_avg[idx] = fpar_shrubs;
 	
 	// Generate running avereage 
-	ftot   = 0.;
-	fgrass = 0.;
-	fndlt  = 0.;
-	fbrlt  = 0.;
-	ftrbr  = 0.;
-	fshrb  = 0.;
+	fpar_total      = 0.;
+	fpar_grass      = 0.;
+	fpar_needleleaf = 0.;
+	fpar_broadleaf  = 0.;
+	fpar_trop_broadleaf_raingreen = 0.;
+	fpar_shrubs     = 0.;
 	for (int i = 0; i<N_YEAR_BIOMEAVG; i++) {
-		ftot   += patch.fapar_total_avg[i];
-		fgrass += patch.fapar_grass_avg[i];
-		fndlt  += patch.fapar_ndlt_avg [i];
-		fbrlt  += patch.fapar_brlt_avg [i];
-		ftrbr  += patch.fapar_trbr_avg [i];
-		fshrb  += patch.fapar_shrub_avg[i];
+		fpar_total      += patch.fapar_total_avg[i];
+		fpar_grass      += patch.fapar_grass_avg[i];
+		fpar_needleleaf += patch.fapar_ndlt_avg [i];
+		fpar_broadleaf  += patch.fapar_brlt_avg [i];
+		fpar_trop_broadleaf_raingreen  += patch.fapar_trbr_avg [i];
+		fpar_shrubs     += patch.fapar_shrub_avg[i];
 	}
-	ftot   /=  (double)N_YEAR_BIOMEAVG;
-	fgrass /=  (double)N_YEAR_BIOMEAVG;
-	fndlt  /=  (double)N_YEAR_BIOMEAVG;
-	fbrlt  /=  (double)N_YEAR_BIOMEAVG;
-	ftrbr  /=  (double)N_YEAR_BIOMEAVG;
-	fshrb  /=  (double)N_YEAR_BIOMEAVG;
+	fpar_total      /=  (double)N_YEAR_BIOMEAVG;
+	fpar_grass      /=  (double)N_YEAR_BIOMEAVG;
+	fpar_needleleaf /=  (double)N_YEAR_BIOMEAVG;
+	fpar_broadleaf  /=  (double)N_YEAR_BIOMEAVG;
+	fpar_trop_broadleaf_raingreen  /=  (double)N_YEAR_BIOMEAVG;
+	fpar_shrubs     /=  (double)N_YEAR_BIOMEAVG;
 
 	// Set Fire-Biome 
-	if (ftot < 0.5 && fabs(lat) < 50.0) {
+	if (fpar_total < 0.5 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
 	} 
-	else if (ftot < 0.35   && fabs(lat) >= 50.0) {
+	else if (fpar_total < 0.35   && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
 	} 
 	else if (patch.stand.landcover == CROPLAND) {
 		biome = SF_CROP;
 	} 
-	else if (fshrb >= 0.9 && fabs(lat) < 50.0) {
+	else if (fpar_shrubs >= 0.9 && fabs(lat) < 50.0) {
 		biome = SF_SHRUBS;
 	} 
-	else if (fshrb >= 0.4 && fabs(lat) >= 50.0) {
+	else if (fpar_shrubs >= 0.4 && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
 	} 
-	else if (fndlt >= 0.8) {
+	else if (fpar_needleleaf >= 0.8) {
 		biome = SF_NEEDLELEAF;
 	} 
-	else if (fbrlt >= 0.8) {
-		if (ftrbr >=0.3) {
+	else if (fpar_broadleaf >= 0.8) {
+		if (fpar_trop_broadleaf_raingreen >=0.3) {
 			biome = SF_SAVANNA;
 		}
 		else {
 			biome = SF_BROADLEAF;
 		}
 	}
-	else if (fgrass >= 0.3) {
+	else if (fpar_grass >= 0.3) {
 		biome = SF_SAVANNA;
 	} 
-	else if (fbrlt > 0.2 && fndlt > 0.2){
+	else if (fpar_broadleaf > 0.2 && fpar_needleleaf > 0.2){
 		biome = SF_MIXED_FOREST;  
 	}
 	else {
@@ -222,11 +222,11 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	// Determine SIMFIRE-Biome for whole gridcell
 	double frac_nat = gridcell.landcover.frac[NATURAL] + gridcell.landcover.frac[PEATLAND] + gridcell.landcover.frac[FOREST];
-	double frac_noveg = gridcell.landcover.frac[URBAN] + gridcell.landcover.frac[BARREN];
+	double frac_barren = gridcell.landcover.frac[URBAN] + gridcell.landcover.frac[BARREN];
 	if (frac_nat > 0.5) {
 		gridcell.simfire_biome = biome_index ;
 	}
-	else if (frac_noveg > 0.5) {
+	else if (frac_barren > 0.5) {
 		gridcell.simfire_biome = SF_BARREN;
 	}
 	else if (gridcell.landcover.frac[CROPLAND] > 0.5) {

@@ -490,7 +490,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
  * settings for vegetation model and uses the century som-model
  * soil-pools.
  */
-void blaze(Patch& patch, Climate& climate) {
+bool blaze(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 	
@@ -499,7 +499,7 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// Return if total burnable area too small
 	if (flammable_area < 0.00001 ) {
-		return;
+		return false;
 	}
 	
 	// Effective area burned as fraction of burnable area
@@ -510,7 +510,7 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// Check whether it burns
 	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) {
-		return;
+		return false;
 	}
 	
 	// Flag patch as burned for rest of the year
@@ -737,6 +737,8 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// Report N litter -> atmosphere flux from transitional pools
 	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
+	
+	return true;
 	
 }  
 
@@ -1194,15 +1196,17 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	}
 	
 	// Call combustion model blaze
-	blaze(patch, climate);
+	bool caught_fire = blaze(patch, climate);
 	
-	// Now add Burned Area to output if there was enough fuel, as the whole patch burns we use the full area as burnt area.
-	Stand& stand = patch.stand;
-	double gridcell_fraction =  stand.get_gridcell_fraction() / (double)stand.npatch();
+	// Now add Burned Area to output if patch cought fire, as the whole patch burns we use the full area as burnt area.
+	if (caught_fire) {
+		Stand& stand = patch.stand;
+		double gridcell_fraction =  stand.get_gridcell_fraction() / (double)stand.npatch();
 	
-	gridcell.effective_burned_area           += gridcell_fraction;
-	gridcell.annual_burned_area              += gridcell_fraction;
-	gridcell.monthly_burned_area[date.month] += gridcell_fraction;
+		gridcell.effective_burned_area           += gridcell_fraction;
+		gridcell.annual_burned_area              += gridcell_fraction;
+		gridcell.monthly_burned_area[date.month] += gridcell_fraction;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

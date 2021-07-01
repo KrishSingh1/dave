@@ -509,7 +509,7 @@ bool Patch::has_fires() const {
 }
 
 bool Patch::has_disturbances() const {
-	return ifdisturb && stand.landcover != CROPLAND && !(managed && (stand.get_current_management().suppress_disturbance || suppress_disturbance_in_forestry_stands))&&
+	return ifdisturb && stand.landcover != CROPLAND && !(managed && (stand.get_current_management().suppress_disturbance || suppress_disturbance_in_forestry_stands)) &&
 		(stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
 }
 
@@ -671,10 +671,13 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 
 	unsigned int num_patches = 1;
 	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
-		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
-	}
-	if (npatch > 0) {
-		num_patches = npatch;	// use patch number provided by calling function
+		// stands with stochastic events
+		if (npatch > 0) {
+			num_patches = npatch;	// use patch number provided by calling function
+		}
+		else {
+			num_patches = ::npatch; // use the global variable npatch
+		}
 	}
 
 	for (unsigned int p=0;p<num_patches;p++) {

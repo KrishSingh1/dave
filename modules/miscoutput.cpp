@@ -1132,9 +1132,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if(!out_cmass_wood_stand[id][stand.stid].invalid())
 					outlimit_misc(out, out_cmass_wood_stand[id][stand.stid],      standpft_cmass_wood);
 				if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
-					out.add_value(out_cmass_wood_harv_stand[id][stand.stid],      standpft_cmass_wood_harv);
+					outlimit_misc(out, out_cmass_wood_harv_stand[id][stand.stid],      standpft_cmass_wood_harv);
 				if(!out_cmass_mort_stand[id][stand.stid].invalid())
-					out.add_value(out_cmass_mort_stand[id][stand.stid],      standpft_cmass_mort);
+					outlimit_misc(out, out_cmass_mort_stand[id][stand.stid],      standpft_cmass_mort);
 
 				double height = 0.0;
 				double diam = 0.0;
@@ -1634,7 +1634,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if(!out_cmass_wood_harv_stand[id][stand.stid].invalid())
 				outlimit_misc(out, out_cmass_wood_harv_stand[id][stand.stid], stand.cmass_wood_harv);
 			if(!out_cmass_mort_stand[id][stand.stid].invalid())
-				out.add_value(out_cmass_mort_stand[id][stand.stid], stand.cmass_mort);
+				outlimit_misc(out, out_cmass_mort_stand[id][stand.stid], stand.cmass_mort);
 
 			++gc_itr;
 		}

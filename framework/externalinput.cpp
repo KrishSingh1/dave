@@ -70,7 +70,7 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 	c.lat = lat;
 	bool disterror = false;
 
-	// Not all gridcells are included in input file
+	// Not all gridcells have to be included in input file
 	if(readdisturbance) { 
 		if(!disturbance.Load(c)) {
 			disterror = true;

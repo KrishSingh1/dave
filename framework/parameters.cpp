@@ -571,7 +571,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
 		declareitem("suppress_disturbance_in_forestry_stands",&suppress_disturbance_in_forestry_stands,1,CB_NONE,"Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
-		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
+		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a stand type (except cropland) separately");
 		declareitem("print_anpp_stand",&print_anpp_stand,1,CB_NONE,"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_lai_stand",&print_lai_stand,1,CB_NONE,"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
 		declareitem("print_cmass_stand",&print_cmass_stand,1,CB_NONE,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");

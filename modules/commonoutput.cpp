@@ -1159,8 +1159,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			diam = mean_standpft_diamindiv_total / mean_standpft_densindiv_total;
 		}
 
-		out.add_value(out_speciesheights, height);
-		out.add_value(out_speciesdiam, diam * 100.0);	//diameter output in cm
+		outlimit(out, out_speciesheights, height);
+		outlimit(out, out_speciesdiam, diam * 100.0);	//diameter output in cm
 
 		pftlist.nextobj();
 

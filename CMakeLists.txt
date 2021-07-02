@@ -63,6 +63,7 @@ if (NETCDF_FOUND)
   add_definitions(-DHAVE_NETCDF)
 else()
   message("find_package: not found: NETCDF_C_LIBRARY and NETCDF_INCLUDE_DIR. See LPJ-GUESS documentation." )
+  message("NETCDF disabled." )
 endif()
 
 # MPI - used if found (not needed on Windows)

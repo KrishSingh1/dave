@@ -97,7 +97,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-npatch 5			! Number of replicate patches to simulate
+npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -588,7 +588,7 @@ pft "IBS" (
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
 
-	greff_min 0.12 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
+	greff_min 0.135 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
 )
 
 

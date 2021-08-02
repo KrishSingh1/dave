@@ -1156,7 +1156,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 void blaze_driver(Patch& patch, Climate& climate) {
 
 	// Check whether BLAZE should be called at all
-
 	// Has BLAZE been chosen as firemodel?
 	if (firemodel != BLAZE) { 
 		return;
@@ -1198,7 +1197,8 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	// Call combustion model blaze
 	bool caught_fire = blaze(patch, climate);
 	
-	// Now add Burned Area to output if patch cought fire, as the whole patch burns we use the full area as burnt area.
+	// Now add Burned Area to output if patch cought fire, as the whole patch burns
+	// we use the full area as burned area.
 	if (caught_fire) {
 		Stand& stand = patch.stand;
 		double gridcell_fraction =  stand.get_gridcell_fraction() / (double)stand.npatch();

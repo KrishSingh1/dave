@@ -60,7 +60,7 @@ const double K_LITTER_BOREAL    = 0.38;
 // Temperate region
 const double K_LITTER_TEMPERATE = 0.0025;
 // Tropics
-const double K_LITTER_TROPICS   = 0.25;
+const double K_LITTER_TROPICS   = 0.15;
 // Savanna
 const double K_LITTER_SAVANNA   = 0.75 ;
 

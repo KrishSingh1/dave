@@ -259,6 +259,8 @@ EOF
 	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
 #!/bin/sh
 #SBATCH -J pp_${test_name}
+#SBATCH --mail-type=FAIL
+#SBATCH -o "slurm-%j.log"
 $(cat $common_script)
 EOF
     fi

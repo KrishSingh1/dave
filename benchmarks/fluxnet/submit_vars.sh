@@ -1,5 +1,2 @@
-NPROCESS=6
+NPROCESS=5
 INPUT_MODULE=fluxnet
-if [[ $ARCH == "aurora" ]]; then
-    NPROCESS=20
-fi

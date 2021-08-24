@@ -116,7 +116,7 @@ class Rank_patches {
 	Stand& stand;
 	std::vector<double> cmass_harvest_vect;
 	std::vector<double> cmass_harvest_wood_vect;
-	std::vector<std::pair<double,int>> sort_vect;
+	std::vector<std::pair<double,int> > sort_vect;
 
 public:
 
@@ -167,7 +167,7 @@ class Rank_individuals {
 
 	Patch& patch;
 	std::vector<double> diam_vect;
-	std::vector<std::pair<double,int>> sort_vect;
+	std::vector<std::pair<double,int> > sort_vect;
 
 public:
 

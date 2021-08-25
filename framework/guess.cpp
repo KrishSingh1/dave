@@ -398,6 +398,7 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 
 	growingseasondays = 0;
 
+	burned = false;
 	fireprob = 0.0;
 	ndemand = 0.0;
 	dnfert = 0.0;

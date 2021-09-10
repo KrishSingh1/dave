@@ -73,6 +73,7 @@ bool ifbvoc;
 // Soil, arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
 bool iforography;					// Whether to account for orography (1), or not (0) 
+bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
@@ -515,6 +516,8 @@ void plib_declarations(int id,xtring setname) {
 			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
 		declareitem("iforography", &iforography, 1, CB_NONE,
 			"Whether to account for orography (1), or not (0)");
+		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
+			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
@@ -1267,6 +1270,11 @@ void plib_callback(int callback) {
 		if (!itemparsed("iforography")) badins("iforography");
 		if (iftwolayersoil == 1 && iforography == 1) {
 			sendmessage("Error", "Can't account for orography with two layer soil!");
+			plibabort();
+		}
+		if (!itemparsed("ifbedrock")) badins("ifbedrock");
+		if (iftwolayersoil == 1 && ifbedrock == 1) {
+			sendmessage("Error", "Can't account for bedrock with two layer soil!");
 			plibabort();
 		}
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");

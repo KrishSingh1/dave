@@ -3018,7 +3018,6 @@ void Soilcolumn::wflow_temp() {
  */
 void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
-	bool ifbedrock = false;
 	bool negwmass = false;
 	double drained_wmass;
 

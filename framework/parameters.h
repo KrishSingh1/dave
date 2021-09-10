@@ -310,6 +310,9 @@ extern bool iftwolayersoil;
 /// Whether to account for orography (1), or not (0)
 extern bool iforography;
 
+/// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
+extern bool ifbedrock;
+
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
 

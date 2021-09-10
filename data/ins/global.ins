@@ -164,6 +164,7 @@ iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+ifbedrock 0			! Whether to consider bedrock as lower boundary condition for multilayer soil hydrology
 iforography 1                   ! Whether to account for orography (1), or not (0)
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 

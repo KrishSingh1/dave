@@ -313,6 +313,9 @@ extern bool iforography;
 /// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 extern bool ifbedrock;
 
+/// Fraction of fine roots to be homogenously distributed in soil column
+extern double homrootdistfrac;
+
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
 

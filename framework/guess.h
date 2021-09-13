@@ -2244,7 +2244,7 @@ public:
 			rootdist[0] = 1.0 - pow(root_beta, tot_depth);
 			tot += rootdist[0];
 
-			for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
+			for (int lyr = 1; lyr < nsoillayers; lyr++) {
 				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
 				double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
 
@@ -2253,8 +2253,22 @@ public:
 				tot += rootdist[lyr];
 			}
 
-			// Add the remaining rootdist in top soil layer
-			rootdist[0] += 1.0 - tot;
+			// If a fraction of root distribution should be homogenously distributed
+			if (!negligible(homrootdistfrac)) {
+
+				double frac_per_depth = homrootdistfrac / tot_depth * CM_PER_MM;
+				tot = 0.0;
+
+				for (int lyr = 0; lyr < nsoillayers; lyr++) {
+					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * soil_lyr_depth[lyr];
+					tot += rootdist[lyr];
+				}
+			}
+
+			// Adjust so rootdist always add up to 1
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				rootdist[lyr] /= tot;
+			}
 		}
 		else { 
 			

@@ -429,6 +429,8 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 }
 
 /// Called each simulation day before any other driver or process functions
+/** All variables in Stand and objects contained therein that are reset here must also be initialised in the constructor.
+ */
 void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION

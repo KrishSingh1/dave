@@ -51,8 +51,11 @@ const double maxh = 0.0;
 /// Slope of soil profile
 const double soil_slope = -.37;
 
-/// Maximum density of soil organic carbon [KgC/m3], standard bulk density of peat (Farouki 1981)
-const double maxSOCdensity = 130.0;
+/// Density of mineral particles [kg m-3] (Bonan 2019)
+const double Mindensity = 265.0;
+
+/// Density of soil organic carbon [KgC m-3], standard bulk density of peat (Farouki 1981)
+const double Orgdensity = 130.0;
 
 // SNOW PARAMETERS
 

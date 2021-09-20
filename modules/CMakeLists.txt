@@ -9,7 +9,9 @@ set(headers
   bvoc.h 
   blaze.h
   simfire.h
-  q10.h 
+  q10.h
+  natexptemp.h
+  natexplai.h
   globalco2file.h
   ncompete.h
   commonoutput.h

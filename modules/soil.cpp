@@ -1541,6 +1541,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	NO_mass = 0.0;
 	N2O_mass = 0.0;
 	N2_mass = 0.0;
+	nmass_sat = 0.0;
 	anmin = 0.0;
 	animmob = 0.0;
 
@@ -1571,7 +1572,6 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	peat_frac = 0.0;
 	soc_frac = 0.0;
 	bulk_density = 0.0;
-
 
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
@@ -1622,8 +1622,6 @@ double Soillayer::get(soilproptype SPT, int m) { // DW_COMMENT
 		return wp;
 	else if (SPT == WCONTMAX)
 		return wcont_max();
-	else if (SPT == NAVAIL)
-		return NH4_mass + NO3_mass;
 	else if (SPT == NH_4)
 		return NH4_mass;
 	else if (SPT == NO_3)
@@ -1685,9 +1683,9 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 	Soiltype soiltype = (*soilcolumn).soiltype;
 
 	// Mineral particle density set to 2.65 g cm–3 (Bonan 2019)
-	double min_density = 2.650;
+	double min_density = Mindensity * G_PER_KG * M3_PER_CM3;
 	// Soil organic carbon density, standard bulk density of peat (g cm-3; Farouki 1981)
-	double org_density = maxSOCdensity * G_PER_KG * M3_PER_CM3;
+	double org_density = Orgdensity * G_PER_KG * M3_PER_CM3;
 
 	// Analytic temp calc parameters
 	thermdiff_0 = soiltype.thermdiff_0;
@@ -1787,7 +1785,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 		// Calculate organic fraction for soil layer
 		// This is the fraction of the material (i.e. 1 - porosity) that is organic
-		double org_frac = min(1.0, soil_density / maxSOCdensity);
+		double org_frac = min(1.0, soil_density / Orgdensity);
 		double min_frac = 1.0 - org_frac;
 
 		double porosity = min_frac * soiltype.wsats_min + org_frac * wsats_org;
@@ -2523,6 +2521,29 @@ std::vector<double> Soilcolumn::get_rootfrac() {
 	}
 
 	return rootfrac;
+}
+
+/// Returns a vector with soillayer C root mass
+/** Returns a vector with soillayer C root mass
+ */
+std::vector<double> Soilcolumn::get_rootmass() {
+	std::vector<double> cmass_root(nsoillayers);
+
+	Vegetation& vegetation = patch.vegetation;
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			cmass_root[lyr] += indiv.cmass_root * patch.pft[indiv.pft.id].rootdist[lyr];
+		}
+
+		vegetation.nextobj();
+
+	} // indiviual loop
+
+	return cmass_root;
 }
 
 /// Returns available N for soil column
@@ -4820,9 +4841,6 @@ void Soilcolumn::vertical_movement() {
 	// double cbefore = get_sum(CCONT);
 
 	// Root C biomass in soil layers
-	// 
-	// Coarse woody root debris fraction of total woody biomass
-	const double FCWD_ROOT = 0.22; // DW_COMMENT already defined in somdynam.h
 
 	std::vector<double> ccont_roots(nsoillayers);
 	/*Vegetation& vegetation = patch.vegetation;
@@ -4844,7 +4862,7 @@ void Soilcolumn::vertical_movement() {
 		double ccont_soil = soillayers[lyr].ccont(true);
 
 		// If soil layer C exceed maximu, then move SOM downwards
-		if (ccont_soil + ccont_roots[lyr] > maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		if (ccont_soil + ccont_roots[lyr] > Orgdensity * soillayers[lyr].depth * M_PER_MM) {
 			donor = lyr;
 			receiver = lyr + 1;
 
@@ -4858,7 +4876,7 @@ void Soilcolumn::vertical_movement() {
 					double move_frac = 0.0;
 
 					// Downwards movement of SOM
-					move_frac = (ccont_donor - maxSOCdensity * soillayers[donor].depth * M_PER_MM) / ccont_soil;
+					move_frac = (ccont_donor - Orgdensity * soillayers[donor].depth * M_PER_MM) / ccont_soil;
 
 					for (int p = 0; p < NSOMPOOL; p++) {
 
@@ -4899,7 +4917,7 @@ void Soilcolumn::vertical_movement() {
 				soillayers[donor].set_properties(wmass_add, imass_add, true);
 			}
 		}
-		else if (patch.stand.landcover == PEATLAND && ccont_soil + ccont_roots[lyr] < maxSOCdensity * soillayers[lyr].depth * M_PER_MM) {
+		else if (patch.stand.landcover == PEATLAND && ccont_soil + ccont_roots[lyr] < Orgdensity * soillayers[lyr].depth * M_PER_MM) {
 			// Check if SOM can be moved upwards
 
 			donor = lyr + 1;
@@ -4912,7 +4930,7 @@ void Soilcolumn::vertical_movement() {
 
 				if (!negligible(ccont_donor)) {
 
-					double move_frac = min(maxSOCdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
+					double move_frac = min(Orgdensity * soillayers[receiver].depth * M_PER_MM - ccont_receiver, ccont_donor) / ccont_donor;
 
 					for (int p = 0; p < NSOMPOOL; p++) {
 
@@ -5036,10 +5054,9 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 				cfluxes[lyr - 1] -= neg_c;
 			}
 			if (cfluxes[lyr - 1] > 0.0)
-				dprintf("ERROR: VERTICAL_MIX lyr %d flux should be negative or zer %g\n", lyr, cfluxes[lyr - 1]);
+				dprintf("ERROR: VERTICAL_MIX lyr %d flux should be negative or zero %g\n", lyr, cfluxes[lyr - 1]);
 		}
 	}
-
 
 	std::vector<double> delta_cmass(nsoillayers);
 	std::vector<double> delta_nmass(nsoillayers);

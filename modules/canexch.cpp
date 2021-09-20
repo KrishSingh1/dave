@@ -34,6 +34,8 @@
 #include "canexch.h"
 #include "driver.h"
 #include "q10.h"
+#include "natexptemp.h"
+#include "natexplai.h"
 #include "bvoc.h"
 #include "ncompete.h"
 #include "somdynam.h"
@@ -42,10 +44,6 @@
 
 // Anonymous namespace for variables with file scope
 namespace {
-
-/// leaf nitrogen (kgN/kgC) not associated with photosynthesis
-/** (value given by Haxeltine & Prentice 1996b) */
-const double N0 = 7.15 * G_PER_MG;
 
 // Lookup tables for parameters with Q10 temperature responses
 
@@ -57,6 +55,15 @@ LookupQ10 lookup_ko(1.2, 3.0e4);
 
 /// lookup table for Q10 temperature response of Michaelis constant for CO2
 LookupQ10 lookup_kc(2.1, 30.0);
+
+/// lookup table for natural exponential temperature response of leaf N
+LookupNatExpTemp lookup_tfac(1.0, -0.0693, 25.0);
+
+/// lookup table for natural exponential LAI for Kb (Lambert-Beer extinction law)
+LookupNatExpLAI lookup_kb(1.0, -0.5);
+
+/// lookup table for natural exponential LAI for Kn (slow down light optimization of newly shaded leaves)
+LookupNatExpLAI lookup_kn(1.0, -0.19);
 
 }
 
@@ -496,40 +503,137 @@ double alphaa(const Pft& pft) {
 
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
 void vmax(double b, double c1, double c2, double apar, double tscal,
-		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& nactive_opt) {
+	double daylength, double temp, const PhotosynthesisLeafstatus& ps_status,
+	bool ifopt, bool iflimvmax, PhotosynthesisResult& ps_result) {
 
 	// Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
-	// limiting (Eqn 11, Haxeltine & Prentice 1996a)
+	// limiting (Eqn 11, Haxeltine & Prentice 1996a) [gC m-2 day-1]
 	// Calculation of sigma is based on Eqn 12 (same source)
 
-	double s =  24.0 / daylength * b;
+	double s = 24.0 / daylength * b;
 	double sigma = sqrt(max(0., 1. - (c2 - s) / (c2 - THETA * s)));
-	vm = 1 / b * CMASS * CQ * c1 / c2 * tscal * apar *
-						(2. * THETA * s * (1. - sigma) - s + c2 * sigma);
+	ps_result.vm = 1 / b * GC_PER_MOLC * CQ * c1 / c2 * tscal * apar *
+		(2. * THETA * s * (1. - sigma) - s + c2 * sigma);
 
-	// Calculate nitrogen-limited Vmax for current leaf nitrogen
-	// Haxeltine & Prentice 1996b Eqn 28
+	// If leaf nitrogen optimal level or Vmax limitation is to be calculated
+	if (ifopt || iflimvmax) {
 
-	const double M = 25.0; // corresponds to parameter p in Eqn 28, Haxeltine & Prentice 1996b
+		// Calculate nitrogen-limited Vmax for current leaf nitrogen
+		// Haxeltine & Prentice 1996b Eqn 28
 
-	// Conversion factor in calculation of leaf nitrogen: includes conversion of:
-	//		- Vm from gC/m2/day to umolC/m2/sec
-	//      - nitrogen from mg/m2 to kg/m2
+		// Leaf carbon mass [kg C m-2]
+		double cmass_leaf = ps_status.get_cmass_leaf();
 
-	double CN = 1.0 / (3600 * daylength * CMASS);
+		// Convert from m-2 to g-1 d.w.
+		double GDW_PER_M2 = 1.0 / (DW_PER_C * cmass_leaf * G_PER_KG);
+		// convert from kg m-2 to mg g-1 d.w.
+		double MG_GDW_PER_KG_M2 = MG_PER_KG * GDW_PER_M2;
+		// convert from gC m-2 day-1 to nmol C g-1 d.w. s-1
+		//     - g to nmol == NG_PER_G / CMASS
+		//     - m-2 to g-1 d.w. == 1 / (DW_PER_C * cmass_leaf * G_PER_KG)
+		//     - day-1 to s-1 == 1 / (3600 * daylength)
+		double NMOL_GDW_S_PER_G_M2_DAY = NG_PER_G / GC_PER_MOLC * GDW_PER_M2 / (3600 * daylength);
 
-	double tfac = exp(-0.0693 * (temp - 25.0));
-	double vm_max = nactive / (M * CN * tfac);
+		// Constants
 
-	// Calculate optimal leaf nitrogen based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
-	nactive_opt = M * vm * CN * tfac;
+		// Nitrogen follow Haxeltine & Prentice 1996b
+		// Leaf nitrogen (mg g-1 d.w.) not associated with photosynthesis
+		const double N0 = 7.15;
 
-	if (vm > vm_max && ifnlimvmax) {
-		vmaxnlim = vm_max / vm;	// Save vmax nitrogen limitation
-		vm = vm_max;
-	}
-	else {
-		vmaxnlim = 1.0;
+		// Parameter p in Eqn 28, Haxeltine & Prentice 1996b
+		const double M = 25.0;
+
+		// Leaf maximum C:N ratio
+		double cton_max = ps_status.get_cton_max();
+
+		// Min nitrogen concentration in leaves [mg g-1 d.w.]
+		double nmass_leaf_min = max(N0 * 1.01, cmass_leaf / cton_max * MG_GDW_PER_KG_M2);
+
+		// Leaf temperature response function in Eqn 28, Haxeltine & Prentice 1996b
+		const double tfac = lookup_tfac[temp];
+
+		// Optimal leaf nitrogen is calculated first so save original Vmax
+		if (ifopt) {
+
+			// Vmax unit conversion [nmol g-1 d.w. s-1]
+			double vmax_today = ps_result.vm * NMOL_GDW_S_PER_G_M2_DAY;
+
+			// Add Vmax to historical array [nmol g-1 d.w. s-1]
+			ps_result.vmax_30.add(vmax_today);
+		}
+
+		// Mean Vmax over historical period [nmol g-1 d.w. s-1]
+		double vmax_mean = ps_result.vmax_30.mean();
+
+		// Calculate optimal leaf nitrogen
+		if (ifopt) {
+
+			// Leaf minimum C:N ratio
+			double cton_min = ps_status.get_cton_min();
+
+			// Max nitrogen concentration in leaves [mg g-1 d.w.]
+			double nmass_leaf_max = cmass_leaf / cton_min * MG_GDW_PER_KG_M2;
+
+			// Scalar depending on individual lai to slow down light optimization of newly shaded leaves (Peltoniemi et al. 2012)
+			double nextin = ps_status.get_nextin();
+
+			// Nitrogen limitation not considered. Use average C:N ratio as optimal
+			if (!ifnlim) {
+				// Optimal leaf nitrogen [kg N m-2]
+				ps_result.nmass_leaf_opt = cmass_leaf * 0.5 * (1.0 / cton_min + 1.0 / cton_max);
+			}
+			else {
+				// Nitrogen limitation considered
+
+				// Maximum active leaf nitrogen [mg N g-1 d.w.]
+				double nmass_leaf_max_act = (nmass_leaf_max / nextin - N0) / tfac + N0;
+
+				// Calculate optimal leaf nitrogen [mg N g-1 d.w.] based on mean [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
+				double nmass_leaf_opt = min(nmass_leaf_max_act, M * vmax_mean * UG_PER_NG + N0);
+
+				// Optimal leaf nitrogen [kg N m-2]
+				ps_result.nmass_leaf_opt = max(nmass_leaf_min, ((nmass_leaf_opt - N0) * tfac + N0) * nextin) / MG_GDW_PER_KG_M2;
+			}
+		}
+
+		if (iflimvmax) {
+
+			double nmass_leaf = ps_status.get_nmass_leaf();
+
+			// Current leaf N [mg g-1 d.w.]
+			double nmass_leaf_current = nmass_leaf * MG_GDW_PER_KG_M2;
+
+			// Current leaf N not allowed to be below minimum in Vmax calculations
+			double nmass_leaf_current_min = max(nmass_leaf_min, nmass_leaf_current);
+
+			// Calculate nitrogen-limited Vmax for current leaf nitrogen
+			// Haxeltine & Prentice 1996b Eqn 28
+
+			// Maximum nitrogen limited Vmax [converted from nmol C g-1 d.w. s-1 to g C m-2 day-1]
+			double vm_nmax = (nmass_leaf_current_min - N0) / (M * tfac) * NG_PER_UG / NMOL_GDW_S_PER_G_M2_DAY;
+
+			double vm_orig = ps_result.vm;
+
+			// Update Vmax and save nitrogen limitation
+			if (ps_result.vm > vm_nmax && ifnlim) {
+				// Save vmax nitrogen limitation
+				ps_result.vmaxnlim = vm_nmax / ps_result.vm;
+				// Update Vmax
+				ps_result.vm = vm_nmax;
+
+				if (ps_result.vm < 0)
+					int sch = 0;
+			}
+			else {
+				// Save vmax nitrogen limitation
+				ps_result.vmaxnlim = 1.0;
+				// Update Vmax
+				ps_result.vm = vm_orig;
+
+				if (ps_result.vm < 0)
+					int sch = 0;
+			}
+		}
 	}
 }
 
@@ -573,7 +677,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *
  *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
  *
- *  \param nactive    nitrogen available for photosynthesis
+ *  \param nmass_leaf leaf nitrogen
  *
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
@@ -591,9 +695,9 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  */
 void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
 					const PhotosynthesisStresses& ps_stresses,
+					const PhotosynthesisLeafstatus& ps_status,
 					const Pft& pft,
-					double lambda, 
-					double nactive, 
+					double lambda,
 					double vm, 
 					PhotosynthesisResult& ps_result) {
 
@@ -611,6 +715,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Make sure that only two alternative modes are possible:
 	//  * daily non-water stressed (forces Vmax calculation)
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
+
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
 
@@ -624,7 +729,8 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	double daylength = ps_env.get_daylength();
 
 	// Get the stresses
-	bool ifnlimvmax = ps_stresses.get_ifnlimvmax();
+	bool ifopt = ps_stresses.get_ifopt();
+	bool iflimvmax = ps_stresses.get_iflimvmax();
 
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
 	if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
@@ -699,7 +805,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	if (vm < 0) {
 
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt);
+		vmax(b, c1, c2, apar, tscal, daylength, temp, ps_status, ifopt, iflimvmax, ps_result);
 	}
 	else {
 		ps_result.vm = vm;			// reuse existing Vmax
@@ -710,7 +816,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 
 	// PAR-limited photosynthesis rate (gC/m2/h)
 	// Eqn 3, Haxeltine & Prentice 1996a
-	ps_result.je = c1 * tscal * apar * CMASS * CQ / daylength;
+	ps_result.je = c1 * tscal * apar * GC_PER_MOLC * CQ / daylength;
 
 	// Rubisco-activity limited photosynthesis rate (gC/m2/h)
 	// Eqn 5, Haxeltine & Prentice 1996a
@@ -760,7 +866,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	double adt = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g;
 
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
+	ps_result.adtmm = adt / GC_PER_MOLC * 8.314 * (temp + K2degC) / PATMOS * 1e3;
 }
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
@@ -843,7 +949,9 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 	PhotosynthesisEnvironment ps_env;					
 	PhotosynthesisStresses ps_stress;
+	PhotosynthesisLeafstatus ps_status;
 	ps_stress.no_stress();
+	ps_status.noinfluence();
 
 	// If this is the first patch, calculate no-stress assimilation for
 	// each Standpft, assuming FPAR=1. This is then later used in
@@ -861,13 +969,11 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 				pftco2 = get_co2(patch, climate, spft.pft);
 				ps_env.set(pftco2, climate.temp, climate.par, 1.0, climate.daylength);
-
-				ps_stress.set(false, get_moss_wtp_limit(patch, spft.pft), get_graminoid_wtp_limit(patch, spft.pft), get_inund_stress(patch, ppft));
+				ps_stress.set(false, false, get_moss_wtp_limit(patch, spft.pft), get_graminoid_wtp_limit(patch, spft.pft), get_inund_stress(patch, ppft));
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-				photosynthesis(ps_env, ps_stress, spft.pft, 
-							   spft.pft.lambda_max, 1.0, -1, 
-							   spft.photosynthesis);
+				photosynthesis(ps_env, ps_stress, ps_status, spft.pft,
+							   spft.pft.lambda_max, -1, spft.photosynthesis);
 			}
 		}
 	}
@@ -881,19 +987,28 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
+		// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves (Peltoniemi et al. 2012)
+		double lai = indiv.lai_indiv_today();
+		indiv.nextin = lai > 0.001 ? Kb / Kn * (1.0 - lookup_kn[lai]) / (1.0 - lookup_kb[lai]) : 1.0;
+
 		pftco2 = get_co2(patch, climate, pft);
 		ps_env.set(pftco2, climate.temp, climate.par, indiv.fpar, climate.daylength);
-
-		ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
+		ps_stress.set(true, false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
+		ps_status.set(indiv.cmass_leaf_today(), indiv.nmass_leaf / indiv.nextin, 
+			indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.nextin);
 
 		// Individual photosynthesis with no nitrogen limitation
-		photosynthesis(ps_env, ps_stress, pft,
-		               pft.lambda_max, 1.0, -1,
-		               indiv.photosynthesis);
+		photosynthesis(ps_env, ps_stress, ps_status, pft,
+		               pft.lambda_max, -1, indiv.photosynthesis);
+
+		// If no leaves, then reset Vmax array
+		if (negligible(indiv.cmass_leaf_today()))
+			indiv.photosynthesis.vmax_30.reset();
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
 		indiv.dgpp_no = max(0.0, indiv.photosynthesis.net_assimilation());
+		indiv.agpp_no += indiv.dgpp_no;
 		indiv.report_flux(Fluxes::GPPno, indiv.dgpp_no);
 
 		if (date.diurnal()) {
@@ -908,8 +1023,8 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				// Update temperature and PAR
 				ps_env.set(pftco2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
-				photosynthesis(ps_env, ps_stress, pft,
-				               pft.lambda_max, 1.0, indiv.photosynthesis.vm,
+				photosynthesis(ps_env, ps_stress, ps_status, pft,
+				               pft.lambda_max, indiv.photosynthesis.vm,
 				               ps_result);
 
 				indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
@@ -919,31 +1034,31 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 	}
 }
 
-/// Calculates individual fnuptake based on surface of fine root
-/** Calculates individual fraction nitrogen uptake based on surface of fine root
+/// Calculates individual uptake strength based on surface of fine root
+/** Calculates individual uptake strength based on surface of fine root
  *  Roots are cone formed with height == radius.
  *  V = PI * r^3 / 3
  *  A = (2^1/2 + 1) * PI * r^2
  *  -> A = const * cmass_root^2/3
  */
-double nitrogen_uptake_strength(const Individual& indiv, std::vector<double> rootdist, std::vector<double> nfrac) {
+double nutrient_uptake_strength(double cmass_root, double cton_status, double densindiv, std::vector<double> rootdist, std::vector<double> nfrac) {
 	
-	// Calculate total absolute difference between N and root distribution in soil column
-	// Maximum difference would be 2 if all roots are in layers with no N,
-	// perfect match between N and roots would give 0 
+	// Calculate total absolute difference between nutrient and root distribution in soil column
+	// Maximum difference would be 2 if all roots are in layers with no nutrient,
+	// perfect match between nutrient and roots would give 0 
 	double root_n_std = 0.0;
 	int nsoillayer = nfrac.size();
 	for (int lyr = 0; lyr < nsoillayer; lyr++) {
 		root_n_std += fabs(nfrac[lyr] - rootdist[lyr]);
 	}
 	
-	// Indiv with perfect match will have N uptake coefficient 2
+	// Indiv with perfect match will have nutrient uptake coefficient 2
 	// and indiv with perfect mismatch will have 0
 	double nupscoeff = 2.0 - root_n_std;
 
 	// Calculate uptake strength
-	if (!negligible(indiv.cmass_root_today()))
-		return pow(max(0.0, indiv.cmass_root_today()) * nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
+	if (!negligible(cmass_root))
+		return pow(max(0.0, cmass_root) * nupscoeff * cton_status / densindiv, 2.0 / 3.0) * densindiv;
 	else
 		return 0.0;
 }
@@ -962,8 +1077,8 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, std::vector<double> nf
 	std::vector<NCompetingIndividual> individuals(vegetation.nobj);
 
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
-		individuals[i].ndemand = vegetation[i].ndemand;
-		individuals[i].strength = nitrogen_uptake_strength(vegetation[i], vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac);
+		individuals[i].demand = vegetation[i].ndemand;
+		individuals[i].strength = nutrient_uptake_strength(vegetation[i].cmass_root_today(), vegetation[i].cton_status, vegetation[i].densindiv, vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac);
 	}
 
 	// Let ncompete() do the actual distribution
@@ -971,7 +1086,7 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, std::vector<double> nf
 
 	// Get the results, nitrogen uptake fraction for each individual
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
-		vegetation[i].fnuptake = individuals[i].fnuptake;
+		vegetation[i].fnuptake = individuals[i].fuptake;
 	}
 }
 
@@ -1146,6 +1261,26 @@ void nstore_usage(Vegetation& vegetation) {
 	}
 }
 
+/// Nutrient retranslocation if nutrient demand is negative
+/** Determine if nutrient is in excees to optimal demand. 
+ *  If negative nutrient demand then retranslocate fraction of nutrient.
+ */
+void nretrans(double& ndemand, double& nmass, double& nstore) {
+
+	// If negative nutrient demand, retranslocate nutrient
+	if (!ifdailynretrans || ndemand >= 0.0 )
+		return;
+
+	// Maximum 5% of active nutrient can be retranslocated within a day (Zeahle et al 2010)
+	double nreloc = min(0.05 * nmass, -ndemand);
+
+	nmass -= nreloc;
+	nstore += nreloc;
+
+	// No nutrient demand
+	ndemand = 0.0;
+}
+
 /// Nitrogen demand
 /** Determines nitrogen demand based on vmax for leaves.
  *  Roots and sap wood nitrogen concentration follows leaf
@@ -1156,20 +1291,26 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
-	/// daily nitrogen demand for patch (kgN/m2)
+	/// Daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
-	// Soil available mineral nitrogen (kg N m-2)
-	double nmin_avail = soilcolumn.nmass_avail(NO);
+	// Calculate depth mineral N scalar due to saturating Michealis-Menten kinetics and temperature (Thum et al. 2019)
+	std::vector<double> nminscale(soilcolumn.nsoillayers);
+	std::vector<double> tempscale(soilcolumn.nsoillayers);
 
-	// Average soil temperature down to active layer depth scaled by available N fraction in layers
-	double soil_temp = soilcolumn.to_depth(soilcolumn.thaw, TEMP, NAVAIL);
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
-	double temp_scale = temperature_modifier(soil_temp);
-
-	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
-	double kNmin = 0.05;
+		// Temperature and mineral N scalars for maximum N uptake (Thum et al. 2019)
+		if (soillayer.wmass > 1.0E-12) {
+			double tscalar = exp(-30000.0 / R * (1.0 / (soillayer.temp + K2degC) - 1.0 / (40.0 + K2degC)));
+			double KmNmin_lyr = KmNmin / (tscalar * soillayer.depth * M_PER_MM);
+			double KmN_lyr = KmN * tscalar * soillayer.depth * M_PER_MM;
+			double nmin = soillayer.nmass_avail(NO);
+			nminscale[lyr] = nmin * (KmNmin_lyr + 1.0 / (nmin + KmN_lyr));
+			tempscale[lyr] = temperature_modifier(soillayer.temp);
+		}
+	}
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1184,24 +1325,21 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Optimal leaf nitrogen content
 		double leafoptn;
 
-		// Optimal leaf C:N ratio
-		double cton_leaf_opt;
-
 		// Calculate optimal leaf nitrogen content and demand
 		if (!negligible(indiv.phen)) {
 
 			indiv.nday_leafon++;
 
-			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves
-			// Peltoniemi et al. 2012
-			//double Kn = 0.19;
-			//double nextin_correct = Kb / Kn * (1.0 - lambertbeer(Kn, indiv.lai_indiv_today())) / (1.0 - lambertbeer(Kb, indiv.lai_indiv_today()));
-			indiv.nextin = exp(0.12 * min(10.0 * indiv.phen, indiv.lai_indiv_today()));
+			if (ifnlim && date.year > freenyears) {
+				
+				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
+				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
 
-			// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
-			// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-
-			leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf_today();
+				leafoptn = indiv.photosynthesis.nmass_leaf_opt;
+			}
+			else {
+				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_avr;
+			}
 
 			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf_today() / leafoptn < indiv.pft.cton_leaf_min) {
@@ -1212,37 +1350,38 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_max;
 			}
 
-			// Updating annual optimal leaf C:N ratio
-			indiv.cton_leaf_aopt = min(indiv.cmass_leaf_today() / leafoptn, indiv.cton_leaf_aopt);
+			// Setting daily optimal leaf C:N ratio
+			indiv.cton_leaf_dopt = indiv.cmass_leaf_today() / leafoptn;
+
+			// Sum up yearly optimal C:N ratio
+			indiv.cton_leaf_aopt += indiv.cton_leaf_dopt;
 
 			// Leaf nitrogen demand
-			indiv.leafndemand = max(leafoptn - indiv.nmass_leaf, 0.0);
+			indiv.leafndemand = leafoptn - indiv.nmass_leaf;
 
-			// Setting daily optimal leaf C:N ratio
-			if (indiv.leafndemand) {
-				cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
-			}
-			else {
-				cton_leaf_opt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
-			}
+			// Check if to retranslocate leaf N
+			nretrans(indiv.leafndemand, indiv.nmass_leaf, indiv.nstore_labile);
 		}
 		else {
 			indiv.leafndemand = 0.0;
-			cton_leaf_opt = indiv.cton_leaf();
+			indiv.cton_leaf_dopt = indiv.cton_leaf();
 		}
 
 		// Nitrogen demand
 
 		// Root nitrogen demand
-		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
+		indiv.rootndemand = indiv.cmass_root_today() / max(indiv.pft.cton_root_min, indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root;
+
+		// Check if to retranslocate root N
+		nretrans(indiv.rootndemand, indiv.nmass_root, indiv.nstore_labile);
 
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
+			indiv.sapndemand = max(0.0, indiv.cmass_sap / max(indiv.pft.cton_sap_min, indiv.cton_leaf_dopt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = indiv.ndemand_storage(cton_leaf_opt);
+		indiv.storendemand = indiv.ndemand_storage(indiv.cton_leaf_dopt);
 
 		//TODO HO demand
 		indiv.hondemand = 0.0;
@@ -1258,17 +1397,22 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
-		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
-		double nmin_scale = kNmin + nmin_avail / (nmin_avail + patch.pft[indiv.pft.id].Km);
-
-		// Maximum available soil mineral nitrogen for this individual is base on its root area.
-		// This is considered to be related to FPC which is proportional to crown area which is approx
-		// 4 times smaller than the root area
-		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * nmin_avail;
-
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
+		double maxnup = 0.0;
+
+		// Loop over all soil layers
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+			// Maximum available soil mineral nitrogen for this individual is base on its root area.
+			// This is considered to be related to FPC which is proportional to crown area which is approx
+			// 4 times smaller than the root area
+			double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soilcolumn.soillayers[lyr].nmass_avail(NO);
+
+			// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
+			// and soil available nitrogen within individual projectived coverage
+			maxnup += min(indiv.pft.nuptoroot * nminscale[lyr] * tempscale[lyr] * indiv.cton_status * indiv.cmass_root_today() * indiv.pft.rootdist[lyr], max_indiv_avail);
+		}
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot, 1.0) : 0.0;
@@ -1322,7 +1466,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// to down-regulation of vmax.
 
 	// Nitrogen within projective cover of all individuals
-	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO) * min(1.0, patch.fpc_total);
+	double tot_nmass_avail = patch.soilcolumn.nmass_avail(NO) * min(1.0, patch.fpc_total * 4.0);
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {
@@ -1341,7 +1485,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	vegetation_n_uptake(patch);
 
 	// Calculate leaf nitrogen associated with photosynthesis, nitrogen limited photosynthesis,
-	// and annual otimal leaf nitrogen content and nitrogen limitation on vmax
+	// and annual optimal leaf nitrogen content and nitrogen limitation on vmax
 
 	vegetation.firstobj();
 
@@ -1349,18 +1493,6 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
-
-		// Calculate leaf nitrogen associated with photosynthesis (Haxeltine et al. 1996 eqn 27/28)
-		// Added difference between needleleaved and broadleaved mentioned in Friend et al. 1997
-		// Should be done on FPC basis, but is not as it does not matter mathematically
-		// Needs to be calculated for each individual due to possible water stress
-
-		if (indiv.phen > 0.0) {
-			indiv.nactive = max(0.0, indiv.nmass_leaf - N0 * indiv.cmass_leaf_today());
-		}
-		else {
-			indiv.nactive = 0.0;
-		}
 
 		// Individuals photosynthesis is nitrogen stressed
 		if (indiv.nstress) {
@@ -1372,17 +1504,20 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 			// Set stresses
 			PhotosynthesisStresses ps_stress;
-			ps_stress.set(true, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
+			ps_stress.set(false, true, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
+
+			// Set leaf status and limits
+			PhotosynthesisLeafstatus ps_status;
+			ps_status.set(indiv.cmass_leaf_today(), indiv.nmass_leaf / indiv.nextin, 
+				indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.nextin);
 
 			// Individual photosynthesis
-			photosynthesis(ps_env, ps_stress, pft,
-						   pft.lambda_max, indiv.nactive / indiv.nextin, -1, 
-						   indiv.photosynthesis);
+			photosynthesis(ps_env, ps_stress, ps_status, pft,
+						   pft.lambda_max, -1, indiv.photosynthesis);
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
-			double dgpp_ns = max(0.0, indiv.photosynthesis.net_assimilation());
-			indiv.report_flux(Fluxes::GPPns, dgpp_ns);
+			indiv.dgpp_ns = max(0.0, indiv.photosynthesis.net_assimilation());
 
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
@@ -1391,8 +1526,8 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					// Set environment
 					ps_env.set(pftco2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
-					photosynthesis(ps_env, ps_stress, pft,
-								   pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis.vm, 
+					photosynthesis(ps_env, ps_stress, ps_status, pft,
+								   pft.lambda_max, indiv.photosynthesis.vm,
 								   ps_result);
 
 					indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
@@ -1400,22 +1535,27 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			}
 		}
 		else {
-			indiv.report_flux(Fluxes::GPPns, indiv.dgpp_no);
+			indiv.dgpp_ns = indiv.dgpp_no;
+			indiv.photosynthesis.vmaxnlim = 1.0;
 		}
 
+		indiv.report_flux(Fluxes::GPPns, indiv.dgpp_ns);
+		indiv.agpp_ns += indiv.dgpp_ns;
+
 		// Sum annual average nitrogen limitation on vmax
-		if (indiv.phen)
-			indiv.avmaxnlim += indiv.photosynthesis.vmaxnlim;
+		if (indiv.phen) {
+			indiv.avmaxnlim += indiv.photosynthesis.vmaxnlim * indiv.dgpp_no;
+		}
 
 		// On last day of year determined average nitrogen limitation
 		// based on days with leaf on
 		if (date.islastday && date.islastmonth) {
 
-			if (!negligible(indiv.nday_leafon)) {
-				indiv.avmaxnlim /= (double)indiv.nday_leafon;
+			if (!negligible(indiv.agpp_no)) {
+				indiv.avmaxnlim /= indiv.agpp_no;
 			}
 			else {
-				indiv.avmaxnlim = 0.0;
+				indiv.avmaxnlim = 1.0;
 			}
 		}
 		vegetation.nextobj();
@@ -1473,12 +1613,15 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			// Set stresses
 			PhotosynthesisStresses ps_stress;
 			Patchpft& ppft = patch.pft[indiv.pft.id];
-			ps_stress.set(false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));  
+			ps_stress.set(false, false, get_moss_wtp_limit(patch, pft), get_graminoid_wtp_limit(patch, pft), get_inund_stress(patch, ppft));
+
+			// Set leaf status
+			PhotosynthesisLeafstatus ps_status;
+			ps_status.noinfluence();
 
 			// No nitrogen limitation when calculating gp_leafon
-			photosynthesis(ps_env, ps_stress, pft,
-			               pft.lambda_max, 1.0, -1, 
-			               leafon_photosynthesis);
+			photosynthesis(ps_env, ps_stress, ps_status, pft,
+			               pft.lambda_max, -1, leafon_photosynthesis);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
@@ -1973,7 +2116,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda,
-			double nactive, bool ifnlimvmax, double moss_wtp_limit, double graminoid_wtp_limit, double inund_stress) {
+			double moss_wtp_limit, double graminoid_wtp_limit, double inund_stress) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -2030,9 +2173,13 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	ps_env.set(co2, temp, par, fpar, daylength);
 
 	PhotosynthesisStresses ps_stress;
-	ps_stress.set(ifnlimvmax, moss_wtp_limit, graminoid_wtp_limit, inund_stress);  
+	ps_stress.set(false, false, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 
-	photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result);
+	// Set leaf status, which has no influence as leaf status limitation on Vmax is already set
+	PhotosynthesisLeafstatus ps_status;
+	ps_status.noinfluence();
+
+	photosynthesis(ps_env, ps_stress, ps_status, pft, pft.lambda_max, vmax, phot_result);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
@@ -2069,9 +2216,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(ps_env, ps_stress, pft, 
-					   xmid, nactive, vmax, 
-					   phot_result);
+		photosynthesis(ps_env, ps_stress, ps_status, pft,
+					   xmid, vmax, phot_result);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -2294,8 +2440,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// of light- and conductance-based equations of photosynthesis
 
 			assimilation_wstress(pft, pftco2, temp, par, hours, indiv.fpar, indiv.fpc,
-				ppft.gcbase, phot.vm, phot, lambda,
-				indiv.nactive / indiv.nextin, ifnlim, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
+				ppft.gcbase, phot.vm, phot, lambda, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 		}
 
 		assim = phot.net_assimilation();
@@ -2317,8 +2462,14 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		double cton_sap, cton_root;
 		if (ifnlim) {
-			cton_sap = indiv.cton_sap();
-			cton_root = indiv.cton_root();
+			if (indiv.alive) {
+				cton_sap = indiv.cton_sap();
+				cton_root = indiv.cton_root();
+			}
+			else {
+				cton_sap = indiv.cton_leaf_dopt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr;
+				cton_root = indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
+			}
 		}
 		else {
 			cton_sap = pft.cton_sap_avr;
@@ -2439,7 +2590,7 @@ void forest_floor_conditions(Patch& patch) {
 
 				assimilation_wstress(pft, pftco2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-					spft.photosynthesis.vm, phot, lambda, 1.0, false, 
+					spft.photosynthesis.vm, phot, lambda,
 					moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 				assim = phot.net_assimilation();
 			}
@@ -2472,21 +2623,19 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			Individual& indiv = vegetation.getobj();
 
 			indiv.anpp           = 0.0;
+			indiv.agpp_no        = 0.0;
+			indiv.agpp_ns        = 0.0;
 
 			indiv.leafndemand    = 0.0;
 			indiv.rootndemand    = 0.0;
 			indiv.sapndemand     = 0.0;
 			indiv.storendemand   = 0.0;
 			indiv.hondemand      = 0.0;
+			indiv.avmaxnlim      = 0.0;
+			indiv.cton_leaf_aavr = 0.0;
+			indiv.cton_leaf_aopt = 0.0;
 
 			indiv.nday_leafon    = 0;
-			indiv.avmaxnlim      = 1.0;
-			indiv.cton_leaf_aavr = 0.0;
-
-			if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
-				indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf;
-			else
-				indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
 
  			for (int m=0; m<12; m++) {
 				indiv.mlai[m] = 0.0;

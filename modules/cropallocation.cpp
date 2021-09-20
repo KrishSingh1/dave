@@ -121,7 +121,7 @@ void turnover_grass(Individual& indiv) {
 
 	// Scale this year productivity to max storage
 	if (grs_npp > 0.0) {
-		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / grs_npp;
+		indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.pft.cton_leaf_avr / grs_npp;
 	}
 
 	indiv.nstore_labile = indiv.nstore_longterm;
@@ -603,9 +603,9 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.grs_cmass_leaf = 0.0;
 				cropindiv.grs_cmass_agpool = 0.0;
 				cropindiv.cmass_leaf_sen = 0.0;
-
 				cropindiv.grs_cmass_stem = 0.0;
 				cropindiv.grs_cmass_dead_leaf = 0.0;
+
 				cropindiv.nmass_dead_leaf = 0.0;
 				cropindiv.nmass_agpool = 0.0;
 				indiv.nmass_leaf = 0.0;

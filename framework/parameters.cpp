@@ -44,11 +44,11 @@ double depth_soil;
 
 bool ifcentury;
 bool ifnlim;
+bool ifdailynretrans;
 int freenyears;
 double nrelocfrac;
 double nfix_a;
 double nfix_b;
-
 bool ifntransform;
 double frac_labile_carbon = 1.0;
 double pH_soil;
@@ -485,8 +485,10 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
-		declareitem("ifnlim",&ifnlim,1,CB_NONE,
+		declareitem("ifnlim", &ifnlim, 1, CB_NONE,
 			"Whether plant growth limited by available nitrogen");
+		declareitem("ifdailynretrans", &ifdailynretrans, 1, CB_NONE,
+			"Whether daily leaf N retranslocation is allowed");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 		declareitem("ifntransform",&ifntransform,1,CB_NONE,
@@ -681,8 +683,6 @@ void plib_declarations(int id,xtring setname) {
 			"Reference Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
-		declareitem("km_volume",&ppft->km_volume,0.0,10.0,1,CB_NONE,
-			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 
@@ -1234,6 +1234,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
+		if (!itemparsed("ifdailynretrans")) badins("ifdailynretrans");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
 		if (nyear_spinup <= freenyears) {
@@ -1648,7 +1649,6 @@ void plib_callback(int callback) {
 
 			if (!itemparsed("cton_root")) badins("cton_root");
 			if (!itemparsed("nuptoroot")) badins("nuptoroot");
-			if (!itemparsed("km_volume")) badins("km_volume");
 			if (!itemparsed("fnstorage")) badins("fnstorage");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");

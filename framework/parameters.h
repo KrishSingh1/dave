@@ -150,6 +150,9 @@ extern bool ifcentury;
 /// whether plant growth limited by available N
 extern bool ifnlim;
 
+/// Whether daily leaf N retranslocation is allowed
+extern bool ifdailynretrans;
+
 /// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
 

@@ -548,7 +548,7 @@ void blaze(Patch& patch, Climate& climate) {
 	double cfwd2atm = fab * patch.lfwd_to_atm * surflayer.sompool[SURFFWD].cmass;
 	double ccwd2atm = fab * patch.lcwd_to_atm * surflayer.sompool[SURFCWD].cmass;
 
-	// Nitrogen proportional to cmass flux [kg(C)/m2]
+	// Nitrogen proportional to cmass flux [kg(N)/m2]
 	double nmtb2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFMETA].nmass;
 	double nstr2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFSTRUCT].nmass;
 	double nfwd2atm = fab * patch.lfwd_to_atm * surflayer.sompool[SURFFWD].nmass;
@@ -561,7 +561,7 @@ void blaze(Patch& patch, Climate& climate) {
 	surflayer.sompool[SURFFWD].cmass -= cfwd2atm;
 	surflayer.sompool[SURFCWD].cmass -= ccwd2atm;
 
-	// nitrogen 
+	// Nitrogen 
 	surflayer.sompool[SURFMETA].nmass -= nmtb2atm;
 	surflayer.sompool[SURFSTRUCT].nmass -= nstr2atm;
 	surflayer.sompool[SURFFWD].nmass -= nfwd2atm;
@@ -726,6 +726,7 @@ void blaze(Patch& patch, Climate& climate) {
 		patchpft.litter_leaf  -= (cmtb2atm + cstr2atm);
 		patchpft.litter_sap   -= cfwd2atm;
 		patchpft.litter_heart -= ccwd2atm;
+
 		// Nitrogen
 		patchpft.nmass_litter_leaf  -= (nmtb2atm + nstr2atm);
 		patchpft.nmass_litter_sap   -= nfwd2atm;
@@ -737,6 +738,7 @@ void blaze(Patch& patch, Climate& climate) {
 		cstr2atm_t += cstr2atm;
 		cfwd2atm_t += cfwd2atm;
 		ccwd2atm_t += ccwd2atm;
+
 		// Nitrogen
 		nmtb2atm_t += nmtb2atm;
 		nstr2atm_t += nstr2atm;

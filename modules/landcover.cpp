@@ -893,14 +893,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	for(int from=0; from<nst; from++) {
 
 		StandType& st_donor = stlist[from];
-		//Gridcellst& gcst_donor = gridcell.st[from];
 
 		if(recip_donor_remain[from] > INPUT_RESOLUTION * 0.1) {
 
 			for(int to=0; to<nst; to++) {
 
 				StandType& st_receptor = stlist[to];
-				// Gridcellst& gcst_receptor = gridcell.st[to];
 
 				if(recip_transfer_remain[st_donor.landcover][st_receptor.landcover]  > INPUT_RESOLUTION * 0.1 
 					&& recip_receptor_remain[to] > INPUT_RESOLUTION * 0.1 && recip_donor_remain[from] > INPUT_RESOLUTION * 0.1) {

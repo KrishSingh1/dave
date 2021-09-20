@@ -58,6 +58,9 @@ void initbvoc(){
 	PhotosynthesisStresses ps_stress;
 	ps_stress.no_stress(); // No limits in the initialization of BVOC calculations
 
+ 	PhotosynthesisLeafstatus ps_status;
+	ps_status.noinfluence(); // No individual values
+
  	pftlist.firstobj();
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
@@ -66,7 +69,7 @@ void initbvoc(){
 				// par for the standard condition, J m-2 d-1
 
 		ps_env.set(CO2_conc, Tstand, par, 1.0, daylength);
-		photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, 1.0, -1, phot);
+		photosynthesis(ps_env, ps_stress, ps_status, pft, pft.lambda_max, -1, phot);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
 

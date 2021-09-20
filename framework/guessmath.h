@@ -55,11 +55,22 @@ const double M_PER_INCH     = 0.0254;
 const double KG_PER_G		= 1E-3;
 const double G_PER_KG		= 1E3;
 const double G_PER_MG		= 1E-3;
-const double MG_PER_G		= 1E3;		// Milligrams
-const double KG_PER_MT		= 1E3;		// Metric tonnes
+const double G_PER_UG       = 1E-6;     // Gram per microgram
+const double MG_PER_G       = 1E3;		// Milligrams per gram
+const double NG_PER_G       = 1E9;		// Nanograms per gram
+const double NG_PER_UG      = 1E3;		// Nanograms per microgram
+const double UG_PER_NG      = 1E-3;		// Microgram per nanograms
+const double MG_PER_KG      = 1E6;
+const double KG_PER_MT      = 1E3;		// Metric tonnes
+const double KG_PER_MG      = 1E-6;		// kg per milligram
+const double KG_PER_UG      = 1E-9;		// kg per microgram
 const double MMOL_PER_MOL	= 1E3;
+const double KG_M3_PER_G_CM3 = KG_PER_G / M3_PER_CM3; // Density change from g cm-3 to kg m-3
 const double J_PER_KJ		= 1E3;
-const double KMH_PER_MS         = 3.6;
+const double KMH_PER_MS     = 3.6;
+const double DW_PER_C       = 2.0;		// Dry weight per C
+const double GC_PER_MOLC    = 12.0107;  // Atomic weight of carbon
+const double GC_PER_MOLN    = 14.0067;  // Atomic weight of nitrogen
 const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
@@ -341,6 +352,11 @@ public:
 		for (size_t i = 0; i < nvalues; ++i) {
 			buffer[i] = values[(first_position+i)%capacity];
 		}
+	}
+
+	void reset() {
+		full = false;
+		current_index = 0;
 	}
 
 	friend ArchiveStream& operator&<T, capacity>(ArchiveStream& stream,

@@ -48,6 +48,7 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_ctonsom "ctonsom.out"
 !file_nlitter "nlitter.out"
 file_nuptake "nuptake.out"
 file_nflux "nflux.out"
@@ -149,6 +150,7 @@ ifbvoc 0                     	! Whether to include BVOC calculations (1) or not 
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1			! Whether plant growth limited by available N
+ifdailynretrans 1		! Whether daily leaf N retranslocation is allowed
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.234			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b -0.172			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -275,7 +277,6 @@ group "tree" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	pathway "c3"
 	respcoeff 1.0
 	kest_repr 200
@@ -308,7 +309,6 @@ group "shrub" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	fnstorage 0.3
 	pathway "c3"
 	kest_repr 200
@@ -343,7 +343,6 @@ group "grass" (
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
-	km_volume 0.000001876
 	fnstorage 0.3
 	ligcfrac_root 0.25
 	ligcfrac_wood 0.0

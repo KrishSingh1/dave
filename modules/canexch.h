@@ -23,9 +23,9 @@ void interception(Patch& patch, Climate& climate);
 void canopy_exchange(Patch& patch, Climate& climate);
 void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
 					const PhotosynthesisStresses& ps_stresses,
+					const PhotosynthesisLeafstatus& ps_status,
 					const Pft& pft,
-					double lambda, 
-					double nactive, 
+					double lambda,
 					double vm,
 					PhotosynthesisResult& result);
 
@@ -63,7 +63,6 @@ const double BC4 = 0.02;
 // see Wania et al. (2009b)
 const double BC_moss = 0.03;
 
-const double CMASS = 12.0;		// atomic mass of carbon
 const double ALPHAA = 0.5;		// value chosen to give global carbon pool and flux values that
 								// agree with published estimates.
 								// scaling factor for PAR absorption from leaf to plant projective area level
@@ -76,11 +75,22 @@ const double ALPHAA_NLIM = 0.6;	// Same as ALPHAA above but chosen to give pools
 const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
+// Low-affinity NH4 and NO3 parameter for plant uptake [m3 kg-1 N] (Thum et al. 2019 eqn S73, Table S4)
+const double KmNmin = 0.00058 * 2.0;
+// High-affinity NH4 and NO3 parameter for plant uptake [kg N m-3] (Thum et al. 2019 eqn S73, Table S4)
+const double KmN = 0.014 * 2.0;
+// Maximum nitrogen (NH4+ and NO3- combined) uptake per fine root [kgN kgC-1 day-1] (Thum et al. 2019 eqn S73, Table S4)
+// const double nuptoroot = 0.0423 * 2.0;
+
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
 const double Kb = 0.5;
 inline double lambertbeer(double Kb, double lai) {
 	return exp(-Kb * lai);
 }
+
+// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves
+// Peltoniemi et al. 2012
+const double Kn = 0.19;
 
 /// Alternative parameterisations of the convective boundary layer
 /**

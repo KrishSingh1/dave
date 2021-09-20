@@ -713,7 +713,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 
-		double total_water = 0.0;  // DW_COMMENT whole section moved from dailyaccounting_gridcell
+		double total_water = 0.0;
 
 		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
 			soilcolumn.savesomcent = true;
@@ -733,8 +733,8 @@ void dailyaccounting_patch(Patch& patch) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-			soillayer.aorgNleach = 0.0;
 			soillayer.aorgCleach = 0.0;
+			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
 			soilcolumn.cmass_litter_input[lyr] = 0.0;
 
@@ -758,13 +758,6 @@ void dailyaccounting_patch(Patch& patch) {
 		if (!negligible(wmass_move + imass_move))
 			patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
 
-		// Initialise gridcellpfts Michaelis-Menten kinetic Km value
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			patch.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * total_water;
-			pftlist.nextobj();
-		}
-		
 		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 			soilcolumn.soillayers[lyr].arespsum = 0.0;
 		}

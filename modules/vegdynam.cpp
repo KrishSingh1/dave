@@ -305,12 +305,13 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_heart+=indiv.pft.regen.cmass_heart*est_pft;
 
 			// Calculate storage pool size
-			indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
-				(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong));
-			if (!indiv.alive)
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min /
+			indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+				(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong));
+			if (!indiv.alive) {
+				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
-					indiv.pft.regen.cmass_sap + indiv.pft.regen.cmass_heart) * est_pft);
+						indiv.pft.regen.cmass_sap + indiv.pft.regen.cmass_heart) * est_pft);
+			}
 		}
 		else if (((indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
 			establish(patch, stand.get_climate(), indiv.pft)) {
@@ -334,10 +335,11 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_root+=est_pft*indiv.pft.regen.cmass_root;
 
 			// Calculate storage pool size
-			indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_root_min);
-			if (!indiv.alive)
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min /
+			indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_root_avr);
+			if (!indiv.alive) {
+				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root) * est_pft);
+			}
 		}
 
 		// Update allometry to account for changes in average individual biomass
@@ -532,12 +534,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Calculate storage pool size
 						if(indiv.pft.phenology == CROPGREEN) {
-							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_min;
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min / CMASS_SEED;
+							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
+							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
 						}
 						else {
-							indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage * indiv.pft.cton_leaf_min);
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min / bminit;
+							indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage * indiv.pft.cton_leaf_avr);
+							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
 
 						// Establishment flux is not debited for 'new' Individual
@@ -669,9 +671,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_min,
-							(indiv.cmass_leaf / indiv.pft.cton_leaf_min + indiv.cmass_root / indiv.pft.cton_root_min) / max(1.0, indiv.pft.leaflong));
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_min / bminit;
+						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+							(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong));
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()

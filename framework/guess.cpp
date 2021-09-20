@@ -45,8 +45,8 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& rd_g
 		& vm
 		& je
-		& nactive_opt
-		& vmaxnlim;
+		& vmaxnlim
+		& vmax_30;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1289,6 +1289,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
+	cmass_veg         = 0.0;
 	cmass_leaf_post_turnover      = 0.0;
 	cmass_root_post_turnover      = 0.0;
 	cmass_tot_luc     = 0.0;
@@ -1296,6 +1297,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	aphen             = 0.0;
 	deltafpc          = 0.0;
 
+	// Nitrogen
 	nmass_leaf        = 0.0;
 	nmass_root        = 0.0;
 	nmass_sap         = 0.0;
@@ -1303,11 +1305,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
 	cton_status       = 0.0;
-	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
 	nmass_tot_luc     = 0.0;
 
-	nactive           = 0.0;
 	nextin            = 1.0;
 	nstore_longterm   = 0.0;
 	nstore_labile     = 0.0;
@@ -1334,6 +1334,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age               = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
+	aet               = 0.0;
 	intercep          = 0.0;
 	phen_mean         = 0.0;
 	wstress           = false;
@@ -1360,6 +1361,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	dnpp              = 0.0;
 	dgpp_no           = 0.0;
+	dgpp_ns           = 0.0;
+	agpp_no           = 0.0;
+	agpp_ns           = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -1383,6 +1387,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap
 		& cmass_heart
 		& cmass_debt
+		& cmass_veg
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
 		& last_turnover_day
@@ -1398,6 +1403,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aaet
 		& ltor
 		& height
+		& height_prev
 		& crownarea
 		& deltafpc
 		& boleht
@@ -1417,11 +1423,13 @@ void Individual::serialize(ArchiveStream& arch) {
 		& alive
 		& monstor
 		& fvocseas
+		& photosynthesis
+
+		// Nitrogen
 		& nmass_leaf
 		& nmass_root
 		& nmass_sap
 		& nmass_heart
-		& nactive
 		& nextin
 		& nstore_longterm
 		& nstore_labile
@@ -1434,10 +1442,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cton_leaf_aopt
 		& cton_leaf_aavr
 		& cton_status
-		& cmass_veg
 		& nmass_veg
-
-		& photosynthesis
 		& nstress
 		& leafndemand
 		& rootndemand
@@ -1557,6 +1562,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			report_flux(Fluxes::RA, -debt_excess);
 		}
 
+		// Nitrogen
 		double nmass_leaf_litter = mortality * nmass_leaf;
 		double nmass_root_litter = mortality * nmass_root;
 
@@ -1584,8 +1590,10 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
 		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
 
+		// Fire C fluxes
 		report_flux(Fluxes::FIREC,    cflux_fire);
 
+		// Fire N fluxes
 		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
@@ -1670,7 +1678,7 @@ double Individual::cton_sap() const {
 
 	if (pft.lifeform == TREE) {
 		if (!negligible(cmass_sap) && !negligible(nmass_sap))
-			return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
+			return max(pft.cton_sap_min, cmass_sap / nmass_sap);
 		else
 			return pft.cton_sap_max;
 	}
@@ -1810,7 +1818,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
-		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
+		storendemand = max(0.0, min(max(0.0, anpp) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
 
 	return storendemand;
 }
@@ -2408,9 +2416,9 @@ Gridcell::Gridcell():climate(*this) {
 
 	seed = 12345678;
 
-	for (int i=0;i<12;i++) {
-		monthly_burned_area[i] = 0.0;
-		monthly_fire_risk[i] = 0.0;
+	for (int m=0;m<12;m++) {
+		monthly_burned_area[m] = 0.0;
+		monthly_fire_risk[m] = 0.0;
 
 	}
 }
@@ -2461,7 +2469,7 @@ void Gridcell::set_soil_depth() {
 			}
 
 			// Set soilcolumn depth
-			patch.soilcolumn.depth = soil_depth; // DW_COMMENT
+			patch.soilcolumn.depth = soil_depth;
 
 			// Create soil layers and initalise them
 			patch.soilcolumn.create_soillayers(soil_lyr_depth);
@@ -2752,7 +2760,6 @@ void MassBalance::init_indiv(Individual& indiv) {
 	Stand& stand = patch.stand;
 	if (!stand.is_true_crop_stand())
 		return;
-	// Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
 	if (patch.stand.get_gridcell().landcover.updated && (patch.nharv == 0 || date.day == 0))
@@ -2780,7 +2787,7 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 	Stand& stand = patch.stand;
 	if(!stand.is_true_crop_stand())
 		return balance;
-	// Gridcell& gridcell = stand.get_gridcell();
+
 	double ccont = indiv.ccont();
 	ccont += patch.ccont(0.0);
 	double cflux = patch.cflux();
@@ -2806,7 +2813,7 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 	Stand& stand = patch.stand;
 	if(!stand.is_true_crop_stand())
 		return balance;
-	// Gridcell& gridcell = stand.get_gridcell();
+
 	double ncont = indiv.ncont();
 	ncont += patch.ncont(0.0);
 	double nflux = patch.nflux();
@@ -2936,6 +2943,29 @@ bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest);
 }
 
+void MassBalance::check_year_C(Gridcell& gridcell) {
+
+	double ccont_year = gridcell.ccont();
+	double cflux_year = gridcell.cflux();
+
+	if (date.year == start_year) {
+		ccont_zero = ccont_year;
+	}
+	else {
+
+		cflux += cflux_year;
+
+		// C balance check:
+		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
+			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
+			dprintf("C pool change: %.5f\n", ccont_year - ccont);
+			dprintf("C flux: %.5f\n",  cflux_year);
+		}
+	}
+
+	ccont = ccont_year;
+}
+
 void MassBalance::check_year_N(Gridcell& gridcell) {
 
 	double ncont_year = gridcell.ncont();
@@ -2960,30 +2990,6 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 	}
 
 	ncont = ncont_year;
-}
-
-
-void MassBalance::check_year_C(Gridcell& gridcell) {
-
-	double ccont_year = gridcell.ccont();
-	double cflux_year = gridcell.cflux();
-
-	if (date.year == start_year) {
-		ccont_zero = ccont_year;
-	}
-	else {
-
-		cflux += cflux_year;
-
-		// C balance check:
-		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
-			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
-			dprintf("C pool change: %.5f\n", ccont_year - ccont);
-			dprintf("C flux: %.5f\n",  cflux_year);
-		}
-	}
-
-	ccont = ccont_year;
 }
 
 void MassBalance::check_year_W(Gridcell& gridcell) {
@@ -3018,8 +3024,9 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 	check_year_C(gridcell);
 
-	if (ifcentury) 
+	if (ifcentury) {
 		check_year_N(gridcell);
+	}
 
 	check_year_W(gridcell);
 
@@ -3056,6 +3063,8 @@ void MassBalance::init(Gridcell& gridcell) {
 //	start_year = date.year;
 	ccont_zero = gridcell.ccont();
 	cflux_zero = gridcell.cflux();
+	ncont_zero = gridcell.ncont();
+	nflux_zero = gridcell.nflux();
 }
 
 void MassBalance::check(Gridcell& gridcell) {
@@ -3067,6 +3076,15 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);
+	}
+
+	double ncont = gridcell.ncont();
+	double nflux = gridcell.nflux();
+
+	if (!negligible(ncont - ncont_zero + nflux, -5)) {
+		dprintf("\n(%.2f, %.2f): N balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
+		dprintf("N pool change: %.5f\n", ncont - ncont_zero);
+		dprintf("N flux: %.5f\n\n", nflux);
 	}
 }
 

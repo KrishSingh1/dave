@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CCONT, NCONT, CSLOW, CFAST, NAVAIL, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
+CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +208,9 @@ const double SOLVESOMCENT_SPINEND = 0.3;
 
 /// Kelvin to deg C conversion
 const double K2degC = 273.15;
+
+// The gas constant [J⋅mol−1 K-1]
+const double R = 8.3145;
 
 /// Maximum number of crop rotation items
 const int NROTATIONPERIODS_MAX = 3;
@@ -583,7 +586,7 @@ struct PhotosynthesisResult : public Serializable {
 		rd_g        = 0;
 		vm          = 0;
 		je          = 0;
-		nactive_opt = 0.0;
+		nmass_leaf_opt = 0.0;
 		vmaxnlim    = 1.0;
 	}
 
@@ -603,11 +606,14 @@ struct PhotosynthesisResult : public Serializable {
 	/// PAR-limited photosynthesis rate (gC/m2/h)
 	double je;
 
-	/// optimal leaf nitrogen associated with photosynthesis (kgN/m2)
-	double nactive_opt;
+	/// optimal leaf nitrogen (kg N m-2)
+	double nmass_leaf_opt;
 
 	/// nitrogen limitation on vm
 	double vmaxnlim;
+
+	/// Daily Vmax for the last 30 days [nmol g-1 d.w. s-1]
+	Historic<double, 30> vmax_30;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
     double net_assimilation() const {
@@ -745,15 +751,19 @@ struct PhotosynthesisStresses {
 	 */
 	void no_stress() {
 
-		ifnlimvmax = false;
+		ifopt = true;
+		iflimvmax = false;
 		moss_ps_limit = 1.0;
 		graminoid_ps_limit = 1.0;
 		inund_stress = 1.0;
 	}
 
 private:
-	/// whether nitrogen should limit Vmax
-	bool ifnlimvmax;
+	/// whether to calculate optimal leaf nitrogen
+	bool ifopt;
+
+	/// whether nutrients should limit Vmax
+	bool iflimvmax;
 
 	///  limit to moss photosynthesis. [0,1], where 1 means no limit
 	double moss_ps_limit;
@@ -766,16 +776,21 @@ private:
 
 public:
 	/// Set the stresses
-    void set(bool thisnlimvmax, double this_moss_ps_limit, double this_graminoid_ps_limit, double this_inund_stress) {
+    void set(bool thisopt, bool thislimvmax, double this_moss_ps_limit, double this_graminoid_ps_limit, double this_inund_stress) {
 
-		ifnlimvmax = thisnlimvmax;
+		ifopt = thisopt;
+		iflimvmax = thislimvmax;
 		moss_ps_limit = this_moss_ps_limit;
 		graminoid_ps_limit = this_graminoid_ps_limit;
 		inund_stress = this_inund_stress;
     }
 
-	bool get_ifnlimvmax() const {
-		return ifnlimvmax;	
+	bool get_ifopt() const {
+		return ifopt;
+	}
+
+	bool get_iflimvmax() const {
+		return iflimvmax;	
 	}
 
 	double get_moss_ps_limit() const {
@@ -788,6 +803,73 @@ public:
 
 	double get_inund_stress() const {
 		return inund_stress;	
+	}
+};
+
+/// This struct contains the leaf properties input to a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisLeafstatus {
+
+	/// Constructs an empty result
+	PhotosynthesisLeafstatus() {
+		noinfluence();
+	}
+
+	/// For PFTs use non sensible values as they don't have any influence
+	/** For PFTs use non sensible values as they don't have any influence
+	 */
+	void noinfluence() {
+		cmass_leaf = 0.0;
+		nmass_leaf = 0.0;
+		cton_min = 0.0;
+		cton_max = 0.0;
+		nextin = 1.0;
+	}
+
+private:
+	/// Todays leaf C mass (kgC/m2)
+	double cmass_leaf;
+
+	/// Todays leaf N mass (kgN/m2)
+	double nmass_leaf;
+
+	/// Minimum leaf C:N ratio
+	double cton_min;
+
+	/// Maximum leaf C:N ratio
+	double cton_max;
+
+	/// Scalar depending on individual lai to slow down light optimization of newly shaded leaves
+	double nextin;
+
+public:
+	/// set 
+	void set(double cmass, double nmass, double ctonmin, double ctonmax, double nin) {
+		cmass_leaf = cmass;
+		nmass_leaf = nmass;
+		cton_min = ctonmin;
+		cton_max = ctonmax;
+		nextin = nin;
+	}
+
+	double get_cmass_leaf() const {
+		return cmass_leaf;
+	}
+
+	double get_nmass_leaf() const {
+		return nmass_leaf;
+	}
+
+	double get_cton_min() const {
+		return cton_min;
+	}
+
+	double get_cton_max() const {
+		return cton_max;
+	}
+
+	double get_nextin() const {
+		return nextin;
 	}
 };
 
@@ -1168,7 +1250,7 @@ public:
 		NFERT,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
-		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
+		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgN/m2)
 		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
@@ -1729,6 +1811,8 @@ public:
 	double cton_sap_avr;
 	/// maximum sapwood C:N mass ratio (used when mass is negligible)
 	double cton_sap_max;
+	/// minimum sapwood C:N mass ratio (used when mass is negligible)
+	double cton_sap_min;
 	/// reference fine root C:N mass ratio
 	double cton_root;
 	/// reference sapwood C:N mass ratio
@@ -1737,10 +1821,6 @@ public:
 	double nuptoroot;
 	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
-
-	/// Michaelis-Menten kinetic parameters
-	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
-	double km_volume;
 
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
@@ -2143,24 +2223,25 @@ public:
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
 
 		// Tighter C:N ratio range for roots and sapwood: picked out thin air
-		double frac_maxtomin = .9;
-
-		// Maximum fine root C:N ratio
-		cton_root_max = cton_leaf_max * frac_leaftoroot;
-
-		// Minimum fine root C:N ratio
-		cton_root_min = cton_root_max * frac_maxtomin;
+		double frac_fromavr = 1.05;
 
 		// Average fine root C:N ratio
-		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
+		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
 
-		// Maximum sap C:N ratio
-		cton_sap_max  = cton_leaf_max * frac_leaftosap;
+		// Minimum fine root C:N ratio
+		cton_root_min = cton_root_avr / frac_fromavr;
 
-		double cton_sap_min = cton_sap_max * frac_maxtomin;
+		// Maximum fine root C:N ratio
+		cton_root_max = cton_root_avr * frac_fromavr;
 
 		// Average sap C:N ratio
-		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
+		cton_sap_avr = cton_leaf_avr * frac_leaftosap;
+
+		// Minimum sap C:N ratio
+		cton_sap_min = cton_sap_avr / frac_fromavr;
+
+		// Maximum sap C:N ratio
+		cton_sap_max = cton_sap_avr * frac_fromavr;
 
 		if (lifeform == GRASS || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
@@ -2681,6 +2762,8 @@ public:
 	double ltor;
 	/// plant height (m)
 	double height;
+	/// plant height previous year (m)
+	double height_prev;
 	/// plant crown area (m2)
 	double crownarea;
 	/// increment in fpc since last simulation year
@@ -2725,12 +2808,7 @@ public:
 	/// whether individual subject to water stress
 	bool wstress;
 
-	/// leaf nitrogen that is photosyntetic active
-	double nactive;
-	/// Nitrogen extinction scalar
-	/** Scalar to account for leaf nitrogen not following the optimal light
-	  * extinction, but is shallower.
-	  */
+	/// Nitrogen extinction scalar - Scalar to account for leaf nitrogen not following the optimal light extinction, but is shallower.
 	double nextin;
 	/// long-term storage of labile nitrogen
 	double nstore_longterm;
@@ -2752,6 +2830,8 @@ public:
 	double scale_n_storage;
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
+	/// daily optimal leaf C:N ratio
+	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
@@ -2805,6 +2885,12 @@ public:
 	double dnpp;
 	/// GPP this day without any stresses
 	double dgpp_no;
+	/// GPP this day with only nutrient stresses
+	double dgpp_ns;
+	/// Annual GPP without any stresses
+	double agpp_no;
+	/// Annual GPP with only N stress
+	double agpp_ns;
 
 	// bvoc
 
@@ -3124,16 +3210,17 @@ public:
 
 		cmass = 0.0;
 		nmass = 0.0;
+		ntoc = 0.0;
 		cdec = 0.0; 
 		ndec = 0.0; 
 		cinc = 0.0;
 		ninc = 0.0;
 		respsum = 0.0;
+		ligcfrac = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
-		ligcfrac = 0.0;
 		fracremain = 0.0;
-		ntoc = 0.0;
+		fireresist = 0.0;
 		cmass_init = 0.0;
 		multi = 1.0;
 		sign_trend = 1;
@@ -3506,6 +3593,8 @@ public:
 	double N2O_mass;
 	/// soil N2 mass in pool (kgN/m2)
 	double N2_mass;
+	/// soil N mass saturation level (KgN/m2)
+	double nmass_sat;
 
 	// soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
@@ -3606,14 +3695,15 @@ public:
 		anmin = that.anmin;
 		animmob = that.animmob;
 		aminleach = that.aminleach;
-		aorgNleach = that.aorgNleach;
 		aorgCleach = that.aorgCleach;
+		aorgNleach = that.aorgNleach;
 		NH4_mass = that.NH4_mass;
 		NO3_mass = that.NO3_mass;
 		NO2_mass = that.NO2_mass;
 		NO_mass = that.NO_mass;
 		N2O_mass = that.N2O_mass;
 		N2_mass = that.N2_mass;
+		nmass_sat = that.nmass_sat;
 		labile_carbon = that.labile_carbon;
 		litterSolveSOM = that.litterSolveSOM;
 		acdec[0] = that.acdec[0];
@@ -3714,14 +3804,15 @@ public:
 		anmin = that.anmin;
 		animmob = that.animmob;
 		aminleach = that.aminleach;
-		aorgNleach = that.aorgNleach;
 		aorgCleach = that.aorgCleach;
+		aorgNleach = that.aorgNleach;
 		NH4_mass = that.NH4_mass;
 		NO3_mass = that.NO3_mass;
 		NO2_mass = that.NO2_mass;
 		NO_mass = that.NO_mass;
 		N2O_mass = that.N2O_mass;
 		N2_mass = that.N2_mass;
+		nmass_sat = that.nmass_sat;
 		labile_carbon = that.labile_carbon;
 		litterSolveSOM = that.litterSolveSOM;
 		acdec[0] = that.acdec[0];
@@ -4212,6 +4303,8 @@ public:
 	std::vector<double> get_nfrac(n_pref_type pref, bool water_limited = false);
 	/// Get soil layers root fractions
 	std::vector<double> get_rootfrac();
+	/// Get soil layers root C mass
+	std::vector<double> get_rootmass();
 	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
@@ -4614,8 +4707,6 @@ public:
 		nmass_litter_sap_year = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_heart_year = 0.0;
-
-		Km = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

@@ -207,10 +207,10 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
  *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
- *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
- *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
- *   - nstore_labile    			labile nitrogen storage (kgC/m2)
- *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *   - nmass_sap   					sapwood nitrogen biomass (kgN/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgN/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgN/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *  OUTPUT PARAMETERS
  *  \param indiv					reference to an Individual containing the following patchpft-specific public members:
  *   - litter_leaf    				new leaf C litter (kgC/m2)
@@ -224,8 +224,8 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
  *									,and the following patch-level public members:
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
  */
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig, 
 		double res_outtake_coarse_root, bool lc_change) {
@@ -428,8 +428,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
  *									,and the following patch-level public members:
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
  */
 void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 
@@ -503,8 +503,8 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
  *									,and the following patch-level public members:
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
  */
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
 

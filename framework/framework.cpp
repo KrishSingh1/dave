@@ -152,6 +152,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 				// For each patch ...
 				Patch& patch = stand.getobj();
+
 				// Establishment, mortality and disturbance by fire
 				vegetation_dynamics(stand, patch);
 				stand.nextobj();

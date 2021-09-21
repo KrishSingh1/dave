@@ -1127,6 +1127,17 @@ public:
 			coldestday = COLDEST_DAY_SHEMISPHERE;
 			adjustlat = 181;
 		}
+
+		// BLAZE related variables
+		rainfall_annual_avg      = 0.0; // average annual rainfall [mm]
+		days_since_last_rainfall = 0;   // #Days-since-last-rainfall >3mm
+		last_rainfall            = 0.0; // rainfall of last day of previous year [mm]
+		kbdi                     = 0.0; // Keetch-Byram-Drought-index []
+
+		for (int x=0; x<30; x++) {
+			ffdi_monthly[x] = 0.;
+		}
+
 	}
 
 	void serialize(ArchiveStream& arch);

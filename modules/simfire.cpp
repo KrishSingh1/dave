@@ -68,7 +68,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 	
-		if (indiv.id!=-1 && indiv.alive) { 
+		if (indiv.id!=-1 && indiv.alive) {
 	
 			if (indiv.pft.lifeform==GRASS) {
 				fpar_grass += indiv.fpar_leafon;
@@ -107,7 +107,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	fpar_shrubs                    /= (1.00001-fpar_grass);
 
 	// Save current 
-	int idx = date.year % N_YEAR_BIOMEAVG;  
+	int idx = date.year % N_YEAR_BIOMEAVG;
 	patch.fapar_total_avg[idx] = fpar_total;
 	patch.fapar_grass_avg[idx] = fpar_grass;
 	patch.fapar_ndlt_avg [idx] = fpar_needleleaf;
@@ -137,7 +137,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	fpar_trop_broadleaf_raingreen  /=  (double)N_YEAR_BIOMEAVG;
 	fpar_shrubs     /=  (double)N_YEAR_BIOMEAVG;
 
-	// Set Fire-Biome 
+	// Set Fire-Biome
 	if (fpar_total < 0.5 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
 	} 
@@ -168,10 +168,10 @@ int update_fire_biome(Patch& patch, double lat) {
 		biome = SF_SAVANNA;
 	} 
 	else if (fpar_broadleaf > 0.2 && fpar_needleleaf > 0.2){
-		biome = SF_MIXED_FOREST;  
+		biome = SF_MIXED_FOREST;
 	}
 	else {
-		biome = SF_SAVANNA; 
+		biome = SF_SAVANNA;
 	}
 
 	return biome;
@@ -224,7 +224,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	double frac_nat = gridcell.landcover.frac[NATURAL] + gridcell.landcover.frac[PEATLAND] + gridcell.landcover.frac[FOREST];
 	double frac_barren = gridcell.landcover.frac[URBAN] + gridcell.landcover.frac[BARREN];
 	if (frac_nat > 0.5) {
-		gridcell.simfire_biome = biome_index ;
+		gridcell.simfire_biome = biome_index;
 	}
 	else if (frac_barren > 0.5) {
 		gridcell.simfire_biome = SF_BARREN;
@@ -352,7 +352,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// Absolute upper boundary for the accumulative nesterov index
 	const double MAXIMUM_NESTEROV = 250000; 
 
-	// Initialise on start of spinup or after restart
+	// Check if it is first day of simulation
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 			       ( restart && date.year == state_year ) ) );
 
@@ -363,26 +363,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 	if (date.day == 0 ) {
 		
-		// Initialise averaging array 
-		if ( date.year == 0 ) {
-			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
-				gridcell.fapar_recent_max[i] = 0.5;
-			}
-			gridcell.fapar_annual_max = 0.5;
-
-			// Initialize Max annual Nesterov Index on first day of simulation
-			for ( int i=0; i<12; i++) {
-				gridcell.nesterov_monthly_max[i] = 0.;
-			}
-			gridcell.nesterov_cur = 0.;
-		} 
-		else {
-			double avg = 0.;
-			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
-				avg += gridcell.fapar_recent_max[i];
-			}
-			gridcell.fapar_annual_max = avg / (double) AVG_INTERVAL_FAPAR;
+		double avg = 0.;
+		for(int i=0;i<AVG_INTERVAL_FAPAR;i++) {
+			avg += gridcell.fapar_recent_max[i];
 		}
+		gridcell.fapar_annual_max = avg / (double) AVG_INTERVAL_FAPAR;
 
 		// Finally (re)set this years max fapar
 		gridcell.fapar_cur_max = 0.0;
@@ -429,17 +414,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			Patch& patch = stand.getobj();
 			if ( ! ( date.year == 0 && date.day == 0 ) ) {
 				fapar_run_mean += (1. - patch.fpar_ff);
-			}
-			// Initialise averaging array
-			if (date.year == 0 && date.day == 0) {
-				for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
-					patch.fapar_total_avg[i] = 0. ;
-					patch.fapar_grass_avg[i] = 0. ;
-					patch.fapar_ndlt_avg [i] = 0. ;
-					patch.fapar_brlt_avg [i] = 0. ;
-					patch.fapar_trbr_avg [i] = 0. ;
-					patch.fapar_shrub_avg[i] = 0. ;
-				}
 			}
 			cnt += 1;
 			stand.nextobj();

@@ -120,9 +120,9 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 	latbot = lattop - latsize;
 	h1 = R_EARTH * sin(lattop * PI / 180.0);
 	h2 = R_EARTH * sin(latbot * PI / 180.0);
-	s  = 2.0 * PI * R_EARTH * (h1 - h2);  //for this latitude band
+	s  = 2.0 * PI * R_EARTH * (h1 - h2); //for this latitude band
 	
-	return s * longsize / 360.0;  //for this pixel
+	return s * longsize / 360.0; //for this pixel
 }
 
 /* Get combustion rates
@@ -530,29 +530,29 @@ bool blaze(Patch& patch, Climate& climate) {
 	// Compute fluxes from soil litter pools to atmosphere first
 	// as they are patch-specific. The fluxes to 
 	// soil litter will be added in loop over individuals below.
-	double cmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].cmass   ;
-	double cstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].cmass ;
-	double cfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].cmass    ;
-	double ccwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].cmass    ;   
-	
+	double cmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].cmass  ;
+	double cstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].cmass;
+	double cfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].cmass   ;
+	double ccwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].cmass   ;
+
 	// Nitrogen proportional to cmass flux [kg(C)/m2]
-	double nmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].nmass   ;
-	double nstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].nmass ;
-	double nfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].nmass    ;
-	double ncwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].nmass    ;   
-	
+	double nmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].nmass  ;
+	double nstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].nmass;
+	double nfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].nmass   ;
+	double ncwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].nmass   ;
+
 	// Update soil-surface-litter pools
 	// Carbon
-	patch.soil.sompool[SURFMETA].cmass   -= cmtb2atm ;
-	patch.soil.sompool[SURFSTRUCT].cmass -= cstr2atm ;
-	patch.soil.sompool[SURFFWD].cmass    -= cfwd2atm ;
-	patch.soil.sompool[SURFCWD].cmass    -= ccwd2atm ;   	
+	patch.soil.sompool[SURFMETA].cmass   -= cmtb2atm;
+	patch.soil.sompool[SURFSTRUCT].cmass -= cstr2atm;
+	patch.soil.sompool[SURFFWD].cmass    -= cfwd2atm;
+	patch.soil.sompool[SURFCWD].cmass    -= ccwd2atm;
 	// Nitrogen 
-	patch.soil.sompool[SURFMETA].nmass   -= nmtb2atm ;
-	patch.soil.sompool[SURFSTRUCT].nmass -= nstr2atm ;
-	patch.soil.sompool[SURFFWD].nmass    -= nfwd2atm ;
-	patch.soil.sompool[SURFCWD].nmass    -= ncwd2atm ;   
- 	
+	patch.soil.sompool[SURFMETA].nmass   -= nmtb2atm;
+	patch.soil.sompool[SURFSTRUCT].nmass -= nstr2atm;
+	patch.soil.sompool[SURFFWD].nmass    -= nfwd2atm;
+	patch.soil.sompool[SURFCWD].nmass    -= ncwd2atm;
+
 	// Report C litter -> atmosphere fluxes
 	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
 
@@ -595,7 +595,7 @@ bool blaze(Patch& patch, Climate& climate) {
 		 * of this routine.
 		 */
 		
-		// Loop through individuals		
+		// Loop through individuals
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
@@ -606,7 +606,7 @@ bool blaze(Patch& patch, Climate& climate) {
 
 			// For this individual ...
 			killed=false;
-			
+
 			if (indiv.pft.lifeform==GRASS) {
 				// Reduce individual live biomass and freshly created litter
 				indiv.reduce_biomass(MAX_GRASS_BURN,MAX_GRASS_BURN);
@@ -782,10 +782,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		double wtotw = patch.wood_to_atm + patch.wood_to_str + patch.wood_to_fwd + patch.wood_to_cwd ;
 		// Adjust relative fluxes from wood when stochastic killing has occured
 		if ( wtotw > 0.0 ) {
-			wood_to_atm = patch.wood_to_atm * frac_killed ;			
-			wood_to_str = (1. - patch.wood_to_atm ) * F_BARK               * frac_killed ;
-			wood_to_fwd = (1. - patch.wood_to_atm ) * F_BRANCH             * frac_killed ;
-			wood_to_cwd = (1. - patch.wood_to_atm ) * (1.-F_BARK-F_BRANCH) * frac_killed ;
+			wood_to_atm = patch.wood_to_atm * frac_killed;
+			wood_to_str = (1. - patch.wood_to_atm ) * F_BARK               * frac_killed;
+			wood_to_fwd = (1. - patch.wood_to_atm ) * F_BRANCH             * frac_killed;
+			wood_to_cwd = (1. - patch.wood_to_atm ) * (1.-F_BARK-F_BRANCH) * frac_killed;
 		}
 		else {
 			wood_to_atm = frac_killed * DEFAULT_WOOD_TO_ATM;
@@ -900,10 +900,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		}
 		else {
 			chrtw2str  = 0.;
-			chrtw2cwd  = 0.; 
+			chrtw2cwd  = 0.;
 			chrtw2atm  = 0.;
 			csapw2str  = 0.;
-			csapw2fwd  = 0.; 
+			csapw2fwd  = 0.;
 			csapw2atm  = 0.;
 			cmass_debt -= (saploss + hrtloss);
 		}
@@ -952,7 +952,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SURFMETA].cmass   += anpp2met  + cleaf2met;
 	patch.soil.sompool[SURFSTRUCT].cmass += anpp2str  + cleaf2str + csapw2str + chrtw2str;
 	patch.soil.sompool[SURFFWD].cmass    += anpp2fwd  + csapw2fwd;
-	patch.soil.sompool[SURFCWD].cmass    += anpp2cwd  + chrtw2cwd;   
+	patch.soil.sompool[SURFCWD].cmass    += anpp2cwd  + chrtw2cwd;
 
 	// Deep soil litter carbon
 	patch.soil.sompool[SOILMETA].cmass   += anpp2smtb + croot2met;
@@ -962,7 +962,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SURFMETA].nmass   += nleaf2met;
 	patch.soil.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
 	patch.soil.sompool[SURFFWD].nmass    += nsapw2fwd;
-	patch.soil.sompool[SURFCWD].nmass    += nhrtw2cwd;   
+	patch.soil.sompool[SURFCWD].nmass    += nhrtw2cwd;
 
 	// Deep soil litter nitrogen
 	patch.soil.sompool[SOILMETA].nmass   += nroot2met;
@@ -988,24 +988,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 void blaze_accounting_gridcell(Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
-	
-	// Initialise fields
-	if (date.year == 0 && date.day == 0 && !restart) {
-
-		if (vegmode == INDIVIDUAL) {
-			fail("BLAZE is incompatible with INDIVDUAL MODE!");
-		}
-
-		climate.rainfall_annual_avg = 0.0; // average annual rainfall [mm]
-		climate.days_since_last_rainfall = 0  ; // #Days-since-last-rainfall >3mm
-		climate.last_rainfall       = 0.0; // rainfall of last day of previous year [mm]
-		climate.kbdi                = 0.0; // Keetch-Byram-Drought-index []
-
-		for (int x=0; x<30; x++) {
-			climate.ffdi_monthly[x] = 0.;
-		}
-		gridcell.burned_area         = 0.0; // area burned [frac.]
-	}
 
 	// To keep track of burned area over the year
 	// reset accumulated area_burned to 0 on begining of year
@@ -1054,7 +1036,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	if (climate.prec > 0.01) {
 		if (climate.days_since_last_rainfall > 0) {
 			climate.last_rainfall = climate.prec;
-		} 
+		}
 		else {
 			climate.last_rainfall += climate.prec;
 		}
@@ -1067,9 +1049,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 	climate.rainfall_cur += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-	double v        = climate.u10    * KMH_PER_MS;       // Wind speed at 10m height [km/h] (for FFDI)
-	double rh       = climate.relhum * FRACT_TO_PERCENT; // relative humidity [%] (for FFDI)
-	double t        = climate.tmax  ;                    // day's max temperature [deg C] (for KBDI) 
+	double v  = climate.u10    * KMH_PER_MS;       // Wind speed at 10m height [km/h] (for FFDI)
+	double rh = climate.relhum * FRACT_TO_PERCENT; // relative humidity [%] (for FFDI)
+	double t  = climate.tmax  ;                    // day's max temperature [deg C] (for KBDI) 
 
 	// Gust parameterisation
 	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
@@ -1161,11 +1143,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 
-	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
-	if (weathergenerator != GWGEN) {
-		fail ("BLAZE needs GWGEN or daily data as input \n");
-	}
-
 	// Do not burn before century soil has started
 	if (date.year < patch.soil.solvesomcent_beginyr) {
 		return;
@@ -1182,11 +1159,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 	
-	// Initialise patch fire-line intensity
-	if (date.day == 0 && date.year == 0) {
-		patch.fire_line_intensity = 0.0;
-	}
-
 	// Today's potential firelineintensity
 	get_fireline_intensity(patch, climate);
 

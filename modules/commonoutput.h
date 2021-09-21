@@ -61,8 +61,8 @@ private:
 	xtring file_aburned_area_out, file_mburned_area_out;
 	xtring file_simfireanalysis_out;
 		
-	// Soil temperature
-	xtring file_mtemp;
+	// Soil temperature and water
+	xtring file_mtemp, file_mwmasslyr;
 
 	// Methane fluxes
 	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
@@ -91,8 +91,8 @@ private:
 	// Methane, snow, water table and active layer depth
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_mwtp, out_mald;
 
-	// Air, snow and soil temperatures
-	Table out_mtemp;
+	// Soil temperatures and water
+	Table out_mtemp, out_mwmasslyr;
 };
 
 }

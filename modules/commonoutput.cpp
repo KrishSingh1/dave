@@ -52,6 +52,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_clitterinput", &file_clitterinput, 300, "Annual carbon litter input to soil column output file");
 	declare_parameter("file_csomlitterinput", &file_csomlitterinput, 300, "Annual carbon litter input to SOM pools output file");
 	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
+	declare_parameter("file_mwmasslyr", &file_mwmasslyr, 300, "Monthly soil layer water output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
 
@@ -187,7 +188,7 @@ void CommonOutput::define_output_tables() {
 	soildepths_columns += ColumnDescriptor("Total", 9, 3);
 
 	// Create soil layer columns
-	ColumnDescriptors soildepth_columns, soillyr_columns_short, surfsoillyr_columns;
+	ColumnDescriptors soildepth_columns, soillyr_columns_short, soillyr_columns_med, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
 	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
 	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
@@ -195,13 +196,15 @@ void CommonOutput::define_output_tables() {
 		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
 		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 10, 5);
 		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
+		soillyr_columns_med += ColumnDescriptor(soillayers[lyr], 8, 5);
 	}
 	soildepth_columns += ColumnDescriptor("Total", 6, 1);
 	surfsoillyr_columns += ColumnDescriptor("Total", 10, 5);
 	soillyr_columns_short += ColumnDescriptor("Total", 6, 3);
+	soillyr_columns_med += ColumnDescriptor("Total", 8, 5);
 
 	// Create soil layer columns
-	ColumnDescriptors temp_columns;
+	ColumnDescriptors temp_columns, lyr_columns;
 	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS + 1; lyr++) {
 		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
@@ -458,6 +461,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitterinput,   file_clitterinput,   surfsoillyr_columns);
 	create_output_table(out_csomlitterinput,file_csomlitterinput,soms_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
+	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_med);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -785,6 +789,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mwtp[12];
 	double mald[12];
 	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX+PAD_LAYERS][12];
+	double mwmasslyr[NSOILLAYER_MAX+1][12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -799,6 +804,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
+		}
+		for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
+			mwmasslyr[lyr][m] = 0.0;
 		}
 	}
 
@@ -1546,6 +1554,19 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
 					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYER_MAX][m] += soilcolumn.pad[plyr].mtemp[m] * to_gridcell_average;
 				}
+				double wmass_tot = 0.0;
+				for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
+					if (lyr < soilcolumn.nsoillayers) {
+						mwmasslyr[lyr][m] += max(0.0, soilcolumn.soillayers[lyr].mwmass[m] - soilcolumn.soillayers[lyr].wp) / (soilcolumn.soillayers[lyr].wsats - -soilcolumn.soillayers[lyr].wp) * to_gridcell_average;
+						wmass_tot += max(0.0, soilcolumn.soillayers[lyr].mwmass[m] - soilcolumn.soillayers[lyr].wp);
+					}
+					else if (lyr == soilcolumn.nsoillayers) {
+						mwmasslyr[lyr][m] += wmass_tot / (soilcolumn.get_sum(WSATS) - soilcolumn.get_sum(WP)) * to_gridcell_average;
+					}
+					else {
+						mwmasslyr[lyr][m] += -999.9 * to_gridcell_average;
+					}
+				}
 			}
 
 			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
@@ -2036,6 +2057,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			outlimit(out, out_mtemp, mtemp[lyr][mth]);
 		}
+
+		for (int lyr = 0; lyr < number_of_layers; lyr++) {
+			outlimit(out, out_mwmasslyr, mwmasslyr[lyr][mth]);
+		}
+		outlimit(out, out_mwmasslyr, mwmasslyr[number_of_layers][mth]);
 	}
 }
 

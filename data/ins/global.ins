@@ -306,18 +306,18 @@ group "grass" (
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
-	phengdd5ramp 100	! C3 har 50 hos Thomas
+	phengdd5ramp 100
 	leaflong 0.5		! Leaf longevity (years)
 	turnover_leaf 1
-	turnover_root 0.7	! 0.5 hos guess2008
+	turnover_root 0.7
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
 	km_volume 0.000001876
 	fnstorage 0.3
 	litterme 0.2
-	parff_min 1000000	! 2500000 i guess2008
-	fireresist 0.5		! 1.0 hos Thomas
+	parff_min 1000000
+	fireresist 0.5
 	intc 0.01
 	ga 0.030
 
@@ -419,7 +419,7 @@ group "shade_tolerant" (
 	turnover_sap 0.05
 )
 
-! So far only trial values; not used in this global version
+! So far only example values; not used in this global version
 group "intermediate_shade_tolerant" (
 	est_max 0.15
 	parff_min 2000000
@@ -428,7 +428,6 @@ group "intermediate_shade_tolerant" (
 	turnover_sap 0.075
 )
 
-! From global version; values from orginal European version after "!"
 group "shade_intolerant" (
 	est_max 0.2
 	parff_min 2500000

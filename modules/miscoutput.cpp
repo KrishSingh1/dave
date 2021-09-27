@@ -281,7 +281,7 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Rad",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);

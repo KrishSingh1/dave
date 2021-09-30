@@ -258,12 +258,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// Get nitrogen deposition data.
-		/* Since the historic data set does not reach decade 2010-2019, we need 
-		 * to use the RCP data for the last decade. 
-		 * Lamarque N deposition data is interpolated to the CRU grid, and therefore
-		 * must have the same coordinates as the CRU-NCEP data. Therefore the same  
-		 * coordinates as found in file_cru (lon, lat) are used to retrieve ndep.
-		 */
+		/* Since the historic data set does not reach decade 2010-2019,
+		 * we need to use the RCP data for the last decade. */
 		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
@@ -271,7 +267,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		gridcell.climate.instype = SWRAD_TS;
 	
-		soilinput.get_soil(gridlist.getobj().lon, gridlist.getobj().lat, gridcell);
+		soilinput.get_soil(lon, lat, gridcell);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)

@@ -880,8 +880,8 @@ void transfer_litter(Patch& patch) {
 	double ligcmass_new, ligcmass_old;
 
 	// Fire (GlobFIRM)
-	double litterme[NSOMPOOL];
-	double fireresist[NSOMPOOL];
+	double litterme[NSOMPOOL]  = {0.};
+	double fireresist[NSOMPOOL]= {0.};
 	if ( firemodel == GLOBFIRM ) {
 
 		litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;

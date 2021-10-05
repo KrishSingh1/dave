@@ -2270,18 +2270,16 @@ Gridcell::Gridcell():climate(*this) {
 	}
 	
 	// Initialise SIMFIRE variables
-	if ( date.year == 0 ) {
-		for(int i=0;i<AVG_INTERVAL_FAPAR;i++) {
-			fapar_recent_max[i] = 0.5;
-		}
-		fapar_annual_max = 0.5;
-
-		// Initialize Max annual Nesterov Index on first day of simulation
-		for ( int i=0; i<12; i++) {
-			nesterov_monthly_max[i] = 0.;
-		}
-		nesterov_cur = 0.;
+	for (int i = 0; i<AVG_INTERVAL_FAPAR; i++) {
+		fapar_recent_max[i] = 0.5;
 	}
+	fapar_annual_max = 0.5;
+
+	// Initialize Max annual Nesterov Index on first day of simulation
+	for (int i = 0; i<12; i++) {
+		nesterov_monthly_max[i] = 0.;
+	}
+	nesterov_cur = 0.;
 
 	// Initialise BLAZE variables
 	seed = 12345678;

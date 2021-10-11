@@ -51,6 +51,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_soilcuelim", &file_soilcuelim, 300, "Annual carbon use efficiency on SOM decomposition output file");
 	declare_parameter("file_clitterinput", &file_clitterinput, 300, "Annual carbon litter input to soil column output file");
 	declare_parameter("file_csomlitterinput", &file_csomlitterinput, 300, "Annual carbon litter input to SOM pools output file");
+	declare_parameter("file_soilcperma", &file_soilcperma, 300, "Fraction of soil C in permafrost output file");
 	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
 	declare_parameter("file_mwmasslyr", &file_mwmasslyr, 300, "Monthly soil layer water output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
@@ -298,6 +299,10 @@ void CommonOutput::define_output_tables() {
 	// CLITTER
 	ColumnDescriptors clitter_columns = cmass_columns;
 
+	// Permafrost fraction
+	ColumnDescriptors soilc_perma_columns;
+	soilc_perma_columns += ColumnDescriptor("Frac", 6, 3);
+
 	// FIRERT
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",			8, 1);
@@ -460,6 +465,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_soilcuelim,     file_soilcuelim,     soillyr_columns_short);
 	create_output_table(out_clitterinput,   file_clitterinput,   surfsoillyr_columns);
 	create_output_table(out_csomlitterinput,file_csomlitterinput,soms_columns);
+	create_output_table(out_soilcperma,     file_soilcperma,     soilc_perma_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
 	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_med);
 
@@ -759,6 +765,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double cinc[NSOILLAYER_MAX][2];
 	double clitterinput[NSOILLAYER_MAX + 1];
 	double csomlitterinput[NSOMPOOL+1];
+	double soilc_tot, soilc_ald;
 
 	// hold the monthly average across patches
 	double mnpp[12];
@@ -1278,6 +1285,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	flux_NH3_soil = flux_NOx_soil = flux_N2O_soil = flux_N2_soil = 0.0;
 	flux_NH3_fire = flux_NOx_fire = flux_N2O_fire = flux_N2_fire = 0.0;
 	flux_ntot = flux_nharvest = flux_nseed = 0.0;
+	soilc_ald = soilc_tot = 0.0;
 
 	// Nitrogen in soil
 	NH4_mass = NH3_mass = NO3_mass = 0.0;
@@ -1488,6 +1496,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			soilc[NSOILDEPTHPOOLS - 1] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
 			soilr[NSOILDEPTHPOOLS - 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
+			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
+			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+
 			// Monthly output variables
 
 			for (m=0;m<12;m++) {
@@ -1629,9 +1640,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	outlimit(out,out_cmass,					cmass_gridcell);
 	outlimit(out,out_anpp,					anpp_gridcell);
-	outlimit(out, out_agpp,                 agpp_gridcell);
-	outlimit(out, out_agpp_no,              agpp_no_gridcell);
-	outlimit(out, out_agpp_ns,              agpp_ns_gridcell);
+	outlimit(out,out_agpp,                  agpp_gridcell);
+	outlimit(out,out_agpp_no,               agpp_no_gridcell);
+	outlimit(out,out_agpp_ns,               agpp_ns_gridcell);
 	outlimit(out,out_fpc,					fpc_gridcell);
 	outlimit(out,out_aaet,					aaet_gridcell);
 	outlimit(out,out_dens,					dens_gridcell);
@@ -1762,6 +1773,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_soilcuelim, sdl_cue_tot);
 
 	outlimit(out, out_clitterinput, clitterinput_tot);
+
+	outlimit(out, out_soilcperma, soilc_tot > 0 ? max(0.0, soilc_tot - soilc_ald) / soilc_tot : 0.0);
 
 	for (int p = 0; p < NSOMPOOL; p++) {
 		outlimit(out, out_csom, csom_gridcell[p]);

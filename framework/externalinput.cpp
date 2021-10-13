@@ -248,6 +248,7 @@ void LandcoverInput::init() {
 				n+=1;
 				stlist.killobj();
 				nst--;
+				nst_lc[CROPLAND]--;
 			}
 			else {
 				st.id-=n;

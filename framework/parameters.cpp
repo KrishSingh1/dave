@@ -1202,7 +1202,7 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-		case CB_ROOTDISTRIBUTION:
+	case CB_ROOTDISTRIBUTION:
 		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
 		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
 		else {
@@ -1389,9 +1389,15 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
-		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
-			sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
-			plibabort();
+		if (firemodel==BLAZE){
+			if (weathergenerator!=GWGEN) {
+				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
+				plibabort();
+			}
+			if (vegmode==POPULATION){
+				sendmessage("Error", "BLAZE cannot be run with vegmode=POPULATION");
+				plibabort();
+			}
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");

@@ -176,6 +176,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 							if(use_primary_lc_transfer) {
 								if(n == SECONDARY_MATURE) {
 									// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array + secondary_young_st_frac_transfer[index(from, to))
+									// Without secondary forest young/mature information in the input, secondary transfers occur here.
 									st_change_remain += forest_st_frac_transfer_s.primary[index(from, to)] + forest_st_frac_transfer_s.secondary_young[index(from, to)];
 									secondary_harvest = true;
 								} else if(n == SECONDARY_YOUNG) {

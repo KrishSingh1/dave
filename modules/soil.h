@@ -138,24 +138,31 @@ const double Cp_moss = 2500000;
 
 /// thermal conductivity of air [W m-1 K-1]
 const double Kair = 0.025;
+const double Kair_log = log(Kair);
 
 /// thermal conductivity of water [W m-1 K-1]
 const double Kwater = 0.57;
+const double Kwater_log = log(Kwater);
 
 /// thermal conductivity of ice [W m-1 K-1]
 const double Kice = 2.2;
+const double Kice_log = log(Kice);
 
 /// thermal conductivity of organic matter [W m-1 K-1]
 const double Korg = 0.25;
+const double Korg_log = log(Korg);
 
 /// thermal conductivity of dry peat [W m-1 K-1] - Bonan (2002)
 const double Kpeat = 0.06;
+const double Kpeat_log = log(Kpeat);
 
-/// thermal conductivity of mineral soil [W m-1 K-1] - Wania et al. (2009a)	 
+/// thermal conductivity of mineral soil [W m-1 K-1] - Wania et al. (2009a)
 const double Kmin = 2.0;
+const double Kmin_log = log(Kmin);
 
 /// thermal conductivity of moss [W m-1 K-1]
 const double Kmoss = 0.25;
+const double Kmoss_log = log(Kmoss);
 
 /// latent heat of fusion (Granberg et al. 1999) [J m-3]
 const double Lheat = 3.3355E8;	

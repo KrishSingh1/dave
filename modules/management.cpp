@@ -52,12 +52,6 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 
 	double harvest = 0.0;
 	double residue_outtake = 0.0;
-	/// Fraction of wood cmass that are stems
-	double stem_frac = 0.65;	// Temporary values, should be pft-specific
-	/// Fraction of wood cmass that are twigs
-	double twig_frac = 0.13;
-	/// Fraction of wood cmass that are coarse roots
-	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
 	/// Fraction of leaves adhering to twigs at the time of removal
 	double adhering_leaf_frac = 0.75;
 
@@ -85,7 +79,7 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 		if (i.cmass_debt <= i.cmass_sap + i.cmass_heart) {
 
 			// harvested stem wood
-			harvest += harv_eff * stem_frac * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
+			harvest += harv_eff * STEM_FRAC * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if (ifslowharvestpool) {
@@ -100,10 +94,10 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 			residue_outtake += res_outtake_twig * adhering_leaf_frac * i.cmass_leaf * frac_cut;
 
 			// removed twigs
-			residue_outtake += res_outtake_twig * twig_frac * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
+			residue_outtake += res_outtake_twig * TWIG_FRAC * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
 
 			// removed coarse roots
-			residue_outtake += res_outtake_coarse_root * coarse_root_frac * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
+			residue_outtake += res_outtake_coarse_root * COARSE_ROOT_FRAC * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
 
 			// removed residues are oxidised
 			i.acflux_harvest += residue_outtake;
@@ -122,8 +116,8 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 				to_partition_sap   = i.cmass_sap + i.cmass_heart - i.cmass_debt;
 //				dprintf("ATTENTION: pft %s: cmass_debt > cmass_heart; difference=%f\n", (char*)pft.name, i.cmass_debt-i.cmass_heart);
 			}
-			i.litter_sap += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-			i.litter_heart += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+			i.litter_sap += to_partition_sap * (1.0 - res_outtake_twig * TWIG_FRAC - res_outtake_coarse_root * COARSE_ROOT_FRAC - harv_eff * STEM_FRAC) * frac_cut;
+			i.litter_heart += to_partition_heart * (1.0 - res_outtake_twig * TWIG_FRAC - res_outtake_coarse_root * COARSE_ROOT_FRAC - harv_eff * STEM_FRAC) * frac_cut;
 		}
 		// debt larger than existing wood biomass
 		else {
@@ -143,7 +137,7 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 		harvest = 0.0;
 
 		// harvested products
-		harvest += harv_eff * stem_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
+		harvest += harv_eff * STEM_FRAC * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// harvested products not consumed this year put into harvested_products_slow_nmass
 		if (ifslowharvestpool) {
@@ -160,18 +154,18 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 		residue_outtake += res_outtake_twig * adhering_leaf_frac * i.nmass_leaf * frac_cut;
 
 		// removed twigs
-		residue_outtake += res_outtake_twig * twig_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
+		residue_outtake += res_outtake_twig * TWIG_FRAC * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// removed coarse roots
-		residue_outtake += res_outtake_coarse_root * coarse_root_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
+		residue_outtake += res_outtake_coarse_root * COARSE_ROOT_FRAC * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// removed residues are oxidised
 		i.anflux_harvest += residue_outtake;
 
 		// not removed residues are put into litter
 		i.nmass_litter_leaf += i.nmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
-		i.nmass_litter_sap += i.nmass_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-		i.nmass_litter_heart += i.nmass_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+		i.nmass_litter_sap += i.nmass_sap * (1.0 - res_outtake_twig * TWIG_FRAC - res_outtake_coarse_root * COARSE_ROOT_FRAC - harv_eff * STEM_FRAC) * frac_cut;
+		i.nmass_litter_heart += i.nmass_heart * (1.0 - res_outtake_twig * TWIG_FRAC - res_outtake_coarse_root * COARSE_ROOT_FRAC - harv_eff * STEM_FRAC) * frac_cut;
 
 		// unharvested trees:
 		i.nmass_leaf *= (1.0 - frac_cut);

@@ -189,7 +189,7 @@ void CommonOutput::define_output_tables() {
 	soildepths_columns += ColumnDescriptor("Total", 9, 3);
 
 	// Create soil layer columns
-	ColumnDescriptors soildepth_columns, soillyr_columns_short, soillyr_columns_med, surfsoillyr_columns;
+	ColumnDescriptors soildepth_columns, soillyr_columns_short, soillyr_columns_med, soillyr_columns_high, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
 	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
 	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
@@ -197,12 +197,14 @@ void CommonOutput::define_output_tables() {
 		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
 		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 10, 5);
 		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
-		soillyr_columns_med += ColumnDescriptor(soillayers[lyr], 8, 5);
+		soillyr_columns_med += ColumnDescriptor(soillayers[lyr], 12, 7);
+		soillyr_columns_high += ColumnDescriptor(soillayers[lyr], 13, 10);
 	}
 	soildepth_columns += ColumnDescriptor("Total", 6, 1);
 	surfsoillyr_columns += ColumnDescriptor("Total", 10, 5);
 	soillyr_columns_short += ColumnDescriptor("Total", 6, 3);
-	soillyr_columns_med += ColumnDescriptor("Total", 8, 5);
+	soillyr_columns_med += ColumnDescriptor("Total", 12, 7);
+	soillyr_columns_high += ColumnDescriptor("Total", 13, 10);
 
 	// Create soil layer columns
 	ColumnDescriptors temp_columns, lyr_columns;
@@ -455,8 +457,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 	create_output_table(out_soildepth,      file_soildepth,      soildepth_columns);
-	create_output_table(out_csoil,          file_csoil,          soildepths_columns);
-	create_output_table(out_rsoil,          file_rsoil,          soildepths_columns);
+	create_output_table(out_csoil, file_csoil, soillyr_columns_med);// soildepths_columns);
+	create_output_table(out_rsoil, file_rsoil, soillyr_columns_med);// soildepths_columns);
 	create_output_table(out_csom,           file_csom,           soms_columns);
 	create_output_table(out_ctonsom,        file_ctonsom,        soms_ratio_columns);
 	create_output_table(out_soildeclim,     file_soildeclim,     soillyr_columns_short);
@@ -757,8 +759,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
 	double soildepth[NSOILLAYER_MAX];
-	double soilc[NSOILDEPTHPOOLS];
-	double soilr[NSOILDEPTHPOOLS];
+	double soilc[NSOILLAYER_MAX+1];// [NSOILDEPTHPOOLS] ;
+	double soilr[NSOILLAYER_MAX+1];// [NSOILDEPTHPOOLS] ;
 	double somc[NSOMPOOL][NSOILLAYER_MAX];
 	double somn[NSOMPOOL][NSOILLAYER_MAX];
 	double cdec[NSOILLAYER_MAX][2];
@@ -877,10 +879,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double nmass_veg_gridcell=0.0;
 	double clitter_gridcell=0.0;
 	double nlitter_gridcell=0.0;
-	double csoil_gridcell=0.0;
 	double csom_gridcell[NSOMPOOL+1] = { 0.0 };
 	double nsom_gridcell[NSOMPOOL+1] = { 0.0 };
-	double rsoil_gridcell=0.0;
 	double anpp_gridcell=0.0;
 	double agpp_gridcell=0.0;
 	double agpp_no_gridcell=0.0;
@@ -1313,7 +1313,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 	csomlitterinput[NSOMPOOL] = 0.0;
 
-	for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
+	//for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
 		soilc[lyr] = 0.0;
 		soilr[lyr] = 0.0;
 	}
@@ -1489,12 +1490,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflitterC();
 			
-			for (int i = 0; i < NSOILDEPTHPOOLS - 1; i++) {
+			/*for (int i = 0; i < NSOILDEPTHPOOLS - 1; i++) {
 				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], CCONT) - surflitc) * to_gridcell_average;
 				soilr[i] += soilcolumn.to_depth(DEPTHS[i], ARH) * to_gridcell_average;
+			}*/
+			for (int i = 0; i < soilcolumn.nsoillayers; i++) {
+				soilc[i] += soilcolumn.soillayers[i].get(CCONT) * to_gridcell_average;
+				soilr[i] += soilcolumn.soillayers[i].get(ARH) * to_gridcell_average;
 			}
-			soilc[NSOILDEPTHPOOLS - 1] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
-			soilr[NSOILDEPTHPOOLS - 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
+			soilc[soilcolumn.nsoillayers] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soilr[soilcolumn.nsoillayers] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
 			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
 			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
@@ -1617,8 +1622,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// Total gridcell soil C
 	for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
-		csoil_gridcell += soilc[lyr];
-		rsoil_gridcell += soilr[lyr];
 
 		for (int p = 0; p < NSOMPOOL; p++) {
 			csom_gridcell[p] += somc[p][lyr];
@@ -1752,7 +1755,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		clitterinput_tot += clitterinput[lyr + 1];
 	}
 
-	for (int i = 0; i < NSOILDEPTHPOOLS; i++) {
+	for (int i = 0; i < NSOILLAYER_MAX+1; i++) {
 		outlimit(out, out_csoil, soilc[i]);
 		outlimit(out, out_rsoil, soilr[i]);
 	}

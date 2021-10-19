@@ -738,6 +738,12 @@ void dailyaccounting_patch(Patch& patch) {
 			soillayer.aminleach = 0.0;
 			soilcolumn.cmass_litter_input[lyr] = 0.0;
 
+			for (int mth = 0; mth < 12; mth++) {
+				soillayer.mwmass[mth] = 0.0;
+				soillayer.mwcont[mth] = 0.0;
+				soillayer.mtemp[mth] = 0.0;
+			}
+
 			if (date.year == 0) {
 				soillayer.mwcontabove = 0.0;
 			}
@@ -749,6 +755,12 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
+
+		for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+			for (int mth = 0; mth < 12; mth++) {
+				soilcolumn.pad[plyr].mtemp[mth] = 0.0;
+			}
+		}
 
 		for (int p = 0; p < NSOMPOOL; p++) {
 			soilcolumn.csom_litter_input[p] = 0.0;
@@ -766,13 +778,8 @@ void dailyaccounting_patch(Patch& patch) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
 
-	// Store daily soil water in all layers
-	soilcolumn.set_dwcont();
-
-	// On last day of month, calculate mean monthly water content of all soil layers
-	if (date.islastday) {
-		soilcolumn.set_mwcont();
-	}
+	// Calculate mean monthly water content of all soil layers
+	soilcolumn.calc_mwcont();
 
 	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
 	if (date.day == 0) {

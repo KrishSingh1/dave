@@ -232,6 +232,13 @@ const int AVG_INTERVAL_FAPAR = 3;
 /// Averaging interval for biome averaging (SIMFIRE)
 const int N_YEAR_BIOMEAVG = 3;
 
+/// Fraction of wood cmass that are stems (Temporary values, should be pft-specific)
+const double STEM_FRAC = 0.65;
+/// Fraction of wood cmass that are twigs
+const double TWIG_FRAC = 0.13;
+/// Fraction of wood cmass that are coarse roots (0.22 with default stem_frac and twig_frac values)
+const double COARSE_ROOT_FRAC = 1.0 - STEM_FRAC - TWIG_FRAC;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -3421,16 +3428,12 @@ public:
 	double depth;
 	/// water mass in soil layer (kg m-2)
 	double wmass;
-	/// daily water mass for the last month
-	double dwmass[31];
 	/// monthly water mass in soil layer (kg m-2)
 	double mwmass[12];
 	/// ice mass in soil layer (kg m-2)
 	double imass;
 	/// Matrix potantial (mm)
 	double psi;
-	/// daily water content for the last month
-	double dwcont[31];
 	/// monthly water content as fraction of available water holding capacity
 	double mwcont[12];
 	/// mean water content above current soil layer for last month
@@ -3499,9 +3502,6 @@ public:
 	double temp;
 	/// previous timestep soil layer temperature (deg C)
 	double temp_old;
-	/// daily temperatures for the last month (deg C)
-	/** (valid only on last day of month following call to daily_accounting_patch) */
-	double dtemp[31];
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double mtemp[12];
 	/** respiration response to today's soil temperature at 0.25 m depth
@@ -3722,12 +3722,6 @@ public:
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
 
-		for (int d = 0; d < 31; d++) {
-			dtemp[d] = that.dtemp[d];
-			dwmass[d] = that.dwmass[d];
-			dwcont[d] = that.dwcont[d];
-		}
-
 		for (int p = 0; p < NSOMPOOL; p++) {
 			sompool[p] = that.sompool[p];
 		}
@@ -3831,12 +3825,6 @@ public:
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
 
-		for (int d = 0; d < 31; d++) {
-			dtemp[d] = that.dtemp[d];
-			dwmass[d] = that.dwmass[d];
-			dwcont[d] = that.dwcont[d];
-		}
-
 		for (int p = 0; p < NSOMPOOL; p++) {
 			sompool[p] = that.sompool[p];
 		}
@@ -3892,9 +3880,9 @@ public:
 
 	void update_matric_potential();
 
-	void update_hydraulic_cond_diff();
+	void update_hydraulic_properties();
 
-	void update_thermal_cap_cond(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
+	void update_thermal_properties(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -3911,8 +3899,6 @@ struct padding : public Serializable {
 
 	/// Soil padding layer temperatures [deg C]
 	double temp;
-	/// daily temperatures for the last month (deg C)
-	double dtemp[31];
 	/// Record the monthly average padding temperature [deg C]
 	double mtemp[12];
 	/// Soil padding layer depth
@@ -3975,8 +3961,8 @@ struct Snowlayer : public Serializable {
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
-	/// Update snow properties
-	void update_thermal_cap_cond();
+	/// Update snow thermal properties
+	void update_thermal_properties();
 
 	/// Update snow water holding capacity
 	void update_whc();
@@ -4053,7 +4039,7 @@ public:
 	void compaction(double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow thermal properties for each snow layer
-	void update_thermal_cap_cond();
+	void update_thermal_properties();
 
 	/// Balance ice and water in snow layers after melt
 	void balance_snow(double& rain_melt, double& rain_melt_temp);
@@ -4147,9 +4133,9 @@ public:
 	/// number of soil layers
 	int nsoillayers;
 	/// vector with surface and soil layer litter input
-	std::vector<double> cmass_litter_input;
+	std::vector<double> cmass_litter_input; // DW_COMMENT good for debugging - removed after finished
 	/// vector with SOM pool litter input
-	std::vector<double> csom_litter_input;
+	std::vector<double> csom_litter_input; // DW_COMMENT good for debugging - remove after finished
 	/// number of acrotelm soil layers
 	int nacrotelm;
 	/// number of catotelm soil layers
@@ -4313,14 +4299,10 @@ public:
 	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// Vertical movement of peat organic matter
 	void vertical_movement();
-	/// Set daily wcont
-	void set_dwcont();
-	/// Set daily soil layer temperature for this month
-	void set_dtemp();
-	/// Set this months average soil layer wcont
-	void set_mwcont();
-	/// Set this months average soil layer temperature
-	void set_mtemp();
+	/// Calculate this months average soil layer wcont
+	void calc_mwcont();
+	/// Calculate this months average soil layer temperature
+	void calc_mtemp();
 	/// Set static soil organic carbon fractions
 	void set_static_socfrac();
 	/// gtemp weighted against root distribution
@@ -4334,7 +4316,7 @@ public:
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity
-	void update_hydraulic_cond_diff();
+	void update_hydraulic_properties();
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp();
 	/// Calculate soil column water flow
@@ -4342,7 +4324,7 @@ public:
 	/// Resolves negative soil layer water mass
 	void resolve_neg_wmass(std::vector<int> neglyr);
 	/// Update heat capacity and conductivity for soil layers
-	void update_thermal_cap_cond(bool combine_snow);
+	void update_thermal_properties(bool combine_snow);
 	/// Set padding layers depth
 	void set_padding_depth();
 	/// Soil water freezing allowed?
@@ -4380,8 +4362,8 @@ public:
 	void calculate_gas_ebullition(double& ebull_today);
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
-	/// Update heat capacity and conductivity for padding layers
-	void update_thermal_cap_cond_for_pad();
+	/// Update thermal properties for padding layers
+	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
 	void temp();
 	/// Calculate multilayer soil temperature

@@ -836,7 +836,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double fm_leaf = metabolic_litter_fraction(lton);
 	
 	// Aboveground wood fraction
-	double ag_wood_frac = 1.0 - FCWD_ROOT;
+	const double AG_WOOD_FRAC = 1.0 - COARSE_ROOT_FRAC;
 
 	// Leaves
 	double cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
@@ -847,20 +847,20 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);
 
 	// Sap-wood
-	double csapw2atm = fab * ag_wood_frac * wood_to_atm * cmass_sap;
-	double csapw2str = fab * ag_wood_frac * wood_to_str * cmass_sap;
-	double csapw2fwd = fab * ag_wood_frac * (wood_to_fwd + wood_to_cwd) * cmass_sap;
-	double nsapw2atm = fab * ag_wood_frac * wood_to_atm * nmass_sap;
-	double nsapw2str = fab * ag_wood_frac * wood_to_str * nmass_sap;
-	double nsapw2fwd = fab * ag_wood_frac * (wood_to_fwd + wood_to_cwd) * nmass_sap;
+	double csapw2atm = fab * AG_WOOD_FRAC * wood_to_atm * cmass_sap;
+	double csapw2str = fab * AG_WOOD_FRAC * wood_to_str * cmass_sap;
+	double csapw2fwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * cmass_sap;
+	double nsapw2atm = fab * AG_WOOD_FRAC * wood_to_atm * nmass_sap;
+	double nsapw2str = fab * AG_WOOD_FRAC * wood_to_str * nmass_sap;
+	double nsapw2fwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * nmass_sap;
 
 	// Heart-wood
-	double chrtw2atm = fab * ag_wood_frac * wood_to_atm * cmass_heart;
-	double chrtw2str = fab * ag_wood_frac * wood_to_str * cmass_heart;
-	double chrtw2cwd = fab * ag_wood_frac * (wood_to_fwd + wood_to_cwd) * cmass_heart;
-	double nhrtw2atm = fab * ag_wood_frac * wood_to_atm * nmass_heart;
-	double nhrtw2str = fab * ag_wood_frac * wood_to_str * nmass_heart;
-	double nhrtw2cwd = fab * ag_wood_frac * (wood_to_fwd + wood_to_cwd) * nmass_heart;
+	double chrtw2atm = fab * AG_WOOD_FRAC * wood_to_atm * cmass_heart;
+	double chrtw2str = fab * AG_WOOD_FRAC * wood_to_str * cmass_heart;
+	double chrtw2cwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * cmass_heart;
+	double nhrtw2atm = fab * AG_WOOD_FRAC * wood_to_atm * nmass_heart;
+	double nhrtw2str = fab * AG_WOOD_FRAC * wood_to_str * nmass_heart;
+	double nhrtw2cwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * nmass_heart;
 
 	// Roots
 	// Assume the same percentage of root biomass killed as for total
@@ -885,10 +885,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nroot2str = (1. - fm_root) * lossratio * nmass_root;
 
 	// Coarse root
-	double csapr2fwd = fab * FCWD_ROOT * cmass_sap;
-	double nsapr2fwd = fab * FCWD_ROOT * nmass_sap;
-	double chrtr2cwd = fab * FCWD_ROOT * cmass_heart;
-	double nhrtr2cwd = fab * FCWD_ROOT * nmass_heart;
+	double csapr2fwd = fab * COARSE_ROOT_FRAC * cmass_sap;
+	double nsapr2fwd = fab * COARSE_ROOT_FRAC * nmass_sap;
+	double chrtr2cwd = fab * COARSE_ROOT_FRAC * cmass_heart;
+	double nhrtr2cwd = fab * COARSE_ROOT_FRAC * nmass_heart;
 
 	// Update pools
 

@@ -3050,7 +3050,7 @@ void MassBalance::check_period(Gridcell& gridcell) {
 		dprintf("N fluxes: %.10f\n", nflux);
 	}
 
-		// Water balance check:
+	// Water balance check:
 	if (!negligible(wcontent - wcontent_zero + wflux, -6)) {
 		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.7f\n", gridcell.get_lon(), gridcell.get_lat(), wcontent - wcontent_zero + wflux);
 		dprintf("Water pool change: %.10f\n", wcontent - wcontent_zero);

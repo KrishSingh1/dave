@@ -252,6 +252,10 @@ void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 
 		ngas_inc = min(subpart.NO2_mass_w, subpart.NO2_mass_w * f_nitri_gas_max * d_N_max * f_den_w * f_den_T * subpart.NO2_mass_w / (k_N * water_cont_m3 + subpart.NO2_mass_w));
 
+		// Remove very small values
+		if (ngas_inc < 1.0e-15)
+			ngas_inc = 0.0;
+
 		subpart.NO2_mass_w -= ngas_inc;
 
 		double f_n2o_no_w = max(0.0, min(1.0, 3.2092 * wfps - 0.9210));

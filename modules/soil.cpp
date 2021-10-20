@@ -1681,7 +1681,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// org_frac = f_threshold, connected flow pathways consisting of organic material only exist
 		// and span the soil space. Flow through these pathways interacts only with organic material, 
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
-		double perc_frac = org_frac >= threshold_frac ? 1.1 * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
+		double perc_frac = org_frac >= threshold_frac ? 1.1 * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0; // DW_COMMENT
 		double uncon_frac = 1.0 - perc_frac;
 		double Kw_max_uncon = uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - uncon_frac) / Kw_max_org);
 		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
@@ -1931,7 +1931,7 @@ void Soillayer::update_hydraulic_properties() {
 	Dw = b * Kw_max * (-Psi_max) / wsats * pow(theta, b + 2.0);
 
 	// If organic content affects soil properties
-	if (iforganicsoilproperties) {
+	/*if (iforganicsoilproperties) { // DW_COMMENT Not needed
 
 		// Calculate organic and mineral fraction
 		// This is the fraction of the material (i.e. 1 - porosity) that is organic
@@ -1956,7 +1956,7 @@ void Soillayer::update_hydraulic_properties() {
 			Dw = min_frac * Dw + org_frac * Dw_org;
 			Kw = min_frac * Kw + org_frac * Kw_org;
 		}
-	}
+	}*/
 
 	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
 	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 

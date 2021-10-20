@@ -405,6 +405,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	// not-integral) is established.
 
 	// Coefficient in calculation of initial sapling size and initial
+	// minimum carbon mass allowed (kgC/m2)
+	const double MINCMASS = 1.0e-8;
 	// grass biomass (see comment above)
 	const double SAPSIZE=0.1;
 
@@ -542,6 +544,13 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
 
+						if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
+
+							indiv.kill();
+
+							vegetation.killobj();
+						}
+
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
@@ -674,6 +683,13 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
 							(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong));
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+
+						if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
+
+							indiv.kill();
+
+							vegetation.killobj();
+						}
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()

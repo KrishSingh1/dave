@@ -433,7 +433,7 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 		tot_ninc += ninc[p];
 	}
 
-	// Minimum net N mineralisation (1% of decomposed N)
+	/*// Minimum net N mineralisation (1% of decomposed N)
 	double min_net_n_min = tot_ndec * 0.01;
 
 	// If total N mineralisation is below a minimum then adjust C:N ratio of receiver pools 
@@ -447,7 +447,7 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 		double cton_new = tot_cinc / (tot_ninc + tot_net_n_min - min_net_n_min);
 
 		ntoc_reduction = cton_current / cton_new;
-	}
+	}*/
 }
 
 /// Set target N:C ratios for SOM pools
@@ -668,7 +668,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	// Nitrogen immobilisation
 	double nimmob = 0.0;		
 
-	const double EPS = 1.0e-16;
+	const double EPS = 1.0e-12;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -883,7 +883,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			}
 
 			// Net nitrogen mineralisation isn't allowed to be inferior to a minimum value associated with total mineralisation
-			if (tot_net_nmin > tot_ndec * 0.01 - EPS) {
+			if (tot_net_nmin > -nmin_mass * 0.5 - EPS) {
 
 				net_mineralization = true;
 			}
@@ -901,7 +901,10 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 						respsum[p] = soillayer.sompool[p].respsum;
 					}
 
-					reduce_decay_growth_rates(decay_reduction, growth_reduction, ntoc_reduction, cdec, cinc, ndec, ninc, respsum, tot_net_nmin);
+					// How much immobilisation that should be reduced
+					double reduction_net_nmin = tot_net_nmin + nmin_mass * 0.5;
+
+					reduce_decay_growth_rates(decay_reduction, growth_reduction, ntoc_reduction, cdec, cinc, ndec, ninc, respsum, reduction_net_nmin);
 				}
 				else {
 					if (!ifequilsom)

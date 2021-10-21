@@ -4014,6 +4014,9 @@ public:
 	/// Update snow water holding capacity
 	void update_whc();
 
+	/// Reduce snowpack to its maximum depth, excess goes to runoff
+	void reduce_snowpack(Patch& patch, double depth_reduction);
+
 	/// redistribute snow when all snow layers are full due to melt or compaction
 	void redist_layers_full();
 
@@ -4036,13 +4039,13 @@ public:
 	void phase_change();
 
 	/// Snow compaction
-	void compaction(double& rain_melt, double& rain_melt_temp);
+	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow thermal properties for each snow layer
 	void update_thermal_properties();
 
 	/// Balance ice and water in snow layers after melt
-	void balance_snow(double& rain_melt, double& rain_melt_temp);
+	void balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp);
 
 	/// Mean snow depth for the three months with largest snowpack
 	double snowpack_avrmax3mth();

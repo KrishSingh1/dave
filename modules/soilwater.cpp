@@ -67,7 +67,7 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	//	dprintf("Year %d Day %d mid() %g\n", date.year, date.day, wmid - wbefore);
 
 	// Update snow density after mechanical compaction
-	soilcolumn.snow.compaction(soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
+	soilcolumn.snow.compaction(soilcolumn.patch, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
 
 	// Save monthly snow values
 	soilcolumn.save_snow();

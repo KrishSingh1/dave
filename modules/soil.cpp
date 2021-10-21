@@ -399,6 +399,33 @@ void Snow::redist_layers(double snowpack_depth) {
 	}
 }
 
+/// Reduce snowpack to its maximum depth, excess goes to runoff
+/** Reduce snowpack to its maximum depth, excess goes to runoff
+*/
+void Snow::reduce_snowpack(Patch& patch, double depth_reduction) {
+
+	// Bottom snow layer to be reduced
+	int blyr = 0;
+
+	// Fraction to remove
+	double frac = depth_reduction / snowlayers[blyr].depth;
+
+	// Runoff water
+	double runoff_water = frac * snowlayers[blyr].wmass;
+
+	// Runoff ice
+	double runoff_ice = frac * snowlayers[blyr].imass;
+
+	// Reduce snow
+	snowlayers[blyr].wmass -= runoff_water;
+	snowlayers[blyr].imass -= runoff_ice;
+	snowlayers[blyr].depth -= depth_reduction;
+
+	// Add water to surface runoff
+	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_water + runoff_ice);
+
+}
+
 /// Redistribute snow when all snow layers are full
 /** Redistribute snow when all snow layers are full
  */
@@ -473,7 +500,7 @@ void Snow::update_whc() {
 /// Balance ice and water in snow layers after melting and refreezing
 /** Balance ice and water in snow layers after melting and refreezing
  */
-void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
+void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 
 	// No snow layers or not multilayer snow scheme then leave function
 	if (!nsnowlayers || !ifmultilayersnow)
@@ -491,6 +518,12 @@ void Snow::balance_snow(double& rain_melt, double& rain_melt_temp) {
 	// Redistribute snow layers if layers are full up to standard depth
 	if (snowpack_depth > max_snow) {
 		redist_layers_full();
+
+		// Too thick snowpack (max 20m), remove some ice/water as runoff to 
+		// not have a runaway effect of snowpack depth
+		double max_snowpack_depth = 20000.0;
+		if (snowpack_depth > max_snowpack_depth)
+			reduce_snowpack(patch, snowpack_depth - max_snowpack_depth);
 	}
 	// Redistribute snow layers if snow exist
 	else if (!negligible(snowpack_depth)) {
@@ -713,7 +746,7 @@ void Snow::phase_change() {
 /// Snow compaction and update density and depth
 /** Snow compaction and update density and depth
  */
-void Snow::compaction(double& rain_melt, double& rain_melt_temp) {
+void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 
 	// No compaction in simple snow scheme
 	if (!ifmultilayersnow)
@@ -762,7 +795,7 @@ void Snow::compaction(double& rain_melt, double& rain_melt_temp) {
 	}
 
 	// Redistribute snow layers, update water holding capacity and calculate water that should be added to rain_melt
-	balance_snow(rain_melt, rain_melt_temp);
+	balance_snow(patch, rain_melt, rain_melt_temp);
 }
 
 /// Accumulate snow in bottom layer if all other layers are already full
@@ -4481,7 +4514,7 @@ void Soilcolumn::phase_change() {
 	}
 
 	// Balance ice and water in snow layers after phase change
-	snow.balance_snow(rain_melt, rain_melt_temp);
+	snow.balance_snow(patch, rain_melt, rain_melt_temp);
 }
 
 /// Calculate thaw depth

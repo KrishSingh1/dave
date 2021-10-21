@@ -1611,7 +1611,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					// Balance snow layers
 					double dval = 0.0;
-					patch.soilcolumn.snow.balance_snow(dval, dval);
+					patch.soilcolumn.snow.balance_snow(patch, dval, dval);
 
 					// save individual C and N content for use in scale_indiv()
 					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {

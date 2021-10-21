@@ -13,13 +13,20 @@
 #include "guess.h"
 #include "soil.h"
 #include "parameters.h"
-#include "natexpthermal.h"
+#include "lookup.h"
 
 // Anonymous namespace for variables with file scope
 namespace {
 
 /// lookup table for natural exponential for thermal calculations in soil layers
-LookupNatExpThermal lookup_thermal(1.0, 1.0);
+NatExp_LUT exp_thermal_lut(Kpeat_log, Kice_log, 0.001, 1.0);
+
+/// lookup table for natural exponential for hydrological calculations in soil layers
+/// min and max are estimated from a minimum value of theta of 0.01 and min and max on b
+NatExp_LUT exp_hydro_lut(-187.0, 87.0, 0.01, 1.0);
+
+/// lookup table for natural logarith for hydrological calculations in soil layers
+NatLog_LUT log_hydro_lut(0.0001, 1.0, 0.0001, 1.0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1933,13 +1940,29 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 	temp = (temp * (depth - add_mass) * Ch + add_temp * add_mass * add_Ch) / ((depth - add_mass) * Ch + add_mass * add_Ch);
 }
 
+/// 
+/**
+ */
+double hydro_pow(double theta, double k) {
+
+	double z = k * log_hydro_lut(max(0.001, theta));
+
+	return exp_hydro_lut(z);
+}
+
 /// Updates soil water matric potential
 /** Campbell (1974) soil water retention function,
  * which predicts the soil water matric potential
  */
-void Soillayer::update_matric_potential() {
+void Soillayer::update_matric_potential() { // DW_COMMENT not needed yet
 	double theta = max(0.0, wmass) / wsats;
-	psi = Psi_max * pow(theta, -b);
+
+	if (dave_fast) {
+		psi = Psi_max * hydro_pow(theta, -b);
+	}
+	else {
+		psi = Psi_max * pow(theta, -b);
+	}
 }
 
 /// Updates hydraulic conductivity and diffusivity
@@ -1957,11 +1980,17 @@ void Soillayer::update_hydraulic_properties() {
 		Kw = Kw_max;
 	}
 	else {
-		Kw = Kw_max * pow(theta, 2.0 * b + 3.0);
+		if (dave_fast)
+			Kw = Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
+		else
+			Kw = Kw_max * pow(theta, 2.0 * b + 3.0);
 	}
 
 	// Hydraulic diffusivity (Clapp and Hornberger 1978; m2 s-1)
-	Dw = b * Kw_max * (-Psi_max) / wsats * pow(theta, b + 2.0);
+	if (dave_fast)
+		Dw = b * Kw_max * (-Psi_max) / wsats * hydro_pow(theta, b + 2.0);
+	else
+		Dw = b * Kw_max * (-Psi_max) / wsats * pow(theta, b + 2.0);
 
 	// If organic content affects soil properties
 	/*if (iforganicsoilproperties) { // DW_COMMENT Not needed
@@ -2071,7 +2100,7 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat;
 
 	// Update thermal conductivity (J m-1 K-1 s-1)
-	Kh = (air * Kair + Stot * lookup_thermal[lKtot]) / combined_depth;
+	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;
 }
 
 /// Serialize soil layer variables
@@ -2965,7 +2994,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	double drained_wmass;
 
 	// Calculate matrix potential (not used yet)
-	// update_matric_potential();
+	update_matric_potential();
 
 	// Calculate hydraulic conductivity and diffusivity
 	update_hydraulic_properties();

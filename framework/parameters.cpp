@@ -69,6 +69,7 @@ bool ifdroughtlimitedestab;
 bool ifrainonwetdaysonly;
 
 bool ifbvoc;
+bool dave_fast;
 
 // Soil, arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
@@ -514,6 +515,9 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
+
+		declareitem("dave_fast", &dave_fast, 1, CB_NONE,
+			"dave_fast");
 
 		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
 			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
@@ -1264,6 +1268,8 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
+
+		if (!itemparsed("dave_fast")) badins("dave_fast");
 		
 
 		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");

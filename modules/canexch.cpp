@@ -34,8 +34,7 @@
 #include "canexch.h"
 #include "driver.h"
 #include "q10.h"
-#include "natexptemp.h"
-#include "natexplai.h"
+#include "lookup.h"
 #include "bvoc.h"
 #include "ncompete.h"
 #include "somdynam.h"
@@ -57,13 +56,13 @@ LookupQ10 lookup_ko(1.2, 3.0e4);
 LookupQ10 lookup_kc(2.1, 30.0);
 
 /// lookup table for natural exponential temperature response of leaf N
-LookupNatExpTemp lookup_tfac(1.0, -0.0693, 25.0);
+TFac_LUT tfac_lut(-70.0, 70.0, 0.01, -0.0693);
 
 /// lookup table for natural exponential LAI for Kb (Lambert-Beer extinction law)
-LookupNatExpLAI lookup_kb(1.0, -0.5);
+NatExp_LUT exp_kb_lut(0.0, 30.0, 0.001, -0.5);
 
 /// lookup table for natural exponential LAI for Kn (slow down light optimization of newly shaded leaves)
-LookupNatExpLAI lookup_kn(1.0, -0.19);
+NatExp_LUT exp_kn_lut(0.0, 30.0, 0.001, -0.19);
 
 }
 
@@ -361,8 +360,14 @@ void fpar(Patch& patch) {
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
-			fpar_layer_bottom = lambertbeer(Kb, plai);
-			fpar_leafon_layer_bottom = lambertbeer(Kb, plai_leafon);
+			if (dave_fast) {
+				fpar_layer_bottom = exp_kb_lut(plai);
+				fpar_leafon_layer_bottom = exp_kb_lut(plai_leafon);
+			}
+			else {
+				fpar_layer_bottom = lambertbeer(Kb, plai);
+				fpar_leafon_layer_bottom = lambertbeer(Kb, plai_leafon);
+			}
 
 			// Total PAR uptake in this layer
 
@@ -398,21 +403,38 @@ void fpar(Patch& patch) {
 		}
 
 		// FPAR reaching grass canopy
-		fpar_grass = lambertbeer(Kb, plai);
-		fpar_leafon_grass = lambertbeer(Kb, plai_leafon);
+		if (dave_fast) {
+			fpar_grass = exp_kb_lut(plai);
+			fpar_leafon_grass = exp_kb_lut(plai_leafon);
+		}
+		else {
+			fpar_grass = lambertbeer(Kb, plai);
+			fpar_leafon_grass = lambertbeer(Kb, plai_leafon);
+		}
 
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		fpar_ff = lambertbeer(Kb, plai+plai_grass);
+		if (dave_fast) {
+			fpar_ff = exp_kb_lut(plai + plai_grass);
+		}
+		else {
+			fpar_ff = lambertbeer(Kb, plai + plai_grass);
+		}
 		plai+=plai_grass;
 
 		// Save this
 		patch.fpar_ff=fpar_ff;
 
 		plai_leafon+=plai_leafon_grass;
-		fpar_leafon_ff = lambertbeer(Kb, plai_leafon);
+
+		if (dave_fast) {
+			fpar_leafon_ff = exp_kb_lut(plai_leafon);
+		}
+		else {
+			fpar_leafon_ff = lambertbeer(Kb, plai_leafon);
+		}
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
 		// canopy and at forest floor, or lower if FPAR at forest floor below threshold
@@ -550,7 +572,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 		double nmass_leaf_min = max(N0 * 1.01, cmass_leaf / cton_max * MG_GDW_PER_KG_M2);
 
 		// Leaf temperature response function in Eqn 28, Haxeltine & Prentice 1996b
-		const double tfac = lookup_tfac[temp];
+		const double tfac = tfac_lut(temp);
 
 		// Optimal leaf nitrogen is calculated first so save original Vmax
 		if (ifopt) {
@@ -989,7 +1011,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 		// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves (Peltoniemi et al. 2012)
 		double lai = indiv.lai_indiv_today();
-		indiv.nextin = lai > 0.001 ? Kb / Kn * (1.0 - lookup_kn[lai]) / (1.0 - lookup_kb[lai]) : 1.0;
+		indiv.nextin = lai > 0.001 ? Kb / Kn * (1.0 - exp_kn_lut(lai)) / (1.0 - exp_kb_lut(lai)) : 1.0;
 
 		pftco2 = get_co2(patch, climate, pft);
 		ps_env.set(pftco2, climate.temp, climate.par, indiv.fpar, climate.daylength);

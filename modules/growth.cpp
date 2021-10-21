@@ -956,7 +956,7 @@ bool allometry(Individual& indiv) {
 			// Stem volume
 			double vol = indiv.height * PI * diam * diam * 0.25;
 
-			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) { // DW_COMMENT bug height
+			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) { // DW_COMMENT bug height. Maybe also limit them from shrinking!!!
 
 				double diam_prev = pow(indiv.height_prev / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 

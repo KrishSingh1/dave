@@ -37,6 +37,7 @@ file_cpool "cpool.out"
 !file_amon_mt1 "amon_mt1.out"
 !file_amon_mt2 "amon_mt2.out"
 !file_speciesheights "height.out"
+!file_speciesdiam "diam.out"
 
 file_nmass "nmass.out"
 file_cton_leaf "cton_leaf.out"
@@ -81,7 +82,14 @@ file_nflux "nflux.out"
 !file_mburned_area_out "monthly_burned_area.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
-! RUN PARAMETERS AND OPTIONS
+! Input files
+!
+
+param "file_disturbance" (str "")
+param "file_disturbance_st" (str "")
+
+!///////////////////////////////////////////////////////////////////////////////////////
+!// RUN PARAMETERS AND OPTIONS
 !///////////////////////////////////////////////////////////////////////////////////////
 
 ! Settings recognised by Plib
@@ -180,7 +188,6 @@ run_landcover 0			! Whether to use (and change) landcover fractions (1) or not (
 group "common_stand" (
 
 	intercrop "nointercrop"
-	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
 )
 
 st "Natural" (
@@ -225,6 +232,8 @@ group "common" (
 	gdd0_max 100000			! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0			! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
+	stem_frac 1
+	twig_frac 0
 )
 
 group "tree" (
@@ -256,11 +265,13 @@ group "tree" (
 	k_chillk 0.05
 	litterme 0.3
 
-	harv_eff 0.95
-	res_outtake 0.75
+	harv_eff 0.9		! Value for forestry
+	res_outtake 0.4		! Value for forestry
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood): 
 				! 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
+	stem_frac 0.65
+	twig_frac 0.13
 )
 
 group "shrub" (

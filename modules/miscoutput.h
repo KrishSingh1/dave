@@ -69,7 +69,21 @@ private:
 		   file_soil_nflux_natural, file_soil_nflux_forest,
 		   file_cmass_peatland, file_cflux_peatland,
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
-		   file_anpp_peatland;
+		   file_anpp_peatland,
+		   file_agestruct_natural, file_agestruct_forest, file_diamstruct_natural,
+		   file_diamstruct_forest, file_diamstruct_cmass_natural, file_diamstruct_cmass_forest,
+		   file_aaet_natural, file_aaet_forest, file_agpp_natural, file_agpp_forest,
+		   file_speciesdiam_natural, file_speciesdiam_forest,
+		   file_speciesheights_natural, file_speciesheights_forest,
+		   file_lai_natural, file_lai_forest, file_fpc_natural, file_fpc_forest,
+		   file_forest_cmass_killed_harv, file_forest_vegc, file_forest_cflux_veg, file_forest_harvest,
+		   file_harvest_flux_luc, file_cflux_forestry, file_cflux_regrowth, file_cflux_primary,
+		   file_cpool_forestry, file_cpool_regrowth, file_cpool_primary;
+
+	// stand type output
+	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_tree_mort_sts, file_cmass_killed_harv_sts, file_cmass_wood_sts, 
+		   file_cmass_wood_harv_sts, file_cmass_wood_harv_toprod_sts, file_dens_sts, file_diam_g_sts,
+		   file_cmass_wood_thin_sts, file_cmass_wood_clearcut_sts, file_cutinterval_sts, file_csoil_sts, file_clitter_sts, file_csink_sts;
 
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
@@ -102,10 +116,35 @@ private:
 		  out_soil_nflux_natural, out_soil_nflux_forest,
 		  out_cflux_peatland, out_cpool_peatland,
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
-		  out_anpp_peatland;
+		  out_anpp_peatland,
+		  out_agestruct_natural, out_agestruct_forest, out_diamstruct_natural,
+		  out_diamstruct_forest, out_diamstruct_cmass_natural, out_diamstruct_cmass_forest,
+		  out_aaet_natural, out_aaet_forest, out_speciesdiam_natural, out_speciesdiam_forest,
+		  out_speciesheights_natural, out_speciesheights_forest,
+		  out_lai_natural, out_lai_forest, out_fpc_natural, out_fpc_forest,
+		  out_forest_harvest, out_forest_vegc, out_forest_cflux_veg, out_forest_cmass_killed_harv,
+		  out_harvest_flux_luc, out_cflux_forestry, out_cflux_regrowth, out_cflux_primary,
+		  out_cpool_forestry, out_cpool_regrowth, out_cpool_primary;
+
+	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_tree_mort_sts, out_cmass_killed_harv_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts,
+		  out_cmass_wood_harv_toprod_sts, out_dens_sts, out_diam_g_sts, out_cmass_wood_thin_sts, out_cmass_wood_clearcut_sts, out_cutinterval_sts, 
+		  out_csoil_sts, out_clitter_sts, out_csink_sts;
+
+	Table* out_cmass_pft_st;
+	Table* out_diamstruct_cmass_st;
 
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
+	Table* out_lai_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_stand[MAXNUMBER_STANDS];
+	Table* out_diam_stand[MAXNUMBER_STANDS];
+	Table* out_height_stand[MAXNUMBER_STANDS];
+	Table* out_dens_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_mort_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_wood_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_wood_harv_stand[MAXNUMBER_STANDS];
+	Table* out_agestruct_stand[MAXNUMBER_STANDS];
+	Table* out_diamstruct_stand[MAXNUMBER_STANDS];
+	Table* out_diamstruct_cmass_stand[MAXNUMBER_STANDS];
 
 	//daily
 	Table out_daily_lai, out_daily_npp, out_daily_cton, out_daily_nmass,
@@ -118,6 +157,10 @@ private:
 		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
+
+	bool printstandtypes;
+	bool print_cmass_pft_st;
+	bool print_diamstruct_cmass_st;
 };
 
 }

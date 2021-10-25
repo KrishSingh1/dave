@@ -81,6 +81,8 @@ void GetclimInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	xtring driver_file_path = param["getclim_driver_file"].str;
 
@@ -110,6 +112,11 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 
 	if (grid_count++ > 0) return false;
 			
+	if(readdisturbance || readdisturbance_st) {
+		misc_input.loaddisturbance(lon, lat);
+		// Not all gridcells have to be included in input file
+	}
+
 	if(run_landcover) {
 		LUerror = landcover_input.loadlandcover(lon, lat);
 		if(!LUerror)

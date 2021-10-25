@@ -31,6 +31,7 @@
 #include "driver.h"
 #include "blaze.h"
 #include "simfire.h"
+#include "cropsowing.h"
 
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
@@ -428,6 +429,8 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 }
 
 /// Called each simulation day before any other driver or process functions
+/** All variables in Stand and objects contained therein that are reset here must also be initialised in the constructor.
+ */
 void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -474,16 +477,38 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
+		gridcell.landcover.acflux_landuse_change_orig=0.0;
 		gridcell.landcover.acflux_harvest_slow=0.0;
+		gridcell.landcover.acflux_wood_harvest_orig=0.0;
+		gridcell.landcover.acflux_wood_harvest=0.0;
 		gridcell.landcover.anflux_landuse_change=0.0;
+		gridcell.landcover.anflux_landuse_change_orig=0.0;
+		gridcell.landcover.acflux_clearing=0.0;
+		gridcell.landcover.acflux_clearing_orig=0.0;
 		gridcell.landcover.anflux_harvest_slow=0.0;
+		gridcell.landcover.anflux_wood_harvest=0.0;
+		gridcell.landcover.anflux_wood_harvest_orig=0.0;
+		gridcell.landcover.anflux_clearing=0.0;
+		gridcell.landcover.anflux_clearing_orig=0.0;
+
+		gridcell.landcover.stem_harvest=0.0;
+		gridcell.landcover.stem_toprod=0.0;
+		gridcell.landcover.harv_killed_c=0.0;
+		gridcell.landcover.harv_tolitt=0.0;
 
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.acflux_wood_harvest_lc[i]=0.0;
+			gridcell.landcover.acflux_clearing_lc[i]=0.0;
 			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
+			gridcell.landcover.cloned_c_lc[i]=0.0;
 			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.anflux_wood_harvest_lc[i]=0.0;
+			gridcell.landcover.anflux_clearing_lc[i]=0.0;
 			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
 		}
+
+		gridcell.landcover.wood_harvest.zero();
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -501,7 +526,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			}
 		}
 
-		// Reset fluxes for all patches
+		// Reset fluxes and management variables for all patches
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before
 		// landcover_dynamics because harvest flux is generated there.
@@ -514,14 +539,35 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
 
+				for(unsigned int i=0;i<pftlist.nobj;i++) {
+					Patchpft& patchpft = patch.pft[i];
+					patchpft.cmass_killed_harv = 0.0;
+					patchpft.cmass_harv_tolitter = 0.0;
+					patchpft.cmass_wood_harv = 0.0;
+					patchpft.cmass_wood_harv_toprod = 0.0;
+				}
+
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
 				patch.soil.aorgNleach = 0.0;
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
 				patch.anfert = 0.0;
+				patch.man_strength = 0.0;
+				patch.harvest_to_litter = false;
+				patch.clearcut_this_year = false;
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
+				patch.distributed_cutting = false;
+
+				Vegetation& vegetation = patch.vegetation;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv = vegetation.getobj();
+					indiv.man_strength = 0.0;
+					vegetation.nextobj();
+				}
+
 				stand.nextobj();
 			}
 
@@ -631,6 +677,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
 	}
+	// Calculate climate seasonality
+	climate_seasonality(gridcell);
 }
 
 void dailyaccounting_stand(Stand& stand) {
@@ -691,6 +739,19 @@ void dailyaccounting_patch(Patch& patch) {
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+
+		for(unsigned int i=0;i<pftlist.nobj;i++) {
+			Patchpft& patchpft = patch.pft[i];
+			patchpft.cmass_mort = 0.0;
+			patchpft.cmass_fire = 0.0;
+			patchpft.cmass_dist = 0.0;
+			patchpft.cmass_turnover = 0.0;
+			patchpft.cmass_repr = 0.0;
+			patchpft.cmass_est = 0.0;
+			if(patch.age == 1) {
+				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
+			}
+		}
 	}
 
 	if (date.dayofmonth == 0) {

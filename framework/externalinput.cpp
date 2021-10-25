@@ -43,6 +43,90 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
+void MiscInput::init() {
+
+	ListArray_id<Coord> gridlist;
+	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	file_disturbance = param["file_disturbance"].str;
+	if(file_disturbance != "")	{
+		if(!disturbance.Open(file_disturbance, gridlist))
+			fail("initio: could not open %s for input",(char*)file_disturbance);
+		readdisturbance = true;
+	}
+
+	file_disturbance_st = param["file_disturbance_st"].str;
+	if(file_disturbance_st != "")	{
+		if(!disturbance_st.Open(file_disturbance_st, gridlist))
+			fail("initio: could not open %s for input",(char*)file_disturbance_st);
+		readdisturbance_st = true;
+	}
+}
+
+bool MiscInput::loaddisturbance(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells have to be included in input file
+	if(readdisturbance) { 
+		if(!disturbance.Load(c)) {
+			disterror = true;
+		}
+	}
+	if(readdisturbance_st) { 
+		if(!disturbance_st.Load(c)) {
+			disterror = true;
+		}
+	}
+	return disterror;
+}
+
+/// Read disturbance interval from file
+/** This implementation uses disturbance input at gridcell or stand type level in standard text format input files (see guess.doc).
+ *  The column for the gridcell disturbance interval has a header name of "Return" and columns for stand type disturbance have headers with the stand type names.
+ */
+void MiscInput::getdisturbance(Gridcell& gridcell) {
+
+	if(!date.year && !readdisturbance_st) {
+		for(int i=0; i<nst; i++) {
+			StandType& st = stlist[i];
+			gridcell.st[st.id].distinterval_st = st.distinterval;
+		}
+	}
+
+	int year = date.get_calendar_year();
+
+	// Retrieve disturbance for grid cell
+	if(disturbance.isloaded())
+		gridcell.distinterval_gc = disturbance.Get(year, "Return");
+	else
+		gridcell.distinterval_gc = distinterval;
+
+	// Retrieve disturbance for stand types
+	for(int i=0; i<nst; i++) {
+		if(disturbance_st.isloaded()) {
+			double dist = disturbance_st.Get(year, stlist[i].name, true);
+			if(dist != NOTFOUND)
+				gridcell.st[i].distinterval_st = dist;
+		}
+		if(gridcell.st[i].distinterval_st == 1.0e10)
+			gridcell.st[i].distinterval_st = gridcell.distinterval_gc;
+//		if(!date.year)
+//			dprintf("st %d distinterval_st =%f\n", i, gridcell.st[i].distinterval_st);
+	}
+}
+
+void MiscInput::getenviron_yearly(Gridcell& gridcell) {
+
+	if (date.day) {
+		return;
+	}
+	getdisturbance(gridcell);
+}
+
 LandcoverInput::LandcoverInput()
 	: nyears_cropland_ramp(0) {
 
@@ -96,19 +180,27 @@ void LandcoverInput::init() {
 				all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
-				if(LUdata.GetNCells() > 50)
+				if(LUdata.GetNCells() > 100)
 					printseparatestands = false;
 			}
 		}
 	}
 
 	if (!lcfrac_fixed) {
-	//Read LUC transitions
-		if(gross_land_transfer == 2) {
-			file_grossLUC=param["file_grossLUC"].str;
+		// Open file for LUC transitions
+		file_grossLUC = param["file_grossLUC"].str;
+		if(file_grossLUC != "") {
 			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
+			all_fracs_const = false;	// needed for some tests with static net land cover fractions
+			gross_land_transfer = 1;
 		}
+		else {
+			gross_land_transfer = 0;
+		}
+	}
+	else {
+		gross_land_transfer = 0;
 	}
 
 	//Retrieve file name for stand type fraction files and open them if static equal-size values are not used.
@@ -156,6 +248,7 @@ void LandcoverInput::init() {
 				n+=1;
 				stlist.killobj();
 				nst--;
+				nst_lc[CROPLAND]--;
 			}
 			else {
 				st.id-=n;
@@ -253,7 +346,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 
 	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-	// transferred to gridcell.landcoverfrac each year in getlandcover()
+	// transferred to gridcell.landcover.frac each year in getlandcover()
 
 	if (!lcfrac_fixed) {
 
@@ -273,7 +366,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 		}
 
 		//Read LUC transitions
-		if(gross_land_transfer == 2 && !LUerror) {
+		if(gross_land_transfer == 1 && !LUerror) {
 
 			if(!grossLUC.Load(c)) {
 				dprintf("Data for %.3f,%.3f missing in gross LUC transitions input file.\n",c.lon,c.lat);
@@ -438,8 +531,18 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 					}
 
+					double sum_dynamic = sum_tot - lc.frac[BARREN];
+					double sum_dynamic_adjusted = 1.0 - lc.frac[BARREN];
+
 					for(int i=0; i<NLANDCOVERTYPES; i++) {
-						lc.frac[i] /= sum_tot;
+						if(no_barren_frac_corr) {
+							if(i != BARREN) {
+								lc.frac[i] /= sum_dynamic / sum_dynamic_adjusted;
+							}
+						}
+						else {
+							lc.frac[i] /= sum_tot;
+						}
 						sum_active += lc.frac[i];
 					}
 				}
@@ -553,7 +656,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			else {
 
 				if(year == st_data[lc].GetFirstyear() + st_data[lc].GetnYears())
-					dprintf("Last year of lc %d st fraction data used from year %d and onwards\n", lc, year);
+					dprintf("Last year of %s st fraction data used from year %d and onwards\n", lcnames[lc], year);
 
 				for(int i=0; i<nst; i++) {
 					if(stlist[i].landcover == lc)	{
@@ -630,7 +733,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			gcst.frac = gcst.frac_old;
 		if(gcst.frac < INPUT_RESOLUTION)
 			gcst.frac = 0.0; 
-		gcst.frac_change = gcst.frac - gcst.frac_old ;
+		gcst.frac_change = gcst.frac - gcst.frac_old;
 		stlist.nextobj();
 	}
 }
@@ -764,14 +867,14 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 
 	bool result = false;
-	if(gross_land_transfer == 3) {
+	if(gross_land_transfer == 2) {
 
 		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
 		// return get_st_transfer(gridcell);
-		dprintf("Currently no code for option gross_land_transfer==3\n");
+		dprintf("Currently no code for gross stand type transfer option\n");
 	}
-	else if(gross_land_transfer == 2) {
+	else if(gross_land_transfer == 1) {
 
 		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
@@ -781,7 +884,13 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 }
 
 
-/// Read LUC transitions
+/// Read LUC transitions from file
+/** This implementation uses LUH2 gross transfer standard text format input files (see guess.doc). Transitions to and from cropland (c), pasture (p),  
+ *  barren land (b), urban land (u), primary PNV (v) and secondary PNV (s) are represented as columns with header names, e.g. "cp" denoting.
+ *  cropland to pasture transfers.
+ *  The function call to adjust_gross_transfers() tries to solve inconsistencies between net landcover and gross land transfer input and adjusts the
+ *	gross transfer two-dimensional array, keeping the net landcover change array intact.
+ */
 bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	double tot_frac_ch = 0.0;
@@ -800,6 +909,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
 	// in killing of vegetation and creating a new NATURAL stand.
 
+	// Options to not include barren and urban transfers in the input file (avoiding warnings if absent in file)
 	const bool use_barren_transfers = true;
 	const bool use_urban_transfers = true;
 	double frac_transfer;
@@ -836,15 +946,21 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		lc.frac_transfer[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
 	}
 
+	// Distinguish between primary and secondary PNV in the input file (default true)
 	if(ifprimary_lc_transfer) {
-		lc.primary_frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.primary_frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.primary_frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
-		// Use transitions from virgin to secondary natural land.
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_frac_transfer_s.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
+		if(use_barren_transfers)
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+		if(use_urban_transfers)
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+
+		// Use transitions from virgin to secondary natural land (default false).
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
-			lc.primary_frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
+		use_primary_lc_transfer = true;
 	}
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
@@ -857,7 +973,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	}
 
 	// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
-	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.primary_frac_transfer, tot_frac_ch);
+	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_frac_transfer_s, tot_frac_ch);
 
 	if(largerthanzero(tot_frac_ch, -14))
 		return true;
@@ -866,7 +982,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 }
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
-void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES], double& tot_frac_ch) {
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch) {
 
 	const bool print_adjustment_info = false;
 	bool error = false;
@@ -905,13 +1021,16 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 
 	// Save forest class percentages before correcting transitions
 
-	double prim_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
+	double prim_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
+	double sec_young_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
+
 		for(int to=0; to<NLANDCOVERTYPES; to++) {
-			prim_ratio[from][to] = 0.0;
+
 			if(lc_frac_transfer[from][to]) {
-				prim_ratio[from][to] = primary_lc_frac_transfer[from][to] / lc_frac_transfer[from][to];
+				prim_ratio[from][to] = forest_lc_frac_transfer_s.primary[from][to] / lc_frac_transfer[from][to];
+				sec_young_ratio[from][to] = forest_lc_frac_transfer_s.secondary_young[from][to] / lc_frac_transfer[from][to];
 			}
 		}
 	}
@@ -1527,8 +1646,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 	}
 	// Adjust primary land fractions
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
-		for(int to=0; to<NLANDCOVERTYPES; to++)
-			primary_lc_frac_transfer[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
+		for(int to=0; to<NLANDCOVERTYPES; to++) {
+			forest_lc_frac_transfer_s.primary[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
+			forest_lc_frac_transfer_s.secondary_young[from][to] = sec_young_ratio[from][to] * lc_frac_transfer[from][to];
+		}
 	}
 }
 
@@ -1587,6 +1708,24 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert_st);
 			readNfert_st = true;
 		}
+		file_woodharv_frac = param["file_woodharv_frac"].str;
+		if(	file_woodharv_frac != "")	{
+			if(!woodharv_frac.Open(file_woodharv_frac, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_frac);
+			readwoodharvest_frac = true;
+		}
+		file_woodharv_cmass = param["file_woodharv_cmass"].str;
+		if(	file_woodharv_cmass != "")	{
+			if(!woodharv_cmass.Open(file_woodharv_cmass, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_cmass);
+			readwoodharvest_cmass = true;
+		}
+		file_cutinterval_st = param["file_cutinterval_st"].str;
+		if(file_cutinterval_st != "")	{
+			if(!cutinterval_st.Open(file_cutinterval_st, gridlist))
+				fail("initio: could not open %s for input",(char*)file_cutinterval_st);
+			readcutinterval_st = true;
+		}
 	}
 
 	gridlist.killall();
@@ -1633,7 +1772,26 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 			dprintf("N fertilization data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-
+	if(readwoodharvest_frac && !LUerror) {
+		if(!woodharv_frac.Load(c)) {
+				dprintf("Problems with wood harvest fraction input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+				LUerror = true;	// skip this stand
+			dprintf("Wood harvest fraction data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if(readwoodharvest_cmass && !LUerror) {
+		if(!woodharv_cmass.Load(c)) {
+				dprintf("Problems with wood harvest volume input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+				LUerror = true;	// skip this stand
+			dprintf("Wood harvest cmass data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if(readcutinterval_st && !LUerror) { 
+		if(!cutinterval_st.Load(c)) {
+			LUerror = true;	// skip this stand
+			dprintf("cutinterval data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
 	return LUerror;
 }
 
@@ -1703,7 +1861,111 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 	}
 }
 
-void ManagementInput::getmanagement(Gridcell& gridcell) {
+/// Read wood harvest from file
+/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see guess.doc). Harvest of primary forest, primary non-forested land, 
+ *  mature secondary and young secondary forest and secondary non-forested land are represented in columns with header names "primf_harv", "primn_harv", "secmf_harv", "secyf_harv"
+ *  and "secnf_harv" in area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass input files.
+ */
+void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
+
+	// Ignore harvest on "non-forested" land
+	const bool ignore_non_forest_harvest = false;
+	// Ignore all wood harvest on gridcells with smaller average cmass_wood than limit
+	const double CMASS_WOOD_LIMIT = 0.1;
+	int calender_year = date.get_calendar_year();
+	int firsthistyear = landcover_input.getfirsthistyear();
+
+	gridcell.landcover.wood_harvest.zero();
+
+	/// Consistent with LUH2 transition input data: read previous year's values.
+	if((calender_year >= firsthistyear + 1)) {
+
+		double cmass_wood = 0.0;
+		int nstands = 0;
+		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+			Stand& stand = gridcell[i];
+			if(stand.landcover == NATURAL) {
+				for(unsigned int j=0;j<stand.nobj;j++) {
+					Patch& patch = stand[j];
+					cmass_wood += patch.cmass_wood() / stand.npatch();
+				}
+				nstands++;
+			}
+		}
+		cmass_wood /= double(nstands);
+
+		if(cmass_wood < CMASS_WOOD_LIMIT)
+			return;
+
+		double frac_transfer;
+		int year = calender_year - 1;
+
+		if(woodharv_frac.isloaded()) {
+			// Avoid using same data twice
+			if(!ifprimary_to_secondary_transfer) {
+				gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+				if(!ignore_non_forest_harvest)
+					gridcell.landcover.wood_harvest.prim_frac += (frac_transfer = woodharv_frac.Get(year,"primn_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			}
+			gridcell.landcover.wood_harvest.sec_mature_frac += (frac_transfer = woodharv_frac.Get(year,"secmf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secyf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+			if(!ignore_non_forest_harvest)
+				gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+		if(woodharv_cmass.isloaded()) {
+
+			// All removed C mass (including branches and attached leaves); kg/m2
+			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_mature_cmass += (frac_transfer = woodharv_cmass.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+	}
+}
+
+void ManagementInput::getcutinterval(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+	bool keep_nonzero_value = true;
+	bool use_nextvalue = true;
+
+	// Retrieve disturbance for stand types
+	for(int i=0; i<nst; i++) {
+		if(cutinterval_st.isloaded()) {
+			Gridcellst& gcst = gridcell.st[i];
+			if(gcst.reset_cutinterval_st)
+				gcst.cutinterval_st = 0.0;
+
+			double cutinterval = cutinterval_st.Get(year, stlist[i].name, true);
+			if(cutinterval != NOTFOUND) {
+				if(!keep_nonzero_value || cutinterval) {
+					gcst.cutinterval_st = cutinterval;
+				}
+				else if(use_nextvalue && !gcst.cutinterval_st) {
+					// During the time input value is 0, use the first year with value > 0
+					int year = date.get_calendar_year();
+					int first_data_year = cutinterval_st.GetFirstyear();
+					int last_data_year = first_data_year + cutinterval_st.GetnYears() - 1;
+					// first_data_year is -1 for static data
+					if(first_data_year == -1) {
+						first_data_year = year;
+						last_data_year = year;
+					}
+					// if value is 0 this year, try the following years
+					for(int y=year;y<=max(year,last_data_year) + 1 && !cutinterval;y++) {
+						cutinterval = cutinterval_st.Get(y, stlist[i].name, true);
+						if(cutinterval)
+							gcst.cutinterval_st = cutinterval;
+					}
+				}
+			}
+			gcst.reset_cutinterval_st = false;
+		}
+	}
+}
+
+void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
 	if (!run_landcover || date.day) {
 		return;
@@ -1721,4 +1983,10 @@ void ManagementInput::getmanagement(Gridcell& gridcell) {
 		if(readNfert || readNfert_st)		
 			getNfert(gridcell);
 	}
+	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct
+	if(readwoodharvest_frac || readwoodharvest_cmass)		
+		getwoodharvest(gridcell, landcover_input);
+	// Read cutting interval from input file
+	if(readcutinterval_st)
+		getcutinterval(gridcell);
 }

@@ -19,7 +19,7 @@ using namespace InData;
 const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
 
 /// Write land use fraction data to memory; enables efficient usage of randomised gridlists for parallell simulations
-const bool LUTOMEMORY = true;
+const bool LUTOMEMORY = false;
 
 // Mapping of input file data when LUTOMEMORY not defined
 const bool MAPFILE = true;
@@ -170,7 +170,7 @@ double TimeDataD::Get(int calender_year, int column) const {
 	return data[nColumns * yearX + column];
 }
 
-double TimeDataD::Get(int calender_year, const char* name) const {
+double TimeDataD::Get(int calender_year, const char* name, bool suppress_warning) const {
 
 	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
 		return memory_copy->Get(calender_year, name);
@@ -187,8 +187,8 @@ double TimeDataD::Get(int calender_year, const char* name) const {
 
 	if(column == -1) {
 
-		if(calender_year == firstyear)
-		printf("WARNING: Value for %s not found in %s.\n", name, fileName);
+		if(calender_year == firstyear && !suppress_warning)
+			printf("WARNING: Value for %s not found in %s.\n", name, fileName);
 		return NOTFOUND;
 	}
 	else {
@@ -322,7 +322,7 @@ void TimeDataD::CreateFileMap() {
 	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY)
 		return;
 
-	long int pos;
+	filepos pos;
 	int i = 0;
 	nCells = GetNCells();
 
@@ -606,12 +606,12 @@ void TimeDataD::ParseNCells() {
 	}
 
 	float d1;
-	long int oldpos;
+	filepos oldpos;
 	int i = 0, count = 0;
 	char line[MAXLINE];
 	bool error = false;
 
-	oldpos=ftell(ifp);
+	oldpos=filetell(ifp);
 	if(oldpos!=0)
 		rewind(ifp);
 
@@ -643,7 +643,7 @@ void TimeDataD::ParseNCells() {
 	if(error)
 		dprintf("Unexpected number of lines ! No.lines=%d, No.cells=%d, No.years=%d\n", i, nCells, nYears);
 
-	fseek(ifp, oldpos, 0);
+	fileseek(ifp, oldpos, 0);
 }
 
 int TimeDataD::ParseNYearsLocal() {
@@ -881,7 +881,7 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 								data[nColumns * i + j] = d[j];
 						}
 						else {
-							printf("FORMAT ERROR in input file %s: Load(), count!=%d\n", fileName, i+1);
+							printf("FORMAT ERROR in input file %s: Load(), count!=%d, year %d\n", fileName, nColumns, i+1);
 							error = true;
 						}
 						i++;
@@ -958,7 +958,7 @@ bool TimeDataD::LoadFromMap(Coord c) {
 
 	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 	double min_dist = 1000;
-	long int found_pos = -1;
+	filepos found_pos = -1;
 	int found_i;
 
 	for(int i=0; i<nCells; i++) {
@@ -1188,7 +1188,7 @@ bool TimeDataD::isloaded() {
 }
 
 
-bool TimeDataD::LoadNext(long int *pos) {
+bool TimeDataD::LoadNext(filepos *pos) {
 	// To be called after ParseFormat(), ParseNYears() and Allocate()
 	// Only implemented for LOCAL_YEARLY and LOCAL_STATIC
 	// Needs to be modified to handle missing lines in data files with header ! (see Load)
@@ -1200,7 +1200,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 	char line[MAXLINE], *p=NULL;
 	double d1, d2, d3, d[MAXRECORDS]={0.0};
 	bool error = false, firstyear = true;
-	long int fpos;
+	filepos fpos;
 
 	if(ifp && !feof(ifp)) {
 
@@ -1216,7 +1216,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 			}
 			if(ifheader) {
 
-				fpos = ftell(ifp);
+				fpos=filetell(ifp);
 				if(fpos == 0) {
 					fgets(line,sizeof(line), ifp);	//ignore header line
 					fpos = ftell(ifp);
@@ -1316,7 +1316,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 			}
 
 			if(ifheader) {
-				fpos = ftell(ifp);
+				fpos=filetell(ifp);
 				if(fpos == 0) {
 					fgets(line,sizeof(line), ifp);	//ignore header line
 					fpos = ftell(ifp);
@@ -1421,7 +1421,7 @@ bool TimeDataD::FindRecord(Coord c) const {
 	char line[MAXLINE], *p = NULL;
 	double d1 = 0.0,d2 = 0.0,d3 = 0.0;
 	bool found = false, error = false, start = true;
-	long int oldpos;
+	filepos oldpos;
 
 	do {
 		i = 0;
@@ -1430,7 +1430,7 @@ bool TimeDataD::FindRecord(Coord c) const {
 		while(!feof(ifp)) {
 			if(ifheader) {
 				if(!(i%nYears))
-					oldpos = ftell(ifp);
+					oldpos=filetell(ifp);
 			}
 
 			if(fgets(line,sizeof(line), ifp)) {
@@ -1489,7 +1489,7 @@ bool TimeDataD::FindRecord(Coord c) const {
 
 	if(found && !error) {
 		if(ifheader)
-			fseek(ifp, oldpos, 0);
+			fileseek(ifp, oldpos, 0);
 		return true;
 	}
 	else
@@ -1503,7 +1503,7 @@ bool TimeDataD::FindRecord2(Coord c) const {
 	char line[MAXLINE], *p = NULL;
 	double d1 = 0.0, d2 = 0.0, d3 = 0.0;
 	bool found = false, error = false, start = true;
-	long int oldpos;
+	filepos oldpos;
 
 	lastyear = firstyear + nYears - 1;
 
@@ -1516,7 +1516,7 @@ bool TimeDataD::FindRecord2(Coord c) const {
 
 			if(ifheader) {
 				if(d3==lastyear || start)
-					oldpos = ftell(ifp);
+					oldpos=filetell(ifp);
 			}
 
 			if(fgets(line,sizeof(line),ifp)) {
@@ -1562,7 +1562,7 @@ bool TimeDataD::FindRecord2(Coord c) const {
 
 	if(found && !error) {
 		if(ifheader)
-			fseek(ifp, oldpos, 0);
+			fileseek(ifp, oldpos, 0);
 		return true;
 	}
 	else {
@@ -1752,7 +1752,7 @@ double TimeDataDmem::Get(int calender_year, int column) const {
 		return 0.0;
 }
 
-double TimeDataDmem::Get(int calender_year, const char* name) const {
+double TimeDataDmem::Get(int calender_year, const char* name, bool suppress_warning) const {
 
 	int column = -1;
 
@@ -1764,8 +1764,8 @@ double TimeDataDmem::Get(int calender_year, const char* name) const {
 	}
 
 	if(column == -1) {
-		if(calender_year == firstyear)	// firstyear set to -1 for static inputs
-		printf("WARNING: Value for %s not found in input file\n", name);
+		if(calender_year == firstyear && !suppress_warning)	// firstyear set to -1 for static inputs
+			printf("WARNING: Value for %s not found in input file\n", name);
 		return NOTFOUND;
 	}
 	else {

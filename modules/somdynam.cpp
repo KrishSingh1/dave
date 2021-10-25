@@ -98,7 +98,7 @@ void setconstants() {
 // used by som_dynamic_lpj()
 
 void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soilslow,
-	double& fr_litter,double& fr_soilfast,double& fr_soilslow, bool tillage) {
+	double& fr_litter,double& fr_soilfast,double& fr_soilslow, double tillage) {
 
 	// DESCRIPTION
 	// Calculation of fractional decay amounts for litter and fast and slow SOM
@@ -109,6 +109,7 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// gtemp_soil  = respiration temperature response incorporating damping of Q10
 	//               response due to temperature acclimation (Eqn 11, Lloyd & Taylor
 	//               1994)
+	// tillage	   = tillage intensity relative to TILLAGE_FACTOR
 
 	// OUTPUT PARAMETERS
 	// k_soilfast  = adjusted daily decay constant for fast SOM fraction
@@ -134,9 +135,10 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// NB: Temperature response (gtemp; Lloyd & Taylor 1994) set by framework
 
 	k_soilfast=k_soilfast10*gtemp_soil*moist_response/(double)date.year_length();
-	if (tillage) {
-		k_soilfast *= TILLAGE_FACTOR; // Increased HR for crops (tillage)
-	}
+
+	double tillage_fact = (TILLAGE_FACTOR - 1.0) * tillage + 1.0;
+	k_soilfast *= tillage_fact; // Increased HR for crops (tillage)
+
 	k_soilslow=k_soilslow10*gtemp_soil*moist_response/(double)date.year_length();
 
 	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/(double)date.year_length());
@@ -182,7 +184,7 @@ void equilsom_lpj(Soil& soil) {
 // To be called each simulation day for each modelled area or patch, following update
 // of soil temperature and soil water.
 
-void som_dynamics_lpj(Patch& patch, bool tillage) {
+void som_dynamics_lpj(Patch& patch, double tillage) {
 
 	// DESCRIPTION
 	// Calculation of soil decomposition and transfer of C between litter and soil
@@ -402,7 +404,7 @@ double moisture_modifier(double wfps) {
 /** Calculates CENTURY instantaneous decay rates given soil temperature,
  *  water content of upper soil layer
  */
-void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
+void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, double tillage) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -481,9 +483,12 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 				k *= texture_mod;
 		}
 
+		// // tillage = tillage intensity relative to TILLAGE_FACTOR
+		double tillage_fact = (TILLAGE_FACTOR - 1.0) * tillage + 1.0;
+
 		// Increased HR for crops (tillage)
-		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
-			k *= TILLAGE_FACTOR;
+		if ((p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
+			k *= tillage_fact; 
 		}
 
 		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm
@@ -543,8 +548,9 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
  *  \param ifequilsom Whether the function is called during calculation om SOM pool equilibrium,
  *                    \see equilsom(). During this stage, somfluxes shouldn't calculate decayrates
  *                    itself, and shouldn't produce output like fluxes etc.
+ *  \param tillage	  tillage intensity relative to TILLAGE_FACTOR
  */
-void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
+void somfluxes(Patch& patch, bool ifequilsom, double tillage) {
 
 	double respsum ;
 	double leachsum_cmass, leachsum_nmass;
@@ -1434,7 +1440,7 @@ void equilsom(Soil& soil) {
 
 			// Monthly decomposition and fluxes between SOM pools
 			// and nitrogen flux from soil
-			somfluxes(patch, true, false);
+			somfluxes(patch, true, 0.0);
 		}
 	}
 
@@ -1464,7 +1470,7 @@ void equilsom(Soil& soil) {
  *  of soil temperature and soil water.
  *  Transfers litter, performes nitrogen uptake and addition, leaching and decomposition.
  */
-void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
+void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
 
 	// Transfer litter to SOM pools
 	transfer_litter(patch);
@@ -1493,7 +1499,7 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 */
 void som_dynamics(Patch& patch, Climate& climate) {
 
-	bool tillage = iftillage && patch.stand.landcover == CROPLAND;
+	double tillage = iftillage && patch.stand.landcover == CROPLAND ? patch.stand.get_current_management().tillage_int : 0.0;
 	if (ifcentury) {
 		som_dynamics_century(patch, climate, tillage);
 	}

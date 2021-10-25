@@ -87,16 +87,20 @@ bool run[NLANDCOVERTYPES];
 bool frac_fixed[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
+bool no_barren_frac_corr = true;
 bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
 bool gross_input_present = false;
-bool ifprimary_lc_transfer;
-bool ifprimary_to_secondary_transfer;
+bool ifprimary_lc_transfer = false;
+bool use_primary_lc_transfer = false;
+bool ifprimary_to_secondary_transfer = false;
 int transfer_level;
 bool ifdyn_phu_limit;
 bool iftransfer_to_new_stand;
+bool suppress_disturbance_in_forestry_stands;
+bool harvest_natural_to_forest = true;
 int nyear_dyn_phu;
 int nyear_spinup;
 bool textured_soil;
@@ -114,7 +118,26 @@ bool readharvestdates = false;
 bool readNfert = false;
 bool readNman = false;
 bool readNfert_st = false;
+bool readdisturbance = false;
+bool readdisturbance_st = false;
+bool readcutinterval_st = false;
+bool readwoodharvest_frac = false;
+bool readwoodharvest_cmass = false;
+bool harvest_secondary_to_new_stand = true;
+bool harvest_burn_thin_trees = false;
 bool printseparatestands = false;
+bool print_anpp_stand = true;
+bool print_lai_stand = true;
+bool print_cmass_stand = true;
+bool print_cmass_mort_stand = false;
+bool print_cmass_wood_stand = false;
+bool print_cmass_wood_harv_stand = false;
+bool print_height_stand = false;
+bool print_diam_stand = false;
+bool print_dens_stand = false;
+bool print_agestruct_stand = true;
+bool print_diamstruct_stand = false;
+bool print_diamstruct_cmass_stand = true;
 bool iftillage = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -173,10 +196,10 @@ bool Paramlist::isparam(xtring name) {
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,	
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
-	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
-	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
+	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTHYDROLOGY,
+	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
 	CB_FIREMODEL,CB_WEATHERGENERATOR};
 
@@ -532,22 +555,39 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("run_barren",&run[BARREN],1,CB_NONE,"Whether barren land is to be simulated");
+		declareitem("no_barren_frac_corr",&no_barren_frac_corr,1,CB_NONE,"Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum");
 
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
-		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,
-			"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
 		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,
 			"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
 		declareitem("ifprimary_to_secondary_transfer",&ifprimary_to_secondary_transfer,1,CB_NONE,
 			"Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)");
+		declareitem("harvest_secondary_to_new_stand",&harvest_secondary_to_new_stand,1,CB_NONE,
+			"Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality) (1). or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
+		declareitem("suppress_disturbance_in_forestry_stands",&suppress_disturbance_in_forestry_stands,1,CB_NONE,"Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
-		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
+		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a stand type (except cropland) separately");
+		declareitem("print_anpp_stand",&print_anpp_stand,1,CB_NONE,"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_lai_stand",&print_lai_stand,1,CB_NONE,"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_cmass_stand",&print_cmass_stand,1,CB_NONE,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_cmass_wood_stand",&print_cmass_wood_stand,1,CB_NONE,"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,1,CB_NONE,"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_cmass_mort_stand",&print_cmass_mort_stand,1,CB_NONE,"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
+
+		declareitem("print_height_stand",&print_height_stand,1,CB_NONE,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_diam_stand",&print_diam_stand,1,CB_NONE,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_dens_stand",&print_dens_stand,1,CB_NONE,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_agestruct_stand",&print_agestruct_stand,1,CB_NONE,"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_diamstruct_stand",&print_diamstruct_stand,1,CB_NONE,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
+		declareitem("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,1,CB_NONE,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
+		declareitem("harvest_natural_to_forest",&harvest_natural_to_forest,1,CB_NONE,"Whether to harvest (remove) wood at natural-to-forest transitions");
+		declareitem("harvest_burn_thin_trees",&harvest_burn_thin_trees,1,CB_NONE,"Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
@@ -757,6 +797,9 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
+		declareitem("stem_frac",&ppft->stem_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to stems");
+		declareitem("twig_frac",&ppft->twig_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to twigs");
+		declareitem("plantnumber",&ppft->plantnumber,0.0,10000.0,1,CB_NONE,"Plant density after clearcut (seedlings/ha)");
 
 		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
 		declareitem("sdatesh",&ppft->sdatesh,1,365,1,CB_NONE,"sowing day southern hemisphere");
@@ -896,18 +939,74 @@ void plib_declarations(int id,xtring setname) {
 		}
 
 		declareitem("mtinclude",&includemt,1,CB_NONE,"Include ManagementType in analysis");
+		declareitem("firstmanageyear",&pmt->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
+		declareitem("firstcutyear",&pmt->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+		declareitem("firstclearcutyear",&pmt->firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
+		declareitem("delayduecutting",&pmt->delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
+		declareitem("firsttargetyear",&pmt->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
+		declareitem("lasttargetyear",&pmt->lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
+		declareitem("targetthinselectage",&pmt->target_thinning_select_age,0,2,1,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+		declareitem("targetthinselectdiam",&pmt->target_thinning_select_diam,0,2,1,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
 		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
+		declareitem("plantdensity_pft",&pmt->plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density of management 1");
 		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
-		declareitem("rottime",&pmt->nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
+		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities");
+		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft cmass target fractions");
+		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
+		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
+		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach pft fraction target");
+		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
 		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
+		declareitem("tillage_int",&pmt->tillage_int,0.0,10.0,1,CB_NONE,"Tillage multiplier of TILLAGE_FACTOR");
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
-		declareitem("multicrop",&pmt->multicrop,1,CB_NONE,"Whether to grow several crops in a year");
+		declareitem("relaxed_establishment",&pmt->relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
+		declareitem("suppress_fire",&pmt->suppress_fire,1,CB_NONE,"Whether to suppress fires");
+		declareitem("suppress_disturbance",&pmt->suppress_disturbance,1,CB_NONE,"Whether to suppress disturbances");
+		declareitem("set_planting_density",&pmt->set_planting_density,1,CB_NONE,"Whether to use planting densities for tree pft:s after clearcut");
+		declareitem("cutfirstyear",&pmt->cutfirstyear,0,2,1,CB_NONE,"Whether to clearcut first management year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)");
+		declareitem("cutfirstyear_nonsel",&pmt->cutfirstyear_nonsel,1,CB_NONE,"Whether to cut pft:s outside of selection clone year or first year of new management in a rotation");
+		declareitem("killgrass_at_cc",&pmt->killgrass_at_cc,1,CB_NONE,"Whether to kill grass at clearcut");
+		declareitem("stochmort",&pmt->stochmort,1,CB_NONE,"Whether to use stochastic mortality");
+		declareitem("stochestab",&pmt->stochestab,1,CB_NONE,"Whether to use stochastic establishment");
+
+		declareitem("cutinterval",&pmt->cutinterval,0,10000,1,CB_NONE,"Rotation time (years)");
+		declareitem("thintime",pmt->thinning_time[0],0.0,1.0,NTHINNINGS,CB_NONE, "Timing of thinning events, relative to rotation period");
+		declareitem("thinstr",pmt->thinning_strength[0],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events");
+		declareitem("thinstrunsel",pmt->thinning_strength_unsel[0],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events for unselected pft:s");
+		declareitem("thinselectpft",pmt->thinning_select_pft[0],0,4,NTHINNINGS,CB_NONE, "Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)");
+		declareitem("thinselectage",pmt->thinning_select_age[0],0,2,NTHINNINGS,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+		declareitem("thinselectdiam",pmt->thinning_select_diam[0],0,3,NTHINNINGS,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)");
+		declareitem("secondintervalstart",&pmt->secondintervalstart,0,10000,1,CB_NONE,"When to start start continuous cutting period (years after start of regeneration period)");
+		declareitem("secondcutinterval",&pmt->secondcutinterval,0,10000,1,CB_NONE,"Wood cutting interval in years in the continuous cutting period");
+		declareitem("secondthintime",pmt->thinning_time[1],0.0,1.0,NTHINNINGS,CB_NONE, "Timing of thinning events, relative to rotation period in the continuous cutting period");
+		declareitem("secondthinstr",pmt->thinning_strength[1],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events in the continuous cutting period");
+		declareitem("secondthinstrunsel",pmt->thinning_strength_unsel[1],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events for unselected pft:s in the continuous cutting period");
+		declareitem("secondthinselectpft",pmt->thinning_select_pft[1],0,4,NTHINNINGS,CB_NONE, "Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0) in the continuous cutting period");
+		declareitem("secondthinselectage",pmt->thinning_select_age[1],0,2,NTHINNINGS,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in the continuous cutting period");
+		declareitem("secondthinselectdiam",pmt->thinning_select_diam[1],0,3,NTHINNINGS,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0) in the continuous cutting period");
+		declareitem("diam_limit",&pmt->diam_limit,0.0,1000.0,1,CB_NONE,"Lower diameter limit (cm) for cutting in the continuous cutting period");
+		declareitem("adapt_diam_limit",&pmt->adapt_diam_limit,1,CB_NONE,"Whether to adapt diam_limit to forest stands with small trees");
+		declareitem("ifthin_reineke",&pmt->ifthin_reineke,1,CB_NONE,"Whether to use Reineke's rule-based automatic thinning");
+		declareitem("alpha_st",&pmt->alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
+		declareitem("rdi_target",&pmt->rdi_target,0.0,1.0,1,CB_NONE,"Thinning 'intensity' (low value more intense) when using ifthin_reineke");
+		declareitem("ifclearcut_by_density",&pmt->ifclearcut_by_density,1,CB_NONE,"Whether to use tree density as a trigger for clearcut");
+		declareitem("dens_target_cc",&pmt->dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
+		declareitem("ifclearcut_optimal_age",&pmt->ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
+		declareitem("distribute_patch_ages",&pmt->distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
+		declareitem("distribute_clearcuts",&pmt->distribute_clearcuts,1,CB_NONE,"Whether to distribute clearcuts in a managed forest stand among patches");
+		declareitem("distribute_continuous_cuttings",&pmt->distribute_continuous_cuttings,1,CB_NONE,"Whether to distribute continuous cuttings in a managed forest stand among patches");
+		declareitem("harv_eff_thin",&pmt->harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
+		declareitem("res_outtake_twig_thin",&pmt->res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
+		declareitem("res_outtake_coarse_root_thin",&pmt->res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");
+		declareitem("harv_eff_cc",&pmt->harv_eff_cc,0.0,1.0,1,CB_NONE,"Harvest efficiancy during clearcut for all tree pft:s");
+		declareitem("res_outtake_twig_cc",&pmt->res_outtake_twig_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for twigs and branches for all tree pft:s");
+		declareitem("res_outtake_coarse_root_cc",&pmt->res_outtake_coarse_root_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
 
 		callwhendone(CB_CHECKMT);
 
@@ -941,35 +1040,95 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("intercrop",&strparam,16,CB_STINTERCROP,
 			"Cover crop (\"NOINTERCROP\" or \"NATURALGRASS\")");
 		declareitem("naturalveg",&strparam,16,CB_STNATURALVEG,
-			"Natural pfts (\"NONE\", \"GRASSONLY\" or \"ALL\")");
+			"Natural pfts (\"GRASSONLY\" or \"ALL\")");
 		declareitem("reestab",&strparam,16,CB_STREESTAB,
 			"Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 
+		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Disturbance interval");	// ??
+		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
-		declareitem("restrictpfts",&pst->restrictpfts,1,CB_NONE,"Whether to only allow pft:s specified in stand type");
-		declareitem("firstmanageyear",&pst->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
+		declareitem("rot_wait_for_cc",&pst->rot_wait_for_cc,1,CB_NONE,"Whether to wait for clearcut before moving to next mt in a forestry rotation");
 
 		for(int i = 0; i < NROTATIONPERIODS_MAX; ++i) {
 			if(i == 0) {
-				declareitem("management1",&strparam,16,CB_MANAGEMENT1,"");
+				declareitem("management1",&strparam,32,CB_MANAGEMENT1,"");
+				declareitem("firstmanageyear",&pst->management.firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
+				declareitem("firstcutyear",&pst->management.firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+				declareitem("firstclearcutyear",&pst->management.firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
+				declareitem("delayduecutting",&pst->management.delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
+				declareitem("firsttargetyear",&pst->management.firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
+				declareitem("lasttargetyear",&pst->management.lasttargetyear,0,10000,1,CB_NONE,"When to stop cutting to reach target fractions");
+				declareitem("targetthinselectage",&pst->management.target_thinning_select_age,0,2,1,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+				declareitem("targetthinselectdiam",&pst->management.target_thinning_select_diam,0,2,1,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
 				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
-				declareitem("pft",&strparam,16,CB_PFT,"PFT name");
-				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names");
-				declareitem("rottime",&pst->management.nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
+				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");
+				declareitem("plantdensity_pft",&pst->management.plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density of management 1");
+				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names of management 1");
+				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities of management 1");
+				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft cmass target fractions");
+				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
+				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
+				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach target");
+				declareitem("suppress_second_target",&pst->management.suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
 				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
+				declareitem("tillage_int",&pst->management.tillage_int,0.0,10.0,1,CB_NONE,"Tillage multiplier of TILLAGE_FACTOR");
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
-				declareitem("multicrop",&pst->management.multicrop,1,CB_NONE,"Whether to grow several crops in a year in management 1");
+				declareitem("relaxed_establishment",&pst->management.relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
+				declareitem("suppress_fire",&pst->management.suppress_fire,1,CB_NONE,"Whether to suppress fires");
+				declareitem("suppress_disturbance",&pst->management.suppress_disturbance,1,CB_NONE,"Whether to suppress disturbances");
+				declareitem("set_planting_density",&pst->management.set_planting_density,1,CB_NONE,"Whether to use tree pft planting densities after clearcut");
+				declareitem("cutfirstyear",&pst->management.cutfirstyear,0,2,1,CB_NONE,"Whether to clearcut first management year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)");
+				declareitem("cutfirstyear_nonsel",&pst->management.cutfirstyear_nonsel,1,CB_NONE,"Whether to cut pft:s outside of selection clone year or first year of new management in a rotation");
+				declareitem("killgrass_at_cc",&pst->management.killgrass_at_cc,1,CB_NONE,"Whether to kill grass at clearcut");
+				declareitem("stochmort",&pst->management.stochmort,1,CB_NONE,"Whether to use stochastic mortality");
+				declareitem("stochestab",&pst->management.stochestab,1,CB_NONE,"Whether to use stochastic establishment");
+
+				declareitem("cutinterval",&pst->management.cutinterval,0,10000,1,CB_NONE,"Rotation time (years)");
+				declareitem("thintime",pst->management.thinning_time[0],0.0,1.0,NTHINNINGS,CB_NONE, "Timing of thinning events, relative to rotation period");
+				declareitem("thinstr",pst->management.thinning_strength[0],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events");
+				declareitem("thinstrunsel",pst->management.thinning_strength_unsel[0],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events for unselected pft:s");
+				declareitem("thinselectpft",pst->management.thinning_select_pft[0],0,4,NTHINNINGS,CB_NONE, "Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)");
+				declareitem("thinselectage",pst->management.thinning_select_age[0],0,2,NTHINNINGS,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
+				declareitem("thinselectdiam",pst->management.thinning_select_diam[0],0,3,NTHINNINGS,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)");
+				declareitem("secondintervalstart",&pst->management.secondintervalstart,0,10000,1,CB_NONE,"When to start start contiuous cutting period (years after start of regeneration period)");
+				declareitem("secondcutinterval",&pst->management.secondcutinterval,0,10000,1,CB_NONE,"Wood cutting interval in years in the contiuous cutting period");
+				declareitem("secondthintime",pst->management.thinning_time[1],0.0,1.0,NTHINNINGS,CB_NONE, "Timing of thinning events, relative to rotation period in the contiuous cutting period");
+				declareitem("secondthinstr",pst->management.thinning_strength[1],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events in the contiuous cutting period");
+				declareitem("secondthinstrunsel",pst->management.thinning_strength_unsel[1],0.0,1.0,NTHINNINGS,CB_NONE, "Strength (percent cut) of thinning events for unselected pft:s in the continuous cutting period");
+				declareitem("secondthinselectpft",pst->management.thinning_select_pft[1],0,4,NTHINNINGS,CB_NONE, "Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0) in the contiuous cutting period");
+				declareitem("secondthinselectage",pst->management.thinning_select_age[1],0,2,NTHINNINGS,CB_NONE, "Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in the contiuous cutting period");
+				declareitem("secondthinselectdiam",pst->management.thinning_select_diam[1],0,3,NTHINNINGS,CB_NONE, "Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0) in the contiuous cutting period");
+				declareitem("diam_limit",&pst->management.diam_limit,0.0,1000.0,1,CB_NONE,"Lower diameter limit for cutting in the contiuous cutting period");
+				declareitem("adapt_diam_limit",&pst->management.adapt_diam_limit,1,CB_NONE,"Whether to adapt diam_limit to forest stands with small trees");
+				declareitem("ifthin_reineke",&pst->management.ifthin_reineke,1,CB_NONE,"Whether to use Reineke's rule-based automatic thinning");
+				declareitem("alpha_st",&pst->management.alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
+				declareitem("rdi_target",&pst->management.rdi_target,0.0,1.0,1,CB_NONE,"Thinning 'intensity' (low value more intense) when using ifthin_reineke");
+				declareitem("ifclearcut_by_density",&pst->management.ifclearcut_by_density,1,CB_NONE,"Whether to use tree density as a trigger for clearcut");
+				declareitem("dens_target_cc",&pst->management.dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
+				declareitem("ifclearcut_optimal_age",&pst->management.ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
+				declareitem("distribute_patch_ages",&pst->management.distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
+				declareitem("distribute_clearcuts",&pst->management.distribute_clearcuts,1,CB_NONE,"Whether to distribute clearcuts in a managed forest stand among patches");
+				declareitem("distribute_continuous_cuttings",&pst->management.distribute_continuous_cuttings,1,CB_NONE,"Whether to distribute continuous cuttings in a managed forest stand among patches");
+				declareitem("harv_eff_thin",&pst->management.harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
+				declareitem("res_outtake_twig_thin",&pst->management.res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
+				declareitem("res_outtake_coarse_root_thin",&pst->management.res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");
+				declareitem("harv_eff_cc",&pst->management.harv_eff_cc,0.0,1.0,1,CB_NONE,"Harvest efficiancy during clearcut for all tree pft:s");
+				declareitem("res_outtake_twig_cc",&pst->management.res_outtake_twig_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for twigs and branches for all tree pft:s");
+				declareitem("res_outtake_coarse_root_cc",&pst->management.res_outtake_coarse_root_cc,0.0,1.0,1,CB_NONE,"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
+				declareitem("startman1",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 1 (if reverting from another mt)");
 			}
 			else if(i == 1) {
-				declareitem("management2",&strparam,16,CB_MANAGEMENT2,"");
+				declareitem("management2",&strparam,32,CB_MANAGEMENT2,"");
+				declareitem("startman2",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 2");
 			}
 			else if(i == 2) {
-				declareitem("management3",&strparam,16,CB_MANAGEMENT3,"");
+				declareitem("management3",&strparam,32,CB_MANAGEMENT3,"");
+				declareitem("startman3",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 3");
 			}
 		}
 		callwhendone(CB_CHECKST);
@@ -1117,8 +1276,14 @@ void plib_callback(int callback) {
 	case CB_MTPFT:
 		pmt->pftname = strparam;
 		break;
+	case CB_MTPLANTDENSITY:
+		pmt->plantdensity = strparam;
+		break;
 	case CB_MTSELECTION:
 		pmt->selection = strparam;
+		break;
+	case CB_MTTARGETFRAC:
+		pmt->targetfrac = strparam;
 		break;
 	case CB_MTHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
@@ -1150,6 +1315,12 @@ void plib_callback(int callback) {
 		break;
 	case CB_STSELECTION:
 		pst->management.selection = strparam;
+		break;
+	case CB_STPLANTDENSITY:
+		pst->management.plantdensity = strparam;
+		break;
+	case CB_STTARGETFRAC:
+		pst->management.targetfrac = strparam;
 		break;
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
@@ -1292,12 +1463,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("run_barren")) badins("run_barren");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
-			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
+			if (!itemparsed("harvest_secondary_to_new_stand")) badins("harvest_secondary_to_new_stand");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
-			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
+			if (!itemparsed("suppress_disturbance_in_forestry_stands")) badins("suppress_disturbance_in_forestry_stands");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if(run[CROPLAND]) {
 				if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
@@ -1305,6 +1476,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
 				if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
 				if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
+				if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			}
 		}
 
@@ -1477,7 +1649,7 @@ void plib_callback(int callback) {
 			}
 			if(st.landcover == CROPLAND && 
 				(st.rotation.ncrops == 0 ||
-				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
+				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !(st.get_management(0).fallow && st.rotation.ncrops > 1) ||
 				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
 				st.rotation.ncrops >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
 				fail("Check stand type rotation parameter setting, pftname missing\n");
@@ -1552,9 +1724,10 @@ void plib_callback(int callback) {
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();
 
-			if(st.intercrop == NATURALGRASS && pftlist[pftlist.getpftid(st.get_management(0).pftname)].phenology != CROPGREEN)
+			int pftid = pftlist.getpftid(st.get_management(0).pftname);
+			if(st.intercrop == NATURALGRASS && pftid >= 0 && pftlist[pftid].phenology != CROPGREEN)
 				dprintf("Warning: covercrop grass should not be activated in stand types without true crops\n");
-				stlist.nextobj();
+			stlist.nextobj();
 		}
 
 		// Check that stand type exists for all active land covers when run_landcover==true.
@@ -1640,6 +1813,8 @@ void plib_callback(int callback) {
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
+			if (!itemparsed("stem_frac")) badins("stem_frac");
+			if (!itemparsed("twig_frac")) badins("twig_frac");
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

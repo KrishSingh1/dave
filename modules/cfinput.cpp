@@ -498,6 +498,8 @@ void CFInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
@@ -531,6 +533,11 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	if (current_gridcell == gridlist.end()) {
 		// simulation finished
 		return false;
+	}
+
+	if(readdisturbance || readdisturbance_st) {
+		misc_input.loaddisturbance(lon, lat);
+		// Not all gridcells have to be included in input file
 	}
 
 	if (run_landcover) {

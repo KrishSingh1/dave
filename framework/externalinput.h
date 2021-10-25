@@ -16,7 +16,38 @@ using namespace InData;
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
-void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES], double& tot_frac_ch);
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch);
+
+/// Class that deals with additional environmental input from text files
+class MiscInput {
+
+public:
+
+	/// Constructor
+	MiscInput() {;}
+
+	/// Opens land cover input files
+	void init();
+
+	/// Loads disturbance from input file
+	bool loaddisturbance(double lon, double lat);
+
+	/// Gets disturbance intervals (in years)
+	void getdisturbance(Gridcell& gridcell);
+
+	/// Gets all yearly extra input data
+	void getenviron_yearly(Gridcell& gridcell);
+
+private:
+
+	// Objects handling additional environmental data input
+	InData::TimeDataD disturbance;
+	InData::TimeDataD disturbance_st;
+
+	/// Files names for additional environmental input files
+	xtring file_disturbance;
+	xtring file_disturbance_st;
+};
 
 /// Class that deals with all land cover input from text files
 class LandcoverInput {
@@ -88,7 +119,7 @@ public:
 	/// Loads fertilisation, sowing and harvest dates from input files
 	bool loadmanagement(double lon, double lat);
 	/// Gets management data for a year
-	void getmanagement(Gridcell& gridcell);
+	void getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input);
 
 private:
 
@@ -98,9 +129,12 @@ private:
 	InData::TimeDataD Nfert;
 	InData::TimeDataD Nfert_st;
 	InData::TimeDataD NfertMan;
+	InData::TimeDataD woodharv_frac;
+	InData::TimeDataD woodharv_cmass;
+	InData::TimeDataD cutinterval_st;
 
 	/// Files names for management input file
-	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan;
+	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, file_cutinterval_st;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
@@ -108,6 +142,10 @@ private:
 	void getharvestdates(Gridcell& gridcell);
 	/// Gets nitrogen fertilisation data for a year
 	void getNfert(Gridcell& gridcell);
+	/// Gets wood harvest data for a year
+	void getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input);
+	/// Gets cutinterval
+	void getcutinterval(Gridcell& gridcell);
 };
 
 #endif // LPJ_GUESS_EXTERNALINPUT_H

@@ -49,7 +49,12 @@ public:
 	void getlandcover(Gridcell& gridcell);
 
 	/// Obtains land management data for one day
-	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell, landcover_input);}
+
+	/// Obtains additional environmental data that are not dynamic
+	void getenviron(Gridcell& gridcell) {;}
+	/// Obtains additional environmental data for one year
+	void getenviron_yearly(Gridcell& gridcell) {misc_input.getenviron_yearly(gridcell);}
 
 private:
 
@@ -66,6 +71,8 @@ private:
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
+	/// Additional data input module
+	MiscInput misc_input;
 
 	/// Help function to readenv, reads in 12 monthly values from a text file
 	bool read_from_file(Coord coord, xtring fname, const char* format,

@@ -36,7 +36,12 @@ public:
 	void getlandcover(Gridcell& gridcell);
 
 	/// Obtains land management data for one day
-	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell, landcover_input);}
+
+	/// Obtains additional environmental data that are not dynamic
+	void getenviron(Gridcell& gridcell) {;}
+	/// Obtains additional environmental data for one year
+	void getenviron_yearly(Gridcell& gridcell) {misc_input.getenviron_yearly(gridcell);}
 
 	static const int NYEAR_SPINUP_DATA=30;
 
@@ -46,6 +51,8 @@ private:
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
+	/// Additional data input module
+	MiscInput misc_input;
 	SoilInput soilinput;
 
 	struct Coord {

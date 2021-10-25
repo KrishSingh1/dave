@@ -15,14 +15,18 @@ struct Harvest_CN;
 void harvest_crop(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool isintercropgrass);
 /// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grs);
+/// Sets forest management for all stands this year
+void manage_forests(Gridcell& gridcell);
+/// Sets management strength for individual trees to achieve prescribed tree pft composition
+void set_forest(Gridcell& gridcell);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+void harvest_wood(Harvest_CN& indiv_cp, double height,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool lc_change = false);
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 /// Harvest function for pasture, representing grazing.
-void harvest_pasture(Individual& indiv, Pft& pft, bool alive);
+void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change = false);
 /// Harvest function for managed forest
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
 /// Transfers all carbon and nitrogen from living tissue to litter.
@@ -32,7 +36,7 @@ void kill_remaining_vegetation(Individual& indiv, bool burn = false, bool lc_cha
 /// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased their area fraction this year.
 void scale_indiv(Individual& indiv, bool scale_grsC);
 /// Yearly function for harvest of all land covers. Should only be called from growth()
-bool harvest_year(Individual& indiv);
+bool harvest_year(Individual& indiv, double anpp);
 /// Yield function for true crops and intercrop grass
 void yield_crop(Individual& indiv);
 /// Yield function for pasture grass grown in cropland landcover
@@ -41,10 +45,166 @@ void yield_pasture(Individual& indiv, double cmass_leaf_inc);
 void nfert(Patch& patch);
 /// Updates crop rotation status
 void crop_rotation(Stand& stand);
-/// Determines cutting intensity before wood harvest
-double cut_fraction(Patch& patch);
-/// Sets forest management for all stands this year
-void manage_forests(Gridcell& gridcell);
+/// Updates forestry rotation status
+void forest_rotation(Stand& stand);
+/// Sets forest management for patch this year
+double manage_forest(Patch& patch);
+// Returns harvestable cmass for individual
+double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool to_product_pool = false);
+// Returns harvestable cmass for patch
+double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool check_selection = false);
+// Returns harvestable cmass for stand
+double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
+/// Help function that splits string into "words"
+int split_string(char* str);
+
+/// Class for ranking stands by harvestable cmass etc.
+class Rank_stands {
+
+	Gridcell& gridcell;
+	std::vector<double> cmass_harvest_vect;
+	std::vector<double> cmass_harvest_wood_vect;
+	std::vector<std::pair<double,int> > sort_vect;
+
+public:
+
+	void sort_data(std::vector<double> v) {
+
+		sort_vect.clear();
+		sort_vect.reserve(gridcell.nbr_stands());
+		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+			Stand& stand = gridcell[i];
+			sort_vect.push_back(std::make_pair(v[i],i));
+		}
+		std::sort(sort_vect.begin(), sort_vect.end()); 
+	}
+
+	void sort_cmass_harvest() {
+		sort_data(cmass_harvest_vect);
+	}
+	void sort_cmass_harvest_wood() {
+		sort_data(cmass_harvest_wood_vect);
+	}
+
+	Rank_stands(Gridcell& gridcellX) : gridcell(gridcellX) {
+
+		cmass_harvest_vect.reserve(gridcell.nbr_stands());
+		cmass_harvest_wood_vect.reserve(gridcell.nbr_stands());
+		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+			Stand& stand = gridcell[i];
+			cmass_harvest_vect.push_back(check_harvest_cmass(stand));
+			cmass_harvest_wood_vect.push_back(check_harvest_cmass(stand, true));
+		}
+		// Make sure sort_vect is filled
+		sort_cmass_harvest();
+	}
+
+	int get_index(int rank) {
+		return sort_vect[rank].second;
+	}
+	double get_cmass_harvest(int rank) {
+		return cmass_harvest_vect[sort_vect[rank].second];
+	}
+	double get_cmass_harvest_wood(int rank) {
+		return cmass_harvest_wood_vect[sort_vect[rank].second];
+	}
+};
+
+/// Class for ranking patches by harvestable cmass etc.
+class Rank_patches {
+
+	Stand& stand;
+	std::vector<double> cmass_harvest_vect;
+	std::vector<double> cmass_harvest_wood_vect;
+	std::vector<std::pair<double,int> > sort_vect;
+
+public:
+
+	void sort_data(std::vector<double> v) {
+
+		sort_vect.clear();
+		sort_vect.reserve(stand.nobj);
+		for(unsigned int i=0;i<stand.nobj;i++) {
+			Patch& patch = stand[i];
+			sort_vect.push_back(std::make_pair(v[i],i));
+		}
+		std::sort(sort_vect.begin(), sort_vect.end()); 
+	}
+
+	void sort_cmass_harvest() {
+		sort_data(cmass_harvest_vect);
+	}
+	void sort_cmass_harvest_wood() {
+		sort_data(cmass_harvest_wood_vect);
+	}
+
+	Rank_patches(Stand& standX) : stand(standX) {
+
+		cmass_harvest_vect.reserve(stand.nobj);
+		cmass_harvest_wood_vect.reserve(stand.nobj);
+		for(unsigned int i=0;i<stand.nobj;i++) {
+			Patch& patch = stand[i];
+			cmass_harvest_vect.push_back(check_harvest_cmass(patch));
+			cmass_harvest_wood_vect.push_back(check_harvest_cmass(patch, true));
+		}
+		// Make sure sort_vect is filled
+		sort_cmass_harvest();
+	}
+
+	int get_index(int rank) {
+		return sort_vect[rank].second;
+	}
+	double get_cmass_harvest(int rank) {
+		return cmass_harvest_vect[sort_vect[rank].second];
+	}
+	double get_cmass_harvest_wood(int rank) {
+		return cmass_harvest_wood_vect[sort_vect[rank].second];
+	}
+};
+
+/// Class for ranking individuals according by diameter etc.
+class Rank_individuals {
+
+	Patch& patch;
+	std::vector<double> diam_vect;
+	std::vector<std::pair<double,int> > sort_vect;
+
+public:
+
+	void sort_data(std::vector<double> v) {
+
+		sort_vect.clear();
+		sort_vect.reserve(patch.vegetation.nobj);
+		for(unsigned int i=0;i<patch.vegetation.nobj;i++) {
+			sort_vect.push_back(std::make_pair(v[i],i));
+		}
+		std::sort(sort_vect.begin(), sort_vect.end()); 
+	}
+
+	void sort_diameter() {
+		sort_data(diam_vect);
+	}
+
+	Rank_individuals(Patch& patchX) : patch(patchX) {
+
+		diam_vect.reserve(patch.vegetation.nobj);
+		for(unsigned int i=0;i<patch.vegetation.nobj;i++) {
+			Individual& indiv = patch.vegetation[i];
+			double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
+			if(!indiv.height)
+				diam = 0.0;
+			diam_vect.push_back(diam);
+		}
+		// Make sure sort_vect is filled
+		sort_diameter();
+	}
+	int get_index(int rank) {
+		return sort_vect[rank].second;
+	}
+	double get_diam(int rank) {
+		return diam_vect[sort_vect[rank].second];
+	}
+};
 
 /// Struct for copies of carbon and nitrogen of an individual and associated litter and fluxes resulting from harvest
 /// This is needed if we want to harvest only part of a stand, as during land cover change.
@@ -81,8 +241,13 @@ struct Harvest_CN {
 	double nmass_litter_heart;
 	double acflux_harvest;
 	double anflux_harvest;
-	double harvested_products_slow;
+	double harvested_products_slow;		// May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
 	double harvested_products_slow_nmass;
+	// Partly overlapping with acflux_harvest; not to be included in copy functions.
+	double acflux_harvest_wood;
+	double acflux_harvest_wood_toprod;	// Always zero before harvest
+	double acflux_harvest_tolitter;
+	double acflux_harvest_killed;
 
 	Harvest_CN() {
 
@@ -92,6 +257,7 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
+		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = acflux_harvest_killed = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.
@@ -164,7 +330,7 @@ struct Harvest_CN {
 		}
 	}
 
-	/// Copies C and N values from struct to individual, patchpft and patch (fluxes).
+	/// Copies C and N values from struct to individual, patchpft and patch (fluxes). Use only after a call to copy_from_indiv() before harvest function.
 	void copy_to_indiv(Individual& indiv, bool copy_grsC = false, bool lc_change = false) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -204,6 +370,7 @@ struct Harvest_CN {
 		indiv.nmass_heart = nmass_heart;
 		indiv.nstore_longterm = nstore_longterm;
 		indiv.nstore_labile = nstore_labile;
+		indiv.max_n_storage = max_n_storage;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->nmass_ho = nmass_ho;
@@ -225,6 +392,10 @@ struct Harvest_CN {
 			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at land use change
 		}
 
+		ppft.cmass_wood_harv += acflux_harvest_wood;
+		ppft.cmass_wood_harv_toprod += acflux_harvest_wood_toprod;
+		ppft.cmass_harv_tolitter += acflux_harvest_tolitter;
+	
 //		indiv.report_flux(Fluxes::NPP, debt_excess);
 //		indiv.report_flux(Fluxes::RA, -debt_excess);
 

@@ -211,6 +211,8 @@ void DemoInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	// Retrieve input file names as read from ins file
 
@@ -254,6 +256,11 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
+
+			if(readdisturbance || readdisturbance_st) {
+				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+				// Not all gridcells have to be included in input file
+			}
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {

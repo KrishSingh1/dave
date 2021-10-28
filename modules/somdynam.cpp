@@ -34,6 +34,19 @@
 #include <assert.h>
 #include <bitset>
 #include <vector>
+#include <lookup.h>
+
+// Anonymous namespace for variables with file scope
+namespace {
+
+/// lookup table for soil layer temperature modifier for decomposition
+TempMod_LUT tempmod_lut(0.0, 50.0, 0.0326, 0.00351, 1.652, 41.748, 7.19, 0.01);
+
+/// lookup table for soil layer temperature modifier below freezing for decomposition 
+/// Q10 relationship (Schaefer & Jafarov, 2016; Natali et al., 2019)
+TempFreezeMod_LUT tempfreezemod_lut(MIN_DECOMP_TEMP, 0.0, 0.0326, 2.9, 10.0, 0.01);
+
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -342,7 +355,6 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 		// At higher difference most of the solution is through changes in CUE
 
 		// Decay reduction can not go over 50% of the solution to the mass balance missmatch
-		//double decay_rate_reduction = 1.0 - 0.5 * diff_imm_to_nnetmin * diff_imm_to_nnetmin;
 		double decay_rate_reduction = 1.0 - 0.5 * diff_imm_to_nnetmin;
 
 		double net_n_min_before = 0.0;
@@ -477,24 +489,21 @@ void Soillayer::setntoc(double fac, pooltype pool, double cton_max, double cton_
  */
 double temperature_modifier(double temp_soil) {
 
-	double temp_mod = temp_soil > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(temp_soil, 1.652) - pow(temp_soil / 41.748, 7.19)) : 0.0;
+	double temp_mod = temp_soil > 0.0 ? tempmod_lut(temp_soil) : 0.0;
 
 	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
 	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
 	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && !iftwolayersoil) {
 
-		double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
-		bool linear_decrease_below_freezing = false;
-
-		if (linear_decrease_below_freezing) {
+		if (false) {
 			// Alternative: Linear approach (Koven et al. 2011)
+			double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
 			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
 			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
 		} 
 		else {
-			// Default: Q10 relationship (Schaefer & Jafarov, 2016)
-			double q10_freeze = 2.9; // (Natali et al., 2019)
-			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp_soil / 10.0);
+			// Default: Q10 relationship (Schaefer & Jafarov, 2016; Natali et al., 2019)
+			temp_mod = tempfreezemod_lut(temp_soil);
 		}
 	}
 

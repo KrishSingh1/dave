@@ -46,7 +46,7 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& vm
 		& je
 		& vmaxnlim
-		& vmax_30;
+		& vmax_5;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1281,6 +1281,7 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp              = 0.0;
+	agpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	densindiv         = 0.0;
@@ -1328,6 +1329,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	leafndemand_store = 0.0;
 	rootndemand_store = 0.0;
 
+	optnabovelim      = 0.0;
 	nstress           = false;
 
 	// additional initialisation
@@ -1399,6 +1401,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
+		& agpp
 		& aet
 		& aaet
 		& ltor
@@ -1818,7 +1821,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
-		storendemand = max(0.0, min(max(0.0, anpp) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
+		storendemand = max(0.0, min(max(0.0, agpp) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
 
 	return storendemand;
 }

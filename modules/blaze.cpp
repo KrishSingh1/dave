@@ -628,6 +628,7 @@ void blaze(Patch& patch, Climate& climate) {
 				// Remove NPP and put it to fire flux
 				patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
 				indiv.anpp *= (1. - MAX_GRASS_BURN);
+				indiv.agpp *= (1. - MAX_GRASS_BURN);
 
 				// Kill object if burn is total
 				if (MAX_GRASS_BURN == 1.0) {

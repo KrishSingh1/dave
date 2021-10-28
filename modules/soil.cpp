@@ -26,7 +26,8 @@ NatExp_LUT exp_thermal_lut(Kpeat_log, Kice_log, 0.001, 1.0);
 NatExp_LUT exp_hydro_lut(-187.0, 87.0, 0.01, 1.0);
 
 /// lookup table for natural logarith for hydrological calculations in soil layers
-NatLog_LUT log_hydro_lut(0.0001, 1.0, 0.0001, 1.0);
+NatLog_LUT log_hydro_lut(0.001, 1.0, 0.0001, 1.0);
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -641,7 +642,7 @@ void Snow::phase_change() {
 			if (!negligible(Fwmass)) {
 
 				// Energy to freeze water [J m-3]
-				energy = snowlayers[lyr].Ch * fabs(delta_T); 
+				energy = Cp_water * fabs(delta_T);
 
 				// Fraction water that would freeze [m3 m-3]
 				Ffreez = energy / Lheat;
@@ -696,7 +697,7 @@ void Snow::phase_change() {
 			if (!negligible(Fimass)) {
 
 				// Energy to thaw ice [J m-3]
-				energy = snowlayers[lyr].Ch  * fabs(delta_T);
+				energy = Cp_water * fabs(delta_T);
 
 				// Fraction ice that would thaw [m3 m-3]
 				Fthaw = energy / Lheat;
@@ -4407,8 +4408,8 @@ void Soilcolumn::phase_change() {
 
 				if (Fwmass > 0.0) {
 
-					// Energy from full soil layer to freeze water [J m-3]
-					energy = soillayers[lyr].Ch * fabs(delta_T);
+					// Energy to freeze water [J m-3]
+					energy = Cp_water * fabs(delta_T);
 
 					// Fraction water that would freeze [m3 m-3]
 					Ffreez = energy / Lheat;
@@ -4448,7 +4449,7 @@ void Soilcolumn::phase_change() {
 				if (Fimass > 0.0) {
 
 					// Energy from full soil layer to freeze water [J m-3]
-					energy = soillayers[lyr].Ch * fabs(delta_T);
+					energy = Cp_water * fabs(delta_T);
 
 					// Fraction ice that would thaw [m3 m-3]
 					Fthaw = energy / Lheat;

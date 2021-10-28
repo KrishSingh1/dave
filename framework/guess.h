@@ -619,8 +619,8 @@ struct PhotosynthesisResult : public Serializable {
 	/// nitrogen limitation on vm
 	double vmaxnlim;
 
-	/// Daily Vmax for the last 30 days [nmol g-1 d.w. s-1]
-	Historic<double, 30> vmax_30;
+	/// Daily Vmax for the last 5 days [nmol g-1 d.w. s-1]
+	Historic<double, 5> vmax_5;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
     double net_assimilation() const {
@@ -2761,6 +2761,8 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+	/// accumulated GPP over modelled area (kgC/m2/year)
+	double agpp;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2849,6 +2851,8 @@ public:
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
 	double nmass_veg;
+	/// whether individual optimal leaf nitrogen is above allowed limit
+	bool optnabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)

@@ -306,9 +306,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Calculate storage pool size
 			indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
-				(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong));
+				indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
 			if (!indiv.alive) {
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
+				indiv.scale_n_storage = indiv.max_n_storage /
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
 						indiv.pft.regen.cmass_sap + indiv.pft.regen.cmass_heart) * est_pft);
 			}
@@ -335,10 +335,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_root+=est_pft*indiv.pft.regen.cmass_root;
 
 			// Calculate storage pool size
-			indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_root_avr);
+			indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_root_avr,
+				indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
 			if (!indiv.alive) {
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
-					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root) * est_pft);
+				indiv.scale_n_storage = indiv.max_n_storage / ((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root) * est_pft);
 			}
 		}
 
@@ -537,11 +537,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Calculate storage pool size
 						if(indiv.pft.phenology == CROPGREEN) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
+							indiv.scale_n_storage = indiv.max_n_storage / CMASS_SEED;
 						}
 						else {
-							indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage * indiv.pft.cton_leaf_avr);
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+							indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage * indiv.pft.cton_leaf_avr,
+								indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
+							indiv.scale_n_storage = indiv.max_n_storage / bminit;
 						}
 
 						if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
@@ -681,8 +682,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Calculate storage pool size
 						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
-							(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong));
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
+						indiv.scale_n_storage = indiv.max_n_storage / bminit;
 
 						if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
 

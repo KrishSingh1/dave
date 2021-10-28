@@ -165,16 +165,16 @@ public:
 
 	TFac_LUT() : Lookup() {}
 
-	TFac_LUT(double xmin, double xmax, double precision, double a) : Lookup() {
+	TFac_LUT(double xmin, double xmax, double a, double b, double precision) : Lookup() {
 
-		init(xmin, xmax, precision, a);
+		init(xmin, xmax, a, b, precision);
 	}
 
-	virtual void init(double xmin, double xmax, double precision, double a) {
+	void init(double xmin, double xmax, double a, double b, double precision) {
 
 		std::vector<double> params(2);
 		params[0] = a;
-		params[1] = 25.0;
+		params[1] = b;
 		initialize(xmin, xmax, precision, params);
 	}
 
@@ -184,6 +184,66 @@ public:
 	}
 
 	~TFac_LUT() {}
+
+};
+
+class TempMod_LUT : public Lookup {
+
+public:
+
+	TempMod_LUT() : Lookup() {}
+
+	TempMod_LUT(double xmin, double xmax, double a, double b, double c, double d, double e, double precision) : Lookup() {
+
+		init(xmin, xmax, a, b, c, d, e, precision);
+	}
+
+	void init(double xmin, double xmax, double a, double b, double c, double d, double e, double precision) {
+
+		std::vector<double> params(5);
+		params[0] = a;
+		params[1] = b;
+		params[2] = c;
+		params[3] = d;
+		params[4] = e;
+		initialize(xmin, xmax, precision, params);
+	}
+
+	double fn(double x, const std::vector<double>& params) {
+
+		return max(0.0, params[0] + params[1] * pow(x, params[2]) - pow(x / params[3], params[4]));
+	}
+
+	~TempMod_LUT() {}
+
+};
+
+class TempFreezeMod_LUT : public Lookup {
+
+public:
+
+	TempFreezeMod_LUT() : Lookup() {}
+
+	TempFreezeMod_LUT(double xmin, double xmax, double a, double b, double c,double precision) : Lookup() {
+
+		init(xmin, xmax, a, b, c, precision);
+	}
+
+	void init(double xmin, double xmax, double a, double b, double c, double precision) {
+
+		std::vector<double> params(3);
+		params[0] = a;
+		params[1] = b;
+		params[2] = c;
+		initialize(xmin, xmax, precision, params);
+	}
+
+	double fn(double x, const std::vector<double>& params) {
+
+		return params[0] * pow(params[1], x / params[2]);
+	}
+
+	~TempFreezeMod_LUT() {}
 
 };
 

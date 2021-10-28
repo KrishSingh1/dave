@@ -75,10 +75,18 @@ const double ALPHAA_NLIM = 0.6;	// Same as ALPHAA above but chosen to give pools
 const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
-// Low-affinity NH4 and NO3 parameter for plant uptake [m3 kg-1 N] (Thum et al. 2019 eqn S73, Table S4)
-const double KmNmin = 0.00058 * 2.0;
-// High-affinity NH4 and NO3 parameter for plant uptake [kg N m-3] (Thum et al. 2019 eqn S73, Table S4)
-const double KmN = 0.014 * 2.0;
+// Nitrogen follow Haxeltine & Prentice 1996b
+// Leaf nitrogen (kg N kg-1 C) not associated with photosynthesis
+const double N0 = KG_PER_G * 7.15;
+// Parameter p in Eqn 28, Haxeltine & Prentice 1996b
+const double M = 25.0;
+
+/// Michaelis-Menten kinetic parameters
+// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+const double KmNmin = 0.05;
+// Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000)
+const double KmN_volume = 0.000001477;
+
 // Maximum nitrogen (NH4+ and NO3- combined) uptake per fine root [kgN kgC-1 day-1] (Thum et al. 2019 eqn S73, Table S4)
 // const double nuptoroot = 0.0423 * 2.0;
 

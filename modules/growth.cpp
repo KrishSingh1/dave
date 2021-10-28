@@ -297,6 +297,13 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		nmass_heart += turnover * (1.0 - actual_nrelocfrac);
 		longterm_nstore += turnover * actual_nrelocfrac;
 	}
+
+	// N storage excess turnover
+	double excess_nstore = max(0.0, longterm_nstore - max_n_storage);
+
+	longterm_nstore -= excess_nstore;
+	nmass_litter_root += excess_nstore;
+
 }
 
 
@@ -1509,11 +1516,11 @@ void growth(Stand& stand, Patch& patch) {
 					// Update nitrogen longtime storage
 
 					// Nitrogen approx retranslocated next year
-					double retransn_nextyear = max(0.0, indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac);
+					double retransn_nextyear = max(0.0, indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_min * nrelocfrac +
+						indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_min * nrelocfrac);
 
 					if (indiv.pft.lifeform == TREE)
-						retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
+						retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / indiv.pft.cton_sap_min * nrelocfrac;
 
 					// Assume that raingreen will lose same amount of N through extra leaves next year
 					if (indiv.alive && bminc >= 0 && (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY))
@@ -1522,15 +1529,16 @@ void growth(Stand& stand, Patch& patch) {
 					// Max longterm nitrogen storage
 					if (indiv.pft.lifeform == TREE)
 						indiv.max_n_storage = max(retransn_nextyear, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
-							(indiv.cmass_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root / indiv.pft.cton_root_avr) / max(1.0, indiv.pft.leaflong)));
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
 					else // GRASS
-						indiv.max_n_storage = max(retransn_nextyear, indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr);
+						indiv.max_n_storage = max(retransn_nextyear, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
 
 					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						double nstore = max(0.0, indiv.nstore() - ((indiv.cmass_leaf / cton_leaf_bg - indiv.nmass_leaf) +
-							(indiv.cmass_root / cton_root_bg - indiv.nmass_root) + (indiv.cmass_sap / cton_sap_bg - indiv.nmass_sap)));
-						indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear - nstore) / indiv.anpp;
+					if (indiv.agpp > 0.0) {
+						double nstore = max(0.0, indiv.nstore() - ((indiv.cmass_leaf / indiv.pft.cton_leaf_max - indiv.nmass_leaf) +
+							(indiv.cmass_root / indiv.pft.cton_root_max - indiv.nmass_root) + (indiv.cmass_sap / indiv.pft.cton_sap_max - indiv.nmass_sap)));
+						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear - nstore) / indiv.agpp;
 					} // else use last years scaling factor
 				}
 			}

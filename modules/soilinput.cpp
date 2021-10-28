@@ -484,7 +484,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.soilC = soilprop.soilC;
 
 	// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
-	soiltype.a = soiltype.clay_frac < 0.016 ? 0.0 : (soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * soiltype.clay_frac - 0.046);
+	soiltype.a = soiltype.clay_frac < 0.0165 ? 0.0 : (soiltype.clay_frac > 0.373 ? 1.0 : 2.8 * soiltype.clay_frac - 0.046);
 
 	// Standard deviation of orography (300.0 standard value)
 	double sdor = 300.0; 

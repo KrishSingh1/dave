@@ -75,9 +75,9 @@ const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 
-inline bool negligible(double dval, int limit = 0) {
+inline bool negligible(double dval, double limit = 10000.1) {
 	// Returns true if |dval| < EPSILON, otherwise false
-	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
+	return limit > 10000.0 ? fabs(dval) < 1.0e-30 : fabs(dval) < limit;
 }
 
 inline double roundoff(double dval, int limit) {

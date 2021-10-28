@@ -1872,7 +1872,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		double nmass_tot = NH4_mass + NO3_mass;
 		if (nmass_tot > 0.0) {
 			residual = nmass_tot - nmass;
-			if (residual >= 0.0 || negligible(residual, -10)) {
+			if (residual >= 0.0 || negligible(residual, 1.0e-10)) {
 				nmass_subtract(nmass * NH4_mass / nmass_tot, NH4);
 				nmass_subtract(nmass * NO3_mass / nmass_tot, NO3);
 			}
@@ -1882,7 +1882,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 	}
 	else if (pref == NH4) {
-		if (nmass <= NH4_mass || negligible(nmass - NH4_mass, -10)) {
+		if (nmass <= NH4_mass || negligible(nmass - NH4_mass, 1.0e-10)) {
 			NH4_mass = max(0.0, NH4_mass - nmass);
 		}
 		else {
@@ -1891,7 +1891,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 	}
 	else if (pref == NO3) {
-		if (nmass <= NO3_mass || negligible(nmass - NO3_mass, -10)) {
+		if (nmass <= NO3_mass || negligible(nmass - NO3_mass, 1.0e-10)) {
 			NO3_mass = max(0.0, NO3_mass - nmass);
 		}
 		else {
@@ -4936,10 +4936,10 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	// Negative flow from layer below
 	std::vector<double> cfluxes(nsoillayers - 1);
 	cfluxes[0] = (VMpara.psi[0] - VMpara.psi1[0]) * VMpara.dz[0];
-	cfluxes[0] = negligible(cfluxes[0], -12) ? 0.0 : cfluxes[0];
+	cfluxes[0] = negligible(cfluxes[0], 1.0e-12) ? 0.0 : cfluxes[0];
 	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
 		cfluxes[lyr] = cfluxes[lyr - 1] + (VMpara.psi[lyr] - VMpara.psi1[lyr]) * VMpara.dz[lyr];
-		cfluxes[lyr] = negligible(cfluxes[lyr], -12) ? 0.0 : cfluxes[lyr];
+		cfluxes[lyr] = negligible(cfluxes[lyr], 1.0e-12) ? 0.0 : cfluxes[lyr];
 	}
 
 	// Check for inconsistencies in downwards flux, no negative C mass

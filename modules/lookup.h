@@ -224,7 +224,7 @@ public:
 
 	TempFreezeMod_LUT() : Lookup() {}
 
-	TempFreezeMod_LUT(double xmin, double xmax, double a, double b, double c,double precision) : Lookup() {
+	TempFreezeMod_LUT(double xmin, double xmax, double a, double b, double c, double precision) : Lookup() {
 
 		init(xmin, xmax, a, b, c, precision);
 	}
@@ -247,6 +247,32 @@ public:
 
 };
 
+class MoistSatMod_LUT : public Lookup {
+
+public:
+
+	MoistSatMod_LUT() : Lookup() {}
+
+	MoistSatMod_LUT(double xmin, double xmax, double a, double precision) : Lookup() {
+
+		init(xmin, xmax, a, precision);
+	}
+
+	void init(double xmin, double xmax, double a, double precision) {
+
+		std::vector<double> params(1);
+		params[0] = a;
+		initialize(xmin, xmax, precision, params);
+	}
+
+	double fn(double x, const std::vector<double>& params) {
+
+		return pow(x, params[0]);
+	}
+
+	~MoistSatMod_LUT() {}
+
+};
 
 class XpowA_LUT : public Lookup {
 

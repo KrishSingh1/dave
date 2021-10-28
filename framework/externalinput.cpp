@@ -445,7 +445,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		}
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		if(!negligible(sum_active - 1.0, 1.0e-14))	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
 
 			if(date.year == 0)
 				dprintf("Landcover fraction sum not 1.0 !\n");

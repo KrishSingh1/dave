@@ -1854,7 +1854,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	for(int i=0; i<NLANDCOVERTYPES; i++)
 		lc_frac_sum += gridcell.landcover.frac[i];
 
-	if(!negligible(lc_frac_sum - 1.0, -13)) {
+	if(!negligible(lc_frac_sum - 1.0, 1.0e-13)) {
 		dprintf("\nCheck 1: Year %d: landcover fraction sum: %.15f", date.year, lc_frac_sum);
 		error = true;
 	}
@@ -2738,7 +2738,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
 	}
 
-	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, -11))
+	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, 1.0e-11))
 		dprintf("WARNING ! Year %d C balance after lcc off by %.12f\n",date.year, cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
 
 	double ncont_tot = 0.0;
@@ -2755,7 +2755,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems
 	nflux_tot += gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow;
 
-	if(!negligible(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1, -12))
+	if(!negligible(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1, 1.0e-12))
 		dprintf("WARNING ! Year %d N balance after lcc off by %.12f\n", date.year, nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1);
 
 	double wcont_tot = 0.0;
@@ -2766,7 +2766,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		wcont_tot += wcont_stand * stand.get_gridcell_fraction();
 	}
 
-	if (!negligible(wcont_tot - wcont_tot_1, -12))
+	if (!negligible(wcont_tot - wcont_tot_1, 1.0e-12))
 		dprintf("WARNING ! Year %d Water balance after lcc off by %.12f\n",date.year, wcont_tot - wcont_tot_1);
 	*/
 

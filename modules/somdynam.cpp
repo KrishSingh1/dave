@@ -40,11 +40,14 @@
 namespace {
 
 /// lookup table for soil layer temperature modifier for decomposition
-TempMod_LUT tempmod_lut(0.0, 50.0, 0.0326, 0.00351, 1.652, 41.748, 7.19, 0.01);
+TempMod_LUT tempmod_lut(0.0, 45.0, 0.0326, 0.00351, 1.652, 41.748, 7.19, 0.01);
 
 /// lookup table for soil layer temperature modifier below freezing for decomposition 
 /// Q10 relationship (Schaefer & Jafarov, 2016; Natali et al., 2019)
 TempFreezeMod_LUT tempfreezemod_lut(MIN_DECOMP_TEMP, 0.0, 0.0326, 2.9, 10.0, 0.01);
+
+/// lookup table for soil layer moisture modifier above field capacity 
+MoistSatMod_LUT moistsatmod_lut(0.0, 1.0, 0.75, 0.001);
 
 }
 
@@ -513,17 +516,12 @@ double temperature_modifier(double temp_soil) {
 
 /// Water Modifier for Decomposition
 /** Calculate decomposition moisture modifier (in range 0-1)
- *  Friend et al 1997, Eqn 53 (Parton et al 1993, Fig 2)
+ *  Yan et al 2018 - A moisture function of soil heterotrophic
+ *  respiration that incorporates microscale processes
  *
- *  \param wfps  Water-filled pore space
  *  \param theta  Total water mass (ice + water)
  */
 double Soillayer::moisture_modifier() {
-
-	// double moist_mod = wfps < 60.0 ? exp((wfps - 60.0) * (wfps - 60.0) / -800.0) : 0.000371 * wfps * wfps - 0.0748 * wfps + 4.13;
-
-	// Yan et al 2018 - A moisture function of soil heterotrophic
-	// respiration that incorporates microscale processes
 
 	// Minimum moist modifier for dry soils
 	double moist_mod_dry = 0.064;
@@ -539,11 +537,8 @@ double Soillayer::moisture_modifier() {
 	if (theta < fc()) {
 		moist_mod = max(moist_mod_dry, moist_mod_max * (fc() + 0.1) / (theta + 0.1) * pow(theta / fc(), 1.0 + a * 2.0));
 	}
-	else if (wsats - theta > 1.0e-12) {
-		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * pow((wsats - theta) / (wsats - fc()), 0.75));
-	}
-	else {
-		moist_mod = RMOIST_ANAEROBIC;
+	else { // wsats - theta >= 0.0 
+		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * moistsatmod_lut((wsats - theta) / (wsats - fc())));
 	}
 	
 	return moist_mod;
@@ -1253,7 +1248,7 @@ void transfer_litter(Patch& patch) {
 							fireresist[SURFMETA] += cmass_litter_leaf * fm * ppft.pft.fireresist;
 						}
 
-						if (negligible(soillayer.sompool[SURFSTRUCT].cmass, -16)) {
+						if (negligible(soillayer.sompool[SURFSTRUCT].cmass, 1.0e-16)) {
 							soillayer.sompool[SURFSTRUCT].ligcfrac = 0.0;
 						}
 						else {
@@ -1293,7 +1288,7 @@ void transfer_litter(Patch& patch) {
 							soillayer.litterSolveSOM.add_litter(cmass_litter_root * root_lyr_frac * fm, nmass_litter_root * root_lyr_frac * fm, SOILMETA);
 						}
 
-						if (negligible(soillayer.sompool[SOILSTRUCT].cmass, -16)) {
+						if (negligible(soillayer.sompool[SOILSTRUCT].cmass, 1.0e-16)) {
 							soillayer.sompool[SOILSTRUCT].ligcfrac = 0.0;
 						}
 						else {
@@ -1329,7 +1324,7 @@ void transfer_litter(Patch& patch) {
 								soillayer.litterSolveSOM.add_litter(cmass_litter_sap * (1.0 - COARSE_ROOT_FRAC), nmass_litter_sap * (1.0 - COARSE_ROOT_FRAC), SURFFWD);
 							}
 
-							if (negligible(soillayer.sompool[SURFFWD].cmass, -16)) {
+							if (negligible(soillayer.sompool[SURFFWD].cmass, 1.0e-16)) {
 								soillayer.sompool[SURFFWD].ligcfrac = 0.0;
 							}
 							else {
@@ -1361,7 +1356,7 @@ void transfer_litter(Patch& patch) {
 							soillayer.litterSolveSOM.add_litter(cmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac, nmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac, SOILFWD);
 						}
 
-						if (negligible(soillayer.sompool[SOILFWD].cmass, -16)) {
+						if (negligible(soillayer.sompool[SOILFWD].cmass, 1.0e-16)) {
 							soillayer.sompool[SOILFWD].ligcfrac = 0.0;
 						}
 						else {
@@ -1392,7 +1387,7 @@ void transfer_litter(Patch& patch) {
 								soillayer.litterSolveSOM.add_litter(cmass_litter_heart * (1.0 - COARSE_ROOT_FRAC), nmass_litter_heart * (1.0 - COARSE_ROOT_FRAC), SURFCWD);
 							}
 
-							if (negligible(soillayer.sompool[SURFCWD].cmass, -16)) {
+							if (negligible(soillayer.sompool[SURFCWD].cmass, 1.0e-16)) {
 								soillayer.sompool[SURFCWD].ligcfrac = 0.0;
 							}
 							else {
@@ -1424,7 +1419,7 @@ void transfer_litter(Patch& patch) {
 							soillayer.litterSolveSOM.add_litter(cmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac, nmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac, SOILCWD);
 						}
 
-						if (negligible(soillayer.sompool[SOILCWD].cmass, -16)) {
+						if (negligible(soillayer.sompool[SOILCWD].cmass, 1.0e-16)) {
 							soillayer.sompool[SOILCWD].ligcfrac = 0.0;
 						}
 						else {
@@ -1608,7 +1603,7 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 		// Water percolation for this time step
 		double dperc = wfluxes[lyr + 1];
 
-		if (!negligible(fabs(dperc) + runoff, -10)) {
+		if (!negligible(fabs(dperc) + runoff, 1.0e-10)) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water percolated or drainage
@@ -2027,7 +2022,7 @@ void equilsom(Patch& patch) {
 						}
 
 						// Monthly nitrogen addition from fixation to the soil layer
-						if (!negligible(cconttot, -12))
+						if (!negligible(cconttot, 1.0e-12))
 							soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.get(CCONT) / cconttot, NH4);
 
 						// Monthly decomposition and fluxes between SOM pools
@@ -2150,14 +2145,14 @@ void equilsom(Patch& patch) {
 					double hccont_mean = hist_ccont[lyr].mean();
 
 					// Calculate trend normalised against historical mean
-					double hsslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].slope() / hslow_mean : 0.0;
-					double hspas = !negligible(hpas_mean, -12) ? hist_passive[lyr].slope() / hpas_mean : 0.0;
-					double hsccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].slope() / hccont_mean : 0.0;
+					double hsslow = !negligible(hslow_mean, 1.0e-12) ? hist_slow[lyr].slope() / hslow_mean : 0.0;
+					double hspas = !negligible(hpas_mean, 1.0e-12) ? hist_passive[lyr].slope() / hpas_mean : 0.0;
+					double hsccont = !negligible(hccont_mean, 1.0e-12) ? hist_ccont[lyr].slope() / hccont_mean : 0.0;
 
 					// Calculate std normalised against historical mean
-					double hstdslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].std() / hslow_mean : 0.0;
-					double hstdpas = !negligible(hpas_mean, -12) ? hist_passive[lyr].std() / hpas_mean : 0.0;
-					double hstdccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
+					double hstdslow = !negligible(hslow_mean, 1.0e-12) ? hist_slow[lyr].std() / hslow_mean : 0.0;
+					double hstdpas = !negligible(hpas_mean, 1.0e-12) ? hist_passive[lyr].std() / hpas_mean : 0.0;
+					double hstdccont = !negligible(hccont_mean, 1.0e-12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
 
 					// Calculte how many trends and stds that are too big
 					if ((iftwolayersoil || lyr > 0) && (fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend_passive || fabs(hsccont) > EPS_trend) &&

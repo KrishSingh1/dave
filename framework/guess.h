@@ -642,6 +642,18 @@ public:
 	/// Random state's residuals
 	double resid[4];
 
+	WeatherGenState() {
+		for (int i = 0; i<10; i++) q[i] = 0;
+		carry = 0;
+		xcng = 0;
+		xs = 0;
+		indx = 0;
+		have = false;
+		for (int i = 0; i<2; i++) gamma_vals[i] = 0.0;
+		for (int i = 0; i<2; i++) pday[i] = false;
+		for (int i = 0; i<4; i++) resid[i] = 0.0;
+	}
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -903,9 +915,9 @@ public:
 
 	// BLAZE
 	/// average annual rainfall (mm/a)
-	double avg_annual_rainfall;
+	double rainfall_annual_avg;
 	/// current sum of annual Rainfall (mm)
-	double cur_rainfall;
+	double rainfall_cur;
 	/// Accumulated last rainfall (mm)
 	double last_rainfall;
 	/// Days since last rainfall 
@@ -915,7 +927,7 @@ public:
 	/// McArthur forest fire index (FFDI)
 	double mcarthur_forest_fire_index;	
 	/// To keep track of running months daily FFDI 
-	double months_ffdi[30];	
+	double ffdi_monthly[30];	
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -1115,6 +1127,17 @@ public:
 			coldestday = COLDEST_DAY_SHEMISPHERE;
 			adjustlat = 181;
 		}
+
+		// BLAZE related variables
+		rainfall_annual_avg      = 0.0; // average annual rainfall [mm]
+		days_since_last_rainfall = 0;   // #Days-since-last-rainfall >3mm
+		last_rainfall            = 0.0; // rainfall of last day of previous year [mm]
+		kbdi                     = 0.0; // Keetch-Byram-Drought-index []
+
+		for (int x=0; x<30; x++) {
+			ffdi_monthly[x] = 0.;
+		}
+
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -3327,9 +3350,6 @@ public:
 	// available water holding capacity of soil layers [0=upper layer] [mm], taking into
 	// account the unavailability of frozen water. Default value: soiltype.awc[]
 	double whc[NSOILLAYER];
- 	// available water holding capacity of evap soil layers [mm], taking into
-	// account the unavailability of frozen water. Default value: (2/5) * soiltype.awc[]
-	double whc_evap;
 	/// Max water (mm) that can be held in each layer
 	double aw_max[NSOILLAYER];
 	// Volumetric liquid water content. A fraction. Considers the entire (awc + Fpwp)
@@ -4045,6 +4065,8 @@ public:
 	/// probability of fire this year (GlobFIRM)
 	double fireprob;
 
+	/// BLAZE if patch has burnt this year
+	bool burned;
 	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
 
@@ -4070,15 +4092,17 @@ public:
 
 	// Storage for averaging of different Fapars for biome mapping in SIMFIRE
 	/// SIMFIRE fapar: Grasses
-	double avg_fgrass[N_YEAR_BIOMEAVG];
+	double fapar_grass_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Needle-leaf tree
-	double avg_fndlt[N_YEAR_BIOMEAVG];
+	double fapar_ndlt_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Broad-leaf tree
-	double avg_fbrlt[N_YEAR_BIOMEAVG];
+	double fapar_brlt_avg[N_YEAR_BIOMEAVG];
+	/// SIMFIRE fapar: TrBR (Savanna)
+	double fapar_trbr_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Shrubs
-	double avg_fshrb[N_YEAR_BIOMEAVG];
+	double fapar_shrub_avg[N_YEAR_BIOMEAVG];
 	/// SIMFIRE fapar: Total fapar
-	double avg_ftot[N_YEAR_BIOMEAVG];
+	double fapar_total_avg[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
 	bool managed;
@@ -4730,30 +4754,32 @@ public:
 	/// tuning factor for available litter
 	double k_tun_litter;
 	/// maximum annual Nesterov Index
-	double max_nesterov;
+	double nesterov_max;
 	/// current Nexterov index
-	double cur_nesterov;
+	double nesterov_cur;
 	/// Monthly max Nexterov index (to keep track of running year)
-	double monthly_max_nesterov[12];
+	double nesterov_monthly_max[12];
 	/// biome classification used in SIMFIRE
 	int simfire_biome;
 	/// Average maximum annual fAPAR (over avg_interv_fpar years)
-	double ann_max_fapar;
+	double fapar_annual_max;
 	/// Average maximum annual fAPAR of recent years
-	double recent_max_fapar[AVG_INTERVAL_FAPAR];
+	double fapar_recent_max[AVG_INTERVAL_FAPAR];
 	/// maximum fapar of running year so far
-	double cur_max_fapar;
+	double fapar_cur_max;
 	/// monthly fire risk (factor describing local monthly fire climatology)
 	double monthly_fire_risk[12];
 	/// current burned area from SIMFIRE (fract.)
 	double burned_area;
+	/// effectively burned area (after randFrac in BLAZE)
+	double effective_burned_area;
 	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
-	double burned_area_accumulated;
+	double simfire_annual_burned_area;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
-	/// annual burned area from SIMFIRE (fract.)
+	/// annual burned area
 	double annual_burned_area;
-	/// monthly burned area from SIMFIRE (fract.)
+	/// monthly burned area
 	double monthly_burned_area[12];
 
 	// Nitrogen deposition
@@ -4849,10 +4875,16 @@ private:
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
+// Gerten, D., Schaphoff, S., Haberlandt, W., Lucht, W. & Sitch, S. 2004. 
+//   Terrestrial vegetation and water balance—hydrological evaluation of a dynamic 
+//   global vegetation model. Journal of Hydrology 286: 249-270.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
+// Jackson, R.B., Canadell, J., Ehleringer, J.R., Mooney, H.A., Sala O.E. & Schulze, E.D. 1996
+//   A global analysis of root distributions for terrestrial biomes. 
+//   Oecologia, Volume 108: 389–411
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
 // Macduff, JH, Humphreys, MO & Thomas, H 2002. Effects of a stay-green mutation on

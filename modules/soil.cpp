@@ -239,7 +239,6 @@ void Soil::init_states() {
 	nsublayer1 = (int)(SOILDEPTH_UPPER / Dz_soil);		// 5, typically
 	nsublayer2 = (int)(SOILDEPTH_LOWER / Dz_soil);		// 10, typically
 	num_evaplayers = (int)(SOILDEPTH_EVAP / Dz_soil);	// 2, typically
-	whc_evap = soiltype.awc[0] + soiltype.awc[1];		// mm
 
 	// Depths of the acrotelm & catotelm 
 	acro_depth = NACROTELM * Dz_acro;
@@ -955,7 +954,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 
 	// Implement in- and outgoing fluxes to the top 50cm soil layers, taking into account AET in those layers and evaporation
-	// ice_impedance[0] reduces the input when there is ice present in the top 20cm.
 	double water_flux_in = rain_melt;	// mm
 
 	// Initialise runoff variables
@@ -1120,7 +1118,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		double perc_from_base = 0.0;
 		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC) {
 
-			// ice_impedance[2] reduces the base flow rate when there is ice present in the 50-150 cm layers.
 			perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
 			perc_from_base = min(perc_from_base, Faw_perc_layer_2); // Only available water in these layers can percolate
 
@@ -2491,8 +2488,8 @@ void cnstep(int layer0, double Di[NLAYERS], double dz[NLAYERS], double surf_temp
 		}
 		else {
 			// bottom padding layer
-			dzplus = pad_dz[PAD_LAYERS - 1]; // PaulM added -1
-			tplus = pad_temp[PAD_LAYERS - 1]; // PaulM added -1
+			dzplus = pad_dz[PAD_LAYERS - 1];
+			tplus = pad_temp[PAD_LAYERS - 1];
 		}
 
 		// --- MINUS ---
@@ -2646,8 +2643,6 @@ void Soil::init_hydrology_variables() {
 	// sub_water[NSUBLAYERS_ACRO] - the volumetric water content in the NSUBLAYERS_ACRO of the acrotelm
 	// whc[NSOILLAYER] - available water holding capacity of soil layers [0=upper layer] [mm], taking into
 	// account the unavailability of frozen water. Default value: soiltype.awc[]
-	// whc_evap - available water holding capacity of evap soil layers [mm], taking into
-	// account the unavailability of frozen water. Default value: (2/5) * soiltype.awc[]
 	// aw_max[NSOILLAYER] - Max water (mm) that can be held in each layer
 	// alwhc[NLAYERS] - the volumetric liquid water content. A fraction. 
 	// Considers the entire (awc + Fpwp) volumetric water content MINUS the ice fraction. Updated daily.
@@ -2943,7 +2938,7 @@ void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
 		Ftot = totalwaterinlayer + totaliceinlayer + Frac_org[i] + Frac_min[i] + Frac_peat[i]; 
 
 		if (Ftot + Frac_air[i] > 1.000001)
-			fail("Illegal Ftot (%g) + Fair (%g) value in Soil::update_soil_diffusivities: %g", Ftot, Frac_air[i], Ftot +Frac_air[i]);
+			fail("Illegal Ftot (%g) + Frac_air (%g) value in Soil::update_soil_diffusivities: %g", Ftot, Frac_air[i], Ftot +Frac_air[i]);
 
 		lKforg = (Frac_org[i] / Ftot) * lKorg;
 		lKfpeat = (Frac_peat[i] / Ftot) * lKpeat;
@@ -3273,7 +3268,7 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 
 			for (int ii = IDX; ii<NLAYERS; ii++) {
 
-				if (!iforganicsoilproperties || soiltype.soilcode == 7) {
+				if (!iforganicsoilproperties || soiltype.soilcode == 8) {
 
 					// No updates to the standard values for LPJ-GUESS soils
 					por[ii] = soiltype.porosity;
@@ -3311,7 +3306,7 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 			// initialize after restarts
 			for (int ii = IDX; ii<NLAYERS; ii++) {
 
-				if (!iforganicsoilproperties || soiltype.soilcode == 7) {
+				if (!iforganicsoilproperties || soiltype.soilcode == 8) {
 
 					// No updates to the standard values for LPJ-GUESS soils
 					por[ii] = soiltype.porosity;
@@ -3905,7 +3900,6 @@ void Soil::serialize(ArchiveStream& arch) {
 		& Frac_water
 		& Frac_air
 		& whc
-		& whc_evap
 		& alwhc
 		& aw_max // optimise through init after restart?
 		// Methane parameters
@@ -3959,17 +3953,100 @@ void Soil::serialize(ArchiveStream& arch) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
+// References not related to Arctic and wetland code:
 //
 // Fukusako, S. Int J Thermophys (1990) 11: 353. doi:10.1007/BF01133567
 // Chadburn, S., Burke, E., Essery, R., Boike, J., Langer, M., Heikenfeld, M., Cox, P., 
-//  and Friedlingstein, P.: An improved representation of physical permafrost dynamics 
-//  in the JULES land - surface model, Geosci.Model Dev., 8, 1493 - 1508, 
-//  https ://doi.org/10.5194/gmd-8-1493-2015, 2015
+//   and Friedlingstein, P.: An improved representation of physical permafrost dynamics 
+//   in the JULES land - surface model, Geosci.Model Dev., 8, 1493 - 1508, 
+//   https ://doi.org/10.5194/gmd-8-1493-2015, 2015
 // Jobbagy, E. G. & Jackson, R. B. (2000) The vertical distribution of soil carbon
-//  and its relation to climate and vegetation. Ecological Applications 10(2): 423-436
+//   and its relation to climate and vegetation. Ecological Applications 10(2): 423-436
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling
 //   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine,
 //   XXXV-XLIII, MIT Press, Mass.
-// For Arctic and wetland references see soil.h
+//
+///////////////////////////////////////////////////////////////////////////////////////
+//  Arctic and wetland references:
+//
+// Aerts, R., Verhoeven, J.T.A., & Whigham, D.F. (1999) Plant-mediated controls on nutrient cycling 
+//   in temperate fenns and bogs, Ecology, 80 (7), 2170-2181. 
+// Best et al. (2011) Geosci. Model Dev., 4, 677-699. www.geosci-model-dev.net/4/677/2011/
+//   doi:10.5194/gmd-4-677-2011
+// Bonan, G.B. 2002 Ecological Climatology, Cambridge University Press 
+// Clein, J. S., and J. P. Schimel, Microbial activity of tundra and taiga soils at sub-zero 
+//   temperatures, Soil Biol. Biochem., 27(9), 1231-1234, 1995.
+// Cronk, J. K. and Fennessy, M. S.: Wetland Plants: Biology and Ecology, CRC Press LLC, 2001.
+// Ekici, A., Chadburn, S., Chaudhary, N., Hajdu, L. H., Marmy, A., Peng, S., Boike, J., Burke, E., 
+//   Friend, A. D., Hauck, C., Krinner, G., Langer, M., Miller, P. A., and Beer, C.: Site-level model 
+//   intercomparison of high latitude and high altitude soil thermal dynamics in tundra and barren 
+//   landscapes, The Cryosphere, 9, 1343-1361, https://doi.org/10.5194/tc-9-1343-2015, 2015.
+// Frolking, S., Roulet, N. T., Moore, T. R., Richard, P. J. H., Lavoie, M., and Muller, S. D.: Modeling 
+//   northern peatland decomposition and peat accumulation, Ecosystems, 4, 479-498, 2001.
+// Frolking, S., Roulet, N. T., Tuittila, E., Bubier, J. L., Quillet, A., Talbot, J., and Richard, 
+//   P. J. H.: A new model of Holocene peatland net primary production, decomposition, water balance, 
+//   and peat accumulation, Earth Syst. Dynam., 1, 1-21, https://doi.org/10.5194/esd-1-1-2010, 2010.
+// Fukusako, S. (1990) Thermophysical properties of ice, snow, and sea ice. Int. J. Thermophys., 11(2):
+//	 353-372. doi:10.1007/BF01133567
+// Granberg, et al. 1999 A simple model for simulation of water content, soil frost, 
+//   and soil temperatures in boreal mixed mires. Water Resour. Res., 35(12), 3771-3782.
+// Hillel D., (1982) Introduction to soil physics. Academic Press, San Diego, CA, USA.
+// Ise, T., Dunn, A.L, Wofsy, S.C. & Moorcroft, P.R.: High sensitivity of peat decomposition to climate 
+//   change through water-table feedback. Nature Geoscience volume 1, pages 763-766 (2008)
+// Jaehne, B., Heinz, G., and Dietrich, W.: Measurement of the diffusion coefficients of sparingly 
+//   soluble gases in water, J. Geophys. Res., 92, 10767-10776, 1987.
+// Koven, C.D, Ringeval, B., Friedlingstein, P., Ciais, P., Cadule, P., Khvorostyanov, D.,
+//   Krinner, G., and Tarnocai C. (2011) Permafrost carbon-climate feedbacks accelerate global warming, 
+//   PNAS, vol. 108 no. 36, 14769-14774. 
+// Lawrence, D. M., and A. G. Slater, 2008: Incorporating organic soil into a global climate model. 
+//   Climate Dynamics, 30, 145-160, doi:10.1007/s00382-007-0278-1.
+// Ling, F., and Zhang, T. (2006) Sensitivity of ground thermal regime and surface energy fluxes to
+//   tundra snow density in northern Alaska. Cold Regions Science and Technology 44 (2006) 121-130
+// McGuire, A. D., Christensen, T. R., Hayes, D., Heroult, A., Euskirchen, E., Kimball, J. S., Koven, C., 
+//   Lafleur, P., Miller, P. A., Oechel, W., Peylin, P., Williams, M., and Yi, Y.: An assessment of 
+//   the carbon balance of Arctic tundra: comparisons among observations, process models, and atmospheric 
+//   inversions, Biogeosciences, 9, 3185-3204, https://doi.org/10.5194/bg-9-3185-2012, 2012.
+// Potter, C. S., Davidson, E. A., and Verchot, L. V.: Estimation of global biogeochemical controls and 
+//   seasonality in soil methane consumption, Chemosphere, 32, 2219-2246, 1996.
+// Riera, J. L., Schindler, J. E., and Kratz, T. K.: Seasonal dynamics of carbon dioxide and methane in 
+//   two clear-water lakes and two bog lakes in northern Wisconsin, USA, 
+//   Can. J. Fish. Aquat. Sci., 56, 265-274, 1999.
+// Sander, R.: Compilation of Henry's Law Constants for inorganic and organic species of potential 
+//   importance in environmental chemistry, Tech. Rep. Version 3, MPI Mainz, Air Chemistry Department,
+//   Max-Planck Institute of Chemistry, 1999.
+// Schimel, J. P.: Plant transport and methane production as controls on methane flux from arctic wet 
+//   meadow tundra, Biogeochem., 28, 183-200, 1995.
+// Smolders, A. J. P., H. B. M. Tomassen, H. W. Pijnappel, L. P. M. Lamers, and J. G. M. Roelofs (2001), 
+//   Substrate-derived CO2 is important in the development of Sphagnum spp., New Phytol., 152(2), 325- 332.
+// Spahni, R., Wania, R., Neef, L., van Weele, M., Pison, I., Bousquet, P., Frankenberg, C., Foster, 
+//   P. N., Joos, F., Prentice, I. C., and van Velthoven, P.: Constraining global methane emissions and 
+//   uptake by ecosystems, Biogeosciences, 8, 1643-1665, https://doi.org/10.5194/bg-8-1643-2011, 2011.
+// Sturm, M., Holmgren, J., Konig, M., and Morris, K. (1997) The thermal conductivity of seasonal snow. 
+//   Journal of Glaciology 43 (143), 26-41.
+// Swenson, S.C., Lawrence, D.M., and Lee, H. 2012. Improved Simulation of the Terrestrial Hydrological 
+//   Cycle in Permafrost Regions by the Community Land Model. JAMES, 4, M08002. DOI:10.1029/2012MS000165.
+// Tang, J., Miller, P. A., Persson, A., Olefeldt, D., Pilesjo, P., Heliasz, M., Jackowicz-Korczynski, 
+//   M., Yang, Z., Smith, B., Callaghan, T. V., and Christensen, T. R.: Carbon budget estimation of a 
+//   subarctic catchment using a dynamic ecosystem model at high spatial resolution, 
+//   Biogeosciences, 12, 2791-2808, doi:10.5194/bg-12-2791-2015, 2015.
+// Wania, R., Ross, I., & Prentice, I.C. (2009a) Integrating peatlands and permafrost 
+//   into a dynamic global vegetation model: I. Evaluation and sensitivity of physical 
+//   land surface processes. Global Biogeochemical Cycles, 23, GB3014, doi:10.1029/2008GB003412
+// Wania, R., Ross, I., & Prentice, I.C. (2009b) Integrating peatlands and permafrost 
+//   into a dynamic global vegetation model: II. Evaluation and sensitivity of vegetation 
+//   and carbon cycle processes. Global Biogeochemical Cycles, 23, GB015, doi:10.1029/2008GB003413
+// Wania, R., Ross, I., & Prentice, I.C. (2010) Implementation and evaluation of a new methane 
+//   model within a dynamic global vegetation model: LPJ-WHyMe v1.3.1, Geosci. Model Dev., 3, 565-584.
+// Wisser, D., Marchenko, S., Talbot, J., Treat, C., and Frolking, S. (2011) Soil temperature response 
+//   to 21st century global warming: the role of and some implications for peat carbon in thawing 
+//   permafrost soils in North America, Earth Syst. Dynam., 2, 121-138
+// Wolf, A., Callaghan T.V., & Larson K. (2008) Future changes in vegetation and ecosystem 
+//   function of the Barents Region. Climatic Change, 87:51-73 DOI 10.1007/s10584-007-9342-4
+// Yurova, A., Wolf, A., Sagerfors, J., & Nilsson, M. (2007) Variations in net ecosystem 
+//   exchange of carbon dioxide in a boreal mire: Modeling mechanisms linked to water table 
+//   position, Journal of Geophysical Research, 112, art. no. G02025, doi:10.1029/2006JG000342.
+// Zhang, W., Miller, P.A., Smith, B., Wania, R., Koenigk, T. & Doscher, R., 2013, 
+//   Tundra shrubification and tree-line advance amplify arctic climate warming: results from an 
+//   individual-based dynamic vegetation model. Environmental Research Letters 8: 034023.

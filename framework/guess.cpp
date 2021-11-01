@@ -119,11 +119,11 @@ void Climate::serialize(ArchiveStream& arch) {
 		& var_prec
 		& var_temp
 		& aprec
-		& avg_annual_rainfall
+		& rainfall_annual_avg
 		& last_rainfall
 		& days_since_last_rainfall
 		& kbdi
-		& months_ffdi
+		& ffdi_monthly
 		& weathergenstate;
 }
 
@@ -399,6 +399,8 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 
 	growingseasondays = 0;
 
+	burned = false;
+	fire_line_intensity = 0.0;
 	fireprob = 0.0;
 	ndemand = 0.0;
 	dnfert = 0.0;
@@ -409,11 +411,12 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	}
 
 	for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
-		avg_fbrlt[i] = 0.0;
-		avg_fgrass[i] = 0.0;
-		avg_fndlt[i] = 0.0;
-		avg_fshrb[i] = 0.0;
-		avg_ftot[i] = 0.0;
+		fapar_brlt_avg[i]  = 0.0;
+		fapar_trbr_avg[i]  = 0.0;
+		fapar_grass_avg[i] = 0.0;
+		fapar_ndlt_avg[i]  = 0.0;
+		fapar_shrub_avg[i] = 0.0;
+		fapar_total_avg[i] = 0.0;
 	}
 
 }
@@ -477,15 +480,17 @@ void Patch::serialize(ArchiveStream& arch) {
 		& lfwd_to_atm
 		& lcwd_to_atm;
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
-			arch & avg_fgrass[i];
+			arch & fapar_grass_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
-			arch & avg_fndlt[i];
+			arch & fapar_ndlt_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
-			arch & avg_fbrlt[i];
+			arch & fapar_brlt_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
-			arch & avg_fshrb[i];
+			arch & fapar_trbr_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
-			arch & avg_ftot[i];
+			arch & fapar_shrub_avg[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & fapar_total_avg[i];
 }
 
 const Climate& Patch::get_climate() const {
@@ -1346,7 +1351,7 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 }
 
 
-/// Help function for reduce_biomass(), partitions nstore into leafs and roots
+/// Help function for reduce_biomass(), partitions nstore into leaves and roots
 /**
  *  As leaf and roots can have a very low N concentration after growth and allocation,
  *  N in nstore() is split between them to saticfy relationship between their average C:N ratios
@@ -2264,8 +2269,27 @@ Gridcell::Gridcell():climate(*this) {
 		create_stand(NATURAL);
 		landcover.frac[NATURAL] = 1.0;
 	}
+	
+	// Initialise SIMFIRE variables
+	for (int i = 0; i<AVG_INTERVAL_FAPAR; i++) {
+		fapar_recent_max[i] = 0.5;
+	}
+	fapar_annual_max = 0.5;
 
+	// Initialize Max annual Nesterov Index on first day of simulation
+	for (int i = 0; i<12; i++) {
+		nesterov_monthly_max[i] = 0.;
+	}
+	nesterov_cur = 0.;
+
+	// Initialise BLAZE variables
 	seed = 12345678;
+	for (int i=0;i<12;i++) {
+		monthly_burned_area[i] = 0.0;
+		monthly_fire_risk[i] = 0.0;
+
+	}
+	burned_area = 0.0;
 }
 
 double Gridcell::get_lon() const {
@@ -2348,10 +2372,10 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		& landcover
 		& seed
 		& balance
-		& max_nesterov
-		& monthly_max_nesterov
-		& cur_nesterov
-		& recent_max_fapar;
+		& nesterov_max
+		& nesterov_monthly_max
+		& nesterov_cur
+		& fapar_recent_max;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

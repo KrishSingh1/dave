@@ -51,7 +51,7 @@ awk 'BEGIN { OFS=" " }{ print FNR,$3 }{ printf "%.1f %.1f %.1f\n", 1/(1 + exp(-0
 # For some reason printf outputs comma instead of points as decimal separator
 # We need to replace this...
 sed 's/,/./g' tmp_lgnd > fluxnet_legend.txt
-gmap fluxnet_sites.txt -o fluxnet_sites.jpg -pixsize 3 3 -portrait -legend fluxnet_legend.txt -t "FLUXNET sites" -pixoffset 0.0 0.0
+gmap fluxnet_sites.txt -o fluxnet_sites.jpg -pixsize 3 3 -portrait -legend fluxnet_legend.txt -t "FLUXNET sites" -pixoffset 0.0 0.0 -vert
 
 describe_image fluxnet_sites.jpg "Modelled sites" 
 
@@ -63,11 +63,13 @@ compute mgpp.out -o mgpp.txt -n -i Lon Lat Year Janu="Jan/31*1000" Febru="Feb/28
 flipMonthlyData mnee.txt nee_col.txt NEEmod
 flipMonthlyData mgpp.txt gpp_col.txt GPPmod
 flipMonthlyData maet.out aet_col.txt aet
+flipMonthlyData mevap.out mevap_col.txt evap
 flipMonthlyData mintercep.out intercep_col.txt intcpt
 
 # Add AET and intercept to get corresponding LE value in Fluxnet
-joyn aet_col.txt intercep_col.txt -o tmp -i 1 2 3 4
-compute tmp -o le_col.txt -n -i Lon Lat Year Month LEmod="aet+intcpt"
+joyn aet_col.txt intercep_col.txt -o tmp_joyn -i 1 2 3 4
+joyn tmp_joyn mevap_col.txt -o tmp -i 1 2 3 4
+compute tmp -o le_col.txt -n -i Lon Lat Year Month LEmod="aet+intcpt+evap"
 
 # Join all dataframes into one big dataframe
 joyn ${DIR}/monthly.txt nee_col.txt -o nee_joyn.txt -i 1 2 3 4
@@ -99,4 +101,4 @@ while read f; do
 done < gridlist.txt
 
 # Cleanup
-rm tmp
+rm tmp tmp_joyn aet_joyn nee_joyn

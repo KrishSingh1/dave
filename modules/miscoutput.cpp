@@ -234,11 +234,13 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("Seasonal",   10, 0);
 	seasonality_columns += ColumnDescriptor("V_temp",     10, 3);
 	seasonality_columns += ColumnDescriptor("V_prec",     10, 3);
-	seasonality_columns += ColumnDescriptor("temp_min",   10, 1);
+	seasonality_columns += ColumnDescriptor("temp_min",   10, 1);  
 	seasonality_columns += ColumnDescriptor("temp_mean",  10, 1);
+	seasonality_columns += ColumnDescriptor("temp_max",   10, 1);
 	seasonality_columns += ColumnDescriptor("mtemp_max",  10, 1);
 	seasonality_columns += ColumnDescriptor("temp_seas",  10, 0);
-	seasonality_columns += ColumnDescriptor("gdd5",  10, 0);
+	seasonality_columns += ColumnDescriptor("gdd0",       10, 0);
+	seasonality_columns += ColumnDescriptor("gdd5",       10, 0);
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
@@ -279,7 +281,7 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Rad",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
@@ -1071,14 +1073,24 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	double gridcell_climate_agdd0_20_mean;
+	if (gridcell.climate.agdd0_20.size()>0) {
+		gridcell_climate_agdd0_20_mean = gridcell.climate.agdd0_20.mean();
+	}
+	else {
+		gridcell_climate_agdd0_20_mean = -999;
+	}
+
 	//Output of seasonality variables
 	outlimit_misc(out, out_seasonality,   gridcell.climate.seasonality);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.var_temp);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.var_prec);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_min20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.atemp_mean);
+	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_max20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_max);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.temp_seasonality);
+	outlimit_misc(out, out_seasonality,   gridcell_climate_agdd0_20_mean);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.agdd5);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);

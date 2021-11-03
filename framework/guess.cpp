@@ -2581,7 +2581,7 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 
 	if (!iftwolayersoil) {
 		
-		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 1000.0, 2000.0, 4000.0 };
+		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 300.0, 1000.0, 3000.0, 9000.0 };
 
 		double std_tot_depth = 0.0;
 		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) std_tot_depth += std_depths[lyr];
@@ -2596,7 +2596,7 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			double tot_depth = 0.0;
 			// Bottom three soil layers will adjust for
 			// deeper soil than standard depth
-			for (int lyr = 0; lyr < NSOILLAYER_MAX - 3; lyr++) {
+			for (int lyr = 0; lyr < NSOILLAYER_MAX - 4; lyr++) {
 				lyr_depths[lyr] = std_depths[lyr];
 				tot_depth += std_depths[lyr];
 			}
@@ -2604,7 +2604,7 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			// Upscaling fraction to remaining soil layers
 			double scalar = (soil_depth - tot_depth) / (std_tot_depth - tot_depth);
 		
-			for (int lyr = NSOILLAYER_MAX - 3; lyr < NSOILLAYER_MAX; lyr++) {
+			for (int lyr = NSOILLAYER_MAX - 4; lyr < NSOILLAYER_MAX; lyr++) {
 				lyr_depths[lyr] = floor(std_depths[lyr] * scalar / 100.0) * 100.0;
 				tot_depth += lyr_depths[lyr];
 			}

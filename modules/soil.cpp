@@ -272,7 +272,7 @@ void Snow::update_thermal_properties() {
 /// Potential redistribution of ice and density after melt
 /** Potential redistribution of ice and density after melt
  */
-void Snow::potential_depth(double snowpack_depth, std::vector<double>& pot_depth, int& pot_nsnowlayers) {
+void Snow::potential_depth(double snowpack_depth, double pot_depth[NSNOWLAYERS_MAX], int& pot_nsnowlayers) {
 
 	pot_nsnowlayers = 0;
 
@@ -313,7 +313,7 @@ void Snow::redist_layers(double snowpack_depth) {
 	const double EPS = 1.0e-12;
 
 	// Potential depth
-	std::vector<double> pot_depth(NSNOWLAYERS_MAX);
+	double pot_depth[NSNOWLAYERS_MAX] = { 0.0 };
 
 	// Potential number of snow layers
 	int pot_nsnowlayers;
@@ -659,25 +659,14 @@ void Snow::phase_change() {
 				}
 				else {
 
-					// How much energy the phase change needed
-					double phase_change_energy = Fwmass * Lheat;
+					// It is cold enough to freeze all the water and decrease the temperature below 0, 
+					// since the rest of the water gets frozen now. However, it should never result in 
+					// temperatures colder than the values coming from the Crank-Nicholson scheme.
+					snowlayers[lyr].temp = min(0.0, -(Ffreez - snowlayers[lyr].wmass) * Lheat / Cp_water);
 
-					// It is cold enough to freeze all the water and
-					// decrease the temperature below 0, so only the 
-					// energy need for phase change is removed from 
-					// the already calculated temperature 
-
-					// All water freezes
+					// All water is frozen
 					Fimass += Fwmass;
 					Fwmass = 0.0;
-
-					if (energy - phase_change_energy < 0.0)
-						dprintf("Year %d Day %d Snow Lyr %d Energy %g Temp %g\n", date.year, date.day, lyr, energy - phase_change_energy, -(energy - phase_change_energy) / snowlayers[lyr].Ch);
-
-					// Update snow temperature in this layer
-					// Snow layer Ch should have been updated to account for the phase change (assuming very small difference), 
-					// hence make sure that we don't get positive temperature
-					snowlayers[lyr].temp = -min(0.0, energy - phase_change_energy) / snowlayers[lyr].Ch;
 				}
 			}
 			else {
@@ -1339,8 +1328,8 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	thermdiff_100 = 0.0;
 	gtemp = 0.0;
 
-	// Water (initiate water mass at wilting point)
-	wmass = (*soilcolumn).soiltype.wp_min * depth;
+	// Water (initiate water mass at half of water holding capacity plus wilting point)
+	wmass = ((*soilcolumn).soiltype.wp_min + (*soilcolumn).soiltype.awc_min * 0.5) * depth;
 	imass = 0.0;
 	por = 0.0;
 	Dw = 0.0;
@@ -1451,7 +1440,11 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Monthly variables
 	for (int mth = 0; mth < 12; mth++) {
 		mwmass[mth] = 0.0;
+		mimass[mth] = 0.0;
 		mwcont[mth] = 0.0;
+		mKw[mth] = 0.0;
+		mDw[mth] = 0.0;
+		mdrain[mth] = 0.0;
 		mnetmin[mth] = 0.0;
 		mtemp[mth] = 0.0;
 		fNH4uptake_mean[mth] = 0.0;
@@ -1485,6 +1478,9 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case IMASS:
 		prop = imass;
 		break;
+	case MIMASS:
+		prop = mimass[m];
+		break;
 	case WCONT:
 		prop = wcont();
 		break;
@@ -1505,6 +1501,15 @@ double Soillayer::get(soilproptype SPT, int m) {
 		break;
 	case WCONTMAX:
 		prop = wcont_max();
+		break;
+	case MKW:
+		prop = mKw[m];
+		break;
+	case MDW:
+		prop = mDw[m];
+		break;
+	case MDRAIN:
+		prop = mdrain[m];
 		break;
 	case NH_4:
 		prop = NH4_mass;
@@ -1666,7 +1671,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
 
 		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, HOUR_PER_DAY / date.timesteps);
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, date.timesteps / HOUR_PER_DAY);
 
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
@@ -1740,7 +1745,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
 
 		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, HOUR_PER_DAY / date.timesteps);
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, date.timesteps / HOUR_PER_DAY);
 
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
@@ -1754,6 +1759,25 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 	// If two layer soil scheme then wmass is never below wp
 	if (iftwolayersoil) {
 		wmass = max(wmass, wp);
+	}
+}
+
+
+/// Check if all water should be frozen
+/** Check if all water should be frozen
+ *  If maximum soil temperature of last year without phase change is below zero, 
+ *  then freeze all water as an assumption
+ */
+void Soillayer::freeze_lyr() {
+	double max_temp = -999.9;
+	for (int mth = 0; mth < 12; mth++) {
+		max_temp = max(max_temp, mtemp[mth]);
+	}
+
+	// If maximum temperature during the year is below zero, then freeze all water
+	if (max_temp < 0.0) {
+		imass += wmass;
+		wmass = 0.0;
 	}
 }
 
@@ -1958,12 +1982,8 @@ double hydro_pow(double theta, double k) {
 void Soillayer::update_matric_potential() { // DW_COMMENT not needed yet
 	double theta = max(0.0, wmass) / wsats;
 
-	if (dave_fast) {
-		psi = Psi_max * hydro_pow(theta, -b);
-	}
-	else {
-		psi = Psi_max * pow(theta, -b);
-	}
+	// psi = Psi_max * pow(theta, -b);
+	psi = Psi_max * hydro_pow(theta, -b);
 }
 
 /// Updates hydraulic conductivity and diffusivity
@@ -1981,45 +2001,13 @@ void Soillayer::update_hydraulic_properties() {
 		Kw = Kw_max;
 	}
 	else {
-		if (dave_fast)
-			Kw = Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
-		else
-			Kw = Kw_max * pow(theta, 2.0 * b + 3.0);
+		// Kw = Kw_max * pow(theta, 2.0 * b + 3.0);
+		Kw = Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
 	}
 
 	// Hydraulic diffusivity (Clapp and Hornberger 1978; m2 s-1)
-	if (dave_fast)
-		Dw = b * Kw_max * (-Psi_max) / wsats * hydro_pow(theta, b + 2.0);
-	else
-		Dw = b * Kw_max * (-Psi_max) / wsats * pow(theta, b + 2.0);
-
-	// If organic content affects soil properties
-	/*if (iforganicsoilproperties) { // DW_COMMENT Not needed
-
-		// Calculate organic and mineral fraction
-		// This is the fraction of the material (i.e. 1 - porosity) that is organic
-		double org_frac = !negligible(organic_frac + mineral_frac) ? organic_frac / (organic_frac + mineral_frac) : 0.0;
-		
-		if (!negligible(org_frac)) {
-
-			// Hydraulic conductivity (Campbell 1974; m s-1)
-			double Kw_org;
-			if (wmass > wsats) {
-				Kw_org = Kw_max_org;
-			}
-			else {
-				Kw_org = Kw_max_org * pow(theta, 2.0 * b_org + 3.0);
-			}
-
-			// Hydraulic diffusivity (Clapp and Hornberger 1978; m2 s-1)
-			double Dw_org = b * Kw_max_org * (-Psi_max) / wsats_org * pow(theta, b_org + 2.0);
-
-			// Scale diffusivity and conductivity depending on organic fraction
-			double min_frac = 1.0 - org_frac;
-			Dw = min_frac * Dw + org_frac * Dw_org;
-			Kw = min_frac * Kw + org_frac * Kw_org;
-		}
-	}*/
+	// Dw = b * Kw_max * (-Psi_max) / (wsats / depth) * pow(theta, b + 2.0);
+	Dw = b * Kw_max * (-Psi_max) / (wsats / depth) * hydro_pow(theta, b + 2.0);
 
 	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
 	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
@@ -2322,6 +2310,9 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 		case IMASS:
 			prop[lyr] = soillayers[lyr].imass;
 			break;
+		case MIMASS:
+			prop[lyr] = soillayers[lyr].mimass[m];
+			break;
 		case WCONT:
 			prop[lyr] = soillayers[lyr].wcont();
 			break;
@@ -2342,6 +2333,15 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			break;
 		case WCONTMAX:
 			prop[lyr] = soillayers[lyr].wcont_max();
+			break;
+		case MKW:
+			prop[lyr] = soillayers[lyr].mKw[m];
+			break;
+		case MDW:
+			prop[lyr] = soillayers[lyr].mDw[m];
+			break;
+		case MDRAIN:
+			prop[lyr] = soillayers[lyr].mdrain[m];
 			break;
 		case NH_4:
 			prop[lyr] = soillayers[lyr].NH4_mass;
@@ -2545,8 +2545,20 @@ void Soilcolumn::calc_mwcont() {
 		// Monthly wmass
 		soillayers[lyr].mwmass[date.month] += soillayers[lyr].wmass / date.ndaymonth[date.month];
 
+		// Monthly imass
+		soillayers[lyr].mimass[date.month] += soillayers[lyr].imass / date.ndaymonth[date.month];
+
 		// Monthly wcont
 		soillayers[lyr].mwcont[date.month] += soillayers[lyr].wcont() / date.ndaymonth[date.month];
+
+		// Monthly moisture conductivity
+		soillayers[lyr].mKw[date.month] += soillayers[lyr].Kw / date.ndaymonth[date.month];
+
+		// Monthly moisture diffusivity
+		soillayers[lyr].mDw[date.month] += soillayers[lyr].Dw / date.ndaymonth[date.month];
+
+		// Monthly lateral drainage
+		soillayers[lyr].mdrain[date.month] += soillayers[lyr].runoff_drain;
 
 
 		if (date.islastday) {
@@ -3048,10 +3060,10 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 			soillayer.wmass -= drained_wmass;
 
 			// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
-			if (iforography && (soillayer.wmass + soillayer.imass > soillayer.fc())) {
+			if (iforography && (soillayer.wmass > soillayer.fc())) {
 
 				// Excees liquid water above field capacity
-				double wmass_excees = min(soillayer.wmass, soillayer.wmass + soillayer.imass - soillayer.fc());
+				double wmass_excees = soillayer.wmass - soillayer.fc();
 
 				// Slope dependant drainage of liquid water above field capacity
 				drained_wmass = wmass_excees * soillayer.runoff_drain_frac;
@@ -4017,7 +4029,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Effective depth of surface runoff - 0.5m
 	const double INFILT_DEPTH = 500.0;
 
-	double wmass_begin = get_sum(WMASS) + rain_melt;
+	double initial_wmass = get_sum(WMASS) + rain_melt;
 
 	// Evaposation (mm)
 	double evap = 0.0;
@@ -4140,6 +4152,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		resolve_neg_wmass(neglyr);
 	}
 
+	// Water balance check
+	double final_wmass = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
+
+	if (fabs(initial_wmass - final_wmass) > 1.0e-9)
+		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, initial_wmass - final_wmass, initial_wmass, final_wmass);
+
 	// Update soil layer temperatures due to soil water fluxes
 	wflow_temp();
 
@@ -4180,12 +4198,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			}
 		}
 	}
-
-	// Water balance check
-	double wmass_end = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
-
-	if (fabs(wmass_begin - wmass_end) > 1.0e-10)
-		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, wmass_begin - wmass_end, wmass_begin, wmass_end);
 }
 
 
@@ -4421,24 +4433,15 @@ void Soilcolumn::phase_change() {
 						soillayers[lyr].temp = 0.0;
 					}
 					else {
+						// It is cold enough to freeze all the water and decrease the temperature below 0, 
+						// since the rest of the water gets frozen now. However, it should never result in 
+						// temperatures colder than the values coming from the Crank-Nicholson scheme.
 
-						// How much energy the phase change needed
-						double phase_change_energy = Fwmass * Lheat;
+						soillayers[lyr].temp = min(0.0, -(Ffreez - Fwmass) * Lheat / Cp_water);
 
-						// It is cold enough to freeze all the water and
-						// decrease the temperature below 0, since the rest
-						// of the water gets frozen now.
-
+						// All water is frozen
 						Fimass += Fwmass;
 						Fwmass = 0.0;
-
-						if (energy - phase_change_energy < 0.0)
-							dprintf("Year %d Day %d Lyr %d Energy %g Temp %g\n",date.year,date.day,lyr, energy - phase_change_energy, -(energy - phase_change_energy) / soillayers[lyr].Ch);
-
-						// Update soil temperature in this layer
-						// Soil layer Ch should have been updated to account for the phase change (assuming very small difference), 
-						// hence make sure that we don't get positive temperature
-						soillayers[lyr].temp = -min(0.0, energy - phase_change_energy) / soillayers[lyr].Ch;
 					}
 				}
 			} // End of Freezing
@@ -4462,21 +4465,16 @@ void Soilcolumn::phase_change() {
 						soillayers[lyr].temp = 0.0;
 					}
 					else {
-
-						// How much energy the phase change needed
-						double phase_change_energy = Fimass * Lheat;
-
 						// There is more energy available than required for
 						// melting the rest of the ice. Therefore the
 						// left-over energy will increase the temperature.
 
+						// Update soil temperature in this layer
+						soillayers[lyr].temp = max(0.0, (Fthaw - Fimass) * Lheat / Cp_water);
+
+						// All water is unfrozen
 						Fwmass += Fimass;
 						Fimass = 0.0;
-
-						// Update soil temperature in this layer
-						// Soil layer Ch should have been updated to account for the phase change (assuming very small difference), 
-						// hence make sure that we don't get negative temperature
-						soillayers[lyr].temp = max(0.0, energy - phase_change_energy) / soillayers[lyr].Ch;
 					}
 				}
 			} // End of thawing
@@ -4726,9 +4724,17 @@ void Soilcolumn::calc_temp() {
 	thaw_depth();
 
 	// Update padding layers temperature so they faster comes to an equilibrium
-	if (date.year < nyear_spinup / 2 && !(date.year%10) && date.islastmonth && date.islastday) {
+	if (date.year < FIRST_FREEZE_YEAR && date.islastmonth && date.islastday) {
+		double avr_temp = 0.0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			avr_temp += soillayers[nsoillayers - 1].mtemp[mth];
+		}
+
+		avr_temp /= 12.0;
+
 		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-			pad[lyr].temp = soillayers[nsoillayers - 1].temp;
+			pad[lyr].temp = avr_temp;
 		}
 	}
 }

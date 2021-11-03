@@ -101,7 +101,7 @@ const double beta_perc = 0.139;
 const double sapric_depth = 500.0;
 
 /// First year when phase change is allowed
-const int FIRST_FREEZE_YEAR = 10;
+const int FIRST_FREEZE_YEAR = 40;
 
 /// time step [day]
 const double Dt = 1;

@@ -733,6 +733,12 @@ void dailyaccounting_patch(Patch& patch) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+			// If soil layer temperature is negative throughout the year 
+			// at FIRST_FREEZE_YEAR year then move all water to ice
+			if (date.year == FIRST_FREEZE_YEAR) {
+				soillayer.freeze_lyr();
+			}
+
 			soillayer.aorgCleach = 0.0;
 			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
@@ -740,7 +746,11 @@ void dailyaccounting_patch(Patch& patch) {
 
 			for (int mth = 0; mth < 12; mth++) {
 				soillayer.mwmass[mth] = 0.0;
+				soillayer.mimass[mth] = 0.0;
 				soillayer.mwcont[mth] = 0.0;
+				soillayer.mKw[mth] = 0.0;
+				soillayer.mDw[mth] = 0.0;
+				soillayer.mdrain[mth] = 0.0;
 				soillayer.mtemp[mth] = 0.0;
 			}
 

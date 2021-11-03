@@ -1771,8 +1771,8 @@ void vertical_movement(Patch& patch) {
 	}
 
 	// Store pool sizes before mixing
-	std::vector<double> cpools(2);
-	std::vector<double> npools(2);
+	double cpools[2] = { 0.0 };
+	double npools[2] = { 0.0 };
 
 	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 		cpools[0] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;
@@ -1791,8 +1791,8 @@ void vertical_movement(Patch& patch) {
 
 
 	// Check pool sizes after mixing
-	std::vector<double> cpools_after(2);
-	std::vector<double> npools_after(2);
+	double cpools_after[2] = { 0.0 };
+	double npools_after[2] = { 0.0 };
 
 	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 		cpools_after[0] += patch.soilcolumn.soillayers[lyr].sompool[SLOWSOM].cmass;

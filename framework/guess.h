@@ -142,7 +142,7 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
-typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, 
+typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, MKW, MDW, MDRAIN,
 WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
@@ -3436,6 +3436,8 @@ public:
 	double mwmass[12];
 	/// ice mass in soil layer (kg m-2)
 	double imass;
+	/// monthly ice mass in soil layer (kg m-2)
+	double mimass[12];
 	/// Matrix potantial (mm)
 	double psi;
 	/// monthly water content as fraction of available water holding capacity
@@ -3456,8 +3458,12 @@ public:
 	double perc_base;
 	/// soil moisture diffusivity (m2 s-1)
 	double Dw;
+	/// monthly soil moisture diffusivity (m2 s-1)
+	double mDw[12];
 	/// soil moisture conductivity (m s-1)
 	double Kw;
+	/// monthly soil moisture conductivity (m s-1)
+	double mKw[12];
 	/// soil moisture conductivity at saturation (m s-1)
 	double Kw_max;
 	/// Exponential in Campbell (1974) parameterization for soil water retention curves
@@ -3468,6 +3474,8 @@ public:
 	double a;
 	/// Lateral drainage runoff
 	double runoff_drain;
+	/// Monthly lateral drainage runoff
+	double mdrain[12];
 	/// Lateral drainage runoff fraction (h-1)
 	double runoff_drain_frac;
 	/// Baseflow runoff
@@ -3717,7 +3725,11 @@ public:
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
+			mimass[mth] = that.mimass[mth];
 			mwcont[mth] = that.mwcont[mth];
+			mKw[mth] = that.mKw[mth];
+			mDw[mth] = that.mDw[mth];
+			mdrain[mth] = that.mdrain[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
@@ -3820,7 +3832,11 @@ public:
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
+			mimass[mth] = that.mimass[mth];
 			mwcont[mth] = that.mwcont[mth];
+			mKw[mth] = that.mKw[mth];
+			mDw[mth] = that.mDw[mth];
+			mdrain[mth] = that.mdrain[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
@@ -3857,6 +3873,8 @@ public:
 	double ccont(bool exclude_litter = false);
 	/// N content of soil layer
 	double ncont(bool exclude_litter = false);
+	/// Freeze full layer
+	void freeze_lyr();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4013,7 +4031,7 @@ public:
 	void init_state();
 
 	/// Redistributing snow layers after melt or compaction
-	void potential_depth(double snowpack_depth, std::vector<double>& pot_ice, int& pot_nsnowlayers);
+	void potential_depth(double snowpack_depth, double pot_ice[NSNOWLAYERS_MAX], int& pot_nsnowlayers);
 
 	/// Update snow water holding capacity
 	void update_whc();

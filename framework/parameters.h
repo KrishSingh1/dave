@@ -304,9 +304,6 @@ extern bool ifrainonwetdaysonly;
 /// whether BVOC calculations are included
 extern bool ifbvoc;
 
-/// dave_fast
-extern bool dave_fast;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // Soil, arctic and wetland inputs
 

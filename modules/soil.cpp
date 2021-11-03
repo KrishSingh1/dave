@@ -662,7 +662,13 @@ void Snow::phase_change() {
 					// It is cold enough to freeze all the water and decrease the temperature below 0, 
 					// since the rest of the water gets frozen now. However, it should never result in 
 					// temperatures colder than the values coming from the Crank-Nicholson scheme.
-					snowlayers[lyr].temp = min(0.0, -(Ffreez - snowlayers[lyr].wmass) * Lheat / Cp_water);
+
+					// Snow layer temperature rise resulting from freezing water.
+					double temp_rise = Fwmass * Lheat / Cp_water;
+
+					// Update snow temperature in this layer
+					snowlayers[lyr].temp += temp_rise;
+					snowlayers[lyr].temp = min(0.0, snowlayers[lyr].temp);
 
 					// All water is frozen
 					Fimass += Fwmass;
@@ -4437,7 +4443,12 @@ void Soilcolumn::phase_change() {
 						// since the rest of the water gets frozen now. However, it should never result in 
 						// temperatures colder than the values coming from the Crank-Nicholson scheme.
 
-						soillayers[lyr].temp = min(0.0, -(Ffreez - Fwmass) * Lheat / Cp_water);
+						// Soil layer temperature rise resulting from freezing water.
+						double temp_rise = Fwmass * Lheat / Cp_water;
+
+						// Update soil temperature in this layer
+						soillayers[lyr].temp += temp_rise;
+						soillayers[lyr].temp = min(0.0, soillayers[lyr].temp);
 
 						// All water is frozen
 						Fimass += Fwmass;
@@ -4469,8 +4480,12 @@ void Soilcolumn::phase_change() {
 						// melting the rest of the ice. Therefore the
 						// left-over energy will increase the temperature.
 
+						// Soil layer temperature reduction resulting from thawing ice.
+						double temp_reduction = Fimass * Lheat / Cp_water;
+
 						// Update soil temperature in this layer
-						soillayers[lyr].temp = max(0.0, (Fthaw - Fimass) * Lheat / Cp_water);
+						soillayers[lyr].temp -= temp_reduction;
+						soillayers[lyr].temp = max(0.0, soillayers[lyr].temp);
 
 						// All water is unfrozen
 						Fwmass += Fimass;
@@ -4724,7 +4739,7 @@ void Soilcolumn::calc_temp() {
 	thaw_depth();
 
 	// Update padding layers temperature so they faster comes to an equilibrium
-	if (date.year < FIRST_FREEZE_YEAR && date.islastmonth && date.islastday) {
+	if (date.year < nyear_spinup * 0.5 && date.islastmonth && date.islastday) {
 		double avr_temp = 0.0;
 
 		for (int mth = 0; mth < 12; mth++) {

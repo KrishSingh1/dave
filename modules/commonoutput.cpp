@@ -739,7 +739,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year >= spinup-100)
+	if (date.year >= nyear_spinup-100)
 		out.add_value(table, d);
 }
 

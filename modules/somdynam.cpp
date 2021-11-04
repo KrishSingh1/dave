@@ -2243,7 +2243,7 @@ void equilsom(Patch& patch) {
 
 			for (int p = 0; p < NSOMPOOL; p++) {
 				// SOM pool needs to be of some size
-				if (soillayer.sompool[p].cmass > 1.0e-12 && (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)) {
+				if (soillayer.sompool[p].cmass > 1.0e-12 && (p == SURFFWD || p == SURFCWD || p == SURFHUMUS || p == SOILFWD || p == SOILCWD || p == SLOWSOM || p == PASSIVESOM)) {
 
 					// Initial C and N mass
 					double cmass_init = soillayer.sompool[p].cmass;

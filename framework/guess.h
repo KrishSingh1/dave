@@ -3875,6 +3875,8 @@ public:
 	double ncont(bool exclude_litter = false);
 	/// Freeze full layer
 	void freeze_lyr();
+	/// Phase change
+	void phase_change(bool combine_snow = false);
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer

@@ -633,7 +633,7 @@ void Snow::phase_change() {
 		delta_T = snow_temp - snowlayers[lyr].temp_old;
 
 		// Freezing conditions Wania et al 2010
-		if (snow_temp < 0.0 && snow_temp < snowlayers[lyr].temp_old) {
+		if (snow_temp < 0.0){// && snow_temp < snowlayers[lyr].temp_old) {
 
 			iffreezed = true;
 			Fthaw = 0.0;
@@ -683,7 +683,7 @@ void Snow::phase_change() {
 		} // End of freezing
 
 		// Thawing conditions Wania et al 2010
-		else if (snow_temp >= 0.0  && snow_temp > snowlayers[lyr].temp_old) {
+		else if (snow_temp >= 0.0){//  && snow_temp > snowlayers[lyr].temp_old) {
 
 			ifthawed = true;
 			Ffreez = 0.0;
@@ -1787,6 +1787,182 @@ void Soillayer::freeze_lyr() {
 	}
 }
 
+/// Calculate phase change of water and ice for this soil layer
+/** Calculate phase change of water and ice for this soil layer
+ */
+void Soillayer::phase_change(bool combine_snow) {
+
+	// Initial water and ice content
+	double wtotal_initial = wmass + imass;
+	
+	// Fraction of water which freezes
+	double Ffreez = 0.0;
+	// Fraction of ice which thaws
+	double Fthaw = 0.0;
+	// Fraction of water
+	double Fwmass;
+	// Fraction of ice
+	double Fimass;
+	// Energy per volume [J m-3]
+	double energy;
+	// Temperature difference (current - previous)
+	double delta_T;
+	// Soil layer depth [mm]
+	double soillyr_depth = depth;
+	// Soil layer temperature [C]
+	double soil_temp = temp;
+	// Maximum error
+	const double EPS = 1.0e-10;
+
+	// Water and ice fraction of full volume
+	if (combine_snow) {
+		soillyr_depth += (*soilcolumn).snow.snowlayers[0].depth;
+		Fwmass = (wmass + (*soilcolumn).snow.snowlayers[0].wmass) / soillyr_depth;
+		Fimass = (imass + (*soilcolumn).snow.snowlayers[0].imass) / soillyr_depth;
+
+		// NOTE: Heat capacity and temperature of top soil layer is already adjusted for thin 
+		// snow layer in temperature calculations
+	}
+	else {
+		Fwmass = wmass / soillyr_depth;
+		Fimass = imass / soillyr_depth;
+	}
+
+	// Temperature difference
+	delta_T = soil_temp - temp_old;
+
+	// Freezing
+	if (soil_temp < 0.0) {// && soil_temp < temp_old) { // Wania conditions 
+
+		if (Fwmass > 0.0) {
+
+			// Energy to freeze water [J m-3]
+			energy = Cp_water * fabs(delta_T);
+
+			// Fraction water that would freeze [m3 m-3]
+			Ffreez = energy / Lheat;
+
+			if (Fwmass > Ffreez) {
+				Fimass += Ffreez;
+				Fwmass -= Ffreez;
+
+				temp = 0.0;
+			}
+			else {
+				// It is cold enough to freeze all the water and decrease the temperature below 0, 
+				// since the rest of the water gets frozen now. However, it should never result in 
+				// temperatures colder than the values coming from the Crank-Nicholson scheme.
+
+				// Soil layer temperature rise resulting from freezing water.
+				double temp_rise = Fwmass * Lheat / Cp_water;
+
+				// Update soil temperature in this layer
+				temp += temp_rise;
+				temp = min(0.0, temp);
+
+				// All water is frozen
+				Fimass += Fwmass;
+				Fwmass = 0.0;
+			}
+		}
+	} // End of Freezing
+
+	// Thawing
+	else if (soil_temp > 0.0){// && soil_temp > temp_old) { // Wania conditions
+
+		if (Fimass > 0.0) {
+
+			// Energy from full soil layer to freeze water [J m-3]
+			energy = Cp_water * fabs(delta_T);
+
+			// Fraction ice that would thaw [m3 m-3]
+			Fthaw = energy / Lheat;
+
+			if (Fimass > Fthaw) {
+
+				// There is some ice left, even after melt
+				Fwmass += Fthaw;
+				Fimass -= Fthaw;
+				temp = 0.0;
+			}
+			else {
+				// There is more energy available than required for
+				// melting the rest of the ice. Therefore the
+				// left-over energy will increase the temperature.
+
+				// Soil layer temperature reduction resulting from thawing ice.
+				double temp_reduction = Fimass * Lheat / Cp_water;
+
+				// Update soil temperature in this layer
+				temp -= temp_reduction;
+				temp = max(0.0, temp);
+
+				// All water is unfrozen
+				Fwmass += Fimass;
+				Fimass = 0.0;
+			}
+		}
+	} // End of thawing
+
+	// If top soil layer has been combined with a thin snow layer
+	// then the same fraction of water (ice) is freezed (thawed)
+	// in both the soil and snow layer
+	if (combine_snow) {
+
+		// Freezing
+		if (!negligible(Ffreez)) {
+
+			// Fraction of water left after freezing
+			double frac = Fwmass / ((wmass + (*soilcolumn).snow.snowlayers[0].wmass) / soillyr_depth);
+
+			// Update soil layer water and ice mass
+			double imass_new = (1.0 - frac) * wmass;
+			wmass -= imass_new;
+			imass += imass_new;
+
+			// Update snow layer water and ice mass, and density
+			imass_new = (1.0 - frac) * (*soilcolumn).snow.snowlayers[0].wmass;
+			(*soilcolumn).snow.snowlayers[0].wmass -= imass_new;
+			(*soilcolumn).snow.snowlayers[0].imass += imass_new;
+			(*soilcolumn).snow.snowlayers[0].dens = (*soilcolumn).snow.snowlayers[0].imass * rho_H2O / (*soilcolumn).snow.snowlayers[0].depth;
+		}
+		
+		// Thawing
+		else if (!negligible(Fthaw)) {
+
+			// Fraction of ice left after thawing
+			double frac = Fimass / ((imass + (*soilcolumn).snow.snowlayers[0].imass) / soillyr_depth);
+
+			// Update soil layer water and ice mass
+			double wmass_new = (1.0 - frac) * imass;
+			imass -= wmass_new;
+			wmass += wmass_new;
+
+			// Update snow layer water and ice mass, and depth
+			wmass_new = (1.0 - frac) * (*soilcolumn).snow.snowlayers[0].imass;
+			(*soilcolumn).snow.snowlayers[0].imass -= wmass_new;
+			(*soilcolumn).snow.snowlayers[0].wmass += wmass_new;
+			(*soilcolumn).snow.snowlayers[0].depth = (*soilcolumn).snow.snowlayers[0].imass * rho_H2O / (*soilcolumn).snow.snowlayers[0].dens;
+		}
+
+		// Update snow temperature
+		(*soilcolumn).snow.snowlayers[0].temp = temp;
+	}
+	else {
+		// Water and ice fraction of full volume
+		wmass = Fwmass * soillyr_depth;
+		imass = Fimass * soillyr_depth;
+	}
+
+	double wtotal_final = wmass + imass;
+
+	// water balance checks:
+	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
+		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+	}
+}
+
+
 /// Water content of soil layer
 /** Water content of soil layer
  *  wcont never reports over field capacity even if there is more water
@@ -1969,6 +2145,12 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 		dprintf("ERROR: Year %d Day %d Updating soil temperature\n", date.year, date.day);
 
 	temp = (temp * (depth - add_mass) * Ch + add_temp * add_mass * add_Ch) / ((depth - add_mass) * Ch + add_mass * add_Ch);
+
+	// If temperature becomes positive (negative) with ice (water) present
+	// then perfomr a phase_change for this layer
+	if (date.year >= FIRST_FREEZE_YEAR && ((temp > 0.0 && !negligible(imass)) || (temp < 0.0 && !negligible(wmass)))) {
+		phase_change();
+	}
 }
 
 /// 
@@ -2018,7 +2200,7 @@ void Soillayer::update_hydraulic_properties() {
 	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
 	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
 	// at the permanent wilting point for frozen water (for convenience set to zero)
-	if (imass > 0.0) {
+	if (false && imass > 0.0) {
 		// Ice impedance factor (Swenson et al. 2012)
 		double imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
 
@@ -4177,6 +4359,36 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
 	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
 
+
+	if (false && date.get_calendar_year() == 1920) {
+		if (date.day == 0)
+			dprintf("Year Day Precip Rain_melt AirT Snow1 Snow2 Snow3 Snow4 Snow5 Lyr1 Lyr2 Lyr3 Lyr4 Lyr5 Lyr6 Lyr7 W1 W2 W3 W4 W5 W6 W7 WTOT ICE1 ICE2 ICE3 ICE4 ICE5 ICE6 ICE7 Surf Drain Base Evap AET\n");
+		dprintf("%d %d %g %g %g ", date.get_calendar_year(), date.day, patch.get_climate().prec, rain_melt, climate.temp);
+
+		if (snow.nsnowlayers < 5)
+			for (int lyr = 0; lyr < 5 - snow.nsnowlayers; lyr++)
+				dprintf("%g ", climate.temp);
+
+		for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--)
+			dprintf("%g ", snow.snowlayers[lyr].temp);
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++)
+			dprintf("%g ", soillayers[lyr].temp);
+
+		double Wtot = 0.0;
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			dprintf("%g ", max(0.0, min(1.0, (soillayers[lyr].wmass - soillayers[lyr].wp) / soillayers[lyr].awc)));
+			Wtot += max(0.0, (soillayers[lyr].wmass - soillayers[lyr].wp));
+		}
+		
+		dprintf("%g ", Wtot);
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++)
+			dprintf("%g ", soillayers[lyr].imass / soillayers[lyr].wsats);
+
+		dprintf("%g %g %g %g %g\n", runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE), evap, aet_total);
+	}
+
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -4361,26 +4573,9 @@ void Soilcolumn::initial_percolation() {
  */
 void Soilcolumn::phase_change() {
 
-	// Fraction of water which freezes
-	double Ffreez;
-	// Fraction of ice which thaws
-	double Fthaw;
-	// Fraction of water
-	double Fwmass;
-	// Fraction of ice
-	double Fimass;
-	// Energy per volume [J m-3]
-	double energy;
-	// Temperature difference (current - previous)
-	double delta_T;
-	// Soil layer depth [mm]
-	double soillyr_depth;
-	// Soil layer temperature [C]
-	double soil_temp;
-	const double EPS = 1.0e-10;
-
 	// If snow depth is below one standard depth, then add snow layer to top soil layer
-	bool combine_snow = snow.depth() < snow.snow_depth_standard && !negligible(snow.depth());
+	// Before FIRST_FREEZE_YEAR don't combine them as now phase change will then be performed
+	bool combine_snow = snow.nsnowlayers == 1 && !negligible(snow.depth() && date.year >= FIRST_FREEZE_YEAR);
 
 	// Phase change between water and ice and adjust snow layer temperatures accordingly
 	if (!combine_snow) {
@@ -4392,167 +4587,12 @@ void Soilcolumn::phase_change() {
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-			// Initial water and ice content
-			double wtotal_initial = soillayers[lyr].wmass + soillayers[lyr].imass;
-
-			Ffreez = 0.0;
-			Fthaw = 0.0;
-
-			// Soil layer depth
-			soillyr_depth = soillayers[lyr].depth;
-
-			// Soil layer temperature
-			soil_temp = soillayers[lyr].temp;
-
-			// Water and ice fraction of full volume
-			if (combine_snow && lyr == 0) {
-				soillyr_depth += snow.snowlayers[0].depth;
-				Fwmass = (soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soillyr_depth;
-				Fimass = (soillayers[lyr].imass + snow.snowlayers[0].imass) / soillyr_depth;
-
-				// NOTE: Heat capacity and temperature of top soil layer is already adjusted for thin 
-				// snow layer in temperature calculations
+			if (lyr == 0) {
+				soillayers[lyr].phase_change(combine_snow);
 			}
 			else {
-				Fwmass = soillayers[lyr].wmass / soillyr_depth;
-				Fimass = soillayers[lyr].imass / soillyr_depth;
-			}
-
-			// Temperature difference
-			delta_T = soil_temp - soillayers[lyr].temp_old;
-
-			// Freezing
-			if (soil_temp < 0.0 && soil_temp < soillayers[lyr].temp_old) { // Wania conditions 
-
-				if (Fwmass > 0.0) {
-
-					// Energy to freeze water [J m-3]
-					energy = Cp_water * fabs(delta_T);
-
-					// Fraction water that would freeze [m3 m-3]
-					Ffreez = energy / Lheat;
-
-					if (Fwmass > Ffreez) {
-						Fimass += Ffreez;
-						Fwmass -= Ffreez;
-
-						soillayers[lyr].temp = 0.0;
-					}
-					else {
-						// It is cold enough to freeze all the water and decrease the temperature below 0, 
-						// since the rest of the water gets frozen now. However, it should never result in 
-						// temperatures colder than the values coming from the Crank-Nicholson scheme.
-
-						// Soil layer temperature rise resulting from freezing water.
-						double temp_rise = Fwmass * Lheat / Cp_water;
-
-						// Update soil temperature in this layer
-						soillayers[lyr].temp += temp_rise;
-						soillayers[lyr].temp = min(0.0, soillayers[lyr].temp);
-
-						// All water is frozen
-						Fimass += Fwmass;
-						Fwmass = 0.0;
-					}
-				}
-			} // End of Freezing
-
-			  // Thawing
-			else if (soil_temp >= 0.0  && soil_temp > soillayers[lyr].temp_old) { // Wania conditions
-
-				if (Fimass > 0.0) {
-
-					// Energy from full soil layer to freeze water [J m-3]
-					energy = Cp_water * fabs(delta_T);
-
-					// Fraction ice that would thaw [m3 m-3]
-					Fthaw = energy / Lheat;
-
-					if (Fimass > Fthaw) {
-
-						// There is some ice left, even after melt
-						Fwmass += Fthaw;
-						Fimass -= Fthaw;
-						soillayers[lyr].temp = 0.0;
-					}
-					else {
-						// There is more energy available than required for
-						// melting the rest of the ice. Therefore the
-						// left-over energy will increase the temperature.
-
-						// Soil layer temperature reduction resulting from thawing ice.
-						double temp_reduction = Fimass * Lheat / Cp_water;
-
-						// Update soil temperature in this layer
-						soillayers[lyr].temp -= temp_reduction;
-						soillayers[lyr].temp = max(0.0, soillayers[lyr].temp);
-
-						// All water is unfrozen
-						Fwmass += Fimass;
-						Fimass = 0.0;
-					}
-				}
-			} // End of thawing
-
-			// If top soil layer has been combined with a thin snow layer
-			// then the same fraction of water (ice) is freezed (thawed)
-			// in both the soil and snow layer
-			if (combine_snow && lyr == 0) {
-
-				if (!negligible(Ffreez)) {
-
-					// Fraction of water left after freezing
-					double frac = Fwmass / ((soillayers[lyr].wmass + snow.snowlayers[0].wmass) / soillyr_depth);
-
-					// Update soil layer water and ice mass
-					double imass = (1.0 - frac) * soillayers[lyr].wmass;
-					soillayers[lyr].wmass -= imass;
-					soillayers[lyr].imass += imass;
-
-					// Update snow layer water and ice mass, and density
-					imass = (1.0 - frac) * snow.snowlayers[0].wmass;
-					snow.snowlayers[0].wmass -= imass;
-					snow.snowlayers[0].imass += imass;
-					snow.snowlayers[0].dens = snow.snowlayers[0].imass * rho_H2O / snow.snowlayers[0].depth;
-				}
-				else if (!negligible(Fthaw)) {
-
-					// Fraction of ice left after thawing
-					double frac = Fimass / ((soillayers[lyr].imass + snow.snowlayers[0].imass) / soillyr_depth);
-
-					// Update soil layer water and ice mass
-					double wmass = (1.0 - frac) * soillayers[lyr].imass;
-					soillayers[lyr].imass -= wmass;
-					soillayers[lyr].wmass += wmass;
-
-					// Update snow layer water and ice mass, and depth
-					wmass = (1.0 - frac) * snow.snowlayers[0].imass;
-					snow.snowlayers[0].imass -= wmass;
-					snow.snowlayers[0].wmass += wmass;
-					snow.snowlayers[0].depth = snow.snowlayers[0].imass * rho_H2O / snow.snowlayers[0].dens;
-				}
-
-				// Update snow temperature
-				snow.snowlayers[0].temp = soillayers[lyr].temp;
-			}
-			else {
-				// Water and ice fraction of full volume
-				soillayers[lyr].wmass = Fwmass * soillyr_depth;
-				soillayers[lyr].imass = Fimass * soillyr_depth;
-			}
-
-			double wtotal_final = soillayers[lyr].wmass + soillayers[lyr].imass;
-
-			// water balance checks:
-			if ((fabs(wtotal_initial - wtotal_final)) > EPS)
-				fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
-
-		} // End of loop through layers
-	}
-	// Before FIRST_FREEZE_YEAR snow can become warmer than 0C if itt is combine with the top soil layer
-	else if (combine_snow) {
-		for (int lyr = 0; lyr < snow.nsnowlayers; lyr++) {
-			snow.snowlayers[lyr].temp = min(0.0, snow.snowlayers[lyr].temp);
+				soillayers[lyr].phase_change();
+			}	
 		}
 	}
 

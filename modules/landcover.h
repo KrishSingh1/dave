@@ -69,7 +69,6 @@ struct landcover_change_transfer {
 	double transfer_soil_wmass[NSOILLAYER_MAX];
 	double transfer_soil_imass[NSOILLAYER_MAX];
 	double transfer_soil_temp[NSOILLAYER_MAX];
-	double transfer_soil_temp_old[NSOILLAYER_MAX];
 	double transfer_soil_CO2[NSOILLAYER_MAX];
 	double transfer_soil_CH4[NSOILLAYER_MAX];
 	double transfer_soil_O2[NSOILLAYER_MAX];
@@ -104,7 +103,6 @@ struct landcover_change_transfer {
 	double transfer_snow_imass[NSNOWLAYERS_MAX];
 	double transfer_snow_depth[NSNOWLAYERS_MAX];
 	double transfer_snow_temp[NSNOWLAYERS_MAX];
-	double transfer_snow_temp_old[NSNOWLAYERS_MAX];
 
 	landcover_change_transfer();
 	~landcover_change_transfer();
@@ -220,7 +218,6 @@ struct landcover_change_transfer {
 				transfer_soil_wmass[lyr] += patch.soilcolumn.soillayers[lyr].wmass * scale;
 				transfer_soil_imass[lyr] += patch.soilcolumn.soillayers[lyr].imass * scale;
 				transfer_soil_temp[lyr] += patch.soilcolumn.soillayers[lyr].temp * scale;
-				transfer_soil_temp_old[lyr] += patch.soilcolumn.soillayers[lyr].temp_old * scale;
 				transfer_soil_CO2[lyr] += patch.soilcolumn.soillayers[lyr].CO2 * scale;
 				transfer_soil_CH4[lyr] += patch.soilcolumn.soillayers[lyr].CH4 * scale;
 				transfer_soil_O2[lyr] += patch.soilcolumn.soillayers[lyr].O2 * scale;
@@ -261,7 +258,6 @@ struct landcover_change_transfer {
 				transfer_snow_imass[lyr] += patch.soilcolumn.snow.snowlayers[lyr].imass * scale;
 				transfer_snow_depth[lyr] += patch.soilcolumn.snow.snowlayers[lyr].depth * scale;
 				transfer_snow_temp[lyr] += patch.soilcolumn.snow.snowlayers[lyr].temp * scale;
-				transfer_snow_temp_old[lyr] += patch.soilcolumn.snow.snowlayers[lyr].temp_old * scale;
 			}
 
 			stand.nextobj();
@@ -318,7 +314,6 @@ struct landcover_change_transfer {
 			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
 			transfer_soil_imass[lyr] = from.transfer_soil_imass[lyr];
 			transfer_soil_temp[lyr] = from.transfer_soil_temp[lyr];
-			transfer_soil_temp_old[lyr] = from.transfer_soil_temp_old[lyr];
 			transfer_soil_CO2[lyr] = from.transfer_soil_CO2[lyr];
 			transfer_soil_CH4[lyr] = from.transfer_soil_CH4[lyr];
 			transfer_soil_O2[lyr] = from.transfer_soil_O2[lyr];
@@ -359,7 +354,6 @@ struct landcover_change_transfer {
 			transfer_snow_imass[lyr] = from.transfer_snow_imass[lyr];
 			transfer_snow_depth[lyr] = from.transfer_snow_depth[lyr];
 			transfer_snow_temp[lyr] = from.transfer_snow_temp[lyr];
-			transfer_snow_temp_old[lyr] = from.transfer_snow_temp_old[lyr];
 		}
 	}
 
@@ -416,7 +410,6 @@ struct landcover_change_transfer {
 			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;
 			transfer_soil_imass[lyr] += from.transfer_soil_imass[lyr] * multiplier;
 			transfer_soil_temp[lyr] += from.transfer_soil_temp[lyr] * multiplier;
-			transfer_soil_temp_old[lyr] += from.transfer_soil_temp_old[lyr] * multiplier;
 			transfer_soil_CO2[lyr] += from.transfer_soil_CO2[lyr] * multiplier;
 			transfer_soil_CH4[lyr] += from.transfer_soil_CH4[lyr] * multiplier;
 			transfer_soil_O2[lyr] += from.transfer_soil_O2[lyr] * multiplier;
@@ -457,7 +450,6 @@ struct landcover_change_transfer {
 			transfer_snow_imass[lyr] += from.transfer_snow_imass[lyr] * multiplier;
 			transfer_snow_depth[lyr] += from.transfer_snow_depth[lyr] * multiplier;
 			transfer_snow_temp[lyr] += from.transfer_snow_temp[lyr] * multiplier;
-			transfer_snow_temp_old[lyr] += from.transfer_snow_temp_old[lyr] * multiplier;
 		}		
 	}
 };

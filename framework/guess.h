@@ -3512,8 +3512,6 @@ public:
 	double thermdiff_100;
 	/// soil layer temperature (deg C)
 	double temp;
-	/// previous timestep soil layer temperature (deg C)
-	double temp_old;
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double mtemp[12];
 	/** respiration response to today's soil temperature at 0.25 m depth
@@ -3682,7 +3680,6 @@ public:
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
 		temp = that.temp;
-		temp_old = that.temp_old;
 		gtemp = that.gtemp;
 		alag = that.alag;
 		exp_alag = that.exp_alag;
@@ -3789,7 +3786,6 @@ public:
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
 		temp = that.temp;
-		temp_old = that.temp_old;
 		gtemp = that.gtemp;
 		alag = that.alag;
 		exp_alag = that.exp_alag;
@@ -3948,7 +3944,6 @@ struct Snowlayer : public Serializable {
 		wmass = init_water;
 		dens = init_dens;
 		temp = init_temp;
-		temp_old = init_temp;
 	}
 
 	/// water mass in snow layer (kg m-2)
@@ -3968,9 +3963,6 @@ struct Snowlayer : public Serializable {
 
 	/// Snow temperature [C]
 	double temp;
-
-	/// Previous time step snow temperature [C]
-	double temp_old;
 
 	/// Thermal conductivity of snow [J m-1 K-1 s-1]
 	double Kh;
@@ -3993,6 +3985,9 @@ struct Snowlayer : public Serializable {
 
 	/// Balancing snow density when a non-overfull layer increases/decreases
 	void mix_dens(double prec, double snowfall_dens);
+
+	/// Phase change
+	void phase_change();
 
 	void serialize(ArchiveStream& arch);
 };

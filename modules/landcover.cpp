@@ -1538,7 +1538,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_soil_wmass[lyr] * added_frac) / new_frac;
 						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
 						soillayer.temp = (soillayer.temp * old_frac + from.transfer_soil_temp[lyr] * added_frac) / new_frac;
-						soillayer.temp_old = (soillayer.temp_old * old_frac + from.transfer_soil_temp_old[lyr] * added_frac) / new_frac;
 						soillayer.CO2 = (soillayer.CO2 * old_frac + from.transfer_soil_CO2[lyr] * added_frac) / new_frac;
 						soillayer.CH4 = (soillayer.CH4 * old_frac + from.transfer_soil_CH4[lyr] * added_frac) / new_frac;
 						soillayer.O2 = (soillayer.O2 * old_frac + from.transfer_soil_O2[lyr] * added_frac) / new_frac;
@@ -1605,7 +1604,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						snowlayer.wmass = (snowlayer.wmass * old_frac + from.transfer_snow_wmass[lyr] * added_frac) / new_frac;
 						snowlayer.depth = (snowlayer.depth * old_frac + from.transfer_snow_depth[lyr] * added_frac) / new_frac;
 						snowlayer.temp = (snowlayer.temp * old_frac + from.transfer_snow_temp[lyr] * added_frac) / new_frac;
-						snowlayer.temp_old = (snowlayer.temp_old * old_frac + from.transfer_snow_temp_old[lyr] * added_frac) / new_frac;
 						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
 					}
 
@@ -2796,7 +2794,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
-		transfer_soil_temp[lyr] = transfer_soil_temp_old[lyr] = 0.0;
+		transfer_soil_temp[lyr] = 0.0;
 		transfer_soil_CO2[lyr] = transfer_soil_CH4[lyr] = transfer_soil_O2[lyr] = 0.0;
 		transfer_soil_NH4[lyr] = transfer_soil_NO3[lyr] = transfer_soil_NO2[lyr] = 0.0;
 		transfer_soil_NO[lyr] = transfer_soil_N2O[lyr] = transfer_soil_N2[lyr] = 0.0;
@@ -2822,7 +2820,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 		transfer_snow_wmass[lyr] = transfer_snow_imass[lyr] = 0.0;
 		transfer_snow_depth[lyr] = 0.0;
-		transfer_snow_temp[lyr] = transfer_snow_temp_old[lyr] = 0.0;
+		transfer_snow_temp[lyr] = 0.0;
 	}
 
 	allocate();

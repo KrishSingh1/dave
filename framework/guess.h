@@ -3139,6 +3139,8 @@ public:
 	double Kw_max_min;
 	/// Saturated mineral matter water suction (matrix potential) (mm)
 	double Psi_max_min;
+	// Soil specific surface area (m2 g−1)
+	double ssa;
 
 
 	/// Organic soil properties
@@ -3438,6 +3440,8 @@ public:
 	double imass;
 	/// monthly ice mass in soil layer (kg m-2)
 	double mimass[12];
+	/// suppercooled water mass in soil layer (kg m-2)
+	double wmass_sc;
 	/// Matrix potantial (mm)
 	double psi;
 	/// monthly water content as fraction of available water holding capacity
@@ -3512,6 +3516,8 @@ public:
 	double thermdiff_100;
 	/// soil layer temperature (deg C)
 	double temp;
+	/// soil layer temperature from previous phase change (deg C)
+	double temp_old;
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double mtemp[12];
 	/** respiration response to today's soil temperature at 0.25 m depth
@@ -3647,6 +3653,7 @@ public:
 		catotelm = that.catotelm;
 		wmass = that.wmass;
 		imass = that.imass;
+		wmass_sc = that.wmass_sc;
 		psi = that.psi;
 		mwcontabove = that.mwcontabove;
 		awcont = that.awcont;
@@ -3680,6 +3687,7 @@ public:
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
 		temp = that.temp;
+		temp_old = that.temp_old;
 		gtemp = that.gtemp;
 		alag = that.alag;
 		exp_alag = that.exp_alag;
@@ -3753,6 +3761,7 @@ public:
 		catotelm = that.catotelm;
 		wmass = that.wmass;
 		imass = that.imass;
+		wmass_sc = that.wmass_sc;
 		psi = that.psi;
 		mwcontabove = that.mwcontabove;
 		awcont = that.awcont;
@@ -3786,6 +3795,7 @@ public:
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
 		temp = that.temp;
+		temp_old = that.temp_old;
 		gtemp = that.gtemp;
 		alag = that.alag;
 		exp_alag = that.exp_alag;
@@ -4344,7 +4354,7 @@ public:
 	/// Calculate soil column water flow
 	void calc_wflow(double winfilt, std::vector<double> aet);
 	/// Resolves negative soil layer water mass
-	void resolve_neg_wmass(std::vector<int> neglyr);
+	void resolve_neg_wmass(std::vector<int> neglyr, double& evap);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties(bool combine_snow);
 	/// Set padding layers depth

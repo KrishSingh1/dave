@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+﻿///////////////////////////////////////////////////////////////////////////////////////
 /// \file soilinput.cpp
 /// \brief Implementation of soil input from text files, soil codes or soil physical properties.
 ///
@@ -476,6 +476,12 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
 	soiltype.Psi_max_min = -pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
+
+	// Soil specific surface area (m2 g−1) from Sepaskhah et al. (2011)
+	// eqn 11
+	double D = 3.0 - 0.118 * (-log(soiltype.clay_frac) + soiltype.silt_frac + soiltype.sand_frac);
+	// eqn 13
+	soiltype.ssa = exp(-25.06 + 10.66 * D);
 
 	// Soil pH
 	soiltype.pH = soilprop.pH;

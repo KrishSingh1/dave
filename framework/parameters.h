@@ -316,6 +316,9 @@ extern bool iforography;
 /// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 extern bool ifbedrock;
 
+/// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
+extern int ifsupercooled;
+
 /// Fraction of fine roots to be homogenously distributed in soil column
 extern double homrootdistfrac;
 

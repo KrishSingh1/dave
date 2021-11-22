@@ -737,6 +737,7 @@ void dailyaccounting_patch(Patch& patch) {
 			// at FIRST_FREEZE_YEAR year then move all water to ice
 			if (date.year == FIRST_FREEZE_YEAR) {
 				soillayer.freeze_lyr();
+				soillayer.temp_old = 0.0;
 			}
 
 			soillayer.aorgCleach = 0.0;

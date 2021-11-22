@@ -88,10 +88,10 @@ file_mwcont_lower "mwcont_lower.out"
 file_mtemp "mtemp.out"
 file_mwmasslyr "mwmasslyr.out"
 file_mimasslyr "mimasslyr.out"
-!file_mwimasslyr "mwimasslyr.out"
-!file_mKwlyr "mKwlyr.out"
-!file_mDwlyr "mDwlyr.out"
-!file_mdrainlyr "mdrainlyr.out"
+file_mwimasslyr "mwimasslyr.out"
+file_mKwlyr "mKwlyr.out"
+file_mDwlyr "mDwlyr.out"
+file_mdrainlyr "mdrainlyr.out"
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
@@ -175,6 +175,7 @@ iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme
 depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
+ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM), 2 - Jin et al. 2020
 homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 iforography 1                   ! Whether to account for orography (1), or not (0)
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)

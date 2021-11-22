@@ -74,6 +74,7 @@ bool ifbvoc;
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
 bool iforography;					// Whether to account for orography (1), or not (0) 
 bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
+int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
@@ -521,6 +522,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to account for orography (1), or not (0)");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
 			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
+		declareitem("ifsupercooled", &ifsupercooled, 0, 2, 1, CB_NONE,
+			"Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020");
 		declareitem("homrootdistfrac", &homrootdistfrac, 0.0, 1.0, 1, CB_NONE,
 			"Fraction of fine roots to be homogenously distributed in soil column");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
@@ -1281,6 +1284,7 @@ void plib_callback(int callback) {
 			sendmessage("Error", "Can't account for bedrock with two layer soil!");
 			plibabort();
 		}
+		if (!itemparsed("ifsupercooled")) badins("ifsupercooled");
 		if (!itemparsed("homrootdistfrac")) badins("homrootdistfrac");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (iftwolayersoil == 1 && ifmultilayersnow == 1) {

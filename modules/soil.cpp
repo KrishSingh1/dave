@@ -1025,16 +1025,12 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 	// Loop through layers as long as water still has a temperture above zero (still energy to melt ice) 
 	while (rain_energy > 0.0 && !negligible(snowlayers[lyr].imass)) {
 
-		// Fraction ice in snow layer
-		double Fice = snowlayers[lyr].imass / snowlayers[lyr].depth;
-		// Fraction water in snow layer
-		double Fwater = snowlayers[lyr].wmass / snowlayers[lyr].depth;
 		// Heat capcity of snow layer [J m-3 K-1]
 		double heat_cap = snowlayers[lyr].Ch;
 		// Volume of snow layer [m-3]
 		double snow_volume = snowlayers[lyr].depth * M_PER_MM;
 		// Energy needed to bring snow layer to 0C [J]
-		double energy_to_zero = fabs(snowlayers[lyr].temp - 0.0) * heat_cap / snow_volume;
+		double energy_to_zero = fabs(snowlayers[lyr].temp - 0.0) * heat_cap * snow_volume;
 
 		// Enough energy to melt some snow
 		if (rain_energy > energy_to_zero) {
@@ -1043,32 +1039,28 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 			rain_energy -= energy_to_zero;
 			snowlayers[lyr].temp = 0.0;
 
-			// Fraction that will melt
-			double frac_change = rain_energy / Lheat;
+			// ice melt [mm]
+			double imass_melt = rain_energy / Lheat * MM_PER_M;
 
 			// Enough energy to melt all ice (snow layer will be removed) 
-			if (frac_change > Fice) {
-				frac_change -= Fice;
-				Fwater += Fice;
-				Fice = 0.0;
-				rain_energy = frac_change * Lheat;
+			if (imass_melt > snowlayers[lyr].imass) {
+				imass_melt -= snowlayers[lyr].imass;
+				snowlayers[lyr].wmass += snowlayers[lyr].imass;
+				snowlayers[lyr].imass = 0.0;
+				rain_energy = imass_melt * Lheat / MM_PER_M;
 			}
 			// Only melt a frac of ice
 			else {
-				Fwater += frac_change;
-				Fice -= frac_change;
+				snowlayers[lyr].wmass += imass_melt;
+				snowlayers[lyr].imass -= imass_melt;
 				rain_energy = 0.0;
 			}
 		}
 		// Only enough energy to change temperature
 		else {
-			snowlayers[lyr].temp += rain_energy * snow_volume / heat_cap;
+			snowlayers[lyr].temp += rain_energy / (snow_volume * heat_cap);
 			rain_energy = 0.0;
 		}
-
-		// Convert from fraction to mm depth 
-		snowlayers[lyr].wmass = Fwater * snowlayers[lyr].depth;
-		snowlayers[lyr].imass = Fice * snowlayers[lyr].depth;
 
 		// If now layer still exist update depth, water content and temperature
 		if (!negligible(snowlayers[lyr].imass)) {
@@ -1304,6 +1296,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 
 	// Energy
 	temp = 0.0;
+	temp_old = 0.0;
 	Kh = 0.0;
 	Ch = 0.0;
 	thermdiff_0 = 0.0;
@@ -1314,6 +1307,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Water (initiate water mass at half of water holding capacity plus wilting point)
 	wmass = ((*soilcolumn).soiltype.wp_min + (*soilcolumn).soiltype.awc_min * 0.5) * depth;
 	imass = 0.0;
+	wmass_sc = 0.0;
 	por = 0.0;
 	Dw = 0.0;
 	Kw = 0.0;
@@ -1778,6 +1772,8 @@ void Soillayer::phase_change(bool combine_snow) {
 	double Fthaw = 0.0;
 	// Fraction of water
 	double Fwmass;
+	// Fraction of water super cooled
+	double Fwmass_sc = 0.0;
 	// Fraction of ice
 	double Fimass;
 	// Energy per volume [J m-3]
@@ -1803,23 +1799,48 @@ void Soillayer::phase_change(bool combine_snow) {
 		Fimass = imass / soillyr_depth;
 	}
 
-	// Freezing temperatures and water present
-	if (temp < 0.0 && Fwmass > 0.0) {
+	// Calculate fraction supercooled soil water
+	// Two options
+	// (1) - Niu et al. 2006 eqn 3 (CLM scheme) or
+	// (2) - Jin et al. 2020 eqn 28 
+	if (temp < 0.0 && ifsupercooled) {
 
-		// Temperature difference from zero
-		delta_T = fabs(temp);
+		// Niu scheme
+		if (ifsupercooled == 1) {
+			wmass_sc = wsats * min(1.0, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
+		}
+		// Jin scheme
+		else if (ifsupercooled == 2) {
+			double w_m = 0.05 * (*soilcolumn).soiltype.ssa;
+			double S = 0.37;
+			double C_1 = 0.041;
+			double C = (*soilcolumn).soiltype.ssa * S * C_1 * pow(K2degC - temp, 0.5);
+			wmass_sc = wsats * min(100.0, C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0;
+		}
+
+		Fwmass_sc = wmass_sc / soillyr_depth;
+	}
+
+	// Temperature difference from previous phase change
+	delta_T = temp - temp_old;
+
+	// Freezing temperatures and water present
+	if (temp < 0.0 && temp < temp_old && Fwmass > Fwmass_sc) {
 
 		// Energy to freeze water [J m-3]
-		energy = Cp_water * delta_T;
+		energy = Cp_water * fabs(delta_T);
 
 		// Fraction water that would freeze [m3 m-3]
 		Ffreez = energy / Lheat;
 
-		if (Fwmass > Ffreez) {
+		// Super cooled water that could freeze
+		double Fwmass_freeze = Fwmass - Fwmass_sc;
+
+		if (Fwmass_freeze > Ffreez) {
 			Fimass += Ffreez;
 			Fwmass -= Ffreez;
 
-			temp = 0.0;
+			temp = temp_old;
 		}
 		else {
 			// It is cold enough to freeze all the water and decrease the temperature below 0, 
@@ -1827,54 +1848,92 @@ void Soillayer::phase_change(bool combine_snow) {
 			// temperatures colder than the values coming from the Crank-Nicholson scheme.
 
 			// Soil layer temperature rise resulting from freezing water.
-			double temp_rise = Fwmass * Lheat / Cp_water;
+			double temp_rise = Fwmass_freeze * Lheat / Cp_water;
 
 			// Update soil temperature in this layer
 			temp += temp_rise;
-			temp = min(0.0, temp);
+			temp = min(temp_old, temp);
 
 			// All water is frozen
-			Fimass += Fwmass;
-			Fwmass = 0.0;
+			Fimass += Fwmass_freeze;
+			Fwmass -= Fwmass_freeze;
 		}
 	} // End of Freezing
 
 	// Thawing temperatures and ice present
-	else if (temp > 0.0 && Fimass > 0.0) {
+	else if (temp > temp_old && Fimass > 0.0) {
 
-		// Temperature difference from zero
-		delta_T = fabs(temp);
+		if (temp > 0.0) {
 
-		// Energy from full soil layer to freeze water [J m-3]
-		energy = Cp_water * fabs(delta_T);
+			// Energy from full soil layer to freeze water [J m-3]
+			energy = Cp_water * fabs(delta_T);
 
-		// Fraction ice that would thaw [m3 m-3]
-		Fthaw = energy / Lheat;
+			// Fraction ice that would thaw [m3 m-3]
+			Fthaw = energy / Lheat;
 
-		if (Fimass > Fthaw) {
+			if (Fimass > Fthaw) {
 
-			// There is some ice left, even after melt
-			Fwmass += Fthaw;
-			Fimass -= Fthaw;
-			temp = 0.0;
+				// There is some ice left, even after melt
+				Fwmass += Fthaw;
+				Fimass -= Fthaw;
+				temp = temp_old;
+			}
+			else {
+				// There is more energy available than required for
+				// melting the rest of the ice. Therefore the
+				// left-over energy will increase the temperature.
+
+				// Soil layer temperature reduction resulting from thawing ice.
+				double temp_reduction = Fimass * Lheat / Cp_water;
+
+				// Update soil temperature in this layer
+				temp -= temp_reduction;
+				temp = max(temp_old, temp);
+
+				// All water is unfrozen
+				Fwmass += Fimass;
+				Fimass = 0.0;
+			}
 		}
-		else {
-			// There is more energy available than required for
-			// melting the rest of the ice. Therefore the
-			// left-over energy will increase the temperature.
+		else if (Fwmass < Fwmass_sc) {
 
-			// Soil layer temperature reduction resulting from thawing ice.
-			double temp_reduction = Fimass * Lheat / Cp_water;
+			// Energy from full soil layer to thaw water [J m-3]
+			energy = Cp_water * fabs(delta_T);
 
-			// Update soil temperature in this layer
-			temp -= temp_reduction;
-			temp = max(0.0, temp);
+			// Fraction ice that would thaw [m3 m-3]
+			Fthaw = energy / Lheat;
 
-			// All water is unfrozen
-			Fwmass += Fimass;
-			Fimass = 0.0;
+			// Missing super cooled water that should be in liquid form
+			double Fwmass_thaw = Fwmass_sc - Fwmass;
+
+			if (Fwmass_thaw > Fthaw) {
+
+				// There is some ice left, even after melt
+				Fwmass += Fthaw;
+				Fimass -= Fthaw;
+				temp = temp_old;
+			}
+			else {
+				// There is more energy available than required for
+				// melting the super cooled water level. The enery used for 
+				// melting the ice will decrease the water temperarture
+
+				// Soil layer temperature reduction resulting from thawing ice.
+				double temp_reduction = Fwmass_thaw * Lheat / Cp_water;
+
+				// Update soil temperature in this layer
+				temp -= temp_reduction;
+				temp = max(temp_old, temp);
+
+				// All water is unfrozen
+				Fwmass += Fwmass_thaw;
+				Fimass -= Fwmass_thaw;
+			}
 		}
 	} // End of thawing
+
+	// Set new old temperature
+	temp_old = temp;
 
 	// If top soil layer has been combined with a thin snow layer
 	// then the same fraction of water (ice) is freezed (thawed)
@@ -1884,41 +1943,88 @@ void Soillayer::phase_change(bool combine_snow) {
 		// Freezing
 		if (!negligible(Ffreez)) {
 
-			// Fraction of water left after freezing
-			double frac = Fwmass / ((wmass + (*soilcolumn).snow.snowlayers[0].wmass) / soillyr_depth);
+			// Is all snow water freezes
+			if (Ffreez > (*soilcolumn).snow.snowlayers[0].wmass / soillyr_depth) {
+				Ffreez -= (*soilcolumn).snow.snowlayers[0].wmass / soillyr_depth;
+				(*soilcolumn).snow.snowlayers[0].imass += (*soilcolumn).snow.snowlayers[0].wmass;
+				(*soilcolumn).snow.snowlayers[0].wmass = 0.0;
 
-			// Update soil layer water and ice mass
-			double imass_new = (1.0 - frac) * wmass;
-			wmass -= imass_new;
-			imass += imass_new;
+				// Fraction of soil layer water that freeze
+				double frac = min(1.0, Ffreez / (wmass / soillyr_depth));
 
-			// Update snow layer water and ice mass, and density
-			imass_new = (1.0 - frac) * (*soilcolumn).snow.snowlayers[0].wmass;
-			(*soilcolumn).snow.snowlayers[0].wmass -= imass_new;
-			(*soilcolumn).snow.snowlayers[0].imass += imass_new;
-			(*soilcolumn).snow.snowlayers[0].dens = (*soilcolumn).snow.snowlayers[0].imass * rho_H2O / (*soilcolumn).snow.snowlayers[0].depth;
+				// Update soil layer water and ice mass
+				double imass_new = frac * wmass;
+				wmass -= imass_new;
+				imass += imass_new;
+			}
+			else {
+				// Fraction of snow layer water that freeze
+				double frac = Ffreez / ((*soilcolumn).snow.snowlayers[0].wmass / soillyr_depth);
+
+				// Update soil layer water and ice mass
+				double imass_new = frac * (*soilcolumn).snow.snowlayers[0].wmass;
+				(*soilcolumn).snow.snowlayers[0].wmass -= imass_new;
+				(*soilcolumn).snow.snowlayers[0].imass += imass_new;
+			}
 		}
-		
+
 		// Thawing
 		else if (!negligible(Fthaw)) {
 
-			// Fraction of ice left after thawing
-			double frac = Fimass / ((imass + (*soilcolumn).snow.snowlayers[0].imass) / soillyr_depth);
+			// First try and thaw missing super cooled water in soil layer
+			if (wmass < wmass_sc && imass > 0.0) {
 
-			// Update soil layer water and ice mass
-			double wmass_new = (1.0 - frac) * imass;
-			imass -= wmass_new;
-			wmass += wmass_new;
+				double Fwmass_sc_missing = (wmass_sc - wmass) / soillyr_depth;
+				double Fimass_soil = imass / soillyr_depth;
+				double Fimass_to_thaw;
 
-			// Update snow layer water and ice mass, and depth
-			wmass_new = (1.0 - frac) * (*soilcolumn).snow.snowlayers[0].imass;
-			(*soilcolumn).snow.snowlayers[0].imass -= wmass_new;
-			(*soilcolumn).snow.snowlayers[0].wmass += wmass_new;
-			(*soilcolumn).snow.snowlayers[0].depth = (*soilcolumn).snow.snowlayers[0].imass * rho_H2O / (*soilcolumn).snow.snowlayers[0].dens;
+				if (Fthaw < Fwmass_sc_missing) {
+					Fimass_to_thaw = min(Fthaw, Fimass_soil);
+				}
+				else {
+					Fimass_to_thaw = min(Fwmass_sc_missing, Fimass_soil);
+				}
+
+				Fthaw -= Fimass_to_thaw;
+				imass -= Fimass_to_thaw * soillyr_depth;
+				wmass += Fimass_to_thaw * soillyr_depth;
+			}
+
+
+			// Is all snow water thaws
+			if (Fthaw > (*soilcolumn).snow.snowlayers[0].imass / soillyr_depth) {
+				Fthaw -= (*soilcolumn).snow.snowlayers[0].imass / soillyr_depth;
+
+				// Remove snow layer
+				double added_wmass = (*soilcolumn).snow.snowlayers[0].wmass + (*soilcolumn).snow.snowlayers[0].imass;
+				(*soilcolumn).rain_melt_temp = ((*soilcolumn).rain_melt_temp * (*soilcolumn).rain_melt + (*soilcolumn).snow.snowlayers[0].temp * added_wmass) / ((*soilcolumn).rain_melt + added_wmass);
+				(*soilcolumn).rain_melt += added_wmass;
+
+				// Erase last snowlayer
+				(*soilcolumn).snow.snowlayers.erase((*soilcolumn).snow.snowlayers.begin());
+				(*soilcolumn).snow.nsnowlayers--;
+
+				// Fraction of soil layer water that thaws
+				double frac = min(1.0, Fthaw / (imass / soillyr_depth));
+
+				// Update soil layer water and ice mass
+				double wmass_new = frac * imass;
+				imass -= wmass_new;
+				wmass += wmass_new;
+			}
+			else {
+				// Fraction of snow layer water that thaws
+				double frac = Fthaw / ((*soilcolumn).snow.snowlayers[0].imass / soillyr_depth);
+
+				// Update soil layer water and ice mass
+				double wmass_new = frac * (*soilcolumn).snow.snowlayers[0].imass;
+				(*soilcolumn).snow.snowlayers[0].imass -= wmass_new;
+				(*soilcolumn).snow.snowlayers[0].wmass += wmass_new;
+
+				// Update snow temperature
+				(*soilcolumn).snow.snowlayers[0].temp = temp;
+			}
 		}
-
-		// Update snow temperature
-		(*soilcolumn).snow.snowlayers[0].temp = temp;
 	}
 	else {
 		// Water and ice fraction of full volume
@@ -2172,7 +2278,7 @@ void Soillayer::update_hydraulic_properties() {
 	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
 	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
 	// at the permanent wilting point for frozen water (for convenience set to zero)
-	if (false && imass > 0.0) {
+	if (imass > 0.0) {
 		// Ice impedance factor (Swenson et al. 2012)
 		double imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
 
@@ -3241,7 +3347,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 /// Resolves negative soil layer water mass
 /** Resolves negative soil layer water mass
 */
-void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
+void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap) {
 
 	// Resolve negative wmass
 	for (int lyr = 0; lyr < neglyr.size(); lyr++) {
@@ -3259,10 +3365,12 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
 			double wmass_move = min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass);
 			wfluxes[lyr_neg + 1] -= wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
-			if (lyr_neg < nsoillayers - 1)
+			if (lyr_neg < nsoillayers - 1) {
 				soillayers[lyr_neg + 1].wmass -= wmass_move;
-			else
+			}
+			else {
 				soillayers[lyr_neg].runoff_baseflow -= wmass_move;
+			}
 		}
 
 		// Soil layer above have taken wmass from negative layer
@@ -3270,7 +3378,12 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr) {
 			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
 			wfluxes[lyr_neg] += wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
-			soillayers[lyr_neg - 1].wmass -= wmass_move;
+			if (lyr_neg > 0) {
+				soillayers[lyr_neg - 1].wmass -= wmass_move;
+			}
+			else {
+				evap -= wmass_move;
+			}
 		}
 	}
 }
@@ -4308,7 +4421,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Negative soil layer wmass exists
 	if (neglyr.size()) {
-		resolve_neg_wmass(neglyr);
+		resolve_neg_wmass(neglyr, evap);
 	}
 
 	// Water balance check
@@ -4329,36 +4442,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
 	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
 	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
-
-
-	if (false && date.get_calendar_year() == 1920) {
-		if (date.day == 0)
-			dprintf("Year Day Precip Rain_melt AirT Snow1 Snow2 Snow3 Snow4 Snow5 Lyr1 Lyr2 Lyr3 Lyr4 Lyr5 Lyr6 Lyr7 W1 W2 W3 W4 W5 W6 W7 WTOT ICE1 ICE2 ICE3 ICE4 ICE5 ICE6 ICE7 Surf Drain Base Evap AET\n");
-		dprintf("%d %d %g %g %g ", date.get_calendar_year(), date.day, patch.get_climate().prec, rain_melt, climate.temp);
-
-		if (snow.nsnowlayers < 5)
-			for (int lyr = 0; lyr < 5 - snow.nsnowlayers; lyr++)
-				dprintf("%g ", climate.temp);
-
-		for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--)
-			dprintf("%g ", snow.snowlayers[lyr].temp);
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++)
-			dprintf("%g ", soillayers[lyr].temp);
-
-		double Wtot = 0.0;
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			dprintf("%g ", max(0.0, min(1.0, (soillayers[lyr].wmass - soillayers[lyr].wp) / soillayers[lyr].awc)));
-			Wtot += max(0.0, (soillayers[lyr].wmass - soillayers[lyr].wp));
-		}
-		
-		dprintf("%g ", Wtot);
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++)
-			dprintf("%g ", soillayers[lyr].imass / soillayers[lyr].wsats);
-
-		dprintf("%g %g %g %g %g\n", runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE), evap, aet_total);
-	}
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4624,6 +4707,257 @@ bool Soilcolumn::can_freeze() const {
 	return ifallowphasechanges;
 }
 
+/* NEEDED to include Pauls hydrology and temp calculations and a switch for using it and the 15 layer 10cm scheme!!!
+void tri_diag(int n, std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r, std::vector<double>& u) {
+
+	// Tridiagonal system solver from Numerical Recipes.
+
+	std::vector<double> gam(n);
+	double bet;
+
+
+	bet = b[0];
+
+	u[0] = r[0] / bet;
+
+	for (int j = 1; j < n; j++) {
+		gam[j] = c[j - 1] / bet;
+		bet = b[j] - a[j] * gam[j];
+
+		u[j] = (r[j] - a[j] * u[j - 1]) / bet;
+	}
+
+	for (int j = (n - 2); j >= 0; j--) {
+		u[j] -= gam[j + 1] * u[j + 1];
+	}
+}
+
+
+/// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
+void cnstep(int active_layers, std::vector<double> Di, std::vector<double> dz, double surf_temp, double dt,
+	std::vector<double> temp, std::vector<double>& temp_sol) {
+	// DESCRIPTION
+	// Crank-Nicholson timestepper for temperature diffusion equation.
+	// This routine performs a single timestep (of length dt) of the heat
+	// diffusion equation
+	//
+	//                        6 T    6  /      6 T \
+	//                        --- = --- | D(z) --- |
+	// 						  6 t   6 z \      6 z /
+	//
+	// where here, T(z, t) is the temperature, the '6's represent partial
+	// differentiation, and D(z) is the (depth-dependent) diffusion
+	// constant.  The boundary conditions are a prescribed surface
+	// temperature, and no heat flow at the bottom of the solution domain.
+	//
+	// INPUT PARAMETERS:
+	//
+	// nlayers      Total number of layers represented in temp, d and
+	//              dz arrays.  Not all of the layers have to be active
+	//              at one time, but this parameter is used to constrain
+	//              the sizes of the depth-based arrays.
+	//
+	// temp         The temperatures in each layer at the start of the
+	//              timestep.
+	//
+	// Di           The thermal diffusivities in each layer. (m2/day)
+	//
+	// dz           The thickness of each layer (mm).
+	//
+	// surf_temp    The surface temperature boundary condition.
+	//
+	// dt           The timestep.
+	//
+	// NOTE ON UNITS: no units are specified here for any of these
+	// inputs; the only constraint on units is that the layer
+	// thicknesses, the diffusion constant and the timestep should be
+	// measured in consistent units.  For instance, if the layer
+	// thicknesses are measured in metres, and the timestep in days, {
+	// the diffusion constants should have units of m2 / day.
+	//
+	// OUTPUT PARAMETERS
+	//
+	// temp_sol     The temperatures in each layer at the end of the
+	//              timestep.  Only layers layer0 - NLAYERS will have
+	//              valid temperature values after a  to cnstep.  All
+	//              layers with index less than layer0 will have missing
+	//              value temperatures set (a value of -1.0E35).
+
+
+	// Layer counters: note that there are two different layer counting
+	// schemes used, one for the input and output parameters (vectors of
+	// length NLAYERS) and one for the values used in the Crank-Nicholson
+	// solver (vectors of length active_layers)
+	int lyr;
+
+	// Diffusion constants averaged over adjacent layers.
+	double dplus;
+	double dminus;
+
+	// Layer-dependent weighting factors in Crank-Nicholson scheme.
+	double dz_factor;
+	double Cplus;
+	double Cp_minus;
+	double dzhere, dzminus, dzplus;
+	double there, tminus, tplus;
+
+	// Leading diagonal, left and right subdiagonals for Crank-Nicholson
+	// matrix.
+	std::vector<double> diag(active_layers);
+	std::vector<double> left(active_layers);
+	std::vector<double> right(active_layers);
+
+	// Right hand side vector for Crank-Nicholson scheme equations.
+	std::vector<double> rhs(active_layers);
+
+	// Solution vector for Crank-Nicholson scheme equations.
+	std::vector<double> solution(active_layers);
+
+	// initialise
+	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
+	dzhere = dzminus = dzplus = 0.0;
+	there = tminus = tplus = 0.0;
+
+	// --- CODE STARTS HERE ---
+
+	//   BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE
+
+	if (date.year == 100)
+		int sch = 0;
+
+	// End members for off-diagonal elements.
+	left[0] = 0.0;
+	right[active_layers - 1] = 0.0;
+
+	// Process the active layers.
+
+	for (lyr = 0; lyr < active_layers; lyr++) {
+
+		if (lyr == 0) { // moved from above
+			diag[lyr] = 0.0;
+			left[lyr] = 0.0;
+			right[lyr] = 0.0;
+			rhs[lyr] = 0.0;
+			solution[lyr] = 0.0;
+		}
+
+		// Calculate diffusion constants averaged over adjacent layers.
+		// The diffusion constant at the bottom layer is clamped to zero
+		// to enforce the no heat flow boundary condition there.  Diffusion
+		// constants in the padding layers are calculated in a sensible way.
+
+		// D+
+
+		if (lyr == active_layers - 1)
+			dplus = 0.0;	// Bottom layer diffusion clamped to 0
+		else
+			dplus = 0.5 * (Di[lyr] + Di[lyr + 1]);
+
+		// D-
+
+		if (lyr == 0)
+			dminus = Di[lyr]; // top layer
+		else
+			dminus = 0.5 * (Di[lyr] + Di[lyr - 1]);
+
+		// Extract sensible values to use for temperature and diffusivity
+		// of the current layer, the layer above and the layer below,
+		// taking account of padding layers and end cases.
+
+		dzhere = dz[lyr];
+		there = temp[lyr];
+
+		// --- PLUS ---
+		if (lyr < active_layers - 1) {
+			// all soil layers
+			dzplus = dz[lyr + 1];
+			tplus = temp[lyr + 1];
+		}
+		else {
+			// bottom padding layer
+			dzplus = dz[active_layers - 1];
+			tplus = temp[active_layers - 1];
+		}
+
+		// --- MINUS ---
+		if (lyr == 0) {
+			// top layer
+			dzminus = dz[lyr];
+			tminus = temp[lyr];
+		}
+		else {
+			// all soil layers
+			dzminus = dz[lyr - 1];
+			tminus = temp[lyr - 1];
+		}
+
+		dz_factor = 0.25 * (dzplus + 2.0 * dzhere + dzminus);
+		Cplus = dplus * dt / dz_factor / (dzplus + dzhere);
+		Cp_minus = dminus * dt / dz_factor / (dzhere + dzminus);
+
+		// Fill in matrix diagonal and off-diagonal elements.
+
+		// DIAG
+		if (lyr == 0) {
+			diag[0] = 1.0; // BC1 - top layer should be (1,0,...,0)
+		}
+		else {
+			diag[lyr] = 1.0 + Cplus + Cp_minus;
+		}
+
+		// LEFT & RIGHT
+		if (lyr < active_layers) {
+
+			if (lyr > 0)
+				right[lyr] = -Cplus;
+			else
+				right[lyr] = 0.0; // i.e. BC1, where top layer == (1,0,..,0)
+
+			// left[0] is set above.
+			if (lyr > 0)
+				left[lyr] = -Cp_minus;
+		}
+
+		// RHS
+		// Calculate right hand side vector values.
+		if (lyr == 0) {
+			rhs[0] = surf_temp;
+		}
+		else if (lyr == active_layers - 1) { // Cplus == 0 here anyway
+			rhs[lyr] = (1.0 - Cp_minus) * there + Cp_minus * tminus;
+		}
+		else {
+			rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
+				Cplus * tplus + Cp_minus * tminus;
+		}
+	} // end for
+
+	// SOLVE TRIDIAGONAL SYSTEM
+
+	tri_diag(active_layers, left, diag, right, rhs, solution);
+
+	// Numerical test
+
+	if (DEBUG_SOIL_TEMPERATURE) {
+
+		int testrow = 10;
+		double checksum = left[testrow] * solution[testrow - 1] + diag[testrow] * solution[testrow] +
+			right[testrow] * solution[testrow + 1] - rhs[testrow];
+
+		if (fabs(checksum) > 0.0000000001)
+			dprintf("%s\n", "Bad checksum after tridiag - test1");
+	}
+
+	//   FORMAT OUTPUT PARAMETERS
+
+	// Transfer the solution to the temperature array.  Also update
+	// the padding layer temperatures so they can be used for the
+	// next timestep.
+	for (lyr = 0; lyr < active_layers; lyr++) {
+		temp_sol[lyr] = solution[lyr];
+	}
+}*/
+
 /// Calculate temperature profile through snow, soil and padding layers
 /** Calculate temperature profile through snow, soil and padding layers
  */
@@ -4708,6 +5042,19 @@ void Soilcolumn::calc_temp() {
 
 		// Solve tridiagonal system
 		solve_tridiagonal(tpara);
+		
+		/* Need to include Pauls hydrology and temp calculations for the 15 layer 10cm scheme
+		// The thermal diffusivities in each layer. [mm2 day-1]
+		std::vector<double> Di(nsnowsoilpadlayers);
+		// Soil layer thickness [mm]
+		std::vector<double> Dz(nsnowsoilpadlayers);
+		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+			Di[lyr] = tpara.diff[lyr] / tpara.cap[lyr] * SECS_PER_DAY * MM2_PER_M2;
+			Dz[lyr] = tpara.dz[lyr] * MM2_PER_M2;
+		}
+
+		cnstep(nsnowsoilpadlayers, Di, Dz, airT, 1.0 / date.timesteps, tpara.psi, tpara.psi1);
+		*/
 
 		// Update temperatures
 

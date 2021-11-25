@@ -1904,7 +1904,7 @@ void Soillayer::phase_change(bool combine_snow) {
 			Fthaw = energy / Lheat;
 
 			// Missing super cooled water that should be in liquid form
-			double Fwmass_thaw = Fwmass_sc - Fwmass;
+			double Fwmass_thaw = min(Fimass, Fwmass_sc - Fwmass);
 
 			if (Fwmass_thaw > Fthaw) {
 
@@ -1925,7 +1925,7 @@ void Soillayer::phase_change(bool combine_snow) {
 				temp -= temp_reduction;
 				temp = max(temp_old, temp);
 
-				// All water is unfrozen
+				// Either all ice is unfrozen or super cooled fraction is meet
 				Fwmass += Fwmass_thaw;
 				Fimass -= Fwmass_thaw;
 			}
@@ -1997,7 +1997,7 @@ void Soillayer::phase_change(bool combine_snow) {
 
 				// Remove snow layer
 				double added_wmass = (*soilcolumn).snow.snowlayers[0].wmass + (*soilcolumn).snow.snowlayers[0].imass;
-				(*soilcolumn).rain_melt_temp = ((*soilcolumn).rain_melt_temp * (*soilcolumn).rain_melt + (*soilcolumn).snow.snowlayers[0].temp * added_wmass) / ((*soilcolumn).rain_melt + added_wmass);
+				(*soilcolumn).rain_melt_temp = ((*soilcolumn).rain_melt_temp * (*soilcolumn).rain_melt + temp * added_wmass) / ((*soilcolumn).rain_melt + added_wmass);
 				(*soilcolumn).rain_melt += added_wmass;
 
 				// Erase last snowlayer
@@ -2005,12 +2005,14 @@ void Soillayer::phase_change(bool combine_snow) {
 				(*soilcolumn).snow.nsnowlayers--;
 
 				// Fraction of soil layer water that thaws
-				double frac = min(1.0, Fthaw / (imass / soillyr_depth));
+				if (imass > 0.0) {
+					double frac = min(1.0, Fthaw / (imass / depth));
 
-				// Update soil layer water and ice mass
-				double wmass_new = frac * imass;
-				imass -= wmass_new;
-				wmass += wmass_new;
+					// Update soil layer water and ice mass
+					double wmass_new = frac * imass;
+					imass -= wmass_new;
+					wmass += wmass_new;
+				}
 			}
 			else {
 				// Fraction of snow layer water that thaws
@@ -2031,6 +2033,14 @@ void Soillayer::phase_change(bool combine_snow) {
 		wmass = Fwmass * soillyr_depth;
 		imass = Fimass * soillyr_depth;
 	}
+
+	// No negative wmass
+	if (wmass < -EPS)
+		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n", date.year, date.day, depth_profile, wmass);
+
+	// No negative imass
+	if (imass < -EPS)
+		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n", date.year, date.day, depth_profile, imass);
 
 	double wtotal_final = wmass + imass;
 

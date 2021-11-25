@@ -4354,7 +4354,7 @@ public:
 	/// Calculate soil column water flow
 	void calc_wflow(double winfilt, std::vector<double> aet);
 	/// Resolves negative soil layer water mass
-	void resolve_neg_wmass(std::vector<int> neglyr, double& evap);
+	void resolve_neg_wmass(std::vector<int> neglyr, double& evap, double& runoff_surf);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties(bool combine_snow);
 	/// Set padding layers depth

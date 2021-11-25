@@ -3357,7 +3357,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 /// Resolves negative soil layer water mass
 /** Resolves negative soil layer water mass
 */
-void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap) {
+void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double& runoff_surf) {
 
 	// Resolve negative wmass
 	for (int lyr = 0; lyr < neglyr.size(); lyr++) {
@@ -3372,9 +3372,19 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap) {
 
 		// Soil layer below have taken wmass from negative layer
 		if (wfluxes[lyr_neg + 1] > 0.0 && soillayers[lyr_neg].wmass < 0.0) {
-			double wmass_move = min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass);
+
+			double max_move;
+			if (lyr_neg < nsoillayers - 1) {
+				max_move = soillayers[lyr_neg + 1].wmass;
+			}
+			else {
+				max_move = soillayers[lyr_neg].runoff_baseflow;
+			}
+
+			double wmass_move = min(max_move, min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass));
 			wfluxes[lyr_neg + 1] -= wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
+
 			if (lyr_neg < nsoillayers - 1) {
 				soillayers[lyr_neg + 1].wmass -= wmass_move;
 			}
@@ -3385,6 +3395,15 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap) {
 
 		// Soil layer above have taken wmass from negative layer
 		if (wfluxes[lyr_neg] < 0.0 && soillayers[lyr_neg].wmass < 0.0) {
+
+			double max_move;
+			if (lyr_neg > 0) {
+				max_move = soillayers[lyr_neg - 1].wmass;
+			}
+			else {
+				max_move = evap;
+			}
+
 			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
 			wfluxes[lyr_neg] += wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
@@ -3393,6 +3412,45 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap) {
 			}
 			else {
 				evap -= wmass_move;
+			}
+		}
+
+		// Very abnormal error in water movment. Happens on a few occations in a global simulation.
+		// Extreme measures to be taken to keep soil layer wmass above zero 
+
+		// Still negative, take from evaporation
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			if (evap > 0.0) {
+				double wmass_move = min(evap, -soillayers[lyr_neg].wmass);
+				evap -= wmass_move;
+				soillayers[lyr_neg].wmass += wmass_move;
+			}
+		}
+
+		// Still negative, take from surface runoff
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			if (runoff_surf > 0.0) {
+				double wmass_move = min(runoff_surf, -soillayers[lyr_neg].wmass);
+				runoff_surf -= wmass_move;
+				soillayers[lyr_neg].wmass += wmass_move;
+			}
+		}
+
+		// Still negative, take from layers below
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			for (int lyr = lyr_neg + 1; lyr < nsoillayers; lyr++) {
+				double wmass_move = min(soillayers[lyr].wmass, -soillayers[lyr_neg].wmass);
+				soillayers[lyr].wmass -= wmass_move;
+				soillayers[lyr_neg].wmass += wmass_move;
+			}
+		}
+
+		// Still negative, take from layers above
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			for (int lyr = lyr_neg - 1; lyr >= 0; lyr--) {
+				double wmass_move = min(soillayers[lyr].wmass, -soillayers[lyr_neg].wmass);
+				soillayers[lyr].wmass -= wmass_move;
+				soillayers[lyr_neg].wmass += wmass_move;
 			}
 		}
 	}
@@ -4431,7 +4489,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Negative soil layer wmass exists
 	if (neglyr.size()) {
-		resolve_neg_wmass(neglyr, evap);
+		resolve_neg_wmass(neglyr, evap, runoff_surf);
 	}
 
 	// Water balance check

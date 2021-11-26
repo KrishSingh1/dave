@@ -1314,6 +1314,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	b = 0.0;
 	Kw_max = 0.0;
 	a = 0.0;
+	imp_ice = 0.0;
 	perc_mass = 0.0;
 	runoff_drain = 0.0;
 	runoff_baseflow = 0.0;
@@ -2290,10 +2291,13 @@ void Soillayer::update_hydraulic_properties() {
 	// at the permanent wilting point for frozen water (for convenience set to zero)
 	if (imass > 0.0) {
 		// Ice impedance factor (Swenson et al. 2012)
-		double imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
+		imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
 
 		Dw *= imp_ice;
 		Kw *= imp_ice;
+	}
+	else {
+		imp_ice = 1.0;
 	}
 }
 
@@ -3341,7 +3345,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 				double wmass_excees = soillayer.wmass - soillayer.fc();
 
 				// Slope dependant drainage of liquid water above field capacity
-				drained_wmass = wmass_excees * soillayer.runoff_drain_frac;
+				drained_wmass = wmass_excees * soillayer.runoff_drain_frac * soillayer.imp_ice;
 
 				// Sum todays lateral drainage
 				soillayer.runoff_drain += drained_wmass;

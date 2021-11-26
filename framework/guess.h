@@ -3476,6 +3476,8 @@ public:
 	double Psi_max;
 	/// Soil organic C microorganism collocation factor
 	double a;
+	/// Ice impedance factor
+	double imp_ice;
 	/// Lateral drainage runoff
 	double runoff_drain;
 	/// Monthly lateral drainage runoff
@@ -3666,6 +3668,7 @@ public:
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
+		imp_ice = that.imp_ice;
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
@@ -3774,6 +3777,7 @@ public:
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
+		imp_ice = that.imp_ice;
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;

@@ -3375,10 +3375,10 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 
 			double max_move;
 			if (lyr_neg < nsoillayers - 1) {
-				max_move = soillayers[lyr_neg + 1].wmass;
+				max_move = max(0.0, soillayers[lyr_neg + 1].wmass);
 			}
 			else {
-				max_move = soillayers[lyr_neg].runoff_baseflow;
+				max_move = max(0.0, soillayers[lyr_neg].runoff_baseflow);
 			}
 
 			double wmass_move = min(max_move, min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass));
@@ -3398,13 +3398,13 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 
 			double max_move;
 			if (lyr_neg > 0) {
-				max_move = soillayers[lyr_neg - 1].wmass;
+				max_move = max(0.0, soillayers[lyr_neg - 1].wmass);
 			}
 			else {
-				max_move = evap;
+				max_move = max(0.0, evap);
 			}
 
-			double wmass_move = min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass);
+			double wmass_move = min(max_move, min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass));
 			wfluxes[lyr_neg] += wmass_move;
 			soillayers[lyr_neg].wmass += wmass_move;
 			if (lyr_neg > 0) {

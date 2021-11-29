@@ -30,18 +30,27 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -s ] [ -c ] [ -i TESTS | -x TESTS ] <workdir>"
+    error "Usage: benchmarks [ -s ] [ -c ] [ -P ] [ -i TESTS | -x TESTS ] [ -r "REPORTTOOL <path(s) to reference reports>" ] <workdir>"
     error
     error "Options"
     error "======="
-    error "-s   Single machine mode, don't use PBS"
-    error "-c   Compile only, don't run the tests"
-    error "-p   Post processing only"
-    error "-r   Generate printer friendly report"
-    error "     (does nothing else and is run as a regular process,"
-    error "      in other words, not submitted as a batch job)"
-    error "-i   Include only the specified tests"
-    error "-x   Exclude the specified tests"
+    error "-s   Single machine mode, don't use PBS/SLURM"
+    error "-c   Compile only, don't run the tests."
+    error "-p   Post processing only."
+    error "-f   Generate printer friendly report"
+    error "       (does nothing else and is run as a regular process,"
+    error "       in other words, not submitted as a batch job)."
+    error "-i   Include only the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
+    error "-x   Exclude the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
+    error "-r   Report processing. Takes 1 argument enclosed with \"\" and that consist of:"
+    error "     * REPORTTOOL: delta or tellme or another comparative-report generating tool"
+    error "       (the postprocessing of each test generates a report in the folder of the test"
+    error "       whereas the comparative report compiles results from all TESTs and place it "
+    error "       one directory-level higher)."
+    error "     * <reference reports>: Path or paths to reference reports to be compared with"
+    error "       the run tests. Please note that a path to a report in a TEST's directory "
+    error "       should not include the TEST at the end of the path."
+    error "-P   Report processing only: no model jobs, no postprocessing jobs."
     error
     error "Examples"
     error "========"
@@ -49,7 +58,9 @@ function print_usage_and_exit {
     error "benchmarks /scratch/sally/benchmarks"
     error "2. Run some benchmarks:"
     error "benchmarks -i \"europe euroflux\" /scratch/sally/benchmarks"
-    error "3. Run all except some benchmarks:"
+    error "3. Run some benchmarks and do a comparative report job afterwards:"
+    error "benchmarks -i tellus -r \"tellme /scratch/sally/projectbranch/output_r10253\" /scratch/sally/benchmarks"
+    error "4. Run all except some benchmarks:"
     error "benchmarks -x \"global europe\" /scratch/sally/benchmarks"
     exit 1
 }
@@ -84,7 +95,10 @@ while getopts ":scpri:x:" opt; do
 	s  ) single_machine=1 ;;
 	c  ) compile_only=1 ;;
 	p  ) pp_only=1 ;;
-	r  ) printer_friendly=1 ;;
+	P  ) superreport_only=1 ;;
+	r  ) superreport=$OPTARG
+             superreport_flag=1 ;;
+	f  ) printer_friendly=1 ;;
 	\? ) print_usage_and_exit ;;
     esac
 done
@@ -105,13 +119,13 @@ else
 	cmake_command="$cmake_command -D SYSTEM=multicore"
 fi
 
-if (( $compile_only == 1 && $pp_only == 1 )); then
-    error "-c and -p can't be used at the same time!"
+if (( $compile_only == 1 && ( $pp_only == 1 || $superreport_only == 1) )); then
+    error "-c can't be combined with -p or -P!"
     exit 1
 fi
 
-if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1) )); then
-    error "-r can't be combined with -c or -p!"
+if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1 || $superreport_only == 1) )); then
+    error "-f can't be combined with -c or -p or -P!"
     exit 1
 fi
 
@@ -270,7 +284,8 @@ EOF
     popd &> /dev/null    
 }
 
-# This function submits a benchmark as a PBS job
+# This function submits a benchmark as an HPC job 
+# (e.g. SLURM, determined by *.tmpl in directory parallel/)
 # Parameters:
 # $1  The name of the benchmark
 function submit_job {

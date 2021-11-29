@@ -297,10 +297,13 @@ function submit_job {
     local insfile=$bm_root/$test_name/config/guess.ins
 
     pushd $workspace &> /dev/null
+    echo "Test. Therefore skipping modeljob submission."
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+    	echo -n "bm_$test_name "
+#	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+    	echo -n "bm_$test_name "
+#	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
 
     local submit_exit_status=$?
@@ -310,7 +313,8 @@ function submit_job {
     if (($submit_exit_status != 0)); then
 	error "Failed to submit $test_name! Try manually for more information."
     else
-	submit_pp $test_name $jobid
+        echo "... and skipping ppjob submission."
+#	submit_pp $test_name $jobid
     fi
 }
 

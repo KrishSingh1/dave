@@ -77,6 +77,7 @@ bool ifbedrock;						// Whether to consider bedrock as lower boundary condition 
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
+bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
@@ -528,6 +529,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of fine roots to be homogenously distributed in soil column");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
+		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
+			"Whether or not snowpack is soaked by melting water (0,1)");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
 			"Whether to reduce NPP if there's inundation (1), or not (0)");
 		declareitem("ifcarbonfreeze",&ifcarbonfreeze,1,CB_NONE,
@@ -1295,6 +1298,8 @@ void plib_callback(int callback) {
 			sendmessage("Error", "Can't have simple snow scheme together with multi layer soil!");
 			plibabort();
 		}
+
+		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");

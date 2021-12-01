@@ -325,6 +325,9 @@ extern double homrootdistfrac;
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
 
+/// Whether to soak snowpack with melted water (1), or not (0)
+extern bool ifsoaksnow;
+
 /// whether to reduce GPP if there's inundation (1), or not (0)
 extern bool ifinundationstress;
 

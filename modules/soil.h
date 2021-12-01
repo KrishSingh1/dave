@@ -109,7 +109,7 @@ const double Dt = 1;
 // HEAT CAPACITIES
 
 /// heat capacity of air [J m-3 K-1] - Bonan (2002)
-const double Cp_air = 1200;
+const double Cp_air = 1230;
 
 /// heat capacity of water [J m-3 K-1] - Bonan (2002)
 const double Cp_water = 4180000;
@@ -122,9 +122,6 @@ const double Cp_org = 2500000;
 
 /// heat capacity of dry peat (J m-3 K-1) - Bonan (2002), 0% water
 const double Cp_peat = 580000;
-
-/// heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
-const double Cp_min = 2380000;
 
 /// heat capacity of moss [J/ m-3 K-1] Ekici et al. (2015)
 const double Cp_moss = 2500000;
@@ -164,8 +161,8 @@ const double Kmin_log = log(Kmin);
 const double Kmoss = 0.25;
 const double Kmoss_log = log(Kmoss);
 
-/// latent heat of fusion (Granberg et al. 1999) [J m-3]
-const double Lheat = 3.3355E8;	
+/// latent heat of fusion [J m-3]
+const double Lheat = 3.0587E8;	
 
 /// A FILL-IN for layers above layer0.
 const double MISSING_VALUE = -9999.0;      

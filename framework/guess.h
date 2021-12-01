@@ -3126,6 +3126,9 @@ public:
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
 
+	/// Heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
+	double Cp_min;
+
 	/// Available water holding capacity of soil layers (mm)
 	double awc_min;
 	/// Wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
@@ -3516,6 +3519,8 @@ public:
 	double thermdiff_15;
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
+	/// Heat capacity of mineral soil [J m-3 K-1]
+	double Cp_min;
 	/// soil layer temperature (deg C)
 	double temp;
 	/// soil layer temperature from previous phase change (deg C)
@@ -3689,6 +3694,7 @@ public:
 		thermdiff_0 = that.thermdiff_0;
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
+		Cp_min = that.Cp_min;
 		temp = that.temp;
 		temp_old = that.temp_old;
 		gtemp = that.gtemp;
@@ -3798,6 +3804,7 @@ public:
 		thermdiff_0 = that.thermdiff_0;
 		thermdiff_15 = that.thermdiff_15;
 		thermdiff_100 = that.thermdiff_100;
+		Cp_min = that.Cp_min;
 		temp = that.temp;
 		temp_old = that.temp_old;
 		gtemp = that.gtemp;
@@ -4070,6 +4077,9 @@ public:
 
 	/// Update snow fractions
 	void phase_change();
+
+	/// Soak snowpack with surface runoff water
+	void soak_snowpack(double& runoff_surf);
 
 	/// Snow compaction
 	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);

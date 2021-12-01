@@ -704,6 +704,9 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 		rain_melt_temp = (rain_melt_temp * rain_melt + ts_melt_temp * ts_melt) / (rain_melt + ts_melt);
 		rain_melt += ts_melt;
 	}
+
+	// Soak snowpack with melted water
+	soak_snowpack(rain_melt);
 }
 
 /// Phase change within the snow pack
@@ -720,6 +723,28 @@ void Snow::phase_change() {
 	// Phase change for each snow layer
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		snowlayers[lyr].phase_change();
+	}
+}
+
+/// Soak snow pack with water
+/** Soak snow pack with water
+ * Water soaks snowpack from bottom up
+ */
+void Snow::soak_snowpack(double& water) {
+
+	if (!ifsoaksnow || nsnowlayers == 0)
+		return;
+
+	int slyr = 0;
+	while (water > 0.0) {
+		double max_wmass = min(snowlayers[slyr].depth - (snowlayers[slyr].imass + snowlayers[slyr].wmass), water);
+		snowlayers[slyr].wmass += max_wmass;
+		water -= max_wmass;
+
+		slyr++;
+
+		if (slyr == nsnowlayers)
+			return;
 	}
 }
 
@@ -1101,6 +1126,10 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 		lyr--;
 	} // End of while loop
 
+	// If a snowpack exist, no water influx until snowpack is fully soaked
+	if (!negligible(depth()) && !negligible(water_transferred))
+		soak_snowpack(water_transferred);
+
 	// If water to be transferred to the soil
 	if (!negligible(water_transferred)) {
 
@@ -1302,6 +1331,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	thermdiff_0 = 0.0;
 	thermdiff_15 = 0.0;
 	thermdiff_100 = 0.0;
+	Cp_min = 0.0;
 	gtemp = 0.0;
 
 	// Water (initiate water mass at half of water holding capacity plus wilting point)
@@ -1580,6 +1610,9 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 	thermdiff_15 = soiltype.thermdiff_15;
 	thermdiff_100 = soiltype.thermdiff_100;
 
+	// Heat capacity of mineral soil [J m-3 K-1; Bonan 2019]
+	Cp_min = soiltype.Cp_min;
+
 	// Acrotelm
 	if (acrotelm) {
 		wsats = acrotelm_por * depth;
@@ -1779,6 +1812,8 @@ void Soillayer::phase_change(bool combine_snow) {
 	double Fimass;
 	// Energy per volume [J m-3]
 	double energy;
+	// Temperature of layer (could be combined with snow layer)
+	double temp_lyr;
 	// Temperature difference (current - previous)
 	double delta_T;
 	// Soil layer depth [mm]
@@ -1800,7 +1835,7 @@ void Soillayer::phase_change(bool combine_snow) {
 		Fimass = imass / soillyr_depth;
 	}
 
-	// Calculate fraction supercooled soil water
+	// Calculate fraction supercooled soil layer water
 	// Two options
 	// (1) - Niu et al. 2006 eqn 3 (CLM scheme) or
 	// (2) - Jin et al. 2020 eqn 28 
@@ -1822,14 +1857,26 @@ void Soillayer::phase_change(bool combine_snow) {
 		Fwmass_sc = wmass_sc / soillyr_depth;
 	}
 
+	if (!combine_snow) {
+		temp_lyr = temp;
+	}
+	else {
+		// Average temperature of combined snow layer and top soil layer
+		temp_lyr = (temp * depth * Ch + (*soilcolumn).snow.snowlayers[0].temp * (*soilcolumn).snow.snowlayers[0].depth * (*soilcolumn).snow.snowlayers[0].Ch) /
+			((depth * Ch + (*soilcolumn).snow.snowlayers[0].depth * (*soilcolumn).snow.snowlayers[0].Ch));
+	}
 	// Temperature difference from previous phase change
-	delta_T = temp - temp_old;
+	delta_T = temp_lyr - temp_old;
+	
 
 	// Freezing temperatures and water present
-	if (temp < 0.0 && temp < temp_old && Fwmass > Fwmass_sc) {
+	if (temp_lyr < 0.0 && temp_lyr < temp_old && Fwmass > Fwmass_sc) {
 
 		// Energy to freeze water [J m-3]
 		energy = Cp_water * fabs(delta_T);
+
+		double energy_lyr = Ch * fabs(delta_T) * depth * M_PER_MM;
+		double freez_mm = energy_lyr / Lheat;
 
 		// Fraction water that would freeze [m3 m-3]
 		Ffreez = energy / Lheat;
@@ -1841,7 +1888,7 @@ void Soillayer::phase_change(bool combine_snow) {
 			Fimass += Ffreez;
 			Fwmass -= Ffreez;
 
-			temp = temp_old;
+			temp_lyr = temp_old;
 		}
 		else {
 			// It is cold enough to freeze all the water and decrease the temperature below 0, 
@@ -1852,8 +1899,8 @@ void Soillayer::phase_change(bool combine_snow) {
 			double temp_rise = Fwmass_freeze * Lheat / Cp_water;
 
 			// Update soil temperature in this layer
-			temp += temp_rise;
-			temp = min(temp_old, temp);
+			temp_lyr += temp_rise;
+			temp_lyr = min(temp_old, temp_lyr);
 
 			// All water is frozen
 			Fimass += Fwmass_freeze;
@@ -1862,9 +1909,9 @@ void Soillayer::phase_change(bool combine_snow) {
 	} // End of Freezing
 
 	// Thawing temperatures and ice present
-	else if (temp > temp_old && Fimass > 0.0) {
+	else if (temp_lyr > temp_old && Fimass > 0.0) {
 
-		if (temp > 0.0) {
+		if (temp_lyr > 0.0) {
 
 			// Energy from full soil layer to freeze water [J m-3]
 			energy = Cp_water * fabs(delta_T);
@@ -1877,7 +1924,7 @@ void Soillayer::phase_change(bool combine_snow) {
 				// There is some ice left, even after melt
 				Fwmass += Fthaw;
 				Fimass -= Fthaw;
-				temp = temp_old;
+				temp_lyr = temp_old;
 			}
 			else {
 				// There is more energy available than required for
@@ -1888,8 +1935,8 @@ void Soillayer::phase_change(bool combine_snow) {
 				double temp_reduction = Fimass * Lheat / Cp_water;
 
 				// Update soil temperature in this layer
-				temp -= temp_reduction;
-				temp = max(temp_old, temp);
+				temp_lyr -= temp_reduction;
+				temp_lyr = max(temp_old, temp_lyr);
 
 				// All water is unfrozen
 				Fwmass += Fimass;
@@ -1912,7 +1959,7 @@ void Soillayer::phase_change(bool combine_snow) {
 				// There is some ice left, even after melt
 				Fwmass += Fthaw;
 				Fimass -= Fthaw;
-				temp = temp_old;
+				temp_lyr = temp_old;
 			}
 			else {
 				// There is more energy available than required for
@@ -1923,8 +1970,8 @@ void Soillayer::phase_change(bool combine_snow) {
 				double temp_reduction = Fwmass_thaw * Lheat / Cp_water;
 
 				// Update soil temperature in this layer
-				temp -= temp_reduction;
-				temp = max(temp_old, temp);
+				temp_lyr -= temp_reduction;
+				temp_lyr = max(temp_old, temp_lyr);
 
 				// Either all ice is unfrozen or super cooled fraction is meet
 				Fwmass += Fwmass_thaw;
@@ -1934,7 +1981,7 @@ void Soillayer::phase_change(bool combine_snow) {
 	} // End of thawing
 
 	// Set new old temperature
-	temp_old = temp;
+	temp_old = temp_lyr;
 
 	// If top soil layer has been combined with a thin snow layer
 	// then the same fraction of water (ice) is freezed (thawed)
@@ -2019,20 +2066,30 @@ void Soillayer::phase_change(bool combine_snow) {
 				// Fraction of snow layer water that thaws
 				double frac = Fthaw / ((*soilcolumn).snow.snowlayers[0].imass / soillyr_depth);
 
-				// Update soil layer water and ice mass
+				// Update snow layer water and ice mass
 				double wmass_new = frac * (*soilcolumn).snow.snowlayers[0].imass;
 				(*soilcolumn).snow.snowlayers[0].imass -= wmass_new;
 				(*soilcolumn).snow.snowlayers[0].wmass += wmass_new;
 
-				// Update snow temperature
-				(*soilcolumn).snow.snowlayers[0].temp = temp;
+				// Update snow layer depth
+				(*soilcolumn).snow.snowlayers[0].depth = (*soilcolumn).snow.snowlayers[0].imass / ((*soilcolumn).snow.snowlayers[0].dens / rho_H2O);
 			}
 		}
+
+		// Update soil temperature
+		temp = temp_lyr;
+
+		// Update snow temperature
+		if (!negligible((*soilcolumn).snow.nsnowlayers))
+			(*soilcolumn).snow.snowlayers[0].temp = temp_lyr;
 	}
 	else {
 		// Water and ice fraction of full volume
 		wmass = Fwmass * soillyr_depth;
 		imass = Fimass * soillyr_depth;
+
+		// Update soil temperature
+		temp = temp_lyr;
 	}
 
 	// No negative wmass
@@ -2227,13 +2284,14 @@ void Soillayer::nmass_inc(double nmass, n_pref_type pref) {
 
 /// Update soil layer temperature due to mass movement
 /** Update soil layer temperature due to mass movement
-*/
+ *  assuming it replaces air
+ */
 void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
-	if (negligible((depth - add_mass) * Ch + add_mass * add_Ch))
+	if (negligible((depth * Ch - add_mass * Cp_air) + add_mass * add_Ch))
 		dprintf("ERROR: Year %d Day %d Updating soil temperature\n", date.year, date.day);
 
-	temp = (temp * (depth - add_mass) * Ch + add_temp * add_mass * add_Ch) / ((depth - add_mass) * Ch + add_mass * add_Ch);
+	temp = (temp * (depth * Ch - add_mass * Cp_air) + add_temp * add_mass * add_Ch) / ((depth * Ch - add_mass * Cp_air) + add_mass * add_Ch);
 
 	// If temperature becomes positive (negative) with ice (water) present
 	// then perfomr a phase_change for this layer
@@ -3302,7 +3360,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	}
 
 	// Boundary conditions for soil water
-	// Upper boundary condition
+	// Upper boundary condition [m s-1]
 	double f_top = winfilt / rho_H2O / SECS_PER_DAY;
 
 	// Lower boundary condition
@@ -4378,7 +4436,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Effective depth of surface runoff - 0.5m
 	const double INFILT_DEPTH = 500.0;
 
-	double initial_wmass = get_sum(WMASS) + rain_melt;
+	double initial_wmass = snow.wcontent() + get_sum(WMASS) + rain_melt;
+
+	snow.soak_snowpack(rain_melt);
 
 	// Evaposation (mm)
 	double evap = 0.0;
@@ -4502,7 +4562,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Water balance check
-	double final_wmass = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
+	double final_wmass = snow.wcontent() + get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
 
 	if (fabs(initial_wmass - final_wmass) > 1.0e-9)
 		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, initial_wmass - final_wmass, initial_wmass, final_wmass);
@@ -5042,6 +5102,10 @@ void Soilcolumn::calc_temp() {
 
 	double airT = patch.get_climate().temp;
 
+
+//	if (date.year == 100 && date.day == 0)
+//		dprintf("Year Day TS AirT Snow5 Snow4 Snow3 Snow2 Snow1 Soil1 Soil2 Soil3 Soil4 Soil5\n");
+
 	for (int ts = 0; ts < date.timesteps; ts++) {
 
 		int nsnowlayers = snow.nsnowlayers;
@@ -5071,7 +5135,7 @@ void Soilcolumn::calc_temp() {
 			tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
 			tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
 			tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = snow.snowlayers[slyr].temp;
 
 			slyr--;
@@ -5087,7 +5151,7 @@ void Soilcolumn::calc_temp() {
 			}
 			tpara.cap[lyr] = soillayers[lyr - nsnowlayers].Ch;
 			tpara.diff[lyr] = soillayers[lyr - nsnowlayers].Kh;
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = soillayers[lyr - nsnowlayers].temp;
 		}
 
@@ -5096,7 +5160,7 @@ void Soilcolumn::calc_temp() {
 			tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
 			tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
 			tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
 		}
 
@@ -5108,7 +5172,7 @@ void Soilcolumn::calc_temp() {
 		}
 
 		// Boundary conditions for soil temperature (Shouldn't use air temperature)
-		// Upper boundary condition
+		// Upper boundary condition [J m-2 s-1]
 		double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0] / date.timesteps;
 
 		// Lower boundary condition
@@ -5157,6 +5221,24 @@ void Soilcolumn::calc_temp() {
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
 		phase_change();
+
+		/*if (date.year == 100) {
+			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
+
+			for (int lyr = 0; lyr < 5 - snow.nsnowlayers; lyr++) {
+				dprintf("%g ", airT);
+			}
+
+			for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
+				dprintf("%g ", snow.snowlayers[lyr].temp);
+			}
+
+			for (int lyr = 0; lyr < 5; lyr++) {
+				dprintf("%g ", soillayers[lyr].temp);
+			}
+
+			dprintf("\n");
+		}*/
 	}
 
 	// Not the first time this method is called	

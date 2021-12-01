@@ -462,6 +462,9 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.thermdiff_15_org = data[organic_soilcode][3];
 	soiltype.thermdiff_100_org = data[organic_soilcode][4];
 
+	// Heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
+	soiltype.Cp_min = (2.128 * soiltype.sand_frac + 2.385 * soiltype.clay_frac) / (soiltype.sand_frac + soiltype.clay_frac) * 1.0e6;// 2380000;
+
 	// Water holding capacities for mineral and organic soil
 	soiltype.wsats_min = soilprop.saturation_capacity;
 	soiltype.awc_min = soilprop.volumetric_whc_field_capacity;

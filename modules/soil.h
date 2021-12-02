@@ -65,8 +65,14 @@ const double snowdens_start = 275.0;
 /// snow density at end of the snow season [kg m-3] (Wania et al. 2009a)
 const double snowdens_end = 500.0;
 
-/// maximum number of snow layers allowed (<= 5)
-const int NSNOWLAYERS_MAX = 5;
+/// maximum number of snow layers allowed
+const int NSNOWLAYERS_MAX = 10;
+
+// Standard depth of a snow layer
+const double SNOW_DEPTH_STANDARD = 50.0;
+
+/// Limit for creating/deleting a snow layer compared to standard depth
+const double SNOW_DEPTH_LIMIT = 1.5;
 
 // WATER PARAMETERS
 

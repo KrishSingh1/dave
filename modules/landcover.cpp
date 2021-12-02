@@ -1581,8 +1581,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					// Snow
 					patch.soilcolumn.snow.NH4_mass = (patch.soilcolumn.snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
 					patch.soilcolumn.snow.NO3_mass = (patch.soilcolumn.snow.NO3_mass * old_frac + from.transfer_snow_NO3_mass * added_frac) / new_frac;
-					patch.soilcolumn.snow.snow_depth_standard = (patch.soilcolumn.snow.snow_depth_standard * old_frac + from.transfer_snow_snow_depth_standard * added_frac) / new_frac;
-					patch.soilcolumn.snow.snow_depth_limit = (patch.soilcolumn.snow.snow_depth_limit * old_frac + from.transfer_snow_snow_depth_limit * added_frac) / new_frac;
 
 
 					int nsnowlayers = min(NSNOWLAYERS_MAX, max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers));
@@ -2816,7 +2814,6 @@ landcover_change_transfer::landcover_change_transfer() {
 	// Sum snow
 	transfer_snow_nsnowlayers = 0;
 	transfer_snow_NH4_mass = transfer_snow_NO3_mass = 0.0;
-	transfer_snow_snow_depth_standard = transfer_snow_snow_depth_limit = 0.0;
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 		transfer_snow_wmass[lyr] = transfer_snow_imass[lyr] = 0.0;
 		transfer_snow_depth[lyr] = 0.0;

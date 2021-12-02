@@ -4028,10 +4028,6 @@ public:
 	double NH4_mass;
 	/// NO3 mass (kgN/m2)
 	double NO3_mass;
-	/// Standard snow layer depth (50mm, except bottom) [mm]
-	double snow_depth_standard;
-	/// Limit for creating/deleting a snow layer compared to standard depth
-	double snow_depth_limit;
 	/// Monthly snow depth (average) [mm]
 	double mdepth[12];
 	/// Monthly snow layer temperature [C]

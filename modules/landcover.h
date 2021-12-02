@@ -97,8 +97,6 @@ struct landcover_change_transfer {
 	int transfer_snow_nsnowlayers;
 	double transfer_snow_NH4_mass;
 	double transfer_snow_NO3_mass;
-	double transfer_snow_snow_depth_standard; 
-	double transfer_snow_snow_depth_limit;
 	double transfer_snow_wmass[NSNOWLAYERS_MAX];
 	double transfer_snow_imass[NSNOWLAYERS_MAX];
 	double transfer_snow_depth[NSNOWLAYERS_MAX];
@@ -251,8 +249,6 @@ struct landcover_change_transfer {
 			transfer_snow_nsnowlayers = max(transfer_snow_nsnowlayers, patch.soilcolumn.snow.nsnowlayers);
 			transfer_snow_NH4_mass += patch.soilcolumn.snow.NH4_mass * scale;
 			transfer_snow_NO3_mass += patch.soilcolumn.snow.NO3_mass * scale;
-			transfer_snow_snow_depth_standard += patch.soilcolumn.snow.snow_depth_standard * scale;
-			transfer_snow_snow_depth_limit += patch.soilcolumn.snow.snow_depth_limit * scale;
 			for (int lyr = 0; lyr < patch.soilcolumn.snow.nsnowlayers; lyr++) {
 				transfer_snow_wmass[lyr] += patch.soilcolumn.snow.snowlayers[lyr].wmass * scale;
 				transfer_snow_imass[lyr] += patch.soilcolumn.snow.snowlayers[lyr].imass * scale;
@@ -347,8 +343,6 @@ struct landcover_change_transfer {
 		transfer_snow_nsnowlayers = from.transfer_snow_nsnowlayers;
 		transfer_snow_NH4_mass = from.transfer_snow_NH4_mass;
 		transfer_snow_NO3_mass = from.transfer_snow_NO3_mass;
-		transfer_snow_snow_depth_standard = from.transfer_snow_snow_depth_standard;
-		transfer_snow_snow_depth_limit = from.transfer_snow_snow_depth_limit;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 			transfer_snow_wmass[lyr] = from.transfer_snow_wmass[lyr];
 			transfer_snow_imass[lyr] = from.transfer_snow_imass[lyr];
@@ -443,8 +437,6 @@ struct landcover_change_transfer {
 		transfer_snow_nsnowlayers = max(transfer_snow_nsnowlayers, from.transfer_snow_nsnowlayers);
 		transfer_snow_NH4_mass += from.transfer_snow_NH4_mass * multiplier;
 		transfer_snow_NO3_mass += from.transfer_snow_NO3_mass * multiplier;
-		transfer_snow_snow_depth_standard += from.transfer_snow_snow_depth_standard * multiplier;
-		transfer_snow_snow_depth_limit += from.transfer_snow_snow_depth_limit * multiplier;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 			transfer_snow_wmass[lyr] += from.transfer_snow_wmass[lyr] * multiplier;
 			transfer_snow_imass[lyr] += from.transfer_snow_imass[lyr] * multiplier;

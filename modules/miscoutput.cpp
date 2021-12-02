@@ -291,7 +291,7 @@ void MiscOutput::define_output_tables() {
 	daily_climate_columns += ColumnDescriptor("Rad",   12, 1);
 
 	// Create snow layer columns
-	xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4" };
+	xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4", "snow5", "snow6", "snow7", "snow8", "snow9" };
 	ColumnDescriptors daily_snow_columns, daily_snow_k_columns, daily_snow_d_columns, daily_snow_c_columns;
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 		daily_snow_columns += ColumnDescriptor(snowlayers[lyr], 8, 2);
@@ -302,7 +302,7 @@ void MiscOutput::define_output_tables() {
 
 	// Create snow and soil layer columns
 	ColumnDescriptors snowsoillyr_columns;
-	xtring snowsoillayers[] = { "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
+	xtring snowsoillayers[] = { "snow9", "snow8", "snow7", "snow6", "snow5", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
 	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS; lyr++) {
 		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);

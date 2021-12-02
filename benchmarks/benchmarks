@@ -85,24 +85,29 @@ single_machine=0
 compile_only=0
 pp_only=0
 printer_friendly=0
+superreport_flag=0
 superreport_only=0
 
 # Handle the -s, -c, -i and -x options
-while getopts ":scpri:x:" opt; do
+while getopts ":scpPfr:i:x:" opt; do
+
+#    echo "$opt    $OPTARG    $@"
+
     case $opt in
 	i  ) inclusive=$OPTARG
-	     inclusive_flag=1 ;;
+	     inclusive_flag=1;;
 	x  ) exclusive=$OPTARG
-	     exclusive_flag=1 ;;
-	s  ) single_machine=1 ;;
-	c  ) compile_only=1 ;;
-	p  ) pp_only=1 ;;
-	P  ) superreport_only=1 ;;
+	     exclusive_flag=1;;
+	s  ) single_machine=1;;
+	c  ) compile_only=1;;
+	p  ) pp_only=1;;
+	P  ) superreport_only=1;;
 	r  ) superreport_arg=$OPTARG
-             superreport_flag=1 ;;
-	f  ) printer_friendly=1 ;;
+             superreport_flag=1;;
+	f  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
     esac
+
 done
 
 if (( ${#inclusive} > 0 && ${#exclusive} > 0 )); then
@@ -131,11 +136,18 @@ if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1 || $superr
     exit 1
 fi
 
-# Throw away the options getopts handled
+# Throw away the options getopts handled                                     <
 shift $(($OPTIND -1))
 
 # Make sure the user supplied a working directory
-if [ $# != 1 ]; then
+if [ $# -lt 1 ]; then
+    echo "You must supply a working directory."
+    echo
+    print_usage_and_exit
+elif [ $# -gt 1 ]; then
+    echo "Too many arguments:"
+    echo $@
+    echo
     print_usage_and_exit
 fi
 
@@ -165,14 +177,14 @@ function build {
 	(cd $additional_source; tar cf - --exclude=".svn" *) | (cd $build_path; tar xf -)
     fi
 
-    pushd $build_path/output &> /dev/null
+    pushd $build_path/output 1>/dev/null
 
     cmake_output=$(mktemp)
     if ! $cmake_command .. &> $cmake_output ; then
 	error "Failed to configure build " $build_path "!"
 	cat $cmake_output
 	rm $cmake_output
-	popd &> /dev/null
+	popd 1>/dev/null
 	return 1
     fi
     rm $cmake_output
@@ -182,12 +194,12 @@ function build {
 	error "Failed to build " $build_path "!"
 	cat $make_output
 	rm $make_output
-	popd &> /dev/null
+	popd 1>/dev/null
 	return 1
     fi
     rm $make_output
 
-    popd &> /dev/null
+    popd 1>/dev/null
     return 0
 }
 
@@ -248,19 +260,17 @@ function prepare_superreportprocessing {
     else
 	pp_jobids=""
     fi
-   
+
 }
 
 # This function submits the super-report processing job.
 # Parameters: none
 function run_superreportprocessing {
-   # local test_name=$1
     local workspace=$work_dir/
     local bm_root=$PWD
 
-    # Construct argument for qsub/sbatch for dependency if there is one
-# Debug    
-echo "'$pp_jobids:' $pp_jobids"
+    # Construct argument for qsub/sbatch for dependency
+    echo "Dependencies: '$pp_jobids:' $pp_jobids"    # Debug
     if [ -n "$pp_jobids" ]; then
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
@@ -274,33 +284,27 @@ echo "'$pp_jobids:' $pp_jobids"
     # Determine what super-report to run
     supertool=${superreport_arg[0]}
 
-    pushd $workspace &> /dev/null
-
     # Create the post processing job
+    pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
     cat <<EOF > $common_script
-if [ -f $bm_root/$test_name/postprocess.sh ]; then
-    # FATTAR INTE DETTA
-    PATH=$PATH $bm_root/runpostprocessing $bm_root/postpost/delta/postprocess.sh postpost/delta
-fi
-
 cd $workspace
-echo "${superreport_arg[@]}" >>pospost-deltareport-dummy.txt
+echo "${superreport_arg[@]}" >>postpost-${supertool}-dummy.txt
 cd $bm_root
-echo 'postpost-dummy' >> progress.txt
+echo 'postpost-${supertool}-dummy' >> progress.txt
 EOF
 
-#    Temporärt utkommenterat PBS. Skall läggas tillbaka sedan och anpassas.
+#    Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
 #    if has_pbs ; then
 	# Submit as a PBS job
 # ...
 #   else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
+	sbatch -n 1 --time=$pp_walltime $dependency <<EOF 	#1>/dev/null	# DEBUG
 #!/bin/sh
-#SBATCH -J pp_${test_name}
+#SBATCH -J ppp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $(cat $common_script)
@@ -309,7 +313,7 @@ EOF
 
     rm $common_script
 
-    popd &> /dev/null    
+    popd 1>/dev/null
 }
 
 
@@ -322,6 +326,7 @@ function submit_pp {
     local test_name=$1
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
+    local ppid
 
     # Construct argument for qsub/sbatch for dependency if there is one
     if [ -n "$2" ]; then
@@ -334,11 +339,12 @@ function submit_pp {
 	dependency=""
     fi
 
-    pushd $workspace &> /dev/null
     # Create the post processing job
+    pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
+    echo $common_script
     cat <<EOF > $common_script
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
     PATH=$PATH $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
@@ -349,30 +355,50 @@ echo '$test_name' >> progress.txt
 EOF
 
     if has_pbs ; then
+
 	# Submit as a PBS job
-	qsub -l walltime=$pp_walltime $dependency <<EOF &> /dev/null
+	qsub -l walltime=$pp_walltime $dependency <<EOF
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
 $(cat $common_script)
 EOF
+
     else
-	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
+
+	# Submit as a SLURM job          # Pipe job id to awk
+        cat <<EOF > $common_script
 #!/bin/sh
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $(cat $common_script)
 EOF
+        ppid=$(sbatch -n 1 --time=$pp_walltime $dependency $common_script | awk '{print $NF}')
+
+
+        #)	#        | awk '{print $NF}')   	# Pipe job id to awk
     fi
 
-    rm $common_script
+    #rm $common_script
 
-    popd &> /dev/null    
+    popd 1>/dev/null
+
+
+    # Add this pp-job id to the list of pp-jobs that the super-reportjob should wait for to finish.
+#    if [ ! -n "$ppid" ]; then
+        if [ -n "$pp_jobids" ]; then
+            pp_jobids="$ppid"
+        else
+            pp_jobids="$pp_jobids:$ppid"
+        fi
+#    else
+#        pp_jobids=""
+#    fi
+    echo "ppid=$ppid => Dependencies=$pp_jobids"
 }
 
-# This function submits a benchmark as an HPC job 
+# This function submits a benchmark as an HPC job
 # (e.g. SLURM, determined by *.tmpl in directory parallel/)
 # Parameters:
 # $1  The name of the benchmark
@@ -383,25 +409,22 @@ function submit_job {
     local submit_vars=$PWD/$test_name/submit_vars.sh
     local insfile=$bm_root/$test_name/config/guess.ins
 
-    pushd $workspace &> /dev/null
-    echo "Test. Therefore skipping modeljob submission."
+    pushd $workspace 1>/dev/null
     if [ -f $submit_vars ]; then
-    	echo -n "bm_$test_name "
-#	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-    	echo -n "bm_$test_name "
-#	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
 
     local submit_exit_status=$?
 
-    popd &> /dev/null
+    popd 1>/dev/null
 
     if (($submit_exit_status != 0)); then
 	error "Failed to submit $test_name! Try manually for more information."
     else
-        echo "... and skipping ppjob submission."
-#	submit_pp $test_name $jobid
+#        echo "... and skipping ppjob submission."
+	submit_pp $test_name $jobid
     fi
 }
 
@@ -414,12 +437,12 @@ function run_single_machine_pp {
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
 
-    pushd $workspace &> /dev/null
+    pushd $workspace 1>/dev/null
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
 	nice $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
     fi
     ls | grep "^run[0-9]*$" | xargs rm -rf
-    popd &> /dev/null
+    popd 1>/dev/null
 
     echo $test_name >> $bm_root/progress.txt
 }
@@ -435,14 +458,14 @@ function run_single_machine_model {
     local submit_vars=$PWD/$test_name/submit_vars.sh
     local insfile=$bm_root/$test_name/config/guess.ins
 
-    pushd $workspace &> /dev/null
+    pushd $workspace 1>/dev/null
     if [ -f $submit_vars ]; then
 		./submit.sh -i $insfile -s $submit_vars
     else
 		./submit.sh -i $insfile
     fi
 
-    popd &> /dev/null
+    popd 1>/dev/null
 
     run_single_machine_pp $test_name
 }
@@ -513,14 +536,14 @@ function meta_data {
     echo >> $file
 
     # Go up to parent directory and print out version control information
-    pushd .. &> /dev/null
+    pushd .. 1>/dev/null
 
-    if svn info &> /dev/null ; then
+    if svn info 1>/dev/null ; then
 	# Strip host name from svn URL
 	svn info | grep "^URL:" | sed 's|URL: svn://.*/svn/|VCS Path: |' >> $file
 	svn info | grep "^Revision:" >> $file
 	svn info | grep "^Last Changed Date:" >> $file
-	
+
 	changes=$(svn st -q --non-interactive | grep -v "Performing status on external item" | grep -v "^$")
 	changesdiff=$(svn diff --non-interactive)
 
@@ -539,7 +562,7 @@ function meta_data {
 	echo "Version information missing" >> $file
     fi
 
-    popd &> /dev/null
+    popd 1>/dev/null
 }
 
 # Ok, let's start!
@@ -559,7 +582,7 @@ if (( $printer_friendly == 1 )); then
     exit 0
 fi
 
-# Generate meta data about this run 
+# Generate meta data about this run
 # (such as time stamp and version control information).
 if (( $pp_only == 0 )); then
     meta_data $work_dir
@@ -614,6 +637,7 @@ do
       run_benchmark $test_name
   fi
 done
+
 # Call run_superreportprocessing after all other tests have been submitted
 if (( $superreport_flag == 1 )); then
   run_superreportprocessing

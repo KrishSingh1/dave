@@ -102,7 +102,7 @@ while getopts ":scpPfr:i:x:" opt; do
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) superreport_only=1;;
-	r  ) superreport_arg=$OPTARG
+	r  ) superreport_arglist=($OPTARG)
              superreport_flag=1;;
 	f  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
@@ -239,29 +239,6 @@ function setup_workspace {
 	ln -s -T $(readlink -f common) $workspace/common
 }
 
-# This function add teh pp-job-id to a list for the super-report processing job.
-# Parameters:
-# $1  The is of the pp-job
-# $2  Not used yet. E.g. the name of the superreort tool to use,
-#     or the test name. Or something.
-function prepare_superreportprocessing {
-    local jobid=$1
-    local test_name=$2
-#    local workspace=$work_dir/$test_name
-#    local bm_root=$PWD
-
-    # Add this pp-job id to the list of pp-jobs that the super-reportjob should wait for to complete.
-    if [ -n "$1" ]; then
-	if [ -n "$pp_jobids" ]; then
-	    pp_jobids="$jobid"
-	else
-	    pp_jobids="$pp_jobids:$jobid"
-	fi
-    else
-	pp_jobids=""
-    fi
-
-}
 
 # This function submits the super-report processing job.
 # Parameters: none
@@ -281,37 +258,44 @@ function run_superreportprocessing {
 	dependency=""
     fi
 
-    # Determine what super-report to run
-    supertool=${superreport_arg[0]}
+    # Determine what super-report to run, and teh argument to it
+    supertool=${superreport_arglist[0]}
+    echo "Tool name = ${supertool}"
 
     # Create the post processing job
     pushd $workspace 1>/dev/null
+    rm -r ${supertool}
+    mkdir ${supertool}
 
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
     cat <<EOF > $common_script
-cd $workspace
-echo "${superreport_arg[@]}" >>postpost-${supertool}-dummy.txt
+if [ -f $bm_root/postpost/${supertool}/postprocess.sh ]; then
+    PATH=$PATH $bm_root/postpost/${supertool}/postprocess.sh ${superreport_arglist[@]:1}
+fi
 cd $bm_root
-echo 'postpost-${supertool}-dummy' >> progress.txt
+echo 'postpost-${supertool}' >> progress.txt
+cd $workspace/${supertool}
+echo "${superreport_arglist[@]}" >>postpost-${supertool}-dummy.txt
+cd $bm_root
 EOF
 
-#    Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
-#    if has_pbs ; then
+#   Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
+    if has_pbs ; then
 	# Submit as a PBS job
-# ...
-#   else
+	echo Submit as PBS job: Put code here.
+    else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF 	#1>/dev/null	# DEBUG
+	sbatch -n 1 --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
 #!/bin/sh
-#SBATCH -J ppp_${test_name}
+#SBATCH -J ppp_${supertool}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $(cat $common_script)
 EOF
-#    fi
+    fi
 
-    rm $common_script
+#    rm $common_script
 
     popd 1>/dev/null
 }
@@ -327,17 +311,6 @@ function submit_pp {
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
     local ppid
-
-    # Construct argument for qsub/sbatch for dependency if there is one
-    if [ -n "$2" ]; then
-	if has_pbs ; then
-	    dependency="-W depend=afterok:$jobid"
-	else
-	    dependency="--dependency=afterok:$jobid"
-	fi
-    else
-	dependency=""
-    fi
 
     # Create the post processing job
     pushd $workspace 1>/dev/null
@@ -357,16 +330,31 @@ EOF
     if has_pbs ; then
 
 	# Submit as a PBS job
-	qsub -l walltime=$pp_walltime $dependency <<EOF
+
+        if [ -n "$2" ]; then
+          dependency="-W depend=afterok:$jobid"
+        else
+          dependency=""
+        fi
+
+        cat <<EOF > $common_script
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
 $(cat $common_script)
 EOF
+	ppid=$(qsub -l walltime=$pp_walltime $dependency | awk '{print $NF}')
 
     else
 
-	# Submit as a SLURM job          # Pipe job id to awk
+	# Submit as a SLURM job
+
+        if [ -n "$2" ]; then
+            dependency="--dependency=afterok:$jobid"
+        else
+            dependency=""
+        fi
+
         cat <<EOF > $common_script
 #!/bin/sh
 #SBATCH -J pp_${test_name}
@@ -376,25 +364,21 @@ $(cat $common_script)
 EOF
         ppid=$(sbatch -n 1 --time=$pp_walltime $dependency $common_script | awk '{print $NF}')
 
-
-        #)	#        | awk '{print $NF}')   	# Pipe job id to awk
     fi
 
-    #rm $common_script
+#    rm $common_script
 
     popd 1>/dev/null
 
-
     # Add this pp-job id to the list of pp-jobs that the super-reportjob should wait for to finish.
-#    if [ ! -n "$ppid" ]; then
-        if [ -n "$pp_jobids" ]; then
+    if [ -n "$ppid"  ]; then
+	echo '$pp_jobids='$pp_jobids
+        if [ -z "$pp_jobids" ]; then
             pp_jobids="$ppid"
         else
             pp_jobids="$pp_jobids:$ppid"
         fi
-#    else
-#        pp_jobids=""
-#    fi
+    fi
     echo "ppid=$ppid => Dependencies=$pp_jobids"
 }
 

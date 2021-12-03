@@ -48,16 +48,19 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_ctonsom "cton_som.out"
 !file_nlitter "nlitter.out"
-!file_nuptake "nuptake.out"
+file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-!file_vmaxnlim "vmaxnlim.out"
+file_vmaxnlim "vmaxnlim.out"
 
 file_soildeclim "soildeclim.out"
 file_soilgrolim "soilgrolim.out"
 file_soiltotlim "soiltotlim.out"
 file_soilcuelim "soilcuelim.out"
 file_clitterinput "clitterinput.out"
+file_csomlitterinput "csomlitterinput.out"
+file_soilcperma "soilc_permafrost.out"
 file_csom "csom.out"
 
 ! Monthly outputs
@@ -74,14 +77,21 @@ file_mnetmin "mnetmin.out"
 !file_mintercep "mintercep.out"
 !file_mrunoff "mrunoff.out"
 !file_mwmass "mwmass.out"
-!file_mwcont_upper "mwcont_upper.out"
-!file_mwcont_lower "mwcont_lower.out"
+!file_mimass "mimass.out"
+file_mwcont_upper "mwcont_upper.out"
+file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
 file_mtemp "mtemp.out"
+file_mwmasslyr "mwmasslyr.out"
+file_mimasslyr "mimasslyr.out"
+file_mwimasslyr "mwimasslyr.out"
+!file_mKwlyr "mKwlyr.out"
+!file_mDwlyr "mDwlyr.out"
+file_mdrainlyr "mdrainlyr.out"
 file_mch4 "mch4.out"
 file_mch4diff "mch4_diffusion.out"
 file_mch4plan "mch4_plant.out"
@@ -133,7 +143,7 @@ ifstochestab 1			! Whether establishment stochastic
 ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
-				! see documentation for water_uptake()
+                        	! see documentation for water_uptake()
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
 				! greff_min values below calibrated for the smooth (1) option
@@ -148,6 +158,7 @@ ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1			! Whether plant growth limited by available N
+ifdailynretrans 1		! Whether daily leaf N retranslocation is allowed
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.234			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b -0.172			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -163,8 +174,12 @@ iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
+ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM), 2 - Jin et al. 2020
+homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 iforography 1                   ! Whether to account for orography (1), or not (0)
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
@@ -272,7 +287,6 @@ group "tree" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	pathway "c3"
 	respcoeff 1.0
 	kest_repr 200
@@ -306,7 +320,6 @@ group "shrub" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	fnstorage 0.3
 	pathway "c3"
 	kest_repr 200
@@ -322,7 +335,6 @@ group "shrub" (
 	turnover_harv_prod 1	! Turnover rate for long-lived harvested products (wood): 1-year turnover time
 	harvest_slow_frac 0
 )
-
 
 group "grass" (
 
@@ -343,7 +355,6 @@ group "grass" (
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
-	km_volume 0.000001876
 	fnstorage 0.3
 	ligcfrac_root 0.25
 	ligcfrac_wood 0.0
@@ -472,7 +483,6 @@ pft "BNE" (
 	twmin_est 5
 	gdd5min_est 500
 	longevity 500
-	!rootdist 0.44 0.25 0.14 0.08 0.04 0.02 0.01 0.01 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	fireresist 0.3
 	eps_iso 8.0
 	seas_iso 0
@@ -525,13 +535,12 @@ pft "BNS" (
 	gdd5min_est 300
 	phengdd5ramp 50
 	longevity 300
-	root_beta 0.938		! Tundra profile (Jackson et al, 1996)	
-	!rootdist 0.26 0.19 0.14 0.11 0.08 0.06 0.05 0.03 0.02 0.02 0.01 0.01 0.01 0.01 0.0
 	fireresist 0.3
 
 	greff_min 0.04		
 	eps_iso 8.0
 	seas_iso 1
+	root_beta 0.938		! Tundra profile (Jackson et al, 1996)
 	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	
 )

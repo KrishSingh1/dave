@@ -255,8 +255,8 @@ function setup_workspace {
 # This function submits the super-report processing job.
 # Parameters: the argument list (string) for this postpp tool call,
 #   item 0 in the list is the tool name.
-function submit_postppjobs {
-    local workspace=$work_dir/
+function submit_postppjob {
+    local workspace
     local bm_root=$PWD
     local thistool_arglist=()
     thistool_arglist=($1)
@@ -276,20 +276,20 @@ function submit_postppjobs {
     # Determine what super-report to run, and teh argument to it
     supertool=${thistool_arglist[0]}
     echo " Tool=$supertool"
+
     # Create the post processing job
+    workspace=$work_dir/${supertool}
+    rm -r $workspace
+    mkdir $workspace
     pushd $workspace 1>/dev/null
-    rm -r ${supertool}
-    mkdir ${supertool}
 
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
     cat <<EOF > $common_script
-cd $workspace/${supertool}
+cd $workspace
 if [ -f $bm_root/postpost/${supertool}/postpostprocess.sh ]; then
     PATH=$PATH $bm_root/postpost/${supertool}/postpostprocess.sh ${thistool_arglist[@]:1}
 fi
-#cd $workspace/${supertool}
-#echo "${thistool_arglist[@]}" >>postpost-${supertool}-dummy.txt
 cd $bm_root
 echo 'postpost-${supertool}' >> progress.txt
 EOF
@@ -317,8 +317,8 @@ EOF
 function run_postpostprocessing {
 
   for ((i = 0; i < ${#superreport_arglist[@]}; i++)); do
-    echo " run_postpostprocessing:   submit_postppjobs ${superreport_arglist[$i]}"
-    submit_postppjobs "${superreport_arglist[$i]}"
+    echo " run_postpostprocessing:   submit_postppjob ${superreport_arglist[$i]}"
+    submit_postppjob "${superreport_arglist[$i]}"
   done
 
 }

@@ -56,13 +56,15 @@ function print_usage_and_exit {
     error "Examples"
     error "========"
     error "1. Run all benchmarks:"
-    error "benchmarks /scratch/sally/benchmarks"
+    error "benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
-    error "benchmarks -i \"europe euroflux\" /scratch/sally/benchmarks"
-    error "3. Run some benchmarks and do a comparative report job afterwards:"
-    error "benchmarks -i tellus -r \"tellme /scratch/sally/projectbranch/output_r10253\" /scratch/sally/benchmarks"
+    error "benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
+    error "3. Run some benchmarks and do one, and two, comparative report job afterwards:"
+    error "benchmarks -i \"fluxnet tellus\" -r \"tellme /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "benchmarks -i \"fluxnet tellus\" -r \"tellme /scratch/sally/otherproject/output_r10153\"\\"
+    error " -r \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
     error "4. Run all except some benchmarks:"
-    error "benchmarks -x \"global europe\" /scratch/sally/benchmarks"
+    error "benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
 }
 
@@ -87,11 +89,10 @@ pp_only=0
 printer_friendly=0
 superreport_flag=0
 superreport_only=0
+superreport_arglist=()
 
-# Handle the -s, -c, -i and -x options
+# Handle the -s, -c, -i, -x, ... options
 while getopts ":scpPfr:i:x:" opt; do
-
-#    echo "$opt    $OPTARG    $@"
 
     case $opt in
 	i  ) inclusive=$OPTARG
@@ -102,13 +103,24 @@ while getopts ":scpPfr:i:x:" opt; do
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) superreport_only=1;;
-	r  ) superreport_arglist=($OPTARG)
+	r  ) superreport_arglist+=( "$OPTARG " )
              superreport_flag=1;;
 	f  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
     esac
 
 done
+
+#echo
+#echo "WORKS: superreport_arglist[all]= ":
+#for ((i = 0; i < ${#superreport_arglist[@]}; i++)); do
+#  echo "$i: ${superreport_arglist[$i]}"
+#done
+#echo "DOES NOT WORK: superreport_arglist[all]= ":
+#for x in ${superreport_arglist[@]}; do
+#  echo "$x"
+#done
+#exit
 
 if (( ${#inclusive} > 0 && ${#exclusive} > 0 )); then
     error "Using both -i and -x is not allowed!"
@@ -241,10 +253,13 @@ function setup_workspace {
 
 
 # This function submits the super-report processing job.
-# Parameters: none
-function run_superreportprocessing {
+# Parameters: the argument list (string) for this postpp tool call,
+#   item 0 in the list is the tool name.
+function submit_postppjobs {
     local workspace=$work_dir/
     local bm_root=$PWD
+    local thistool_arglist=()
+    thistool_arglist=($1)
 
     # Construct argument for qsub/sbatch for dependency
     echo "Dependencies: '$pp_jobids:' $pp_jobids"    # Debug
@@ -259,7 +274,7 @@ function run_superreportprocessing {
     fi
 
     # Determine what super-report to run, and teh argument to it
-    supertool=${superreport_arglist[0]}
+    supertool=${thistool_arglist[0]}
     echo "Tool name = ${supertool}"
 
     # Create the post processing job
@@ -270,13 +285,13 @@ function run_superreportprocessing {
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
     cat <<EOF > $common_script
-if [ -f $bm_root/postpost/${supertool}/postprocess.sh ]; then
-    PATH=$PATH $bm_root/postpost/${supertool}/postprocess.sh ${superreport_arglist[@]:1}
+if [ -f $bm_root/postpost/${supertool}/postpostprocess.sh ]; then
+    PATH=$PATH $bm_root/postpost/${supertool}/postpostprocess.sh ${thistool_arglist[@]:1}
 fi
 cd $bm_root
 echo 'postpost-${supertool}' >> progress.txt
 cd $workspace/${supertool}
-echo "${superreport_arglist[@]}" >>postpost-${supertool}-dummy.txt
+echo "${thistool_arglist[@]}" >>postpost-${supertool}-dummy.txt
 cd $bm_root
 EOF
 
@@ -298,6 +313,15 @@ EOF
 #    rm $common_script
 
     popd 1>/dev/null
+}
+
+function run_postpostprocessing {
+
+  for ((i = 0; i < ${#superreport_arglist[@]}; i++)); do
+    echo " run_postpostprocessing:   submit_postppjobs ${superreport_arglist[$i]}"
+    submit_postppjobs "${superreport_arglist[$i]}"
+  done
+
 }
 
 
@@ -622,9 +646,9 @@ do
   fi
 done
 
-# Call run_superreportprocessing after all other tests have been submitted
+# Call run_postpostprocessing after all other tests have been submitted
 if (( $superreport_flag == 1 )); then
-  run_superreportprocessing
+  run_postpostprocessing
 fi
 
 if (( $compile_only == 1 )); then

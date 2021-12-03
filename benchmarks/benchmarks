@@ -262,7 +262,7 @@ function submit_postppjobs {
     thistool_arglist=($1)
 
     # Construct argument for qsub/sbatch for dependency
-    echo "Dependencies: '$pp_jobids:' $pp_jobids"    # Debug
+    echo " Dependencies: '$pp_jobids:' $pp_jobids"    # Debug
     if [ -n "$pp_jobids" ]; then
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
@@ -275,8 +275,7 @@ function submit_postppjobs {
 
     # Determine what super-report to run, and teh argument to it
     supertool=${thistool_arglist[0]}
-    echo "Tool name = ${supertool}"
-
+    echo " Tool=$supertool"
     # Create the post processing job
     pushd $workspace 1>/dev/null
     rm -r ${supertool}
@@ -285,14 +284,14 @@ function submit_postppjobs {
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp)
     cat <<EOF > $common_script
+cd $workspace/${supertool}
 if [ -f $bm_root/postpost/${supertool}/postpostprocess.sh ]; then
     PATH=$PATH $bm_root/postpost/${supertool}/postpostprocess.sh ${thistool_arglist[@]:1}
 fi
+#cd $workspace/${supertool}
+#echo "${thistool_arglist[@]}" >>postpost-${supertool}-dummy.txt
 cd $bm_root
 echo 'postpost-${supertool}' >> progress.txt
-cd $workspace/${supertool}
-echo "${thistool_arglist[@]}" >>postpost-${supertool}-dummy.txt
-cd $bm_root
 EOF
 
 #   Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
@@ -396,14 +395,13 @@ EOF
 
     # Add this pp-job id to the list of pp-jobs that the super-reportjob should wait for to finish.
     if [ -n "$ppid"  ]; then
-	echo '$pp_jobids='$pp_jobids
         if [ -z "$pp_jobids" ]; then
             pp_jobids="$ppid"
         else
             pp_jobids="$pp_jobids:$ppid"
         fi
     fi
-    echo "ppid=$ppid => Dependencies=$pp_jobids"
+    echo "${test_name}: job id = ${ppid}"
 }
 
 # This function submits a benchmark as an HPC job

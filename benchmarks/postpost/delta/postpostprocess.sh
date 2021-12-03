@@ -1,5 +1,7 @@
 #!/bin/bash
 
-echo "Delta tool" #>/tmp/johan.212102.ppp-delta
-echo "Arguments = $@" #>>/tmp/johan.212102.ppp-delta
-pwd -P #>>/tmp/johan.212102.ppp-delta
+echo "Delta tool" | tee postpostprocess.dummy-output
+echo "Arguments = $@" | tee -a postpostprocess.dummy-output
+echo "Argument 1 = $1" | tee -a postpostprocess.dummy-output
+echo "Argument 2 = $2" | tee -a postpostprocess.dummy-output
+echo "pwd -P = $(pwd -P)" | tee -a postpostprocess.dummy-output

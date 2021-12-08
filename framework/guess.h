@@ -3893,7 +3893,7 @@ public:
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change
-	void phase_change(bool combine_snow = false);
+	void phase_change();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4008,7 +4008,7 @@ struct Snowlayer : public Serializable {
 	void mix_dens(double prec, double snowfall_dens);
 
 	/// Phase change
-	void phase_change();
+	void phase_change(bool single_layer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4030,8 +4030,12 @@ public:
 	double NO3_mass;
 	/// Monthly snow depth (average) [mm]
 	double mdepth[12];
+	/// Monthly snow cover (average) [-]
+	double mcover[12];
 	/// Monthly snow layer temperature [C]
 	double mtemp[NSNOWLAYERS_MAX][12];
+	/// Excess snow depth fractions
+	double snow_excess_frac[NSNOWLAYERS_MAX];
 
 	// MEMBER FUNCTIONS
 
@@ -4053,14 +4057,8 @@ public:
 	/// Reduce snowpack to its maximum depth, excess goes to runoff
 	void reduce_snowpack(Patch& patch, double depth_reduction);
 
-	/// redistribute snow when all snow layers are full due to melt or compaction
-	void redist_layers_full();
-
 	/// Redistribute snow when a non-overfull layer increases/decreases due to melt or compaction
-	void redist_layers(double snowpack_depth);
-
-	/// Accumulate snow in bottom layer if all other layers are already full
-	void update_layers(double snowfall_depth, double snowfall_dens, double snowfall_Ch, double airT);
+	void redist_layers(double snowpack_depth, double snowfall_depth = 0.0, double snowfall_imass = 0.0, double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
 
 	/// Snow or rainfall, and melt if simple snow scheme is used
 	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
@@ -4074,8 +4072,8 @@ public:
 	/// Update snow fractions
 	void phase_change();
 
-	/// Soak snowpack with surface runoff water
-	void soak_snowpack(double& runoff_surf);
+	/// Soak snowpack with water
+	void soak_snowpack(double& water, double water_temp);
 
 	/// Snow compaction
 	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);
@@ -4089,9 +4087,6 @@ public:
 	/// Mean snow depth for the three months with largest snowpack
 	double snowpack_avrmax3mth();
 
-	/// Returns total snowpack (water and ice) [mm]
-	double snowpack();
-
 	/// Returns total snow depth [mm]
 	double depth();
 
@@ -4102,6 +4097,7 @@ public:
 
 	double ncont();
 
+	/// Returns total snowpack (water and ice) [mm]
 	double wcontent();
 
 	void serialize(ArchiveStream& arch);

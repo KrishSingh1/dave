@@ -116,8 +116,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mch4plan", &file_mch4plan, 300, "Monthly CH4 emissions, plant-mediated");
 	declare_parameter("file_mch4ebull", &file_mch4ebull, 300, "Monthly CH4 emissions, ebullition");
 	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
+	declare_parameter("file_msnowcover", &file_msnowcover, 300, "Monthly snow cover");
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
+	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
 }
 
 
@@ -243,7 +245,8 @@ void CommonOutput::define_output_tables() {
 	// ALD
 	ColumnDescriptors mald_columns = month_columns;
 	mald_columns += ColumnDescriptor("MAXALD", 8, 3);
-	mald_columns += ColumnDescriptor("PF", 5, 2);
+	mald_columns += ColumnDescriptor("PF_full", 8, 3);
+	mald_columns += ColumnDescriptor("PF_3m", 8, 3);
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
@@ -543,8 +546,10 @@ void CommonOutput::define_output_tables() {
     
 	// Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
+	create_output_table(out_msnowcover,     file_msnowcover,     month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
 	create_output_table(out_mald,           file_mald,           mald_columns);
+	create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -810,9 +815,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mch4_ebull[12];
 	double mch4_plant[12];
 	double msnowdepth[12];
+	double msnowcover[12];
 	double mwtp[12];
 	double mald[12];
 	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX+PAD_LAYERS][12];
+	double mtemp25cm[12];
 	double mwmasslyr[NSOILLAYER_MAX + 1][12];
 	double mimasslyr[NSOILLAYER_MAX + 1][12];
 	double mKwlyr[NSOILLAYER_MAX + 1][12];
@@ -829,7 +836,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwmass[m] = mimass[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
-		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
+		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwtp[m] = mald[m] = mtemp25cm[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
 		}
@@ -927,7 +934,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double nuptake_gridcell=0.0;
 	double vmaxnlim_gridcell=0.0;
 	double maxald_gridcell=0.0;
-	double permafrost_gridcell=0.0;
+	double permafrost_full_gridcell = 0.0;
+	double permafrost_3m_gridcell = 0.0;
 
 	double aNH4dep_gridcell=0.0;
 	double aNO3dep_gridcell=0.0;
@@ -1568,9 +1576,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
-				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m]*M_PER_MM*to_gridcell_average;
+				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
+				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
 				mald[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m])*M_PER_MM*to_gridcell_average;
 				mwtp[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m])*M_PER_MM*to_gridcell_average;
+				mtemp25cm[m] += (iftwolayersoil ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
 				
 				mch4[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				mch4_diff[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
@@ -1630,7 +1640,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 
 			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
-			permafrost_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth ? 0.0 : 1.0) * to_gridcell_average;
+			permafrost_full_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth ? 0.0 : 1.0) * to_gridcell_average;
+			permafrost_3m_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI
 
@@ -1865,14 +1876,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mch4, mch4[m]);
 		outlimit(out,out_mch4diff, mch4_diff[m]);
 		outlimit(out,out_mch4plan, mch4_plant[m]);
-		outlimit(out,out_mch4ebull, mch4_ebull[m]);		
+		outlimit(out,out_mch4ebull, mch4_ebull[m]);
 		outlimit(out,out_msnow, msnowdepth[m]);
+		outlimit(out,out_msnowcover, msnowcover[m]);
 		outlimit(out,out_mwtp, mwtp[m]);
 		outlimit(out,out_mald, mald[m]);
+		outlimit(out,out_msoiltempdepth25,mtemp25cm[m]);
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]
-	outlimit(out,out_mald, permafrost_gridcell);
+	outlimit(out,out_mald, permafrost_full_gridcell);
+	outlimit(out,out_mald, permafrost_3m_gridcell);
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

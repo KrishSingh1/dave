@@ -797,6 +797,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 		for (int mth = 0; mth < 12; mth++) {
 			soilcolumn.snow.mdepth[mth] = 0.0;
+			soilcolumn.snow.mcover[mth] = 0.0;
 			soilcolumn.mthaw[mth] = 0.0;
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 				soilcolumn.snow.mtemp[lyr][mth] = 0.0;

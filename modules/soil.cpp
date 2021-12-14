@@ -1667,9 +1667,16 @@ void Soillayer::phase_change() {
 
 		if (temp < 0.0) {
 
+			// Maximum super cooled water fraction
+			const double max_sc_frac = 0.5;
+
+			// Temperature close to zero, maximum water is super cooled
+			if (temp > -0.1) {
+				wmass_sc = max_sc_frac * wsats;
+			}
 			// Niu scheme
-			if (ifsupercooled == 1) {
-				wmass_sc = wsats * min(1.0, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
+			else if (ifsupercooled == 1) {
+				wmass_sc = wsats * min(max_sc_frac, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
 			}
 			// Jin scheme
 			else if (ifsupercooled == 2) {
@@ -1677,20 +1684,37 @@ void Soillayer::phase_change() {
 				double S = 0.37;
 				double C_1 = 0.041;
 				double C = (*soilcolumn).soiltype.ssa * S * C_1 * pow(K2degC - temp, 0.5);
-				wmass_sc = wsats * min(100.0, C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0;
+				wmass_sc = wsats * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
 			}
 
 			Fwmass_sc = wmass_sc / depth;
+
+			temp_old = min(0.0, temp_old);
+			
+			if (Fwmass > Fwmass_sc && temp < temp_old) {
+				ifFreeze = true;
+			} 
+			else if (Fwmass < Fwmass_sc && temp > temp_old){
+				ifThaw = true;
+			}
+		}
+		else if (temp > 0.0 && Fimass > 0.0) {
+			ifThaw = true;
+			temp_old = 0.0;
+			wmass_sc = wsats;
+			Fwmass_sc = wmass_sc / depth;
 		}
 	}
+	else {
 
-	if (temp < 0.0 && Fwmass > 0.0) {
-		ifFreeze = true;
-		temp_old = 0.0;
-	}
-	else if (temp > 0.0 && Fimass > 0.0) {
-		ifThaw = true;
-		temp_old = 0.0;
+		if (temp < 0.0 && Fwmass > 0.0) {
+			ifFreeze = true;
+			temp_old = 0.0;
+		}
+		else if (temp > 0.0 && Fimass > 0.0) {
+			ifThaw = true;
+			temp_old = 0.0;
+		}
 	}
 
 	// Temperature difference from previous phase change
@@ -1701,9 +1725,6 @@ void Soillayer::phase_change() {
 
 		// Energy to freeze water [J m-3]
 		energy = Cp_water * fabs(delta_T);
-
-		double energy_lyr = Ch * fabs(delta_T) * depth * M_PER_MM;
-		double freez_mm = energy_lyr / Lheat;
 
 		// Fraction water that would freeze [m3 m-3]
 		Ffreez = energy / Lheat;
@@ -1807,12 +1828,15 @@ void Soillayer::phase_change() {
 		}
 	} // End of thawing
 
-	// Set new old temperature
-	temp_old = temp;
-
 	// Water and ice mass
 	wmass = Fwmass * depth;
 	imass = Fimass * depth;
+
+	// Set new old temperature
+	temp_old = temp;
+
+	if (temp > 0.0 && imass > 0.0)
+		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n", date.year, date.day, depth_profile, temp, imass);
 
 	// No negative wmass
 	if (wmass < -EPS)

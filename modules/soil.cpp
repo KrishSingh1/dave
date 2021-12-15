@@ -403,7 +403,7 @@ void Snow::potential_depth(double snowpack_depth, double pot_depth[NSNOWLAYERS_M
 		pot_nsnowlayers = NSNOWLAYERS_MAX;
 	}
 	else {
-		// fill layers so that depths are between SNOW_DEPTH_STANDARD and SNOW_DEPTH_STANDARD * SNOW_DEPTH_LIMIT
+		// fill layers so that depths are between half SNOW_DEPTH_STANDARD and SNOW_DEPTH_STANDARD
 		int lyr = 0;
 		while (!negligible(snowpack_depth)) {
 			if (snowpack_depth > 2.0 * SNOW_DEPTH_STANDARD) {

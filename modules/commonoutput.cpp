@@ -218,7 +218,8 @@ void CommonOutput::define_output_tables() {
 
 	// Create soil layer columns
 	ColumnDescriptors temp_columns, lyr_columns;
-	xtring snowsoillayers[] = {"air", "snow9", "snow8", "snow7", "snow6", "snow5", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4"};
+	//xtring snowsoillayers[] = { "air", "snow9", "snow8", "snow7", "snow6", "snow5", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
+	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS + 1; lyr++) {
 		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
 	}

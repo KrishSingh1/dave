@@ -41,7 +41,7 @@ describe_image ALDmax.jpg "Measured vs. Modelled 2000 to 2015 maximum Active lay
 tslice soiltemp25cm.out -o soiltemp1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
 compute soiltemp1961to1990.txt -o soiltemp1961to1990season.txt -n  -i Lon Lat 'winter=(Jan+Feb+Dec)/3.0' 'spring=(Mar+Apr+May)/3.0' 'summer=(Jun+Jul+Aug)/3.0' 'autumn=(Sep+Oct+Nov)/3.0'
 
-gmapall soiltemp1961to1990season.txt -P soiltemp_ -p npolar
+gmapall soiltemp1961to1990season.txt -P soiltemp_ -p npolar -s -40 2.5 24
 describe_images "Seasonal soil temperatures (1961-90 average). Units: degr C" soiltemp_*.jpg
 
 

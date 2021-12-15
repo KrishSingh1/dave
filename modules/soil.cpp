@@ -442,14 +442,37 @@ void Snow::redist_layers(double snowpack_depth, double snowfall_depth, double sn
 	double snowlyr_temp[NSNOWLAYERS_MAX] = { 0.0 };
 	double snowlyr_Ch[NSNOWLAYERS_MAX] = { 0.0 };
 
+	// Water in snowlayer that has no ice after phase change, hence no depth (a full layer has melted)
+	double wmass_no_snowlyr = 0.0;
+
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		snowlyr_depth[lyr] = snowlayers[lyr].depth;
 		snowlyr_imass[lyr] = snowlayers[lyr].imass;
-		snowlyr_wmass[lyr] = snowlayers[lyr].wmass;
+		if (snowlayers[lyr].depth > 0.0) {
+			snowlyr_wmass[lyr] = snowlayers[lyr].wmass;
+		}
+		else {
+			wmass_no_snowlyr += snowlayers[lyr].wmass;
+		}
+
 		snowlyr_temp[lyr] = snowlayers[lyr].temp;
 		snowlyr_Ch[lyr] = snowlayers[lyr].Ch;
 
 		snowlayers[lyr].depth = snowlayers[lyr].imass = snowlayers[lyr].wmass = snowlayers[lyr].temp = snowlayers[lyr].Ch = 0.0;
+	}
+
+	// If water in snow layer without depth, then add water to top snowlayer
+	if (wmass_no_snowlyr > 0.0) {
+		int lyr = nsnowlayers - 1;
+		while (wmass_no_snowlyr > 0.0 && lyr >= 0) {
+			if (snowlyr_depth[lyr] > 0.0) {
+				snowlyr_wmass[lyr] += wmass_no_snowlyr;
+				wmass_no_snowlyr = 0.0;
+			}
+			else {
+				lyr--;
+			}
+		}
 	}
 
 	// Potential depth array

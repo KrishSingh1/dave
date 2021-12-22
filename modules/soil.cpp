@@ -3343,10 +3343,22 @@ void Soilcolumn::set_padding_depth() {
 			k_guess = k_guess - func / dfunc;
 		}
 
+		double tot_depth = 0.0;
+		double lyr_depth;
+
 		// Build geometric sequence of padding layer depths.
 		for (layer = 0; layer < PAD_LAYERS; layer++) {
-			pad[layer].depth = dz * pow(k_guess, layer + 1);
+			lyr_depth = dz * pow(k_guess, layer + 1);
+			pad[layer].depth = lyr_depth;
+			tot_depth += lyr_depth;
 		}
+
+		if (!negligible(PAD_DEPTH - tot_depth)) {
+			pad[PAD_LAYERS - 1].depth += PAD_DEPTH - tot_depth;
+		}
+
+		if (pad[PAD_LAYERS - 1].depth < -1.0e-10)
+			fail("ERROR: Padding layer negative\n");
 	}
 	// Else each padding layer decrease linear to a minimum of 2m for the bottom padding layer
 	else {
@@ -4711,7 +4723,7 @@ void Soilcolumn::calc_temp() {
 
 		// Boundary conditions for soil temperature (Shouldn't use air temperature)
 		// Upper boundary condition [J m-2 s-1]
-		double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0] / date.timesteps;
+		double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0];
 
 		// Lower boundary condition
 		double f_bot = 0.0;
@@ -4769,7 +4781,8 @@ void Soilcolumn::calc_temp() {
 	}
 
 
-	/*/if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 10) {
+
+	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 		dprintf("%d %d %d %g ", date.year, date.day, 99, airT);
 
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
@@ -4780,8 +4793,12 @@ void Soilcolumn::calc_temp() {
 			dprintf("%g ", snow.snowlayers[lyr].temp);
 		}
 
-		for (int lyr = 0; lyr < 5; lyr++) {
-			dprintf("%g %g %g %g ", soillayers[lyr].temp, soillayers[lyr].temp_old, soillayers[lyr].wmass, soillayers[lyr].imass);
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			dprintf("%g ", soillayers[lyr].temp);
+		}
+
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			dprintf("%g ", pad[lyr].temp);
 		}
 
 		dprintf("\n");
@@ -4793,7 +4810,7 @@ void Soilcolumn::calc_temp() {
 	// Thaw depth calculation
 	thaw_depth();
 
-	// Update padding layers temperature so they faster comes to an equilibrium
+	// Update bottom padding layers temperature so they faster comes to an equilibrium
 	if (date.year < nyear_spinup * 0.5 && date.islastmonth && date.islastday) {
 		double avr_temp = 0.0;
 
@@ -4803,7 +4820,7 @@ void Soilcolumn::calc_temp() {
 
 		avr_temp /= 12.0;
 
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = PAD_LAYERS-2; lyr < PAD_LAYERS; lyr++) {
 			pad[lyr].temp = avr_temp;
 		}
 	}

@@ -1641,7 +1641,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 
 			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
-			permafrost_full_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth ? 0.0 : 1.0) * to_gridcell_average;
+			permafrost_full_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth + PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
 			permafrost_3m_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI

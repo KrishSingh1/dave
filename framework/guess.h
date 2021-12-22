@@ -348,7 +348,7 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
-		timesteps = 6; // 4h to manage 10cm resolution in water and temperature calculations
+		timesteps = 12; // 2h to manage 10cm resolution in water and temperature calculations
 		first_calendar_year = 0;
 	}
 

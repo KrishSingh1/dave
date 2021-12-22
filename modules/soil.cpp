@@ -3196,6 +3196,8 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 	for (int lyr = 0; lyr < neglyr.size(); lyr++) {
 		int lyr_neg = neglyr[lyr];
 
+		// Start with checking fluxes from layer
+
 		// If drained water then take negative wmass first from it
 		if (soillayers[lyr_neg].runoff_drain > 0.0) {
 			double wmass_move = min(soillayers[lyr_neg].runoff_drain, -soillayers[lyr_neg].wmass);
@@ -3265,7 +3267,7 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 			soillayers[lyr_neg].wmass += wmass_move;
 		}
 
-		// Still negative, take from layers below
+		// Still negative, take from wmass from layers below
 		if (soillayers[lyr_neg].wmass < 0.0) {
 			for (int lyr = lyr_neg + 1; lyr < nsoillayers; lyr++) {
 				
@@ -3277,7 +3279,7 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 			}
 		}
 
-		// Still negative, take from layers above
+		// Still negative, take from wmass from layers above
 		if (soillayers[lyr_neg].wmass < 0.0) {
 			for (int lyr = lyr_neg - 1; lyr >= 0; lyr--) {
 
@@ -3289,8 +3291,39 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 			}
 		}
 
+		// Still negative, take from drainage from layers below
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			for (int lyr = lyr_neg + 1; lyr < nsoillayers; lyr++) {
+
+				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].runoff_drain > 0.0) {
+					double wmass_move = min(soillayers[lyr].runoff_drain, -soillayers[lyr_neg].wmass);
+					soillayers[lyr].runoff_drain -= wmass_move;
+					soillayers[lyr_neg].wmass += wmass_move;
+				}
+			}
+		}
+
+		// Still negative, take from drainage from layers above
+		if (soillayers[lyr_neg].wmass < 0.0) {
+			for (int lyr = lyr_neg - 1; lyr >= 0; lyr--) {
+
+				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].runoff_drain > 0.0) {
+					double wmass_move = min(soillayers[lyr].runoff_drain, -soillayers[lyr_neg].wmass);
+					soillayers[lyr].runoff_drain -= wmass_move;
+					soillayers[lyr_neg].wmass += wmass_move;
+				}
+			}
+		}
+
+		// Still negative, take from baseflow
+		if (soillayers[lyr_neg].wmass < 0.0 && soillayers[nsoillayers - 1].runoff_baseflow > 0.0) {
+			double wmass_move = min(soillayers[nsoillayers - 1].runoff_baseflow, -soillayers[lyr_neg].wmass);
+			soillayers[nsoillayers - 1].runoff_baseflow -= wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+		}
+
 		if (soillayers[lyr_neg].wmass < -1.0e-12)
-			dprintf("ERROR Negative soil layer water! Year %d Day %d Lyr %d wmass %g\n", date.year, date.day, lyr_neg, soillayers[lyr_neg].wmass);
+			dprintf("ERROR: Negative soil layer water! Year %d Day %d Lyr %d wmass %g\n", date.year, date.day, lyr_neg, soillayers[lyr_neg].wmass);
 	}
 }
 

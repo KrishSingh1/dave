@@ -399,7 +399,12 @@ double diameter_rules(Individual& indiv) {
 	Gridcellst& gst = patch.stand.get_gridcell().st[patch.stand.stid];
 	double diam_limit = gst.diam_limit;
 	ManagementType& mt = patch.stand.get_current_management();
-	if(!diam_limit || mt.secondintervalstart == -1 || patch.age < mt.secondintervalstart)	// Only use diameter limit for continuous cover
+
+	int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
+	int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
+	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
+
+	if(!diam_limit || mt.secondintervalstart == -1 || cutting_reference_age < mt.secondintervalstart)	// Only use diameter limit for continuous cover
 		return 1.0;
 	double man_strength;
 	double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
@@ -462,6 +467,10 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		cmass_pft[i] = 0.0;
 		cmass_harvest_remain_pft[i] = 0.0;
 	}
+
+	int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
+	int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
+	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
 	if(select_species == 4)
 		cmass_harvest_patch_selection = 0.0;
@@ -666,7 +675,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		double str_sum = 0.0;
 
 		// Only in continuous period
-		if(mt.adapt_diam_limit && mt.diam_limit && mt.secondintervalstart > -1 && patch.age >= mt.secondintervalstart) {
+		if(mt.adapt_diam_limit && mt.diam_limit && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				str_sum += mt.thinning_strength[1][t];
 			}
@@ -818,7 +827,10 @@ void set_forest(Gridcell& gridcell) {
 			Patch& patch = stand.getobj();
 
 			bool suppress_secondary = false;
-			if(mt.suppress_second_target && mt.secondintervalstart > -1 && patch.age >= mt.secondintervalstart)
+			int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
+			int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
+			int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
+			if(mt.suppress_second_target && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart)
 				suppress_secondary = true;
 
 			if(!(patch.age >= mt.targetstartage && !(patch.age % mt.targetcutinterval) && !patch.distributed_cutting && !patch.clearcut_this_year && !suppress_secondary)) {
@@ -1203,6 +1215,8 @@ double manage_forest(Patch& patch) {
 	if(mt.firstcutyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
 		first_cutyear = mt.firstcutyear - date.first_calendar_year;
 
+	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
+
 	// cutinterval from input file overwrites mt cutinterval value and other clearcut triggers
 	if(readcutinterval_st)
 		cut_interval = (int)gcst.cutinterval_st;
@@ -1252,12 +1266,12 @@ double manage_forest(Patch& patch) {
 						clearcut_now = true;
 				}
 				else if(readcutinterval_st) {
-					if(patch.age >= cut_interval) {
+					if(cutting_reference_age >= cut_interval) {
 						clearcut_now = true;
 					}
 				}
 				// Use original patch ages
-				else if (!(patch.age % cut_interval)) {
+				else if (!(cutting_reference_age % cut_interval)) {
 					clearcut_now = true;
 				}
 			}
@@ -1282,7 +1296,7 @@ double manage_forest(Patch& patch) {
 				// Thinnings defined in instruction file
 				else if(cut_interval) {
 					for(int t=0;t<NTHINNINGS;t++) {
-						if((mt.thinning_strength[0][t] || mt.thinning_strength_unsel[0][t]) && (patch.age == (int)(cut_interval * mt.thinning_time[0][t]))) {
+						if((mt.thinning_strength[0][t] || mt.thinning_strength_unsel[0][t]) && (cutting_reference_age == (int)(cut_interval * mt.thinning_time[0][t]))) {
 							cut_fraction = mt.thinning_strength[0][t];
 							cut_fraction_unsel = mt.thinning_strength_unsel[0][t];
 							patch.man_strength = cut_fraction;
@@ -1315,11 +1329,11 @@ double manage_forest(Patch& patch) {
 		}
 
 		int n = 0;	// thinningloop
-		int age = patch.age;
-		if(mt.secondintervalstart > -1 && patch.age >= mt.secondintervalstart) {
+		int age = cutting_reference_age;
+		if(mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
 			n = 1;
 			cut_interval = mt.secondcutinterval;
-			age = patch.age - mt.secondintervalstart;
+			age = cutting_reference_age - mt.secondintervalstart;
 
 			// Distribute continuous cuttings among patches
 			if(mt.distribute_continuous_cuttings) {

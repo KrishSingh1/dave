@@ -1352,6 +1352,8 @@ public:
 	int firstmanageyear;
 	/// First year with wood harvest (calendar year)
 	int firstcutyear;
+	// Whether the reference age for thinning timing is time since firstcutyear rather than the pach age
+	bool firstcutyear_is_referenceyear;
 	/// First year with clearcut (calendar year)
 	int firstclearcutyear;
 	/// Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)
@@ -1481,6 +1483,7 @@ public:
 		id = -1;
 		firstmanageyear = FAR_FUTURE_YEAR;
 		firstcutyear = FAR_FUTURE_YEAR;
+		firstcutyear_is_referenceyear = false;
 		firstclearcutyear = FAR_PREHISTORIC_YEAR;
 		delayduecutting = 0;
 		firsttargetyear = FAR_FUTURE_YEAR;
@@ -1555,6 +1558,7 @@ public:
 		name = from.name;
 		firstmanageyear = from.firstmanageyear;
 		firstcutyear = from.firstcutyear;
+		firstcutyear_is_referenceyear = from.firstcutyear_is_referenceyear;
 		firstclearcutyear = from.firstclearcutyear;
 		delayduecutting = from.delayduecutting;
 		firsttargetyear = from.firsttargetyear;

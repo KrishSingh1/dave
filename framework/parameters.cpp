@@ -941,6 +941,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("mtinclude",&includemt,1,CB_NONE,"Include ManagementType in analysis");
 		declareitem("firstmanageyear",&pmt->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 		declareitem("firstcutyear",&pmt->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+		declareitem("firstcutyear_is_referenceyear",&pmt->firstcutyear_is_referenceyear,1,CB_NONE,"Whether the reference year for cutting timing is firstcutyear");
 		declareitem("firstclearcutyear",&pmt->firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
 		declareitem("delayduecutting",&pmt->delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
 		declareitem("firsttargetyear",&pmt->firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");
@@ -1054,6 +1055,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("management1",&strparam,32,CB_MANAGEMENT1,"");
 				declareitem("firstmanageyear",&pst->management.firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 				declareitem("firstcutyear",&pst->management.firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+				declareitem("firstcutyear_is_referenceyear",&pst->management.firstcutyear_is_referenceyear,1,CB_NONE,"Whether the reference age for thinning timing is time since firstcutyear rather than the pach age");
 				declareitem("firstclearcutyear",&pst->management.firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
 				declareitem("delayduecutting",&pst->management.delayduecutting,0,200,1,CB_NONE,"Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)");
 				declareitem("firsttargetyear",&pst->management.firsttargetyear,0,10000,1,CB_NONE,"When to start cutting to reach target fractions");

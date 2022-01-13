@@ -400,12 +400,14 @@ double diameter_rules(Individual& indiv) {
 	double diam_limit = gst.diam_limit;
 	ManagementType& mt = patch.stand.get_current_management();
 
+	// Only use diameter limit for continuous cover
 	int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
 	int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
 	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
-	if(!diam_limit || mt.secondintervalstart == -1 || cutting_reference_age < mt.secondintervalstart)	// Only use diameter limit for continuous cover
+	if(!diam_limit || mt.secondintervalstart == -1 || cutting_reference_age < mt.secondintervalstart)
 		return 1.0;
+
 	double man_strength;
 	double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 	if(!indiv.height)
@@ -467,10 +469,6 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		cmass_pft[i] = 0.0;
 		cmass_harvest_remain_pft[i] = 0.0;
 	}
-
-	int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
-	int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
-	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
 	if(select_species == 4)
 		cmass_harvest_patch_selection = 0.0;
@@ -675,6 +673,10 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		double str_sum = 0.0;
 
 		// Only in continuous period
+		int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
+		int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
+		int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
+
 		if(mt.adapt_diam_limit && mt.diam_limit && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				str_sum += mt.thinning_strength[1][t];
@@ -826,6 +828,7 @@ void set_forest(Gridcell& gridcell) {
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
 
+			// Suppress target cutting during secondary period if mt.suppress_second_target = true
 			bool suppress_secondary = false;
 			int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
 			int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
@@ -1215,6 +1218,7 @@ double manage_forest(Patch& patch) {
 	if(mt.firstcutyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
 		first_cutyear = mt.firstcutyear - date.first_calendar_year;
 
+	// If mt.firstcutyear_is_referenceyear = true, years since first_cutyear rather than patch age is used as a reference for timing of cutting events
 	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
 	// cutinterval from input file overwrites mt cutinterval value and other clearcut triggers

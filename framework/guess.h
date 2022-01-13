@@ -1498,8 +1498,8 @@ public:
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;
-		target_thinning_select_age = 1;
-		target_thinning_select_diam = 0;
+		target_thinning_select_age = 0;
+		target_thinning_select_diam = 2;
 		suppress_second_target = false;
 		cutinterval = 0;
 		ifthin_reineke = false;

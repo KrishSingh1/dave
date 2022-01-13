@@ -941,7 +941,7 @@ void set_forest(Gridcell& gridcell) {
 			}
 	
 			if(cutstr_total_use > DEVLIMIT)
-				distribute_cutting(patch, 2, 0, 3, cutstr_unselected_use, cutstr_pft_use);	// Cut largest trees first
+				distribute_cutting(patch, mt.target_thinning_select_diam, mt.target_thinning_select_age, 3, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
 
 			if(cmass_pft)
 				delete[] cmass_pft;
@@ -1117,7 +1117,7 @@ void thin_reineke(Patch& patch) {
 		// Pre-commercial thinning: harvested biomass to litter
 //		if(patch.age < 20)
 //			patch.harvest_to_litter = true;
-		distribute_cutting(patch, 0, mt.target_thinning_select_age, 4);	// Cut young trees first (1) default & Cut shrubs and shade-intolerant species first (4)
+		distribute_cutting(patch, 0, 1, 4);	// Cut young trees first & cut shrubs and shade-intolerant species first (4)
 	}
 }
 

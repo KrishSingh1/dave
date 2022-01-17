@@ -910,8 +910,9 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	// in killing of vegetation and creating a new NATURAL stand.
 
 	// Options to not include barren and urban transfers in the input file (avoiding warnings if absent in file)
-	const bool use_barren_transfers = true;
+	const bool use_barren_transfers = false;
 	const bool use_urban_transfers = true;
+	const bool use_peatland_transfers = true;
 	double frac_transfer;
 
 	lc.frac_transfer[CROPLAND][PASTURE] += (frac_transfer = grossLUC.Get(year,"cp")) != NOTFOUND ? frac_transfer : 0.0;
@@ -935,7 +936,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		lc.frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"sb")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
 	}
-	if(use_urban_transfers) {
+	if(use_urban_transfers && run[URBAN]) {
 		lc.frac_transfer[URBAN][CROPLAND] += (frac_transfer = grossLUC.Get(year,"uc")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[CROPLAND][URBAN] += (frac_transfer = grossLUC.Get(year,"cu")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[URBAN][PASTURE] += (frac_transfer = grossLUC.Get(year,"up")) != NOTFOUND ? frac_transfer : 0.0;
@@ -944,6 +945,31 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		lc.frac_transfer[URBAN][NATURAL] += (frac_transfer = grossLUC.Get(year,"us")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"su")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+		if (use_barren_transfers) {
+			// There should be transition to/from urban and barren in case of use_barren_transfers && use_urban_transfers
+			// but at present the grossLUC file does not have these anyhow
+			lc.frac_transfer[URBAN][BARREN] += (frac_transfer = grossLUC.Get(year,"ub")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.frac_transfer[BARREN][URBAN] += (frac_transfer = grossLUC.Get(year,"bu")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+	}
+	if(use_peatland_transfers && run[PEATLAND]) {
+		lc.frac_transfer[PEATLAND][CROPLAND] += (frac_transfer = grossLUC.Get(year,"wc")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.frac_transfer[CROPLAND][PEATLAND] += (frac_transfer = grossLUC.Get(year,"cw")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.frac_transfer[PEATLAND][PASTURE] += (frac_transfer = grossLUC.Get(year,"wp")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.frac_transfer[PASTURE][PEATLAND] += (frac_transfer = grossLUC.Get(year,"pw")) != NOTFOUND ? frac_transfer : 0.0;
+
+		// CHECK: #can we even split the secondary woodharv between natural and wetland???
+		lc.frac_transfer[PEATLAND][NATURAL] += (frac_transfer = grossLUC.Get(year,"ws")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.frac_transfer[NATURAL][PEATLAND] += (frac_transfer = grossLUC.Get(year,"sw")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.frac_transfer[NATURAL][PEATLAND] += (frac_transfer = grossLUC.Get(year,"vw")) != NOTFOUND ? frac_transfer : 0.0;
+		if (use_barren_transfers) {
+			lc.frac_transfer[PEATLAND][BARREN] += (frac_transfer = grossLUC.Get(year,"wb")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.frac_transfer[BARREN][PEATLAND] += (frac_transfer = grossLUC.Get(year,"bw")) != NOTFOUND ? frac_transfer : 0.0;
+		}
+		if (use_urban_transfers && run[URBAN]) {
+			lc.frac_transfer[PEATLAND][URBAN] += (frac_transfer = grossLUC.Get(year,"wu")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.frac_transfer[URBAN][PEATLAND] += (frac_transfer = grossLUC.Get(year,"uw")) != NOTFOUND ? frac_transfer : 0.0;
+		}
 	}
 
 	// Distinguish between primary and secondary PNV in the input file (default true)
@@ -954,11 +980,15 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
 		if(use_urban_transfers)
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+		if(use_peatland_transfers)
+			lc.forest_lc_frac_transfer_s.primary[NATURAL][PEATLAND] += (frac_transfer = grossLUC.Get(year,"vw")) != NOTFOUND ? frac_transfer : 0.0;
 
 		// Use transitions from virgin to secondary natural land (default false).
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
+			// CHECK: do we need to handle something like ws here, since we might have taken wetland from natural
+			//        but we don't have a ss and currently the file_woodharv approach_f only scales down primary and secondary woodharv
 		}
 		use_primary_lc_transfer = true;
 	}

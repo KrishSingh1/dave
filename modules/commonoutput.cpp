@@ -110,6 +110,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
+	declare_parameter("file_mch4_wetland", &file_mch4_wetland, 300, "Monthly CH4 emissions on wetland (g CH4-C/m2 - as CH4 is in gC) (peatland landcover)");
 }
 
 
@@ -171,10 +172,12 @@ void CommonOutput::define_output_tables() {
 	// Create the month columns
 	ColumnDescriptors month_columns;
 	ColumnDescriptors month_columns_wide;
+	ColumnDescriptors month_columns_wide_prec6;
 	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 	for (int i = 0; i < 12; i++) {
 		month_columns      += ColumnDescriptor(months[i], 8,  3);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
+		month_columns_wide_prec6 += ColumnDescriptor(months[i], 10, 6);
 	}
 
 	// Create the columns for each output file
@@ -452,11 +455,17 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
     
 	// Methane
-	create_output_table(out_mch4,           file_mch4,           month_columns);
-	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
-	create_output_table(out_mch4plan,       file_mch4plan,       month_columns);
-	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns);
-    
+	// high precision output needed for case of low peatland fraction
+	// TODO: have a soil_ach4_landcover.out, to be used in estimating global ch4 emissions
+	create_output_table(out_mch4,           file_mch4,           month_columns_wide_prec6); // maybe: revert all later to month_columns???
+	create_output_table(out_mch4diff,       file_mch4diff,       month_columns_wide_prec6);
+	create_output_table(out_mch4plan,       file_mch4plan,       month_columns_wide_prec6);
+	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns_wide_prec6);
+
+	if (run[PEATLAND]) {
+		create_output_table(out_mch4_wetland,   file_mch4_wetland,   month_columns_wide_prec6);
+	}
+	
 	// Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
@@ -730,6 +739,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double msnowdepth[12];
 	double mwtp[12];
 	double mald[12];
+	// monthly per landcover, currently only wetland is written out
+	double landcover_mch4[NLANDCOVERTYPES][12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -744,6 +755,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		for (int sl = 0; sl < SOILTEMPOUT; sl++) msoilt[m][sl] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
+		for (int lc = 0; lc < NLANDCOVERTYPES; lc++) {
+			landcover_mch4[lc][m] = 0.0;
+		}
 	}
 
 	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
@@ -1357,6 +1371,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mch4_plant[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
 				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
 				
+				// only wetland will currently have ch4 emissions (output not scaled to landcover contribution within gridcell)
+				landcover_mch4[stand.landcover][m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m);				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
+				
 				for (int sl = 0; sl < SOILTEMPOUT; sl++) {
 					msoilt[m][sl] += patch.soil.T_soil_monthly[m][sl] * to_gridcell_average;
 				}
@@ -1536,6 +1553,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_msnow, msnowdepth[m]);
 		outlimit(out,out_mwtp, mwtp[m]);
 		outlimit(out,out_mald, mald[m]);
+		
+		if (run[PEATLAND]) {
+			outlimit(out,out_mch4_wetland, landcover_mch4[PEATLAND][m]);
+		}
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]

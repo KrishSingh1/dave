@@ -65,7 +65,8 @@ private:
 	
 	// Methane fluxes
 	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
-	
+	xtring file_mch4_wetland;
+
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_mwtp, file_mald;
 
@@ -88,6 +89,7 @@ private:
 
 	// Methane, snow, water table and active layer depth
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_mwtp, out_mald;
+	Table out_mch4_wetland;
 
 	// Soil temperatures
 	Table out_msoiltempdepth5, out_msoiltempdepth15, out_msoiltempdepth25, out_msoiltempdepth35, out_msoiltempdepth45, out_msoiltempdepth55, out_msoiltempdepth65, out_msoiltempdepth75, out_msoiltempdepth85, out_msoiltempdepth95, out_msoiltempdepth105, out_msoiltempdepth115, out_msoiltempdepth125, out_msoiltempdepth135, out_msoiltempdepth145;

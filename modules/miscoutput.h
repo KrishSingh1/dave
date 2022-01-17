@@ -80,6 +80,11 @@ private:
 		   file_harvest_flux_luc, file_cflux_forestry, file_cflux_regrowth, file_cflux_primary,
 		   file_cpool_forestry, file_cpool_regrowth, file_cpool_primary;
 
+	// soil n2o flux per landcover, info needed for estimating global n2o emissions
+	// soil n2o from BARREN which is LUH2 icwtr shows up in the n2o in soil_nflux
+	// TODO: allow BARREN to get excluded from soil_nflux
+	xtring file_soil_n2o_flux;
+
 	// stand type output
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_tree_mort_sts, file_cmass_killed_harv_sts, file_cmass_wood_sts, 
 		   file_cmass_wood_harv_sts, file_cmass_wood_harv_toprod_sts, file_dens_sts, file_diam_g_sts,
@@ -129,6 +134,8 @@ private:
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_tree_mort_sts, out_cmass_killed_harv_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts,
 		  out_cmass_wood_harv_toprod_sts, out_dens_sts, out_diam_g_sts, out_cmass_wood_thin_sts, out_cmass_wood_clearcut_sts, out_cutinterval_sts, 
 		  out_csoil_sts, out_clitter_sts, out_csink_sts;
+
+	Table out_soil_n2o_flux;
 
 	Table* out_cmass_pft_st;
 	Table* out_diamstruct_cmass_st;

@@ -1112,11 +1112,11 @@ void thin_reineke(Patch& patch) {
 		dens_start = patch.dens_start;
 	double delta_rdi = min(0.1, 0.05 + 0.05 * max(0.0, log(dens / dens_target) / log(dens_start / dens_target)));
 
-	if(patch.age > 10 && rdi > (rdi_target + delta_rdi)) {
+	if(rdi > (rdi_target + delta_rdi)) {
 		patch.man_strength = (rdi - (rdi_target - delta_rdi)) / rdi;
 		// Pre-commercial thinning: harvested biomass to litter
-//		if(patch.age < 20)
-//			patch.harvest_to_litter = true;
+		if(patch.age < (mt.targetstartage + mt.targetcutinterval))
+			patch.harvest_to_litter = true;
 		distribute_cutting(patch, 0, 1, 4);	// Cut young trees first & cut shrubs and shade-intolerant species first (4)
 	}
 }

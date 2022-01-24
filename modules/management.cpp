@@ -1052,25 +1052,25 @@ void thin_reineke(Patch& patch) {
 	ManagementType& mt = patch.stand.get_current_management();
 	StandType& st = stlist[patch.stand.stid];
 
-	double alpha_st;
+	double alpha_st = 0.0;		// Default value set below if not specified in instruction file management parameters
 	double beta_st = 1.6;
 	// thinning "intensity" (low value more intense)
 	double rdi_target = 0.75;	// Bellassen value, modified below
 	double dens_start = 5000.0;	// Changed this from Bellassen's 10000 to represent what we use in LPJ-GUESS if not specifically specifying a higher planting density
-	double dens_target = 150.0;	// Default value, modified below
+	double dens_target = 0.0;	// Default value set below if not specified in instruction file management parameters
 
 	// Default values for tree functional groups, can be changed by mt values below
 	if(mt.planting_system == "NEEDLELEAF_EVERGREEN" || mt.planting_system == "NEEDLELEAF_DECIDUOUS") {
 
-		alpha_st = 65;					// Values obtained from LPJ-GUESS simulations of broad-leaf monocultures without re-establishment (60: shorter rotation time)
+		alpha_st = 65;					// Values obtained from LPJ-GUESS simulations of needle-leaf monocultures without re-establishment (60: shorter rotation time)
 		rdi_target = 0.7;				// Bellasson value 0.75; changed to 0.7 190507 to get shorter rotation time (with alpha_st 65)
-		dens_target = DENSTARGET_NL;	// Bellasson value 100.
+		dens_target = DENSTARGET_NL;	// Bellasson value 100, modified for LPJ-GUESS simulations
 	}
 	else if(mt.planting_system == "BROADLEAF_EVERGREEN" || mt.planting_system == "BROADLEAF_DECIDUOUS") {
 
 		alpha_st = 40;					// Values obtained from LPJ-GUESS simulations of broad-leaf monocultures and mixed stands without re-establishment
 		rdi_target = 0.85;				// 0.85-0.9; 0.85 for less mortality
-		dens_target = DENSTARGET_BL;	// Bellassen value 200
+		dens_target = DENSTARGET_BL;	// Bellassen value 200, modified for LPJ-GUESS simulations
 	}
 
 	if(mt.alpha_st)
@@ -1079,6 +1079,15 @@ void thin_reineke(Patch& patch) {
 		rdi_target = mt.rdi_target;
 	if(mt.dens_target_cc)
 		dens_target = mt.dens_target_cc;
+
+	if(!alpha_st) {
+		alpha_st = 65;			// Using needle-leaf value if value not set at this stage.
+		dprintf("Warning: alpha_st value not set for %s, using needle-leaf value\n", (char*)st.name);
+	}
+	if(!dens_target) {
+		dens_target = 150.0;	// Using default value if value not set at this stage.
+		dprintf("Warning: dens_target value not set for %s, using average default value\n", (char*)st.name);
+	}
 
 	double dens = 0.0;
 	double diam_sq = 0.0;

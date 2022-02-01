@@ -307,7 +307,8 @@ public:
 	/// number of subdaily periods in a day (to be set in IO module)
 	int subdaily;
 
-	/// time steps within each modelled time step (dt)
+	/// sub time steps within each modelled time step
+	/** Used for temperature and hydrology calculations */
 	int timesteps;
 
 	/// julian day for middle day of each month
@@ -3893,7 +3894,7 @@ public:
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change
-	void phase_change();
+	double phase_change();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4008,7 +4009,7 @@ struct Snowlayer : public Serializable {
 	void mix_dens(double prec, double snowfall_dens);
 
 	/// Phase change
-	void phase_change(bool single_layer = false);
+	double phase_change(bool single_layer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4070,7 +4071,7 @@ public:
 	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow fractions
-	void phase_change();
+	double phase_change();
 
 	/// Soak snowpack with water
 	void soak_snowpack(double& water, double water_temp);
@@ -4125,7 +4126,7 @@ struct CNpara {
 
 		dz.resize(nlayers, 0.0);
 		z.resize(nlayers, 0.0);
-		cap.resize(nlayers, 1.0);
+		cap.resize(nlayers, 0.0);
 		diff.resize(nlayers, 0.0);
 		cond.resize(nlayers, 0.0);
 		sink.resize(nlayers, 0.0);
@@ -4362,7 +4363,7 @@ public:
 	/// Resolves negative soil layer water mass
 	void resolve_neg_wmass(std::vector<int> neglyr, double& evap, double& runoff_surf);
 	/// Update heat capacity and conductivity for soil layers
-	void update_thermal_properties(bool combine_snow);
+	void update_thermal_properties(bool combine_snow = false);
 	/// Set padding layers depth
 	void set_padding_depth();
 	/// Soil water freezing allowed?
@@ -4409,7 +4410,7 @@ public:
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
 	/// Calculate water and ice for each layer
-	void phase_change();
+	double phase_change();
 	/// Calculate thaw depth
 	void thaw_depth();
 	/// Save snow depth

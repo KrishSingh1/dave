@@ -140,7 +140,7 @@ void Snowlayer::mix_dens(double prec, double snowfall_dens) { // DW_COMMENT not 
 
 /** Phase change of snow layer
  */
-void Snowlayer::phase_change(bool single_layer) {
+double Snowlayer::phase_change(bool single_layer) {
 
 	// Fraction of water which freezes
 	double Ffreez;
@@ -150,6 +150,8 @@ void Snowlayer::phase_change(bool single_layer) {
 	double energy;
 	// Temperature difference (current - previous)
 	double delta_T;
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
 
 	bool iffreezed = false;
 	bool ifthawed = false;
@@ -260,6 +262,9 @@ void Snowlayer::phase_change(bool single_layer) {
 	else if (ifthawed) {
 		depth = imass / (dens / rho_H2O);
 	}
+
+	// Return phase change energy consumption [J]
+	return phase_change_energy;
 }
 
 /// Serialize snow layer variables
@@ -756,18 +761,24 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
  * Calculate water, ice and air fraction in each layer
  * and snow phase change
  */
-void Snow::phase_change() {
+double Snow::phase_change() {
 
 	// No phase change in simple snow scheme
 	if (!ifmultilayersnow)
-		return;
+		return 0.0;
+
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
 
 	bool single_layer = nsnowlayers == 1 ? true : false;
 
 	// Phase change for each snow layer
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-		snowlayers[lyr].phase_change(single_layer);
+		phase_change_energy += snowlayers[lyr].phase_change(single_layer);
 	}
+
+	// Return phase change energy consumption [J]
+	return phase_change_energy;
 }
 
 /// Soak snow pack with water
@@ -1540,6 +1551,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		a = soiltype.a;
 
 		// Fraction [h-1] lost in the lateral flow of excees water (water above fc) (Steenhuis 2019 eqn 14)
+		// Also check Swenson et al. 2019 eqn 3 - Q = -w Ds Ks sin(beta) for another way of doing it.
 		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
 
 		// Update lateral drainage fraction to hydrology timestep
@@ -1656,7 +1668,7 @@ void Soillayer::freeze_lyr() {
 /// Calculate phase change of water and ice for this soil layer
 /** Calculate phase change of water and ice for this soil layer
  */
-void Soillayer::phase_change() {
+double Soillayer::phase_change() {
 
 	// Initial water and ice content
 	double wtotal_initial = wmass + imass;
@@ -1679,6 +1691,8 @@ void Soillayer::phase_change() {
 	double energy;
 	// Temperature difference (current - previous)
 	double delta_T;
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
 	// Maximum error
 	const double EPS = 1.0e-10;
 
@@ -1760,6 +1774,9 @@ void Soillayer::phase_change() {
 			Fwmass -= Ffreez;
 
 			temp = temp_old;
+
+			// Energy used for phase change [J m-3]
+			phase_change_energy = -energy;
 		}
 		else {
 			// It is cold enough to freeze all the water and decrease the temperature below 0, 
@@ -1776,6 +1793,9 @@ void Soillayer::phase_change() {
 			// All water is frozen
 			Fimass += Fwmass_freeze;
 			Fwmass -= Fwmass_freeze;
+
+			// Energy used for phase change [J m-3]
+			phase_change_energy = -Fwmass_freeze * Lheat;
 		}
 	} // End of Freezing
 
@@ -1796,6 +1816,9 @@ void Soillayer::phase_change() {
 				Fwmass += Fthaw;
 				Fimass -= Fthaw;
 				temp = temp_old;
+
+				// Energy used for phase change [J m-3]
+				phase_change_energy = -energy;
 			}
 			else {
 				// There is more energy available than required for
@@ -1812,6 +1835,9 @@ void Soillayer::phase_change() {
 				// All water is unfrozen
 				Fwmass += Fimass;
 				Fimass = 0.0;
+
+				// Energy used for phase change [J m-3]
+				phase_change_energy = -Fimass * Lheat;
 			}
 		}
 		else if (Fwmass < Fwmass_sc) {
@@ -1831,6 +1857,9 @@ void Soillayer::phase_change() {
 				Fwmass += Fthaw;
 				Fimass -= Fthaw;
 				temp = temp_old;
+
+				// Energy used for phase change [J m-3]
+				phase_change_energy = -energy;
 			}
 			else {
 				// There is more energy available than required for
@@ -1847,6 +1876,9 @@ void Soillayer::phase_change() {
 				// Either all ice is unfrozen or super cooled fraction is meet
 				Fwmass += Fwmass_thaw;
 				Fimass -= Fwmass_thaw;
+
+				// Energy used for phase change [J m-3]
+				phase_change_energy = -Fwmass_thaw * Lheat;
 			}
 		}
 	} // End of thawing
@@ -1855,8 +1887,16 @@ void Soillayer::phase_change() {
 	wmass = Fwmass * depth;
 	imass = Fimass * depth;
 
+	// Energy used for phase change [J]
+	phase_change_energy *= depth * M_PER_MM;
+
 	// Set new old temperature
 	temp_old = temp;
+
+	// If phase change has happend then update soil layers thermal properties 
+	if (ifThaw || ifFreeze) {
+		update_thermal_properties();
+	}
 
 	if (temp > 0.0 && imass > 0.0)
 		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n", date.year, date.day, depth_profile, temp, imass);
@@ -1875,6 +1915,9 @@ void Soillayer::phase_change() {
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
 		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
+
+	// Return phase change energy consumption [J]
+	return phase_change_energy;
 }
 
 
@@ -3124,6 +3167,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 
 		wpara.dz[lyr] = soillayers[lyr].depth * M_PER_MM;
 		wpara.z[lyr] = soillayers[lyr].depth_profile * M_PER_MM;
+		wpara.cap[lyr] = 1.0;
 		wpara.diff[lyr] = soillayers[lyr].Dw;
 		wpara.cond[lyr] = soillayers[lyr].Kw;
 		wpara.sink[lyr] = -(aet[lyr] / soillayers[lyr].depth) / SECS_PER_DAY;
@@ -4612,21 +4656,36 @@ void Soilcolumn::initial_percolation() {
  * if there's standing water, include that layer for the phase change 
  * calculation, if not, start with the top soil layer
  */
-void Soilcolumn::phase_change() {
+double Soilcolumn::phase_change() {
+
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
+
+
+	// Snow phase change
 
 	// Phase change between water and ice and adjust snow layer temperatures accordingly
-	snow.phase_change();
+	phase_change_energy += snow.phase_change();
+
+	// Balance ice and water in snow layers and snow layer depths after phase change
+	snow.balance_snow(patch, rain_melt, rain_melt_temp);
+
+	// Update snow thermal properties
+	snow.update_thermal_properties();
+
+
+	// Soil phase change
 
 	// No phase change for years before first freeze year
 	if (date.year >= FIRST_FREEZE_YEAR) {
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].phase_change();	
+			phase_change_energy += soillayers[lyr].phase_change();
 		}
 	}
 
-	// Balance ice and water in snow layers and snow layer depths after phase change
-	snow.balance_snow(patch, rain_melt, rain_melt_temp);
+	// Return phase change energy consumption [J]
+	return phase_change_energy;
 }
 
 /// Calculate thaw depth
@@ -4688,6 +4747,28 @@ bool Soilcolumn::can_freeze() const {
 void Soilcolumn::calc_temp() {
 
 	double airT = patch.get_climate().temp;
+	double cum_energy = 0.0;
+
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
+
+	// Update heat capacity and thermal conductivity for snow, soil and padding layers
+	update_thermal_properties();
+
+	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+		if (date.year == FIRST_FREEZE_YEAR && date.day == 0) {
+			dprintf("Year Day TS AirT ");
+			for (int lyr = 0; lyr < nsoillayers; lyr++)
+				dprintf("Lyr%d ", lyr);
+			dprintf("ENERGY\n");
+		}
+		dprintf("%d %d %d %g ",date.year, date.day, 0, airT);
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			dprintf("%g ", soillayers[lyr].temp);
+			cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
+		}
+		dprintf("%g\n", cum_energy);
+	}*/
 
 	for (int ts = 0; ts < date.timesteps; ts++) {
 
@@ -4699,6 +4780,9 @@ void Soilcolumn::calc_temp() {
 			if (snow.depth() < SNOW_DEPTH_STANDARD) {
 				combine_snow = true;
 				nsnowlayers = 0;
+
+				// Calculate the combined top soil layer and single snow layers thermal properties
+				soillayers[0].update_thermal_properties(combine_snow, snow.snowlayers[0].depth, snow.snowlayers[0].imass, snow.snowlayers[0].wmass);
 			}
 		}
 
@@ -4709,16 +4793,12 @@ void Soilcolumn::calc_temp() {
 			tpara.set_sizes(nsnowsoilpadlayers);
 		}
 
-		// Update heat capacity and thermal conductivity for snow, soil and padding layers
-		update_thermal_properties(combine_snow);
-
 		// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
 		int slyr = nsnowlayers - 1;
 		for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 			tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
 			tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
 			tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
-			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = snow.snowlayers[slyr].temp;
 
 			slyr--;
@@ -4734,7 +4814,6 @@ void Soilcolumn::calc_temp() {
 			}
 			tpara.cap[lyr] = soillayers[lyr - nsnowlayers].Ch;
 			tpara.diff[lyr] = soillayers[lyr - nsnowlayers].Kh;
-			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = soillayers[lyr - nsnowlayers].temp;
 		}
 
@@ -4743,7 +4822,6 @@ void Soilcolumn::calc_temp() {
 			tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
 			tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
 			tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
-			tpara.cond[lyr] = 0.0;
 			tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
 		}
 
@@ -4761,11 +4839,26 @@ void Soilcolumn::calc_temp() {
 		// Lower boundary condition
 		double f_bot = 0.0;
 
+		// Initial energy mass balance
+		double init_cum_energy = f_top * SECS_PER_DAY / date.timesteps;
+		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+			init_cum_energy += (tpara.psi[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+		}
+
 		// Build diagonals and RHS vector
 		build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
 
 		// Solve tridiagonal system
 		solve_tridiagonal(tpara);
+
+		// Final energy mass balance
+		double final_cum_energy = 0.0;
+		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+			final_cum_energy += (tpara.psi1[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+		}
+
+		if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
+			dprintf("Year %d Day %d TS %d Diff %g Final %g Initial %g\n",date.year,date.day,ts, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
 
 		// Update temperatures
 
@@ -4789,9 +4882,18 @@ void Soilcolumn::calc_temp() {
 			pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
 		}
 
+		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+			dprintf("%d %d %d %g ", date.year, date.day, 2*ts + 1, airT);
+			cum_energy = 0.0;
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				dprintf("%g ", soillayers[lyr].temp);
+				cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
+			}
+			dprintf("%g\n", cum_energy);
+		}*/
 
 
-		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 10) {
+		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
 
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
@@ -4810,12 +4912,44 @@ void Soilcolumn::calc_temp() {
 		}*/
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
-		phase_change();
+		phase_change_energy += phase_change();
+
+		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+			dprintf("%d %d %d %g ", date.year, date.day, 2 * ts + 2, airT);
+			cum_energy = 0.0;
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				dprintf("%g ", soillayers[lyr].temp);
+				cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
+			}
+			dprintf("%g\n", cum_energy);
+		}*/
+
+		if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
+
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
+				dprintf("%g ", airT);
+			}
+
+			for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
+				dprintf("%g ", snow.snowlayers[lyr].temp);
+			}
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				dprintf("%g ", soillayers[lyr].temp);
+			}
+
+			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+				dprintf("%g ", pad[lyr].temp);
+			}
+
+			dprintf("\n");
+		}
 	}
 
 
 
-	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+	if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 		dprintf("%d %d %d %g ", date.year, date.day, 99, airT);
 
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
@@ -4835,7 +4969,7 @@ void Soilcolumn::calc_temp() {
 		}
 
 		dprintf("\n");
-	}*/
+	}
 	
 	// Not the first time this method is called	
 	firstTempCalc = false;

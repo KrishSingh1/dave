@@ -170,10 +170,6 @@ const double Lheat = 3.0587E8;
 /// A FILL-IN for layers above layer0.
 const double MISSING_VALUE = -9999.0;      
 
-/// The number of subdaily timestep loops to perform. 
-// Numerical instabilities can arise when there are thinner layers of snow and litter, so this should be > 1. 
-const int TIMESTEPS = 2;
-
 /// Thickness of the topmost air layer [m]
 // Note - keep air thickness low when using cnstep_full
 const double AIR_THICKNESS = 100.0;

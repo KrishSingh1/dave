@@ -3895,6 +3895,7 @@ public:
 	void freeze_lyr();
 	/// Phase change
 	double phase_change();
+	double phase_change_new();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4411,6 +4412,7 @@ public:
 	void calc_temp_analytic();
 	/// Calculate water and ice for each layer
 	double phase_change();
+	double phase_change_new();
 	/// Calculate thaw depth
 	void thaw_depth();
 	/// Save snow depth

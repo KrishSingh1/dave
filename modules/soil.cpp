@@ -1920,6 +1920,194 @@ double Soillayer::phase_change() {
 	return phase_change_energy;
 }
 
+/// Calculate phase change of water and ice for this soil layer
+/** Calculate phase change of water and ice for this soil layer
+ */
+double Soillayer::phase_change_new() {
+
+	// Initial water and ice content
+	double wtotal_initial = wmass + imass;
+
+	// Initial energy
+	double energy_initial = Ch * (temp + K2degC);
+
+	// Should ice thaw
+	bool ifThaw = false;
+	// Should water freeze
+	bool ifFreeze = false;
+	// Fraction of water which freezes
+	double Ffreez = 0.0;
+	// Fraction of ice which thaws
+	double Fthaw = 0.0;
+	// Fraction of water
+	double Fwmass = wmass / depth;
+	// Fraction of water super cooled
+	double Fwmass_sc = 0.0;
+	// Fraction of ice
+	double Fimass = imass / depth;
+	// Energy per volume [J m-3]
+	double energy;
+	// Temperature difference (current - previous)
+	double delta_T;
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
+	// Maximum error
+	const double EPS = 1.0e-10;
+
+	// Should water freeze
+	if (temp < 0.0 && Fwmass > 0.0) {
+		ifFreeze = true;
+		temp_old = 0.0;
+	}
+	// Should ice thaw
+	else if (temp > 0.0 && Fimass > 0.0) {
+		ifThaw = true;
+		temp_old = 0.0;
+	}
+
+	// No phase change, return zero
+	if (!ifThaw && !ifFreeze)
+		return 0.0;
+
+	// Temperature difference from previous phase change
+	delta_T = temp - temp_old;
+
+	// Freezing temperatures and water present
+	if (ifFreeze) {
+
+		// Energy from full soil layer to freeze water [J m-3]
+		energy = Ch * delta_T;
+
+		// Fraction ice that can be frozen [m3 m-3]
+		Ffreez = energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
+
+		// Super cooled water that could freeze
+		double Fwmass_freeze = Fwmass - Fwmass_sc;
+
+		if (Fwmass_freeze > Ffreez) {
+
+			// Update water and ice content
+			wmass = (Fwmass - Ffreez) * depth;
+			imass = (Fimass + Ffreez) * depth;
+
+			// Update thermal properties
+			update_thermal_properties();
+
+			// Soil temperature stays at previous timesteps temperature
+			temp = temp_old;
+
+			// Energy used for phase change [J m-3]
+			phase_change_energy = -Ffreez * Lheat;
+		}
+		else {
+			// It is cold enough to freeze all available water for freezing
+			// and decrease the temperature
+
+			// Update water and ice content
+			wmass = (Fwmass - Fwmass_freeze) * depth;
+			imass = (Fimass + Fwmass_freeze) * depth;
+
+			// Update thermal properties
+			update_thermal_properties();
+
+			// Energy used for phase change and to keep layer at initial temperature [J m-3]
+			double energy_loss = Fwmass_freeze * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
+
+			// Calculate remaining energy to lower the temperature
+			double energy_remain = energy - energy_loss;
+
+			// Update soil temperature
+			temp = temp_old + energy_remain / Ch;
+
+			// Energy used for phase change [J m-3]
+			phase_change_energy = -Fwmass_freeze * Lheat;
+		}
+	} // End of Freezing
+
+	// Thawing temperatures and ice present
+	else if (ifThaw) {
+
+		// Energy from full soil layer to thaw water [J m-3]
+		energy = Ch * delta_T;
+
+		// Fraction ice that can be thawed [m3 m-3]
+		Fthaw = -energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
+
+		if (Fimass > Fthaw) {
+
+			// Update water and ice content
+			wmass = (Fwmass + Fthaw) * depth;
+			imass = (Fimass - Fthaw) * depth;
+
+			// Update thermal properties
+			update_thermal_properties();
+
+			// Soil temperature stays at previous timesteps temperature
+			temp = temp_old;
+
+			// Energy used for phase change [J m-3]
+			phase_change_energy = Fthaw * Lheat;
+		}
+		else {
+
+			// It is warm enough to thaw all available ice for thawing
+			// and increase the temperature
+
+			// Update water and ice content
+			wmass = (Fwmass + Fimass) * depth;
+			imass = 0.0;
+
+			// Update thermal properties
+			update_thermal_properties();
+
+			// Energy used for phase change and to keep layer at initial temperature [J m-3]
+			double energy_loss = -Fimass * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
+ 
+			// Calculate remaining energy to lower the temperature [J m-3]
+			double energy_remain = energy - energy_loss;
+
+			// Update soil temperature in this layer
+			temp = temp_old + energy_remain / Ch;
+			
+			// Energy used for phase change [J m-3]
+			phase_change_energy = Fimass * Lheat;
+		}
+
+	} // End of 
+
+	// Set new old temperature
+	temp_old = temp;
+
+	if (temp > 0.0 && imass > 0.0)
+		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n", date.year, date.day, depth_profile, temp, imass);
+
+	// No negative wmass
+	if (wmass < -EPS)
+		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n", date.year, date.day, depth_profile, wmass);
+
+	// No negative imass
+	if (imass < -EPS)
+		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n", date.year, date.day, depth_profile, imass);
+
+	double wtotal_final = wmass + imass;
+
+	// water balance checks:
+	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
+		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+	}
+
+	// Final energy
+	double energy_final = Ch * (temp + K2degC) - phase_change_energy;
+
+	// water balance checks:
+	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
+		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", date.year, date.day, depth_profile, energy_initial, energy_final, energy_initial - energy_final);
+	}
+
+	// Return phase change energy consumption for the soil layer [J]
+	return phase_change_energy * depth * M_PER_MM;
+}
+
 
 /// Water content of soil layer
 /** Water content of soil layer
@@ -4688,6 +4876,38 @@ double Soilcolumn::phase_change() {
 	return phase_change_energy;
 }
 
+double Soilcolumn::phase_change_new() {
+
+	// Phase change energy consumption [J]
+	double phase_change_energy = 0.0;
+
+
+	// Snow phase change
+
+	// Phase change between water and ice and adjust snow layer temperatures accordingly
+	phase_change_energy += snow.phase_change();
+
+	// Balance ice and water in snow layers and snow layer depths after phase change
+	snow.balance_snow(patch, rain_melt, rain_melt_temp);
+
+	// Update snow thermal properties
+	snow.update_thermal_properties();
+
+
+	// Soil phase change
+
+	// No phase change for years before first freeze year
+	if (date.year >= FIRST_FREEZE_YEAR) {
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			phase_change_energy += soillayers[lyr].phase_change_new();
+		}
+	}
+
+	// Return phase change energy consumption [J]
+	return phase_change_energy;
+}
+
 /// Calculate thaw depth
 /** Calculate thaw depth
  * Define the thaw depth as the 0 degree C isotherm (Muller 1947, Burn 1998), 
@@ -4911,8 +5131,13 @@ void Soilcolumn::calc_temp() {
 			dprintf("\n");
 		}*/
 
+		// Recalculate the top soil layer thermal properties after it been combined with the single snow layer for temperature calculations
+		if (combine_snow) {
+			soillayers[0].update_thermal_properties();
+		}
+
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
-		phase_change_energy += phase_change();
+		phase_change_energy += phase_change_new();
 
 		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 			dprintf("%d %d %d %g ", date.year, date.day, 2 * ts + 2, airT);
@@ -4924,7 +5149,7 @@ void Soilcolumn::calc_temp() {
 			dprintf("%g\n", cum_energy);
 		}*/
 
-		if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
 
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
@@ -4944,12 +5169,12 @@ void Soilcolumn::calc_temp() {
 			}
 
 			dprintf("\n");
-		}
+		}*/
 	}
 
 
 
-	if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
+	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 		dprintf("%d %d %d %g ", date.year, date.day, 99, airT);
 
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
@@ -4969,7 +5194,7 @@ void Soilcolumn::calc_temp() {
 		}
 
 		dprintf("\n");
-	}
+	}*/
 	
 	// Not the first time this method is called	
 	firstTempCalc = false;

@@ -763,6 +763,11 @@ void dailyaccounting_patch(Patch& patch) {
 			soillayer.set_properties(wmass_move, imass_move);
 
 			total_water += soillayer.wsats;
+
+			// Set initial temperatures as first spinup years mean annual air temperature
+			if (date.year == 0) {
+				soillayer.temp = patch.get_climate().temp_iaavr;
+			}
 		}
 
 		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
@@ -770,6 +775,11 @@ void dailyaccounting_patch(Patch& patch) {
 		for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
 			for (int mth = 0; mth < 12; mth++) {
 				soilcolumn.pad[plyr].mtemp[mth] = 0.0;
+			}
+
+			// Set initial temperatures as first spinup years mean annual air temperature
+			if (date.year == 0) {
+				soilcolumn.pad[plyr].temp = patch.get_climate().temp_iaavr;
 			}
 		}
 

@@ -307,10 +307,6 @@ public:
 	/// number of subdaily periods in a day (to be set in IO module)
 	int subdaily;
 
-	/// sub time steps within each modelled time step
-	/** Used for temperature and hydrology calculations */
-	int timesteps;
-
 	/// julian day for middle day of each month
 	int middaymonth[12];
 
@@ -349,7 +345,6 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
-		timesteps = 12; // 2h to manage 10cm resolution in water and temperature calculations
 		first_calendar_year = 0;
 	}
 
@@ -1004,6 +999,9 @@ public:
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
+	/// first spinup years annual average air temperature (deg C)
+	double temp_iaavr;
+
 
 	// BLAZE
 	/// average annual rainfall (mm/a)
@@ -1201,6 +1199,7 @@ public:
 		chilldays = 0;
 		ifsensechill = true;
 		atemp_mean = 0.0;
+		temp_iaavr = 0.0;
 
 		lat = latitude;
 		std::fill_n(doneday, Date::MAX_YEAR_LENGTH, false);
@@ -4182,6 +4181,10 @@ public:
 	int nacrotelm;
 	/// number of catotelm soil layers
 	int ncatotelm;
+	/// Sub time steps within each modelled time step for water flow calculation
+	int wtimesteps;
+	/// Sub time steps within each modelled time step for temperature calculation
+	int ttimesteps;
 	/// Water flow calculation variables
 	CNpara wpara;
 	/// Temperature change calculation variables

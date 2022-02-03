@@ -1750,7 +1750,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
 
 		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, date.timesteps / HOUR_PER_DAY);
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, 12.0 / HOUR_PER_DAY);
 
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
@@ -1824,7 +1824,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
 
 		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, date.timesteps / HOUR_PER_DAY);
+		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, 12 / HOUR_PER_DAY);
 
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
@@ -2673,6 +2673,9 @@ void Soilcolumn::initdrivers() {
 
 	depth = 0.0;
 	nsoillayers = 0;
+
+	wtimesteps = 12;
+	ttimesteps = 24;
 
 	wcont_evap = 0.0;
 	NH4_input = 0.0;
@@ -3559,7 +3562,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 	double f_bot = ifbedrock ? 0.0 : wpara.cond[nsoillayers - 1];
 
 	// Build diagonals and RHS vector
-	build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot, wpara, nsoillayers);
+	build_diags_rhs(SECS_PER_DAY / wtimesteps, f_top, f_bot, wpara, nsoillayers);
 
 	// Solve tridiagonal system
 	solve_tridiagonal(wpara);
@@ -4726,7 +4729,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Loop through sub daily timesteps to be able to solve 
 	// the vertical flow of water with the Crank - Nicolson method
-	for (int ts = 0; ts < date.timesteps; ts++) {
+	for (int ts = 0; ts < wtimesteps; ts++) {
 
 		// Evaporation
 
@@ -4745,7 +4748,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			if (evap_sd < EPS)
 				evap_sd = 0.0;
 
-			evap += evap_sd / date.timesteps;
+			evap += evap_sd / wtimesteps;
 		}
 
 		// Calculate water influx after rain_melt initially meets the evaporation demand, can be negative (mm/day)
@@ -4774,11 +4777,11 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			// Surface runoff is equal to excees water above infiltation capacity
 			runoff_surf_sd = max(0.0, (winflux_sd + wmass_infilt + imass_infilt) - wsats_infilt);
 		}
-		runoff_surf += runoff_surf_sd / date.timesteps;
+		runoff_surf += runoff_surf_sd / wtimesteps;
 
 		// Calculate infiltration (mm/day)
 		double winfilt_sd = winflux_sd - runoff_surf_sd;
-		winfilt += winfilt_sd / date.timesteps;
+		winfilt += winfilt_sd / wtimesteps;
 
 		// Calculate water flows and content after knowing surface influx and AET of each soil layer
 		calc_wflow(winfilt_sd, aet_layer);
@@ -5148,7 +5151,14 @@ bool Soilcolumn::can_freeze() const {
 void Soilcolumn::calc_temp() {
 
 	double airT = patch.get_climate().temp;
-	double cum_energy = 0.0;
+	double top_temp = snow.nsnowlayers ? snow.snowlayers[snow.nsnowlayers - 1].temp : soillayers[0].temp;
+
+	if (fabs(airT - top_temp) > 2.0) {
+		ttimesteps = 48;
+	}
+	else {
+		ttimesteps = 24;
+	}
 
 	// Update heat capacity and thermal conductivity for snow, soil and padding layers
 	update_thermal_properties();
@@ -5168,7 +5178,8 @@ void Soilcolumn::calc_temp() {
 		dprintf("%g\n", cum_energy);
 	}*/
 
-	for (int ts = 0; ts < date.timesteps; ts++) {
+
+	for (int ts = 0; ts < ttimesteps; ts++) {
 
 		int nsnowlayers = snow.nsnowlayers;
 		bool combine_snow = false;
@@ -5238,13 +5249,13 @@ void Soilcolumn::calc_temp() {
 		double f_bot = 0.0;
 
 		// Initial energy mass balance
-		double init_cum_energy = f_top * SECS_PER_DAY / date.timesteps;
+		double init_cum_energy = f_top * SECS_PER_DAY / ttimesteps;
 		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
 			init_cum_energy += (tpara.psi[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
 		}
 
 		// Build diagonals and RHS vector
-		build_diags_rhs(SECS_PER_DAY / date.timesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
+		build_diags_rhs(SECS_PER_DAY / ttimesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
 
 		// Solve tridiagonal system
 		solve_tridiagonal(tpara);
@@ -5348,8 +5359,27 @@ void Soilcolumn::calc_temp() {
 
 			dprintf("\n");
 		}*/
-	}
 
+		/*dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
+
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
+			dprintf("%g ", airT);
+		}
+
+		for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
+			dprintf("%g ", snow.snowlayers[lyr].temp);
+		}
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			dprintf("%g ", soillayers[lyr].temp);
+		}
+
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			dprintf("%g ", pad[lyr].temp);
+		}
+
+		dprintf("\n");*/
+	}
 
 
 	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {

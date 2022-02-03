@@ -3894,8 +3894,8 @@ public:
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change
-	double phase_change();
-	double phase_change_new();
+	void phase_change();
+	void phase_change_new();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4010,7 +4010,8 @@ struct Snowlayer : public Serializable {
 	void mix_dens(double prec, double snowfall_dens);
 
 	/// Phase change
-	double phase_change(bool single_layer = false);
+	void phase_change(bool single_layer = false);
+	void phase_change_new(bool& updated, bool single_layer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4072,7 +4073,8 @@ public:
 	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow fractions
-	double phase_change();
+	void phase_change();
+	void phase_change_new(bool& updated);
 
 	/// Soak snowpack with water
 	void soak_snowpack(double& water, double water_temp);
@@ -4411,8 +4413,8 @@ public:
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
 	/// Calculate water and ice for each layer
-	double phase_change();
-	double phase_change_new();
+	void phase_change();
+	void phase_change_new();
 	/// Calculate thaw depth
 	void thaw_depth();
 	/// Save snow depth

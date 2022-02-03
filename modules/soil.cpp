@@ -3506,6 +3506,217 @@ void solve_tridiagonal(CNpara& para) {
 	}
 }
 
+
+/// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
+void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, double surf_temp, double dt,
+	std::vector<double> temp, std::vector<double> ki, std::vector<double> ci, std::vector<double>& solution) {
+
+	// DESCRIPTION
+	//     Crank-Nicholson timestepper for temperature diffusion equation.
+	//     This routine performs a single timestep (of length dt) of the heat
+	//     diffusion equation
+	//
+	//                        6 T    6  /      6 T \
+	//                   c(z) --- = --- | k(z) --- |
+	//                        6 t   6 z \      6 z /
+	//
+	//     where here, T(z, t) is the temperature, the '6's represent partial
+	//     differentiation, and c(z)/k(z) is the (depth-dependent) heat capacities and thermal conductivities
+	//     The boundary conditions are a prescribed surface
+	//     temperature, and no heat flow at the bottom of the solution domain.
+	//
+	//     INPUT PARAMETERS:
+	//
+	//      NLAYERS      Total number of layers represented in temp, d and
+	//                   dz arrays. Not all of the layers have to be active
+	//                   at one time, but this parameter is used to constrain
+	//                   the sizes of the depth-based arrays.
+	//
+	//      layer0       Index of the first active layer. The diffusion
+	//                   equation will be solved for all layers in the range
+	//                   layer0 - NLAYERS inclusive, and the surface temperature
+	//                   boundary condition will be applied to the top of layer
+	//                   index layer0.
+	//
+	//      temp         The temperatures in each layer at the start of the
+	//                   timestep.
+	//
+	//      d            The thermal diffusivities in each layer.
+	//
+	//      k            The thermal conductivities in each layer.
+	//
+	//      c            The heat capacities in each layer.
+	//
+	//      dz           The thickness of each layer.
+	//
+	//      surf_temp    The surface temperature boundary condition.
+	//
+	//      dt           The timestep.
+	//
+	//      PAD_LAYERS   Number of layers to use below computation domain to
+	//                   deal with bottom boundary condition.
+	//
+	//      pad_dz       Padding layer thicknesses (derived from calc_padding).
+	//
+	//      pad_temp     Temperature in padding layers.
+	//
+	//     NOTE ON UNITS: no units are specified here for any of these
+	//     inputs; the only constraint on units is that the layer
+	//     thicknesses, the diffusion constant and the timestep should be
+	//     measured in consistent units. For instance, if the layer
+	//     thicknesses are measured in metres, and the timestep in days, {
+	//     the diffusion constants should have units of m2 / day.
+	//
+	//     OUTPUT PARAMETERS
+	//
+	//      temp         The temperatures in each layer at the end of the
+	//                   timestep. Only layers layer0 - NLAYERS will have
+	//                   valid temperature values after a to cnstep. All
+	//                   layers with index less than layer0 will have missing
+	//                   value temperatures set (a value of -1.0E35).
+	//
+	//      pad_temp     Temperature in padding layers at the end of the
+	//                   timestep.
+
+	// As cnstep, but now we feed in ki and ci
+
+	// Bedrock parameters from Chadburn et al. (2015)
+	double Kbedrock = 8.6;			// W m-1 K-1
+	double Cbedrock = 2100000.0;	// J m-3 K-1
+	double Dbedrock = Kbedrock / Cbedrock * SECS_PER_DAY * MM2_PER_M2; // mm2 day-1
+
+	// Diffusion constants averaged over adjacent layers.
+	double dplus;
+	double dminus;
+
+	// Layer-dependent weighting factors in Crank-Nicholson scheme.
+	double dz_factor;
+	double Cplus;
+	double Cp_minus;
+	double dzhere, dzminus, dzplus;
+	double there, tminus, tplus;
+
+	// Leading diagonal, left and right subdiagonals for Crank-Nicholson matrix.
+	std::vector<double> diag(nlayers);
+	std::vector<double> left(nlayers);
+	std::vector<double> right(nlayers);
+
+	// Right hand side vector for Crank-Nicholson scheme equations.
+	std::vector<double> rhs(nlayers);
+
+	// initialise
+	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
+	dzhere = dzminus = dzplus = 0.0;
+	there = tminus = tplus = 0.0;
+
+	//   BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE
+
+	// End members for off-diagonal elements.
+	left[0] = 0.0;
+	right[nlayers - 1] = 0.0;
+
+	// Process the active layers. 
+	// The first time (lidx and layer = layer0) corresponds to the surface layer
+
+	// lyr runs from 0 to active_layers - 1 
+	for (int lyr = 0; lyr < nlayers; lyr++) {
+
+		// Calculate diffusion constants averaged over adjacent layers.
+		// The diffusion constant at the bottom layer is clamped to zero
+		// to enforce the no heat flow boundary condition there.  Diffusion
+		// constants in the padding layers are calculated in a sensible way.
+
+		if (lyr == nlayers - 1)
+			dplus = 0.0;				// BC2 - Bottom layer diffusion clamped to 0
+		else
+			dplus = (1.0 / ci[lyr]) * (ki[lyr] * dz[lyr] + ki[lyr + 1] * dz[lyr + 1]) / (dz[lyr] + dz[lyr + 1]);
+
+		// D-
+
+		if (lyr == 0)
+			dminus = Di[lyr];			// top layer
+		else if (lyr == nlayers - 1)
+			dminus = Dbedrock;			// The lowest padding layers are treated as bedrock
+		else
+			dminus = (1.0 / ci[lyr]) * (ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1]);
+
+		// Extract sensible values to use for temperature and diffusivity
+		// of the current layer, the layer above and the layer below,
+		// taking account of padding layers and end cases.
+
+		dzhere = dz[lyr];
+		there = temp[lyr];
+
+
+		// --- PLUS ---
+		if (lyr < nlayers - 1) {
+			// all soil layers apart from the bottom soil layer
+			dzplus = dz[lyr + 1];
+			tplus = temp[lyr + 1];
+		}
+		else {
+			dzplus = dz[lyr];
+			tplus = temp[lyr];
+		}
+
+
+		// --- MINUS ---
+		if (lyr == 0) {
+			// top layer
+			dzminus = dz[lyr];
+			tminus = temp[lyr];
+		}
+		else {
+			// all padding layers apart from the top padding layer
+			dzminus = dz[lyr - 1];
+			tminus = temp[lyr - 1];
+		}
+
+		dz_factor = 0.25 * (dzplus + 2.0 * dzhere + dzminus);
+		Cplus = dplus * dt / dz_factor / (dzplus + dzhere);
+		Cp_minus = dminus * dt / dz_factor / (dzhere + dzminus);
+
+		// Fill in matrix diagonal and off-diagonal elements.
+
+		// DIAG
+		if (lyr == 0)
+			diag[0] = 1.0; // BC1 - top layer should be (1,0,...,0)
+		else
+			diag[lyr] = 1.0 + Cplus + Cp_minus;
+
+		// LEFT & RIGHT
+		if (lyr < nlayers - 1) {
+
+			if (lyr > 0)
+				right[lyr] = -Cplus;
+			else
+				right[lyr] = 0.0; // i.e. BC1, where top layer == (1,0,..,0)
+
+			// left[0] is set above.
+			if (lyr > 0)
+				left[lyr] = -Cp_minus;
+		}
+
+		if (lyr == nlayers - 1) 
+			left[lyr] = -Cp_minus;
+
+		// RHS
+		// Calculate right hand side vector values.
+		if (lyr == 0)
+			rhs[0] = surf_temp;
+		else if (lyr == nlayers - 1) // Cplus == 0 here anyway
+			rhs[lyr] = (1.0 - Cp_minus) * there + Cp_minus * tminus;
+		else
+			rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
+			Cplus * tplus + Cp_minus * tminus;
+	} // end for
+
+	//   SOLVE TRIDIAGONAL SYSTEM
+
+	tridiag(nlayers, left, diag, right, rhs, solution);
+}
+
+
 /// Update soil layer temperatures due to water movement
 /** Update soil layer temperatures due to water movement
  */
@@ -5160,6 +5371,8 @@ void Soilcolumn::calc_temp() {
 		ttimesteps = 24;
 	}
 
+	ttimesteps = 6;
+
 	// Update heat capacity and thermal conductivity for snow, soil and padding layers
 	update_thermal_properties();
 
@@ -5241,33 +5454,55 @@ void Soilcolumn::calc_temp() {
 			tpara.z[lyr] = depth;
 		}
 
-		// Boundary conditions for soil temperature (Shouldn't use air temperature)
+		if (false) {// Boundary conditions for soil temperature (Shouldn't use air temperature)
 		// Upper boundary condition [J m-2 s-1]
-		double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0];
+			double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0];
 
-		// Lower boundary condition
-		double f_bot = 0.0;
+			// Lower boundary condition
+			double f_bot = 0.0;
 
-		// Initial energy mass balance
-		double init_cum_energy = f_top * SECS_PER_DAY / ttimesteps;
-		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
-			init_cum_energy += (tpara.psi[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+			// Initial energy mass balance
+			double init_cum_energy = f_top * SECS_PER_DAY / ttimesteps;
+			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+				init_cum_energy += (tpara.psi[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+			}
+
+			// Build diagonals and RHS vector
+			build_diags_rhs(SECS_PER_DAY / ttimesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
+
+			// Solve tridiagonal system
+			solve_tridiagonal(tpara);
+
+			// Final energy mass balance
+			double final_cum_energy = 0.0;
+			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+				final_cum_energy += (tpara.psi1[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+			}
+
+			if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
+				dprintf("Year %d Day %d TS %d Diff %g Final %g Initial %g\n", date.year, date.day, ts, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
 		}
+		else {
 
-		// Build diagonals and RHS vector
-		build_diags_rhs(SECS_PER_DAY / ttimesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
+			/* 
+			Dz - mm
+			dayfrac - fraction of the day ? So 0.5 would be 12h
+			Ki - J day - 1 mm - 1 K - 1
+			Ci - J mm - 3 K - 1
+			Di - mm2 day - 1
+			*/
 
-		// Solve tridiagonal system
-		solve_tridiagonal(tpara);
+			// D = K / C
+			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
+				tpara.dz[lyr] *= MM_PER_M; // m to mm
+				tpara.cap[lyr] /= MM3_PER_M3; // m-3 to mm-3
+				tpara.diff[lyr] *= SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			}
 
-		// Final energy mass balance
-		double final_cum_energy = 0.0;
-		for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
-			final_cum_energy += (tpara.psi1[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
+			cnstep_full(nsnowsoilpadlayers, tpara.cond, tpara.dz, airT, 1.0 / ttimesteps,
+				tpara.psi, tpara.diff, tpara.cap, tpara.psi1);
 		}
-
-		if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
-			dprintf("Year %d Day %d TS %d Diff %g Final %g Initial %g\n",date.year,date.day,ts, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
 
 		// Update temperatures
 

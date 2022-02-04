@@ -1178,7 +1178,7 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 			water_transferred += snowlayers[lyr].wmass;
 
 			// Erase this empty snow layer
-			snowlayers.erase(snowlayers.begin());
+			snowlayers.erase(snowlayers.end()-1);
 			nsnowlayers--;
 
 			// If this was the last snow layer, then exit loop

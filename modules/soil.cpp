@@ -1214,7 +1214,7 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 	double w_total_final = rain_melt + wcontent();
 	const double EPS = 1.0e-12;
 	//assert(fabs(w_total_initial - w_total_final) < EPS);
-	if (fabs(w_total_final - w_total_initial) > 1.0e-12)
+	if (fabs(w_total_final - w_total_initial) > 1.0e-10)
 		dprintf("Year %d Day %d ERROR: Snow rainwater_melt diff %g\n", date.year, date.day, w_total_final - w_total_initial);
 }
 
@@ -1224,24 +1224,28 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
  */
 void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp) {
 
+	// No precipitation, then return from function
+	if (prec == 0)
+		return;
+
 	double w_begin = wcontent() + prec + rain_melt;
 
 	// Multi layer snow scheme
 	if (ifmultilayersnow) {
 		
 		// Snowfall
-		if (airT < 0.0 && prec > 0.0) {
+		if (airT < 0.0) {
 
 			// Add precipitation as snow and update depth, density
 			snowfall(airT, prec, u10);
 		}
 		// Precipitation falls on snow
-		else if (prec > 0.0 && airT > 0.0 && !negligible(depth())) {
+		else if (airT > 0.0 && !negligible(depth())) {
 
 			// Phase changes and temperature change due to rainwater
 			rainwater_melt(airT, prec, rain_melt, rain_melt_temp);
 		}
-		else if (prec > 0.0) {
+		else {
 
 			// Precipitation falls as rain
 
@@ -1266,7 +1270,7 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 		const double SNOWDENSITY = 250.0;
 
 		// Snowing today
-		if (airT < 0.0 && prec > 0.0) {
+		if (airT < 0.0) {
 
 			// Snowfall up to max snowpack size
 			double snowfall;
@@ -1301,7 +1305,7 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 
 			rain_melt += prec + snowmelt;
 		}
-		else if (prec > 0.0) {
+		else {
 
 			// Add precipitation
 			rain_melt += prec;
@@ -1309,7 +1313,6 @@ void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 
 		// Update single snowlayer with new snow or melt
 		if (nsnowlayers) {
-			
 			
 			snowlayers[0].wmass = 0.0;
 			snowlayers[0].depth = snowlayers[0].imass / (snowlayers[0].dens / rho_H2O);
@@ -3507,9 +3510,36 @@ void solve_tridiagonal(CNpara& para) {
 }
 
 
+/// Solve tridiagonal system
+/** Solve tridiagonal system
+ */
+void tridiag(CNpara& para) {
+
+	// Tridiagonal system solver from Numerical Recipes.
+
+	int n = (int)para.dz.size();
+	std::vector<double> gam(n);
+	double bet;
+
+	bet = para.main[0];
+
+	para.psi1[0] = para.rhs[0] / bet;
+
+	for (int j = 1; j < n; j++) {
+		gam[j] = para.upper[j - 1] / bet;
+		bet = para.main[j] - para.lower[j] * gam[j];
+
+		para.psi1[j] = (para.rhs[j] - para.lower[j] * para.psi1[j - 1]) / bet;
+	}
+
+	for (int j = (n - 2); j >= 0; j--) {
+		para.psi1[j] -= gam[j + 1] * para.psi1[j + 1];
+	}
+}
+
+
 /// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
-void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, double surf_temp, double dt,
-	std::vector<double> temp, std::vector<double> ki, std::vector<double> ci, std::vector<double>& solution) {
+void cnstep_full(double surf_temp, double dt, CNpara& para) {
 
 	// DESCRIPTION
 	//     Crank-Nicholson timestepper for temperature diffusion equation.
@@ -3580,10 +3610,8 @@ void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, do
 
 	// As cnstep, but now we feed in ki and ci
 
-	// Bedrock parameters from Chadburn et al. (2015)
-	double Kbedrock = 8.6;			// W m-1 K-1
-	double Cbedrock = 2100000.0;	// J m-3 K-1
-	double Dbedrock = Kbedrock / Cbedrock * SECS_PER_DAY * MM2_PER_M2; // mm2 day-1
+	// Retrieve number of layers
+	int nlayers = para.dz.size();
 
 	// Diffusion constants averaged over adjacent layers.
 	double dplus;
@@ -3596,24 +3624,12 @@ void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, do
 	double dzhere, dzminus, dzplus;
 	double there, tminus, tplus;
 
-	// Leading diagonal, left and right subdiagonals for Crank-Nicholson matrix.
-	std::vector<double> diag(nlayers);
-	std::vector<double> left(nlayers);
-	std::vector<double> right(nlayers);
-
-	// Right hand side vector for Crank-Nicholson scheme equations.
-	std::vector<double> rhs(nlayers);
-
 	// initialise
 	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
 	dzhere = dzminus = dzplus = 0.0;
 	there = tminus = tplus = 0.0;
 
-	//   BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE
-
-	// End members for off-diagonal elements.
-	left[0] = 0.0;
-	right[nlayers - 1] = 0.0;
+	// BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE
 
 	// Process the active layers. 
 	// The first time (lidx and layer = layer0) corresponds to the surface layer
@@ -3623,53 +3639,53 @@ void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, do
 
 		// Calculate diffusion constants averaged over adjacent layers.
 		// The diffusion constant at the bottom layer is clamped to zero
-		// to enforce the no heat flow boundary condition there.  Diffusion
-		// constants in the padding layers are calculated in a sensible way.
+		// to enforce the no heat flow boundary condition there.
 
-		if (lyr == nlayers - 1)
-			dplus = 0.0;				// BC2 - Bottom layer diffusion clamped to 0
-		else
-			dplus = (1.0 / ci[lyr]) * (ki[lyr] * dz[lyr] + ki[lyr + 1] * dz[lyr + 1]) / (dz[lyr] + dz[lyr + 1]);
+		// D+
+		if (lyr == nlayers - 1) {
+			dplus = 0.0;
+		}
+		else {
+			dplus = ((para.diff[lyr] * para.dz[lyr] + para.diff[lyr + 1] * para.dz[lyr + 1]) / (para.dz[lyr] + para.dz[lyr + 1])) / para.cap[lyr];
+		}
 
 		// D-
-
-		if (lyr == 0)
-			dminus = Di[lyr];			// top layer
-		else if (lyr == nlayers - 1)
-			dminus = Dbedrock;			// The lowest padding layers are treated as bedrock
-		else
-			dminus = (1.0 / ci[lyr]) * (ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1]);
+		if (lyr == 0) {
+			dminus = para.cond[lyr];
+		}
+		else {
+			dminus = ((para.diff[lyr] * para.dz[lyr] + para.diff[lyr - 1] * para.dz[lyr - 1]) / (para.dz[lyr] + para.dz[lyr - 1])) / para.cap[lyr];
+		}
 
 		// Extract sensible values to use for temperature and diffusivity
 		// of the current layer, the layer above and the layer below,
-		// taking account of padding layers and end cases.
+		// and end cases.
 
-		dzhere = dz[lyr];
-		there = temp[lyr];
-
+		dzhere = para.dz[lyr];
+		there = para.psi[lyr];
 
 		// --- PLUS ---
 		if (lyr < nlayers - 1) {
-			// all soil layers apart from the bottom soil layer
-			dzplus = dz[lyr + 1];
-			tplus = temp[lyr + 1];
+			// all soil layers apart from the bottom padding layer
+			dzplus = para.dz[lyr + 1];
+			tplus = para.psi[lyr + 1];
 		}
 		else {
-			dzplus = dz[lyr];
-			tplus = temp[lyr];
+			// bottom padding layer
+			dzplus = para.dz[lyr];
+			tplus = para.psi[lyr];
 		}
-
 
 		// --- MINUS ---
 		if (lyr == 0) {
-			// top layer
-			dzminus = dz[lyr];
-			tminus = temp[lyr];
+			// top soil layer
+			dzminus = para.dz[lyr];
+			tminus = para.psi[lyr];
 		}
 		else {
-			// all padding layers apart from the top padding layer
-			dzminus = dz[lyr - 1];
-			tminus = temp[lyr - 1];
+			// all layers except top soil layer
+			dzminus = para.dz[lyr - 1];
+			tminus = para.psi[lyr - 1];
 		}
 
 		dz_factor = 0.25 * (dzplus + 2.0 * dzhere + dzminus);
@@ -3679,41 +3695,42 @@ void cnstep_full(int nlayers, std::vector<double> Di, std::vector<double> dz, do
 		// Fill in matrix diagonal and off-diagonal elements.
 
 		// DIAG
-		if (lyr == 0)
-			diag[0] = 1.0; // BC1 - top layer should be (1,0,...,0)
-		else
-			diag[lyr] = 1.0 + Cplus + Cp_minus;
-
-		// LEFT & RIGHT
-		if (lyr < nlayers - 1) {
-
-			if (lyr > 0)
-				right[lyr] = -Cplus;
-			else
-				right[lyr] = 0.0; // i.e. BC1, where top layer == (1,0,..,0)
-
-			// left[0] is set above.
-			if (lyr > 0)
-				left[lyr] = -Cp_minus;
+		if (lyr == 0) {
+			para.main[lyr] = 1.0;
+		}
+		else {
+			para.main[lyr] = 1.0 + Cplus + Cp_minus;
 		}
 
-		if (lyr == nlayers - 1) 
-			left[lyr] = -Cp_minus;
+		// LEFT
+		if (lyr == 0) {
+			para.lower[lyr] = 0.0;
+		}
+		else {
+			para.lower[lyr] = -Cp_minus;
+		}
+
+		// RIGHT
+		if (lyr == 0 || lyr == nlayers - 1) {
+			para.upper[lyr] = 0.0;
+		}
+		else {
+			para.upper[lyr] = -Cplus;
+		}
 
 		// RHS
 		// Calculate right hand side vector values.
-		if (lyr == 0)
-			rhs[0] = surf_temp;
-		else if (lyr == nlayers - 1) // Cplus == 0 here anyway
-			rhs[lyr] = (1.0 - Cp_minus) * there + Cp_minus * tminus;
-		else
-			rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
-			Cplus * tplus + Cp_minus * tminus;
-	} // end for
+		if (lyr == 0) {
+			para.rhs[lyr] = surf_temp;
+		}
+		else {
+			para.rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
+				Cplus * tplus + Cp_minus * tminus;
+		}
+	}
 
 	//   SOLVE TRIDIAGONAL SYSTEM
-
-	tridiag(nlayers, left, diag, right, rhs, solution);
+	tridiag(para);
 }
 
 
@@ -5371,8 +5388,6 @@ void Soilcolumn::calc_temp() {
 		ttimesteps = 24;
 	}
 
-	ttimesteps = 6;
-
 	// Update heat capacity and thermal conductivity for snow, soil and padding layers
 	update_thermal_properties();
 
@@ -5396,7 +5411,7 @@ void Soilcolumn::calc_temp() {
 
 		int nsnowlayers = snow.nsnowlayers;
 		bool combine_snow = false;
-		
+
 		// If snow layer is too thin add its depth and properties to the top soil layer (Best 2011 section 3.3)
 		if (snow.nsnowlayers == 1) {
 			if (snow.depth() < SNOW_DEPTH_STANDARD) {
@@ -5408,54 +5423,57 @@ void Soilcolumn::calc_temp() {
 			}
 		}
 
-		int nsnowsoillayers = nsnowlayers + nsoillayers;
-		int nsnowsoilpadlayers = nsnowlayers + nsoillayers + PAD_LAYERS;
+		if (false) {
 
-		if (nsnowsoilpadlayers != tpara.dz.size()) {
-			tpara.set_sizes(nsnowsoilpadlayers);
-		}
+			int nsnowsoillayers = nsnowlayers + nsoillayers;
+			int nsnowsoilpadlayers = nsnowlayers + nsoillayers + PAD_LAYERS;
 
-		// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-		int slyr = nsnowlayers - 1;
-		for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-			tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
-			tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
-			tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
-			tpara.psi[lyr] = snow.snowlayers[slyr].temp;
-
-			slyr--;
-		}
-
-		// Soil layers
-		for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-			if (lyr == nsnowlayers && combine_snow) {
-				tpara.dz[lyr] = (soillayers[lyr - nsnowlayers].depth + snow.snowlayers[0].depth) * M_PER_MM;
+			if (nsnowsoilpadlayers != tpara.dz.size()) {
+				tpara.set_sizes(nsnowsoilpadlayers);
 			}
-			else {
-				tpara.dz[lyr] = soillayers[lyr - nsnowlayers].depth * M_PER_MM;
+
+			// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+			int slyr = nsnowlayers - 1;
+			for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+				tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
+				tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
+				tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
+				tpara.psi[lyr] = snow.snowlayers[slyr].temp;
+
+				slyr--;
 			}
-			tpara.cap[lyr] = soillayers[lyr - nsnowlayers].Ch;
-			tpara.diff[lyr] = soillayers[lyr - nsnowlayers].Kh;
-			tpara.psi[lyr] = soillayers[lyr - nsnowlayers].temp;
-		}
 
-		// Padding layers
-		for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-			tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
-			tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
-			tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
-			tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
-		}
+			// Soil layers
+			for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
+				if (lyr == nsnowlayers && combine_snow) {
+					tpara.dz[lyr] = (soillayers[lyr - nsnowlayers].depth + snow.snowlayers[0].depth) * M_PER_MM;
+				}
+				else {
+					tpara.dz[lyr] = soillayers[lyr - nsnowlayers].depth * M_PER_MM;
+				}
+				tpara.cap[lyr] = soillayers[lyr - nsnowlayers].Ch;
+				tpara.diff[lyr] = soillayers[lyr - nsnowlayers].Kh;
+				tpara.psi[lyr] = soillayers[lyr - nsnowlayers].temp;
+			}
 
-		double depth = tpara.dz[0] / 2.0;
-		tpara.z[0] = depth;
-		for (int lyr = 1; lyr < nsnowsoilpadlayers; lyr++) {
-			depth += (tpara.dz[lyr - 1] + tpara.dz[lyr]) / 2.0;
-			tpara.z[lyr] = depth;
-		}
+			// Padding layers
+			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
+				tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
+				tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
+				tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
+				tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
+			}
 
-		if (false) {// Boundary conditions for soil temperature (Shouldn't use air temperature)
-		// Upper boundary condition [J m-2 s-1]
+			double depth = tpara.dz[0] / 2.0;
+			tpara.z[0] = depth;
+			for (int lyr = 1; lyr < nsnowsoilpadlayers; lyr++) {
+				depth += (tpara.dz[lyr - 1] + tpara.dz[lyr]) / 2.0;
+				tpara.z[lyr] = depth;
+			}
+
+
+			// Boundary conditions for soil temperature (Shouldn't use air temperature)
+			// Upper boundary condition [J m-2 s-1]
 			double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0];
 
 			// Lower boundary condition
@@ -5481,49 +5499,107 @@ void Soilcolumn::calc_temp() {
 
 			if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
 				dprintf("Year %d Day %d TS %d Diff %g Final %g Initial %g\n", date.year, date.day, ts, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
+
+			// Update temperatures
+
+			// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+			slyr = nsnowlayers - 1;
+			for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+				snow.snowlayers[slyr].temp = tpara.psi1[lyr];
+				slyr--;
+			}
+
+			// Set new soil layer temperatures
+			for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
+				soillayers[lyr - nsnowlayers].temp = tpara.psi1[lyr];
+
+				if (lyr == nsnowlayers && combine_snow)
+					snow.snowlayers[0].temp = tpara.psi1[lyr];
+			}
+
+			// Set new padding layer temperatures
+			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
+				pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
+			}
 		}
 		else {
 
-			/* 
-			Dz - mm
-			dayfrac - fraction of the day ? So 0.5 would be 12h
-			Ki - J day - 1 mm - 1 K - 1
-			Ci - J mm - 3 K - 1
-			Di - mm2 day - 1
-			*/
+			ttimesteps = 4;
+			int nairlayers = 1;
+			int nairsnowlayers = nairlayers + nsnowlayers;
+			int nairsnowsoillayers = nairlayers + nsnowlayers + nsoillayers;
+			int nairsnowsoilpadlayers = nairlayers + nsnowlayers + nsoillayers + PAD_LAYERS;
 
-			// D = K / C
-			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
-				tpara.dz[lyr] *= MM_PER_M; // m to mm
-				tpara.cap[lyr] /= MM3_PER_M3; // m-3 to mm-3
-				tpara.diff[lyr] *= SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			if (nairsnowsoilpadlayers != tpara.dz.size()) {
+				tpara.set_sizes(nairsnowsoilpadlayers);
 			}
 
-			cnstep_full(nsnowsoilpadlayers, tpara.cond, tpara.dz, airT, 1.0 / ttimesteps,
-				tpara.psi, tpara.diff, tpara.cap, tpara.psi1);
-		}
+			// Air layer
+			tpara.dz[0] = AIR_THICKNESS;
+			tpara.cap[0] = Cp_air * M3_PER_MM3;
+			tpara.diff[0] = Kair * SECS_PER_DAY / MM_PER_M;
+			tpara.cond[0] = tpara.diff[0] / tpara.cap[0];
+			tpara.psi[0] = airT;
 
-		// Update temperatures
+			// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+			int slyr = nsnowlayers - 1;
+			for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
+				tpara.dz[lyr] = snow.snowlayers[slyr].depth;
+				tpara.cap[lyr] = snow.snowlayers[slyr].Ch / MM3_PER_M3; // m-3 to mm-3
+				tpara.diff[lyr] = snow.snowlayers[slyr].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+				tpara.psi[lyr] = snow.snowlayers[slyr].temp;
 
-		// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-		slyr = nsnowlayers - 1;
-		for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-			snow.snowlayers[slyr].temp = tpara.psi1[lyr];
-			slyr--;
-		}
+				slyr--;
+			}
 
-		// Set new soil layer temperatures
-		for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-			soillayers[lyr - nsnowlayers].temp = tpara.psi1[lyr];
+			// Soil layers
+			for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
+				if (lyr == nairsnowlayers && combine_snow) {
+					tpara.dz[lyr] = (soillayers[lyr - nairsnowlayers].depth + snow.snowlayers[0].depth);
+				}
+				else {
+					tpara.dz[lyr] = soillayers[lyr - nairsnowlayers].depth;
+				}
+				tpara.cap[lyr] = soillayers[lyr - nairsnowlayers].Ch / MM3_PER_M3; // m-3 to mm-3
+				tpara.diff[lyr] = soillayers[lyr - nairsnowlayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+				tpara.psi[lyr] = soillayers[lyr - nairsnowlayers].temp;
+			}
 
-			if (lyr == nsnowlayers && combine_snow)
-				snow.snowlayers[0].temp = tpara.psi1[lyr];
-		}
+			// Padding layers
+			for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
+				tpara.dz[lyr] = pad[lyr - nairsnowsoillayers].depth;
+				tpara.cap[lyr] = pad[lyr - nairsnowsoillayers].Ch / MM3_PER_M3; // m-3 to mm-3
+				tpara.diff[lyr] = pad[lyr - nairsnowsoillayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+				tpara.psi[lyr] = pad[lyr - nairsnowsoillayers].temp;
+			}
 
-		// Set new padding layer temperatures
-		for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-			pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
+			cnstep_full(airT, 1.0 / ttimesteps, tpara);
+
+
+			// Update temperatures
+
+			// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+			slyr = nsnowlayers - 1;
+			for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
+				snow.snowlayers[slyr].temp = tpara.psi1[lyr];
+				slyr--;
+			}
+
+			// Set new soil layer temperatures
+			for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
+				soillayers[lyr - nairsnowlayers].temp = tpara.psi1[lyr];
+
+				if (lyr == nairsnowlayers && combine_snow)
+					snow.snowlayers[0].temp = tpara.psi1[lyr];
+			}
+
+			// Set new padding layer temperatures
+			for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
+				pad[lyr - nairsnowsoillayers].temp = tpara.psi1[lyr];
+			}
 		}
 
 		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {

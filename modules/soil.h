@@ -170,7 +170,7 @@ const double Lheat = 3.0587E8;
 /// A FILL-IN for layers above layer0.
 const double MISSING_VALUE = -9999.0;      
 
-/// Thickness of the topmost air layer [m]
+/// Thickness of the topmost air layer [mm]
 // Note - keep air thickness low when using cnstep_full
 const double AIR_THICKNESS = 100.0;
 

@@ -1418,7 +1418,6 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	perc_mass = 0.0;
 	runoff_drain = 0.0;
 	runoff_baseflow = 0.0;
-	runoff_drain_frac = 0.0;
 	psi = 0.0;
 	mwcontabove = 0.0;
 	awcont = 0.0;
@@ -1700,8 +1699,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		Psi_max = Psi_max_org;
 		a = 0.0;
 
-		runoff_drain_frac = 0.0;
-
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
 		wmass += wadded;
@@ -1724,8 +1721,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		Psi_max = Psi_max_org;
 		a = 0.0;
 
-		runoff_drain_frac = 0.0;
-
 		// Initially saturated
 		double wadded = wsats - (wmass + imass);
 		wmass += wadded;
@@ -1747,13 +1742,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		b = soiltype.b_min;
 		Psi_max = soiltype.Psi_max_min;
 		a = soiltype.a;
-
-		// Fraction [h-1] lost in the lateral flow of excees water (water above fc) (Steenhuis 2019 eqn 14)
-		// Also check Swenson et al. 2019 eqn 3 - Q = -w Ds Ks sin(beta) for another way of doing it.
-		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
-
-		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, 12.0 / HOUR_PER_DAY);
 
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
@@ -1822,12 +1810,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 		// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 		soiltype.a = min_frac * soiltype.clay_frac < 0.016 ? 0.0 : (min_frac * soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * min_frac * soiltype.clay_frac - 0.046);
-
-		// Fraction [h-1] lost in the lateral flow of excees water (water above fc) (Steenhuis 2019 eqn 14)
-		runoff_drain_frac = 2.0 * Kw_max * soiltype.slope / ((wsats - (awc + wp)) / depth * soiltype.slope_length) * SECS_PER_HOUR;
-
-		// Update lateral drainage fraction to hydrology timestep
-		runoff_drain_frac = 1.0 - pow(1.0 - runoff_drain_frac, 12 / HOUR_PER_DAY);
 
 		// Analytic temp calc parameters
 		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
@@ -3880,7 +3862,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 				double wmass_excees = soillayer.wmass - soillayer.fc();
 
 				// Slope dependant drainage of liquid water above field capacity
-				drained_wmass = wmass_excees * soillayer.runoff_drain_frac * soillayer.imp_ice;
+				drained_wmass = wmass_excees * min(1.0, soillayer.Kw * soiltype.slope_grade * MM_PER_M * SECS_PER_DAY / wtimesteps * soillayer.imp_ice);
 
 				// Sum todays lateral drainage
 				soillayer.runoff_drain += drained_wmass;
@@ -5048,17 +5030,17 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		double runoff_surf_sd = 0.0;
 
 		// Surface runoff depends on orography (Balsamo 2009, eqn 6 and 11)
-		if (iforography) {
+		/*if (iforography) {
 			if (winflux_sd > EPS) {
 				runoff_surf_sd = max(0.0, winflux_sd - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
 					pow(max(0.0, pow(1.0 - totwcont_infilt, 1.0 / (1.0 + soiltype.b_oro)) -
 						winflux_sd / (wsats_infilt * (1.0 + soiltype.b_oro))), soiltype.b_oro + 1.0));
 			}
 		}
-		else {
+		else {*/
 			// Surface runoff is equal to excees water above infiltation capacity
-			runoff_surf_sd = max(0.0, (winflux_sd + wmass_infilt + imass_infilt) - wsats_infilt);
-		}
+			runoff_surf_sd = max(0.0, min(winflux_sd, (winflux_sd + wmass_infilt + imass_infilt) - wsats_infilt));
+		//}
 		runoff_surf += runoff_surf_sd / wtimesteps;
 
 		// Calculate infiltration (mm/day)

@@ -48,9 +48,6 @@ const double Dz_cato = 100.0;
 /// Max height of standing water [mm]
 const double maxh = 0.0;
 
-/// Slope of soil profile
-const double soil_slope = -.37;
-
 /// Density of mineral particles [kg m-3] (Bonan 2019)
 const double Mindensity = 265.0;
 

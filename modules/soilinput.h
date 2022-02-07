@@ -112,11 +112,13 @@ private:
 		double soilC;			// Initial soil C content (kgC/m2), from model output or a database
 		double CN;				// C:N ratio from database
 		double sdor;			// standard deviation of orography
+		double slope;			// slope of soil
 	};
 
 	std::map<coord, int> lpj_map;
 	std::map<coord, double> depth_map;
 	std::map<coord, double> sdor_map;
+	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
 };
 

@@ -3187,8 +3187,10 @@ public:
 	double mineral_frac;
 	/// Parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
 	double b_oro;
-	/// Slope gradient [m m-1]
+	/// Slope [degree]
 	double slope;
+	/// Slope gradient [m m-1]
+	double slope_grade;
 	/// Slope length [m] which is inversely related to slope gradient 
 	double slope_length;
 
@@ -3485,8 +3487,6 @@ public:
 	double runoff_drain;
 	/// Monthly lateral drainage runoff
 	double mdrain[12];
-	/// Lateral drainage runoff fraction (h-1)
-	double runoff_drain_frac;
 	/// Baseflow runoff
 	double runoff_baseflow;
 	/// Porosity in layer (mm)
@@ -3677,7 +3677,6 @@ public:
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
-		runoff_drain_frac = that.runoff_drain_frac;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
 		awc_org = that.awc_org;
@@ -3787,7 +3786,6 @@ public:
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
-		runoff_drain_frac = that.runoff_drain_frac;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
 		awc_org = that.awc_org;

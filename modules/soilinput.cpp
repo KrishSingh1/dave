@@ -160,14 +160,15 @@ void SoilInput::init_sdor(const char* fname, const std::vector<coord>& gridlist)
 		std::istringstream iss(line);
 
 		double lon, lat;
-		double sdor;
-		if (iss >> lon >> lat >> sdor) {
+		double sdor, slope;
+		if (iss >> lon >> lat >> sdor >> slope) {
 			coord c(lon, lat);
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
 			sdor_map[c] = sdor;
-			if (sdor_map.size() == coords.size()) {
+			slope_map[c] = slope;
+			if (slope_map.size() == coords.size()) {
 				break;
 			}
 		}
@@ -507,11 +508,20 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	double sigma_max = 1000.0;
 	soiltype.b_oro = max(0.01, min(0.5, (sdor - sigma_min) / (sdor + sigma_max)));
 
-	// Slope gradient [m m-1] // DW_COMMENT sdor for now, but will be changed to slope input
-	soiltype.slope = min(1.0, max(0.01, sdor * 0.001));
+	// Slope of soil (degree; 2 beeing the default value)
+	double slope = 2.0;
+	if (slope_map.size()) {
+		slope = slope_map[c];
+	}
+
+	// Slope [degree] 
+	soiltype.slope = min(90.0, max(0.0, slope));
+
+	// Slope gradient [m m-1]
+	soiltype.slope_grade = sin(soiltype.slope * PI / 180.0);
 
 	// Slope length [m] which is inversely related to slope gradient 
-	soiltype.slope_length = 2.5 * pow(soiltype.slope, -1.5);
+	soiltype.slope_length = 2.5 * pow(soiltype.slope_grade, -1.5);
 
 	// Soil depth
 	// soil_depth is defined in global.ins

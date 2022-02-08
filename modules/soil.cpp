@@ -266,7 +266,7 @@ void Snowlayer::phase_change(bool single_layer) {
 
 /** Phase change of snow layer
  */
-void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
+void Snowlayer::phase_change_new(bool& updated) {
 
 	// Initial water and ice content
 	double wtotal_initial = wmass + imass;
@@ -297,11 +297,9 @@ void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
 	// Maximum error
 	const double EPS = 1.0e-10;
 
-	double lyr_depth = depth;// single_layer ? max(depth, SNOW_DEPTH_STANDARD) : depth;
-
 	// Water and ice fraction of full volume
-	Fwmass = wmass / lyr_depth;
-	Fimass = imass / lyr_depth;
+	Fwmass = wmass / depth;
+	Fimass = imass / depth;
 
 	// Should water freeze
 	if (temp < 0.0 && Fwmass > 0.0) {
@@ -332,8 +330,8 @@ void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
 		if (Fwmass > Ffreez) {
 
 			// Update water and ice content
-			wmass = (Fwmass - Ffreez) * lyr_depth;
-			imass = (Fimass + Ffreez) * lyr_depth;
+			wmass = (Fwmass - Ffreez) * depth;
+			imass = (Fimass + Ffreez) * depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -349,8 +347,8 @@ void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
 			// and decrease the temperature
 
 			// Update water and ice content
-			wmass = (Fwmass - Fwmass) * lyr_depth;
-			imass = (Fimass + Fwmass) * lyr_depth;
+			wmass = (Fwmass - Fwmass) * depth;
+			imass = (Fimass + Fwmass) * depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -381,8 +379,8 @@ void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
 		if (Fimass > Fthaw) {
 
 			// Update water and ice content
-			wmass = (Fwmass + Fthaw) * lyr_depth;
-			imass = (Fimass - Fthaw) * lyr_depth;
+			wmass = (Fwmass + Fthaw) * depth;
+			imass = (Fimass - Fthaw) * depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -399,7 +397,7 @@ void Snowlayer::phase_change_new(bool& updated, bool single_layer) {
 			// and increase the temperature
 
 			// Update water and ice content
-			wmass = (Fwmass + Fimass) * lyr_depth;
+			wmass = (Fwmass + Fimass) * depth;
 			imass = 0.0;
 
 			// Update thermal properties
@@ -914,23 +912,34 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 	double ts_melt = 0.0;
 	double ts_melt_temp = 0.0;
 
-	// Redistribute water within the snow pack
-	// moving from top to bottom snow layers
-	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
+	if (ifsoaksnow) {
 
-		if (!negligible(ts_melt)) {
-			snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
-			snowlayers[lyr].wmass += ts_melt;
-		}
+		// Soak snowpack with melted water
+		// Water fill full snow volume. Water above 
+		// total volume is added to rain_melt
+		soak_snowpack(ts_melt, ts_melt_temp);
+	}
+	else {
 
-		if (snowlayers[lyr].wmass > snowlayers[lyr].whc) {
-			ts_melt = max(0.0, snowlayers[lyr].wmass - snowlayers[lyr].whc);
-			snowlayers[lyr].wmass -= ts_melt;
-			ts_melt_temp = max(0.0, snowlayers[lyr].temp);
-		}
-		else {
-			ts_melt = 0.0;
-			ts_melt_temp = 0.0;
+		// Redistribute water within the snow pack
+		// moving from top to bottom snow layers
+		// Water above whc is added to rain_melt
+		for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
+
+			if (!negligible(ts_melt)) {
+				snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
+				snowlayers[lyr].wmass += ts_melt;
+			}
+
+			if (snowlayers[lyr].wmass > snowlayers[lyr].whc) {
+				ts_melt = max(0.0, snowlayers[lyr].wmass - snowlayers[lyr].whc);
+				snowlayers[lyr].wmass -= ts_melt;
+				ts_melt_temp = max(0.0, snowlayers[lyr].temp);
+			}
+			else {
+				ts_melt = 0.0;
+				ts_melt_temp = 0.0;
+			}
 		}
 	}
 
@@ -939,9 +948,6 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 		rain_melt_temp = (rain_melt_temp * rain_melt + ts_melt_temp * ts_melt) / (rain_melt + ts_melt);
 		rain_melt += ts_melt;
 	}
-
-	// Soak snowpack with melted water
-	soak_snowpack(rain_melt, rain_melt_temp);
 }
 
 /// Phase change within the snow pack
@@ -968,11 +974,9 @@ void Snow::phase_change_new(bool& updated) {
 	if (!ifmultilayersnow)
 		return;
 
-	bool single_layer = nsnowlayers == 1 ? true : false;
-
 	// Phase change for each snow layer
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-		snowlayers[lyr].phase_change_new(updated, single_layer);
+		snowlayers[lyr].phase_change_new(updated);
 	}
 }
 
@@ -980,22 +984,89 @@ void Snow::phase_change_new(bool& updated) {
 /** Soak snow pack with water
  * Water soaks snowpack from bottom up
  */
-void Snow::soak_snowpack(double& water, double water_temp) {
+void Snow::soak_snowpack(double& ts_melt, double ts_melt_temp) {
 
 	if (!ifsoaksnow || nsnowlayers == 0)
 		return;
 
-	int slyr = 0;
-	while (water > 0.0) {
-		double wmass_add = min(snowlayers[slyr].depth - (snowlayers[slyr].imass + snowlayers[slyr].wmass), water);
-		snowlayers[slyr].update_temp(water_temp, wmass_add, Cp_water);
-		snowlayers[slyr].wmass += wmass_add;
-		water -= wmass_add;
+	// Add rain water on top snow layer
+	if (!negligible(ts_melt)) {
+		snowlayers[nsnowlayers - 1].update_temp(ts_melt_temp, ts_melt, Cp_water);
+		snowlayers[nsnowlayers - 1].wmass += ts_melt;
+		ts_melt = 0.0;
+		ts_melt_temp = 0.0;
+	}
 
-		slyr++;
+	// Final water content in each snow layer
+	std::vector<double> wmass_lyr(nsnowlayers);
 
-		if (slyr == nsnowlayers)
-			return;
+	// If there is water movement within snowpack
+	bool wmass_movement = false;
+
+	// Water moving between snow layers
+	double excess_wmass = 0.0;
+
+	// Loop through layers and fill layer up to whc
+	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
+		wmass_lyr[lyr] = snowlayers[lyr].wmass;
+
+		if (wmass_lyr[lyr] > snowlayers[lyr].whc) {
+			excess_wmass += wmass_lyr[lyr] - snowlayers[lyr].whc;
+			wmass_lyr[lyr] = snowlayers[lyr].whc;
+			wmass_movement = true;
+		}
+		else if (excess_wmass > 0.0) {
+			double add_wmass = min(excess_wmass, snowlayers[lyr].whc - wmass_lyr[lyr]);
+			wmass_lyr[lyr] += add_wmass;
+			excess_wmass -= add_wmass;
+		}
+	}
+
+	// If there has been water movement, then we need to resolve this
+	if (wmass_movement) {
+
+		// If there was water exceeding whc, then it will fill the snowpack from bottom up
+		if (excess_wmass > 0.0) {
+			int lyr = 0;
+			while (excess_wmass > 0.0 && lyr < nsnowlayers) {
+				double add_wmass = min(excess_wmass, snowlayers[lyr].depth - (snowlayers[lyr].whc + snowlayers[lyr].imass));
+				wmass_lyr[lyr] += add_wmass;
+				excess_wmass -= add_wmass;
+				lyr++;
+			}
+		}
+
+		// Recalculate newwater conent in each snow layerand adjust temperature accordingly
+		for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
+
+			// Add water that has moved from snow layer above
+			if (!negligible(ts_melt)) {
+				snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
+				snowlayers[lyr].wmass += ts_melt;
+				ts_melt = 0.0;
+				ts_melt_temp = 0.0;
+			}
+
+			// Check if water in snow layer is above final content
+			if (snowlayers[lyr].wmass - wmass_lyr[lyr] > 1.0e-12) {
+				ts_melt = snowlayers[lyr].wmass - wmass_lyr[lyr];
+				snowlayers[lyr].wmass -= ts_melt;
+				ts_melt_temp = max(0.0, snowlayers[lyr].temp);
+			}
+			else {
+				// Check if water in snow layer is below final content
+				int lyr_below = lyr - 1;
+				while (snowlayers[lyr].wmass - wmass_lyr[lyr] < -1.0e-12 && lyr_below >= 0) {
+					double add_wmass = min(snowlayers[lyr_below].wmass, wmass_lyr[lyr] - snowlayers[lyr].wmass);
+					snowlayers[lyr].wmass += add_wmass;
+					snowlayers[lyr_below].wmass -= add_wmass;
+					lyr_below--;
+				}
+			}
+
+			if (fabs(snowlayers[lyr].wmass - wmass_lyr[lyr]) > 1.0e-12)
+				dprintf("ERROR snow layer water: Year %d Day %d Lyr %d Diff %g Current %g Should %g\n",date.year, date.day, lyr, snowlayers[lyr].wmass - wmass_lyr[lyr], snowlayers[lyr].wmass, wmass_lyr[lyr]);
+		}
 	}
 }
 
@@ -5344,7 +5415,6 @@ void Soilcolumn::phase_change_new() {
 		snow.update_thermal_properties();
 	}
 
-
 	// Soil phase change
 
 	// No phase change for years before first freeze year
@@ -5674,6 +5744,7 @@ void Soilcolumn::calc_temp() {
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
 		phase_change_new();
+
 
 		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
 			dprintf("%d %d %d %g ", date.year, date.day, 2 * ts + 2, airT);

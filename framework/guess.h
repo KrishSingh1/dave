@@ -4008,7 +4008,7 @@ struct Snowlayer : public Serializable {
 
 	/// Phase change
 	void phase_change(bool single_layer = false);
-	void phase_change_new(bool& updated, bool single_layer = false);
+	void phase_change_new(bool& updated);
 
 	void serialize(ArchiveStream& arch);
 };

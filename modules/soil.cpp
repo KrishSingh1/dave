@@ -117,7 +117,7 @@ void Snowlayer::update_whc() {
 	double rw_max = 0.1;
 
 	// Water holding capacity of snow layer [mm]
-	whc = imass * (rw_min + (rw_max - rw_min) * max(0.0, dens_t - dens) / dens_t);
+	whc = max(0.0, min(depth - imass, imass * (rw_min + (rw_max - rw_min) * max(0.0, dens_t - dens) / dens_t)));
 }
 
 /// Weigthed avg of new and old snow density
@@ -884,6 +884,7 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 	double max_snowpack_depth = 20000.0;
 	if (snowpack_depth > max_snowpack_depth) {
 		reduce_snowpack(patch, snowpack_depth - max_snowpack_depth);
+		snowpack_depth = max_snowpack_depth;
 	}
 
 	// Redistribute snow layers if snow exist
@@ -1029,7 +1030,7 @@ void Snow::soak_snowpack(double& ts_melt, double ts_melt_temp) {
 		if (excess_wmass > 0.0) {
 			int lyr = 0;
 			while (excess_wmass > 0.0 && lyr < nsnowlayers) {
-				double add_wmass = min(excess_wmass, snowlayers[lyr].depth - (snowlayers[lyr].whc + snowlayers[lyr].imass));
+				double add_wmass = max(0.0, min(excess_wmass, snowlayers[lyr].depth - (snowlayers[lyr].whc + snowlayers[lyr].imass)));
 				wmass_lyr[lyr] += add_wmass;
 				excess_wmass -= add_wmass;
 				lyr++;
@@ -1064,7 +1065,7 @@ void Snow::soak_snowpack(double& ts_melt, double ts_melt_temp) {
 				}
 			}
 
-			if (fabs(snowlayers[lyr].wmass - wmass_lyr[lyr]) > 1.0e-12)
+			if (fabs(snowlayers[lyr].wmass - wmass_lyr[lyr]) > 1.0e-10)
 				dprintf("ERROR snow layer water: Year %d Day %d Lyr %d Diff %g Current %g Should %g\n",date.year, date.day, lyr, snowlayers[lyr].wmass - wmass_lyr[lyr], snowlayers[lyr].wmass, wmass_lyr[lyr]);
 		}
 	}
@@ -1080,30 +1081,27 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 	if (!ifmultilayersnow)
 		return;
 
+	// Increase in layer density due to compaction (Best et. al. 2011, Eq.21)
+	double k_s = 4000.0;
+	// Compactive viscosity factor for snow
+	double eta_0 = 1E7;
+	// Reference snow density [kg m-3]
+	double rho_0 = 50.0;
+
+	// Snow mass above current layer
+	double I_above = 0.0;
+
 	// Mechanical compaction scheme, following Best et al. 2011
-	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
 
 		// Current layers ice and water mass
 		double I_sum = snowlayers[lyr].imass + snowlayers[lyr].wmass;
-
-		// Snow mass above this layer
-		double I_above = 0.0;
-		for (int ii = lyr + 1; ii < nsnowlayers; ii++) {
-			I_above += snowlayers[ii - 1].imass + snowlayers[ii - 1].wmass;
-		}
 
 		// Cumulative snow mass affecting compaction
 		double M_k = 0.5 * I_sum + I_above;
 
 		// Layer temperature in Kelvin (never above zero degree Celcius)
 		double T_k = min(K2degC, snowlayers[lyr].temp + K2degC);
-
-		// Increase in layer density due to compaction (Best et. al. 2011, Eq.21)
-		double k_s = 4000.0;
-		// Compactive viscosity factor for snow
-		double eta_0 = 1E7;
-		// Reference snow density [kg m-3]
-		double rho_0 = 50.0;
 
 		if (snowlayers[lyr].dens < rho_ICE) {
 			double delta_dens = snowlayers[lyr].dens * gravity * M_k / eta_0 *
@@ -1115,6 +1113,9 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 			// Snow density can not exceed pure ice density
 			snowlayers[lyr].dens = min(rho_ICE, snowlayers[lyr].dens);
 		}
+
+		// Add this layer to the above layers for future calculations
+		I_above += I_sum;
 	}
 
 	// Calculate snow depth after compaction
@@ -3964,6 +3965,13 @@ void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double
 			soillayers[lyr_neg].wmass += wmass_move;
 		}
 
+		// Still negative, take from imass
+		if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr_neg].imass > 0.0) {
+			double wmass_move = min(soillayers[lyr_neg].imass, -soillayers[lyr_neg].wmass);
+			soillayers[lyr_neg].imass -= wmass_move;
+			soillayers[lyr_neg].wmass += wmass_move;
+		}
+
 		// Soil layer below have taken wmass from negative layer
 		if (wfluxes[lyr_neg + 1] > 0.0 && soillayers[lyr_neg].wmass < 0.0) {
 
@@ -5408,6 +5416,7 @@ void Soilcolumn::phase_change_new() {
 
 	// Phase change has happened and we need to update the snowpack
 	if (updated) {
+
 		// Balance ice and water in snow layers and snow layer depths after phase change
 		snow.balance_snow(patch, rain_melt, rain_melt_temp);
 
@@ -5821,7 +5830,7 @@ void Soilcolumn::calc_temp() {
 
 		dprintf("\n");
 	}*/
-	
+
 	// Not the first time this method is called	
 	firstTempCalc = false;
 

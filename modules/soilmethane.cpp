@@ -889,9 +889,6 @@ void Soilcolumn::methane(bool generatemethane) {
 		double ch4_budget_init = get_sum(CH_4) * KG_PER_G;
 		double co2_budget_init = get_sum(RESPSUM);
 
-		if (date.year == 11 && date.day == 126)
-			int sch = 0;
-
 		// Step 1
 
 		// Calculate diffusivities and  gas constants

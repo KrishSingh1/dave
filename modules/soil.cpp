@@ -1028,6 +1028,11 @@ void Snow::soak_snowpack(double& ts_melt, double ts_melt_temp) {
 
 		// If there was water exceeding whc, then it will fill the snowpack from bottom up
 		if (excess_wmass > 0.0) {
+
+			// Maximum excess water the snowpack can hold when it is soaked
+			double EXCESS_WMASS_MAX = 500.0;
+			excess_wmass = min(EXCESS_WMASS_MAX, excess_wmass);
+
 			int lyr = 0;
 			while (excess_wmass > 0.0 && lyr < nsnowlayers) {
 				double add_wmass = max(0.0, min(excess_wmass, snowlayers[lyr].depth - (snowlayers[lyr].whc + snowlayers[lyr].imass)));

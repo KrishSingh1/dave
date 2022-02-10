@@ -69,9 +69,6 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// Update snow density after mechanical compaction
 	soilcolumn.snow.compaction(soilcolumn.patch, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
 
-	// Save monthly snow values
-	soilcolumn.save_snow();
-
 	// Soil water percolation
 	soilcolumn.percolate = soilcolumn.rain_melt >= 0.1;
 

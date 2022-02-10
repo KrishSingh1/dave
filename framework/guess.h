@@ -4008,7 +4008,7 @@ struct Snowlayer : public Serializable {
 
 	/// Phase change
 	void phase_change(bool single_layer = false);
-	void phase_change_new(bool& updated);
+	void phase_change_new(bool& updated, bool toplayer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4418,8 +4418,8 @@ public:
 	void phase_change_new();
 	/// Calculate thaw depth
 	void thaw_depth();
-	/// Save snow depth
-	void save_snow();
+	/// Calculate monthly snow depth
+	void calc_msnow();
 
 	void serialize(ArchiveStream & arch);
 };

@@ -825,6 +825,11 @@ void dailyaccounting_patch(Patch& patch) {
 	// Calculate snow and soil layer temperatures
 	soilcolumn.temp();
 
+	// Calculate mean monthly soil layer temperatures
+	soilcolumn.calc_mtemp();
+
+	// Calculate mean monthly snow values
+	soilcolumn.calc_msnow();
 
 	// Calculate respiration temperature response
 	respiration_temperature_response(soilcolumn);

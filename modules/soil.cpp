@@ -266,7 +266,7 @@ void Snowlayer::phase_change(bool single_layer) {
 
 /** Phase change of snow layer
  */
-void Snowlayer::phase_change_new(bool& updated) {
+void Snowlayer::phase_change_new(bool& updated, bool toplayer) {
 
 	// Initial water and ice content
 	double wtotal_initial = wmass + imass;
@@ -296,10 +296,12 @@ void Snowlayer::phase_change_new(bool& updated) {
 	double phase_change_energy = 0.0;
 	// Maximum error
 	const double EPS = 1.0e-10;
+	// Addition depth to top snow layer to accound for radiation energy
+	double lyr_depth = toplayer ? depth + 500.0 : depth;
 
 	// Water and ice fraction of full volume
-	Fwmass = wmass / depth;
-	Fimass = imass / depth;
+	Fwmass = wmass / lyr_depth;
+	Fimass = imass / lyr_depth;
 
 	// Should water freeze
 	if (temp < 0.0 && Fwmass > 0.0) {
@@ -330,8 +332,8 @@ void Snowlayer::phase_change_new(bool& updated) {
 		if (Fwmass > Ffreez) {
 
 			// Update water and ice content
-			wmass = (Fwmass - Ffreez) * depth;
-			imass = (Fimass + Ffreez) * depth;
+			wmass = (Fwmass - Ffreez) * lyr_depth;
+			imass = (Fimass + Ffreez) * lyr_depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -347,8 +349,8 @@ void Snowlayer::phase_change_new(bool& updated) {
 			// and decrease the temperature
 
 			// Update water and ice content
-			wmass = (Fwmass - Fwmass) * depth;
-			imass = (Fimass + Fwmass) * depth;
+			wmass = (Fwmass - Fwmass) * lyr_depth;
+			imass = (Fimass + Fwmass) * lyr_depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -379,8 +381,8 @@ void Snowlayer::phase_change_new(bool& updated) {
 		if (Fimass > Fthaw) {
 
 			// Update water and ice content
-			wmass = (Fwmass + Fthaw) * depth;
-			imass = (Fimass - Fthaw) * depth;
+			wmass = (Fwmass + Fthaw) * lyr_depth;
+			imass = (Fimass - Fthaw) * lyr_depth;
 
 			// Update thermal properties
 			update_thermal_properties();
@@ -397,7 +399,7 @@ void Snowlayer::phase_change_new(bool& updated) {
 			// and increase the temperature
 
 			// Update water and ice content
-			wmass = (Fwmass + Fimass) * depth;
+			wmass = (Fwmass + Fimass) * lyr_depth;
 			imass = 0.0;
 
 			// Update thermal properties
@@ -451,7 +453,7 @@ void Snowlayer::phase_change_new(bool& updated) {
 	double energy_final = Ch * (temp + K2degC) - phase_change_energy;
 
 	// water balance checks:
-	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
+	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS && !toplayer) {
 		dprintf("Year %d Day %d Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", date.year, date.day, energy_initial, energy_final, energy_initial - energy_final);
 	}
 }
@@ -879,12 +881,11 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 	// Balance layers depending on if snowpack is over maximum or not
 	double snowpack_depth = depth();
 
-	// Too thick snowpack (max 20m), remove some ice/water as runoff to 
+	// Too thick snowpack (max 2m), remove some ice/water as runoff to 
 	// not have a runaway effect of snowpack depth
-	double max_snowpack_depth = 20000.0;
-	if (snowpack_depth > max_snowpack_depth) {
-		reduce_snowpack(patch, snowpack_depth - max_snowpack_depth);
-		snowpack_depth = max_snowpack_depth;
+	if (snowpack_depth > MAX_SNOWPACK_DEPTH) {
+		reduce_snowpack(patch, snowpack_depth - MAX_SNOWPACK_DEPTH);
+		snowpack_depth = MAX_SNOWPACK_DEPTH;
 	}
 
 	// Redistribute snow layers if snow exist
@@ -977,7 +978,12 @@ void Snow::phase_change_new(bool& updated) {
 
 	// Phase change for each snow layer
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-		snowlayers[lyr].phase_change_new(updated);
+		if (lyr == nsnowlayers - 1) {
+			snowlayers[lyr].phase_change_new(updated, true);
+		}
+		else {
+			snowlayers[lyr].phase_change_new(updated);
+		}
 	}
 }
 
@@ -5420,7 +5426,8 @@ void Soilcolumn::phase_change_new() {
 	snow.phase_change_new(updated);
 
 	// Phase change has happened and we need to update the snowpack
-	if (updated) {
+	// or snowpack is too thick
+	if (updated || snow.depth() > MAX_SNOWPACK_DEPTH) {
 
 		// Balance ice and water in snow layers and snow layer depths after phase change
 		snow.balance_snow(patch, rain_melt, rain_melt_temp);
@@ -5874,15 +5881,12 @@ void Soilcolumn::temp() {
 		// Calculate the soil temperature in snow, soil and padding layers.
 		calc_temp();
 	}
-
-	// Calculate mean monthly soil layer temperatures
-	calc_mtemp();
 }
 
-/// Saves snow properties
-/** Saves snow properties
+/// Calculate monthly snow properties
+/** Calculate monthly snow properties
 */
-void Soilcolumn::save_snow() {
+void Soilcolumn::calc_msnow() {
 
 	// Calculate mean monthly snow depth
 	snow.mdepth[date.month] += snow.depth() / date.ndaymonth[date.month];

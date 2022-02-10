@@ -63,10 +63,13 @@ const double snowdens_start = 275.0;
 const double snowdens_end = 500.0;
 
 /// maximum number of snow layers allowed
-const int NSNOWLAYERS_MAX = 5;// 10;
+const int NSNOWLAYERS_MAX = 5;
 
 // Standard depth of a snow layer
-const double SNOW_DEPTH_STANDARD = 100.0;// 50.0;
+const double SNOW_DEPTH_STANDARD = 100.0;
+
+// Maximum snowpack depth allowed [mm]
+const double MAX_SNOWPACK_DEPTH = 2000.0;
 
 // WATER PARAMETERS
 

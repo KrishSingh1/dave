@@ -536,11 +536,11 @@ void MiscOutput::define_output_tables() {
 
 	// ST
 	ColumnDescriptors st_columns;
-	st_columns += ColumnDescriptors(sts,            13, 3);
+	st_columns += ColumnDescriptors(sts,            15, 3);
 	ColumnDescriptors st_dens_columns;
-	st_dens_columns += ColumnDescriptors(sts,       13, 4);
+	st_dens_columns += ColumnDescriptors(sts,       15, 4);
 	ColumnDescriptors st_columns_age;
-	st_columns_age += ColumnDescriptors(sts,       13, 1);
+	st_columns_age += ColumnDescriptors(sts,       15, 1);
 
 	// FOREST STRUCTURE OUTPUT
 	ColumnDescriptors agestruct_columns;

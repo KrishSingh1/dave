@@ -69,10 +69,13 @@ static const double ATMFRAC=0.7;
 // Corresponds to the amount of soil available nitrogen where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 // Comment: NMASS_SAT is too high when considering BNF - Zaehle
-const double NMASS_SAT = 0.002;// / (Orgdensity * 0.1); // DW_COMMENT
+const double NMASS_SAT = 0.002;	// DW_COMMENT
 // Corresponds to the nitrogen concentration in litter where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;
+// Maximum available nitrogen mass for N fixation
+// Comment: NMASS_SAT is too high when considering BNF - Zaehle
+const double NMASS_SAT_NFIX = 0.0001;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -1695,32 +1698,24 @@ void soilnadd(Patch& patch) {
 	// Get soil layers total C mass
 	const double cconttot = soilcolumn.get_sum(CCONT);
 
-	if (!negligible(cconttot)) {
+	// Get available NH4 and NO3
+	const double navailtot = soilcolumn.get_sum(NH_4) + soilcolumn.get_sum(NO_3);
+
+	// There is organic matter in the soil column and NH4 and NO3 is below saturation level
+	if (!negligible(cconttot) && navailtot < NMASS_SAT_NFIX) {
+
+		// Todays total N fixation normalised per organic matter content
+		double daily_nfix = min(NMASS_SAT_NFIX - navailtot, soilcolumn.anfix_calc / date.year_length()) / cconttot;
+
+		// Sum annaul N fixation
+		soilcolumn.anfix += daily_nfix * cconttot;
+
 		// Nitrogen fixation in each soil layer
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			double daily_nfix_lyr = daily_nfix * soilcolumn.soillayers[lyr].ccont();
 
-			// C and mineral N in soil layer
-			double nmin = soillayer.nmass_avail(NO);
-
-			// Nitrogen mass saturation level (max at 10% organic matter in soil layer)
-			double nmass_sat_lyr = NMASS_SAT * Orgdensity * 0.1 * soillayer.depth * M_PER_MM;
-
-			// Nitrogen fixation
-			// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
-			// nitrogen fixation is reduced (nitrogen rich soils)
-			if (nmin < nmass_sat_lyr) {
-
-				double daily_nfix = soilcolumn.anfix_calc * (soillayer.ccont() / cconttot) / date.year_length();
-
-				if (nmin + daily_nfix > nmass_sat_lyr) {
-					daily_nfix = nmass_sat_lyr - nmin;
-				}
-
-				soillayer.nmass_inc(daily_nfix, NH4);
-				soilcolumn.anfix += daily_nfix;
-			}
+			soilcolumn.soillayers[lyr].nmass_inc(daily_nfix_lyr, NH4);
 		}
 	}
 
@@ -1732,9 +1727,7 @@ void soilnadd(Patch& patch) {
 		patch.aaet_5.add(patch.fluxes.get_annual_flux(Fluxes::WAET) + patch.fluxes.get_annual_flux(Fluxes::WEVAP) + patch.fluxes.get_annual_flux(Fluxes::WINTERCEP));
 
 		// Calculate estimated maximum nitrogen fixation (aaet should be in cm/yr, eqn is in nitrogen/ha/yr)
-		double cmtomm = 0.1;
-		double hatom2 = 0.0001;
-		soilcolumn.anfix_calc = max((nfix_a * patch.aaet_5.mean() * cmtomm + nfix_b) * hatom2, 0.0);
+		soilcolumn.anfix_calc = max((nfix_a * patch.aaet_5.mean() * CM_PER_MM + nfix_b) * HA_PER_M2, 0.0);
 
 		if (soilcolumn.savesomcent) {
 			soilcolumn.anfix_mean += soilcolumn.anfix;

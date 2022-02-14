@@ -5034,8 +5034,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Minimum water considerred (equals to a 0.1 mm3)
 	const double EPS = 1.0e-9;
 
-	// Maximum effective depth of surface runoff - 0.5m
-	const double DEPTH_INFILT_MAX = 500.0;
+	// Maximum effective depth of surface runoff - 0.1m
+	const double DEPTH_INFILT_MAX = 100.0;
 
 	// Effective depth of surface runoff [mm]
 	double depth_infilt = min(thaw, DEPTH_INFILT_MAX);

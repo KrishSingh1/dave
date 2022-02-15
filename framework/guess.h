@@ -1764,6 +1764,8 @@ public:
 	double csoil;
 	double clitter;
 	double csink;
+	double lai;
+	double lai_tree;
 
 	StandType() {
 

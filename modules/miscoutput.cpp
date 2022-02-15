@@ -97,6 +97,8 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_diamstruct_cmass_forest", &file_diamstruct_cmass_forest, 300, "Diameter structure (cmass_wood_potharv)");
 
 	declare_parameter("file_anpp_sts", &file_anpp_sts, 300, "stand type anpp output file");
+	declare_parameter("file_lai_sts", &file_lai_sts, 300, "stand type lai output file");
+	declare_parameter("file_lai_tree_sts", &file_lai_tree_sts, 300, "stand type tree lai output file");
 	declare_parameter("file_cmass_sts", &file_cmass_sts, 300, "stand type cmass output file");
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
 	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300, "stand type cmass of trees killed by mortality output file");
@@ -631,6 +633,8 @@ void MiscOutput::define_output_tables() {
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
 	create_output_table(out_anpp_sts,					file_anpp_sts,					st_columns);
+	create_output_table(out_lai_sts,        file_lai_sts,           st_columns);
+	create_output_table(out_lai_tree_sts,   file_lai_tree_sts,      st_columns);
 	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
 	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
 	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_columns);
@@ -790,6 +794,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	
 		StandType& st = stlist[i];
 		st.anpp = 0.0;
+		st.lai = 0.0;
+		st.lai_tree = 0.0;
 		st.cmass = 0.0;
 		st.cmass_tree = 0.0;
 		st.cmass_tree_mort = 0.0;
@@ -1159,9 +1165,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			if(gcst.frac) {
 				st.anpp += standpft_anpp * stand.get_gridcell_fraction() / gcst.frac;
+				st.lai += standpft_lai * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
 				st.clitter += standpft_clitter * stand.get_gridcell_fraction() / gcst.frac;
 				if(pft.lifeform == TREE) {
+					st.lai_tree += standpft_lai * stand.get_gridcell_fraction() / gcst.frac;
 					st.cmass_tree += standpft_cmass * stand.get_gridcell_fraction() / gcst.frac;
 					st.cmass_tree_mort += standpft_cmass_mort * stand.get_gridcell_fraction() / gcst.frac;
 				}
@@ -1799,6 +1807,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		Gridcellst& gcst = gridcell.st[st.id];
 
 		outlimit_misc(out, out_anpp_sts, st.anpp);
+		outlimit_misc(out, out_lai_sts, st.lai);
+		outlimit_misc(out, out_lai_tree_sts, st.lai_tree);
 		outlimit_misc(out, out_cmass_sts, st.cmass);
 		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
 		outlimit_misc(out, out_cmass_tree_mort_sts, st.cmass_tree_mort);

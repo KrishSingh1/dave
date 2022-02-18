@@ -449,6 +449,9 @@ void outlimit_misc(OutputRows& out, const Table& table, double d) {
   */
 void MiscOutput::outannual(Gridcell& gridcell) {
 
+	if (date.year < nyear_spinup)
+		return;
+
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 

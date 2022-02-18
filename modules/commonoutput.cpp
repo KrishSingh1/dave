@@ -745,7 +745,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year >= nyear_spinup-100)
+	if (date.year >= nyear_spinup)
 		out.add_value(table, d);
 }
 
@@ -760,6 +760,9 @@ void outlimit(OutputRows& out, const Table& table, double d) {
   * of the other output modules, e.g. MiscOutput::outannual().
   */
 void CommonOutput::outannual(Gridcell& gridcell) {
+
+	if (date.year < nyear_spinup)
+		return;
 
 	int c, m;
 	const int NSOILDEPTHPOOLS = 6;

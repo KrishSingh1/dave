@@ -135,6 +135,7 @@ cat <<EOF > guess.cmd
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 #SBATCH --mail-type=$MAILTYPE
+#SBATCH -o "slurm-%j.log"
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -167,8 +168,8 @@ cat <<EOF > append.cmd
 #!/bin/bash
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
-#SBATCH --oversubscribe
 #SBATCH --mail-type=$MAILTYPE
+#SBATCH -o "slurm-%j.log"
 set -e
 
 function append_files {

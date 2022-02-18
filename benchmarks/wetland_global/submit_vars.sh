@@ -1,4 +1,4 @@
-NPROCESS=48
+NPROCESS=24
 if [[ $ARCH == "aurora" ]]
 then
     NPROCESS=80

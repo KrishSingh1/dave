@@ -1224,9 +1224,15 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
-		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
-			sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
-			plibabort();
+		if (firemodel==BLAZE){
+			if (weathergenerator!=GWGEN) {
+				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
+				plibabort();
+			}
+			if (vegmode==POPULATION){
+				sendmessage("Error", "BLAZE cannot be run with vegmode=POPULATION");
+				plibabort();
+			}
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");

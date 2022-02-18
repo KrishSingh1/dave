@@ -505,6 +505,8 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 
 	growingseasondays = 0;
 
+	burned = false;
+	fire_line_intensity = 0.0;
 	fireprob = 0.0;
 	ndemand = 0.0;
 	dnfert = 0.0;
@@ -2416,7 +2418,20 @@ Gridcell::Gridcell():climate(*this) {
 		create_stand(NATURAL);
 		landcover.frac[NATURAL] = 1.0;
 	}
+	
+	// Initialise SIMFIRE variables
+	for (int i = 0; i<AVG_INTERVAL_FAPAR; i++) {
+		fapar_recent_max[i] = 0.5;
+	}
+	fapar_annual_max = 0.5;
 
+	// Initialize Max annual Nesterov Index on first day of simulation
+	for (int i = 0; i<12; i++) {
+		nesterov_monthly_max[i] = 0.;
+	}
+	nesterov_cur = 0.;
+
+	// Initialise BLAZE variables
 	seed = 12345678;
 
 	for (int m=0;m<12;m++) {
@@ -2424,6 +2439,7 @@ Gridcell::Gridcell():climate(*this) {
 		monthly_fire_risk[m] = 0.0;
 
 	}
+	burned_area = 0.0;
 }
 
 double Gridcell::get_lon() const {

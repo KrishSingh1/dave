@@ -1533,8 +1533,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				soilc[i] += soilcolumn.soillayers[i].get(CCONT) * to_gridcell_average;
 				soilr[i] += soilcolumn.soillayers[i].get(ARH) * to_gridcell_average;
 			}
-			soilc[soilcolumn.nsoillayers] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
-			soilr[soilcolumn.nsoillayers] += soilcolumn.get_sum(ARH) * to_gridcell_average;
+			soilc[NSOILLAYER_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soilr[NSOILLAYER_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
 			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
 			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;

@@ -286,9 +286,9 @@ void MiscOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
 
 	ColumnDescriptors daily_climate_columns;
-	daily_climate_columns += ColumnDescriptor("Temp",   7, 2);
-	daily_climate_columns += ColumnDescriptor("Prec",   7, 1);
-	daily_climate_columns += ColumnDescriptor("Rad",   12, 1);
+	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);
 
 	// Create snow layer columns
 	//xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4", "snow5", "snow6", "snow7", "snow8", "snow9" };
@@ -1136,6 +1136,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
+	double gridcell_climate_agdd0_20_mean;
+	if (gridcell.climate.agdd0_20.size()>0) {
+		gridcell_climate_agdd0_20_mean = gridcell.climate.agdd0_20.mean();
+	}
+	else {
+		gridcell_climate_agdd0_20_mean = -999;
+	}
+
 	//Output of seasonality variables
 	outlimit_misc(out, out_seasonality,   gridcell.climate.seasonality);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.var_temp);
@@ -1145,7 +1153,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_max20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_max);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.temp_seasonality);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.agdd0_20.mean());
+	outlimit_misc(out, out_seasonality,   gridcell_climate_agdd0_20_mean);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.agdd5);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);

@@ -2589,7 +2589,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 		Stand& stand = gridcell[i];
 
-		if(largerthanzero(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease), -12)) {
+		if(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease) > INPUT_RESOLUTION * 10.0) {
 			dprintf("\nCheck 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", date.year, stand.id);
 			dprintf("dif=%.15f\n", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
 			dprintf("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f", stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);

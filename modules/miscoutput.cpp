@@ -666,9 +666,10 @@ void MiscOutput::define_output_tables() {
 
 	if(printstandtypes) {
 		char dirname[200]={'\0'};
+		// Put files in separate directory only on Windows for now.
 #ifdef _MSC_VER
 		strcpy(dirname, "st_output/");
-		_mkdir(dirname);
+		make_directory(dirname);
 #endif
 		out_cmass_pft_st = new Table[nst];
 		out_diamstruct_cmass_st = new Table[nst];
@@ -2320,14 +2321,12 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		return;
 
 	char dirname[200]={'\0'};
-
 #ifdef _MSC_VER
 	strcpy(dirname, "stand_output/");
-	_mkdir(dirname);
 #else
 	strcpy(dirname, "../stand_output/");
-	mkdir(dirname, 0777);
 #endif
+	make_directory(dirname);
 
 	if (!date.year || restart && date.year == state_year) {
 		for(int id=0;id<MAXNUMBER_STANDS;id++) {

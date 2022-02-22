@@ -173,12 +173,6 @@ MiscOutput::MiscOutput() {
 MiscOutput::~MiscOutput() {
 
 	if(printstandtypes) {
-		for(int st=0;st<nst;st++) {
-			if(!out_cmass_pft_st[st].invalid())
-				close_output_table(out_cmass_pft_st[st]);
-			if(!out_diamstruct_cmass_st[st].invalid())
-				close_output_table(out_diamstruct_cmass_st[st]);
-		}
 		if(out_cmass_pft_st)
 			delete[] out_cmass_pft_st;
 		if(out_diamstruct_cmass_st)

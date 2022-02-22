@@ -2315,7 +2315,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
 }
 
-void MiscOutput::openlocalfiles(Gridcell& gridcell) {
+void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 
 	if(!printseparatestands)
 		return;
@@ -2395,9 +2395,14 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			StandType& st = stlist[stand.stid];
 
 			int id = stand.id;
-			char outfilename[100]={'\0'}, buffer[50]={'\0'};
+			char outfilename[100] = {'\0'}, buffer[50] = {'\0'}, format_string[50] = {'\0'};
 
-			sprintf(buffer, "_%.2f_%.2f_%d",lon, lat, id);
+			sprintf(format_string, "%%.%df", coordinates_precision);
+			sprintf(buffer, "_");
+			sprintf(buffer + strlen(buffer), format_string, lon);
+			strcat(buffer, "_");
+			sprintf(buffer + strlen(buffer), format_string, lat);
+			sprintf(buffer + strlen(buffer), "_%d", id);
 			strcat(buffer, ".out");
 
 			// create a vector with the pft names

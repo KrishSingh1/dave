@@ -47,7 +47,7 @@ private:
 	static const bool PRINTFIRSTSTANDFROM1901 = true;
 
 	/// Defines all output tables
-	void openlocalfiles(Gridcell& gridcell);
+	void openlocalfiles(Gridcell& gridcell, int coordinates_precision);
 
 	void define_output_tables();
 

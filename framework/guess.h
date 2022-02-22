@@ -997,7 +997,7 @@ public:
 
 	/// Variables used for crop sowing date or seasonality calculation
 
-	/// max temperature during the last test period
+	/// max temperature during the last crop test period (between two summer seasons)
 	double maxtemp;
 	/// summer day when we test last year's crossing of sowing temperature limits; NH:June 30(day 180), SH:Dec.31(day 364), set in getgridcell()
 	int testday_temp;

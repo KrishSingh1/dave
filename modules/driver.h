@@ -34,5 +34,6 @@ void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);
 void respiration_temperature_response(double temp,double& gtemp);
 void daylengthinsoleet(Climate& climate);
+void climate_seasonality(Gridcell& gridcell);
 
 #endif // LPJ_GUESS_DRIVER_H

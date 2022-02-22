@@ -953,12 +953,16 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		}
 	}
 	if(use_peatland_transfers && run[PEATLAND]) {
+		/** Note: We currently split the LUH2 NATURAL into NATURAL and PEATLAND(wetland) 
+		 * All net and gross lu data were adjusted, based on the wetland/(wetland+natural) ratios accordingly.
+		 * A potential existing wood harvest on secondary natural (see file_woodharv_frac) is currently not split up,
+		 * since wetland has no tree PFTs, hence no wood harvest possible.
+		 */
 		lc.frac_transfer[PEATLAND][CROPLAND] += (frac_transfer = grossLUC.Get(year,"wc")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[CROPLAND][PEATLAND] += (frac_transfer = grossLUC.Get(year,"cw")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[PEATLAND][PASTURE] += (frac_transfer = grossLUC.Get(year,"wp")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[PASTURE][PEATLAND] += (frac_transfer = grossLUC.Get(year,"pw")) != NOTFOUND ? frac_transfer : 0.0;
 
-		// CHECK: #can we even split the secondary woodharv between natural and wetland???
 		lc.frac_transfer[PEATLAND][NATURAL] += (frac_transfer = grossLUC.Get(year,"ws")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[NATURAL][PEATLAND] += (frac_transfer = grossLUC.Get(year,"sw")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.frac_transfer[NATURAL][PEATLAND] += (frac_transfer = grossLUC.Get(year,"vw")) != NOTFOUND ? frac_transfer : 0.0;
@@ -987,8 +991,6 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
-			// CHECK: do we need to handle something like ws here, since we might have taken wetland from natural
-			//        but we don't have a ss and currently the file_woodharv approach_f only scales down primary and secondary woodharv
 		}
 		use_primary_lc_transfer = true;
 	}

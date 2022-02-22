@@ -1372,7 +1372,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
 				
 				// only wetland will currently have ch4 emissions (output not scaled to landcover contribution within gridcell)
-				landcover_mch4[stand.landcover][m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m);				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
+				landcover_mch4[stand.landcover][m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)/(double)stand.npatch(); // g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				
 				for (int sl = 0; sl < SOILTEMPOUT; sl++) {
 					msoilt[m][sl] += patch.soil.T_soil_monthly[m][sl] * to_gridcell_average;

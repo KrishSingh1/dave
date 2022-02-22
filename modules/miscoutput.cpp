@@ -672,11 +672,9 @@ void MiscOutput::define_output_tables() {
 
 	if(printstandtypes) {
 		char dirname[200]={'\0'};
-		strcpy(dirname, "st_output/");
 #ifdef _MSC_VER
+		strcpy(dirname, "st_output/");
 		_mkdir(dirname);
-#else
-		mkdir(dirname, 0777);
 #endif
 		out_cmass_pft_st = new Table[nst];
 		out_diamstruct_cmass_st = new Table[nst];

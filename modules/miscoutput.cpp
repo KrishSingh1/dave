@@ -79,10 +79,10 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_fpc_forest", &file_fpc_forest, 300, "Annual managed forest FPC output file");
 	declare_parameter("file_lai_natural", &file_lai_natural, 300, "Annual natural vegetation LAI output file");
 	declare_parameter("file_lai_forest", &file_lai_forest, 300, "Annual managed forest LAI output file");
-	declare_parameter("file_speciesdiam_natural", &file_speciesdiam_natural, 300, "Mean species diameter");
-	declare_parameter("file_speciesdiam_forest", &file_speciesdiam_forest, 300, "Mean species diameter");
-	declare_parameter("file_speciesheights_natural", &file_speciesheights_natural, 300, "Mean species heights");
-	declare_parameter("file_speciesheights_forest", &file_speciesheights_forest, 300, "Mean species heights");
+	declare_parameter("file_speciesdiam_natural", &file_speciesdiam_natural, 300, "Mean species diameter (cm)");
+	declare_parameter("file_speciesdiam_forest", &file_speciesdiam_forest, 300, "Mean species diameter (cm)");
+	declare_parameter("file_speciesheights_natural", &file_speciesheights_natural, 300, "Mean species height (m)");
+	declare_parameter("file_speciesheights_forest", &file_speciesheights_forest, 300, "Mean species height (m)");
 
 	declare_parameter("file_soil_nflux_cropland", &file_soil_nflux_cropland, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");

@@ -164,6 +164,8 @@ MiscOutput::MiscOutput() {
 	}
 
 	printstandtypes = false;
+	print_cmass_pft_st = true;
+	print_diamstruct_cmass_st = false;
 
 	declare_parameter("printstandtypes", &printstandtypes, "Whether stand type output enabled (0,1)");
 	declare_parameter("print_cmass_pft_st",&print_cmass_pft_st,"Whether to print pft cmass for stand types (except cropland) separately");

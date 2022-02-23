@@ -138,8 +138,6 @@ bool print_dens_stand = false;
 bool print_agestruct_stand = true;
 bool print_diamstruct_stand = false;
 bool print_diamstruct_cmass_stand = true;
-bool print_cmass_pft_st = true;
-bool print_diamstruct_cmass_st = false;
 bool iftillage = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////

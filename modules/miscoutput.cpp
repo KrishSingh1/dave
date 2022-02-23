@@ -2378,7 +2378,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 		++gc_itr;
 	}
 
-	if(PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
+	if(PRINTFIRSTSTANDAFTERSPINUP && date.year == nyear_spinup) {
 		open[NATURAL] = true;
 		open[FOREST] = true;
 	}

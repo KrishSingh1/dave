@@ -984,9 +984,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
 								if (pft.lifeform==TREE) {
-									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									standpft_densindiv_total += indiv.densindiv;
-									standpft_diamindiv_total += diam * indiv.densindiv;
+									standpft_diamindiv_total += indiv.diam * indiv.densindiv;
 									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
@@ -1155,7 +1154,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// print species heights
 		double height = 0.0;
-			double diam = 0.0;
+		double diam = 0.0;
 		if (mean_standpft_densindiv_total > 0.0) {
 			height = mean_standpft_heightindiv_total / mean_standpft_densindiv_total;
 			diam = mean_standpft_diamindiv_total / mean_standpft_densindiv_total;

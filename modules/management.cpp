@@ -59,7 +59,7 @@ double check_harvest_cmass(Individual& indiv, bool stem_cmass_only, bool to_prod
 		res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
 
 	// Harvest of transferred areas:
-	harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
+	harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 	if(to_product_pool)
 		cmass_harvest = cp.acflux_harvest_wood_toprod;
 	else if(stem_cmass_only)
@@ -157,7 +157,7 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)
  *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
  */
-void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
+void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
 
 	double stem_harvest = 0.0;
 	double residue_outtake = 0.0;
@@ -183,7 +183,6 @@ void harvest_wood(Harvest_CN& i, double height, Pft& pft, bool alive, double fra
 		const double DIAMETER_LIMIT_BROADLEAF_BOREAL = 0.2;
 		const double DIAMETER_LIMIT_BROADLEAF_TEMPERATE = 0.3;
 		const double DIAMETER_LIMIT_BROADLEAF_TROPICAL = 0.35;
-		double diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
 		if(pft.leafphysiognomy == NEEDLELEAF && diam < DIAMETER_LIMIT_NEEDLELAF ||
 			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low <= 12 && diam < DIAMETER_LIMIT_BROADLEAF_BOREAL ||								// boreal, pft.pstemp_low = 10
 			pft.leafphysiognomy == BROADLEAF && pft.pstemp_low > 12 && pft.pstemp_low <= 20 && diam < DIAMETER_LIMIT_BROADLEAF_TEMPERATE ||		// temperate, pft.pstemp_low = 15
@@ -374,7 +373,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 
 	indiv_cp.copy_from_indiv(indiv);
 
-	harvest_wood(indiv_cp, indiv.height, indiv.pft, indiv.alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root);
+	harvest_wood(indiv_cp, indiv.diam, indiv.pft, indiv.alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root);
 
 	indiv_cp.copy_to_indiv(indiv, false, lc_change);
 
@@ -409,15 +408,11 @@ double diameter_rules(Individual& indiv) {
 		return 1.0;
 
 	double man_strength;
-	double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-	if(!indiv.height)
-		diam = 0.0;
-
 	double diam_max = diam_limit * 2.0;	// Fredrik's continuous management
 
-	if (diam > diam_limit) {
+	if (indiv.diam > diam_limit) {
 		man_strength = patch.man_strength;
-		if(diam > diam_max)
+		if(indiv.diam > diam_max)
 			man_strength = 0.9;	// Fredrik's continuous management
 	}
 	else {
@@ -1098,12 +1093,9 @@ void thin_reineke(Patch& patch) {
 		Individual& indiv = vegetation.getobj();
 
 		if (indiv.pft.lifeform == TREE) {
-
-			double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 			dens += indiv.densindiv;
 			// Weight the different cohorts
-			diam_sq += pow(diam, 2) * indiv.densindiv;
-
+			diam_sq += pow(indiv.diam, 2) * indiv.densindiv;
 		}
 		vegetation.nextobj();
 	}

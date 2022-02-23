@@ -1533,6 +1533,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	// additional initialisation
 	age               = 0.0;
+	height            = 0.0;
+	diam              = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
 	intercep          = 0.0;
@@ -1601,6 +1603,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aaet
 		& ltor
 		& height
+		& diam
 		& crownarea
 		& deltafpc
 		& boleht

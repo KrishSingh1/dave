@@ -1569,10 +1569,10 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					case URBAN:
 					case PEATLAND:
 						if(harv_params) {
-							harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
+							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
 						}
 						else {
-							harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_mean, res_outtake_twig_mean, res_outtake_coarse_root_mean);
+							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_mean, res_outtake_twig_mean, res_outtake_coarse_root_mean);
 						}
 						break;
 					case BARREN: // Assuming there is nothing to harvest on barren

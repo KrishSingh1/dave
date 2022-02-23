@@ -919,7 +919,6 @@ bool allometry(Individual& indiv) {
 	//    (10) fpc = ( 1.0 - exp ( -0.5 * lai_ind ) )
 	//    (11) lai_ind = cmass_leaf * sla
 
-	double diam; // stem diameter (m)
 	double fpc_new; // updated FPC
 
 	// guess2008 - max tree height allowed (metre).
@@ -938,10 +937,10 @@ bool allometry(Individual& indiv) {
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
 
 			// Stem diameter (Eqn 5)
-			diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
+			indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
 			// Stem volume
-			double vol = indiv.height * PI * diam * diam * 0.25;
+			double vol = indiv.height * PI * indiv.diam * indiv.diam * 0.25;
 
 			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) {
 				Patch& patch = indiv.vegetation.patch;
@@ -953,7 +952,7 @@ bool allometry(Individual& indiv) {
 		}
 		else {
 			indiv.height = 0.0;
-			diam = 0.0;
+			indiv.diam = 0.0;
 			return false;
 		}
 
@@ -961,13 +960,13 @@ bool allometry(Individual& indiv) {
 		// guess2008 - extra height check
 		if (indiv.height > HEIGHT_MAX) {
 			indiv.height = 0.0;
-			diam = 0.0;
+			indiv.diam = 0.0;
 			return false;
 		}
 
 
 		// Crown area (Eqn 6)
-		indiv.crownarea = min(indiv.pft.k_allom1 * pow(diam, indiv.pft.k_rp),
+		indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp),
 			indiv.pft.crownarea_max);
 
 		if (!negligible(indiv.crownarea)) {

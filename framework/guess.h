@@ -2835,6 +2835,8 @@ public:
 	double ltor;
 	/// plant height (m)
 	double height;
+	// stem diameter (m)
+	double diam;
 	/// plant crown area (m2)
 	double crownarea;
 	/// increment in fpc since last simulation year

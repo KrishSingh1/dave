@@ -20,7 +20,7 @@ void manage_forests(Gridcell& gridcell);
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
 void set_forest(Gridcell& gridcell);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Harvest_CN& indiv_cp, double height,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+void harvest_wood(Harvest_CN& indiv_cp, double diam,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool lc_change = false);
 /// Harvest function for pasture, representing grazing.
@@ -190,10 +190,7 @@ public:
 		diam_vect.reserve(patch.vegetation.nobj);
 		for(unsigned int i=0;i<patch.vegetation.nobj;i++) {
 			Individual& indiv = patch.vegetation[i];
-			double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-			if(!indiv.height)
-				diam = 0.0;
-			diam_vect.push_back(diam);
+			diam_vect.push_back(indiv.diam);
 		}
 		// Make sure sort_vect is filled
 		sort_diameter();

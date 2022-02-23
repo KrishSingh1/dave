@@ -1714,9 +1714,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 										if(indiv.age >= age_from && indiv.age <= age_to) {
 											age_dens += indiv.densindiv / (double)stand.npatch();
 										}
-
-										double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-										if(diam >= diam_from / 100.0 && diam < diam_to / 100.0) {
+										if(indiv.diam >= diam_from / 100.0 && indiv.diam < diam_to / 100.0) {
 											diam_dens += indiv.densindiv / (double)stand.npatch();
 											diam_cmass += indiv.ccont() / (double)stand.npatch();
 										}

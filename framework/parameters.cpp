@@ -126,18 +126,6 @@ bool readwoodharvest_cmass = false;
 bool harvest_secondary_to_new_stand = true;
 bool harvest_burn_thin_trees = false;
 bool printseparatestands = false;
-bool print_anpp_stand = true;
-bool print_lai_stand = true;
-bool print_cmass_stand = true;
-bool print_cmass_mort_stand = false;
-bool print_cmass_wood_stand = false;
-bool print_cmass_wood_harv_stand = false;
-bool print_height_stand = false;
-bool print_diam_stand = false;
-bool print_dens_stand = false;
-bool print_agestruct_stand = true;
-bool print_diamstruct_stand = false;
-bool print_diamstruct_cmass_stand = true;
 bool iftillage = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -572,19 +560,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("suppress_disturbance_in_forestry_stands",&suppress_disturbance_in_forestry_stands,1,CB_NONE,"Whether to suppress disturbance and fire in forestry stands created in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc()");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a stand type (except cropland) separately");
-		declareitem("print_anpp_stand",&print_anpp_stand,1,CB_NONE,"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_lai_stand",&print_lai_stand,1,CB_NONE,"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_cmass_stand",&print_cmass_stand,1,CB_NONE,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_cmass_wood_stand",&print_cmass_wood_stand,1,CB_NONE,"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,1,CB_NONE,"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_cmass_mort_stand",&print_cmass_mort_stand,1,CB_NONE,"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
-
-		declareitem("print_height_stand",&print_height_stand,1,CB_NONE,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_diam_stand",&print_diam_stand,1,CB_NONE,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_dens_stand",&print_dens_stand,1,CB_NONE,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_agestruct_stand",&print_agestruct_stand,1,CB_NONE,"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_diamstruct_stand",&print_diamstruct_stand,1,CB_NONE,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
-		declareitem("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,1,CB_NONE,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("harvest_natural_to_forest",&harvest_natural_to_forest,1,CB_NONE,"Whether to harvest (remove) wood at natural-to-forest transitions");
 		declareitem("harvest_burn_thin_trees",&harvest_burn_thin_trees,1,CB_NONE,"Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)");

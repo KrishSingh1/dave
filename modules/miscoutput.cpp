@@ -163,6 +163,32 @@ MiscOutput::MiscOutput() {
 		declare_parameter("file_daily_storage",&file_daily_storage,300,"Daily storage allocation output file");
 	}
 
+	print_anpp_stand = true;
+	print_lai_stand = true;
+	print_cmass_stand = true;
+	print_cmass_mort_stand = false;
+	print_cmass_wood_stand = false;
+	print_cmass_wood_harv_stand = false;
+	print_height_stand = false;
+	print_diam_stand = false;
+	print_dens_stand = false;
+	print_agestruct_stand = true;
+	print_diamstruct_stand = false;
+	print_diamstruct_cmass_stand = true;
+
+	declare_parameter("print_anpp_stand",&print_anpp_stand,"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_lai_stand",&print_lai_stand,"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_stand",&print_cmass_stand,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_wood_stand",&print_cmass_wood_stand,"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_mort_stand",&print_cmass_mort_stand,"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_height_stand",&print_height_stand,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diam_stand",&print_diam_stand,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_dens_stand",&print_dens_stand,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_agestruct_stand",&print_agestruct_stand,"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diamstruct_stand",&print_diamstruct_stand,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
+
 	printstandtypes = false;
 	print_cmass_pft_st = true;
 	print_diamstruct_cmass_st = false;

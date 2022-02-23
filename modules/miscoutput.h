@@ -159,6 +159,19 @@ private:
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
 
+	bool print_anpp_stand;
+	bool print_lai_stand;
+	bool print_cmass_stand;
+	bool print_cmass_wood_stand;
+	bool print_cmass_wood_harv_stand;
+	bool print_cmass_mort_stand;
+	bool print_height_stand;
+	bool print_diam_stand;
+	bool print_dens_stand;
+	bool print_agestruct_stand;
+	bool print_diamstruct_stand;
+	bool print_diamstruct_cmass_stand;
+
 	bool printstandtypes;
 	bool print_cmass_pft_st;
 	bool print_diamstruct_cmass_st;

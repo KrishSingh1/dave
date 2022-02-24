@@ -108,7 +108,8 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
 	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300, "stand type thinning wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_clearcut_sts", &file_cmass_wood_clearcut_sts, 300, "stand type clearcut wood harvest cmass output file");
-	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000, "Latest cutting interval (patch age at year of clearcut) output file");
+	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000, "Mean latest cutting interval (patch age at year of clearcut) output file");
+	declare_parameter("file_cutinterval_thisyear_sts", &file_cutinterval_thisyear_sts, 1000, "Mean stand type cut interval this year output file");
 	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
@@ -668,6 +669,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cmass_wood_clearcut_sts,	file_cmass_wood_clearcut_sts,   st_columns);
 	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_dens_columns);
 	create_output_table(out_cutinterval_sts,			file_cutinterval_sts,			st_columns_age);
+	create_output_table(out_cutinterval_thisyear_sts,	file_cutinterval_thisyear_sts,  st_columns_age);
 	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
@@ -1851,7 +1853,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 		// Determine number of patches of this stand type that have been clear-cut this yéar (area fraction not considered)
 		int npatches_cc = 0;
+		int npatches_cc_thisyear = 0;
 		double cutinterval_mean = 0.0;
+		double cutinterval_thisyear_mean = 0.0;
 
 		Gridcell::iterator gc_itr = gridcell.begin();
 
@@ -1867,11 +1871,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					npatches_cc++;
 					cutinterval_mean += patch.cutinterval_actual;
 				}
+				if(patch.cutinterval_actual_thisyear) {
+					npatches_cc_thisyear++;
+					cutinterval_thisyear_mean += patch.cutinterval_actual_thisyear;
+				}
 				stand.nextobj();
 			}
 			++gc_itr;
 		}
 		outlimit_misc(out, out_cutinterval_sts, cutinterval_mean / max(1, npatches_cc));
+		outlimit_misc(out, out_cutinterval_thisyear_sts, cutinterval_thisyear_mean / max(1, npatches_cc_thisyear));
 
 		if(st.landcover == FOREST) {
 

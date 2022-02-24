@@ -4417,6 +4417,8 @@ public:
 	bool clearcut_this_year;
 	/// Latest cutting interval (patch age at year of clearcut)
 	int cutinterval_actual;
+	/// Cutting interval if patch has been cut this year (patch age at year of clearcut)
+	int cutinterval_actual_thisyear;
 	/// Whether patch should be planted this year
 	bool plant_this_year;
 	/// Whether man_strength has been partitioned on individuals this year

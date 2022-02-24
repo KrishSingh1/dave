@@ -770,6 +770,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
 				patch.distributed_cutting = false;
+				patch.cutinterval_actual_thisyear = 0;
 
 				Vegetation& vegetation = patch.vegetation;
 				vegetation.firstobj();

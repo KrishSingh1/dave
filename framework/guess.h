@@ -50,7 +50,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
-/// Life form class for PFTs (trees, grasses)
+/// Life form class for PFTs (trees, grasses, mosses)
 typedef enum {NOLIFEFORM, TREE, GRASS, MOSS} lifeformtype;
 
 /// Phenology class for PFTs
@@ -1372,11 +1372,11 @@ public:
 	xtring harvest_system;
 	/// name of crop pft 
 	xtring pftname;
-	/// pft planting density
+	/// pft planting density (trees/ha)
 	double plantdensity_pft;
 	/// string of pft selection
 	xtring selection;
-	/// string of pft planting densities
+	/// string of pft planting densities (trees/ha)
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
@@ -4724,14 +4724,14 @@ public:
 	 */
 	landcovertype landcover;
 
-	/// The year when this stand was created.
+	/// The simulation year when this stand was created.
 	/** Will typically be year zero unless running with dynamic
 	 *  land cover.
 	 *
 	 *  Needed to set patchpft.anetps_ff_est_initial
 	 */
 	int first_year;
-	// The year this stand was cloned from another stand
+	// The simulation year this stand was cloned from another stand
 	int clone_year;
 	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
 	double scale_LC_change;

@@ -776,24 +776,23 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 		}
 	}
 
-	// Set standpft- and patchpft-variables for active crops
-	for(int rot=0; rot<st.rotation.ncrops; rot++) {
+	// Set standpft- and patchpft-variables for all crops in a rotation
+	if(lc == CROPLAND) {
+		for(int rot=0; rot<st.rotation.ncrops; rot++) {
 
-		ManagementType& mt = st.get_management(rot);
-		if(mt.planting_system == "MONOCULTURE") {
-			
-			int id = pftlist.getpftid(mt.pftname);
+			ManagementType& mt = st.get_management(rot);
+			if(mt.planting_system == "MONOCULTURE") {
+				
+				int id = pftlist.getpftid(mt.pftname);
 
-			if(id >=0) {
-
-				if(lc == CROPLAND) {
+				if(id >=0) {
 					// Set active pft:s for all management types in rotation
 					pft[id].active = true;
 				}
-			}
-			else if(!mt.fallow) {
-				fail("Stand type %d pft %s not in pftlist; set to include 1 in instruction file !\n", stid, (char*)mt.pftname);
-				break;
+				else if(!mt.fallow) {
+					fail("Stand type %d pft %s not in pftlist; set to include 1 in instruction file !\n", stid, (char*)mt.pftname);
+					break;
+				}
 			}
 		}
 	}
@@ -1094,11 +1093,15 @@ void Stand::set_management() {
 				pft[id].plantdensity = mt.plantdensity_pft;
 			}
 		}
-		else if(!mt.fallow) {	// Fallow keeps the earlier crop's pftid
+		else if(!mt.fallow) {	// Absence of pftname only in cropland fallow management type.
 			fail("Stand type %d pft %s not in pftlist; set to include 1 in instruction file !\n", stid, (char*)mt.pftname);
 		}
 	}
 	else if(mt.planting_system == "SELECTION") {
+
+		if(landcover == CROPLAND) {
+			fail("planting system SELECTION not available for CROPLAND stands\n");
+		}
 
 		if(mt.selection != "") {
 

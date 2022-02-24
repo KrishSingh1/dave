@@ -1267,7 +1267,8 @@ double manage_forest(Patch& patch) {
 				// Distribute clearcuts among patches
 				if(mt.distribute_clearcuts) {
 					int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
-					if(!((date.year - first_cutyear - patch_order) % cut_interval))
+					if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % cut_interval))
+//					if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
 						clearcut_now = true;
 				}
 				else if(readcutinterval_st) {
@@ -1284,12 +1285,13 @@ double manage_forest(Patch& patch) {
 			else if(mt.ifclearcut_optimal_age) {
 				// First attempt to calculate optimum rotation age for clearcut 
 				if(patch.cmass_wood(true) / max(1,patch.age) > patch.get_tree_cmass_wood_inc_5() && patch.age > 20) {
-				clearcut_now = true;
+					clearcut_now = true;
 				}
 			}
 
-			if(date.get_calendar_year() < mt.firstclearcutyear)
+			if(date.get_calendar_year() < mt.firstclearcutyear) {
 				clearcut_now = false;
+			}
 
 			// Thinnings
 
@@ -1300,8 +1302,15 @@ double manage_forest(Patch& patch) {
 				}
 				// Thinnings defined in instruction file
 				else if(cut_interval) {
+					int age = cutting_reference_age;
+					// Distribute continuous cuttings among patches (following clear-cut distribution)
+					if(mt.distribute_continuous_cuttings) {
+						int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
+						age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
+//						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear; synchronised cuttings in all stands
+					}
 					for(int t=0;t<NTHINNINGS;t++) {
-						if((mt.thinning_strength[0][t] || mt.thinning_strength_unsel[0][t]) && (cutting_reference_age == (int)(cut_interval * mt.thinning_time[0][t]))) {
+						if((mt.thinning_strength[0][t] || mt.thinning_strength_unsel[0][t]) && (age == (int)(floor((cut_interval * mt.thinning_time[0][t]) + 0.5)))) {
 							cut_fraction = mt.thinning_strength[0][t];
 							cut_fraction_unsel = mt.thinning_strength_unsel[0][t];
 							patch.man_strength = cut_fraction;
@@ -1345,7 +1354,7 @@ double manage_forest(Patch& patch) {
 			if(mt.distribute_continuous_cuttings) {
 				int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 				age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
-//				age = date.get_calendar_year() - mt.firstcutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
+//				age = date.year - first_cutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
 			}
 		}
 

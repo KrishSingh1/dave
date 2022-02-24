@@ -454,6 +454,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& has_been_cut
 		& cut_due
 		& dens_start
+		& cutinterval_actual
 		& age
 		& fireprob
 		& growingseasondays

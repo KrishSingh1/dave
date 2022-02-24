@@ -48,6 +48,8 @@ void MiscInput::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
+	// See getdisturbance() for input file format and content of text files
+
 	file_disturbance = param["file_disturbance"].str;
 	if(file_disturbance != "")	{
 		if(!disturbance.Open(file_disturbance, gridlist))
@@ -85,11 +87,12 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 }
 
 /// Read disturbance interval from file
-/** This implementation uses disturbance input at gridcell or stand type level in standard text format input files (see guess.doc).
+/** This implementation uses disturbance interval input at gridcell or stand type level in standard text format input files (see indata.h).
  *  The column for the gridcell disturbance interval has a header name of "Return" and columns for stand type disturbance have headers with the stand type names.
  */
 void MiscInput::getdisturbance(Gridcell& gridcell) {
 
+	// Retrieve disturbance for stand types from instruxtion file if text input not present,
 	if(!date.year && !readdisturbance_st) {
 		for(int i=0; i<nst; i++) {
 			StandType& st = stlist[i];
@@ -99,19 +102,20 @@ void MiscInput::getdisturbance(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year();
 
-	// Retrieve disturbance for grid cell
+	// Retrieve disturbance for grid cell from text input file. If not present, use global intruction file parameter.
 	if(disturbance.isloaded())
 		gridcell.distinterval_gc = disturbance.Get(year, "Return");
 	else
 		gridcell.distinterval_gc = distinterval;
 
-	// Retrieve disturbance for stand types
+	// Retrieve disturbance for stand types from text input file
 	for(int i=0; i<nst; i++) {
 		if(disturbance_st.isloaded()) {
 			double dist = disturbance_st.Get(year, stlist[i].name, true);
 			if(dist != NOTFOUND)
 				gridcell.st[i].distinterval_st = dist;
 		}
+		// If not set at this stage, use gridcell value.
 		if(gridcell.st[i].distinterval_st == 1.0e10)
 			gridcell.st[i].distinterval_st = gridcell.distinterval_gc;
 //		if(!date.year)
@@ -872,7 +876,8 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
 		// return get_st_transfer(gridcell);
-		dprintf("Currently no code for gross stand type transfer option\n");
+
+		// Currently no code for gross stand type transfer option
 	}
 	else if(gross_land_transfer == 1) {
 
@@ -1708,6 +1713,7 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert_st);
 			readNfert_st = true;
 		}
+		// See getwoodharvest() for input file format and content of text files
 		file_woodharv_frac = param["file_woodharv_frac"].str;
 		if(	file_woodharv_frac != "")	{
 			if(!woodharv_frac.Open(file_woodharv_frac, gridlist))
@@ -1720,6 +1726,7 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_woodharv_cmass);
 			readwoodharvest_cmass = true;
 		}
+		// See getcutinterval() for input file format and content of text file
 		file_cutinterval_st = param["file_cutinterval_st"].str;
 		if(file_cutinterval_st != "")	{
 			if(!cutinterval_st.Open(file_cutinterval_st, gridlist))
@@ -1862,9 +1869,9 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 }
 
 /// Read wood harvest from file
-/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see guess.doc). Harvest of primary forest, primary non-forested land, 
+/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see indata.h). Harvest of primary forest, primary non-forested land, 
  *  mature secondary and young secondary forest and secondary non-forested land are represented in columns with header names "primf_harv", "primn_harv", "secmf_harv", "secyf_harv"
- *  and "secnf_harv" in area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass input files.
+ *  and "secnf_harv" in gridcell area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass (kg/m2) input files.
  */
 void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
@@ -1924,13 +1931,20 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 	}
 }
 
+/// Read clear-cutting interval from file
+/** May use cutinterval output files from a simulation with automated clear-cutting along with e,g, a non-automated thinning scheme or no thinnings.
+ *  The preferred input in that case is a time series with zero values in years without clear-cutting and the age of the clear-cut patch in years of clear-cutting
+ *  (cutinterval_actual_thisyear). The default vales of keep_nonzero_value and use_nextvalue are set to comply with this kind of input, but should cause no 
+ *  problems when using input with cutting interval values every year. If input file is present and no values found for a stand type, the default cutinterval_st 
+ *  value of 0 will result in an absence of both thinnings and clearcuts,
+ */
 void ManagementInput::getcutinterval(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year();
 	bool keep_nonzero_value = true;
 	bool use_nextvalue = true;
 
-	// Retrieve disturbance for stand types
+	// Retrieve cutinterval for stand types
 	for(int i=0; i<nst; i++) {
 		if(cutinterval_st.isloaded()) {
 			Gridcellst& gcst = gridcell.st[i];

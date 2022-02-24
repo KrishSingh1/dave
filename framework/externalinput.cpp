@@ -153,16 +153,6 @@ void LandcoverInput::init() {
 
 	bool openLUfile = false;
 
-	// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
-	if (iftwolayersoil && run[PEATLAND]) {
-		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if iftwolayersoil = 1");
-	}
-
-	// Must used fixed root distribution when using the two layer soil 
-	if (iftwolayersoil && rootdistribution == ROOTDIST_JACKSON) {
-		fail("LandcoverInput::init(): rootdistribution must be fixed, not jackson, if iftwolayersoil = 1");
-	}
-
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 		if(run[i] && i != NATURAL)
 			openLUfile = true;

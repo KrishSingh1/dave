@@ -235,7 +235,7 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// longterm_nstore		= longterm nitrogen storage (kgN/m2)
 
 	double turnover = 0.0;
-	double cmass_turnover = 0.0;
+	double cmass_leaf_root_turnover = 0.0;
 
 	// Calculate actual nitrogen retranslocation so maximum nitrogen storage capacity is not exceeded
 	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
@@ -247,7 +247,7 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	turnover = turnover_leaf * cmass_leaf;
 	cmass_leaf -= turnover;
 	if (alive) litter_leaf += turnover;
-	if (alive) cmass_turnover += turnover;
+	if (alive) cmass_leaf_root_turnover += turnover;
 
 	turnover = turnover_leaf * nmass_leaf;
 	nmass_leaf -= turnover;
@@ -258,7 +258,7 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	turnover = turnover_root * cmass_root;
 	cmass_root -= turnover;
 	if (alive) litter_root += turnover;
-	if (alive) cmass_turnover += turnover;
+	if (alive) cmass_leaf_root_turnover += turnover;
 
 	turnover = turnover_root * nmass_root;
 	nmass_root -= turnover;
@@ -283,7 +283,7 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		nmass_heart += turnover * (1.0 - actual_nrelocfrac);
 		longterm_nstore += turnover * actual_nrelocfrac;
 	}
-	return cmass_turnover;
+	return cmass_leaf_root_turnover;
 }
 
 
@@ -1274,7 +1274,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if(!indiv.has_daily_turnover()) {
 					// Tissue turnover and associated litter production
-					patchpft.cmass_turnover += turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+					patchpft.cmass_leaf_root_turnover += turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
 						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 						indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 						indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,

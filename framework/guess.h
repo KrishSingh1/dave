@@ -1517,7 +1517,7 @@ public:
 		sdate = -1;
 		hdate = -1;
 		nfert = -1.0;
-		tillage_int = 0.0;
+		tillage_int = 1.0;
 		woodharv_frac = -1.0;
 		woodharv_cmass = -1.0;
 		fallow = false;
@@ -1747,7 +1747,7 @@ public:
 	double cmass_mort;
 	double cmass_fire;
 	double cmass_dist;
-	double cmass_turnover;
+	double cmass_leaf_root_turnover;
 	double cmass_repr;
 	double cmass_est;
 	double cmass_wood_harv;
@@ -4181,7 +4181,7 @@ public:
 	/// carbon lost during ´disturbance
 	double cmass_dist;
 	/// carbon lost during turnover
-	double cmass_turnover;
+	double cmass_leaf_root_turnover;
 	/// carbon lost to reproduction
 	double cmass_repr;
 	/// carbon added at establishment

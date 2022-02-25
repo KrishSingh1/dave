@@ -957,7 +957,7 @@ void dailyaccounting_patch(Patch& patch) {
 			patchpft.cmass_mort = 0.0;
 			patchpft.cmass_fire = 0.0;
 			patchpft.cmass_dist = 0.0;
-			patchpft.cmass_turnover = 0.0;
+			patchpft.cmass_leaf_root_turnover = 0.0;
 			patchpft.cmass_repr = 0.0;
 			patchpft.cmass_est = 0.0;
 			if(patch.age == 1) {

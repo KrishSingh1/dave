@@ -16,6 +16,11 @@
 #include "guessmath.h"
 
 enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
+
+/// CLONESTAND, CLONESTAND_KILLTREES are currently used for land transfers between and among NATURAL and FOREST stands,
+/** copying the patches and leaving the vegetation intact or harvesting all the trees, respectively.
+ *  NEWSTAND_KILLALL kills all vegetation and transfers litter, soil and water to a stand with npatch_secondarystand patches
+ */
 enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
 
 /// Query whether a date is within a period spanned by two dates.

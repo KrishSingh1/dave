@@ -829,7 +829,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass_mort = 0.0;
 		st.cmass_fire = 0.0;
 		st.cmass_dist = 0.0;
-		st.cmass_turnover = 0.0;
+		st.cmass_leaf_root_turnover = 0.0;
 		st.cmass_repr = 0.0;
 		st.cmass_est = 0.0;
 		st.cmass_wood_harv = 0.0;
@@ -896,7 +896,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_cmass_mort=0.0;
 	double standpft_cmass_fire=0.0;
 	double standpft_cmass_dist=0.0;
-	double standpft_cmass_turnover=0.0;
+	double standpft_cmass_leaf_root_turnover=0.0;
 	double standpft_cmass_repr=0.0;
 	double standpft_cmass_est=0.0;
 	double standpft_nmass=0.0;
@@ -978,7 +978,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_mort=0.0;
 			standpft_cmass_fire=0.0;
 			standpft_cmass_dist=0.0;
-			standpft_cmass_turnover=0.0;
+			standpft_cmass_leaf_root_turnover=0.0;
 			standpft_cmass_repr=0.0;
 			standpft_cmass_est=0.0;
 			standpft_cmass_wood=0.0;
@@ -1023,7 +1023,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_cmass_mort += patchpft.cmass_mort;
 				standpft_cmass_fire += patchpft.cmass_fire;
 				standpft_cmass_dist += patchpft.cmass_dist;
-				standpft_cmass_turnover += patchpft.cmass_turnover;
+				standpft_cmass_leaf_root_turnover += patchpft.cmass_leaf_root_turnover;
 				standpft_cmass_repr += patchpft.cmass_repr;
 				standpft_cmass_est += patchpft.cmass_est;
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
@@ -1077,7 +1077,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_mort/=(double)stand.npatch();
 			standpft_cmass_fire/=(double)stand.npatch();
 			standpft_cmass_dist/=(double)stand.npatch();
-			standpft_cmass_turnover/=(double)stand.npatch();
+			standpft_cmass_leaf_root_turnover/=(double)stand.npatch();
 			standpft_cmass_repr/=(double)stand.npatch();
 			standpft_cmass_est/=(double)stand.npatch();
 			standpft_diam_g/=(double)stand.npatch();
@@ -1203,7 +1203,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				st.cmass_mort += standpft_cmass_mort * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_fire += standpft_cmass_fire * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_dist += standpft_cmass_dist * stand.get_gridcell_fraction() / gcst.frac;
-				st.cmass_turnover += standpft_cmass_turnover * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_leaf_root_turnover += standpft_cmass_leaf_root_turnover * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_repr += standpft_cmass_repr * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_est += standpft_cmass_est * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_harv += standpft_cmass_wood_harv * stand.get_gridcell_fraction() / gcst.frac;
@@ -1804,7 +1804,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_mort_forest = 0.0;
 	double cmass_fire_forest = 0.0;
 	double cmass_dist_forest = 0.0;
-	double cmass_turnover_forest = 0.0;
+	double cmass_leaf_root_turnover_forest = 0.0;
 	double cmass_repr_forest = 0.0;
 	double cmass_est_forest = 0.0;
 
@@ -1814,7 +1814,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_mort_natural = 0.0;
 	double cmass_fire_natural = 0.0;
 	double cmass_dist_natural = 0.0;
-	double cmass_turnover_natural = 0.0;
+	double cmass_leaf_root_turnover_natural = 0.0;
 	double cmass_repr_natural = 0.0;
 	double cmass_est_natural = 0.0;
 	double cmass_wood_harv_natural = 0.0;
@@ -1892,7 +1892,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_mort_forest += st.cmass_mort * gcst.frac;
 			cmass_fire_forest += st.cmass_fire * gcst.frac;
 			cmass_dist_forest += st.cmass_dist * gcst.frac;
-			cmass_turnover_forest += st.cmass_turnover * gcst.frac;
+			cmass_leaf_root_turnover_forest += st.cmass_leaf_root_turnover * gcst.frac;
 			cmass_repr_forest += st.cmass_repr * gcst.frac;
 			cmass_est_forest += st.cmass_est * gcst.frac;
 			cmass_wood_potharv_products_forest += st.cmass_wood_potharv_products * gcst.frac;
@@ -1906,7 +1906,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_mort_natural += st.cmass_mort * gcst.frac;
 			cmass_fire_natural += st.cmass_fire * gcst.frac;
 			cmass_dist_natural += st.cmass_dist * gcst.frac;
-			cmass_turnover_natural += st.cmass_turnover * gcst.frac;
+			cmass_leaf_root_turnover_natural += st.cmass_leaf_root_turnover * gcst.frac;
 			cmass_repr_natural += st.cmass_repr * gcst.frac;
 			cmass_est_natural += st.cmass_est * gcst.frac;
 			cmass_wood_harv_natural += st.cmass_wood_harv * gcst.frac;
@@ -1958,8 +1958,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
 
-	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.harv_killed_c + cmass_killed_harv_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_turnover_natural + cmass_repr_natural;
-	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_killed_harv_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_turnover_forest + cmass_repr_forest;
+	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.harv_killed_c + cmass_killed_harv_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_leaf_root_turnover_natural + cmass_repr_natural;
+	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_killed_harv_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_leaf_root_turnover_forest + cmass_repr_forest;
 	double cflux_veg_tot = cflux_veg_forest + cflux_veg_natural;
 	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.harv_killed_c - cmass_killed_harv_natural);
 	double NAI_forest = -(cflux_veg_forest - lcC.cloned_c_lc[FOREST] - cmass_killed_harv_forest);
@@ -1973,7 +1973,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural);
-	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_natural);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_natural);
@@ -1985,7 +1985,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_forest);
-	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_forest);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[FOREST]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_forest);
@@ -1997,7 +1997,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural + cmass_fire_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural + cmass_est_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural + cmass_dist_forest);
-	outlimit_misc(out, out_forest_cflux_veg, cmass_turnover_natural + cmass_turnover_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_natural + cmass_leaf_root_turnover_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural + cmass_repr_forest);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL] + lcC.cloned_c_lc[FOREST]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_tot);

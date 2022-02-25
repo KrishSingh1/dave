@@ -3118,6 +3118,9 @@ public:
 
 	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
+
+	/// Whether individual is a shrub
+	bool is_shrub() const;
 };
 
 
@@ -4535,7 +4538,7 @@ public:
 
 			// Disregard shrubs (crownarea_max = 10)
 			Individual& indiv = vegetation[i];
-			if(indiv.pft.lifeform == TREE && indiv.pft.crownarea_max > 10) {
+			if(indiv.pft.lifeform == TREE && !indiv.is_shrub()) {
 				if(indiv.cmass_wood_inc_5.size())
 					cmass_wood_inc_5_mean += indiv.cmass_wood_inc_5.mean();
 			}
@@ -4549,7 +4552,7 @@ public:
 		for (unsigned int i=0; i<vegetation.nobj; i++) {
 
 			Individual& indiv = vegetation[i];
-			if(!exclude_shrubs || indiv.pft.crownarea_max > 10) {
+			if(!exclude_shrubs || !indiv.is_shrub()) {
 				cmass_wood += indiv.cmass_wood();
 			}
 		}

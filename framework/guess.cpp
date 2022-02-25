@@ -2029,6 +2029,12 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	return storendemand;
 }
 
+bool Individual::is_shrub() const {
+
+	// Current limit for shrubs (10 m); may be changed.
+	return pft.crownarea_max > 10.0;
+}
+
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 

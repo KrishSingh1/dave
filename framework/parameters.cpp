@@ -975,7 +975,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("dens_target_cc",&pmt->dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
 		declareitem("ifclearcut_optimal_age",&pmt->ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
 		declareitem("distribute_patch_ages",&pmt->distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
-		declareitem("distribute_cuttings_amomg_patches",&pmt->distribute_cuttings_amomg_patches,1,CB_NONE,"Whether to distribute cuttings evenly in time among patches in a managed forest stand");
+		declareitem("distribute_cuttings_among_patches",&pmt->distribute_cuttings_among_patches,1,CB_NONE,"Whether to distribute cuttings evenly in time among patches in a managed forest stand");
 		declareitem("harv_eff_thin",&pmt->harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
 		declareitem("res_outtake_twig_thin",&pmt->res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
 		declareitem("res_outtake_coarse_root_thin",&pmt->res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");
@@ -1088,7 +1088,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("dens_target_cc",&pst->management.dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
 				declareitem("ifclearcut_optimal_age",&pst->management.ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
 				declareitem("distribute_patch_ages",&pst->management.distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
-				declareitem("distribute_cuttings_amomg_patches",&pst->management.distribute_cuttings_amomg_patches,1,CB_NONE,"Whether to distribute cuttings evenly in time among patches in a managed forest stand");
+				declareitem("distribute_cuttings_among_patches",&pst->management.distribute_cuttings_among_patches,1,CB_NONE,"Whether to distribute cuttings evenly in time among patches in a managed forest stand");
 				declareitem("harv_eff_thin",&pst->management.harv_eff_thin,0.0,1.0,1,CB_NONE,"Harvest efficiancy during thinning for all tree pft:s");
 				declareitem("res_outtake_twig_thin",&pst->management.res_outtake_twig_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for twigs and branches for all tree pft:s");
 				declareitem("res_outtake_coarse_root_thin",&pst->management.res_outtake_coarse_root_thin,0.0,1.0,1,CB_NONE,"Residue removal fraction during thinning for coarse roots and stumps for all tree pft:s");

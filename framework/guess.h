@@ -1417,7 +1417,7 @@ public:
 	/// Wood cutting interval in years in the contiuous cutting period
 	int secondcutinterval;
 	/// Whether to distribute cuttings evenly in time among patches in a managed forest stand
-	bool distribute_cuttings_amomg_patches;
+	bool distribute_cuttings_among_patches;
 	/// Patch age when target cutting starts
 	int targetstartage;
 	/// Interval of target cuttings
@@ -1509,7 +1509,7 @@ public:
 		dens_target_cc = 0;
 		secondintervalstart = -1;
 		secondcutinterval = 0;
-		distribute_cuttings_amomg_patches = false;
+		distribute_cuttings_among_patches = false;
 		diam_limit = 0.0;
 		adapt_diam_limit = false;
 		hydrology = RAINFED;
@@ -1591,7 +1591,7 @@ public:
 		}
 		secondintervalstart = from.secondintervalstart;
 		secondcutinterval = from.secondcutinterval;
-		distribute_cuttings_amomg_patches = from.distribute_cuttings_amomg_patches;
+		distribute_cuttings_among_patches = from.distribute_cuttings_among_patches;
 		targetstartage = from.targetstartage;
 		targetcutinterval = from.targetcutinterval;
 		targetcutmode = from.targetcutmode;

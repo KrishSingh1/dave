@@ -1265,7 +1265,7 @@ double manage_forest(Patch& patch) {
 			// Clearcut rotation age defined in instruction file or input file
 			else if(cut_interval) {
 				// Distribute clearcuts among patches
-				if(mt.distribute_cuttings_amomg_patches) {
+				if(mt.distribute_cuttings_among_patches) {
 					int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 					if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % cut_interval))
 //					if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
@@ -1304,7 +1304,7 @@ double manage_forest(Patch& patch) {
 				else if(cut_interval) {
 					int age = cutting_reference_age;
 					// Distribute continuous cuttings among patches (following clear-cut distribution)
-					if(mt.distribute_cuttings_amomg_patches) {
+					if(mt.distribute_cuttings_among_patches) {
 						int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 						age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
 //						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear; synchronised cuttings in all stands
@@ -1351,7 +1351,7 @@ double manage_forest(Patch& patch) {
 			age = cutting_reference_age - mt.secondintervalstart;
 
 			// Distribute continuous cuttings among patches
-			if(mt.distribute_cuttings_amomg_patches) {
+			if(mt.distribute_cuttings_among_patches) {
 				int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 				age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
 //				age = date.year - first_cutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands

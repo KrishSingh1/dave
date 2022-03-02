@@ -246,7 +246,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		// Very experimental, root senescence
 		// N and C loss when root senescence is allowed (f_HO > 0.5)
 		// d3, the DS after which more than half of the daily assimilates are going to the grains.
-		if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
+		if (patchpft.cropphen->dev_stage > indiv.pft.d3) {
 
 			// only have root senescence when leaf scenescence has occured
 			if (indiv.daily_nmass_leafloss > 0.0) {

@@ -1607,7 +1607,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 		mdrain[mth] = 0.0;
 		mnetmin[mth] = 0.0;
 		mtemp[mth] = 0.0;
-		fNH4uptake_mean[mth] = 0.0;
+		fNH4uptake_mean[mth] = 0.0; // DW_COMMENT move to soilcolumn
 		fNO3uptake_mean[mth] = 0.0;
 		morgleach_mean[mth] = 0.0;
 		mminleach_mean[mth] = 0.0;
@@ -1776,7 +1776,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		mineral_frac = 0.0;
 		peat_frac = 1.0 - acrotelm_por;
 		bulk_density = peat_frac * org_density;
-		
+
 		Kw_max = Kw_max_org;
 		b = b_org;
 		Psi_max = Psi_max_org;

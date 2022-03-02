@@ -471,8 +471,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
-		gridcell.aNH4dep  = 0.0;
-		gridcell.aNO3dep  = 0.0;
+		gridcell.aNH4dep = 0.0;
+		gridcell.aNO3dep = 0.0;
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
@@ -917,8 +917,8 @@ void daylengthinsoleet(Climate& climate) {
 	const double D = 0.5;
 	const double K = 13750.98708;
 	const double FRADPAR = 0.5;
-		// fraction of net incident shortwave radiation that is photosynthetically
-		// active (PAR)
+	// fraction of net incident shortwave radiation that is photosynthetically
+	// active (PAR)
 
 	double w, hn;
 

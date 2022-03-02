@@ -445,7 +445,7 @@ void CommonOutput::define_output_tables() {
 	soil_npool_columns += ColumnDescriptor("N2O", 11, 4);
 	soil_npool_columns += ColumnDescriptor("N2",  11, 4);
 
-	
+
 	// SOIL N TRANSFORMATION - fluxes
 	ColumnDescriptors soil_nflux_columns;
 	soil_nflux_columns += ColumnDescriptor("NH3",  12, 6);

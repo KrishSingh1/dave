@@ -58,7 +58,7 @@ void initbvoc(){
 	PhotosynthesisStresses ps_stress;
 	ps_stress.no_stress(); // No limits in the initialization of BVOC calculations
 
- 	PhotosynthesisLeafstatus ps_status;
+	PhotosynthesisLeafstatus ps_status;
 	ps_status.noinfluence(); // No individual values
 
  	pftlist.firstobj();

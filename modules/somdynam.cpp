@@ -333,8 +333,11 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
  *  to keep the daily nitrogen and phosphorus balance in the soil
  */
 void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_reduction[NSOMPOOL],
-	double& ntoc_reduction, double cdec[NSOMPOOL], double cinc[NSOMPOOL], double ndec[NSOMPOOL],
-	double ninc[NSOMPOOL], double respsum[NSOMPOOL], double tot_net_n_min) {
+	double& ntoc_reduction, 
+	double cdec[NSOMPOOL], double cinc[NSOMPOOL], 
+	double ndec[NSOMPOOL], double ninc[NSOMPOOL], 
+	double respsum[NSOMPOOL], 
+	double tot_net_n_min) {
 
 	// If net negative N mineralisation
 	if (tot_net_n_min < 0.0) {
@@ -468,23 +471,22 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 	}*/
 }
 
-/// Set target N:C ratios for SOM pools
-/** Set target N:C ratios for slow, passive, humus and soil microbial pools
+/// Set target nutrient to carbon ratios for SOM pools
+/** Set target nutrient to carbon ratios for slow, passive, humus and soil microbial pools
  *  based on mineral nitrogen pool or litter nitrogen fraction (Parton et al 1993, Fig 4)
  */
-void Soillayer::setntoc(double fac, pooltype pool, double cton_max, double cton_min,
+void Soillayer::setntoc(double fac, double& ntoc, double cton_max, double cton_min,
 	double fmin, double fmax) {
 
 	if (fac <= fmin)
-		sompool[pool].ntoc = 1.0 / cton_max;
+		ntoc = 1.0 / cton_max;
 	else if (fac >= fmax)
-		sompool[pool].ntoc = 1.0 / cton_min;
+		ntoc = 1.0 / cton_min;
 	else {
-		sompool[pool].ntoc = 1.0 / (cton_min + (cton_max - cton_min) *
+		ntoc = 1.0 / (cton_min + (cton_max - cton_min) *
 			(fmax - fac) / (fmax - fmin));
 	}
 }
-
 
 /// Temperature modifier for decomposition
 /** Calculate decomposition temperature modifier (in range 0-1)
@@ -620,7 +622,8 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
  *  flux respsum (representing total microbial respiration today)
  */
 void transferdecomp(Soillayer& soillayer, pooltype donor, pooltype receiver,
-	double frac, double respfrac, double growth_reduction, double ntoc_reduction,
+	double frac, double respfrac, 
+	double growth_reduction, double ntoc_reduction,
 	double& nmin_actual, double& nimmob) {
 
 	respfrac = 1.0 - (1.0 - respfrac) * growth_reduction;
@@ -673,7 +676,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	// Actual (not net) nitrogen mineralisation
 	double nmin_actual = 0.0;
 	// Nitrogen immobilisation
-	double nimmob = 0.0;		
+	double nimmob = 0.0;
 
 	const double EPS = 1.0e-12;
 
@@ -681,8 +684,12 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-		// mineral nitrogen mass available
+		// Mineral nitrogen mass available
 		const double nmin_mass = soillayer.nmass_avail(NH4);
+		// At least half of available mineral nitrogen and phosphorus
+		// should remain after mineralisation
+		const double tot_net_nmin_min = -nmin_mass * 0.5;
+		
 		if (date.day == 0) {
 			soillayer.anmin = 0.0;
 			soillayer.animmob = 0.0;
@@ -704,9 +711,9 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		// Set N:C ratios for humus, soil microbial, slow and passive pool based on estimated mineral nitrogen pool
 		// (Parton et al 1993, Fig 4)
 		// ForCent (Parton 2010) values
-		soillayer.setntoc(nmin_mass, SURFHUMUS, 30.0, 10.0, 0.0, soillayer.nmass_sat);
-		soillayer.setntoc(nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, soillayer.nmass_sat);
-		soillayer.setntoc(nmin_mass, SLOWSOM, 30.0, 10.0, 0.0, soillayer.nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SURFHUMUS].ntoc, 30.0, 10.0, 0.0, soillayer.nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SOILMICRO].ntoc, 15.0, 6.0, 0.0, soillayer.nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SLOWSOM].ntoc, 30.0, 10.0, 0.0, soillayer.nmass_sat);
 
 		if (!ifequilsom) {
 
@@ -890,13 +897,13 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			}
 
 			// Net nitrogen mineralisation isn't allowed to be inferior to a minimum value associated with total mineralisation
-			if (tot_net_nmin > -nmin_mass * 0.5 - EPS) {
+			if (tot_net_nmin > tot_net_nmin_min - EPS) {
 
 				net_mineralization = true;
 			}
 			else if (ifnlim && date.year > freenyears) {
 
-				// Net N and/or P mineralisation is negative -> reduce decay rates and microbial CUE
+				// Net N mineralisation is negative -> reduce decay rates and microbial CUE
 				if (times < 1) {
 
 					double cdec[NSOMPOOL], cinc[NSOMPOOL], ndec[NSOMPOOL], ninc[NSOMPOOL], respsum[NSOMPOOL];
@@ -909,7 +916,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 					}
 
 					// How much immobilisation that should be reduced
-					double reduction_net_nmin = tot_net_nmin + nmin_mass * 0.5;
+					double reduction_net_nmin = tot_net_nmin - tot_net_nmin_min;
 
 					reduce_decay_growth_rates(decay_reduction, growth_reduction, ntoc_reduction, cdec, cinc, ndec, ninc, respsum, reduction_net_nmin);
 				}
@@ -1025,6 +1032,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		if (!ifequilsom) {
 			soillayer.mnetmin[date.month] += nmin_inc;
 		}
+
 		// Estimate of N flux from soil (simple CLM-CN approach)
 		if (!ifntransform) {
 			double nflux = nmin_inc > 0.0 ? (nmin_inc) * 0.01 : 0.0;
@@ -1470,7 +1478,7 @@ void transfer_litter(Patch& patch) {
 		// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 		// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
 		if (!negligible(litter_cmass)) {
-			soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+			soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), soillayer.sompool[SURFMICRO].ntoc, 20.0, 10.0, 0.0, NCONC_SAT);
 		}
 	}
 
@@ -1991,7 +1999,7 @@ void equilsom(Patch& patch) {
 
 							// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 							if (!negligible(litter_cmass)) {
-								soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
+								soillayer.setntoc(litter_nmass / (litter_cmass * 2.0), soillayer.sompool[SURFMICRO].ntoc, 20.0, 10.0, 0.0, NCONC_SAT);
 							}
 						}
 

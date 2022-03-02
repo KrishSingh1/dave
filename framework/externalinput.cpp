@@ -1559,27 +1559,27 @@ void ManagementInput::init() {
 			readharvestdates = true;
 		}
 
-		file_Nfert=param["file_Nfert"].str;
-		if(	file_Nfert != "")	{
-			if(!Nfert.Open(file_Nfert, gridlist))
-				fail("initio: could not open %s for input",(char*)file_Nfert);
+		file_Nfert = param["file_Nfert"].str;
+		if (file_Nfert != "") {
+			if (!Nfert.Open(file_Nfert, gridlist))
+				fail("initio: could not open %s for input", (char*)file_Nfert);
 			readNfert = true;
 		}
-		if(param.find(xtring("file_NfertMan"))) {
-			file_NfertMan=param["file_NfertMan"].str;
-			if(	file_NfertMan != "")	{
-				if(!NfertMan.Open(file_NfertMan, gridlist))
-					fail("initio: could not open %s for input",(char*)file_NfertMan);
+		if (param.find(xtring("file_NfertMan"))) {
+			file_NfertMan = param["file_NfertMan"].str;
+			if (file_NfertMan != "") {
+				if (!NfertMan.Open(file_NfertMan, gridlist))
+					fail("initio: could not open %s for input", (char*)file_NfertMan);
 				readNman = true;
 			}
 		}
 	}
 
-	if(run_landcover) {
-		file_Nfert_st=param["file_Nfert_st"].str;
-		if(	file_Nfert_st != "")	{
-			if(!Nfert_st.Open(file_Nfert_st, gridlist))
-				fail("initio: could not open %s for input",(char*)file_Nfert_st);
+	if (run_landcover) {
+		file_Nfert_st = param["file_Nfert_st"].str;
+		if (file_Nfert_st != "") {
+			if (!Nfert_st.Open(file_Nfert_st, gridlist))
+				fail("initio: could not open %s for input", (char*)file_Nfert_st);
 			readNfert_st = true;
 		}
 	}
@@ -1616,15 +1616,15 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		}
 	}
 
-	if(readNman && !LUerror) {
-		if(!NfertMan.Load(c)) {
-			dprintf("Manure data not found for %.2f,%.2f.\n",c.lon,c.lat);
+	if (readNman && !LUerror) {
+		if (!NfertMan.Load(c)) {
+			dprintf("N manure data not found for %.2f,%.2f.\n", c.lon, c.lat);
 		}
 	}
-	if(readNfert_st && !LUerror) {
-		if(!Nfert_st.Load(c)) {
-				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
-				LUerror = true;	// skip this stand
+	if (readNfert_st && !LUerror) {
+		if (!Nfert_st.Load(c)) {
+			dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
 			dprintf("N fertilization data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
@@ -1691,9 +1691,9 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 		}
 	}
 
-	if(Nfert_st.isloaded()) {
-		for(int i=0; i<nst; i++)	{
-			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year,stlist[i].name);
+	if (Nfert_st.isloaded()) {
+		for (int i = 0; i < nst; i++) {
+			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year, stlist[i].name);
 		}
 	}
 }
@@ -1713,7 +1713,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell) {
 		if(readharvestdates)		
 			getharvestdates(gridcell);
 		//Read N fertilization from input file, put into gridcellpft.Nfert_read
-		if(readNfert || readNfert_st)		
+		if (readNfert || readNfert_st)
 			getNfert(gridcell);
 	}
 }

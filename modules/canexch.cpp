@@ -561,7 +561,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 			const double cton_min = ps_status.get_cton_min();
 
 			// Nitrogen limitation not considered. Use average C:N ratio as optimal
-			if (!ifnlim) {
+			if (!ifnlim || date.year <= freenyears) {
 				// Optimal leaf N mass [kg N m-2]
 				ps_result.nmass_leaf_opt = cmass_leaf * (0.5 / cton_min + 0.5 / cton_max);
 			}
@@ -581,12 +581,13 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 			// Leaf N mass [kg N m-2]
 			const double nmass_leaf = max(nmass_leaf_min, ps_status.get_nmass_leaf());
 
-			// Active leaf N
+			// Active leaf N [kg N m-2]
 			double nmass_leaf_active = (nmass_leaf - N0 * cmass_leaf) / nextin;
 
-			// N limited vmax
+			// N limited vmax [gC m-2 day-1]
 			double vm_nmax = nmass_leaf_active / (M / (SECS_PER_HOUR * daylength * GC_PER_MOLC) * tfac);
 
+			// Vmax without any limitations [gC m-2 day-1]
 			double vm_orig = ps_result.vm;
 
 			// Update Vmax and save nitrogen limitation
@@ -916,7 +917,7 @@ double get_moss_wtp_limit(Patch& p, Pft& pft) {
  */
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
-	PhotosynthesisEnvironment ps_env;					
+	PhotosynthesisEnvironment ps_env;
 	PhotosynthesisStresses ps_stress;
 	PhotosynthesisLeafstatus ps_status;
 	ps_stress.no_stress();

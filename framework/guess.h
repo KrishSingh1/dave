@@ -706,13 +706,13 @@ private:
 
 public:
 	/// set 
-    void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
+	void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
 		co2 = co2_env;
 		temp = temp_env;
 		par = par_env;
 		fpar = fpar_env;
 		daylength = daylength_env;
-    }
+	}
 
 	double get_apar() const {
 		return par * fpar;
@@ -793,7 +793,7 @@ public:
 	}
 
 	bool get_iflimvmax() const {
-		return iflimvmax;	
+		return iflimvmax;
 	}
 
 	double get_moss_ps_limit() const {
@@ -3920,8 +3920,8 @@ public:
 
 	/// Maximum soil layer water content
 	double wcont_max();
-	/// Set target N:C ratios for SOM pools
-	void setntoc(double fac, pooltype pool, double cton_max, double cton_min, double fmin, double fmax);
+	/// Set target nutrient to carbon ratios for SOM pools
+	void setntoc(double fac, double& ntoc, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
 	void decayrates_century(bool tillage, bool savesomcent);
 

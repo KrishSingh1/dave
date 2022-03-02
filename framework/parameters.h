@@ -252,7 +252,7 @@ extern bool readNfert;
 /// Whether to read manure N fertilization from input file
 extern bool readNman;
 
-/// Whether to read N fertilization (stand tyoe level) from input file
+/// Whether to read N fertilization (stand type level) from input file
 extern bool readNfert_st;
 
 /// Whether to print multiple stands within a land cover type (except cropland) separately

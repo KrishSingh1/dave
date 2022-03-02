@@ -1493,6 +1493,7 @@ void growth(Stand& stand, Patch& patch) {
 							double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass * nrelocfrac));
 							ppft.nmass_litter_root += nmass - nreloc;
 							indiv.nstore_longterm += nreloc;
+
 							// Subtracting litter nitrogen from individuals
 							indiv.nmass_root -= nmass;
 						}

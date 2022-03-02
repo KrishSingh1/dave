@@ -1485,10 +1485,6 @@ void transfer_litter(Patch& patch) {
 	// Add litter to solvesom array every month
 	if (patch.soilcolumn.savesomcent && date.islastday) {
 
-		//dprintf("Year %d Day %d SURFMETA C %g N %g SURFCWD C %g N %g\n",date.year,date.day,
-		//	patch.soilcolumn.soillayers[0].litterSolveSOM.get_clitter(SURFMETA), patch.soilcolumn.soillayers[0].litterSolveSOM.get_nlitter(SURFMETA),
-		//	patch.soilcolumn.soillayers[0].litterSolveSOM.get_clitter(SURFCWD), patch.soilcolumn.soillayers[0].litterSolveSOM.get_nlitter(SURFCWD));
-
 		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
 			patch.soilcolumn.soillayers[lyr].solvesom.push_back(patch.soilcolumn.soillayers[lyr].litterSolveSOM);
 			patch.soilcolumn.soillayers[lyr].litterSolveSOM.clear();

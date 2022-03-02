@@ -5518,22 +5518,6 @@ void Soilcolumn::calc_temp() {
 	// Update heat capacity and thermal conductivity for snow, soil and padding layers
 	update_thermal_properties();
 
-	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-		if (date.year == FIRST_FREEZE_YEAR && date.day == 0) {
-			dprintf("Year Day TS AirT ");
-			for (int lyr = 0; lyr < nsoillayers; lyr++)
-				dprintf("Lyr%d ", lyr);
-			dprintf("ENERGY\n");
-		}
-		dprintf("%d %d %d %g ",date.year, date.day, 0, airT);
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			dprintf("%g ", soillayers[lyr].temp);
-			cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
-		}
-		dprintf("%g\n", cum_energy);
-	}*/
-
-
 	for (int ts = 0; ts < ttimesteps; ts++) {
 
 		int nsnowlayers = snow.nsnowlayers;
@@ -5606,26 +5590,11 @@ void Soilcolumn::calc_temp() {
 			// Lower boundary condition
 			double f_bot = 0.0;
 
-			// Initial energy mass balance
-			double init_cum_energy = f_top * SECS_PER_DAY / ttimesteps;
-			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
-				init_cum_energy += (tpara.psi[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
-			}
-
 			// Build diagonals and RHS vector
 			build_diags_rhs(SECS_PER_DAY / ttimesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
 
 			// Solve tridiagonal system
 			solve_tridiagonal(tpara);
-
-			// Final energy mass balance
-			double final_cum_energy = 0.0;
-			for (int lyr = 0; lyr < nsnowsoilpadlayers; lyr++) {
-				final_cum_energy += (tpara.psi1[lyr] + K2degC) * tpara.cap[lyr] * tpara.dz[lyr];
-			}
-
-			if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
-				dprintf("Year %d Day %d TS %d Diff %g Final %g Initial %g\n", date.year, date.day, ts, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
 
 			// Update temperatures
 
@@ -5729,35 +5698,6 @@ void Soilcolumn::calc_temp() {
 			}
 		}
 
-		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-			dprintf("%d %d %d %g ", date.year, date.day, 2*ts + 1, airT);
-			cum_energy = 0.0;
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				dprintf("%g ", soillayers[lyr].temp);
-				cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
-			}
-			dprintf("%g\n", cum_energy);
-		}*/
-
-
-		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
-
-			for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
-				dprintf("%g ", airT);
-			}
-
-			for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
-				dprintf("%g ", snow.snowlayers[lyr].temp);
-			}
-
-			for (int lyr = 0; lyr < 5; lyr++) {
-				dprintf("%g %g %g %g %g ", soillayers[lyr].temp, soillayers[lyr].temp_old, soillayers[lyr].wmass, soillayers[lyr].imass, soillayers[lyr].wp);
-			}
-
-			dprintf("\n");
-		}*/
-
 		// Recalculate the top soil layer thermal properties after it been combined with the single snow layer for temperature calculations
 		if (combine_snow) {
 			soillayers[0].update_thermal_properties();
@@ -5765,83 +5705,7 @@ void Soilcolumn::calc_temp() {
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
 		phase_change_new();
-
-
-		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-			dprintf("%d %d %d %g ", date.year, date.day, 2 * ts + 2, airT);
-			cum_energy = 0.0;
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				dprintf("%g ", soillayers[lyr].temp);
-				cum_energy += soillayers[lyr].Ch * (soillayers[lyr].temp + K2degC) * soillayers[lyr].depth * M_PER_MM;
-			}
-			dprintf("%g\n", cum_energy);
-		}*/
-
-		/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-			dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
-
-			for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
-				dprintf("%g ", airT);
-			}
-
-			for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
-				dprintf("%g ", snow.snowlayers[lyr].temp);
-			}
-
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				dprintf("%g ", soillayers[lyr].temp);
-			}
-
-			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-				dprintf("%g ", pad[lyr].temp);
-			}
-
-			dprintf("\n");
-		}*/
-
-		/*dprintf("%d %d %d %g ", date.year, date.day, ts, airT);
-
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
-			dprintf("%g ", airT);
-		}
-
-		for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
-			dprintf("%g ", snow.snowlayers[lyr].temp);
-		}
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			dprintf("%g ", soillayers[lyr].temp);
-		}
-
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-			dprintf("%g ", pad[lyr].temp);
-		}
-
-		dprintf("\n");*/
 	}
-
-
-	/*if (date.year >= FIRST_FREEZE_YEAR && date.year <= FIRST_FREEZE_YEAR + 1) {
-		dprintf("%d %d %d %g ", date.year, date.day, 99, airT);
-
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX - snow.nsnowlayers; lyr++) {
-			dprintf("%g ", airT);
-		}
-
-		for (int lyr = snow.nsnowlayers - 1; lyr >= 0; lyr--) {
-			dprintf("%g ", snow.snowlayers[lyr].temp);
-		}
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			dprintf("%g ", soillayers[lyr].temp);
-		}
-
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-			dprintf("%g ", pad[lyr].temp);
-		}
-
-		dprintf("\n");
-	}*/
 
 	// Not the first time this method is called	
 	firstTempCalc = false;

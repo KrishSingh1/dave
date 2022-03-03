@@ -527,7 +527,12 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// soil_depth is defined in global.ins
 	// if zero then use input map of soil depth
 	if (negligible(depth_soil)) {
-		gridcell.soil_depth = depth_map[c] * MM_PER_M;
+		if (iftwolayersoil) {
+			gridcell.soil_depth = 1500.0;
+		}
+		else {
+			gridcell.soil_depth = depth_map[c] * MM_PER_M;
+		}
 	}
 	else {
 		gridcell.soil_depth = depth_soil;

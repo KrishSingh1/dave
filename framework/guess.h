@@ -3654,6 +3654,7 @@ private:
 	void update_snow_properties(const int& daynum, const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow);
 	void snowpack_dynamics(const double &snowdepth, const int& soilsurfaceindex, int& snow_active_layers);
 	void update_soil_diffusivities(const int& daynum, bool ansoln);
+	double heatcapacity(double Frac_min, double Frac_org, double Frac_ice, double Frac_water, double Frac_peat, double Frac_air);
 	void update_ice_fraction(const int& daynum, const int& MIDX);
 	void update_layer_fractions(const int& daynum, const int& mixedl, const int& MIDX);
 

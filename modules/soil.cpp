@@ -3005,7 +3005,6 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 			delta_T = 0.0;
 
 		double heat_capacity_layer = Ci[i] * MM3_PER_M3; // J m-3 K-1
-		double heat_capacity_layer_new = -999.0; // defined here for later use.
 
 		// Initial soil energy
 		double energy_initial = heat_capacity_layer * (T_soil[i] + K2degC); // J m-3
@@ -3048,7 +3047,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					T_soil[i] = old_T;
 
 					// New heat capacity (J m-3 K-1), after some of the water has become ice
-					heat_capacity_layer_new = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
+					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = -Ffreez * Lheat;
@@ -3090,10 +3089,10 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					double energy_remain = energy - energy_loss;
 
 					// New heat capacity (J m-3 K-1), now that the water has become ice
-					heat_capacity_layer_new = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], 0.0, Frac_peat[i], Frac_air[i]);
+					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], 0.0, Frac_peat[i], Frac_air[i]);
 
 					// Update soil temperature
-					T_soil[i] = old_T + energy_remain / heat_capacity_layer_new;
+					T_soil[i] = old_T + energy_remain / heat_capacity_layer;
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = -Frac_water[i] * Lheat;
@@ -3137,7 +3136,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					T_soil[i] = old_T;
 
 					// New heat capacity (J m-3 K-1), now that some of the ice has become water
-					heat_capacity_layer_new = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
+					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = Fthaw * Lheat;
@@ -3178,10 +3177,10 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					double energy_remain = energy - energy_loss;
 
 					// New heat capacity (J m-3 K-1), now that the ice has become water
-					heat_capacity_layer_new = heatcapacity(Frac_min[i], Frac_org[i], 0.0, Frac_water[i], Frac_peat[i], Frac_air[i]);
+					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], 0.0, Frac_water[i], Frac_peat[i], Frac_air[i]);
 
 					// Update soil temperature in this layer
-					T_soil[i] = old_T + energy_remain / heat_capacity_layer_new;
+					T_soil[i] = old_T + energy_remain / heat_capacity_layer;
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = Frac_ice[i] * Lheat;
@@ -3229,7 +3228,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 
 		// Maximum error
 		const double EPS = 1.0e-10;
-		double energy_final = heat_capacity_layer_new * (T_soil[i] + K2degC) - phase_change_energy;
+		double energy_final = heat_capacity_layer * (T_soil[i] + K2degC) - phase_change_energy;
 
 		// energy balance checks:
 		if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {

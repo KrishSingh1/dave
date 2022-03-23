@@ -248,7 +248,7 @@ EOF
 
     if has_pbs ; then
 	# Submit as a PBS job
-	qsub -l walltime=$pp_walltime $dependency <<EOF &> /dev/null
+	qsub -l walltime=$pp_walltime $dependency <<EOF > /dev/null
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
@@ -256,7 +256,7 @@ $(cat $common_script)
 EOF
     else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
+	sbatch -n 1 --time=$pp_walltime $dependency <<EOF > /dev/null
 #!/bin/sh
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
@@ -282,9 +282,9 @@ function submit_job {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
     fi
 
     local submit_exit_status=$?

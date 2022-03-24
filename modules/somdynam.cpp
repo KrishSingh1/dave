@@ -860,16 +860,12 @@ double metabolic_litter_fraction(double lton) {
 }
 
 /// Transfers litter from growth, mortality and fire
-/** Called monthly to transfer last year's litter from vegetation
+/** Called daily to transfer last year's litter from vegetation
  *  (turnover, mortality and fire) to soil litter pools.
  *  Alternatively, with daily allocation and harvest/turnover,
  *  the litter produced a certain day.
  */
 void transfer_litter(Patch& patch) {
-
-	// For CROPLAND only enter on harvest/turnover day
-	if (patch.stand.landcover == CROPLAND && !patch.is_litter_day)
-		return;
 
 	Soil& soil = patch.soil;
 
@@ -924,6 +920,7 @@ void transfer_litter(Patch& patch) {
 			pft.nmass_litter_root = 0.0;
 		}
 		// For summergreens drop leaf litter over all days during Jan in NH and July SH
+		// and raingreens on the month with lowest phen
 		else if ((pft.pft.phenology == SUMMERGREEN && ((lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6))) ||
 			(pft.pft.phenology == RAINGREEN && date.month == pft.driest_mth)) {
 			double frac = 1.0 / (date.ndaymonth[date.month] - date.dayofmonth);
@@ -937,7 +934,7 @@ void transfer_litter(Patch& patch) {
 			pft.cmass_litter_root -= cmass_litter_root;
 			pft.nmass_litter_root -= nmass_litter_root;
 		}
-		// Drops leaf litter every day
+		// Evergreens drops leaf litter every day
 		else {
 			double frac = 1.0 / (date.year_length() - date.day);
 			cmass_litter_leaf = pft.cmass_litter_leaf * frac;

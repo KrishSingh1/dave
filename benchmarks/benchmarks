@@ -437,15 +437,18 @@ function meta_data {
 
 # Ok, let's start!
 
-# Create the progress.txt file, overwriting if it existed
-echo "The following benchmarks are done:" > progress.txt
-
 # If necessary, create the working directory where all the benchmarks will be
 # run from.
 mkdir -p $work_dir
 
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
+
+# Create the progress.txt file, or write to the pre-existing one if available.
+touch progress.txt
+echo "Benchmarks run $(date)" >> progress.txt
+echo "$work_dir" >> progress.txt
+echo "The following benchmarks have completed at least to postprocess:" >> progress.txt
 
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir

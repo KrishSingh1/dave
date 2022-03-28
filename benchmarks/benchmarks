@@ -446,16 +446,17 @@ work_dir=`cd $1; pwd`
 
 # Create the progress.txt file, or write to the pre-existing one if available.
 touch progress.txt
-echo "Benchmarks run $(date)" >> progress.txt
+echo >> progress.txt
+echo "Benchmarks submitted $(date)" >> progress.txt
 echo "$work_dir" >> progress.txt
-echo "The following benchmarks have completed at least to postprocess:" >> progress.txt
+echo "The following benchmarks have finished:" >> progress.txt
 
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir
     exit 0
 fi
 
-# Generate meta data about this run 
+# Generate meta data about this run
 # (such as time stamp and version control information).
 if (( $pp_only == 0 )); then
     meta_data $work_dir

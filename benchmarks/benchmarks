@@ -31,10 +31,11 @@ function has_slurm {
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
     error "Usage: benchmarks [ -s ] [ -c ] [ -i TESTS | -x TESTS ] <workdir>"
+    error "Pwd needs to be the directory of this benchmark script."
     error
     error "Options"
     error "======="
-    error "-s   Single machine mode, don't use PBS"
+    error "-s   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests"
     error "-p   Post processing only"
     error "-r   Generate printer friendly report"

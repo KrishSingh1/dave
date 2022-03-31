@@ -210,7 +210,7 @@ MiscOutput::~MiscOutput() {
 }
 
 /// Help function to print structure header columns
-std::vector<std::string> get_structure_string(char* type) {
+std::vector<std::string> get_structure_string(const char* type) {
 
 	char buffer2[300]={'\0'};
 	std::vector<std::string> struct_vect;

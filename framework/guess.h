@@ -1372,11 +1372,11 @@ public:
 	xtring harvest_system;
 	/// name of crop pft 
 	xtring pftname;
-	/// pft planting density (trees/ha)
+	/// pft planting density (seedlings/ha)
 	double plantdensity_pft;
 	/// string of pft selection
 	xtring selection;
-	/// string of pft planting densities (trees/ha)
+	/// string of pft planting densities (seedlings/ha)
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
@@ -2093,7 +2093,7 @@ public:
 	/// fraction of residue outtake at harvest
 	double res_outtake;
 	/// plant density after clearcut (seedlings/ha)
-	double plantnumber;
+	double plantdensity;
 	/// harvest efficiency
 	double harv_eff;
 	/// harvest efficiency of intercrop grass
@@ -2201,7 +2201,7 @@ public:
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
-		plantnumber = 0.0;
+		plantdensity = 0.0;
 		harv_eff = 0.0;
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
@@ -4590,7 +4590,7 @@ public:
 	bool plant;
 	/// Whether this PFT is allowed to establish (after planting) in this stand
 	bool reestab;
-	/// plants per ha
+	/// Planting density (seedlings/ha)
 	double plantdensity;
 	/// target cmass fraciton
 	double targetfrac;

@@ -774,7 +774,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
 		declareitem("stem_frac",&ppft->stem_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to stems");
 		declareitem("twig_frac",&ppft->twig_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to twigs");
-		declareitem("plantnumber",&ppft->plantnumber,0.0,10000.0,1,CB_NONE,"Plant density after clearcut (seedlings/ha)");
+		declareitem("plantdensity",&ppft->plantdensity,0.0,10000.0,1,CB_NONE,"Plant density after clearcut (seedlings/ha)");
 
 		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
 		declareitem("sdatesh",&ppft->sdatesh,1,365,1,CB_NONE,"sowing day southern hemisphere");
@@ -926,9 +926,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
-		declareitem("plantdensity_pft",&pmt->plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density (trees/ha)");
+		declareitem("plantdensity_pft",&pmt->plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density (seedlings/ha)");
 		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
-		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities (trees/ha)");
+		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities (seedlings/ha)");
 		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft cmass target fractions");
 		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
 		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
@@ -1039,9 +1039,9 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");
-				declareitem("plantdensity_pft",&pst->management.plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density of management 1 (trees/ha)");
+				declareitem("plantdensity_pft",&pst->management.plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density of management 1 (seedlings/ha)");
 				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names of management 1");
-				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities of management 1 (trees/ha)");
+				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities of management 1 (seedlings/ha)");
 				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft cmass target fractions");
 				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
 				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");

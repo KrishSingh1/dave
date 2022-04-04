@@ -1557,15 +1557,15 @@ void planting(Patch& patch) {
 
 			Standpft& spft = stand.pft[pft.id];
 			// plants per ha., could be modified by stand productivity
-			double plantnumber = 1000;	// temporary default value if not specified for pft
+			double plantdensity = 1000;	// temporary default value if not specified for pft
 			if(spft.plantdensity >= 0.0)
-				plantnumber = spft.plantdensity;
-			else if(pft.plantnumber)
-				plantnumber = pft.plantnumber;
+				plantdensity = spft.plantdensity;
+			else if(pft.plantdensity)
+				plantdensity = pft.plantdensity;
 
-			if(plantnumber) {
+			if(plantdensity) {
 				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
-				indiv.densindiv = plantnumber / 10000.0;
+				indiv.densindiv = plantdensity / 10000.0;	// per ha to per m2
 				ltor = pft.ltor_max;
 				allocation_init(PLANTSIZE, ltor, indiv);
 				allometry(indiv);

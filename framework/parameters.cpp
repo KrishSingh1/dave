@@ -932,7 +932,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft cmass target fractions");
 		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
 		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
-		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach pft fraction target");
+		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
@@ -1045,7 +1045,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft cmass target fractions");
 				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
 				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
-				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,"Mode of deciding when and how much to cut to reach target");
+				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 				declareitem("suppress_second_target",&pst->management.suppress_second_target,1,CB_NONE,"Whether to stop cutting to reach pft fraction targets when continuous period starts");
 				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");

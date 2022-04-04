@@ -1422,7 +1422,7 @@ public:
 	int targetstartage;
 	/// Interval of target cuttings
 	int targetcutinterval;
-	/// Mode of deciding when and how much to cut to reach target
+	/// Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used (see documentation for details)
 	int targetcutmode;
 	/// Whether to stop cutting to reach pft fraction targets when continuous period starts
 	bool suppress_second_target;

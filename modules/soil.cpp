@@ -2914,8 +2914,8 @@ void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
 	double lKforg;						// log of therm. cond. for the org. fraction
 	double lKfpeat;						// log of therm. cond. for the peat fraction
 	double lKfmin;						// log of therm. cond. for the min. fraction
-	double ThermCond_total[NLAYERS];	// total thermal condunctivity
-	double HeatCapacity_total[NLAYERS];	// total heat capacity
+	double therm_cond_total[NLAYERS];	// total thermal condunctivity
+	double heat_capacity_total[NLAYERS];	// total heat capacity
 	double Ftot;						// total of solid fraction in soil
 
 	for (int i = IDX; i<NLAYERS; i++) {
@@ -2937,7 +2937,7 @@ void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
 
 		if (ansoln) Frac_air[i] = 0.0; // No air if analytic soln. sought
 
-		HeatCapacity_total[i] = heatcapacity(Frac_min[i], Frac_org[i], totaliceinlayer, totalwaterinlayer, Frac_peat[i], Frac_air[i]);
+		heat_capacity_total[i] = heatcapacity(Frac_min[i], Frac_org[i], totaliceinlayer, totalwaterinlayer, Frac_peat[i], Frac_air[i]);
 
 		// Update the THERMAL CONDUCTIVITY K - which follows
 		// Granberg et al. 1999, who refers to Farouki, 1986
@@ -2953,17 +2953,17 @@ void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
 		lKfwater = (totalwaterinlayer / Ftot) * lKwater;
 		lKfice = (totaliceinlayer / Ftot) * lKice;
 
-		ThermCond_total[i] = Frac_air[i] * Kair + Ftot * exp(lKfwater + lKfice + lKforg + lKfmin + lKfpeat);
+		therm_cond_total[i] = Frac_air[i] * Kair + Ftot * exp(lKfwater + lKfice + lKforg + lKfmin + lKfpeat);
 
 		// Update THERMAL DIFFUSIVITY for each SOIL layer
 		// multiply by 86400 to get from m2 s-1 to m2 d-1
 		// multiply by 1E6 to get from m2 d-1 to mm2 d-1
-		Di[i] = ThermCond_total[i] / HeatCapacity_total[i] * SECS_PER_DAY * MM2_PER_M2;	
+		Di[i] = therm_cond_total[i] / heat_capacity_total[i] * SECS_PER_DAY * MM2_PER_M2;	
 
 		// Conversion from (W m-1 K-1) TO (J day-1 mm-1 K-1)
-		Ki[i] = ThermCond_total[i] * SECS_PER_DAY * M_PER_MM;
+		Ki[i] = therm_cond_total[i] * SECS_PER_DAY * M_PER_MM;
 		// Conversion from (J m-3  K-1) TO (J mm-3 K-1)
-		Ci[i] = HeatCapacity_total[i] * M3_PER_MM3;
+		Ci[i] = heat_capacity_total[i] * M3_PER_MM3;
 
 		// Note that K/C = D has units mm2/day, as above
 	} // i 

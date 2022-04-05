@@ -1362,10 +1362,10 @@ public:
 	int firsttargetyear;
 	/// When to stop cutting to reach pft target fractions (calendar year)
 	int lasttargetyear;
-	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings in target cuttings
-	int	target_thinning_select_age;
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0) in target cuttings
-	int	target_thinning_select_diam;
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
+	int	targetthinselectage;
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0) in target cuttings
+	int	targetthinselectdiam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
@@ -1401,18 +1401,18 @@ public:
 	/// Whether to adapt diam_limit to forest stands with small trees
 	bool adapt_diam_limit;
 	/// Timing of thinning events, relative to rotation period
-	double thinning_time[NTHINNINGLOOPS][NTHINNINGS];
-	/// Strength (percent cut) of thinning events
-	double thinning_strength[NTHINNINGLOOPS][NTHINNINGS];
-	/// Strength (percent cut) of thinning events for unselected pft:s
-	double thinning_strength_unsel[NTHINNINGLOOPS][NTHINNINGS];
+	double thintime[NTHINNINGLOOPS][NTHINNINGS];
+	/// Strength (fraction cut) of thinning events
+	double thinstrength[NTHINNINGLOOPS][NTHINNINGS];
+	/// Strength (fraction cut) of thinning events for unselected pft:s
+	double thinstrength_unsel[NTHINNINGLOOPS][NTHINNINGS];
 	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)
-	int thinning_select_pft[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings
-	int thinning_select_age[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0)
-	int thinning_select_diam[NTHINNINGLOOPS][NTHINNINGS];
-	/// When to start start contiuous cutting period (years after start of regeneration period)
+	int thinselectpft[NTHINNINGLOOPS][NTHINNINGS];
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinselectdiam[] settings
+	int thinselectage[NTHINNINGLOOPS][NTHINNINGS];
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0)
+	int thinselectdiam[NTHINNINGLOOPS][NTHINNINGS];
+	/// When to start contiuous cutting period (years after start of regeneration period)
 	int secondintervalstart;
 	/// Wood cutting interval in years in the contiuous cutting period
 	int secondcutinterval;
@@ -1424,7 +1424,7 @@ public:
 	int targetcutinterval;
 	/// Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used (see documentation for details)
 	int targetcutmode;
-	/// Whether to stop cutting to reach pft fraction targets when continuous period starts
+	/// Whether to stop cutting to reach pft fraction targets when second (continuous) period starts
 	bool suppress_second_target;
 
 	/// hydrology (RAINFED,IRRIGATED) 
@@ -1456,7 +1456,7 @@ public:
 	/// Whether to clearcut first management year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
 	int cutfirstyear;
 	/// Whether to cut pft:s outside of selection clone year or first year of new management in a rotation (if reestab "restricted" or "none")
-	bool cutfirstyear_nonsel;
+	bool cutfirstyear_unsel;
 	/// Whether to kill grass at clearcut
 	bool killgrass_at_cc;
 	/// Whether to use stochastic mortality
@@ -1496,8 +1496,8 @@ public:
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;
-		target_thinning_select_age = 0;
-		target_thinning_select_diam = 2;
+		targetthinselectage = 0;
+		targetthinselectdiam = 2;
 		suppress_second_target = false;
 		cutinterval = 0;
 		ifthin_reineke = false;
@@ -1526,18 +1526,18 @@ public:
 		suppress_disturbance = false;
 		set_planting_density = false;
 		cutfirstyear = 1;
-		cutfirstyear_nonsel = false;
+		cutfirstyear_unsel = false;
 		killgrass_at_cc = false;
 		stochmort = true;
 		stochestab = true;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
-				thinning_time[n][t] = 0.0;
-				thinning_strength[n][t] = 0.0;
-				thinning_strength_unsel[n][t] = 0.0;
-				thinning_select_pft[n][t] = 0;
-				thinning_select_age[n][t] = 0;
-				thinning_select_diam[n][t] = 0;
+				thintime[n][t] = 0.0;
+				thinstrength[n][t] = 0.0;
+				thinstrength_unsel[n][t] = 0.0;
+				thinselectpft[n][t] = 0;
+				thinselectage[n][t] = 0;
+				thinselectdiam[n][t] = 0;
 			}
 		}
 		harv_eff_thin = -1.0;
@@ -1560,8 +1560,8 @@ public:
 		delayduecutting = from.delayduecutting;
 		firsttargetyear = from.firsttargetyear;
 		lasttargetyear = from.lasttargetyear;
-		target_thinning_select_age = from.target_thinning_select_age;
-		target_thinning_select_diam = from.target_thinning_select_diam;
+		targetthinselectage = from.targetthinselectage;
+		targetthinselectdiam = from.targetthinselectdiam;
 		planting_system = from.planting_system;
 		harvest_system = from.harvest_system;
 		pftname = from.pftname;
@@ -1581,12 +1581,12 @@ public:
 		adapt_diam_limit = from.adapt_diam_limit;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
-				thinning_time[n][t] = from.thinning_time[n][t];
-				thinning_strength[n][t] = from.thinning_strength[n][t];
-				thinning_strength_unsel[n][t] = from.thinning_strength_unsel[n][t];
-				thinning_select_pft[n][t] = from.thinning_select_pft[n][t];
-				thinning_select_age[n][t] = from.thinning_select_age[n][t];
-				thinning_select_diam[n][t] = from.thinning_select_diam[n][t];
+				thintime[n][t] = from.thintime[n][t];
+				thinstrength[n][t] = from.thinstrength[n][t];
+				thinstrength_unsel[n][t] = from.thinstrength_unsel[n][t];
+				thinselectpft[n][t] = from.thinselectpft[n][t];
+				thinselectage[n][t] = from.thinselectage[n][t];
+				thinselectdiam[n][t] = from.thinselectdiam[n][t];
 			}
 		}
 		secondintervalstart = from.secondintervalstart;
@@ -1611,7 +1611,7 @@ public:
 		suppress_disturbance = from.suppress_disturbance;
 		set_planting_density = from.set_planting_density;
 		cutfirstyear = from.cutfirstyear;
-		cutfirstyear_nonsel = from.cutfirstyear_nonsel;
+		cutfirstyear_unsel = from.cutfirstyear_unsel;
 		killgrass_at_cc = from.killgrass_at_cc;
 		stochmort = from.stochmort;
 		stochestab = from.stochestab;
@@ -2970,7 +2970,7 @@ public:
 	/// Pointer to struct with crop-specific data
 	cropindiv_struct *cropindiv;
 
-	/// cutting intensity (percent cut)
+	/// cutting intensity (fraction cut)
 	double man_strength;
 
 	// MEMBER FUNCTIONS

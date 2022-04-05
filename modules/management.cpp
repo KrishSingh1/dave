@@ -581,7 +581,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 				double max_cut = diameter_rules(indiv);
 
 				// Satisfy cutting demand by cutting down each cohort starting with thinnest trees first (alternatively thickest trees, select_diam=2);
-				// select_diam=3: cut patch.man_strength of individuals with diameter > diam_limit (only in continuous period)
+				// select_diam=3: cut patch.man_strength of individuals with diameter > diam_limit (only in second (continuous) period)
 				if(cmass_harvest_cohort) {
 					if(select_diam == 3) {
 						indiv.man_strength = max_cut;
@@ -667,14 +667,14 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		// Approximate full rotation age:
 		double str_sum = 0.0;
 
-		// Only in continuous period
+		// Only in second (continuous) period
 		int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
 		int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
 		int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
 		if(mt.adapt_diam_limit && mt.diam_limit && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
 			for(int t=0;t<NTHINNINGS;t++) {
-				str_sum += mt.thinning_strength[1][t];
+				str_sum += mt.thinstrength[1][t];
 			}
 			// Take into account number of patches that are cut each year:
 			double harvests_per_year = (1.0 * patch.stand.npatch()) / mt.secondcutinterval;
@@ -936,7 +936,7 @@ void set_forest(Gridcell& gridcell) {
 			}
 	
 			if(cutstr_total_use > DEVLIMIT)
-				distribute_cutting(patch, mt.target_thinning_select_diam, mt.target_thinning_select_age, 3, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
+				distribute_cutting(patch, mt.targetthinselectdiam, mt.targetthinselectage, 3, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
 
 			if(cmass_pft)
 				delete[] cmass_pft;
@@ -1237,7 +1237,7 @@ double manage_forest(Patch& patch) {
 	if(mt.distribute_patch_ages && nyears_distribute_patch_ages && date.year < max(stand.first_year, stand.clone_year) + nyears_distribute_patch_ages) {
 		int patch_order = (int)(patch.id * nyears_distribute_patch_ages * 1.0 / (1.0 * stand.npatch()));
 
-		// patch age cutting overrides regrowth period cutting in continuous harvest and thinnings in the first rotation period in clearcut 
+		// patch age cutting overrides first (regrowth) period cutting in continuous harvest and thinnings in the first rotation period in clearcut 
 		in_distribute_patch_ages_period = true;
 
 		if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % nyears_distribute_patch_ages)) {
@@ -1310,15 +1310,15 @@ double manage_forest(Patch& patch) {
 //						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear; synchronised cuttings in all stands
 					}
 					for(int t=0;t<NTHINNINGS;t++) {
-						if((mt.thinning_strength[0][t] || mt.thinning_strength_unsel[0][t]) && (age == (int)(floor((cut_interval * mt.thinning_time[0][t]) + 0.5)))) {
-							cut_fraction = mt.thinning_strength[0][t];
-							cut_fraction_unsel = mt.thinning_strength_unsel[0][t];
+						if((mt.thinstrength[0][t] || mt.thinstrength_unsel[0][t]) && (age == (int)(floor((cut_interval * mt.thintime[0][t]) + 0.5)))) {
+							cut_fraction = mt.thinstrength[0][t];
+							cut_fraction_unsel = mt.thinstrength_unsel[0][t];
 							patch.man_strength = cut_fraction;
 							// Pre-commercial thinning: harvested biomass to litter
 							if(!t) {
 								patch.harvest_to_litter = true;
 							}
-							distribute_cutting(patch, mt.thinning_select_diam[0][t], mt.thinning_select_age[0][t], mt.thinning_select_pft[0][t], cut_fraction_unsel);
+							distribute_cutting(patch, mt.thinselectdiam[0][t], mt.thinselectage[0][t], mt.thinselectpft[0][t], cut_fraction_unsel);
 						}
 					}
 				}
@@ -1360,11 +1360,11 @@ double manage_forest(Patch& patch) {
 
 		for(int t=0;t<NTHINNINGS;t++) {
 
-			if((mt.thinning_strength[n][t] || mt.thinning_strength_unsel[n][t]) && (age % cut_interval) == (int)(floor((cut_interval * mt.thinning_time[n][t]) + 0.5))) {
-				cut_fraction = mt.thinning_strength[n][t];
-				cut_fraction_unsel = mt.thinning_strength_unsel[n][t];
+			if((mt.thinstrength[n][t] || mt.thinstrength_unsel[n][t]) && (age % cut_interval) == (int)(floor((cut_interval * mt.thintime[n][t]) + 0.5))) {
+				cut_fraction = mt.thinstrength[n][t];
+				cut_fraction_unsel = mt.thinstrength_unsel[n][t];
 				patch.man_strength = cut_fraction;
-				distribute_cutting(patch, mt.thinning_select_diam[n][t], mt.thinning_select_age[n][t], mt.thinning_select_pft[n][t], cut_fraction_unsel);
+				distribute_cutting(patch, mt.thinselectdiam[n][t], mt.thinselectage[n][t], mt.thinselectpft[n][t], cut_fraction_unsel);
 			}
 		}
 	}

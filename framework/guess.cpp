@@ -971,7 +971,7 @@ void Stand::set_management() {
 		}
 	}
 
-	// Allow unselected individuals to stay alive if cutfirstyear_nonsel is false after rotation or cloning
+	// Allow unselected individuals to stay alive if cutfirstyear_unsel is false after rotation or cloning
 	for(unsigned int p = 0; p < nobj; p++) {
 		Patch& patch = (*this)[p];
 		Vegetation& vegetation = patch.vegetation;
@@ -1058,7 +1058,7 @@ void Stand::set_management() {
 								pft[pftx.id].reestab = true;
 							}
 						}
-						if(mt.cutfirstyear_nonsel) {
+						if(mt.cutfirstyear_unsel) {
 							for(unsigned int p = 0; p < nobj; p++) {
 								Patch& patch = (*this)[p];
 								Vegetation& vegetation = patch.vegetation;
@@ -1141,7 +1141,7 @@ void Stand::set_management() {
 							pft[pftx.id].reestab = true;
 						}
 					}
-					if(mt.cutfirstyear_nonsel) {
+					if(mt.cutfirstyear_unsel) {
 						for(unsigned int p = 0; p < nobj; p++) {
 							Patch& patch = (*this)[p];
 							Vegetation& vegetation = patch.vegetation;
@@ -1226,7 +1226,7 @@ void Stand::set_management() {
 						}
 					}
 				}
-				else if(mt.cutfirstyear_nonsel && pftx.lifeform == TREE) {
+				else if(mt.cutfirstyear_unsel && pftx.lifeform == TREE) {
 					for(unsigned int p = 0; p < nobj; p++) {
 						Patch& patch = (*this)[p];
 						Vegetation& vegetation = patch.vegetation;

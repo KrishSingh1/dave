@@ -818,7 +818,7 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 				StandType& st = stlist.getobj();
 				Gridcellst& gcst = gridcell.st[st.id];
 				if(st.landcover == CROPLAND) {
-					if(st.rotation.ncrops == 1 && st.get_management(0).hydrology == RAINFED) {
+					if(st.rotation.nmanagements == 1 && st.get_management(0).hydrology == RAINFED) {
 						if(gridcell.get_lat() > 30 || gridcell.get_lat() < -30) {
 							if(pftlist[pftlist.getpftid(st.get_management(0).pftname)].tb <= 5) {
 								gcst.frac = 1.0;

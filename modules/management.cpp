@@ -2311,7 +2311,7 @@ void forest_rotation(Stand& stand) {
 	StandType& st = stlist[stand.stid];
 	ManagementType& mt = stand.get_current_management();
 
-	if(stand.landcover != FOREST || st.rotation.ncrops < 2)
+	if(stand.landcover != FOREST || st.rotation.nmanagements < 2)
 		return;
 
 	stand.nyears_inrotation++;
@@ -2326,7 +2326,7 @@ void forest_rotation(Stand& stand) {
 
 	bool rotate_at_cc = st.rot_wait_for_cc && mt.harvest_system == "CLEARCUT";
 
-	for(int m=0;m<st.rotation.ncrops;m++) {
+	for(int m=0;m<st.rotation.nmanagements;m++) {
 		bool rotate_now = false;
 		if(rotate_at_cc) {
 			if(st.mtstartyear[m] > -1 && st.mtstartyear[m] <= date.get_calendar_year() && clearcut
@@ -2352,11 +2352,11 @@ void crop_rotation(Stand& stand) {
 		return;
 	}
 
-	CropRotation& rotation = stlist[stand.stid].rotation;
+	Rotation& rotation = stlist[stand.stid].rotation;
 
 	stand.ndays_inrotation++;
 
-	if (rotation.ncrops < 2 || !stand.isrotationday) {
+	if (rotation.nmanagements < 2 || !stand.isrotationday) {
 		return;
 	}
 
@@ -2376,7 +2376,7 @@ void crop_rotation(Stand& stand) {
 //		if(date.year == firstrotyear - 1)
 	// C. Continuously:
 	{
-		if ((abs(firstrotyear - date.year) % rotation.ncrops) != stand.current_rot)
+		if ((abs(firstrotyear - date.year) % rotation.nmanagements) != stand.current_rot)
 			postpone_rotation = true;
 	}
 
@@ -2406,7 +2406,7 @@ void crop_rotation(Stand& stand) {
 		}
 
 		// Adds sowing and harvest dates for the second crop in a double cropping system
-		if (rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
+		if (rotation.multicrop && rotation.nmanagements == 2 && stand.current_rot == 1) {
 			if (stand.pft[stand.pftid].sdate_force < 0)
 				stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
 			if (stand.pft[stand.pftid].hdate_force < 0) {

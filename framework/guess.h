@@ -1391,7 +1391,7 @@ public:
 	double rdi_target;
 	/// Whether to use tree density as a trigger for clearcut
 	bool ifclearcut_by_density;
-	/// Tree density target for clearcut (ind/ha)
+	/// Tree density target (trees/ha) below which a clearcut will occur for clearcut_by_density
 	int dens_target_cc;
 	/// Whether to use optimum rotation age as a trigger for clearcut
 	bool ifclearcut_optimal_age;
@@ -1687,17 +1687,17 @@ public:
 extern ManagementTypelist mtlist;
 
 /// Storage class of crop rotation information for a stand type, read from the instruction file.
-struct CropRotation {
+struct Rotation {
 
 	/// Number of crops in rotation
-	int ncrops;
+	int nmanagements;
 	/// First rotation year
 	int firstrotyear;
 	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
 
-	CropRotation() {
-		ncrops = 0;
+	Rotation() {
+		nmanagements = 0;
 		firstrotyear = 0;
 		multicrop = false;
 	}
@@ -1719,7 +1719,7 @@ public:
 	/** \see landcovertype */
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
 	/// Rotation information, read from the instruction file
-	CropRotation rotation;
+	Rotation rotation;
 	/// Management struct (static)
 	ManagementType management;
 	/// Management types in a rotation cycle
@@ -1779,7 +1779,7 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		if(rotation.ncrops > 1) {
+		if(rotation.nmanagements > 1) {
 			return mtlist[mtlist.getmtid(mtnames[rot])];
 		}
 		else {
@@ -1791,7 +1791,7 @@ public:
 	int mtinrotation(xtring name) {
 
 		int mtno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
+		for(int i=0; i<rotation.nmanagements; i++) {
 			if(name == mtnames[i])
 				mtno = i;
 		}
@@ -1803,7 +1803,7 @@ public:
 	int pftinrotation(xtring name) {
 
 		int cropno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
+		for(int i=0; i<rotation.nmanagements; i++) {
 			if(name == get_management(i).pftname)
 				cropno = i;
 		}

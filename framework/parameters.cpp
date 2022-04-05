@@ -932,9 +932,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
 		declareitem("plantdensity_pft",&pmt->plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density (seedlings/ha)");
-		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
-		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities (seedlings/ha)");
-		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft cmass target fractions");
+		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names in selection");
+		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities for the pft selection (seedlings/ha)");
+		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft selection cmass target fractions");
 		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
 		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
 		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,
@@ -994,7 +994,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("alpha_st",&pmt->alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
 		declareitem("rdi_target",&pmt->rdi_target,0.0,1.0,1,CB_NONE,"Thinning 'intensity' (low value more intense) when using ifthin_reineke");
 		declareitem("ifclearcut_by_density",&pmt->ifclearcut_by_density,1,CB_NONE,"Whether to use tree density as a trigger for clearcut");
-		declareitem("dens_target_cc",&pmt->dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
+		declareitem("dens_target_cc",&pmt->dens_target_cc,0,10000,1,CB_NONE,"Tree density target (trees/ha) below which a clearcut will occur for clearcut_by_density");
 		declareitem("ifclearcut_optimal_age",&pmt->ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
 		declareitem("distribute_patch_ages",&pmt->distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
 		declareitem("distribute_cuttings_among_patches",&pmt->distribute_cuttings_among_patches,1,CB_NONE,
@@ -1046,7 +1046,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("reestab",&strparam,16,CB_STREESTAB,
 			"Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 
-		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Disturbance interval");	// ??
+		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Stand-type-specific disturbance interval");
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
 		declareitem("rot_wait_for_cc",&pst->rot_wait_for_cc,1,CB_NONE,"Whether to wait for clearcut before moving to next mt in a forestry rotation");
@@ -1071,9 +1071,9 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");
 				declareitem("plantdensity_pft",&pst->management.plantdensity_pft,0.0,1000.0,1,CB_NONE,"pft planting density of management 1 (seedlings/ha)");
-				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names of management 1");
-				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities of management 1 (seedlings/ha)");
-				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft cmass target fractions");
+				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names in selection of management 1");
+				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities for the pft selection of management 1 (seedlings/ha)");
+				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft selection cmass target fractions");
 				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
 				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
 				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,
@@ -1132,7 +1132,8 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("alpha_st",&pst->management.alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
 				declareitem("rdi_target",&pst->management.rdi_target,0.0,1.0,1,CB_NONE,"Thinning 'intensity' (low value more intense) when using ifthin_reineke");
 				declareitem("ifclearcut_by_density",&pst->management.ifclearcut_by_density,1,CB_NONE,"Whether to use tree density as a trigger for clearcut");
-				declareitem("dens_target_cc",&pst->management.dens_target_cc,0,10000,1,CB_NONE,"Tree density target for clearcut (trees/ha)");
+				declareitem("dens_target_cc",&pst->management.dens_target_cc,0,10000,1,CB_NONE,
+					"Tree density target (trees/ha) below which a clearcut will occur for clearcut_by_density");
 				declareitem("ifclearcut_optimal_age",&pst->management.ifclearcut_optimal_age,1,CB_NONE,"Whether to use optimum rotation age as a trigger for clearcut");
 				declareitem("distribute_patch_ages",&pst->management.distribute_patch_ages,1,CB_NONE,"Whether to distribute patch ages in a new managed forest stand");
 				declareitem("distribute_cuttings_among_patches",&pst->management.distribute_cuttings_among_patches,1,CB_NONE,
@@ -1643,7 +1644,7 @@ void plib_callback(int callback) {
 			}
 		}
 
-		/// Set ncrops and verify that crop rotations have defined pftnames
+		/// Set nmanagements and verify that crop rotations have defined pftnames
 		stlist.firstobj();
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();
@@ -1654,12 +1655,12 @@ void plib_callback(int callback) {
 				for(int rot=0; rot<NROTATIONPERIODS_MAX; rot++) {
 
 					if(st.mtnames[rot] != "") {
-						st.rotation.ncrops++;
+						st.rotation.nmanagements++;
 						if(rot == 0) {
 							int mtid = mtlist.getmtid(st.mtnames[rot]);
 							if(mtid > -1) {
 								ManagementType& mt = mtlist[mtid];
-								// Copy management from mtlist to stand type management, used only if ncrops=1
+								// Copy management from mtlist to stand type management, used only if nmanagements=1
 								st.management = mt;
 							}
 						}
@@ -1669,16 +1670,16 @@ void plib_callback(int callback) {
 					}
 				}
 			}
-			if(!st.rotation.ncrops) {
+			if(!st.rotation.nmanagements) {
 				// Check if there are management settings in the stand type definition
 				if(st.management.is_managed())
-					st.rotation.ncrops = 1;
+					st.rotation.nmanagements = 1;
 			}
 			if(st.landcover == CROPLAND && 
-				(st.rotation.ncrops == 0 ||
-				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !(st.get_management(0).fallow && st.rotation.ncrops > 1) ||
-				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
-				st.rotation.ncrops >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
+				(st.rotation.nmanagements == 0 ||
+				st.rotation.nmanagements >= 1 && st.get_management(0).pftname == "" && !(st.get_management(0).fallow && st.rotation.nmanagements > 1) ||
+				st.rotation.nmanagements >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
+				st.rotation.nmanagements >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
 				fail("Check stand type rotation parameter setting, pftname missing\n");
 
 			stlist.nextobj();
@@ -1694,7 +1695,7 @@ void plib_callback(int callback) {
 
 			if(st.landcover == CROPLAND) {	// Should check this for other land covers too, forest monocultures can have a pftname
 
-				for(int i=0; i<st.rotation.ncrops; i++) {
+				for(int i=0; i<st.rotation.nmanagements; i++) {
 
 					if(st.mtnames[i] != "" && mtlist.getmtid(st.mtnames[i]) < 0) {
 						include = false;

@@ -759,8 +759,8 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
 	if(pftid < 0) {
 			// In case rotation starts with fallow
-			if(mt0.fallow && st.rotation.ncrops > 1) {
-				ManagementType& mt_prev = st.get_management(st.rotation.ncrops - 1);
+			if(mt0.fallow && st.rotation.nmanagements > 1) {
+				ManagementType& mt_prev = st.get_management(st.rotation.nmanagements - 1);
 				pftid = pftlist.getpftid(mt_prev.pftname);
 		}
 	}
@@ -778,7 +778,7 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 
 	// Set standpft- and patchpft-variables for all crops in a rotation
 	if(lc == CROPLAND) {
-		for(int rot=0; rot<st.rotation.ncrops; rot++) {
+		for(int rot=0; rot<st.rotation.nmanagements; rot++) {
 
 			ManagementType& mt = st.get_management(rot);
 			if(mt.planting_system == "MONOCULTURE") {
@@ -1256,13 +1256,13 @@ void Stand::rotate(int rot) {
 
 	StandType& st = stlist[stid];
 
-	if(st.rotation.ncrops < 2)
+	if(st.rotation.nmanagements < 2)
 		return;
 
 	if(rot > -1)
 		current_rot = rot;
 	else
-		current_rot = (current_rot + 1) % st.rotation.ncrops;
+		current_rot = (current_rot + 1) % st.rotation.nmanagements;
 	ManagementType& mt = get_current_management();
 
 	set_management();
@@ -2008,7 +2008,7 @@ bool Individual::continous_grass() const {
 	StandType& st = stlist[stand.stid];
 	bool sowing_restriction = true;
 
-	for (int i=0; i<st.rotation.ncrops; i++) {
+	for (int i=0; i<st.rotation.nmanagements; i++) {
 		int pftid = pftlist.getpftid(st.get_management(i).pftname);
 		if (pftid > -1 && !stand.get_gridcell().pft[pftid].sowing_restriction) {
 			sowing_restriction = false;

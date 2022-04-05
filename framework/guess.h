@@ -1346,9 +1346,9 @@ public:
 	int id;
 	/// name of management type
 	xtring name;
-
-	/// First management year (calendar year): sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
-	/** \this currently only applies for stands with wood havest */
+	/// First management year (calendar year)
+	/** Sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins.
+	 *  This currently only applies for stands with wood havest */
 	int firstmanageyear;
 	/// First year with wood harvest (calendar year)
 	int firstcutyear;
@@ -1364,7 +1364,8 @@ public:
 	int lasttargetyear;
 	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
 	int	targetthinselectage;
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0) in target cuttings
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with ...
+	/** diam > 2*diam_limit (3).or no preference (0) in target cuttings */
 	int	targetthinselectdiam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
@@ -1406,11 +1407,13 @@ public:
 	double thinstrength[NTHINNINGLOOPS][NTHINNINGS];
 	/// Strength (fraction cut) of thinning events for unselected pft:s
 	double thinstrength_unsel[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)
+	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), ...
+	/** shrubs and shade-intolerant species preferentially cut (4) or no preference (0) */
 	int thinselectpft[NTHINNINGLOOPS][NTHINNINGS];
 	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinselectdiam[] settings
 	int thinselectage[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0)
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with ...
+	/** diam > 2*diam_limit (3).or no preference (0) */
 	int thinselectdiam[NTHINNINGLOOPS][NTHINNINGS];
 	/// When to start contiuous cutting period (years after start of regeneration period)
 	int secondintervalstart;

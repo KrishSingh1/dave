@@ -105,6 +105,7 @@ void turnover_grass(Individual& indiv) {
 		patchpft.litter_root,
 		patchpft.nmass_litter_leaf,
 		patchpft.nmass_litter_root,
+		patchpft.cmass_leaf_root_turnover,
 		indiv.nstore_longterm, indiv.max_n_storage,
 		true);
 

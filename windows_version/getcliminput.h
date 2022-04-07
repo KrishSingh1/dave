@@ -52,9 +52,9 @@ public:
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell, landcover_input);}
 
-	/// Obtains additional environmental data that are not dynamic
+	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
 	void getenviron(Gridcell& gridcell) {;}
-	/// Obtains additional environmental data for one year
+	/// Obtains additional environmental data (e.g. disturbance) for one year
 	void getenviron_yearly(Gridcell& gridcell) {misc_input.getenviron_yearly(gridcell);}
 
 private:

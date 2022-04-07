@@ -971,7 +971,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("thinselectage",pmt->thinselectage[0],0,2,NTHINNINGS,CB_NONE,
 			"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
 		declareitem("thinselectdiam",pmt->thinselectdiam[0],0,3,NTHINNINGS,CB_NONE,
-			"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)");
+			"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_cut_low only (3), or no preference (0)");
 		declareitem("secondintervalstart",&pmt->secondintervalstart,0,10000,1,CB_NONE,
 			"When to start the second (continuous) cutting period (years after start of first (regeneration) period)");
 		declareitem("secondcutinterval",&pmt->secondcutinterval,0,10000,1,CB_NONE,
@@ -987,8 +987,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("secondthinselectage",pmt->thinselectage[1],0,2,NTHINNINGS,CB_NONE,
 			"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in the second (continuous) cutting period");
 		declareitem("secondthinselectdiam",pmt->thinselectdiam[1],0,3,NTHINNINGS,CB_NONE,
-			"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0) in the second (continuous) cutting period");
-		declareitem("diam_limit",&pmt->diam_limit,0.0,1000.0,1,CB_NONE,"Lower diameter limit (cm) for cutting in the second (continuous) cutting period");
+			"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_cut_low only (3), or no preference (0) in the second (continuous) cutting period");
+		declareitem("diam_cut_low",&pmt->diam_cut_low,0.0,1000.0,1,CB_NONE,
+			"Lower diameter limit (cm) for cutting (thinstrength*100)% of trees in the second (continuous) cutting period");
+		declareitem("diam_cut_high",&pmt->diam_cut_high,0.0,1000.0,1,CB_NONE,
+			"Lower diameter limit (cm) for cutting 100% of trees in the second (continuous) cutting period");
 		declareitem("adapt_diam_limit",&pmt->adapt_diam_limit,1,CB_NONE,"Whether to adapt diam_limit to forest stands with small trees");
 		declareitem("ifthin_reineke",&pmt->ifthin_reineke,1,CB_NONE,"Whether to use Reineke's rule-based automatic thinning");
 		declareitem("alpha_st",&pmt->alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
@@ -1109,7 +1112,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("thinselectage",pst->management.thinselectage[0],0,2,NTHINNINGS,CB_NONE,
 					"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
 				declareitem("thinselectdiam",pst->management.thinselectdiam[0],0,3,NTHINNINGS,CB_NONE,
-					"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)");
+					"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_cut_low only (3), or no preference (0)");
 				declareitem("secondintervalstart",&pst->management.secondintervalstart,0,10000,1,CB_NONE,
 					"When to start contiuous cutting period (years after start of regeneration period)");
 				declareitem("secondcutinterval",&pst->management.secondcutinterval,0,10000,1,CB_NONE,
@@ -1125,9 +1128,12 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("secondthinselectage",pst->management.thinselectage[1],0,2,NTHINNINGS,CB_NONE,
 					"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in the contiuous cutting period");
 				declareitem("secondthinselectdiam",pst->management.thinselectdiam[1],0,3,NTHINNINGS,CB_NONE,
-					"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0) in the contiuous cutting period");
-				declareitem("diam_limit",&pst->management.diam_limit,0.0,1000.0,1,CB_NONE,"Lower diameter limit for cutting in the contiuous cutting period");
-				declareitem("adapt_diam_limit",&pst->management.adapt_diam_limit,1,CB_NONE,"Whether to adapt diam_limit to forest stands with small trees");
+					"Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_cut_low only (3), or no preference (0) in the contiuous cutting period");
+				declareitem("diam_cut_low",&pst->management.diam_cut_low,0.0,1000.0,1,CB_NONE,
+					"Lower diameter limit (cm) for cutting (thinstrength*100)% of trees in the second (continuous) cutting period");
+				declareitem("diam_cut_high",&pst->management.diam_cut_high,0.0,1000.0,1,CB_NONE,
+					"Lower diameter limit (cm) for cutting 100% of trees in the second (continuous) cutting period");
+				declareitem("adapt_diam_limit",&pst->management.adapt_diam_limit,1,CB_NONE,"Whether to adapt diam_cut_low to forest stands with small trees");
 				declareitem("ifthin_reineke",&pst->management.ifthin_reineke,1,CB_NONE,"Whether to use Reineke's rule-based automatic thinning");
 				declareitem("alpha_st",&pst->management.alpha_st,0.0,100.0,1,CB_NONE,"Self-thinning parameter for thin_reineke");
 				declareitem("rdi_target",&pst->management.rdi_target,0.0,1.0,1,CB_NONE,"Thinning 'intensity' (low value more intense) when using ifthin_reineke");

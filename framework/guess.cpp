@@ -861,7 +861,7 @@ void Stand::set_management() {
 	// Move variables to stand ?
 	if(!readNfert_st)
 		gridcell->st[stid].nfert = mt.nfert;
-	gridcell->st[stid].diam_limit = mt.diam_limit;
+	gridcell->st[stid].diam_cut_low = mt.diam_cut_low;
 
 	if(mt.hydrology == IRRIGATED) {
 		isirrigated = true;					
@@ -2568,7 +2568,7 @@ void Gridcellst::serialize(ArchiveStream& arch) {
 	arch & frac
 		& frac_old_orig
 		& nstands
-		& diam_limit
+		& diam_cut_low
 		& nfert;
 }
 

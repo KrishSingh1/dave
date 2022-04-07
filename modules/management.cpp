@@ -123,7 +123,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *  is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *
- *  INPUT PARAMETER
+ *  INPUT PARAMETERS
+ *  \param diam						tree diameter (m)
  *  \param frac_cut					fraction of trees cut
  *  \param harv_eff					harvest efficiency
  *  \param res_outtake_twig			removed twig fraction
@@ -391,29 +392,30 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 	}
 }
 
-/// Applies diameter rules if mt.diam_limit is set (default 0) and returns maximum man_strength for this individual. If not set, 1 is returned
+/// Applies diameter rules if mt.diam_cut_low is set (default 0) and returns maximum man_strength for this individual. If not set, 1 is returned
 double diameter_rules(Individual& indiv) {
 
 	Patch& patch = indiv.vegetation.patch;
 	Gridcellst& gst = patch.stand.get_gridcell().st[patch.stand.stid];
-	double diam_limit = gst.diam_limit;
 	ManagementType& mt = patch.stand.get_current_management();
 
-	// Only use diameter limit for continuous cover
+	double diam_cut_low = gst.diam_cut_low;	// mt diam_cut_low may be adjusted, stored in gst.diam_cut_low
+	double diam_cut_high = mt.diam_cut_high;
+
+	// Only use diameter limit for second (continuous cover) cutting period
 	int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
 	int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
 	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
-	if(!diam_limit || mt.secondintervalstart == -1 || cutting_reference_age < mt.secondintervalstart)
+	if(!diam_cut_low || mt.secondintervalstart == -1 || cutting_reference_age < mt.secondintervalstart)
 		return 1.0;
 
 	double man_strength;
-	double diam_max = diam_limit * 2.0;	// Fredrik's continuous management
-
-	if (indiv.diam > diam_limit) {
+	// indiv.diam is in m, diam_cut_low and diam_cut_high are in cm
+	if (indiv.diam * 100 > diam_cut_low) {
 		man_strength = patch.man_strength;
-		if(indiv.diam > diam_max)
-			man_strength = 0.9;	// Fredrik's continuous management
+		if(indiv.diam * 100 > diam_cut_high)
+			man_strength = 1.0;
 	}
 	else {
 		man_strength = 0.0;
@@ -593,7 +595,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 						}
 						else {
 							indiv.man_strength = min(1.0, cmass_harvest_remain / cmass_harvest_cohort);
-							// if diam_lim set, don't cut smaller trees
+							// if diam_cut_low set, don't cut smaller trees
 							if(!max_cut)
 								indiv.man_strength = 0.0;
 						}
@@ -672,7 +674,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		int first_cutyear = (mt.firstcutyear < FAR_FUTURE_YEAR) ? mt.firstcutyear - date.first_calendar_year : first_manageyear;
 		int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
-		if(mt.adapt_diam_limit && mt.diam_limit && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
+		if(mt.adapt_diam_limit && mt.diam_cut_low && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				str_sum += mt.thinstrength[1][t];
 			}
@@ -680,8 +682,8 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			double harvests_per_year = (1.0 * patch.stand.npatch()) / mt.secondcutinterval;
 
 			Gridcellst& gst = patch.stand.get_gridcell().st[patch.stand.stid];
-			gst.diam_limit *= (1.0 - (0.01 / harvests_per_year));
-			dprintf("New diam_limit = %f\n", gst.diam_limit);
+			gst.diam_cut_low *= (1.0 - (0.01 / harvests_per_year));
+			dprintf("New diam_cut_low = %f\n", gst.diam_cut_low);
 		}
 	}
 

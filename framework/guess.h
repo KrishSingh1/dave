@@ -1364,8 +1364,7 @@ public:
 	int lasttargetyear;
 	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
 	int	targetthinselectage;
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with ...
-	/** diam > 2*diam_limit (3).or no preference (0) in target cuttings */
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0) in target cuttings.
 	int	targetthinselectdiam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
@@ -1397,9 +1396,11 @@ public:
 	bool ifclearcut_optimal_age;
 	/// Whether to distribute patch ages in a new managed forest stand
 	bool distribute_patch_ages;
-	/// Lower tree diameter limit (cm) for cutting
-	double diam_limit;
-	/// Whether to adapt diam_limit to forest stands with small trees
+	/// Minimum tree diameter limit (cm) for cutting (thinstrength*100)% of trees
+	double diam_cut_low;
+	/// Minimum tree diameter limit (cm) for cutting 100% of trees
+	double diam_cut_high;
+	/// Whether to adapt diam_cut_low to forest stands with small trees
 	bool adapt_diam_limit;
 	/// Timing of thinning events, relative to rotation period
 	double thintime[NTHINNINGLOOPS][NTHINNINGS];
@@ -1412,8 +1413,8 @@ public:
 	int thinselectpft[NTHINNINGLOOPS][NTHINNINGS];
 	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinselectdiam[] settings
 	int thinselectage[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees above diam_limit and 90% of trees with ...
-	/** diam > 2*diam_limit (3).or no preference (0) */
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees with diam between diam_cut_low and diam_cut_high...
+	/** and 100% of trees with diam > diam_cut_high (3), or no preference (0) */
 	int thinselectdiam[NTHINNINGLOOPS][NTHINNINGS];
 	/// When to start contiuous cutting period (years after start of regeneration period)
 	int secondintervalstart;
@@ -1513,7 +1514,8 @@ public:
 		secondintervalstart = -1;
 		secondcutinterval = 0;
 		distribute_cuttings_among_patches = false;
-		diam_limit = 0.0;
+		diam_cut_low = 0.0;
+		diam_cut_high = 1000.0;
 		adapt_diam_limit = false;
 		hydrology = RAINFED;
 //		firr = 0.0;
@@ -1580,7 +1582,8 @@ public:
 		dens_target_cc = from.dens_target_cc;
 		ifclearcut_optimal_age = from.ifclearcut_optimal_age;
 		distribute_patch_ages = from.distribute_patch_ages;
-		diam_limit = from.diam_limit;
+		diam_cut_low = from.diam_cut_low;
+		diam_cut_high = from.diam_cut_high;
 		adapt_diam_limit = from.adapt_diam_limit;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
@@ -4997,7 +5000,7 @@ public:
 	/// Wood harvest C mass / m2 for gridcell
 	double woodharv_cmass;
 	/// Lower tree diameter limit (cm) for cutting (dynamic variable)
-	double diam_limit;
+	double diam_cut_low;
 
 	// MEMBER FUNCTIONS
 
@@ -5017,7 +5020,7 @@ public:
 		nfert = -1.0;
 		woodharv_frac = -1.0;
 		woodharv_cmass = -1.0;
-		diam_limit = 0.0;
+		diam_cut_low = 0.0;
 		reset_cutinterval_st = false;
 		cutinterval_st = 0.0;
 		distinterval_st = 1.0e10;

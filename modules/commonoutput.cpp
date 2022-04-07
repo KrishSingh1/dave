@@ -54,7 +54,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_ngases", &file_ngases, 300, "Annual nitrogen gases output file");
 	declare_parameter("file_soil_npool", &file_soil_npool, 300, "Annual soil N pools output file");
 	declare_parameter("file_soil_nflux", &file_soil_nflux, 300, "Annual soil N fluxes output file");
-	declare_parameter("file_speciesdiam", &file_speciesdiam, 300, "Mean species diameter");
+	declare_parameter("file_speciesdiam", &file_speciesdiam, 300, "Mean species diameter (cm)");
 	declare_parameter("file_speciesheights", &file_speciesheights, 300, "Mean species heights");
 
 	// Monthly output variables

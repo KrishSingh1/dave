@@ -197,10 +197,10 @@ double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass
 // TURNOVER
 // Internal function (do not call directly from framework)
 
-double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
+void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
-	double& nmass_heart, double& litter_leaf, double& litter_root,
+	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
 	double& longterm_nstore, double &max_n_storage,
 	bool alive) {
@@ -230,13 +230,12 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// litter_root			= new root C litter (kgC/m2)
 	// nmass_litter_leaf	= new leaf nitrogen litter (kgN/m2)
 	// nmass_litter_root	= new root nitrogen litter (kgN/m2)
+    // cmass_leaf_root_turnover = litter produced in turnover (kgC/m2)
 	// cmass_heart			= heartwood C biomass (kgC/m2)
 	// nmass_heart			= heartwood nitrogen biomass (kgC/m2)
 	// longterm_nstore		= longterm nitrogen storage (kgN/m2)
 
 	double turnover = 0.0;
-	double cmass_leaf_root_turnover = 0.0;
-
 	// Calculate actual nitrogen retranslocation so maximum nitrogen storage capacity is not exceeded
 	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
 	                                           turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
@@ -283,7 +282,6 @@ double turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		nmass_heart += turnover * (1.0 - actual_nrelocfrac);
 		longterm_nstore += turnover * actual_nrelocfrac;
 	}
-	return cmass_leaf_root_turnover;
 }
 
 
@@ -1274,12 +1272,12 @@ void growth(Stand& stand, Patch& patch) {
 
 				if(!indiv.has_daily_turnover()) {
 					// Tissue turnover and associated litter production
-					patchpft.cmass_leaf_root_turnover += turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
 						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 						indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 						indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
 						patch.pft[indiv.pft.id].litter_leaf,
-						patch.pft[indiv.pft.id].litter_root,
+						patch.pft[indiv.pft.id].litter_root, patch.pft[indiv.pft.id].cmass_leaf_root_turnover,
 						patch.pft[indiv.pft.id].nmass_litter_leaf,
 						patch.pft[indiv.pft.id].nmass_litter_root,
 						indiv.nstore_longterm,indiv.max_n_storage,

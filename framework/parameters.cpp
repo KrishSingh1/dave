@@ -818,6 +818,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"Maximum lai (crop grass only)");
 		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
 
+		declareitem("fert_stages",ppft->fert_stages, 0.0, 2.0 ,2, CB_NONE, "Development stage at fertilisation");
 		declareitem("fertdates",ppft->fertdates,0,365,2,CB_NONE,
 			"Fertilisation dates, relative to sowing");
 		declareitem("fertrate",ppft->fertrate,0.0,1.0,2,CB_NONE,

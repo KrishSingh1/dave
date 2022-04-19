@@ -1689,12 +1689,12 @@ public:
 /// The one and only linked list of ManagementType objects	
 extern ManagementTypelist mtlist;
 
-/// Storage class of crop rotation information for a stand type, read from the instruction file.
+/// Storage class of management rotation information for a stand type, read from the instruction file.
 struct Rotation {
 
-	/// Number of crops in rotation
+	/// Number of managements in rotation
 	int nmanagements;
-	/// First rotation year
+	/// First crop rotation year
 	int firstrotyear;
 	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
@@ -2011,14 +2011,14 @@ public:
 	/// interception coefficient (unitless)
 	double intc;
 
-	/// the amount of N that is applied (kg N m-2)
+	/// nitrogen fertilisation amount (kgN/m2/year)
 	double N_appfert;
-	/// 0 - 1 how much of the fertiliser is applied the first date, default 1.
+	/// 0 - 1 how much of the fertiliser is applied at the two fertdates, default 1.
 	double fertrate[2];
-	/// dates relative to sowing date
+	/// fertilisation dates relative to sowing date
 	int fertdates[2];
+	/// development stage at the two fertilisation events after sowing
 	double fert_stages[2];
-	bool fertilised[2];
 
 	double T_vn_min;
 	double T_vn_opt;
@@ -2245,8 +2245,6 @@ public:
 
 		fert_stages[0] = 0.5;
 		fert_stages[1] = 0.9;
-		fertilised[0] = false;
-		fertilised[1] = false;
 
 		N_appfert = 0.0;
 
@@ -2463,6 +2461,36 @@ public:
 			return true;
 		else
 			return false;
+	}
+
+	bool is_shrub() const {
+
+		// Current limit for shrubs (10 m); may be changed.
+		return crownarea_max < 10.0 && lifeform == TREE;
+	}
+
+	bool is_shade_intolerant_tree() const {
+
+		// Current limit for shade intolerant trees (10 in europe.ins); may be changed.
+		return alphar >= 10.0 && lifeform == TREE;
+	}
+
+	bool is_boreal() const {
+
+		// Current value of pstemp_low for boreal trees and cold (C3) grass in global.ins and europe.ins is 10; may be changed.
+		return pstemp_low <= 12;
+	}
+
+	bool is_temperate() const {
+
+		// Current value of pstemp_low for temperate trees in global.ins and europe.ins is 15; may be changed.
+		return pstemp_low > 12 && pstemp_low <= 20;
+	}
+
+	bool is_tropical() const {
+
+		// Current value of pstemp_low for tropical trees and warm (C4) grass in global.ins and europe.ins is 20; may be changed.
+		return pstemp_low > 20;
 	}
 };
 
@@ -3124,9 +3152,6 @@ public:
 
 	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
-
-	/// Whether individual is a shrub
-	bool is_shrub() const;
 };
 
 
@@ -4064,7 +4089,7 @@ struct cropphen_struct : public Serializable {
 	double f_alloc_horg;
 	/// The fraction of the daily assimilates allocated to stem.
 	double f_alloc_stem;
-	/// Development stage from Wang & Engel 1998
+	/// Development stage (0-2) from Wang & Engel 1998
 	double dev_stage;
 	// A variable holding the memory of whether this field was fertilised or not.
 	bool fertilised[3];
@@ -4411,7 +4436,7 @@ public:
 	bool managed;
 	/// whether cutting started on this patch
 	bool has_been_cut;
-	/// cutting intensity (initial percent of trees cut, further selection at individual level is done in a separate function)
+	/// cutting intensity (initial fraction of trees cut, further selection at individual level is done in a separate function)
 	double man_strength;
 
 	/// Non-commercial thinning (harvest to litter)
@@ -4544,7 +4569,7 @@ public:
 
 			// Disregard shrubs (crownarea_max = 10)
 			Individual& indiv = vegetation[i];
-			if(indiv.pft.lifeform == TREE && !indiv.is_shrub()) {
+			if(indiv.pft.lifeform == TREE && !indiv.pft.is_shrub()) {
 				if(indiv.cmass_wood_inc_5.size())
 					cmass_wood_inc_5_mean += indiv.cmass_wood_inc_5.mean();
 			}
@@ -4552,13 +4577,13 @@ public:
 		return cmass_wood_inc_5_mean;
 	}
 	
-	/// Get cmass_wood of all individuals in patch
+	/// Get cmass_wood of all individuals in patch (including shrubs unless function parameter exclude_shrubs is true)
 	double cmass_wood(bool exclude_shrubs = false) {
 		double cmass_wood = 0.0;
 		for (unsigned int i=0; i<vegetation.nobj; i++) {
 
 			Individual& indiv = vegetation[i];
-			if(!exclude_shrubs || !indiv.is_shrub()) {
+			if(!exclude_shrubs || !indiv.pft.is_shrub()) {
 				cmass_wood += indiv.cmass_wood();
 			}
 		}
@@ -4651,8 +4676,7 @@ public:
 	int pftid;
 	/// Number of PFTs in selection
 	int npftsinselection;
-
-	/// current crop rotation item
+	/// current management rotation item
 	int current_rot;
 	/// number of years passed in current rotation item
 	int nyears_inrotation;
@@ -4897,9 +4921,9 @@ public:
 	int sdate_force;
 	/// harvest date from input file
 	int hdate_force;
-	/// N fertilization from input file
+	/// N fertilization (total, including manure) from input file (kgN/m2/year)
 	double Nfert_read;
-	/// Manure N fertilization from input file
+	/// Manure N fertilization from input file (kgN/m2/year)
 	double Nfert_man_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
@@ -4909,7 +4933,7 @@ public:
 	int swindow[2];
 	/// first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
 	int swindow_irr[2];
-	/// temperature limits precludes crop sowing
+	/// flag to preclude crop sowing during fallow
 	bool sowing_restriction;
 
 	// MEMBER FUNCTIONS
@@ -4992,7 +5016,7 @@ public:
 	// current number of stands of this stand type
 	int nstands;
 
-	/// Nitrogen fertilisation amount
+	/// Nitrogen fertilisation amount (kgN/m2/year)
 	double nfert;
 
 	/// Harvested forest area fraction

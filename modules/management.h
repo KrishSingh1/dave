@@ -18,7 +18,7 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 /// Sets forest management for all stands this year
 void manage_forests(Gridcell& gridcell);
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
-void set_forest(Gridcell& gridcell);
+void set_forest_pft_structure(Gridcell& gridcell);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp, double diam,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
@@ -48,7 +48,7 @@ void crop_rotation(Stand& stand);
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
 /// Sets forest management for patch this year
-double manage_forest(Patch& patch);
+void manage_forest(Patch& patch);
 // Returns harvestable cmass for individual
 double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool to_product_pool = false);
 // Returns harvestable cmass for patch
@@ -257,7 +257,7 @@ struct Harvest_CN {
 		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = acflux_harvest_killed = 0.0;
 	}
 
-	/// Copies C and N values from individual and patchpft tp struct.
+	/// Copies C and N values from individual and patchpft to struct.
 	void copy_from_indiv(Individual& indiv, bool copy_grsC = false, bool copy_dead_C = true) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -327,7 +327,9 @@ struct Harvest_CN {
 		}
 	}
 
-	/// Copies C and N values from struct to individual, patchpft and patch (fluxes). Use only after a call to copy_from_indiv() before harvest function.
+	/// Copies C and N values from struct to individual and patchpft living and dead C and N pools. Fluxes are added to patch and patchpft variables.
+	/** Use only after a call to copy_from_indiv() before harvest function.
+	*/
 	void copy_to_indiv(Individual& indiv, bool copy_grsC = false, bool lc_change = false) {
 
 		Patch& patch = indiv.vegetation.patch;

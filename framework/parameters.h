@@ -210,10 +210,10 @@ extern bool no_barren_frac_corr;
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 
-/// If a slow harvested product pool is included in patchpft.
+/// Whether a fraction of harvested wood is put into a product pool
 extern bool ifslowharvestpool;
 
-/// If grass is allowed to grow between crop growingseasons
+/// Whether grass is allowed to grow between crop growingseasons
 extern bool ifintercropgrass;
 
 /// Whether to calculate dynamic potential heat units

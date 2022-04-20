@@ -946,13 +946,15 @@ void Stand::set_management() {
 			Vegetation& vegetation = patch.vegetation;
 			vegetation.firstobj();
 			while (vegetation.isobj) {
-				// Program only enters here when cutfirstyear == 2 (copy_type = CLONESTAND_KILLTREES)
+				// Program only enters here during LUC when cutfirstyear == 2 (copy_type = CLONESTAND_KILLTREES)
+				// and during rotation when cutfirstyear != 0.
 				Individual& indiv = vegetation.getobj();
 				Patchpft& ppft = patch.pft[indiv.pft.id];
 				if(indiv.pft.lifeform == TREE) {
 					ppft.cmass_wood_clearcut += check_harvest_cmass(indiv, true);
 					ppft.cmass_killed_harv += indiv.ccont();
-					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, clone_year == date.year);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
+					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, clone_year == date.year);
+					// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
 					indiv.vegetation.killobj();
 				}
 				else {
@@ -1069,7 +1071,8 @@ void Stand::set_management() {
 									if(indiv.pft.id == pftx.id && pftx.id != id) {
 										// cut at cloning (LUC) or at rotation
 										ppft.cmass_killed_harv += indiv.ccont();
-										harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+										harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
+										// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 										indiv.vegetation.killobj();
 									}
 									else {
@@ -1152,7 +1155,8 @@ void Stand::set_management() {
 								if(indiv.pft.id == pftx.id) {
 									// cut at cloning (LUC) or at rotation
 									ppft.cmass_killed_harv += indiv.ccont();
-									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
+									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 									indiv.vegetation.killobj();
 								}
 								else {
@@ -1237,7 +1241,8 @@ void Stand::set_management() {
 							if(indiv.pft.id == pftx.id) {
 								// cut at cloning (LUC) or at rotation
 								ppft.cmass_killed_harv += indiv.ccont();
-								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0);	// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
+								// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 								indiv.vegetation.killobj();
 							}
 							else {

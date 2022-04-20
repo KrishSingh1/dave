@@ -240,8 +240,8 @@ struct Harvest_CN {
 	double anflux_harvest;
 	double harvested_products_slow;		// May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
 	double harvested_products_slow_nmass;
-	// Partly overlapping with acflux_harvest; not to be included in copy functions.
-	double acflux_harvest_wood;
+	// Partly overlapping with acflux_harvest; not to be included in balance check functions.
+	double acflux_harvest_wood;			// Harvested wood including wood fraction oxidised the same year (1-harvest_slow_frac)
 	double acflux_harvest_wood_toprod;	// Always zero before harvest
 	double acflux_harvest_tolitter;
 	double acflux_harvest_killed;

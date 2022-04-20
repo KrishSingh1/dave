@@ -1457,7 +1457,7 @@ public:
 	bool suppress_disturbance;
 	/// Whether to use tree pft planting densities after clearcut (plus bypass all envirinmental establishment limits)
 	bool set_planting_density;
-	/// Whether to clearcut first management year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
+	/// Whether to clearcut firstmanageyear or rotation year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
 	int cutfirstyear;
 	/// Whether to cut pft:s outside of selection clone year or first year of new management in a rotation (if reestab "restricted" or "none")
 	bool cutfirstyear_unsel;

@@ -120,7 +120,7 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of trees 
  *  above a diameter limit if harvest_burn_thin_trees == true) is sent to harvested_products_slow and the rest plus residue outtake 
  *  is sent to acflux_harvest.The rest, including leaves and roots, is sent to litter.
- *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use,
+ *  Called from landcover_dynamics() first day of the year if any natural or forest vegetation is transferred to another land use,
  *  or from harvest_wood(Individual& indiv, ...).
  *
  *  INPUT PARAMETERS
@@ -153,21 +153,21 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *   - max_n_storage				maximum size of nitrogen storage
  *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - litter_sap   				new sapwood C litter (kgC/m2)
- *   - litter_heart   				new heartwood C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
- *   - nmass_litter_sap 			new sapwood nitrogen litter (kgN/m2)
- *   - nmass_litter_heart        	new heartwood nitrogen litter (kgN/m2)
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - litter_sap   				sapwood C litter (kgC/m2)
+ *   - litter_heart   				heartwood C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
+ *   - nmass_litter_sap 			sapwood nitrogen litter (kgN/m2)
+ *   - nmass_litter_heart        	heartwood nitrogen litter (kgN/m2)
+ *   - harvested_products_slow		wood product pool (kgC/m2)
+ *   - harvested_products_slow_nmass wood product pool nitrogen (kgN/m2)
  *  OUTPUT PARAMETERS
  *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patchpft corresponding to an Individual:
- *   - acflux_harvest_wood			harvest flux to atmosphere (kgC/m2)
- *   - acflux_harvest_wood_toprod	harvest flux to atmosphere (kgC/m2)
- *   - acflux_harvest_tolitter		harvest flux to atmosphere (kgC/m2)
+ *   - acflux_harvest_wood			harvested wood C before removing part to the product pool (kgC/m2)
+ *   - acflux_harvest_wood_toprod	harvested wood C removed to the product pool (kgC/m2)
+ *   - acflux_harvest_tolitter		harvested tree C left as litter (kgC/m2)
  *									,and the following public members members added to the corresponding variables of a Patch containing an individual::
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
@@ -344,7 +344,9 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  *  above a diameter limit if harvest_burn_thin_trees == true) is returned as harvested_products_slow and the rest plus residue outtake 
  *  is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
  *  Called from harvest_forest() first day of the year for normal wood harvest.
- *  Also called first day of the year from and landcover_dynamics() if any natural vegetation is transferred to another land use
+ *  Also called first day of the year from set_management() if natural or forest stand is transferred to another management
+ *  by cloning (LUC) or after management rotation.
+ *  If lc_change is true, harvest C fluxes go to lc.acflux_wood_harvest, if false, they go to Fluxes::HARVESTC.
  *
  *  INPUT PARAMETERS
  *  \param frac_cut					fraction of trees cut
@@ -366,16 +368,16 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  *   - nstore_labile    			labile nitrogen storage (kgC/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
  *									Patchpft (accessed from indiv) public members:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - litter_sap   				new sapwood C litter (kgC/m2)
- *   - litter_heart   				new heartwood C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
- *   - nmass_litter_sap 			new sapwood nitrogen litter (kgN/m2)
- *   - nmass_litter_heart        	new heartwood nitrogen litter (kgN/m2)
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - litter_sap   				sapwood C litter (kgC/m2)
+ *   - litter_heart   				heartwood C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
+ *   - nmass_litter_sap 			sapwood nitrogen litter (kgN/m2)
+ *   - nmass_litter_heart        	heartwood nitrogen litter (kgN/m2)
+ *   - harvested_products_slow		wood product pool (kgC/m2)
+ *   - harvested_products_slow_nmass wood product pool nitrogen (kgN/m2)
  *   - cmass_wood_harv        		harvested wood C before removing part to the product pool (kgC/m2)
  *   - cmass_wood_harv_toprod       harvested wood C removed to the product pool (kgC/m2)
  *   - cmass_harv_tolitter        	harvested tree C left as litter (kgC/m2)
@@ -383,8 +385,10 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  *   - Fluxes::HARVESTC				harvest flux to atmosphere (kgC/m2)
  *   - Fluxes::HARVESTN   			harvest nitrogen flux out of system (kgN/m2)
  *   								Landcover (accessed from indiv) public members:
- *   - acflux_landuse_change		gridcell-level C flux from harvest associated with landcover change (kgC/m2)
- *   - acflux_landuse_change[lc]	landcover-level C flux from harvest associated with landcover change (kgC/m2)
+ *   - acflux_wood_harvest			gridcell-level C flux from harvest associated with cloning at landcover change (kgC/m2)
+ *   - acflux_wood_harvest_lc[lc]	landcover-level C flux from harvest associated with cloning at landcover change (kgC/m2)
+ *   - anflux_wood_harvest			gridcell-level N flux from harvest associated with cloning at landcover change (kgN/m2)
+ *   - anflux_wood_harvest_lc[lc]	landcover-level N flux from harvest associated with cloning at landcover change (kgN/m2)
  */
 
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig, 
@@ -398,17 +402,15 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 
 	indiv_cp.copy_to_indiv(indiv, false, lc_change);
 
-	if (!lc_change) {
-		return;
-	}
-
-	Stand& stand = indiv.vegetation.patch.stand;
-	Landcover& lc = stand.get_gridcell().landcover;
-	lc.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;	// Should be acflux_wood_harvest instead ! Change in separate update.
-	lc.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-	if(stand.lc_origin < NLANDCOVERTYPES) {
-		lc.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		lc.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	if (lc_change) {
+		Stand& stand = indiv.vegetation.patch.stand;
+		Landcover& lc = stand.get_gridcell().landcover;
+		lc.acflux_wood_harvest += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;	// Should be acflux_wood_harvest instead ! Change in separate update.
+		lc.anflux_wood_harvest += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		if(stand.lc_origin < NLANDCOVERTYPES) {
+			lc.acflux_wood_harvest_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+			lc.anflux_wood_harvest_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		}
 	}
 }
 
@@ -1676,8 +1678,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
  *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
+ *   - harvested_products_slow		harvest product pool (kgC/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen product pool (kgN/m2)
  *  OUTPUT PARAMETERS
  *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
@@ -1747,8 +1749,8 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
  *									Patchpft (accessed from indiv) public members:
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
+ *   - harvested_products_slow		harvest product pool (kgC/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen product pool (kgN/m2)
  *									Patch (accessed from indiv) public members:
  *   - Fluxes::HARVESTC				harvest flux to atmosphere (kgC/m2)
  *   - Fluxes::HARVESTN   			harvest nitrogen flux out of system (kgN/m2)
@@ -1806,7 +1808,7 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *   - cmass_ho						harvestable organ C biomass (kgC/m2)
  *   - cmass_agpool					above-ground pool C biomass (kgC/m2)
  *   - cmass_dead_leaf				dead leaf C biomass (kgC/m2)
- *   - cmass_stem					tem pool C biomass (kgC/m2)
+ *   - cmass_stem					stem pool C biomass (kgC/m2)
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
  *   - nmass_ho						harvestable organ nitrogen biomass (kgN/m2)
@@ -1815,12 +1817,12 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
+ *   - harvested_products_slow		harvest product pool (kgC/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen product pool (kgC/m2)
  *  OUTPUT PARAMETERS
  *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
@@ -2063,12 +2065,12 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *									Patchpft (accessed from indiv) public members:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
- *   - harvested_products_slow		harvest products to slow pool (kgC/m2)
- *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgN/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
+ *   - harvested_products_slow		harvest product pool (kgC/m2)
+ *   - harvested_products_slow_nmass harvest nitrogen product pool (kgN/m2)
  *									Patch (accessed from indiv) public members:
  *   - Fluxes::HARVESTC				harvest flux to atmosphere (kgC/m2)
  *   - Fluxes::HARVESTN   			harvest nitrogen flux out of system (kgC/m2)
@@ -2119,10 +2121,10 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
  *  OUTPUT PARAMETERS
  *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
@@ -2239,10 +2241,10 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *									Patchpft (accessed from indiv) public members:
- *   - litter_leaf    				new leaf C litter (kgC/m2)
- *   - litter_root 					new root C litter (kgC/m2)
- *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)
- *   - nmass_litter_root			new root nitrogen litter (kgN/m2)
+ *   - litter_leaf    				leaf C litter (kgC/m2)
+ *   - litter_root 					root C litter (kgC/m2)
+ *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
+ *   - nmass_litter_root			root nitrogen litter (kgN/m2)
  *									Patch (accessed from indiv) public members:
  *   - Fluxes::HARVESTC				harvest flux to atmosphere (kgC/m2)
  *   - Fluxes::HARVESTN   			harvest nitrogen flux out of system (kgC/m2)

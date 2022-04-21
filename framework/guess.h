@@ -46,6 +46,7 @@
 #include "parameters.h"
 #include "guesscontainer.h"
 #include "soil.h"
+#include "guessstring.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS

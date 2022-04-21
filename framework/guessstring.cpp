@@ -63,3 +63,15 @@ std::string format_string(const char* format, ...) {
 	vsnprintf(buffer, buffer_size, format, args);
 	return std::string(buffer);
 }
+
+int split_string(char* str) {
+
+	char *p = strtok(str, "\t\n ");
+	int count = 0;
+	while(p) {
+		count++;
+		p = strtok(NULL, "\t\n ");
+	}
+
+	return count;
+}

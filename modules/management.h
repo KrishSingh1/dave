@@ -55,8 +55,6 @@ double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool
 double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool check_selection = false);
 // Returns harvestable cmass for stand
 double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
-/// Help function that splits string into "words"
-int split_string(char* str);
 
 /// Class for ranking stands by harvestable cmass etc.
 class Rank_stands {

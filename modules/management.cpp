@@ -13,19 +13,6 @@
 const int DENSTARGET_NL = 250;	// Bellassen (2010) value 100, modified for LPJ-GUESS simulations.
 const int DENSTARGET_BL = 100;	// Bellassen (2010) value 200, modified for LPJ-GUESS simulations.
 
-/// Help function that splits string into "words"
-int split_string(char* str) {
-
-	char *p = strtok(str, "\t\n ");
-	int count = 0;
-	while(p) {
-		count++;
-		p = strtok(NULL, "\t\n ");
-	}
-
-	return count;
-}
-
 // Functions to check available wood for harvest at individual, patch and stand levels
 
 /// Checks available wood for harvest at individual level.

@@ -1304,9 +1304,10 @@ void manage_forests(Gridcell& gridcell) {
 }
 
 /// Sets biomass fraction to be cut in clear-cuts and thinnings for all trees in this patch this year.
-/**  Sets patch.man_strength in clearcut- and continuous management schemes.
+/** Sets patch.man_strength (tree biomass to be cut, 0-1) in clearcut- and continuous management schemes (harvest_system "CLEARCUT" and "CONTINUOUS").
  *  Calls distribute_cutting() to set man_strength for individuals in thinnings.
- *  Sets patch.man_strength clear-cuts first_manageyear.
+ *  Sets patch.man_strength to 1 in first_manageyear if mt.cutfirstyear == true in stands created at the start of the simulation.
+ *  Sets patch.managed in first_manageyear (disables disturbance and fire if suppress_disturbance or suppress_fire == true).
  *  INPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - age			 				patch age
@@ -1377,7 +1378,8 @@ void manage_forest(Patch& patch) {
 	int cut_interval = mt.cutinterval;
 	bool clearcut_now = false;
 
-	if(mt.cutfirstyear && date.year == first_manageyear && stand.first_year == 0)	// Allowing clearcut at first_manageyear only in stands created at start of simulation.
+	// Force clearcut in first_manageyear only in stands created at start of simulation.
+	if(mt.cutfirstyear && date.year == first_manageyear && stand.first_year == 0)
 		clearcut_now = true;
 
 	if(mt.ifthin_reineke)

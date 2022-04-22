@@ -35,7 +35,7 @@
 // Alternatives for forestry:
 const bool SMALL_SAPSIZE_POST_CUT = false;	// Whether to use smaller sapsize in managed forests after cutting (defined by PLANTSIZE) when not using planting()
 
-/// Fixed plantsize in tree planting after clearcut if SMALL_SAPSIZE_POST_CUT == true
+/// Fixed initial individual plantsize (kgC) in tree planting after clearcut if SMALL_SAPSIZE_POST_CUT == true
 const double PLANTSIZE = 0.25;
 
 /// Upper LAI limit for wetland species. No limit: 0 //TODO remove this after daily allocation.
@@ -445,6 +445,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	ManagementType& mt = patch.stand.get_current_management();
 	if(patch.plant_this_year && mt.set_planting_density && mt.planting_system != "") {
 		planting(patch);	// NB planting() gives small fixed sapsize
+		return;
 	}
 
 	// guess2008 - determine the number of woody PFTs that can establish
@@ -458,10 +459,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		// Force planting if planting() not used
 		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
-		if(establish_active_pfts_before_management)
+		if(establish_active_pfts_before_management) {
 			est_this_year = !patch.managed && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
-		else
+		}
+		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
+		}
 
 		if (establish(patch, stand.get_climate(), pft) && pft.lifeform == TREE && standpft.active && (est_this_year || force_planting))
 			nwoodypfts_estab++;
@@ -481,8 +484,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		// Stands cloned this year to be treated here as first year
 		bool init_clone = date.year == stand.clone_year && pft.landcover == stand.landcover;
 
-		// No grass establishment during planting year
-		// Force planting if planting() not used
+		// Force planting of pfts in selection in managed forest stands after clear-cut if planting() not used
+		// No grass establishment will occur during planting year (force_planting is always false for grass and 
+		// est_this_year is false when patch.plant_this_year is true)
 		bool force_planting = patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management)

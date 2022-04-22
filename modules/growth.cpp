@@ -1266,7 +1266,7 @@ void growth(Stand& stand, Patch& patch) {
 			}
 
 			// All yearly harvest events
-			killed = harvest_year(indiv, indiv.anpp - cmass_excess);
+			killed = harvest_year(indiv);
 
 			if (!killed) {
 

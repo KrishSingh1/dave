@@ -2390,10 +2390,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 /** Should only be called from growth().
 //  Harvest functions are preceded by rescaling of living C.
 //  Only affects natural stands if gridcell.expand_to_new_stand[NATURAL] is false.
- *  INPUT PARAMETERS
- *  \param anpp						anpp this year (kgC/m2); only used if harvest_forest() called from here
  */
-bool harvest_year(Individual& indiv, double anpp) {
+bool harvest_year(Individual& indiv) {
 
 	Stand& stand = indiv.vegetation.patch.stand;
 	Landcover& landcover = stand.get_gridcell().landcover;

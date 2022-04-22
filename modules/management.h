@@ -36,7 +36,7 @@ void kill_remaining_vegetation(Individual& indiv, bool burn = false, bool lc_cha
 /// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased their area fraction this year.
 void scale_indiv(Individual& indiv, bool scale_grsC);
 /// Yearly function for harvest of all land covers. Should only be called from growth()
-bool harvest_year(Individual& indiv, double anpp);
+bool harvest_year(Individual& indiv);
 /// Yield function for true crops and intercrop grass
 void yield_crop(Individual& indiv);
 /// Yield function for pasture grass grown in cropland landcover

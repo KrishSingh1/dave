@@ -510,6 +510,12 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
+	double wcontent;
+	double wcontent_zero;
+	double wcontent_zero_scaled;
+	double wflux;
+	double wflux_zero;
+
 public:
 	MassBalance() {
 
@@ -524,6 +530,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		wcontent = 0.0;
+		wcontent_zero = 0.0;
+		wcontent_zero_scaled = 0.0;
+		wflux = 0.0;
+		wflux_zero = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -539,6 +550,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		wcontent = 0.0;
+		wcontent_zero = 0.0;
+		wcontent_zero_scaled = 0.0;
+		wflux = 0.0;
+		wflux_zero = 0.0;
 	}
 
 	void init(Gridcell& gridcell);
@@ -553,10 +569,12 @@ public:
 	bool check_patch(Patch& patch, bool check_harvest = false);
 	bool check_patch_C(Patch& patch, bool check_harvest = false);
 	bool check_patch_N(Patch& patch, bool check_harvest = false);
+	bool check_patch_W(Patch& patch);
 
 	void check_year(Gridcell& gridcell); // calls both check_year_C and check_year_N
 	void check_year_C(Gridcell& gridcell);
 	void check_year_N(Gridcell& gridcell);
+	void check_year_W(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
 	void serialize(ArchiveStream& arch);
@@ -4204,10 +4222,14 @@ public:
 	double ccont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false);
+	/// Total patch water and ice mass
+	double wcontent();
 	/// Total patch carbon fluxes so far this year
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
+	/// Total patch water fluxes so far this year
+	double wflux();
 	
 	/// Get 5-year mean of wood C mass increase (periodic annual increment)
 	double get_cmass_wood_inc_5() {
@@ -4422,10 +4444,14 @@ public:
 	double ccont(double scale_indiv = 1.0);
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
+	/// Total stand water and ice
+	double wcontent();
 	/// Total stand carbon fluxes so far this year
 	double cflux();
 	/// Total stand nitrogen fluxes so far this year
 	double nflux();
+	/// Total stand water fluxes so far this year
+	double wflux();
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -4822,10 +4848,14 @@ public:
 	double ccont();
 	/// Total gridcell nitrogen biomass and litter
 	double ncont();
+	/// Total gridcell water and ice
+	double wcontent();
 	/// Total gridcell carbon fluxes so far this year
 	double cflux();
 	/// Total gridcell nitrogen fluxes so far this year
 	double nflux();
+	/// Total gridcell water fluxes so far this year
+	double wflux();
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

@@ -580,6 +580,20 @@ double Patch::ncont(double scale_indiv, bool luc) {
 	return ncont;
 }
 
+/// Water content of patch
+double Patch::wcontent() {
+
+	double wcontent = 0.0;
+	
+	for (int lyr = 0; lyr < NLAYERS; lyr++) {
+		wcontent += (soil.Frac_ice[lyr] + soil.Frac_water[lyr]) * soil.Dz[lyr];
+	}
+
+	wcontent += soil.snowpack;
+
+	return wcontent;
+}
+
 /// C flux of patch
 double Patch::cflux() {
 
@@ -621,6 +635,27 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_SOIL);
 
 	return nflux;
+}
+
+/// water flux of patch
+double Patch::wflux() {
+
+	double wflux = 0.0;
+
+	// Influx
+	wflux += -get_climate().aprec;
+	wflux += -irrigation_y;
+	wflux += -awetland_water_added;
+
+	// Outflux
+	wflux += aintercep;
+	wflux += aaet;
+	wflux += aevap;
+	wflux += asurfrunoff;
+	wflux += adrainrunoff;
+	wflux += abaserunoff;
+
+	return wflux;
 }
 
 
@@ -982,6 +1017,16 @@ double Stand::ncont(double scale_indiv) {
 	return ncont;
 }
 
+double Stand::wcontent() {
+
+	double wcontent = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		wcontent += (*this)[p].wcontent() / nobj;
+
+	return wcontent;
+}
+
 double Stand::cflux() {
 
 	double cflux = 0.0;
@@ -1000,6 +1045,16 @@ double Stand::nflux() {
 		nflux += (*this)[p].nflux() / nobj;
 
 	return nflux;
+}
+
+double Stand::wflux() {
+
+	double wflux = 0.0;
+
+	for (unsigned int p = 0; p < nobj; p++)
+		wflux += (*this)[p].wflux() / nobj;
+
+	return wflux;
 }
 
 /// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -2336,6 +2391,18 @@ double Gridcell::ncont() {
 	return ncont;
 }
 
+double Gridcell::wcontent() {
+
+	double wcontent = 0.0;
+
+	for (unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		wcontent += stand.wcontent() * stand.get_gridcell_fraction();
+	}
+
+	return wcontent;
+}
+
 double Gridcell::cflux() {
 
 	double cflux = 0.0;
@@ -2364,6 +2431,18 @@ double Gridcell::nflux() {
 	nflux += landcover.anflux_harvest_slow;
 
 	return nflux;
+}
+
+double Gridcell::wflux() {
+
+	double wflux = 0.0;
+
+	for (unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		wflux += stand.wflux() * stand.get_gridcell_fraction();
+	}
+
+	return wflux;
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
@@ -2464,10 +2543,14 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& ncont_zero
 		& ncont_zero_scaled
 		& nflux_zero
+		& wcontent_zero
+		& wflux_zero
 		& ccont
 		& ncont
+		& wcontent
 		& cflux
-		& nflux;
+		& nflux
+		& wflux;
 }
 
 /// Should be used together with check_indiv()
@@ -2581,6 +2664,9 @@ void MassBalance::init_patch(Patch& patch) {
 
 	if (stand.get_gridcell_fraction())
 		nflux_zero += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
+
+	wcontent_zero = patch.wcontent();
+	wflux_zero = patch.wflux();
 }
 
 bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
@@ -2634,6 +2720,23 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	return balance;
 }
 
+bool MassBalance::check_patch_W(Patch& patch) {
+
+	bool balance = true;
+
+	double wcontent = patch.wcontent();
+	double wflux = patch.wflux();
+
+	if (date.year >= nyear_spinup && !negligible(wcontent - wcontent_zero + wflux - wflux_zero, -8)) {
+		dprintf("\nStand %d Patch %d Water balance year %d day %d: %.9f\n", patch.stand.id, patch.id, date.year, date.day, wcontent - wcontent_zero + wflux - wflux_zero);
+		dprintf("Water pool change: %.10f\n", wcontent - wcontent_zero);
+		dprintf("Water flux: %.10f\n\n", wflux - wflux_zero);
+		balance = false;
+	}
+
+	return balance;
+}
+
 /// Should be preceded by init_patch() e.g. i framework()
 /** check_harvest must be true if growth_daily() is tested
  *  canopy_exchange() and growth_daily() and functions in between cannot be tested separately
@@ -2641,7 +2744,7 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
  */
 bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 
-	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest);
+	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest) && check_patch_W(patch);
 }
 
 void MassBalance::check_year_N(Gridcell& gridcell) {
@@ -2694,6 +2797,29 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 	ccont = ccont_year;
 }
 
+void MassBalance::check_year_W(Gridcell& gridcell) {
+
+	double wcontent_year = gridcell.wcontent();
+	double wflux_year = gridcell.wflux();
+
+	if (date.year == start_year) {
+		wcontent_zero = wcontent_year;
+	}
+	else {
+
+		wflux += wflux_year;
+
+		// Water balance check:
+		if (!negligible(wcontent_year - wcontent + wflux_year, -5)) {
+			dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent_year - wcontent + wflux_year);
+			dprintf("Water pool change: %.7f\n", wcontent_year - wcontent);
+			dprintf("Water flux: %.7f\n", wflux_year);
+		}
+	}
+
+	wcontent = wcontent_year;
+}
+
 
 void MassBalance::check_year(Gridcell& gridcell) {
 
@@ -2705,6 +2831,8 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 	if (ifcentury) 
 		check_year_N(gridcell);
+
+	check_year_W(gridcell);
 
 }
 
@@ -2725,6 +2853,13 @@ void MassBalance::check_period(Gridcell& gridcell) {
 		dprintf("N pool change: %.10f\n", ncont - ncont_zero);
 		dprintf("N fluxes: %.10f\n",  nflux);
 	}
+
+	// Water balance check:
+	if (!negligible(wcontent - wcontent_zero + wflux, -4)) {
+		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), wcontent - wcontent_zero + wflux);
+		dprintf("Water pool change: %.6f\n", wcontent - wcontent_zero);
+		dprintf("Water fluxes: %.6f\n", wflux);
+	}
 }
 
 void MassBalance::init(Gridcell& gridcell) {
@@ -2732,6 +2867,10 @@ void MassBalance::init(Gridcell& gridcell) {
 //	start_year = date.year;
 	ccont_zero = gridcell.ccont();
 	cflux_zero = gridcell.cflux();
+	ncont_zero = gridcell.ncont();
+	nflux_zero = gridcell.nflux();
+	wcontent_zero = gridcell.wcontent();
+	wflux_zero = gridcell.wflux();
 }
 
 void MassBalance::check(Gridcell& gridcell) {
@@ -2743,6 +2882,23 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);
+	}
+
+	double ncont = gridcell.ncont();
+	double nflux = gridcell.nflux();
+
+	if (!negligible(ncont - ncont_zero + nflux, -5)) {
+		dprintf("\n(%.2f, %.2f): N balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
+		dprintf("N pool change: %.5f\n", ncont - ncont_zero);
+	}
+
+	double wcontent = gridcell.ncont();
+	double wflux = gridcell.nflux();
+
+	if (!negligible(wcontent - wcontent_zero + wflux, -5)) {
+		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent - wcontent_zero + wflux);
+		dprintf("Water pool change: %.7f\n", wcontent - wcontent_zero);
+		dprintf("Water flux: %.7f\n\n", wflux);
 	}
 }
 

@@ -569,9 +569,9 @@ void MiscOutput::define_output_tables() {
 
 	// FOREST STRUCTURE OUTPUT
 	ColumnDescriptors agestruct_columns;
-	agestruct_columns += ColumnDescriptors(get_structure_string("age"),			       8, 2);
+	agestruct_columns += ColumnDescriptors(get_structure_string("age"),			       9, 2);
 	ColumnDescriptors diamstruct_columns;
-	diamstruct_columns += ColumnDescriptors(get_structure_string("diam"),              8, 2);
+	diamstruct_columns += ColumnDescriptors(get_structure_string("diam"),              9, 2);
 	ColumnDescriptors diamstruct_cmass_columns;
 	diamstruct_cmass_columns += ColumnDescriptors(get_structure_string("diam"),        9, 3);
 
@@ -2465,10 +2465,10 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 			dens_columns += ColumnDescriptors(pfts,               8, 4);
 
 			ColumnDescriptors agestruct_columns;
-			agestruct_columns += ColumnDescriptors(get_structure_string("age"),               8, 2);
+			agestruct_columns += ColumnDescriptors(get_structure_string("age"),               9, 2);
 
 			ColumnDescriptors diamstruct_columns;
-			diamstruct_columns += ColumnDescriptors(get_structure_string("diam"),               8, 2);
+			diamstruct_columns += ColumnDescriptors(get_structure_string("diam"),               9, 2);
 
 			ColumnDescriptors diamstruct_cmass_columns;
 			diamstruct_cmass_columns += ColumnDescriptors(get_structure_string("diam"),         9, 3);

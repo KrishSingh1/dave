@@ -1382,10 +1382,6 @@ public:
 	int firsttargetyear;
 	/// When to stop cutting to reach pft target fractions (calendar year)
 	int lasttargetyear;
-	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
-	int	targetthinselectage;
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0) in target cuttings.
-	int	targetthinselectdiam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
@@ -1400,6 +1396,18 @@ public:
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
+	/// Patch age when target cutting starts
+	int targetstartage;
+	/// Interval of target cuttings
+	int targetcutinterval;
+	/// Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used (see documentation for details)
+	int targetcutmode;
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
+	int	targetthinselectage;
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0) in target cuttings.
+	int	targetthinselectdiam;
+	/// Whether to stop cutting to reach pft fraction targets when second (continuous) period starts
+	bool suppress_second_target;
 	/// Rotation time in years
 	int cutinterval;
 	/// Whether to use Reineke's rule-based automatic thinning
@@ -1442,33 +1450,10 @@ public:
 	int secondcutinterval;
 	/// Whether to distribute cuttings evenly in time among patches in a managed forest stand
 	bool distribute_cuttings_among_patches;
-	/// Patch age when target cutting starts
-	int targetstartage;
-	/// Interval of target cuttings
-	int targetcutinterval;
-	/// Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used (see documentation for details)
-	int targetcutmode;
-	/// Whether to stop cutting to reach pft fraction targets when second (continuous) period starts
-	bool suppress_second_target;
-
-	/// hydrology (RAINFED,IRRIGATED) 
-	hydrologytype hydrology;
-	/// irrigation efficiency
-//	double firr;
-	/// forced sowing date, unless sdate_force read from file
-	int sdate;
-	/// forced harvest date, unless hdate_force read from file
-	int hdate;
 	/// Harvested forest area fraction, unless woodharv_frac read from file
 	double woodharv_frac;
 	/// Wood harvest C mass for gridcell, unless woodharv_cmass read from file
 	double woodharv_cmass;
-	/// Nitrogen fertilisation amount, unless Nfert_read read from file
-	double nfert;
-	/// Tillage intensity
-	double tillage_int;
-	/// Whether grass is grown in fallow
-	bool fallow;
 	/// Whether to ignore climate establishment limits
 	bool relaxed_establishment;
 	/// Whether to suppress fires
@@ -1500,6 +1485,21 @@ public:
 	/// Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s
 	double res_outtake_coarse_root_cc;
 
+	/// hydrology (RAINFED,IRRIGATED) 
+	hydrologytype hydrology;
+	/// irrigation efficiency
+//	double firr;
+	/// forced sowing date, unless sdate_force read from file
+	int sdate;
+	/// forced harvest date, unless hdate_force read from file
+	int hdate;
+	/// Nitrogen fertilisation amount, unless Nfert_read read from file
+	double nfert;
+	/// Tillage intensity
+	double tillage_int;
+	/// Whether grass is grown in fallow
+	bool fallow;
+
 	ManagementType() {
 
 		id = -1;
@@ -1528,33 +1528,9 @@ public:
 		alpha_st = 0;
 		rdi_target = 0;
 		ifclearcut_by_density = false;
+		dens_target_cc = 0;
 		ifclearcut_optimal_age = false;
 		distribute_patch_ages = false;
-		dens_target_cc = 0;
-		secondintervalstart = -1;
-		secondcutinterval = 0;
-		distribute_cuttings_among_patches = false;
-		diam_cut_low = 0.0;
-		diam_cut_high = 1000.0;
-		adapt_diam_limit = false;
-		hydrology = RAINFED;
-//		firr = 0.0;
-		sdate = -1;
-		hdate = -1;
-		nfert = -1.0;
-		tillage_int = 1.0;
-		woodharv_frac = -1.0;
-		woodharv_cmass = -1.0;
-		fallow = false;
-		relaxed_establishment = false;
-		suppress_fire = false;
-		suppress_disturbance = false;
-		set_planting_density = false;
-		cutfirstyear = 1;
-		cutfirstyear_unsel = false;
-		killgrass_at_cc = false;
-		stochmort = true;
-		stochestab = true;
 		for(int n=0;n<NTHINNINGLOOPS;n++) {
 			for(int t=0;t<NTHINNINGS;t++) {
 				thintime[n][t] = 0.0;
@@ -1565,12 +1541,37 @@ public:
 				thinselectdiam[n][t] = SELECT_DIAM_NOPREF;
 			}
 		}
+		diam_cut_low = 0.0;
+		diam_cut_high = 1000.0;
+		adapt_diam_limit = false;
+		secondintervalstart = -1;
+		secondcutinterval = 0;
+		distribute_cuttings_among_patches = false;
+		woodharv_frac = -1.0;
+		woodharv_cmass = -1.0;
+		relaxed_establishment = false;
+		suppress_fire = false;
+		suppress_disturbance = false;
+		set_planting_density = false;
+		cutfirstyear = 1;
+		cutfirstyear_unsel = false;
+		killgrass_at_cc = false;
+		stochmort = true;
+		stochestab = true;
 		harv_eff_thin = -1.0;
 		res_outtake_twig_thin = -1.0;
 		res_outtake_coarse_root_thin = -1.0;
 		harv_eff_cc = -1.0;
 		res_outtake_twig_cc = -1.0;
 		res_outtake_coarse_root_cc = -1.0;
+
+		hydrology = RAINFED;
+//		firr = 0.0;
+		sdate = -1;
+		hdate = -1;
+		nfert = -1.0;
+		tillage_int = 1.0;
+		fallow = false;
 	}
 
 	// Copy constructor;
@@ -1585,8 +1586,6 @@ public:
 		delayduecutting = from.delayduecutting;
 		firsttargetyear = from.firsttargetyear;
 		lasttargetyear = from.lasttargetyear;
-		targetthinselectage = from.targetthinselectage;
-		targetthinselectdiam = from.targetthinselectdiam;
 		planting_system = from.planting_system;
 		harvest_system = from.harvest_system;
 		pftname = from.pftname;
@@ -1594,6 +1593,12 @@ public:
 		selection = from.selection;
 		plantdensity = from.plantdensity;
 		targetfrac = from.targetfrac;
+		targetstartage = from.targetstartage;
+		targetcutinterval = from.targetcutinterval;
+		targetcutmode = from.targetcutmode;
+		targetthinselectage = from.targetthinselectage;
+		targetthinselectdiam = from.targetthinselectdiam;
+		suppress_second_target = from.suppress_second_target;
 		cutinterval = from.cutinterval;
 		ifthin_reineke = from.ifthin_reineke;
 		alpha_st = from.alpha_st;
@@ -1618,20 +1623,9 @@ public:
 		secondintervalstart = from.secondintervalstart;
 		secondcutinterval = from.secondcutinterval;
 		distribute_cuttings_among_patches = from.distribute_cuttings_among_patches;
-		targetstartage = from.targetstartage;
-		targetcutinterval = from.targetcutinterval;
-		targetcutmode = from.targetcutmode;
-		suppress_second_target = from.suppress_second_target;
 
-		hydrology = from.hydrology;
-//		firr = from.firr;
-		sdate = from.sdate;
-		hdate = from.hdate;
 		woodharv_frac = from.woodharv_frac;
 		woodharv_cmass = from.woodharv_cmass;
-		nfert = from.nfert;
-		tillage_int = from.tillage_int;
-		fallow = from.fallow;
 		relaxed_establishment = from.relaxed_establishment;
 		suppress_fire = from.suppress_fire;
 		suppress_disturbance = from.suppress_disturbance;
@@ -1647,6 +1641,14 @@ public:
 		harv_eff_cc = from.harv_eff_cc;
 		res_outtake_twig_cc = from.res_outtake_twig_cc;
 		res_outtake_coarse_root_cc = from.res_outtake_coarse_root_cc;
+
+		hydrology = from.hydrology;
+//		firr = from.firr;
+		sdate = from.sdate;
+		hdate = from.hdate;
+		nfert = from.nfert;
+		tillage_int = from.tillage_int;
+		fallow = from.fallow;
 	}
 
 	bool is_managed() {

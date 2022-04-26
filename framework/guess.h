@@ -1396,6 +1396,8 @@ public:
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
+	/// pft target cmass fraction input file name
+	xtring file_targetfrac_pft_mt;
 	/// Patch age when target cutting starts
 	int targetstartage;
 	/// Interval of target cuttings
@@ -1517,6 +1519,7 @@ public:
 		selection = "";
 		plantdensity = "";
 		targetfrac = "";
+		file_targetfrac_pft_mt = "";
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;

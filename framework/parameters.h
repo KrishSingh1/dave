@@ -288,6 +288,9 @@ extern bool readdisturbance_st;
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 
+// Whether to read target-cutting distribution for selection in mt from input file
+extern bool readtargetcutting;
+
 /// Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)
 extern bool harvest_burn_thin_trees;
 

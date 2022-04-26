@@ -1668,6 +1668,11 @@ int LandcoverInput::getfirsthistyear() {
 ManagementInput::ManagementInput() {
 }
 
+ManagementInput::~ManagementInput() {
+
+	delete[] targetfrac_pft_mt;
+}
+
 void ManagementInput::init() {
 
 	if(!run_landcover)
@@ -1735,6 +1740,18 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_cutinterval_st);
 			readcutinterval_st = true;
 		}
+
+		targetfrac_pft_mt = new InData::TimeDataD[nmt];
+
+		// See gettargetcutting() for input file format and content of text file
+		for(int i=0;i<nmt;i++) {
+			ManagementType& mt = mtlist[i];
+			if(mt.file_targetfrac_pft_mt != "") {
+				if(!targetfrac_pft_mt[i].Open(mt.file_targetfrac_pft_mt, gridlist))
+					fail("initio: could not open %s for input",(char*)mt.file_targetfrac_pft_mt);
+				readtargetcutting = true;
+			}
+		}
 	}
 
 	gridlist.killall();
@@ -1799,6 +1816,18 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		if(!cutinterval_st.Load(c)) {
 			LUerror = true;	// skip this stand
 			dprintf("cutinterval data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+
+	if(readtargetcutting && !LUerror) {
+		for(int i=0;i<nmt;i++) {
+			ManagementType& mt = mtlist[i];
+			if(mt.file_targetfrac_pft_mt != "") {
+				if(!targetfrac_pft_mt[i].Load(c)) {
+					LUerror = true;	// skip this stand
+					dprintf("Target cutting data for stand types not found in input file %s for %.2f,%.2f.\n\n", mt.file_targetfrac_pft_mt, c.lon, c.lat);
+				}
+			}
 		}
 	}
 	return LUerror;
@@ -1977,6 +2006,38 @@ void ManagementInput::getcutinterval(Gridcell& gridcell) {
 				}
 			}
 			gcst.reset_cutinterval_st = false;
+		}
+	}
+}
+
+/// Read pft target cutting biomass fractions from file
+/** File name with path, file_targetfrac_pft_mt, is defined in management types (or in stand types if if they don't have a rotation scheme).
+ *  Columns for PFT values in text file are as in standard text input.In years with zero target cutting sum, no target cutting will occur.
+ *  To be certain to achieve target cutting at a specific time, at least targetcutinterval number of consecutive years will have to have non-zero values.
+ *  mt.targetfrac is not updated, but standpft.targetfrac is filled with the values in the input file directly.
+ *  During a year with management change (rotation), the instruction file values of the target fractions are used rather than values in the 
+ *  input file to avoid inconsistencies, since the new management type is loaded after the call to this function.
+ */
+void ManagementInput::gettargetcutting(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	for(int mtid=0;mtid<nmt;mtid++) {
+		ManagementType& mt = mtlist[mtid];
+		if(targetfrac_pft_mt[mtid].isloaded()) {
+			for(int pft=0; pft<npft; pft++)	{
+				double pft_target = targetfrac_pft_mt[mtid].Get(year,pftlist[pft].name, true);
+				if(pft_target != NOTFOUND) {
+					for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
+						Stand& stand = gridcell[j];
+						ManagementType& mt_cur = stand.get_current_management();
+						if(mt_cur.name == mt.name) {
+							Standpft& standpft = stand.pft[pft];
+							standpft.targetfrac = pft_target;
+						}
+					}
+				}
+			}
 		}
 	}
 }

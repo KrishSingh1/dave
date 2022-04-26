@@ -57,7 +57,7 @@ public:
 	/// Constructor
 	LandcoverInput();
 
-	/// Opens land cover input files
+	/// Opens land cover input files.
 	void init();
 
 	/// Loads land cover and stand type area fractions from input files
@@ -114,6 +114,8 @@ public:
 
 	/// Constructor
 	ManagementInput();
+	/// Deconstructor
+	~ManagementInput();
 	/// Opens management data files
 	void init();
 	/// Loads fertilisation, sowing and harvest dates from input files
@@ -133,6 +135,8 @@ private:
 	InData::TimeDataD woodharv_cmass;
 	InData::TimeDataD cutinterval_st;
 
+	InData::TimeDataD* targetfrac_pft_mt;
+
 	/// Files names for management input file
 	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, file_cutinterval_st;
 
@@ -146,6 +150,8 @@ private:
 	void getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input);
 	/// Gets cutinterval
 	void getcutinterval(Gridcell& gridcell);
+	/// Gets pft selection target fractions (per st)
+	void gettargetcutting(Gridcell& gridcell);
 };
 
 #endif // LPJ_GUESS_EXTERNALINPUT_H

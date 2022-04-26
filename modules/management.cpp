@@ -776,7 +776,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
 
-		if(mt.planting_system != "SELECTION" || mt.targetfrac == "" || date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear)
+		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting) || date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear)
 			continue;
 
 		double* target = new double[stand.npftsinselection];
@@ -795,6 +795,11 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			}
 			pftlist.nextobj();
 		}
+
+		// When target sum is zero for this year (in input file), no target cutting will occur.
+		if(!target_sum)
+			continue;
+
 		// Normalise targets if target sum > 1.0:
 		for(int i=0;i<stand.npftsinselection;i++) {
 			if(target_sum > 1.0)
@@ -835,7 +840,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			stand.nextobj();
 		}
 
-		// Avoid ezcessive cutting after species disappearance
+		// Avoid excessive cutting after species disappearance
 		double exclude_frac_stand = 0.0;
 		pftlist.firstobj();
 		while(pftlist.isobj) {

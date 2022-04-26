@@ -121,6 +121,7 @@ bool readNfert_st = false;
 bool readdisturbance = false;
 bool readdisturbance_st = false;
 bool readcutinterval_st = false;
+bool readtargetcutting = false;
 bool readwoodharvest_frac = false;
 bool readwoodharvest_cmass = false;
 bool harvest_secondary_to_new_stand = true;
@@ -186,8 +187,8 @@ bool Paramlist::isparam(xtring name) {
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
-	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTHYDROLOGY,
-	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STHYDROLOGY, CB_MANAGEMENT1, 
+	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTHYDROLOGY,
+	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STHYDROLOGY, CB_MANAGEMENT1, 
 	CB_MANAGEMENT2, CB_MANAGEMENT3,	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, 
 	CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR};
 
@@ -936,6 +937,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names in selection");
 		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities for the pft selection (seedlings/ha)");
 		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft selection cmass target fractions");
+		declareitem("file_targetfrac_pft_mt",&strparam,300,CB_MTTARGETFRACFILENAME	,"cmass target fraction input file name");
 		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
 		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
 		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,
@@ -1078,6 +1080,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names in selection of management 1");
 				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities for the pft selection of management 1 (seedlings/ha)");
 				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft selection cmass target fractions");
+				declareitem("file_targetfrac_pft_mt",&strparam,300,CB_STTARGETFRACFILENAME	,"cmass target fraction input file name");
 				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
 				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
 				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,
@@ -1320,6 +1323,9 @@ void plib_callback(int callback) {
 	case CB_MTTARGETFRAC:
 		pmt->targetfrac = strparam;
 		break;
+	case CB_MTTARGETFRACFILENAME:
+		pmt->file_targetfrac_pft_mt = strparam;
+		break;
 	case CB_MTHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
@@ -1356,6 +1362,9 @@ void plib_callback(int callback) {
 		break;
 	case CB_STTARGETFRAC:
 		pst->management.targetfrac = strparam;
+		break;
+	case CB_STTARGETFRACFILENAME:
+		pst->management.file_targetfrac_pft_mt = strparam;
 		break;
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;

@@ -1701,7 +1701,7 @@ void plib_callback(int callback) {
 			stlist.nextobj();
 		}
 
-		// Remove crop st:s with pft:s that are not found in the pftlist or with mt:s that are not in the mtlist
+		// Remove st:s with monoculture pft:s that are not found in the pftlist or with mt:s that are not in the mtlist
 		dprintf("\n");
 		stlist.firstobj();
 		while (stlist.isobj) {
@@ -1709,18 +1709,15 @@ void plib_callback(int callback) {
 
 			bool include = true;
 
-			if(st.landcover == CROPLAND) {	// Should check this for other land covers too, forest monocultures can have a pftname
+			for(int i=0; i<st.rotation.nmanagements; i++) {
 
-				for(int i=0; i<st.rotation.nmanagements; i++) {
-
-					if(st.mtnames[i] != "" && mtlist.getmtid(st.mtnames[i]) < 0) {
-						include = false;
-						dprintf("Stand type %s not used; mt %s not in mtlist !\n", (char*)st.name, (char*)st.mtnames[i]);
-					}
-					if(st.get_management(i).pftname != "" && pftlist.getpftid(st.get_management(i).pftname) < 0) {
-						include = false;
-						dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
-					}
+				if(st.mtnames[i] != "" && mtlist.getmtid(st.mtnames[i]) < 0) {
+					include = false;
+					dprintf("Stand type %s not used; mt %s not in mtlist !\n", (char*)st.name, (char*)st.mtnames[i]);
+				}
+				if(st.get_management(i).pftname != "" && pftlist.getpftid(st.get_management(i).pftname) < 0) {
+					include = false;
+					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
 				}
 			}
 

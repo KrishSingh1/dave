@@ -323,7 +323,19 @@ void LandcoverInput::init() {
 			nmt--;
 		}
 		else {
+			// Set new id for remaining management types, corresponding to place in mtlist.
 			mt.id -= m;
+
+			// Also set new id for corresponding st.management copy (identical to mtlist[st.management.id]).
+			stlist.firstobj();
+			while(stlist.isobj) {
+				StandType& st = stlist.getobj();
+				if(st.management.name == mt.name) {
+					st.management.id = mt.id;
+				}
+				stlist.nextobj();
+			}
+
 			mtlist.nextobj();
 		}			
 	}

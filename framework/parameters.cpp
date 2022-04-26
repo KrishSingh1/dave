@@ -1725,7 +1725,7 @@ void plib_callback(int callback) {
 		}
 		dprintf("\n");
 
-		// Set ids and npft variable after removing unused pfts	; NB: minimizecftlist may remove more pfts
+		// Set ids and npft variable after removing unused pfts	; NB: minimizecftlist or LandcoverInput::init() may remove more pfts
 		npft = 0;
 		pftlist.firstobj();
 		while (pftlist.isobj) {
@@ -1734,7 +1734,7 @@ void plib_callback(int callback) {
 			pftlist.nextobj();
 		}
 
-		// Set ids and nmt variable after removing unused mts
+		// Set ids and nmt variable after removing unused mts ; NB: LandcoverInputModule::init() may remove more mts
 		nmt = 0;
 		mtlist.firstobj();
 		while (mtlist.isobj) {
@@ -1752,6 +1752,25 @@ void plib_callback(int callback) {
 			StandType& st = stlist.getobj();
 			st.id = nst++;
 			nst_lc[st.landcover]++;
+			stlist.nextobj();
+		}
+
+		// Add a copy of a management type defined in a stand type to the mtlist, with the same name as the stand type.
+		stlist.firstobj();
+		while (stlist.isobj) {
+			StandType& st = stlist.getobj();
+			if(st.mtnames[0] == "") {
+				ManagementType& mt_new = mtlist.createobj();
+				st.management.name = st.name;
+				mt_new = st.management;
+				mt_new.id = nmt++;
+				st.management.id = mt_new.id;
+				// Management type copies stored in the stand type and in the mtlist are identical at this point, but the main method 
+				// to get managements should be by calling stand.get_current_management() or st.get_management(), retrieving the mtlist copy.
+				// If unused mt:s removed in LandcoverInputModule::init(), the id of remaining mt:s are updated in both copies.
+				st.mtnames[0] = mt_new.name;
+				st.rotation.nmanagements = 1;			// In case not already set (mt from "Natural" stand type).
+			}
 			stlist.nextobj();
 		}
 

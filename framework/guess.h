@@ -1668,7 +1668,7 @@ public:
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
 	/// Rotation information, read from the instruction file
 	Rotation rotation;
-	/// Management struct (static)
+	/// Management struct (static); temporary storage of mt when defined directly in the instruction file stand type; copied to mt in mtlist
 	ManagementType management;
 	/// Management types in a rotation cycle
 	xtring mtnames[NROTATIONPERIODS_MAX];

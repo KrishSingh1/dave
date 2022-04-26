@@ -141,6 +141,25 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
 /// Nitrogen preferance
 typedef enum {NO, NH4, NO3} n_pref_type;
+
+/// thinselectpft types (integers in instruction file)
+#define SELECT_PFT_NOPREF 0
+#define SELECT_PFT_UNSEL 1
+#define SELECT_PFT_SEL 2
+#define SELECT_PFT_UNSEL_SEL_SEPARATE 3
+#define SELECT_PFT_SHADEINTOL 4
+
+/// thinselectage types (integers in instruction file)
+#define SELECT_AGE_NOPREF 0
+#define SELECT_AGE_YOUNG 1
+#define SELECT_AGE_OLD 2
+
+/// thinselectdiam types (integers in instruction file)
+#define SELECT_DIAM_NOPREF 0
+#define SELECT_DIAM_SMALL 1
+#define SELECT_DIAM_LARGE 2
+#define SELECT_DIAM_LIMIT 3
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -1501,8 +1520,8 @@ public:
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;
-		targetthinselectage = 0;
-		targetthinselectdiam = 2;
+		targetthinselectage = SELECT_AGE_NOPREF;
+		targetthinselectdiam = SELECT_DIAM_LARGE;
 		suppress_second_target = false;
 		cutinterval = 0;
 		ifthin_reineke = false;
@@ -1541,9 +1560,9 @@ public:
 				thintime[n][t] = 0.0;
 				thinstrength[n][t] = 0.0;
 				thinstrength_unsel[n][t] = 0.0;
-				thinselectpft[n][t] = 0;
-				thinselectage[n][t] = 0;
-				thinselectdiam[n][t] = 0;
+				thinselectpft[n][t] = SELECT_PFT_NOPREF;
+				thinselectage[n][t] = SELECT_AGE_NOPREF;
+				thinselectdiam[n][t] = SELECT_DIAM_NOPREF;
 			}
 		}
 		harv_eff_thin = -1.0;

@@ -458,12 +458,15 @@ double diameter_rules(Individual& indiv) {
  *  INPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - man_strength 				management strength (cutting intensity)
- *  \param select_diam				Whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)
- *  \param select_age				Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)
- *  \param select_pft				Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3),
- *									shrubs and shade-intolerant pft:s preferentially cut (4) or no preference (0)
- *  \param str_unsel				Cutting strength for unselected pft:s if select_pft = 3
- *  \param str_sel					String of cutting strengths for selected pft:s if select_pft = 3
+ *  \param select_diam				Whether small (SELECT_DIAM_SMALL, 1) or large (SELECT_DIAM_LARGE, 2) diameter individuals are preferentially
+ *									cut, trees above diam_limit only (SELECT_DIAM_LIMIT, 3).or no preference (SELECT_DIAM_NOPREF, 0)
+ *  \param select_age				Whether young (SELECT_AGE_YOUNG, 1) or old (SELECT_AGE_OLD, 2) individuals are preferentially cut,
+ *									or no preference (SELECT_AGE_NOPREF, 0)
+ *  \param select_pft				Whether non-selected (SELECT_PFT_UNSEL, 1) or selected (SELECT_PFT_SEL, 2) pft:s are preferentially cut, unselected
+ *									and selected cutting strengths specified separately (SELECT_PFT_UNSEL_SEL_SEPARATE, 3), shrubs and shade-intolerant
+ *									pft:s preferentially cut (SELECT_PFT_SHADEINTOL, 4) or no preference (SELECT_PFT_NOPREF, 0)
+ *  \param str_unsel				Cutting strength for unselected pft:s if select_pft = SELECT_PFT_UNSEL_SEL_SEPARATE
+ *  \param str_sel					String of cutting strengths for selected pft:s if select_pft = SELECT_PFT_UNSEL_SEL_SEPARATE
  *									ManagementType (accessed from patch) public members:
  *   - firstmanageyear				calendar year when management starts (including suppression of disturbance and fire)
  *   - firstcutyear					first calendar year when wood harvest starts
@@ -481,7 +484,8 @@ double diameter_rules(Individual& indiv) {
  *									Individual (accessed from looping through patch vegetation) public members:
  *   - man_strength 				management strength (cutting intensity)
  */
-void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, int select_pft = 0, double str_unsel = 0.0, double* str_sel = NULL) {
+void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int select_age = SELECT_AGE_NOPREF, 
+	int select_pft = SELECT_PFT_NOPREF, double str_unsel = 0.0, double* str_sel = NULL) {
 
 	// Prevent individual man_strength to be set in several calls to this function the same year (called in manage_forest() before in set_forest_pft_structure()).
 	if(patch.distributed_cutting)
@@ -508,10 +512,10 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 	}
 
 	// We need to re-calculate cmass_harvest_patch_selection for select_species case without some PFTs
-	if(select_pft == 4)
+	if(select_pft == SELECT_PFT_SHADEINTOL)
 		cmass_harvest_patch_selection = 0.0;
 
-	// Determine cmass:harvest for each cohort first for select_age > 0
+	// Determine cmass:harvest for each cohort first for select_age != SELECT_AGE_NOPREF options
 	double cmass_harvest_ageclass[MAXAGE + 1] = {0.0};
 	double cmass_harvest_ageclass_selection[MAXAGE + 1] = {0.0};
 	for(unsigned int i = 0; i < patch.vegetation.nobj; i++) {
@@ -520,14 +524,14 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		if(indiv.age > MAXAGE)
 			fail("Tree %d years old, increase MAXAGE in distribute_cutting()\n", indiv.age);
 		bool pft_selection = spft.plant || mt.planting_system == "";
-		if(select_pft == 4) {
+		if(select_pft == SELECT_PFT_SHADEINTOL) {
 			// Exclude shrubs and shade-intolerant pfts from selection in this function
 			pft_selection = pft_selection && !indiv.pft.is_shrub() && !indiv.pft.is_shade_intolerant_tree();
 		}
 		cmass_harvest_ageclass[(int)indiv.age] += check_harvest_cmass(indiv, stem_cmass_only);
 		if(pft_selection) {
 			double harvest_cmass_indiv = check_harvest_cmass(indiv, stem_cmass_only);
-			if(select_pft == 4)
+			if(select_pft == SELECT_PFT_SHADEINTOL)
 				cmass_harvest_patch_selection += harvest_cmass_indiv;
 			cmass_harvest_ageclass_selection[(int)indiv.age] += harvest_cmass_indiv;
 			if(str_sel) {
@@ -539,7 +543,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 
 	// Two loops through the individuals of the patch if there is a preference in cutting selected or unselected pfts first;
 	// first lap for the preferred pfts, the second lap for the other pfts.
-	int nlaps = select_pft ? 2 : 1;
+	int nlaps = (select_pft != SELECT_PFT_NOPREF) ? 2 : 1;
 
 	for(int n=0; n<nlaps; n++) {
 
@@ -548,7 +552,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 		int age_save = -1;	// Age of last individual
 		bool cut_selection;
 
-		if(select_pft == 1 || select_pft == 4) {
+		if(select_pft == SELECT_PFT_UNSEL || select_pft == SELECT_PFT_SHADEINTOL) {
 			if(!n)
 				cut_selection = false;
 			else
@@ -560,7 +564,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			else
 				cut_selection = false;
 
-			if(select_pft == 3) {
+			if(select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE) {
 				if(!n)
 					cmass_harvest_remain = cmass_harvest_patch_selection * patch.man_strength;	// Value used for selection in this case
 				else
@@ -570,12 +574,12 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 
 		for(unsigned int i = 0; i < patch.vegetation.nobj; i++) {
 
-			if(cmass_harvest_remain < 1e-15 && !(cut_selection && select_pft == 3 && str_sel))
+			if(cmass_harvest_remain < 1e-15 && !(cut_selection && select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE && str_sel))
 				break;
 
 			int index;
 
-			if(select_age == 1) {
+			if(select_age == SELECT_AGE_YOUNG) {
 				index = patch.vegetation.nobj - 1 - i;
 			}
 			else {
@@ -583,10 +587,10 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			}
 
 			// select_diam overrides select_age
-			if(select_diam == 1) {
+			if(select_diam == SELECT_DIAM_SMALL) {
 				index = indiv_class.get_index(i);
 			}
-			else if(select_diam == 2) {
+			else if(select_diam == SELECT_DIAM_LARGE) {
 				index = indiv_class.get_index(patch.vegetation.nobj -1 - i);
 			}
 
@@ -601,12 +605,12 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			Standpft& spft = stand.pft[indiv.pft.id];
 			bool pft_selection = spft.plant || mt.planting_system == "";
 
-			if(select_pft == 4) {
+			if(select_pft == SELECT_PFT_SHADEINTOL) {
 				// Exclude shrubs and shade-intolerant pfts from selection in this function
 				pft_selection = pft_selection && !indiv.pft.is_shrub() && !indiv.pft.is_shade_intolerant_tree();
 			}
 
-			if(select_pft) {
+			if(select_pft != SELECT_PFT_NOPREF) {
 				if(!cut_selection && pft_selection)
 					continue;
 				if(cut_selection && !pft_selection)
@@ -624,17 +628,17 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 				continue;
 
 			// select_diam overrides select_age
-			if(select_diam) {
+			if(select_diam != SELECT_DIAM_NOPREF) {
 
 				// Determine if diameter rules restricts harvestable amount
 				double max_cut = diameter_rules(indiv);
 
 				// Satisfy cutting demand by cutting down each according to the preferences set by select_diam
-				if(select_diam == 3) {
+				if(select_diam == SELECT_DIAM_LIMIT) {
 					indiv.man_strength = max_cut;
 				}
 				else {
-					if(cut_selection && select_pft == 3 && str_sel) {
+					if(cut_selection && select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE && str_sel) {
 						indiv.man_strength = min(1.0, cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] / cmass_harvest_cohort);
 						cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] -= max(0.0, indiv.man_strength * cmass_harvest_cohort);
 					}
@@ -646,15 +650,15 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 					}
 				}
 			}
-			else if(select_age) {
+			else if(select_age != SELECT_AGE_NOPREF) {
 
 				// Using equal cutting within an age-class
-				if(select_pft) {
+				if(select_pft != SELECT_PFT_NOPREF) {
 					if(!cut_selection && (cmass_harvest_ageclass[(int)indiv.age] - cmass_harvest_ageclass_selection[(int)indiv.age])) {
 						indiv.man_strength = min(1.0, cmass_harvest_remain_init_ageclass / (cmass_harvest_ageclass[(int)indiv.age] - cmass_harvest_ageclass_selection[(int)indiv.age]));
 					}
 					else if(cut_selection && cmass_harvest_ageclass_selection[(int)indiv.age]) {
-						if(select_pft == 3 && str_sel) {
+						if(select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE && str_sel) {
 							// ony one individual per pft per age !
 							indiv.man_strength = min(1.0, cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] / cmass_harvest_cohort);
 							cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] -= max(0.0, indiv.man_strength * cmass_harvest_cohort);
@@ -676,7 +680,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 			}
 			else {
 
-				if(select_pft) {
+				if(select_pft != SELECT_PFT_NOPREF) {
 
 					// First cut unwanted species by an equal amount
 					if(!cut_selection && (cmass_harvest_patch - cmass_harvest_patch_selection)) {
@@ -684,7 +688,7 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 					}
 					// then cut an equal amount of the pft:s in selection
 					else if(cut_selection && cmass_harvest_patch_selection) {
-						if(select_pft == 3 && str_sel) {
+						if(select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE && str_sel) {
 							indiv.man_strength = str_sel[stand.pft[indiv.pft.id].selection];	// Special case: not equal amounts !
 						}
 						else {
@@ -705,8 +709,8 @@ void distribute_cutting(Patch& patch, int select_diam = 0, int select_age = 0, i
 	}
 	// If diameter rules used, prescribed cutting may not be achieved (especially in young stands).
 	// Try to solve demand by reducing diameter limitby 1% each year when this happens.
-	if(mt.secondcutinterval && ((select_diam == 3 && cmass_harvest_remain_init && (cmass_harvest_remain_init - cmass_harvest_remain) < 1e-15)
-		|| (select_diam == 1 || select_diam == 2) && cmass_harvest_remain > 1e-15)) {
+	if(mt.secondcutinterval && ((select_diam == SELECT_DIAM_LIMIT && cmass_harvest_remain_init && (cmass_harvest_remain_init - cmass_harvest_remain) < 1e-15)
+		|| (select_diam == SELECT_DIAM_SMALL || select_diam == SELECT_DIAM_LARGE) && cmass_harvest_remain > 1e-15)) {
 		dprintf("Year %d: Warning: cmass_harvest_remain = %f, inital cmass_harvest_remain = %f; age = %d\n", date.get_calendar_year(), cmass_harvest_remain,cmass_harvest_remain_init, patch.age);
 
 		// Only in second (continuous) period
@@ -996,7 +1000,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			}
 	
 			if(cutstr_total_use > DEVLIMIT)
-				distribute_cutting(patch, mt.targetthinselectdiam, mt.targetthinselectage, 3, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
+				distribute_cutting(patch, mt.targetthinselectdiam, mt.targetthinselectage, SELECT_PFT_UNSEL_SEL_SEPARATE, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
 
 			if(cmass_pft)
 				delete[] cmass_pft;
@@ -1224,7 +1228,7 @@ void thin_reineke(Patch& patch) {
 		// Pre-commercial thinning: harvested biomass to litter
 		if(patch.age < 20)
 			patch.harvest_to_litter = true;
-		distribute_cutting(patch, 0, 1, 4);	// Cut young trees first & cut shrubs and shade-intolerant species first (4)
+		distribute_cutting(patch, SELECT_DIAM_NOPREF, SELECT_AGE_YOUNG, SELECT_PFT_SHADEINTOL);	// Cut young trees first & cut shrubs and shade-intolerant species first.
 	}
 }
 

@@ -1518,12 +1518,12 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	// runon set in global.ins
 	soiltype.runon = wetland_runon;
 
-	// Add to annual runon
-	patch.awetland_water_added += wetland_runon;
-
 	if (runoff_surf > 0.0) {
 
 		double runofforon = soiltype.runon;
+
+	// Add to annual runon
+	patch.awetland_water_added += runofforon;
 
 		if (runofforon < 0) 
 			runoff_surf -= runofforon;	// e.g. 3 mm/day for bog-like/hummock conditions

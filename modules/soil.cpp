@@ -1338,6 +1338,16 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		patch.mrunoff[date.month] = 0.0;
 	}
 
+	// Available water in evaporation and acrotelm layers
+	double water_evap = 0.0;
+	for (int ly = IDX; ly < IDX + NEVAP; ly++) {
+		water_evap += Frac_water[ly] * Dz[ly];
+	}
+	double water_acro = 0.0;
+	for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
+		water_acro += Frac_water[ly] * Dz[ly];
+	}
+	 
 	// Update Wtot, whc[], awhc[], and wcont[]
 	if (!update_layer_water_content(daynum)) 
 		fail();
@@ -1362,7 +1372,10 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Transpiration from the acrotelm  
 	double aet_acrotelm = 0.0;
-	double aet = 0.0; // AET for a particular layer and individual (mm)
+	// Transpiration from the evaporation depth
+	double aet_evap = 0.0;
+	// AET for a particular layer and individual (mm)
+	double aet = 0.0;
 
 	// Sum AET for across all vegetation individuals in this patch
 
@@ -1373,14 +1386,23 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
+		// PFT total root frac in the acrotelm 
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
 			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
 
+		// PFT total root frac down to evaporation depth (200mm) 
+		double pft_evap_root_frac = 0.0;
+
+		for (int ly = IDX; ly < IDX + NEVAP; ly++) {
+			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+		}
+
 		// this includes mosses, which have root_frac = 1 in the acrotelm
 		// Fraction of the aet from the acrotelm only.
 		aet_acrotelm += indiv.aet * pft_acro_root_frac;
+		aet_evap += indiv.aet * pft_evap_root_frac;
 		
 		// Total aet, assumed from acrotelm and catotelm combined 
 		aet_total += indiv.aet;
@@ -1390,14 +1412,26 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 		vegetation.nextobj();
 	}
+	aet_acrotelm = min(aet_acrotelm, water_acro);
+	aet_evap = min(aet_evap, water_evap);
+
+	// Check if acrotelm AET over evap AET needs to be taken from the evap layers
+	if ((aet_acrotelm - aet_evap) > (water_acro - water_evap))
+		aet_evap += (aet_acrotelm - aet_evap) - (water_acro - water_evap);
+
+	// Add AET from catotelm. Runon keeps it constant saturated
+	patch.awetland_water_added += aet_total - aet_acrotelm;
 
 
 	// *** EVAPORATION *** 
 	// Evaporation from soil surface
 
+	// Available water for evaporation after AET is removed from evaporation layers
+	water_evap -= aet_evap;
+
 	// Wania et al (2009)
 	if (snowpack < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
-		evap = fevap*climate.eet*PRIESTLEY_TAYLOR*(0.99 / (1+exp(-1.0*(-wtd + 98.7)/22.6) + 0.02));
+		evap = min(water_evap, fevap*climate.eet*PRIESTLEY_TAYLOR*(0.99 / (1+exp(-1.0*(-wtd + 98.7)/22.6) + 0.02)));
 	} 
 	else {
 		evap = 0.0;
@@ -1432,7 +1466,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// when the water table is at the surface
 
 		if (snowpack < 10.0) { // i.e. evap only if snow depth < 1cm
-			evapotranspiration = climate.eet*(1.02 - 0.00075 * wtd)*fevap; // wtd [-100,+300]
+			evapotranspiration = min(water_acro, climate.eet*(1.02 - 0.00075 * wtd)*fevap); // wtd [-100,+300]
 		}
 		else {
 			evapotranspiration = 0.0;
@@ -1452,19 +1486,27 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	// Drainage - could possibly be read in for site-specific studies
 	runoff_drain = 0; 
 
-	// Update available water 
+	// Update available water and ice
 	Wtot += rain_melt-evapotranspiration-runoff_drain;
 	 
 	// *** RUNOFF AND RUNON***
 
-	double acrowater = 0.0; // Frac_water[MIDX] * Dz[MIDX];
+	// Available water for surface runoff
+	double acrowater = 0.0;
 
-	for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-		acrowater += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
+	for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
+		acrowater += Frac_water[ly] * Dz[ly];
+	}
+	acrowater += rain_melt - evapotranspiration - runoff_drain;
 
+	// Ideal runoff
 	double ideal_runoff = exp(-0.01 * wtd);
-	if (acrowater > 0.0 && Frac_ice[IDX] < 0.7) // Granberg et al. (1999) use the same ice condition - see f_icestop in their Table 1
-		runoff_surf = min(ideal_runoff,acrowater);
+
+	// Ice fraction of total water and ice in top soil layer
+	double ice_frac = (Frac_water[IDX] + Frac_ice[IDX] + Fpwp_ref[IDX]) > 0.0 ? (Frac_ice[IDX] + Fpwp_ref[IDX] - Frac_water_belowpwp[IDX]) / (Frac_water[IDX] + Frac_ice[IDX] + Fpwp_ref[IDX]) : 0.0;
+	
+	if (acrowater > 0.0 && ice_frac < 0.7) // Granberg et al. (1999) use the same ice condition - see f_icestop in their Table 1
+		runoff_surf = min(ideal_runoff, acrowater);
 	else
 		runoff_surf = 0.0;
 
@@ -1476,7 +1518,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	// runon set in global.ins
 	soiltype.runon = wetland_runon;
 
-	// Runon
+	// Add to annual runon
 	patch.awetland_water_added += wetland_runon;
 
 	if (runoff_surf > 0.0) {
@@ -1591,8 +1633,16 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	double surfw_sat = 0.0;
 	double value[NSUBLAYERS_ACRO];
-	double acro_aw = 0.0; // mm of plant available water in acrotelm
-	double cato_aw = 0.0; // mm of plant available water in catotelm
+	double acro_water = 0.0; // mm of water in acrotelm
+	double cato_water = 0.0; // mm of water in catotelm
+
+
+	// Initial water and ice content in acrotelm
+	double acro_ice_init = 0.0;
+	for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
+		acro_ice_init += (Frac_ice[lyr] + Fpwp_ref[lyr] - Frac_water_belowpwp[lyr]) * Dz[lyr];
+	}
+	double acro_water_init = Wtot - acro_ice_init;
 
 	if (wtd > 0.0) {
 
@@ -1601,7 +1651,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// Determine the subsurface layer (0 to NSUBLAYERS_ACRO) within which wtd lies. 
 		// Possible values:
 		// = 0 if wtd < 10 mm 
-		// = NSUBLAYERS_ACRO iff wtd = Dz_acro
+		// = NSUBLAYERS_ACRO if wtd = Dz_acro
 		int wtd_layer = (int)(wtd / Dz_sub); // Takes the integer part only
 
 		surfw_sat = max(minvtot, acro_por - az * wtd); // Granberg - eqn 3.
@@ -1634,9 +1684,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		}
 
 		// Water content in each acrotelm layer
-		double Ftotal[NLAYERS]; // Volumetric fraction in the acrotelm layers
-		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-			Ftotal[ly] = 0.0;
+		double Ftotal[NLAYERS] = { 0.0 }; // Volumetric fraction in the acrotelm layers
 
 		int sublayers_per_layer = (int)Dz_acro/(int)Dz_sub; 
 
@@ -1659,7 +1707,43 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
 			Frac_water[ly] = max(Ftotal[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0);
-			acro_aw += Frac_water[ly] * Dz[ly];
+			acro_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
+		}
+
+		// Check for error in acrotelm water balance
+		double acro_water_error = acro_water - acro_water_init;
+		if (!negligible(acro_water_error, -12)) {
+
+			// Too much water
+			if (acro_water_error > 0.0) {
+
+				// Water available for reduction
+				double water_avail = 0.0;
+				for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
+					water_avail += Frac_water[lyr] * Dz_acro;
+				}
+
+				// Remaining water fraction per layer
+				double frac = water_avail > 0.0 ? max(0.0, water_avail - acro_water_error) / water_avail : 0.0;
+				for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
+					Frac_water[lyr] *= frac;
+				}
+			}
+			// Water is missing. Fill from bottom
+			else {
+				for (int lyr = IDX + NACROTELM - 1; lyr >= IDX; lyr--) {
+
+					// Space for adding water
+					double avail = max(0.0, acro_por - (Frac_water[lyr] + Frac_ice[lyr] + Fpwp_ref[lyr])) * Dz_acro;
+
+					// Water to add to this layer
+					double wmass_to_add = max(0.0, min(avail, -acro_water_error));
+
+					// Update fraction available water in layer and reduce error
+					Frac_water[lyr] += wmass_to_add / Dz_acro;
+					acro_water_error += wmass_to_add;
+				}
+			}
 		}
 	} 
 	else { 
@@ -1675,21 +1759,23 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// ACROTELM - saturated
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
 			Frac_water[ly] = max(por[ly]-Frac_ice[ly]-Fpwp_ref[ly], 0.0);
-			acro_aw += Frac_water[ly] * Dz[ly];
+			acro_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
 		}
 	}
 
+	// Additional runon to catotelm
+	double cato_runon = 0.0;
+
 	// CATOTELM - assumed to be always saturated
 	for (int ly = IDX + NACROTELM; ly < NLAYERS; ly++) {
-		Frac_water[ly] = max(por[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0);
-		cato_aw += Frac_water[ly] * Dz[ly];
+		double water_diff = max(por[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0) - Frac_water[ly];
+		Frac_water[ly] += water_diff;
+		cato_runon += water_diff;
+		cato_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
 	}
 
-	// Tidy up Frac_water
-	for (int ly = 0; ly < NLAYERS; ly++) {
-		if (Frac_water[ly] < Fpwp_ref[ly]) 
-			Frac_water[ly] = 0.0;
-	}
+	// Add catotelm runon to annual runon
+	patch.awetland_water_added += cato_runon;
 
 	// *** WATER CONTENT IN EACH SOIL LATER (FOR PLANT GROWTH) ***
 	if (!update_layer_water_content(daynum)) 

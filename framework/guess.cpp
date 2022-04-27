@@ -585,8 +585,8 @@ double Patch::wcontent() {
 
 	double wcontent = 0.0;
 	
-	for (int lyr = 0; lyr < NLAYERS; lyr++) {
-		wcontent += (soil.Frac_ice[lyr] + soil.Frac_water[lyr]) * soil.Dz[lyr];
+	for (int lyr = soil.IDX; lyr < NLAYERS; lyr++) {
+		wcontent += (soil.Frac_ice[lyr] + soil.Frac_water[lyr] + soil.Fpwp_ref[lyr]) * soil.Dz[lyr];
 	}
 
 	wcontent += soil.snowpack;

@@ -39,6 +39,9 @@ const int IDX_STD = NLAYERS-NSOILLAYER;
 /// number of padding layers in the soil
 const int PAD_LAYERS = 5;
 
+/// number of total soil layers in evaporation depth
+const int NEVAP = 2;
+
 /// number of total soil layers in the acrotelm
 const int NACROTELM = 3;
 

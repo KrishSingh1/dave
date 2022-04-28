@@ -939,6 +939,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("plantdensity",&strparam,200,CB_MTPLANTDENSITY	,"String of pft planting densities for the pft selection (seedlings/ha)");
 		declareitem("targetfrac",&strparam,200,CB_MTTARGETFRAC	,"String of pft selection cmass target fractions");
 		declareitem("file_targetfrac_pft_mt",&strparam,300,CB_MTTARGETFRACFILENAME	,"cmass target fraction input file name");
+		declareitem("targetfrac_input_mode",&pmt->targetfrac_input_mode,0,2,1,CB_NONE,"How to use values in file_targetfrac_pft_mt");
 		declareitem("targetstartage",&pmt->targetstartage,0,364,1,CB_NONE,"Patch age when pft fraction target cutting starts");
 		declareitem("targetcutinterval",&pmt->targetcutinterval,0,364,1,CB_NONE,"Interval of pft fraction target cuttings");
 		declareitem("targetcutmode",&pmt->targetcutmode,1,3,1,CB_NONE,
@@ -1082,6 +1083,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("plantdensity",&strparam,200,CB_STPLANTDENSITY,"String of pft planting densities for the pft selection of management 1 (seedlings/ha)");
 				declareitem("targetfrac",&strparam,200,CB_STTARGETFRAC	,"String of pft selection cmass target fractions");
 				declareitem("file_targetfrac_pft_mt",&strparam,300,CB_STTARGETFRACFILENAME	,"cmass target fraction input file name");
+				declareitem("targetfrac_input_mode",&pst->management.targetfrac_input_mode,0,2,1,CB_NONE,"How to use values in file_targetfrac_pft_mt");
 				declareitem("targetstartage",&pst->management.targetstartage,0,364,1,CB_NONE,"Patch age when target cutting starts of management 1");
 				declareitem("targetcutinterval",&pst->management.targetcutinterval,0,364,1,CB_NONE,"Interval of target cuttings of management 1");
 				declareitem("targetcutmode",&pst->management.targetcutmode,1,3,1,CB_NONE,

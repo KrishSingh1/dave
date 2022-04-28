@@ -778,8 +778,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
 		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
-
-		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting)
+		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting) || (readtargetcutting && mt.targetfrac_input_mode == 2)
 			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear || (no_target_cutting_before_man_start && !management_started)) {
 			continue;
 		}

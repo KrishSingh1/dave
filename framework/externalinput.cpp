@@ -1837,7 +1837,24 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 			if(mt.file_targetfrac_pft_mt != "") {
 				if(!targetfrac_pft_mt[i].Load(c)) {
 					LUerror = true;	// skip this stand
-					dprintf("Target cutting data for stand types not found in input file %s for %.2f,%.2f.\n\n", mt.file_targetfrac_pft_mt, c.lon, c.lat);
+					dprintf("Target cutting data for stand types not found in input file %s for %.2f,%.2f.\n\n", (char*)mt.file_targetfrac_pft_mt, c.lon, c.lat);
+				}
+				else if(mt.targetfrac_input_mode) {
+					// This input is expected to be static or with non-zero values for pft:s in the selection the first input year.
+					// selection must be set before stand creation
+					char tempstring[200] = {0};
+					if(targetfrac_pft_mt[i].isloaded()) {
+						for(int pft=0; pft<npft; pft++)	{
+							double pft_target = targetfrac_pft_mt[i].Get(0, pftlist[pft].name, true);
+							if(pft_target != NOTFOUND) {
+								if(pft_target) {
+									strcat(tempstring, pftlist[pft].name);
+									strcat(tempstring, " ");
+								}
+							}
+						}
+						mt.selection = tempstring;
+					}
 				}
 			}
 		}

@@ -1398,6 +1398,12 @@ public:
 	xtring targetfrac;
 	/// pft target cmass fraction input file name
 	xtring file_targetfrac_pft_mt;
+	/// How to use values in file_targetfrac_pft_mt
+	/*  (0): use values for target cutting and keep the selection defined in the instruction file, 
+	 *  (1): use values for target cutting and restrict selection to pft:s in input file with non-zero fractions (overriding selection defined in the instruction file),
+	 *  (2): only use target fractions to define selection (can be 0/1 values) as in (1), without using target cutting.
+	 */
+	int targetfrac_input_mode;
 	/// Patch age when target cutting starts
 	int targetstartage;
 	/// Interval of target cuttings
@@ -1520,6 +1526,7 @@ public:
 		plantdensity = "";
 		targetfrac = "";
 		file_targetfrac_pft_mt = "";
+		targetfrac_input_mode = 0;
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;

@@ -771,6 +771,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		Stand& stand = gridcell[s];
 		ManagementType& mt = stand.get_current_management();
 		const bool stem_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
+		const bool relax_target_cutting_after_pft_gone = false;		// Default value false will prioritise pft selection over stand age (all other trees may be cut when one pft dies)
 		const bool no_target_cutting_before_man_start = true;		// No target-cutting before management starts
 
 		bool management_started = stand[0].managed;					// patch.managed is the same for all patches in a stand
@@ -851,7 +852,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			Pft& pft = pftlist.getobj();
 			Standpft& spft = stand.pft[pft.id];
 			if(spft.selection != -1 && target[spft.selection] > 0.0) {
-				if(!cmass_pft_stand[spft.selection]) {
+				if(!cmass_pft_stand[spft.selection] && relax_target_cutting_after_pft_gone) {
 					exclude_frac_stand += target[spft.selection];
 				}
 				else {
@@ -872,8 +873,15 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 
 		for(int i=0;i<stand.npftsinselection;i++) {
 			double remove_cmass_stand = 0.0; 
-			if(target_stand[i] - 1.0)
-				remove_cmass_stand = max(0.0, (target_stand[i] * cmass_total_stand - cmass_pft_stand[i]) / (target_stand[i] - 1.0));
+			if(target_stand[i] - 1.0) {
+				if((cmass_pft_stand[i] / cmass_total_stand) > 0.99 && target_stand[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
+					dprintf("Target cutting suspended year %d: cmass_pft_stand[i] / cmass_total_stand = %f\n\n", date.get_calendar_year(), cmass_pft_stand[i] / cmass_total_stand);
+				}
+				else {
+					remove_cmass_stand = max(0.0, (target_stand[i] * cmass_total_stand - cmass_pft_stand[i]) / (target_stand[i] - 1.0));
+				}
+			}
+
 			remove_cmass_selected_stand += remove_cmass_stand;
 			if(cmass_pft_stand[i])
 				cutstr_pft_stand[i] += remove_cmass_stand / cmass_pft_stand[i];
@@ -949,7 +957,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 				Pft& pft = pftlist.getobj();
 				Standpft& spft = stand.pft[pft.id];
 				if(spft.selection != -1 && target[spft.selection] > 0.0) {		
-					if(!cmass_pft[spft.selection]) {
+					if(!cmass_pft[spft.selection] && relax_target_cutting_after_pft_gone) {
 						exclude_frac_patch += target[spft.selection];
 					}
 					else {
@@ -970,8 +978,16 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 
 			for(int i=0;i<stand.npftsinselection;i++) {
 				double remove_cmass = 0.0;
-				if(target_patch[i] - 1.0)
-					remove_cmass = max(0.0, (target_patch[i] * cmass_total - cmass_pft[i]) / (target_patch[i] - 1.0));
+ 
+				if(target_patch[i] - 1.0) {
+					if((cmass_pft[i] / cmass_total) > 0.99 && target_patch[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
+						dprintf("Target cutting suspended year %d: cmass_pft[i] / cmass_total = %f\n\n", date.get_calendar_year(), cmass_pft[i] / cmass_total);
+					}
+					else {
+						remove_cmass = max(0.0, (target_patch[i] * cmass_total - cmass_pft[i]) / (target_patch[i] - 1.0));
+					}
+				}
+
 				remove_cmass_selected += remove_cmass;
 				if(cmass_pft[i])
 					cutstr_pft[i] = remove_cmass / cmass_pft[i];

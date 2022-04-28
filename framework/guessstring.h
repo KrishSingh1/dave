@@ -11,6 +11,7 @@
 #define LPJ_GUESS_GUESSSTRING_H
 
 #include <string>
+#include <string.h>
 
 /// Removes leading and trailing whitespace from a string
 std::string trim(const std::string& str);

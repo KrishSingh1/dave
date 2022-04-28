@@ -22,16 +22,28 @@ REGISTER_OUTPUT_MODULE("misc", MiscOutput)
 
 MiscOutput::MiscOutput() {
 	// Annual output variables
+	declare_parameter("file_cmass_landscape", &file_cmass_landscape, 300, "C biomass output file");
 	declare_parameter("file_cmass_cropland", &file_cmass_cropland, 300, "Annual cropland cmass output file");
 	declare_parameter("file_cmass_pasture", &file_cmass_pasture, 300, "Annual pasture cmass output file");
 	declare_parameter("file_cmass_natural", &file_cmass_natural, 300, "Annual natural vegetation cmass output file");
 	declare_parameter("file_cmass_forest", &file_cmass_forest, 300, "Annual managed forest cmass output file");
 	declare_parameter("file_cmass_peatland", &file_cmass_peatland, 300, "Annual peatland cmass output file");
+	declare_parameter("file_cmass_landscape_cropland", &file_cmass_landscape_cropland, 300, "Annual cropland cmass output file");
+	declare_parameter("file_cmass_landscape_pasture", &file_cmass_landscape_pasture, 300, "Annual pasture cmass output file");
+	declare_parameter("file_cmass_landscape_natural", &file_cmass_landscape_natural, 300, "Annual natural vegetation cmass output file");
+	declare_parameter("file_cmass_landscape_forest", &file_cmass_landscape_forest, 300, "Annual managed forest cmass output file");
+	declare_parameter("file_cmass_landscape_peatland", &file_cmass_landscape_peatland, 300, "Annual peatland cmass output file");
+	declare_parameter("file_anpp_landscape", &file_anpp_landscape, 300, "Annual NPP output file");
 	declare_parameter("file_anpp_cropland", &file_anpp_cropland, 300, "Annual cropland NPP output file");
 	declare_parameter("file_anpp_pasture", &file_anpp_pasture, 300, "Annual pasture NPP output file");
 	declare_parameter("file_anpp_natural", &file_anpp_natural, 300, "Annual natural vegetation NPP output file");
 	declare_parameter("file_anpp_forest", &file_anpp_forest, 300, "Annual managed forest NPP output file");
 	declare_parameter("file_anpp_peatland", &file_anpp_peatland, 300, "Annual peatland NPP output file");
+	declare_parameter("file_anpp_landscape_cropland", &file_anpp_landscape_cropland, 300, "Annual cropland NPP output file");
+	declare_parameter("file_anpp_landscape_pasture", &file_anpp_landscape_pasture, 300, "Annual pasture NPP output file");
+	declare_parameter("file_anpp_landscape_natural", &file_anpp_landscape_natural, 300, "Annual natural vegetation NPP output file");
+	declare_parameter("file_anpp_landscape_forest", &file_anpp_landscape_forest, 300, "Annual managed forest NPP output file");
+	declare_parameter("file_anpp_landscape_peatland", &file_anpp_landscape_peatland, 300, "Annual peatland NPP output file");
 	declare_parameter("file_yield",&file_yield,300, "Crop yield output file");
 	declare_parameter("file_yield1",&file_yield1,300,"Crop first yield output file");
 	declare_parameter("file_yield2",&file_yield2,300,"Crop second yield output file");
@@ -597,6 +609,18 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_anpp_natural,   file_anpp_natural,   anpp_columns_lc);
 	create_output_table(out_anpp_forest,    file_anpp_forest,    anpp_columns_lc);
 	create_output_table(out_anpp_peatland, file_anpp_peatland, anpp_columns_lc);
+	create_output_table(out_cmass_landscape,			file_cmass_landscape,          cmass_columns);
+	create_output_table(out_cmass_landscape_cropland,	file_cmass_landscape_cropland, cmass_columns_lc);
+	create_output_table(out_cmass_landscape_pasture,	file_cmass_landscape_pasture,  cmass_columns_lc);
+	create_output_table(out_cmass_landscape_natural,	file_cmass_landscape_natural,  cmass_columns_lc);
+	create_output_table(out_cmass_landscape_forest,		file_cmass_landscape_forest,   cmass_columns_lc);
+	create_output_table(out_cmass_landscape_peatland,	file_cmass_landscape_peatland, cmass_columns_lc);
+	create_output_table(out_anpp_landscape,				file_anpp_landscape,           anpp_columns);
+	create_output_table(out_anpp_landscape_cropland,	file_anpp_landscape_cropland,  anpp_columns_lc);
+	create_output_table(out_anpp_landscape_pasture,		file_anpp_landscape_pasture,   anpp_columns_lc);
+	create_output_table(out_anpp_landscape_natural,		file_anpp_landscape_natural,   anpp_columns_lc);
+	create_output_table(out_anpp_landscape_forest,		file_anpp_landscape_forest,    anpp_columns_lc);
+	create_output_table(out_anpp_landscape_peatland,	file_anpp_landscape_peatland,  anpp_columns_lc);
 	create_output_table(out_dens_natural,   file_dens_natural,   dens_columns_lc);
 	create_output_table(out_dens_forest,    file_dens_forest,    dens_columns_lc);
 	create_output_table(out_cflux_cropland, file_cflux_cropland, cflux_columns);
@@ -844,6 +868,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.csink = 0.0;
 	}
 
+	double mean_standpft_cmass_landscape=0.0;
+	double mean_standpft_anpp_landscape=0.0;
+
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
 	double landcover_nmass[NLANDCOVERTYPES]={0.0};
 	double landcover_clitter[NLANDCOVERTYPES]={0.0};
@@ -860,6 +887,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_anpp_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_cmass_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_densindiv_total_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_anpp_landscape_lc[NLANDCOVERTYPES]={0.0};
+	double mean_standpft_cmass_landscape_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_aaet_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_lai_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_fpc_lc[NLANDCOVERTYPES]={0.0};
@@ -867,6 +896,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_heightindiv_total_lc[NLANDCOVERTYPES]={0.0};
 
 	double gridcellpft_cmass_killed_harv=0.0;
+
+	double cmass_gridcell=0.0;
+	double anpp_gridcell=0.0;
 
 	double cmass_gridcell_forestry=0.0;
 	double cmass_gridcell_regrowth=0.0;
@@ -929,6 +961,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 		Pft& pft=pftlist.getobj();
 
+		mean_standpft_anpp_landscape = 0.0;
+		mean_standpft_cmass_landscape = 0.0;
+
 		mean_standpft_cmass_killed_harv = 0.0;
 
 		// Sum values across stands, patches and PFTs
@@ -940,6 +975,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_anpp_lc[i]=0.0;
 			mean_standpft_cmass_lc[i]=0.0;
 			mean_standpft_densindiv_total_lc[i]=0.0;
+			mean_standpft_anpp_landscape_lc[i]=0.0;
+			mean_standpft_cmass_landscape_lc[i]=0.0;
 
 			mean_standpft_aaet_lc[i]=0.0;
 			mean_standpft_lai_lc[i]=0.0;
@@ -1135,6 +1172,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
+			mean_standpft_cmass_landscape += standpft_cmass * stand.get_gridcell_fraction();
+			mean_standpft_anpp_landscape += standpft_anpp * stand.get_gridcell_fraction();
+			mean_standpft_anpp_landscape_lc[stand.landcover] += standpft_anpp * stand.get_landcover_fraction();
+			mean_standpft_cmass_landscape_lc[stand.landcover] += standpft_cmass * stand.get_landcover_fraction();
+
 			gridcellpft_cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction();
 
 			//Update stand totals
@@ -1217,6 +1259,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			// Update gridcell totals
 			double fraction_of_gridcell = stand.get_gridcell_fraction();
+			cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
+			anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 			cmass_killed_harv_gridcell+=standpft_cmass_killed_harv*fraction_of_gridcell;
 
 			if(stand.landcover == NATURAL || stand.landcover == FOREST) {
@@ -1254,6 +1298,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 		}
 
+		outlimit_misc(out, out_cmass_landscape,     mean_standpft_cmass_landscape);
+		outlimit_misc(out, out_anpp_landscape,      mean_standpft_anpp_landscape);
+
 		outlimit_misc(out, out_forest_cmass_killed_harv,     mean_standpft_cmass_killed_harv);
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
@@ -1263,11 +1310,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 					switch (i) {
 					case CROPLAND:
+						if (run[NATURAL]) {
+//							outlimit_misc(out, out_anpp_landscape_cropland,		mean_standpft_anpp_landscape_lc[i]);
+//							outlimit_misc(out, out_cmass_landscape_cropland,	mean_standpft_cmass_landscape_lc[i]);
+						}
 						break;
 					case PASTURE:
 						if (run[NATURAL]) {
 							outlimit_misc(out, out_anpp_pasture,			mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_pasture,			mean_standpft_cmass_lc[i]);
+//							outlimit_misc(out, out_anpp_landscape_pasture,		mean_standpft_anpp_landscape_lc[i]);
+//							outlimit_misc(out, out_cmass_landscape_pasture,		mean_standpft_cmass_landscape_lc[i]);
 						}
 						break;
 					case BARREN:
@@ -1278,6 +1331,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_anpp_natural,			mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_natural,			mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
+//							outlimit_misc(out, out_anpp_landscape_natural,		mean_standpft_anpp_landscape_lc[i]);
+//							outlimit_misc(out, out_cmass_landscape_natural,		mean_standpft_cmass_landscape_lc[i]);
 							outlimit_misc(out, out_aaet_natural,			mean_standpft_aaet_lc[i]);
 							outlimit_misc(out, out_lai_natural,				mean_standpft_lai_lc[i]);
 							outlimit_misc(out, out_fpc_natural,				mean_standpft_fpc_lc[i]);
@@ -1297,6 +1352,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_anpp_forest,				mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_forest,			mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_forest,				mean_standpft_densindiv_total_lc[i]);
+							outlimit_misc(out, out_anpp_landscape_forest,			mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_landscape_forest,			mean_standpft_cmass_landscape_lc[i]);
 							outlimit_misc(out, out_aaet_forest,			mean_standpft_aaet_lc[i]);
 							outlimit_misc(out, out_lai_forest,			mean_standpft_lai_lc[i]);
 							outlimit_misc(out, out_fpc_forest,			mean_standpft_fpc_lc[i]);
@@ -1317,6 +1374,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						if (run[PEATLAND]) {
 							outlimit_misc(out, out_anpp_peatland,			mean_standpft_anpp_lc[i]);
 							outlimit_misc(out, out_cmass_peatland,			mean_standpft_cmass_lc[i]);
+//							outlimit_misc(out, out_anpp_landscape_peatland,		mean_standpft_anpp_landscape_lc[i]);
+//							outlimit_misc(out, out_cmass_landscape_peatland,		mean_standpft_cmass_landscape_lc[i]);
 						}
 						break;
 					default:
@@ -1642,6 +1701,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		} // patch loop
 		++gc_itr;
 	} // stand loop
+
+	outlimit_misc(out, out_cmass_landscape,  				cmass_gridcell);
+	outlimit_misc(out, out_anpp_landscape,   				anpp_gridcell);
 
 	outlimit_misc(out, out_forest_cmass_killed_harv,     cmass_killed_harv_gridcell);
 
@@ -2012,15 +2074,23 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		for (int i=0;i<NLANDCOVERTYPES;i++) {
 			if (run[i]) {
 
+				outlimit_misc(out, out_cmass_landscape, landcover_cmass[i]);
+				outlimit_misc(out, out_anpp_landscape,  landcover_anpp[i]);
 				outlimit_misc(out, out_forest_cmass_killed_harv,  landcover_cmass_killed_harv[i]);
 
 				switch (i) {
 				case CROPLAND:
+					if (run[CROPLAND]) {
+//						outlimit_misc(out, out_anpp_landscape_cropland,			landcover_anpp[i]);
+//						outlimit_misc(out, out_cmass_landscape_cropland,			landcover_cmass[i]);
+					}
 					break;
 				case PASTURE:
 					if (run[NATURAL]) {
 						outlimit_misc(out, out_anpp_pasture,		landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_pasture,		landcover_cmass[i]);
+//						outlimit_misc(out, out_anpp_landscape_pasture,			landcover_anpp[i]);
+//						outlimit_misc(out, out_cmass_landscape_pasture,			landcover_cmass[i]);
 					}
 					break;
 				case BARREN:
@@ -2031,6 +2101,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, out_anpp_natural,		landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_natural,		landcover_cmass[i]);
 						outlimit_misc(out, out_dens_natural,		landcover_densindiv_total[i]);
+//						outlimit_misc(out, out_anpp_landscape_natural,			landcover_anpp[i]);
+//						outlimit_misc(out, out_cmass_landscape_natural,			landcover_cmass[i]);
 						outlimit_misc(out, out_aaet_natural,		landcover_aaet[i]);
 						outlimit_misc(out, out_lai_natural,			landcover_lai[i]);
 						outlimit_misc(out, out_fpc_natural,			landcover_fpc[i]);
@@ -2041,6 +2113,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, out_anpp_forest,			landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_forest,		landcover_cmass[i]);
 						outlimit_misc(out, out_dens_forest,			landcover_densindiv_total[i]);
+						outlimit_misc(out, out_anpp_landscape_forest,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_landscape_forest,			landcover_cmass[i]);
 						outlimit_misc(out, out_aaet_forest,			landcover_aaet[i]);
 						outlimit_misc(out, out_lai_forest,			landcover_lai[i]);
 						outlimit_misc(out, out_fpc_forest,			landcover_fpc[i]);
@@ -2052,6 +2126,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					if (run[PEATLAND]) {
 						outlimit_misc(out, out_anpp_peatland,		landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_peatland,		landcover_cmass[i]);
+//						outlimit_misc(out, out_anpp_landscape_peatland,			landcover_anpp[i]);
+//						outlimit_misc(out, out_cmass_landscape_peatland,			landcover_cmass[i]);
 					}
 					break;
 				default:

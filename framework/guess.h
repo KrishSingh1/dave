@@ -1737,12 +1737,7 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		if(rotation.nmanagements > 1) {
-			return mtlist[mtlist.getmtid(mtnames[rot])];
-		}
-		else {
-			return management;
-		}
+		return mtlist[mtlist.getmtid(mtnames[rot])];
 	}
 
 	/// Returns position of management in rotation list if present. Returns -1 if not.

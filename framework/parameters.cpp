@@ -1696,7 +1696,8 @@ void plib_callback(int callback) {
 			}
 			if(st.landcover == CROPLAND && 
 				(st.rotation.nmanagements == 0 ||
-				st.rotation.nmanagements >= 1 && st.get_management(0).pftname == "" && !(st.get_management(0).fallow && st.rotation.nmanagements > 1) ||
+				st.rotation.nmanagements == 1 && st.management.pftname == "" ||
+				st.rotation.nmanagements > 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
 				st.rotation.nmanagements >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
 				st.rotation.nmanagements >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
 				fail("Check stand type rotation parameter setting, pftname missing\n");
@@ -1718,7 +1719,8 @@ void plib_callback(int callback) {
 					include = false;
 					dprintf("Stand type %s not used; mt %s not in mtlist !\n", (char*)st.name, (char*)st.mtnames[i]);
 				}
-				if(st.get_management(i).pftname != "" && pftlist.getpftid(st.get_management(i).pftname) < 0) {
+				xtring pftname = st.rotation.nmanagements > 1 ? st.get_management(i).pftname : st.management.pftname;
+				if(pftname != "" && pftlist.getpftid(pftname) < 0) {
 					include = false;
 					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
 				}

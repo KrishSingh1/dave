@@ -1740,6 +1740,12 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_cutinterval_st);
 			readcutinterval_st = true;
 		}
+		file_firstmanageyear_st = param["file_firstmanageyear_st"].str;
+		if(file_firstmanageyear_st != "")	{
+			if(!firstmanageyear_st.Open(file_firstmanageyear_st, gridlist))
+				fail("initio: could not open %s for input",(char*)file_firstmanageyear_st);
+			readfirstmanageyear_st = true;
+		}
 
 		targetfrac_pft_mt = new InData::TimeDataD[nmt];
 
@@ -1816,6 +1822,12 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		if(!cutinterval_st.Load(c)) {
 			LUerror = true;	// skip this stand
 			dprintf("cutinterval data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if(readfirstmanageyear_st && !LUerror) { 
+		if(!firstmanageyear_st.Load(c)) {
+			LUerror = true;	// skip this stand
+			dprintf("firstmanageyear data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -2010,6 +2022,20 @@ void ManagementInput::getcutinterval(Gridcell& gridcell) {
 	}
 }
 
+/// Read firstmanageyear from file
+/** Saves value in input file for stand type in gridcell.st[stid].firstmanageyear_st and overrides mt firstmanageyear value
+ */
+void ManagementInput::getfirstmanageyear(Gridcell& gridcell) {
+
+	if(firstmanageyear_st.isloaded()) {
+		for(int i=0; i<nst; i++)	{
+			int firstmanageyear = (int)firstmanageyear_st.Get(0,stlist[i].name);
+			if(firstmanageyear != NOTFOUND)
+				gridcell.st[i].firstmanageyear_st = firstmanageyear;
+		}
+	}
+}
+
 /// Read pft target cutting biomass fractions from file
 /** File name with path, file_targetfrac_pft_mt, is defined in management types (or in stand types if if they don't have a rotation scheme).
  *  Columns for PFT values in text file are as in standard text input.In years with zero target cutting sum, no target cutting will occur.
@@ -2066,4 +2092,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 	// Read cutting interval from input file
 	if(readcutinterval_st)
 		getcutinterval(gridcell);
+	// Read firstmanageyear from input file
+	if(readfirstmanageyear_st)
+		getfirstmanageyear(gridcell);
 }

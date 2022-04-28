@@ -121,6 +121,7 @@ bool readNfert_st = false;
 bool readdisturbance = false;
 bool readdisturbance_st = false;
 bool readcutinterval_st = false;
+bool readfirstmanageyear_st = false;
 bool readtargetcutting = false;
 bool readwoodharvest_frac = false;
 bool readwoodharvest_cmass = false;

@@ -1364,6 +1364,10 @@ void manage_forest(Patch& patch) {
 	if(mt.firstmanageyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 		first_manageyear = mt.firstmanageyear - date.first_calendar_year;
 
+	// firstmanageyear from input file overrides mt firstmanageyear value
+	if(readfirstmanageyear_st && gcst.firstmanageyear_st < FAR_FUTURE_YEAR)
+		first_manageyear = gcst.firstmanageyear_st - date.first_calendar_year;
+
 	if(date.year < first_manageyear || !mt.is_managed())
 		return;
 

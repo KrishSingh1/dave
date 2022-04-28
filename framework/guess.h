@@ -4960,6 +4960,8 @@ public:
 	bool reset_cutinterval_st;
 	/// cutting interval
 	double cutinterval_st;
+	/// first management year
+	int firstmanageyear_st;
 
 	// current number of stands of this stand type
 	int nstands;
@@ -4995,6 +4997,7 @@ public:
 		diam_cut_low = 0.0;
 		reset_cutinterval_st = false;
 		cutinterval_st = 0.0;
+		firstmanageyear_st = FAR_FUTURE_YEAR;
 		distinterval_st = 1.0e10;
 	}
 

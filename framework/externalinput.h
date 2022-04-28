@@ -134,11 +134,13 @@ private:
 	InData::TimeDataD woodharv_frac;
 	InData::TimeDataD woodharv_cmass;
 	InData::TimeDataD cutinterval_st;
+	InData::TimeDataD firstmanageyear_st;
 
 	InData::TimeDataD* targetfrac_pft_mt;
 
 	/// Files names for management input file
-	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, file_cutinterval_st;
+	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, 
+		file_cutinterval_st, file_firstmanageyear_st;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
@@ -150,6 +152,8 @@ private:
 	void getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input);
 	/// Gets cutinterval
 	void getcutinterval(Gridcell& gridcell);
+	/// Gets fistmanageyear
+	void getfirstmanageyear(Gridcell& gridcell);
 	/// Gets pft selection target fractions (per st)
 	void gettargetcutting(Gridcell& gridcell);
 };

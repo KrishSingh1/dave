@@ -771,13 +771,18 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		Stand& stand = gridcell[s];
 		ManagementType& mt = stand.get_current_management();
 		const bool stem_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
+		const bool no_target_cutting_before_man_start = true;		// No target-cutting before management starts
+
+		bool management_started = stand[0].managed;					// patch.managed is the same for all patches in a stand
 
 		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
 		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
 
-		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting) || date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear)
+		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting)
+			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear || (no_target_cutting_before_man_start && !management_started)) {
 			continue;
+		}
 
 		double* target = new double[stand.npftsinselection];
 		for(int i = 0; i < stand.npftsinselection; i++) {

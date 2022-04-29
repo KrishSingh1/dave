@@ -40,6 +40,7 @@ public:
 
 	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
 	void getenviron(Gridcell& gridcell) {misc_input.getenviron(gridcell);}
+
 	/// Obtains additional environmental data (e.g. disturbance) for one year
 	void getenviron_yearly(Gridcell& gridcell) {misc_input.getenviron_yearly(gridcell);}
 

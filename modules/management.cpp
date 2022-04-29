@@ -1609,9 +1609,10 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		man_strength = indiv.man_strength;
 	ManagementType& mt = indiv.vegetation.patch.stand.get_current_management();
 
+	// Whether to kill grass at clear-cut.
 	bool killgrass = mt.killgrass_at_cc && patch.man_strength == 1.00;
 
-	if (pft.lifeform == TREE && man_strength > 0.00 || killgrass) {
+	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.lifeform == GRASS) {
 
 		// Default forestry harvest parameters: pft values
 		double harv_eff_wood_harvest = pft.harv_eff;				// Default pft value for trees in global.ins and europe.ins: 0.9
@@ -1648,31 +1649,29 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		ppft.cmass_killed_harv += man_strength * indiv.ccont();
 
 		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
+		// Kill grass at clear-cut and send biomass to litter if mt.killgrass_at_cc == true
+		if(pft.lifeform == GRASS)
+			indiv.kill();
 
-		if (man_strength == 1.00) {
+		indiv.densindiv *= (1.0 - man_strength);
+
+		if (negligible(indiv.densindiv)) {
 			// C balance accounting when anpp is non-zero. This only happens when this function is called on another day than the first day of the year.
 			if(indiv.alive && pft.lifeform == TREE) {
-				if(anpp > 0.0)
+				if(anpp > 0.0) {
 					ppft.litter_sap += anpp;
-				else
+				}
+				else {
 					patch.fluxes.report_flux(Fluxes::HARVESTC, anpp);
+				}
 			}
-			// Grass if killgrass == true
-			indiv.kill();
 			indiv.vegetation.killobj();
 			killed = true;
 		}
 		else {
-
-			indiv.densindiv *= (1.0 - man_strength);
-			if (negligible(indiv.densindiv)) {
-				indiv.vegetation.killobj();
-				killed=true;
-			}
-			else {
-				allometry(indiv);
-			}
+			allometry(indiv);
 		}
+
 		patch.managed_this_year = true;		
 		patch.has_been_cut = true;
 	}

@@ -887,6 +887,9 @@ public:
 	/// latitude (degrees; +=north, -=south)
 	double lat;
 
+	/// gridcell mean elevation
+	double mean_elevation;
+
 	/// Insolation today, see also instype
 	double insol;
 
@@ -1132,6 +1135,7 @@ public:
 		temp_seasonality=COLD;
 		temp_seasonality_lastyear=COLD;
 		biseasonal=false;
+		mean_elevation = 0;
 
 		eet=0.0;
 
@@ -4962,6 +4966,8 @@ public:
 	bool reset_cutinterval_st;
 	/// cutting interval
 	double cutinterval_st;
+	/// stand type elevation
+	double elevation_st;
 	/// first management year
 	int firstmanageyear_st;
 
@@ -5001,6 +5007,7 @@ public:
 		cutinterval_st = 0.0;
 		firstmanageyear_st = FAR_FUTURE_YEAR;
 		distinterval_st = 1.0e10;
+		elevation_st = 0;
 	}
 
 	void serialize(ArchiveStream& arch);

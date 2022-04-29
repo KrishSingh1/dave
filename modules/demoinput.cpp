@@ -257,8 +257,9 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
 
-			if(readdisturbance || readdisturbance_st) {
+			if(readdisturbance || readdisturbance_st || readelevation_st) {
 				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+				misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
 				// Not all gridcells have to be included in input file
 			}
 

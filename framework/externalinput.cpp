@@ -63,6 +63,13 @@ void MiscInput::init() {
 			fail("initio: could not open %s for input",(char*)file_disturbance_st);
 		readdisturbance_st = true;
 	}
+
+	file_elevation_st = param["file_elevation_st"].str;
+	if(file_elevation_st != "")	{
+		if(!elevation_st.Open(file_elevation_st, gridlist))
+			fail("initio: could not open %s for input",(char*)file_elevation_st);
+		readelevation_st = true;
+	}
 }
 
 bool MiscInput::loaddisturbance(double lon, double lat) {
@@ -80,6 +87,21 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 	}
 	if(readdisturbance_st) { 
 		if(!disturbance_st.Load(c)) {
+			disterror = true;
+		}
+	}
+	return disterror;
+}
+
+bool MiscInput::loadelevation(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	if(readelevation_st) { 
+		if(!elevation_st.Load(c)) {
 			disterror = true;
 		}
 	}
@@ -121,6 +143,26 @@ void MiscInput::getdisturbance(Gridcell& gridcell) {
 //		if(!date.year)
 //			dprintf("st %d distinterval_st =%f\n", i, gridcell.st[i].distinterval_st);
 	}
+}
+
+void MiscInput::getelevation(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	// Retrieve elevation for stand types
+	for(int i=0; i<nst; i++) {
+		if(elevation_st.isloaded()) {
+			double elevation = elevation_st.Get(year, stlist[i].name, true);
+//			dprintf("st %s: elevation = %.0f\n", (char*)stlist[i].name, elevation);
+			if(elevation != NOTFOUND)
+				gridcell.st[i].elevation_st = elevation;
+		}
+	}
+}
+
+void MiscInput::getenviron(Gridcell& gridcell) {
+
+	getelevation(gridcell);
 }
 
 void MiscInput::getenviron_yearly(Gridcell& gridcell) {

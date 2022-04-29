@@ -32,8 +32,17 @@ public:
 	/// Loads disturbance from input file
 	bool loaddisturbance(double lon, double lat);
 
+	/// Loads elevation input file
+	bool loadelevation(double lon, double lat);
+
 	/// Gets disturbance intervals (in years)
 	void getdisturbance(Gridcell& gridcell);
+
+	/// Gets elevation
+	void getelevation(Gridcell& gridcell);
+
+	/// Gets all static extra input data
+	void getenviron(Gridcell& gridcell);
 
 	/// Gets all yearly extra input data
 	void getenviron_yearly(Gridcell& gridcell);
@@ -43,10 +52,12 @@ private:
 	// Objects handling additional environmental data input
 	InData::TimeDataD disturbance;
 	InData::TimeDataD disturbance_st;
+	InData::TimeDataD elevation_st;
 
 	/// Files names for additional environmental input files
 	xtring file_disturbance;
 	xtring file_disturbance_st;
+	xtring file_elevation_st;
 };
 
 /// Class that deals with all land cover input from text files

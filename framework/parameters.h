@@ -288,6 +288,9 @@ extern bool readdisturbance_st;
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 
+/// Whether to read stand type elevation from input file
+extern bool readelevation_st;
+
 /// Whether to read firstmanageyear for stand types from input file
 extern bool readfirstmanageyear_st;
 

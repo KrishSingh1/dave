@@ -1344,6 +1344,21 @@ void daylengthinsoleet(Climate& climate) {
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
 }
 
+/// ADJUSTING LOCAL TEMPERATURE BY ELEVATION
+/** To be called each simulation day following update of daily air temperature
+ *  and before canopy exchange processes. May be called from climate input module getclimate()
+ *  if only one local climate is simulated (pending code update).
+ */
+double get_local_temp(double gridcell_temp, double gridcell_elevation, double local_elevation) {
+
+	double local_temp = gridcell_temp;
+
+	if(local_elevation)
+		local_temp = gridcell_temp - (local_elevation - gridcell_elevation) * 6.49 / 1000;
+
+	return local_temp;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //

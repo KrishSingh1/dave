@@ -206,11 +206,16 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 									     hist_mwind, hist_mrhum);
 
 				if(gridfound) {
-					if(readdisturbance || readdisturbance_st) {
+					if(readdisturbance || readdisturbance_st || readelevation_st) {
 						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
 						// Not all gridcells have to be included in input file
 					}
 				}
+
+				gridcell.climate.mean_elevation = elevation;
+				if(readelevation_st)
+					dprintf("Mean elevation = %d\n", elevation);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);

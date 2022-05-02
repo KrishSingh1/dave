@@ -1261,8 +1261,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			if(run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft=patch.pft[q];
-					c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
-					n_harv_slow+=patchpft.harvested_products_slow_nmass*to_gridcell_average;
+					c_harv_slow+=patchpft.cmass_harvested_products_slow*to_gridcell_average;
+					n_harv_slow+=patchpft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 

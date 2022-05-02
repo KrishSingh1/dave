@@ -4211,9 +4211,9 @@ public:
 	bool wstress_day;
 
 	/// carbon depository for long-lived products like wood
-	double harvested_products_slow;
+	double cmass_harvested_products_slow;
 	/// nitrogen depository for long-lived products like wood
-	double harvested_products_slow_nmass;
+	double nmass_harvested_products_slow;
 	/// first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
 	int swindow[2];
 	/// daily value of water deficit, calculated in irrigated_water_uptake()
@@ -4264,8 +4264,8 @@ public:
 			fwuptake[i]=0.0;
 
 		cropphen = NULL;
-		harvested_products_slow = 0.0;
-		harvested_products_slow_nmass = 0.0;
+		cmass_harvested_products_slow = 0.0;
+		nmass_harvested_products_slow = 0.0;
 
 		swindow[0]=-1;
 		swindow[1]=-1;
@@ -5133,7 +5133,7 @@ struct Landcover : public Serializable {
 	/// Landcover-level C flux from clearing NATURAL and FOREST stands for cropland and pasture (donating landcover)
 	double acflux_clearing_lc[NLANDCOVERTYPES];
 	/// Landcover-level C flux transferred during cloning of stands
-	double cloned_c_lc[NLANDCOVERTYPES];
+	double acflux_cloned_lc[NLANDCOVERTYPES];
 
 	/// Landcover-level N flux from slow harvested products (donating landcover)
 	double anflux_harvest_slow_lc[NLANDCOVERTYPES];

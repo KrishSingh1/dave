@@ -337,12 +337,12 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& fwuptake
 		& wstress
 		& wstress_day
-		& harvested_products_slow
+		& cmass_harvested_products_slow
 		& nmass_litter_leaf
 		& nmass_litter_root
 		& nmass_litter_sap
 		& nmass_litter_heart
-		& harvested_products_slow_nmass
+		& nmass_harvested_products_slow
 		& swindow
 		& water_deficit_y
 		& inund_count
@@ -547,7 +547,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 		ccont += ppft.litter_sap;
 		ccont += ppft.litter_heart;
 		ccont += ppft.litter_repr;
-		ccont += ppft.harvested_products_slow;
+		ccont += ppft.cmass_harvested_products_slow;
 	}
 
 	for (unsigned int i=0; i<vegetation.nobj; i++) {
@@ -581,7 +581,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 		ncont += ppft.nmass_litter_root;
 		ncont += ppft.nmass_litter_sap;
 		ncont += ppft.nmass_litter_heart;
-		ncont += ppft.harvested_products_slow_nmass;
+		ncont += ppft.nmass_harvested_products_slow;
 	}
 
 	for (unsigned int i=0; i<vegetation.nobj; i++) {
@@ -933,8 +933,8 @@ void Stand::set_management() {
 				if(indiv.pft.id == pftx.id) {
 					if(clone_year == date.year) {
 						// vegetation C transferred during cloning (may be harvested below)
-						get_gridcell().landcover.cloned_c_lc[lc_origin] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-						get_gridcell().landcover.cloned_c_lc[landcover] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+						get_gridcell().landcover.acflux_cloned_lc[lc_origin] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+						get_gridcell().landcover.acflux_cloned_lc[landcover] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
 					}
 				}
 				vegetation.nextobj();
@@ -2525,8 +2525,8 @@ void Individual::kill(bool harvest /* = false */) {
 	report_flux(Fluxes::HARVESTN, nharvest_flux);
 
 	// Add to biomass depositories for long-lived products
-	ppft.harvested_products_slow += charvested_products_slow;
-	ppft.harvested_products_slow_nmass += nharvested_products_slow;
+	ppft.cmass_harvested_products_slow += charvested_products_slow;
+	ppft.nmass_harvested_products_slow += nharvested_products_slow;
 }
 
 double Individual::wscal_mean() const {

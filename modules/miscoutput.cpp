@@ -1633,8 +1633,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if (run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft=patch.pft[q];
-					c_harv_slow_lc[stand.landcover]+=patchpft.harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
-					n_harv_slow_lc[stand.landcover]+=patchpft.harvested_products_slow_nmass*to_gridcell_average;
+					c_harv_slow_lc[stand.landcover]+=patchpft.cmass_harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
+					n_harv_slow_lc[stand.landcover]+=patchpft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 
@@ -2042,11 +2042,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
 
-	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.cmass_harv_killed + cmass_harv_killed_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_leaf_root_turnover_natural + cmass_repr_natural;
-	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_harv_killed_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_leaf_root_turnover_forest + cmass_repr_forest;
+	double cflux_veg_natural = lcC.acflux_cloned_lc[NATURAL] - anpp_natural + lcC.cmass_harv_killed + cmass_harv_killed_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_leaf_root_turnover_natural + cmass_repr_natural;
+	double cflux_veg_forest = lcC.acflux_cloned_lc[FOREST] - anpp_forest + cmass_harv_killed_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_leaf_root_turnover_forest + cmass_repr_forest;
 	double cflux_veg_tot = cflux_veg_forest + cflux_veg_natural;
-	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.cmass_harv_killed - cmass_harv_killed_natural);
-	double NAI_forest = -(cflux_veg_forest - lcC.cloned_c_lc[FOREST] - cmass_harv_killed_forest);
+	double NAI_natural = -(cflux_veg_natural - lcC.acflux_cloned_lc[NATURAL] - lcC.cmass_harv_killed - cmass_harv_killed_natural);
+	double NAI_forest = -(cflux_veg_forest - lcC.acflux_cloned_lc[FOREST] - cmass_harv_killed_forest);
 	double NAI_tot = NAI_forest + NAI_natural;
 
 	// Print C fluxes to and from vegetation
@@ -2059,7 +2059,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL]);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.acflux_cloned_lc[NATURAL]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_natural);
 	outlimit_misc(out, out_forest_cflux_veg, NAI_natural);
 	// Managed forest
@@ -2071,7 +2071,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_forest);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[FOREST]);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.acflux_cloned_lc[FOREST]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_forest);
 	outlimit_misc(out, out_forest_cflux_veg, NAI_forest);
 	// Total forest
@@ -2083,7 +2083,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, cmass_dist_natural + cmass_dist_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_leaf_root_turnover_natural + cmass_leaf_root_turnover_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_repr_natural + cmass_repr_forest);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.cloned_c_lc[NATURAL] + lcC.cloned_c_lc[FOREST]);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.acflux_cloned_lc[NATURAL] + lcC.acflux_cloned_lc[FOREST]);
 	outlimit_misc(out, out_forest_cflux_veg, cflux_veg_tot);
 	outlimit_misc(out, out_forest_cflux_veg, NAI_tot);
 

@@ -211,7 +211,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	// all root carbon and nitrogen goes to litter
 	if (alive) {
 
-		i.litter_root += i.cmass_root * frac_cut;
+		i.cmass_litter_root += i.cmass_root * frac_cut;
 		i.acflux_harvest_tolitter += i.cmass_root * frac_cut;
 		i.cmass_root *= (1.0 - frac_cut);
 	}
@@ -234,7 +234,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if (ifslowharvestpool) {
-				i.harvested_products_slow += stem_harvest * harvest_slow_frac;
+				i.cmass_harvested_products_slow += stem_harvest * harvest_slow_frac;
 				i.acflux_harvest_wood_toprod += stem_harvest * harvest_slow_frac;
 				stem_harvest *= (1.0 - harvest_slow_frac);
 			}
@@ -255,7 +255,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 			i.acflux_harvest += residue_outtake;
 
 			// not removed residues are put into litter
-			i.litter_leaf += i.cmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
+			i.cmass_litter_leaf += i.cmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
 			i.acflux_harvest_tolitter += i.cmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
 
 			double to_partition_sap   = 0.0;
@@ -271,9 +271,9 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 			}
 			double wood_residue_frac_to_litter = (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac
 				- harv_eff * stem_frac) * frac_cut;
-			i.litter_sap += to_partition_sap * wood_residue_frac_to_litter;
+			i.cmass_litter_sap += to_partition_sap * wood_residue_frac_to_litter;
 			i.acflux_harvest_tolitter += to_partition_sap * wood_residue_frac_to_litter;
-			i.litter_heart += to_partition_heart * wood_residue_frac_to_litter;
+			i.cmass_litter_heart += to_partition_heart * wood_residue_frac_to_litter;
 			i.acflux_harvest_tolitter += to_partition_heart * wood_residue_frac_to_litter;
 		}
 		// debt larger than existing wood biomass
@@ -298,7 +298,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 
 		// harvested products not consumed this year put into harvested_products_slow_nmass
 		if (ifslowharvestpool) {
-			i.harvested_products_slow_nmass += stem_harvest * harvest_slow_frac;
+			i.nmass_harvested_products_slow += stem_harvest * harvest_slow_frac;
 			stem_harvest = stem_harvest * (1.0 - harvest_slow_frac);
 		}
 
@@ -1795,7 +1795,7 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	harvest = pft.harv_eff * i.cmass_leaf;
 
 	if (ifslowharvestpool) {
-		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
+		i.cmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
 	}
 	if (alive)
@@ -1808,7 +1808,7 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
 
 	if (ifslowharvestpool) {
-		i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+		i.nmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
 	}
 	i.anflux_harvest += harvest;
@@ -1946,7 +1946,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 	// all root carbon and nitrogen goes to litter
 		if (i.cmass_root > 0.0)
-			i.litter_root += i.cmass_root;
+			i.cmass_litter_root += i.cmass_root;
 		i.cmass_root = 0.0;
 
 		if (i.nmass_root > 0.0)
@@ -1967,13 +1967,13 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 			// not removed harvestable organs are put into litter
 			if (pft.aboveground_ho)
-				i.litter_leaf += (i.cmass_ho - harvest);
+				i.cmass_litter_leaf += (i.cmass_ho - harvest);
 			else
-				i.litter_root += (i.cmass_ho - harvest);
+				i.cmass_litter_root += (i.cmass_ho - harvest);
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if (ifslowharvestpool) {
-				i.harvested_products_slow += harvest * pft.harvest_slow_frac;
+				i.cmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 
@@ -1996,7 +1996,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 			// harvested products not consumed this year put into harvested_products_slow_nmass
 			if (ifslowharvestpool) {
-				i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+				i.nmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 
@@ -2014,7 +2014,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			i.acflux_harvest += residue_outtake;
 
 			// not removed residues are put into litter
-			i.litter_leaf += i.cmass_leaf + i.cmass_agpool + i.cmass_dead_leaf + i.cmass_stem - residue_outtake;
+			i.cmass_litter_leaf += i.cmass_leaf + i.cmass_agpool + i.cmass_dead_leaf + i.cmass_stem - residue_outtake;
 		}
 		i.cmass_leaf = 0.0;
 		i.cmass_agpool = 0.0;
@@ -2044,7 +2044,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 			// all root carbon and nitrogen goes to litter
 			if (i.cmass_root > 0.0)
-				i.litter_root += i.cmass_root;
+				i.cmass_litter_root += i.cmass_root;
 			if (i.nmass_root > 0.0)
 				i.nmass_litter_root += i.nmass_root;
 			if (i.nstore_labile > 0.0)
@@ -2067,10 +2067,10 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 				harvest = pft.harv_eff_ic * i.cmass_leaf;	// currently no harvest of intercrtop grass
 
 				// not removed grass is put into litter
-				i.litter_leaf += i.cmass_leaf - harvest;
+				i.cmass_litter_leaf += i.cmass_leaf - harvest;
 
 				if (ifslowharvestpool) {
-					i.harvested_products_slow += harvest * pft.harvest_slow_frac; // no slow harvest for grass
+					i.cmass_harvested_products_slow += harvest * pft.harvest_slow_frac; // no slow harvest for grass
 					harvest = harvest * (1 - pft.harvest_slow_frac);
 				}
 
@@ -2090,7 +2090,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 				i.nmass_litter_leaf += i.nmass_leaf - harvest;
 
 				if (ifslowharvestpool) {
-					i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac; // no slow harvest for grass
+					i.nmass_harvested_products_slow += harvest * pft.harvest_slow_frac; // no slow harvest for grass
 					harvest = harvest * (1 - pft.harvest_slow_frac);
 				}
 
@@ -2109,7 +2109,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			harvest = pft.harv_eff * i.cmass_leaf;
 
 			if (ifslowharvestpool) {
-				i.harvested_products_slow += harvest * pft.harvest_slow_frac;
+				i.cmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 			if (alive)
@@ -2125,7 +2125,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
 
 			if (ifslowharvestpool) {
-				i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+				i.nmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 			i.anflux_harvest += harvest;
@@ -2247,7 +2247,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 
 	if (alive || istruecrop_or_intercropgrass)  {
-		cp.litter_root += cp.cmass_root;
+		cp.cmass_litter_root += cp.cmass_root;
 		cp.acflux_harvest_tolitter += cp.cmass_root;
 
 		if (burn) {
@@ -2256,9 +2256,9 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
 		}
 		else {
-			cp.litter_leaf += cp.cmass_leaf;
-			cp.litter_sap += cp.cmass_sap;
-			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
+			cp.cmass_litter_leaf += cp.cmass_leaf;
+			cp.cmass_litter_sap += cp.cmass_sap;
+			cp.cmass_litter_heart += cp.cmass_heart - cp.cmass_debt;
 			cp.acflux_harvest_tolitter += cp.cmass_leaf + cp.cmass_sap + cp.cmass_heart - cp.cmass_debt;
 		}
 	}
@@ -2285,12 +2285,12 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 				cp.anflux_harvest += cp.nmass_ho;
 			}
 			else {
-				cp.litter_leaf += cp.cmass_ho;
+				cp.cmass_litter_leaf += cp.cmass_ho;
 				cp.nmass_litter_leaf += cp.nmass_ho;
 			}
 		}
 		else {
-			cp.litter_root += cp.cmass_ho;
+			cp.cmass_litter_root += cp.cmass_ho;
 			cp.nmass_litter_root += cp.nmass_ho;
 		}
 
@@ -2299,7 +2299,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 			cp.anflux_harvest += cp.nmass_agpool;
 		}
 		else {
-			cp.litter_leaf += cp.cmass_agpool;
+			cp.cmass_litter_leaf += cp.cmass_agpool;
 			cp.nmass_litter_leaf += cp.nmass_agpool;
 		}
 	}

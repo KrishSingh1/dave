@@ -1608,10 +1608,10 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
 						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
 
-						lc.stem_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
-						lc.stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
-						lc.harv_tolitt += wood_harvest_ratio * cp.acflux_harvest_tolitter * donor_area / (double)stand.nobj;
-						lc.harv_killed_c += wood_harvest_ratio * indiv.ccont() * donor_area / (double)stand.nobj;
+						lc.cmass_stem_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
+						lc.cmass_stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
+						lc.cmass_harv_tolitter += wood_harvest_ratio * cp.acflux_harvest_tolitter * donor_area / (double)stand.nobj;
+						lc.cmass_harv_killed += wood_harvest_ratio * indiv.ccont() * donor_area / (double)stand.nobj;
 
 						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
 						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;

@@ -116,7 +116,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300,
 		"stand type cmass of trees killed by mortality output file");
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
-	declare_parameter("file_cmass_killed_harv_sts", &file_cmass_killed_harv_sts, 300,
+	declare_parameter("file_cmass_harv_killed_sts", &file_cmass_harv_killed_sts, 300,
 		"stand type whole tree harvest cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300,
 		"stand type wood harvest cmass output file");
@@ -136,7 +136,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
 	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
 
-	declare_parameter("file_forest_cmass_killed_harv", &file_forest_cmass_killed_harv, 300,
+	declare_parameter("file_forest_cmass_harv_killed", &file_forest_cmass_harv_killed, 300,
 		"Killed forest C biomass during wood harvest output file");
 
 	declare_parameter("file_forest_vegc", &file_forest_vegc, 300, "Forest vegetation output file");
@@ -619,7 +619,7 @@ void MiscOutput::define_output_tables() {
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
-	create_output_table(out_forest_cmass_killed_harv,  file_forest_cmass_killed_harv,     harv_columns);
+	create_output_table(out_forest_cmass_harv_killed,  file_forest_cmass_harv_killed,     harv_columns);
 
 	create_output_table(out_cmass_cropland, file_cmass_cropland, cmass_columns_lc);
 	create_output_table(out_cmass_pasture,  file_cmass_pasture,  cmass_columns_lc);
@@ -707,7 +707,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
 	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
 	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_columns);
-	create_output_table(out_cmass_killed_harv_sts,		file_cmass_killed_harv_sts,		st_columns);
+	create_output_table(out_cmass_harv_killed_sts,		file_cmass_harv_killed_sts,		st_columns);
 	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
 	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
 	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
@@ -881,7 +881,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		st.cmass_wood_harv = 0.0;
 		st.cmass_wood_harv_toprod = 0.0;
 		st.cmass_wood_clearcut = 0.0;
-		st.cmass_killed_harv = 0.0;
+		st.cmass_harv_killed = 0.0;
 		st.cmass_harv_tolitter = 0.0;
 		st.densindiv = 0.0;
 		st.diam_g = 0.0;
@@ -902,9 +902,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double landcover_aaet[NLANDCOVERTYPES]={0.0};
 	double landcover_lai[NLANDCOVERTYPES]={0.0};
 	double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
-	double landcover_cmass_killed_harv[NLANDCOVERTYPES]={0.0};
+	double landcover_cmass_harv_killed[NLANDCOVERTYPES]={0.0};
 
-	double mean_standpft_cmass_killed_harv=0.0;
+	double mean_standpft_cmass_harv_killed=0.0;
 
 	double mean_standpft_anpp_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_cmass_lc[NLANDCOVERTYPES]={0.0};
@@ -917,7 +917,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_diamindiv_total_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_heightindiv_total_lc[NLANDCOVERTYPES]={0.0};
 
-	double gridcellpft_cmass_killed_harv=0.0;
+	double gridcellpft_cmass_harv_killed=0.0;
 
 	double cmass_gridcell=0.0;
 	double anpp_gridcell=0.0;
@@ -934,7 +934,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	double irrigation_gridcell=0.0;
 
-	double cmass_killed_harv_gridcell=0.0;
+	double cmass_harv_killed_gridcell=0.0;
 
 	double standpft_cmass=0.0;
 	double standpft_cmass_wood=0.0;
@@ -945,7 +945,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_cmass_wood_harv=0.0;
 	double standpft_cmass_wood_harv_toprod=0.0;
 	double standpft_cmass_wood_clearcut=0.0;
-	double standpft_cmass_killed_harv=0.0;
+	double standpft_cmass_harv_killed=0.0;
 	double standpft_cmass_harv_tolitter=0.0;
 	double standpft_cmass_mort=0.0;
 	double standpft_cmass_fire=0.0;
@@ -986,7 +986,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_anpp_landscape = 0.0;
 		mean_standpft_cmass_landscape = 0.0;
 
-		mean_standpft_cmass_killed_harv = 0.0;
+		mean_standpft_cmass_harv_killed = 0.0;
 
 		// Sum values across stands, patches and PFTs
 		double mean_standpft_yield=0.0;
@@ -1047,7 +1047,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_wood_harv=0.0;
 			standpft_cmass_wood_harv_toprod=0.0;
 			standpft_cmass_wood_clearcut=0.0;
-			standpft_cmass_killed_harv=0.0;
+			standpft_cmass_harv_killed=0.0;
 			standpft_cmass_harv_tolitter=0.0;
 			standpft_diam_g=0.0;
 			standpft_nmass=0.0;
@@ -1078,7 +1078,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_cmass_wood_harv_toprod += patchpft.cmass_wood_harv_toprod;
 				standpft_cmass_wood_clearcut += patchpft.cmass_wood_clearcut;
 				standpft_cmass_harv_tolitter += patchpft.cmass_harv_tolitter;
-				standpft_cmass_killed_harv += patchpft.cmass_killed_harv;
+				standpft_cmass_harv_killed += patchpft.cmass_harv_killed;
 				standpft_cmass_mort += patchpft.cmass_mort;
 				standpft_cmass_fire += patchpft.cmass_fire;
 				standpft_cmass_dist += patchpft.cmass_dist;
@@ -1144,7 +1144,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_cmass_wood_harv_toprod/=(double)stand.npatch();
 			standpft_cmass_wood_clearcut/=(double)stand.npatch();
 			standpft_cmass_harv_tolitter/=(double)stand.npatch();
-			standpft_cmass_killed_harv/=(double)stand.npatch();
+			standpft_cmass_harv_killed/=(double)stand.npatch();
 			standpft_nmass/=(double)stand.npatch();
 			standpft_clitter/=(double)stand.npatch();
 			standpft_nlitter/=(double)stand.npatch();
@@ -1171,11 +1171,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 			landcover_aaet[stand.landcover]+=standpft_aaet*stand.get_landcover_fraction();
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
-			landcover_cmass_killed_harv[stand.landcover]+=standpft_cmass_killed_harv*stand.get_landcover_fraction();
+			landcover_cmass_harv_killed[stand.landcover]+=standpft_cmass_harv_killed*stand.get_landcover_fraction();
 
 			//Update pft means for active stands
 			if(active_fraction) {
-				mean_standpft_cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
@@ -1199,7 +1199,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_anpp_landscape_lc[stand.landcover] += standpft_anpp * stand.get_landcover_fraction();
 			mean_standpft_cmass_landscape_lc[stand.landcover] += standpft_cmass * stand.get_landcover_fraction();
 
-			gridcellpft_cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction();
+			gridcellpft_cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction();
 
 			//Update stand totals
 			stand.anpp += standpft_anpp;
@@ -1273,7 +1273,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				st.cmass_wood_harv += standpft_cmass_wood_harv * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_harv_toprod += standpft_cmass_wood_harv_toprod * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_wood_clearcut += standpft_cmass_wood_clearcut * stand.get_gridcell_fraction() / gcst.frac;
-				st.cmass_killed_harv += standpft_cmass_killed_harv * stand.get_gridcell_fraction() / gcst.frac;
+				st.cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction() / gcst.frac;
 				st.cmass_harv_tolitter += standpft_cmass_harv_tolitter * stand.get_gridcell_fraction() / gcst.frac;
 				st.densindiv += standpft_densindiv_total * stand.get_gridcell_fraction() / gcst.frac;
 				st.diam_g += standpft_diam_g * stand.get_gridcell_fraction() / gcst.frac;
@@ -1283,7 +1283,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			double fraction_of_gridcell = stand.get_gridcell_fraction();
 			cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
 			anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
-			cmass_killed_harv_gridcell+=standpft_cmass_killed_harv*fraction_of_gridcell;
+			cmass_harv_killed_gridcell+=standpft_cmass_harv_killed*fraction_of_gridcell;
 
 			if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 				if(stand.first_year) {
@@ -1323,7 +1323,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_cmass_landscape,     mean_standpft_cmass_landscape);
 		outlimit_misc(out, out_anpp_landscape,      mean_standpft_anpp_landscape);
 
-		outlimit_misc(out, out_forest_cmass_killed_harv,     mean_standpft_cmass_killed_harv);
+		outlimit_misc(out, out_forest_cmass_harv_killed,     mean_standpft_cmass_harv_killed);
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 		if (run_landcover) {
@@ -1727,7 +1727,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_cmass_landscape,  				cmass_gridcell);
 	outlimit_misc(out, out_anpp_landscape,   				anpp_gridcell);
 
-	outlimit_misc(out, out_forest_cmass_killed_harv,     cmass_killed_harv_gridcell);
+	outlimit_misc(out, out_forest_cmass_harv_killed,    cmass_harv_killed_gridcell);
 
 	// Print per-stand totals
 	if (printseparatestands) {
@@ -1884,7 +1884,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_wood_harv_forest = 0.0;
 	double cmass_wood_harv_toprod_forest = 0.0;
 	double cmass_harv_tolitter_forest = 0.0;
-	double cmass_killed_harv_forest = 0.0;
+	double cmass_harv_killed_forest = 0.0;
 	double cmass_mort_forest = 0.0;
 	double cmass_fire_forest = 0.0;
 	double cmass_dist_forest = 0.0;
@@ -1904,7 +1904,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_wood_harv_natural = 0.0;
 	double cmass_wood_harv_toprod_natural = 0.0;
 	double cmass_harv_tolitter_natural = 0.0;
-	double cmass_killed_harv_natural = 0.0;
+	double cmass_harv_killed_natural = 0.0;
 
 	// Print stand type totals
 	for(int i=0;i<nst;i++) {
@@ -1917,7 +1917,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_cmass_sts, st.cmass);
 		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
 		outlimit_misc(out, out_cmass_tree_mort_sts, st.cmass_tree_mort);
-		outlimit_misc(out, out_cmass_killed_harv_sts, st.cmass_killed_harv);
+		outlimit_misc(out, out_cmass_harv_killed_sts, st.cmass_harv_killed);
 		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
 		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
 		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);
@@ -1972,7 +1972,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_wood_harv_forest += st.cmass_wood_harv * gcst.frac;
 			cmass_wood_harv_toprod_forest += st.cmass_wood_harv_toprod * gcst.frac;
 			cmass_harv_tolitter_forest += st.cmass_harv_tolitter * gcst.frac;
-			cmass_killed_harv_forest += st.cmass_killed_harv * gcst.frac;
+			cmass_harv_killed_forest += st.cmass_harv_killed * gcst.frac;
 			cmass_mort_forest += st.cmass_mort * gcst.frac;
 			cmass_fire_forest += st.cmass_fire * gcst.frac;
 			cmass_dist_forest += st.cmass_dist * gcst.frac;
@@ -1996,7 +1996,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			cmass_wood_harv_natural += st.cmass_wood_harv * gcst.frac;
 			cmass_wood_harv_toprod_natural += st.cmass_wood_harv_toprod * gcst.frac;
 			cmass_harv_tolitter_natural += st.cmass_harv_tolitter * gcst.frac;
-			cmass_killed_harv_natural += st.cmass_killed_harv * gcst.frac;
+			cmass_harv_killed_natural += st.cmass_harv_killed * gcst.frac;
 		}
 	}
 
@@ -2021,38 +2021,38 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	// Print wood harvest total killed and fate of compartments
 	// Primary forest harvest
-	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c + cmass_killed_harv_natural);							// Killed tree cmass during harvest
-	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest + cmass_wood_harv_natural);								// Harvested stem wood cmass; wood products and fuelwood from stems
-	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_natural);						// Harvested wood product cmass
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_harv_killed + cmass_harv_killed_natural);					// Killed tree cmass during harvest
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_stem_harvest + cmass_wood_harv_natural);						// Harvested stem wood cmass; wood products and fuelwood from stems
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_stem_toprod + cmass_wood_harv_toprod_natural);					// Harvested wood product cmass
 	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[NATURAL]);					// Fuel wood cmass from products and residues
-	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt + cmass_harv_tolitter_natural);							// Killed tree cmass entering litter pool
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_harv_tolitter + cmass_harv_tolitter_natural);							// Killed tree cmass entering litter pool
 	// Managed forest harvest
-	outlimit_misc(out, out_forest_harvest, cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_harvest, cmass_harv_killed_forest);
 	outlimit_misc(out, out_forest_harvest, cmass_wood_harv_forest);
 	outlimit_misc(out, out_forest_harvest, cmass_wood_harv_toprod_forest);
 	outlimit_misc(out, out_forest_harvest, flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_harvest, cmass_harv_tolitter_forest);
 	// Total forest harvest
-	outlimit_misc(out, out_forest_harvest, lcC.harv_killed_c + cmass_killed_harv_natural + cmass_killed_harv_forest);
-	outlimit_misc(out, out_forest_harvest, lcC.stem_harvest + cmass_wood_harv_natural + cmass_wood_harv_forest);
-	outlimit_misc(out, out_forest_harvest, lcC.stem_toprod + cmass_wood_harv_toprod_natural + cmass_wood_harv_toprod_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_harv_killed + cmass_harv_killed_natural + cmass_harv_killed_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_stem_harvest + cmass_wood_harv_natural + cmass_wood_harv_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_stem_toprod + cmass_wood_harv_toprod_natural + cmass_wood_harv_toprod_forest);
 	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[NATURAL] + flux_charvest_lc[FOREST]);
-	outlimit_misc(out, out_forest_harvest, lcC.harv_tolitt + cmass_harv_tolitter_natural + cmass_harv_tolitter_forest);
+	outlimit_misc(out, out_forest_harvest, lcC.cmass_harv_tolitter + cmass_harv_tolitter_natural + cmass_harv_tolitter_forest);
 
 	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
 
-	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.harv_killed_c + cmass_killed_harv_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_leaf_root_turnover_natural + cmass_repr_natural;
-	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_killed_harv_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_leaf_root_turnover_forest + cmass_repr_forest;
+	double cflux_veg_natural = lcC.cloned_c_lc[NATURAL] - anpp_natural + lcC.cmass_harv_killed + cmass_harv_killed_natural + cmass_mort_natural + cmass_fire_natural + cmass_est_natural + cmass_dist_natural + cmass_leaf_root_turnover_natural + cmass_repr_natural;
+	double cflux_veg_forest = lcC.cloned_c_lc[FOREST] - anpp_forest + cmass_harv_killed_forest + cmass_mort_forest + cmass_fire_forest + cmass_est_forest + cmass_dist_forest + cmass_leaf_root_turnover_forest + cmass_repr_forest;
 	double cflux_veg_tot = cflux_veg_forest + cflux_veg_natural;
-	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.harv_killed_c - cmass_killed_harv_natural);
-	double NAI_forest = -(cflux_veg_forest - lcC.cloned_c_lc[FOREST] - cmass_killed_harv_forest);
+	double NAI_natural = -(cflux_veg_natural - lcC.cloned_c_lc[NATURAL] - lcC.cmass_harv_killed - cmass_harv_killed_natural);
+	double NAI_forest = -(cflux_veg_forest - lcC.cloned_c_lc[FOREST] - cmass_harv_killed_forest);
 	double NAI_tot = NAI_forest + NAI_natural;
 
 	// Print C fluxes to and from vegetation
 	// Primary forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_natural);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.cmass_harv_killed + cmass_harv_killed_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural);
@@ -2064,7 +2064,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, NAI_natural);
 	// Managed forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_forest);
-	outlimit_misc(out, out_forest_cflux_veg, cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_cflux_veg, cmass_harv_killed_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_forest);
@@ -2076,7 +2076,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_cflux_veg, NAI_forest);
 	// Total forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural - anpp_forest);
-	outlimit_misc(out, out_forest_cflux_veg, lcC.harv_killed_c + cmass_killed_harv_natural + cmass_killed_harv_forest);
+	outlimit_misc(out, out_forest_cflux_veg, lcC.cmass_harv_killed + cmass_harv_killed_natural + cmass_harv_killed_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_mort_natural + cmass_mort_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_fire_natural + cmass_fire_forest);
 	outlimit_misc(out, out_forest_cflux_veg, cmass_est_natural + cmass_est_forest);
@@ -2098,7 +2098,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				outlimit_misc(out, out_cmass_landscape, landcover_cmass[i]);
 				outlimit_misc(out, out_anpp_landscape,  landcover_anpp[i]);
-				outlimit_misc(out, out_forest_cmass_killed_harv,  landcover_cmass_killed_harv[i]);
+				outlimit_misc(out, out_forest_cmass_harv_killed,  landcover_cmass_harv_killed[i]);
 
 				switch (i) {
 				case CROPLAND:

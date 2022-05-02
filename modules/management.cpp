@@ -1672,7 +1672,7 @@ void manage_forest(Patch& patch) {
  *   - has_been_cut					whether patch has ever been cut
  *									Patchpft (accessed from indiv) public members:
  *   - cmass_wood_clearcut			removed wood C biomass of trees harvested during clear-cut (kgC/m2)
- *   - cmass_killed_harv			total C biomass of trees harvested during clear-cut (kgC/m2)
+ *   - cmass_harv_killed			total C biomass of trees harvested during clear-cut (kgC/m2)
  */
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
 
@@ -1721,7 +1721,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 			res_outtake_twig_wood_harvest = 0.0;
 			res_outtake_coarse_root_wood_harvest = 0.0;
 		}
-		ppft.cmass_killed_harv += man_strength * indiv.ccont();
+		ppft.cmass_harv_killed += man_strength * indiv.ccont();
 
 		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 		// Kill grass at clear-cut and send biomass to litter if mt.killgrass_at_cc == true

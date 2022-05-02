@@ -244,7 +244,6 @@ struct Harvest_CN {
 	double acflux_harvest_wood;			// Harvested wood including wood fraction oxidised the same year (1-harvest_slow_frac)
 	double acflux_harvest_wood_toprod;	// Always zero before harvest
 	double acflux_harvest_tolitter;
-	double acflux_harvest_killed;
 
 	Harvest_CN() {
 
@@ -254,7 +253,7 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = acflux_harvest_killed = 0.0;
+		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft to struct.

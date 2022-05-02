@@ -955,7 +955,7 @@ void Stand::set_management() {
 				Patchpft& ppft = patch.pft[indiv.pft.id];
 				if(indiv.pft.lifeform == TREE) {
 					ppft.cmass_wood_clearcut += check_harvest_cmass(indiv, true);
-					ppft.cmass_killed_harv += indiv.ccont();
+					ppft.cmass_harv_killed += indiv.ccont();
 					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, clone_year == date.year);
 					// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
 					indiv.vegetation.killobj();
@@ -1075,7 +1075,7 @@ void Stand::set_management() {
 									Patchpft& ppft = patch.pft[indiv.pft.id];
 									if(indiv.pft.id == pftx.id && pftx.id != id) {
 										// cut at cloning (LUC) or at rotation
-										ppft.cmass_killed_harv += indiv.ccont();
+										ppft.cmass_harv_killed += indiv.ccont();
 										harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 										// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 										indiv.vegetation.killobj();
@@ -1161,7 +1161,7 @@ void Stand::set_management() {
 								Patchpft& ppft = patch.pft[indiv.pft.id];
 								if(indiv.pft.id == pftx.id) {
 									// cut at cloning (LUC) or at rotation
-									ppft.cmass_killed_harv += indiv.ccont();
+									ppft.cmass_harv_killed += indiv.ccont();
 									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 									indiv.vegetation.killobj();
@@ -1248,7 +1248,7 @@ void Stand::set_management() {
 							Patchpft& ppft = patch.pft[indiv.pft.id];
 							if(indiv.pft.id == pftx.id) {
 								// cut at cloning (LUC) or at rotation
-								ppft.cmass_killed_harv += indiv.ccont();
+								ppft.cmass_harv_killed += indiv.ccont();
 								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 								// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 								indiv.vegetation.killobj();

@@ -1719,7 +1719,7 @@ public:
 	double cmass_wood_harv_toprod;
 	double cmass_wood_clearcut;
 	double cmass_harv_tolitter;
-	double cmass_killed_harv;
+	double cmass_harv_killed;
 	double densindiv;
 	double diam_g;
 	double csoil;
@@ -4175,7 +4175,7 @@ public:
 	/// carbon added at establishment
 	double cmass_est;
 	/// carbon in biomass killed in harvest this year (kgC/m2)
-	double cmass_killed_harv;
+	double cmass_harv_killed;
 	/// harvested wood C before removing part to the product pool (kgC/m2)
 	double cmass_wood_harv;
 	/// harvested wood C removed to the product pool (kgC/m2)
@@ -4284,7 +4284,7 @@ public:
 		cmass_wood_harv_toprod = 0.0;
 		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
-		cmass_killed_harv = 0.0;
+		cmass_harv_killed = 0.0;
 	}
 
 	~Patchpft() {
@@ -5099,13 +5099,13 @@ struct Landcover : public Serializable {
 	/// Gridcell-level C removal at clearing NATURAL and FOREST stands for cropland and pasture
 	double acflux_clearing_orig;
 	/// Gridcell-level C removal of harvested tree stem
-	double stem_harvest;
+	double cmass_stem_harvest;
 	/// Gridcell-level C harvested tree stem going to the product pool
-	double stem_toprod;
+	double cmass_stem_toprod;
 	/// Gridcell-level C of killed trees in wood harvest
-	double harv_killed_c;
+	double cmass_harv_killed;
 	/// Gridcell-level C of killed trees in wood harvest left on site
-	double harv_tolitt;
+	double cmass_harv_tolitter;
 
 	/// Gridcell-level N flux from slow harvested products
 	double anflux_harvest_slow;

@@ -702,10 +702,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.anflux_clearing=0.0;
 		gridcell.landcover.anflux_clearing_orig=0.0;
 
-		gridcell.landcover.stem_harvest=0.0;
-		gridcell.landcover.stem_toprod=0.0;
-		gridcell.landcover.harv_killed_c=0.0;
-		gridcell.landcover.harv_tolitt=0.0;
+		gridcell.landcover.cmass_stem_harvest=0.0;
+		gridcell.landcover.cmass_stem_toprod=0.0;
+		gridcell.landcover.cmass_harv_killed=0.0;
+		gridcell.landcover.cmass_harv_tolitter=0.0;
 
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
@@ -752,7 +752,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				for(unsigned int i=0;i<pftlist.nobj;i++) {
 					Patchpft& patchpft = patch.pft[i];
-					patchpft.cmass_killed_harv = 0.0;
+					patchpft.cmass_harv_killed = 0.0;
 					patchpft.cmass_harv_tolitter = 0.0;
 					patchpft.cmass_wood_harv = 0.0;
 					patchpft.cmass_wood_harv_toprod = 0.0;

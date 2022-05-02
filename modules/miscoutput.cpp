@@ -113,27 +113,37 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_lai_tree_sts", &file_lai_tree_sts, 300, "stand type tree lai output file");
 	declare_parameter("file_cmass_sts", &file_cmass_sts, 300, "stand type cmass output file");
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
-	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300, "stand type cmass of trees killed by mortality output file");
+	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300,
+		"stand type cmass of trees killed by mortality output file");
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
-	declare_parameter("file_cmass_killed_harv_sts", &file_cmass_killed_harv_sts, 300, "stand type whole tree harvest cmass output file");
-	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300, "stand type wood harvest cmass output file");
-	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300, "stand type wood harvest product cmass output file");
-	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300, "stand type thinning wood harvest cmass output file");
-	declare_parameter("file_cmass_wood_clearcut_sts", &file_cmass_wood_clearcut_sts, 300, "stand type clearcut wood harvest cmass output file");
-	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000, "Mean latest cutting interval (patch age at year of clearcut) output file");
-	declare_parameter("file_cutinterval_thisyear_sts", &file_cutinterval_thisyear_sts, 1000, "Mean stand type cut interval this year output file");
+	declare_parameter("file_cmass_killed_harv_sts", &file_cmass_killed_harv_sts, 300,
+		"stand type whole tree harvest cmass output file");
+	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300,
+		"stand type wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300,
+		"stand type wood harvest product cmass output file");
+	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300,
+		"stand type thinning wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_clearcut_sts", &file_cmass_wood_clearcut_sts, 300,
+		"stand type clearcut wood harvest cmass output file");
+	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000,
+		"Mean latest cutting interval (patch age at year of clearcut) output file");
+	declare_parameter("file_cutinterval_thisyear_sts", &file_cutinterval_thisyear_sts, 1000,
+		"Mean stand type cut interval this year output file");
 	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
 	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
 	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
 	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
 
-	declare_parameter("file_forest_cmass_killed_harv", &file_forest_cmass_killed_harv, 300, "Killed forest C biomass during wood harvest output file");
+	declare_parameter("file_forest_cmass_killed_harv", &file_forest_cmass_killed_harv, 300,
+		"Killed forest C biomass during wood harvest output file");
 
 	declare_parameter("file_forest_vegc", &file_forest_vegc, 300, "Forest vegetation output file");
 	declare_parameter("file_forest_cflux_veg", &file_forest_cflux_veg, 300, "Forest C fluxes to and from vegetation output file");
 	declare_parameter("file_forest_harvest", &file_forest_harvest, 300, "Forest harvest output file");
-	declare_parameter("file_harvest_flux_luc", &file_harvest_flux_luc, 300, "Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
+	declare_parameter("file_harvest_flux_luc", &file_harvest_flux_luc, 300,
+		"Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
 
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
@@ -189,18 +199,30 @@ MiscOutput::MiscOutput() {
 	print_diamstruct_stand = false;
 	print_diamstruct_cmass_stand = true;
 
-	declare_parameter("print_anpp_stand",&print_anpp_stand,"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_lai_stand",&print_lai_stand,"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_cmass_stand",&print_cmass_stand,"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_cmass_wood_stand",&print_cmass_wood_stand,"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_cmass_mort_stand",&print_cmass_mort_stand,"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_height_stand",&print_height_stand,"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_diam_stand",&print_diam_stand,"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_dens_stand",&print_dens_stand,"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_agestruct_stand",&print_agestruct_stand,"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_diamstruct_stand",&print_diamstruct_stand,"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
-	declare_parameter("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_anpp_stand",&print_anpp_stand,
+		"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_lai_stand",&print_lai_stand,
+		"Whether to print pft lai for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_stand",&print_cmass_stand,
+		"Whether to print pft cmass for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_wood_stand",&print_cmass_wood_stand,
+		"Whether to print pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_wood_harv_stand",&print_cmass_wood_harv_stand,
+		"Whether to print harvested pft cmass_wood for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_cmass_mort_stand",&print_cmass_mort_stand,
+		"Whether to print C lost in mortality for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_height_stand",&print_height_stand,
+		"Whether to print pft height for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diam_stand",&print_diam_stand,
+		"Whether to print pft diameter for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_dens_stand",&print_dens_stand,
+		"Whether to print pft density for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_agestruct_stand",&print_agestruct_stand,
+		"Whether to print tree densities in age classes for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diamstruct_stand",&print_diamstruct_stand,
+		"Whether to tree densities in diameter classes for multiple stands within a stand type (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_stand",&print_diamstruct_cmass_stand,
+		"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 
 	printstandtypes = false;
 	print_cmass_pft_st = true;

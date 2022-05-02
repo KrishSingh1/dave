@@ -16,8 +16,8 @@ const int DENSTARGET_BL = 100;	// Bellassen (2010) value 200, modified for LPJ-G
 // Functions to check available wood for harvest at individual, patch and stand levels
 
 /// Checks available wood for harvest at individual level.
-/** With default parameters, the function returns total potential harvested C for an individual, both potential harvest products and potential fuel wood+residues.
- *  Harvest efficiency is accounted for.
+/** With default parameters, the function returns total potential harvested C for an individual, both potential
+ *  harvest products and potential fuel wood+residues. Harvest efficiency is accounted for.
  *  
  *  INPUT PARAMETERS
  *  \param stem_cmass_only				if true, function returns potential removed stem C
@@ -45,20 +45,24 @@ double check_harvest_cmass(Individual& indiv, bool stem_cmass_only, bool to_prod
 		res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
 
 	// Harvest of transferred areas:
-	harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
-	if(to_product_pool)
+	harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest,
+					res_outtake_coarse_root_wood_harvest);
+	if(to_product_pool) {
 		cmass_harvest = cp.acflux_harvest_wood_toprod;
-	else if(stem_cmass_only)
+	}
+	else if(stem_cmass_only) {
 		cmass_harvest = cp.acflux_harvest_wood;
-	else
+	}
+	else {
 		cmass_harvest = (cp.acflux_harvest + cp.acflux_harvest_wood_toprod);
+	}
 
 	return cmass_harvest;
 }
 
 /// Checks available wood for harvest at patch level.
-/** With default parameters, the function returns total potential harvested C for a patch, both potential harvest products and potential fuel wood+residues.
- *  Harvest efficiency is accounted for.
+/** With default parameters, the function returns total potential harvested C for a patch, both potential harvest
+ *  products and potential fuel wood+residues. Harvest efficiency is accounted for.
  *  
  *  INPUT PARAMETERS
  *  \param stem_cmass_only				if true, function returns potential removed stem C
@@ -82,8 +86,8 @@ double check_harvest_cmass(Patch& patch, bool stem_cmass_only, bool check_select
 }
 
 /// Checks available wood for harvest at stand level.
-/** With default parameters, the function returns total potential harvested C for a stand, both potential harvest products and potential fuel wood+residues.
- *  Harvest efficiency is accounted for.
+/** With default parameters, the function returns total potential harvested C for a stand, both potential harvest
+ *  products and potential fuel wood+residues. Harvest efficiency is accounted for.
  *  
  *  INPUT PARAMETERS
  *  \param stem_cmass_only				if true, function returns potential removed stem C
@@ -104,11 +108,11 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
 /** This version does not directly change the biomass and litter in an individual and the corresponding patch/patchpft,
  *  but updates values for a Harvest_CN struct copy.
  *  A fraction of trees is cut down (frac_cut)
- *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of trees 
- *  above a diameter limit if harvest_burn_thin_trees == true) is sent to harvested_products_slow and the rest plus residue outtake 
- *  is sent to acflux_harvest.The rest, including leaves and roots, is sent to litter.
- *  Called from landcover_dynamics() first day of the year if any natural or forest vegetation is transferred to another land use,
- *  or from harvest_wood(Individual& indiv, ...).
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of
+ *  trees above a diameter limit if harvest_burn_thin_trees == true) is sent to harvested_products_slow and the rest plus
+ *  residue outtake is sent to acflux_harvest.The rest, including leaves and roots, is sent to litter.
+ *  Called from landcover_dynamics() first day of the year if any natural or forest vegetation is transferred to another,
+ *  land use or from harvest_wood(Individual& indiv, ...).
  *
  *  INPUT PARAMETERS
  *  \param diam						tree diameter (m)
@@ -117,7 +121,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *  \param res_outtake_twig			removed twig fraction
  *  \param res_outtake_coarse_root	removed course root fraction
  *									global parameters:
- *   - harvest_burn_thin_trees		whether to put all harvested wood from trees with diam > a diameter limit in product pool and burn all wood of trees below the same diameter limit.
+ *   - harvest_burn_thin_trees		whether to put all harvested wood from trees with diam > a diameter limit in product
+ *									pool and burn all wood of trees below the same diameter limit.
  *   - ifslowharvestpool			whether a fraction of harvested wood is put into a product pool
  *  \param pft						reference to a Pft containing the following public members:
  *   - stem_frac    				fraction of wood cmass that belongs to stems
@@ -126,7 +131,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - harvest_slow_frac			fraction of harvested products that goes to long-lived products
  *   - leafphysiognomy 				leaf physiognomy (needleleaf, broadleaf)
  *  INPUT/OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding variables of an Individual:
+ *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding
+ *									variables of an Individual:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)
  *   - cmass_root					fine root C biomass (kgC/m2)
  *   - cmass_sap					sapwood C biomass (kgC/m2)
@@ -139,7 +145,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *   - max_n_storage				maximum size of nitrogen storage
- *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
+ *									,and the following public members copied to and from the corresponding variables of
+ *									a Patchpft containing an Individual:
  *   - litter_leaf    				leaf C litter (kgC/m2)
  *   - litter_root 					root C litter (kgC/m2)
  *   - litter_sap   				sapwood C litter (kgC/m2)
@@ -151,44 +158,49 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - harvested_products_slow		wood product pool (kgC/m2)
  *   - harvested_products_slow_nmass wood product pool nitrogen (kgN/m2)
  *  OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patchpft corresponding to an Individual:
+ *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of
+ *									a Patchpft corresponding to an Individual:
  *   - acflux_harvest_wood			harvested wood C before removing part to the product pool (kgC/m2)
  *   - acflux_harvest_wood_toprod	harvested wood C removed to the product pool (kgC/m2)
  *   - acflux_harvest_tolitter		harvested tree C left as litter (kgC/m2)
- *									,and the following public members members added to the corresponding variables of a Patch containing an individual::
+ *									,and the following public members members added to the corresponding variables of a
+ *									Patch containing an individual::
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
  */
-void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
-
-	double stem_harvest = 0.0;
-	double residue_outtake = 0.0;
-	/// Fraction of wood cmass that are stems
-	double stem_frac = pft.stem_frac; // Default 0.65
-	/// Fraction of wood cmass that are twigs
-	double twig_frac = pft.twig_frac; // Default 0.13
-	/// Fraction of wood cmass that are coarse roots, including stumps
-	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
-	/// Fraction of leaves adhering to twigs at the time of removal (provisional value, typical for situation for harvested spruce in Sweden)
-	double adhering_leaf_frac = 0.75;
+void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig,
+					double res_outtake_coarse_root) {
 
 	// only harvest trees
 	if (pft.lifeform == GRASS)
 		return;
 
+	double stem_harvest = 0.0;
+	double residue_outtake = 0.0;
+	// Fraction of wood cmass that are stems
+	double stem_frac = pft.stem_frac; // Default 0.65
+	// Fraction of wood cmass that are twigs
+	double twig_frac = pft.twig_frac; // Default 0.13
+	// Fraction of wood cmass that are coarse roots, including stumps
+	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
+	// Fraction of leaves adhering to twigs at the time of removal (provisional value, typical for situation for harvested spruce in Sweden)
+	double adhering_leaf_frac = 0.75;
+
 	double harvest_slow_frac = pft.harvest_slow_frac;	// Default 0.33
 
 	if(harvest_burn_thin_trees) {
-		// Put all harvested wood into product pool above a diameter limit, burn the smaller trees (limits from Anne-Sofie Lanso, personal communication, as used with ORCIDEE,
-		// except for tropical broadleaves, which is the reported limit for general harvesting purposes in Guyana (R.Heinrich, FAO: SUSTAINABLE FOREST HARVESTING 1) 
+		// Put all harvested wood into product pool above a diameter limit, burn the smaller trees (limits from Anne-Sofie
+		// Lanso, personal communication, as used with ORCHIDEE, except for tropical broadleaves, which is the reported
+		// limit for general harvesting purposes in Guyana (R.Heinrich, FAO: SUSTAINABLE FOREST HARVESTING 1) 
+		// Whether the pft is boreal, temperate or tropical is determined by the pft.pstemp_low parameter value.
 		const double DIAMETER_LIMIT_NEEDLELAF = 0.2;
 		const double DIAMETER_LIMIT_BROADLEAF_BOREAL = 0.2;
 		const double DIAMETER_LIMIT_BROADLEAF_TEMPERATE = 0.3;
 		const double DIAMETER_LIMIT_BROADLEAF_TROPICAL = 0.35;
 		if(pft.leafphysiognomy == NEEDLELEAF && diam < DIAMETER_LIMIT_NEEDLELAF ||
-			pft.leafphysiognomy == BROADLEAF && pft.is_boreal() && diam < DIAMETER_LIMIT_BROADLEAF_BOREAL ||								// boreal, pft.pstemp_low = 10
-			pft.leafphysiognomy == BROADLEAF && pft.is_temperate() && diam < DIAMETER_LIMIT_BROADLEAF_TEMPERATE ||		// temperate, pft.pstemp_low = 15
-			pft.leafphysiognomy == BROADLEAF && pft.is_tropical() && diam < DIAMETER_LIMIT_BROADLEAF_TROPICAL ) {								// tropical, pft.pstemp_low = 25
+			pft.leafphysiognomy == BROADLEAF && pft.is_boreal() && diam < DIAMETER_LIMIT_BROADLEAF_BOREAL ||
+			pft.leafphysiognomy == BROADLEAF && pft.is_temperate() && diam < DIAMETER_LIMIT_BROADLEAF_TEMPERATE ||
+			pft.leafphysiognomy == BROADLEAF && pft.is_tropical() && diam < DIAMETER_LIMIT_BROADLEAF_TROPICAL ) {
 			harvest_slow_frac = 0.0;
 		}
 		else {
@@ -257,10 +269,12 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 				to_partition_sap   = i.cmass_sap + i.cmass_heart - i.cmass_debt;
 //				dprintf("ATTENTION: pft %s: cmass_debt > cmass_heart; difference=%f\n", (char*)pft.name, i.cmass_debt-i.cmass_heart);
 			}
-			i.litter_sap += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-			i.acflux_harvest_tolitter += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-			i.litter_heart += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-			i.acflux_harvest_tolitter += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+			double wood_residue_frac_to_litter = (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac
+				- harv_eff * stem_frac) * frac_cut;
+			i.litter_sap += to_partition_sap * wood_residue_frac_to_litter;
+			i.acflux_harvest_tolitter += to_partition_sap * wood_residue_frac_to_litter;
+			i.litter_heart += to_partition_heart * wood_residue_frac_to_litter;
+			i.acflux_harvest_tolitter += to_partition_heart * wood_residue_frac_to_litter;
 		}
 		// debt larger than existing wood biomass
 		else {
@@ -307,8 +321,10 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 
 		// not removed residues are put into litter
 		i.nmass_litter_leaf += i.nmass_leaf * (1.0 - res_outtake_twig * adhering_leaf_frac) * frac_cut;
-		i.nmass_litter_sap += i.nmass_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-		i.nmass_litter_heart += i.nmass_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
+		i.nmass_litter_sap += i.nmass_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac
+			- harv_eff * stem_frac) * frac_cut;
+		i.nmass_litter_heart += i.nmass_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac
+			- harv_eff * stem_frac) * frac_cut;
 
 		// unharvested trees:
 		i.nmass_leaf *= (1.0 - frac_cut);
@@ -327,9 +343,9 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  *  back to the individual and patchpft and the patch-level fluxes are updated.
  *
  *  A fraction of trees is cut down (frac_cut)
- *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of trees 
- *  above a diameter limit if harvest_burn_thin_trees == true) is returned as harvested_products_slow and the rest plus residue outtake 
- *  is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
+ *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of
+ *  trees above a diameter limit if harvest_burn_thin_trees == true) is returned as harvested_products_slow and the rest
+ *  plus residue outtake is returned as acflux_harvest.The rest, including leaves and roots, is returned as litter.
  *  Called from harvest_forest() first day of the year for normal wood harvest.
  *  Also called first day of the year from set_management() if natural or forest stand is transferred to another management
  *  by cloning (LUC) or after management rotation.
@@ -392,7 +408,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 	if (lc_change) {
 		Stand& stand = indiv.vegetation.patch.stand;
 		Landcover& lc = stand.get_gridcell().landcover;
-		lc.acflux_wood_harvest += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;	// Should be acflux_wood_harvest instead ! Change in separate update.
+		lc.acflux_wood_harvest += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		lc.anflux_wood_harvest += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 		if(stand.lc_origin < NLANDCOVERTYPES) {
 			lc.acflux_wood_harvest_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
@@ -409,10 +425,12 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
  *	 - diam_cut_high				minimum tree diameter limit (cm) for cutting 100% of trees
  *   - firstmanageyear				calendar year when management starts (including suppression of disturbance and fire)
  *   - firstcutyear					first calendar year when wood harvest starts
- *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing of cutting events
+ *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing of 
+ *										cutting events
  *   - secondintervalstart			number of years after stand creation when the second (continuous) cutting interval starts
  *									Gridcellst (accessed from patch) public members:
- *   - diam_cut_low					minimum tree diameter limit (cm) for cutting (thinstrength*100)% of trees (can adapt to productivity)
+ *   - diam_cut_low					minimum tree diameter limit (cm) for cutting (thinstrength*100)% of trees (can adapt to
+ *									productivity)
  */
 double diameter_rules(Individual& indiv) {
 
@@ -458,19 +476,22 @@ double diameter_rules(Individual& indiv) {
  *  INPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - man_strength 				management strength (cutting intensity)
- *  \param select_diam				Whether small (SELECT_DIAM_SMALL, 1) or large (SELECT_DIAM_LARGE, 2) diameter individuals are preferentially
- *									cut, trees above diam_limit only (SELECT_DIAM_LIMIT, 3).or no preference (SELECT_DIAM_NOPREF, 0)
- *  \param select_age				Whether young (SELECT_AGE_YOUNG, 1) or old (SELECT_AGE_OLD, 2) individuals are preferentially cut,
- *									or no preference (SELECT_AGE_NOPREF, 0)
- *  \param select_pft				Whether non-selected (SELECT_PFT_UNSEL, 1) or selected (SELECT_PFT_SEL, 2) pft:s are preferentially cut, unselected
- *									and selected cutting strengths specified separately (SELECT_PFT_UNSEL_SEL_SEPARATE, 3), shrubs and shade-intolerant
- *									pft:s preferentially cut (SELECT_PFT_SHADEINTOL, 4) or no preference (SELECT_PFT_NOPREF, 0)
+ *  \param select_diam				Whether small (SELECT_DIAM_SMALL, 1) or large (SELECT_DIAM_LARGE, 2) diameter individuals
+ *									are preferentially cut, trees above diam_limit only (SELECT_DIAM_LIMIT, 3).or no
+ *									preference (SELECT_DIAM_NOPREF, 0)
+ *  \param select_age				Whether young (SELECT_AGE_YOUNG, 1) or old (SELECT_AGE_OLD, 2) individuals are
+ *									preferentially cut, or no preference (SELECT_AGE_NOPREF, 0)
+ *  \param select_pft				Whether non-selected (SELECT_PFT_UNSEL, 1) or selected (SELECT_PFT_SEL, 2) pft:s are
+ *									preferentially cut, unselected and selected cutting strengths specified separately
+ *									(SELECT_PFT_UNSEL_SEL_SEPARATE, 3), shrubs and shade-intolerant pft:s preferentially cut
+ *									(SELECT_PFT_SHADEINTOL, 4) or no preference (SELECT_PFT_NOPREF, 0)
  *  \param str_unsel				Cutting strength for unselected pft:s if select_pft = SELECT_PFT_UNSEL_SEL_SEPARATE
  *  \param str_sel					String of cutting strengths for selected pft:s if select_pft = SELECT_PFT_UNSEL_SEL_SEPARATE
  *									ManagementType (accessed from patch) public members:
  *   - firstmanageyear				calendar year when management starts (including suppression of disturbance and fire)
  *   - firstcutyear					first calendar year when wood harvest starts
- *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing of cutting events
+ *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing
+ *										of cutting events
  *   - secondcutinterval			wood cutting interval in years in the contiuous cutting period
  *   - secondintervalstart			number of years after stand creation when the second (continuous) cutting interval starts
  *   - adapt_diam_limit				whether to adapt diam_cut_low to forest stands with small trees
@@ -487,7 +508,8 @@ double diameter_rules(Individual& indiv) {
 void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int select_age = SELECT_AGE_NOPREF, 
 	int select_pft = SELECT_PFT_NOPREF, double str_unsel = 0.0, double* str_sel = NULL) {
 
-	// Prevent individual man_strength to be set in several calls to this function the same year (called in manage_forest() before in set_forest_pft_structure()).
+	// Prevent individual man_strength to be set in several calls to this function the same year (called in manage_forest()
+	// before in set_forest_pft_structure()).
 	if(patch.distributed_cutting)
 		return;
 
@@ -553,22 +575,28 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 		bool cut_selection;
 
 		if(select_pft == SELECT_PFT_UNSEL || select_pft == SELECT_PFT_SHADEINTOL) {
-			if(!n)
+			if(!n) {
 				cut_selection = false;
-			else
+			}
+			else {
 				cut_selection = true;
+			}
 		}
 		else {
-			if(!n)
+			if(!n) {
 				cut_selection = true;
-			else
+			}
+			else {
 				cut_selection = false;
+			}
 
 			if(select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE) {
-				if(!n)
-					cmass_harvest_remain = cmass_harvest_patch_selection * patch.man_strength;	// Value used for selection in this case
-				else
+				if(!n) { // Value used for selection in this case
+					cmass_harvest_remain = cmass_harvest_patch_selection * patch.man_strength;
+				}
+				else {
 					cmass_harvest_remain = cmass_harvest_patch_unsel * str_unsel;
+				}
 			}
 		}
 
@@ -655,7 +683,8 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 				// Using equal cutting within an age-class
 				if(select_pft != SELECT_PFT_NOPREF) {
 					if(!cut_selection && (cmass_harvest_ageclass[(int)indiv.age] - cmass_harvest_ageclass_selection[(int)indiv.age])) {
-						indiv.man_strength = min(1.0, cmass_harvest_remain_init_ageclass / (cmass_harvest_ageclass[(int)indiv.age] - cmass_harvest_ageclass_selection[(int)indiv.age]));
+						indiv.man_strength = min(1.0, cmass_harvest_remain_init_ageclass
+											/ (cmass_harvest_ageclass[(int)indiv.age] - cmass_harvest_ageclass_selection[(int)indiv.age]));
 					}
 					else if(cut_selection && cmass_harvest_ageclass_selection[(int)indiv.age]) {
 						if(select_pft == SELECT_PFT_UNSEL_SEL_SEPARATE && str_sel) {
@@ -672,10 +701,12 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 					}
 				}
 				else {
-					if(cmass_harvest_ageclass[(int)indiv.age])
+					if(cmass_harvest_ageclass[(int)indiv.age]) {
 						indiv.man_strength = min(1.0, cmass_harvest_remain_init_ageclass / cmass_harvest_ageclass[(int)indiv.age]);
-					else 
+					}
+					else {
 						indiv.man_strength = 0.0;
+					}
 				}
 			}
 			else {
@@ -709,9 +740,12 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 	}
 	// If diameter rules used, prescribed cutting may not be achieved (especially in young stands).
 	// Try to solve demand by reducing diameter limitby 1% each year when this happens.
-	if(mt.secondcutinterval && ((select_diam == SELECT_DIAM_LIMIT && cmass_harvest_remain_init && (cmass_harvest_remain_init - cmass_harvest_remain) < 1e-15)
-		|| (select_diam == SELECT_DIAM_SMALL || select_diam == SELECT_DIAM_LARGE) && cmass_harvest_remain > 1e-15)) {
-		dprintf("Year %d: Warning: cmass_harvest_remain = %f, inital cmass_harvest_remain = %f; age = %d\n", date.get_calendar_year(), cmass_harvest_remain,cmass_harvest_remain_init, patch.age);
+	if(mt.secondcutinterval
+		&& ((select_diam == SELECT_DIAM_LIMIT && cmass_harvest_remain_init && (cmass_harvest_remain_init - cmass_harvest_remain) < 1e-15) 
+			|| (select_diam == SELECT_DIAM_SMALL || select_diam == SELECT_DIAM_LARGE) && cmass_harvest_remain > 1e-15)) {
+		
+		dprintf("Year %d: Warning: cmass_harvest_remain = %f, inital cmass_harvest_remain = %f; age = %d\n", 
+			date.get_calendar_year(), cmass_harvest_remain,cmass_harvest_remain_init, patch.age);
 
 		// Only in second (continuous) period
 		int first_manageyear = (mt.firstmanageyear < FAR_FUTURE_YEAR) ? mt.firstmanageyear - date.first_calendar_year : nyear_spinup;
@@ -770,17 +804,22 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
 		Stand& stand = gridcell[s];
 		ManagementType& mt = stand.get_current_management();
-		const bool stem_cmass_only = false;	// false will give small differences with different harvest_slow_frac (caused by rounding errors)
-		const bool relax_target_cutting_after_pft_gone = false;		// Default value false will prioritise pft selection over stand age (all other trees may be cut when one pft dies)
-		const bool no_target_cutting_before_man_start = true;		// No target-cutting before management starts
+		const bool stem_cmass_only = false;						// The two options will give small differences with different  
+																// harvest_slow_frac (caused by rounding errors)
+		const bool relax_target_cutting_after_pft_gone = false; // Default value false will prioritise pft selection over 
+																// stand age (all other trees may be cut when one pft dies)
+		const bool no_target_cutting_before_man_start = true;	// No target-cutting before management starts
 
-		bool management_started = stand[0].managed;					// patch.managed is the same for all patches in a stand
+		bool management_started = stand[0].managed;				// patch.managed is the same for all patches in a stand
 
 		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
 		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
-		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting) || (readtargetcutting && mt.targetfrac_input_mode == 2)
-			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear || (no_target_cutting_before_man_start && !management_started)) {
+		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting)
+			|| (readtargetcutting && mt.targetfrac_input_mode == 2)
+			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear
+			|| (no_target_cutting_before_man_start && !management_started)) {
+
 			continue;
 		}
 
@@ -875,7 +914,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			double remove_cmass_stand = 0.0; 
 			if(target_stand[i] - 1.0) {
 				if((cmass_pft_stand[i] / cmass_total_stand) > 0.99 && target_stand[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
-					dprintf("Target cutting suspended year %d: cmass_pft_stand[i] / cmass_total_stand = %f\n\n", date.get_calendar_year(), cmass_pft_stand[i] / cmass_total_stand);
+					dprintf("Target cutting suspended year %d: cmass_pft_stand[i] / cmass_total_stand = %f\n\n",
+						date.get_calendar_year(), cmass_pft_stand[i] / cmass_total_stand);
 				}
 				else {
 					remove_cmass_stand = max(0.0, (target_stand[i] * cmass_total_stand - cmass_pft_stand[i]) / (target_stand[i] - 1.0));
@@ -897,8 +937,10 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		if(cmass_unselected_stand)
 			cutstr_unselected_stand = remove_cmass_unselected_stand / cmass_unselected_stand;
 
-		double cutstr_total_stand = cutstr_selected_stand + cutstr_unselected_stand;	// Equal importance of pft relative deviations in- and outside of selection
-//		cutstr_total_stand = (remove_cmass_selected_stand + remove_cmass_unselected_stand) / cmass_total_stand;	// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
+		// Equal importance of pft relative deviations in- and outside of selection
+		double cutstr_total_stand = cutstr_selected_stand + cutstr_unselected_stand;
+		// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
+//		cutstr_total_stand = (remove_cmass_selected_stand + remove_cmass_unselected_stand) / cmass_total_stand;
 
 		// Check deviations at patch level and set man_strength>:
 		stand.firstobj();
@@ -913,7 +955,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			if(mt.suppress_second_target && mt.secondintervalstart > -1 && cutting_reference_age >= mt.secondintervalstart)
 				suppress_secondary = true;
 
-			if(!(patch.age >= mt.targetstartage && !(patch.age % mt.targetcutinterval) && !patch.distributed_cutting && !patch.clearcut_this_year && !suppress_secondary)) {
+			if(!(patch.age >= mt.targetstartage && !(patch.age % mt.targetcutinterval) && !patch.distributed_cutting
+					&& !patch.clearcut_this_year && !suppress_secondary)) {
 				stand.nextobj();
 				continue;
 			}
@@ -981,7 +1024,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
  
 				if(target_patch[i] - 1.0) {
 					if((cmass_pft[i] / cmass_total) > 0.99 && target_patch[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
-						dprintf("Target cutting suspended year %d: cmass_pft[i] / cmass_total = %f\n\n", date.get_calendar_year(), cmass_pft[i] / cmass_total);
+						dprintf("Target cutting suspended year %d: cmass_pft[i] / cmass_total = %f\n\n",
+							date.get_calendar_year(), cmass_pft[i] / cmass_total);
 					}
 					else {
 						remove_cmass = max(0.0, (target_patch[i] * cmass_total - cmass_pft[i]) / (target_patch[i] - 1.0));
@@ -1003,8 +1047,10 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			if(cmass_unselected)
 				cutstr_unselected = remove_cmass_unselected / cmass_unselected;
 
-			double cutstr_total = cutstr_selected + cutstr_unselected;	// Equal importance of pft relative deviations in- and outside of selection
-//			cutstr_total = (remove_cmass_selected + remove_cmass_unselected) / cmass_total;	// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
+			// Equal importance of pft relative deviations in- and outside of selection
+			double cutstr_total = cutstr_selected + cutstr_unselected;
+			// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
+//			cutstr_total = (remove_cmass_selected + remove_cmass_unselected) / cmass_total;
 
 			// Modes of cutting:
 			// 1: Cut when patch fraction deviations > DEVLIMIT, use patch overshoot values (default)
@@ -1025,7 +1071,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			}
 	
 			if(cutstr_total_use > DEVLIMIT)
-				distribute_cutting(patch, mt.targetthinselectdiam, mt.targetthinselectage, SELECT_PFT_UNSEL_SEL_SEPARATE, cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
+				distribute_cutting(patch, mt.targetthinselectdiam, mt.targetthinselectage, SELECT_PFT_UNSEL_SEL_SEPARATE,
+									cutstr_unselected_use, cutstr_pft_use);	// Default: cut largest trees first
 
 			if(cmass_pft)
 				delete[] cmass_pft;
@@ -1052,9 +1099,11 @@ void set_forest_pft_structure(Gridcell& gridcell) {
  *  \param patch					reference to a Patch containing the following public members:
  *   - age							patch age
  *									ManagementType (accessed from patch) public members:
- *   - planting_system				rules for which pfts are planted; custom pft group planting_systems are used in this function (optionally)
+ *   - planting_system				rules for which pfts are planted; custom pft group planting_systems are used in
+ *									this function (optionally)
  *   - firstclearcutyear			first calendar year when clear-cut allowed
- *   - delayduecutting				number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear
+ *   - delayduecutting				number of years to distribute clearcut of patches that were due to be cut before
+ *									firstclearcutyear
  *   - dens_target_cc				stand density lower limit that triggers clearcut
  *  INPUT/OUTPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
@@ -1062,8 +1111,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
  */
 bool clearcut_by_density(Patch& patch) {
 
-	// Based on clearcut scheme in Bellassen (2010), but tree density and density parameters were selected to give rotation times 
-	// around 100 years in the early 2000s in LPJ-GUESS simulations.
+	// Based on clearcut scheme in Bellassen (2010), but tree density and density parameters were selected to give 
+	// rotation times around 100 years in the early 2000s in LPJ-GUESS simulations.
 
 	ManagementType& mt = patch.stand.get_current_management();
 	StandType& st = stlist[patch.stand.stid];
@@ -1105,7 +1154,9 @@ bool clearcut_by_density(Patch& patch) {
 				patch.cut_due = true;
 
 			if(date.get_calendar_year() >= mt.firstclearcutyear &&
-				(date.get_calendar_year() >= mt.firstclearcutyear + mt.delayduecutting || !patch.cut_due || !(patch.age % mt.delayduecutting))) {
+				(date.get_calendar_year() >= mt.firstclearcutyear + mt.delayduecutting
+					|| !patch.cut_due || !(patch.age % mt.delayduecutting))) {
+
 				patch.cut_due = false;
 				return true;
 			}
@@ -1147,14 +1198,15 @@ void thin_reineke_init(Patch& patch) {
 }
 
 /// Automated thinning routine based on Reineke's self-thinning rule
-/** Self-thinning is avoided by cutting when the quadratic mean diameter (diam_sq) approaches the self-thinning curve, which is
- *  derived from diam_sq-density log-log plots of model output.
+/** Self-thinning is avoided by cutting when the quadratic mean diameter (diam_sq) approaches the self-thinning curve,
+ *  which is derived from diam_sq-density log-log plots of model output.
  *  Sets patch.man_strength and calls distribute_cutting() to set man_strength for individuals.
  *  
  *  INPUT PARAMETERS
  *  \param patch					reference to a Patch
  *									ManagementType (accessed from patch) public members:
- *   - planting_system				rules for which pfts are planted; custom pft group planting_systems are used in this function (optionally)
+ *   - planting_system				rules for which pfts are planted; custom pft group planting_systems are used in this
+ *									function (optionally)
  *   - alpha_st						self-thinning parameter (theoretical density when Dg = 1m using the density-Dg equation)
  *   - rdi_target					thinning "intensity" (low value more intense) 
  *   - dens_target_cc				stand density lower limit that triggers clearcut
@@ -1169,14 +1221,17 @@ void thin_reineke(Patch& patch) {
 
 	// Based on Reineke's self-thinning rule, as in Bellassen (2010)
 	//
-	// dens_max = alpha_st / pow(Dg, beta_st), where dens_max is stand maximum density before self-thinning (ind/ha), alpha_st and beta_st are parameters and
-	// Dg is the quadratic mean diameter (m), Dg = pow(diameter square sum, 0.5) (equation in Bellassen 2010 is incorrect)
+	// dens_max = alpha_st / pow(Dg, beta_st), where dens_max is stand maximum density before self-thinning (ind/ha),
+	// alpha_st and beta_st are parameters and Dg is the quadratic mean diameter (m),
+	// Dg = pow(diameter square sum, 0.5) (equation in Bellassen 2010 is incorrect)
 	// 
-	// alpha_st and beta_st were calibrated from log-log plots of quadratic mean diameter (Dg) and tree density: log Dg=log alpha_st/beta_st-1/beta_st*log dens
-	// and density parameters were selected to give rotation times around 100 years in the early 2000s in LPJ-GUESS simulations.
+	// alpha_st and beta_st were calibrated from log-log plots of quadratic mean diameter (Dg) and tree density:
+	// log Dg=log alpha_st/beta_st-1/beta_st*log dens and density parameters were selected to give rotation times
+	// around 100 years in the early 2000s in LPJ-GUESS simulations.
 	//
-	// To avoid self-thinning mortality, the relative density index (rdi) = dens / dens_max, is monitored (dens_max = alpha_st / pow(Dg, beta_st) and kept close to a target value,
-	// rdi_target by cutting when rdi reaches (rdi_target + delta_rdi) to reach (rdi_target - delta_rdi)
+	// To avoid self-thinning mortality, the relative density index (rdi) = dens / dens_max, is monitored
+	// (dens_max = alpha_st / pow(Dg, beta_st) and kept close to a target value, rdi_target by cutting when
+	// rdi reaches (rdi_target + delta_rdi) to reach (rdi_target - delta_rdi)
 	//.
 
 	ManagementType& mt = patch.stand.get_current_management();
@@ -1186,19 +1241,22 @@ void thin_reineke(Patch& patch) {
 	double beta_st = 1.6;
 	// thinning "intensity" (low value more intense)
 	double rdi_target = 0.75;	// Bellassen value, modified below
-	double dens_start = 5000.0;	// Changed this from Bellassen's 10000 to represent what we use in LPJ-GUESS if not specifically specifying a higher planting density
+	double dens_start = 5000.0;	// Changed this from Bellassen's 10000 to represent what we use in LPJ-GUESS if not 
+								// specifically specifying a higher planting density
 	double dens_target = 0.0;	// Default value set below if not specified in instruction file management parameters
 
 	// Default values for tree functional groups, can be changed by mt values below
 	if(mt.planting_system == "NEEDLELEAF_EVERGREEN" || mt.planting_system == "NEEDLELEAF_DECIDUOUS") {
 
-		alpha_st = 65;					// Values obtained from LPJ-GUESS simulations of needle-leaf monocultures without re-establishment (60: shorter rotation time)
+		alpha_st = 65;					// Values obtained from LPJ-GUESS simulations of needle-leaf monocultures without
+										// re-establishment (60: shorter rotation time)
 		rdi_target = 0.7;				// Bellassen value 0.75; changed to 0.7 to get shorter rotation time (with alpha_st 65)
 		dens_target = DENSTARGET_NL;
 	}
 	else if(mt.planting_system == "BROADLEAF_EVERGREEN" || mt.planting_system == "BROADLEAF_DECIDUOUS") {
 
-		alpha_st = 40;					// Values obtained from LPJ-GUESS simulations of broad-leaf monocultures and mixed stands without re-establishment
+		alpha_st = 40;					// Values obtained from LPJ-GUESS simulations of broad-leaf monocultures and mixed
+										// stands without re-establishment
 		rdi_target = 0.85;				// 0.85-0.9; 0.85 for less mortality
 		dens_target = DENSTARGET_BL;
 	}
@@ -1253,7 +1311,8 @@ void thin_reineke(Patch& patch) {
 		// Pre-commercial thinning: harvested biomass to litter
 		if(patch.age < 20)
 			patch.harvest_to_litter = true;
-		distribute_cutting(patch, SELECT_DIAM_NOPREF, SELECT_AGE_YOUNG, SELECT_PFT_SHADEINTOL);	// Cut young trees first & cut shrubs and shade-intolerant species first.
+		// Cut young trees first & cut shrubs and shade-intolerant species first.
+		distribute_cutting(patch, SELECT_DIAM_NOPREF, SELECT_AGE_YOUNG, SELECT_PFT_SHADEINTOL);
 	}
 }
 
@@ -1274,7 +1333,8 @@ void manage_forests(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 
-		// avoid calling manage_forest() when converting harvest biomass input to man_strength (harvest_secondary_to_new_stand = false, not currently implemented)
+		// Avoid calling manage_forest() when converting harvest biomass input to man_strength
+		// (harvest_secondary_to_new_stand = false, not currently implemented).
 		if(harvest_secondary_to_new_stand && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
 			
 			stand.firstobj();
@@ -1334,7 +1394,8 @@ void manage_forests(Gridcell& gridcell) {
  *   - firstcutyear					first calendar year when wood harvest starts
  *   - firstclearcutyear			first calendar year when clear-cut allowed
  *   - ifthin_reineke				whether automated thinning according to self-thin rule is selected
- *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing of cutting events
+ *   - firstcutyear_is_referenceyear	whether first cut year rather than patch age is used as a reference for timing
+ *										of cutting events
  *   - secondintervalstart			number of years after stand creation when the second (continuous) cutting interval starts
  *   - ifclearcut_by_density		whether clear-cut triggered by tree density going below a limit is selected
  *   - ifclearcut_optimal_age		whether clear-cut triggered by growth reaching diminishing return is selected
@@ -1344,10 +1405,12 @@ void manage_forests(Gridcell& gridcell) {
  *   - thinstrength[][]				cutting strength of thinning events
  *   - thinstrength_unsel[][]		cutting strength for unselected pft:s if select_pft = 3
  *   - thintime[][]					timing of thinning events, relative to rotation period
- *   - thinselectdiam[][]			whether small (1) or large (2) diameter individuals are preferentially cut, trees above diam_limit only (3).or no preference (0)
+ *   - thinselectdiam[][]			whether small (1) or large (2) diameter individuals are preferentially cut, trees above.
+ *									diam_limit only (3).or no preference (0)
  *   - thinselectage[][]			whether young (1) or old (2) individuals are preferentially cut, or no preference (0)
- *   - thinselectpft[][]			whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3),
- *									shrubs and shade-intolerant pft:s preferentially cut (4) or no preference (0)
+ *   - thinselectpft[][]			whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and 
+ *									selected cutting strengths specified separately (3), shrubs and shade-intolerant
+ *									pft:s preferentially cut (4) or no preference (0)
  *									Stand (accessed from patch) public members:
  *   - first_year					simulation year when this stand was created
  *									Gridcellst (accessed from patch) public members:
@@ -1374,7 +1437,7 @@ void manage_forest(Patch& patch) {
 	ManagementType& mt = stand.get_current_management();
 	Gridcellst& gcst = stand.get_gridcell().st[st.id];
 
-	int first_manageyear = nyear_spinup; // Simulation year when forestry management starts; default is directly after spinup.
+	int first_manageyear = nyear_spinup; // Simulation year when forestry management starts; default directly after spinup.
 
 	if(mt.firstmanageyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 		first_manageyear = mt.firstmanageyear - date.first_calendar_year;
@@ -1405,27 +1468,34 @@ void manage_forest(Patch& patch) {
 	if(mt.ifthin_reineke)
 		thin_reineke_init(patch);
 
-	int first_cutyear = first_manageyear; // Simulation year when forestry harvesting starts; default is same year as first_manageyear.
-	if(mt.firstcutyear < FAR_FUTURE_YEAR)	// Initialised to 1000000; other values set in instruction file.
+	int first_cutyear = first_manageyear; // Simulation year when forestry harvesting starts; default is same year as 
+										  // first_manageyear.
+	if(mt.firstcutyear < FAR_FUTURE_YEAR) // Initialised to 1000000; other values set in instruction file.
 		first_cutyear = mt.firstcutyear - date.first_calendar_year;
 
-	// If mt.firstcutyear_is_referenceyear = true, years since first_cutyear rather than patch age is used as a reference for timing of cutting events
+	// If mt.firstcutyear_is_referenceyear = true, years since first_cutyear rather than patch age is used as a reference
+	// for timing of cutting events
 	int cutting_reference_age = mt.firstcutyear_is_referenceyear ? date.year - first_cutyear : patch.age;
 
-	// cutinterval from input file overwrites mt cutinterval value and other clearcut triggers if value for st exists in the input file.
+	// cutinterval from input file overwrites mt cutinterval value and other clearcut triggers if value for st exists in
+	// the input file.
 	if(readcutinterval_st && gcst.cutinterval_st != 0)
 		cut_interval = (int)gcst.cutinterval_st;
 
-	// Cut according to number of patches and patch id to get an even patch age distribution
-	// Number of patches (npatch_secondarystand) and patch id determines when patch is clearcut (age reset to 0) during a period of
-	// cutinterval (harvest_system CLEARCUT) or secondintervalstart (harvest_system CONTINUOUS) years after stand creation.
+	// Cut according to number of patches and patch id to get an even patch age distribution.
+	// Number of patches (npatch_secondarystand) and patch id determines when patch is clearcut (age reset to 0) during
+	// a period of cutinterval (harvest_system CLEARCUT) or secondintervalstart (harvest_system CONTINUOUS) years after
+	// stand creation.
 	bool in_distribute_patch_ages_period = false;
 	int nyears_distribute_patch_ages = (mt.harvest_system == "CONTINUOUS") ? mt.secondintervalstart : cut_interval;
 
-	if(mt.distribute_patch_ages && nyears_distribute_patch_ages && date.year < max(stand.first_year, stand.clone_year) + nyears_distribute_patch_ages) {
+	if(mt.distribute_patch_ages && nyears_distribute_patch_ages
+		&& date.year < max(stand.first_year, stand.clone_year) + nyears_distribute_patch_ages) {
+
 		int patch_order = (int)(patch.id * nyears_distribute_patch_ages * 1.0 / (1.0 * stand.npatch()));
 
-		// patch age cutting overrides first (regrowth) period cutting in continuous harvest and thinnings in the first rotation period in clearcut 
+		// patch age cutting overrides first (regrowth) period cutting in continuous harvest and thinnings in the first
+		// rotation period in clearcut 
 		in_distribute_patch_ages_period = true;
 
 		if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % nyears_distribute_patch_ages)) {
@@ -1456,7 +1526,8 @@ void manage_forest(Patch& patch) {
 				if(mt.distribute_cuttings_among_patches) {
 					int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 					if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % cut_interval))
-//					if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
+//					if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear
+																					// (synchronised cuttings in all stands)
 						clearcut_now = true;
 				}
 				else if(readcutinterval_st) {
@@ -1497,17 +1568,19 @@ void manage_forest(Patch& patch) {
 					if(mt.distribute_cuttings_among_patches) {
 						int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 						age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
-//						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear; synchronised cuttings in all stands
+//						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear
+																		// (synchronised cuttings in all stands)
 					}
 					for(int t=0;t<NTHINNINGS;t++) {
-						if((mt.thinstrength[0][t] || mt.thinstrength_unsel[0][t]) && (age == (int)(floor((cut_interval * mt.thintime[0][t]) + 0.5)))) {
+						if((mt.thinstrength[0][t] || mt.thinstrength_unsel[0][t])
+							&& (age == (int)(floor((cut_interval * mt.thintime[0][t]) + 0.5)))) {
+
 							cut_fraction = mt.thinstrength[0][t];
 							cut_fraction_unsel = mt.thinstrength_unsel[0][t];
 							patch.man_strength = cut_fraction;
 							// Pre-commercial thinning: harvested biomass to litter
-							if(!t) {
+							if(!t)
 								patch.harvest_to_litter = true;
-							}
 							distribute_cutting(patch, mt.thinselectdiam[0][t], mt.thinselectage[0][t], mt.thinselectpft[0][t], cut_fraction_unsel);
 						}
 					}
@@ -1556,7 +1629,9 @@ void manage_forest(Patch& patch) {
 
 		for(int t=0;t<NTHINNINGS;t++) {
 
-			if((mt.thinstrength[n][t] || mt.thinstrength_unsel[n][t]) && (age % cut_interval) == (int)(floor((cut_interval * mt.thintime[n][t]) + 0.5))) {
+			if((mt.thinstrength[n][t] || mt.thinstrength_unsel[n][t])
+				&& (age % cut_interval) == (int)(floor((cut_interval * mt.thintime[n][t]) + 0.5))) {
+
 				cut_fraction = mt.thinstrength[n][t];
 				cut_fraction_unsel = mt.thinstrength_unsel[n][t];
 				patch.man_strength = cut_fraction;
@@ -1615,8 +1690,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.lifeform == GRASS) {
 
 		// Default forestry harvest parameters: pft values
-		double harv_eff_wood_harvest = pft.harv_eff;				// Default pft value for trees in global.ins and europe.ins: 0.9
-		double res_outtake_twig_wood_harvest = pft.res_outtake;		// Default pft value for trees in global.ins and europe.ins: 0.4
+		double harv_eff_wood_harvest = pft.harv_eff;				// Default pft value for trees in global/europe.ins: 0.9
+		double res_outtake_twig_wood_harvest = pft.res_outtake;		// Default pft value for trees in global/europe.ins: 0.4
 		double res_outtake_coarse_root_wood_harvest = 0.1;			// Using default value of 0.1,
 
 		// Use ManagementType values, if defined
@@ -1656,7 +1731,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		indiv.densindiv *= (1.0 - man_strength);
 
 		if (negligible(indiv.densindiv)) {
-			// C balance accounting when anpp is non-zero. This only happens when this function is called on another day than the first day of the year.
+			// C balance accounting when anpp is non-zero. This only happens when this function is called on another day
+			// than the first day of the year.
 			if(indiv.alive && pft.lifeform == TREE) {
 				if(anpp > 0.0) {
 					ppft.litter_sap += anpp;
@@ -1693,16 +1769,19 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
  *   - harvest_slow_frac			fraction of harvested products that goes to long-lived products
  *   - res_outtake    				fraction of residue outtake at harvest
  *  INPUT/OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding variables of an Individual:
+ *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding
+ *									variables of an Individual:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)
  *   - cmass_root					fine root C biomass (kgC/m2)
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
- *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
+ *									,and the following public members copied to and from the corresponding variables of
+ *									a Patchpft containing an Individual:
  *   - harvested_products_slow		harvest product pool (kgC/m2)
  *   - harvested_products_slow_nmass harvest nitrogen product pool (kgN/m2)
  *  OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
+ *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables
+ *									of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
  */
@@ -1790,12 +1869,19 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
 	indiv_cp.copy_to_indiv(indiv, false, lc_change);
 
 	if(lc_change) {
+
 		Stand& stand = indiv.vegetation.patch.stand;
-		stand.get_gridcell().landcover.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().landcover.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+
+		stand.get_gridcell().landcover.acflux_landuse_change 
+			+= stand.get_gridcell_fraction() * indiv_cp.acflux_harvest /(double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change 
+			+=stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+
 		if(stand.lc_origin < NLANDCOVERTYPES) {
-			stand.get_gridcell().landcover.acflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-			stand.get_gridcell().landcover.anflux_landuse_change_lc[stand.lc_origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+			stand.get_gridcell().landcover.acflux_landuse_change_lc[stand.lc_origin] 
+				+= stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+			stand.get_gridcell().landcover.anflux_landuse_change_lc[stand.lc_origin] 
+				+= stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 		}
 	}
 }
@@ -1806,8 +1892,8 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
  *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.
- *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily() at harvest day
- *	(hdate) or last intercrop day (eicdate).
+ *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily()
+ *	at harvest day (hdate) or last intercrop day (eicdate).
  *  Also called from landcover_dynamics() first day of the year if any natural vegetation
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
@@ -1823,7 +1909,8 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *   - harvest_slow_frac			fraction of harvested products that goes to long-lived products
  *   - res_outtake    				fraction of residue outtake at harvest
  *  INPUT/OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding variables of an Individual:
+ *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding
+ *									variables of an Individual:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)
  *   - cmass_root					fine root C biomass (kgC/m2)
  *   - cmass_ho						harvestable organ C biomass (kgC/m2)
@@ -1837,7 +1924,8 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *   - nmass_dead_leaf				dead leaf N biomass (kgN/m2)
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
- *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
+ *									,and the following public members copied to and from the corresponding variables of
+ *									a Patchpft containing an Individual:
  *   - litter_leaf    				leaf C litter (kgC/m2)
  *   - litter_root 					root C litter (kgC/m2)
  *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
@@ -1845,7 +1933,8 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change) {
  *   - harvested_products_slow		harvest product pool (kgC/m2)
  *   - harvested_products_slow_nmass harvest nitrogen product pool (kgC/m2)
  *  OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
+ *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables
+ *									of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
  */
@@ -2054,8 +2143,8 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
  *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.
- *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily() at harvest day
- *	(hdate) or last intercrop day (eicdate).
+ *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily()
+ *	at harvest day (hdate) or last intercrop day (eicdate).
  *  Also called from landcover_dynamics() first day of the year if any natural vegetation
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
@@ -2125,7 +2214,8 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
  *   - landcover    				specifies type of landcover pft is allowed to grow in
  *   - aboveground_ho   			whether harvestable organs are above ground
  *  INPUT/OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding variables of an Individual:
+ *  \param Harvest_CN& i			struct containing the following public members copied to and from the corresponding
+ *									variables of an Individual:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)
  *   - cmass_root					fine root C biomass (kgC/m2)
  *   - cmass_ho						harvestable organ C biomass (kgC/m2)
@@ -2141,13 +2231,15 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
  *   - nmass_agpool					above-ground pool nitrogen biomass (kgN/m2)
  *   - nstore_labile    			labile nitrogen storage (kgN/m2)
  *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
- *									,and the following public members copied to and from the corresponding variables of a Patchpft containing an Individual:
+ *									,and the following public members copied to and from the corresponding variables of
+ *									a Patchpft containing an Individual:
  *   - litter_leaf    				leaf C litter (kgC/m2)
  *   - litter_root 					root C litter (kgC/m2)
  *   - nmass_litter_leaf 			leaf nitrogen litter (kgN/m2)
  *   - nmass_litter_root			root nitrogen litter (kgN/m2)
  *  OUTPUT PARAMETERS
- *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of a Patch containing an individual
+ *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables
+ *									of a Patch containing an individual
  *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
  */
@@ -2397,7 +2489,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		}
 	}
 
-	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):
+	// Deduct individual N present day 0 this year in stands that have increased in area this year,
+	// scaled by (1 - old area/new area):
 	indiv.nmass_root = indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale);
 	indiv.nmass_leaf = indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale);
 	indiv.nmass_heart = indiv.nmass_heart - indiv.nmass_heart_luc * (1.0 - scale);
@@ -2452,7 +2545,8 @@ bool harvest_year(Individual& indiv) {
  *   - phenology 					leaf phenology (cropgreen, any)
  *   - harv_eff 					harvest efficiency of crop
  *   - harv_eff_ic 					harvest efficiency of inter-crop grass
- *									cropindiv_struct (accessed from indiv) public members:struct containing the following public members:
+ *									cropindiv_struct (accessed from indiv) public members:struct containing the following
+ *									public members:
  *   - ycmass_leaf 					daily updated leaf C biomass (kgC/m2), reset at day 0
  *   - harv_cmass_leaf 				year's harvested leaf C biomass (kgC/m2)
  *   - ycmass_ho 					daily updated harvestable organ C biomass (kgC/m2), reset at day 0
@@ -2460,7 +2554,8 @@ bool harvest_year(Individual& indiv) {
  *   - cmass_ho_harvest[2] 			harvestable organ C biomass at the last two harvest events this year (kgC/m2)	
  *  OUTPUT PARAMETERS
  *  \param indiv					reference to an Individual
- *									cropindiv_struct (accessed from indiv) public members:struct containing the following public members:
+ *									cropindiv_struct (accessed from indiv) public members:struct containing the following
+ *									public members:
  *   - yield 						dry weight crop yield grown this year (kgC/m2)
  *   - harv_yield 					dry weight crop yield harvested this year (kgC/m2)
  *   - yield_harvest[2] 			dry weight crop yield at the last two harvest events this year (kgC/m2)
@@ -2471,7 +2566,8 @@ void yield_crop(Individual& indiv) {
 
 	if (indiv.pft.phenology == ANY) {			// grass intercrop yield
 
-		// Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
+		// Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in
+		// harvest_crop (different years)
 		if (cropindiv.ycmass_leaf > 0.0)
 			cropindiv.yield = cropindiv.ycmass_leaf * indiv.pft.harv_eff_ic * 2.0;
 		else
@@ -2485,7 +2581,8 @@ void yield_crop(Individual& indiv) {
 	}
 	else if (indiv.pft.phenology == CROPGREEN) {		//true crop yield
 
-		// Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
+		// Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in
+		// harvest_crop (different years)
 		if (cropindiv.ycmass_ho > 0.0)
 			cropindiv.yield = cropindiv.ycmass_ho * indiv.pft.harv_eff * 2.0;// Should be /0.446 instead
 		else
@@ -2515,7 +2612,8 @@ void yield_crop(Individual& indiv) {
  *   - harv_eff 					harvest efficiency of grass
  *  OUTPUT PARAMETERS
  *  \param indiv					reference to an Individual
- *									cropindiv_struct (accessed from indiv) public members:struct containing the following public members:
+ *									cropindiv_struct (accessed from indiv) public members:struct containing the following
+ *									public members:
  *   - yield 						dry weight grass yield grown this year (kgC/m2)
  *   - harv_yield 					dry weight grass yield harvested this year (kgC/m2)
  */
@@ -2547,7 +2645,8 @@ void yield_pasture(Individual& indiv, double cmass_leaf_inc) {
  *   - Nfert_read					total nitrogen fertilization this year read from text input file (kgN/m2)
  *   - Nfert_man_read				nitrogen fertilization from manure this year read from text input file (kgN/m2)
  *									Gridcellst (accessed from patch) public members:
- *   - nfert						total StandType-level nitrogen fertilization this year read from instruction file or text input file (kgN/m2)
+ *   - nfert						total StandType-level nitrogen fertilization this year read from instruction file or
+ *									text input file (kgN/m2)
  *  INPUT/OUTPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - anfert 						year's nitrogen fertilization (kgN/m2)
@@ -2637,7 +2736,8 @@ void nfert_crop(Patch& patch) {
  *									Stand (accessed from patch) public members:
  *   - landcover		   			type of landcover
  *									Gridcellst (accessed from patch) public members:
- *   - nfert						total StandType-level nitrogen fertilization this year read from instruction file or text input file (kgN/m2)
+ *   - nfert						total StandType-level nitrogen fertilization this year read from instruction file or
+ *									text input file (kgN/m2)
  *  INPUT/OUTPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - anfert 						year's nitrogen fertilization (kgN/m2)
@@ -2836,9 +2936,10 @@ void crop_rotation(Stand& stand) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
-// Bellassen, V, Le Maire, G, Dhôte, JF & Viovy, N (2010) Modelling forest management within a global vegetation model - Part 1: 
-//   Model Structure and general behaviour. Ecol. Modelling 221: 2458-2474.
-// Lagergren, F and Jönsson, A M (2017) Ecosystem model analysis of multi-use forestry in a changing climate, Ecosyst. Serv. 26: 209-224.
-// Lindeskog, M, Smith, B, Lagergren, F, Sycheva, E, Ficko, A, Pretzsch, H, and Rammig, A: Accounting for forest management in the estimation of forest carbon 
-//   balance using the dynamic vegetation model LPJ-GUESS (v4.0, r9710): implementation and evaluation of simulations for Europe (2021)
-//   Geosci. Model Dev. 14: 6071-6112.
+// Bellassen, V, Le Maire, G, Dhôte, JF & Viovy, N (2010) Modelling forest management within a global vegetation model
+//	 - Part 1: Model Structure and general behaviour. Ecol. Modelling 221: 2458-2474.
+// Lagergren, F and Jönsson, A M (2017) Ecosystem model analysis of multi-use forestry in a changing climate, Ecosyst.
+//	 Serv. 26: 209-224.
+// Lindeskog, M, Smith, B, Lagergren, F, Sycheva, E, Ficko, A, Pretzsch, H, and Rammig, A: Accounting for forest management
+//	 in the estimation of forest carbon balance using the dynamic vegetation model LPJ-GUESS (v4.0, r9710): implementation
+//   and evaluation of simulations for Europe (2021). Geosci. Model Dev. 14: 6071-6112.

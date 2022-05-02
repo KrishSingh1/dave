@@ -511,13 +511,15 @@ const Climate& Patch::get_climate() const {
 bool Patch::has_fires() const {
 	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
 	// fires in tropical peatlands, we disallow this for now.
-	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !(managed && (stand.get_current_management().suppress_fire || suppress_disturbance_in_forestry_stands)) &&
-		(stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
+	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND
+		&& !(managed && (stand.get_current_management().suppress_fire || suppress_disturbance_in_forestry_stands))
+		&& (stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
 }
 
 bool Patch::has_disturbances() const {
-	return ifdisturb && stand.landcover != CROPLAND && !(managed && (stand.get_current_management().suppress_disturbance || suppress_disturbance_in_forestry_stands)) &&
-		(stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
+	return ifdisturb && stand.landcover != CROPLAND && !(managed && (stand.get_current_management().suppress_disturbance
+		|| suppress_disturbance_in_forestry_stands)) && (stand.landcover != PASTURE || disturb_pasture)
+		&& stand.landcover != BARREN && stand.landcover != URBAN;
 }
 
 /// C content of patch
@@ -801,7 +803,8 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 	while (pftlist.isobj) {
 		Pft& pftx = pftlist.getobj();
 		Standpft& spft = pft[pftx.id];
-		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name, (char*)pftx.name, spft.active, spft.plant, spft.reestab);
+		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name,
+			(char*)pftx.name, spft.active, spft.plant, spft.reestab);
 		pftlist.nextobj();	
 	}
 	dprintf("\n");
@@ -851,7 +854,7 @@ void Stand::set_selection_params() {
   * (allows all active PFT:s with the same landcovertype), naturalveg (allows none, natural grass or all natural pft:s)
   * and intercrop ("naturalgrass" allows dedicated covercrop grass pft:s).
   * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
-  * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted" - only planted pft:s
+  * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted"(only planted pft:s)
   */
 void Stand::set_management() {
 
@@ -1049,11 +1052,13 @@ void Stand::set_management() {
 						pft[pftx.id].reestab = false;
 
 						if(st.reestab == "ALL") {
-							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
+							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST
+							// and/or NATURAL) needs to be distinguished in the output
 							// 1. reestablishment by both forest and natural pfts
 //							if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
+//								|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							// 3. reestablishment only by natural pfts (when active)
 							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 								pft[pftx.id].active = true;
@@ -1133,11 +1138,13 @@ void Stand::set_management() {
 					pft[pftx.id].reestab = false;
 
 					if(st.reestab == "ALL") {
-						// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
+						// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL)
+						// needs to be distinguished in the output
 						// 1. reestablishment by both forest and natural pfts
 //						if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 						// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
+//							|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 						// 3. reestablishment only by natural pfts (when active)
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
@@ -1222,7 +1229,8 @@ void Stand::set_management() {
 						// 1. reestablishment by both forest and natural pfts
 //						{
 						// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL"
+//							&& pftx.landcover == NATURAL) {
 						// 3. reestablishment only by natural pfts (when active)
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
@@ -1276,7 +1284,8 @@ void Stand::rotate(int rot) {
 	while (pftlist.isobj) {
 		Pft& pftx = pftlist.getobj();
 		Standpft& spft = pft[pftx.id];
-		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name, (char*)pftx.name, spft.active, spft.plant, spft.reestab);
+		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name,
+			(char*)pftx.name, spft.active, spft.plant, spft.reestab);
 		pftlist.nextobj();	
 	}
 	dprintf("\n");
@@ -1589,7 +1598,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	man_strength = 0.0;
-//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -2887,7 +2895,8 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 		ccont_zero = ccont_zero_scaled;
 
 	if(date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
-		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
+		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id,
+			date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
 		balance = false;
@@ -2912,7 +2921,8 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 		ncont_zero = ncont_zero_scaled;
 
 	if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
+		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id,
+			date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
 		balance = false;
@@ -2970,7 +2980,8 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 		ccont_zero = ccont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
-		dprintf("\nStand %d Patch %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
+		dprintf("\nStand %d Patch %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, date.year, date.day,
+			ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
 		balance = false;
@@ -2996,7 +3007,8 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 		ncont_zero = ncont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-		dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
+		dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day,
+			ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
 		balance = false;
@@ -3032,7 +3044,8 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		
 		// N balance check:
 		if (!negligible(ncont_year - ncont + nflux_year, -9)) {
-			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
+			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
+				ncont_year - ncont + nflux_year);
 			dprintf("N pool change: %.9f\n", ncont_year - ncont);
 			dprintf("N flux: %.9f\n",  nflux_year);
 		}
@@ -3056,7 +3069,8 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 
 		// C balance check:
 		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
-			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
+			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
+				ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);
 			dprintf("C flux: %.5f\n",  cflux_year);
 		}

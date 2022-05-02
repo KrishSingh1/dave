@@ -109,8 +109,9 @@ bool MiscInput::loadelevation(double lon, double lat) {
 }
 
 /// Read disturbance interval from file
-/** This implementation uses disturbance interval input at gridcell or stand type level in standard text format input files (see indata.h).
- *  The column for the gridcell disturbance interval has a header name of "Return" and columns for stand type disturbance have headers with the stand type names.
+/** This implementation uses disturbance interval input at gridcell or stand type level in standard text format input 
+ *	files (see indata.h). The column for the gridcell disturbance interval has a header name of "Return" and columns
+ *  for stand type disturbance have headers with the stand type names.
  */
 void MiscInput::getdisturbance(Gridcell& gridcell) {
 
@@ -177,8 +178,10 @@ LandcoverInput::LandcoverInput()
 	: nyears_cropland_ramp(0) {
 
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
-	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 0, 10000, "Number of years to increase cropland fraction linearly from 0 to first year's value");
-	declare_parameter("frac_fixed_default_crops", &frac_fixed_default_crops, " whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
+	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 0, 10000,
+		"Number of years to increase cropland fraction linearly from 0 to first year's value");
+	declare_parameter("frac_fixed_default_crops", &frac_fixed_default_crops,
+		" whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
 }
 
 void LandcoverInput::init() {
@@ -189,7 +192,8 @@ void LandcoverInput::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
+	all_fracs_const=true;	// If any of the opened files have yearly data, all_fracs_const will be set to false and
+							// landcover_dynamics will call get_landcover() each year
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
 
@@ -460,7 +464,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 	int first_reduction_year = first_historic_year - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
 	if(year < first_reduction_year && year > LUdata.GetFirstyear()) {
 		if(year == first_reduction_year - 1 && !nyears_cropland_ramp)
-			dprintf("Land cover change before soil spinup is not allowed, first lcc year will be %d. Using lc fractions for %d earlier.\n", first_reduction_year, first_reduction_year);
+			dprintf("Land cover change before soil spinup is not allowed, first lcc year will be %d. Using lc fractions for %d earlier.\n",
+				first_reduction_year, first_reduction_year);
 		year = first_reduction_year;
 	}
 
@@ -555,7 +560,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						} 
 						else if(lcfrac > 1.01) {	// discard unreasonable values
 							if(printyear)
-								dprintf("WARNING ! %d landcover %d fraction size %f out of limits, set to 1.0\n", date.get_calendar_year(), i, lcfrac);
+								dprintf("WARNING ! %d landcover %d fraction size %f out of limits, set to 1.0\n",
+									date.get_calendar_year(), i, lcfrac);
 							lcfrac = 1.0;
 						}
 						lc.frac[i] = lcfrac;
@@ -601,7 +607,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		}
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types
+													//are added in other input files, can be either less or more than 1.0
 
 			if(date.year == 0)
 				dprintf("Landcover fraction sum not 1.0 !\n");
@@ -611,21 +618,25 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					if(sum_active < 1.0)
 						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
 					else
-						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, lc.frac[NATURAL]);
+						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n",
+							sum_active-1.0, lc.frac[NATURAL]);
 				}
 
-				lc.frac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+				lc.frac[NATURAL] += (1.0 - sum_active);
+				// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
 				
 				if(date.year==0)
 					dprintf("New NATURAL fraction is %4.3f.\n", lc.frac[NATURAL]);
 
 				sum_active = 1.0;		// sum_active should now be 1.0
 
-				if(lc.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
+				if(lc.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction
+												// (something wrong in the distribution of input file area fractions)						
 					if(date.year == 0)
 						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
 
-					sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+					sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which
+													// will now be >1.0 again
 					lc.frac[NATURAL] = 0.0;
 
 					for(int i=0; i<NLANDCOVERTYPES; i++) {
@@ -667,7 +678,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 				lc.frac[CROPLAND] -= reduce_cropland;
 				lc.frac[NATURAL] += reduce_cropland;
 				if(year_saved == firstyear -1)
-					dprintf("Cropland area fraction ramp from 0 to %.3f during period %d to %d\n", LUdata.Get(firstyear,"CROPLAND"), max(first_reduction_year, firstyear - nyears_cropland_ramp), firstyear-1);
+					dprintf("Cropland area fraction ramp from 0 to %.3f during period %d to %d\n",
+						LUdata.Get(firstyear,"CROPLAND"), max(first_reduction_year, firstyear - nyears_cropland_ramp), firstyear-1);
 			}
 		}	
 	}
@@ -777,7 +789,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		if(frac_fixed[st.landcover] || st_data[st.landcover].NormalisedData())
 			gcst.frac = gcst.frac * lc.frac[st.landcover];
 		// Ignore very small fraction changes unless frac_old is 0 and frac larger than limit or if frac smaller than limit.
-		if(fabs(gcst.frac_old - gcst.frac) < INPUT_RESOLUTION * 0.1 && !(!gcst.frac_old && gcst.frac > INPUT_RESOLUTION) && !(gcst.frac < INPUT_RESOLUTION))
+		if(fabs(gcst.frac_old - gcst.frac) < INPUT_RESOLUTION * 0.1 && !(!gcst.frac_old && gcst.frac > INPUT_RESOLUTION)
+				&& !(gcst.frac < INPUT_RESOLUTION))
 			gcst.frac = gcst.frac_old;
 		if(gcst.frac < INPUT_RESOLUTION)
 			gcst.frac = 0.0; 
@@ -934,11 +947,11 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 
 
 /// Read LUC transitions from file
-/** This implementation uses LUH2 gross transfer standard text format input files (see guess.doc). Transitions to and from cropland (c), pasture (p),  
- *  barren land (b), urban land (u), primary PNV (v) and secondary PNV (s) are represented as columns with header names, e.g. "cp" denoting.
- *  cropland to pasture transfers.
- *  The function call to adjust_gross_transfers() tries to solve inconsistencies between net landcover and gross land transfer input and adjusts the
- *	gross transfer two-dimensional array, keeping the net landcover change array intact.
+/** This implementation uses LUH2 gross transfer standard text format input files (see guess.doc). Transitions to and from  
+ *  cropland (c), pasture (p), barren land (b), urban land (u), primary PNV (v) and secondary PNV (s) are represented as
+ *  columns with header names, e.g. "cp" denoting.cropland to pasture transfers.
+ *  The function call to adjust_gross_transfers() tries to solve inconsistencies between net landcover and gross land
+ *	transfer input and adjusts the gross transfer two-dimensional array, keeping the net landcover change array intact.
  */
 bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
@@ -1031,7 +1044,8 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 }
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
-void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch) {
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], 
+		forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch) {
 
 	const bool print_adjustment_info = false;
 	bool error = false;
@@ -1058,7 +1072,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 			if(fabs(landcoverfrac_change[from] - net_lc_change[from])  > 1.0e-15) {
 				error = true;
 				if(print_adjustment_info) {
-					dprintf("\nYear %d: In get_lc_transfer: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, from);
+					dprintf("\nYear %d: In get_lc_transfer: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", 
+						date.year, from);
 					dprintf("dif=%.15f\n", net_lc_change[from] - landcoverfrac_change[from]);
 					dprintf("lc_change_array sum=%.15f\n", net_lc_change[from]);
 					dprintf("landcoverfrac_change=%.15f\n", landcoverfrac_change[from]);
@@ -1313,7 +1328,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 					if(fabs(residual_error[from]) > 1.0e-15 && run[to] && fabs(residual_error[to])  > 1.0e-15 && from != to) {
 
 						// Errors must have opposite signs
-						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15)	{
+						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15) {
 
 							if(print_adjustment_info)
 								dprintf("Trying with lc %d and %d\n", from, to);
@@ -1393,8 +1408,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 								dprintf("\nUsing third land cover type\n");
 							for(int third=0; third<NLANDCOVERTYPES; third++) {
 
-								if(lc_frac_transfer[from][third] + lc_frac_transfer[third][from] > 0.0 && lc_frac_transfer[to][third] + lc_frac_transfer[third][to]
-									&& third != from && third != to) {
+								if(lc_frac_transfer[from][third] + lc_frac_transfer[third][from] > 0.0 
+									&& lc_frac_transfer[to][third] + lc_frac_transfer[third][to] && third != from && third != to) {
 
 									if(print_adjustment_info) {
 										dprintf("Before: transfer lc %d to %d: %.15f\n", from, third, lc_frac_transfer[from][third]);
@@ -1497,7 +1512,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 					if(fabs(residual_error[from]) > 1.0e-15 && run[to] && fabs(residual_error[to])  > 1.0e-15 && from != to) {
 
 						// Errors must have opposite signs
-						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15)	{
+						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15) {
 
 							if(print_adjustment_info) {
 								dprintf("\nDealing with rounding artefacts with new direct transfer\n");
@@ -1557,7 +1572,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 					if(fabs(residual_error[from]) > 1.0e-15 && run[to] && fabs(residual_error[to])  > 1.0e-15 && from != to) {
 
 						// Errors must have opposite signs
-						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15)	{
+						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15) {
 
 							if(print_adjustment_info) 
 								dprintf("\nUsing third land cover type, relaxed rules\n");
@@ -1879,7 +1894,8 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 			if(mt.file_targetfrac_pft_mt != "") {
 				if(!targetfrac_pft_mt[i].Load(c)) {
 					LUerror = true;	// skip this stand
-					dprintf("Target cutting data for stand types not found in input file %s for %.2f,%.2f.\n\n", (char*)mt.file_targetfrac_pft_mt, c.lon, c.lat);
+					dprintf("Target cutting data for stand types not found in input file %s for %.2f,%.2f.\n\n",
+						(char*)mt.file_targetfrac_pft_mt, c.lon, c.lat);
 				}
 				else if(mt.targetfrac_input_mode) {
 					// This input is expected to be static or with non-zero values for pft:s in the selection the first input year.
@@ -1971,9 +1987,10 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 }
 
 /// Read wood harvest from file
-/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see indata.h). Harvest of primary forest, primary non-forested land, 
- *  mature secondary and young secondary forest and secondary non-forested land are represented in columns with header names "primf_harv", "primn_harv", "secmf_harv", "secyf_harv"
- *  and "secnf_harv" in gridcell area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass (kg/m2) input files.
+/** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see indata.h).
+ *  Harvest of primary forest, primary non-forested land, mature secondary and young secondary forest and secondary non-forested
+ *  land are represented in columns with header names "primf_harv", "primn_harv", "secmf_harv", "secyf_harv" and "secnf_harv" in
+ *	gridcell area fraction input files and "primf_bioh", "primn_bioh", "secmf_bioh", "secyf_bioh" and "secnf_bioh" in C mass (kg/m2) input files.
  */
 void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcover_input) {
 
@@ -2034,11 +2051,12 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 }
 
 /// Read clear-cutting interval from file
-/** May use cutinterval output files from a simulation with automated clear-cutting along with e,g, a non-automated thinning scheme or no thinnings.
- *  The preferred input in that case is a time series with zero values in years without clear-cutting and the age of the clear-cut patch in years of clear-cutting
- *  (cutinterval_actual_thisyear). The default vales of keep_nonzero_value and use_nextvalue are set to comply with this kind of input, but should cause no 
- *  problems when using input with cutting interval values every year. If input file is present and no values found for a stand type, the default cutinterval_st 
- *  value of 0 will result in an absence of both thinnings and clearcuts,
+/** May use cutinterval output files from a simulation with automated clear-cutting along with e,g, a non-automated thinning
+ *	scheme or no thinnings. The preferred input in that case is a time series with zero values in years without clear-cutting
+ *  and the age of the clear-cut patch in years of clear-cutting (cutinterval_actual_thisyear). The default vales of keep_nonzero_value 
+ *  and use_nextvalue are set to comply with this kind of input, but should cause no problems when using input with cutting interval
+ *  values every year. If input file is present and no values found for a stand type, the default cutinterval_st value of 0
+ *  will result in an absence of both thinnings and clearcuts,
  */
 void ManagementInput::getcutinterval(Gridcell& gridcell) {
 
@@ -2096,12 +2114,13 @@ void ManagementInput::getfirstmanageyear(Gridcell& gridcell) {
 }
 
 /// Read pft target cutting biomass fractions from file
-/** File name with path, file_targetfrac_pft_mt, is defined in management types (or in stand types if if they don't have a rotation scheme).
- *  Columns for PFT values in text file are as in standard text input.In years with zero target cutting sum, no target cutting will occur.
- *  To be certain to achieve target cutting at a specific time, at least targetcutinterval number of consecutive years will have to have non-zero values.
- *  mt.targetfrac is not updated, but standpft.targetfrac is filled with the values in the input file directly.
- *  During a year with management change (rotation), the instruction file values of the target fractions are used rather than values in the 
- *  input file to avoid inconsistencies, since the new management type is loaded after the call to this function.
+/** File name with path, file_targetfrac_pft_mt, is defined in management types (or in stand types if if they don't have
+ *  a rotation scheme). Columns for PFT values in text file are as in standard text input.In years with zero target cutting 
+ *  sum, no target cutting will occur. To be certain to achieve target cutting at a specific time, at least targetcutinterval 
+ *  number of consecutive years will have to have non-zero values.mt.targetfrac is not updated, but standpft.targetfrac is 
+ *  filled with the values in the input file directly. During a year with management change (rotation), the instruction file 
+ *  values of the target fractions are used rather than values in the input file to avoid inconsistencies, since the new 
+ *	management type is loaded after the call to this function.
  */
 void ManagementInput::gettargetcutting(Gridcell& gridcell) {
 

@@ -1499,7 +1499,8 @@ void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
 */
 void som_dynamics(Patch& patch, Climate& climate) {
 
-	double tillage = iftillage && patch.stand.landcover == CROPLAND ? patch.stand.get_current_management().tillage_int : 0.0;
+	Stand& stand = patch.stand;
+	double tillage = iftillage && stand.landcover == CROPLAND ? stand.get_current_management().tillage_int : 0.0;
 	if (ifcentury) {
 		som_dynamics_century(patch, climate, tillage);
 	}

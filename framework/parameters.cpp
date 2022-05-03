@@ -1068,7 +1068,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Stand-type-specific disturbance interval");
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
-		declareitem("rot_wait_for_cc",&pst->rot_wait_for_cc,1,CB_NONE,
+		declareitem("rotation_wait_for_cc",&pst->rotation_wait_for_cc,1,CB_NONE,
 			"Whether to wait for clearcut before moving to next mt in a forestry rotation");
 
 		for(int i = 0; i < NROTATIONPERIODS_MAX; ++i) {
@@ -1186,16 +1186,16 @@ void plib_declarations(int id,xtring setname) {
 					"Residue removal fraction during clearcut for twigs and branches for all tree pft:s");
 				declareitem("res_outtake_coarse_root_cc",&pst->management.res_outtake_coarse_root_cc,0.0,1.0,1,CB_NONE,
 					"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
-				declareitem("startman1",&pst->mtstartyear[i],0,10000,1,CB_NONE,
-					"When to start management 1 (if reverting from another mt)");
+				declareitem("mt1_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,
+					"When to start management 1 (if reverting from another mt (calendar year))");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,32,CB_MANAGEMENT2,"");
-				declareitem("startman2",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 2");
+				declareitem("mt2_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 2 (calendar year)");
 			}
 			else if(i == 2) {
 				declareitem("management3",&strparam,32,CB_MANAGEMENT3,"");
-				declareitem("startman3",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 3");
+				declareitem("mt3_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,"When to start management 3 (calendar year)");
 			}
 		}
 		callwhendone(CB_CHECKST);

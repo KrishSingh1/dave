@@ -13,48 +13,69 @@ struct Harvest_CN;
 
 /// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool isintercropgrass);
+
 /// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grs);
+
 /// Sets forest management for all stands this year
 void manage_forests(Gridcell& gridcell);
+
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
 void set_forest_pft_structure(Gridcell& gridcell);
+
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp, double diam,Pft& pft, bool alive, double frac_cut, double harv_eff,
 				  double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0,
 				  double res_outtake_coarse_root = 0.0, bool lc_change = false);
+
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
+
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change = false);
+
 /// Harvest function for managed forest
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
+
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
+
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Individual& indiv, bool burn = false, bool lc_change = false);
+
 /// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased area fraction this year.
 void scale_indiv(Individual& indiv, bool scale_grsC);
+
 /// Yearly function for harvest of all land covers. Should only be called from growth()
 bool harvest_year(Individual& indiv);
+
 /// Yield function for true crops and intercrop grass
 void yield_crop(Individual& indiv);
+
 /// Yield function for pasture grass grown in cropland landcover
 void yield_pasture(Individual& indiv, double cmass_leaf_inc);
+
 /// Determines amount of nitrogen applied today
 void nfert(Patch& patch);
+
 /// Updates crop rotation status
 void crop_rotation(Stand& stand);
+
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
+
 /// Sets forest management for patch this year
 void manage_forest(Patch& patch);
+
 // Returns harvestable cmass for individual
 double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool to_product_pool = false);
+
 // Returns harvestable cmass for patch
 double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool check_selection = false);
+
 // Returns harvestable cmass for stand
 double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
 
@@ -240,7 +261,8 @@ struct Harvest_CN {
 	double anflux_harvest;
 	double cmass_harvested_products_slow; // May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
 	double nmass_harvested_products_slow;
-	// Partly overlapping with acflux_harvest; not to be included in balance check functions.
+
+	// The following members are partly overlapping with acflux_harvest; not to be included in balance check functions.
 	double acflux_harvest_wood;			// Harvested wood including wood fraction oxidised the same year (1-harvest_slow_frac)
 	double acflux_harvest_wood_toprod;	// Always zero before harvest
 	double acflux_harvest_tolitter;

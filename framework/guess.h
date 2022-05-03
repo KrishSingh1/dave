@@ -142,6 +142,9 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 /// Nitrogen preferance
 typedef enum {NO, NH4, NO3} n_pref_type;
 
+/// Gross landcover change input type
+typedef enum {NO_GROSS_INPUT, LC_GROSS_INPUT, ST_GROSS_INPUT} gross_LCC_input_type;
+
 /// thinselectpft types (integers in instruction file)
 #define SELECT_PFT_NOPREF 0
 #define SELECT_PFT_UNSEL 1
@@ -1689,7 +1692,7 @@ public:
 	/// Start of the managements in a rotation cycle (calendar year)
 	int mtstartyear[NROTATIONPERIODS_MAX];
 	/// Whether to wait for clearcut before moving to next mt in a forestry rotation
-	bool rot_wait_for_cc;
+	bool rotation_wait_for_cc;
 	/// Disturbance interval (years)
 	double distinterval;
 
@@ -1733,7 +1736,7 @@ public:
 		intercrop = NOINTERCROP;
 		naturalveg = "";
 		reestab = "ALL";
-		rot_wait_for_cc = false;
+		rotation_wait_for_cc = false;
 		distinterval = 1.0e10;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)
 			mtstartyear[m] = -1;

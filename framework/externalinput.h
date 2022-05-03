@@ -10,7 +10,7 @@
 
 #include "indata.h"
 
-using namespace InData;
+using namespace TextInput;
 
 /// Reads gridlist in lon-lat-description format from text input file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
@@ -20,12 +20,12 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 							forest_lc_frac_transfer& forest_lc_subset_transfer, double& tot_frac_change);
 
 /// Class that deals with additional environmental input from text files
-class MiscInput {
+class MiscTextInput {
 
 public:
 
 	/// Constructor
-	MiscInput() {;}
+	MiscTextInput() {;}
 
 	/// Opens land cover input files
 	void init();
@@ -36,29 +36,29 @@ public:
 	/// Loads elevation input file
 	bool loadelevation(double lon, double lat);
 
-	/// Gets disturbance intervals (in years)
-	void getdisturbance(Gridcell& gridcell);
-
-	/// Gets elevation
-	void getelevation(Gridcell& gridcell);
-
-	/// Gets all static extra input data
+	/// Gets all static input data from this class
 	void getenviron(Gridcell& gridcell);
 
-	/// Gets all yearly extra input data
+	/// Gets all yearly input data from this class
 	void getenviron_yearly(Gridcell& gridcell);
 
 private:
 
 	// Objects handling additional environmental data input
-	InData::TimeDataD disturbance;
-	InData::TimeDataD disturbance_st;
-	InData::TimeDataD elevation_st;
+	TextInput::TimeDataD disturbance;
+	TextInput::TimeDataD disturbance_st;
+	TextInput::TimeDataD elevation_st;
 
 	/// Files names for additional environmental input files
 	xtring file_disturbance;
 	xtring file_disturbance_st;
 	xtring file_elevation_st;
+
+	/// Gets disturbance intervals (in years)
+	void getdisturbance(Gridcell& gridcell);
+
+	/// Gets elevation
+	void getelevation(Gridcell& gridcell);
 };
 
 /// Class that deals with all land cover input from text files
@@ -100,10 +100,10 @@ public:
 private:
 
 	// Objects handling land cover fraction data input
-	InData::TimeDataD LUdata;
-	InData::TimeDataD Peatdata;
-	InData::TimeDataD grossLUC;
-	InData::TimeDataD st_data[NLANDCOVERTYPES];
+	TextInput::TimeDataD LUdata;
+	TextInput::TimeDataD Peatdata;
+	TextInput::TimeDataD grossLUC;
+	TextInput::TimeDataD st_data[NLANDCOVERTYPES];
 
 	/// Files names for land cover fraction input files
 	xtring file_lu, file_grossLUC, file_peat;
@@ -138,17 +138,17 @@ public:
 private:
 
 	/// Input objects for each management text input file
-	InData::TimeDataD sdates;
-	InData::TimeDataD hdates;
-	InData::TimeDataD Nfert;
-	InData::TimeDataD Nfert_st;
-	InData::TimeDataD NfertMan;
-	InData::TimeDataD woodharv_frac;
-	InData::TimeDataD woodharv_cmass;
-	InData::TimeDataD cutinterval_st;
-	InData::TimeDataD firstmanageyear_st;
+	TextInput::TimeDataD sdates;
+	TextInput::TimeDataD hdates;
+	TextInput::TimeDataD Nfert;
+	TextInput::TimeDataD Nfert_st;
+	TextInput::TimeDataD NfertMan;
+	TextInput::TimeDataD woodharv_frac;
+	TextInput::TimeDataD woodharv_cmass;
+	TextInput::TimeDataD cutinterval_st;
+	TextInput::TimeDataD firstmanageyear_st;
 
-	InData::TimeDataD* targetfrac_pft_mt;
+	TextInput::TimeDataD* targetfrac_pft_mt;
 
 	/// Files names for management input file
 	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass,

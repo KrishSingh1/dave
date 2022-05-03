@@ -523,8 +523,7 @@ bool Patch::has_disturbances() const {
 }
 
 /// C content of patch
-/**
- *  INPUT PARAMETERS
+/** INPUT PARAMETERS
  *
  *  \param scale_indiv  		scaling factor for living C
  *  \param luc 					down-scales living C (used in C balance tests)
@@ -559,8 +558,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 }
 
 /// N content of patch
-/**
- *  INPUT PARAMETERS
+/** INPUT PARAMETERS
  *
  *  \param scale_indiv  		scaling factor for living N
  *  \param luc 					down-scales living N (used in N balance tests)
@@ -849,8 +847,7 @@ void Stand::set_selection_params() {
 }
 
 /// Setting of management parameters at stand creation and forest rotation
-/** 
-  * Rules for which PFT:s are allowed to establish are set in the instruction file by the parameters landcover
+/** Rules for which PFT:s are allowed to establish are set in the instruction file by the parameters landcover
   * (allows all active PFT:s with the same landcovertype), naturalveg (allows none, natural grass or all natural pft:s)
   * and intercrop ("naturalgrass" allows dedicated covercrop grass pft:s).
   * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
@@ -1908,8 +1905,7 @@ double Individual::cton_sap() const {
 }
 
 /// C content of individual
-/**
- *  INPUT PARAMETERS
+/** INPUT PARAMETERS
  *
  *  \param scale_indiv  		scaling factor for living C
  *  \param luc 					down-scales living C (used in C balance tests)
@@ -1965,8 +1961,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 }
 
 /// N content of individual
-/**
- *  INPUT PARAMETERS
+/** INPUT PARAMETERS
  *
  *  \param scale_indiv  		scaling factor for living N
  *  \param luc 					down-scales living N (used in C balance tests)

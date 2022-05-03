@@ -50,13 +50,19 @@ public:
 	void getlandcover(Gridcell& gridcell);
 
 	/// Obtains land management data for one day
-	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell, landcover_input);}
+	void getmanagement(Gridcell& gridcell) {
+		management_input.getmanagement(gridcell, landcover_input);
+	}
 
 	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
-	void getenviron(Gridcell& gridcell) {misc_input.getenviron(gridcell);}
+	void getenviron(Gridcell& gridcell) {
+		misc_input.getenviron(gridcell);
+	}
 
 	/// Obtains additional environmental data (e.g. disturbance) for one year
-	void getenviron_yearly(Gridcell& gridcell) {misc_input.getenviron_yearly(gridcell);}
+	void getenviron_yearly(Gridcell& gridcell) {
+		misc_input.getenviron_yearly(gridcell);
+	}
 
 private:
 
@@ -90,8 +96,8 @@ private:
 	/// Management input module
 	ManagementInput management_input;
 
-	/// Miscellaneous input module
-	MiscInput misc_input;
+	/// Miscellaneous text input module
+	MiscTextInput misc_input;
 
 	/// Reads header of GetClim driver file
 	void init_climate(double& dlon,double& dlat);

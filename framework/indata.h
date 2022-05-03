@@ -35,7 +35,8 @@ struct Coord {
 	xtring descrip;
 };
 
-namespace InData {
+/// Classes for text input data (used e.g. for landcover input)
+namespace TextInput {
 
 const int MAXLINE = 40000;
 const int MAXNAMESIZE = 50;
@@ -281,6 +282,6 @@ public:
 	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 };
 
-} // namespace InData
+} // namespace TextInput
 
 #endif//INDATA_H

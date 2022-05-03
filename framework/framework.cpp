@@ -238,7 +238,7 @@ int framework(const CommandLineArguments& args) {
 			date.year = state_year;
 		}
 
-		// Read extra environmental data that are not dynamic
+		// Read extra environmental data that are static
 		input_module->getenviron(gridcell);
 
 		// Call input/output to obtain climate, insolation and CO2 for this

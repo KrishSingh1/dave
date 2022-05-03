@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file externalinput.cpp
-/// \brief Input code for land cover area fractions	from text files					
+/// \brief Input code for land cover, management and other data from text files.				
 /// \author Mats Lindeskog
 /// $Date: $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9,9 +9,10 @@
 
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 
-	// Reads list of grid cells and (optional) description text from grid list file
-	// This file should consist of any number of one-line records in the format:
-	//   <longitude> <latitude> [<description>]
+	/* Reads list of grid cells and (optional) description text from grid list file
+	 * This file should consist of any number of one-line records in the format:
+	 *   <longitude> <latitude> [<description>]
+	 */
 
 	double dlon, dlat;
 	bool eof = false;
@@ -43,7 +44,7 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
-void MiscInput::init() {
+void MiscTextInput::init() {
 
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
@@ -72,7 +73,7 @@ void MiscInput::init() {
 	}
 }
 
-bool MiscInput::loaddisturbance(double lon, double lat) {
+bool MiscTextInput::loaddisturbance(double lon, double lat) {
 
 	Coord c;
 	c.lon = lon;
@@ -93,7 +94,7 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 	return disterror;
 }
 
-bool MiscInput::loadelevation(double lon, double lat) {
+bool MiscTextInput::loadelevation(double lon, double lat) {
 
 	Coord c;
 	c.lon = lon;
@@ -108,12 +109,12 @@ bool MiscInput::loadelevation(double lon, double lat) {
 	return disterror;
 }
 
-/// Read disturbance interval from file
+/// Read patch-destroying disturbance interval from file
 /** This implementation uses disturbance interval input at gridcell or stand type level in standard text format input 
  *	files (see indata.h). The column for the gridcell disturbance interval has a header name of "Return" and columns
  *  for stand type disturbance have headers with the stand type names.
  */
-void MiscInput::getdisturbance(Gridcell& gridcell) {
+void MiscTextInput::getdisturbance(Gridcell& gridcell) {
 
 	// Retrieve disturbance for stand types from instruxtion file if text input not present,
 	if(!date.year && !readdisturbance_st) {
@@ -146,7 +147,7 @@ void MiscInput::getdisturbance(Gridcell& gridcell) {
 	}
 }
 
-void MiscInput::getelevation(Gridcell& gridcell) {
+void MiscTextInput::getelevation(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year();
 
@@ -161,12 +162,12 @@ void MiscInput::getelevation(Gridcell& gridcell) {
 	}
 }
 
-void MiscInput::getenviron(Gridcell& gridcell) {
+void MiscTextInput::getenviron(Gridcell& gridcell) {
 
 	getelevation(gridcell);
 }
 
-void MiscInput::getenviron_yearly(Gridcell& gridcell) {
+void MiscTextInput::getenviron_yearly(Gridcell& gridcell) {
 
 	if (date.day) {
 		return;
@@ -192,8 +193,9 @@ void LandcoverInput::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	all_fracs_const=true;	// If any of the opened files have yearly data, all_fracs_const will be set to false and
-							// landcover_dynamics will call get_landcover() each year
+	all_fracs_const=true;	/* If any of the opened files have yearly data, all_fracs_const will be set to false and
+							 * landcover_dynamics will call get_landcover() each year
+							 */
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
 
@@ -216,7 +218,7 @@ void LandcoverInput::init() {
 			else {
 				lcfrac_fixed = false;
 
-				if(LUdata.GetFormat()==InData::LOCAL_YEARLY || InData::GLOBAL_YEARLY)
+				if(LUdata.GetFormat()==TextInput::LOCAL_YEARLY || TextInput::GLOBAL_YEARLY)
 				all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
@@ -233,14 +235,14 @@ void LandcoverInput::init() {
 			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
 			all_fracs_const = false;	// needed for some tests with static net land cover fractions
-			gross_land_transfer = 1;
+			gross_land_transfer = LC_GROSS_INPUT;
 		}
 		else {
-			gross_land_transfer = 0;
+			gross_land_transfer = NO_GROSS_INPUT;
 		}
 	}
 	else {
-		gross_land_transfer = 0;
+		gross_land_transfer = NO_GROSS_INPUT;
 	}
 
 	//Retrieve file name for stand type fraction files and open them if static equal-size values are not used.
@@ -260,7 +262,7 @@ void LandcoverInput::init() {
 
 	if(!frac_fixed[CROPLAND]) {
 
-		InData::TimeDataD& CFTdata = st_data[CROPLAND];
+		TextInput::TimeDataD& CFTdata = st_data[CROPLAND];
 		bool do_minimize = false;
 
 		// Remove crop stand types from stlist that always have zero area fraction in all cells in grid list
@@ -296,7 +298,7 @@ void LandcoverInput::init() {
 			}			
 		}
 
-		if(CFTdata.GetFormat()==InData::LOCAL_YEARLY || InData::GLOBAL_YEARLY) 
+		if(CFTdata.GetFormat()==TextInput::LOCAL_YEARLY || TextInput::GLOBAL_YEARLY) 
 			all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 	}
 
@@ -397,8 +399,9 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 	bool LUerror = false;
 
 
-	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-	// transferred to gridcell.landcover.frac each year in getlandcover()
+	/* Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+	 * transferred to gridcell.landcover.frac each year in getlandcover()
+	 */
 
 	if (!lcfrac_fixed) {
 
@@ -418,7 +421,7 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 		}
 
 		//Read LUC transitions
-		if(gross_land_transfer == 1 && !LUerror) {
+		if(gross_land_transfer == LC_GROSS_INPUT && !LUerror) {
 
 			if(!grossLUC.Load(c)) {
 				dprintf("Data for %.3f,%.3f missing in gross LUC transitions input file.\n",c.lon,c.lat);
@@ -434,8 +437,9 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 		if(run[lc] && !frac_fixed[lc]) {
 			
-			// Stand type fraction data: read from stand type fraction file; dynamic, so data for all years are loaded to st_data object and 
-			// transferred to gridcell.landcover.frac[] each year in getlandcover()			
+			/* Stand type fraction data: read from stand type fraction file; dynamic, so data for all years are loaded to st_data object and 
+			 * transferred to gridcell.landcover.frac[] each year in getlandcover()	
+			 */
 
 			if(!st_data[lc].Load(c)) {
 				dprintf("Problems with stand type fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n",c.lon,c.lat);
@@ -456,9 +460,10 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 	// Calender year of start of simulation (after spinup)
 	int first_historic_year = date.first_calendar_year + nyear_spinup;
 
-	// Use values for first historic year during spinup period, unless data exist before firsthistyear
-	// Use values for last historic year during the time after that
-	// This is handled by the text input class.
+	/* Use values for first historic year during spinup period, unless data exist before firsthistyear
+	 * Use values for last historic year during the time after that
+	 * This is handled by the text input class.
+	 */
 	int year = date.get_calendar_year();
 	int year_saved = year;
 	int first_reduction_year = first_historic_year - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
@@ -606,9 +611,11 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			lc.frac[NATURAL] = 0.0;
 		}
 
-		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types
-													//are added in other input files, can be either less or more than 1.0
+		/* NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed.
+		 * if landcover types are turned off in the instruction file, or if more landcover types
+		 * are added in other input files, can be either less or more than 1.0
+		 */
+		if(!negligible(sum_active - 1.0, -14))	{
 
 			if(date.year == 0)
 				dprintf("Landcover fraction sum not 1.0 !\n");
@@ -810,8 +817,9 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 
 	if(!(frac_fixed[CROPLAND] && frac_fixed_default_crops)) {
 
-		// sum fractions for active crop pft:s and discard unreasonable values
-		// if crop fraction sum is 0 this year, first try last year's values, then try the following years
+		/* sum fractions for active crop pft:s and discard unreasonable values
+		 * if crop fraction sum is 0 this year, first try last year's values, then try the following years
+		 */
 		int first_data_year = CFTdata.GetFirstyear();
 		int last_data_year = first_data_year + CFTdata.GetnYears() - 1;
 		// first_data_year is -1 for static data
@@ -928,18 +936,20 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 
 	bool result = false;
-	if(gross_land_transfer == 2) {
+	if(gross_land_transfer == ST_GROSS_INPUT) {
 
-		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
-		// return get_st_transfer(gridcell);
+		/* Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
+		 * Landcover and stand type net fractions still need to be read from file as previously.
+		 * return get_st_transfer(gridcell);
+		 */
 
 		// Currently no code for gross stand type transfer option
 	}
-	else if(gross_land_transfer == 1) {
+	else if(gross_land_transfer == LC_GROSS_INPUT) {
 
-		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
+		/* Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
+		 * Landcover and stand type net fractions still need to be read from file as previously.
+		 */
 		result = get_lc_transfer(gridcell);
 	}
 	return result;
@@ -965,11 +975,12 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year() - 1;
 
-	// Assume that transitions in file are correct at end of year, therefore want to get 
-	// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
-	// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
-	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
-	// in killing of vegetation and creating a new NATURAL stand.
+	/* Assume that transitions in file are correct at end of year, therefore want to get 
+	 * "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
+	 * Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
+	 * youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
+	 * in killing of vegetation and creating a new NATURAL stand.
+	 */
 
 	// Options to not include barren and urban transfers in the input file (avoiding warnings if absent in file)
 	const bool use_barren_transfers = true;
@@ -1804,7 +1815,7 @@ void ManagementInput::init() {
 			readfirstmanageyear_st = true;
 		}
 
-		targetfrac_pft_mt = new InData::TimeDataD[nmt];
+		targetfrac_pft_mt = new TextInput::TimeDataD[nmt];
 
 		// See gettargetcutting() for input file format and content of text file
 		for(int i=0;i<nmt;i++) {

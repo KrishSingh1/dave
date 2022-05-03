@@ -113,9 +113,9 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 	if (grid_count++ > 0) return false;
 			
 	if(readdisturbance || readdisturbance_st || readelevation_st) {
+		// Not all gridcells have to be included in input file
 		misc_input.loaddisturbance(lon, lat);
 		misc_input.loadelevation(lon, lat);
-		// Not all gridcells have to be included in input file
 	}
 
 	if(run_landcover) {

@@ -612,7 +612,7 @@ void crop_sowing_patch(Patch& patch) {
 					else {
 						if (!patch.stand.infallow)
 							gridcellpft.sowing_restriction = false;
-						else if (patch.stand.ndays_inrotation > 180)
+						else if (patch.stand.ndays_in_rotation > 180)
 							patch.stand.isrotationday = true;
 					}
 				}

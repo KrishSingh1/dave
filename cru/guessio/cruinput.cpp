@@ -207,9 +207,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				if(gridfound) {
 					if(readdisturbance || readdisturbance_st || readelevation_st) {
+						// Not all gridcells have to be included in input file
 						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
 						misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
-						// Not all gridcells have to be included in input file
 					}
 				}
 

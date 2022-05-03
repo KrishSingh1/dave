@@ -525,10 +525,10 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 	double cmass_harvest_remain_init = cmass_harvest_remain;
 	double cmass_harvest_patch_unsel = cmass_harvest_patch - cmass_harvest_patch_selection;
 
-	double* cmass_pft = new double[stand.npftsinselection];
-	double* cmass_harvest_remain_pft = new double[stand.npftsinselection];
+	double* cmass_pft = new double[stand.npft_selection];
+	double* cmass_harvest_remain_pft = new double[stand.npft_selection];
 
-	for(int i = 0; i < stand.npftsinselection; i++) {
+	for(int i = 0; i < stand.npft_selection; i++) {
 		cmass_pft[i] = 0.0;
 		cmass_harvest_remain_pft[i] = 0.0;
 	}
@@ -786,7 +786,7 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
  *   - targetcutinterval			interval of target cuttings
  *   - planting_system				rules for which pfts are planted
  *									Stand (accessed from looping through gridcell stand list) public members:
- *   - npftsinselection				nNumber of pfts in selection
+ *   - npft_selection				nNumber of pfts in selection
  *									Standpft (accessed from looping through pftlist) public members:
  *   - targetfrac					pft target cmass fraction for this StandType
  *   - selection					order of pft in selection string
@@ -823,8 +823,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			continue;
 		}
 
-		double* target = new double[stand.npftsinselection];
-		for(int i = 0; i < stand.npftsinselection; i++) {
+		double* target = new double[stand.npft_selection];
+		for(int i = 0; i < stand.npft_selection; i++) {
 			target[i] = 0.0;
 		}
 		double target_sum = 0.0;
@@ -845,18 +845,18 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			continue;
 
 		// Normalise targets if target sum > 1.0:
-		for(int i=0;i<stand.npftsinselection;i++) {
+		for(int i=0;i<stand.npft_selection;i++) {
 			if(target_sum > 1.0)
 				target[i] /= target_sum;
 		}
 
 		// Check deviations at stand level:
 		double target_sum_stand = 0.0;
-		double* target_stand = new double[stand.npftsinselection];
-		double* cmass_pft_stand = new double[stand.npftsinselection];
-		double* cutstr_pft_stand = new double[stand.npftsinselection];
+		double* target_stand = new double[stand.npft_selection];
+		double* cmass_pft_stand = new double[stand.npft_selection];
+		double* cutstr_pft_stand = new double[stand.npft_selection];
 
-		for(int i = 0; i < stand.npftsinselection; i++) {
+		for(int i = 0; i < stand.npft_selection; i++) {
 			target_stand[i] = 0.0;
 			cmass_pft_stand[i] = 0.0;
 			cutstr_pft_stand[i] = 0.0;
@@ -901,7 +901,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			pftlist.nextobj();
 		}
 		if(exclude_frac_stand) {
-			for(int i=0;i<stand.npftsinselection;i++) {
+			for(int i=0;i<stand.npft_selection;i++) {
 				if(1.0 - exclude_frac_stand)
 					target_stand[i] /= (1.0 - exclude_frac_stand);
 			}
@@ -910,7 +910,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		double remove_cmass_selected_stand = 0.0;
 		double cutstr_selected_stand = 0.0;
 
-		for(int i=0;i<stand.npftsinselection;i++) {
+		for(int i=0;i<stand.npft_selection;i++) {
 			double remove_cmass_stand = 0.0; 
 			if(target_stand[i] - 1.0) {
 				if((cmass_pft_stand[i] / cmass_total_stand) > 0.99 && target_stand[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
@@ -963,11 +963,11 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 
 			double target_sum_patch = 0.0;
 
-			double* cmass_pft = new double[stand.npftsinselection];
-			double* cutstr_pft = new double[stand.npftsinselection];
-			double* target_patch = new double[stand.npftsinselection];
+			double* cmass_pft = new double[stand.npft_selection];
+			double* cutstr_pft = new double[stand.npft_selection];
+			double* target_patch = new double[stand.npft_selection];
 
-			for(int i = 0; i < stand.npftsinselection; i++) {
+			for(int i = 0; i < stand.npft_selection; i++) {
 				cmass_pft[i] = 0.0;
 				cutstr_pft[i] = 0.0;
 				target_patch[i] = 0.0;
@@ -1010,7 +1010,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 				pftlist.nextobj();
 			}
 			if(exclude_frac_patch) {
-				for(int i=0;i<stand.npftsinselection;i++) {
+				for(int i=0;i<stand.npft_selection;i++) {
 					if(1.0 - exclude_frac_patch)
 						target_patch[i] /= (1.0 - exclude_frac_patch);
 				}
@@ -1019,7 +1019,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			double remove_cmass_selected = 0.0;
 			double cutstr_selected = 0.0;
 
-			for(int i=0;i<stand.npftsinselection;i++) {
+			for(int i=0;i<stand.npft_selection;i++) {
 				double remove_cmass = 0.0;
  
 				if(target_patch[i] - 1.0) {
@@ -2786,7 +2786,7 @@ void nfert(Patch& patch) {
  *   - harvest_system				whether clear-cut or continuous cutting schemes are selected
  *  INPUT/OUTPUT PARAMETERS
  *  \param stand					reference to a Stand containing the following public members:
- *   - nyears_inrotation		   	number of years passed in current rotation item
+ *   - nyears_in_rotation		   	number of years passed in current rotation item
  */
 void forest_rotation(Stand& stand) {
 
@@ -2796,7 +2796,7 @@ void forest_rotation(Stand& stand) {
 	if(stand.landcover != FOREST || st.rotation.nmanagements < 2)
 		return;
 
-	stand.nyears_inrotation++;
+	stand.nyears_in_rotation++;
 
 	bool clearcut = false;
 	double cmass_wood = 0.0;
@@ -2841,7 +2841,7 @@ void forest_rotation(Stand& stand) {
  *   - fallow						whether grass is grown in fallow
  *  INPUT/OUTPUT PARAMETERS
  *  \param stand					reference to a Stand containing the following public members:
- *   - ndays_inrotation		   		number of days passed in current rotation item
+ *   - ndays_in_rotation		   		number of days passed in current rotation item
  *   - infallow		   				whether crop stand is in fallow (with cover crop grass)
  *									Standpft (accessed from stand and pftid) public members:
  *   - sdate_force					sowing date specified in stand type or read from input file
@@ -2864,7 +2864,7 @@ void crop_rotation(Stand& stand) {
 
 	Rotation& rotation = stlist[stand.stid].rotation;
 
-	stand.ndays_inrotation++;
+	stand.ndays_in_rotation++;
 
 	if (rotation.nmanagements < 2 || !stand.isrotationday) {
 		return;

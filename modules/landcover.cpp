@@ -100,9 +100,9 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
  *  INTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between the different stand types
  */
-void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s) {
+void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_subset_transfer) {
 
 	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
 		Gridcellst& gcst = gridcell.st[i];
@@ -182,17 +182,17 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 								if(n == SECONDARY_MATURE) {
 									// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array + secondary_young_st_frac_transfer[index(from, to))
 									// Without secondary forest young/mature information in the input, secondary transfers occur here.
-									st_change_remain += forest_st_frac_transfer_s.primary[index(from, to)] + forest_st_frac_transfer_s.secondary_young[index(from, to)];
+									st_change_remain += forest_st_subset_transfer.primary[index(from, to)] + forest_st_subset_transfer.secondary_young[index(from, to)];
 									secondary_harvest = true;
 								} else if(n == SECONDARY_YOUNG) {
 									// Then reduce young secondary stands
-									st_change_remain = -forest_st_frac_transfer_s.secondary_young[index(from, to)];
+									st_change_remain = -forest_st_subset_transfer.secondary_young[index(from, to)];
 									young_stands_first = true;
 									secondary_harvest = true;
 								}
 								else if(n == PRIMARY) {
 									// Finally, reduce primary stands (fraction in primary_st_frac_transfer array)
-									st_change_remain = -forest_st_frac_transfer_s.primary[index(from, to)];
+									st_change_remain = -forest_st_subset_transfer.primary[index(from, to)];
 									young_stands_first = false;
 								}
 							}
@@ -349,16 +349,16 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 /// Identifies which stands to reduce in area when using wood harvest C mass from input file (using LUC functionality)
 /** Updates frac, frac_change, frac_old and gross_frac_decrease for reduced stands
  *  Updates frac_old and frac_temp for all stands
- *  Updates st_frac_transfer, lc_frac_transfer, forest_st_frac_transfer_s and forest_lc_frac_transfer_s
+ *  Updates st_frac_transfer, lc_frac_transfer, forest_st_subset_transfer and forest_lc_subset_transfer
  *
  *  OUTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
  *  \param lc_frac_transfer				array with this year's transferred area fractions between the different landcover types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
- *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_lc_subset_transfer	array with this year's transferred area fractions representing wood harvest between the landcover types
  */
-bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
+bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_subset_transfer, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_subset_transfer) {
 
 	bool frac_changed = false;
 
@@ -483,8 +483,8 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 											gcst_to.gross_frac_increase -= change_frac;
 											gcst_to.gross_frac_decrease -= change_frac;
 											if(first_year == 0) {
-												forest_st_frac_transfer_s.primary[transfer_index] += -change_frac;
-												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += -change_frac;
+												forest_st_subset_transfer.primary[transfer_index] += -change_frac;
+												forest_lc_subset_transfer.primary[NATURAL][NATURAL] += -change_frac;
 											}
 
 											if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
@@ -508,8 +508,8 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 											gcst_to.gross_frac_increase += stand.get_gridcell_fraction();
 											gcst_to.gross_frac_decrease += stand.get_gridcell_fraction();
 											if(first_year == 0) {
-												forest_st_frac_transfer_s.primary[transfer_index] += stand.get_gridcell_fraction();
-												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += stand.get_gridcell_fraction();
+												forest_st_subset_transfer.primary[transfer_index] += stand.get_gridcell_fraction();
+												forest_lc_subset_transfer.primary[NATURAL][NATURAL] += stand.get_gridcell_fraction();
 											}
 											stand.set_gridcell_fraction(0.0);	//will be killed below
 											frac_changed = true;
@@ -780,10 +780,10 @@ void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[
  *  OUTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
- *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_lc_subset_transfer	array with this year's transferred area fractions representing wood harvest between the landcover types
  */
-void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer, forest_lc_frac_transfer& forest_lc_frac_transfer_s, forest_st_frac_transfer& forest_st_frac_transfer_s) {
+void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer, forest_lc_frac_transfer& forest_lc_subset_transfer, forest_st_frac_transfer& forest_st_subset_transfer) {
 
 	double* recip_donor_remain = new double[nst];
 	double* recip_receptor_remain = new double[nst];
@@ -1389,12 +1389,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				double secondary_young_frac = 0.0;
 
 				if(lc_frac_transfer[st_donor.landcover][st_receptor.landcover] > 0.0) {
-					primary_frac = forest_lc_frac_transfer_s.primary[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
-					secondary_young_frac = forest_lc_frac_transfer_s.secondary_young[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
+					primary_frac = forest_lc_subset_transfer.primary[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
+					secondary_young_frac = forest_lc_subset_transfer.secondary_young[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
 				}
 
-				forest_st_frac_transfer_s.primary[index(from, to)] = primary_frac * st_frac_transfer[index(from, to)];
-				forest_st_frac_transfer_s.secondary_young[index(from, to)] = secondary_young_frac * st_frac_transfer[index(from, to)];
+				forest_st_subset_transfer.primary[index(from, to)] = primary_frac * st_frac_transfer[index(from, to)];
+				forest_st_subset_transfer.secondary_young[index(from, to)] = secondary_young_frac * st_frac_transfer[index(from, to)];
 			}
 		}
 	}
@@ -2807,20 +2807,20 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 }
 
 /// Transfers harvested forest area to transition matrix
-bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
+bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_subset_transfer) {
 
 	bool transfer_harvest = false;
 
 	if(gridcell.landcover.wood_harvest.prim_frac > INPUT_RESOLUTION * 0.1) {
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
-		forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
+		forest_lc_subset_transfer.primary[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
 		use_primary_lc_transfer = true;
 		transfer_harvest = true;
 	}
 	if(harvest_secondary_to_new_stand && gridcell.landcover.wood_harvest.sec_mature_frac + gridcell.landcover.wood_harvest.sec_young_frac > INPUT_RESOLUTION * 0.1) {
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_mature_frac;
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
-		forest_lc_frac_transfer_s.secondary_young[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
+		forest_lc_subset_transfer.secondary_young[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
 		transfer_harvest = true;
 	}
 
@@ -2856,7 +2856,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	double* st_frac_transfer = NULL;
-	forest_st_frac_transfer forest_st_frac_transfer_s(nst);
+	forest_st_frac_transfer forest_st_subset_transfer(nst);
 	bool LCchangeCtransfer = true;
 	Landcover& lc = gridcell.landcover;
 
@@ -2868,14 +2868,14 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		for(int j=0;j<NLANDCOVERTYPES;j++) {
 			lc.frac_transfer[i][j] = 0.0;
-			lc.forest_lc_frac_transfer_s.primary[i][j] = 0.0;
-			lc.forest_lc_frac_transfer_s.secondary_young[i][j] = 0.0;
+			lc.forest_lc_subset_transfer.primary[i][j] = 0.0;
+			lc.forest_lc_subset_transfer.secondary_young[i][j] = 0.0;
 		}
 	}
 	for(int i=0;i<nst*nst;i++) {
 		st_frac_transfer[i] = 0.0;
-		forest_st_frac_transfer_s.primary[i] = 0.0;
-		forest_st_frac_transfer_s.secondary_young[i] = 0.0;
+		forest_st_subset_transfer.primary[i] = 0.0;
+		forest_st_subset_transfer.secondary_young[i] = 0.0;
 	}
 
 	gridcell.landcover.updated = false;
@@ -2886,7 +2886,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	bool no_changes = true;
 
 	// Transfer area to new stands during wood harvest.
-	if(transfer_harvested_fractions(gridcell, lc.frac_transfer, lc.forest_lc_frac_transfer_s))
+	if(transfer_harvested_fractions(gridcell, lc.frac_transfer, lc.forest_lc_subset_transfer))
 		no_changes = false;
 
 	// Rescale stand fractions so sum is 1
@@ -2933,7 +2933,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	else if(gross_land_transfer == 1 && gross_input_present) {
 
 		// Option to read landcover transitions from file. Update the st_frac_transfer array.
-		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_frac_transfer_s, forest_st_frac_transfer_s);
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_subset_transfer, forest_st_subset_transfer);
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
 	}
@@ -2952,8 +2952,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			simulate_gross_lc_transfer(gridcell, lc.frac_transfer);
 		// The lc_frac_transfer-array may contain overshoots if wood harvest with fraction transfer occurred.
 		double dummy;
-		adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_frac_transfer_s, dummy);
-		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_frac_transfer_s, forest_st_frac_transfer_s);
+		adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_subset_transfer, dummy);
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_subset_transfer, forest_st_subset_transfer);
 
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
@@ -2990,11 +2990,11 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	// check how many stands of each stand type exist
 	// identify which stands to reduce in area
 	// set stand variables frac, frac_old, frac_temp, frac_change and gross_frac_decrease for reduced stands and stand types
-	reduce_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s);
+	reduce_stands(gridcell, st_frac_transfer, forest_st_subset_transfer);
 
 	// Wood harvest cmass input -> fraction harvested (using LUC functionality)
 	if(harvest_secondary_to_new_stand) {
-		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s, lc.frac_transfer, lc.forest_lc_frac_transfer_s) && no_changes) {
+		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_subset_transfer, lc.frac_transfer, lc.forest_lc_subset_transfer) && no_changes) {
 			delete[] st_frac_transfer;
 			return;
 		}

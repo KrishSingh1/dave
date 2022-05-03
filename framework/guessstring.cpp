@@ -75,3 +75,30 @@ int split_string(char* str) {
 
 	return count;
 }
+
+bool issubstring(const char* string, const char* substring) {
+
+	bool found = false;
+
+	char *p = NULL, string_copy[200] = {0};
+
+	strcpy(string_copy, string);
+	p = strtok(string_copy, "\t\n ");
+	if(p) {
+		if(!strcmp(substring, p)) {
+			found = true;
+		}
+	}
+
+	do {
+		p = strtok(NULL, "\t\n ");
+		if(p) {
+			if(!strcmp(substring, p)) {
+				found = true;
+			}
+		}
+	}
+	while(p && !found);
+
+	return found;
+}

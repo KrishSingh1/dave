@@ -16,7 +16,8 @@ using namespace InData;
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
-void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch);
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES],
+							forest_lc_frac_transfer& forest_lc_subset_transfer, double& tot_frac_change);
 
 /// Class that deals with additional environmental input from text files
 class MiscInput {
@@ -150,7 +151,7 @@ private:
 	InData::TimeDataD* targetfrac_pft_mt;
 
 	/// Files names for management input file
-	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass, 
+	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass,
 		file_cutinterval_st, file_firstmanageyear_st;
 
 	/// Gets sowing date data for a year

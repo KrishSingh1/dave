@@ -702,10 +702,10 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 
 	stid = 0;
 	pftid = -1;
-	npftsinselection = 0;
+	npft_selection = 0;
 	current_rot = 0;
-	nyears_inrotation = 0;
-	ndays_inrotation = 0;
+	nyears_in_rotation = 0;
+	ndays_in_rotation = 0;
 	infallow = false;
 	isrotationday = false;
 	isirrigated = false;
@@ -826,7 +826,7 @@ void Stand::set_selection_params() {
 	count_sel = split_string(selection_cp);
 	count_dens = split_string(plantdensity_cp);
 	count_frac = split_string(targetfrac_cp);
-	npftsinselection = count_sel;
+	npft_selection = count_sel;
 
 	if(count_dens && count_dens != count_sel || count_frac && count_frac != count_sel)
 		fail("Selection parameter number must correspond to number in selection\n");
@@ -1290,8 +1290,8 @@ void Stand::rotate(int rot) {
 	}
 	dprintf("\n");
 */
-	nyears_inrotation = 0;
-	ndays_inrotation = 0;
+	nyears_in_rotation = 0;
+	ndays_in_rotation = 0;
 }
 
 double Stand::transfer_area_lc(landcovertype to) {
@@ -1444,10 +1444,10 @@ void Stand::serialize(ArchiveStream& arch) {
 		& frac
 		& stid
 		& pftid
-		& npftsinselection
+		& npft_selection
 		& current_rot
-		& nyears_inrotation
-		& ndays_inrotation
+		& nyears_in_rotation
+		& ndays_in_rotation
 		& infallow
 		& isirrigated
 		& hasgrassintercrop
@@ -3129,33 +3129,6 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);
 	}
-}
-
-bool issubstring(const char* string, const char* substring) {
-
-	bool found = false;
-
-	char *p = NULL, string_copy[200] = {0};
-
-	strcpy(string_copy, string);
-	p = strtok(string_copy, "\t\n ");
-	if(p) {
-		if(!strcmp(substring, p)) {
-			found = true;
-		}
-	}
-
-	do {
-		p = strtok(NULL, "\t\n ");
-		if(p) {
-			if(!strcmp(substring, p)) {
-				found = true;
-			}
-		}
-	}
-	while(p && !found);
-
-	return found;
 }
 
 bool ManagementType::pftinselection(const char* name) {

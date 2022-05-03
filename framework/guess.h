@@ -4629,13 +4629,13 @@ public:
 	/// pft id of main crop, updated during rotation
 	int pftid;
 	/// Number of PFTs in selection
-	int npftsinselection;
+	int npft_selection;
 	/// current management rotation item
 	int current_rot;
 	/// number of years passed in current rotation item
-	int nyears_inrotation;
+	int nyears_in_rotation;
 	/// number of days passed in current rotation item
-	int ndays_inrotation;
+	int ndays_in_rotation;
 	/// Returns true if stand is in fallow (with cover crop grass)
 	bool infallow;
 	/// Returns true if crop rotation item is to be updated today
@@ -4675,7 +4675,7 @@ public:
 	landcovertype lc_origin;
 	/// stand type origin of this stand
 	int st_origin; 
-	/// Variables used for output from separate stands
+	//  Variables used for output from separate stands
 	/// NPP
 	double anpp;
 	/// LAI
@@ -5076,7 +5076,7 @@ struct Landcover : public Serializable {
 
 	/// Transfer matrices
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	forest_lc_frac_transfer  forest_lc_frac_transfer_s;
+	forest_lc_frac_transfer  forest_lc_subset_transfer;
 
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics

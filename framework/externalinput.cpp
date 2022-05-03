@@ -955,7 +955,7 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
  */
 bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
-	double tot_frac_ch = 0.0;
+	double tot_frac_change = 0.0;
 	Landcover& lc = gridcell.landcover;
 
 	if(!grossLUC.isloaded() || date.get_calendar_year() < getfirsthistyear() + 1)
@@ -1010,17 +1010,17 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	// Distinguish between primary and secondary PNV in the input file (default true)
 	if(ifprimary_lc_transfer) {
-		lc.forest_lc_frac_transfer_s.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
-		lc.forest_lc_frac_transfer_s.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_subset_transfer.primary[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.forest_lc_subset_transfer.primary[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
 		if(use_barren_transfers)
-			lc.forest_lc_frac_transfer_s.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.forest_lc_subset_transfer.primary[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
 		if(use_urban_transfers)
-			lc.forest_lc_frac_transfer_s.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.forest_lc_subset_transfer.primary[NATURAL][URBAN] += (frac_transfer = grossLUC.Get(year,"vu")) != NOTFOUND ? frac_transfer : 0.0;
 
 		// Use transitions from virgin to secondary natural land (default false).
 		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
-			lc.forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.forest_lc_subset_transfer.primary[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 		use_primary_lc_transfer = true;
 	}
@@ -1029,15 +1029,15 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		if(run[from]) {
 			for(int to=0; to<NLANDCOVERTYPES; to++) {
 				if(run[to])					
-					tot_frac_ch += lc.frac_transfer[to][from];
+					tot_frac_change += lc.frac_transfer[to][from];
 			}
 		}
 	}
 
 	// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
-	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_frac_transfer_s, tot_frac_ch);
+	adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_subset_transfer, tot_frac_change);
 
-	if(largerthanzero(tot_frac_ch, -14))
+	if(largerthanzero(tot_frac_change, -14))
 		return true;
 	else
 		return false;
@@ -1045,7 +1045,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 /// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
 void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], 
-		forest_lc_frac_transfer& forest_lc_frac_transfer_s, double& tot_frac_ch) {
+		forest_lc_frac_transfer& forest_lc_subset_transfer, double& tot_frac_change) {
 
 	const bool print_adjustment_info = false;
 	bool error = false;
@@ -1093,8 +1093,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 		for(int to=0; to<NLANDCOVERTYPES; to++) {
 
 			if(lc_frac_transfer[from][to]) {
-				prim_ratio[from][to] = forest_lc_frac_transfer_s.primary[from][to] / lc_frac_transfer[from][to];
-				sec_young_ratio[from][to] = forest_lc_frac_transfer_s.secondary_young[from][to] / lc_frac_transfer[from][to];
+				prim_ratio[from][to] = forest_lc_subset_transfer.primary[from][to] / lc_frac_transfer[from][to];
+				sec_young_ratio[from][to] = forest_lc_subset_transfer.secondary_young[from][to] / lc_frac_transfer[from][to];
 			}
 		}
 	}
@@ -1239,7 +1239,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 					gross_lc_increase[to] -= lc_frac_transfer[from][to];
 					net_lc_change[from] += lc_frac_transfer[from][to];
 					net_lc_change[to] -= lc_frac_transfer[from][to];
-					tot_frac_ch -= lc_frac_transfer[from][to];
+					tot_frac_change -= lc_frac_transfer[from][to];
 					lc_frac_transfer[from][to] = 0.0;
 				}
 			}
@@ -1265,7 +1265,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 					gross_lc_increase[to] -= lc_frac_transfer[from][to] - transfer;
 					net_lc_change[from] += lc_frac_transfer[from][to] - transfer;
 					net_lc_change[to] -= lc_frac_transfer[from][to] - transfer;
-					tot_frac_ch -= lc_frac_transfer[from][to] - transfer;
+					tot_frac_change -= lc_frac_transfer[from][to] - transfer;
 					lc_frac_transfer[from][to] = transfer;
 					frac_remain_old[from] -= transfer;
 					frac_remain[to] -= transfer;
@@ -1711,8 +1711,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 	// Adjust primary land fractions
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
 		for(int to=0; to<NLANDCOVERTYPES; to++) {
-			forest_lc_frac_transfer_s.primary[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
-			forest_lc_frac_transfer_s.secondary_young[from][to] = sec_young_ratio[from][to] * lc_frac_transfer[from][to];
+			forest_lc_subset_transfer.primary[from][to] = prim_ratio[from][to] * lc_frac_transfer[from][to];
+			forest_lc_subset_transfer.secondary_young[from][to] = sec_young_ratio[from][to] * lc_frac_transfer[from][to];
 		}
 	}
 }

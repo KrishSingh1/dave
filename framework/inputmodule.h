@@ -85,10 +85,10 @@ public:
 	virtual void getmanagement(Gridcell& gridcell) = 0;
 
 	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
-	virtual void getenviron(Gridcell& gridcell) = 0;
+	virtual void getmiscinput_static(Gridcell& gridcell) = 0;
 
 	/// Obtains additional environmental data (e.g. disturbance) for one year
-	virtual void getenviron_yearly(Gridcell& gridcell) = 0;
+	virtual void getmiscinput_yearly(Gridcell& gridcell) = 0;
 };
 
 

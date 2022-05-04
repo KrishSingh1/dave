@@ -55,13 +55,13 @@ public:
 	}
 
 	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
-	void getenviron(Gridcell& gridcell) {
-		misc_input.getenviron(gridcell);
+	void getmiscinput_static(Gridcell& gridcell) {
+		misc_input.getmiscinput_static(gridcell);
 	}
 
 	/// Obtains additional environmental data (e.g. disturbance) for one year
-	void getenviron_yearly(Gridcell& gridcell) {
-		misc_input.getenviron_yearly(gridcell);
+	void getmiscinput_yearly(Gridcell& gridcell) {
+		misc_input.getmiscinput_yearly(gridcell);
 	}
 
 private:
@@ -97,7 +97,7 @@ private:
 	ManagementInput management_input;
 
 	/// Miscellaneous text input module
-	MiscTextInput misc_input;
+	MiscInput misc_input;
 
 	/// Reads header of GetClim driver file
 	void init_climate(double& dlon,double& dlat);

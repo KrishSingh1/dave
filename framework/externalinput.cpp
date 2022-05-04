@@ -44,7 +44,7 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
-void MiscTextInput::init() {
+void MiscInput::init() {
 
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
@@ -73,7 +73,7 @@ void MiscTextInput::init() {
 	}
 }
 
-bool MiscTextInput::loaddisturbance(double lon, double lat) {
+bool MiscInput::loaddisturbance(double lon, double lat) {
 
 	Coord c;
 	c.lon = lon;
@@ -94,7 +94,7 @@ bool MiscTextInput::loaddisturbance(double lon, double lat) {
 	return disterror;
 }
 
-bool MiscTextInput::loadelevation(double lon, double lat) {
+bool MiscInput::loadelevation(double lon, double lat) {
 
 	Coord c;
 	c.lon = lon;
@@ -114,7 +114,7 @@ bool MiscTextInput::loadelevation(double lon, double lat) {
  *	files (see indata.h). The column for the gridcell disturbance interval has a header name of "Return" and columns
  *  for stand type disturbance have headers with the stand type names.
  */
-void MiscTextInput::getdisturbance(Gridcell& gridcell) {
+void MiscInput::getdisturbance(Gridcell& gridcell) {
 
 	// Retrieve disturbance for stand types from instruxtion file if text input not present,
 	if(!date.year && !readdisturbance_st) {
@@ -147,7 +147,7 @@ void MiscTextInput::getdisturbance(Gridcell& gridcell) {
 	}
 }
 
-void MiscTextInput::getelevation(Gridcell& gridcell) {
+void MiscInput::getelevation(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year();
 
@@ -162,12 +162,12 @@ void MiscTextInput::getelevation(Gridcell& gridcell) {
 	}
 }
 
-void MiscTextInput::getenviron(Gridcell& gridcell) {
+void MiscInput::getmiscinput_static(Gridcell& gridcell) {
 
 	getelevation(gridcell);
 }
 
-void MiscTextInput::getenviron_yearly(Gridcell& gridcell) {
+void MiscInput::getmiscinput_yearly(Gridcell& gridcell) {
 
 	if (date.day) {
 		return;

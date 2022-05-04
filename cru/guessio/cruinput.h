@@ -55,13 +55,13 @@ public:
 	}
 
 	/// Obtains additional environmental data that are not dynamic (e.g. elevation)
-	void getenviron(Gridcell& gridcell) {
-		misc_input.getenviron(gridcell);
+	void getmiscinput_static(Gridcell& gridcell) {
+		misc_input.getmiscinput_static(gridcell);
 	}
 
 	/// Obtains additional environmental data (e.g. disturbance) for one year
-	void getenviron_yearly(Gridcell& gridcell) {
-		misc_input.getenviron_yearly(gridcell);
+	void getmiscinput_yearly(Gridcell& gridcell) {
+		misc_input.getmiscinput_yearly(gridcell);
 	}
 
 	// Constants associated with historical climate data set
@@ -136,7 +136,7 @@ private:
 	ManagementInput management_input;
 
 	/// Additional text data input module
-	MiscTextInput misc_input;
+	MiscInput misc_input;
 
 	/// search radius to use when finding CRU data
 	double searchradius;

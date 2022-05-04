@@ -60,7 +60,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	daylengthinsoleet(gridcell.climate);
 
 	// Update disturbance interval etc.
-	input_module->getenviron_yearly(gridcell);
+	input_module->getmiscinput_yearly(gridcell);
 
 	// Update crop sowing date calculation framework
 	crop_sowing_gridcell(gridcell);
@@ -239,7 +239,7 @@ int framework(const CommandLineArguments& args) {
 		}
 
 		// Read extra environmental data that are static
-		input_module->getenviron(gridcell);
+		input_module->getmiscinput_static(gridcell);
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year

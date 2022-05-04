@@ -20,12 +20,12 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 							forest_lc_frac_transfer& forest_lc_subset_transfer, double& tot_frac_change);
 
 /// Class that deals with additional environmental input from text files
-class MiscTextInput {
+class MiscInput {
 
 public:
 
 	/// Constructor
-	MiscTextInput() {;}
+	MiscInput() {;}
 
 	/// Opens land cover input files
 	void init();
@@ -37,10 +37,10 @@ public:
 	bool loadelevation(double lon, double lat);
 
 	/// Gets all static input data from this class
-	void getenviron(Gridcell& gridcell);
+	void getmiscinput_static(Gridcell& gridcell);
 
 	/// Gets all yearly input data from this class
-	void getenviron_yearly(Gridcell& gridcell);
+	void getmiscinput_yearly(Gridcell& gridcell);
 
 private:
 

@@ -269,9 +269,10 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 													stand.frac_change += st_change_remain;
 													stand.gross_frac_decrease -= st_change_remain;
 													stand.transfer_area_st[to] -= st_change_remain;
-													stand.set_gridcell_fraction(stand_frac + st_change_remain);
+													stand.set_gridcell_fraction(stand_frac + st_change_remain);	// Fraction updated.
 
 													if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
+														stand_frac = stand.get_gridcell_fraction();				// Use updated fraction.
 														gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
 														gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 														stand.set_gridcell_fraction(0.0);
@@ -330,9 +331,10 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 						}
 						stand.frac_change = -gcst.gross_frac_decrease;
 						stand.gross_frac_decrease = gcst.gross_frac_decrease;
-						stand.set_gridcell_fraction(stand_frac + stand.frac_change);
+						stand.set_gridcell_fraction(stand_frac + stand.frac_change);	// Fraction updated.
 
 						if(stand.get_gridcell_fraction() < INPUT_RESOLUTION && (!gcst.gross_frac_increase || expand_to_new_stand)) {
+							stand_frac = stand.get_gridcell_fraction();					// Use updated fraction.
 							gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
 							gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 							stand.set_gridcell_fraction(0.0);
@@ -509,7 +511,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 											stand.frac_change += change_frac;
 											stand.gross_frac_decrease -= change_frac;
 											stand.transfer_area_st[to] -= change_frac;
-											stand.set_gridcell_fraction(stand_frac + change_frac);
+											stand.set_gridcell_fraction(stand_frac + change_frac);	// Fraction updated.
 											st_frac_transfer[transfer_index] += -change_frac;
 											lc_frac_transfer[NATURAL][NATURAL] += -change_frac;
 											gcst_to.gross_frac_increase -= change_frac;
@@ -520,6 +522,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 											}
 
 											if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
+												stand_frac = stand.get_gridcell_fraction();			// Use updated fraction.
 												gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
 												gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 												stand.set_gridcell_fraction(0.0);

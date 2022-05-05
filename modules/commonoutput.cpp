@@ -1546,12 +1546,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		if(gridcell.nbr_stands() > 0)	//Fixed bug here if no stands were present.
 		{
 			Stand& stand = gridcell[0];
+			Landcover& lc = gridcell.landcover;
+
 			plot("C flux [kgC/m2/yr]","veg",  date.year, flux_veg);
 			plot("C flux [kgC/m2/yr]","repr", date.year, flux_repr);
 			plot("C flux [kgC/m2/yr]","soil", date.year, flux_soil);
 			plot("C flux [kgC/m2/yr]","fire", date.year, flux_fire);
 			plot("C flux [kgC/m2/yr]","est",  date.year, flux_est);
-			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
+			if(run_landcover) {
+				plot("C flux [kg C/m2/yr]", "Harvest", date.get_calendar_year(), flux_charvest);
+				plot("C flux [kg C/m2/yr]", "LUC", date.get_calendar_year(), lc.acflux_wood_harvest + lc.acflux_clearing
+					+ lc.acflux_landuse_change);
+			}
+			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est 
+				+ lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change);
 
 			if (!ifcentury) {
 				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soil.cpool_slow);
@@ -1564,8 +1572,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				plot("N flux [kgN/ha/yr]","leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * M2_PER_HA);
 				plot("N flux [kgN/ha/yr]","emissions",  date.year, flux_ntot * M2_PER_HA);
 
-				plot("N flux [kgN/ha/yr]","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell -
-					(anfix_gridcell + aNH4dep_gridcell + aNO3dep_gridcell + anfert_gridcell)) * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell 
+					+ lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change
+					- (anfix_gridcell + aNH4dep_gridcell + aNO3dep_gridcell + anfert_gridcell)) * M2_PER_HA);
 
 				plot("N mineralization [kgN/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 

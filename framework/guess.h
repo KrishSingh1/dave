@@ -1510,8 +1510,8 @@ public:
 	int hdate;
 	/// Nitrogen fertilisation amount, unless Nfert_read read from file
 	double nfert;
-	/// Tillage intensity
-	double tillage_int;
+	/// Tillage factor (1.0 - 4.5)
+	double tillage_fact;
 	/// Whether grass is grown in fallow
 	bool fallow;
 
@@ -1587,7 +1587,7 @@ public:
 		sdate = -1;
 		hdate = -1;
 		nfert = -1.0;
-		tillage_int = 1.0;
+		tillage_fact = 1.0;
 		fallow = false;
 	}
 

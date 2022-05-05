@@ -1811,17 +1811,18 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	i.cmass_leaf -= harvest;
 
 	// Nitrogen
-
-	// Reduced removal of N relative to C during grazing.
-	double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
-	harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
+	harvest = pft.harv_eff * i.nmass_leaf;
 
 	if (ifslowharvestpool) {
 		i.nmass_harvested_products_slow += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
 	}
-	i.anflux_harvest += harvest;
 	i.nmass_leaf -= harvest;
+
+	// Reduced removal of N relative to C during grazing.
+	double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
+	i.anflux_harvest += harvest * N_harvest_scale;
+	i.nmass_litter_leaf += harvest * (1.0 - N_harvest_scale);
 
 	if (grassforcrop && alive) {
 		// Carbon:

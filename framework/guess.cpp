@@ -796,17 +796,6 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 			}
 		}
 	}
-/*
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pftx = pftlist.getobj();
-		Standpft& spft = pft[pftx.id];
-		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name,
-			(char*)pftx.name, spft.active, spft.plant, spft.reestab);
-		pftlist.nextobj();	
-	}
-	dprintf("\n");
-*/
 }
 
 /// Setting of management parameters for PFT selections at stand creation and forest rotation
@@ -1278,16 +1267,6 @@ void Stand::rotate(int rot) {
 
 	set_management();
 
-/*	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pftx = pftlist.getobj();
-		Standpft& spft = pft[pftx.id];
-		dprintf("Year %d st %s: pft %s: active =%d, plant=%d, reestab=%d\n", date.get_calendar_year(), (char*)st.name,
-			(char*)pftx.name, spft.active, spft.plant, spft.reestab);
-		pftlist.nextobj();	
-	}
-	dprintf("\n");
-*/
 	nyears_in_rotation = 0;
 	ndays_in_rotation = 0;
 }

@@ -2897,21 +2897,7 @@ void crop_rotation(Stand& stand) {
 	int firstrotyear = rotation.firstrotyear - date.first_calendar_year;
 	bool postpone_rotation = false;
 
-	// Alternative uses of firstrotyear:
-
-	// 1. Before firstrotyear, grow only crop1:
-
-	// if(date.year < firstrotyear)
-	//	postpone_rotation = true;
-
-	// 2. Synchronise rotation with firstrotyear:
-
-	// A. At the creation of the stand:
-	if (date.year < stand.first_year + 3)
-	// B. At firstrotyear
-	//	if(date.year == firstrotyear - 1)
-	// C. Continuously:
-	{
+	if (date.year < stand.first_year + 3) {
 		if ((abs(firstrotyear - date.year) % rotation.nmanagements) != stand.current_rot)
 			postpone_rotation = true;
 	}

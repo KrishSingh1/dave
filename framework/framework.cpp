@@ -59,7 +59,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// Calculate daylength, insolation and potential evapotranspiration
 	daylengthinsoleet(gridcell.climate);
 
-	// Update disturbance interval etc.
+	// Read miscellanous dynamic data, e.g. disturbance interval.
 	input_module->getmiscinput_yearly(gridcell);
 
 	// Update crop sowing date calculation framework
@@ -238,7 +238,7 @@ int framework(const CommandLineArguments& args) {
 			date.year = state_year;
 		}
 
-		// Read extra environmental data that are static
+		// Read miscellanous static data, e.g. local elevation.
 		input_module->getmiscinput_static(gridcell);
 
 		// Call input/output to obtain climate, insolation and CO2 for this

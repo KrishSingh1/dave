@@ -1115,7 +1115,8 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 	// 1
 	for(int first=0; first<NLANDCOVERTYPES; first++) {
 
-		double twoway_overshoot = min(gross_lc_increase[first] - gridcell.landcover.frac[first], gross_lc_decrease[first] - gridcell.landcover.frac_old[first]);
+		double twoway_overshoot = min(gross_lc_increase[first] - gridcell.landcover.frac[first], gross_lc_decrease[first] 
+			- gridcell.landcover.frac_old[first]);
 
 		if(twoway_overshoot > 1.0e-15) {
 
@@ -1243,8 +1244,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 			if(lc_frac_transfer[from][to]) {
 				if(!gridcell.landcover.frac_old[from] || !gridcell.landcover.frac[to]) {
 					if(print_adjustment_info) {
-						dprintf("\nYear %d: Rejecting transfer %.18f from lc %d to %d\n", date.year, lc_frac_transfer[from][to], from, to);
-						dprintf("frac_old[%d]=%.15f, frac[%d]=%.15f\n\n", from, gridcell.landcover.frac_old[from], to, gridcell.landcover.frac[to]);
+						dprintf("\nYear %d: Rejecting transfer %.18f from lc %d to %d\n", 
+							date.year, lc_frac_transfer[from][to], from, to);
+						dprintf("frac_old[%d]=%.15f, frac[%d]=%.15f\n\n", 
+							from, gridcell.landcover.frac_old[from], to, gridcell.landcover.frac[to]);
 					}
 					gross_lc_decrease[from] -= lc_frac_transfer[from][to];
 					gross_lc_increase[to] -= lc_frac_transfer[from][to];
@@ -1268,8 +1271,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 			if(lc_frac_transfer[from][to]) {
 				if(lc_frac_transfer[from][to] > frac_remain_old[from] || lc_frac_transfer[from][to] > frac_remain[to]) {
 					if(print_adjustment_info) {
-						dprintf("\nYear %d: Adjusting transfer %.18f from lc %d to %d\n", date.year, lc_frac_transfer[from][to], from, to);
-						dprintf("frac_old[%d]=%.15f, frac[%d]=%.15f\n\n", from, gridcell.landcover.frac_old[from], to, gridcell.landcover.frac[to]);
+						dprintf("\nYear %d: Adjusting transfer %.18f from lc %d to %d\n", 
+							date.year, lc_frac_transfer[from][to], from, to);
+						dprintf("frac_old[%d]=%.15f, frac[%d]=%.15f\n\n", 
+							from, gridcell.landcover.frac_old[from], to, gridcell.landcover.frac[to]);
 					}
 					double transfer = min(lc_frac_transfer[from][to], min(frac_remain_old[from], frac_remain[to]));
 					gross_lc_decrease[from] -= lc_frac_transfer[from][to] - transfer;
@@ -1359,8 +1364,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 										effective_corr = min(effective_corr, lc_frac_transfer[to][from] / partition_adjustment[to][from]);
 									// Make sure resulting frac[to] not overshot and frac[from] not depleted
 									if(partition_adjustment[from][to]) {
-										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]) / partition_adjustment[from][to]);
-										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) / partition_adjustment[from][to]);
+										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]) 
+											/ partition_adjustment[from][to]);
+										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) 
+											/ partition_adjustment[from][to]);
 									}
 								}
 								else {
@@ -1370,8 +1377,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 										effective_corr = max(effective_corr, -lc_frac_transfer[from][to] / partition_adjustment[from][to]);
 									// Make sure resulting frac[from] not overshot and frac[to] not depleted
 									if(partition_adjustment[to][from]) {
-										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) / partition_adjustment[to][from]);
-										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]) / partition_adjustment[to][from]);
+										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) 
+											/ partition_adjustment[to][from]);
+										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]) 
+											/ partition_adjustment[to][from]);
 									}
 								}
 
@@ -1407,10 +1416,10 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 
 				for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-					if(fabs(residual_error[from]) > 1.0e-15 && run[to] && fabs(residual_error[to])  > 1.0e-15 && from != to) {
+					if(fabs(residual_error[from]) > 1.0e-15 && run[to] && fabs(residual_error[to]) > 1.0e-15 && from != to) {
 
 						// Errors must have opposite signs
-						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15)	{
+						if(fabs(residual_error[from] + residual_error[to]) - (fabs(residual_error[from]) + fabs(residual_error[to])) < -1.0e-15) {
 
 							if(print_adjustment_info)
 								dprintf("Trying with lc %d and %d\n", from, to);
@@ -1434,20 +1443,30 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 									if(residual_error[from] >= 0.0) {
 										effective_corr = min(residual_error[from], fabs(residual_error[to]));
 										// Make sure lc_frac_transfer[third][from] not negative
-										if(partition_adjustment[third][from])
-											effective_corr = min(effective_corr, lc_frac_transfer[third][from] / partition_adjustment[third][from]);
+										if(partition_adjustment[third][from]) {
+											effective_corr = min(effective_corr, lc_frac_transfer[third][from] 
+												/ partition_adjustment[third][from]);
+										}
 										// Make sure resulting frac[third] not overshot and frac[from] not depleted
 										if(partition_adjustment[from][third]) {
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[third] - (gross_lc_increase[third] + effective_corr * partition_adjustment[to][third])) / partition_adjustment[from][third]);
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) / partition_adjustment[from][third]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac[third] - (gross_lc_increase[third] + effective_corr * partition_adjustment[to][third])) 
+													/ partition_adjustment[from][third]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) 
+													/ partition_adjustment[from][third]);
 										}
 										// Make sure lc_frac_transfer[to][third] not negative
 										if(partition_adjustment[to][third])
 											effective_corr = min(effective_corr, lc_frac_transfer[to][third] / partition_adjustment[to][third]);
 										// Make sure resulting frac[to] not overshot and frac[third] not depleted
 										if(partition_adjustment[third][to]) {
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]) / partition_adjustment[third][to]);
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[third] - (gross_lc_decrease[third] + effective_corr * partition_adjustment[third][from])) / partition_adjustment[third][to]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]) 
+													/ partition_adjustment[third][to]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac_old[third] - (gross_lc_decrease[third] + effective_corr * partition_adjustment[third][from])) 
+													/ partition_adjustment[third][to]);
 										}
 									}
 									else {
@@ -1457,16 +1476,23 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 											effective_corr = max(effective_corr, -lc_frac_transfer[from][third] / partition_adjustment[from][third]);
 										// Make sure resulting frac[from] not overshot and frac[third] not depleted
 										if(partition_adjustment[third][from]) {
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) / partition_adjustment[third][from]);
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[third] - (gross_lc_decrease[third] - effective_corr * partition_adjustment[third][to])) / partition_adjustment[third][from]);
+											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) 
+												/ partition_adjustment[third][from]);
+											effective_corr = 
+												max(effective_corr, -max(0.0, gridcell.landcover.frac_old[third] - (gross_lc_decrease[third] - effective_corr * partition_adjustment[third][to])) 
+													/ partition_adjustment[third][from]);
 										}
 										// Make sure lc_frac_transfer[third][to] not negative
 										if(partition_adjustment[third][to])
 											effective_corr = max(effective_corr, -lc_frac_transfer[third][to] / partition_adjustment[third][to]);
 										// Make sure resulting frac[third] not overshot and frac[to] not depleted
 										if(partition_adjustment[to][third]) {
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[third] - (gross_lc_increase[third] - effective_corr * partition_adjustment[from][third])) / partition_adjustment[to][third]);
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]) / partition_adjustment[to][third]);
+											effective_corr = 
+												max(effective_corr, -max(0.0, gridcell.landcover.frac[third] - (gross_lc_increase[third] - effective_corr * partition_adjustment[from][third])) 
+													/ partition_adjustment[to][third]);
+											effective_corr = 
+												max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]) 
+													/ partition_adjustment[to][third]);
 										}
 									}
 
@@ -1609,12 +1635,18 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 											effective_corr = min(effective_corr, lc_frac_transfer[third][from] / partition_adjustment[third][from]);
 										// Make sure resulting frac[third] not overshot and frac[from] not depleted
 										if(partition_adjustment[from][third]) {
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] + effective_corr) / partition_adjustment[from][third]);
-											effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) / partition_adjustment[from][third]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] + effective_corr) 
+													/ partition_adjustment[from][third]);
+											effective_corr = 
+												min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) 
+													/ partition_adjustment[from][third]);
 										}
 										// Make sure resulting frac[to] not overshot and frac[third] not depleted
-										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]));
-										effective_corr = min(effective_corr, max(0.0, gridcell.landcover.frac_old[third] - gross_lc_decrease[third] + effective_corr));
+										effective_corr = 
+											min(effective_corr, max(0.0, gridcell.landcover.frac[to] - gross_lc_increase[to]));
+										effective_corr = 
+											min(effective_corr, max(0.0, gridcell.landcover.frac_old[third] - gross_lc_decrease[third] + effective_corr));
 									}
 									else {
 										effective_corr = max(residual_error[from], -residual_error[to]);
@@ -1623,12 +1655,18 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 											effective_corr = max(effective_corr, -lc_frac_transfer[from][third] / partition_adjustment[from][third]);
 										// Make sure resulting frac[from] not overshot and frac[third] not depleted
 										if(partition_adjustment[third][from]) {
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) / partition_adjustment[third][from]);
-											effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[third] - gross_lc_decrease[third] - effective_corr) / partition_adjustment[third][from]);
+											effective_corr = 
+												max(effective_corr, -max(0.0, gridcell.landcover.frac[from] - gross_lc_increase[from]) 
+													/ partition_adjustment[third][from]);
+											effective_corr = 
+												max(effective_corr, -max(0.0, gridcell.landcover.frac_old[third] - gross_lc_decrease[third] - effective_corr) 
+													/ partition_adjustment[third][from]);
 										}
 										// Balancing [to][third] transfer: make sure resulting frac[third] not overshot and frac[to] not depleted
-										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] - effective_corr));
-										effective_corr = max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]));
+										effective_corr = 
+											max(effective_corr, -max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] - effective_corr));
+										effective_corr = 
+											max(effective_corr, -max(0.0, gridcell.landcover.frac_old[to] - gross_lc_decrease[to]));
 									}
 
 									lc_frac_transfer[from][third] += effective_corr * partition_adjustment[from][third];

@@ -269,8 +269,10 @@ struct Harvest_CN {
 
 	Harvest_CN() {
 
-		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem = cmass_dead_leaf = debt_excess = 0.0;
-		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm = nstore_labile = max_n_storage = 0.0;
+		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem 
+			= cmass_dead_leaf = debt_excess = 0.0;
+		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm 
+			= nstore_labile = max_n_storage = 0.0;
 		cmass_litter_leaf = cmass_litter_root = cmass_litter_sap = cmass_litter_heart = 0.0;
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
@@ -310,8 +312,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				cmass_ho = indiv.cropindiv->cmass_ho;
 				cmass_agpool = indiv.cropindiv->cmass_agpool;
-//				cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
-//				cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
+				// cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
+				// cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 			}
 		}
 
@@ -379,8 +381,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;
 				indiv.cropindiv->cmass_agpool = cmass_agpool;
-//				indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
-//				indiv.cropindiv->grs_cmass_stem = cmass_stem;
+				// indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
+				// indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
 		}
 
@@ -408,16 +410,16 @@ struct Harvest_CN {
 		ppft.nmass_litter_heart = nmass_litter_heart;
 
 		if(!lc_change) {
-			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at land use change
-			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at land use change
+			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at lcc
+			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at lcc
 		}
 
 		ppft.cmass_wood_harv += acflux_harvest_wood;
 		ppft.cmass_wood_harv_toprod += acflux_harvest_wood_toprod;
 		ppft.cmass_harv_tolitter += acflux_harvest_tolitter;
 	
-//		indiv.report_flux(Fluxes::NPP, debt_excess);
-//		indiv.report_flux(Fluxes::RA, -debt_excess);
+		// indiv.report_flux(Fluxes::NPP, debt_excess);
+		// indiv.report_flux(Fluxes::RA, -debt_excess);
 
 		ppft.cmass_harvested_products_slow = cmass_harvested_products_slow;
 		ppft.nmass_harvested_products_slow = nmass_harvested_products_slow;

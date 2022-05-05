@@ -605,7 +605,7 @@ double Patch::cflux() {
 	cflux += fluxes.get_annual_flux(Fluxes::SEEDC);
 	cflux += fluxes.get_annual_flux(Fluxes::MANUREC);
 	cflux += fluxes.get_annual_flux(Fluxes::HARVESTC);
-	cflux += fluxes.get_annual_flux(Fluxes::CH4C) * KG_PER_G; // convert to kg CH4-C m-2 from g CH4-C m-2
+	cflux += fluxes.get_annual_flux(Fluxes::CH4C) * KG_PER_G; // Convert to kg CH4-C m-2 from g CH4-C m-2
 
 	return cflux;
 }
@@ -680,10 +680,10 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
 		// stands with stochastic events
 		if (npatch > 0) {
-			num_patches = npatch;	// use patch number provided by calling function
+			num_patches = npatch;	// Use patch number provided by calling function
 		}
 		else {
-			num_patches = ::npatch; // use the global variable npatch
+			num_patches = ::npatch; // Use the global variable npatch
 		}
 	}
 
@@ -930,8 +930,9 @@ void Stand::set_management() {
 				if(indiv.pft.id == pftx.id) {
 					if(clone_year == date.year) {
 						// vegetation C transferred during cloning (may be harvested below)
-						get_gridcell().landcover.acflux_cloned_lc[lc_origin] +=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
-						get_gridcell().landcover.acflux_cloned_lc[landcover] -=  indiv.ccont() * get_gridcell_fraction() / (double)nobj;
+						double stand_frac = get_gridcell_fraction();
+						get_gridcell().landcover.acflux_cloned_lc[lc_origin] +=  indiv.ccont() * stand_frac / (double)nobj;
+						get_gridcell().landcover.acflux_cloned_lc[landcover] -=  indiv.ccont() * stand_frac / (double)nobj;
 					}
 				}
 				vegetation.nextobj();
@@ -1052,10 +1053,10 @@ void Stand::set_management() {
 							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST
 							// and/or NATURAL) needs to be distinguished in the output
 							// 1. reestablishment by both forest and natural pfts
-//							if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
-//								|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
+							//	|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							// 3. reestablishment only by natural pfts (when active)
 							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 								pft[pftx.id].active = true;
@@ -1137,12 +1138,12 @@ void Stand::set_management() {
 					if(st.reestab == "ALL") {
 						// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL)
 						// needs to be distinguished in the output
-						// 1. reestablishment by both forest and natural pfts
-//						if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-						// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
-//							|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-						// 3. reestablishment only by natural pfts (when active)
+						// 1. Reestablishment by both forest and natural pfts
+						// if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+						// 2. Reestablishment by natural pfts (when active) and planted forest pfts
+						// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
+						//	|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+						// 3. Reestablishment only by natural pfts (when active)
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
 							pft[pftx.id].reestab = true;
@@ -1157,7 +1158,7 @@ void Stand::set_management() {
 								Individual& indiv = vegetation.getobj();
 								Patchpft& ppft = patch.pft[indiv.pft.id];
 								if(indiv.pft.id == pftx.id) {
-									// cut at cloning (LUC) or at rotation
+									// Cut at cloning (LUC) or at rotation
 									ppft.cmass_harv_killed += indiv.ccont();
 									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
@@ -1182,7 +1183,7 @@ void Stand::set_management() {
 	}
 	else if(mt.planting_system != "") {
 
-		// planting systems (pft selections) defined here
+		// Planting systems (pft selections) defined here
 
 
 		// Functional tree pft classes
@@ -1214,21 +1215,21 @@ void Stand::set_management() {
 					// Alternative options here are only relevant when planted trees (FOREST) and regenerated growth 
 					// (FOREST and/or NATURAL) needs to be distinguished in the output
 					if(st.reestab == "RESTRICTED") {
-						// 1-2. reestablishment by both forest and natural planted pfts
-//						{
-						// 3. reestablishment only by natural pfts (when active)
+						// 1-2. Reestablishment by both forest and natural planted pfts
+						// {
+						// 3. Reestablishment only by natural pfts (when active)
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
 							pft[pftx.id].reestab = true;
 						}
 					}
 					else if(st.reestab == "ALL") {
-						// 1. reestablishment by both forest and natural pfts
-//						{
-						// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//						if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL"
-//							&& pftx.landcover == NATURAL) {
-						// 3. reestablishment only by natural pfts (when active)
+						// 1. Reestablishment by both forest and natural pfts
+						// {
+						// 2. Reestablishment by natural pfts (when active) and planted forest pfts
+						// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL"
+						//	&& pftx.landcover == NATURAL) {
+						// 3. Reestablishment only by natural pfts (when active)
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
 							pft[pftx.id].reestab = true;

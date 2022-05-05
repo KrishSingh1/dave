@@ -2147,59 +2147,59 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if (run[i]) {
 
 				outlimit_misc(out, out_cmass_landscape, landcover_cmass[i]);
-				outlimit_misc(out, out_anpp_landscape,  landcover_anpp[i]);
+				outlimit_misc(out, out_anpp_landscape, landcover_anpp[i]);
 				outlimit_misc(out, out_forest_cmass_harv_killed,  landcover_cmass_harv_killed[i]);
 
 				switch (i) {
 				case CROPLAND:
 					if (run[CROPLAND]) {
-//						outlimit_misc(out, out_anpp_landscape_cropland,			landcover_anpp[i]);
-//						outlimit_misc(out, out_cmass_landscape_cropland,			landcover_cmass[i]);
+						// outlimit_misc(out, out_anpp_landscape_cropland,		landcover_anpp[i]);
+						// outlimit_misc(out, out_cmass_landscape_cropland,		landcover_cmass[i]);
 					}
 					break;
 				case PASTURE:
 					if (run[NATURAL]) {
-						outlimit_misc(out, out_anpp_pasture,		landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_pasture,		landcover_cmass[i]);
-//						outlimit_misc(out, out_anpp_landscape_pasture,			landcover_anpp[i]);
-//						outlimit_misc(out, out_cmass_landscape_pasture,			landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_pasture,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_pasture,					landcover_cmass[i]);
+						// outlimit_misc(out, out_anpp_landscape_pasture,		landcover_anpp[i]);
+						// outlimit_misc(out, out_cmass_landscape_pasture,		landcover_cmass[i]);
 					}
 					break;
 				case BARREN:
 					break;
 				case NATURAL:
-//					if(run[FOREST] || run[PASTURE]) {
+					// if(run[FOREST] || run[PASTURE]) {
 					if(run[FOREST]) {
-						outlimit_misc(out, out_anpp_natural,		landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_natural,		landcover_cmass[i]);
-						outlimit_misc(out, out_dens_natural,		landcover_densindiv_total[i]);
-//						outlimit_misc(out, out_anpp_landscape_natural,			landcover_anpp[i]);
-//						outlimit_misc(out, out_cmass_landscape_natural,			landcover_cmass[i]);
-						outlimit_misc(out, out_aaet_natural,		landcover_aaet[i]);
-						outlimit_misc(out, out_lai_natural,			landcover_lai[i]);
-						outlimit_misc(out, out_fpc_natural,			landcover_fpc[i]);
+						outlimit_misc(out, out_anpp_natural,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_natural,					landcover_cmass[i]);
+						outlimit_misc(out, out_dens_natural,					landcover_densindiv_total[i]);
+						// outlimit_misc(out, out_anpp_landscape_natural,		landcover_anpp[i]);
+						// outlimit_misc(out, out_cmass_landscape_natural,		landcover_cmass[i]);
+						outlimit_misc(out, out_aaet_natural,					landcover_aaet[i]);
+						outlimit_misc(out, out_lai_natural,						landcover_lai[i]);
+						outlimit_misc(out, out_fpc_natural,						landcover_fpc[i]);
 					}
 					break;
 				case FOREST:
 					if (run[NATURAL]) {
-						outlimit_misc(out, out_anpp_forest,			landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_forest,		landcover_cmass[i]);
-						outlimit_misc(out, out_dens_forest,			landcover_densindiv_total[i]);
+						outlimit_misc(out, out_anpp_forest,						landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_forest,					landcover_cmass[i]);
+						outlimit_misc(out, out_dens_forest,						landcover_densindiv_total[i]);
 						outlimit_misc(out, out_anpp_landscape_forest,			landcover_anpp[i]);
 						outlimit_misc(out, out_cmass_landscape_forest,			landcover_cmass[i]);
-						outlimit_misc(out, out_aaet_forest,			landcover_aaet[i]);
-						outlimit_misc(out, out_lai_forest,			landcover_lai[i]);
-						outlimit_misc(out, out_fpc_forest,			landcover_fpc[i]);
+						outlimit_misc(out, out_aaet_forest,						landcover_aaet[i]);
+						outlimit_misc(out, out_lai_forest,						landcover_lai[i]);
+						outlimit_misc(out, out_fpc_forest,						landcover_fpc[i]);
 					}
 					break;
 				case URBAN:
 					break;
 				case PEATLAND:
 					if (run[PEATLAND]) {
-						outlimit_misc(out, out_anpp_peatland,		landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_peatland,		landcover_cmass[i]);
-//						outlimit_misc(out, out_anpp_landscape_peatland,			landcover_anpp[i]);
-//						outlimit_misc(out, out_cmass_landscape_peatland,			landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_peatland,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_peatland,					landcover_cmass[i]);
+						// outlimit_misc(out, out_anpp_landscape_peatland,		landcover_anpp[i]);
+						// outlimit_misc(out, out_cmass_landscape_peatland,		landcover_cmass[i]);
 					}
 					break;
 				default:

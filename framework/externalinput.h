@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file externalinput.h
-/// \brief Input code for land cover, management and other data from text files.
+/// \brief Input code for land cover, management and other data, currently from text files.
 /// \author Mats Lindeskog
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,9 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES],
 							forest_lc_frac_transfer& forest_lc_subset_transfer, double& tot_frac_change);
 
-/// Class that deals with additional environmental input from text files
+/// Class that deals with miscellaneous data input.
+/** Input data that are not from the input module or from the land-cover or management input modules.
+ */
 class MiscInput {
 
 public:

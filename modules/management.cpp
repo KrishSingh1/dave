@@ -267,7 +267,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 			}
 			else {
 				to_partition_sap   = i.cmass_sap + i.cmass_heart - i.cmass_debt;
-//				dprintf("ATTENTION: pft %s: cmass_debt > cmass_heart; difference=%f\n", (char*)pft.name, i.cmass_debt-i.cmass_heart);
+			//	dprintf("ATTENTION: pft %s: cmass_debt > cmass_heart; difference=%f\n", (char*)pft.name, i.cmass_debt-i.cmass_heart);
 			}
 			double wood_residue_frac_to_litter = (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac
 				- harv_eff * stem_frac) * frac_cut;
@@ -280,7 +280,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 		else {
 			double debt_excess = i.cmass_debt - (i.cmass_sap + i.cmass_heart);
 			dprintf("ATTENTION: cmass_debt > i.cmass_sap + i.cmass_heart; debt_excess=%f\n", debt_excess);
-//			i.debt_excess += debt_excess * frac_cut;	// debt_excess currently not dealt with during wood harvest
+		//	i.debt_excess += debt_excess * frac_cut;	// debt_excess currently not dealt with during wood harvest
 		}
 
 		// unharvested trees:
@@ -559,7 +559,8 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 			cmass_harvest_ageclass_selection[(int)indiv.age] += harvest_cmass_indiv;
 			if(str_sel) {
 				cmass_pft[stand.pft[indiv.pft.id].selection] += harvest_cmass_indiv;
-				cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] += str_sel[stand.pft[indiv.pft.id].selection] * harvest_cmass_indiv;
+				cmass_harvest_remain_pft[stand.pft[indiv.pft.id].selection] += 
+					str_sel[stand.pft[indiv.pft.id].selection] * harvest_cmass_indiv;
 			}
 		}
 	}
@@ -943,7 +944,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		// Equal importance of pft relative deviations in- and outside of selection
 		double cutstr_total_stand = cutstr_selected_stand + cutstr_unselected_stand;
 		// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
-//		cutstr_total_stand = (remove_cmass_selected_stand + remove_cmass_unselected_stand) / cmass_total_stand;
+		// cutstr_total_stand = (remove_cmass_selected_stand + remove_cmass_unselected_stand) / cmass_total_stand;
 
 		// Check deviations at patch level and set man_strength>:
 		stand.firstobj();
@@ -1053,7 +1054,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			// Equal importance of pft relative deviations in- and outside of selection
 			double cutstr_total = cutstr_selected + cutstr_unselected;
 			// Importance of pft relative deviations in- and outside of selection weighted by cmass of selected and unselected pfts.
-//			cutstr_total = (remove_cmass_selected + remove_cmass_unselected) / cmass_total;
+			// cutstr_total = (remove_cmass_selected + remove_cmass_unselected) / cmass_total;
 
 			/*  Modes of cutting:
 			 * 1: Cut when patch fraction deviations > DEVLIMIT, use patch overshoot values (default)
@@ -1531,8 +1532,8 @@ void manage_forest(Patch& patch) {
 				if(mt.distribute_cuttings_among_patches) {
 					int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 					if(!((date.year - max(stand.first_year, stand.clone_year) - patch_order) % cut_interval))
-//					if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear
-																					// (synchronised cuttings in all stands)
+					// if(!((date.year - first_cutyear - patch_order) % cut_interval))	// patch 0 wil be cut firstcutyear
+																						// (synchronised cuttings in all stands)
 						clearcut_now = true;
 				}
 				else if(readcutinterval_st) {
@@ -1574,8 +1575,8 @@ void manage_forest(Patch& patch) {
 					if(mt.distribute_cuttings_among_patches) {
 						int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 						age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
-//						age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear
-																		// (synchronised cuttings in all stands)
+						// age = date.year - first_cutyear - patch_order;	// patch 0 wil be clear-cut firstcutyear
+																			// (synchronised cuttings in all stands)
 					}
 					for(int t=0;t<NTHINNINGS;t++) {
 						if((mt.thinstrength[0][t] || mt.thinstrength_unsel[0][t])
@@ -1630,8 +1631,8 @@ void manage_forest(Patch& patch) {
 			if(mt.distribute_cuttings_among_patches) {
 				int patch_order = (int)(patch.id * cut_interval * 1.0 / (1.0 * stand.npatch()));
 				age = date.year - max(stand.first_year, stand.clone_year) - patch_order;
-//				age = date.year - first_cutyear - patch_order;	// patch 0 wil be cut firstcutyear; synchronised cuttings in all stands
-			}
+				// age = date.year - first_cutyear - patch_order;	// patch 0 wil be cut firstcutyear
+			}														// (synchronised cuttings in all stands)
 		}
 
 		for(int t=0;t<NTHINNINGS;t++) {
@@ -2900,15 +2901,15 @@ void crop_rotation(Stand& stand) {
 
 	// 1. Before firstrotyear, grow only crop1:
 
-//	if(date.year < firstrotyear)
-//		postpone_rotation = true;
+	// if(date.year < firstrotyear)
+	//	postpone_rotation = true;
 
 	// 2. Synchronise rotation with firstrotyear:
 
 	// A. At the creation of the stand:
 	if (date.year < stand.first_year + 3)
 	// B. At firstrotyear
-//		if(date.year == firstrotyear - 1)
+	//	if(date.year == firstrotyear - 1)
 	// C. Continuously:
 	{
 		if ((abs(firstrotyear - date.year) % rotation.nmanagements) != stand.current_rot)

@@ -154,7 +154,11 @@ private:
 	Table* out_cmass_mort_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_wood_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_wood_harv_stand[MAXNUMBER_STANDS];
+
+	// Separate output files for stands with age-class columns
 	Table* out_agestruct_stand[MAXNUMBER_STANDS];
+
+	// Separate output files for stands with age-class columns
 	Table* out_diamstruct_stand[MAXNUMBER_STANDS];
 	Table* out_diamstruct_cmass_stand[MAXNUMBER_STANDS];
 

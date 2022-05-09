@@ -1061,15 +1061,15 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			 * 2: Cut when stand fraction deviations > DEVLIMIT, use patch overshoot values 
 			 * 3: Cut when stand fraction deviations > DEVLIMIT, use stand overshoot values
 			 */
-			int cutvariant = mt.targetcutmode;
+			int targetcutmode = mt.targetcutmode;
 
 			double cutstr_total_use = cutstr_total;
 			double cutstr_unselected_use = cutstr_unselected;
 			double *cutstr_pft_use = cutstr_pft;
 
-			if(cutvariant > 1)
+			if(targetcutmode > 1)
 				cutstr_total_use = cutstr_total_stand;
-			if(cutvariant == 3) {
+			if(targetcutmode == 3) {
 				cutstr_unselected_use = cutstr_unselected_stand;
 				cutstr_pft_use = cutstr_pft_stand;
 			}

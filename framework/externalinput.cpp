@@ -2219,6 +2219,9 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 	// Read cutting interval from input file
 	if(readcutinterval_st)
 		getcutinterval(gridcell);
+	// Read selection target fractions from input file
+	if(readtargetcutting)
+		gettargetcutting(gridcell);
 	// Read firstmanageyear from input file
 	if(readfirstmanageyear_st)
 		getfirstmanageyear(gridcell);

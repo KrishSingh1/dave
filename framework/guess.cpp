@@ -1039,14 +1039,13 @@ void Stand::set_management() {
 						pft[pftx.id].reestab = false;
 
 						if(st.reestab == "ALL") {
-							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST
-							// and/or NATURAL) needs to be distinguished in the output
+							// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
+							// distiguished in their abilities to re-establish when outside the monoculture when naturalveg is "ALL" 
+							// (e.g. in the case of planted exotic FOREST pfts).
 							// 1. reestablishment by both forest and natural pfts
 							// if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-							// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
-							//	|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 3. reestablishment only by natural pfts (when active)
+							// 2. Reestablishment outside the monoculture only by natural pfts (when naturalveg "ALL") to avoid 
+							// reestablishment of exotic trees everywhere.
 							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 								pft[pftx.id].active = true;
 								pft[pftx.id].reestab = true;
@@ -1110,10 +1109,12 @@ void Stand::set_management() {
 				if(mt.pftinselection((const char*)pftx.name)) {
 					pft[pftx.id].active = true;
 
-					if(st.reestab == "NONE" || st.reestab == "")
+					if(st.reestab == "NONE" || st.reestab == "") {
 						pft[pftx.id].reestab = false;
-					else
+					}
+					else {
 						pft[pftx.id].reestab = true;
+					}
 					if(pftx.lifeform == TREE)
 						pft[pftx.id].plant = true;
 
@@ -1125,14 +1126,13 @@ void Stand::set_management() {
 					pft[pftx.id].reestab = false;
 
 					if(st.reestab == "ALL") {
-						// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL)
-						// needs to be distinguished in the output
+						// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
+						// distiguished in their abilities to re-establish when outside the selection when naturalveg is "ALL" 
+						// (e.g. in the case of planted exotic FOREST pfts).
 						// 1. Reestablishment by both forest and natural pfts
 						// if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-						// 2. Reestablishment by natural pfts (when active) and planted forest pfts
-						// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant)
-						//	|| st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-						// 3. Reestablishment only by natural pfts (when active)
+						// 2. Reestablishment outside the selection only by natural pfts (when naturalveg "ALL") to avoid 
+						// reestablishment of exotic trees everywhere.
 						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
 							pft[pftx.id].active = true;
 							pft[pftx.id].reestab = true;
@@ -1177,13 +1177,14 @@ void Stand::set_management() {
 
 		// Functional tree pft classes
 
-		const bool natural_reestab_only = false;
+		// Special case when both FOREST and NATURAL pfts used, but only FOREST pfts planted
+		const bool natural_reestab_not_plant = false;
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
 			Pft& pftx = pftlist.getobj();
 
-			if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+			if(pftx.lifeform == TREE && (pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL)) {
 
 				if(mt.planting_system == "NEEDLELEAF_EVERGREEN" &&
 					pftx.leafphysiognomy == NEEDLELEAF && pftx.phenology == EVERGREEN ||
@@ -1195,53 +1196,51 @@ void Stand::set_management() {
 					pftx.leafphysiognomy == BROADLEAF && (pftx.phenology == SUMMERGREEN || pftx.phenology == RAINGREEN)
 					 && pftx.crownarea_max > 10) {
 
-
-					if(pftx.landcover == landcover || !natural_reestab_only) {
-						pft[pftx.id].active = true;
+					pft[pftx.id].active = true;
+					if(pftx.landcover == landcover || !natural_reestab_not_plant)					
 						pft[pftx.id].plant = true;
-					}
 
-					// Alternative options here are only relevant when planted trees (FOREST) and regenerated growth 
-					// (FOREST and/or NATURAL) needs to be distinguished in the output
-					if(st.reestab == "RESTRICTED") {
-						// 1-2. Reestablishment by both forest and natural planted pfts
-						// {
-						// 3. Reestablishment only by natural pfts (when active)
-						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							pft[pftx.id].active = true;
+					if(!(st.reestab == "NONE" || st.reestab == "")) {
+						// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
+						// distiguished in their abilities to re-establish within the forest class when naturalveg is "ALL" 
+						// (e.g. in the case of planted exotic FOREST pfts).
+						// 1. Reestablishment within the forest class by both forest and natural pfts (no conditional)
+						// 2. Reestablishment within the forest class only by natural pfts (when naturalveg "ALL") to avoid 
+						// reestablishment of exotic FOREST trees everywhere.
+						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL)
 							pft[pftx.id].reestab = true;
-						}
-					}
-					else if(st.reestab == "ALL") {
-						// 1. Reestablishment by both forest and natural pfts
-						// {
-						// 2. Reestablishment by natural pfts (when active) and planted forest pfts
-						// if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL"
-						//	&& pftx.landcover == NATURAL) {
-						// 3. Reestablishment only by natural pfts (when active)
-						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							pft[pftx.id].active = true;
-							pft[pftx.id].reestab = true;
-						}
 					}
 				}
-				else if(mt.cutfirstyear_unsel && pftx.lifeform == TREE) {
-					for(unsigned int p = 0; p < nobj; p++) {
-						Patch& patch = (*this)[p];
-						Vegetation& vegetation = patch.vegetation;
-						vegetation.firstobj();
-						while (vegetation.isobj) {
-							Individual& indiv = vegetation.getobj();
-							Patchpft& ppft = patch.pft[indiv.pft.id];
-							if(indiv.pft.id == pftx.id) {
-								// cut at cloning (LUC) or at rotation
-								ppft.cmass_harv_killed += indiv.ccont();
-								harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
-								// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
-								indiv.vegetation.killobj();
-							}
-							else {
-								vegetation.nextobj();
+				else {
+					
+					if(st.reestab == "ALL") {
+						// 1. Reestablishment outside the forest class by both forest and natural pfts (no conditional)
+						// 2. Reestablishment outside the forest class only by natural pfts (when naturalveg "ALL") to  
+						// avoid reestablishment of exotic FOREST trees everywhere.
+						if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
+							pft[pftx.id].active = true;
+							pft[pftx.id].reestab = true;
+						}
+					}
+
+					if(mt.cutfirstyear_unsel && pftx.lifeform == TREE) {
+						for(unsigned int p = 0; p < nobj; p++) {
+							Patch& patch = (*this)[p];
+							Vegetation& vegetation = patch.vegetation;
+							vegetation.firstobj();
+							while (vegetation.isobj) {
+								Individual& indiv = vegetation.getobj();
+								Patchpft& ppft = patch.pft[indiv.pft.id];
+								if(indiv.pft.id == pftx.id) {
+									// cut at cloning (LUC) or at rotation
+									ppft.cmass_harv_killed += indiv.ccont();
+									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
+									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
+									indiv.vegetation.killobj();
+								}
+								else {
+									vegetation.nextobj();
+								}
 							}
 						}
 					}

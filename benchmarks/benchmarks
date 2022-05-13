@@ -37,7 +37,8 @@ function print_usage_and_exit {
     error "======="
     error "-i   Include only the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
     error "-x   Exclude the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-r   Comparative report processing. Takes 1 argument enclosed with \"\" and that consist of:"
+    error "-e   Exoprocessing, i.e. processing after all postprocesses finished. E.g. for comparative report processing." 
+    error "     Takes 1 argument enclosed with \"\" and that consist of:"
     error "     * REPORTTOOL: delta or tellme or another comparative-report generating tool"
     error "       (the postprocessing of each test generates a report in the folder of the test"
     error "       whereas the comparative report compiles results from all TESTs and place it "
@@ -48,8 +49,8 @@ function print_usage_and_exit {
     error "-s   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests."
     error "-p   Post processing only."
-    error "-P   Report processing only: no model jobs, no postprocessing jobs."
-    error "-f   Generate printer friendly report"
+    error "-P   Exo-report processing only: no model jobs, no postprocessing jobs."
+    error "-r   Generate printer friendly report"
     error "       (does nothing else and is run as a regular process,"
     error "       in other words, not submitted as a batch job)."
     error
@@ -60,9 +61,9 @@ function print_usage_and_exit {
     error "2. Run some benchmarks:"
     error "benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
     error "3. Run some benchmarks and do one, and two, comparative report job afterwards:"
-    error "benchmarks -i \"fluxnet tellus\" -r \"tellme /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
-    error "benchmarks -i \"fluxnet tellus\" -r \"tellme /scratch/sally/otherproject/output_r10153\"\\"
-    error " -r \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "benchmarks -i \"fluxnet tellus\" -e \"tellme /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "benchmarks -i \"fluxnet tellus\" -e \"tellme /scratch/sally/otherproject/output_r10153\"\\"
+    error " -e \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
     error "4. Run all except some benchmarks:"
     error "benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
@@ -103,9 +104,9 @@ while getopts ":scpPfr:i:x:" opt; do
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) superreport_only=1;;
-	r  ) superreport_arglist+=( "$OPTARG " )
+	e  ) superreport_arglist+=( "$OPTARG " )
              superreport_flag=1;;
-	f  ) printer_friendly=1;;
+	r  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
     esac
 
@@ -144,7 +145,7 @@ if (( $compile_only == 1 && ( $pp_only == 1 || $superreport_only == 1) )); then
 fi
 
 if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1 || $superreport_only == 1) )); then
-    error "-f can't be combined with -c or -p or -P!"
+    error "-r can't be combined with -c or -p or -P!"
     exit 1
 fi
 

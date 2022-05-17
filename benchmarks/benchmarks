@@ -264,7 +264,7 @@ function submit_postppjob {
     thistool_arglist=($1)
 
     # Construct argument for qsub/sbatch for dependency
-    echo " Dependencies: '$pp_jobids:' $pp_jobids"    # Debug
+    # debug: echo " Dependencies: '$pp_jobids:' $pp_jobids"
     if [ -n "$pp_jobids" ]; then
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
@@ -277,7 +277,7 @@ function submit_postppjob {
 
     # Determine what super-report to run, and teh argument to it
     supertool=${thistool_arglist[0]}
-    echo " Tool=$supertool"
+    # debug: echo " Tool=$supertool"
 
     # Create the post processing job
     workspace=$work_dir/${supertool}
@@ -316,15 +316,14 @@ EOF
     popd 1>/dev/null
 }
 
+# This function runs the exoprocesses
+# i.e. the jobs that runs after all pp-jobs are finished.
 function run_exoprocessing {
-
   for ((i = 0; i < ${#superreport_arglist[@]}; i++)); do
-    echo " run_exoprocessing:   submit_postppjob ${superreport_arglist[$i]}"
+    #debug: echo " run_exoprocessing:   submit_exoprocessjob ${superreport_arglist[$i]}"
     submit_postppjob "${superreport_arglist[$i]}"
   done
-
 }
-
 
 # This function submits the post processing job.
 # Parameters:
@@ -403,7 +402,7 @@ EOF
             pp_jobids="$pp_jobids:$ppid"
         fi
     fi
-    echo "${test_name}: job id = ${ppid}"
+    #debug: echo "${test_name}: job id = ${ppid}"
 }
 
 # This function submits a benchmark as an HPC job

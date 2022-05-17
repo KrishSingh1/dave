@@ -275,13 +275,13 @@ function submit_postppjob {
 	dependency=""
     fi
 
-    # Determine what super-report to run, and teh argument to it
+    # Determine what super-report to run, and the argument to it
     supertool=${thistool_arglist[0]}
     # debug: echo " Tool=$supertool"
 
-    # Create the post processing job
+    # Create the exoprocessing job
     workspace=$work_dir/${supertool}
-    rm -r $workspace
+    rm -rf $workspace
     mkdir $workspace
     pushd $workspace 1>/dev/null
 

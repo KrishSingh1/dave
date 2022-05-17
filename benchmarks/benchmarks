@@ -94,7 +94,7 @@ superreport_only=0
 superreport_arglist=()
 
 # Handle the -s, -c, -i, -x, ... options
-while getopts ":scpPfr:i:x:" opt; do
+while getopts ":scpPre:i:x:" opt; do
 
     case $opt in
 	i  ) inclusive=$OPTARG

@@ -289,11 +289,11 @@ function submit_postppjob {
     common_script=$(mktemp)
     cat <<EOF > $common_script
 cd $workspace
-if [ -f $bm_root/postpost/${supertool}/postpostprocess.sh ]; then
-    PATH=$PATH $bm_root/postpost/${supertool}/postpostprocess.sh ${thistool_arglist[@]:1}
+if [ -f $bm_root/exoprocesses/${supertool}/exoprocess.sh ]; then
+    PATH=$PATH $bm_root/exoprocesses/${supertool}/exoprocess.sh ${thistool_arglist[@]:1}
 fi
 cd $bm_root
-echo 'postpost-${supertool}' >> progress.txt
+echo '${supertool}' >> progress.txt
 EOF
 
 #   Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
@@ -316,10 +316,10 @@ EOF
     popd 1>/dev/null
 }
 
-function run_postpostprocessing {
+function run_exoprocessing {
 
   for ((i = 0; i < ${#superreport_arglist[@]}; i++)); do
-    echo " run_postpostprocessing:   submit_postppjob ${superreport_arglist[$i]}"
+    echo " run_exoprocessing:   submit_postppjob ${superreport_arglist[$i]}"
     submit_postppjob "${superreport_arglist[$i]}"
   done
 
@@ -646,9 +646,9 @@ do
   fi
 done
 
-# Call run_postpostprocessing after all other tests have been submitted
+# Call run_exoprocessing after all other tests have been submitted
 if (( $superreport_flag == 1 )); then
-  run_postpostprocessing
+  run_exoprocessing
 fi
 
 if (( $compile_only == 1 )); then

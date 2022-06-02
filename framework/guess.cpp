@@ -2766,10 +2766,14 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& ncont_zero
 		& ncont_zero_scaled
 		& nflux_zero
+		& wcontent_zero
+		& wflux_zero
 		& ccont
 		& ncont
+		& wcontent
 		& cflux
-		& nflux;
+		& nflux
+		& wflux;
 }
 
 /// Should be used together with check_indiv()
@@ -2882,6 +2886,9 @@ void MassBalance::init_patch(Patch& patch) {
 
 	if (stand.get_gridcell_fraction())
 		nflux_zero += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
+
+	wcontent_zero = patch.wcontent();
+	wflux_zero = patch.wflux();
 }
 
 bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
@@ -2939,7 +2946,7 @@ bool MassBalance::check_patch_W(Patch& patch) {
 
 	bool balance = true;
 
-	double wcont = patch.wcontent();
+	double wcontent = patch.wcontent();
 	double wflux = patch.wflux();
 
 	if (date.year >= nyear_spinup && !negligible(wcontent - wcontent_zero + wflux - wflux_zero, 1.0e-14)) {
@@ -2959,7 +2966,7 @@ bool MassBalance::check_patch_W(Patch& patch) {
  */
 bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 
-	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest);
+	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest) && check_patch_W(patch);
 }
 
 void MassBalance::check_year_C(Gridcell& gridcell) {
@@ -3084,6 +3091,8 @@ void MassBalance::init(Gridcell& gridcell) {
 	cflux_zero = gridcell.cflux();
 	ncont_zero = gridcell.ncont();
 	nflux_zero = gridcell.nflux();
+	wcontent_zero = gridcell.wcontent();
+	wflux_zero = gridcell.wflux();
 }
 
 void MassBalance::check(Gridcell& gridcell) {
@@ -3104,6 +3113,15 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("\n(%.2f, %.2f): N balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
 		dprintf("N pool change: %.5f\n", ncont - ncont_zero);
 		dprintf("N flux: %.5f\n\n", nflux);
+	}
+
+	double wcontent = gridcell.ncont();
+	double wflux = gridcell.nflux();
+
+	if (!negligible(wcontent - wcontent_zero + wflux, 1.0e-5)) {
+		dprintf("\n(%.2f, %.2f): Water balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent - wcontent_zero + wflux);
+		dprintf("Water pool change: %.5f\n", wcontent - wcontent_zero);
+		dprintf("Water flux: %.5f\n\n", wflux);
 	}
 }
 

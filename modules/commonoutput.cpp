@@ -1814,10 +1814,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		clitterinput_tot += clitterinput[lyr + 1];
 	}
 
-	for (int i = 0; i < NSOILLAYER_MAX+1; i++) {
+	for (int i = 0; i < number_of_layers; i++) {
 		outlimit(out, out_csoil, soilc[i]);
 		outlimit(out, out_rsoil, soilr[i]);
 	}
+	outlimit(out, out_csoil, soilc[NSOILLAYER_MAX]);
+	outlimit(out, out_rsoil, soilr[NSOILLAYER_MAX]);
 
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;
 	if (!negligible(tot_cdec[1]) && !negligible(tot_cinc[0]) && !negligible(tot_cdec[0])) {

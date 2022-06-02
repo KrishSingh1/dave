@@ -475,8 +475,8 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// water retention curves from Table 4, Cosby 1984
 	soiltype.b_min = 3.10 + 15.7 * soiltype.clay_frac - 0.3 * soiltype.sand_frac;
 
-	// Saturated mineral hydraulic conductivity (from inch h-1 to m s-1) from Table 4, Cosby 1984
-	soiltype.Kw_max_min = pow(10.0, -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac) * M_PER_INCH / SECS_PER_HOUR;
+	// Saturated mineral hydraulic conductivity (from inch h-1 to mm s-1) from Table 4, Cosby 1984
+	soiltype.Kw_max_min = pow(10.0, -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac) * MM_PER_INCH / SECS_PER_HOUR;
 
 	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
 	soiltype.Psi_max_min = -pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;

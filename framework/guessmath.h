@@ -52,6 +52,7 @@ const double CM_PER_MM		= 1E-1;
 const double MM_PER_M		= 1E3;
 const double MM_PER_CM		= 1E1;
 const double M_PER_INCH     = 0.0254;
+const double MM_PER_INCH    = M_PER_INCH * MM_PER_M;
 const double KG_PER_G		= 1E-3;
 const double G_PER_KG		= 1E3;
 const double G_PER_MG		= 1E-3;

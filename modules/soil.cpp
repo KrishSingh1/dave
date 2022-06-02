@@ -1525,8 +1525,8 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	wp_org = wsats_org * pow(-15000.0 / Psi_max_org, -1.0 / b_org);
 	// Organic available water holding capacity of soil layer (-)
 	awc_org = Theta_whc - wp_org;
-	// Hydraulic conductivity at saturation for organic matter (m s-1) (CLM5.0 - Documentation; Hoag and Price 1995)
-	Kw_max_org = max(0.28 - 0.2799 * depth_profile / sapric_depth * M_PER_MM, (*soilcolumn).soiltype.Kw_max_min);
+	// Hydraulic conductivity at saturation for organic matter (mm s-1) (CLM5.0 - Documentation; Hoag and Price 1995)
+	Kw_max_org = max(0.28 - 0.2799 * depth_profile / sapric_depth, (*soilcolumn).soiltype.Kw_max_min);
 
 	// Leaching
 	orgleachfrac = 0.0;
@@ -2345,10 +2345,10 @@ void Soillayer::phase_change_new() {
 		Fthaw = -energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
 
 		// Maximum ice that could be turned into liquid form
-		double Fwmass_thaw = min(Fimass, Fwmass_sc - Fwmass);
+		double Fimass_thaw = min(Fimass, Fwmass_sc - Fwmass);
 
 		// Can't thaw all
-		if (Fwmass_thaw > Fthaw) {
+		if (Fimass_thaw > Fthaw) {
 
 			// Update water and ice content
 			wmass = (Fwmass + Fthaw) * depth;
@@ -2369,14 +2369,14 @@ void Soillayer::phase_change_new() {
 			// and increase the temperature
 
 			// Update water and ice content
-			wmass = (Fwmass + Fwmass_thaw) * depth;
-			imass = (Fimass - Fwmass_thaw) * depth;
+			wmass = (Fwmass + Fimass_thaw) * depth;
+			imass = (Fimass - Fimass_thaw) * depth;
 
 			// Update thermal properties
 			update_thermal_properties();
 
 			// Energy used for phase change and to keep layer at initial temperature [J m-3]
-			double energy_loss = -Fwmass_thaw * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
+			double energy_loss = -Fimass_thaw * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
 
 			// Calculate remaining energy to lower the temperature [J m-3]
 			double energy_remain = energy - energy_loss;
@@ -2385,7 +2385,7 @@ void Soillayer::phase_change_new() {
 			temp = temp_old + energy_remain / Ch;
 
 			// Energy used for phase change [J m-3]
-			phase_change_energy = Fwmass_thaw * Lheat;
+			phase_change_energy = Fimass_thaw * Lheat;
 		}
 	} // End of Thawing
 
@@ -2405,7 +2405,7 @@ void Soillayer::phase_change_new() {
 
 	double wtotal_final = wmass + imass;
 
-	// water balance checks:
+	// water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
 		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
@@ -2413,7 +2413,7 @@ void Soillayer::phase_change_new() {
 	// Final energy
 	double energy_final = Ch * (temp + K2degC) - phase_change_energy;
 
-	// water balance checks:
+	// Energy balance checks
 	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
 		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", date.year, date.day, depth_profile, energy_initial, energy_final, energy_initial - energy_final);
 	}
@@ -2632,6 +2632,9 @@ void Soillayer::update_matric_potential() { // DW_COMMENT not needed yet
 
 	// psi = Psi_max * pow(theta, -b);
 	psi = Psi_max * hydro_pow(theta, -b);
+
+	// Derivative in matrix potential
+	dpsidw = -b * psi / theta;
 }
 
 /// Updates hydraulic conductivity and diffusivity
@@ -2642,6 +2645,17 @@ void Soillayer::update_matric_potential() { // DW_COMMENT not needed yet
  */
 void Soillayer::update_hydraulic_properties() {
 
+	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
+	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
+	// at the permanent wilting point for frozen water (for convenience set to zero)
+	if (imass > 0.0) {
+		// Ice impedance factor (Swenson et al. 2012)
+		imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
+	}
+	else {
+		imp_ice = 1.0;
+	}
+
 	double theta = max(0.0, wmass) / wsats;
 
 	// Hydraulic conductivity (Campbell 1974; m s-1)
@@ -2650,26 +2664,15 @@ void Soillayer::update_hydraulic_properties() {
 	}
 	else {
 		// Kw = Kw_max * pow(theta, 2.0 * b + 3.0);
-		Kw = Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
+		Kw = imp_ice * Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
 	}
+
+	// Derivative in hydraulic conductivity w.r.t relative saturation
+	dKwdw = imp_ice * (2.0 * b + 3.0) * Kw / theta;
 
 	// Hydraulic diffusivity (Clapp and Hornberger 1978; m2 s-1)
 	// Dw = b * Kw_max * (-Psi_max) / (wsats / depth) * pow(theta, b + 2.0);
-	Dw = b * Kw_max * (-Psi_max) / (wsats / depth) * hydro_pow(theta, b + 2.0);
-
-	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
-	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
-	// at the permanent wilting point for frozen water (for convenience set to zero)
-	if (imass > 0.0) {
-		// Ice impedance factor (Swenson et al. 2012)
-		imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
-
-		Dw *= imp_ice;
-		Kw *= imp_ice;
-	}
-	else {
-		imp_ice = 1.0;
-	}
+	Dw = imp_ice * b * Kw_max * (-Psi_max) / (wsats / depth) * hydro_pow(theta, b + 2.0);
 }
 
 /// Updates heat capacity and thermal conductivity

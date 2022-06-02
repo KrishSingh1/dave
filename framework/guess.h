@@ -502,7 +502,6 @@ class MassBalance : public Serializable  {
 
 	double wcontent;
 	double wcontent_zero;
-	double wcontent_zero_scaled;
 	double wflux;
 	double wflux_zero;
 
@@ -522,7 +521,6 @@ public:
 		nflux_zero = 0.0;
 		wcontent = 0.0;
 		wcontent_zero = 0.0;
-		wcontent_zero_scaled = 0.0;
 		wflux = 0.0;
 		wflux_zero = 0.0;
 	}
@@ -542,7 +540,6 @@ public:
 		nflux_zero = 0.0;
 		wcontent = 0.0;
 		wcontent_zero = 0.0;
-		wcontent_zero_scaled = 0.0;
 		wflux = 0.0;
 		wflux_zero = 0.0;
 	}
@@ -3458,8 +3455,10 @@ public:
 	double mimass[12];
 	/// suppercooled water mass in soil layer (kg m-2)
 	double wmass_sc;
-	/// Matrix potantial (mm)
+	/// Matrix potential (mm)
 	double psi;
+	/// Derivative in matrix potential w.r.t. volumetric liquid water content (mm)
+	double dpsidw;
 	/// monthly water content as fraction of available water holding capacity
 	double mwcont[12];
 	/// mean water content above current soil layer for last month
@@ -3482,6 +3481,8 @@ public:
 	double mDw[12];
 	/// soil moisture conductivity (m s-1)
 	double Kw;
+	/// Derivative in hydraulic conductivity w.r.t relative saturation (m s-1)
+	double dKwdw;
 	/// monthly soil moisture conductivity (m s-1)
 	double mKw[12];
 	/// soil moisture conductivity at saturation (m s-1)

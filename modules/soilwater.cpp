@@ -142,7 +142,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	// Water mass balance check
-	double wbefore = soilcolumn.snow.wcontent() + climate.prec - patch.intercep + soilcolumn.rain_melt;
+	double wbefore = soilcolumn.get_sum(WMASS) + soilcolumn.snow.wcontent() + climate.prec - patch.intercep + soilcolumn.rain_melt;
 
 	// Update snowpack
 	snow(soilcolumn, climate.prec - patch.intercep, climate.temp, climate.u10);
@@ -157,7 +157,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	soilcolumn.initial_percolation();
 
 	// Water mass balance check
-	double wafter = soilcolumn.snow.wcontent() + soilcolumn.rain_melt;
+	double wafter = soilcolumn.get_sum(WMASS) + soilcolumn.snow.wcontent() + soilcolumn.rain_melt;
 	if (fabs(wbefore - wafter) > 1.0e-10)
 		dprintf("Year %d Day %d INITIALINFILT Before %g After %g Diff %g\n", date.year, date.day, wbefore, wafter, wbefore - wafter);
 }

@@ -559,7 +559,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 	// pools SURFMETA,SURFSTRUCT,SURFFWD,SURFCWD,SURFMICRO,SURFHUMUS,SOILMETA,SOILSTRUCT,SOILFWD,SOILCWD,SOILMICRO,SLOWSOM,PASSIVESOM
-	const double K_MAX[] = { 8.0e-2, 2.2e-2, 1.1e-2, 2.2e-3, 4.0e-2, 2.7e-4, 1.0e-1, 2.7e-2, 1.4e-2, 2.7e-3, 5.0e-2, 2.7e-4, 4.2e-6 };
+	const double K_MAX[] = { 8.0e-2, 2.2e-2, 1.1e-2, 2.2e-3, 4.0e-2, 2.7e-4, 1.0e-1, 2.7e-2, 1.4e-2, 2.7e-3, 4.0e-2, 2.7e-4, 4.2e-6 };
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:

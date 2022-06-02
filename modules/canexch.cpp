@@ -1526,7 +1526,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		}
 
 		// On last day of year determined average nitrogen limitation
-		// based on days with leaf on
+		// based on annual GPP without any stresses
 		if (date.islastday && date.islastmonth) {
 
 			if (!negligible(indiv.agpp_no)) {

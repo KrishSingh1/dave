@@ -155,8 +155,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - nmass_litter_root			root nitrogen litter (kgN/m2)
  *   - nmass_litter_sap 			sapwood nitrogen litter (kgN/m2)
  *   - nmass_litter_heart        	heartwood nitrogen litter (kgN/m2)
- *   - harvested_products_slow		wood product pool (kgC/m2)
- *   - harvested_products_slow_nmass wood product pool nitrogen (kgN/m2)
+ *   - cmass_harvested_products_slow wood product pool (kgC/m2)
+ *   - nmass_harvested_products_slow wood product pool nitrogen (kgN/m2)
  *  OUTPUT PARAMETERS
  *  \param Harvest_CN& i			struct containing the following public members added to the corresponding variables of
  *									a Patchpft corresponding to an Individual:

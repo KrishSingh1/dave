@@ -245,11 +245,6 @@ const double CO2_CONV = 1.0e-6;
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
 
-/// Precision in land cover fraction input
-const double INPUT_PRECISION = 1.0e-14;
-const double INPUT_ERROR = 0.5e-6;
-const double INPUT_RESOLUTION = INPUT_PRECISION - INPUT_PRECISION * INPUT_ERROR;
-
 /// Averaging interval for average maximum annual fapar (SIMFIRE)
 const int AVG_INTERVAL_FAPAR = 3;
 

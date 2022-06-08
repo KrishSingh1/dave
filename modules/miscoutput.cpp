@@ -135,6 +135,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
 	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
 	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
+	declare_parameter("file_nstand_sts", &file_nstand_sts, 300, "stand type stand number output file");
 
 	declare_parameter("file_forest_cmass_harv_killed", &file_forest_cmass_harv_killed, 300,
 		"Killed forest C biomass during wood harvest output file");
@@ -605,6 +606,8 @@ void MiscOutput::define_output_tables() {
 	st_dens_columns += ColumnDescriptors(sts,       15, 4);
 	ColumnDescriptors st_columns_age;
 	st_columns_age += ColumnDescriptors(sts,       15, 1);
+	ColumnDescriptors st_columns_int;
+	st_columns_int += ColumnDescriptors(sts,       15, 0);
 
 	// FOREST STRUCTURE OUTPUT
 	ColumnDescriptors agestruct_columns;
@@ -725,6 +728,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
 	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
 	create_output_table(out_csink_sts,					file_csink_sts,					st_columns);
+	create_output_table(out_nstand_sts,					file_nstand_sts,				st_columns_int);
 
 	create_output_table(out_forest_harvest,				file_forest_harvest,			forest_harv_columns);
 	create_output_table(out_forest_vegc,				file_forest_vegc,				forest_vegc_columns);
@@ -1966,6 +1970,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		int npatches_cc_thisyear = 0;
 		double cutinterval_mean = 0.0;
 		double cutinterval_thisyear_mean = 0.0;
+		int nstands_st = 0;
 
 		Gridcell::iterator gc_itr = gridcell.begin();
 
@@ -1973,24 +1978,30 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
 
-			//Loop through Patches
-			stand.firstobj();
-			while (stand.stid == i && stand.isobj) {
-				Patch& patch = stand.getobj();
-				if(patch.cutinterval_actual) {
-					npatches_cc++;
-					cutinterval_mean += patch.cutinterval_actual;
+			if(stand.stid == i) {
+
+				nstands_st++;
+
+				//Loop through Patches
+				stand.firstobj();
+				while (stand.isobj) {
+					Patch& patch = stand.getobj();
+					if(patch.cutinterval_actual) {
+						npatches_cc++;
+						cutinterval_mean += patch.cutinterval_actual;
+					}
+					if(patch.cutinterval_actual_thisyear) {
+						npatches_cc_thisyear++;
+						cutinterval_thisyear_mean += patch.cutinterval_actual_thisyear;
+					}
+					stand.nextobj();
 				}
-				if(patch.cutinterval_actual_thisyear) {
-					npatches_cc_thisyear++;
-					cutinterval_thisyear_mean += patch.cutinterval_actual_thisyear;
-				}
-				stand.nextobj();
 			}
 			++gc_itr;
 		}
 		outlimit_misc(out, out_cutinterval_sts, cutinterval_mean / max(1, npatches_cc));
 		outlimit_misc(out, out_cutinterval_thisyear_sts, cutinterval_thisyear_mean / max(1, npatches_cc_thisyear));
+		outlimit_misc(out, out_nstand_sts, nstands_st);
 
 		if(st.landcover == FOREST) {
 

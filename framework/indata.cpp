@@ -273,6 +273,9 @@ bool TimeDataD::Open(const char* name) {
 			dprintf("TimeDataD::Open: Could not allocate memory for data from file %s!\n", name);
 			return false;
 		}
+
+		ParsePrecision(); // Must be done before call to Load(), where file is closed.
+
 		// Load global data.
 		if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
 			Load();
@@ -315,6 +318,76 @@ bool TimeDataD::ParseNormalisation() {
 bool TimeDataD::NormalisedData() {
 
 	return unity_data;
+}
+
+void TimeDataD::ParsePrecision() {
+
+	char line[MAXLINE]={0}, s1[MAXRECORDS][MAXNAMESIZE] = {'\0'};
+	char *chp = NULL, *p = NULL;
+	int count1 = 0, line_no = 0;
+	const int maxnsample = 2000;
+	int nsample = min(maxnsample, GetNCells() * nYears);
+	int first_data_column = 0;
+
+	switch(format) {
+
+	case GLOBAL_YEARLY:
+		first_data_column = 1;
+		break;
+	case LOCAL_STATIC:
+		first_data_column = 2;
+		break;
+	case LOCAL_YEARLY:
+		first_data_column = 3;
+		break;
+	case GLOBAL_STATIC:
+		first_data_column = 1;
+		break;
+	default:	// format EMPTY
+		printf("Format is not set correctly in file %s !\n", fileName);
+	}
+
+	Rewind();
+	bool firstline = true;
+	while(!feof(ifp)) {
+		count1=0;
+		line[0]=0;
+		if(fgets(line,sizeof(line),ifp)) {
+			line_no++;
+			p=strtok(line, "\t\n ");
+
+			if(p) {
+				strncpy(s1[count1], p, MAXNAMESIZE-1);
+			}
+			count1++;
+			do {
+				p=strtok(NULL, "\t\n ");
+				if(p) {
+					strncpy(s1[count1], p, MAXNAMESIZE-1);
+					count1++;
+				}
+			}
+			while(p);
+			p=NULL;
+
+			if(ifheader && firstline) {
+				firstline = false;
+			}
+			else {
+				for(int i=first_data_column ;i<count1;i++) {
+					char word_copy[MAXNAMESIZE] = {'\0'};
+					strncpy(word_copy, s1[i], MAXNAMESIZE-1);
+					int str_length  = strlen(word_copy);
+					if(chp = strrchr(word_copy, '.'))
+						*chp='\0';
+					int precision_local = str_length - strlen(word_copy) - 1;
+					if(precision_local > precision)
+					precision = precision_local;
+				}
+			}
+		}
+	}
+	Rewind();
 }
 
 void TimeDataD::CreateFileMap() {
@@ -1677,6 +1750,7 @@ TimeDataD::TimeDataD(fileformat formatX) {
 	spatial_resolution = DEFAULT_SPATIAL_RESOLUTION;
 	offset = 0.0;
 	loaded = false;
+	precision = 0;
 }
 
 //Deconstructor

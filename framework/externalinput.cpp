@@ -7,6 +7,12 @@
 
 #include "externalinput.h"
 
+/// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
+double INPUT_RESOLUTION;
+/// Reasonable guess of landcover area fraction input resolution in original data; used to take into account 
+/// very small additional error added by rescaling area fractions so the sum is 1.0.
+const double ORIGINAL_INPUT_RESOLUTION = 0.5e-6;
+
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 
 	/* Reads list of grid cells and (optional) description text from grid list file
@@ -176,13 +182,14 @@ void MiscInput::getmiscinput_yearly(Gridcell& gridcell) {
 }
 
 LandcoverInput::LandcoverInput()
-	: nyears_cropland_ramp(0) {
+	: nyears_cropland_ramp(0), input_precision_force(0) {
 
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
 	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 0, 10000,
 		"Number of years to increase cropland fraction linearly from 0 to first year's value");
 	declare_parameter("frac_fixed_default_crops", &frac_fixed_default_crops,
-		" whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
+		"Whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
+	declare_parameter("input_precision_force", &input_precision_force, 3, 15, "Precision of landcover area fraction input files");
 }
 
 void LandcoverInput::init() {
@@ -190,10 +197,12 @@ void LandcoverInput::init() {
 	if(!run_landcover)
 		return;
 
+	int input_precision_parsed = 0;
+	int input_precision_use = 0;
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	all_fracs_const=true;	/* If any of the opened files have yearly data, all_fracs_const will be set to false and
+	all_fracs_const = true;	/* If any of the opened files have yearly data, all_fracs_const will be set to false and
 							 * landcover_dynamics will call get_landcover() each year
 							 */
 
@@ -218,12 +227,14 @@ void LandcoverInput::init() {
 			else {
 				lcfrac_fixed = false;
 
-				if(LUdata.GetFormat()==TextInput::LOCAL_YEARLY || TextInput::GLOBAL_YEARLY)
-				all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+				if(LUdata.GetFormat() == TextInput::LOCAL_YEARLY || LUdata.GetFormat() == TextInput::GLOBAL_YEARLY)
+					all_fracs_const = false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
 				if(LUdata.GetNCells() > 100)
 					printseparatestands = false;
+
+				input_precision_parsed = LUdata.GetPrecision();
 			}
 		}
 	}
@@ -251,14 +262,73 @@ void LandcoverInput::init() {
 	file_lu_st[NATURAL] = param["file_lunatural"].str;
 	file_lu_st[FOREST] = param["file_luforest"].str;
 
+	int input_precision_parsed_st_max = 0;
+	bool st_input = false;
+
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 		if(run[lc] && file_lu_st[lc] != "")	{
-			if(!st_data[lc].Open(file_lu_st[lc], gridlist))
+			int input_precision_parsed_st = 0;
+			if(!st_data[lc].Open(file_lu_st[lc], gridlist)) {
 				fail("initio: could not open %s for input",(char*)file_lu_st[lc]);
-		else
+			}
+			else  {
+				st_input = true;
 				frac_fixed[lc] = false;
+				if(st_data[lc].GetFormat() == TextInput::LOCAL_YEARLY || st_data[lc].GetFormat() == TextInput::GLOBAL_YEARLY) 
+					all_fracs_const = false;				// Set all_fracs_const to false if yearly data
+
+				input_precision_parsed_st = st_data[lc].GetPrecision();
+				if(input_precision_parsed_st > input_precision_parsed_st_max)
+					input_precision_parsed_st_max = input_precision_parsed_st;
+				if(input_precision_parsed != input_precision_parsed_st) {
+					dprintf("initio: stand type fraction input file %s has different input precision (%d) from LC file (%d)\n",
+						(char*)file_lu_st[lc], input_precision_parsed_st, input_precision_parsed);
+				}
+			}
 		}
 	}
+
+	if(st_input) {
+		if(input_precision_parsed > input_precision_parsed_st_max) {
+			dprintf("initio: Using LC input precision (%d)\n", input_precision_parsed);
+		}
+		else if(input_precision_parsed < input_precision_parsed_st_max) {
+			dprintf("initio: Using ST input precision (%d)\n", input_precision_parsed_st_max);
+			input_precision_parsed = input_precision_parsed_st_max;
+		}
+	}
+
+	input_precision_use = input_precision_parsed;
+
+	// Increase precision if stand type input file has normalised data.
+	bool found = false;
+	stlist.firstobj();
+	while (stlist.isobj && !found) {
+		StandType& st = stlist.getobj();
+
+		if(file_lu_st[st.landcover] != "" && st_data[st.landcover].NormalisedData()) {
+			input_precision_use = 2 * input_precision_use;
+			found = true;
+		}
+		stlist.nextobj();
+	}
+
+	// Overwrite parsed input precision with instruction file parameter, if set.
+	if(input_precision_force)
+		input_precision_use = input_precision_force;
+
+	// Limit precision range to 3-14.
+	input_precision_use = max(min(input_precision_use, 14), 3);
+
+	INPUT_RESOLUTION = pow(10.0, -input_precision_use);
+
+	// Take into account very small additional error added by rescaling area fractions so the sum is 1.0.
+	INPUT_RESOLUTION = INPUT_RESOLUTION - INPUT_RESOLUTION * ORIGINAL_INPUT_RESOLUTION;
+
+	dprintf("Land cover fraction input precision used=%d, parsed=%d", input_precision_use, input_precision_parsed);
+	if(input_precision_force)
+		dprintf(", \nmanual instruction file input=%d\n\n", input_precision_force);
+	dprintf("\n\n");
 
 	if(!frac_fixed[CROPLAND]) {
 
@@ -297,9 +367,6 @@ void LandcoverInput::init() {
 				stlist.nextobj();
 			}			
 		}
-
-		if(CFTdata.GetFormat()==TextInput::LOCAL_YEARLY || TextInput::GLOBAL_YEARLY) 
-			all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 	}
 
 	// Remove pft:s from pftlist that are not grown in simulated stand types
@@ -775,7 +842,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 				}
 
 				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
-					dprintf("WARNING ! %s fraction sum is %5.3f for input year %d\n", lcnames[lc], sum, year);
+					dprintf("WARNING ! %s st fraction sum is %7.5f for input year %d while LC fraction is %7.5f\n", 
+						(char*)lcnames[lc], sum, year, gridcell.landcover.frac[lc]);
 					dprintf("Rescaling %s  fractions year %d !\n", lcnames[lc], date.get_calendar_year());
 				}
 			}

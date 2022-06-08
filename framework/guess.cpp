@@ -3017,7 +3017,10 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 		
 		// N balance check:
-		if (!negligible(ncont_year - ncont + nflux_year, -9)) {
+		double epsilon_biomass = pow(10.0, -9);
+		if(!all_fracs_const)
+			epsilon_biomass = 50 * INPUT_RESOLUTION;
+		if ((ncont_year - ncont + nflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ncont_year - ncont + nflux_year);
 			dprintf("N pool change: %.9f\n", ncont_year - ncont);
@@ -3042,7 +3045,10 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 		cflux += cflux_year;
 
 		// C balance check:
-		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
+		double epsilon_biomass = pow(10.0, -9);
+		if(!all_fracs_const)
+			epsilon_biomass = 50 * INPUT_RESOLUTION;
+		if ((ccont_year - ccont + cflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);
@@ -3069,8 +3075,12 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 void MassBalance::check_period(Gridcell& gridcell) {
 
+	double epsilon_biomass = pow(10.0, -9);
+	if(!all_fracs_const)
+		epsilon_biomass = 50 * INPUT_RESOLUTION;
+
 	// C balance check:
-	if (!negligible(ccont - ccont_zero + cflux, -9)) {
+	if ((ccont - ccont_zero + cflux) > epsilon_biomass) {
 		dprintf("\nWARNING: (%.2f, %.2f): Period C balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.10f\n",  cflux);
@@ -3079,7 +3089,7 @@ void MassBalance::check_period(Gridcell& gridcell) {
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 	
 	// N balance check:
-	if (!negligible(ncont - ncont_zero + nflux, -9)) {
+	if ((ncont - ncont_zero + nflux) > epsilon_biomass) {
 		dprintf("\nWARNING: (%.2f, %.2f): Period N balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ncont - ncont_zero + nflux);
 		dprintf("N pool change: %.10f\n", ncont - ncont_zero);
 		dprintf("N fluxes: %.10f\n",  nflux);

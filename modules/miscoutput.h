@@ -88,7 +88,7 @@ private:
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_tree_mort_sts, file_cmass_harv_killed_sts, file_cmass_wood_sts, 
 		   file_cmass_wood_harv_sts, file_cmass_wood_harv_toprod_sts, file_dens_sts, file_diam_g_sts,
 		   file_cmass_wood_thin_sts, file_cmass_wood_clearcut_sts, file_cutinterval_sts, file_cutinterval_thisyear_sts, file_csoil_sts,
-		   file_clitter_sts, file_csink_sts,file_lai_sts, file_lai_tree_sts;
+		   file_clitter_sts, file_csink_sts, file_lai_sts, file_lai_tree_sts, file_nstand_sts;
 
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
@@ -138,7 +138,7 @@ private:
 	// Output files with stand type columns
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_tree_mort_sts, out_cmass_harv_killed_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts,
 		  out_cmass_wood_harv_toprod_sts, out_dens_sts, out_diam_g_sts, out_cmass_wood_thin_sts, out_cmass_wood_clearcut_sts, out_cutinterval_sts, 
-		  out_cutinterval_thisyear_sts, out_csoil_sts, out_clitter_sts, out_csink_sts, out_lai_sts, out_lai_tree_sts;
+		  out_cutinterval_thisyear_sts, out_csoil_sts, out_clitter_sts, out_csink_sts, out_lai_sts, out_lai_tree_sts, out_nstand_sts;
 
 	// Separate output files for stand types with pft columns
 	Table* out_cmass_pft_st;

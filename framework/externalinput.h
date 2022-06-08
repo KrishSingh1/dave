@@ -8,6 +8,9 @@
 #ifndef LPJ_GUESS_EXTERNALINPUT_H
 #define LPJ_GUESS_EXTERNALINPUT_H
 
+/// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
+extern double INPUT_RESOLUTION;
+
 #include "indata.h"
 
 using namespace TextInput;
@@ -117,8 +120,11 @@ private:
 	/// Number of years to increase cropland fraction linearly from 0 to first year's value
 	int nyears_cropland_ramp;
 
-	/// whether to use stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) when using fixed crop fractions
+	/// Whether to use stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) when using fixed crop fractions
 	bool frac_fixed_default_crops;
+
+	/// Input precision set in instruction file
+	int input_precision_force;
 };
 
 /// Class that deals with all crop management input from text files

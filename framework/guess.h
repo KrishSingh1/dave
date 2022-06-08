@@ -3475,21 +3475,21 @@ public:
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
-	/// soil moisture diffusivity (m2 s-1)
+	/// soil moisture diffusivity (mm2 s-1)
 	double Dw;
-	/// monthly soil moisture diffusivity (m2 s-1)
+	/// monthly soil moisture diffusivity (mm2 s-1)
 	double mDw[12];
 	/// soil moisture conductivity (m s-1)
 	double Kw;
-	/// Derivative in hydraulic conductivity w.r.t relative saturation (m s-1)
+	/// Derivative in hydraulic conductivity w.r.t relative saturation (mm s-1)
 	double dKwdw;
-	/// monthly soil moisture conductivity (m s-1)
+	/// monthly soil moisture conductivity (mm s-1)
 	double mKw[12];
-	/// soil moisture conductivity at saturation (m s-1)
+	/// soil moisture conductivity at saturation (mm s-1)
 	double Kw_max;
 	/// Exponential in Campbell (1974) parameterization for soil water retention curves
 	double b;
-	/// Soil matric potential at saturation
+	/// Soil matric potential at saturation (mm)
 	double Psi_max;
 	/// Soil organic C microorganism collocation factor
 	double a;
@@ -4264,6 +4264,8 @@ public:
 	double wtd;
 	/// Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
 	double stand_wmass;
+	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur
+	double sat_lev;
 
 	// Gas diffusion variables:
 
@@ -4394,6 +4396,20 @@ public:
 	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
 	/// main hydrology routine
 	void hydrology_lpjf(const Climate& climate, double fevap);
+	void compute_moisture_fluxes_and_derivs(double qflx_infl, std::vector<double> Kw, std::vector<double> psi,
+		std::vector<double> dKwdw, std::vector<double> dpsidw, std::vector<double>& qin, std::vector<double>& qout,
+		std::vector<double>& dqidw0, std::vector<double>& dqidw1, std::vector<double>& dqodw1, std::vector<double>& dqodw2,
+		std::vector<double> vws_liq, std::vector<double> dz);
+	void compute_RHS_moisture_form(std::vector<double> qflx_root, std::vector<double> qin,
+		std::vector<double> qout, std::vector<double> dt_dz, std::vector<double>& rmx);
+	void compute_LHS_moisture_form(std::vector<double> dt_dz, std::vector<double> dqidw0, std::vector<double> dqidw1,
+		std::vector<double> dqodw1, std::vector<double> dqodw2,
+		std::vector<double>& amx, std::vector<double>& bmx, std::vector<double>& cmx);
+	void TridiagonalCol(std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r,
+		std::vector<double>& u);
+	void check_error(std::vector<double> dwat, std::vector<double> dt_dz, std::vector<double> qin, std::vector<double> qout,
+		std::vector<double> qflx_root, double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub);
+	void update_wtp();
 	/// initial percolation
 	void initial_percolation();
 	// CH4 methods

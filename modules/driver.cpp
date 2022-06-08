@@ -875,12 +875,12 @@ void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 		double decomp_at_freezing_point = exp(308.56 * (1.0 / 56.02 - 1.0 / (0.0 + 46.02)));
 
 		// Linear approach (Koven et al. 2011)
-		double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+		double decrease = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
 
 		if (temp < MIN_DECOMP_TEMP)
 			gtemp = 0.0;
 		else
-			gtemp = slope * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
+			gtemp = decrease * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
 	}
 }
 

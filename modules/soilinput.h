@@ -43,8 +43,8 @@ public:
 	/// Initialises the soil depth.
 	void init_depth(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
 
-	/// Initialises the soil orography.
-	void init_sdor(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
+	/// Initialises the soil slope.
+	void init_slope(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
 
 	/// Get and set the Soiltype-object in the current Gridcell-object.
 	void get_soil(double lon, double lat, Gridcell& gridcell);
@@ -111,13 +111,10 @@ private:
 		double pH;
 		double soilC;			// Initial soil C content (kgC/m2), from model output or a database
 		double CN;				// C:N ratio from database
-		double sdor;			// standard deviation of orography
-		double slope;			// slope of soil
 	};
 
 	std::map<coord, int> lpj_map;
 	std::map<coord, double> depth_map;
-	std::map<coord, double> sdor_map;
 	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
 };

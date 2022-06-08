@@ -3193,14 +3193,8 @@ public:
 	double porosity;
 	/// Volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
-	/// Parameter b that accounts for the sub-grid variability related to orography (IFS DOCUMENTATION â€“ Cy45r1 - PART IV: PHYSICAL PROCESSES - eqn 8.84)
-	double b_oro;
-	/// Slope [degree]
-	double slope;
 	/// Slope gradient [m m-1]
 	double slope_grade;
-	/// Slope length [m] which is inversely related to slope gradient 
-	double slope_length;
 
 	// MEMBER FUNCTIONS
 
@@ -3904,7 +3898,6 @@ public:
 	void freeze_lyr();
 	/// Phase change
 	void phase_change();
-	void phase_change_new();
 	/// Water content of soil layer
 	double wcont();
 	/// Field capacity of soil layer
@@ -4015,12 +4008,8 @@ struct Snowlayer : public Serializable {
 	/// Update snow water holding capacity
 	void update_whc();
 
-	/// Balancing snow density when a non-overfull layer increases/decreases
-	void mix_dens(double prec, double snowfall_dens);
-
 	/// Phase change
-	void phase_change(bool single_layer = false);
-	void phase_change_new(bool& updated, bool toplayer = false);
+	void phase_change(bool& updated, bool toplayer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4082,11 +4071,10 @@ public:
 	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow fractions
-	void phase_change();
-	void phase_change_new(bool& updated);
+	void phase_change(bool& updated);
 
 	/// Soak snowpack with water
-	void soak_snowpack(double& snow_melt, double slope);
+	void soak_snowpack(double& snow_melt, double slope_grade);
 
 	/// Snow compaction
 	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);
@@ -4443,7 +4431,6 @@ public:
 	void calc_temp_analytic();
 	/// Calculate water and ice for each layer
 	void phase_change();
-	void phase_change_new();
 	/// Calculate thaw depth
 	void thaw_depth();
 	/// Calculate monthly snow depth

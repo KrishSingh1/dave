@@ -320,8 +320,8 @@ extern bool ifbvoc;
 /// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
 extern bool iftwolayersoil;
 
-/// Whether to account for orography (1), or not (0)
-extern bool iforography;
+/// Whether to use fixed slope value (>=0 degree) or input data (<0)
+extern double slope;
 
 /// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 extern bool ifbedrock;

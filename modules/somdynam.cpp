@@ -506,8 +506,8 @@ double temperature_modifier(double temp_soil) {
 		if (false) {
 			// Alternative: Linear approach (Koven et al. 2011)
 			double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
-			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
+			double decrease = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+			temp_mod = decrease * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
 		} 
 		else {
 			// Default: Q10 relationship (Schaefer & Jafarov, 2016; Natali et al., 2019)

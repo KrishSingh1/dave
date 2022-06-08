@@ -148,7 +148,7 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 }
 
 // Initialises the soil input class and determines the format of the supplied input file.
-void SoilInput::init_sdor(const char* fname, const std::vector<coord>& gridlist) {
+void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
@@ -160,14 +160,13 @@ void SoilInput::init_sdor(const char* fname, const std::vector<coord>& gridlist)
 		std::istringstream iss(line);
 
 		double lon, lat;
-		double sdor, slope;
-		if (iss >> lon >> lat >> sdor >> slope) {
+		double slope_input;
+		if (iss >> lon >> lat >> slope_input) {
 			coord c(lon, lat);
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
-			sdor_map[c] = sdor;
-			slope_map[c] = slope;
+			slope_map[c] = slope_input;
 			if (slope_map.size() == coords.size()) {
 				break;
 			}
@@ -496,32 +495,22 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 	soiltype.a = soiltype.clay_frac < 0.0165 ? 0.0 : (soiltype.clay_frac > 0.373 ? 1.0 : 2.8 * soiltype.clay_frac - 0.046);
 
-	// Standard deviation of orography (300.0 standard value)
-	double sdor = 300.0; 
-	if (sdor_map.size()) {
-		sdor = sdor_map[c];
+	// Slope of soil
+	if (slope < 0.0) {
+		if (slope_map.size()) {
+			slope = slope_map[c];
+		}
+		else {
+			// No input data for slope. Set it to 2 degree as default
+			slope = 2.0;
+		}
 	}
 
-	// Accounts for the sub-grid variability related to orography
-	// Min and max standard deviation of orography (Balsamo et al. 2009 eqn 10)
-	double sigma_min = 100.0;
-	double sigma_max = 1000.0;
-	soiltype.b_oro = max(0.01, min(0.5, (sdor - sigma_min) / (sdor + sigma_max)));
-
-	// Slope of soil (degree; 2 beeing the default value)
-	double slope = 2.0;
-	if (slope_map.size()) {
-		slope = slope_map[c];
-	}
-
-	// Slope [degree] 
-	soiltype.slope = min(90.0, max(0.0, slope));
+	// Slope [degree] limits
+	slope = min(90.0, max(0.0, slope));
 
 	// Slope gradient [m m-1]
-	soiltype.slope_grade = sin(soiltype.slope * PI / 180.0);
-
-	// Slope length [m] which is inversely related to slope gradient 
-	soiltype.slope_length = 2.5 * pow(soiltype.slope_grade, -1.5);
+	soiltype.slope_grade = tan(slope * PI / 180.0);
 
 	// Soil depth
 	// soil_depth is defined in global.ins

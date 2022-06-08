@@ -120,153 +120,9 @@ void Snowlayer::update_whc() {
 	whc = max(0.0, min(depth - imass, imass * (rw_min + (rw_max - rw_min) * max(0.0, dens_t - dens) / dens_t)));
 }
 
-/// Weigthed avg of new and old snow density
-/** Weigthed avg of new and old snow density
- */
-void Snowlayer::mix_dens(double prec, double snowfall_dens) { // DW_COMMENT not used!
-
-	// Total water/ice mass
-	double sum = imass + wmass + prec;
-
-	// New water/ice mass fraction
-	double w_new = prec / sum;
-
-	// Old water/ice mass fraction
-	double w_old = 1.0 - w_new;
-
-	// New density
-	dens = min(rho_ICE, w_old * dens + w_new * snowfall_dens);
-}
-
 /** Phase change of snow layer
  */
-void Snowlayer::phase_change(bool single_layer) {
-
-	// Fraction of water which freezes
-	double Ffreez;
-	// Fraction of ice which thaws
-	double Fthaw;
-	// Energy per volume [J m-3]
-	double energy;
-	// Temperature difference (current - previous)
-	double delta_T;
-	// Phase change energy consumption [J]
-	double phase_change_energy = 0.0;
-
-	bool iffreezed = false;
-	bool ifthawed = false;
-
-	// The total amount of ice and water should not change in this routine
-	double initial_wimass = imass + wmass;
-
-	double lyr_depth = single_layer ? max(depth, SNOW_DEPTH_STANDARD) : depth;
-
-	// Water and ice fraction of full volume
-	double Fwmass = wmass / lyr_depth;
-	double Fimass = imass / lyr_depth;
-
-	// Freezing temperature and water present
-	if (temp < 0.0 && wmass > 0.0) {
-
-		iffreezed = true;
-
-		// Temperature change from zero
-		delta_T = fabs(temp);
-
-		// Energy to freeze water [J m-3]
-		energy = Cp_water * delta_T;
-
-		// Fraction water that would freeze [m3 m-3]
-		Ffreez = energy / Lheat;
-
-		// More water in a volume than could freeze
-		if (Fwmass > Ffreez) {
-
-			// There is some water left, even after freeze
-			Fimass += Ffreez;
-			Fwmass -= Ffreez;
-
-			// Energy from daily temperature change is used for phase change
-			temp = 0.0;
-		}
-		else {
-
-			// It is cold enough to freeze all the water and decrease the temperature below 0,
-			// since the rest of the water gets frozen now. However, it should never result in
-			// temperatures colder than the values coming from the Crank-Nicholson scheme.
-
-			// Snow layer temperature rise resulting from freezing water.
-			double temp_rise = Fwmass * Lheat / Cp_water;
-
-			// Update snow temperature in this layer
-			temp += temp_rise;
-			temp = min(0.0, temp);
-
-			// All water is frozen
-			Fimass += Fwmass;
-			Fwmass = 0.0;
-		}
-	} // End of freezing
-
-	// Thawing temperatures and ice present
-	else if (temp >= 0.0 && imass > 0.0) {
-
-		ifthawed = true;
-
-		// Temperature change from zero
-		delta_T = fabs(temp);
-
-		// Energy to thaw ice [J m-3]
-		energy = Cp_water * delta_T;
-
-		// Fraction ice that would thaw [m3 m-3]
-		Fthaw = energy / Lheat;
-
-		// More ice in a volume than could thaw
-		if (Fimass > Fthaw) {
-
-			// There is some ice left, even after melt
-			Fwmass += Fthaw;
-			Fimass -= Fthaw;
-
-			// Energy from daily temperature change is used for phase change
-			temp = 0.0;
-		}
-		else {
-			// There is more energy available than required for
-			// melting the rest of the ice. Therefore no need to
-			// calculate new temperature as snow layer will be removed
-
-			// All ice thaws
-			Fwmass += Fimass;
-
-			// No ice left in snow layer
-			Fimass = 0.0;
-		}
-
-	} // End of thawing
-
-	// New ice fraction in snow layer
-	imass = Fimass * lyr_depth;
-
-	// New water fraction in snow layer
-	wmass = Fwmass * lyr_depth;
-
-	// Freezing - Update density as depth doesn't change
-	if (iffreezed) {
-		if (!negligible(depth)) {
-			dens = imass * rho_H2O / depth;
-		}
-	}
-	// Thawing - Update depth as density doesn't change
-	else if (ifthawed) {
-		depth = imass / (dens / rho_H2O);
-	}
-}
-
-/** Phase change of snow layer
- */
-void Snowlayer::phase_change_new(bool& updated, bool toplayer) {
+void Snowlayer::phase_change(bool& updated, bool toplayer) {
 
 	// Initial water and ice content
 	double wtotal_initial = wmass + imass;
@@ -947,20 +803,7 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
  * Calculate water, ice and air fraction in each layer
  * and snow phase change
  */
-void Snow::phase_change() {
-
-	// No phase change in simple snow scheme
-	if (!ifmultilayersnow)
-		return;
-
-	bool single_layer = nsnowlayers == 1 ? true : false;
-
-	// Phase change for each snow layer
-	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-		snowlayers[lyr].phase_change(single_layer);
-	}
-}
-void Snow::phase_change_new(bool& updated) {
+void Snow::phase_change(bool& updated) {
 
 	// No phase change in simple snow scheme
 	if (!ifmultilayersnow)
@@ -969,10 +812,10 @@ void Snow::phase_change_new(bool& updated) {
 	// Phase change for each snow layer
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		if (lyr == nsnowlayers - 1) {
-			snowlayers[lyr].phase_change_new(updated, true);
+			snowlayers[lyr].phase_change(updated, true);
 		}
 		else {
-			snowlayers[lyr].phase_change_new(updated);
+			snowlayers[lyr].phase_change(updated);
 		}
 	}
 }
@@ -981,7 +824,7 @@ void Snow::phase_change_new(bool& updated) {
 /** Soak snow pack with water
  * Water soaks snowpack from bottom up
  */
-void Snow::soak_snowpack(double& snow_melt, double slope) {
+void Snow::soak_snowpack(double& snow_melt, double slope_grade) {
 
 	// If there was water exceeding whc and couldn't be infiltrated to the soil, 
 	// then it will fill the snowpack from bottom up and then be lateral transported out of snowpack
@@ -997,7 +840,7 @@ void Snow::soak_snowpack(double& snow_melt, double slope) {
 	// Calculate lateral runoff from each snow layer
 	// Slope dependant drainage of liquid water above whc
 	double lateralflow_scalar = 1.0;
-	double lateralflow_frac = lateralflow_scalar * tan(3.14 / 180.0 * slope);
+	double lateralflow_frac = min(1.0, lateralflow_scalar * slope_grade);
 
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
@@ -1857,258 +1700,6 @@ void Soillayer::freeze_lyr() {
 /** Calculate phase change of water and ice for this soil layer
  */
 void Soillayer::phase_change() {
-
-	// Initial water and ice content
-	double wtotal_initial = wmass + imass;
-	
-	// Should ice thaw
-	bool ifThaw = false;
-	// Should water freeze
-	bool ifFreeze = false;
-	// Fraction of water which freezes
-	double Ffreez = 0.0;
-	// Fraction of ice which thaws
-	double Fthaw = 0.0;
-	// Fraction of water
-	double Fwmass = wmass / depth;
-	// Fraction of water super cooled
-	double Fwmass_sc = 0.0;
-	// Fraction of ice
-	double Fimass = imass / depth;
-	// Energy per volume [J m-3]
-	double energy;
-	// Temperature difference (current - previous)
-	double delta_T;
-	// Phase change energy consumption [J]
-	double phase_change_energy = 0.0;
-	// Maximum error
-	const double EPS = 1.0e-10;
-
-	// Calculate fraction supercooled soil layer water
-	// Two options
-	// (1) - Niu et al. 2006 eqn 3 (CLM scheme) or
-	// (2) - Jin et al. 2020 eqn 28 
-	if (ifsupercooled) {
-
-		if (temp < 0.0) {
-
-			// Maximum super cooled water fraction
-			const double max_sc_frac = 0.5;
-
-			// Temperature close to zero, maximum water is super cooled
-			if (temp > -0.1) {
-				wmass_sc = max_sc_frac * wsats;
-			}
-			// Niu scheme
-			else if (ifsupercooled == 1) {
-				wmass_sc = wsats * min(max_sc_frac, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
-			}
-			// Jin scheme
-			else if (ifsupercooled == 2) {
-				double w_m = 0.05 * (*soilcolumn).soiltype.ssa;
-				double S = 0.37;
-				double C_1 = 0.041;
-				double C = (*soilcolumn).soiltype.ssa * S * C_1 * pow(K2degC - temp, 0.5);
-				wmass_sc = wsats * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
-			}
-
-			Fwmass_sc = wmass_sc / depth;
-
-			temp_old = min(0.0, temp_old);
-			
-			if (Fwmass > Fwmass_sc && temp < temp_old) {
-				ifFreeze = true;
-			} 
-			else if (Fwmass < Fwmass_sc && temp > temp_old){
-				ifThaw = true;
-			}
-		}
-		else if (temp > 0.0 && Fimass > 0.0) {
-			ifThaw = true;
-			temp_old = 0.0;
-			wmass_sc = wsats;
-			Fwmass_sc = wmass_sc / depth;
-		}
-	}
-	else {
-
-		if (temp < 0.0 && Fwmass > 0.0) {
-			ifFreeze = true;
-			temp_old = 0.0;
-		}
-		else if (temp > 0.0 && Fimass > 0.0) {
-			ifThaw = true;
-			temp_old = 0.0;
-		}
-	}
-
-	// Temperature difference from previous phase change
-	delta_T = temp - temp_old;
-	
-	// Freezing temperatures and water present
-	if (ifFreeze) {
-
-		// Energy to freeze water [J m-3]
-		energy = Cp_water * fabs(delta_T);
-
-		// Fraction water that would freeze [m3 m-3]
-		Ffreez = energy / Lheat;
-
-		// Super cooled water that could freeze
-		double Fwmass_freeze = Fwmass - Fwmass_sc;
-
-		if (Fwmass_freeze > Ffreez) {
-			Fimass += Ffreez;
-			Fwmass -= Ffreez;
-
-			temp = temp_old;
-
-			// Energy used for phase change [J m-3]
-			phase_change_energy = -energy;
-		}
-		else {
-			// It is cold enough to freeze all the water and decrease the temperature below 0, 
-			// since the rest of the water gets frozen now. However, it should never result in 
-			// temperatures colder than the values coming from the Crank-Nicholson scheme.
-
-			// Soil layer temperature rise resulting from freezing water.
-			double temp_rise = Fwmass_freeze * Lheat / Cp_water;
-
-			// Update soil temperature in this layer
-			temp += temp_rise;
-			temp = min(temp_old, temp);
-
-			// All water is frozen
-			Fimass += Fwmass_freeze;
-			Fwmass -= Fwmass_freeze;
-
-			// Energy used for phase change [J m-3]
-			phase_change_energy = -Fwmass_freeze * Lheat;
-		}
-	} // End of Freezing
-
-	// Thawing temperatures and ice present
-	else if (ifThaw) {
-
-		if (temp > 0.0) {
-
-			// Energy from full soil layer to freeze water [J m-3]
-			energy = Cp_water * fabs(delta_T);
-
-			// Fraction ice that would thaw [m3 m-3]
-			Fthaw = energy / Lheat;
-
-			if (Fimass > Fthaw) {
-
-				// There is some ice left, even after melt
-				Fwmass += Fthaw;
-				Fimass -= Fthaw;
-				temp = temp_old;
-
-				// Energy used for phase change [J m-3]
-				phase_change_energy = -energy;
-			}
-			else {
-				// There is more energy available than required for
-				// melting the rest of the ice. Therefore the
-				// left-over energy will increase the temperature.
-
-				// Soil layer temperature reduction resulting from thawing ice.
-				double temp_reduction = Fimass * Lheat / Cp_water;
-
-				// Update soil temperature in this layer
-				temp -= temp_reduction;
-				temp = max(temp_old, temp);
-
-				// All water is unfrozen
-				Fwmass += Fimass;
-				Fimass = 0.0;
-
-				// Energy used for phase change [J m-3]
-				phase_change_energy = -Fimass * Lheat;
-			}
-		}
-		else if (Fwmass < Fwmass_sc) {
-
-			// Energy from full soil layer to thaw water [J m-3]
-			energy = Cp_water * fabs(delta_T);
-
-			// Fraction ice that would thaw [m3 m-3]
-			Fthaw = energy / Lheat;
-
-			// Missing super cooled water that should be in liquid form
-			double Fwmass_thaw = min(Fimass, Fwmass_sc - Fwmass);
-
-			if (Fwmass_thaw > Fthaw) {
-
-				// There is some ice left, even after melt
-				Fwmass += Fthaw;
-				Fimass -= Fthaw;
-				temp = temp_old;
-
-				// Energy used for phase change [J m-3]
-				phase_change_energy = -energy;
-			}
-			else {
-				// There is more energy available than required for
-				// melting the super cooled water level. The enery used for 
-				// melting the ice will decrease the water temperarture
-
-				// Soil layer temperature reduction resulting from thawing ice.
-				double temp_reduction = Fwmass_thaw * Lheat / Cp_water;
-
-				// Update soil temperature in this layer
-				temp -= temp_reduction;
-				temp = max(temp_old, temp);
-
-				// Either all ice is unfrozen or super cooled fraction is meet
-				Fwmass += Fwmass_thaw;
-				Fimass -= Fwmass_thaw;
-
-				// Energy used for phase change [J m-3]
-				phase_change_energy = -Fwmass_thaw * Lheat;
-			}
-		}
-	} // End of thawing
-
-	// Water and ice mass
-	wmass = Fwmass * depth;
-	imass = Fimass * depth;
-
-	// Energy used for phase change [J]
-	phase_change_energy *= depth * M_PER_MM;
-
-	// Set new old temperature
-	temp_old = temp;
-
-	// If phase change has happend then update soil layers thermal properties 
-	if (ifThaw || ifFreeze) {
-		update_thermal_properties();
-	}
-
-	if (temp > 0.0 && imass > 0.0)
-		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n", date.year, date.day, depth_profile, temp, imass);
-
-	// No negative wmass
-	if (wmass < -EPS)
-		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n", date.year, date.day, depth_profile, wmass);
-
-	// No negative imass
-	if (imass < -EPS)
-		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n", date.year, date.day, depth_profile, imass);
-
-	double wtotal_final = wmass + imass;
-
-	// water balance checks:
-	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
-	}
-}
-
-/// Calculate phase change of water and ice for this soil layer
-/** Calculate phase change of water and ice for this soil layer
- */
-void Soillayer::phase_change_new() {
 
 	// Initial water and ice content
 	double wtotal_initial = wmass + imass;
@@ -3919,7 +3510,7 @@ void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
 			soillayer.wmass -= drained_wmass;
 
 			// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
-			if (iforography && (soillayer.wmass > soillayer.fc())) {
+			if (soillayer.wmass > soillayer.fc()) {
 
 				// Excees liquid water above field capacity
 				double wmass_excees = soillayer.wmass - soillayer.fc();
@@ -5441,7 +5032,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
 				double lateralflow_scalar = 0.01;
-				double drained_wmass = wmass_excees * imp_ice * lateralflow_scalar * tan(3.14 / 180.0 * soiltype.slope) * dtime / SECS_PER_DAY;
+				double drained_wmass = wmass_excees * min(1.0, imp_ice * lateralflow_scalar * soiltype.slope_grade * dtime / SECS_PER_DAY);
 				soillayers[lyr].runoff_drain += drained_wmass;
 				soillayers[lyr].wmass -= drained_wmass;
 			}
@@ -5488,7 +5079,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// If snowpack present then soak snowpack with surface runoff water and
 	// lateral runoff from snowpack will be calculated
 	if (ifsoaksnow && !negligible(runoff_surf) && !negligible(snow.depth())) {
-		snow.soak_snowpack(runoff_surf, soiltype.slope);
+		snow.soak_snowpack(runoff_surf, soiltype.slope_grade);
 	}
 
 	// Save fluxes
@@ -5946,36 +5537,11 @@ void Soilcolumn::phase_change() {
 
 	// Snow phase change
 
-	// Phase change between water and ice and adjust snow layer temperatures accordingly
-	snow.phase_change();
-
-	// Balance ice and water in snow layers and snow layer depths after phase change
-	snow.balance_snow(patch, rain_melt, rain_melt_temp);
-
-	// Update snow thermal properties
-	snow.update_thermal_properties();
-
-
-	// Soil phase change
-
-	// No phase change for years before first freeze year
-	if (date.year >= FIRST_FREEZE_YEAR) {
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].phase_change();
-		}
-	}
-}
-
-void Soilcolumn::phase_change_new() {
-
-	// Snow phase change
-
 	// Any updates to the snowpack
 	bool updated = false;
 
 	// Phase change between water and ice and adjust snow layer temperatures accordingly
-	snow.phase_change_new(updated);
+	snow.phase_change(updated);
 
 	// Phase change has happened and we need to update the snowpack
 	// or snowpack is too thick
@@ -5994,7 +5560,7 @@ void Soilcolumn::phase_change_new() {
 	if (date.year >= FIRST_FREEZE_YEAR) {
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].phase_change_new();
+			soillayers[lyr].phase_change();
 		}
 	}
 }
@@ -6256,7 +5822,7 @@ void Soilcolumn::calc_temp() {
 		}
 
 		// Phase change between water and ice and adjust snow and soil layer temperatures accordingly
-		phase_change_new();
+		phase_change();
 	}
 
 	// Not the first time this method is called	

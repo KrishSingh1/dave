@@ -73,7 +73,7 @@ bool ifbvoc;
 
 // Soil, arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
-bool iforography;					// Whether to account for orography (1), or not (0) 
+double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
 bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
@@ -523,8 +523,8 @@ void plib_declarations(int id,xtring setname) {
 			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
 		declareitem("hydromodel", &strparam, 12, CB_HYDROMODEL,
 			"Hydrology model mode (\"BELDA\", \"CLM\", \"\")");
-		declareitem("iforography", &iforography, 1, CB_NONE,
-			"Whether to account for orography (1), or not (0)");
+		declareitem("slope", &slope, -1.0, 90.0, 1, CB_NONE,
+			"Whether to use fixed slope value (>=0 degree) or input data (<0) ");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
 			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
 		declareitem("ifsupercooled", &ifsupercooled, 0, 2, 1, CB_NONE,
@@ -1297,11 +1297,7 @@ void plib_callback(int callback) {
 			sendmessage("Error", "Need to specify soil depth with two layer soil!");
 			plibabort();
 		}
-		if (!itemparsed("iforography")) badins("iforography");
-		if (iftwolayersoil == 1 && iforography == 1) {
-			sendmessage("Error", "Can't account for orography with two layer soil!");
-			plibabort();
-		}
+		if (!itemparsed("slope")) badins("slope");
 		if (!itemparsed("ifbedrock")) badins("ifbedrock");
 		if (iftwolayersoil == 1 && ifbedrock == 1) {
 			sendmessage("Error", "Can't account for bedrock with two layer soil!");

@@ -4086,7 +4086,7 @@ public:
 	void phase_change_new(bool& updated);
 
 	/// Soak snowpack with water
-	void soak_snowpack(double& water, double water_temp);
+	void soak_snowpack(double& snow_melt, double slope);
 
 	/// Snow compaction
 	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);

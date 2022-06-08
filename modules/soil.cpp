@@ -914,34 +914,24 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 	double ts_melt = 0.0;
 	double ts_melt_temp = 0.0;
 
-	if (ifsoaksnow) {
+	// Redistribute water within the snow pack
+	// moving from top to bottom snow layers
+	// Water above whc is added to rain_melt
+	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
 
-		// Soak snowpack with melted water
-		// Water fill full snow volume. Water above 
-		// total volume is added to rain_melt
-		soak_snowpack(ts_melt, ts_melt_temp);
-	}
-	else {
+		if (!negligible(ts_melt)) {
+			snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
+			snowlayers[lyr].wmass += ts_melt;
+		}
 
-		// Redistribute water within the snow pack
-		// moving from top to bottom snow layers
-		// Water above whc is added to rain_melt
-		for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
-
-			if (!negligible(ts_melt)) {
-				snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
-				snowlayers[lyr].wmass += ts_melt;
-			}
-
-			if (snowlayers[lyr].wmass > snowlayers[lyr].whc) {
-				ts_melt = max(0.0, snowlayers[lyr].wmass - snowlayers[lyr].whc);
-				snowlayers[lyr].wmass -= ts_melt;
-				ts_melt_temp = max(0.0, snowlayers[lyr].temp);
-			}
-			else {
-				ts_melt = 0.0;
-				ts_melt_temp = 0.0;
-			}
+		if (snowlayers[lyr].wmass > snowlayers[lyr].whc) {
+			ts_melt = max(0.0, snowlayers[lyr].wmass - snowlayers[lyr].whc);
+			snowlayers[lyr].wmass -= ts_melt;
+			ts_melt_temp = max(0.0, snowlayers[lyr].temp);
+		}
+		else {
+			ts_melt = 0.0;
+			ts_melt_temp = 0.0;
 		}
 	}
 
@@ -991,93 +981,32 @@ void Snow::phase_change_new(bool& updated) {
 /** Soak snow pack with water
  * Water soaks snowpack from bottom up
  */
-void Snow::soak_snowpack(double& ts_melt, double ts_melt_temp) {
+void Snow::soak_snowpack(double& snow_melt, double slope) {
 
-	if (!ifsoaksnow || nsnowlayers == 0)
-		return;
+	// If there was water exceeding whc and couldn't be infiltrated to the soil, 
+	// then it will fill the snowpack from bottom up and then be lateral transported out of snowpack
 
-	// Add rain water on top snow layer
-	if (!negligible(ts_melt)) {
-		snowlayers[nsnowlayers - 1].update_temp(ts_melt_temp, ts_melt, Cp_water);
-		snowlayers[nsnowlayers - 1].wmass += ts_melt;
-		ts_melt = 0.0;
-		ts_melt_temp = 0.0;
+	int lyr = 0;
+	while (snow_melt > 0.0 && lyr < nsnowlayers) {
+		double add_wmass = max(0.0, min(snow_melt, snowlayers[lyr].depth - (snowlayers[lyr].wmass + snowlayers[lyr].imass)));
+		snowlayers[lyr].wmass += add_wmass;
+		snow_melt -= add_wmass;
+		lyr++;
 	}
 
-	// Final water content in each snow layer
-	std::vector<double> wmass_lyr(nsnowlayers);
+	// Calculate lateral runoff from each snow layer
+	// Slope dependant drainage of liquid water above whc
+	double lateralflow_scalar = 1.0;
+	double lateralflow_frac = lateralflow_scalar * tan(3.14 / 180.0 * slope);
 
-	// If there is water movement within snowpack
-	bool wmass_movement = false;
+	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
-	// Water moving between snow layers
-	double excess_wmass = 0.0;
-
-	// Loop through layers and fill layer up to whc
-	for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
-		wmass_lyr[lyr] = snowlayers[lyr].wmass;
-
-		if (wmass_lyr[lyr] > snowlayers[lyr].whc) {
-			excess_wmass += wmass_lyr[lyr] - snowlayers[lyr].whc;
-			wmass_lyr[lyr] = snowlayers[lyr].whc;
-			wmass_movement = true;
-		}
-		else if (excess_wmass > 0.0) {
-			double add_wmass = min(excess_wmass, snowlayers[lyr].whc - wmass_lyr[lyr]);
-			wmass_lyr[lyr] += add_wmass;
-			excess_wmass -= add_wmass;
-		}
-	}
-
-	// If there has been water movement, then we need to resolve this
-	if (wmass_movement) {
-
-		// If there was water exceeding whc, then it will fill the snowpack from bottom up
-		if (excess_wmass > 0.0) {
-
-			// Maximum excess water the snowpack can hold when it is soaked
-			double EXCESS_WMASS_MAX = 500.0;
-			excess_wmass = min(EXCESS_WMASS_MAX, excess_wmass);
-
-			int lyr = 0;
-			while (excess_wmass > 0.0 && lyr < nsnowlayers) {
-				double add_wmass = max(0.0, min(excess_wmass, snowlayers[lyr].depth - (snowlayers[lyr].whc + snowlayers[lyr].imass)));
-				wmass_lyr[lyr] += add_wmass;
-				excess_wmass -= add_wmass;
-				lyr++;
-			}
-		}
-
-		// Recalculate newwater conent in each snow layerand adjust temperature accordingly
-		for (int lyr = nsnowlayers - 1; lyr >= 0; lyr--) {
-
-			// Add water that has moved from snow layer above
-			if (!negligible(ts_melt)) {
-				snowlayers[lyr].update_temp(ts_melt_temp, ts_melt, Cp_water);
-				snowlayers[lyr].wmass += ts_melt;
-				ts_melt = 0.0;
-				ts_melt_temp = 0.0;
-			}
-
-			// Check if water in snow layer is above final content
-			if (snowlayers[lyr].wmass - wmass_lyr[lyr] > 1.0e-12) {
-				ts_melt = snowlayers[lyr].wmass - wmass_lyr[lyr];
-				snowlayers[lyr].wmass -= ts_melt;
-				ts_melt_temp = max(0.0, snowlayers[lyr].temp);
-			}
-			else {
-				// Check if water in snow layer is below final content
-				int lyr_below = lyr - 1;
-				while (snowlayers[lyr].wmass - wmass_lyr[lyr] < -1.0e-12 && lyr_below >= 0) {
-					double add_wmass = min(snowlayers[lyr_below].wmass, wmass_lyr[lyr] - snowlayers[lyr].wmass);
-					snowlayers[lyr].wmass += add_wmass;
-					snowlayers[lyr_below].wmass -= add_wmass;
-					lyr_below--;
-				}
-			}
-
-			if (fabs(snowlayers[lyr].wmass - wmass_lyr[lyr]) > 1.0e-10)
-				dprintf("ERROR snow layer water: Year %d Day %d Lyr %d Diff %g Current %g Should %g\n",date.year, date.day, lyr, snowlayers[lyr].wmass - wmass_lyr[lyr], snowlayers[lyr].wmass, wmass_lyr[lyr]);
+		// Lateral flow if wmass above whc
+		if (snowlayers[lyr].wmass > snowlayers[lyr].whc) {
+			double excess_water = snowlayers[lyr].wmass - snowlayers[lyr].whc;
+			double runoff_drain = excess_water * lateralflow_frac;
+			snowlayers[lyr].wmass -= runoff_drain;
+			snow_melt += runoff_drain;
 		}
 	}
 }
@@ -1278,10 +1207,6 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 	if (!negligible(rain_energy)) {
 		water_transferred_temp = rain_energy / (Cp_water * water_transferred * M_PER_MM);
 	}
-
-	// If a snowpack exist, no water influx until snowpack is fully soaked
-	if (!negligible(depth()) && !negligible(water_transferred))
-		soak_snowpack(water_transferred, water_transferred_temp);
 
 	// If water to be transferred to the soil
 	if (!negligible(water_transferred)) {
@@ -5516,22 +5441,22 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
 				double lateralflow_scalar = 0.01;
-				double slope = 30.0;
-				double drained_wmass = wmass_excees * imp_ice * lateralflow_scalar * tan(3.14 / 180.0 * slope) * dtime / SECS_PER_DAY;
-
+				double drained_wmass = wmass_excees * imp_ice * lateralflow_scalar * tan(3.14 / 180.0 * soiltype.slope) * dtime / SECS_PER_DAY;
 				soillayers[lyr].runoff_drain += drained_wmass;
-
 				soillayers[lyr].wmass -= drained_wmass;
 			}
 		}
-		if (date.year == 0 && date.day == 0) {
+
+		int start_yr = 40;
+		int end_yr = 60;
+		if (date.year == start_yr && date.day == 0) {
 			dprintf("Year Day Iter Prec AET Evap Rsurf Rdrain Rbase ");
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
 				dprintf("lyr%d ", lyr);
 			}
 			dprintf("\n");
 		}
-		if (date.year >= 30 && date.year < 50) {
+		if (date.year >= start_yr && date.year < end_yr) {
 			dprintf("%d %d %d %g %g %g %g %g %g ",
 				date.year, date.day, nsubstep, rain_melt, aet_total, evap, 
 				runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE));
@@ -5559,6 +5484,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Reset ran_melt as water has entered the soil
 	rain_melt = 0.0;
+
+	// If snowpack present then soak snowpack with surface runoff water and
+	// lateral runoff from snowpack will be calculated
+	if (ifsoaksnow && !negligible(runoff_surf) && !negligible(snow.depth())) {
+		snow.soak_snowpack(runoff_surf, soiltype.slope);
+	}
 
 	// Save fluxes
 	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);

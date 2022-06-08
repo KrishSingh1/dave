@@ -4179,10 +4179,6 @@ public:
 	int nacrotelm;
 	/// number of catotelm soil layers
 	int ncatotelm;
-	/// Sub time steps within each modelled time step for water flow calculation
-	int wtimesteps;
-	/// Sub time steps within each modelled time step for temperature calculation
-	int ttimesteps;
 	/// Water flow calculation variables
 	CNpara wpara;
 	/// Temperature change calculation variables
@@ -4364,10 +4360,6 @@ public:
 	void update_hydraulic_properties();
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp();
-	/// Calculate soil column water flow
-	void calc_wflow(double winfilt, std::vector<double> aet);
-	/// Resolves negative soil layer water mass
-	void resolve_neg_wmass(std::vector<int> neglyr, double& evap, double& runoff_surf);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties(bool combine_snow = false);
 	/// Set padding layers depth

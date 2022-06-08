@@ -76,13 +76,6 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
-/// Hydrology model setting. Either use 
-/**	One of
- *	BELDA 		Developed by David Belda (GAP)
- *	CLM			Hydrology from CLM5.0
- */
-typedef enum { BELDA, CLM } hydromodeltype;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -129,9 +122,6 @@ extern firemodeltype firemodel;
 
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
-
-/// Hydrology-model switch
-extern hydromodeltype hydromodel;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;

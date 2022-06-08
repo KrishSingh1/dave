@@ -24,7 +24,6 @@ xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
-hydromodeltype hydromodel;
 
 int npatch;
 int npatch_secondarystand;
@@ -187,7 +186,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
-	CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROMODEL
+	CB_FIREMODEL, CB_WEATHERGENERATOR
 };
 
 // File local variables
@@ -230,7 +229,6 @@ void initsettings() {
 	// Parameters not initialised here must be set in instruction script
 
 	firemodel=BLAZE;
-	hydromodel = CLM;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
@@ -521,8 +519,6 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
 			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
-		declareitem("hydromodel", &strparam, 12, CB_HYDROMODEL,
-			"Hydrology model mode (\"BELDA\", \"CLM\", \"\")");
 		declareitem("slope", &slope, -1.0, 90.0, 1, CB_NONE,
 			"Whether to use fixed slope value (>=0 degree) or input data (<0) ");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
@@ -1073,15 +1069,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_HYDROMODEL:
-		if (strparam.upper() == "BELDA") hydromodel = BELDA;
-		else if (strparam.upper() == "CLM") hydromodel = CLM;
-		else {
-			sendmessage("Error",
-				"Unknown hydrology model setting (valid types: \"BELDA\", \"CLM\", \"nil\" , \"\")");
-			plibabort();
-		}
-		break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
@@ -1247,7 +1234,6 @@ void plib_callback(int callback) {
 				plibabort();
 			}
 		}
-		if (!itemparsed("hydromodel")) badins("hydromodel");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");

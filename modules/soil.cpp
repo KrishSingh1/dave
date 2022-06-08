@@ -2158,7 +2158,7 @@ void Soillayer::update_matric_potential() {
  * to the soil water content following Campbell	(1974) 
  * and Clapp and Hornberger (1978)
  */
-void Soillayer::update_hydraulic_properties() {
+void Soillayer::update_hydraulic_properties() { // DW_COMMENT not needed anymore
 
 	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
 	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
@@ -2310,9 +2310,6 @@ void Soilcolumn::initdrivers() {
 
 	depth = 0.0;
 	nsoillayers = 0;
-
-	wtimesteps = 12;
-	ttimesteps = 24;
 
 	wcont_evap = 0.0;
 	NH4_input = 0.0;
@@ -3024,58 +3021,53 @@ void Soilcolumn::update_hydraulic_properties() {
 	int full_lyr = nsoillayers - 1;
 
 	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-		
-		if (hydromodel == BELDA) {
-			soillayers[lyr].update_hydraulic_properties();
+
+		// Layer below
+		int nlyr = lyr + 1 < nsoillayers - 1 ? lyr + 1 : lyr;
+
+		// Water and ice theta for the intersect
+		double theta_w = max(0.001, min(1.0, 0.5 * (soillayers[lyr].wmass / soillayers[lyr].wsats +
+			soillayers[nlyr].wmass / soillayers[nlyr].wsats)));
+		double theta_i = max(0.001, min(1.0, 0.5 * (soillayers[lyr].imass / soillayers[lyr].wsats +
+			soillayers[nlyr].imass / soillayers[nlyr].wsats)));
+
+		// Ice impedance factor for the intersect (Swenson et al. 2012)
+		double imp_ice = 1.0;
+		if (theta_i > 0.0) {
+			imp_ice = min(1.0, pow(10.0, -6.0 * theta_i));
+		}
+
+		// Very low impedance factor, set it to zero and don't allow water to pass
+		if (imp_ice < 0.00001) {
+			imp_ice = 0.0;
+			full_lyr = lyr - 1;
+		}
+
+		// Hydraulic conductivity (Campbell 1974; m s-1)
+		if (theta_w >= 1.0) {
+			soillayers[lyr].Kw = soillayers[lyr].Kw_max;
+		}
+		else if (theta_w < 0.01) {
+			soillayers[lyr].Kw = 0.0;
 		}
 		else {
-			// Layer below
-			int nlyr = lyr + 1 < nsoillayers - 1 ? lyr + 1 : lyr;
-
-			// Water and ice theta for the intersect
-			double theta_w = max(0.001, min(1.0, 0.5 * (soillayers[lyr].wmass / soillayers[lyr].wsats +
-				soillayers[nlyr].wmass / soillayers[nlyr].wsats)));
-			double theta_i = max(0.001, min(1.0, 0.5 * (soillayers[lyr].imass / soillayers[lyr].wsats +
-				soillayers[nlyr].imass / soillayers[nlyr].wsats)));
-
-			// Ice impedance factor for the intersect (Swenson et al. 2012)
-			double imp_ice = 1.0;
-			if (theta_i > 0.0) {
-				imp_ice = min(1.0, pow(10.0, -6.0 * theta_i));
-			}
-
-			// Very low impedance factor, set it to zero and don't allow water to pass
-			if (imp_ice < 0.00001) {
-				imp_ice = 0.0;
-				full_lyr = lyr - 1;
-			}
-
-			// Hydraulic conductivity (Campbell 1974; m s-1)
-			if (theta_w >= 1.0) {
-				soillayers[lyr].Kw = soillayers[lyr].Kw_max;
-			}
-			else if (theta_w < 0.01) {
-				soillayers[lyr].Kw = 0.0;
-			}
-			else {
-				soillayers[lyr].Kw = imp_ice * soillayers[lyr].Kw_max * pow(theta_w, 2.0 * soillayers[lyr].b + 3.0);
-			}
-
-			if (soillayers[lyr].Kw < 1.0e-15) {
-				soillayers[lyr].Kw = 0.0;
-			}
-
-			// Smarter if frozen layer below, then Kw = 0
-			if (lyr == full_lyr && ifbedrock) {
-				soillayers[lyr].Kw = 0.0;
-				if (soillayers[lyr].wmass + soillayers[lyr].imass >= soillayers[lyr].wsats) {
-					full_lyr--;
-				}
-			}
-
-			// Derivative in hydraulic conductivity w.r.t relative saturation
-			soillayers[lyr].dKwdw = imp_ice * (2.0 * soillayers[lyr].b + 3.0) * soillayers[lyr].Kw / theta_w;
+			soillayers[lyr].Kw = imp_ice * soillayers[lyr].Kw_max * pow(theta_w, 2.0 * soillayers[lyr].b + 3.0);
 		}
+
+		if (soillayers[lyr].Kw < 1.0e-15) {
+			soillayers[lyr].Kw = 0.0;
+		}
+
+		// Smarter if frozen layer below, then Kw = 0
+		if (lyr == full_lyr && ifbedrock) {
+			soillayers[lyr].Kw = 0.0;
+			if (soillayers[lyr].wmass + soillayers[lyr].imass >= soillayers[lyr].wsats) {
+				full_lyr--;
+			}
+		}
+
+		// Derivative in hydraulic conductivity w.r.t relative saturation
+		soillayers[lyr].dKwdw = imp_ice * (2.0 * soillayers[lyr].b + 3.0) * soillayers[lyr].Kw / theta_w;
 	}
 }
 
@@ -3444,235 +3436,6 @@ void Soilcolumn::wflow_temp() {
 		else if (wfluxes[lyr] < -EPS) {
 			soillayers[lyr - 1].update_temp(max(0.0, soillayers[lyr].temp), -wfluxes[lyr], Cp_water);
 		}
-	}
-}
-
-/// Calculate soil column water flow
-/** Calculate soil column water flow
- */
-void Soilcolumn::calc_wflow(double winfilt, std::vector<double> aet) {
-
-	bool negwmass = false;
-	double drained_wmass;
-
-	// Calculate matrix potential (not used yet)
-	update_matric_potential();
-
-	// Calculate hydraulic conductivity and diffusivity
-	update_hydraulic_properties();
-
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-		wpara.dz[lyr] = soillayers[lyr].depth * M_PER_MM;
-		wpara.z[lyr] = soillayers[lyr].depth_profile * M_PER_MM;
-		wpara.cap[lyr] = 1.0;
-		wpara.diff[lyr] = soillayers[lyr].Dw;
-		wpara.cond[lyr] = soillayers[lyr].Kw;
-		wpara.sink[lyr] = -(aet[lyr] / soillayers[lyr].depth) / SECS_PER_DAY;
-		wpara.psi[lyr] = soillayers[lyr].wmass / soillayers[lyr].depth;
-	}
-
-	// Boundary conditions for soil water
-	// Upper boundary condition [m s-1]
-	double f_top = winfilt / rho_H2O / SECS_PER_DAY;
-
-	// Lower boundary condition
-	double f_bot = ifbedrock ? 0.0 : wpara.cond[nsoillayers - 1];
-
-	// Build diagonals and RHS vector
-	build_diags_rhs(SECS_PER_DAY / wtimesteps, f_top, f_bot, wpara, nsoillayers);
-
-	// Solve tridiagonal system
-	solve_tridiagonal(wpara);
-
-	// Set new wmass
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-		Soillayer& soillayer = soillayers[lyr];
-
-		// Water mass in soil layer
-		soillayer.wmass = wpara.psi1[lyr] * soillayer.depth;
-
-		// Calculate lateral drainage
-
-		// wmass can have a small negative value (resolved later when mass balance can be kept)
-		// if so, no lateral drainage is calculated
-		if (soillayer.wmass > 0.0) {
-
-			// Liquid water above saturation is drained laterally
-			drained_wmass = min(soillayer.wmass, max(0.0, soillayer.wmass + soillayer.imass - soillayer.wsats));
-
-			// Sum todays lateral drainage
-			soillayer.runoff_drain += drained_wmass;
-
-			// Update total water after drainage 
-			// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-			soillayer.wmass -= drained_wmass;
-
-			// If orography affects sub surface lateral drainage (Steenhuis 2019 eqn 14)
-			if (soillayer.wmass > soillayer.fc()) {
-
-				// Excees liquid water above field capacity
-				double wmass_excees = soillayer.wmass - soillayer.fc();
-
-				// Slope dependant drainage of liquid water above field capacity
-				drained_wmass = wmass_excees * min(1.0, soillayer.Kw * soiltype.slope_grade * MM_PER_M * SECS_PER_DAY / wtimesteps * soillayer.imp_ice);
-
-				// Sum todays lateral drainage
-				soillayer.runoff_drain += drained_wmass;
-
-				// Update total water after drainage 
-				// remove drained water from wmass. Water and ice will now maximum fill up soil layer to saturation
-				soillayer.wmass -= drained_wmass;
-			}
-		}
-	}
-}
-
-/// Resolves negative soil layer water mass
-/** Resolves negative soil layer water mass
-*/
-void Soilcolumn::resolve_neg_wmass(std::vector<int> neglyr, double& evap, double& runoff_surf) {
-
-	// Resolve negative wmass
-	for (int lyr = 0; lyr < neglyr.size(); lyr++) {
-		int lyr_neg = neglyr[lyr];
-
-		// Start with checking fluxes from layer
-
-		// If drained water then take negative wmass first from it
-		if (soillayers[lyr_neg].runoff_drain > 0.0) {
-			double wmass_move = min(soillayers[lyr_neg].runoff_drain, -soillayers[lyr_neg].wmass);
-			soillayers[lyr_neg].runoff_drain -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-		}
-
-		// Still negative, take from imass
-		if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr_neg].imass > 0.0) {
-			double wmass_move = min(soillayers[lyr_neg].imass, -soillayers[lyr_neg].wmass);
-			soillayers[lyr_neg].imass -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-		}
-
-		// Soil layer below have taken wmass from negative layer
-		if (wfluxes[lyr_neg + 1] > 0.0 && soillayers[lyr_neg].wmass < 0.0) {
-
-			double max_move;
-			if (lyr_neg < nsoillayers - 1) {
-				max_move = max(0.0, soillayers[lyr_neg + 1].wmass);
-			}
-			else {
-				max_move = max(0.0, soillayers[lyr_neg].runoff_baseflow);
-			}
-
-			double wmass_move = min(max_move, min(wfluxes[lyr_neg + 1], -soillayers[lyr_neg].wmass));
-			wfluxes[lyr_neg + 1] -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-
-			if (lyr_neg < nsoillayers - 1) {
-				soillayers[lyr_neg + 1].wmass -= wmass_move;
-			}
-			else {
-				soillayers[lyr_neg].runoff_baseflow -= wmass_move;
-			}
-		}
-
-		// Soil layer above have taken wmass from negative layer
-		if (wfluxes[lyr_neg] < 0.0 && soillayers[lyr_neg].wmass < 0.0) {
-
-			double max_move;
-			if (lyr_neg > 0) {
-				max_move = max(0.0, soillayers[lyr_neg - 1].wmass);
-			}
-			else {
-				max_move = max(0.0, evap);
-			}
-
-			double wmass_move = min(max_move, min(-wfluxes[lyr_neg], -soillayers[lyr_neg].wmass));
-			wfluxes[lyr_neg] += wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-			if (lyr_neg > 0) {
-				soillayers[lyr_neg - 1].wmass -= wmass_move;
-			}
-			else {
-				evap -= wmass_move;
-			}
-		}
-
-		// Very abnormal error in water movment. Happens on a few occations in a global simulation.
-		// Extreme measures to be taken to keep soil layer wmass above zero 
-
-		// Still negative, take from evaporation
-		if (soillayers[lyr_neg].wmass < 0.0 && evap > 0.0) {
-			double wmass_move = min(evap, -soillayers[lyr_neg].wmass);
-			evap -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-		}
-
-		// Still negative, take from surface runoff
-		if (soillayers[lyr_neg].wmass < 0.0 && runoff_surf > 0.0) {
-			double wmass_move = min(runoff_surf, -soillayers[lyr_neg].wmass);
-			runoff_surf -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-		}
-
-		// Still negative, take from wmass from layers below
-		if (soillayers[lyr_neg].wmass < 0.0) {
-			for (int lyr = lyr_neg + 1; lyr < nsoillayers; lyr++) {
-				
-				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].wmass > 0.0) {
-					double wmass_move = min(soillayers[lyr].wmass, -soillayers[lyr_neg].wmass);
-					soillayers[lyr].wmass -= wmass_move;
-					soillayers[lyr_neg].wmass += wmass_move;
-				}
-			}
-		}
-
-		// Still negative, take from wmass from layers above
-		if (soillayers[lyr_neg].wmass < 0.0) {
-			for (int lyr = lyr_neg - 1; lyr >= 0; lyr--) {
-
-				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].wmass > 0.0) {
-					double wmass_move = min(soillayers[lyr].wmass, -soillayers[lyr_neg].wmass);
-					soillayers[lyr].wmass -= wmass_move;
-					soillayers[lyr_neg].wmass += wmass_move;
-				}
-			}
-		}
-
-		// Still negative, take from drainage from layers below
-		if (soillayers[lyr_neg].wmass < 0.0) {
-			for (int lyr = lyr_neg + 1; lyr < nsoillayers; lyr++) {
-
-				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].runoff_drain > 0.0) {
-					double wmass_move = min(soillayers[lyr].runoff_drain, -soillayers[lyr_neg].wmass);
-					soillayers[lyr].runoff_drain -= wmass_move;
-					soillayers[lyr_neg].wmass += wmass_move;
-				}
-			}
-		}
-
-		// Still negative, take from drainage from layers above
-		if (soillayers[lyr_neg].wmass < 0.0) {
-			for (int lyr = lyr_neg - 1; lyr >= 0; lyr--) {
-
-				if (soillayers[lyr_neg].wmass < 0.0 && soillayers[lyr].runoff_drain > 0.0) {
-					double wmass_move = min(soillayers[lyr].runoff_drain, -soillayers[lyr_neg].wmass);
-					soillayers[lyr].runoff_drain -= wmass_move;
-					soillayers[lyr_neg].wmass += wmass_move;
-				}
-			}
-		}
-
-		// Still negative, take from baseflow
-		if (soillayers[lyr_neg].wmass < 0.0 && soillayers[nsoillayers - 1].runoff_baseflow > 0.0) {
-			double wmass_move = min(soillayers[nsoillayers - 1].runoff_baseflow, -soillayers[lyr_neg].wmass);
-			soillayers[nsoillayers - 1].runoff_baseflow -= wmass_move;
-			soillayers[lyr_neg].wmass += wmass_move;
-		}
-
-		if (soillayers[lyr_neg].wmass < -1.0e-12)
-			dprintf("ERROR: Negative soil layer water! Year %d Day %d Lyr %d wmass %g\n", date.year, date.day, lyr_neg, soillayers[lyr_neg].wmass);
 	}
 }
 
@@ -4617,6 +4380,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	double evap = 0.0;
 	// Surface runoff (mm)
 	double runoff_surf = 0.0;
+	// Infiltration (mm)
+	double wmass_infilt_tot = 0.0;
 	// AET for a particular layer and individual (mm/day)
 	double aet;
 	// total AET for each soil layer (mm/day)
@@ -4640,23 +4405,105 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		vegetation.nextobj();
 	}
 
-	// Hydrology scheme developed by Belda
-	if (hydromodel == BELDA) {
-		// Calculate static ice mass and saturation level for infiltation depth (top layer)
-		double imass_infilt = to_depth(depth_infilt, IMASS);
-		double wsats_infilt = to_depth(depth_infilt, WSATS);
+	// CLM5.0 hydrology
 
-		// Reset daily infiltation flux, evaporation and surface and drainage runoff 
-		// and set initial water fraction to be able to calculate daily water fluxes
-		double winfilt = 0.0;
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].runoff_drain = 0.0;
-			wpara.psi0[lyr] = soillayers[lyr].wmass / soillayers[lyr].depth;
-		}
+	std::vector<double> dz, vws_liq, qflx_root, dt_dz, Kw, dKwdw, psi, dpsidw, qin, qout,
+		dqidw0, dqidw1, dqodw1, dqodw2, rmx, amx, bmx, cmx, dwat, fluxNet0, fluxNet1;
+	dz.resize(nsoillayers);
+	vws_liq.resize(nsoillayers);
+	qflx_root.resize(nsoillayers);
+	dt_dz.resize(nsoillayers);
+	Kw.resize(nsoillayers);
+	dKwdw.resize(nsoillayers);
+	psi.resize(nsoillayers);
+	dpsidw.resize(nsoillayers);
+	qin.resize(nsoillayers);
+	qout.resize(nsoillayers);
+	dqidw0.resize(nsoillayers);
+	dqidw1.resize(nsoillayers);
+	dqodw1.resize(nsoillayers);
+	dqodw2.resize(nsoillayers);
+	rmx.resize(nsoillayers);
+	amx.resize(nsoillayers);
+	bmx.resize(nsoillayers);
+	cmx.resize(nsoillayers);
+	dwat.resize(nsoillayers);
+	fluxNet0.resize(nsoillayers);
+	fluxNet1.resize(nsoillayers);
 
-		// Loop through sub daily timesteps to be able to solve 
-		// the vertical flow of water with the Crank - Nicolson method
-		for (int ts = 0; ts < wtimesteps; ts++) {
+	// Initial sub daily timesteps on days with precipitation
+	double nsubdays_prec = 12.0;
+	// Initial sub daily timesteps on days with no precipitation
+	double nsubdays_noprec = 6.0;
+	// Minimum timestep (60 sec)
+	double dtmin = 60.0;
+	// Model timestep length in seconds (daily timestep)
+	double dtime = SECS_PER_DAY;
+	// tolerance to halve length of substep
+	double xTolerUpper = 0.1;
+	// tolerance to double length of substep
+	double xTolerLower = 0.01;
+	// a very small number used to check for sub step completion
+	double verySmall = 1.0e-8;
+	// Maximum error in timestep calculation
+	double errorMax;
+	// initialize sub daily steps (seconds)
+	double dtsub = SECS_PER_DAY / nsubdays_noprec;
+	// Infiltration rate this timestep (mm s-1)
+	double qflx_infilt;
+	// Surface runoff this timestep (mm s-1)
+	double qflx_surf;
+	// Evaporation (mm / s)
+	double qflx_evap;
+	// Precipitation and snow melt (mm / s)
+	double qflx_rain_melt = rain_melt / SECS_PER_DAY;
+
+	// initialize the number of substeps
+	int nsubstep = 0;
+
+	// substep completed
+	double dtdone = 0.0;
+
+	// estimate length of the substep (seconds)
+	if (qflx_rain_melt > 0.0) {
+		dtsub = SECS_PER_DAY / nsubdays_prec;
+	}
+	else {
+		dtsub = SECS_PER_DAY / nsubdays_noprec;
+	}
+
+	// Finished day
+	bool finished = false;
+
+	// wmass balance check
+	double wmass_tot_before = rain_melt + get_sum(WMASS);
+
+	// Calculate static ice mass and saturation level for infiltation depth (top layer)
+	double imass_infilt = to_depth(depth_infilt, IMASS);
+	double wsats_infilt = to_depth(depth_infilt, WSATS);
+
+	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
+	// and set initial water fraction to be able to calculate daily water fluxes
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		soillayers[lyr].runoff_drain = 0.0;
+		soillayers[lyr].runoff_baseflow = 0.0;
+	}
+
+	// Adaptive substep loop
+	while (!finished) {
+
+		// Calculate sudstep
+		bool calcsub = true;
+
+		while (calcsub) {
+
+			// keep track of the number of trials
+			nsubstep++;
+
+			// Infiltration rate this timestep (mm s-1)
+			qflx_infilt = 0.0;
+			// Surface runoff this timestep (mm s-1)
+			qflx_surf = 0.0;
 
 			// Evaporation
 
@@ -4666,412 +4513,208 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			// Calculate wcont for top layer (evaporation layer)
 			wcont_evap = soillayers[0].wcont();
 
-			// Calculate total evaporation only if snow depth < 10mm
-			double evap_sd = 0.0;
+			// Calculate total evaporation only if snow depth < 10mm (mm day-1)
+			qflx_evap = 0.0;
 			if (snow.depth() < 10.0 && !negligible(fevap)) {
-				evap_sd = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
+				qflx_evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
 
 				// Remove small evaporations
-				if (evap_sd < EPS)
-					evap_sd = 0.0;
-
-				evap += evap_sd / wtimesteps;
+				if (qflx_evap < EPS) {
+					qflx_evap = 0.0;
+				}
+				qflx_evap /= SECS_PER_DAY;
 			}
 
-			// Calculate water influx after rain_melt initially meets the evaporation demand, can be negative (mm/day)
-			double winflux_sd = rain_melt - evap_sd;
+			// Calculate water influx after rain_melt initially meets the 
+			// evaporation demand, can be negative (mm s-1)
+			double qflx_rain = qflx_rain_melt - qflx_evap;
 
 			// Surface infiltration and runoff
 
-			// Calculate changing water content for infiltration layers
-			double wmass_infilt = to_depth(depth_infilt, WMASS);
-
-			// Fraction pore spaces that are filled with water and ice
-			double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
-
-			// Calculate runoff if there is any throughfall or snow melt 
-			double runoff_surf_sd = 0.0;
-
-			// Surface runoff depends on orography (Balsamo 2009, eqn 6 and 11)
-			/*if (iforography) {
-				if (winflux_sd > EPS) {
-					runoff_surf_sd = max(0.0, winflux_sd - max(0.0, wsats_infilt * (1.0 - totwcont_infilt)) + wsats_infilt *
-						pow(max(0.0, pow(1.0 - totwcont_infilt, 1.0 / (1.0 + soiltype.b_oro)) -
-							winflux_sd / (wsats_infilt * (1.0 + soiltype.b_oro))), soiltype.b_oro + 1.0));
-				}
-			}
-			else {*/
-			// Surface runoff is equal to excees water above infiltation capacity
-			runoff_surf_sd = max(0.0, min(winflux_sd, (winflux_sd + wmass_infilt + imass_infilt) - wsats_infilt));
-			//}
-			runoff_surf += runoff_surf_sd / wtimesteps;
-
-			// Calculate infiltration (mm/day)
-			double winfilt_sd = winflux_sd - runoff_surf_sd;
-			winfilt += winfilt_sd / wtimesteps;
-
-			// Calculate water flows and content after knowing surface influx and AET of each soil layer
-			calc_wflow(winfilt_sd, aet_layer);
-		}
-
-		// Calculate water fluxes to, inbetween and out of soil layers and
-		// check for negative wmass
-
-		// Soil layers with negative water mass
-		std::vector<int> neglyr;
-
-		wfluxes[0] = winfilt;
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
-
-			if (soillayers[lyr].wmass < 0.0)
-				neglyr.push_back(lyr);
-		}
-
-		// Calculate baseflow
-		soillayers[nsoillayers - 1].runoff_baseflow = max(0.0, wfluxes[nsoillayers]);
-
-		// Negative soil layer wmass exists
-		if (neglyr.size()) {
-			resolve_neg_wmass(neglyr, evap, runoff_surf);
-		}
-
-		// Water balance check
-		double final_wmass = snow.wcontent() + get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
-
-		if (fabs(initial_wmass - final_wmass) > 0.0) {
-
-			double diff = final_wmass - initial_wmass;
-
-			// Too little water
-			if (diff < 0.0) {
-
-				// Add excess water to top soil layer
-				soillayers[0].wmass += diff;
-			}
-			// Too much water
-			else {
-
-				// Take from bottom soil layer upwards
-				int lyr = nsoillayers - 1;
-				while (diff > 0.0 && lyr >= 0) {
-
-					double water = min(soillayers[lyr].wmass, diff);
-					diff -= water;
-					soillayers[lyr].wmass -= water;
-					lyr--;
-				}
-			}
-		}
-
-		final_wmass = snow.wcontent() + get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + evap + aet_total;
-		if (fabs(initial_wmass - final_wmass) > 1.0e-10 && date.year > FIRST_FREEZE_YEAR)
-			dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, initial_wmass - final_wmass, initial_wmass, final_wmass);
-	}
-	else {
-		// CLM5.0 hydrology
- 
-		std::vector<double> dz, vws_liq, qflx_root, dt_dz, Kw, dKwdw, psi, dpsidw, qin, qout,
-			dqidw0, dqidw1, dqodw1, dqodw2, rmx, amx, bmx, cmx, dwat, fluxNet0, fluxNet1;
-		dz.resize(nsoillayers);
-		vws_liq.resize(nsoillayers);
-		qflx_root.resize(nsoillayers);
-		dt_dz.resize(nsoillayers);
-		Kw.resize(nsoillayers);
-		dKwdw.resize(nsoillayers);
-		psi.resize(nsoillayers);
-		dpsidw.resize(nsoillayers);
-		qin.resize(nsoillayers);
-		qout.resize(nsoillayers);
-		dqidw0.resize(nsoillayers);
-		dqidw1.resize(nsoillayers);
-		dqodw1.resize(nsoillayers);
-		dqodw2.resize(nsoillayers);
-		rmx.resize(nsoillayers);
-		amx.resize(nsoillayers);
-		bmx.resize(nsoillayers);
-		cmx.resize(nsoillayers);
-		dwat.resize(nsoillayers);
-		fluxNet0.resize(nsoillayers);
-		fluxNet1.resize(nsoillayers);
-
-		// Initial sub daily timesteps on days with precipitation
-		double nsubdays_prec = 12.0;
-		// Initial sub daily timesteps on days with no precipitation
-		double nsubdays_noprec = 6.0;
-		// Minimum timestep (60 sec)
-		double dtmin = 60.0;
-		// Model timestep length in seconds (daily timestep)
-		double dtime = SECS_PER_DAY;
-		// tolerance to halve length of substep
-		double xTolerUpper = 0.1;
-		// tolerance to double length of substep
-		double xTolerLower = 0.01;
-		// a very small number used to check for sub step completion
-		double verySmall = 1.0e-8;
-		// Maximum error in timestep calculation
-		double errorMax;
-		// initialize sub daily steps (seconds)
-		double dtsub = SECS_PER_DAY / nsubdays_noprec;
-		// Infiltration rate this timestep (mm s-1)
-		double qflx_infilt;
-		// Surface runoff this timestep (mm s-1)
-		double qflx_surf;
-		// Evaporation (mm / s)
-		double qflx_evap;
-		// Precipitation and snow melt (mm / s)
-		double qflx_rain_melt = rain_melt / SECS_PER_DAY;
-
-		// initialize the number of substeps
-		int nsubstep = 0;
-
-		// substep completed
-		double dtdone = 0.0;
-
-		// estimate length of the substep (seconds)
-		if (qflx_rain_melt > 0.0) {
-			dtsub = SECS_PER_DAY / nsubdays_prec;
-		}
-		else {
-			dtsub = SECS_PER_DAY / nsubdays_noprec;
-		}
-
-		// Finished day
-		bool finished = false;
-
-		// wmass balance check
-		double wmass_tot_before = rain_melt + get_sum(WMASS);
-
-		// Calculate static ice mass and saturation level for infiltation depth (top layer)
-		double imass_infilt = to_depth(depth_infilt, IMASS);
-		double wsats_infilt = to_depth(depth_infilt, WSATS);
-
-		// Reset daily infiltation flux, evaporation and surface and drainage runoff 
-		// and set initial water fraction to be able to calculate daily water fluxes
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			soillayers[lyr].runoff_drain = 0.0;
-			soillayers[lyr].runoff_baseflow = 0.0;
-		}
-
-		// Adaptive substep loop
-		while (!finished) {
-
-			// Calculate sudstep
-			bool calcsub = true;
-
-			while (calcsub) {
-
-				// keep track of the number of trials
-				nsubstep++;
-
-				// Infiltration rate this timestep (mm s-1)
-				qflx_infilt = 0.0;
-				// Surface runoff this timestep (mm s-1)
-				qflx_surf = 0.0;
-
-				// Evaporation
-
-				// Evaporation is calculated on a sub daily time step as water content 
-				// in top soil layer changes with each time step
-
-				// Calculate wcont for top layer (evaporation layer)
-				wcont_evap = soillayers[0].wcont();
-
-				// Calculate total evaporation only if snow depth < 10mm (mm day-1)
-				qflx_evap = 0.0;
-				if (snow.depth() < 10.0 && !negligible(fevap)) {
-					qflx_evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
-
-					// Remove small evaporations
-					if (qflx_evap < EPS) {
-						qflx_evap = 0.0;
-					}
-					qflx_evap /= SECS_PER_DAY;
-				}
-
-				// Calculate water influx after rain_melt initially meets the 
-				// evaporation demand, can be negative (mm s-1)
-				double qflx_rain = qflx_rain_melt - qflx_evap;
-
-				// Surface infiltration and runoff
-
-				// Surface runoff this timestep if there is a positive influx (mm s-1)
-				if (qflx_rain > 0.0) {
-
-					// Calculate changing water content for infiltration layers
-					double wmass_infilt = to_depth(depth_infilt, WMASS);
-
-					// Fraction pore spaces that are filled with water and ice
-					double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
-
-					// Value from Schaperow et al. 2021. Typical range 0.00001 to 0.4
-					// A higher value of binf gives lower infiltration and yields higher surface runoff.
-					double b_infil = 0.2; 
-
-					// fsat as in Wood et al. 1992 (eqn 1)
-					double fsat;
-					if (1.0 - totwcont_infilt > 1.0e-6) {
-						fsat = 1.0 - pow(1.0 - totwcont_infilt, b_infil / (1.0 + b_infil));
-					}
-					else {
-						fsat = 1.0;
-					}
-
-					// Surface runoff (mm s-1)
-					qflx_surf = fsat * qflx_rain;
-				}
-
-				// Infiltration (mm s-1)
-				qflx_infilt = qflx_rain - qflx_surf;
-
-				// Calculate matrix potential (not used yet)
-				update_matric_potential();
-
-				// Calculate hydraulic conductivity and diffusivity
-				update_hydraulic_properties();
-
-				// calculate commonly used variables
-				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					// saturated volumetric water content
-					vws_liq[lyr] = soillayers[lyr].wsats / soillayers[lyr].depth;
-					// time per mm
-					dt_dz[lyr] = dtsub / soillayers[lyr].depth;
-					Kw[lyr] = soillayers[lyr].Kw;
-					psi[lyr] = soillayers[lyr].psi;
-					dKwdw[lyr] = soillayers[lyr].dKwdw;
-					dpsidw[lyr] = soillayers[lyr].dpsidw;
-					dz[lyr] = soillayers[lyr].depth;
-					qflx_root[lyr] = aet_layer[lyr] / SECS_PER_DAY;
-				}
-
-				// Soil moisture fluxes and their derivatives
-				compute_moisture_fluxes_and_derivs(qflx_infilt, Kw, psi, dKwdw, dpsidw, qin, qout,
-					dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz);
-
-				// RHS of system of equations
-				compute_RHS_moisture_form(qflx_root, qin, qout, dt_dz, rmx);
-
-				// LHS of system of equations
-				compute_LHS_moisture_form(dt_dz, dqidw0, dqidw1, dqodw1, dqodw2,
-					amx, bmx, cmx);
-
-				// solve tridiagonal matrix A.X = B
-				TridiagonalCol(amx, bmx, cmx, rmx, dwat);
-
-				// check if substep can be accepted
-				check_error(dwat, dt_dz, qin, qout, qflx_root, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
-			}
-
-			// Accumulate evaporation
-			evap += qflx_evap * dtsub;
-
-			// Accumulate surface runoff
-			runoff_surf += qflx_surf * dtsub;
-
-			// Update the mass of liquid water
-			for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-				soillayers[lyr].wmass += dwat[lyr] * dz[lyr];
-			}
-
-			// drainage from the bottom of the soil column
-			double baserunoff = 0.0;
-
-			// compute drainage if not bedrock (mm s-1)
-			if (!ifbedrock) {
-				baserunoff = Kw[nsoillayers - 1] + dKwdw[nsoillayers - 1] * dwat[nsoillayers - 1];
-			}
-
-			// increment todays base runoff flux
-			soillayers[nsoillayers - 1].runoff_baseflow += baserunoff * dtsub;
-
-			// increment substep and check for completion of the substep
-			dtdone += dtsub;
-
-			if (abs(dtime - dtdone) < verySmall) {
-				// time step completed so exit the loop
-				finished = true;
-			}
-			else {
-
-				// check if the error is below the lower tolerance
-				if (errorMax < xTolerLower) {
-					dtsub *= 2.0;
-				}
-
-				// ensure that the substep does not exceed the time remaining
-				if (dtsub > dtime - dtdone) {
-					dtsub = dtime - dtdone;
-				}
-			}
-		}  // substep loop
-
-		// Move saturated water upwards
-		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-			if (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].wsats) {
-
-				double wmass_excess = soillayers[lyr].wmass - (soillayers[lyr].wsats - soillayers[lyr].imass);
-
-				if (lyr > 0) {
-					soillayers[lyr - 1].wmass += wmass_excess;
+			// Surface runoff this timestep if there is a positive influx (mm s-1)
+			if (qflx_rain > 0.0) {
+
+				// Calculate changing water content for infiltration layers
+				double wmass_infilt = to_depth(depth_infilt, WMASS);
+
+				// Fraction pore spaces that are filled with water and ice
+				double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
+
+				// Value from Schaperow et al. 2021. Typical range 0.00001 to 0.4
+				// A higher value of binf gives lower infiltration and yields higher surface runoff.
+				double b_infil = 0.2;
+
+				// fsat as in Wood et al. 1992 (eqn 1)
+				double fsat;
+				if (1.0 - totwcont_infilt > 1.0e-6) {
+					fsat = 1.0 - pow(1.0 - totwcont_infilt, b_infil / (1.0 + b_infil));
 				}
 				else {
-					runoff_surf += wmass_excess;
+					fsat = 1.0;
 				}
-				soillayers[lyr].wmass = soillayers[lyr].wsats - soillayers[lyr].imass;
+
+				// Surface runoff (mm s-1)
+				qflx_surf = fsat * qflx_rain;
 			}
+
+			// Infiltration (mm s-1)
+			qflx_infilt = qflx_rain - qflx_surf;
+
+			// Calculate matrix potential (not used yet)
+			update_matric_potential();
+
+			// Calculate hydraulic conductivity and diffusivity
+			update_hydraulic_properties();
+
+			// calculate commonly used variables
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				// saturated volumetric water content
+				vws_liq[lyr] = soillayers[lyr].wsats / soillayers[lyr].depth;
+				// time per mm
+				dt_dz[lyr] = dtsub / soillayers[lyr].depth;
+				Kw[lyr] = soillayers[lyr].Kw;
+				psi[lyr] = soillayers[lyr].psi;
+				dKwdw[lyr] = soillayers[lyr].dKwdw;
+				dpsidw[lyr] = soillayers[lyr].dpsidw;
+				dz[lyr] = soillayers[lyr].depth;
+				qflx_root[lyr] = aet_layer[lyr] / SECS_PER_DAY;
+			}
+
+			// Soil moisture fluxes and their derivatives
+			compute_moisture_fluxes_and_derivs(qflx_infilt, Kw, psi, dKwdw, dpsidw, qin, qout,
+				dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz);
+
+			// RHS of system of equations
+			compute_RHS_moisture_form(qflx_root, qin, qout, dt_dz, rmx);
+
+			// LHS of system of equations
+			compute_LHS_moisture_form(dt_dz, dqidw0, dqidw1, dqodw1, dqodw2,
+				amx, bmx, cmx);
+
+			// solve tridiagonal matrix A.X = B
+			TridiagonalCol(amx, bmx, cmx, rmx, dwat);
+
+			// check if substep can be accepted
+			check_error(dwat, dt_dz, qin, qout, qflx_root, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
 		}
 
-		// Lateral drainage
+		// Accumulate evaporation
+		evap += qflx_evap * dtsub;
+
+		// Accumulate surface runoff
+		runoff_surf += qflx_surf * dtsub;
+
+		// Accumulater infiltration
+		wmass_infilt_tot += qflx_infilt * dtsub;
+
+		// Update the mass of liquid water
+		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+			soillayers[lyr].wmass += dwat[lyr] * dz[lyr];
+		}
+
+		// drainage from the bottom of the soil column
+		double baserunoff = 0.0;
+
+		// compute drainage if not bedrock (mm s-1)
+		if (!ifbedrock) {
+			baserunoff = Kw[nsoillayers - 1] + dKwdw[nsoillayers - 1] * dwat[nsoillayers - 1];
+		}
+
+		// increment todays base runoff flux
+		soillayers[nsoillayers - 1].runoff_baseflow += baserunoff * dtsub;
+
+		// increment substep and check for completion of the substep
+		dtdone += dtsub;
+
+		if (abs(dtime - dtdone) < verySmall) {
+			// time step completed so exit the loop
+			finished = true;
+		}
+		else {
+
+			// check if the error is below the lower tolerance
+			if (errorMax < xTolerLower) {
+				dtsub *= 2.0;
+			}
+
+			// ensure that the substep does not exceed the time remaining
+			if (dtsub > dtime - dtdone) {
+				dtsub = dtime - dtdone;
+			}
+		}
+	}  // substep loop
+
+	// Move saturated water upwards
+	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+		if (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].wsats) {
+
+			double wmass_excess = soillayers[lyr].wmass - (soillayers[lyr].wsats - soillayers[lyr].imass);
+
+			if (lyr > 0) {
+				soillayers[lyr - 1].wmass += wmass_excess;
+			}
+			else {
+				runoff_surf += wmass_excess;
+			}
+			soillayers[lyr].wmass = soillayers[lyr].wsats - soillayers[lyr].imass;
+		}
+	}
+
+	// Resolve water movements // DW_COMMENT
+	/*wfluxes[0] = wmass_infilt_tot;
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
+	}*/
+
+	// Lateral drainage
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		if (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc()) {
+			double imp_ice = pow(10.0, -6.0 * soillayers[lyr].imass / soillayers[lyr].wsats);
+			double wmass_excees = soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].fc();
+			if (wmass_excees > soillayers[lyr].wmass) {
+				wmass_excees = soillayers[lyr].wmass;
+			}
+
+			// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
+			double lateralflow_scalar = 0.01;
+			double drained_wmass = wmass_excees * min(1.0, imp_ice * lateralflow_scalar * soiltype.slope_grade * dtime / SECS_PER_DAY);
+			soillayers[lyr].runoff_drain += drained_wmass;
+			soillayers[lyr].wmass -= drained_wmass;
+		}
+	}
+
+	int start_yr = 40;
+	int end_yr = 60;
+	if (date.year == start_yr && date.day == 0) {
+		dprintf("Year Day Iter Prec AET Evap Rsurf Rdrain Rbase ");
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			if (soillayers[lyr].wmass + soillayers[lyr].imass > soillayers[lyr].fc()) {
-				double imp_ice = pow(10.0, -6.0 * soillayers[lyr].imass / soillayers[lyr].wsats);
-				double wmass_excees = soillayers[lyr].wmass + soillayers[lyr].imass - soillayers[lyr].fc();
-				if (wmass_excees > soillayers[lyr].wmass) {
-					wmass_excees = soillayers[lyr].wmass;
-				}
+			dprintf("lyr%d ", lyr);
+		}
+		dprintf("\n");
+	}
+	if (date.year >= start_yr && date.year < end_yr) {
+		dprintf("%d %d %d %g %g %g %g %g %g ",
+			date.year, date.day, nsubstep, rain_melt, aet_total, evap,
+			runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE));
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			dprintf("%g ", soillayers[lyr].wmass / soillayers[lyr].wsats);
+		}
+		dprintf("\n");
+	}
 
-				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
-				double lateralflow_scalar = 0.01;
-				double drained_wmass = wmass_excees * min(1.0, imp_ice * lateralflow_scalar * soiltype.slope_grade * dtime / SECS_PER_DAY);
-				soillayers[lyr].runoff_drain += drained_wmass;
-				soillayers[lyr].wmass -= drained_wmass;
-			}
-		}
+	// wmass balance check
+	double wmass_tot_after = aet_total + evap + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + get_sum(WMASS);
 
-		int start_yr = 40;
-		int end_yr = 60;
-		if (date.year == start_yr && date.day == 0) {
-			dprintf("Year Day Iter Prec AET Evap Rsurf Rdrain Rbase ");
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				dprintf("lyr%d ", lyr);
-			}
-			dprintf("\n");
-		}
-		if (date.year >= start_yr && date.year < end_yr) {
-			dprintf("%d %d %d %g %g %g %g %g %g ",
-				date.year, date.day, nsubstep, rain_melt, aet_total, evap, 
-				runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE));
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				dprintf("%g ", soillayers[lyr].wmass / soillayers[lyr].wsats);
-			}
-			dprintf("\n");
-		}
-
-		// wmass balance check
-		double wmass_tot_after = aet_total + evap + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + get_sum(WMASS);
-		
-		if (fabs(wmass_tot_after - wmass_tot_before) > EPS) {
-			dprintf("Year %d Day %d CLM hydrology doesn't keep water balance! Error: %g Before: %g After: %g\n",
-				date.year, date.day, wmass_tot_before - wmass_tot_after, wmass_tot_before, wmass_tot_after);
-		}
+	if (fabs(wmass_tot_after - wmass_tot_before) > EPS) {
+		dprintf("Year %d Day %d CLM hydrology doesn't keep water balance! Error: %g Before: %g After: %g\n",
+			date.year, date.day, wmass_tot_before - wmass_tot_after, wmass_tot_before, wmass_tot_after);
 	}
 
 	// Determine water table position
 	update_wtp();
 
 	// Update soil layer temperatures due to soil water fluxes
-	if (hydromodel == BELDA)
-		wflow_temp();
+	//wflow_temp(); // DW_COMMENT need to resolve wfluxes above
 
 	// Reset ran_melt as water has entered the soil
 	rain_melt = 0.0;
@@ -5626,12 +5269,7 @@ void Soilcolumn::calc_temp() {
 	double airT = patch.get_climate().temp;
 	double top_temp = snow.nsnowlayers ? snow.snowlayers[snow.nsnowlayers - 1].temp : soillayers[0].temp;
 
-	if (fabs(airT - top_temp) > 2.0) {
-		ttimesteps = 48;
-	}
-	else {
-		ttimesteps = 24;
-	}
+	int ttimesteps = 4;
 
 	// Update heat capacity and thermal conductivity for snow, soil and padding layers
 	update_thermal_properties();
@@ -5652,168 +5290,80 @@ void Soilcolumn::calc_temp() {
 			}
 		}
 
-		if (false) {
+		int nairlayers = 1;
+		int nairsnowlayers = nairlayers + nsnowlayers;
+		int nairsnowsoillayers = nairlayers + nsnowlayers + nsoillayers;
+		int nairsnowsoilpadlayers = nairlayers + nsnowlayers + nsoillayers + PAD_LAYERS;
 
-			int nsnowsoillayers = nsnowlayers + nsoillayers;
-			int nsnowsoilpadlayers = nsnowlayers + nsoillayers + PAD_LAYERS;
-
-			if (nsnowsoilpadlayers != tpara.dz.size()) {
-				tpara.set_sizes(nsnowsoilpadlayers);
-			}
-
-			// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			int slyr = nsnowlayers - 1;
-			for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-				tpara.dz[lyr] = snow.snowlayers[slyr].depth * M_PER_MM;
-				tpara.cap[lyr] = snow.snowlayers[slyr].Ch;
-				tpara.diff[lyr] = snow.snowlayers[slyr].Kh;
-				tpara.psi[lyr] = snow.snowlayers[slyr].temp;
-
-				slyr--;
-			}
-
-			// Soil layers
-			for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-				if (lyr == nsnowlayers && combine_snow) {
-					tpara.dz[lyr] = (soillayers[lyr - nsnowlayers].depth + snow.snowlayers[0].depth) * M_PER_MM;
-				}
-				else {
-					tpara.dz[lyr] = soillayers[lyr - nsnowlayers].depth * M_PER_MM;
-				}
-				tpara.cap[lyr] = soillayers[lyr - nsnowlayers].Ch;
-				tpara.diff[lyr] = soillayers[lyr - nsnowlayers].Kh;
-				tpara.psi[lyr] = soillayers[lyr - nsnowlayers].temp;
-			}
-
-			// Padding layers
-			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-				tpara.dz[lyr] = pad[lyr - nsnowsoillayers].depth * M_PER_MM;
-				tpara.cap[lyr] = pad[lyr - nsnowsoillayers].Ch;
-				tpara.diff[lyr] = pad[lyr - nsnowsoillayers].Kh;
-				tpara.psi[lyr] = pad[lyr - nsnowsoillayers].temp;
-			}
-
-			double depth = tpara.dz[0] / 2.0;
-			tpara.z[0] = depth;
-			for (int lyr = 1; lyr < nsnowsoilpadlayers; lyr++) {
-				depth += (tpara.dz[lyr - 1] + tpara.dz[lyr]) / 2.0;
-				tpara.z[lyr] = depth;
-			}
-
-
-			// Boundary conditions for soil temperature (Shouldn't use air temperature)
-			// Upper boundary condition [J m-2 s-1]
-			double f_top = -2.0 * tpara.diff[0] * (tpara.psi[0] - airT) / tpara.z[0];
-
-			// Lower boundary condition
-			double f_bot = 0.0;
-
-			// Build diagonals and RHS vector
-			build_diags_rhs(SECS_PER_DAY / ttimesteps, f_top, f_bot, tpara, nsnowsoilpadlayers);
-
-			// Solve tridiagonal system
-			solve_tridiagonal(tpara);
-
-			// Update temperatures
-
-			// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			slyr = nsnowlayers - 1;
-			for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-				snow.snowlayers[slyr].temp = tpara.psi1[lyr];
-				slyr--;
-			}
-
-			// Set new soil layer temperatures
-			for (int lyr = nsnowlayers; lyr < nsnowsoillayers; lyr++) {
-				soillayers[lyr - nsnowlayers].temp = tpara.psi1[lyr];
-
-				if (lyr == nsnowlayers && combine_snow)
-					snow.snowlayers[0].temp = tpara.psi1[lyr];
-			}
-
-			// Set new padding layer temperatures
-			for (int lyr = nsnowsoillayers; lyr < nsnowsoilpadlayers; lyr++) {
-				pad[lyr - nsnowsoillayers].temp = tpara.psi1[lyr];
-			}
+		if (nairsnowsoilpadlayers != tpara.dz.size()) {
+			tpara.set_sizes(nairsnowsoilpadlayers);
 		}
-		else {
 
-			ttimesteps = 4;
-			int nairlayers = 1;
-			int nairsnowlayers = nairlayers + nsnowlayers;
-			int nairsnowsoillayers = nairlayers + nsnowlayers + nsoillayers;
-			int nairsnowsoilpadlayers = nairlayers + nsnowlayers + nsoillayers + PAD_LAYERS;
+		// Air layer
+		tpara.dz[0] = AIR_THICKNESS;
+		tpara.cap[0] = Cp_air * M3_PER_MM3;
+		tpara.diff[0] = Kair * SECS_PER_DAY / MM_PER_M;
+		tpara.cond[0] = tpara.diff[0] / tpara.cap[0];
+		tpara.psi[0] = airT;
 
-			if (nairsnowsoilpadlayers != tpara.dz.size()) {
-				tpara.set_sizes(nairsnowsoilpadlayers);
+		// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+		int slyr = nsnowlayers - 1;
+		for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
+			tpara.dz[lyr] = snow.snowlayers[slyr].depth;
+			tpara.cap[lyr] = snow.snowlayers[slyr].Ch / MM3_PER_M3; // m-3 to mm-3
+			tpara.diff[lyr] = snow.snowlayers[slyr].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = snow.snowlayers[slyr].temp;
+
+			slyr--;
+		}
+
+		// Soil layers
+		for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
+			if (lyr == nairsnowlayers && combine_snow) {
+				tpara.dz[lyr] = (soillayers[lyr - nairsnowlayers].depth + snow.snowlayers[0].depth);
 			}
-
-			// Air layer
-			tpara.dz[0] = AIR_THICKNESS;
-			tpara.cap[0] = Cp_air * M3_PER_MM3;
-			tpara.diff[0] = Kair * SECS_PER_DAY / MM_PER_M;
-			tpara.cond[0] = tpara.diff[0] / tpara.cap[0];
-			tpara.psi[0] = airT;
-
-			// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			int slyr = nsnowlayers - 1;
-			for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
-				tpara.dz[lyr] = snow.snowlayers[slyr].depth;
-				tpara.cap[lyr] = snow.snowlayers[slyr].Ch / MM3_PER_M3; // m-3 to mm-3
-				tpara.diff[lyr] = snow.snowlayers[slyr].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-				tpara.psi[lyr] = snow.snowlayers[slyr].temp;
-
-				slyr--;
+			else {
+				tpara.dz[lyr] = soillayers[lyr - nairsnowlayers].depth;
 			}
+			tpara.cap[lyr] = soillayers[lyr - nairsnowlayers].Ch / MM3_PER_M3; // m-3 to mm-3
+			tpara.diff[lyr] = soillayers[lyr - nairsnowlayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = soillayers[lyr - nairsnowlayers].temp;
+		}
 
-			// Soil layers
-			for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
-				if (lyr == nairsnowlayers && combine_snow) {
-					tpara.dz[lyr] = (soillayers[lyr - nairsnowlayers].depth + snow.snowlayers[0].depth);
-				}
-				else {
-					tpara.dz[lyr] = soillayers[lyr - nairsnowlayers].depth;
-				}
-				tpara.cap[lyr] = soillayers[lyr - nairsnowlayers].Ch / MM3_PER_M3; // m-3 to mm-3
-				tpara.diff[lyr] = soillayers[lyr - nairsnowlayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-				tpara.psi[lyr] = soillayers[lyr - nairsnowlayers].temp;
-			}
+		// Padding layers
+		for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
+			tpara.dz[lyr] = pad[lyr - nairsnowsoillayers].depth;
+			tpara.cap[lyr] = pad[lyr - nairsnowsoillayers].Ch / MM3_PER_M3; // m-3 to mm-3
+			tpara.diff[lyr] = pad[lyr - nairsnowsoillayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
+			tpara.psi[lyr] = pad[lyr - nairsnowsoillayers].temp;
+		}
 
-			// Padding layers
-			for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
-				tpara.dz[lyr] = pad[lyr - nairsnowsoillayers].depth;
-				tpara.cap[lyr] = pad[lyr - nairsnowsoillayers].Ch / MM3_PER_M3; // m-3 to mm-3
-				tpara.diff[lyr] = pad[lyr - nairsnowsoillayers].Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-				tpara.psi[lyr] = pad[lyr - nairsnowsoillayers].temp;
-			}
-
-			cnstep_full(airT, 1.0 / ttimesteps, tpara);
+		cnstep_full(airT, 1.0 / ttimesteps, tpara);
 
 
-			// Update temperatures
+		// Update temperatures
 
-			// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
-			slyr = nsnowlayers - 1;
-			for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
-				snow.snowlayers[slyr].temp = tpara.psi1[lyr];
-				slyr--;
-			}
+		// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+		slyr = nsnowlayers - 1;
+		for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
+			snow.snowlayers[slyr].temp = tpara.psi1[lyr];
+			slyr--;
+		}
 
-			// Set new soil layer temperatures
-			for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
-				soillayers[lyr - nairsnowlayers].temp = tpara.psi1[lyr];
+		// Set new soil layer temperatures
+		for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
+			soillayers[lyr - nairsnowlayers].temp = tpara.psi1[lyr];
 
-				if (lyr == nairsnowlayers && combine_snow)
-					snow.snowlayers[0].temp = tpara.psi1[lyr];
-			}
+			if (lyr == nairsnowlayers && combine_snow)
+				snow.snowlayers[0].temp = tpara.psi1[lyr];
+		}
 
-			// Set new padding layer temperatures
-			for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
-				pad[lyr - nairsnowsoillayers].temp = tpara.psi1[lyr];
-			}
+		// Set new padding layer temperatures
+		for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
+			pad[lyr - nairsnowsoillayers].temp = tpara.psi1[lyr];
 		}
 
 		// Recalculate the top soil layer thermal properties after it been combined with the single snow layer for temperature calculations

@@ -1725,6 +1725,7 @@ public:
 	double csink;
 	double lai;
 	double lai_tree;
+	double height;
 
 	StandType() {
 

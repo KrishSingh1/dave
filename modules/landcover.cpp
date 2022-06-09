@@ -870,7 +870,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 					nsts_active[lc]++;
 			}
 		}
-		if(nsts[lc] > 1)
+		if(nsts_active[lc] > 1)
 			multi_st = true;
 	}
 
@@ -884,7 +884,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 			StandType& st_receptor = stlist[to];
 
-			if(nsts[st_receptor.landcover] < 2 && nsts[st_donor.landcover] < 2 
+			if(nsts_active[st_receptor.landcover] < 2 && nsts_active[st_donor.landcover] < 2 
 					&& net_transfer_remain[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1) {
 
 				st_frac_transfer[index(from, to)] += net_transfer_remain[st_donor.landcover][st_receptor.landcover];
@@ -965,7 +965,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				StandType& st_donor = stlist[from];
 				Gridcellst& gcst_donor = gridcell.st[from];
 
-				if(st_donor.landcover == from_lc && nsts[st_donor.landcover] >=2) {
+				if(st_donor.landcover == from_lc && nsts_active[st_donor.landcover] >=2) {
 
 					double net_st_increase = net_lc_receptor_remain[st_donor.landcover] * receptor_weight[from];
 					double net_st_decrease = net_st_increase - gcst_donor.frac_change;
@@ -1078,7 +1078,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 				StandType& st_receptor = stlist[to];
 
-				if(nsts[st_receptor.landcover] >= 2 && net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1
+				if(nsts_active[st_receptor.landcover] >= 2 && net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1
 					&& gridcell.landcover.frac_old[st_donor.landcover]) {
 
 					double transfer = net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] 
@@ -1256,12 +1256,13 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		dif_lc[stlist[from].landcover] += fabs(dif_st[from]) / 2.0;
 	}
 
+	// The fraction errors in dif_st[] may be too large for this allowed error size if the number of stand types is large.
 	const double ROUNDING_ERROR = INPUT_RESOLUTION;
 
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 
 		// Identify land cover with need for st frac adjustment
-		if(nsts[lc] >= 2 && dif_lc[lc] >= INPUT_RESOLUTION * 0.1) {
+		if(nsts_active[lc] >= 2 && dif_lc[lc] >= INPUT_RESOLUTION * 0.1) {
 			
 			// Find second land cover that has most transfers to or from the first land cover 
 			// (with only one stand type with frac/frac_old > 0).

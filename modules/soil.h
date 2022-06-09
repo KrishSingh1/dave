@@ -112,6 +112,9 @@ const double peat_wp = 0.066;
 /// First year when phase change is allowed
 const int FIRST_FREEZE_YEAR = 90;
 
+/// Freezing point [degree C]
+const double freeze_T = 0.0;
+
 /// time step [day]
 const double Dt = 1;
 

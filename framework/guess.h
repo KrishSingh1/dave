@@ -3238,8 +3238,6 @@ public:
 	double T_soil[NLAYERS];
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double T_soil_monthly[12][SOILTEMPOUT];
-	/// soil temperature from previous time step
-	double T_old[NLAYERS];
 	/// soil temperature in each layer YESTERDAY
 	double T_soil_yesterday[NLAYERS];
 	/// soil temperature at 25 cm depth, as calculated using previous versions of the model [deg C]

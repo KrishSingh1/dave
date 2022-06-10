@@ -77,22 +77,27 @@ public:
 
 	double operator() (double x) {
 
-		if (x < _xmin)
+		if (x < _xmin) {
 			x = _xmin;
+		}
 		
-		if (x > _xmax)
+		if (x > _xmax) {
 			x = _xmax;
+		}
 		
 		assert (x >= _xmin && x <= _xmax);
 		if (x == _xmin) {
 			return _data[0];
-		} else if (fabs(x - _xmax) < 0.001*_precision) {
+		} 
+		else if (fabs(x - _xmax) < 0.001*_precision) {
 			return _y_xmax;
-		} else {
+		} 
+		else {
 			double idx;
 			if (x > (_data.size() - 2)*_precision) {
 				idx = _inverse_dx_last;
-			} else {
+			} 
+			else {
 				idx = _inverse_precision;
 			}
 			int i = int((x - _xmin)*_inverse_precision);

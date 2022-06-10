@@ -1730,7 +1730,6 @@ void Soillayer::phase_change() {
 	// Maximum error
 	const double EPS = 1.0e-10;
 
-
 	// Calculate fraction supercooled soil layer water
 	// Two options
 	// (1) - Niu et al. 2006 eqn 3 (CLM scheme) or
@@ -1908,22 +1907,29 @@ void Soillayer::phase_change() {
 	// Set new old temperature
 	temp_old = temp;
 
-	if (temp > 0.0 && imass > 0.0)
-		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n", date.year, date.day, depth_profile, temp, imass);
+	if (temp > 0.0 && imass > 0.0) {
+		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n",
+			date.year, date.day, depth_profile, temp, imass);
+	}
 
 	// No negative wmass
-	if (wmass < -EPS)
-		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n", date.year, date.day, depth_profile, wmass);
+	if (wmass < -EPS) {
+		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n",
+			date.year, date.day, depth_profile, wmass);
+	}
 
 	// No negative imass
-	if (imass < -EPS)
-		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n", date.year, date.day, depth_profile, imass);
+	if (imass < -EPS) {
+		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n",
+			date.year, date.day, depth_profile, imass);
+	}
 
 	double wtotal_final = wmass + imass;
 
 	// water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", 
+			wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
 
 	// Final energy
@@ -1931,7 +1937,8 @@ void Soillayer::phase_change() {
 
 	// Energy balance checks
 	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
-		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", date.year, date.day, depth_profile, energy_initial, energy_final, energy_initial - energy_final);
+		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", 
+			date.year, date.day, depth_profile, energy_initial, energy_final, energy_initial - energy_final);
 	}
 }
 
@@ -2118,13 +2125,16 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 	if (negligible((depth * Ch - add_mass * Cp_air) + add_mass * add_Ch))
 		dprintf("ERROR: Year %d Day %d Updating soil temperature\n", date.year, date.day);
 
-	double old_temp = temp;
-
+	// Update temperature
 	temp = (temp * (depth * Ch - add_mass * Cp_air) + add_temp * add_mass * add_Ch) / ((depth * Ch - add_mass * Cp_air) + add_mass * add_Ch);
 
 	// If temperature becomes positive (negative) with ice (water) present
-	// then perfomr a phase_change for this layer
+	// then update thermal properties and perform a phase change for this layer
 	if (date.year >= FIRST_FREEZE_YEAR && ((temp > 0.0 && imass > 0.0) || (temp < 0.0 && wmass > 0.0))) {
+		// Update thermal properties of layer
+		update_thermal_properties(); 
+
+		// Phase change between water and ice and adjust soil layer temperatures accordingly
 		phase_change();
 	}
 }
@@ -4408,7 +4418,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// CLM5.0 hydrology
 
 	std::vector<double> dz, vws_liq, qflx_root, dt_dz, Kw, dKwdw, psi, dpsidw, qin, qout,
-		dqidw0, dqidw1, dqodw1, dqodw2, rmx, amx, bmx, cmx, dwat, fluxNet0, fluxNet1;
+		dqidw0, dqidw1, dqodw1, dqodw2, rmx, amx, bmx, cmx, dwat, fluxNet0, fluxNet1, wmass_org;
 	dz.resize(nsoillayers);
 	vws_liq.resize(nsoillayers);
 	qflx_root.resize(nsoillayers);
@@ -4430,6 +4440,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	dwat.resize(nsoillayers);
 	fluxNet0.resize(nsoillayers);
 	fluxNet1.resize(nsoillayers);
+	wmass_org.resize(nsoillayers);
 
 	// Initial sub daily timesteps on days with precipitation
 	double nsubdays_prec = 12.0;
@@ -4487,6 +4498,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		soillayers[lyr].runoff_drain = 0.0;
 		soillayers[lyr].runoff_baseflow = 0.0;
+
+		// Save initial wmass // DW_COMMENT
+		wmass_org[lyr] = soillayers[lyr].wmass;
 	}
 
 	// Adaptive substep loop
@@ -4654,17 +4668,11 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 				soillayers[lyr - 1].wmass += wmass_excess;
 			}
 			else {
-				runoff_surf += wmass_excess;
+				soillayers[lyr].runoff_drain += wmass_excess;
 			}
 			soillayers[lyr].wmass = soillayers[lyr].wsats - soillayers[lyr].imass;
 		}
 	}
-
-	// Resolve water movements // DW_COMMENT
-	/*wfluxes[0] = wmass_infilt_tot;
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		wfluxes[lyr + 1] = wfluxes[lyr] + wpara.psi0[lyr] * soillayers[lyr].depth - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
-	}*/
 
 	// Lateral drainage
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4681,6 +4689,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			soillayers[lyr].runoff_drain += drained_wmass;
 			soillayers[lyr].wmass -= drained_wmass;
 		}
+	}
+
+	// Resolve water movements // DW_COMMENT
+	wfluxes[0] = wmass_infilt_tot;
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayers[lyr].wmass + soillayers[lyr].runoff_drain + aet_layer[lyr]);
 	}
 
 	int start_yr = 40;
@@ -4714,7 +4728,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	update_wtp();
 
 	// Update soil layer temperatures due to soil water fluxes
-	//wflow_temp(); // DW_COMMENT need to resolve wfluxes above
+	wflow_temp();
 
 	// Reset ran_melt as water has entered the soil
 	rain_melt = 0.0;

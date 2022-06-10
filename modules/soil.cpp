@@ -3109,7 +3109,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		delta_T = T_soil[i] - freeze_T;
 
 		// FREEZING
-		if (T_soil[i] < 0.0 && T_soil[i] < freeze_T) { // Wania conditions 
+		if (T_soil[i] < 0.0 && T_soil[i] < freeze_T) {
 			Fthaw = 0.0;
 			if (Frac_water[i] > 0.0) {
 
@@ -3195,7 +3195,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		} // end of FREEZING
 
 		// THAWING
-		else if (T_soil[i] >= 0.0  && T_soil[i] > freeze_T) { // Wania conditions
+		else if (T_soil[i] >= 0.0 && T_soil[i] > freeze_T) {
 			Ffreez = 0.0;
 			if (Frac_ice[i] > 0.0) {
 

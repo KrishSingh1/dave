@@ -907,46 +907,31 @@ void transfer_litter(Patch& patch) {
 		double cmass_litter_leaf, nmass_litter_leaf;
 		double cmass_litter_root, nmass_litter_root;
 
+		double frac_lr = 0.0;
 		//  Is a litter day, drop all leaf litter (crop)
 		if (patch.is_litter_day) {
-			cmass_litter_leaf = pft.cmass_litter_leaf;
-			nmass_litter_leaf = pft.nmass_litter_leaf;
-			cmass_litter_root = pft.cmass_litter_root;
-			nmass_litter_root = pft.nmass_litter_root;
-
-			pft.cmass_litter_leaf = 0.0;
-			pft.nmass_litter_leaf = 0.0;
-			pft.cmass_litter_root = 0.0;
-			pft.nmass_litter_root = 0.0;
+			frac_lr = 1.0;
 		}
 		// For summergreens drop leaf litter over all days during Jan in NH and July SH
 		// and raingreens on the month with lowest phen
 		else if ((pft.pft.phenology == SUMMERGREEN && ((lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6))) ||
 			(pft.pft.phenology == RAINGREEN && date.month == pft.driest_mth)) {
-			double frac = 1.0 / (date.ndaymonth[date.month] - date.dayofmonth);
-			cmass_litter_leaf = pft.cmass_litter_leaf * frac;
-			nmass_litter_leaf = pft.nmass_litter_leaf * frac;
-			cmass_litter_root = pft.cmass_litter_root * frac;
-			nmass_litter_root = pft.nmass_litter_root * frac;
-
-			pft.cmass_litter_leaf -= cmass_litter_leaf;
-			pft.nmass_litter_leaf -= nmass_litter_leaf;
-			pft.cmass_litter_root -= cmass_litter_root;
-			pft.nmass_litter_root -= nmass_litter_root;
+			frac_lr = 1.0 / (date.ndaymonth[date.month] - date.dayofmonth);
 		}
 		// Evergreens drops leaf litter every day
-		else {
-			double frac = 1.0 / (date.year_length() - date.day);
-			cmass_litter_leaf = pft.cmass_litter_leaf * frac;
-			nmass_litter_leaf = pft.nmass_litter_leaf * frac;
-			cmass_litter_root = pft.cmass_litter_root * frac;
-			nmass_litter_root = pft.nmass_litter_root * frac;
-
-			pft.cmass_litter_leaf -= cmass_litter_leaf;
-			pft.nmass_litter_leaf -= nmass_litter_leaf;
-			pft.cmass_litter_root -= cmass_litter_root;
-			pft.nmass_litter_root -= nmass_litter_root;
+		else if (pft.pft.phenology == EVERGREEN || pft.pft.phenology == ANY) {
+			frac_lr = 1.0 / (date.year_length() - date.day);
 		}
+
+		cmass_litter_leaf = pft.cmass_litter_leaf * frac_lr;
+		nmass_litter_leaf = pft.nmass_litter_leaf * frac_lr;
+		cmass_litter_root = pft.cmass_litter_root * frac_lr;
+		nmass_litter_root = pft.nmass_litter_root * frac_lr;
+
+		pft.cmass_litter_leaf -= cmass_litter_leaf;
+		pft.nmass_litter_leaf -= nmass_litter_leaf;
+		pft.cmass_litter_root -= cmass_litter_root;
+		pft.nmass_litter_root -= nmass_litter_root;
 
 		// LEAF
 

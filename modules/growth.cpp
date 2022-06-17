@@ -963,7 +963,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		//MORT
-		indiv.dbh = diam;
+		indiv.dbh = indiv.diam;
 		// Crown area (Eqn 6)
 		indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp),
 			indiv.pft.crownarea_max);
@@ -989,7 +989,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.0;
+		indiv.boleht = indiv.height * indiv.pft.bole_ratio;
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;

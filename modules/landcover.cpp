@@ -884,7 +884,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 			StandType& st_receptor = stlist[to];
 
-			if(nsts_active[st_receptor.landcover] < 2 && nsts_active[st_donor.landcover] < 2 
+			if(nsts_active[st_receptor.landcover] < 2 && nsts_active[st_donor.landcover] < 2
+					&& gridcell.st[from].frac_old && gridcell.st[to].frac
 					&& net_transfer_remain[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1) {
 
 				st_frac_transfer[index(from, to)] += net_transfer_remain[st_donor.landcover][st_receptor.landcover];

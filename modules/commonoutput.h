@@ -68,6 +68,10 @@ private:
 	
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_mwtp, file_mald;
+	// Vegetation structure
+	xtring file_veg_struct;
+	// Vegetation structure
+	Table out_veg_struct;
 
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_firert, out_runoff, out_speciesheights;

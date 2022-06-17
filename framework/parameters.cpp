@@ -706,6 +706,8 @@ void plib_declarations(int id,xtring setname) {
 		// for the shrub allometries.
 		declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
 			"Constant in allometry equations");
+		declareitem("bole_ratio",&ppft->bole_ratio,0.0,1.0,1,CB_NONE,
+			"Bole to height ratio");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_rp",&ppft->k_rp,1.0,2.0,1,CB_NONE,

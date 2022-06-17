@@ -962,7 +962,8 @@ bool allometry(Individual& indiv) {
 			return false;
 		}
 
-
+		//MORT
+		indiv.dbh = diam;
 		// Crown area (Eqn 6)
 		indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp),
 			indiv.pft.crownarea_max);

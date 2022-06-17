@@ -44,8 +44,8 @@ file_cpool "cpool.out"
 !file_amon "amon.out"
 !file_amon_mt1 "amon_mt1.out"
 !file_amon_mt2 "amon_mt2.out"
-!file_speciesheights "height.out"
-!file_speciesdiam "diam.out"
+file_speciesheights "height.out"
+file_speciesdiam "diam.out"
 
 file_nmass "nmass.out"
 file_cton_leaf "cton_leaf.out"
@@ -235,6 +235,7 @@ group "common" (
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
 	twig_frac 0
+	bole_ratio 0.0
 )
 
 group "tree" (
@@ -481,7 +482,7 @@ pft "BINE" (
 
 	! Boreal needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant
@@ -583,7 +584,7 @@ pft "IBS" (
 
 	! Shade-intolerant broadleaved summergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant

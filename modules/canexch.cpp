@@ -2453,6 +2453,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
+		indiv.agpp += assim;
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
@@ -2588,6 +2589,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			Individual& indiv = vegetation.getobj();
 
 			indiv.anpp           = 0.0;
+			indiv.agpp           = 0.0;
 
 			indiv.leafndemand    = 0.0;
 			indiv.rootndemand    = 0.0;

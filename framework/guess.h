@@ -1895,8 +1895,6 @@ public:
 	double k_allom2;
 	/// constant in allometry equations
 	double k_allom3;
-	/// bole to height ratio
-	double bole_ratio;
 	/// constant in allometry equations
 	double k_rp;
 	/// tree leaf to sapwood area ratio
@@ -2812,8 +2810,6 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-	/** annual GPP following call to growth module on last day of simulation year */
-	double agpp;	
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2831,8 +2827,6 @@ public:
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
 	/** (individual and cohort modes only) */
 	double boleht;
-	/// diameter at breat height
-	double dbh;
 	/// patch-level lai for this individual or cohort (function fpar)
 	double lai;
 	/// patch-level lai for cohort in current vertical layer (function fpar)

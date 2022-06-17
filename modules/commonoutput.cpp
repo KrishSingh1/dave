@@ -110,8 +110,6 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
-
-	declare_parameter("file_veg_struct", &file_veg_struct, 300, "Vegetation structure output file");
 }
 
 
@@ -390,29 +388,6 @@ void CommonOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",   12, 6);
 
-// Vegetation structure
-	ColumnDescriptors veg_struct_columns;
-	veg_struct_columns += ColumnDescriptor("SID", 6, 0);
-	veg_struct_columns += ColumnDescriptor("PID", 6, 0);
-	veg_struct_columns += ColumnDescriptor("IID", 6, 0);
-	veg_struct_columns += ColumnDescriptor("PFT", 6, 0);
-	veg_struct_columns += ColumnDescriptor("Age", 4, 0);
-	veg_struct_columns += ColumnDescriptor("Height", 8, 4);
-	veg_struct_columns += ColumnDescriptor("Boleht", 8, 4);
-	veg_struct_columns += ColumnDescriptor("Diam", 8, 4);
-	veg_struct_columns += ColumnDescriptor("CrownA", 12, 1);
-	veg_struct_columns += ColumnDescriptor("DensI", 12, 4);
-	veg_struct_columns += ColumnDescriptor("LAI", 8, 4);
-	veg_struct_columns += ColumnDescriptor("Csapw", 12, 4);
-	veg_struct_columns += ColumnDescriptor("Chrtw", 12, 4);
-	veg_struct_columns += ColumnDescriptor("Cleaf", 12, 4);
-	veg_struct_columns += ColumnDescriptor("Croot", 12, 4);
-	veg_struct_columns += ColumnDescriptor("Kah1", 8, 4);
-	veg_struct_columns += ColumnDescriptor("Kah2", 8, 4);
-	veg_struct_columns += ColumnDescriptor("OS_ID", 6, 0);
-	veg_struct_columns += ColumnDescriptor("ANPP", 12, 4);
-	veg_struct_columns += ColumnDescriptor("CUE", 12, 4);
-
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -503,7 +478,6 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
 	create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
 	create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
-	create_output_table(out_veg_struct, file_veg_struct, veg_struct_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -1807,62 +1781,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-	//MORT
-	// Vegetation structure output per individual
-
-	gc_itr = gridcell.begin();
-
-	// Loop through Stands
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
-		stand.firstobj();
-
-		//Loop through Patches
-		while (stand.isobj) {
-			Patch& patch = stand.getobj();
-
-			Vegetation& vegetation = patch.vegetation;
-
-			vegetation.firstobj();
-			while (vegetation.isobj) {
-				Individual& indiv = vegetation.getobj();
-
-				//if (indiv.alive && indiv.pft.lifeform == TREE) {
-				if (indiv.pft.lifeform == TREE) {
-					// The OutputRows object manages the next row of output for each
-					// output table
-					OutputRows out(output_channel, lon, lat, date.get_calendar_year());
-
-					outlimit(out, out_veg_struct, stand.id);
-					outlimit(out, out_veg_struct, patch.id);
-					outlimit(out, out_veg_struct, indiv.id);
-					outlimit(out, out_veg_struct, indiv.pft.id);
-					outlimit(out, out_veg_struct, indiv.age);
-					outlimit(out, out_veg_struct, indiv.height);
-					outlimit(out, out_veg_struct, indiv.boleht);
-					outlimit(out, out_veg_struct, indiv.dbh);
-					outlimit(out, out_veg_struct, indiv.crownarea);
-					outlimit(out, out_veg_struct, indiv.densindiv);
-					outlimit(out, out_veg_struct, min(99.9, indiv.lai_indiv));
-					outlimit(out, out_veg_struct, indiv.cmass_sap/indiv.densindiv);
-					outlimit(out, out_veg_struct, indiv.cmass_heart/indiv.densindiv);
-					outlimit(out, out_veg_struct, indiv.cmass_leaf/indiv.densindiv);
-					outlimit(out, out_veg_struct, indiv.cmass_root/indiv.densindiv);
-					outlimit(out, out_veg_struct, 0.0);
-					outlimit(out, out_veg_struct, 0.0);
-					outlimit(out, out_veg_struct, -1); // Overstory indiv id
-					outlimit(out, out_veg_struct, indiv.anpp); // Overstory indiv id
-					double cue = indiv.agpp > 0.0 ? indiv.anpp / indiv.agpp : 0.0;
-					outlimit(out, out_veg_struct, cue); // Overstory indiv id
-				}
-
-				vegetation.nextobj();
-
-			} // vegetation loop
-			stand.nextobj();
-		} // patch loop
-		++gc_itr;
-	} // stand loop
 }
 
 /// Output of simulation results at the end of each day

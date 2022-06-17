@@ -265,11 +265,14 @@ void LandcoverInput::init() {
 	int input_precision_parsed_st_max = 0;
 	bool st_input = false;
 
+	if(!all_fracs_const)
+		dprintf("initio: Landcover text input information:\n--------------------------------------------------------\n");
+
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 		if(run[lc] && file_lu_st[lc] != "")	{
 			int input_precision_parsed_st = 0;
 			if(!st_data[lc].Open(file_lu_st[lc], gridlist)) {
-				fail("initio: could not open %s for input",(char*)file_lu_st[lc]);
+				fail("could not open %s for input",(char*)file_lu_st[lc]);
 			}
 			else  {
 				st_input = true;
@@ -281,24 +284,12 @@ void LandcoverInput::init() {
 				if(input_precision_parsed_st > input_precision_parsed_st_max)
 					input_precision_parsed_st_max = input_precision_parsed_st;
 				if(input_precision_parsed != input_precision_parsed_st) {
-					dprintf("initio: stand type fraction input file %s has different input precision (%d) from LC file (%d)\n",
+					dprintf("Stand type fraction input file %s\n has different input precision (%d) from LC file (%d)\n\n",
 						(char*)file_lu_st[lc], input_precision_parsed_st, input_precision_parsed);
 				}
 			}
 		}
 	}
-
-	if(st_input) {
-		if(input_precision_parsed > input_precision_parsed_st_max) {
-			dprintf("initio: Using LC input precision (%d)\n", input_precision_parsed);
-		}
-		else if(input_precision_parsed < input_precision_parsed_st_max) {
-			dprintf("initio: Using ST input precision (%d)\n", input_precision_parsed_st_max);
-			input_precision_parsed = input_precision_parsed_st_max;
-		}
-	}
-
-	input_precision_use = input_precision_parsed;
 
 	// Increase precision if stand type input file has normalised data.
 	bool found = false;
@@ -307,11 +298,25 @@ void LandcoverInput::init() {
 		StandType& st = stlist.getobj();
 
 		if(file_lu_st[st.landcover] != "" && st_data[st.landcover].NormalisedData()) {
-			input_precision_use = 2 * input_precision_use;
+			input_precision_parsed_st_max = input_precision_parsed_st_max + input_precision_parsed;
 			found = true;
+			dprintf("Normalised stand type fraction input file %s:\n input precision increased to (%d) \n\n",
+				(char*)file_lu_st[st.landcover], input_precision_parsed_st_max);
 		}
 		stlist.nextobj();
 	}
+
+	if(st_input) {
+		if(input_precision_parsed > input_precision_parsed_st_max) {
+			dprintf("Using LC input precision (%d)\n\n", input_precision_parsed);
+		}
+		else if(input_precision_parsed < input_precision_parsed_st_max) {
+			dprintf("Using ST input precision (%d)\n\n", input_precision_parsed_st_max);
+			input_precision_parsed = input_precision_parsed_st_max;
+		}
+	}
+
+	input_precision_use = input_precision_parsed;
 
 	// Overwrite parsed input precision with instruction file parameter, if set.
 	if(input_precision_force)
@@ -325,10 +330,11 @@ void LandcoverInput::init() {
 	// Take into account very small additional error added by rescaling area fractions so the sum is 1.0.
 	INPUT_RESOLUTION = INPUT_RESOLUTION - INPUT_RESOLUTION * ORIGINAL_INPUT_RESOLUTION;
 
-	dprintf("Land cover fraction input precision used=%d, parsed=%d", input_precision_use, input_precision_parsed);
 	if(input_precision_force)
-		dprintf(", \nmanual instruction file input=%d\n\n", input_precision_force);
-	dprintf("\n\n");
+		dprintf("Manual instruction file input=%d\n\n", input_precision_force);
+	dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
+	if(!all_fracs_const)
+		dprintf("--------------------------------------------------------\n\n");
 
 	if(!frac_fixed[CROPLAND]) {
 

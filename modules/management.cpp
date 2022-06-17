@@ -478,7 +478,7 @@ double diameter_rules(Individual& indiv) {
  *   - man_strength 				management strength (cutting intensity)
  *  \param select_diam				Whether small (SELECT_DIAM_SMALL, 1) or large (SELECT_DIAM_LARGE, 2) diameter individuals
  *									are preferentially cut, trees above diam_limit only (SELECT_DIAM_LIMIT, 3).or no
- *									preference (SELECT_DIAM_NOPREF, 0)
+ *									preference (SELECT_DIAM_NOPREF, 0); overrides select_age setting
  *  \param select_age				Whether young (SELECT_AGE_YOUNG, 1) or old (SELECT_AGE_OLD, 2) individuals are
  *									preferentially cut, or no preference (SELECT_AGE_NOPREF, 0)
  *  \param select_pft				Whether non-selected (SELECT_PFT_UNSEL, 1) or selected (SELECT_PFT_SEL, 2) pft:s are
@@ -1354,6 +1354,7 @@ void manage_forests(Gridcell& gridcell) {
 		++gc_itr;
 	}
 
+	// Target cutting; bypassed in years when normal cuttings are set in manage_forest()
 	set_forest_pft_structure(gridcell);
 
 	// Perform the previously determined harvest for all the individuals in all forest and natural stands.

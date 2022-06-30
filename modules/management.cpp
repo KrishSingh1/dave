@@ -9,8 +9,9 @@
 #include "management.h"
 #include "driver.h"
 
-// Clearcut density targets for needle-leaf and broad-leaf trees
-const int DENSTARGET_NL = 250;	// Bellassen (2010) value 100, modified for LPJ-GUESS simulations.
+// Automated clearcut density targets for needle-leaf and broad-leaf trees. These values are sensitive to changes in 
+// PFT growth and mortality and should be calibrated for each PFT and geographic region for realistic rotation times.
+const int DENSTARGET_NL = 400;	// Bellassen (2010) value 100, modified for LPJ-GUESS simulations.
 const int DENSTARGET_BL = 100;	// Bellassen (2010) value 200, modified for LPJ-GUESS simulations.
 
 // Functions to check available wood for harvest at individual, patch and stand levels

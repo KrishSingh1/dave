@@ -332,9 +332,10 @@ void LandcoverInput::init() {
 
 	if(input_precision_force)
 		dprintf("Manual instruction file input=%d\n\n", input_precision_force);
-	dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
-	if(!all_fracs_const)
+	if(!all_fracs_const) {
+		dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
 		dprintf("--------------------------------------------------------\n\n");
+	}
 
 	if(!frac_fixed[CROPLAND]) {
 

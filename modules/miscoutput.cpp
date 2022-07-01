@@ -1169,11 +1169,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 								if (pft.lifeform==TREE) {
-									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									standpft_densindiv_total += indiv.densindiv; // indiv/m2
-									standpft_diamindiv_total += diam * indiv.densindiv;
+									standpft_diamindiv_total += indiv.diam * indiv.densindiv;
 									standpft_heightindiv_total += indiv.height * indiv.densindiv;
-									standpft_diam_g += pow(diam, 2) * indiv.densindiv;
+									standpft_diam_g += pow(indiv.diam, 2) * indiv.densindiv;
 								}
 							}
 						}

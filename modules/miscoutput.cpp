@@ -864,29 +864,31 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				for (int r = 0; r < NSOMPOOL; r++) {
 
+					Sompool& sompool = soillayer.sompool[r];
+
 					if (r == SURFMETA || r == SURFSTRUCT) {
-						surflitterc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						surflittern_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						surflitterc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						surflittern_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 					else if (r == SURFFWD || r == SURFCWD) {
-						surfcwdc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						surfcwdn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						surfcwdc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						surfcwdn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 					else if (r == SURFMICRO || r == SURFHUMUS) {
-						surfhumusc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						surfhumusn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						surfhumusc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						surfhumusn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 					else if (r == SOILMETA || r == SOILSTRUCT) {
-						soillitterc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						soillittern_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						soillitterc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						soillittern_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 					else if (r == SOILFWD || r == SOILCWD) {
-						soilcwdc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						soilcwdn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						soilcwdc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						soilcwdn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 					else {
-						centuryc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
-						centuryn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+						centuryc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
+						centuryn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
 					}
 				}
 			}
@@ -1204,12 +1206,13 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 
 				if (lyr < snow.nsnowlayers) {
-					snow_depth[lyr] += snow.snowlayers[lyr].depth * to_gridcell_average;
-					snow_temp[lyr] += snow.snowlayers[lyr].temp * to_gridcell_average;
-					snow_density[lyr] += snow.snowlayers[lyr].dens * to_gridcell_average;
-					snow_k[lyr] += snow.snowlayers[lyr].Kh * to_gridcell_average;
-					snow_d[lyr] += snow.snowlayers[lyr].Dh * to_gridcell_average;
-					snow_c[lyr] += snow.snowlayers[lyr].Ch * to_gridcell_average;
+					Snowlayer& snowlayer = snow.snowlayers[lyr];
+					snow_depth[lyr] += snowlayer.depth * to_gridcell_average;
+					snow_temp[lyr] += snowlayer.temp * to_gridcell_average;
+					snow_density[lyr] += snowlayer.dens * to_gridcell_average;
+					snow_k[lyr] += snowlayer.Kh * to_gridcell_average;
+					snow_d[lyr] += snowlayer.Dh * to_gridcell_average;
+					snow_c[lyr] += snowlayer.Ch * to_gridcell_average;
 					snow_frac[lyr] += to_gridcell_average;
 				}
 			}

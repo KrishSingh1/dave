@@ -1497,41 +1497,42 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					}
 
 					// Soil
-					patch.soilcolumn.depth = (patch.soilcolumn.depth * old_frac + from.transfer_depth * added_frac) / new_frac;
-					patch.soilcolumn.wcont_evap = (patch.soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					Soilcolumn& soilcolumn = patch.soilcolumn;
+
+					soilcolumn.depth = (soilcolumn.depth * old_frac + from.transfer_depth * added_frac) / new_frac;
+					soilcolumn.wcont_evap = (soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					double aaet_5_cp[NYEARAAET] = { 0.0 };
 					patch.aaet_5.to_array(aaet_5_cp);
 					for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++)
 						patch.aaet_5.add((aaet_5_cp[i] * old_frac + from.transfer_aaet_5[i] * added_frac) / new_frac);
 					double maxthaw_10_cp[10] = { 0.0 };
-					patch.soilcolumn.maxthaw_10.to_array(maxthaw_10_cp);
+					soilcolumn.maxthaw_10.to_array(maxthaw_10_cp);
 					for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++)
-						patch.soilcolumn.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
+						soilcolumn.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
 
-					patch.soilcolumn.anfix_calc = (patch.soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
+					soilcolumn.anfix_calc = (soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
 
-					int nsoillayers = min(NSOILLAYER_MAX, max(patch.soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
+					int nsoillayers = min(NSOILLAYER_MAX, max(soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
 
-					//if (!patch.soilcolumn.soillayerdepths.size())
-						patch.soilcolumn.soillayerdepths.resize(nsoillayers);
+					soilcolumn.soillayerdepths.resize(nsoillayers);
 
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 						// Create soil layer if it doesn't exist in patch
-						if (lyr >= patch.soilcolumn.nsoillayers) {
+						if (lyr >= soilcolumn.nsoillayers) {
 
 							// Add a new soil layer
-							patch.soilcolumn.add_soillayer(from.transfer_soil_depth[lyr], from.transfer_soil_depth_profile[lyr], false, false);
+							soilcolumn.add_soillayer(from.transfer_soil_depth[lyr], from.transfer_soil_depth_profile[lyr], false, false);
 
 							// update number of soil layers
-							patch.soilcolumn.nsoillayers++;
+							soilcolumn.nsoillayers++;
 						}
 
-						patch.soilcolumn.soillayerdepths[lyr] = (patch.soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
+						soilcolumn.soillayerdepths[lyr] = (soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
 
 						// Soil object for this layer
-						Soillayer& soillayer = patch.soilcolumn.soillayers[lyr];
+						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 						soillayer.depth = (soillayer.depth * old_frac + from.transfer_soil_depth[lyr] * added_frac) / new_frac;
 						soillayer.depth_profile = (soillayer.depth_profile * old_frac + from.transfer_soil_depth_profile[lyr] * added_frac) / new_frac;
@@ -1552,13 +1553,14 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.cpool_slow = (soillayer.cpool_slow * old_frac + from.transfer_soil_cpool_slow[lyr] * added_frac) / new_frac;
 
 						for (int p = 0; p < NSOMPOOL; p++) {
-							soillayer.sompool[p].cmass = (soillayer.sompool[p].cmass * old_frac + from.transfer_soil_sompool_cmass[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].nmass = (soillayer.sompool[p].nmass * old_frac + from.transfer_soil_sompool_nmass[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].ntoc = (soillayer.sompool[p].ntoc * old_frac + from.transfer_soil_sompool_ntoc[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].fireresist = (soillayer.sompool[p].fireresist * old_frac + from.transfer_soil_sompool_fireresist[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].fracremain = (soillayer.sompool[p].fracremain * old_frac + from.transfer_soil_sompool_fracremain[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].ligcfrac = (soillayer.sompool[p].ligcfrac * old_frac + from.transfer_soil_sompool_ligcfrac[lyr][p] * added_frac) / new_frac;
-							soillayer.sompool[p].litterme = (soillayer.sompool[p].litterme * old_frac + from.transfer_soil_sompool_litterme[lyr][p] * added_frac) / new_frac;
+							Sompool& sompool = soillayer.sompool[p];
+							sompool.cmass = (sompool.cmass * old_frac + from.transfer_soil_sompool_cmass[lyr][p] * added_frac) / new_frac;
+							sompool.nmass = (sompool.nmass * old_frac + from.transfer_soil_sompool_nmass[lyr][p] * added_frac) / new_frac;
+							sompool.ntoc = (sompool.ntoc * old_frac + from.transfer_soil_sompool_ntoc[lyr][p] * added_frac) / new_frac;
+							sompool.fireresist = (sompool.fireresist * old_frac + from.transfer_soil_sompool_fireresist[lyr][p] * added_frac) / new_frac;
+							sompool.fracremain = (sompool.fracremain * old_frac + from.transfer_soil_sompool_fracremain[lyr][p] * added_frac) / new_frac;
+							sompool.ligcfrac = (sompool.ligcfrac * old_frac + from.transfer_soil_sompool_ligcfrac[lyr][p] * added_frac) / new_frac;
+							sompool.litterme = (sompool.litterme * old_frac + from.transfer_soil_sompool_litterme[lyr][p] * added_frac) / new_frac;
 						}
 
 						// Update soil layer properties
@@ -1566,37 +1568,38 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						double imass_add = 0.0;
 						soillayer.set_properties(wmass_add, imass_add, true);
 					}
-					patch.soilcolumn.cmass_litter_input.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
-					patch.soilcolumn.csom_litter_input.resize(NSOMPOOL, 0.0);
-					patch.soilcolumn.wpara.set_sizes(patch.soilcolumn.nsoillayers);
-					patch.soilcolumn.tpara.set_sizes(patch.soilcolumn.nsoillayers + PAD_LAYERS);
-					patch.soilcolumn.wfluxes.resize(patch.soilcolumn.nsoillayers + 1, 0.0);
+					soilcolumn.cmass_litter_input.resize(soilcolumn.nsoillayers + 1, 0.0);
+					soilcolumn.csom_litter_input.resize(NSOMPOOL, 0.0);
+					soilcolumn.wpara.set_sizes(soilcolumn.nsoillayers);
+					soilcolumn.tpara.set_sizes(soilcolumn.nsoillayers + PAD_LAYERS);
+					soilcolumn.wfluxes.resize(soilcolumn.nsoillayers + 1, 0.0);
 
 					// Soil padding
 					for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-						patch.soilcolumn.pad[lyr].depth = (patch.soilcolumn.pad[lyr].depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
-						patch.soilcolumn.pad[lyr].temp = (patch.soilcolumn.pad[lyr].temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
+						padding& pad_lyr = soilcolumn.pad[lyr];
+						pad_lyr.depth = (pad_lyr.depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
+						pad_lyr.temp = (pad_lyr.temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
 
 					// Snow
-					patch.soilcolumn.snow.NH4_mass = (patch.soilcolumn.snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
-					patch.soilcolumn.snow.NO3_mass = (patch.soilcolumn.snow.NO3_mass * old_frac + from.transfer_snow_NO3_mass * added_frac) / new_frac;
+					Snow& snow = soilcolumn.snow;
+					snow.NH4_mass = (snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
+					snow.NO3_mass = (snow.NO3_mass * old_frac + from.transfer_snow_NO3_mass * added_frac) / new_frac;
 
-
-					int nsnowlayers = min(NSNOWLAYERS_MAX, max(patch.soilcolumn.snow.nsnowlayers, from.transfer_snow_nsnowlayers));
+					int nsnowlayers = min(NSNOWLAYERS_MAX, max(snow.nsnowlayers, from.transfer_snow_nsnowlayers));
 
 					for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
 						// Create snow layer if it doesn't exist in patch
-						if (lyr >= patch.soilcolumn.snow.nsnowlayers) {
+						if (lyr >= snow.nsnowlayers) {
 
-							patch.soilcolumn.snow.snowlayers.resize(lyr + 1);
-							patch.soilcolumn.snow.snowlayers[lyr] = Snowlayer(0.0, 0.0, 0.0, 0.0);
-							patch.soilcolumn.snow.nsnowlayers++;
+							snow.snowlayers.resize(lyr + 1);
+							snow.snowlayers[lyr] = Snowlayer(0.0, 0.0, 0.0, 0.0);
+							snow.nsnowlayers++;
 						}
 
 						// Snow object for this layer
-						Snowlayer& snowlayer = patch.soilcolumn.snow.snowlayers[lyr];
+						Snowlayer& snowlayer = snow.snowlayers[lyr];
 
 						snowlayer.imass = (snowlayer.imass * old_frac + from.transfer_snow_imass[lyr] * added_frac) / new_frac;
 						snowlayer.wmass = (snowlayer.wmass * old_frac + from.transfer_snow_wmass[lyr] * added_frac) / new_frac;
@@ -1607,7 +1610,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					// Balance snow layers
 					double dval = 0.0;
-					patch.soilcolumn.snow.balance_snow(patch, dval, dval);
+					snow.balance_snow(patch, dval, dval);
 
 					// save individual C and N content for use in scale_indiv()
 					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {

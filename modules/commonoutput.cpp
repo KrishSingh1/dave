@@ -765,8 +765,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		return;
 
 	int c, m;
-	const int NSOILDEPTHPOOLS = 6;
-	const double DEPTHS[NSOILDEPTHPOOLS - 1] = {300.0, 500.0, 1000.0, 1500.0, 2000.0};
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
 	double c_fast, c_slow, c_harv_slow;
 
@@ -1487,33 +1485,35 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				for (int p = 0; p < NSOMPOOL; p++) {
 
+					Sompool& sompool = soillayer.sompool[p];
+
 					if (p == SURFMETA || p == SURFSTRUCT) {
-						surflitterc += soillayer.sompool[p].cmass * to_gridcell_average;
-						surflittern += soillayer.sompool[p].nmass * to_gridcell_average;
+						surflitterc += sompool.cmass * to_gridcell_average;
+						surflittern += sompool.nmass * to_gridcell_average;
 					}
 					else if (p == SURFFWD || p == SURFCWD) {
-						surfcwdc += soillayer.sompool[p].cmass * to_gridcell_average;
-						surfcwdn += soillayer.sompool[p].nmass * to_gridcell_average;
+						surfcwdc += sompool.cmass * to_gridcell_average;
+						surfcwdn += sompool.nmass * to_gridcell_average;
 					}
 					else if (p == SURFMICRO || p == SURFHUMUS) {
-						surfhumusc += soillayer.sompool[p].cmass * to_gridcell_average;
-						surfhumusn += soillayer.sompool[p].nmass * to_gridcell_average;
+						surfhumusc += sompool.cmass * to_gridcell_average;
+						surfhumusn += sompool.nmass * to_gridcell_average;
 					}
 					else if (p == SOILMETA || p == SOILSTRUCT) {
-						soillitterc += soillayer.sompool[p].cmass * to_gridcell_average;
-						soillittern += soillayer.sompool[p].nmass * to_gridcell_average;
+						soillitterc += sompool.cmass * to_gridcell_average;
+						soillittern += sompool.nmass * to_gridcell_average;
 					}
 					else if (p == SOILFWD || p == SOILCWD) {
-						soilcwdc += soillayer.sompool[p].cmass * to_gridcell_average;
-						soilcwdn += soillayer.sompool[p].nmass * to_gridcell_average;
+						soilcwdc += sompool.cmass * to_gridcell_average;
+						soilcwdn += sompool.nmass * to_gridcell_average;
 					}
 					else {
-						centuryc += soillayer.sompool[p].cmass * to_gridcell_average;
-						centuryn += soillayer.sompool[p].nmass * to_gridcell_average;
+						centuryc += sompool.cmass * to_gridcell_average;
+						centuryn += sompool.nmass * to_gridcell_average;
 					}
 
-					somc[p][lyr] += soillayer.sompool[p].cmass * to_gridcell_average;
-					somn[p][lyr] += soillayer.sompool[p].nmass * to_gridcell_average;
+					somc[p][lyr] += sompool.cmass * to_gridcell_average;
+					somn[p][lyr] += sompool.nmass * to_gridcell_average;
 				}
 			}
 
@@ -1529,9 +1529,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], CCONT) - surflitc) * to_gridcell_average;
 				soilr[i] += soilcolumn.to_depth(DEPTHS[i], ARH) * to_gridcell_average;
 			}*/
-			for (int i = 0; i < soilcolumn.nsoillayers; i++) {
-				soilc[i] += soilcolumn.soillayers[i].get(CCONT) * to_gridcell_average;
-				soilr[i] += soilcolumn.soillayers[i].get(ARH) * to_gridcell_average;
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+				soilc[lyr] += soillayer.get(CCONT) * to_gridcell_average;
+				soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
 			}
 			soilc[NSOILLAYER_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
 			soilr[NSOILLAYER_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
@@ -1597,8 +1598,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 					if (lyr < soilcolumn.nsoillayers) {
-						mtemp[lyr + NSNOWLAYERS_MAX][m] += soilcolumn.soillayers[lyr].mtemp[m] * to_gridcell_average;
-						mnetmin[m] += soilcolumn.soillayers[lyr].mnetmin[m] * to_gridcell_average;
+						Soillayer& soillayer = soilcolumn.soillayers[lyr];
+						mtemp[lyr + NSNOWLAYERS_MAX][m] += soillayer.mtemp[m] * to_gridcell_average;
+						mnetmin[m] += soillayer.mnetmin[m] * to_gridcell_average;
 					}
 					else {
 						mtemp[lyr + NSNOWLAYERS_MAX][m] += -999.9 * to_gridcell_average;
@@ -1615,16 +1617,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				double drain_tot = 0.0;
 				for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
 					if (lyr < soilcolumn.nsoillayers) {
-						mwmasslyr[lyr][m] += max(0.0, soilcolumn.soillayers[lyr].mwmass[m]) / soilcolumn.soillayers[lyr].wsats * to_gridcell_average;
-						mimasslyr[lyr][m] += max(0.0, soilcolumn.soillayers[lyr].mimass[m]) / soilcolumn.soillayers[lyr].wsats * to_gridcell_average;
-						wmass_tot += max(0.0, soilcolumn.soillayers[lyr].mwmass[m]);
-						imass_tot += max(0.0, soilcolumn.soillayers[lyr].mimass[m]);
-						mKwlyr[lyr][m] += soilcolumn.soillayers[lyr].mKw[m] * to_gridcell_average;
-						mDwlyr[lyr][m] += soilcolumn.soillayers[lyr].mDw[m] * to_gridcell_average;
-						Kw_tot += soilcolumn.soillayers[lyr].mKw[m] * soilcolumn.soillayers[lyr].depth;
-						Dw_tot += soilcolumn.soillayers[lyr].mDw[m] * soilcolumn.soillayers[lyr].depth;
-						mdrainlyr[lyr][m] += soilcolumn.soillayers[lyr].mdrain[m] * to_gridcell_average;
-						drain_tot += soilcolumn.soillayers[lyr].mdrain[m];
+						Soillayer& soillayer = soilcolumn.soillayers[lyr];
+						mwmasslyr[lyr][m] += max(0.0, soillayer.mwmass[m]) / soillayer.wsats * to_gridcell_average;
+						mimasslyr[lyr][m] += max(0.0, soillayer.mimass[m]) / soillayer.wsats * to_gridcell_average;
+						wmass_tot += max(0.0, soillayer.mwmass[m]);
+						imass_tot += max(0.0, soillayer.mimass[m]);
+						mKwlyr[lyr][m] += soillayer.mKw[m] * to_gridcell_average;
+						mDwlyr[lyr][m] += soillayer.mDw[m] * to_gridcell_average;
+						Kw_tot += soillayer.mKw[m] * soillayer.depth;
+						Dw_tot += soillayer.mDw[m] * soillayer.depth;
+						mdrainlyr[lyr][m] += soillayer.mdrain[m] * to_gridcell_average;
+						drain_tot += soillayer.mdrain[m];
 					}
 					else if (lyr == NSOILLAYER_MAX) {
 						mwmasslyr[lyr][m] += wmass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
@@ -1680,7 +1683,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Total gridcell soil C
-	for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
 
 		for (int p = 0; p < NSOMPOOL; p++) {
 			csom_gridcell[p] += somc[p][lyr];

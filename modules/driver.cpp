@@ -773,13 +773,16 @@ void dailyaccounting_patch(Patch& patch) {
 		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
 
 		for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+
+			padding& pad_lyr = soilcolumn.pad[plyr];
+
 			for (int mth = 0; mth < 12; mth++) {
-				soilcolumn.pad[plyr].mtemp[mth] = 0.0;
+				pad_lyr.mtemp[mth] = 0.0;
 			}
 
 			// Set initial temperatures as first spinup years mean annual air temperature
 			if (date.year == 0) {
-				soilcolumn.pad[plyr].temp = patch.get_climate().temp_iaavr;
+				pad_lyr.temp = patch.get_climate().temp_iaavr;
 			}
 		}
 
@@ -805,19 +808,28 @@ void dailyaccounting_patch(Patch& patch) {
 	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
 	if (date.day == 0) {
 
+		Snow& snow = soilcolumn.snow;
+
 		for (int mth = 0; mth < 12; mth++) {
-			soilcolumn.snow.mdepth[mth] = 0.0;
-			soilcolumn.snow.mcover[mth] = 0.0;
+			snow.mdepth[mth] = 0.0;
+			snow.mcover[mth] = 0.0;
 			soilcolumn.mthaw[mth] = 0.0;
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-				soilcolumn.snow.mtemp[lyr][mth] = 0.0;
+				snow.mtemp[lyr][mth] = 0.0;
 			}
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				soilcolumn.soillayers[lyr].mtemp[mth] = 0.0;
-				soilcolumn.soillayers[lyr].mnetmin[mth] = 0.0;
+		}
+
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			for (int mth = 0; mth < 12; mth++) {
+				soillayer.mtemp[mth] = 0.0;
+				soillayer.mnetmin[mth] = 0.0;
 			}
-			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
-				soilcolumn.pad[lyr].mtemp[mth] = 0.0;
+		}
+		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			padding& pad = soilcolumn.pad[lyr];
+			for (int mth = 0; mth < 12; mth++) {
+				pad.mtemp[mth] = 0.0; // DW_COMMENT does this work?
 			}
 		}
 	}
@@ -888,8 +900,10 @@ void respiration_temperature_response(Soilcolumn& soilcolumn) {
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
+		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
 		// Calculate gtemp for this soil layer
-		respiration_temperature_response(soilcolumn.soillayers[lyr].temp, soilcolumn.soillayers[lyr].gtemp, true);
+		respiration_temperature_response(soillayer.temp, soillayer.gtemp, true);
 	}
 }
 

@@ -1271,15 +1271,18 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	patch.ndemand = 0.0;
 
 	// Calculate depth mineral N scalar due to saturating Michealis-Menten kinetics and temperature (Thum et al. 2019)
-	std::vector<double> nminscale(soilcolumn.nsoillayers);
-	std::vector<double> tempscale(soilcolumn.nsoillayers);
+	double nminscale[NSOILLAYER_MAX];
+	double tempscale[NSOILLAYER_MAX];
+	double nmass_avail[NSOILLAYER_MAX];
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
+		// Available N for uptake
+		nmass_avail[lyr] = soillayer.nmass_avail(NO);
+
 		// Mineral N scalars for maximum N uptake
-		double nmin = soillayer.nmass_avail(NO);
-		nminscale[lyr] = KmNmin + nmin / (nmin + (KmN_volume * soillayer.wsats));
+		nminscale[lyr] = KmNmin + nmass_avail[lyr] / (nmass_avail[lyr] + (KmN_volume * soillayer.wsats));
 
 		// Temperature scalars for maximum N uptake
 		tempscale[lyr] = temperature_modifier(soillayer.temp);
@@ -1385,7 +1388,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			// Maximum available soil mineral nitrogen for this individual is base on its root area.
 			// This is considered to be related to crown area which is approx 4 times smaller than the root area
-			double max_indiv_avail = min(1.0, indiv.crownarea * indiv.densindiv * 4.0) * soilcolumn.soillayers[lyr].nmass_avail(NO);
+			double max_indiv_avail = min(1.0, indiv.crownarea * indiv.densindiv * 4.0) * nmass_avail[lyr];
 
 			// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 			// and soil available nitrogen within individual projectived coverage
@@ -1770,14 +1773,15 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	// Irrigation should maximum affect the top 50cm, so no more than the top 4 soil layers
 	int nsoillayersupper = min(4,soilcolumn.nsoillayers);
 
-	std::vector<double> awc(nsoillayersupper);
-	std::vector<double> wcont_cp(nsoillayersupper);
-	std::vector<double> grootdist(nsoillayersupper);
+	double awc[NSOILLAYER_MAX];
+	double wcont_cp[NSOILLAYER_MAX];
+	double grootdist[NSOILLAYER_MAX];
 
 	for (int lyr = 0; lyr < nsoillayersupper; lyr++) {
-		awc[lyr] = soilcolumn.soillayers[lyr].awc;
-		wcont_cp[lyr] = soilcolumn.soillayers[lyr].wcont();
-		grootdist[lyr] += ppft.rootdist[lyr];
+		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+		awc[lyr] = soillayer.awc;
+		wcont_cp[lyr] = soillayer.wcont();
+		grootdist[lyr] = ppft.rootdist[lyr];
 	}
 
 	if (day.isstart) {
@@ -1787,8 +1791,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		}
 	}
 
-	std::vector<double> wcont_opt(nsoillayersupper);
-	std::vector<bool> add_water(nsoillayersupper);
+	double wcont_opt[NSOILLAYER_MAX];
+	bool add_water[NSOILLAYER_MAX];
 
 	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
 
@@ -1803,11 +1807,14 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 			// Array of optimal wcont_values instead.
 			for (int i = 0; i < nsoillayersupper; i++) {
+
+				Soillayer& soillayer = soilcolumn.soillayers[i];
+
 				wcont_opt[i] = (wr_opt * pft.emax - min(wcont_upper * awc_upper * patch.fpc_rescale,
-					pft.emax * grootdist[i])/ nsoillayersupper) / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
+					pft.emax * grootdist[i])/ nsoillayersupper) / soillayer.awc / patch.fpc_rescale;
 			
-				if (wcont_opt[i] * soilcolumn.soillayers[i].awc * patch.fpc_rescale > pft.emax * ppft.rootdist[i]) {
-					wcont_opt[i] = pft.emax * ppft.rootdist[i] / soilcolumn.soillayers[i].awc / patch.fpc_rescale;
+				if (wcont_opt[i] * soillayer.awc * patch.fpc_rescale > pft.emax * ppft.rootdist[i]) {
+					wcont_opt[i] = pft.emax * ppft.rootdist[i] / soillayer.awc / patch.fpc_rescale;
 				}
 
 				if (wcont_cp[i] > wcont_opt[i]) {
@@ -1816,7 +1823,6 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 					add_water[i] = false;
 				}
 			}
-
 		}
 		else {
 			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
@@ -1837,7 +1843,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				// Irrigation water for this PFT:
 
 				double water_to_add = 0.0;
-				std::vector<double> water_to_add_ly(nsoillayersupper);
+				double water_to_add_ly[NSOILLAYER_MAX];
 
 				for (int i = 0; i < nsoillayersupper; i++) {
 					if (add_water[i]) {
@@ -1851,25 +1857,21 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				// Local storage
 
 				// available water for each soil layer (mm)
-				std::vector<double> Faw_layer(nsoillayersupper);
+				double Faw_layer[NSOILLAYER_MAX] = { 0.0 };
 				// water that can still be added to each soil layer (mm)
-				std::vector<double> potential_layer(nsoillayersupper);
-
-				// initialise to 0 mm
-				for (int sl = 0; sl<nsoillayersupper; sl++) {
-					Faw_layer[sl] = 0.0;
-					potential_layer[sl] = 0.0;
-				}
+				double potential_layer[NSOILLAYER_MAX] = { 0.0 };
 
 				double potential_water = 0.0;
 
 				for (int ly = 0; ly < nsoillayersupper; ly++) {
 					if (add_water[ly]) {
+
+						Soillayer& soillayer = soilcolumn.soillayers[ly];
 						// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
-						Faw_layer[ly] = soilcolumn.soillayers[ly].wcont() * soilcolumn.soillayers[ly].awc; // mm
+						Faw_layer[ly] = soillayer.wcont() * soillayer.awc; // mm
 
 						// Water in this layer
-						potential_layer[ly] = soilcolumn.soillayers[ly].wsats - Faw_layer[ly];
+						potential_layer[ly] = soillayer.wsats - Faw_layer[ly];
 						potential_water += potential_layer[ly];
 					}
 				} // for loop (ly)
@@ -1880,20 +1882,22 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	
 				for (int s=0; s<nsoillayersupper; s++) {
 
+					Soillayer& soillayer = soilcolumn.soillayers[s];
+
 					if (add_water[s]) {
 
 						double water_input_ly = water_to_add_ly[s];
 
 						Faw_layer[s] += water_input_ly;
 						potential_layer[s] -= water_input_ly;
-						wcont_cp[s] = Faw_layer[s] / soilcolumn.soillayers[s].awc;
+						wcont_cp[s] = Faw_layer[s] / soillayer.awc;
 				
 						// Update wmass
-						soilcolumn.soillayers[s].wmass += water_input_ly;
+						soillayer.wmass += water_input_ly;
 					}
 					
-					total_available_water += wcont_cp[s] * soilcolumn.soillayers[s].awc; // mm
-					total_capacity += soilcolumn.soillayers[s].wsats; // mm
+					total_available_water += wcont_cp[s] * soillayer.awc; // mm
+					total_capacity += soillayer.wsats; // mm
 
 					// Error check
 					if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {
@@ -1960,11 +1964,23 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
+			if (patch.stand.landcover != CROPLAND ){
 				ppft.wsupply_leafon = pft.emax * wr;
-			else
-				ppft.wsupply_leafon = 0.0;
-			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+			}
+			else {  // crop specific water supply
+				// Temporarily removed the scaling with fpc due to 
+				// too high water stress for young crops. (r10394)
+				// TODO: Make the water supply dependant on root allocation
+				if (ppft.cropphen->growingseason) {
+					ppft.wsupply_leafon = pft.emax * wr;
+					ppft.wsupply = ppft.wsupply_leafon;
+				}
+				else {
+					ppft.wsupply_leafon = 0.0;
+					ppft.wsupply = 0.0;
+				}
+			}
 		}
 
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));

@@ -405,11 +405,13 @@ double survival_probability(Patch& patch, Individual& indiv) {
 
 	int biome = gridcell.simfire_biome;
 
+	double cmass_cwd = patch.soilcolumn.soillayers[0].sompool[SURFCWD].cmass;
+
 	if (vegmode == POPULATION) {
 
 		// Temperate Needleleaf
 		if (biome == SF_NEEDLELEAF) {
-			survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, patch.soilcolumn.soillayers[0].sompool[SURFCWD].cmass);
+			survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, cmass_cwd);
 		}
 		// Broadleaf and mixed
 		else if (biome == SF_BROADLEAF || biome == SF_MIXED_FOREST) {
@@ -442,8 +444,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 		if (indiv.pft.leafphysiognomy == NEEDLELEAF) {
 			// Temperate Needleleaf
 			if (fabs(lat) < 50.) {
-				double mass_cwd = patch.soilcolumn.soillayers[0].sompool[SURFCWD].cmass;
-				survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, mass_cwd);
+				survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, cmass_cwd);
 			}
 			// Tundra
 			else {
@@ -476,7 +477,6 @@ double survival_probability(Patch& patch, Individual& indiv) {
 		else {
 			fail("Physiognomy unknown...");
 		}
-
 	}
 
 	else {

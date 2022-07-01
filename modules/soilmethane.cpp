@@ -210,17 +210,19 @@ void Soilcolumn::calculate_gas_diffusivities(std::vector<double>& dCH4, std::vec
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		Soillayer& soillayer = soillayers[lyr];
+
 		dCH4[lyr] = 0.0;
 		dCO2[lyr] = 0.0;
 		dO2[lyr] = 0.0;
 		
 		// Soil layer temperature
-		double temp = soillayers[lyr].temp;
+		double temp = soillayer.temp;
 
 		// Fraction air in soil layer
-		double frac_air = soillayers[lyr].fracair();
+		double frac_air = soillayer.fracair();
 	
-		if (frac_air > 0.05 && soillayers[lyr].acrotelm) {
+		if (frac_air > 0.05 && soillayer.acrotelm) {
 
 			// AIR - UNITS: 10-4 m2 s-1 == cm2 s-1
 			// Lerman (1979)
@@ -409,24 +411,26 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		Dz_m[lyr] = soillayers[lyr].depth * M_PER_MM;
+		Soillayer& soillayer = soillayers[lyr];
 
-		total_volume_water[lyr] = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM;
+		Dz_m[lyr] = soillayer.depth * M_PER_MM;
+
+		total_volume_water[lyr] = (soillayer.wmass + soillayer.imass) * M_PER_MM;
 
 		if (thisgastype == CO2gas) {
-			initialAmount += soillayers[lyr].CO2;
+			initialAmount += soillayer.CO2;
 			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayers[lyr].CO2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			C[lyr] = soillayer.CO2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 		else if (thisgastype == CH4gas) {
-			initialAmount += soillayers[lyr].CH4;
+			initialAmount += soillayer.CH4;
 			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayers[lyr].CH4 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			C[lyr] = soillayer.CH4 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 		else {
-			initialAmount += soillayers[lyr].O2;
+			initialAmount += soillayer.O2;
 			// mol layer-1 to mmol m-3
-			C[lyr] = soillayers[lyr].O2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			C[lyr] = soillayer.O2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
 		}
 	}
 
@@ -437,15 +441,17 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 	double Cnew;
 	if (thisgastype == O2gas || thisgastype == CH4gas) { // Could also run for CH4 here below.
 
+		Soillayer& soillayer_surf = soillayers[0];
+
 		// No diffusion if there's too little liquid water in the top layer
 		// Could add a snow restriction
-		if ((soillayers[0].wmass / soillayers[0]. depth) < Fwmass_min) {
+		if ((soillayer_surf.wmass / soillayer_surf.depth) < Fwmass_min) {
 			// Unchanged surface concentration
 			Cnew = C[0]; 
 			dailyDiff = 0.0;
 		} 
 		else {
-			double volume_liquid_water = soillayers[0].wmass * M_PER_MM;
+			double volume_liquid_water = soillayer_surf.wmass * M_PER_MM;
 
 			// Analytical solution to determine Csurf - see Wania et al. Sec 2.5 (mmol m-3)
 			Cnew = Ceq + (C[0] - Ceq) * exp(-kgas / volume_liquid_water);
@@ -480,7 +486,8 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			if ((soillayers[lyr].wmass / soillayers[lyr].depth) < Fwmass_min) {
+			Soillayer& soillayer = soillayers[lyr];
+			if ((soillayer.wmass / soillayer.depth) < Fwmass_min) {
 				D[lyr] = 1e-9; // [m2 d-1]
 			}
 		}
@@ -531,17 +538,19 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 	double finalAmount = 0.0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		Soillayer& soillayer = soillayers[lyr];
+
 		if (thisgastype == CO2gas) {
-			soillayers[lyr].CO2 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
-			finalAmount += soillayers[lyr].CO2;
+			soillayer.CO2 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
+			finalAmount += soillayer.CO2;
 		}
 		else if (thisgastype == CH4gas) {
-			soillayers[lyr].CH4 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
-			finalAmount += soillayers[lyr].CH4;
+			soillayer.CH4 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
+			finalAmount += soillayer.CH4;
 		}
 		else {
-			soillayers[lyr].O2 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
-			finalAmount += soillayers[lyr].O2;
+			soillayer.O2 = C[lyr] * atomic_mass * total_volume_water[lyr] / MMOL_PER_MOL;
+			finalAmount += soillayer.O2;
 		}
 	}
 
@@ -603,18 +612,20 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		Soillayer& soillayer = soillayers[lyr];
+
 		if (!negligible(tiller_density, 1.0e-15)) {
 			tiller_frac = tiller_density * rootfrac[lyr];
 
 			// Consider this as the fraction of the area (1m2) occupied by tillers in this layer
-			soillayers[lyr].tiller_area = PI * pow(tiller_radius, 2.0) * tiller_frac * tiller_por; // [unitless m2 m-2]
+			soillayer.tiller_area = PI * pow(tiller_radius, 2.0) * tiller_frac * tiller_por; // [unitless m2 m-2]
 
 			// Neglect small values
-			if (soillayers[lyr].tiller_area < 0.000000001)
-				soillayers[lyr].tiller_area = 0.0;
+			if (soillayer.tiller_area < 0.000000001)
+				soillayer.tiller_area = 0.0;
 		}
 		else {
-			soillayers[lyr].tiller_area = 0.0;
+			soillayer.tiller_area = 0.0;
 		}
 	}
 }
@@ -651,29 +662,31 @@ void Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		Soillayer& soillayer = soillayers[lyr];
+
 		// Weight plant transport by the area of porous root cross-sections. 
 		// plant_trans(i) [mmol layer-1 d-1]
         // the 2.07 are from the equation for k_CH4, when U10 is zero.
 
-		double total_volume_water = (soillayers[lyr].wmass + soillayers[lyr].imass) * M_PER_MM;
-		double volume_liquid_water = soillayers[lyr].wmass * M_PER_MM;
+		double total_volume_water = (soillayer.wmass + soillayer.imass) * M_PER_MM;
+		double volume_liquid_water = soillayer.wmass * M_PER_MM;
 
 		// CH4 and CO2: gC layer-1 to mmol m-3
 		// O2: mol layer-1 to mmol m-3
 		if (thisgastype == O2gas) {
-			Cgas = soillayers[lyr].O2 / atomic_mass / total_volume_water * MMOL_PER_MOL;
+			Cgas = soillayer.O2 / atomic_mass / total_volume_water * MMOL_PER_MOL;
 		}
 		else {
-			Cgas = soillayers[lyr].CH4 / atomic_mass / total_volume_water * MMOL_PER_MOL;
+			Cgas = soillayer.CH4 / atomic_mass / total_volume_water * MMOL_PER_MOL;
 		}
 
 		// No plant transport to/from this layer
-		if (soillayers[lyr].wmass / soillayers[lyr].depth < Fwmass_min || negligible(soillayers[lyr].tiller_area) || volume_liquid_water < 0.0001) {
+		if (soillayer.wmass / soillayer.depth < Fwmass_min || negligible(soillayer.tiller_area) || volume_liquid_water < 0.0001) {
 			Cnew = Cgas;
 		} 
 		else {
 
-			double exponent = kgas / volume_liquid_water * soillayers[lyr].tiller_area;
+			double exponent = kgas / volume_liquid_water * soillayer.tiller_area;
 			Cnew = Ceq + (Cgas - Ceq) * exp(-exponent); // mmol m-3
 
 			// mol layer-1 d-1 (O2) or gC m-2 d-1 (CH4 & CO2)
@@ -688,10 +701,12 @@ void Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 		}
 
 		// mmol m-3 to gC layer-1 (CO2 or CH4), or mol layer-1 (O2) 
-		if (thisgastype != O2gas)
-			soillayers[lyr].CH4 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
-		else
-			soillayers[lyr].O2 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
+		if (thisgastype != O2gas) {
+			soillayer.CH4 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
+		}
+		else {
+			soillayer.O2 = Cnew * atomic_mass * total_volume_water / MMOL_PER_MOL;
+		}
 	}
 }
 
@@ -709,18 +724,21 @@ void Soilcolumn::oxidation_ch4() {
 	double CH4_oxid = 0.0;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		Soillayer& soillayer = soillayers[lyr];
+
 		// Root use (1-oxid_frac) of O2 [mol layer-1] 
-		soillayers[lyr].O2 *= oxid_frac;
+		soillayer.O2 *= oxid_frac;
 		// Convert CH4 from gC to mol layer-1 
-		CH4_mole = soillayers[lyr].CH4 / atomiccmass;
+		CH4_mole = soillayer.CH4 / atomiccmass;
 		// Calculate CH4 oxidation (usually ~75%) [g CH4-C layer-1 d-1]
-		CH4_oxid = min(CH4_mole, 0.5 * soillayers[lyr].O2);
+		CH4_oxid = min(CH4_mole, 0.5 * soillayer.O2);
 		// Calculate new CH4 level in gC
-		soillayers[lyr].CH4 -= CH4_oxid * atomiccmass;
+		soillayer.CH4 -= CH4_oxid * atomiccmass;
 		// Subtract the moles used in oxidation
-		soillayers[lyr].O2 -= 2.0 * CH4_oxid;
+		soillayer.O2 -= 2.0 * CH4_oxid;
 		// Oxidised CH4 becomes CO2 (and water!)
-		soillayers[lyr].CO2 += CH4_oxid * atomiccmass;
+		soillayer.CO2 += CH4_oxid * atomiccmass;
 
 		//dprintf("Watermass added %g\n",CH4_oxid * 2.0 * molecularmass_H2O * KG_PER_G);
 	}
@@ -847,13 +865,16 @@ void Soilcolumn::methane(bool generatemethane) {
 	else if (patch.get_climate().lat < PEATLAND_WETLAND_LATITUDE_LIMIT) {
 		
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
 			// Simple Spahni et al. (2011) approach in which a fraction (CH4toCO2_inundated) of the daily 
 			// heterotrophic respiration is assumed to be in the form of CH4
 			// g CH4-C/m2/day
-			double inundated_CH4_flux_today = soillayers[lyr].respsum * G_PER_KG * CH4toCO2_inundated; 
+			double inundated_CH4_flux_today = soillayer.respsum * G_PER_KG * CH4toCO2_inundated;
 
 			// Report the heterotrophic respiration and the 4 CH4 fluxes.
-			patch.fluxes.report_flux(Fluxes::SOILC, soillayers[lyr].respsum - inundated_CH4_flux_today * KG_PER_G);
+			patch.fluxes.report_flux(Fluxes::SOILC, soillayer.respsum - inundated_CH4_flux_today * KG_PER_G);
 			patch.fluxes.report_flux(Fluxes::CH4C, inundated_CH4_flux_today);
 			patch.fluxes.report_flux(Fluxes::CH4C_DIFF, 0.0);
 			patch.fluxes.report_flux(Fluxes::CH4C_PLAN, 0.0);

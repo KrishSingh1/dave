@@ -1136,6 +1136,9 @@ public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
 
+		var_prec = 0.0;
+		var_temp = 0.0;
+
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 
@@ -4376,19 +4379,19 @@ public:
 	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
 	/// main hydrology routine
 	void hydrology_lpjf(const Climate& climate, double fevap);
-	void compute_moisture_fluxes_and_derivs(double qflx_infl, std::vector<double> Kw, std::vector<double> psi,
-		std::vector<double> dKwdw, std::vector<double> dpsidw, std::vector<double>& qin, std::vector<double>& qout,
-		std::vector<double>& dqidw0, std::vector<double>& dqidw1, std::vector<double>& dqodw1, std::vector<double>& dqodw2,
-		std::vector<double> vws_liq, std::vector<double> dz);
-	void compute_RHS_moisture_form(std::vector<double> qflx_root, std::vector<double> qin,
-		std::vector<double> qout, std::vector<double> dt_dz, std::vector<double>& rmx);
-	void compute_LHS_moisture_form(std::vector<double> dt_dz, std::vector<double> dqidw0, std::vector<double> dqidw1,
-		std::vector<double> dqodw1, std::vector<double> dqodw2,
-		std::vector<double>& amx, std::vector<double>& bmx, std::vector<double>& cmx);
-	void TridiagonalCol(std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r,
-		std::vector<double>& u);
-	void check_error(std::vector<double> dwat, std::vector<double> dt_dz, std::vector<double> qin, std::vector<double> qout,
-		std::vector<double> qflx_root, double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub);
+	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYER_MAX], double psi[NSOILLAYER_MAX], 
+		double dKwdw[NSOILLAYER_MAX], double dpsidw[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], double qout[NSOILLAYER_MAX],
+		double dqidw0[NSOILLAYER_MAX], double dqidw1[NSOILLAYER_MAX], double dqodw1[NSOILLAYER_MAX], double dqodw2[NSOILLAYER_MAX],
+		double vws_liq[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX]);
+	void compute_RHS_moisture_form(double qflx_root[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
+		double qout[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double rmx[NSOILLAYER_MAX]);
+	void compute_LHS_moisture_form(double dt_dz[NSOILLAYER_MAX], double dqidw0[NSOILLAYER_MAX], double dqidw1[NSOILLAYER_MAX], 
+		double dqodw1[NSOILLAYER_MAX], double dqodw2[NSOILLAYER_MAX], double amx[NSOILLAYER_MAX], double bmx[NSOILLAYER_MAX], 
+		double cmx[NSOILLAYER_MAX]);
+	void TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MAX], double c[NSOILLAYER_MAX], 
+		double r[NSOILLAYER_MAX], double u[NSOILLAYER_MAX]);
+	void check_error(double dwat[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], double qout[NSOILLAYER_MAX], 
+		double qflx_root[NSOILLAYER_MAX], double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub);
 	void update_wtp();
 	/// initial percolation
 	void initial_percolation();

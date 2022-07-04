@@ -2195,7 +2195,7 @@ double hydro_pow(double theta, double k) {
 void Soillayer::update_matric_potential() {
 	double theta = min(1.0, max(0.001, wmass) / wsats);
 
-	psi = Psi_max * hydro_pow(theta, -b);
+	psi = max(-1.0e8, Psi_max * hydro_pow(theta, -b));
 
 	// Derivative in matrix potential
 	dpsidw = -b * psi / theta;

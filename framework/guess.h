@@ -1067,6 +1067,9 @@ public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
 
+		var_prec = 0.0;
+		var_temp = 0.0;
+
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 
@@ -2663,6 +2666,8 @@ public:
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
 	double nmass_veg;
+	/// whether individual optimal leaf nitrogen is above allowed limit
+	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)

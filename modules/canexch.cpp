@@ -986,7 +986,8 @@ void nstore_usage(Vegetation& vegetation) {
 				indiv.nmass_root    += root_ndemand;
 				indiv.nstore_labile -= root_ndemand;
 
-				indiv.nstress = false;
+				// nitrogen stressed photosynthesis is allowed only if optimal leaf nitrogen is above allowed level 
+				indiv.nstress = indiv.n_opt_isabovelim;
 			}
 			else {
 
@@ -1011,13 +1012,13 @@ void nstore_usage(Vegetation& vegetation) {
 				}
 
 				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-				indiv.nstress = ifnlim;
+				indiv.nstress = ifnlim && date.year > freenyears;
 				
 			}
 		}
 		else
-			// photosynthesis will not be nitrogen stresses
-			indiv.nstress = false;
+			// photosynthesis will not be nitrogen stresses unless optimal leaf N is above maximum limit
+			indiv.nstress = indiv.n_opt_isabovelim;
 
 		vegetation.nextobj();
 	}
@@ -1053,6 +1054,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Rescaler of nitrogen uptake
 		indiv.fnuptake = 1.0;
 
+		// Assume that optimal leaf nitrogen isn't above allowed limit
+		indiv.n_opt_isabovelim = false;
+
 		// Starts with no nitrogen stress
 		indiv.nstress = false;
 
@@ -1079,6 +1083,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf_today() / leafoptn < indiv.pft.cton_leaf_min) {
 				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_min;
+
+				// Optimal leaf N above limit -> always N limitation on Vmax
+				indiv.n_opt_isabovelim = ifnlim && date.year > freenyears;
 			}
 			// Can not have lower nitrogen concentration than maximum leaf C:N ratio
 			else if (indiv.cmass_leaf_today() / leafoptn > indiv.pft.cton_leaf_max) {
@@ -1948,11 +1955,23 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
+			if (patch.stand.landcover != CROPLAND ){
 				ppft.wsupply_leafon = pft.emax * wr;
-			else
-				ppft.wsupply_leafon = 0.0;
-			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+			}
+			else {  // crop specific water supply
+				// Temporarily removed the scaling with fpc due to 
+				// too high water stress for young crops. (r10394)
+				// TODO: Make the water supply dependant on root allocation
+				if (ppft.cropphen->growingseason) {
+					ppft.wsupply_leafon = pft.emax * wr;
+					ppft.wsupply = ppft.wsupply_leafon;
+				}
+				else {
+					ppft.wsupply_leafon = 0.0;
+					ppft.wsupply = 0.0;
+				}
+			}
 		}
 
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));

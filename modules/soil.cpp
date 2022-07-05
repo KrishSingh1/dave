@@ -5037,28 +5037,26 @@ void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_M
 	double fluxNet0[NSOILLAYER_MAX];
 	double fluxNet1[NSOILLAYER_MAX];
 
-	// estimate errors for each layer
+	// Estimate errors for each layer
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		// convert iteration increment to a net flux (mm s-1)
+		// Convert iteration increment to a net flux (mm s-1)
 		fluxNet0[lyr] = dwat[lyr] / dt_dz[lyr];
 
-		// compute the net flux at the start of the sub - step
+		// Compute the net flux at the start of the sub - step
 		fluxNet1[lyr] = qin[lyr] - qout[lyr] - qflx_root[lyr];
 
+		// Check for negative water
 		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
+			
+			// Need to recalculate this substep
 			calcsub = true;
 
-			// halve the length of the sub - step
-			if (dtsub / 2.0 > dtmin) {
-				dtsub /= 2.0;
-			}
-			else {
-				dtsub = dtmin;
-			}
+			// Halve the length of the substep
+			dtsub /= 2.0;
 
-			dprintf("ERROR: Negative water! Year %d Day %d Lyr %d wmass %g\n",
-				date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+			dprintf("ERROR: Negative water! Will shorten dtstep and recalculate. Year %d Day %d Lyr %d wmass %g dtstep %g\n",
+				date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr], dtsub);
 		}
 	}
 

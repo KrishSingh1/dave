@@ -1658,9 +1658,9 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 			minleachfrac = runoff / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
 			minmovefrac = dperc / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
 
-			// Maximum 50% leaching
-			if (minleachfrac + minmovefrac > 0.5) {
-				double scalar = 0.5 / (minleachfrac + minmovefrac);
+			// Maximum 100% leaching
+			if (minleachfrac + minmovefrac > 1.0) {
+				double scalar = 1.0 / (minleachfrac + minmovefrac);
 				minleachfrac *= scalar;
 				minmovefrac *= scalar;
 			}

@@ -4390,8 +4390,9 @@ public:
 		double cmx[NSOILLAYER_MAX]);
 	void TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MAX], double c[NSOILLAYER_MAX], 
 		double r[NSOILLAYER_MAX], double u[NSOILLAYER_MAX]);
-	void check_error(double dwat[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], double qout[NSOILLAYER_MAX], 
-		double qflx_root[NSOILLAYER_MAX], double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub);
+	void check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
+		double qout[NSOILLAYER_MAX], double qflx_root[NSOILLAYER_MAX], double dtmin, double xTolerUpper, double& dtsub, 
+		double& errorMax, bool& calcsub);
 	void update_wtp();
 	/// initial percolation
 	void initial_percolation();

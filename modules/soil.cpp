@@ -1946,28 +1946,12 @@ void Soillayer::phase_change() {
 	// Set new old temperature
 	temp_old = temp;
 
-	if (temp > 0.0 && imass > 0.0) {
-		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n",
-			date.year, date.day, depth_profile, temp, imass);
-	}
-
-	// No negative wmass
-	if (wmass < -EPS) {
-		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g wmass %g\n",
-			date.year, date.day, depth_profile, wmass);
-	}
-
-	// No negative imass
-	if (imass < -EPS) {
-		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g imass %g\n",
-			date.year, date.day, depth_profile, imass);
-	}
-
+	// Final water
 	double wtotal_final = wmass + imass;
-
-	// water balance checks
+	
+	// Water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", 
+		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
 			wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
 
@@ -1976,8 +1960,26 @@ void Soillayer::phase_change() {
 
 	// Energy balance checks
 	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
-		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n", 
+		dprintf("Year %d Day %d Depth %g Energy balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
 			date.year, date.day, depth_profile, energy_initial, energy_final, energy_initial - energy_final);
+	}
+
+	// Ice despite positive temperature
+	if (temp > 0.0 && imass > 0.0) {
+		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n",
+			date.year, date.day, depth_profile, temp, imass);
+	}
+
+	// No negative wmass
+	if (wmass < -EPS) {
+		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_profile %g depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
+			date.year, date.day, depth_profile, depth, delta_T, phase_change_energy, wmass, imass);
+	}
+
+	// No negative imass
+	if (imass < -EPS) {
+		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_profile %g depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
+			date.year, date.day, depth_profile, depth, delta_T, phase_change_energy, wmass, imass);
 	}
 }
 
@@ -4663,7 +4665,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			TridiagonalCol(amx, bmx, cmx, rmx, dwat);
 
 			// check if substep can be accepted
-			check_error(dwat, dt_dz, qin, qout, qflx_root, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
+			check_error(dwat, dz, dt_dz, qin, qout, qflx_root, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
 		}
 
 		// Accumulate evaporation
@@ -4719,7 +4721,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		if (soillayer.wmass + soillayer.imass > soillayer.wsats) {
 
-			double wmass_excess = soillayer.wmass - (soillayer.wsats - soillayer.imass);
+			double wmass_excess = max(0.0, max(soillayer.wmass, soillayer.wmass - (soillayer.wsats - soillayer.imass)));
 
 			if (lyr > 0) {
 				soillayers[lyr - 1].wmass += wmass_excess;
@@ -4727,7 +4729,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			else {
 				soillayer.runoff_drain += wmass_excess;
 			}
-			soillayer.wmass = soillayer.wsats - soillayer.imass;
+			soillayer.wmass -= wmass_excess;
 		}
 	}
 
@@ -5026,9 +5028,11 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MA
 	}
 }
 
-void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
-	double qout[NSOILLAYER_MAX], double qflx_root[NSOILLAYER_MAX], double dtmin, double xTolerUpper, 
-	double& dtsub, double& errorMax, bool& calcsub) {
+void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], 
+	double qin[NSOILLAYER_MAX],	double qout[NSOILLAYER_MAX], double qflx_root[NSOILLAYER_MAX], double dtmin, 
+	double xTolerUpper,	double& dtsub, double& errorMax, bool& calcsub) {
+
+	calcsub = false;
 
 	double fluxNet0[NSOILLAYER_MAX];
 	double fluxNet1[NSOILLAYER_MAX];
@@ -5041,35 +5045,53 @@ void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dt_dz[NSOILLAYE
 
 		// compute the net flux at the start of the sub - step
 		fluxNet1[lyr] = qin[lyr] - qout[lyr] - qflx_root[lyr];
+
+		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
+			calcsub = true;
+
+			// halve the length of the sub - step
+			if (dtsub / 2.0 > dtmin) {
+				dtsub /= 2.0;
+			}
+			else {
+				dtsub = dtmin;
+			}
+
+			dprintf("ERROR: Negative water! Year %d Day %d Lyr %d wmass %g\n",
+				date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+		}
 	}
 
-	errorMax = 0.0;
+	if (!calcsub) {
 
-	// compute absolute errors
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		if (fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5 > errorMax)
-			errorMax = fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5;
-	}
+		errorMax = 0.0;
 
-	// check if the error is above the upper tolerance
-	if (errorMax > xTolerUpper && dtsub > dtmin) {
+		// compute absolute errors
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			if (fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5 > errorMax)
+				errorMax = fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5;
+		}
 
-		// halve the length of the sub - step
-		if (dtsub / 2.0 > dtmin) {
-			dtsub /= 2.0;
+		// check if the error is above the upper tolerance
+		if (errorMax > xTolerUpper && dtsub > dtmin) {
+
+			// halve the length of the sub - step
+			if (dtsub / 2.0 > dtmin) {
+				dtsub /= 2.0;
+			}
+			else {
+				dtsub = dtmin;
+			}
+
+			// substep rejected; try again
+			calcsub = true;
+
+			// This substep not used
+			//nsubstep--;
 		}
 		else {
-			dtsub = dtmin;
+			calcsub = false;
 		}
-
-		// substep rejected; try again
-		calcsub = true;
-
-		// This substep not used
-		//nsubstep--;
-	}
-	else {
-		calcsub = false;
 	}
 }
 

@@ -758,8 +758,14 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			growth_reduction[p] = 1.0;
 
 			if (soillayer.sompool[p].cmass < 0.0) {
-				dprintf("Year %d Day %d Lyr %d Pool %d CMASS %g NMASS %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass, soillayer.sompool[p].nmass);
+				if (soillayer.sompool[p].cmass < -1.0e-14)
+					dprintf("Year %d Day %d Lyr %d Pool %d CMASS %g NMASS %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass, soillayer.sompool[p].nmass);
 				soillayer.sompool[p].cmass = 0.0;
+			}
+
+			if (soillayer.sompool[p].nmass < 0.0) {
+				if (soillayer.sompool[p].nmass < -1.0e-14)
+					dprintf("Year %d Day %d Lyr %d Pool %d CMASS %g NMASS %g\n", date.year, date.day, lyr, p, soillayer.sompool[p].cmass, soillayer.sompool[p].nmass);
 				soillayer.sompool[p].nmass = 0.0;
 			}
 		}
@@ -1651,6 +1657,13 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 			// in proportion to amount of water percolated or drainage
 			minleachfrac = runoff / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
 			minmovefrac = dperc / (fabs(dperc) + runoff + soillayer.wmass + soillayer.imass);
+
+			// Maximum 50% leaching
+			if (minleachfrac + minmovefrac > 0.5) {
+				double scalar = 0.5 / (minleachfrac + minmovefrac);
+				minleachfrac *= scalar;
+				minmovefrac *= scalar;
+			}
 
 			// Leaching from decayed organic carbon/nitrogen
 			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],

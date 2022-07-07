@@ -430,10 +430,7 @@ bool Patchpft::growingseason() const {
  * Root distribution follow Jackson et al 1996 and is limited to 
  * maximum thaw depth during the year
  */
-void Patchpft::calc_rootdist(double maxthaw, std::vector<double> soillyrdepth) {
-
-	// Number of soil layers
-	int nsoillayers = soillyrdepth.size();
+void Patchpft::calc_rootdist(double maxthaw, double soillyrdepth[NSOILLAYERS_MAX], int nsoillayers) {
 
 	if (!iftwolayersoil) {
 
@@ -1408,7 +1405,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aaet
 		& ltor
 		& height
-		& height_prev
 		& crownarea
 		& deltafpc
 		& boleht
@@ -2457,14 +2453,14 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 
 void Gridcell::set_soil_depth() {
 
-	std::vector<double> soil_lyr_depth;
+	double soil_lyr_depth[NSOILLAYERS_MAX];
 	int nsoillayers = 0;
 	
 	soil_layer_depths(soil_lyr_depth, nsoillayers);
 
 	// Set fixed rootdist per PFT depending on soil depth and layer thickness
 	for (unsigned int p = 0; p<pftlist.nobj; p++) {
-		pft[p].pft.init_rootdist(soil_lyr_depth);
+		pft[p].pft.init_rootdist(soil_lyr_depth, nsoillayers);
 	}
 
 	// Create soil layers for each patch
@@ -2483,18 +2479,25 @@ void Gridcell::set_soil_depth() {
 			Patch& patch = stand.getobj();
 
 			for (int i = 0; i < npft; i++) {
-				patch.pft[i].rootdist = pft[i].pft.rootdist;
-				patch.pft[i].fwuptake.resize(nsoillayers);
+				for (int lyr = 0; lyr < nsoillayers; lyr++) {
+					patch.pft[i].rootdist[lyr] = pft[i].pft.rootdist[lyr];
+				}
 			}
 
+			// Get reference to this soil column
+			Soilcolumn& soilcolumn = patch.soilcolumn;
+
 			// Set soilcolumn depth
-			patch.soilcolumn.depth = soil_depth;
+			soilcolumn.depth = soil_depth;
+
+			// Set number of soil layer in soilcolumn
+			soilcolumn.nsoillayers = nsoillayers;
 
 			// Create soil layers and initalise them
-			patch.soilcolumn.create_soillayers(soil_lyr_depth);
+			soilcolumn.create_soillayers(soil_lyr_depth);
 
 			// Set padding layers depth
-			patch.soilcolumn.set_padding_depth();
+			soilcolumn.set_padding_depth();
 			
 			stand.nextobj();
 		}// End of loop through patches
@@ -2589,30 +2592,32 @@ double Gridcell::wflux() {
 	return wflux;
 }
 
-void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillayers) {
+void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoillayers) {
 
 	if (soil_depth < SOILDEPTH_EVAP) {
 		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
 	}
 
 	if (!iftwolayersoil) {
-		
-		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 300.0, 1000.0, 3000.0, 9000.0 };
 
+		// Standard soil layer thickness (mm)
+		double std_depths[NSOILLAYERS_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 500.0, 1000.0, 1000.0, 1500.0, 3000.0, 4000.0, 6000.0, 8000.0 };
+		
 		double std_tot_depth = 0.0;
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) std_tot_depth += std_depths[lyr];
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) std_tot_depth += std_depths[lyr];
 
 		// Calculate number of soil layers and their individual depths
 		if (soil_depth > std_tot_depth) {
 
-			lyr_depths.resize(NSOILLAYER_MAX);
+			// Deeper soil than total standard soil layer depths
 
-			// Deeper soil than standard soil layer depths
+			// Number of layers that will be adjusted
+			int nadj_lyr = 6;
 		
 			double tot_depth = 0.0;
 			// Bottom three soil layers will adjust for
 			// deeper soil than standard depth
-			for (int lyr = 0; lyr < NSOILLAYER_MAX - 4; lyr++) {
+			for (int lyr = 0; lyr < NSOILLAYERS_MAX - nadj_lyr; lyr++) {
 				lyr_depths[lyr] = std_depths[lyr];
 				tot_depth += std_depths[lyr];
 			}
@@ -2620,16 +2625,20 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			// Upscaling fraction to remaining soil layers
 			double scalar = (soil_depth - tot_depth) / (std_tot_depth - tot_depth);
 		
-			for (int lyr = NSOILLAYER_MAX - 4; lyr < NSOILLAYER_MAX; lyr++) {
+			// Adjust soil layer thickness to be off 100 mm increments
+			for (int lyr = NSOILLAYERS_MAX - nadj_lyr; lyr < NSOILLAYERS_MAX; lyr++) {
 				lyr_depths[lyr] = floor(std_depths[lyr] * scalar / 100.0) * 100.0;
 				tot_depth += lyr_depths[lyr];
 			}
 
-			lyr_depths[NSOILLAYER_MAX - 1] += soil_depth - tot_depth;
+			lyr_depths[NSOILLAYERS_MAX - 1] += soil_depth - tot_depth;
 
-			nsoillayers = NSOILLAYER_MAX;
+			nsoillayers = NSOILLAYERS_MAX;
 		}
 		else {
+
+			// Shallower soil than total standard soil layer depths
+			// Adjust soil layer thickness to be off 100 mm increments
 
 			int lyr = 0;
 			double depth = soil_depth;
@@ -2637,9 +2646,8 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 			double remain_depth = depth - tot_depth;
 
 			while (!negligible(remain_depth)) {
-				lyr_depths.resize(lyr + 1);
 				double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
-				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYER_MAX - 1) {
+				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYERS_MAX - 1) {
 					double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
 					lyr_depths[lyr] = floor(lyr_depth / 100.0) * 100.0;;
 					tot_depth += lyr_depths[lyr];
@@ -2655,7 +2663,6 @@ void Gridcell::soil_layer_depths(std::vector<double>& lyr_depths, int& nsoillaye
 		}
 	}
 	else {
-		lyr_depths.resize(2);
 		if (soil_depth <= SOILDEPTH_UPPER) {
 			lyr_depths[0] = SOILDEPTH_EVAP;
 			lyr_depths[1] = soil_depth - SOILDEPTH_EVAP;

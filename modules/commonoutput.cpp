@@ -56,8 +56,6 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mwmasslyr", &file_mwmasslyr, 300, "Monthly soil layer water output file");
 	declare_parameter("file_mimasslyr", &file_mimasslyr, 300, "Monthly soil layer ice output file");
 	declare_parameter("file_mwimasslyr", &file_mwimasslyr, 300, "Monthly soil layer water+ice output file");
-	declare_parameter("file_mKwlyr", &file_mKwlyr, 300, "Monthly soil layer Kw output file");
-	declare_parameter("file_mDwlyr", &file_mDwlyr, 300, "Monthly soil layer Dw output file");
 	declare_parameter("file_mdrainlyr", &file_mdrainlyr, 300, "Monthly soil layer lateral drainage output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
@@ -146,7 +144,7 @@ void CommonOutput::define_output_tables() {
 #else
 	const int bm_extra_prec = 0;
 #endif
-	
+
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -155,34 +153,34 @@ void CommonOutput::define_output_tables() {
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
-		 Pft& pft=pftlist.getobj();
+		Pft& pft = pftlist.getobj();
 
-		 pfts.push_back((char*)pft.name);
+		pfts.push_back((char*)pft.name);
 
-		 if(pft.landcover==CROPLAND)
-			 crop_pfts.push_back((char*)pft.name);
+		if (pft.landcover == CROPLAND)
+			crop_pfts.push_back((char*)pft.name);
 
-		 pftlist.nextobj();
+		pftlist.nextobj();
 	}
 
 	// create a vector with the landcover column titles
 	std::vector<std::string> landcovers;
 
 	if (run_landcover) {
-		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum",
-			 "Forest_sum", "Natural_sum", "Peatland_sum", "Barren_sum"};
-		 for (int i=0; i<NLANDCOVERTYPES; i++) {
-			  if(run[i]) {
-					landcovers.push_back(landcover_string[i]);
-			  }
-		 }
+		const char* landcover_string[] = { "Urban_sum", "Crop_sum", "Pasture_sum",
+			"Forest_sum", "Natural_sum", "Peatland_sum", "Barren_sum" };
+		for (int i = 0; i < NLANDCOVERTYPES; i++) {
+			if (run[i]) {
+				landcovers.push_back(landcover_string[i]);
+			}
+		}
 	}
 
 	// Create the month columns
-	ColumnDescriptors month_columns, month_columns_wide,  month_columns_large;
-	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+	ColumnDescriptors month_columns, month_columns_wide, month_columns_large;
+	xtring months[] = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
 	for (int i = 0; i < 12; i++) {
-		month_columns      += ColumnDescriptor(months[i], 8,  3);
+		month_columns += ColumnDescriptor(months[i], 8, 3);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
 		month_columns_large += ColumnDescriptor(months[i], 7, 0);
 	}
@@ -199,34 +197,50 @@ void CommonOutput::define_output_tables() {
 	// Create soil layer columns
 	ColumnDescriptors soildepth_columns, soillyr_columns_large, soillyr_columns_short, soillyr_columns_med, soillyr_columns_high, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
-	xtring soillayers[] = { "lyr0","lyr1","lyr2","lyr3","lyr4","lyr5","lyr6","lyr7","lyr8","lyr9" };
-	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
+	char lyr_nr[20];
+	int number_of_layers = iftwolayersoil ? NSOILLAYERS_SIMPLE : NSOILLAYERS_MAX;
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
-		soildepth_columns += ColumnDescriptor(soillayers[lyr], 5, 1);
-		surfsoillyr_columns += ColumnDescriptor(soillayers[lyr], 10, 5);
-		soillyr_columns_large += ColumnDescriptor(soillayers[lyr], 7, 1);
-		soillyr_columns_short += ColumnDescriptor(soillayers[lyr], 6, 3);
-		soillyr_columns_med += ColumnDescriptor(soillayers[lyr], 12, 7);
-		soillyr_columns_high += ColumnDescriptor(soillayers[lyr], 13, 10);
+		sprintf(lyr_nr, "lyr%d", lyr);
+		soildepth_columns += ColumnDescriptor(lyr_nr, 6, 1);
+		surfsoillyr_columns += ColumnDescriptor(lyr_nr, 10, 5);
+		soillyr_columns_large += ColumnDescriptor(lyr_nr, 7, 1);
+		soillyr_columns_short += ColumnDescriptor(lyr_nr, 7, 3);
+		soillyr_columns_med += ColumnDescriptor(lyr_nr, 12, 7);
+		soillyr_columns_high += ColumnDescriptor(lyr_nr, 13, 10);
 	}
 	soildepth_columns += ColumnDescriptor("Total", 6, 1);
 	surfsoillyr_columns += ColumnDescriptor("Total", 10, 5);
 	soillyr_columns_large += ColumnDescriptor("Total", 7, 1);
-	soillyr_columns_short += ColumnDescriptor("Total", 6, 3);
+	soillyr_columns_short += ColumnDescriptor("Total", 7, 3);
 	soillyr_columns_med += ColumnDescriptor("Total", 12, 7);
 	soillyr_columns_high += ColumnDescriptor("Total", 13, 10);
 
 	// Create soil layer columns
-	ColumnDescriptors temp_columns, lyr_columns;
-	//xtring snowsoillayers[] = { "air", "snow9", "snow8", "snow7", "snow6", "snow5", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
-	xtring snowsoillayers[] = { "air", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
-	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS + 1; lyr++) {
-		temp_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
+	ColumnDescriptors temp_columns;
+	temp_columns += ColumnDescriptor("air", 8, 2);
+	if (iftwolayersoil) {
+		for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
+			sprintf(lyr_nr, "soil%d", lyr);
+			temp_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+	}
+	else {
+		for (int lyr = NSNOWLAYERS_MAX - 1; lyr >= 0; lyr--) {
+			sprintf(lyr_nr, "snow%d", lyr);
+			temp_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			sprintf(lyr_nr, "soil%d", lyr);
+			temp_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+			sprintf(lyr_nr, "pad%d", lyr);
+			temp_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
 	}
 
 	// Create soil layer columns
 	ColumnDescriptors soms_columns, soms_ratio_columns;
-	//xtring soms[] = { "SURFSTRUCT", "SOILSTRUCT", "SOILMICRO", "SURFHUMUS", "SURFMICRO", "SURFMETA", "SURFFWD", "SURFCWD", "SOILFWD", "SOILCWD", "SOILMETA", "SLOWSOM", "PASSIVESOM" };
 	xtring soms[] = { "SURFMETA", "SURFSTRUCT", "SURFFWD", "SURFCWD", "SURFMICRO", "SURFHUMUS", "SOILMETA", "SOILSTRUCT", "SOILFWD", "SOILCWD", "SOILMICRO", "SLOWSOM", "PASSIVESOM" };
 	for (int p = 0; p < NSOMPOOL; p++) {
 		soms_columns += ColumnDescriptor(soms[p], 11, 6);
@@ -481,12 +495,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_csomlitterinput,file_csomlitterinput,soms_columns);
 	create_output_table(out_soilcperma,     file_soilcperma,     soilc_perma_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
-	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_med);
+	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_short);
 	create_output_table(out_mimasslyr,      file_mimasslyr,      soillyr_columns_high);
-	create_output_table(out_mwimasslyr,     file_mwimasslyr,     soillyr_columns_med);
-	create_output_table(out_mKwlyr,         file_mKwlyr,         soillyr_columns_high);
-	create_output_table(out_mDwlyr,         file_mDwlyr,         soillyr_columns_high);
-	create_output_table(out_mdrainlyr,      file_mdrainlyr,      soillyr_columns_med);
+	create_output_table(out_mwimasslyr,     file_mwimasslyr,     soillyr_columns_short);
+	create_output_table(out_mdrainlyr,      file_mdrainlyr,	     soillyr_columns_short);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -779,14 +791,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double NO_mass_inc,N2O_mass_inc,N2_mass_inc,NH3_mass_inc;
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
-	double soildepth[NSOILLAYER_MAX];
-	double soilc[NSOILLAYER_MAX+1];// [NSOILDEPTHPOOLS] ;
-	double soilr[NSOILLAYER_MAX+1];// [NSOILDEPTHPOOLS] ;
-	double somc[NSOMPOOL][NSOILLAYER_MAX];
-	double somn[NSOMPOOL][NSOILLAYER_MAX];
-	double cdec[NSOILLAYER_MAX][2];
-	double cinc[NSOILLAYER_MAX][2];
-	double clitterinput[NSOILLAYER_MAX + 1];
+	double soildepth[NSOILLAYERS_MAX];
+	double soilc[NSOILLAYERS_MAX+1];// [NSOILDEPTHPOOLS] ;
+	double soilr[NSOILLAYERS_MAX+1];// [NSOILDEPTHPOOLS] ;
+	double somc[NSOMPOOL][NSOILLAYERS_MAX];
+	double somn[NSOMPOOL][NSOILLAYERS_MAX];
+	double cdec[NSOILLAYERS_MAX][2];
+	double cinc[NSOILLAYERS_MAX][2];
+	double clitterinput[NSOILLAYERS_MAX + 1];
 	double csomlitterinput[NSOMPOOL+1];
 	double soilc_tot, soilc_ald;
 
@@ -820,13 +832,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double msnowcover[12];
 	double mwtp[12];
 	double mald[12];
-	double mtemp[NSNOWLAYERS_MAX+NSOILLAYER_MAX+PAD_LAYERS][12];
+	double mtemp[NSNOWLAYERS_MAX+NSOILLAYERS_MAX+NPADLAYERS][12];
 	double mtemp25cm[12];
-	double mwmasslyr[NSOILLAYER_MAX + 1][12];
-	double mimasslyr[NSOILLAYER_MAX + 1][12];
-	double mKwlyr[NSOILLAYER_MAX + 1][12];
-	double mDwlyr[NSOILLAYER_MAX + 1][12];
-	double mdrainlyr[NSOILLAYER_MAX + 1][12];
+	double mwmasslyr[NSOILLAYERS_MAX + 1][12];
+	double mimasslyr[NSOILLAYERS_MAX + 1][12];
+	double mdrainlyr[NSOILLAYERS_MAX + 1][12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -839,14 +849,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwmass[m] = mimass[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwtp[m] = mald[m] = mtemp25cm[m] = 0.0;
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
 		}
-		for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX+1; lyr++) {
 			mwmasslyr[lyr][m] = 0.0;
 			mimasslyr[lyr][m] = 0.0;
-			mKwlyr[lyr][m] = 0.0;
-			mDwlyr[lyr][m] = 0.0;
 			mdrainlyr[lyr][m] = 0.0;
 		}
 	}
@@ -1327,7 +1335,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	gross_nitrif = gross_denitrif = net_nitrif = net_denitrif= 0.0;
 
 	clitterinput[0] = 0.0;
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		soildepth[lyr] = 0.0;
 		cdec[lyr][0] = 0.0;
 		cdec[lyr][1] = 0.0;
@@ -1347,7 +1355,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	csomlitterinput[NSOMPOOL] = 0.0;
 
 	//for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
-	for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX+1; lyr++) {
 		soilc[lyr] = 0.0;
 		soilr[lyr] = 0.0;
 	}
@@ -1517,7 +1525,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			for (int lyr = soilcolumn.nsoillayers; lyr < NSOILLAYER_MAX; lyr++) {
+			for (int lyr = soilcolumn.nsoillayers; lyr < NSOILLAYERS_MAX; lyr++) {
 				// Soil layer depths
 				soildepth[lyr] += soilcolumn.soillayerdepths[soilcolumn.nsoillayers-1] * to_gridcell_average;
 			}
@@ -1534,8 +1542,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				soilc[lyr] += soillayer.get(CCONT) * to_gridcell_average;
 				soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
 			}
-			soilc[NSOILLAYER_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
-			soilr[NSOILLAYER_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
+			soilc[NSOILLAYERS_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soilr[NSOILLAYERS_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
 			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
 			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
@@ -1596,7 +1604,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mtemp[slyr][m] += patch.soilcolumn.snow.mtemp[abs(slyr - (NSNOWLAYERS_MAX - 1))][m] * to_gridcell_average;
 				}
 
-				for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+				for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 					if (lyr < soilcolumn.nsoillayers) {
 						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 						mtemp[lyr + NSNOWLAYERS_MAX][m] += soillayer.mtemp[m] * to_gridcell_average;
@@ -1607,40 +1615,30 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 				}
 
-				for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
-					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYER_MAX][m] += soilcolumn.pad[plyr].mtemp[m] * to_gridcell_average;
+				for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
+					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYERS_MAX][m] += soilcolumn.pad[plyr].mtemp[m] * to_gridcell_average;
 				}
 				double wmass_tot = 0.0;
 				double imass_tot = 0.0;
-				double Kw_tot = 0.0;
-				double Dw_tot = 0.0;
 				double drain_tot = 0.0;
-				for (int lyr = 0; lyr < NSOILLAYER_MAX+1; lyr++) {
+				for (int lyr = 0; lyr < NSOILLAYERS_MAX+1; lyr++) {
 					if (lyr < soilcolumn.nsoillayers) {
 						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 						mwmasslyr[lyr][m] += max(0.0, soillayer.mwmass[m]) / soillayer.wsats * to_gridcell_average;
 						mimasslyr[lyr][m] += max(0.0, soillayer.mimass[m]) / soillayer.wsats * to_gridcell_average;
 						wmass_tot += max(0.0, soillayer.mwmass[m]);
 						imass_tot += max(0.0, soillayer.mimass[m]);
-						mKwlyr[lyr][m] += soillayer.mKw[m] * to_gridcell_average;
-						mDwlyr[lyr][m] += soillayer.mDw[m] * to_gridcell_average;
-						Kw_tot += soillayer.mKw[m] * soillayer.depth;
-						Dw_tot += soillayer.mDw[m] * soillayer.depth;
 						mdrainlyr[lyr][m] += soillayer.mdrain[m] * to_gridcell_average;
 						drain_tot += soillayer.mdrain[m];
 					}
-					else if (lyr == NSOILLAYER_MAX) {
+					else if (lyr == NSOILLAYERS_MAX) {
 						mwmasslyr[lyr][m] += wmass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
 						mimasslyr[lyr][m] += imass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
-						mKwlyr[lyr][m] += Kw_tot / soilcolumn.depth * to_gridcell_average;
-						mDwlyr[lyr][m] += Dw_tot / soilcolumn.depth * to_gridcell_average;
 						mdrainlyr[lyr][m] += drain_tot * to_gridcell_average;
 					}
 					else {
 						mwmasslyr[lyr][m] += -9.999 * to_gridcell_average;
 						mimasslyr[lyr][m] += -9.999 * to_gridcell_average;
-						mKwlyr[lyr][m] += -9.999 * to_gridcell_average;
-						mDwlyr[lyr][m] += -9.999 * to_gridcell_average;
 						mdrainlyr[lyr][m] += -9.999 * to_gridcell_average;
 					}
 				}
@@ -1683,7 +1681,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Total gridcell soil C
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 
 		for (int p = 0; p < NSOMPOOL; p++) {
 			csom_gridcell[p] += somc[p][lyr];
@@ -1787,7 +1785,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// Print soil layer variables
 	// Total gridcell soil C
-	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYER_MAX;
+	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYERS_MAX;
 	double tot_cdec[2] = { 0.0 };
 	double tot_cinc[2] = { 0.0 };
 	double clitterinput_tot = clitterinput[0];
@@ -1821,8 +1819,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_csoil, soilc[i]);
 		outlimit(out, out_rsoil, soilr[i]);
 	}
-	outlimit(out, out_csoil, soilc[NSOILLAYER_MAX]);
-	outlimit(out, out_rsoil, soilr[NSOILLAYER_MAX]);
+	outlimit(out, out_csoil, soilc[NSOILLAYERS_MAX]);
+	outlimit(out, out_rsoil, soilr[NSOILLAYERS_MAX]);
 
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;
 	if (!negligible(tot_cdec[1]) && !negligible(tot_cinc[0]) && !negligible(tot_cdec[0])) {
@@ -2138,23 +2136,26 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTMONTH, mth + 1);
 
 		outlimit(out, out_mtemp, gridcell.climate.hmtemp_20[mth].lastadd());
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
-			outlimit(out, out_mtemp, mtemp[lyr][mth]);
+		if (iftwolayersoil) {
+			for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
+				outlimit(out, out_mtemp, mtemp[lyr][mth]);
+			}
+		}
+		else {
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
+				outlimit(out, out_mtemp, mtemp[lyr][mth]);
+			}
 		}
 
 		for (int lyr = 0; lyr < number_of_layers; lyr++) {
 			outlimit(out, out_mwmasslyr, mwmasslyr[lyr][mth]);
 			outlimit(out, out_mimasslyr, mimasslyr[lyr][mth]);
 			outlimit(out, out_mwimasslyr, mwmasslyr[lyr][mth] + mimasslyr[lyr][mth]);
-			outlimit(out, out_mKwlyr, mKwlyr[lyr][mth]);
-			outlimit(out, out_mDwlyr, mDwlyr[lyr][mth]);
 			outlimit(out, out_mdrainlyr, mdrainlyr[lyr][mth]);
 		}
 		outlimit(out, out_mwmasslyr, mwmasslyr[number_of_layers][mth]);
 		outlimit(out, out_mimasslyr, mimasslyr[number_of_layers][mth]);
 		outlimit(out, out_mwimasslyr, mwmasslyr[number_of_layers][mth] + mimasslyr[number_of_layers][mth]);
-		outlimit(out, out_mKwlyr, mKwlyr[number_of_layers][mth]);
-		outlimit(out, out_mDwlyr, mDwlyr[number_of_layers][mth]);
 		outlimit(out, out_mdrainlyr, mdrainlyr[number_of_layers][mth]);
 	}
 }

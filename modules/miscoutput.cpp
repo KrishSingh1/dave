@@ -103,7 +103,6 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_snow_depth", &file_daily_snow_depth, 300, "Daily snow depth output.");
 	declare_parameter("file_daily_snow_density", &file_daily_snow_density, 300, "Daily snow density output.");
 	declare_parameter("file_daily_snow_k", &file_daily_snow_k, 300, "Daily snow thermal conductivity output.");
-	declare_parameter("file_daily_snow_d", &file_daily_snow_d, 300, "Daily snow diffusivity output.");
 	declare_parameter("file_daily_snow_c", &file_daily_snow_c, 300, "Daily snow heat capacity output.");
 
 	declare_parameter("file_daily_temp", &file_daily_temp, 300, "Daily air, snow and soil temperature output.");
@@ -136,6 +135,9 @@ void MiscOutput::init() {
  *  the output channel to create the table.
  */
 void MiscOutput::define_output_tables() {
+
+	char lyr_nr[20];
+
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -288,26 +290,46 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);
+	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);		
 
 	// Create snow layer columns
-	//xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4", "snow5", "snow6", "snow7", "snow8", "snow9" };
-	xtring snowlayers[] = { "snow0", "snow1", "snow2", "snow3", "snow4" };
-	ColumnDescriptors daily_snow_columns, daily_snow_k_columns, daily_snow_d_columns, daily_snow_c_columns;
-	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-		daily_snow_columns += ColumnDescriptor(snowlayers[lyr], 8, 2);
-		daily_snow_k_columns += ColumnDescriptor(snowlayers[lyr], 10, 3);
-		daily_snow_d_columns += ColumnDescriptor(snowlayers[lyr], 15, 9);
-		daily_snow_c_columns += ColumnDescriptor(snowlayers[lyr], 10, 1);
+	ColumnDescriptors daily_snow_columns, daily_snow_k_columns, daily_snow_c_columns;
+	if (ifmultilayersnow) {
+		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+			sprintf(lyr_nr, "snow%d", lyr);
+			daily_snow_columns += ColumnDescriptor(lyr_nr, 8, 2);
+			daily_snow_k_columns += ColumnDescriptor(lyr_nr, 10, 3);
+			daily_snow_c_columns += ColumnDescriptor(lyr_nr, 10, 1);
+		}
+	}
+	else {
+		daily_snow_columns += ColumnDescriptor("Total", 8, 2);
+		daily_snow_k_columns += ColumnDescriptor("Total", 10, 3);
+		daily_snow_c_columns += ColumnDescriptor("Total", 10, 1);
 	}
 
 	// Create snow and soil layer columns
 	ColumnDescriptors snowsoillyr_columns;
-	//xtring snowsoillayers[] = { "snow9", "snow8", "snow7", "snow6", "snow5", "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
-	xtring snowsoillayers[] = { "snow4", "snow3", "snow2", "snow1", "snow0", "soil0","soil1","soil2","soil3","soil4","soil5","soil6","soil7","soil8","soil9","pad0","pad1","pad2","pad3","pad4" };
 	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
-	for (int lyr = 0; lyr < NSOILLAYER_MAX + NSNOWLAYERS_MAX + PAD_LAYERS; lyr++) {
-		snowsoillyr_columns += ColumnDescriptor(snowsoillayers[lyr], 8, 2);
+	if (iftwolayersoil) {
+		for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
+			sprintf(lyr_nr, "soil%d", lyr);
+			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+	}
+	else {
+		for (int lyr = NSNOWLAYERS_MAX - 1; lyr >= 0; lyr--) {
+			sprintf(lyr_nr, "snow%d", lyr);
+			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			sprintf(lyr_nr, "soil%d", lyr);
+			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+			sprintf(lyr_nr, "pad%d", lyr);
+			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
+		}
 	}
 
 	ColumnDescriptors daily_columns;
@@ -324,7 +346,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_anpp_pasture,   file_anpp_pasture,   anpp_columns_lc);
 	create_output_table(out_anpp_natural,   file_anpp_natural,   anpp_columns_lc);
 	create_output_table(out_anpp_forest,    file_anpp_forest,    anpp_columns_lc);
-	create_output_table(out_anpp_peatland, file_anpp_peatland, anpp_columns_lc);
+	create_output_table(out_anpp_peatland,  file_anpp_peatland,  anpp_columns_lc);
 	create_output_table(out_dens_natural,   file_dens_natural,   dens_columns_lc);
 	create_output_table(out_dens_forest,    file_dens_forest,    dens_columns_lc);
 	create_output_table(out_cflux_cropland, file_cflux_cropland, cflux_columns);
@@ -402,7 +424,6 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_snow_depth,           file_daily_snow_depth,          daily_snow_columns);
 	create_output_table(out_daily_snow_density,         file_daily_snow_density,        daily_snow_columns);
 	create_output_table(out_daily_snow_k,               file_daily_snow_k,              daily_snow_k_columns);
-	create_output_table(out_daily_snow_d,               file_daily_snow_d,              daily_snow_d_columns);
 	create_output_table(out_daily_snow_c,               file_daily_snow_c,              daily_snow_c_columns);
 
 	create_output_table(out_daily_temp,                 file_daily_temp,                snowsoillyr_columns);
@@ -1185,11 +1206,10 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double snow_temp[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_density[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_k[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_d[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_c[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_frac[NSNOWLAYERS_MAX] = { 0.0 };
 
-	double soil_temp[NSOILLAYER_MAX+PAD_LAYERS] = { 0.0 };
+	double soil_temp[NSOILLAYERS_MAX+NPADLAYERS] = { 0.0 };
 
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
@@ -1211,16 +1231,15 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 					snow_temp[lyr] += snowlayer.temp * to_gridcell_average;
 					snow_density[lyr] += snowlayer.dens * to_gridcell_average;
 					snow_k[lyr] += snowlayer.Kh * to_gridcell_average;
-					snow_d[lyr] += snowlayer.Dh * to_gridcell_average;
 					snow_c[lyr] += snowlayer.Ch * to_gridcell_average;
 					snow_frac[lyr] += to_gridcell_average;
 				}
 			}
 
-			for (int lyr = 0; lyr < NSOILLAYER_MAX + PAD_LAYERS; lyr++) {
+			for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 
-				if (lyr >= NSOILLAYER_MAX) {
-					soil_temp[lyr] += soilcolumn.pad[lyr - NSOILLAYER_MAX].temp * to_gridcell_average;
+				if (lyr >= NSOILLAYERS_MAX) {
+					soil_temp[lyr] += soilcolumn.pad[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
 				}
 				else if (lyr < soilcolumn.nsoillayers) {
 					soil_temp[lyr] += soilcolumn.soillayers[lyr].temp * to_gridcell_average;
@@ -1240,13 +1259,11 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 		if (!negligible(snow_frac[lyr])) {
 			outlimit_misc(out, out_daily_snow_density, snow_density[lyr] / snow_frac[lyr]);
 			outlimit_misc(out, out_daily_snow_k, snow_k[lyr] / snow_frac[lyr]);
-			outlimit_misc(out, out_daily_snow_d, snow_d[lyr] / snow_frac[lyr]);
 			outlimit_misc(out, out_daily_snow_c, snow_c[lyr] / snow_frac[lyr]);
 		}
 		else {
 			outlimit_misc(out, out_daily_snow_density, -999.9);
 			outlimit_misc(out, out_daily_snow_k, -999.9);
-			outlimit_misc(out, out_daily_snow_d, -999.9);
 			outlimit_misc(out, out_daily_snow_c, -999.9);
 		}
 	}
@@ -1267,7 +1284,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	}
 
 	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
-	for (int lyr = 0; lyr < NSOILLAYER_MAX+PAD_LAYERS; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX+NPADLAYERS; lyr++) {
 		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
 	}
 }

@@ -63,35 +63,35 @@ struct landcover_change_transfer {
 	int transfer_soil_nsoillayers;
 
 	// Soil layers
-	double transfer_soil_soillayerdepths[NSOILLAYER_MAX];
-	double transfer_soil_depth[NSOILLAYER_MAX];
-	double transfer_soil_depth_profile[NSOILLAYER_MAX];
-	double transfer_soil_wmass[NSOILLAYER_MAX];
-	double transfer_soil_imass[NSOILLAYER_MAX];
-	double transfer_soil_temp[NSOILLAYER_MAX];
-	double transfer_soil_CO2[NSOILLAYER_MAX];
-	double transfer_soil_CH4[NSOILLAYER_MAX];
-	double transfer_soil_O2[NSOILLAYER_MAX];
-	double transfer_soil_NH4[NSOILLAYER_MAX];
-	double transfer_soil_NO3[NSOILLAYER_MAX];
-	double transfer_soil_NO2[NSOILLAYER_MAX];
-	double transfer_soil_NO[NSOILLAYER_MAX];
-	double transfer_soil_N2O[NSOILLAYER_MAX];
-	double transfer_soil_N2[NSOILLAYER_MAX];
-	double transfer_soil_depth_mod[NSOILLAYER_MAX];
-	double transfer_soil_cpool_slow[NSOILLAYER_MAX];
-	double transfer_soil_cpool_fast[NSOILLAYER_MAX];
-	double transfer_soil_sompool_cmass[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_nmass[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_ntoc[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_fireresist[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_fracremain[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_ligcfrac[NSOILLAYER_MAX][NSOMPOOL];
-	double transfer_soil_sompool_litterme[NSOILLAYER_MAX][NSOMPOOL];
+	double transfer_soil_soillayerdepths[NSOILLAYERS_MAX];
+	double transfer_soil_depth[NSOILLAYERS_MAX];
+	double transfer_soil_depth_profile[NSOILLAYERS_MAX];
+	double transfer_soil_wmass[NSOILLAYERS_MAX];
+	double transfer_soil_imass[NSOILLAYERS_MAX];
+	double transfer_soil_temp[NSOILLAYERS_MAX];
+	double transfer_soil_CO2[NSOILLAYERS_MAX];
+	double transfer_soil_CH4[NSOILLAYERS_MAX];
+	double transfer_soil_O2[NSOILLAYERS_MAX];
+	double transfer_soil_NH4[NSOILLAYERS_MAX];
+	double transfer_soil_NO3[NSOILLAYERS_MAX];
+	double transfer_soil_NO2[NSOILLAYERS_MAX];
+	double transfer_soil_NO[NSOILLAYERS_MAX];
+	double transfer_soil_N2O[NSOILLAYERS_MAX];
+	double transfer_soil_N2[NSOILLAYERS_MAX];
+	double transfer_soil_depth_mod[NSOILLAYERS_MAX];
+	double transfer_soil_cpool_slow[NSOILLAYERS_MAX];
+	double transfer_soil_cpool_fast[NSOILLAYERS_MAX];
+	double transfer_soil_sompool_cmass[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_nmass[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_ntoc[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_fireresist[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_fracremain[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_ligcfrac[NSOILLAYERS_MAX][NSOMPOOL];
+	double transfer_soil_sompool_litterme[NSOILLAYERS_MAX][NSOMPOOL];
 
 	// Soil padding
-	double transfer_soilpad_depth[PAD_LAYERS];
-	double transfer_soilpad_temp[PAD_LAYERS];
+	double transfer_soilpad_depth[NPADLAYERS];
+	double transfer_soilpad_temp[NPADLAYERS];
 
 	// Snow
 	int transfer_snow_nsnowlayers;
@@ -118,7 +118,7 @@ struct landcover_change_transfer {
 			ccont += transfer_litter_repr[i];
 			ccont += transfer_harvested_products_slow[i];
 		}
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			for (int i = 0; i < NSOMPOOL; i++) {
 				ccont += transfer_soil_sompool_cmass[lyr][i];
 			}
@@ -140,7 +140,7 @@ struct landcover_change_transfer {
 			ncont += transfer_harvested_products_slow_nmass[i];
 		}
 
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			for (int i = 0; i < NSOMPOOL; i++)
 				ncont += transfer_soil_sompool_nmass[lyr][i];
 
@@ -156,7 +156,7 @@ struct landcover_change_transfer {
 	double wcont() {
 
 		double wcont = 0.0;
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			wcont += transfer_soil_wmass[lyr] + transfer_soil_imass[lyr];
 		}
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
@@ -243,7 +243,7 @@ struct landcover_change_transfer {
 			}
 
 			// Soil padding
-			for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+			for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 				padding& pad = soilcolumn.pad[lyr];
 				transfer_soilpad_depth[lyr] += pad.depth * scale;
 				transfer_soilpad_temp[lyr] += pad.temp * scale;
@@ -309,7 +309,7 @@ struct landcover_change_transfer {
 		transfer_soil_nsoillayers = from.transfer_soil_nsoillayers;
 
 		// Sum soil layers
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			transfer_soil_soillayerdepths[lyr] = from.transfer_soil_soillayerdepths[lyr];
 			transfer_soil_depth[lyr] = from.transfer_soil_depth[lyr];
 			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
@@ -340,7 +340,7 @@ struct landcover_change_transfer {
 		}
 
 		// Soil padding
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr];
 			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr];
 		}
@@ -403,7 +403,7 @@ struct landcover_change_transfer {
 		transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, from.transfer_soil_nsoillayers);
 
 		// Soil layers
-		for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			transfer_soil_soillayerdepths[lyr] += from.transfer_soil_soillayerdepths[lyr] * multiplier;
 			transfer_soil_depth[lyr] += from.transfer_soil_depth[lyr] * multiplier;
 			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
@@ -434,7 +434,7 @@ struct landcover_change_transfer {
 		}
 
 		// Soil padding
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr] * multiplier;
 			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr] * multiplier;
 		}

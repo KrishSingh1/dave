@@ -48,8 +48,8 @@ void methane_dynamics(Patch& patch) {
  * dt			d
  * conc			mmol m-3
 */
-void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc, double dt, 
-			std::vector<double>& conc, int nsoillayers) {
+void cnstepgas(double Di[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double surf_conc, double dt,
+			double conc[NSOILLAYERS_MAX], int nsoillayers) {
 
 	double dplus;
 	double dminus;
@@ -60,15 +60,15 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
 	double cohere, cominus, coplus;
 
 	// Leading diagonal, left and right subdiagonals for Crank-Nicholson matrix.
-	std::vector<double> diag(nsoillayers);
-	std::vector<double> left(nsoillayers);
-	std::vector<double> right(nsoillayers);
+	double diag[NSOILLAYERS_MAX];
+	double left[NSOILLAYERS_MAX];
+	double right[NSOILLAYERS_MAX];
 
 	// Right hand side vector for Crank-Nicholson scheme equations.
-	std::vector<double> rhs(nsoillayers);
+	double rhs[NSOILLAYERS_MAX];
 
 	// Solution vector for Crank-Nicholson scheme equations.
-	std::vector<double> solution(nsoillayers);
+	double solution[NSOILLAYERS_MAX];
 
 	// Initialise
 	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
@@ -202,7 +202,8 @@ void cnstepgas(std::vector<double> Di, std::vector<double> dz, double surf_conc,
  *	Called each day
  *	See Wania et al. (2010) - Sec 2.5
  */
-void Soilcolumn::calculate_gas_diffusivities(std::vector<double>& dCH4, std::vector<double>& dCO2, std::vector<double>& dO2) {
+void Soilcolumn::calculate_gas_diffusivities(double dCH4[NSOILLAYERS_MAX], double dCO2[NSOILLAYERS_MAX], 
+	double dO2[NSOILLAYERS_MAX]) {
 
 	double D_CH4_air, D_CO2_air, D_O2_air;
 
@@ -376,7 +377,7 @@ void Soilcolumn::update_daily_gas_parameters() {
 }
 
 
-void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double Ceq,
+void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, double Ceq,
 					  double kgas, double &dailyDiff) {
 
 	// Generic gas diffusion method that works with CO2, CH4 and O2 (as specified with gastype) 
@@ -394,13 +395,13 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 	double atomic_mass;
 
 	// Concentration of the dissolved gas in question [mmol m-3]
-	std::vector<double> C(nsoillayers);
+	double C[NSOILLAYERS_MAX];
 
 	// Soil layer thickness in meters
-	std::vector<double> Dz_m(nsoillayers);
+	double Dz_m[NSOILLAYERS_MAX];
 
 	// layer water + ice volume [m3]
-	std::vector<double> total_volume_water(nsoillayers);
+	double total_volume_water[NSOILLAYERS_MAX];
 	
 	if (thisgastype != O2gas)
 		atomic_mass = atomiccmass; // i.e. CO2 or CH4 - 12 gC/mol
@@ -492,8 +493,8 @@ void Soilcolumn::diffuse_gas(std::vector<double> D, gastype thisgastype, double 
 			}
 		}
 
-		std::vector<double> C_init(nsoillayers);
-		std::vector<double> C_last(nsoillayers);
+		double C_init[NSOILLAYERS_MAX];
+		double C_last[NSOILLAYERS_MAX];
 
 		// Determine initial and total concentrations [mmol m-3]
 		double totalConc = 0.0; 
@@ -572,7 +573,7 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
 	double graminoid_dphen = 0.0;
 	double graminoid_anpp_red = 0.0;
 	double root_mass = 0.0;
-	std::vector<double> rootfrac(nsoillayers);
+	double rootfrac[NSOILLAYERS_MAX];
 
 	// Loop through this patch object's vegetation and pick out graminoids
 
@@ -884,9 +885,9 @@ void Soilcolumn::methane(bool generatemethane) {
 	else {
 
 		// Layer diffusivities
-		std::vector<double> D_CH4(nsoillayers);
-		std::vector<double> D_CO2(nsoillayers);
-		std::vector<double> D_O2(nsoillayers);
+		double D_CH4[NSOILLAYERS_MAX];
+		double D_CO2[NSOILLAYERS_MAX];
+		double D_O2[NSOILLAYERS_MAX];
 
 		// Daily diffusion
 		// mol O2 into the soil (and then diffused downwards). Should be negative, i.e. O2 diffuses INTO the soil

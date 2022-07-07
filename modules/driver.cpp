@@ -707,7 +707,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 			// Update root distribution if you have permafrost
 			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile) || date.year == patch.stand.first_year)
-				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths);
+				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths, soilcolumn.nsoillayers);
 
 			pftlist.nextobj();
 		}
@@ -749,8 +749,6 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.mwmass[mth] = 0.0;
 				soillayer.mimass[mth] = 0.0;
 				soillayer.mwcont[mth] = 0.0;
-				soillayer.mKw[mth] = 0.0;
-				soillayer.mDw[mth] = 0.0;
 				soillayer.mdrain[mth] = 0.0;
 				soillayer.mtemp[mth] = 0.0;
 			}
@@ -772,7 +770,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
 
-		for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
 
 			padding& pad_lyr = soilcolumn.pad[plyr];
 
@@ -805,7 +803,7 @@ void dailyaccounting_patch(Patch& patch) {
 	// Calculate mean monthly water content of all soil layers
 	soilcolumn.calc_mwcont();
 
-	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
+	// Reset monthly soil temp, litter depth, snow depth and thaw averages on Jan 1
 	if (date.day == 0) {
 
 		Snow& snow = soilcolumn.snow;
@@ -826,10 +824,10 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.mnetmin[mth] = 0.0;
 			}
 		}
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 			padding& pad = soilcolumn.pad[lyr];
 			for (int mth = 0; mth < 12; mth++) {
-				pad.mtemp[mth] = 0.0; // DW_COMMENT does this work?
+				pad.mtemp[mth] = 0.0;
 			}
 		}
 	}

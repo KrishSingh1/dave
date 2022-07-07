@@ -45,7 +45,6 @@ void Snowlayer::clear() {
 	temp = 0.0;
 	Kh = 0.0;
 	Ch = 0.0;
-	Dh = 0.0;
 }
 
 /// Calculates heat capacity of snow
@@ -98,9 +97,6 @@ void Snowlayer::update_thermal_properties() {
 
 	// Thermal conductivity of snow - Best et al. 2011, Eq. 23 [J m-1 K-1 s-1]
 	Kh = 2.22 * pow((tot_dens / rho_H2O), 1.88);
-
-	// Diffusivity of snow [m2 s-1]
-	Dh = Kh / Ch; // DW_COMMENT not needed!
 }
 
 /// Update snow water holding capacity
@@ -981,9 +977,6 @@ void Snow::snowfall(double airT, double& prec, double u10) {
  */
 void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp) {
 
-	// Water balance check // DW_COMMENT to be removed!
-	double w_total_initial = prec + rain_melt +  wcontent();
-
 	// Water transferred between snow layer and in the end to the soil
 	double water_transferred = prec;
 
@@ -1092,13 +1085,6 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
 		// Save melt water above snow whc which will be pass downwards
 		rain_melt += water_transferred;
 	}
-
-	// Check final water content
-	double w_total_final = rain_melt + wcontent();
-	const double EPS = 1.0e-12;
-	//assert(fabs(w_total_initial - w_total_final) < EPS);
-	if (fabs(w_total_final - w_total_initial) > 1.0e-10)
-		dprintf("Year %d Day %d ERROR: Snow rainwater_melt diff %g\n", date.year, date.day, w_total_final - w_total_initial);
 }
 
 /// Snow accumulation
@@ -1299,8 +1285,8 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	imass = 0.0;
 	wmass_sc = 0.0;
 	por = 0.0;
-	Dw = 0.0;
 	Kw = 0.0;
+	dKwdw = 0.0;
 	b = 0.0;
 	Kw_max = 0.0;
 	a = 0.0;
@@ -1309,6 +1295,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	runoff_drain = 0.0;
 	runoff_baseflow = 0.0;
 	psi = 0.0;
+	dpsidw = 0.0;
 	mwcontabove = 0.0;
 	awcont = 0.0;
 	wsats = 0.0;
@@ -1409,13 +1396,9 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 		mwmass[mth] = 0.0;
 		mimass[mth] = 0.0;
 		mwcont[mth] = 0.0;
-		mKw[mth] = 0.0;
-		mDw[mth] = 0.0;
 		mdrain[mth] = 0.0;
 		mnetmin[mth] = 0.0;
 		mtemp[mth] = 0.0;
-		fNH4uptake_mean[mth] = 0.0; // DW_COMMENT move to soilcolumn
-		fNO3uptake_mean[mth] = 0.0;
 		morgleach_mean[mth] = 0.0;
 		mminleach_mean[mth] = 0.0;
 	}
@@ -1468,12 +1451,6 @@ double Soillayer::get(soilproptype SPT, int m) {
 		break;
 	case WCONTMAX:
 		prop = wcont_max();
-		break;
-	case MKW:
-		prop = mKw[m];
-		break;
-	case MDW:
-		prop = mDw[m];
 		break;
 	case MDRAIN:
 		prop = mdrain[m];
@@ -2203,40 +2180,6 @@ void Soillayer::update_matric_potential() {
 	dpsidw = -b * psi / theta;
 }
 
-/// Updates hydraulic conductivity and diffusivity
-/** Updates hydraulic conductivity and diffusivity
- * Relate the hydraulic conductivity and diffusivity 
- * to the soil water content following Campbell	(1974) 
- * and Clapp and Hornberger (1978)
- */
-void Soillayer::update_hydraulic_properties() { // DW_COMMENT not needed anymore
-
-	// The water transport in frozen soil is limited in the case of a partially frozen soil, by considering the effective 
-	// hydraulic conductivity and diffusivity to be a weighted average of the values for total soil water and the value 
-	// at the permanent wilting point for frozen water (for convenience set to zero)
-	if (imass > 0.0) {
-		// Ice impedance factor (Swenson et al. 2012)
-		imp_ice = pow(10.0, -6.0 * min(1.0, imass / wsats));
-	}
-	else {
-		imp_ice = 1.0;
-	}
-
-	double theta = max(0.0, wmass) / wsats;
-
-	// Hydraulic conductivity (Campbell 1974; mm s-1)
-	if (wmass > wsats) {
-		Kw = Kw_max;
-	}
-	else {
-		Kw = imp_ice * Kw_max * hydro_pow(theta, 2.0 * b + 3.0);
-	}
-
-	// Hydraulic diffusivity (Clapp and Hornberger 1978; mm2 s-1)
-	// Dw = b * Kw_max * (-Psi_max) / (wsats / depth) * pow(theta, b + 2.0);
-	Dw = imp_ice * b * Kw_max * (-Psi_max) / (wsats / depth) * hydro_pow(theta, b + 2.0);
-}
-
 /// Updates heat capacity and thermal conductivity
 /** Updates heat capacity and thermal conductivity of the soil layer
  */
@@ -2333,8 +2276,6 @@ void Soillayer::serialize(ArchiveStream& arch) {
 
 		// Equilsom variables
 		& solvesom
-		& fNH4uptake_mean
-		& fNO3uptake_mean
 		& morgleach_mean
 		& mminleach_mean
 		& decomp_litter_mean
@@ -2350,13 +2291,6 @@ void Soillayer::serialize(ArchiveStream& arch) {
 /** Initilize soil column variables
  */
 void Soilcolumn::initdrivers() {
-
-	// Padding layers
-	pad.resize(PAD_LAYERS);
-	soillayerdepths.resize(1);
-	cmass_litter_input.resize(1);
-	csom_litter_input.resize(1);
-	wfluxes.resize(1);
 
 	depth = 0.0;
 	nsoillayers = 0;
@@ -2387,6 +2321,9 @@ void Soilcolumn::initdrivers() {
 		mthaw[mth] = 0.0;
 		mwtp[mth] = 0.0;
 		mald_mean[mth] = 0.0;
+
+		fNH4uptake_mean[mth] = 0.0;
+		fNO3uptake_mean[mth] = 0.0;
 	}
 
 	dmoss_wtp_limit = 1.0;
@@ -2409,10 +2346,7 @@ void Soilcolumn::initdrivers() {
 	solvesom_begin = static_cast<int>(0.7 * nyear_spinup);
 
 	// Solve CENTURY SOM pools
-	//solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
-	//solvesomcent_endyr = (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears);
-
-	solvesomcent_beginyr = (int)0.5*freenyears; // DW_COMMENT
+	solvesomcent_beginyr = (int)0.5*freenyears;
 	solvesomcent_endyr = (int)freenyears+10;
 	savesomcent = false;
 }
@@ -2420,13 +2354,7 @@ void Soilcolumn::initdrivers() {
 /// Create soil layers
 /** Create soil layers with specific soil depths and thickness
  */
-void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
-
-	// Set number of soil layers
-	nsoillayers = (int)soil_layer_depths.size();
-
-	// Update size
-	soillayerdepths.resize(nsoillayers);
+void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
 
 	double acc_depth = 0.0;
 	double depth_profile = 0.0;
@@ -2460,20 +2388,8 @@ void Soilcolumn::create_soillayers(std::vector<double> soil_layer_depths) {
 		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
 	}
 
-	// Set size of litter input vector (surface as well)
-	cmass_litter_input.resize(nsoillayers + 1, 0.0);
-
-	// Set size of SOM litter input vector
-	csom_litter_input.resize(NSOMPOOL, 0.0);
-
-	// Set sizes of water flow calculation parameters
-	wpara.set_sizes(nsoillayers);
-
 	// Set sizes of temperature change calculation parameters
-	tpara.set_sizes(nsoillayers + PAD_LAYERS);
-
-	// Set size of water flow vector
-	wfluxes.resize(nsoillayers + 1, 0.0);
+	tpara.set_sizes(nsoillayers + NPADLAYERS);
 }
 
 /// Add a single soil layer
@@ -2503,10 +2419,7 @@ double Soilcolumn::get_surflitterC() {
 /// Returns a vector with soillayer values for a certain property
 /** Returns a vector with soillayer values for a certain property
  */
-std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
-
-	// Create vector to return
-	std::vector<double> prop(nsoillayers);
+void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 
 	// Loop over soil layers and extract property
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -2550,12 +2463,6 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			break;
 		case WCONTMAX:
 			prop[lyr] = soillayers[lyr].wcont_max();
-			break;
-		case MKW:
-			prop[lyr] = soillayers[lyr].mKw[m];
-			break;
-		case MDW:
-			prop[lyr] = soillayers[lyr].mDw[m];
 			break;
 		case MDRAIN:
 			prop[lyr] = soillayers[lyr].mdrain[m];
@@ -2619,9 +2526,6 @@ std::vector<double> Soilcolumn::get(soilproptype SPT, int m) {
 			fail("Unsupported soil property type (%d)\n", SPT);
 		}
 	}
-
-	// Return vector
-	return prop;
 }
 
 /// Returns a vector with soillayer values for a certain property
@@ -2644,9 +2548,7 @@ double Soilcolumn::get_sum(soilproptype SPT, int mth) {
 /// Returns a vector with soillayer N fractions
 /** Returns a vector with soillayer N fractions
  */
-std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref, bool wmass_limited) {
-
-	std::vector<double> nfrac(nsoillayers);
+void Soilcolumn::get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], bool wmass_limited) {
 
 	double ntot = nmass_avail(pref, wmass_limited);
 	double nfracsum = 0.0;
@@ -2661,33 +2563,23 @@ std::vector<double> Soilcolumn::get_nfrac(n_pref_type pref, bool wmass_limited) 
 	else {
 		nfrac[0] = 1.0;
 	}
-
-	return nfrac;
 }
 
-/// Returns a vector with soillayer C root fractions
-/** Returns a vector with soillayer C root fractions
+/// Calculate soillayer C root fractions
+/** Calculate soillayer C root fractions
  */
-std::vector<double> Soilcolumn::get_rootfrac() { // DW_COMMENT needed?
-	std::vector<double> cmass_root(nsoillayers);
+void Soilcolumn::calc_rootfrac(double rootfrac[NSOILLAYERS_MAX]) {
+	
+	double cmass_root[NSOILLAYERS_MAX] = { 0.0 };
+
+	// Get root mass per soil layer
+	calc_rootmass(cmass_root);
+
+	// Calculate total root mass
 	double cmass_root_tot = 0.0;
-
-	Vegetation& vegetation = patch.vegetation;
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			cmass_root[lyr] += indiv.cmass_root * patch.pft[indiv.pft.id].rootdist[lyr];
-		}
-		cmass_root_tot += indiv.cmass_root;
-
-		vegetation.nextobj();
-
-	} // indiviual loop
-
-	std::vector<double> rootfrac(nsoillayers);
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		cmass_root_tot += cmass_root[lyr];
+	}
 
 	if (!negligible(cmass_root_tot)) {
 
@@ -2698,15 +2590,12 @@ std::vector<double> Soilcolumn::get_rootfrac() { // DW_COMMENT needed?
 	else {
 		rootfrac[0] = 1.0;
 	}
-
-	return rootfrac;
 }
 
-/// Returns a vector with soillayer C root mass
-/** Returns a vector with soillayer C root mass
+/// Calculateh soillayer C root mass
+/** Calculate soillayer C root mass
  */
-std::vector<double> Soilcolumn::get_rootmass() { // DW_COMMENT needed
-	std::vector<double> cmass_root(nsoillayers);
+void Soilcolumn::calc_rootmass(double cmass_root[NSOILLAYERS_MAX]) {
 
 	Vegetation& vegetation = patch.vegetation;
 
@@ -2721,8 +2610,6 @@ std::vector<double> Soilcolumn::get_rootmass() { // DW_COMMENT needed
 		vegetation.nextobj();
 
 	} // indiviual loop
-
-	return cmass_root;
 }
 
 /// Returns available N for soil column
@@ -2771,12 +2658,6 @@ void Soilcolumn::calc_mwcont() {
 		// Monthly wcont
 		soillayer.mwcont[date.month] += soillayer.wcont() / date.ndaymonth[date.month];
 
-		// Monthly moisture conductivity
-		soillayer.mKw[date.month] += soillayer.Kw / date.ndaymonth[date.month];
-
-		// Monthly moisture diffusivity
-		soillayer.mDw[date.month] += soillayer.Dw / date.ndaymonth[date.month];
-
 		// Monthly lateral drainage
 		soillayer.mdrain[date.month] += soillayer.runoff_drain;
 
@@ -2801,7 +2682,7 @@ void Soilcolumn::calc_mtemp() {
 		soillayer.mtemp[date.month] += soillayer.temp / date.ndaymonth[date.month];
 	}
 
-	for (int plyr = 0; plyr < PAD_LAYERS; plyr++) {
+	for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
 		padding& pad_lyr = pad[plyr];
 		pad_lyr.mtemp[date.month] += pad_lyr.temp / date.ndaymonth[date.month];
 	}
@@ -2848,7 +2729,7 @@ void Soilcolumn::set_static_socfrac() {
 /// Average temperature down to a depth
 /** Average temperature down to a depth
  */
-double Soilcolumn::gtemp_rootdist(std::vector<double> rootdist) {
+double Soilcolumn::gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]) {
 
 	// Calculate root weighted gtemp
 	double avr_gtemp = 0.0;
@@ -3077,9 +2958,11 @@ void Soilcolumn::update_matric_potential() {
 	}
 }
 
-/// Update soil hydraulic conductivity and diffusivity for the soil column
-/** Update soil hydraulic conductivity and diffusivity for the soil column
- */
+ /// Updates hydraulic conductivity for the soil column
+ /** Updates hydraulic conductivity for the soil column
+  * Relate the hydraulic conductivity to the soil water 
+  * content following Campbell (1974)
+  */
 void Soilcolumn::update_hydraulic_properties() {
 
 	bool full = false;
@@ -3178,7 +3061,7 @@ void Soilcolumn::update_thermal_properties_for_pad() {
 	// Use bottom soil layer properties for the first 3 padding layers
 	const int first_bedrock_padding_layer = 3;
 
-	for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 
 		padding& pad_lyr = pad[lyr];
 
@@ -3263,37 +3146,9 @@ void solve_tridiagonal(CNpara& para) {
 	}
 }
 
-
-/// Solve tridiagonal system
-/** Solve tridiagonal system
- */
-void tridiag(CNpara& para) {
-
-	// Tridiagonal system solver from Numerical Recipes.
-
-	int n = (int)para.dz.size();
-	std::vector<double> gam(n);
-	double bet;
-
-	bet = para.main[0];
-
-	para.psi1[0] = para.rhs[0] / bet;
-
-	for (int j = 1; j < n; j++) {
-		gam[j] = para.upper[j - 1] / bet;
-		bet = para.main[j] - para.lower[j] * gam[j];
-
-		para.psi1[j] = (para.rhs[j] - para.lower[j] * para.psi1[j - 1]) / bet;
-	}
-
-	for (int j = (n - 2); j >= 0; j--) {
-		para.psi1[j] -= gam[j + 1] * para.psi1[j + 1];
-	}
-}
-
-
 /// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
-void cnstep_full(double surf_temp, double dt, CNpara& para) {
+void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_MAX + 1], double dz[NLAYERS_MAX + 1], 
+	double di[NLAYERS_MAX + 1],	double ki[NLAYERS_MAX + 1], double ci[NLAYERS_MAX + 1]) {
 
 	// DESCRIPTION
 	//     Crank-Nicholson timestepper for temperature diffusion equation.
@@ -3311,38 +3166,23 @@ void cnstep_full(double surf_temp, double dt, CNpara& para) {
 	//
 	//     INPUT PARAMETERS:
 	//
-	//      NLAYERS      Total number of layers represented in temp, d and
-	//                   dz arrays. Not all of the layers have to be active
-	//                   at one time, but this parameter is used to constrain
-	//                   the sizes of the depth-based arrays.
+	//      surf_temp    The surface temperature boundary condition.
 	//
-	//      layer0       Index of the first active layer. The diffusion
-	//                   equation will be solved for all layers in the range
-	//                   layer0 - NLAYERS inclusive, and the surface temperature
-	//                   boundary condition will be applied to the top of layer
-	//                   index layer0.
+	//      dt           The timestep.
+	//
+	//      nlayers      Total number of layers represented in temp, dz, d, k and
+	//                   c arrays.
 	//
 	//      temp         The temperatures in each layer at the start of the
 	//                   timestep.
+	//
+	//      dz           The thickness of each layer.
 	//
 	//      d            The thermal diffusivities in each layer.
 	//
 	//      k            The thermal conductivities in each layer.
 	//
 	//      c            The heat capacities in each layer.
-	//
-	//      dz           The thickness of each layer.
-	//
-	//      surf_temp    The surface temperature boundary condition.
-	//
-	//      dt           The timestep.
-	//
-	//      PAD_LAYERS   Number of layers to use below computation domain to
-	//                   deal with bottom boundary condition.
-	//
-	//      pad_dz       Padding layer thicknesses (derived from calc_padding).
-	//
-	//      pad_temp     Temperature in padding layers.
 	//
 	//     NOTE ON UNITS: no units are specified here for any of these
 	//     inputs; the only constraint on units is that the layer
@@ -3354,20 +3194,11 @@ void cnstep_full(double surf_temp, double dt, CNpara& para) {
 	//     OUTPUT PARAMETERS
 	//
 	//      temp         The temperatures in each layer at the end of the
-	//                   timestep. Only layers layer0 - NLAYERS will have
-	//                   valid temperature values after a to cnstep. All
-	//                   layers with index less than layer0 will have missing
-	//                   value temperatures set (a value of -1.0E35).
-	//
-	//      pad_temp     Temperature in padding layers at the end of the
-	//                   timestep.
+	//                   timestep. 
 
 	// As cnstep, but now we feed in ki and ci
 
-	// Retrieve number of layers
-	int nlayers = para.dz.size();
-
-	// Diffusion constants averaged over adjacent layers.
+		// Diffusion constants averaged over adjacent layers.
 	double dplus;
 	double dminus;
 
@@ -3378,17 +3209,18 @@ void cnstep_full(double surf_temp, double dt, CNpara& para) {
 	double dzhere, dzminus, dzplus;
 	double there, tminus, tplus;
 
-	// initialise
+	// Initialise
 	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;
 	dzhere = dzminus = dzplus = 0.0;
 	there = tminus = tplus = 0.0;
 
-	// BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE
+	double diag[NLAYERS_MAX + 1] = { 0.0 };
+	double left[NLAYERS_MAX + 1] = { 0.0 };
+	double right[NLAYERS_MAX + 1] = { 0.0 };
+	double rhs[NLAYERS_MAX + 1] = { 0.0 };
+	double solution[NLAYERS_MAX + 1] = { 0.0 };
 
-	// Process the active layers. 
-	// The first time (lidx and layer = layer0) corresponds to the surface layer
-
-	// lyr runs from 0 to active_layers - 1 
+	// BUILD TRIDIAGONAL MATRIX AND KNOWN RIGHT HAND SIDE 
 	for (int lyr = 0; lyr < nlayers; lyr++) {
 
 		// Calculate diffusion constants averaged over adjacent layers.
@@ -3400,46 +3232,46 @@ void cnstep_full(double surf_temp, double dt, CNpara& para) {
 			dplus = 0.0;
 		}
 		else {
-			dplus = ((para.diff[lyr] * para.dz[lyr] + para.diff[lyr + 1] * para.dz[lyr + 1]) / (para.dz[lyr] + para.dz[lyr + 1])) / para.cap[lyr];
+			dplus = ((ki[lyr] * dz[lyr] + ki[lyr + 1] * dz[lyr + 1]) / (dz[lyr] + dz[lyr + 1])) / ci[lyr];
 		}
 
 		// D-
 		if (lyr == 0) {
-			dminus = para.cond[lyr];
+			dminus = di[lyr];
 		}
 		else {
-			dminus = ((para.diff[lyr] * para.dz[lyr] + para.diff[lyr - 1] * para.dz[lyr - 1]) / (para.dz[lyr] + para.dz[lyr - 1])) / para.cap[lyr];
+			dminus = ((ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1])) / ci[lyr];
 		}
 
 		// Extract sensible values to use for temperature and diffusivity
 		// of the current layer, the layer above and the layer below,
 		// and end cases.
 
-		dzhere = para.dz[lyr];
-		there = para.psi[lyr];
+		dzhere = dz[lyr];
+		there = temp[lyr];
 
 		// --- PLUS ---
 		if (lyr < nlayers - 1) {
 			// all soil layers apart from the bottom padding layer
-			dzplus = para.dz[lyr + 1];
-			tplus = para.psi[lyr + 1];
+			dzplus = dz[lyr + 1];
+			tplus = temp[lyr + 1];
 		}
 		else {
 			// bottom padding layer
-			dzplus = para.dz[lyr];
-			tplus = para.psi[lyr];
+			dzplus = dz[lyr];
+			tplus = temp[lyr];
 		}
 
 		// --- MINUS ---
 		if (lyr == 0) {
 			// top soil layer
-			dzminus = para.dz[lyr];
-			tminus = para.psi[lyr];
+			dzminus = dz[lyr];
+			tminus = temp[lyr];
 		}
 		else {
 			// all layers except top soil layer
-			dzminus = para.dz[lyr - 1];
-			tminus = para.psi[lyr - 1];
+			dzminus = dz[lyr - 1];
+			tminus = temp[lyr - 1];
 		}
 
 		dz_factor = 0.25 * (dzplus + 2.0 * dzhere + dzminus);
@@ -3450,41 +3282,47 @@ void cnstep_full(double surf_temp, double dt, CNpara& para) {
 
 		// DIAG
 		if (lyr == 0) {
-			para.main[lyr] = 1.0;
+			diag[lyr] = 1.0;
 		}
 		else {
-			para.main[lyr] = 1.0 + Cplus + Cp_minus;
+			diag[lyr] = 1.0 + Cplus + Cp_minus;
 		}
 
 		// LEFT
 		if (lyr == 0) {
-			para.lower[lyr] = 0.0;
+			left[lyr] = 0.0;
 		}
 		else {
-			para.lower[lyr] = -Cp_minus;
+			left[lyr] = -Cp_minus;
 		}
 
 		// RIGHT
 		if (lyr == 0 || lyr == nlayers - 1) {
-			para.upper[lyr] = 0.0;
+			right[lyr] = 0.0;
 		}
 		else {
-			para.upper[lyr] = -Cplus;
+			right[lyr] = -Cplus;
 		}
 
 		// RHS
 		// Calculate right hand side vector values.
 		if (lyr == 0) {
-			para.rhs[lyr] = surf_temp;
+			rhs[lyr] = surf_temp;
 		}
 		else {
-			para.rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
+			rhs[lyr] = (1.0 - Cplus - Cp_minus) * there +
 				Cplus * tplus + Cp_minus * tminus;
 		}
 	}
 
 	//   SOLVE TRIDIAGONAL SYSTEM
-	tridiag(para);
+
+	tridiag(nlayers, left, diag, right, rhs, solution);
+
+	// Update temperature array
+	for (int lyr = 0; lyr < nlayers; lyr++) {
+		temp[lyr] = solution[lyr];
+	}
 }
 
 
@@ -3546,14 +3384,14 @@ void Soilcolumn::set_padding_depth() {
 
 	// If bottom soil layer multiplied with number of padding layers are less
 	// than total padding layer depth, then calculate each padding layer depth
-	if (dz * PAD_LAYERS < PAD_DEPTH) {
+	if (dz * NPADLAYERS < PAD_DEPTH) {
 
 		// Do Newton-Raphson solve to find geometric sequence factor.
 		while (fabs(k_guess - k_last) > 1E-2) {
 			k_last = k_guess;
 
-			func = pow(k_guess, (PAD_LAYERS + 1)) - k_guess * (1.0 + PAD_DEPTH / dz) + PAD_DEPTH / dz;
-			dfunc = (PAD_LAYERS + 1) * pow(k_guess, PAD_LAYERS) - (1.0 + PAD_DEPTH / dz);
+			func = pow(k_guess, (NPADLAYERS + 1)) - k_guess * (1.0 + PAD_DEPTH / dz) + PAD_DEPTH / dz;
+			dfunc = (NPADLAYERS + 1) * pow(k_guess, NPADLAYERS) - (1.0 + PAD_DEPTH / dz);
 			k_guess = k_guess - func / dfunc;
 		}
 
@@ -3561,26 +3399,26 @@ void Soilcolumn::set_padding_depth() {
 		double lyr_depth;
 
 		// Build geometric sequence of padding layer depths.
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 			lyr_depth = dz * pow(k_guess, lyr + 1);
 			pad[lyr].depth = lyr_depth;
 			tot_depth += lyr_depth;
 		}
 
 		if (!negligible(PAD_DEPTH - tot_depth)) {
-			pad[PAD_LAYERS - 1].depth += PAD_DEPTH - tot_depth;
+			pad[NPADLAYERS - 1].depth += PAD_DEPTH - tot_depth;
 		}
 
-		if (pad[PAD_LAYERS - 1].depth < -1.0e-10)
+		if (pad[NPADLAYERS - 1].depth < -1.0e-10)
 			fail("ERROR: Padding layer negative\n");
 	}
 	// Else each padding layer decrease linear to a minimum of 2m for the bottom padding layer
 	else {
-		double first_pad = min(17200.0, soillayers[nsoillayers - 1].depth);
+		double first_pad = min(16000.0, soillayers[nsoillayers - 1].depth);
 		double diff = (5.0 * first_pad - PAD_DEPTH) / 10.0;
 		int scalar = 0;
 
-		for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 			pad[lyr].depth = first_pad - diff * (double)scalar;
 			scalar++;
 		}
@@ -3865,8 +3703,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Water content in each sublayer
 	double surfw_sat = 0.0;
-	std::vector<double> value(nsublayers_acro);
-	std::vector<double> sub_water(nsublayers_acro);
+	double value[NSOILLAYERS_MAX];
+	double sub_water[NSOILLAYERS_MAX];
 
 	// Water table below surface
 	if (wtd > 0.0) {
@@ -4092,8 +3930,6 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 
 	// AET for a particular layer and individual (mm/day)
 	double aet;
-	// total AET for each soil layer (mm/day)
-	std::vector<double> aet_layer(nsoillayers);
 	// total AET (mm/day)
 	double aet_total = 0.0;
 
@@ -4257,7 +4093,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// AET for a particular layer and individual (mm)
 	double aet;
 	// total AET for each Gerten-type soil layer (mm)
-	std::vector<double> aet_layer(nsoillayers);	
+	double aet_layer[NSOILLAYERS_SIMPLE] = { 0.0 };
 	// total AET (mm)
 	double aet_total = 0.0;
 
@@ -4455,8 +4291,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Effective depth of surface runoff [mm]
 	double depth_infilt = min(thaw, DEPTH_INFILT_MAX);
 
-	double initial_wmass = snow.wcontent() + get_sum(WMASS) + rain_melt;
-
 	// Evaposation (mm)
 	double evap = 0.0;
 	// Surface runoff (mm)
@@ -4466,7 +4300,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// AET for a particular layer and individual (mm/day)
 	double aet;
 	// total AET for each soil layer (mm/day)
-	std::vector<double> aet_layer(nsoillayers);
+	double aet_layer[NSOILLAYERS_MAX] = { 0.0 };
 	// total AET (mm/day)
 	double aet_total = 0.0;
 
@@ -4488,11 +4322,11 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// CLM5.0 hydrology
 
-	double dz[NSOILLAYER_MAX], vws_liq[NSOILLAYER_MAX], qflx_root[NSOILLAYER_MAX], dt_dz[NSOILLAYER_MAX],
-		Kw[NSOILLAYER_MAX],dKwdw[NSOILLAYER_MAX],psi[NSOILLAYER_MAX],dpsidw[NSOILLAYER_MAX],
-		qin[NSOILLAYER_MAX],qout[NSOILLAYER_MAX],dqidw0[NSOILLAYER_MAX],dqidw1[NSOILLAYER_MAX],
-		dqodw1[NSOILLAYER_MAX],dqodw2[NSOILLAYER_MAX],rmx[NSOILLAYER_MAX],amx[NSOILLAYER_MAX],
-		bmx[NSOILLAYER_MAX],cmx[NSOILLAYER_MAX],dwat[NSOILLAYER_MAX],wmass_org[NSOILLAYER_MAX];
+	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], qflx_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
+		Kw[NSOILLAYERS_MAX],dKwdw[NSOILLAYERS_MAX],psi[NSOILLAYERS_MAX],dpsidw[NSOILLAYERS_MAX],
+		qin[NSOILLAYERS_MAX],qout[NSOILLAYERS_MAX],dqidw0[NSOILLAYERS_MAX],dqidw1[NSOILLAYERS_MAX],
+		dqodw1[NSOILLAYERS_MAX],dqodw2[NSOILLAYERS_MAX],rmx[NSOILLAYERS_MAX],amx[NSOILLAYERS_MAX],
+		bmx[NSOILLAYERS_MAX],cmx[NSOILLAYERS_MAX],dwat[NSOILLAYERS_MAX],wmass_org[NSOILLAYERS_MAX];
 
 	// Initial sub daily timesteps on days with precipitation
 	double nsubdays_prec = 12.0;
@@ -4538,9 +4372,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Finished day
 	bool finished = false;
 
-	// wmass balance check
-	double wmass_tot_before = rain_melt + get_sum(WMASS);
-
 	// Calculate static ice mass and saturation level for infiltation depth (top layer)
 	double imass_infilt = to_depth(depth_infilt, IMASS);
 	double wsats_infilt = to_depth(depth_infilt, WSATS);
@@ -4552,7 +4383,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		soillayer.runoff_drain = 0.0;
 		soillayer.runoff_baseflow = 0.0;
 
-		// Save initial wmass // DW_COMMENT
+		// Save initial wmass
 		wmass_org[lyr] = soillayer.wmass;
 	}
 
@@ -4721,7 +4552,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		if (soillayer.wmass + soillayer.imass > soillayer.wsats) {
 
-			double wmass_excess = max(0.0, max(soillayer.wmass, soillayer.wmass - (soillayer.wsats - soillayer.imass)));
+			double wmass_excess = max(0.0, min(soillayer.wmass, soillayer.wmass - (soillayer.wsats - soillayer.imass)));
 
 			if (lyr > 0) {
 				soillayers[lyr - 1].wmass += wmass_excess;
@@ -4753,23 +4584,23 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		}
 	}
 
-	// Resolve water movements // DW_COMMENT
+	// Resolve todays water movements
 	wfluxes[0] = wmass_infilt_tot;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		Soillayer& soillayer = soillayers[lyr];
 		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + aet_layer[lyr]);
 	}
 
-	int start_yr = 1140;
-	int end_yr = 60;
-	if (date.year == start_yr && date.day == 0) {
+	int start_yr = 2008; // DW_COMMENT
+	int end_yr = 2010;
+	if (date.get_calendar_year() == start_yr && date.day == 0) {
 		dprintf("Year Day Iter Prec AET Evap Rsurf Rdrain Rbase ");
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			dprintf("lyr%d ", lyr);
 		}
 		dprintf("\n");
 	}
-	if (date.year >= start_yr && date.year < end_yr) {
+	if (date.get_calendar_year() >= start_yr && date.get_calendar_year() <= end_yr) {
 		dprintf("%d %d %d %g %g %g %g %g %g ",
 			date.year, date.day, nsubstep, rain_melt, aet_total, evap,
 			runoff_surf, get_sum(RUNOFFDRAIN), get_sum(RUNOFFBASE));
@@ -4777,14 +4608,6 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			dprintf("%g ", soillayers[lyr].wmass / soillayers[lyr].wsats);
 		}
 		dprintf("\n");
-	}
-
-	// wmass balance check
-	double wmass_tot_after = aet_total + evap + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + get_sum(WMASS);
-
-	if (fabs(wmass_tot_after - wmass_tot_before) > EPS) {
-		dprintf("Year %d Day %d CLM hydrology doesn't keep water balance! Error: %g Before: %g After: %g\n",
-			date.year, date.day, wmass_tot_before - wmass_tot_after, wmass_tot_before, wmass_tot_after);
 	}
 
 	// Determine water table position
@@ -4840,10 +4663,10 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 }
 
-void Soilcolumn::compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYER_MAX], 
-	double psi[NSOILLAYER_MAX], double dKwdw[NSOILLAYER_MAX], double dpsidw[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
-	double qout[NSOILLAYER_MAX], double dqidw0[NSOILLAYER_MAX], double dqidw1[NSOILLAYER_MAX], double dqodw1[NSOILLAYER_MAX], 
-	double dqodw2[NSOILLAYER_MAX], double vws_liq[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX]) {
+void Soilcolumn::compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], 
+	double psi[NSOILLAYERS_MAX], double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+	double qout[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], 
+	double dqodw2[NSOILLAYERS_MAX], double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX]) {
 
 	// Calculate fluxes at the boundary of each layerand derivatives w.r.t.
 	// relevant state variables
@@ -4945,8 +4768,8 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[
 	}
 }
 
-void Soilcolumn::compute_RHS_moisture_form(double qflx_root[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX],
-	double qout[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double rmx[NSOILLAYER_MAX]) {
+void Soilcolumn::compute_RHS_moisture_form(double qflx_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX],
+	double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX]) {
 
 
 	// Calculate RHS of moisture - based form of Richards equation
@@ -4961,9 +4784,9 @@ void Soilcolumn::compute_RHS_moisture_form(double qflx_root[NSOILLAYER_MAX], dou
 	}
 }
 
-void Soilcolumn::compute_LHS_moisture_form(double dt_dz[NSOILLAYER_MAX], double dqidw0[NSOILLAYER_MAX], 
-	double dqidw1[NSOILLAYER_MAX], double dqodw1[NSOILLAYER_MAX], double dqodw2[NSOILLAYER_MAX],
-	double amx[NSOILLAYER_MAX], double bmx[NSOILLAYER_MAX], double cmx[NSOILLAYER_MAX]) {
+void Soilcolumn::compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], 
+	double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
+	double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], double cmx[NSOILLAYERS_MAX]) {
 
 	// Calculate LHS of moisture - based form of Richards equation
 	// LHS is a tridiagonal matrix
@@ -4994,8 +4817,8 @@ void Soilcolumn::compute_LHS_moisture_form(double dt_dz[NSOILLAYER_MAX], double 
 	cmx[blyr] = 0.0;
 }
 
-void Soilcolumn::TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MAX], double c[NSOILLAYER_MAX], 
-	double r[NSOILLAYER_MAX], double u[NSOILLAYER_MAX]) {
+void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_MAX], double c[NSOILLAYERS_MAX], 
+	double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX]) {
 
 	// Tridiagonal matrix solution
 
@@ -5010,7 +4833,7 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MA
 	int tlyr = 0;
 
 	double bet = b[tlyr];
-	double gam[NSOILLAYER_MAX];
+	double gam[NSOILLAYERS_MAX];
 
 	for (int lyr = tlyr; lyr < nsoillayers; lyr++) {
 		if (lyr == tlyr) {
@@ -5028,14 +4851,14 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MA
 	}
 }
 
-void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], 
-	double qin[NSOILLAYER_MAX],	double qout[NSOILLAYER_MAX], double qflx_root[NSOILLAYER_MAX], double dtmin, 
+void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], 
+	double qin[NSOILLAYERS_MAX],	double qout[NSOILLAYERS_MAX], double qflx_root[NSOILLAYERS_MAX], double dtmin, 
 	double xTolerUpper,	double& dtsub, double& errorMax, bool& calcsub) {
 
 	calcsub = false;
 
-	double fluxNet0[NSOILLAYER_MAX];
-	double fluxNet1[NSOILLAYER_MAX];
+	double fluxNet0[NSOILLAYERS_MAX];
+	double fluxNet1[NSOILLAYERS_MAX];
 
 	// Estimate errors for each layer
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -5048,15 +4871,12 @@ void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_M
 
 		// Check for negative water
 		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
-			
-			// Need to recalculate this substep
-			calcsub = true;
 
 			// Halve the length of the substep
 			dtsub /= 2.0;
-
-			dprintf("ERROR: Negative water! Will shorten dtstep and recalculate. Year %d Day %d Lyr %d wmass %g dtstep %g\n",
-				date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr], dtsub);
+			
+			// Need to recalculate this substep
+			calcsub = true;
 		}
 	}
 
@@ -5083,9 +4903,6 @@ void Soilcolumn::check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_M
 
 			// substep rejected; try again
 			calcsub = true;
-
-			// This substep not used
-			//nsubstep--;
 		}
 		else {
 			calcsub = false;
@@ -5161,7 +4978,7 @@ void Soilcolumn::initial_percolation() {
 				// Distribute the water in the acrotelm in proportion to the capacity
 
 				// water that can still be added to each soil layer (kg m-2)
-				std::vector<double> potential_layer(nacrotelm);
+				double potential_layer[NSOILLAYERS_MAX];
 
 				double imass_fraction = 0.0;
 				double imass_impedance = 1.0;
@@ -5329,7 +5146,7 @@ void Soilcolumn::thaw_depth() {
 	}
 	// If all soil layer where thawn then add padding layer with temperature above 0 degree C
 	if (lyr == nsoillayers) {
-		while (lyr < nsoillayers + PAD_LAYERS && pad[lyr - nsoillayers].temp > 0.0) {
+		while (lyr < nsoillayers + NPADLAYERS && pad[lyr - nsoillayers].temp > 0.0) {
 			thaw += pad[lyr - nsoillayers].depth;
 			lyr++;
 		}
@@ -5370,8 +5187,13 @@ bool Soilcolumn::can_freeze() const {
  */
 void Soilcolumn::calc_temp() {
 
+	double temp[NLAYERS_MAX + 1], 
+		dz[NLAYERS_MAX + 1],
+		di[NLAYERS_MAX + 1],
+		ki[NLAYERS_MAX + 1],
+		ci[NLAYERS_MAX + 1];
+
 	double airT = patch.get_climate().temp;
-	double top_temp = snow.nsnowlayers ? snow.snowlayers[snow.nsnowlayers - 1].temp : soillayers[0].temp;
 
 	int ttimesteps = 4;
 
@@ -5398,28 +5220,27 @@ void Soilcolumn::calc_temp() {
 		int nairlayers = 1;
 		int nairsnowlayers = nairlayers + nsnowlayers;
 		int nairsnowsoillayers = nairlayers + nsnowlayers + nsoillayers;
-		int nairsnowsoilpadlayers = nairlayers + nsnowlayers + nsoillayers + PAD_LAYERS;
-
-		if (nairsnowsoilpadlayers != tpara.dz.size()) {
-			tpara.set_sizes(nairsnowsoilpadlayers);
-		}
+		int nairsnowsoilpadlayers = nairlayers + nsnowlayers + nsoillayers + NPADLAYERS;
 
 		// Air layer
-		tpara.dz[0] = AIR_THICKNESS;
-		tpara.cap[0] = Cp_air * M3_PER_MM3;
-		tpara.diff[0] = Kair * SECS_PER_DAY / MM_PER_M;
-		tpara.cond[0] = tpara.diff[0] / tpara.cap[0];
-		tpara.psi[0] = airT;
+		dz[0] = AIR_THICKNESS;
+		ci[0] = Cp_air * M3_PER_MM3;
+		ki[0] = Kair * SECS_PER_DAY / MM_PER_M;
+		di[0] = ki[0] / ci[0];
+		temp[0] = airT;
 
-		// Snow layers (0 == bottom layer, nsnowlayers - 1 == top snow layer)
+		// Snow layers
 		int slyr = nsnowlayers - 1;
 		for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
+
+			// Snow layer
 			Snowlayer& snowlayer = snow.snowlayers[slyr];
-			tpara.dz[lyr] = snowlayer.depth;
-			tpara.cap[lyr] = snowlayer.Ch / MM3_PER_M3; // m-3 to mm-3
-			tpara.diff[lyr] = snowlayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-			tpara.psi[lyr] = snowlayer.temp;
+
+			dz[lyr] = snowlayer.depth;
+			ci[lyr] = snowlayer.Ch / MM3_PER_M3; // m-3 to mm-3
+			ki[lyr] = snowlayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			di[lyr] = ki[lyr] / ci[lyr];
+			temp[lyr] = snowlayer.temp;
 
 			slyr--;
 		}
@@ -5427,55 +5248,56 @@ void Soilcolumn::calc_temp() {
 		// Soil layers
 		for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
 
+			// Soil layer
 			Soillayer& soillayer = soillayers[lyr - nairsnowlayers];
 
 			if (lyr == nairsnowlayers && combine_snow) {
-				tpara.dz[lyr] = (soillayer.depth + snow.snowlayers[0].depth);
+				dz[lyr] = (soillayer.depth + snow.snowlayers[0].depth);
 			}
 			else {
-				tpara.dz[lyr] = soillayer.depth;
+				dz[lyr] = soillayer.depth;
 			}
-			tpara.cap[lyr] = soillayer.Ch / MM3_PER_M3; // m-3 to mm-3
-			tpara.diff[lyr] = soillayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-			tpara.psi[lyr] = soillayer.temp;
+			ci[lyr] = soillayer.Ch / MM3_PER_M3; // m-3 to mm-3
+			ki[lyr] = soillayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			di[lyr] = ki[lyr] / ci[lyr];
+			temp[lyr] = soillayer.temp;
 		}
 
 		// Padding layers
 		for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
 
+			// Padding layer
 			padding& pad_lyr = pad[lyr - nairsnowsoillayers];
 
-			tpara.dz[lyr] = pad_lyr.depth;
-			tpara.cap[lyr] = pad_lyr.Ch / MM3_PER_M3; // m-3 to mm-3
-			tpara.diff[lyr] = pad_lyr.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-			tpara.cond[lyr] = tpara.diff[lyr] / tpara.cap[lyr];
-			tpara.psi[lyr] = pad_lyr.temp;
+			dz[lyr] = pad_lyr.depth;
+			ci[lyr] = pad_lyr.Ch / MM3_PER_M3; // m-3 to mm-3
+			ki[lyr] = pad_lyr.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+			di[lyr] = ki[lyr] / ci[lyr];
+			temp[lyr] = pad_lyr.temp;
 		}
 
-		cnstep_full(airT, 1.0 / ttimesteps, tpara);
-
+		cnstep_full(airT, 1.0 / ttimesteps, nairsnowsoilpadlayers, temp, dz, di, ki, ci);
 
 		// Update temperatures
 
 		// Set new snow layer temperatures (0 == bottom layer, nsnowlayers - 1 == top snow layer)
 		slyr = nsnowlayers - 1;
 		for (int lyr = nairlayers; lyr < nairsnowlayers; lyr++) {
-			snow.snowlayers[slyr].temp = tpara.psi1[lyr];
+			snow.snowlayers[slyr].temp = temp[lyr];
 			slyr--;
 		}
 
 		// Set new soil layer temperatures
 		for (int lyr = nairsnowlayers; lyr < nairsnowsoillayers; lyr++) {
-			soillayers[lyr - nairsnowlayers].temp = tpara.psi1[lyr];
+			soillayers[lyr - nairsnowlayers].temp = temp[lyr];
 
 			if (lyr == nairsnowlayers && combine_snow)
-				snow.snowlayers[0].temp = tpara.psi1[lyr];
+				snow.snowlayers[0].temp = temp[lyr];
 		}
 
 		// Set new padding layer temperatures
 		for (int lyr = nairsnowsoillayers; lyr < nairsnowsoilpadlayers; lyr++) {
-			pad[lyr - nairsnowsoillayers].temp = tpara.psi1[lyr];
+			pad[lyr - nairsnowsoillayers].temp = temp[lyr];
 		}
 
 		// Recalculate the top soil layer thermal properties after it been combined with the single snow layer for temperature calculations
@@ -5503,7 +5325,7 @@ void Soilcolumn::calc_temp() {
 
 		avr_temp /= 12.0;
 
-		for (int lyr = PAD_LAYERS-2; lyr < PAD_LAYERS; lyr++) {
+		for (int lyr = NPADLAYERS-2; lyr < NPADLAYERS; lyr++) {
 			pad[lyr].temp = avr_temp;
 		}
 	}
@@ -5556,7 +5378,7 @@ void Soilcolumn::calc_msnow() {
 void Soilcolumn::vertical_movement() {
 
 	// Root C biomass in soil layers (currently set to zero) // DW_COMMENT future development: include root in soil layers as influence to total volume, thermal properties, hydrology etc
-	double ccont_roots[NSOILLAYER_MAX] = { 0.0 };
+	double ccont_roots[NSOILLAYERS_MAX] = { 0.0 };
 
 	int donor, receiver, p_receiver;;
 
@@ -5729,7 +5551,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	// Calculate carbon fluxes between soil layers
 	// Positive flow to layer below
 	// Negative flow from layer below
-	double cfluxes[NSOILLAYER_MAX];
+	double cfluxes[NSOILLAYERS_MAX];
 	cfluxes[0] = (VMpara.psi[0] - VMpara.psi1[0]) * VMpara.dz[0];
 	cfluxes[0] = negligible(cfluxes[0], 1.0e-12) ? 0.0 : cfluxes[0];
 	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
@@ -5770,8 +5592,8 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		}
 	}
 
-	double delta_cmass[NSOILLAYER_MAX] = { 0.0 };
-	double delta_nmass[NSOILLAYER_MAX] = { 0.0 };
+	double delta_cmass[NSOILLAYERS_MAX] = { 0.0 };
+	double delta_nmass[NSOILLAYERS_MAX] = { 0.0 };
 
 	// Calculate C and N mass changes
 	double cmove, nmove, frac;
@@ -5821,6 +5643,8 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& awtp
 		& anfix_calc
 		& pad
+		& fNH4uptake_mean
+		& fNO3uptake_mean
 		& solvesomcent_beginyr
 		& solvesomcent_endyr;
 }

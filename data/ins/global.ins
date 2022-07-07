@@ -76,8 +76,8 @@ file_mpet "mpet.out"
 file_mevap "mevap.out"
 file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
-!file_mwmass "mwmass.out"
-!file_mimass "mimass.out"
+file_mwmass "mwmass.out"
+file_mimass "mimass.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
@@ -89,8 +89,6 @@ file_mtemp "mtemp.out"
 file_mwmasslyr "mwmasslyr.out"
 file_mimasslyr "mimasslyr.out"
 file_mwimasslyr "mwimasslyr.out"
-file_mKwlyr "mKwlyr.out"
-file_mDwlyr "mDwlyr.out"
 file_mdrainlyr "mdrainlyr.out"
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
@@ -170,11 +168,11 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and single layer snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM, default), 2 - Jin et al. 2020

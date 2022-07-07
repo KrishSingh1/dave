@@ -669,7 +669,7 @@ void plib_declarations(int id,xtring setname) {
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0, 1.0, 1, CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
-		declareitem("root_dist", ppft->root_dist, 0.0, 1.0, NSOILLAYER_SIMPLE, CB_ROOTFRAC,
+		declareitem("root_dist", ppft->root_dist, 0.0, 1.0, NSOILLAYERS_SIMPLE, CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");

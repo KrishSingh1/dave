@@ -62,7 +62,7 @@ private:
 	xtring file_simfireanalysis_out;
 		
 	// Soil temperature and water
-	xtring file_mtemp, file_mwmasslyr, file_mimasslyr, file_mwimasslyr, file_mKwlyr, file_mDwlyr, file_mdrainlyr;
+	xtring file_mtemp, file_mwmasslyr, file_mimasslyr, file_mwimasslyr, file_mdrainlyr;
 
 	// Methane fluxes
 	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
@@ -92,7 +92,7 @@ private:
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_msnowcover, out_mwtp, out_mald, out_msoiltempdepth25;
 
 	// Soil temperatures and water
-	Table out_mtemp, out_mwmasslyr, out_mimasslyr, out_mwimasslyr, out_mKwlyr, out_mDwlyr, out_mdrainlyr;
+	Table out_mtemp, out_mwmasslyr, out_mimasslyr, out_mwimasslyr, out_mdrainlyr;
 };
 
 }

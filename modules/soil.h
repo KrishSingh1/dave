@@ -22,13 +22,13 @@ const bool DEBUG_METHANE = false;
 // CONSTANTS
 
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
-const int NSOILLAYER_SIMPLE = 2;
+const int NSOILLAYERS_SIMPLE = 2;
 
 /// maximum number of soil layers modelled
-const int NSOILLAYER_MAX = 10;
+const int NSOILLAYERS_MAX = 15;
 
 /// number of padding layers in the soil
-const int PAD_LAYERS = 5;
+const int NPADLAYERS = 5;
 
 /// depth of the acrotelm (mm), catotelm rest of soil column
 const double ACROTELM_DEPTH = 300.0;
@@ -70,6 +70,9 @@ const double SNOW_DEPTH_STANDARD = 100.0;
 
 // Maximum snowpack depth allowed [mm]
 const double MAX_SNOWPACK_DEPTH = 2000.0;
+
+// Maximum number of layers allowed
+const int NLAYERS_MAX = NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS;
 
 // WATER PARAMETERS
 
@@ -299,11 +302,12 @@ const double PEATLAND_WETLAND_LATITUDE_LIMIT = 40.0;
 
 // INLINE FUNCTIONS
 
-inline void tridiag(int n, std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r, std::vector<double>& u) {
+/*inline void tridiag(int n, double a[NSOILLAYER_MAX], double b[NSOILLAYER_MAX], double c[NSOILLAYER_MAX],
+	double r[NSOILLAYER_MAX], double u[NSOILLAYER_MAX]) {
 
 	// Tridiagonal system solver from Numerical Recipes.
 
-	std::vector<double> gam(n);
+	double gam[NSOILLAYER_MAX];
 	double bet;
 
 	bet = b[0];
@@ -311,6 +315,29 @@ inline void tridiag(int n, std::vector<double> a, std::vector<double> b, std::ve
 	u[0] = r[0] / bet;
 
 	for (int j = 1; j<n; j++) {
+		gam[j] = c[j - 1] / bet;
+		bet = b[j] - a[j] * gam[j];
+
+		u[j] = (r[j] - a[j] * u[j - 1]) / bet;
+	}
+
+	for (int j = (n - 2); j >= 0; j--) {
+		u[j] -= gam[j + 1] * u[j + 1];
+	}
+}*/
+
+inline void tridiag(int n, double a[], double b[], double c[], double r[], double u[]) {
+
+	// Tridiagonal system solver from Numerical Recipes.
+
+	double gam[NLAYERS_MAX + 1];
+	double bet;
+
+	bet = b[0];
+
+	u[0] = r[0] / bet;
+
+	for (int j = 1; j < n; j++) {
 		gam[j] = c[j - 1] / bet;
 		bet = b[j] - a[j] * gam[j];
 

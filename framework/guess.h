@@ -142,8 +142,8 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
-typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, WSATS, AWC, WP, WCONTMAX, MKW, MDW, MDRAIN,
-WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
+typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, 
+WSATS, AWC, WP, WCONTMAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
@@ -1795,9 +1795,9 @@ public:
 	/// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
-	std::vector<double> rootdist;
+	double rootdist[NSOILLAYERS_MAX];
 	/// vegetation root profile input in an array containing fraction of roots in each soil layer, [0=upper layer]
-	double root_dist[NSOILLAYER_SIMPLE];
+	double root_dist[NSOILLAYERS_SIMPLE];
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -2187,7 +2187,7 @@ public:
 		for (int i = 0; i<3; i++)
 			photo[i] = 0.0;
 
-		for (int i = 0; i<NSOILLAYER_SIMPLE; i++)
+		for (int i = 0; i<NSOILLAYERS_SIMPLE; i++)
 			root_dist[i] = 0.0;
 	}
 
@@ -2323,18 +2323,15 @@ public:
 	}
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-	void init_rootdist(std::vector<double> soil_lyr_depth) {
+	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers) {
 
-		// Number of soil layers
-		int nsoillayers = (int)soil_lyr_depth.size();
+		// Total soil layer depth
 		double tot_depth;
 
 		if (!iftwolayersoil) {
 
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
-			
-			rootdist.resize(nsoillayers, 0.0);
 
 			double tot = 0.0;
 			tot_depth = soil_lyr_depth[0] * CM_PER_MM;
@@ -2372,7 +2369,6 @@ public:
 		else { 
 			
 			// Old two layer scheme
-			rootdist.resize(2, 0.0);
 			rootdist[0] = root_dist[0];
 			rootdist[1] = root_dist[1];
 		}
@@ -2782,8 +2778,6 @@ public:
 	double ltor;
 	/// plant height (m)
 	double height;
-	/// plant height previous year (m)
-	double height_prev;
 	/// plant crown area (m2)
 	double crownarea;
 	/// increment in fpc since last simulation year
@@ -3472,16 +3466,10 @@ public:
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
-	/// soil moisture diffusivity (mm2 s-1)
-	double Dw;
-	/// monthly soil moisture diffusivity (mm2 s-1)
-	double mDw[12];
 	/// soil moisture conductivity (m s-1)
 	double Kw;
 	/// Derivative in hydraulic conductivity w.r.t relative saturation (mm s-1)
 	double dKwdw;
-	/// monthly soil moisture conductivity (mm s-1)
-	double mKw[12];
 	/// soil moisture conductivity at saturation (mm s-1)
 	double Kw_max;
 	/// Exponential in Campbell (1974) parameterization for soil water retention curves
@@ -3633,10 +3621,6 @@ public:
 
 	// Variables for fast spinup of SOM pools
 
-	/// monthly fraction of available NH4 taken up
-	double fNH4uptake_mean[12];
-	/// monthly fraction of available NO3 taken up
-	double fNO3uptake_mean[12];
 	/// monthly fraction of organic carbon/nitrogen leached
 	double morgleach_mean[12];
 	/// monthly fraction of available mineral nitrogen leached
@@ -3678,7 +3662,6 @@ public:
 		wp = that.wp;
 		perc_mass = that.perc_mass;
 		perc_base = that.perc_base;
-		Dw = that.Dw;
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
@@ -3749,13 +3732,9 @@ public:
 			mwmass[mth] = that.mwmass[mth];
 			mimass[mth] = that.mimass[mth];
 			mwcont[mth] = that.mwcont[mth];
-			mKw[mth] = that.mKw[mth];
-			mDw[mth] = that.mDw[mth];
 			mdrain[mth] = that.mdrain[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
-			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
-			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
 			morgleach_mean[mth] = that.morgleach_mean[mth];
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
@@ -3787,7 +3766,6 @@ public:
 		wp = that.wp;
 		perc_mass = that.perc_mass;
 		perc_base = that.perc_base;
-		Dw = that.Dw;
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
@@ -3858,13 +3836,9 @@ public:
 			mwmass[mth] = that.mwmass[mth];
 			mimass[mth] = that.mimass[mth];
 			mwcont[mth] = that.mwcont[mth];
-			mKw[mth] = that.mKw[mth];
-			mDw[mth] = that.mDw[mth];
 			mdrain[mth] = that.mdrain[mth];
 			mtemp[mth] = that.mtemp[mth];
 			mnetmin[mth] = that.mnetmin[mth];
-			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
-			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
 			morgleach_mean[mth] = that.morgleach_mean[mth];
 			mminleach_mean[mth] = that.mminleach_mean[mth];
 		}
@@ -3927,8 +3901,6 @@ public:
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
 	void update_matric_potential();
-
-	void update_hydraulic_properties();
 
 	void update_thermal_properties(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
 
@@ -3997,9 +3969,6 @@ struct Snowlayer : public Serializable {
 
 	/// Heat capacity of snow [J m-3 K-1]
 	double Ch;
-
-	/// Diffusivity of snow [m2 s-1]
-	double Dh;
 
 	void clear();
 
@@ -4141,7 +4110,6 @@ struct CNpara {
 		lower.resize(nlayers, 0.0);
 		rhs.resize(nlayers, 0.0);
 	}
-
 };
 
 /// Soilcolumn stores state variables for soillayers and the snow pack.
@@ -4170,20 +4138,18 @@ public:
 	double depth;
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
-	/// vector with soil layer bottom depths
-	std::vector<double> soillayerdepths;
+	/// array with soil layer bottom depths
+	double soillayerdepths[NSOILLAYERS_MAX];
 	/// number of soil layers
 	int nsoillayers;
 	/// vector with surface and soil layer litter input
-	std::vector<double> cmass_litter_input; // DW_COMMENT good for debugging - removed after finished
+	double cmass_litter_input[NSOILLAYERS_MAX+1]; // DW_COMMENT good for debugging - removed after finished
 	/// vector with SOM pool litter input
-	std::vector<double> csom_litter_input; // DW_COMMENT good for debugging - remove after finished
+	double csom_litter_input[NSOMPOOL]; // DW_COMMENT good for debugging - remove after finished
 	/// number of acrotelm soil layers
 	int nacrotelm;
 	/// number of catotelm soil layers
 	int ncatotelm;
-	/// Water flow calculation variables
-	CNpara wpara;
 	/// Temperature change calculation variables
 	CNpara tpara;
 	/// soil NH4 mass input (kgN/m2)
@@ -4202,7 +4168,7 @@ public:
 	/// fraction of available water holding capacity 
 	double wcont_evap;
 	/// water fluxes between soil layers (mm)
-	std::vector<double> wfluxes;
+	double wfluxes[NSOILLAYERS_MAX + 1];
 	/// rainfall and snowmelt today (mm)
 	double rain_melt;
 	/// rainfall and snowmelt temperature today (C)
@@ -4212,7 +4178,7 @@ public:
 	/// whether to percolate today
 	bool percolate;
 	/// Soil temperature padding
-	std::vector<padding> pad;
+	padding pad[NPADLAYERS];
 	/// Snow
 	Snow snow;
 
@@ -4272,6 +4238,13 @@ public:
 	/// records the first time T is calculated
 	bool firstTempCalc;
 
+	// Variables for fast spinup of SOM pools
+
+	/// monthly fraction of available NH4 taken up
+	double fNH4uptake_mean[12];
+	/// monthly fraction of available NO3 taken up
+	double fNO3uptake_mean[12];
+
 	// Restart variables
 
 	/// year at which to calculate equilibrium soil carbon
@@ -4306,6 +4279,10 @@ public:
 	// 1. copy constructor
 	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype) {
 		soillayers = that.soillayers;
+		for (int mth = 0; mth < 12; mth++) {
+			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
+			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
+		}
 		// other variables // DW_COMMENT
 	}
 
@@ -4314,27 +4291,31 @@ public:
 		// etc.
 		soillayers = that.soillayers;	
 		soiltype = that.soiltype;
+		for (int mth = 0; mth < 12; mth++) {
+			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
+			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
+		}
 		return *this;
 	}
 
 	/// Initialize variables
 	void initdrivers();
 	/// Create soillayers
-	void create_soillayers(std::vector<double> soil_layer_depths);
+	void create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]);
 	/// Add a soil layer
 	void add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm);
 	/// Returns surface litter C content
 	double get_surflitterC();
 	/// Get soil property per layer
-	std::vector<double> get(soilproptype SPT, int m = 0);
+	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
 	double get_sum(soilproptype SPT, int m = 0);
 	/// Get soil layers avail nmass fraction
-	std::vector<double> get_nfrac(n_pref_type pref, bool water_limited = false);
+	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], bool water_limited = false);
 	/// Get soil layers root fractions
-	std::vector<double> get_rootfrac();
+	void calc_rootfrac(double rootfrac[NSOILLAYERS_MAX]);
 	/// Get soil layers root C mass
-	std::vector<double> get_rootmass();
+	void calc_rootmass(double cmass_root[NSOILLAYERS_MAX]);
 	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
@@ -4350,7 +4331,7 @@ public:
 	/// Set static soil organic carbon fractions
 	void set_static_socfrac();
 	/// gtemp weighted against root distribution
-	double gtemp_rootdist(std::vector<double> rootdist);
+	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
 	/// Returns the value of some vector down to a depth
 	double to_depth(double depth, soilproptype SPT_var);
 	/// Returns the value of some vector down to a depth with a scalar
@@ -4379,32 +4360,33 @@ public:
 	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
 	/// main hydrology routine
 	void hydrology_lpjf(const Climate& climate, double fevap);
-	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYER_MAX], double psi[NSOILLAYER_MAX], 
-		double dKwdw[NSOILLAYER_MAX], double dpsidw[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], double qout[NSOILLAYER_MAX],
-		double dqidw0[NSOILLAYER_MAX], double dqidw1[NSOILLAYER_MAX], double dqodw1[NSOILLAYER_MAX], double dqodw2[NSOILLAYER_MAX],
-		double vws_liq[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX]);
-	void compute_RHS_moisture_form(double qflx_root[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
-		double qout[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double rmx[NSOILLAYER_MAX]);
-	void compute_LHS_moisture_form(double dt_dz[NSOILLAYER_MAX], double dqidw0[NSOILLAYER_MAX], double dqidw1[NSOILLAYER_MAX], 
-		double dqodw1[NSOILLAYER_MAX], double dqodw2[NSOILLAYER_MAX], double amx[NSOILLAYER_MAX], double bmx[NSOILLAYER_MAX], 
-		double cmx[NSOILLAYER_MAX]);
-	void TridiagonalCol(double a[NSOILLAYER_MAX], double b[NSOILLAYER_MAX], double c[NSOILLAYER_MAX], 
-		double r[NSOILLAYER_MAX], double u[NSOILLAYER_MAX]);
-	void check_error(double dwat[NSOILLAYER_MAX], double dz[NSOILLAYER_MAX], double dt_dz[NSOILLAYER_MAX], double qin[NSOILLAYER_MAX], 
-		double qout[NSOILLAYER_MAX], double qflx_root[NSOILLAYER_MAX], double dtmin, double xTolerUpper, double& dtsub, 
+	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double psi[NSOILLAYERS_MAX], 
+		double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
+		double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
+		double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX]);
+	void compute_RHS_moisture_form(double qflx_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+		double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX]);
+	void compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], 
+		double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX], double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], 
+		double cmx[NSOILLAYERS_MAX]);
+	void TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_MAX], double c[NSOILLAYERS_MAX], 
+		double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX]);
+	void check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+		double qout[NSOILLAYERS_MAX], double qflx_root[NSOILLAYERS_MAX], double dtmin, double xTolerUpper, double& dtsub, 
 		double& errorMax, bool& calcsub);
 	void update_wtp();
 	/// initial percolation
 	void initial_percolation();
+
 	// CH4 methods
 	/// Calculate and return diffusivities
-	void calculate_gas_diffusivities(std::vector<double>& CH4, std::vector<double>& CO2, std::vector<double>& O2);
+	void calculate_gas_diffusivities(double CH4[NSOILLAYERS_MAX], double CO2[NSOILLAYERS_MAX], double O2[NSOILLAYERS_MAX]);
 	/// Calculate CH4 and CO2 production 
 	void calculate_ch4_and_co2_production();
 	/// Update gas transport velocities[m d - 1] and equilibrium gas concentrations[mmol m - 3] for CH4, CO2 and O2
 	void update_daily_gas_parameters();
 	/// Generic gas diffusion method that works with CO2, CH4 and O2
-	void diffuse_gas(std::vector<double> D, gastype thisgastype, double Ceq,
+	void diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, double Ceq,
 		double kgas, double &dailyDiff);
 	/// Plant transport of O2 or CH4
 	void plant_gas_transport(double Ceq, double kgas, gastype thisgastyp,
@@ -4417,6 +4399,7 @@ public:
 	void calculate_gas_ebullition(double& ebull_today);
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
+
 	/// Update thermal properties for padding layers
 	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
@@ -4690,13 +4673,13 @@ public:
 	double gcbase_day;
 
 	/// Vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
-	std::vector<double> rootdist;
+	double rootdist[NSOILLAYERS_MAX];
 
 	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
 	double wsupply_leafon;
 	/// fractional uptake of water from each soil layer today
-	std::vector<double> fwuptake;
+	double fwuptake[NSOILLAYERS_MAX];
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -4761,8 +4744,10 @@ public:
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
 
-		rootdist.resize(pft.rootdist.size(), 0.0);
-		fwuptake.resize(pft.rootdist.size(), 0.0);
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			rootdist[lyr] = 0.0;
+			fwuptake[lyr] = 0.0;
+		}
 
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
@@ -4793,7 +4778,7 @@ public:
 
 	bool growingseason() const;
 
-	void calc_rootdist(double maxthaw, std::vector<double> soil_lyr_depth);
+	void calc_rootdist(double maxthaw, double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -5590,7 +5575,7 @@ public:
 	/// Total gridcell water fluxes so far this year
 	double wflux();
 	/// Calculates soil layer depths and number of soil layers
-	void soil_layer_depths(std::vector<double>& soil_lyr_depth, int& nsoillayers);
+	void soil_layer_depths(double soil_lyr_depth[NSOILLAYERS_MAX], int& nsoillayers);
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

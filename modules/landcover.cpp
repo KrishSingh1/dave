@@ -1512,9 +1512,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					soilcolumn.anfix_calc = (soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
 
-					int nsoillayers = min(NSOILLAYER_MAX, max(soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
-
-					soilcolumn.soillayerdepths.resize(nsoillayers);
+					int nsoillayers = min(NSOILLAYERS_MAX, max(soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
 
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -1568,14 +1566,11 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						double imass_add = 0.0;
 						soillayer.set_properties(wmass_add, imass_add, true);
 					}
-					soilcolumn.cmass_litter_input.resize(soilcolumn.nsoillayers + 1, 0.0);
-					soilcolumn.csom_litter_input.resize(NSOMPOOL, 0.0);
-					soilcolumn.wpara.set_sizes(soilcolumn.nsoillayers);
-					soilcolumn.tpara.set_sizes(soilcolumn.nsoillayers + PAD_LAYERS);
-					soilcolumn.wfluxes.resize(soilcolumn.nsoillayers + 1, 0.0);
+
+					soilcolumn.tpara.set_sizes(soilcolumn.nsoillayers + NPADLAYERS);
 
 					// Soil padding
-					for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+					for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 						padding& pad_lyr = soilcolumn.pad[lyr];
 						pad_lyr.depth = (pad_lyr.depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
 						pad_lyr.temp = (pad_lyr.temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
@@ -2792,7 +2787,7 @@ landcover_change_transfer::landcover_change_transfer() {
 
 	// Sum soil layers
 	transfer_soil_nsoillayers = 0;
-	for (int lyr = 0; lyr < NSOILLAYER_MAX; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
 		transfer_soil_temp[lyr] = 0.0;
@@ -2810,7 +2805,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	}
 
 	// Soil padding
-	for (int lyr = 0; lyr < PAD_LAYERS; lyr++) {
+	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 		transfer_soilpad_depth[lyr] = transfer_soilpad_temp[lyr] = 0.0;
 	}
 

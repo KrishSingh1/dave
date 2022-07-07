@@ -94,6 +94,10 @@ private:
  		double soilC;
  		// Porosity
         double porosity;
+		// Depth (mm)
+		double depth;
+		// Slope
+		double slope;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);

@@ -955,6 +955,9 @@ bool allometry(Individual& indiv) {
 		// guess2008 - new allometry check
 		if (!negligible(indiv.cmass_leaf)) {
 
+			// Previous years height
+			double height_prev = indiv.height;
+
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
 
 			// Stem diameter (Eqn 5)
@@ -963,19 +966,25 @@ bool allometry(Individual& indiv) {
 			// Stem volume
 			double vol = indiv.height * PI * diam * diam * 0.25;
 
-			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) { // DW_COMMENT bug height. Maybe also limit them from shrinking!!!
+			// Stem density (kgC/m3)
+			double wooddens = (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol;
 
-				double diam_prev = pow(indiv.height_prev / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
+			if (indiv.age && (wooddens < indiv.pft.wooddens * 0.9 || wooddens > indiv.pft.wooddens / 0.9)) {
 
-				double vol_prev = indiv.height_prev * PI * diam_prev * diam_prev * 0.25;
+				// Calculated wood density is not within its limits due to starnge tree height. 
+				// Keep last years tree height and recalculate stem diameter. This prevents cohort 
+				// from dying due to abnormal height, but will be affected by growth efficiency 
+				// mortality instead 
+
+				double diam_prev = pow(height_prev / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
+
+				double vol_prev = height_prev * PI * diam_prev * diam_prev * 0.25;
 
 				double vol_new = (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / indiv.pft.wooddens;
 
-				indiv.height = indiv.height_prev;
+				indiv.height = height_prev;
 
 				diam = diam_prev * sqrt(vol_new / vol_prev);
-
-				//return false;
 			}
 		}
 		else {
@@ -1321,9 +1330,6 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.pft.lifeform == TREE) {
 
 					// TREE GROWTH
-
-					// Record current height as previous years height // DW_COMMENT
-					indiv.height_prev = indiv.height;
 
 					// BLARP! Try and pay back part of cdebt
 

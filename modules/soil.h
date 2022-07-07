@@ -34,7 +34,7 @@ const int NPADLAYERS = 5;
 const double ACROTELM_DEPTH = 300.0;
 
 /// Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest = true
-const double PAD_DEPTH = 48000;
+const double PAD_DEPTH = 50000;
 
 /// Depth of each mineral soil layer [mm]
 const double Dz_soil = 100.0;

@@ -3399,29 +3399,29 @@ void Soilcolumn::set_padding_depth() {
 		double lyr_depth;
 
 		// Build geometric sequence of padding layer depths.
-		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS - 1; lyr++) {
 			lyr_depth = dz * pow(k_guess, lyr + 1);
+			lyr_depth = floor(dz * pow(k_guess, lyr + 1) / 100.0) * 100.0;
 			pad[lyr].depth = lyr_depth;
 			tot_depth += lyr_depth;
 		}
 
-		if (!negligible(PAD_DEPTH - tot_depth)) {
-			pad[NPADLAYERS - 1].depth += PAD_DEPTH - tot_depth;
-		}
-
-		if (pad[NPADLAYERS - 1].depth < -1.0e-10)
-			fail("ERROR: Padding layer negative\n");
+		pad[NPADLAYERS - 1].depth += PAD_DEPTH - tot_depth;
 	}
 	// Else each padding layer decrease linear to a minimum of 2m for the bottom padding layer
 	else {
 		double first_pad = min(16000.0, soillayers[nsoillayers - 1].depth);
-		double diff = (5.0 * first_pad - PAD_DEPTH) / 10.0;
+		double diff = floor((5.0 * first_pad - PAD_DEPTH) / 10.0 / 100.0) * 100.0;
 		int scalar = 0;
+		double tot_depth = 0.0;
 
-		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+		for (int lyr = 0; lyr < NPADLAYERS - 1; lyr++) {
 			pad[lyr].depth = first_pad - diff * (double)scalar;
+			tot_depth += pad[lyr].depth;
 			scalar++;
 		}
+
+		pad[NPADLAYERS - 1].depth = PAD_DEPTH - tot_depth;
 	}
 }
 
@@ -4591,7 +4591,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + aet_layer[lyr]);
 	}
 
-	int start_yr = 2008; // DW_COMMENT
+	int start_yr = 12008; // DW_COMMENT
 	int end_yr = 2010;
 	if (date.get_calendar_year() == start_yr && date.day == 0) {
 		dprintf("Year Day Iter Prec AET Evap Rsurf Rdrain Rbase ");
@@ -5380,7 +5380,7 @@ void Soilcolumn::vertical_movement() {
 	// Root C biomass in soil layers (currently set to zero) // DW_COMMENT future development: include root in soil layers as influence to total volume, thermal properties, hydrology etc
 	double ccont_roots[NSOILLAYERS_MAX] = { 0.0 };
 
-	int donor, receiver, p_receiver;;
+	int donor, receiver, p_receiver;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -5394,9 +5394,10 @@ void Soilcolumn::vertical_movement() {
 			receiver = lyr + 1;
 
 			Soillayer& soillayer_donor = soillayers[donor];
-			Soillayer& soillayer_receiver = soillayers[receiver];
 
 			if (receiver < nsoillayers) {
+
+				Soillayer& soillayer_receiver = soillayers[receiver];
 
 				double ccont_donor = ccont_soil + ccont_roots[lyr];
 				double ccont_receiver = soillayer_receiver.ccont(true) + ccont_roots[receiver];

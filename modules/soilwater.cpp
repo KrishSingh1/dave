@@ -197,11 +197,13 @@ void irrigation(Patch& patch) {
 void inundation_stress(Patch& patch) {
 	for (int p = 0; p<npft; p++) {
 
+		Patchpft& ppft = patch.pft[p];
+
 		double wtpp = patch.soilcolumn.wtp; // [-300,100] mm
-		double wtpm = patch.pft[p].pft.wtp_max; // mm
+		double wtpm =ppft.pft.wtp_max; // mm
 
 		if (date.day == 0)
-			patch.pft[p].inund_count = 0; // Reset on Jan 1
+			ppft.inund_count = 0; // Reset on Jan 1
 
 		bool wania_graminoid_inundation = false; // Follows Wania et al. (2009b) if true
 
@@ -210,10 +212,10 @@ void inundation_stress(Patch& patch) {
 			// Following Wania et al. (2009b)
 
 			if (date.dayofmonth == 0)
-				patch.pft[p].inund_count = 0; // Reset on the 1st day of every month too
+				ppft.inund_count = 0; // Reset on the 1st day of every month too
 
 			if (wtpp > wtpm) {
-				patch.pft[p].inund_count++; // Days this month with stress
+				ppft.inund_count++; // Days this month with stress
 			}
 		}
 		else {
@@ -221,43 +223,43 @@ void inundation_stress(Patch& patch) {
 			// New inundation algorithm that doesn't depend on months 
 
 			// Inundation restrictions only applied when phen > 0
-			if (patch.pft[p].phen > 0.0) {
+			if (ppft.phen > 0.0) {
 				if (wtpp > wtpm) {
-					patch.pft[p].inund_count++; // days
+					ppft.inund_count++; // days
 				}
 				else {
-					patch.pft[p].inund_count--;
+					ppft.inund_count--;
 				}
 			}
 			else {
-				patch.pft[p].inund_count = 0;
+				ppft.inund_count = 0;
 			}
 
 			const int inundation_delay = 3; // days
 											// Alternative: could restrict inund_count to be between 0 and this PFT's upper limit + 3 days.
 											// Ensures that the wetland PFTs benefit from a drop in the water table after a delay of 3 days
-			patch.pft[p].inund_count = max(min(patch.pft[p].inund_count, patch.pft[p].pft.inund_duration + inundation_delay), 0);
+			ppft.inund_count = max(min(ppft.inund_count,ppft.pft.inund_duration + inundation_delay), 0);
 		}
 
 		// Inundation stress is updated daily, between 0 (full stress) to 1 (no stress), and used in 
 		// photosynthesis to reduce daily GPP.
 
-		double pft_inund_dur = (double)patch.pft[p].pft.inund_duration;
-		double pft_inund_count = (double)patch.pft[p].inund_count;
+		double pft_inund_dur = (double)ppft.pft.inund_duration;
+		double pft_inund_count = (double)ppft.inund_count;
 
 		if (!ifinundationstress) {
-			patch.pft[p].inund_stress = 1.0; // i.e. never any stress if this is 0 in the .ins file
+			ppft.inund_stress = 1.0; // i.e. never any stress if this is 0 in the .ins file
 		}
 		else {
 			if (pft_inund_dur <= 0) { // constant from from .ins file
 									  // FULL stress, so NO photosynthesis and this PFT will not survive on peatlands 
-				patch.pft[p].inund_stress = 0.0;
+				ppft.inund_stress = 0.0;
 			}
 			else {
 				if (pft_inund_count <= 0.0)
-					patch.pft[p].inund_stress = 1.0; // i.e. no stress
+					ppft.inund_stress = 1.0; // i.e. no stress
 				else
-					patch.pft[p].inund_stress = 1.0 - min(1.0, pft_inund_count / pft_inund_dur); // partial stress, 0 (full) to 1 (none) 
+					ppft.inund_stress = 1.0 - min(1.0, pft_inund_count / pft_inund_dur); // partial stress, 0 (full) to 1 (none) 
 			}
 		}
 	} // pft loop

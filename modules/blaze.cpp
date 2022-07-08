@@ -78,11 +78,11 @@ const double RAINFALL_AVERAGING_SPAN = 3;
 	
 // Internal help function for splitting up nitrogen fire fluxes into components
 // Copy of report_fire_nfluxes() as used in fire() in vegdynam.cpp
-void report_fire_flux_n(Patch& patch, double nflux_fire) {
-	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+void report_fire_flux_n(Fluxes& fluxes, double nflux_fire) {
+	fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
 /* Compute area of Gridcell
@@ -498,6 +498,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 bool blaze(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
+	Fluxes& fluxes = patch.fluxes;
 	
 	// Flammable area witin gridcell
 	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[NATURAL];
@@ -561,10 +562,10 @@ bool blaze(Patch& patch, Climate& climate) {
 	surflayer.sompool[SURFCWD].nmass -= ncwd2atm;
 
 	// Report C litter -> atmosphere fluxes
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
+	fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
 
 	// Report N litter -> atmosphere fluxes
-	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm);
+	report_fire_flux_n(fluxes, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm);
 
 	Vegetation& vegetation = patch.vegetation;
 
@@ -619,7 +620,7 @@ bool blaze(Patch& patch, Climate& climate) {
 				indiv.reduce_biomass(MAX_GRASS_BURN, MAX_GRASS_BURN);
 
 				// Remove NPP and put it to fire flux
-				patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
+				fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
 				indiv.anpp *= (1. - MAX_GRASS_BURN);
 				indiv.agpp *= (1. - MAX_GRASS_BURN);
 
@@ -743,10 +744,10 @@ bool blaze(Patch& patch, Climate& climate) {
 	}
 
 	// Report C litter -> atmosphere flux from transitional pools
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
+	fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
 
 	// Report N litter -> atmosphere flux from transitional pools
-	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t);
+	report_fire_flux_n(fluxes, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t);
 	
 	return true;
 }
@@ -966,11 +967,13 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		anpp     -= loss_anpp;
 	}
 
+	Fluxes& fluxes = patch.fluxes;
+
 	// Report C live -> atm flux 
-	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm);
+	fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm);
 
 	// Report N live -> atm flux 
-	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
+	report_fire_flux_n(fluxes, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
  
 	// Transfer litter
 	Soilcolumn& soilcolumn = patch.soilcolumn;

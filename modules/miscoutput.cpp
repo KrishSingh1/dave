@@ -718,14 +718,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				Stand& stand = *gc_itr;
 
 				if (stlist[stand.stid].pftinrotation(pft.name) >= 0) {
-					pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
-					pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
-					pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
-					pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
-					pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
-					pft_phu=stand[0].pft[pft.id].cropphen->phu;
-					pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
-					pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
+					Patchpft& ppft = stand[0].pft[pft.id];
+					pft_sdate1=ppft.cropphen->sdate_thisyear[0];
+					pft_sdate2=ppft.cropphen->sdate_thisyear[1];
+					pft_hdate1=ppft.cropphen->hdate_harvest[0];
+					pft_hdate2=ppft.cropphen->hdate_harvest[1];
+					pft_lgp=ppft.cropphen->lgp;
+					pft_phu=ppft.cropphen->phu;
+					pft_fphu=ppft.cropphen->fphu_harv;
+					pft_fhi=ppft.cropphen->fhi_harv;
 				}
 
 				++gc_itr;
@@ -824,27 +825,28 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
+			Fluxes& fluxes = patch.fluxes;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
-			flux_nseed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
-			flux_nharvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
-			flux_ntot_lc[stand.landcover]+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
-					   patch.fluxes.get_annual_flux(Fluxes::NO_SOIL) +
-					   patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
-					   patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
+			flux_nseed_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
+			flux_nharvest_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
+			flux_ntot_lc[stand.landcover]+=(fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
+					   fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
+					   fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
+					   fluxes.get_annual_flux(Fluxes::N2_FIRE) +
+					   fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
+					   fluxes.get_annual_flux(Fluxes::NO_SOIL) +
+					   fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
+					   fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
 
-			flux_veg_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-			flux_repr_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
-			flux_soil_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-			flux_fire_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-			flux_est_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-			flux_seed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
-			flux_charvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+			flux_veg_lc[stand.landcover]+=-fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+			flux_repr_lc[stand.landcover]+=-fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+			flux_soil_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+			flux_fire_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+			flux_est_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+			flux_seed_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+			flux_charvest_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
 
 			//Sum slow pools of harvested products
 			if (run_landcover && ifslowharvestpool) {
@@ -856,7 +858,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 
 			//Gridcell irrigation
-			irrigation_gridcell += patch.fluxes.get_annual_flux(Fluxes::WIRRI)*to_gridcell_average;
+			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI)*to_gridcell_average;
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
@@ -868,10 +870,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			c_org_leach_lc[stand.landcover] += patch.soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
 
 			//N-transform
-			flux_NH3_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
-			flux_NOx_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
-			flux_N2O_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
+			flux_NH3_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
+			flux_NOx_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			flux_N2O_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
+			flux_N2_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
 
 			availn_lc[stand.landcover] += (patch.soilcolumn.snow.NH4_mass + patch.soilcolumn.snow.NO3_mass) * to_gridcell_average;
 

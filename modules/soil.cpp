@@ -380,6 +380,30 @@ double Snow::wcontent() {
 	return wcontent;
 }
 
+/// Function returns total water and ice mass in snow column
+/** Function returns total water and ice mass in snow column
+ */
+double Snow::wmass() {
+	double water = 0.0;
+	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+		Snowlayer& snowlayer = snowlayers[lyr];
+		water += snowlayer.wmass;
+	}
+	return water;
+}
+
+/// Function returns total water and ice mass in snow column
+/** Function returns total water and ice mass in snow column
+ */
+double Snow::imass() {
+	double ice = 0.0;
+	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
+		Snowlayer& snowlayer = snowlayers[lyr];
+		ice += snowlayer.imass;
+	}
+	return ice;
+}
+
 /// Function returns total snow depth
 /** Function returns total snow depth
  */
@@ -1664,9 +1688,10 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// org_frac = f_threshold, connected flow pathways consisting of organic material only exist
 		// and span the soil space. Flow through these pathways interacts only with organic material, 
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
-		double perc_frac = org_frac >= threshold_frac ? 1.1 * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0; // DW_COMMENT
+		double perc_norm = 1.101;
+		double perc_frac = org_frac >= threshold_frac ? perc_norm * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
 		double uncon_frac = 1.0 - perc_frac;
-		double Kw_max_uncon = uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - uncon_frac) / Kw_max_org);
+		double Kw_max_uncon = org_frac < 1.0 ? uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - perc_frac) / Kw_max_org) : 0.0;
 		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
 
 		// Exponential in Campbell (1974) parameterization for soil water retention curves
@@ -3793,21 +3818,23 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Report water fluxes
 
+	Fluxes& fluxes = patch.fluxes;
+
 	// Evapotranspiration data
 	if (empirical_evapotranspiration) {
-		patch.fluxes.report_flux(Fluxes::WEVAP, fevap * evapotranspiration);
-		patch.fluxes.report_flux(Fluxes::WAET, (1.0 - fevap) * evapotranspiration);
+		fluxes.report_flux(Fluxes::WEVAP, fevap * evapotranspiration);
+		fluxes.report_flux(Fluxes::WAET, (1.0 - fevap) * evapotranspiration);
 	}
 	else {
-		patch.fluxes.report_flux(Fluxes::WEVAP, evap);
-		patch.fluxes.report_flux(Fluxes::WAET, aet_total);
+		fluxes.report_flux(Fluxes::WEVAP, evap);
+		fluxes.report_flux(Fluxes::WAET, aet_total);
 	}
 
 	// Surface runoff
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
 
 	// Runon
-	patch.fluxes.report_flux(Fluxes::WADDED, runon + waddon);
+	fluxes.report_flux(Fluxes::WADDED, runon + waddon);
 
 
 	// Update CO2 level in acrotelm
@@ -3973,12 +4000,13 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	}
 
 	// Save fluxes
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, 0.0);
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, 0.0);
-	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
-	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
-	patch.fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
+	Fluxes& fluxes = patch.fluxes;
+	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, 0.0);
+	fluxes.report_flux(Fluxes::WRUNOFF_BASE, 0.0);
+	fluxes.report_flux(Fluxes::WEVAP, evap);
+	fluxes.report_flux(Fluxes::WAET, aet_total);
+	fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4224,11 +4252,12 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	rain_melt = 0.0;
 
 	// Save fluxes
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
-	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
-	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
+	Fluxes& fluxes = patch.fluxes;
+	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
+	fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
+	fluxes.report_flux(Fluxes::WEVAP, evap);
+	fluxes.report_flux(Fluxes::WAET, aet_total);
 
 	// Update awcont_upper
 
@@ -4626,11 +4655,12 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	}
 
 	// Save fluxes
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
-	patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
-	patch.fluxes.report_flux(Fluxes::WEVAP, evap);
-	patch.fluxes.report_flux(Fluxes::WAET, aet_total);
+	Fluxes& fluxes = patch.fluxes;
+	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
+	fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
+	fluxes.report_flux(Fluxes::WEVAP, evap);
+	fluxes.report_flux(Fluxes::WAET, aet_total);
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {

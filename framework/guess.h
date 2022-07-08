@@ -4073,6 +4073,12 @@ public:
 	/// Returns total snowpack (water and ice) [mm]
 	double wcontent();
 
+	/// Returns total snowpack water [mm]
+	double wmass();
+
+	/// Returns total snowpack ice [mm]
+	double imass();
+
 	void serialize(ArchiveStream& arch);
 };
 

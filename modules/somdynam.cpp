@@ -1771,8 +1771,10 @@ void soilnadd(Patch& patch) {
 	// by using five year average aaet
 	if (date.islastmonth && date.islastday) {
 
+		Fluxes& fluxes = patch.fluxes;
+
 		// Add this year's AET to aaet_5 which keeps track of the last 5 years
-		patch.aaet_5.add(patch.fluxes.get_annual_flux(Fluxes::WAET) + patch.fluxes.get_annual_flux(Fluxes::WEVAP) + patch.fluxes.get_annual_flux(Fluxes::WINTERCEP));
+		patch.aaet_5.add(fluxes.get_annual_flux(Fluxes::WAET) + fluxes.get_annual_flux(Fluxes::WEVAP) + fluxes.get_annual_flux(Fluxes::WINTERCEP));
 
 		// Calculate estimated maximum nitrogen fixation (aaet should be in cm/yr, eqn is in nitrogen/ha/yr)
 		soilcolumn.anfix_calc = max((nfix_a * patch.aaet_5.mean() * CM_PER_MM + nfix_b) * HA_PER_M2, 0.0);
@@ -2228,7 +2230,7 @@ void equilsom(Patch& patch) {
 			}
 		}
 
-		dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.get_sum(CCONT));		
+		//dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.get_sum(CCONT));		
 
 		// Reset mineral nitrogen status
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {

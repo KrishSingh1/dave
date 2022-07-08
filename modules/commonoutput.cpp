@@ -65,7 +65,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_nmass", &file_nmass, 300, "N biomass output file");
 	declare_parameter("file_cton_leaf", &file_cton_leaf, 300, "Mean leaf C:N output file");
 	declare_parameter("file_nsources", &file_nsources, 300, "Annual nitrogen sources output file");
-	declare_parameter("file_npool", &file_npool, 300, "Soil nitrogen output file");
+	declare_parameter("file_npool", &file_npool, 300, "Nitrogen pools output file");
 	declare_parameter("file_nlitter", &file_nlitter, 300, "Litter nitrogen output file");
 	declare_parameter("file_nuptake", &file_nuptake, 300, "Annual nitrogen uptake output file");
 	declare_parameter("file_vmaxnlim", &file_vmaxnlim, 300, "Annual nitrogen limitation on vm output file");
@@ -75,6 +75,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_soil_nflux", &file_soil_nflux, 300, "Annual soil N fluxes output file");
 
 	declare_parameter("file_speciesheights", &file_speciesheights, 300, "Mean species heights");
+
+	declare_parameter("file_wflux", &file_wflux, 300, "Annual water fluxes output file");
+	declare_parameter("file_wpool", &file_wpool, 300, "water pools output file");
 
 	// Monthly output variables
 	declare_parameter("file_mnpp", &file_mnpp, 300, "Monthly NPP output file");
@@ -467,6 +470,28 @@ void CommonOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",   12, 6);
 
+	// WFLUX
+	ColumnDescriptors wflux_columns;
+	wflux_columns += ColumnDescriptor("Prec", 10, 1);
+	if (run_landcover) {
+		wflux_columns += ColumnDescriptor("Irri", 8, 1);
+		wflux_columns += ColumnDescriptor("Added", 8, 1);
+	}
+	wflux_columns += ColumnDescriptor("Intcep", 8, 1);
+	wflux_columns += ColumnDescriptor("AET", 8, 1);
+	wflux_columns += ColumnDescriptor("Evap", 8, 1);
+	wflux_columns += ColumnDescriptor("Rsurf", 8, 1);
+	wflux_columns += ColumnDescriptor("Rdrain", 8, 1);
+	wflux_columns += ColumnDescriptor("Rbase", 8, 1);
+	wflux_columns += ColumnDescriptor("NEE", 8, 1);
+
+	// WPOOL
+	ColumnDescriptors wpool_columns;
+	wpool_columns += ColumnDescriptor("SnowWater", 10, 1);
+	wpool_columns += ColumnDescriptor("SnowIce", 8, 1);
+	wpool_columns += ColumnDescriptor("SoilWater", 10, 1);
+	wpool_columns += ColumnDescriptor("SoilIce", 9, 1);
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -525,7 +550,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
 	create_output_table(out_ngases,         file_ngases,         ngases_columns);
 	create_output_table(out_soil_npool,		file_soil_npool,     soil_npool_columns);
-	create_output_table(out_soil_nflux,		file_soil_nflux,     soil_nflux_columns);
+	create_output_table(out_soil_nflux,	    file_soil_nflux,     soil_nflux_columns);
+
+	create_output_table(out_wflux,          file_wflux,          wflux_columns);
+	create_output_table(out_wpool,          file_wpool,          wpool_columns);
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -934,6 +962,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double baserunoff_gridcell=0.0;
 	double runoff_gridcell=0.0;
 	double wetland_wmass_added_gridcell = 0.0;
+	double irrigation_gridcell = 0.0;
+	double intercept_gridcell = 0.0;
+	double evap_gridcell = 0.0;
+	double aet_gridcell = 0.0;
 	double dens_gridcell=0.0;
 	double firert_gridcell=0.0;
 	double burned_area_gridcell=0.0;
@@ -956,6 +988,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double n_min_leach_gridcell=0.0;
 	double n_org_leach_gridcell=0.0;
 	double c_org_leach_gridcell=0.0;
+
+	double wmass_snow_gridcell = 0.0;
+	double imass_snow_gridcell = 0.0;
+	double wmass_soil_gridcell = 0.0;
+	double imass_soil_gridcell = 0.0;
 
 	double standpft_cmass=0.0;
 	double standpft_nmass=0.0;
@@ -1072,30 +1109,31 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 				Patchpft& patchpft = patch.pft[pft.id];
 				Vegetation& vegetation = patch.vegetation;
+				Fluxes& fluxes = patch.fluxes;
 
-				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
-				standpft_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
-				standpft_agpp_no += patch.fluxes.get_annual_flux(Fluxes::GPPno, pft.id);
-				standpft_agpp_ns += patch.fluxes.get_annual_flux(Fluxes::GPPns, pft.id);
-				standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id); 					
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
-				standpft_amon_mt1 += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
-				standpft_amon_mt1 += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
-				standpft_amon_mt1 += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
-				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
+				standpft_anpp += fluxes.get_annual_flux(Fluxes::NPP, pft.id);
+				standpft_agpp += fluxes.get_annual_flux(Fluxes::GPP, pft.id);
+				standpft_agpp_no += fluxes.get_annual_flux(Fluxes::GPPno, pft.id);
+				standpft_agpp_ns += fluxes.get_annual_flux(Fluxes::GPPns, pft.id);
+				standpft_aiso += fluxes.get_annual_flux(Fluxes::ISO, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id); 					
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
+				standpft_amon += fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
+				standpft_amon_mt1 += fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
+				standpft_amon_mt1 += fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
+				standpft_amon_mt1 += fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
+				standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
@@ -1378,50 +1416,52 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
+			Fluxes& fluxes = patch.fluxes;
 			Soilcolumn& soilcolumn = patch.soilcolumn;
+			Snow& snow = soilcolumn.snow;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
-			flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-			flux_repr+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
-			flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-			flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-			flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-			flux_seed+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
-			flux_charvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+			flux_veg+=-fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+			flux_repr+=-fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+			flux_soil+=fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+			flux_fire+=fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+			flux_est+=fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+			flux_seed+=fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+			flux_charvest+=fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
 
-			flux_nseed+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
-			flux_nharvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
+			flux_nseed+=fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
+			flux_nharvest+=fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
 			// N fluxes
-			flux_NH3_fire+=patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)*to_gridcell_average;
-			flux_NOx_fire+=patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE)*to_gridcell_average;
-			flux_N2O_fire+=patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)*to_gridcell_average;
-			flux_N2_fire+=patch.fluxes.get_annual_flux(Fluxes::N2_FIRE)*to_gridcell_average;
-			flux_NH3_soil+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
-			flux_NOx_soil+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
-			flux_N2O_soil+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			flux_N2_soil+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;	
+			flux_NH3_fire+=fluxes.get_annual_flux(Fluxes::NH3_FIRE)*to_gridcell_average;
+			flux_NOx_fire+=fluxes.get_annual_flux(Fluxes::NOx_FIRE)*to_gridcell_average;
+			flux_N2O_fire+=fluxes.get_annual_flux(Fluxes::N2O_FIRE)*to_gridcell_average;
+			flux_N2_fire+=fluxes.get_annual_flux(Fluxes::N2_FIRE)*to_gridcell_average;
+			flux_NH3_soil+=fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
+			flux_NOx_soil+=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			flux_N2O_soil+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
+			flux_N2_soil+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;	
 			
 			//Soil N flux from ntransform.cpp
-			NH3_mass_inc+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
-			NO_mass_inc +=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
-			N2O_mass_inc+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			N2_mass_inc+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
-			gross_nitrif+=patch.fluxes.get_annual_flux(Fluxes::GROSS_NITRIF)*to_gridcell_average;
-			net_nitrif+=patch.fluxes.get_annual_flux(Fluxes::NET_NITRIF)*to_gridcell_average;
-			gross_denitrif+=patch.fluxes.get_annual_flux(Fluxes::GROSS_DENITRIF)*to_gridcell_average;
-			net_denitrif+=patch.fluxes.get_annual_flux(Fluxes::NET_DENITRIF)*to_gridcell_average;
+			NH3_mass_inc+=fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
+			NO_mass_inc +=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			N2O_mass_inc+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
+			N2_mass_inc+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
+			gross_nitrif+=fluxes.get_annual_flux(Fluxes::GROSS_NITRIF)*to_gridcell_average;
+			net_nitrif+=fluxes.get_annual_flux(Fluxes::NET_NITRIF)*to_gridcell_average;
+			gross_denitrif+=fluxes.get_annual_flux(Fluxes::GROSS_DENITRIF)*to_gridcell_average;
+			net_denitrif+=fluxes.get_annual_flux(Fluxes::NET_DENITRIF)*to_gridcell_average;
 
 			//Fire N flux
-			flux_ntot+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
-						patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
-						patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
-						patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
+			flux_ntot+=(fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
+						fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
+						fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
+						fluxes.get_annual_flux(Fluxes::N2_FIRE) +
 			//Soil N flux
-					patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
-					patch.fluxes.get_annual_flux(Fluxes::NO_SOIL) +
-					patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
-					patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
+					fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
+					fluxes.get_annual_flux(Fluxes::NO_SOIL) +
+					fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
+					fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
 
 			//Sum slow pools of harvested products
 			if(run_landcover && ifslowharvestpool) {
@@ -1432,11 +1472,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			surfrunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF)*to_gridcell_average;
-			drainrunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN)*to_gridcell_average;
-			baserunoff_gridcell += patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)*to_gridcell_average;
-			runoff_gridcell += (patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + patch.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
-			wetland_wmass_added_gridcell += patch.fluxes.get_annual_flux(Fluxes::WADDED)*to_gridcell_average;
+			surfrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF)*to_gridcell_average;
+			drainrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN)*to_gridcell_average;
+			baserunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)*to_gridcell_average;
+			runoff_gridcell += (fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
+			wetland_wmass_added_gridcell += fluxes.get_annual_flux(Fluxes::WADDED) * to_gridcell_average; 
+			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI) * to_gridcell_average;
+			intercept_gridcell += fluxes.get_annual_flux(Fluxes::WINTERCEP) * to_gridcell_average;
+			evap_gridcell += fluxes.get_annual_flux(Fluxes::WEVAP) * to_gridcell_average;
+			aet_gridcell += fluxes.get_annual_flux(Fluxes::WAET) * to_gridcell_average;
+
+			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
+			imass_snow_gridcell += snow.imass() * to_gridcell_average;
+			wmass_soil_gridcell += soilcolumn.get_sum(WMASS) * to_gridcell_average;
+			imass_soil_gridcell += soilcolumn.get_sum(IMASS) * to_gridcell_average;
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001) {
@@ -1552,12 +1601,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			for (m=0;m<12;m++) {
 
-				mpet[m] += patch.fluxes.get_monthly_flux(Fluxes::WPET, m) * to_gridcell_average;
-				maet[m] += patch.fluxes.get_monthly_flux(Fluxes::WAET, m) * to_gridcell_average;
-				mevap[m] += patch.fluxes.get_monthly_flux(Fluxes::WEVAP, m) * to_gridcell_average;
-				mintercep[m] += patch.fluxes.get_monthly_flux(Fluxes::WINTERCEP, m) * to_gridcell_average;
-				mrunoff[m] += (patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + patch.fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
-				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
+				mpet[m] += fluxes.get_monthly_flux(Fluxes::WPET, m) * to_gridcell_average;
+				maet[m] += fluxes.get_monthly_flux(Fluxes::WAET, m) * to_gridcell_average;
+				mevap[m] += fluxes.get_monthly_flux(Fluxes::WEVAP, m) * to_gridcell_average;
+				mintercep[m] += fluxes.get_monthly_flux(Fluxes::WINTERCEP, m) * to_gridcell_average;
+				mrunoff[m] += (fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
+				mrh[m] += fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
 				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
 				mimass[m] += soilcolumn.get_sum(MIMASS, m) * to_gridcell_average;
@@ -1565,29 +1614,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mwcont_upper[m] += mwcontupper * to_gridcell_average;
 				mwcont_lower[m] += (patch.soilcolumn.depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soilcolumn.depth, MWCONT, AWC, m) * soilcolumn.depth - mwcontupper * SOILDEPTH_UPPER) / (soilcolumn.depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
-				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
-				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
+				mgpp[m] += fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
+				mra[m] += fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
 
-				miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
+				miso[m]+=fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
+				mmon[m]+=fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 
-				mmon_mt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
-				mmon_mt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
-				mmon_mt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
-				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
+				mmon_mt1[m]+=fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
+				mmon_mt1[m]+=fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
+				mmon_mt1[m]+=fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
+				mmon_mt2[m]+=fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
@@ -1595,10 +1644,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mwtp[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m])*M_PER_MM*to_gridcell_average;
 				mtemp25cm[m] += (iftwolayersoil ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
 				
-				mch4[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
-				mch4_diff[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
-				mch4_plant[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
-				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
+				mch4[m] += fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
+				mch4_diff[m] += fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
+				mch4_plant[m] += fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
+				mch4_ebull[m] += fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
 				
 				for (int slyr = 0; slyr < NSNOWLAYERS_MAX; slyr++) {
 					mtemp[slyr][m] += patch.soilcolumn.snow.mtemp[abs(slyr - (NSNOWLAYERS_MAX - 1))][m] * to_gridcell_average;
@@ -1747,6 +1796,33 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nsources, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 	outlimit(out,out_nsources, (anmin_gridcell - animm_gridcell + aNH4dep_gridcell + aNO3dep_gridcell +
 				anfix_gridcell + anfert_gridcell) * M2_PER_HA);
+
+	outlimit(out, out_wflux, -gridcell.climate.aprec);
+	if (run_landcover) {
+		outlimit(out, out_wflux, -irrigation_gridcell);
+		outlimit(out, out_wflux, -wetland_wmass_added_gridcell);
+	}
+	outlimit(out, out_wflux, intercept_gridcell);
+	outlimit(out, out_wflux, aet_gridcell);
+	outlimit(out, out_wflux, evap_gridcell);
+	outlimit(out, out_wflux, surfrunoff_gridcell);
+	outlimit(out, out_wflux, drainrunoff_gridcell);
+	outlimit(out, out_wflux, baserunoff_gridcell);
+	if (run_landcover) {
+		outlimit(out, out_wflux, intercept_gridcell + aet_gridcell + evap_gridcell + 
+			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - 
+			(gridcell.climate.aprec + irrigation_gridcell + wetland_wmass_added_gridcell));
+	}
+	else {
+		outlimit(out, out_wflux, intercept_gridcell + aet_gridcell + evap_gridcell +
+			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - gridcell.climate.aprec);
+	}
+
+	outlimit(out, out_wpool, wmass_snow_gridcell);
+	outlimit(out, out_wpool, imass_snow_gridcell);
+	outlimit(out, out_wpool, wmass_soil_gridcell);
+	outlimit(out, out_wpool, imass_soil_gridcell);
+	
 
 	// Print landcover totals to files
 	if (run_landcover) {

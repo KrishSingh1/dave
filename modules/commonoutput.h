@@ -69,6 +69,7 @@ private:
 	
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_msnowcover, file_mwtp, file_mald, file_msoiltempdepth25;
+	xtring file_wflux, file_wpool;
 
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_agpp_no, out_agpp_ns, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_csom, out_ctonsom, out_soildepth, out_csoil, out_rsoil, out_firert, out_runoff, out_speciesheights;
@@ -90,6 +91,7 @@ private:
 
 	// Methane, snow, water table and active layer depth
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_msnowcover, out_mwtp, out_mald, out_msoiltempdepth25;
+	Table out_wflux, out_wpool;
 
 	// Soil temperatures and water
 	Table out_mtemp, out_mwmasslyr, out_mimasslyr, out_mwimasslyr, out_mdrainlyr;

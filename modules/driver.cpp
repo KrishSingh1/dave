@@ -454,7 +454,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		ifmethane = false;
 
 		// Fail in these cases
-		if (ifcarbonfreeze || ifmultilayersnow) { // iforganicsoilproperties is now available for two layer soil scheme
+		if (ifcarbonfreeze || ifmultilayersnow) {
 			fail("dailyaccounting_gridcell: ifcarbonfreeze and ifmultilayersnow must all be 0 if iftwolayersoil = 1");
 		}
 	}

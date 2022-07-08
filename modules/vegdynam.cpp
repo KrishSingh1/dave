@@ -37,11 +37,11 @@
 const double wetlandlailimit = 2.0;
 
 /// Internal help function for splitting up nitrogen fire fluxes into components
-void report_fire_nfluxes(Patch& patch, double nflux_fire) {
-	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+void report_fire_nfluxes(Fluxes& fluxes, double nflux_fire) {
+	fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
 
@@ -456,6 +456,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 		Standpft& standpft=stand.pft[pft.id];
+		Patchpft& ppft = patch.pft[pft.id];
 
 		// For this PFT ...
 
@@ -472,17 +473,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
-				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
+				ppft.anetps_ff_est=ppft.anetps_ff;
+				ppft.wscal_mean_est=ppft.wscal_mean;
 
 				// BLARP
 				if (date.year==0 || date.year==stand.first_year || init_clone)
-					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
+					ppft.anetps_ff_est_initial=ppft.anetps_ff;
 
 			}
 			else {
-				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;
+				ppft.anetps_ff_est+=ppft.anetps_ff;
+				ppft.wscal_mean_est+=ppft.wscal_mean;
 			}
 
 			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
@@ -517,14 +518,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						if(pft.phenology == CROPGREEN)
 							bminit = SAPSIZE * 0.01;
 						else if(patch.has_disturbances() && patch.disturbed)
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = SAPSIZE * ppft.anetps_ff_est_initial;
 						else
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
+							bminit = SAPSIZE * ppft.anetps_ff;
 
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter
 
-						ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+						ltor=ppft.wscal_mean*pft.ltor_max;
 
 						// Allocate initial biomass
 						if(!indiv.istruecrop_or_intercropgrass())
@@ -573,10 +574,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Every year except year 1
 						// Eqns 5, 6
 
-						if (patch.pft[pft.id].anetps_ff>0.0 &&
-							!negligible(patch.pft[pft.id].anetps_ff)) {
+						if (ppft.anetps_ff>0.0 &&
+							!negligible(ppft.anetps_ff)) {
 
-							c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
+							c=exp(pft.alphar-pft.alphar/ppft.anetps_ff*
 								stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
 						}
 						else
@@ -618,9 +619,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// BLARP added for OECD experiment (is this sensible?)
 						if (patch.has_disturbances() && patch.disturbed || force_planting) {
 
-							patch.pft[pft.id].anetps_ff_est=
-								patch.pft[pft.id].anetps_ff_est_initial;
-							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
+							ppft.anetps_ff_est=
+								ppft.anetps_ff_est_initial;
+							ppft.wscal_mean_est=ppft.wscal_mean;
 							newindiv=!negligible(nsapling / patcharea);
 						}
 						else if (patch.age%estinterval && !init_clone || patch.plant_this_year) {
@@ -629,14 +630,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// establishment the next establishment year
 							// Establishment each year in managed patches
 
-							patch.pft[pft.id].nsapling+=nsapling;
+							ppft.nsapling+=nsapling;
 							newindiv=0;
 						}
 						else {
 							if (patch.age && !init_clone) {// all except first year after disturbance
-								nsapling+=patch.pft[pft.id].nsapling;
-								patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
-								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
+								nsapling+=ppft.nsapling;
+								ppft.anetps_ff_est/=(double)estinterval;
+								ppft.wscal_mean_est/=(double)estinterval;
 							}
 							newindiv=!negligible(nsapling / patcharea);
 								// round down to 0 if nsapling very small
@@ -665,12 +666,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						bminit=SAPSIZE*ppft.anetps_ff_est;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
 
-						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
+						ltor=ppft.wscal_mean_est*pft.ltor_max;
 
 						// Allocate initial biomass
 
@@ -702,9 +703,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode!=COHORT || !(patch.age%estinterval) && !patch.plant_this_year) {
-				patch.pft[pft.id].nsapling=0.0;
-				patch.pft[pft.id].wscal_mean_est=0.0;
-				patch.pft[pft.id].anetps_ff_est=0.0;
+				ppft.nsapling=0.0;
+				ppft.wscal_mean_est=0.0;
+				ppft.anetps_ff_est=0.0;
 			}
 
 		}
@@ -1357,14 +1358,18 @@ void fire(Patch& patch, double& fireprob) {
 
 	litter_ag = 0.0;
 
+	// Soilcolumn
+	Soilcolumn& soilcolumn = patch.soilcolumn;
+
 	// Top soil layer
-	Soillayer& surflayer = patch.soilcolumn.soillayers[0];
+	Soillayer& surflayer = soilcolumn.soillayers[0];
 
 	// Loop through PFTs
 
 	for (p = 0; p < npft; p++) {
-		litter_ag += patch.pft[p].litter_leaf + patch.pft[p].litter_sap + patch.pft[p].litter_heart +
-			patch.pft[p].litter_repr;
+		Patchpft& ppft = patch.pft[p];
+		litter_ag += ppft.litter_leaf + ppft.litter_sap + ppft.litter_heart +
+			ppft.litter_repr;
 	}
 
 	// Soil Litter
@@ -1385,8 +1390,9 @@ void fire(Patch& patch, double& fireprob) {
 	// Loop through PFTs
 
 	for (p = 0; p < npft; p++) {
-		me_mean += (patch.pft[p].litter_leaf + patch.pft[p].litter_sap + patch.pft[p].litter_heart +
-			patch.pft[p].litter_repr) * patch.pft[p].pft.litterme / litter_ag;
+		Patchpft& ppft = patch.pft[p];
+		me_mean += (ppft.litter_leaf + ppft.litter_sap + ppft.litter_heart +
+			ppft.litter_repr) * ppft.pft.litterme / litter_ag;
 	}
 
 	// Soil litter
@@ -1403,7 +1409,7 @@ void fire(Patch& patch, double& fireprob) {
 	for (int mth = 0; mth < 12; mth++) {
 
 		// No fires unless there is some soil melt.
-		if (iftwolayersoil || (patch.soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+		if (iftwolayersoil || (soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
 			pm = exp(-PI * surflayer.mwcont[mth] / me_mean * surflayer.mwcont[mth] / me_mean) * date.ndaymonth[mth];		// Eqn 2
 		}
 		else {
@@ -1429,30 +1435,34 @@ void fire(Patch& patch, double& fireprob) {
 	// Calculate expected flux from litter due to fire
 	// (fluxes from vegetation calculated in mortality functions)
 
+	Fluxes& fluxes = patch.fluxes;
+
 	for (p = 0; p < npft; p++) {
+
+		Patchpft& ppft = patch.pft[p];
 
 		// Assume litter is as fire resistant as the vegetation it originates from
 
-		mort_fire = fireprob*(1.0 - patch.pft[p].pft.fireresist);
+		mort_fire = fireprob*(1.0 - ppft.pft.fireresist);
 
 		// Calculate flux from burnt litter
 
-		patch.fluxes.report_flux(Fluxes::FIREC,
-			mort_fire*(patch.pft[p].litter_leaf + patch.pft[p].litter_sap +
-				patch.pft[p].litter_heart + patch.pft[p].litter_repr));
+		fluxes.report_flux(Fluxes::FIREC,
+			mort_fire*(ppft.litter_leaf + ppft.litter_sap +
+				ppft.litter_heart + ppft.litter_repr));
 
-		report_fire_nfluxes(patch, mort_fire * (patch.pft[p].nmass_litter_leaf +
-			patch.pft[p].nmass_litter_sap + patch.pft[p].nmass_litter_heart));
+		report_fire_nfluxes(fluxes, mort_fire * (ppft.nmass_litter_leaf +
+			ppft.nmass_litter_sap + ppft.nmass_litter_heart));
 
 		// Account for burnt above ground litter
 
-		patch.pft[p].litter_leaf *= (1.0 - mort_fire);
-		patch.pft[p].litter_sap *= (1.0 - mort_fire);
-		patch.pft[p].litter_heart *= (1.0 - mort_fire);
-		patch.pft[p].litter_repr *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_sap *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_heart *= (1.0 - mort_fire);
+		ppft.litter_leaf *= (1.0 - mort_fire);
+		ppft.litter_sap *= (1.0 - mort_fire);
+		ppft.litter_heart *= (1.0 - mort_fire);
+		ppft.litter_repr *= (1.0 - mort_fire);
+		ppft.nmass_litter_leaf *= (1.0 - mort_fire);
+		ppft.nmass_litter_sap *= (1.0 - mort_fire);
+		ppft.nmass_litter_heart *= (1.0 - mort_fire);
 	}
 
 	// Soil litter
@@ -1462,7 +1472,7 @@ void fire(Patch& patch, double& fireprob) {
 	double mort_fire_cwd = fireprob * (1.0 - surflayer.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
-	patch.fluxes.report_flux(Fluxes::FIREC, surflayer.sompool[SURFSTRUCT].cmass * mort_fire_struct +
+	fluxes.report_flux(Fluxes::FIREC, surflayer.sompool[SURFSTRUCT].cmass * mort_fire_struct +
 		surflayer.sompool[SURFMETA].cmass * mort_fire_meta +
 		surflayer.sompool[SURFFWD].cmass * mort_fire_fwd +
 		surflayer.sompool[SURFCWD].cmass * mort_fire_cwd);
@@ -1479,7 +1489,7 @@ void fire(Patch& patch, double& fireprob) {
 		surflayer.sompool[SURFFWD].nmass * mort_fire_fwd +
 		surflayer.sompool[SURFCWD].nmass * mort_fire_cwd;
 
-	report_fire_nfluxes(patch, nflux_fire);
+	report_fire_nfluxes(fluxes, nflux_fire);
 
 	surflayer.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
 	surflayer.sompool[SURFMETA].nmass *= (1.0 - mort_fire_meta);

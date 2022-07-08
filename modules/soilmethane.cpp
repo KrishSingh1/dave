@@ -850,17 +850,19 @@ void Soilcolumn::methane(bool generatemethane) {
 	// This version coded by Paul Miller, based on Rita Wania's F90 code
 	// Layer depths in m, and volume of water in m3
 
+	Fluxes& fluxes = patch.fluxes;
+
 	if (!generatemethane) {
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 			// No generation of methane for what ever reason, so report the heterotrophic respiration 
 			// flux calculated from the call to som_dynamics(), and 0 for the 4 CH4 fluxes.
-			patch.fluxes.report_flux(Fluxes::SOILC, soillayers[lyr].respsum);
-			patch.fluxes.report_flux(Fluxes::CH4C, 0.0);
-			patch.fluxes.report_flux(Fluxes::CH4C_DIFF, 0.0);
-			patch.fluxes.report_flux(Fluxes::CH4C_PLAN, 0.0);
-			patch.fluxes.report_flux(Fluxes::CH4C_EBUL, 0.0);
+			fluxes.report_flux(Fluxes::SOILC, soillayers[lyr].respsum);
+			fluxes.report_flux(Fluxes::CH4C, 0.0);
+			fluxes.report_flux(Fluxes::CH4C_DIFF, 0.0);
+			fluxes.report_flux(Fluxes::CH4C_PLAN, 0.0);
+			fluxes.report_flux(Fluxes::CH4C_EBUL, 0.0);
 		}
 	} 
 	else if (patch.get_climate().lat < PEATLAND_WETLAND_LATITUDE_LIMIT) {
@@ -875,11 +877,11 @@ void Soilcolumn::methane(bool generatemethane) {
 			double inundated_CH4_flux_today = soillayer.respsum * G_PER_KG * CH4toCO2_inundated;
 
 			// Report the heterotrophic respiration and the 4 CH4 fluxes.
-			patch.fluxes.report_flux(Fluxes::SOILC, soillayer.respsum - inundated_CH4_flux_today * KG_PER_G);
-			patch.fluxes.report_flux(Fluxes::CH4C, inundated_CH4_flux_today);
-			patch.fluxes.report_flux(Fluxes::CH4C_DIFF, 0.0);
-			patch.fluxes.report_flux(Fluxes::CH4C_PLAN, 0.0);
-			patch.fluxes.report_flux(Fluxes::CH4C_EBUL, 0.0);
+			fluxes.report_flux(Fluxes::SOILC, soillayer.respsum - inundated_CH4_flux_today * KG_PER_G);
+			fluxes.report_flux(Fluxes::CH4C, inundated_CH4_flux_today);
+			fluxes.report_flux(Fluxes::CH4C_DIFF, 0.0);
+			fluxes.report_flux(Fluxes::CH4C_PLAN, 0.0);
+			fluxes.report_flux(Fluxes::CH4C_EBUL, 0.0);
 		}
 	} 
 	else {
@@ -978,11 +980,11 @@ void Soilcolumn::methane(bool generatemethane) {
 		double tot_respsum = get_sum(CO_2) * KG_PER_G;
 
 		// Report the heterotrophic respiration [kg C m-2] and the 4 CH4 fluxes [g C m-2].
-		patch.fluxes.report_flux(Fluxes::SOILC, tot_respsum);
-		patch.fluxes.report_flux(Fluxes::CH4C, CH4_flux_today);
-		patch.fluxes.report_flux(Fluxes::CH4C_DIFF, CH4_diff_today);
-		patch.fluxes.report_flux(Fluxes::CH4C_PLAN, CH4_plant_today);
-		patch.fluxes.report_flux(Fluxes::CH4C_EBUL, CH4_ebull_today);
+		fluxes.report_flux(Fluxes::SOILC, tot_respsum);
+		fluxes.report_flux(Fluxes::CH4C, CH4_flux_today);
+		fluxes.report_flux(Fluxes::CH4C_DIFF, CH4_diff_today);
+		fluxes.report_flux(Fluxes::CH4C_PLAN, CH4_plant_today);
+		fluxes.report_flux(Fluxes::CH4C_EBUL, CH4_ebull_today);
 
 		// All CO2 was respired today
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {

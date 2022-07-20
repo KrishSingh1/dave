@@ -1192,7 +1192,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 
-	// Do not burn before century soil has started
+	// Do not burn before century soil has been spinned up
 	if (date.year < patch.soilcolumn.solvesomcent_beginyr) {
 		return;
 	}

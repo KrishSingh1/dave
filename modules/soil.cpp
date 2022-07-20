@@ -4365,9 +4365,9 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	double dtmin = 60.0;
 	// Model timestep length in seconds (daily timestep)
 	double dtime = SECS_PER_DAY;
-	// tolerance to halve length of substep
+	// tolerance (mm) to halve length of substep
 	double xTolerUpper = 0.1;
-	// tolerance to double length of substep
+	// tolerance (mm) to double length of substep
 	double xTolerLower = 0.01;
 	// a very small number used to check for sub step completion
 	double verySmall = 1.0e-8;

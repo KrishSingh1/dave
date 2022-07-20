@@ -686,6 +686,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 	Soiltype soiltype = soilcolumn.soiltype;
+	Fluxes& fluxes = patch.fluxes;
 
 	// Organic C and N leached
 	double leachsum_cmass = 0.0;
@@ -1039,6 +1040,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			// Sum annual organic leaching
 			soillayer.aorgCleach += leachsum_cmass;
 			soillayer.aorgNleach += leachsum_nmass;
+			fluxes.report_flux(Fluxes::LEACHORGC, leachsum_cmass);
+			fluxes.report_flux(Fluxes::LEACHORGN, leachsum_nmass);
 
 			// Sum annuals
 			soillayer.anmin += nmin_actual;
@@ -1539,6 +1542,9 @@ void transfer_litter(Patch& patch) {
  */
 void leaching_LPJ(Soilcolumn& soilcolumn) {
 
+	// Fluxes
+	Fluxes& fluxes = soilcolumn.patch.fluxes;
+
 	double minleachfrac, minmovefrac, runoff;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -1588,6 +1594,7 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 
 			soillayer.nmass_subtract(leaching, NO3);
 			soillayer.aminleach += leaching;
+			fluxes.report_flux(Fluxes::LEACHMINN, leaching);
 
 			// Mass balance 
 			// nextra += leaching;
@@ -1600,6 +1607,8 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 			// Bottom layer then N is lost
 			if (lyr == soilcolumn.nsoillayers - 1) {
 				soillayer.aminleach += leaching;
+				fluxes.report_flux(Fluxes::LEACHMINN, leaching);
+
 				// Mass balance
 				//nextra += leaching;
 			}
@@ -1621,6 +1630,9 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 *  Should be called every day in both daily and monthly mode
 */
 void leaching_LSM(Soilcolumn& soilcolumn) {
+
+	// Fluxes
+	Fluxes& fluxes = soilcolumn.patch.fluxes;
 
 	// Nitrogen moved to other layers
 	double NO3_delta[NSOILLAYERS_MAX] = { 0.0 };
@@ -1685,9 +1697,11 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 			double move = nmin_avail * fabs(minmovefrac);
 			NO3_delta[lyr] -= (leach + move);
 			soillayer.aminleach += leach;
+			fluxes.report_flux(Fluxes::LEACHMINN, leach);
 			int move_lyr = min(soilcolumn.nsoillayers, max(0, (minmovefrac > 0.0) ? lyr + 1 : lyr - 1));
 			if (move_lyr == soilcolumn.nsoillayers) {
 				soillayer.aminleach += move;
+				fluxes.report_flux(Fluxes::LEACHMINN, move);
 			}
 			else {
 				NO3_delta[move_lyr] += move;
@@ -1755,6 +1769,7 @@ void soilnadd(Patch& patch) {
 
 		// Sum annaul N fixation
 		soilcolumn.anfix += daily_nfix * cconttot;
+		patch.fluxes.report_flux(Fluxes::NFIX, daily_nfix * cconttot);
 
 		// Nitrogen fixation in each soil layer
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {

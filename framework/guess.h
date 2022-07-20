@@ -1260,8 +1260,12 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
+		/// Flux to runoff associated with organic leaching (kgC/m2)
+		LEACHORGC,
 		/// Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
 		MANUREC,
+		/// Flux to soil associated with biological nitrogen fixation (kgN/m2)
+		NFIX,
 		/// Flux to vegetation associated with manure addition (kgN/m2)
 		MANUREN,
 		/// Flux to vegetation associated with N addition (kgN/m2) 
@@ -1270,6 +1274,10 @@ public:
 		HARVESTN,
 		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgN/m2)
 		SEEDN,
+		/// Nitrogen flux to runoff associated with organic leaching (kgN/m2)
+		LEACHORGN,
+		/// Nitrogen flux to runoff associated with mineral leaching (kgN/m2)
+		LEACHMINN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
 		/// NOx flux to atmosphere from fire

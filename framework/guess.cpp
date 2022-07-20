@@ -680,7 +680,7 @@ double Patch::cflux() {
 
 	double cflux = 0.0;
 
-	cflux += soilcolumn.get_sum(AORGCLEACH);
+	cflux += fluxes.get_annual_flux(Fluxes::LEACHORGC);
 	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
 	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
 	cflux += fluxes.get_annual_flux(Fluxes::SOILC);
@@ -701,9 +701,9 @@ double Patch::nflux() {
 
 	nflux += -(stand.get_gridcell().aNH4dep + stand.get_gridcell().aNO3dep);
 	nflux += -anfert;
-	nflux += -soilcolumn.anfix;
-	nflux += soilcolumn.get_sum(AMINLEACH);
-	nflux += soilcolumn.get_sum(AORGNLEACH);
+	nflux += -fluxes.get_annual_flux(Fluxes::NFIX);
+	nflux += fluxes.get_annual_flux(Fluxes::LEACHMINN);
+	nflux += fluxes.get_annual_flux(Fluxes::LEACHORGN);
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);

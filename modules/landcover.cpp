@@ -1603,10 +1603,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
 					}
 
-					// Balance snow layers
-					double dval = 0.0;
-					snow.balance_snow(patch, dval, dval);
-
 					// save individual C and N content for use in scale_indiv()
 					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {
 						Individual& indiv = patch.vegetation[i];

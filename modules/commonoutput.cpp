@@ -1502,12 +1502,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			anmin_gridcell += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
 			animm_gridcell += soilcolumn.get_sum(ANIMMOB) * to_gridcell_average;
 			anfix_gridcell += soilcolumn.anfix * to_gridcell_average;
-			n_min_leach_gridcell += soilcolumn.get_sum(AMINLEACH) * to_gridcell_average;
-			c_org_leach_gridcell += soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
-			n_org_leach_gridcell += soilcolumn.get_sum(AORGNLEACH) * to_gridcell_average;
+			n_min_leach_gridcell += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
+			c_org_leach_gridcell += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
+			n_org_leach_gridcell += fluxes.get_annual_flux(Fluxes::LEACHORGN) * to_gridcell_average;
 			availn += (soilcolumn.nmass_avail() + soilcolumn.snow.nmass_avail()) * to_gridcell_average;
 
-			c_org_leach_lc[stand.landcover] += soilcolumn.get_sum(AORGCLEACH) * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
 
 			clitterinput[0] += soilcolumn.cmass_litter_input[0] * to_gridcell_average;
 

@@ -1332,7 +1332,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// water retention curves from CLM5.0 documentation 
 	b_org = min(2.7 + 9.3 * depth_profile / sapric_depth, 12.0);
 	// Organic soil matric potential at saturation 
-	Psi_max_org = -min(10.3 - 0.2 * depth_profile / sapric_depth, 10.1);
+	Psi_max_org = -max(10.3 - 0.2 * depth_profile / sapric_depth, 10.1);
 	// Organic volumetric soil water concentration at saturation point (porosity)
 	wsats_org = max(0.93 - 0.1 * depth_profile / sapric_depth, 0.83);
 	// Volumetric soil moisture concentration at Field Capacity

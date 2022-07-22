@@ -4210,17 +4210,17 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 
 		// Remove and transfer water (mm)
 		soillayer_above.wmass -= soillayer_above.perc_mass;
-		soillayer_top.wmass += soillayer_above.perc_mass;
-		if (soillayer_top.wmass > soillayer_top.fc()) {
-			soillayer_top.runoff_drain = soillayer_top.wmass - soillayer_top.fc();
-			soillayer_top.wmass = soillayer_top.fc();
+		soillayer.wmass += soillayer_above.perc_mass;
+		if (soillayer.wmass > soillayer.fc()) {
+			soillayer.runoff_drain = soillayer.wmass - soillayer.fc();
+			soillayer.wmass = soillayer.fc();
 		}
 		else {
-			soillayer_top.runoff_drain = 0.0;
+			soillayer.runoff_drain = 0.0;
 		}
 
 		// Deduct AET from this soil layer
-		soillayer_top.wmass -= min(soillayer_top.wmass - soillayer.wp, aet_layer[lyr]);
+		soillayer.wmass -= min(soillayer.wmass - soillayer.wp, aet_layer[lyr]);
 	}
 
 	// Baseflow runoff (rain or snowmelt days only)

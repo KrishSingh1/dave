@@ -521,7 +521,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_soilcperma,     file_soilcperma,     soilc_perma_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
 	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_short);
-	create_output_table(out_mimasslyr,      file_mimasslyr,      soillyr_columns_high);
+	create_output_table(out_mimasslyr,      file_mimasslyr,      soillyr_columns_short);
 	create_output_table(out_mwimasslyr,     file_mwimasslyr,     soillyr_columns_short);
 	create_output_table(out_mdrainlyr,      file_mdrainlyr,	     soillyr_columns_short);
 
@@ -804,6 +804,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (date.year < nyear_spinup)
 		return;
 
+	const double NOT_A_VALUE_SMALL = -9.999;
+	const double NOT_A_VALUE_LARGE = -999.9;
+
 	int c, m;
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
 	double c_fast, c_slow, c_harv_slow;
@@ -826,7 +829,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double somn[NSOMPOOL][NSOILLAYERS_MAX];
 	double cdec[NSOILLAYERS_MAX][2];
 	double cinc[NSOILLAYERS_MAX][2];
-	double clitterinput[NSOILLAYERS_MAX + 1];
+	double clitterinput[NSOILLAYERS_MAX+1];
 	double csomlitterinput[NSOMPOOL+1];
 	double soilc_tot, soilc_ald;
 
@@ -1372,7 +1375,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	NH3_mass_inc = NO_mass_inc = N2O_mass_inc = N2_mass_inc = 0.0;
 	gross_nitrif = gross_denitrif = net_nitrif = net_denitrif= 0.0;
 
-	clitterinput[0] = 0.0;
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		soildepth[lyr] = 0.0;
 		cdec[lyr][0] = 0.0;
@@ -1380,12 +1382,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		cinc[lyr][0] = 0.0;
 		cinc[lyr][1] = 0.0;
 
-		clitterinput[lyr + 1] = 0.0;
+		clitterinput[lyr] = 0.0;
 
 		for (int p = 0; p < NSOMPOOL; p++) {
 			somc[p][lyr] = somn[p][lyr] = 0.0;
 		}
 	}
+	clitterinput[NSOILLAYERS_MAX] = 0.0;
 
 	for (int p = 0; p < NSOMPOOL; p++) {
 		csomlitterinput[p] = 0.0;
@@ -1660,7 +1663,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						mnetmin[m] += soillayer.mnetmin[m] * to_gridcell_average;
 					}
 					else {
-						mtemp[lyr + NSNOWLAYERS_MAX][m] += -999.9 * to_gridcell_average;
+						mtemp[lyr + NSNOWLAYERS_MAX][m] += NOT_A_VALUE_LARGE * to_gridcell_average;
 					}
 				}
 
@@ -1686,9 +1689,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						mdrainlyr[lyr][m] += drain_tot * to_gridcell_average;
 					}
 					else {
-						mwmasslyr[lyr][m] += -9.999 * to_gridcell_average;
-						mimasslyr[lyr][m] += -9.999 * to_gridcell_average;
-						mdrainlyr[lyr][m] += -9.999 * to_gridcell_average;
+						mwmasslyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
+						mimasslyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
+						mdrainlyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
 					}
 				}
 			}
@@ -1889,14 +1892,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		outlimit(out, out_clitterinput, clitterinput[lyr + 1]);
 		clitterinput_tot += clitterinput[lyr + 1];
-	}
 
-	for (int i = 0; i < number_of_layers; i++) {
-		outlimit(out, out_csoil, soilc[i]);
-		outlimit(out, out_rsoil, soilr[i]);
+		outlimit(out, out_csoil, soilc[lyr]);
+		outlimit(out, out_rsoil, soilr[lyr]);
 	}
-	outlimit(out, out_csoil, soilc[NSOILLAYERS_MAX]);
-	outlimit(out, out_rsoil, soilr[NSOILLAYERS_MAX]);
 
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;
 	if (!negligible(tot_cdec[1]) && !negligible(tot_cinc[0]) && !negligible(tot_cdec[0])) {
@@ -1914,6 +1913,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_soilcuelim, sdl_cue_tot);
 
 	outlimit(out, out_clitterinput, clitterinput_tot);
+
+	outlimit(out, out_csoil, soilc[NSOILLAYERS_MAX]);
+	outlimit(out, out_rsoil, soilr[NSOILLAYERS_MAX]);
 
 	outlimit(out, out_soilcperma, soilc_tot > 0 ? max(0.0, soilc_tot - soilc_ald) / soilc_tot : 0.0);
 
@@ -2213,7 +2215,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		outlimit(out, out_mtemp, gridcell.climate.hmtemp_20[mth].lastadd());
 		if (iftwolayersoil) {
-			for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
+			for (int lyr = NSNOWLAYERS_MAX; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_SIMPLE; lyr++) {
 				outlimit(out, out_mtemp, mtemp[lyr][mth]);
 			}
 		}
@@ -2226,13 +2228,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		for (int lyr = 0; lyr < number_of_layers; lyr++) {
 			outlimit(out, out_mwmasslyr, mwmasslyr[lyr][mth]);
 			outlimit(out, out_mimasslyr, mimasslyr[lyr][mth]);
-			outlimit(out, out_mwimasslyr, mwmasslyr[lyr][mth] + mimasslyr[lyr][mth]);
+			outlimit(out, out_mwimasslyr, mwmasslyr[lyr][mth] >= 0.0 ? mwmasslyr[lyr][mth] + mimasslyr[lyr][mth] : NOT_A_VALUE_SMALL);
 			outlimit(out, out_mdrainlyr, mdrainlyr[lyr][mth]);
 		}
-		outlimit(out, out_mwmasslyr, mwmasslyr[number_of_layers][mth]);
-		outlimit(out, out_mimasslyr, mimasslyr[number_of_layers][mth]);
-		outlimit(out, out_mwimasslyr, mwmasslyr[number_of_layers][mth] + mimasslyr[number_of_layers][mth]);
-		outlimit(out, out_mdrainlyr, mdrainlyr[number_of_layers][mth]);
+		outlimit(out, out_mwmasslyr, mwmasslyr[NSOILLAYERS_MAX][mth]);
+		outlimit(out, out_mimasslyr, mimasslyr[NSOILLAYERS_MAX][mth]);
+		outlimit(out, out_mwimasslyr, mwmasslyr[NSOILLAYERS_MAX][mth] + mimasslyr[NSOILLAYERS_MAX][mth]);
+		outlimit(out, out_mdrainlyr, mdrainlyr[NSOILLAYERS_MAX][mth]);
 	}
 }
 

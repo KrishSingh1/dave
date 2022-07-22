@@ -408,6 +408,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	// grass biomass (see comment above)
 	const double SAPSIZE = 0.1;
 
+	// Minimum carbon mass allowed (kgC/m2)
+	const double MINCMASS = 1.0e-8;
+
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
 	double est; // expected number of new saplings for PFT in this patch
@@ -547,6 +550,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
+
+						// If established individuals initial biomass is too small 
+						// then don't establish (e.g. anetps_ff extremely low or even zero)
+						if (bminit < MINCMASS) {
+							indiv.kill();
+
+							vegetation.killobj();
+						}
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -680,6 +691,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
+
+						// If established individuals initial biomass is too small 
+						// then don't establish (e.g. anetps_ff extremely low or even zero)
+						if (bminit < MINCMASS) {
+							indiv.kill();
+
+							vegetation.killobj();
+						}
 					}
 				}
 			}

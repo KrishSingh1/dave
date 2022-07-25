@@ -4140,7 +4140,9 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		vegetation.nextobj();
 	}
 
-	// Evaporation from soil surface
+	// Evaporation from soil surface (Bondeau et al. (2007),  Rost et al. (2008))
+	
+	Soillayer& soillayer_top = soillayers[0];
 
 	double evap = 0.0;
 
@@ -4148,8 +4150,6 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	if (snow.wcontent() < 10.0) {	
 		evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
 	}
-
-	Soillayer& soillayer_top = soillayers[0];
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	soillayer_top.wmass += rain_melt - aet_layer[0] - evap;
@@ -4168,12 +4168,14 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	}
 
 	// Update water content in evaporation layer for tomorrow
-	wcont_evap += min(wcont_evap,
-		(rain_melt - aet_layer[0] * K_AET_DEPTH * min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) - evap)
-		/ soillayer_top.awc);
+	wcont_evap += (rain_melt - aet_layer[0] * K_AET_DEPTH * min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) - evap)
+		/ soillayer_top.awc;
 
 	if (wcont_evap > soillayer_top.wcont()) {
 		wcont_evap = soillayer_top.wcont();
+	}
+	else if (wcont_evap < 0.0) {
+		wcont_evap = 0.0;
 	}
 
 	// Percolation from evaporation layer
@@ -4182,7 +4184,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		perc = min(min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.perc_base * pow(wcont_evap, soiltype.perc_exp),
 			max_rain_melt);
 	}
-	wcont_evap -= perc / (min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.awc);
+	wcont_evap -= min(wcont_evap, perc / (min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.awc));
 
 	// Percolation and fluxes to and from lower soil layer(s)
 
@@ -4984,7 +4986,8 @@ void Soilcolumn::initial_percolation() {
 
 		if (iftwolayersoil) {
 
-			// As in LPJ-GUESS v4.0, where soil.wcont[0] and soil.wcont_evap were adjusted
+			// Update water content in upper soil layer with rain and snowmelt
+			// and adjust wcont_evap
 
 			Soillayer& surflayer = soillayers[0];
 

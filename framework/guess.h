@@ -1839,6 +1839,12 @@ public:
 	double cton_sap_max;
 	/// minimum sapwood C:N mass ratio (used when mass is negligible)
 	double cton_sap_min;
+	/// average heartwood C:N mass ratio (connected cton_leaf_avr)
+	double cton_heart_avr;
+	/// maximum heartwood C:N mass ratio (used when mass is negligible)
+	double cton_heart_max;
+	/// minimum heartwood C:N mass ratio (used when mass is negligible)
+	double cton_heart_min;
 	/// reference fine root C:N mass ratio
 	double cton_root;
 	/// reference sapwood C:N mass ratio
@@ -2268,6 +2274,15 @@ public:
 
 		// Maximum sap C:N ratio
 		cton_sap_max = cton_sap_avr * frac_fromavr;
+
+		// Average heart C:N ratio
+		cton_heart_avr = cton_sap_avr * 2.0;
+
+		// Minimum heart C:N ratio
+		cton_heart_min = cton_heart_avr / frac_fromavr;
+
+		// Maximum heart C:N ratio
+		cton_heart_max = cton_heart_avr * frac_fromavr;
 
 		if (lifeform == GRASS || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
@@ -2962,6 +2977,9 @@ public:
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;
 
+	/// Distribute stored N between plant compartments to prevent unrealistic C:N ratios in litter when killed
+	void partition_nstore(double& NH4_mass);
+
 	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
@@ -3028,6 +3046,9 @@ public:
 
 	/// Current sap C:N ratio
 	double cton_sap() const;
+
+	/// Current heart C:N ratio
+	double cton_heart() const;
 
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft() const;
@@ -3621,8 +3642,6 @@ public:
 	double N2O_mass;
 	/// soil N2 mass in pool (kgN/m2)
 	double N2_mass;
-	/// soil N mass saturation level (KgN/m2)
-	double nmass_sat;
 
 	// soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
@@ -3728,7 +3747,6 @@ public:
 		NO_mass = that.NO_mass;
 		N2O_mass = that.N2O_mass;
 		N2_mass = that.N2_mass;
-		nmass_sat = that.nmass_sat;
 		labile_carbon = that.labile_carbon;
 		litterSolveSOM = that.litterSolveSOM;
 		acdec[0] = that.acdec[0];
@@ -3832,7 +3850,6 @@ public:
 		NO_mass = that.NO_mass;
 		N2O_mass = that.N2O_mass;
 		N2_mass = that.N2_mass;
-		nmass_sat = that.nmass_sat;
 		labile_carbon = that.labile_carbon;
 		litterSolveSOM = that.litterSolveSOM;
 		acdec[0] = that.acdec[0];
@@ -3893,7 +3910,9 @@ public:
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	void nmass_subtract(double nmass, n_pref_type pref = NO);
 	void nmass_inc(double nmass, n_pref_type pref = NO);
-	void nmass_multiplic_inc(double inc, n_pref_type pref = NO);
+	/// Return the amount of soil available nitrogen where SOM C:N ratio 
+	/// reach their minimum (nitrogen saturation) [kg N m-3]
+	double nmass_saturation(double NMASS_SAT);
 	/// Water filled pore space ([0-1])
 	double wfps();
 
@@ -4678,6 +4697,8 @@ public:
 	double nmass_litter_heart;
 	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart_year;
+	/// remaining NH4-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_NH4;
 	/// Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002) Michaelis-Menten kinetic parameters
 	double Km;
 
@@ -4741,6 +4762,7 @@ public:
 		nmass_litter_sap_year = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_heart_year = 0.0;
+		nmass_litter_NH4 = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

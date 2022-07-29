@@ -106,7 +106,7 @@ void turnover_grass(Individual& indiv) {
 		patchpft.nmass_litter_leaf,
 		patchpft.nmass_litter_root,
 		indiv.nstore_longterm, indiv.max_n_storage,
-		true);
+		true, indiv.vegetation.patch.pft[indiv.pft.id].nmass_litter_NH4);
 
 	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
 	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;

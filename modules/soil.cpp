@@ -1383,7 +1383,6 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	NO_mass = 0.0;
 	N2O_mass = 0.0;
 	N2_mass = 0.0;
-	nmass_sat = 0.0;
 	anmin = 0.0;
 	animmob = 0.0;
 
@@ -2157,6 +2156,15 @@ void Soillayer::nmass_inc(double nmass, n_pref_type pref) {
 			NO3_mass += nmass;
 		}
 	}
+}
+
+/// Soil layer nitrogen saturation level
+/** Soil layer nitrogen saturation level
+ * Corresponds to the amount of soil available nitrogen where SOM C:N ratio reach
+ * their minimum (nitrogen saturation) [kg N m-3]
+ */
+double Soillayer::nmass_saturation(double NMASS_SAT) {
+	return NMASS_SAT * depth * M_PER_MM;
 }
 
 /// Update soil layer temperature due to mass movement

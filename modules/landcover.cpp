@@ -1284,7 +1284,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						cp.nmass_litter_leaf,
 						cp.nmass_litter_root,
 						cp.nstore_longterm, cp.max_n_storage,
-						indiv.alive);
+						indiv.alive, patch.pft[indiv.pft.id].nmass_litter_NH4);
 
 
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):

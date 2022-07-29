@@ -67,13 +67,13 @@ static const double FASTFRAC=0.985;
 static const double ATMFRAC=0.7;
 
 // Corresponds to the amount of soil available nitrogen where SOM C:N ratio reach
-// their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
-// Comment: NMASS_SAT is too high when considering BNF - Zaehle
-const double NMASS_SAT = 0.002;	// DW_COMMENT
+// their minimum (nitrogen saturation) [kg N m-3]. Mineral N in the surface soil layer increases 
+// from 0 to 2 g N / m2. Top layer is 15cm thick (Parton et al 1993, Fig. 4)
+const double NMASS_SAT = 0.002 / 0.15;
 // Corresponds to the nitrogen concentration in litter where SOM C:N ratio reach
-// their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
+// their minimum (nitrogen saturation) [kg N m-2] (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;
-// Maximum available nitrogen mass for N fixation
+// Maximum available nitrogen mass for N fixation [kg N m-2]
 // Comment: NMASS_SAT is too high when considering BNF - Zaehle
 const double NMASS_SAT_NFIX = 0.0001;
 
@@ -722,16 +722,15 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			assert(soillayer.NH4_mass > -EPS);
 		}
 
-		// Soil nutrient saturation level for this layer that affect SOM C:N ratios
-		if (date.day == 0)
-			soillayer.nmass_sat = NMASS_SAT * soillayer.ccont(true);
+		// Soil nutrient saturation level for this layer
+		double nmass_sat = soillayer.nmass_saturation(NMASS_SAT);
 
 		// Set N:C ratios for humus, soil microbial, slow and passive pool based on estimated mineral nitrogen pool
 		// (Parton et al 1993, Fig 4)
 		// ForCent (Parton 2010) values
-		soillayer.setntoc(nmin_mass, soillayer.sompool[SURFHUMUS].ntoc, 30.0, 10.0, 0.0, soillayer.nmass_sat);
-		soillayer.setntoc(nmin_mass, soillayer.sompool[SOILMICRO].ntoc, 15.0, 6.0, 0.0, soillayer.nmass_sat);
-		soillayer.setntoc(nmin_mass, soillayer.sompool[SLOWSOM].ntoc, 30.0, 10.0, 0.0, soillayer.nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SURFHUMUS].ntoc, 30.0, 10.0, 0.0, nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SOILMICRO].ntoc, 15.0, 6.0, 0.0, nmass_sat);
+		soillayer.setntoc(nmin_mass, soillayer.sompool[SLOWSOM].ntoc, 30.0, 10.0, 0.0, nmass_sat);
 
 		if (!ifequilsom) {
 
@@ -1079,15 +1078,16 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		// available nutrient to its saturation level.
 		if (date.year <= freenyears) {
 
-			double nmass_sat_lyr = NMASS_SAT * Orgdensity * 0.1 * soillayer.depth * M_PER_MM;
+			// Soil nutrient saturation level for this layer
+			double nmass_sat = soillayer.nmass_saturation(NMASS_SAT);
 
 			if (!ifnlim) {
 				if (ifntransform) {
-					soillayer.NH4_mass = nmass_sat_lyr / 2.0;
-					soillayer.NO3_mass = nmass_sat_lyr / 2.0;
+					soillayer.NH4_mass = nmass_sat / 2.0;
+					soillayer.NO3_mass = nmass_sat / 2.0;
 				}
 				else {
-					soillayer.NH4_mass = nmass_sat_lyr;
+					soillayer.NH4_mass = nmass_sat;
 				}
 			}
 		}
@@ -1185,6 +1185,14 @@ void transfer_litter(Patch& patch) {
 			ppft.nmass_litter_leaf -= nmass_litter_leaf;
 			ppft.litter_root -= cmass_litter_root;
 			ppft.nmass_litter_root -= nmass_litter_root;
+
+			// If NH4 litter then drop it with same fraction every day to top soil layer
+			if (!negligible(ppft.nmass_litter_NH4)) {
+				double frac_NH4 = 1.0 / (date.year_length() - date.day);
+				double nmass_NH4 = ppft.nmass_litter_NH4 * frac_NH4;
+				soilcolumn.soillayers[0].NH4_mass += nmass_NH4;
+				ppft.nmass_litter_NH4 -= nmass_NH4;
+			}
 
 			// If tree indivdiual
 			if (pft.lifeform == TREE) {
@@ -1816,11 +1824,11 @@ void vertical_movement(Patch& patch) {
 		soilcolumn.vertical_movement();
 
 
-	if (patch.stand.landcover == PEATLAND || !date.islastday || !ifverticalmixing || date.year < soilcolumn.solvesomcent_beginyr)
+	if (patch.stand.landcover == PEATLAND || !date.islastday || !ifverticalmixing || date.year <= soilcolumn.solvesomcent_endyr)
 		return;
 
 	// Low carbon in soil -> no vertical mixing
-	if (date.year <= soilcolumn.solvesomcent_endyr || soilcolumn.get_sum(CCONT) < 1.0e-5)
+	if (soilcolumn.get_sum(CCONT) < 1.0e-5)
 		return;
 
 	// Average monthly active layer depth

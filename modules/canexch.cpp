@@ -1122,6 +1122,33 @@ void vegetation_n_uptake(Patch& patch) {
 		NH4_uptake_tot += ammonium;
 		NO3_uptake_tot += nuptake_day - ammonium;
 
+		// Years of free N tissues should at least have C:N ratios 
+		// corresponding to PFT specific avr to build up healthy SOM pools
+		if (date.year < freenyears) {
+			if (indiv.cton_leaf() > indiv.pft.cton_leaf_avr) {
+				double nmass = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_avr - indiv.nmass_leaf;
+				indiv.nmass_leaf += nmass;
+				indiv.anuptake += nmass;
+			}
+			if (indiv.cton_root() > indiv.pft.cton_root_avr) {
+				double nmass = indiv.cmass_root_today() / indiv.pft.cton_root_avr - indiv.nmass_root;
+				indiv.nmass_root += nmass;
+				indiv.anuptake += nmass;
+			}
+			if (indiv.pft.lifeform == TREE) {
+				if (indiv.cton_sap() > indiv.pft.cton_sap_avr) {
+					double nmass = indiv.cmass_sap / indiv.pft.cton_sap_avr - indiv.nmass_sap;
+					indiv.nmass_sap += nmass;
+					indiv.anuptake += nmass;
+				}
+				if (indiv.cton_heart() > indiv.pft.cton_heart_avr) {
+					double nmass = indiv.cmass_heart / indiv.pft.cton_heart_avr - indiv.nmass_heart;
+					indiv.nmass_heart += nmass;
+					indiv.anuptake += nmass;
+				}
+			}
+		}
+
 		if (!negligible(indiv.phen))
 			indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max);
 
@@ -1234,16 +1261,17 @@ void nstore_usage(Vegetation& vegetation) {
 /** Determine if nutrient is in excees to optimal demand. 
  *  If negative nutrient demand then retranslocate fraction of nutrient.
  */
-void nretrans(double& ndemand, double& nmass, double& nstore_labile, double nstore_longterm, double max_n_store) {
+void nretrans(double& ndemand, double& nmass, double& nstore_labile, double nstore_longterm, 
+	double max_n_store, double nmass_min) {
 
 	// If negative nutrient demand, retranslocate nutrient
-	if (!ifdailynretrans || ndemand >= 0.0 || nstore_labile + nstore_longterm >= max_n_store) {
+	if (!ifdailynretrans || ndemand >= 0.0 || nstore_labile + nstore_longterm >= max_n_store || nmass < nmass_min) {
 		ndemand = max(0.0, ndemand);
 		return;
 	}
 
 	// Maximum 5% of active nutrient can be retranslocated within a day (Zeahle et al 2010)
-	double nreloc = min(min(0.05 * nmass, -ndemand), max_n_store - (nstore_labile + nstore_longterm));
+	double nreloc = min(min(min(max(0.0, nmass - nmass_min), 0.05 * nmass), -ndemand), max_n_store - (nstore_labile + nstore_longterm));
 
 	nmass -= nreloc;
 	nstore_labile += nreloc;
@@ -1299,7 +1327,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Optimal leaf nitrogen content
 		double leafoptn;
 
-		// Calculate optimal leaf nitrogen content and demand
+		// Calculate optimal leaf nitrogen content and demands
 		if (!negligible(indiv.phen)) {
 
 			indiv.nday_leafon++;
@@ -1337,20 +1365,20 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leafndemand = leafoptn - indiv.nmass_leaf;
 
 			// Check if to retranslocate leaf N
-			nretrans(indiv.leafndemand, indiv.nmass_leaf, indiv.nstore_labile, indiv.nstore_longterm, indiv.max_n_storage);
+			nretrans(indiv.leafndemand, indiv.nmass_leaf, indiv.nstore_labile, indiv.nstore_longterm, indiv.max_n_storage, indiv.cmass_leaf / indiv.pft.cton_leaf_max);
+
+			// Root nitrogen demand
+			indiv.rootndemand = indiv.cmass_root_today() / max(indiv.pft.cton_root_min, indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root;
+
+			// Check if to retranslocate root N
+			nretrans(indiv.rootndemand, indiv.nmass_root, indiv.nstore_labile, indiv.nstore_longterm, indiv.max_n_storage, indiv.cmass_root / indiv.pft.cton_root_max);
 		}
 		else {
 			indiv.leafndemand = 0.0;
+			indiv.rootndemand = 0.0;
+
 			indiv.cton_leaf_dopt = indiv.cton_leaf();
 		}
-
-		// Nitrogen demand
-
-		// Root nitrogen demand
-		indiv.rootndemand = indiv.cmass_root_today() / max(indiv.pft.cton_root_min, indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root;
-
-		// Check if to retranslocate root N
-		nretrans(indiv.rootndemand, indiv.nmass_root, indiv.nstore_labile, indiv.nstore_longterm, indiv.max_n_storage);
 
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {

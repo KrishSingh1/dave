@@ -979,6 +979,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
 		indiv.dgpp_no = max(0.0, indiv.photosynthesis.net_assimilation());
+		indiv.mgpp_no[date.month] += indiv.dgpp_no;
 		indiv.agpp_no += indiv.dgpp_no;
 		indiv.report_flux(Fluxes::GPPno, indiv.dgpp_no);
 
@@ -1149,8 +1150,32 @@ void vegetation_n_uptake(Patch& patch) {
 			}
 		}
 
-		if (!negligible(indiv.phen))
-			indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max);
+		// Save leaf C:N ratio
+		if (!negligible(indiv.phen)) {
+			indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max) * indiv.dgpp_no;
+			indiv.cton_leaf_mavr[date.month] += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max) * indiv.dgpp_no;
+		}
+
+		// On last day of year determined average leaf C:N ratio
+		// based on annual and monthly GPP without any stresses
+		if (date.islastday && date.islastmonth) {
+
+			if (!negligible(indiv.agpp_no)) {
+				indiv.cton_leaf_aavr /= indiv.agpp_no;
+			}
+			else {
+				indiv.cton_leaf_aavr = 0.0;
+			}
+
+			for (int m = 0; m < 12; m++) {
+				if (!negligible(indiv.mgpp_no[m])) {
+					indiv.cton_leaf_mavr[m] /= indiv.mgpp_no[m];
+				}
+				else {
+					indiv.cton_leaf_mavr[m] = 0.0;
+				}
+			}
+		}
 
 		vegetation.nextobj();
 	}
@@ -1554,10 +1579,11 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Sum annual average nitrogen limitation on vmax
 		if (indiv.phen) {
 			indiv.avmaxnlim += indiv.photosynthesis.vmaxnlim * indiv.dgpp_no;
+			indiv.mvmaxnlim[date.month] += indiv.photosynthesis.vmaxnlim * indiv.dgpp_no;
 		}
 
 		// On last day of year determined average nitrogen limitation
-		// based on annual GPP without any stresses
+		// based on annual and monthly GPP without any stresses
 		if (date.islastday && date.islastmonth) {
 
 			if (!negligible(indiv.agpp_no)) {
@@ -1565,6 +1591,15 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			}
 			else {
 				indiv.avmaxnlim = 1.0;
+			}
+
+			for (int m = 0; m < 12; m++) {
+				if (!negligible(indiv.mgpp_no[m])) {
+					indiv.mvmaxnlim[m] /= indiv.mgpp_no[m];
+				}
+				else {
+					indiv.mvmaxnlim[m] = 1.0;
+				}
 			}
 		}
 		vegetation.nextobj();
@@ -2678,6 +2713,9 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
  			for (int m=0; m<12; m++) {
 				indiv.mlai[m] = 0.0;
 				indiv.mlai_max[m] = 0.0;
+				indiv.mgpp_no[m] = 0.0;
+				indiv.cton_leaf_mavr[m] = 0.0;
+				indiv.mvmaxnlim[m] = 0.0;
 			}
 
 			vegetation.nextobj();

@@ -2867,12 +2867,16 @@ public:
 	double scale_n_storage;
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
+	/// monthly nitrogen limitation on vmax
+	double mvmaxnlim[12];
 	/// daily optimal leaf C:N ratio
 	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
+	/// monthly average leaf C:N ratio
+	double cton_leaf_mavr[12];
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth
@@ -2915,7 +2919,7 @@ public:
 	/// The daily N lossed from roots due to senescense, only crops.
 	double daily_nmass_rootloss;
 
-	/// Number of days with non-negligible phenology this month
+	/// Number of days with non-negligible phenology this year
 	int nday_leafon;
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
@@ -2926,6 +2930,8 @@ public:
 	double dgpp_no;
 	/// GPP this day with only nutrient stresses
 	double dgpp_ns;
+	/// Montly GPP without any stresses
+	double mgpp_no[12];
 	/// Annual GPP without any stresses
 	double agpp_no;
 	/// Annual GPP with only N stress

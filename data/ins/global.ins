@@ -257,6 +257,8 @@ group "common" (
 	harv_eff 0
 	res_outtake 0
 
+	ag_woody_frac 1.0
+
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
 	harvest_slow_frac 0
@@ -332,6 +334,7 @@ group "shrub" (
 	root_dist 0.6 0.4
 	root_beta 0.938
 	longevity 100
+	ag_woody_frac 0.45
 
 	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
 				! 1-year turnover time
@@ -430,6 +433,7 @@ group "boreal" (
 	pstemp_high 25
 	pstemp_max 38
 	respcoeff 1.0
+	ag_woody_frac 0.75
 )
 
 group "temperate" (
@@ -584,6 +588,7 @@ pft "TeNE" (
 	gdd5min_est 2000 	! Changed 2013-04-30 from value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
 	greff_min 0.0
 	longevity 300  		! Hickler et al. (2012) have 350 for Pin_hal
+	ag_woody_frac 0.85
 	fireresist 0.3 		! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
 	eps_iso 8.0		! Values set to be the same as those for BNE and BINE
 	seas_iso 0		! Values set to be the same as those for BNE and BINE
@@ -608,6 +613,7 @@ pft "TeBS" (
 	twmin_est 5
 	gdd5min_est 1100
 	longevity 400
+	ag_woody_frac 0.81
 	fireresist 0.1
 	eps_iso 45.0
 	seas_iso 1
@@ -660,6 +666,7 @@ pft "TeBE" (
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 		! from TH 2010-04-07 was 350 AA
+	ag_woody_frac 0.81
 	fireresist 0.3
 	eps_iso 24.0
 	seas_iso 0
@@ -681,6 +688,7 @@ pft "TrBE" (
 	leaflong 2
 	turnover_leaf 0.5
 	longevity 500   	! from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
+	ag_woody_frac 0.84
 	fireresist 0.1
 	eps_iso 24.0
 	seas_iso 0
@@ -702,6 +710,7 @@ pft "TrIBE" (
 	leaflong 2
 	turnover_leaf 0.5
 	longevity 200
+	ag_woody_frac 0.84
 	fireresist 0.1
 	eps_iso 24.0
 	seas_iso 0
@@ -726,6 +735,7 @@ pft "TrBR" (
 	leaflong 0.5
 	turnover_leaf 1
 	longevity 400    	! from Thomas h 2010-03-30
+	ag_woody_frac 0.75
 	fireresist 0.3
 	eps_iso 45.0
 	seas_iso 0

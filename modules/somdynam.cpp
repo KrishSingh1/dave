@@ -561,8 +561,8 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
-	K_MAX[SURFFWD]    = 1.1e-2 * (1.0 - COARSE_ROOT_FRAC);
-	K_MAX[SURFCWD]    = 2.2e-3 * (1.0 - COARSE_ROOT_FRAC);
+	K_MAX[SURFFWD]    = 1.1e-2 * 0.5;
+	K_MAX[SURFCWD]    = 2.2e-3 * 0.5; // DW_COMMENT
 	K_MAX[SURFMICRO]  = 4.0e-2;
 	K_MAX[SURFHUMUS]  = 2.7e-4;
 	K_MAX[SOILMETA]   = 1.0e-1;
@@ -1147,6 +1147,9 @@ void transfer_litter(Patch& patch) {
 		while (patch.pft.isobj) {
 			Patchpft& ppft = patch.pft.getobj();
 			Pft& pft = ppft.pft;
+
+			// Below ground woody biomass fraction
+			const double COARSE_ROOT_FRAC = 1.0 - pft.ag_woody_frac;
 
 			// For stands with yearly growth, drop leaf and root litter on first month of the year for northern hemisphere
 			// and first month of the second half of the year for southern hemisphere for summergreen trees. For evergreens

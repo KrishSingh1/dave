@@ -758,6 +758,8 @@ void plib_declarations(int id,xtring setname) {
 			"Constant in equation for tree estab rate");
 		declareitem("longevity",&ppft->longevity,0.0,3000.0,1,CB_NONE,
 			"Expected longevity under lifetime non-stressed conditions (yr)");
+		declareitem("ag_woody_frac", &ppft->ag_woody_frac,0.0,1.0,1,CB_NONE,
+			"Above ground woody biomass fraction");
 		declareitem("greff_min",&ppft->greff_min,0.0,1.0,1,CB_NONE,
 			"Threshold for growth suppression mortality (kgC/m2 leaf/yr)");
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,

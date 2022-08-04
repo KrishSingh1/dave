@@ -232,13 +232,6 @@ const int AVG_INTERVAL_FAPAR = 3;
 /// Averaging interval for biome averaging (SIMFIRE)
 const int N_YEAR_BIOMEAVG = 3;
 
-/// Fraction of wood cmass that are stems (Temporary values, should be pft-specific)
-const double STEM_FRAC = 0.65;
-/// Fraction of wood cmass that are twigs
-const double TWIG_FRAC = 0.13;
-/// Fraction of wood cmass that are coarse roots (0.22 with default stem_frac and twig_frac values)
-const double COARSE_ROOT_FRAC = 1.0 - STEM_FRAC - TWIG_FRAC;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -1909,6 +1902,8 @@ public:
 	double kest_pres;
 	/// expected longevity under non-stressed conditions (individual and cohort modes)
 	double longevity;
+	/// Above ground woody biomass fraction
+	double ag_woody_frac;
 	/// threshold growth efficiency for imposition of growth suppression mortality
 	/** kgC/m2 leaf/year, individual and cohort modes */
 	double greff_min;

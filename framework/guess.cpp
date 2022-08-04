@@ -1573,7 +1573,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	if (!negligible(mortality)) {
 
 		const double mortality_non_fire = mortality - mortality_fire;
-		const double mortality_fire_wood = mortality_fire * (1.0 - COARSE_ROOT_FRAC);
+		const double mortality_fire_wood = mortality_fire * pft.ag_woody_frac;
 		const double mortality_non_fire_wood = mortality - mortality_fire_wood;
 
 		// Transfer killed biomass to litter

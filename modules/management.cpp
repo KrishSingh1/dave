@@ -50,6 +50,10 @@
  */
 void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
 
+	const double STEM_FRAC = pft.ag_woody_frac * AB_STEM_FRAC;
+	const double TWIG_FRAC = pft.ag_woody_frac * AB_TWIG_FRAC;
+	const double COARSE_ROOT_FRAC = 1.0 - pft.ag_woody_frac;
+
 	double harvest = 0.0;
 	double residue_outtake = 0.0;
 	/// Fraction of leaves adhering to twigs at the time of removal

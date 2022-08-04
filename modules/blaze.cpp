@@ -831,8 +831,9 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Metabolic litter fraction for litter
 	double fm_leaf = metabolic_litter_fraction(lton);
 	
-	// Aboveground wood fraction
-	const double AG_WOOD_FRAC = 1.0 - COARSE_ROOT_FRAC;
+	// Above and belowground wood fraction
+	const double AG_WOOD_FRAC = pft.ag_woody_frac;
+	const double BG_WOOD_FRAC = 1.0 - AG_WOOD_FRAC;
 
 	// Leaves
 	double cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
@@ -881,10 +882,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nroot2str = (1. - fm_root) * lossratio * nmass_root;
 
 	// Coarse root
-	double csapr2fwd = fab * COARSE_ROOT_FRAC * cmass_sap;
-	double nsapr2fwd = fab * COARSE_ROOT_FRAC * nmass_sap;
-	double chrtr2cwd = fab * COARSE_ROOT_FRAC * cmass_heart;
-	double nhrtr2cwd = fab * COARSE_ROOT_FRAC * nmass_heart;
+	double csapr2fwd = fab * BG_WOOD_FRAC * cmass_sap;
+	double nsapr2fwd = fab * BG_WOOD_FRAC * nmass_sap;
+	double chrtr2cwd = fab * BG_WOOD_FRAC * cmass_heart;
+	double nhrtr2cwd = fab * BG_WOOD_FRAC * nmass_heart;
 
 	// Update pools
 

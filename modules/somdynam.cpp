@@ -561,8 +561,8 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
-	K_MAX[SURFFWD]    = 1.1e-2 * 0.5;
-	K_MAX[SURFCWD]    = 2.2e-3 * 0.5; // DW_COMMENT
+	K_MAX[SURFFWD]    = 1.1e-2 * 0.2;
+	K_MAX[SURFCWD]    = 2.2e-3 * 0.2; // DW_COMMENT
 	K_MAX[SURFMICRO]  = 4.0e-2;
 	K_MAX[SURFHUMUS]  = 2.7e-4;
 	K_MAX[SOILMETA]   = 1.0e-1;

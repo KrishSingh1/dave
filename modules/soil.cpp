@@ -1117,36 +1117,40 @@ void Snow::rainwater_melt(double airT, double& prec, double& rain_melt, double& 
  */
 void Snow::snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp) {
 
-	// No precipitation, then return from function
-	if (prec == 0)
+	// No precipitation and freezing temperatures, then return from function
+	if (prec == 0 && airT < 0.0)
 		return;
 
 	double w_begin = wcontent() + prec + rain_melt;
 
 	// Multi layer snow scheme
 	if (ifmultilayersnow) {
-		
-		// Snowfall
-		if (airT < 0.0) {
 
-			// Add precipitation as snow and update depth, density
-			snowfall(airT, prec, u10);
-		}
-		// Precipitation falls on snow
-		else if (airT > 0.0 && !negligible(depth())) {
+		// Precipitation
+		if (!negligible(prec)) {
 
-			// Phase changes and temperature change due to rainwater
-			rainwater_melt(airT, prec, rain_melt, rain_melt_temp);
-		}
-		else {
+			// Snowfall
+			if (airT < 0.0) {
 
-			// Precipitation falls as rain
+				// Add precipitation as snow and update depth, density
+				snowfall(airT, prec, u10);
+			}
+			// Precipitation falls on snow
+			else if (airT > 0.0 && !negligible(depth())) {
 
-			// Update temperature
-			rain_melt_temp = (rain_melt * rain_melt_temp + prec * airT) / (rain_melt + prec);
+				// Phase changes and temperature change due to rainwater
+				rainwater_melt(airT, prec, rain_melt, rain_melt_temp);
+			}
+			else {
 
-			// Add precipitation
-			rain_melt += prec;
+				// Precipitation falls as rain
+
+				// Update temperature
+				rain_melt_temp = (rain_melt * rain_melt_temp + prec * airT) / (rain_melt + prec);
+
+				// Add precipitation
+				rain_melt += prec;
+			}
 		}
 	}
 
@@ -4192,7 +4196,7 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		perc = min(min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.perc_base * pow(wcont_evap, soiltype.perc_exp),
 			max_rain_melt);
 	}
-	wcont_evap -= min(wcont_evap, perc / (min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.awc));
+	wcont_evap -= min(wcont_evap, perc / soillayer_top.awc);
 
 	// Percolation and fluxes to and from lower soil layer(s)
 

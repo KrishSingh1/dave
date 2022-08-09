@@ -2870,8 +2870,6 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
-	/// monthly average leaf C:N ratio
-	double cton_leaf_mavr[12];
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth
@@ -4667,6 +4665,10 @@ public:
 	double aphen;
 	/// Month of lowest phen for RAINGREEN
 	int driest_mth;
+	/// Monthly average leaf C mass for this patch PFT. Used for output
+	double mcmass_leaf[12];
+	/// Monthly average leaf N mass for this patch PFT. Used for output
+	double mnmass_leaf[12];
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
@@ -4778,8 +4780,11 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 
-		for (int mth = 0; mth < 12; mth++)
+		for (int mth = 0; mth < 12; mth++) {
 			mphen[mth] = 0.0;
+			mcmass_leaf[mth] = 0.0;
+			mnmass_leaf[mth] = 0.0;
+		}
 
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			rootdist[lyr] = 0.0;

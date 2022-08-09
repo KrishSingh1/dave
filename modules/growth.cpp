@@ -1229,19 +1229,6 @@ void growth(Stand& stand, Patch& patch) {
 		// Heartwood
 		cton_heart_bg = indiv.cton_heart();
 
-		// Save leaf annual average C:N ratio
-		if (negligible(indiv.nday_leafon) || date.year < freenyears) {
-			indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
-			indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
-		}
-		else {
-			indiv.cton_leaf_aavr /= indiv.nday_leafon;
-			indiv.cton_leaf_aopt /= indiv.nday_leafon;
-		}
-
-		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-		double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
-
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
 		nscal = ifnlim ? min(1.0, indiv.cton_leaf_aopt / indiv.cton_leaf_aavr) : 1.0;
 

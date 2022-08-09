@@ -951,7 +951,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_amon_mt2 = 0.0;
 	double mean_standpft_nuptake = 0.0;
 	double mean_standpft_vmaxnlim = 0.0;
-	double mean_standpft_cton_leaf_mavr[12] = { 0.0 };
+	double mean_standpft_mcmass_leaf[12] = { 0.0 };
+	double mean_standpft_mnmass_leaf[12] = { 0.0 };
 	double mean_standpft_mvmaxnlim[12] = { 0.0 };
 	double mean_standpft_mgpp_no_norm[12] = { 0.0 };
 
@@ -1034,7 +1035,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_amon_mt2 = 0.0;
 	double standpft_nuptake = 0.0;
 	double standpft_vmaxnlim = 0.0;
-	double standpft_cton_leaf_mavr[12] = { 0.0 };
+	double standpft_mcmass_leaf[12] = { 0.0 };
+	double standpft_mnmass_leaf[12] = { 0.0 };
 	double standpft_mvmaxnlim[12] = { 0.0 };
 	double standpft_mgpp_no_norm[12] = { 0.0 };
 
@@ -1071,7 +1073,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_vmaxnlim=0.0;
 
 		for (int m = 0; m < 12; m++) {
-			mean_standpft_cton_leaf_mavr[m] = 0.0;
+			mean_standpft_mcmass_leaf[m] = 0.0;
+			mean_standpft_mnmass_leaf[m] = 0.0;
 			mean_standpft_mvmaxnlim[m] = 0.0;
 			mean_standpft_mgpp_no_norm[m] = 0.0;
 		}
@@ -1129,7 +1132,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_vmaxnlim=0.0;
 
 				for (int m = 0; m < 12; m++) {
-					standpft_cton_leaf_mavr[m] = 0.0;
+					standpft_mcmass_leaf[m] = 0.0;
+					standpft_mnmass_leaf[m] = 0.0;
 					standpft_mvmaxnlim[m] = 0.0;
 					standpft_mgpp_no_norm[m] = 0.0;
 				}
@@ -1170,6 +1174,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
+					for (int m = 0; m < 12; m++) {
+						standpft_mcmass_leaf[m] += patchpft.mcmass_leaf[m];
+						standpft_mnmass_leaf[m] += patchpft.mnmass_leaf[m];
+					}
+
 					vegetation.firstobj();
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
@@ -1195,7 +1204,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_nuptake += indiv.anuptake;
 								
 								for (int m = 0; m < 12; m++) {
-									standpft_cton_leaf_mavr[m] += indiv.cton_leaf_mavr[m] * indiv.mgpp_no[m];
 									standpft_mvmaxnlim[m] += indiv.mvmaxnlim[m] * indiv.mgpp_no[m];
 									standpft_mgpp_no_norm[m] += indiv.mgpp_no[m];
 								}
@@ -1222,101 +1230,112 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					stand.nextobj();
 				} // end of patch loop
 
-				standpft_cmass/=(double)stand.npatch();
-				standpft_nmass/=(double)stand.npatch();
-				standpft_cmass_leaf/=(double)stand.npatch();
-				standpft_nmass_leaf/=(double)stand.npatch();
-				standpft_cmass_veg/=(double)stand.npatch();
-				standpft_nmass_veg/=(double)stand.npatch();
-				standpft_clitter/=(double)stand.npatch();
-				standpft_nlitter/=(double)stand.npatch();
-				standpft_anpp/=(double)stand.npatch();
-				standpft_agpp/=(double)stand.npatch();
-				standpft_agpp_no/=(double)stand.npatch();
-				standpft_agpp_no_norm/=(double)stand.npatch();
-				standpft_agpp_ns/=(double)stand.npatch();
-				standpft_fpc/=(double)stand.npatch();
-				standpft_aaet/=(double)stand.npatch();
-				standpft_lai/=(double)stand.npatch();
-				standpft_densindiv_total/=(double)stand.npatch();
-				standpft_aiso/=(double)stand.npatch(); // missing above!
-				standpft_amon/=(double)stand.npatch(); // missing above!
-				standpft_amon_mt1/=(double)stand.npatch();
-				standpft_amon_mt2/=(double)stand.npatch();
-				standpft_nuptake/=(double)stand.npatch();
-				standpft_vmaxnlim/=(double)stand.npatch();
-				standpft_heightindiv_total/=(double)stand.npatch();
+				// Update to stand
+				double fraction_of_stand = 1.0 / (double)stand.npatch();
+
+				standpft_cmass*=fraction_of_stand;
+				standpft_nmass*=fraction_of_stand;
+				standpft_cmass_leaf*=fraction_of_stand;
+				standpft_nmass_leaf*=fraction_of_stand;
+				standpft_cmass_veg*=fraction_of_stand;
+				standpft_nmass_veg*=fraction_of_stand;
+				standpft_clitter*=fraction_of_stand;
+				standpft_nlitter*=fraction_of_stand;
+				standpft_anpp*=fraction_of_stand;
+				standpft_agpp*=fraction_of_stand;
+				standpft_agpp_no*=fraction_of_stand;
+				standpft_agpp_no_norm*=fraction_of_stand;
+				standpft_agpp_ns*=fraction_of_stand;
+				standpft_fpc*=fraction_of_stand;
+				standpft_aaet*=fraction_of_stand;
+				standpft_lai*=fraction_of_stand;
+				standpft_densindiv_total*=fraction_of_stand;
+				standpft_aiso*=fraction_of_stand; // missing above!
+				standpft_amon*=fraction_of_stand; // missing above!
+				standpft_amon_mt1*=fraction_of_stand;
+				standpft_amon_mt2*=fraction_of_stand;
+				standpft_nuptake*=fraction_of_stand;
+				standpft_vmaxnlim*=fraction_of_stand;
+				standpft_heightindiv_total*=fraction_of_stand;
+
+				for (int m = 0; m < 12; m++) {
+					standpft_mcmass_leaf[m]*=fraction_of_stand;
+					standpft_mnmass_leaf[m]*=fraction_of_stand;
+				}
 
 				if (!negligible(standpft_agpp_no_norm)) {
 					standpft_vmaxnlim/=standpft_agpp_no_norm;
 				}
 
-				//Update landcover totals
-				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
-				landcover_nmass[stand.landcover]+=standpft_nmass*stand.get_landcover_fraction();
-				landcover_cmass_leaf[stand.landcover]+=standpft_cmass_leaf*stand.get_landcover_fraction();
-				landcover_nmass_leaf[stand.landcover]+=standpft_nmass_leaf*stand.get_landcover_fraction();
-				landcover_cmass_veg[stand.landcover]+=standpft_cmass_veg*stand.get_landcover_fraction();
-				landcover_nmass_veg[stand.landcover]+=standpft_nmass_veg*stand.get_landcover_fraction();
-				landcover_clitter[stand.landcover]+=standpft_clitter*stand.get_landcover_fraction();
-				landcover_nlitter[stand.landcover]+=standpft_nlitter*stand.get_landcover_fraction();
-				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
-				landcover_agpp[stand.landcover]+=standpft_agpp*stand.get_landcover_fraction();
-				landcover_agpp_no[stand.landcover]+=standpft_agpp_no*stand.get_landcover_fraction();
-				landcover_agpp_no_norm[stand.landcover]+=standpft_agpp_no_norm*stand.get_landcover_fraction();
-				landcover_agpp_ns[stand.landcover]+=standpft_agpp_ns*stand.get_landcover_fraction();
+				// Update landcover totals
+				double fraction_of_landcover = stand.get_landcover_fraction();
+
+				landcover_cmass[stand.landcover]+=standpft_cmass*fraction_of_landcover;
+				landcover_nmass[stand.landcover]+=standpft_nmass*fraction_of_landcover;
+				landcover_cmass_leaf[stand.landcover]+=standpft_cmass_leaf*fraction_of_landcover;
+				landcover_nmass_leaf[stand.landcover]+=standpft_nmass_leaf*fraction_of_landcover;
+				landcover_cmass_veg[stand.landcover]+=standpft_cmass_veg*fraction_of_landcover;
+				landcover_nmass_veg[stand.landcover]+=standpft_nmass_veg*fraction_of_landcover;
+				landcover_clitter[stand.landcover]+=standpft_clitter*fraction_of_landcover;
+				landcover_nlitter[stand.landcover]+=standpft_nlitter*fraction_of_landcover;
+				landcover_anpp[stand.landcover]+=standpft_anpp*fraction_of_landcover;
+				landcover_agpp[stand.landcover]+=standpft_agpp*fraction_of_landcover;
+				landcover_agpp_no[stand.landcover]+=standpft_agpp_no*fraction_of_landcover;
+				landcover_agpp_no_norm[stand.landcover]+=standpft_agpp_no_norm*fraction_of_landcover;
+				landcover_agpp_ns[stand.landcover]+=standpft_agpp_ns*fraction_of_landcover;
 				if(!pft.isintercropgrass) {
-					landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
-					landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+					landcover_fpc[stand.landcover]+=standpft_fpc*fraction_of_landcover;
+					landcover_lai[stand.landcover]+=standpft_lai*fraction_of_landcover;
 				}
-				landcover_aaet[stand.landcover]+=standpft_aaet*stand.get_landcover_fraction();
-				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
-				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
-				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
-				landcover_amon_mt1[stand.landcover]+=standpft_amon_mt1*stand.get_landcover_fraction();
-				landcover_amon_mt2[stand.landcover]+=standpft_amon_mt2*stand.get_landcover_fraction();
-				landcover_nuptake[stand.landcover]+=standpft_nuptake*stand.get_landcover_fraction();
-				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*standpft_agpp_no_norm*stand.get_landcover_fraction();
-
-				//Update pft means for active stands
-				if(active_fraction) {
-					mean_standpft_cmass += standpft_cmass * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_nmass += standpft_nmass * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_cmass_leaf += standpft_cmass_leaf * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_nmass_leaf += standpft_nmass_leaf * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_cmass_veg += standpft_cmass_veg * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_nmass_veg += standpft_nmass_veg * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_clitter += standpft_clitter * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_nlitter += standpft_nlitter * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_anpp += standpft_anpp * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_agpp += standpft_agpp * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_agpp_no += standpft_agpp_no * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_agpp_no_norm += standpft_agpp_no_norm * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_agpp_ns += standpft_agpp_ns * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_fpc += standpft_fpc * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_aaet += standpft_aaet * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_heightindiv_total += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_amon_mt2 += standpft_amon_mt2 * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_nuptake += standpft_nuptake * stand.get_gridcell_fraction() / active_fraction;
-					mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
-					for (int m = 0; m < 12; m++) {
-						mean_standpft_cton_leaf_mavr[m] += standpft_cton_leaf_mavr[m] * stand.get_gridcell_fraction() / active_fraction;
-						mean_standpft_mvmaxnlim[m] += standpft_mvmaxnlim[m] * stand.get_gridcell_fraction() / active_fraction;
-						mean_standpft_mgpp_no_norm[m] += standpft_mgpp_no_norm[m] * stand.get_gridcell_fraction() / active_fraction;
-					}
-				}
-
-				//Update stand totals
-				stand.anpp += standpft_anpp;
-				stand.cmass += standpft_cmass;
+				landcover_aaet[stand.landcover]+=standpft_aaet*fraction_of_landcover;
+				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*fraction_of_landcover;
+				landcover_aiso[stand.landcover]+=standpft_aiso*fraction_of_landcover;
+				landcover_amon[stand.landcover]+=standpft_amon*fraction_of_landcover;
+				landcover_amon_mt1[stand.landcover]+=standpft_amon_mt1*fraction_of_landcover;
+				landcover_amon_mt2[stand.landcover]+=standpft_amon_mt2*fraction_of_landcover;
+				landcover_nuptake[stand.landcover]+=standpft_nuptake*fraction_of_landcover;
+				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*standpft_agpp_no_norm*fraction_of_landcover;
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
+
+				// Update pft means for active stands
+				if(active_fraction) {
+					mean_standpft_cmass += standpft_cmass * fraction_of_gridcell / active_fraction;
+					mean_standpft_nmass += standpft_nmass * fraction_of_gridcell / active_fraction;
+					mean_standpft_cmass_leaf += standpft_cmass_leaf * fraction_of_gridcell / active_fraction;
+					mean_standpft_nmass_leaf += standpft_nmass_leaf * fraction_of_gridcell / active_fraction;
+					mean_standpft_cmass_veg += standpft_cmass_veg * fraction_of_gridcell / active_fraction;
+					mean_standpft_nmass_veg += standpft_nmass_veg * fraction_of_gridcell / active_fraction;
+					mean_standpft_clitter += standpft_clitter * fraction_of_gridcell / active_fraction;
+					mean_standpft_nlitter += standpft_nlitter * fraction_of_gridcell / active_fraction;
+					mean_standpft_anpp += standpft_anpp * fraction_of_gridcell / active_fraction;
+					mean_standpft_agpp += standpft_agpp * fraction_of_gridcell / active_fraction;
+					mean_standpft_agpp_no += standpft_agpp_no * fraction_of_gridcell / active_fraction;
+					mean_standpft_agpp_no_norm += standpft_agpp_no_norm * fraction_of_gridcell / active_fraction;
+					mean_standpft_agpp_ns += standpft_agpp_ns * fraction_of_gridcell / active_fraction;
+					mean_standpft_fpc += standpft_fpc * fraction_of_gridcell / active_fraction;
+					mean_standpft_aaet += standpft_aaet * fraction_of_gridcell / active_fraction;
+					mean_standpft_lai += standpft_lai * fraction_of_gridcell / active_fraction;
+					mean_standpft_densindiv_total += standpft_densindiv_total * fraction_of_gridcell / active_fraction;
+					mean_standpft_heightindiv_total += standpft_heightindiv_total * fraction_of_gridcell / active_fraction;
+					mean_standpft_aiso += standpft_aiso * fraction_of_gridcell / active_fraction;
+					mean_standpft_amon += standpft_amon * fraction_of_gridcell / active_fraction;
+					mean_standpft_amon_mt1 += standpft_amon_mt1 * fraction_of_gridcell / active_fraction;
+					mean_standpft_amon_mt2 += standpft_amon_mt2 * fraction_of_gridcell / active_fraction;
+					mean_standpft_nuptake += standpft_nuptake * fraction_of_gridcell / active_fraction;
+					mean_standpft_vmaxnlim += standpft_vmaxnlim * fraction_of_gridcell / active_fraction;
+					for (int m = 0; m < 12; m++) {
+						mean_standpft_mcmass_leaf[m] += standpft_mcmass_leaf[m] * fraction_of_gridcell / active_fraction;
+						mean_standpft_mnmass_leaf[m] += standpft_mnmass_leaf[m] * fraction_of_gridcell / active_fraction;
+						mean_standpft_mvmaxnlim[m] += standpft_mvmaxnlim[m] * fraction_of_gridcell / active_fraction;
+						mean_standpft_mgpp_no_norm[m] += standpft_mgpp_no_norm[m] * fraction_of_gridcell / active_fraction;
+					}
+				}
+
+				// Update stand totals
+				stand.anpp += standpft_anpp;
+				stand.cmass += standpft_cmass;
 
 				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
 				nmass_gridcell+=standpft_nmass*fraction_of_gridcell;
@@ -1363,7 +1382,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// Print PFT sums to files
 
-		double mean_standpft_cton_leaf = limited_cton(mean_standpft_cmass_leaf, mean_standpft_nmass_leaf);
+		double mean_standpft_cton_leaf = limited_cton(mean_standpft_cmass_leaf, mean_standpft_nmass_leaf, pft.cton_leaf_max);
 
 		outlimit(out,out_cmass,     mean_standpft_cmass);
 		outlimit(out,out_anpp,      mean_standpft_anpp);
@@ -1394,9 +1413,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		for (int m = 0; m < 12; m++) {
 			if (!negligible(mean_standpft_mgpp_no_norm[m])) {
-				mcton_leaf[pft.id][m] = mean_standpft_cton_leaf_mavr[m] / mean_standpft_mgpp_no_norm[m];
 				mvmaxnlim[pft.id][m] = mean_standpft_mvmaxnlim[m] / mean_standpft_mgpp_no_norm[m];
 			}
+
+			mcton_leaf[pft.id][m] = limited_cton(mean_standpft_mcmass_leaf[m], mean_standpft_mnmass_leaf[m], pft.cton_leaf_max);
 		}
 
 		pftlist.nextobj();

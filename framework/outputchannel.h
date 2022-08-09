@@ -240,14 +240,13 @@ namespace GuessOutput {
 	*
 	*  If both cmass and nmass is 0, the function returns 0.
 	*/
-	inline double limited_cton(double cmass, double nmass) {
-		const double MAX_CTON = 1000;
+	inline double limited_cton(double cmass, double nmass, double cton_max = 999.999) {
 
 		if (nmass > 0.0) {
-			return min(MAX_CTON, cmass / nmass);
+			return min(cton_max, cmass / nmass);
 		}
 		else if (cmass > 0.0) {
-			return MAX_CTON;
+			return cton_max;
 		}
 		else {
 			return 0.0;

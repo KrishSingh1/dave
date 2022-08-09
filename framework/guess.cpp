@@ -1352,8 +1352,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	for (m=0; m<12; m++) {
 		mlai[m] = 0.0;
 		mlai_max[m] = 0.0;
-		cton_leaf_mavr[m] = 0.0;
 		mvmaxnlim[m] = 0.0;
+		mgpp_no[m] = 0.0;
 	}
 
 	// bvoc

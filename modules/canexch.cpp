@@ -1151,9 +1151,11 @@ void vegetation_n_uptake(Patch& patch) {
 		}
 
 		// Save leaf C:N ratio
+		indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max) * indiv.dgpp_no;
+		indiv.cton_leaf_aopt += min(indiv.cton_leaf_dopt, indiv.pft.cton_leaf_max) * indiv.dgpp_no;
 		if (!negligible(indiv.phen)) {
-			indiv.cton_leaf_aavr += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max) * indiv.dgpp_no;
-			indiv.cton_leaf_mavr[date.month] += min(indiv.cton_leaf(), indiv.pft.cton_leaf_max) * indiv.dgpp_no;
+			patch.pft[indiv.pft.id].mcmass_leaf[date.month] += indiv.cmass_leaf_today() / date.ndaymonth[date.month];
+			patch.pft[indiv.pft.id].mnmass_leaf[date.month] += indiv.nmass_leaf / date.ndaymonth[date.month];
 		}
 
 		// On last day of year determined average leaf C:N ratio
@@ -1162,18 +1164,11 @@ void vegetation_n_uptake(Patch& patch) {
 
 			if (!negligible(indiv.agpp_no)) {
 				indiv.cton_leaf_aavr /= indiv.agpp_no;
+				indiv.cton_leaf_aopt /= indiv.agpp_no;
 			}
 			else {
-				indiv.cton_leaf_aavr = 0.0;
-			}
-
-			for (int m = 0; m < 12; m++) {
-				if (!negligible(indiv.mgpp_no[m])) {
-					indiv.cton_leaf_mavr[m] /= indiv.mgpp_no[m];
-				}
-				else {
-					indiv.cton_leaf_mavr[m] = 0.0;
-				}
+				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
+				indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
 			}
 		}
 
@@ -1382,9 +1377,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			// Setting daily optimal leaf C:N ratio
 			indiv.cton_leaf_dopt = indiv.cmass_leaf_today() / leafoptn;
-
-			// Sum up yearly optimal C:N ratio
-			indiv.cton_leaf_aopt += indiv.cton_leaf_dopt;
 
 			// Leaf nitrogen demand
 			indiv.leafndemand = leafoptn - indiv.nmass_leaf;
@@ -2714,7 +2706,6 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				indiv.mlai[m] = 0.0;
 				indiv.mlai_max[m] = 0.0;
 				indiv.mgpp_no[m] = 0.0;
-				indiv.cton_leaf_mavr[m] = 0.0;
 				indiv.mvmaxnlim[m] = 0.0;
 			}
 

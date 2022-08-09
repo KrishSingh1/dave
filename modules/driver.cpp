@@ -703,6 +703,8 @@ void dailyaccounting_patch(Patch& patch) {
 					}
 				}
 				ppft.mphen[mth] = 0.0;
+				ppft.mcmass_leaf[mth] = 0.0;
+				ppft.mnmass_leaf[mth] = 0.0;
 			}
 
 			// Update root distribution if you have permafrost

@@ -285,7 +285,8 @@ void soilwater(Patch& patch, Climate& climate) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		fpc_phen_total += indiv.fpc_today();
+		if (indiv.alive)
+			fpc_phen_total += indiv.fpc_today();
 
 		vegetation.nextobj();
 	}
@@ -313,7 +314,7 @@ void soilwater(Patch& patch, Climate& climate) {
 			// Standard two layer LPJ-GUESS hydrology
 			soilcolumn.hydrology_lpjf_twolayer(climate, bare_ground);
 		else
-			// New LSM hydrology based on HTESSEL
+			// Richards eqn hydrology (based on CLM5.0)
 			soilcolumn.hydrology_lpjf(climate, bare_ground);
 	}
 }

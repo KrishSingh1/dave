@@ -1239,7 +1239,7 @@ void nstore_usage(Vegetation& vegetation) {
 				indiv.nstore_labile -= root_ndemand;
 
 				// nitrogen stressed photosynthesis is allowed only if optimal leaf nitrogen is above allowed level 
-				indiv.nstress = indiv.optnabovelim;
+				indiv.nstress = indiv.n_opt_isabovelim;
 			}
 			else {
 
@@ -1271,7 +1271,7 @@ void nstore_usage(Vegetation& vegetation) {
 		}
 		else
 			// photosynthesis will not be nitrogen stresses unless optimal leaf N is above maximum limit
-			indiv.nstress = indiv.optnabovelim;
+			indiv.nstress = indiv.n_opt_isabovelim;
 
 		vegetation.nextobj();
 	}
@@ -1337,9 +1337,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Rescaler of nitrogen uptake
 		indiv.fnuptake = 1.0;
-		
+
 		// Assume that optimal leaf nitrogen isn't above allowed limit
-		indiv.optnabovelim = false;
+		indiv.n_opt_isabovelim = false;
 
 		// Starts with no nitrogen stress
 		indiv.nstress = false;
@@ -1368,7 +1368,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_min;
 
 				// Optimal leaf N above limit -> always N limitation on Vmax
-				indiv.optnabovelim = ifnlim && date.year > freenyears;
+				indiv.n_opt_isabovelim = ifnlim && date.year > freenyears;
 			}
 			// Can not have lower nitrogen concentration than maximum leaf C:N ratio
 			else if (indiv.cmass_leaf_today() / leafoptn > indiv.pft.cton_leaf_max) {
@@ -2483,7 +2483,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 
-		//Don't do calculations for crops outside their growingseason
+		// Don't do calculations for crops outside their growingseason
 		if (!indiv.growingseason()) {
 			indiv.dnpp=0.0;
 			vegetation.nextobj();

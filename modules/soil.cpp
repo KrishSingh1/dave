@@ -1329,6 +1329,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	wsats = 0.0;
 	awc = 0.0;
 	wp = 0.0;
+	eff_volume = 1.0;
 	perc_base = 0.0;
 	Psi_max = 0.0;
 
@@ -1655,7 +1656,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		double soil_c = iforganicsoilproperties == 1 ? soc_frac * soiltype.soilC : ccont(true);
 
 		// Soil C density in this soil layer (kg C m-3) 
-		double soil_density = soil_c / (depth * M_PER_MM);
+		double soil_density = soil_c / (depth * M_PER_MM * eff_volume);
 
 		// Calculate organic fraction for soil layer
 		// This is the fraction of the material (i.e. 1 - porosity) that is organic
@@ -1664,12 +1665,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 		double porosity = min_frac * soiltype.wsats_min + org_frac * wsats_org;
 
-		wsats = porosity * depth;
-		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth;
-		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth;
+		wsats = porosity * depth * eff_volume;
+		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth * eff_volume;
+		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth * eff_volume;
 		por = wsats;
-		organic_frac = (1.0 - porosity) * org_frac;
-		mineral_frac = (1.0 - porosity) * min_frac;
+		organic_frac = (1.0 - porosity) * org_frac * eff_volume;
+		mineral_frac = (1.0 - porosity) * min_frac * eff_volume;
 		peat_frac = 0.0;
 		bulk_density = mineral_frac * min_density + organic_frac * org_density;
 
@@ -2233,6 +2234,8 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double lKfpeat;
 	// Mineral fraction
 	double lKfmin;
+	// Wood fraction
+	double lKfwood;
 	// Total solids in soil
 	double Stot;
 
@@ -2242,6 +2245,7 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double peat = peat_frac * depth;
 	double mineral = mineral_frac * depth;
 	double organic = organic_frac * depth;
+	double wood = (1.0 - eff_volume) * depth;
 
 	// Soil layer air (mm)
 	double air = max(0.0, por - (wmass + imass));
@@ -2262,13 +2266,13 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	}
 
 	// Update heat capacity (J m-3 K-1)
-	Ch = (mineral * Cp_min + organic * Cp_org + ice * Cp_ice + water * Cp_water + peat * Cp_peat + air * Cp_air) / combined_depth;
+	Ch = (mineral * Cp_min + organic * Cp_org + ice * Cp_ice + water * Cp_water + peat * Cp_peat + air * Cp_air + wood * Cp_wood) / combined_depth;
 
 	// Update the thermal conductivity - which follows
 	// Granberg et al. 1999, who refers to Farouki, 1986
 
 	// Total solids in soil
-	Stot = mineral + organic + ice + water + peat;
+	Stot = mineral + organic + ice + water + peat + wood;
 
 	if ((Stot + air) / combined_depth > 1.000001)
 		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\nCombined depth %g Snow depth %g Air %g Ice %g Air %g", 
@@ -2280,9 +2284,10 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	lKfmin = (mineral / Stot) * Kmin_log;
 	lKfwater = (water / Stot) * Kwater_log;
 	lKfice = (ice / Stot) * Kice_log;
+	lKfwood = (wood / Stot) * Kwood_log;
 
 	// Total log terms
-	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat;
+	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat + lKfwood;
 
 	// Update thermal conductivity (J m-1 K-1 s-1)
 	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;
@@ -4451,8 +4456,19 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			// Evaporation is calculated on a sub daily time step as water content 
 			// in top soil layer changes with each time step
 
-			// Calculate wcont for top layer (evaporation layer)
-			wcont_evap = soillayers[0].wcont();
+			// Calculate wcont for SOILDEPTH_EVAP (evaporation layer)
+			double acc_depth = 0.0;
+			double wmass_evap = 0.0;
+			double awc_evap = 0.0;
+			int evap_lyr = 0;
+			while (acc_depth < SOILDEPTH_EVAP && evap_lyr < nsoillayers) {
+				Soillayer& soillayer = soillayers[evap_lyr];
+				wmass_evap += soillayer.wmass - soillayer.wp;
+				awc_evap += soillayer.awc;
+				acc_depth += soillayer.depth;
+				evap_lyr++;
+			}
+			wcont_evap = max(0.0, wmass_evap / awc_evap);
 
 			// Calculate total evaporation only if snow depth < 10mm (mm day-1)
 			qflx_evap = 0.0;
@@ -4620,7 +4636,7 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 			}
 
 			// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
-			double lateralflow_scalar = 0.01;
+			double lateralflow_scalar = 1.0;
 			double drained_wmass = wmass_excees * min(1.0, imp_ice * lateralflow_scalar * soiltype.slope_grade * dtime / SECS_PER_DAY);
 			soillayer.runoff_drain += drained_wmass;
 			soillayer.wmass -= drained_wmass;

@@ -675,12 +675,18 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.day == 0) {
 
-		// Calculate total FPC
+		// Calculate total FPC and coarse root biomass
 		patch.fpc_total = 0;
+		double cmass_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			Individual& indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;
+			double cmass_coarse_root_tot = indiv.cmass_wood() * (1.0 - indiv.pft.ag_woody_frac);
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				cmass_coarse_root[lyr] += cmass_coarse_root_tot * indiv.pft.rootdist[lyr];
+			}
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -713,9 +719,6 @@ void dailyaccounting_patch(Patch& patch) {
 
 			pftlist.nextobj();
 		}
-
-
-		double total_water = 0.0;
 
 		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
 			soilcolumn.savesomcent = true;
@@ -759,10 +762,16 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.mwcontabove = 0.0;
 			}
 
+			// Effective soillayer volume that isn't taken by coarse root biomass
+			if (ifeffvolume) {
+				// Coarse root density [kg C m-3]
+				const double coarserootdens = 200.0;
+				soillayer.eff_volume = max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
+					soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM);
+			}
+
 			// Set soil layer properties
 			soillayer.set_properties(wmass_move, imass_move);
-
-			total_water += soillayer.wsats;
 
 			// Set initial temperatures as first spinup years mean annual air temperature
 			if (date.year == 0) {

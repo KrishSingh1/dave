@@ -261,7 +261,6 @@ EOF
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
-#SBATCH --mail-type=FAIL
 $(cat $common_script)
 EOF
     fi

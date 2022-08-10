@@ -347,6 +347,9 @@ extern int peat_age;
 /* 0 - use soicode value, 1 - use soilinput static soil C content, 2 - use modelled soil layer C content */
 extern int iforganicsoilproperties;
 
+/// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
+extern bool ifeffvolume;
+
 /// Whether to use depth soil organic matter decay rate modifier
 extern bool ifdepthdecaymod;
 

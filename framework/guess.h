@@ -2877,7 +2877,7 @@ public:
 	/// total nitrogen in compartments before growth
 	double nmass_veg;
 	/// whether individual optimal leaf nitrogen is above allowed limit
-	bool optnabovelim;
+	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
@@ -3490,6 +3490,8 @@ public:
 	double awc;
 	/// wilting point of soil layer (mm) Cosby et al 1984
 	double wp;
+	/// Effective soillayer volume fraction that isn't taken by coarse root biomass [-]
+	double eff_volume;
 	/// percolation mass from this layer
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)

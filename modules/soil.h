@@ -126,11 +126,14 @@ const double Cp_ice = 1941537;
 /// heat capacity of organic matter [J m-3 K-1]
 const double Cp_org = 2500000;
 
-/// heat capacity of dry peat (J m-3 K-1) - Bonan (2002), 0% water
+/// heat capacity of dry peat [J m-3 K-1] - Bonan (2002), 0% water
 const double Cp_peat = 580000;
 
-/// heat capacity of moss [J/ m-3 K-1] Ekici et al. (2015)
+/// heat capacity of moss [J m-3 K-1] Ekici et al. (2015)
 const double Cp_moss = 2500000;
+
+/// heat capacity of wood (spruce, 0% water) [J m-3 K-1] Božiková et al. (2021)
+const double Cp_wood = 480000;
 
 // NOTE: using the Cp_org values for Cp_peat and Korg for Kpeat does not
 // seem to influence the upper soil layer Ts, but increases the range
@@ -166,6 +169,10 @@ const double Kmin_log = log(Kmin);
 /// thermal conductivity of moss [W m-1 K-1]
 const double Kmoss = 0.25;
 const double Kmoss_log = log(Kmoss);
+
+/// thermal conductivity of wood (spruce, 0% water) [W m-1 K-1] Božiková et al. (2021)
+const double Kwood = 0.075;
+const double Kwood_log = log(Kmoss);
 
 /// latent heat of fusion [J m-3]
 const double Lheat = 3.0587E8;	

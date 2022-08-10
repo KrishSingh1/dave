@@ -173,23 +173,24 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 1		! Use the original LPJ-GUESS v4 two layer soil and single layer snow scheme, or not (0, by default). 
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and single layer snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-depth_soil 1500			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
-ifbedrock 0			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
+ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
-ifmultilayersnow 0 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
+iforganicsoilproperties 2	! Whether to update physical soil properties using soil carbon content 
 				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
 				! (applies only to non peatland, mineral stands not classified as organic)
+ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifverticalmixing 1              ! Whether to vertical mix soil organic matter
-ifcarbonfreeze 0		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -692,8 +693,6 @@ pft "TrBE" (
 	seas_iso 0
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
-	greff_min 0.06
 )
 
 
@@ -716,7 +715,6 @@ pft "TrIBE" (
 	seas_iso 0
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
 )
 
 
@@ -730,7 +728,6 @@ pft "TrBR" (
 	shade_intolerant
 	tropical
 	phenology "raingreen"
-	respcoeff 0.1
 	fnstorage 0.15
 	leaflong 0.5
 	turnover_leaf 1
@@ -742,6 +739,7 @@ pft "TrBR" (
 	eps_mon 0.95 0.26 0.22 0.18 0.18 0.13 0.12 0.22 0.14
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	respcoeff 0.1
 	greff_min 0.03
 )
 

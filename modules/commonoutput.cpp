@@ -28,6 +28,7 @@ REGISTER_OUTPUT_MODULE("common", CommonOutput)
 CommonOutput::CommonOutput() {
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
+	declare_parameter("file_cmass_agb", &file_cmass_agb, 300, "C above ground biomass output file");
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
 	declare_parameter("file_agpp", &file_agpp, 300, "Annual GPP with all stress output file");
 	declare_parameter("file_agpp_no", &file_agpp_no, 300, "Annual GPP with no stresses output file");
@@ -43,6 +44,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_soildepth", &file_soildepth, 300, "Soil layer depths output file");
 	declare_parameter("file_csoil", &file_csoil, 300, "Soil layer C output file");
 	declare_parameter("file_rsoil", &file_rsoil, 300, "Soil layer C respiration output file");
+	declare_parameter("file_eff_volume", &file_eff_volume, 300, "Soil layer effective volume output file");
 	declare_parameter("file_csom", &file_csom, 300, "Soil Organic Matter C output file");
 	declare_parameter("file_ctonsom", &file_ctonsom, 300, "Soil Organic Matter C:N ratio output file");
 	declare_parameter("file_soildeclim", &file_soildeclim, 300, "Annual nitrogen decay rate limitation on SOM decomposition output file");
@@ -200,7 +202,7 @@ void CommonOutput::define_output_tables() {
 	soildepths_columns += ColumnDescriptor("Total", 9, 3);
 
 	// Create soil layer columns
-	ColumnDescriptors soildepth_columns, soillyr_columns_large, soillyr_columns_short, soillyr_columns_med, soillyr_columns_high, surfsoillyr_columns;
+	ColumnDescriptors soildepth_columns, soillyr_columns_large, soillyr_columns_short, soillyr_columns_med, soillyr_columns_high, soillyr_columns, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
 	char lyr_nr[20];
 	int number_of_layers = iftwolayersoil ? NSOILLAYERS_SIMPLE : NSOILLAYERS_MAX;
@@ -212,6 +214,7 @@ void CommonOutput::define_output_tables() {
 		soillyr_columns_short += ColumnDescriptor(lyr_nr, 7, 3);
 		soillyr_columns_med += ColumnDescriptor(lyr_nr, 12, 7);
 		soillyr_columns_high += ColumnDescriptor(lyr_nr, 13, 10);
+		soillyr_columns += ColumnDescriptor(lyr_nr, 7, 4);
 	}
 	soildepth_columns += ColumnDescriptor("Total", 6, 1);
 	surfsoillyr_columns += ColumnDescriptor("Total", 10, 5);
@@ -501,6 +504,7 @@ void CommonOutput::define_output_tables() {
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
+	create_output_table(out_cmass_agb,      file_cmass_agb,      cmass_columns); 
 	create_output_table(out_anpp,           file_anpp,           anpp_columns);
 	create_output_table(out_agpp,           file_agpp,           agpp_columns);
 	create_output_table(out_agpp_no,        file_agpp_no,        agpp_columns);
@@ -514,8 +518,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 	create_output_table(out_soildepth,      file_soildepth,      soildepth_columns);
-	create_output_table(out_csoil, file_csoil, soillyr_columns_med);// soildepths_columns);
-	create_output_table(out_rsoil, file_rsoil, soillyr_columns_med);// soildepths_columns);
+	create_output_table(out_csoil,          file_csoil,          soillyr_columns_med);
+	create_output_table(out_rsoil,          file_rsoil,          soillyr_columns_med);
+	create_output_table(out_eff_volume,     file_eff_volume,     soillyr_columns);
 	create_output_table(out_csom,           file_csom,           soms_columns);
 	create_output_table(out_ctonsom,        file_ctonsom,        soms_ratio_columns);
 	create_output_table(out_soildeclim,     file_soildeclim,     soillyr_columns_short);
@@ -833,6 +838,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soildepth[NSOILLAYERS_MAX];
 	double soilc[NSOILLAYERS_MAX + 1];// [NSOILDEPTHPOOLS] ;
 	double soilr[NSOILLAYERS_MAX + 1];// [NSOILDEPTHPOOLS] ;
+	double eff_volume[NSOILLAYERS_MAX] = { 0.0 };
 	double somc[NSOMPOOL][NSOILLAYERS_MAX];
 	double somn[NSOMPOOL][NSOILLAYERS_MAX];
 	double cdec[NSOILLAYERS_MAX][2];
@@ -905,6 +911,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double landcover_cmass[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_nmass[NLANDCOVERTYPES] = { 0.0 };
+	double landcover_cmass_agb[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_cmass_leaf[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_nmass_leaf[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_cmass_veg[NLANDCOVERTYPES] = { 0.0 };
@@ -929,6 +936,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double mean_standpft_cmass = 0.0;
 	double mean_standpft_nmass = 0.0;
+	double mean_standpft_cmass_agb = 0.0;
 	double mean_standpft_cmass_leaf = 0.0;
 	double mean_standpft_nmass_leaf = 0.0;
 	double mean_standpft_cmass_veg = 0.0;
@@ -958,6 +966,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double cmass_gridcell = 0.0;
 	double nmass_gridcell = 0.0;
+	double cmass_agb_gridcell = 0.0;
 	double cmass_leaf_gridcell = 0.0;
 	double nmass_leaf_gridcell = 0.0;
 	double cmass_veg_gridcell = 0.0;
@@ -1013,6 +1022,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double standpft_cmass = 0.0;
 	double standpft_nmass = 0.0;
+	double standpft_cmass_agb = 0.0;
 	double standpft_cmass_leaf = 0.0;
 	double standpft_nmass_leaf = 0.0;
 	double standpft_cmass_veg = 0.0;
@@ -1050,6 +1060,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 		mean_standpft_cmass=0.0;
 		mean_standpft_nmass=0.0;
+		mean_standpft_cmass_agb=0.0;
 		mean_standpft_cmass_leaf=0.0;
 		mean_standpft_nmass_leaf=0.0;
 		mean_standpft_cmass_veg=0.0;
@@ -1108,6 +1119,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 				standpft_cmass=0.0;
 				standpft_nmass=0.0;
+				standpft_cmass_agb=0.0;
 				standpft_cmass_leaf=0.0;
 				standpft_nmass_leaf=0.0;
 				standpft_cmass_veg=0.0;
@@ -1192,6 +1204,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_nmass += indiv.ncont();
 								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
 								standpft_nmass_veg += indiv.nmass_veg;
+								standpft_cmass_agb += indiv.cmass_leaf + indiv.cmass_wood() * indiv.pft.ag_woody_frac;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
@@ -1235,6 +1248,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				standpft_cmass*=fraction_of_stand;
 				standpft_nmass*=fraction_of_stand;
+				standpft_cmass_agb*=fraction_of_stand;
 				standpft_cmass_leaf*=fraction_of_stand;
 				standpft_nmass_leaf*=fraction_of_stand;
 				standpft_cmass_veg*=fraction_of_stand;
@@ -1272,6 +1286,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				landcover_cmass[stand.landcover]+=standpft_cmass*fraction_of_landcover;
 				landcover_nmass[stand.landcover]+=standpft_nmass*fraction_of_landcover;
+				landcover_cmass_agb[stand.landcover]+=standpft_cmass_agb*fraction_of_landcover;
 				landcover_cmass_leaf[stand.landcover]+=standpft_cmass_leaf*fraction_of_landcover;
 				landcover_nmass_leaf[stand.landcover]+=standpft_nmass_leaf*fraction_of_landcover;
 				landcover_cmass_veg[stand.landcover]+=standpft_cmass_veg*fraction_of_landcover;
@@ -1303,6 +1318,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				if(active_fraction) {
 					mean_standpft_cmass += standpft_cmass * fraction_of_gridcell / active_fraction;
 					mean_standpft_nmass += standpft_nmass * fraction_of_gridcell / active_fraction;
+					mean_standpft_cmass_agb += standpft_cmass_agb * fraction_of_gridcell / active_fraction;
 					mean_standpft_cmass_leaf += standpft_cmass_leaf * fraction_of_gridcell / active_fraction;
 					mean_standpft_nmass_leaf += standpft_nmass_leaf * fraction_of_gridcell / active_fraction;
 					mean_standpft_cmass_veg += standpft_cmass_veg * fraction_of_gridcell / active_fraction;
@@ -1339,6 +1355,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
 				nmass_gridcell+=standpft_nmass*fraction_of_gridcell;
+				cmass_agb_gridcell+=standpft_cmass_agb*fraction_of_gridcell;
 				cmass_leaf_gridcell+=standpft_cmass_leaf*fraction_of_gridcell;
 				nmass_leaf_gridcell+=standpft_nmass_leaf*fraction_of_gridcell;
 				cmass_veg_gridcell+=standpft_cmass_veg*fraction_of_gridcell;
@@ -1385,6 +1402,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double mean_standpft_cton_leaf = limited_cton(mean_standpft_cmass_leaf, mean_standpft_nmass_leaf, pft.cton_leaf_max);
 
 		outlimit(out,out_cmass,     mean_standpft_cmass);
+		outlimit(out,out_cmass_agb, mean_standpft_cmass_agb);
 		outlimit(out,out_anpp,      mean_standpft_anpp);
 		outlimit(out,out_agpp,      mean_standpft_agpp);
 		outlimit(out,out_agpp_no,   mean_standpft_agpp_no);
@@ -1652,14 +1670,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflitterC();
 			
-			/*for (int i = 0; i < NSOILDEPTHPOOLS - 1; i++) {
-				soilc[i] += (soilcolumn.to_depth(DEPTHS[i], CCONT) - surflitc) * to_gridcell_average;
-				soilr[i] += soilcolumn.to_depth(DEPTHS[i], ARH) * to_gridcell_average;
-			}*/
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
 				soilc[lyr] += soillayer.get(CCONT) * to_gridcell_average;
 				soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
+				eff_volume[lyr] += soillayer.eff_volume * to_gridcell_average;
 			}
 			soilc[NSOILLAYERS_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
 			soilr[NSOILLAYERS_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
@@ -1821,10 +1836,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out,out_cmass,					cmass_gridcell);
+	outlimit(out,out_cmass_agb,				cmass_gridcell); 
 	outlimit(out,out_anpp,					anpp_gridcell);
-	outlimit(out,out_agpp,                  agpp_gridcell);
-	outlimit(out,out_agpp_no,               agpp_no_gridcell);
-	outlimit(out,out_agpp_ns,               agpp_ns_gridcell);
+	outlimit(out,out_agpp,					agpp_gridcell);
+	outlimit(out,out_agpp_no,				agpp_no_gridcell);
+	outlimit(out,out_agpp_ns,				agpp_ns_gridcell);
 	outlimit(out,out_fpc,					fpc_gridcell);
 	outlimit(out,out_aaet,					aaet_gridcell);
 	outlimit(out,out_dens,					dens_gridcell);
@@ -1899,6 +1915,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			if(run[i]) {
 				outlimit(out,out_cmass, landcover_cmass[i]);
+				outlimit(out,out_cmass_agb, landcover_cmass_agb[i]);
 				outlimit(out,out_anpp,  landcover_anpp[i]);
 				outlimit(out,out_agpp, landcover_agpp[i]);
 				outlimit(out,out_agpp_no, landcover_agpp_no[i]);
@@ -1962,6 +1979,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		outlimit(out, out_csoil, soilc[lyr]);
 		outlimit(out, out_rsoil, soilr[lyr]);
+		outlimit(out, out_eff_volume, eff_volume[lyr]);
 	}
 
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;

@@ -2234,8 +2234,8 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double lKfpeat;
 	// Mineral fraction
 	double lKfmin;
-	// Wood fraction
-	double lKfwood;
+	// Coarse root fraction
+	double lKfcoarse_root;
 	// Total solids in soil
 	double Stot;
 
@@ -2245,7 +2245,7 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double peat = peat_frac * depth;
 	double mineral = mineral_frac * depth;
 	double organic = organic_frac * depth;
-	double wood = (1.0 - eff_volume) * depth;
+	double coarse_root = (1.0 - eff_volume) * depth;
 
 	// Soil layer air (mm)
 	double air = max(0.0, por - (wmass + imass));
@@ -2266,13 +2266,13 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	}
 
 	// Update heat capacity (J m-3 K-1)
-	Ch = (mineral * Cp_min + organic * Cp_org + ice * Cp_ice + water * Cp_water + peat * Cp_peat + air * Cp_air + wood * Cp_wood) / combined_depth;
+	Ch = (mineral * Cp_min + organic * Cp_org + ice * Cp_ice + water * Cp_water + peat * Cp_peat + air * Cp_air + coarse_root * Cp_wood) / combined_depth;
 
 	// Update the thermal conductivity - which follows
 	// Granberg et al. 1999, who refers to Farouki, 1986
 
 	// Total solids in soil
-	Stot = mineral + organic + ice + water + peat + wood;
+	Stot = mineral + organic + ice + water + peat + coarse_root;
 
 	if ((Stot + air) / combined_depth > 1.000001)
 		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\nCombined depth %g Snow depth %g Air %g Ice %g Air %g", 
@@ -2284,10 +2284,10 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	lKfmin = (mineral / Stot) * Kmin_log;
 	lKfwater = (water / Stot) * Kwater_log;
 	lKfice = (ice / Stot) * Kice_log;
-	lKfwood = (wood / Stot) * Kwood_log;
+	lKfcoarse_root = (coarse_root / Stot) * Kwood_log;
 
 	// Total log terms
-	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat + lKfwood;
+	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat + lKfcoarse_root;
 
 	// Update thermal conductivity (J m-1 K-1 s-1)
 	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;

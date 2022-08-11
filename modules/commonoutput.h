@@ -43,7 +43,8 @@ private:
 	void define_output_tables();
 
 	// Output file names ...
-	xtring file_cmass,file_anpp,file_agpp,file_agpp_no,file_agpp_ns,file_fpc,file_aaet,file_dens,file_lai,file_cflux,file_doc,file_cpool,file_clitter,file_csom,file_ctonsom,file_soildepth,file_csoil,file_rsoil,file_runoff;
+	xtring file_cmass,file_cmass_agb,file_anpp,file_agpp,file_agpp_no,file_agpp_ns,file_fpc,file_aaet,file_dens,file_lai,file_cflux,file_doc,file_cpool,file_clitter;
+	xtring file_csom,file_ctonsom,file_soildepth,file_csoil,file_rsoil,file_eff_volume,file_runoff;
 	xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 	xtring file_mnee,file_mnetmin,file_mcton_leaf,file_mvmaxnlim,file_mwmass,file_mimass,file_mwcont_upper,file_mwcont_lower;
 	xtring file_firert,file_speciesheights;
@@ -72,7 +73,8 @@ private:
 	xtring file_wflux, file_wpool;
 
 	// Output tables
-	Table out_cmass, out_anpp, out_agpp, out_agpp_no, out_agpp_ns, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_csom, out_ctonsom, out_soildepth, out_csoil, out_rsoil, out_firert, out_runoff, out_speciesheights;
+	Table out_cmass, out_cmass_agb, out_anpp, out_agpp, out_agpp_no, out_agpp_ns, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter; 
+	Table out_csom, out_ctonsom, out_soildepth, out_csoil, out_rsoil, out_eff_volume, out_firert, out_runoff, out_speciesheights;
 	Table out_wetland_water_added;
 	Table out_soildeclim, out_soilgrolim, out_soiltotlim, out_soilcuelim, out_clitterinput, out_csomlitterinput, out_soilcperma;
 

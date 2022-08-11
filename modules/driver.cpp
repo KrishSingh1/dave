@@ -763,11 +763,12 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			// Effective soillayer volume that isn't taken by coarse root biomass
+			// Minimum value if 50%
 			if (ifeffvolume) {
 				// Coarse root density [kg C m-3]
 				const double coarserootdens = 200.0;
-				soillayer.eff_volume = max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
-					soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM);
+				soillayer.eff_volume = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
+					soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM));
 			}
 
 			// Set soil layer properties

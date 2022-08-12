@@ -3491,7 +3491,11 @@ public:
 	/// wilting point of soil layer (mm) Cosby et al 1984
 	double wp;
 	/// Effective soillayer volume fraction that isn't taken by coarse root biomass [-]
-	double eff_volume;
+	double eff_volume_frac;
+	/// Mineral volume [mm]
+	double mineral_volume;
+	/// Organic matter volume [mm]
+	double organic_volume;
 	/// percolation mass from this layer
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
@@ -3518,6 +3522,8 @@ public:
 	double runoff_baseflow;
 	/// Porosity in layer (mm)
 	double por;
+	// Organic carbon density (kg C m-3)
+	double rho_org;
 	/// Organic available water holding fraction of soil layer (-)
 	double awc_org;
 	/// Organic wilting point of soil layer (-)
@@ -3688,6 +3694,9 @@ public:
 		wsats = that.wsats;
 		awc = that.awc;
 		wp = that.wp;
+		eff_volume_frac = that.eff_volume_frac;
+		mineral_volume = that.mineral_volume;
+		organic_volume = that.organic_volume;
 		perc_mass = that.perc_mass;
 		perc_base = that.perc_base;
 		Kw = that.Kw;
@@ -3699,6 +3708,7 @@ public:
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
+		rho_org = that.rho_org;
 		awc_org = that.awc_org;
 		wp_org = that.wp_org;
 		wsats_org = that.wsats_org;
@@ -3791,6 +3801,9 @@ public:
 		wsats = that.wsats;
 		awc = that.awc;
 		wp = that.wp;
+		eff_volume_frac = that.eff_volume_frac;
+		mineral_volume = that.mineral_volume;
+		organic_volume = that.organic_volume;
 		perc_mass = that.perc_mass;
 		perc_base = that.perc_base;
 		Kw = that.Kw;
@@ -3802,6 +3815,7 @@ public:
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
 		por = that.por;
+		rho_org = that.rho_org;
 		awc_org = that.awc_org;
 		wp_org = that.wp_org;
 		wsats_org = that.wsats_org;
@@ -3897,6 +3911,8 @@ public:
 	double ccont(bool exclude_litter = false);
 	/// N content of soil layer
 	double ncont(bool exclude_litter = false);
+	/// Calculate organic matter density
+	void calc_organic_density();
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change

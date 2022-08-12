@@ -542,34 +542,42 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 		// Optimal leaf nitrogen is calculated first so save original Vmax
 		if (ifopt) {
 
-			// convert from gC m-2 day-1 to nmol C g-1 d.w. s-1
-			//     - g to nmol == NG_PER_G / GC_PER_MOLC
-			//     - m-2 to g-1 d.w. == 1 / (DW_PER_C * cmass_leaf * G_PER_KG)
-			//     - day-1 to s-1 == 1 / (SECS_PER_HOUR * daylength)
-			double NMOL_GDW_S_PER_G_M2_DAY = NG_PER_G / (GC_PER_MOLC * DW_PER_C * cmass_leaf * G_PER_KG * SECS_PER_HOUR * daylength);
+			if (!negligible(cmass_leaf)) {
 
-			// Vmax unit conversion [nmol g-1 d.w. s-1]
-			double vmax_today = ps_result.vm * NMOL_GDW_S_PER_G_M2_DAY;
+				// convert from gC m-2 day-1 to nmol C g-1 d.w. s-1
+				//     - g to nmol == NG_PER_G / GC_PER_MOLC
+				//     - m-2 to g-1 d.w. == 1 / (DW_PER_C * cmass_leaf * G_PER_KG)
+				//     - day-1 to s-1 == 1 / (SECS_PER_HOUR * daylength)
+				double NMOL_GDW_S_PER_G_M2_DAY = NG_PER_G / (GC_PER_MOLC * DW_PER_C * cmass_leaf * G_PER_KG * SECS_PER_HOUR * daylength);
 
-			// Add Vmax to historical array [nmol g-1 d.w. s-1]
-			ps_result.vmax_5.add(vmax_today);
+				// Vmax unit conversion [nmol g-1 d.w. s-1]
+				double vmax_today = ps_result.vm * NMOL_GDW_S_PER_G_M2_DAY;
 
-			// Mean Vmax over historical period [gC m-2 day-1]
-			double vmax_mean = ps_result.vmax_5.mean() / NMOL_GDW_S_PER_G_M2_DAY;
+				// Add Vmax to historical array [nmol g-1 d.w. s-1]
+				ps_result.vmax_5.add(vmax_today);
 
-			// Leaf minimum C:N ratio
-			const double cton_min = ps_status.get_cton_min();
+				// Mean Vmax over historical period [gC m-2 day-1]
+				double vmax_mean = ps_result.vmax_5.mean() / NMOL_GDW_S_PER_G_M2_DAY;
 
-			// Nitrogen limitation not considered. Use average C:N ratio as optimal
-			if (!ifnlim || date.year <= freenyears) {
-				// Optimal leaf N mass [kg N m-2]
-				ps_result.nmass_leaf_opt = cmass_leaf * (0.5 / cton_min + 0.5 / cton_max);
+
+				// Leaf minimum C:N ratio
+				const double cton_min = ps_status.get_cton_min();
+
+				// Nitrogen limitation not considered. Use average C:N ratio as optimal
+				if (!ifnlim || date.year <= freenyears) {
+					// Optimal leaf N mass [kg N m-2]
+					ps_result.nmass_leaf_opt = cmass_leaf * (0.5 / cton_min + 0.5 / cton_max);
+				}
+				else {
+					// Nitrogen limitation considered
+
+					// Optimal leaf N mass [kg N m-2]
+					ps_result.nmass_leaf_opt = M * vmax_mean / (SECS_PER_HOUR * daylength * GC_PER_MOLC) * tfac * nextin + N0 * cmass_leaf;
+				}
 			}
 			else {
-				// Nitrogen limitation considered
-
-				// Optimal leaf N mass [kg N m-2]
-				ps_result.nmass_leaf_opt = M * vmax_mean / (SECS_PER_HOUR * daylength * GC_PER_MOLC) * tfac * nextin + N0 * cmass_leaf;
+				// Intercrop grasses might have zero cmass_leaf but still do photosynthesis
+				ps_result.nmass_leaf_opt = 0.0;
 			}
 		}
 

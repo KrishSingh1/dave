@@ -54,6 +54,15 @@ const double Mindensity = 265.0;
 /// Density of soil organic carbon [KgC m-3], standard bulk density of peat (Farouki 1981)
 const double Orgdensity = 130.0;
 
+// C fraction of organic matter (56%) (Chadburn et al. 2022)
+const double fc = 0.56;
+
+// For dpm and rpm [kg C m-3] (Chadburn et al. 2022) DW_COMMENT
+const double rho_low = 35.0 * fc;
+
+// For bio and hum [kg C m-3] (Chadburn et al. 2022) DW_COMMENT
+const double rho_high = 210.0 * fc;
+
 // SNOW PARAMETERS
 
 /// snow density at start of the snow season [kg m-3] (Wania et al. (2009a) have 150, Best et al. (2012) have 50)

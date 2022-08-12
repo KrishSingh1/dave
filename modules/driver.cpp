@@ -713,6 +713,11 @@ void dailyaccounting_patch(Patch& patch) {
 				ppft.mnmass_leaf[mth] = 0.0;
 			}
 
+			double cmass_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - ppft.pft.ag_woody_frac);
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				cmass_coarse_root[lyr] += cmass_coarse_root_tot * ppft.pft.rootdist[lyr];
+			}
+
 			// Update root distribution if you have permafrost
 			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile) || date.year == patch.stand.first_year)
 				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths, soilcolumn.nsoillayers);
@@ -767,9 +772,12 @@ void dailyaccounting_patch(Patch& patch) {
 			if (ifeffvolume) {
 				// Coarse root density [kg C m-3]
 				const double coarserootdens = 200.0;
-				soillayer.eff_volume = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
+				soillayer.eff_volume_frac = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
 					soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM));
 			}
+
+			// Calculate soil layer organic carbon density
+			soillayer.calc_organic_density();
 
 			// Set soil layer properties
 			soillayer.set_properties(wmass_move, imass_move);

@@ -212,7 +212,7 @@ void CommonOutput::define_output_tables() {
 		surfsoillyr_columns += ColumnDescriptor(lyr_nr, 10, 5);
 		soillyr_columns_large += ColumnDescriptor(lyr_nr, 7, 1);
 		soillyr_columns_short += ColumnDescriptor(lyr_nr, 7, 3);
-		soillyr_columns_med += ColumnDescriptor(lyr_nr, 12, 7);
+		soillyr_columns_med += ColumnDescriptor(lyr_nr, 10, 5);
 		soillyr_columns_high += ColumnDescriptor(lyr_nr, 13, 10);
 		soillyr_columns += ColumnDescriptor(lyr_nr, 7, 4);
 	}
@@ -1674,7 +1674,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
 				soilc[lyr] += soillayer.get(CCONT) * to_gridcell_average;
 				soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
-				eff_volume[lyr] += soillayer.eff_volume * to_gridcell_average;
+				eff_volume[lyr] += soillayer.eff_volume_frac * to_gridcell_average;
 			}
 			soilc[NSOILLAYERS_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
 			soilr[NSOILLAYERS_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;

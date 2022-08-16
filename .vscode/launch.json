@@ -10,7 +10,6 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
-                // "-parallel",
                 "-input",
                 "site",
                 "${workspaceFolder}/benchmarks/eucface/config/eucface.ins"

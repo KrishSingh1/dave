@@ -339,7 +339,8 @@ CFInput::CFInput()
 
 	// Declare instruction file parameters
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-	 SoilInput soilinput;
+	declare_parameter("ifreadcoords", &ifreadcoords, "If enabled, read raw coords (ie lon/lat pairs) from gridlist, rather than coordinate indices");
+	SoilInput soilinput;
 }
 
 CFInput::~CFInput() {
@@ -475,6 +476,19 @@ void CFInput::init() {
 
 				c.landid = landid;
 			}
+		}
+		else if (ifreadcoords) {
+			double lon, lat;
+			if (!(iss >> lon >> lat)) {
+				fail("The gridlist for netCDF input must contain rows of <lon> <lat> when ifreadcoords is enabled");
+			}
+			getline(iss, descrip);
+			size_t x, y;
+			cf_temp->get_index_for_coords(lon, lat, x, y);
+			c.rlon = x;
+			c.rlat = y;
+			c.lon = lon;
+			c.lat = lat;
 		}
 		else {
 			if (iss >> rlon >> rlat) {

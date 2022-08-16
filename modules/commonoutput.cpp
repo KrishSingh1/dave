@@ -79,7 +79,8 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_speciesheights", &file_speciesheights, 300, "Mean species heights");
 
 	declare_parameter("file_wflux", &file_wflux, 300, "Annual water fluxes output file");
-	declare_parameter("file_wpool", &file_wpool, 300, "water pools output file");
+	declare_parameter("file_wpool", &file_wpool, 300, "Annual water pools output file");
+	declare_parameter("file_wsats", &file_wsats, 300, "Annual water holding capacity at saturation output file");
 
 	// Monthly output variables
 	declare_parameter("file_mnpp", &file_mnpp, 300, "Monthly NPP output file");
@@ -565,6 +566,7 @@ void CommonOutput::define_output_tables() {
 
 	create_output_table(out_wflux,          file_wflux,          wflux_columns);
 	create_output_table(out_wpool,          file_wpool,          wpool_columns);
+	create_output_table(out_wsats,          file_wsats,          soillyr_columns_short);
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -835,16 +837,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double NO_mass_inc, N2O_mass_inc, N2_mass_inc, NH3_mass_inc;
 	double gross_nitrif, gross_denitrif, net_nitrif, net_denitrif;
 
-	double soildepth[NSOILLAYERS_MAX];
-	double soilc[NSOILLAYERS_MAX + 1];// [NSOILDEPTHPOOLS] ;
-	double soilr[NSOILLAYERS_MAX + 1];// [NSOILDEPTHPOOLS] ;
+	double soildepth[NSOILLAYERS_MAX] = { 0.0 };
+	double soilc[NSOILLAYERS_MAX + 1] = { 0.0 };
+	double soilr[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double eff_volume[NSOILLAYERS_MAX] = { 0.0 };
-	double somc[NSOMPOOL][NSOILLAYERS_MAX];
-	double somn[NSOMPOOL][NSOILLAYERS_MAX];
-	double cdec[NSOILLAYERS_MAX][2];
-	double cinc[NSOILLAYERS_MAX][2];
-	double clitterinput[NSOILLAYERS_MAX + 1];
-	double csomlitterinput[NSOMPOOL + 1];
+	double somc[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
+	double somn[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
+	double cdec[NSOILLAYERS_MAX][2] = { 0.0 };
+	double cinc[NSOILLAYERS_MAX][2] = { 0.0 };
+	double clitterinput[NSOILLAYERS_MAX + 1] = { 0.0 };
+	double csomlitterinput[NSOMPOOL + 1] = { 0.0 };
+	double wsats[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double soilc_tot, soilc_ald;
 
 	// hold the monthly average across patches
@@ -1460,32 +1463,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	NH3_mass_inc = NO_mass_inc = N2O_mass_inc = N2_mass_inc = 0.0;
 	gross_nitrif = gross_denitrif = net_nitrif = net_denitrif= 0.0;
 
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-		soildepth[lyr] = 0.0;
-		cdec[lyr][0] = 0.0;
-		cdec[lyr][1] = 0.0;
-		cinc[lyr][0] = 0.0;
-		cinc[lyr][1] = 0.0;
-
-		clitterinput[lyr] = 0.0;
-
-		for (int p = 0; p < NSOMPOOL; p++) {
-			somc[p][lyr] = somn[p][lyr] = 0.0;
-		}
-	}
-	clitterinput[NSOILLAYERS_MAX] = 0.0;
-
-	for (int p = 0; p < NSOMPOOL; p++) {
-		csomlitterinput[p] = 0.0;
-	}
-	csomlitterinput[NSOMPOOL] = 0.0;
-
-	//for (int lyr = 0; lyr < NSOILDEPTHPOOLS; lyr++) {
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX+1; lyr++) {
-		soilc[lyr] = 0.0;
-		soilr[lyr] = 0.0;
-	}
-
 	double c_org_leach_lc[NLANDCOVERTYPES];
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
@@ -1669,14 +1646,21 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflitterC();
-			
+
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
-				soilc[lyr] += soillayer.get(CCONT) * to_gridcell_average;
+				if (lyr == 0) {
+					soilc[lyr] += (soillayer.ccont() - surflitc) * to_gridcell_average;
+				}
+				else {
+					soilc[lyr] += soillayer.ccont() * to_gridcell_average;
+				}
 				soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
 				eff_volume[lyr] += soillayer.eff_volume_frac * to_gridcell_average;
+				wsats[lyr] += soillayer.wsats / soillayer.depth * to_gridcell_average;
+				wsats[NSOILLAYERS_MAX] += soillayer.wsats / soilcolumn.depth * to_gridcell_average;
 			}
-			soilc[NSOILLAYERS_MAX] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soilc[NSOILLAYERS_MAX] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
 			soilr[NSOILLAYERS_MAX] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 
 			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
@@ -1980,6 +1964,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_csoil, soilc[lyr]);
 		outlimit(out, out_rsoil, soilr[lyr]);
 		outlimit(out, out_eff_volume, eff_volume[lyr]);
+		outlimit(out, out_wsats, wsats[lyr]);
 	}
 
 	double sdl_decay_tot = 1.0, sdl_growth_tot = 1.0, sdl_total_tot = 1.0, sdl_cue_tot = 1.0;
@@ -2001,6 +1986,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	outlimit(out, out_csoil, soilc[NSOILLAYERS_MAX]);
 	outlimit(out, out_rsoil, soilr[NSOILLAYERS_MAX]);
+	outlimit(out, out_wsats, wsats[NSOILLAYERS_MAX]);
 
 	outlimit(out, out_soilcperma, soilc_tot > 0 ? max(0.0, soilc_tot - soilc_ald) / soilc_tot : 0.0);
 

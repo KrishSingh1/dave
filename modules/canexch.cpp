@@ -1163,7 +1163,7 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.cton_leaf_aopt += min(indiv.cton_leaf_dopt, indiv.pft.cton_leaf_max) * indiv.dgpp_no;
 		if (!negligible(indiv.phen)) {
 			patch.pft[indiv.pft.id].mcmass_leaf[date.month] += indiv.cmass_leaf_today() / date.ndaymonth[date.month];
-			patch.pft[indiv.pft.id].mnmass_leaf[date.month] += indiv.nmass_leaf / date.ndaymonth[date.month];
+			patch.pft[indiv.pft.id].mnmass_leaf[date.month] += min(indiv.cmass_leaf_today() / indiv.pft.cton_leaf_min, indiv.nmass_leaf) / date.ndaymonth[date.month];
 		}
 
 		// On last day of year determined average leaf C:N ratio
@@ -1422,10 +1422,10 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
+		double ntoc = !negligible(indiv.cmass_leaf + indiv.cmass_root) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf + indiv.cmass_root) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
-		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
+		indiv.cton_status = max(0.5, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
@@ -2533,14 +2533,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		double cton_sap, cton_root;
 		if (ifnlim) {
-			if (indiv.alive) {
-				cton_sap = indiv.cton_sap();
-				cton_root = indiv.cton_root();
-			}
-			else {
-				cton_sap = indiv.cton_leaf_dopt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr;
-				cton_root = indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
-			}
+			cton_sap = indiv.cton_sap();
+			cton_root = indiv.cton_root();
 		}
 		else {
 			cton_sap = pft.cton_sap_avr;

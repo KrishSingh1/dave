@@ -149,9 +149,7 @@ iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme
 				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
-				! 0 - use soicode value, 1 - use soilinput static soil C content, 2 - Use modelled soil layer C content
-				! (applies only to non peatland, mineral stands not classified as organic)
+iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content (1), or not (0)
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 
 ! WETLAND SWITCHES (no effect when run_peatland 0)

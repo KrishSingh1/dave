@@ -675,18 +675,12 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.day == 0) {
 
-		// Calculate total FPC and coarse root biomass
+		// Calculate total FPC
 		patch.fpc_total = 0;
-		double cmass_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-			patch.fpc_total += indiv.fpc;
-			double cmass_coarse_root_tot = indiv.cmass_wood() * (1.0 - indiv.pft.ag_woody_frac);
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				cmass_coarse_root[lyr] += cmass_coarse_root_tot * indiv.pft.rootdist[lyr];
-			}
+			patch.fpc_total += vegetation.getobj().fpc;
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -713,11 +707,6 @@ void dailyaccounting_patch(Patch& patch) {
 				ppft.mnmass_leaf[mth] = 0.0;
 			}
 
-			double cmass_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - ppft.pft.ag_woody_frac);
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				cmass_coarse_root[lyr] += cmass_coarse_root_tot * ppft.pft.rootdist[lyr];
-			}
-
 			// Update root distribution if you have permafrost
 			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile) || date.year == patch.stand.first_year)
 				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths, soilcolumn.nsoillayers);
@@ -732,13 +721,26 @@ void dailyaccounting_patch(Patch& patch) {
 			soilcolumn.savesomcent = false;
 		}
 
-		// Determine static soil carbon fractions
-		soilcolumn.set_static_socfrac();
+		for (int p = 0; p < NSOMPOOL; p++) {
+			soilcolumn.csom_litter_input[p] = 0.0;
+		}
 
-		// Water to be moved due to decreases in wsats
-		double wmass_move = 0.0;
-		double imass_move = 0.0;
+		// Snow
+		Snow& snow = soilcolumn.snow;
 
+		for (int mth = 0; mth < 12; mth++) {
+			snow.mdepth[mth] = 0.0;
+			snow.mcover[mth] = 0.0;
+			soilcolumn.mthaw[mth] = 0.0;
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+				snow.mtemp[lyr][mth] = 0.0;
+			}
+		}
+
+		// Soil surface
+		soilcolumn.cmass_litter_input[0] = 0.0;
+
+		// Soil layers
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -750,10 +752,11 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.temp_old = 0.0;
 			}
 
+			soillayer.arespsum = 0.0;
 			soillayer.aorgCleach = 0.0;
 			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
-			soilcolumn.cmass_litter_input[lyr] = 0.0;
+			soilcolumn.cmass_litter_input[lyr+1] = 0.0;
 
 			for (int mth = 0; mth < 12; mth++) {
 				soillayer.mwmass[mth] = 0.0;
@@ -761,26 +764,12 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.mwcont[mth] = 0.0;
 				soillayer.mdrain[mth] = 0.0;
 				soillayer.mtemp[mth] = 0.0;
+				soillayer.mnetmin[mth] = 0.0;
 			}
 
 			if (date.year == 0) {
 				soillayer.mwcontabove = 0.0;
 			}
-
-			// Effective soillayer volume that isn't taken by coarse root biomass
-			// Minimum value if 50%
-			if (ifeffvolume) {
-				// Coarse root density [kg C m-3]
-				const double coarserootdens = 200.0;
-				soillayer.eff_volume_frac = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
-					soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM));
-			}
-
-			// Calculate soil layer organic carbon density
-			soillayer.calc_organic_density();
-
-			// Set soil layer properties
-			soillayer.set_properties(wmass_move, imass_move);
 
 			// Set initial temperatures as first spinup years mean annual air temperature
 			if (date.year == 0) {
@@ -788,8 +777,7 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 		}
 
-		soilcolumn.cmass_litter_input[soilcolumn.nsoillayers] = 0.0;
-
+		// Padding layers
 		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
 
 			padding& pad_lyr = soilcolumn.pad[plyr];
@@ -803,54 +791,49 @@ void dailyaccounting_patch(Patch& patch) {
 				pad_lyr.temp = patch.get_climate().temp_iaavr;
 			}
 		}
+	}
 
-		for (int p = 0; p < NSOMPOOL; p++) {
-			soilcolumn.csom_litter_input[p] = 0.0;
+	// Update soil mineral and organic volumes influence of soil properties
+	// Done first day of each month and not daily to reduce computational cost
+	if (date.dayofmonth == 0) {
+
+		// Calculate effective soil layer volume that isn't taken by coarse root biomass
+		soilcolumn.calc_eff_volume();
+		
+		// Vertical soil C mixing (diffusion)
+		
+		// Diffusion is on a yearly timestep and as vertical mixing is done monthly
+		// the timestep will be 1 / 12
+		double timestep = 1.0 / 12.0;
+
+		// Active layer depth
+		double ald = min(soilcolumn.depth, max(0.0, soilcolumn.thaw)) * M_PER_MM;
+
+		// Vertical mixing of slow and passive SOM pools restricted by active layer depth
+		soilcolumn.vertical_mixing(SLOWSOM, ald, timestep);
+		soilcolumn.vertical_mixing(PASSIVESOM, ald, timestep);
+
+		// Vertical movement if matter in soil layer exceed maximum volume
+		soilcolumn.vertical_movement();
+
+		// Water to be moved due to changes in the soil layers capability to hold water
+		double wmass_move = 0.0;
+		double imass_move = 0.0;
+
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+			// Set soil layer properties
+			soilcolumn.soillayers[lyr].set_properties(wmass_move, imass_move);
 		}
 
-		// If bottom soil layer water and ice exceed wsats, then it will be lost as baseflow 
+		// If water and ice exceed the capability of the soil to hold water, 
+		// then it will be lost as baseflow 
 		if (!negligible(wmass_move + imass_move))
 			patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
-
-		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-			soilcolumn.soillayers[lyr].arespsum = 0.0;
-		}
 	}
 
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
-
-	// Calculate mean monthly water content of all soil layers
-	soilcolumn.calc_mwcont();
-
-	// Reset monthly soil temp, litter depth, snow depth and thaw averages on Jan 1
-	if (date.day == 0) {
-
-		Snow& snow = soilcolumn.snow;
-
-		for (int mth = 0; mth < 12; mth++) {
-			snow.mdepth[mth] = 0.0;
-			snow.mcover[mth] = 0.0;
-			soilcolumn.mthaw[mth] = 0.0;
-			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-				snow.mtemp[lyr][mth] = 0.0;
-			}
-		}
-
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-			Soillayer& soillayer = soilcolumn.soillayers[lyr];
-			for (int mth = 0; mth < 12; mth++) {
-				soillayer.mtemp[mth] = 0.0;
-				soillayer.mnetmin[mth] = 0.0;
-			}
-		}
-		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-			padding& pad = soilcolumn.pad[lyr];
-			for (int mth = 0; mth < 12; mth++) {
-				pad.mtemp[mth] = 0.0;
-			}
-		}
-	}
 
 	// Calculate snow and soil layer temperatures
 	soilcolumn.temp();
@@ -860,6 +843,9 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// Calculate mean monthly snow values
 	soilcolumn.calc_msnow();
+
+	// Calculate mean monthly water content of all soil layers
+	soilcolumn.calc_mwcont();
 
 	// Calculate respiration temperature response
 	respiration_temperature_response(soilcolumn);

@@ -1890,7 +1890,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
-		storendemand = max(0.0, min(max(0.0, agpp) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
+		storendemand = max(0.0, min(max(0.0, agpp_no) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
 
 	return storendemand;
 }

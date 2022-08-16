@@ -51,9 +51,6 @@ const double maxh = 0.0;
 /// Density of mineral particles [kg m-3] (Bonan 2019)
 const double Mindensity = 265.0;
 
-/// Density of soil organic carbon [KgC m-3], standard bulk density of peat (Farouki 1981)
-const double Orgdensity = 130.0;
-
 // C fraction of organic matter (56%) (Chadburn et al. 2022)
 const double fc = 0.56;
 

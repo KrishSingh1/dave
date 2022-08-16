@@ -141,7 +141,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	if (fpar_total < 0.5 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
 	} 
-	else if (fpar_total < 0.35   && fabs(lat) >= 50.0) {
+	else if (fpar_total < 0.35 && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
 	} 
 	else if (patch.stand.landcover == CROPLAND) {
@@ -157,7 +157,7 @@ int update_fire_biome(Patch& patch, double lat) {
 		biome = SF_NEEDLELEAF;
 	} 
 	else if (fpar_broadleaf >= 0.8) {
-		if (fpar_trop_broadleaf_raingreen >=0.3) {
+		if (fpar_trop_broadleaf_raingreen >= 0.3) {
 			biome = SF_SAVANNA;
 		}
 		else {
@@ -205,13 +205,13 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	int count_max=0; // maximum of 'count'
 	
 	// Find and save most common biome number
-	for (biome=0; biome < NFIREBIOMES; biome++) {
+	for (biome = 0; biome < NFIREBIOMES; biome++) {
 		count[biome] = 0;
 	}
 	for (int idx = 0; idx < (int)biomes.size(); idx++) {
 		count[biomes[idx]]++;
 	}
-	for (biome=0; biome < NFIREBIOMES; biome++) {
+	for (biome = 0; biome < NFIREBIOMES; biome++) {
 		count_max = max(count_max, count[biome]);
 	}
 	

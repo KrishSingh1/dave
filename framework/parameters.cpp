@@ -83,7 +83,7 @@ bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in u
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
 bool ifmethane;						// Whether to run the methane model (for peatland only)
 int peat_age;
-int iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties (0 - no, 1 - static, 2 - dynamic)
+bool iforganicsoilproperties;		// Whether to update physical soil properties using soil carbon content (1), or not (0)
 bool ifeffvolume;					// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifverticalmixing;              // Whether vertically mix soil organic matter
@@ -541,8 +541,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifmethane",&ifmethane,1,CB_NONE,
 			"Whether to run the methane model (1), or not (0)");
 		declareitem("peat_age", &peat_age, 0, 100000, 1, CB_NONE, "Age of peat (0 peatland will be spun up to equilibrium)");
-		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 0, 2, 1, CB_NONE,
-			"Whether soil C pool input is used to update soil properties, 0 - no, 1 - static, 2 - dynamic");
+		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 1, CB_NONE,
+			"Whether to update physical soil properties using soil carbon content (1), or not (0)");
 		declareitem("ifeffvolume", &ifeffvolume, 1, CB_NONE,
 			"Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)");
 		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,

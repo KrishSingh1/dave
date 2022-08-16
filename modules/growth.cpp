@@ -1609,10 +1609,10 @@ void growth(Stand& stand, Patch& patch) {
 					}
 
 					// Scale this year productivity to max storage
-					if (indiv.agpp > 0.0) {
+					if (indiv.agpp_no > 0.0) {
 						double nstore = max(0.0, indiv.nstore() - ((indiv.cmass_leaf / indiv.pft.cton_leaf_max - indiv.nmass_leaf) +
 							(indiv.cmass_root / indiv.pft.cton_root_max - indiv.nmass_root) + (indiv.cmass_sap / indiv.pft.cton_sap_max - indiv.nmass_sap)));
-						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear - nstore) / indiv.agpp;
+						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear * 0.5 - nstore) / indiv.agpp_no;
 					} // else use last years scaling factor
 				}
 			}

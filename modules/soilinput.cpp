@@ -260,9 +260,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 			soilc_i = i;
 		}
 	}
-	if (soilc_i == -1 && iforganicsoilproperties == 1) {
-		fail("Error! No Soil C column found in %s. \nTip: do not use iforganicsoilproperties 1 together with a soilmap file without a SoilC column\n", fname);
-	}
 
 	// Create a empty vector T with header.size-2 elements
 	std::vector<double> T((unsigned int)header.size() - 2);

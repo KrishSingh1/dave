@@ -561,8 +561,8 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
-	K_MAX[SURFFWD]    = 1.1e-2 * 0.2;
-	K_MAX[SURFCWD]    = 2.2e-3 * 0.2; // DW_COMMENT
+	K_MAX[SURFFWD]    = 1.1e-2 * 0.5;
+	K_MAX[SURFCWD]    = 2.2e-3 * 0.5; // DW_COMMENT
 	K_MAX[SURFMICRO]  = 4.0e-2;
 	K_MAX[SURFHUMUS]  = 2.7e-4;
 	K_MAX[SOILMETA]   = 1.0e-1;
@@ -2434,9 +2434,6 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 
 	// Nitrogen transformation in soil
 	ntransform(patch, climate);
-
-	// Vertical movement of soil organic matter
-	vertical_movement(patch);
 
 	// Solve SOM pool sizes at end of year given by soilcolumn.solvesomcent_endyr
 	equilsom(patch);

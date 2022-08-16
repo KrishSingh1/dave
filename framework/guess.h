@@ -3536,14 +3536,8 @@ public:
 	double Psi_max_org;
 	/// Hydraulic conductivity at saturation for organic matter (m s-1)
 	double Kw_max_org;
-	/// volumetric fraction of organic material (m3 m-3)
-	double organic_frac;
-	/// volumetric fraction of mineral material (m3 m-3)
-	double mineral_frac;
 	/// volumetric fraction of peat material (m3 m-3)
 	double peat_frac;
-	/// static SOC fraction
-	double soc_frac;
 	/// Bulk density (g cm-3)
 	double bulk_density;
 	/// thermal diffusivity at 0% WHC (mm2/s)
@@ -3715,10 +3709,7 @@ public:
 		b_org = that.b_org;
 		Psi_max_org = that.Psi_max_org;
 		Kw_max_org = that.Kw_max_org;
-		organic_frac = that.organic_frac;
-		mineral_frac = that.mineral_frac;
 		peat_frac = that.peat_frac;
-		soc_frac = that.soc_frac;
 		bulk_density = that.bulk_density;
 		thermdiff_0 = that.thermdiff_0;
 		thermdiff_15 = that.thermdiff_15;
@@ -3822,10 +3813,7 @@ public:
 		b_org = that.b_org;
 		Psi_max_org = that.Psi_max_org;
 		Kw_max_org = that.Kw_max_org;
-		organic_frac = that.organic_frac;
-		mineral_frac = that.mineral_frac;
 		peat_frac = that.peat_frac;
-		soc_frac = that.soc_frac;
 		bulk_density = that.bulk_density;
 		thermdiff_0 = that.thermdiff_0;
 		thermdiff_15 = that.thermdiff_15;
@@ -4370,6 +4358,8 @@ public:
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
+	/// Calculate effective soil volume
+	void calc_eff_volume();
 	/// Vertical mixing (diffusion) of SOM
 	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// Vertical movement of peat organic matter
@@ -4378,8 +4368,6 @@ public:
 	void calc_mwcont();
 	/// Calculate this months average soil layer temperature
 	void calc_mtemp();
-	/// Set static soil organic carbon fractions
-	void set_static_socfrac();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
 	/// Returns the value of some vector down to a depth

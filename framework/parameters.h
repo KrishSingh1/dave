@@ -343,9 +343,8 @@ extern bool ifmethane;
 /// Age of peat (0 peatland will be spun up to equilibrium)
 extern int peat_age;
 
-/// Whether soil C pool input is used to update soil properties
-/* 0 - use soicode value, 1 - use soilinput static soil C content, 2 - use modelled soil layer C content */
-extern int iforganicsoilproperties;
+/// Whether to update physical soil properties using soil carbon content (1), or not (0)
+extern bool iforganicsoilproperties;
 
 /// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 extern bool ifeffvolume;

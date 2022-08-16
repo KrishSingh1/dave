@@ -106,11 +106,15 @@ if (WIN32)
   set(guess_command_name "guesscmd")
 else()
   # On Unix we don't have the dll so the command line binary can be called guess
-  set(guess_command_name "guess")
+  set(guess_command_name "guess-bin")
+  set(guess_lib_name "guess")
 endif()
 
 # Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+set_target_properties(guess-bin
+        PROPERTIES OUTPUT_NAME guess)
+add_library(guess SHARED ${guess_sources})
 
 # Rule for building the unit test binary
 if (UNIT_TESTS)
@@ -120,6 +124,7 @@ endif()
 
 # Specify libraries to link to the executable
 target_link_libraries(${guess_command_name} ${LIBS})
+target_link_libraries(${guess_lib_name} ${LIBS})
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)

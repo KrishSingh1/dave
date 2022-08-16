@@ -35,6 +35,11 @@ CommandLineArguments::CommandLineArguments(int argc, char** argv)
 	}
 }
 
+CommandLineArguments::CommandLineArguments(std::string input_module_name, std::string ins_file) {
+	input_module = input_module_name;
+	insfile = ins_file;
+}
+
 bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 	if (argc < 2) {
 		return false;

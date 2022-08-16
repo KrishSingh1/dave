@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory>
+#include <stdexcept>
 
 namespace {
 
@@ -114,7 +115,7 @@ CommandLineShell::~CommandLineShell() {
 
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
-	exit(99);
+	throw std::runtime_error(message);
 }
 
 void CommandLineShell::log_message(const char* message) {

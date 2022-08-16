@@ -1,5 +1,8 @@
 {
     "C_Cpp.default.defines": [
         "HAVE_NETCDF"
-    ]
+    ],
+    "files.associations": {
+        "fstream": "cpp"
+    }
 }

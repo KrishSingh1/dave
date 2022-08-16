@@ -453,7 +453,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	const double XACC=0.0001; // threshold x-axis precision of allocation solution
 	const double YACC=1.0e-10; // threshold y-axis precision of allocation solution
 	const double CDEBT_MAXLOAN_DEFICIT=0.8; // maximum loan as a fraction of deficit
-	const double CDEBT_MAXLOAN_MASS=0.2; // maximum loan as a fraction of (sapwood-cdebt)
+	const double CDEBT_MAXLOAN_MASS=0.2; // maximum loan as a fraction of (sapwood-cdebt) // DW_COMMENT CDEBT!!!!!!! EucFACE had 0.4
 
 	double cmass_leaf_inc_min;
 	double cmass_root_inc_min;

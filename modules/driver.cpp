@@ -995,6 +995,9 @@ void daylengthinsoleet(Climate& climate) {
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
 
+	// PAR conversion from J m-2 s-1 to umol m-2 s-1
+	climate.par_umol = climate.par * 4.57 / (climate.daylength_save[date.day] * 3600.0);
+
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)
 	//	Refs: Jarvis & McNaughton 1986, Prentice et al 1993

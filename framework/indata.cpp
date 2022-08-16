@@ -405,7 +405,7 @@ fileformat TimeDataD::ParseFormat() {
 	do {
 		if(fgets(line,sizeof(line),ifp)) {
 
-			p = strtok(line, "\t\n ");
+			p = strtok(line, "\t\r\n ");
 
 			if(!p)
 				continue;
@@ -413,7 +413,7 @@ fileformat TimeDataD::ParseFormat() {
 			strncpy(s1[count1], p, MAXNAMESIZE-1);
 			count1++;
 			do {
-				p = strtok(NULL, "\t\n ");
+				p = strtok(NULL, "\t\r\n ");
 				if(p) {
 					strncpy(s1[count1], p, MAXNAMESIZE-1);
 					count1++;
@@ -465,7 +465,7 @@ fileformat TimeDataD::ParseFormat() {
 
 		if(fgets(line,sizeof(line),ifp)) {
 
-			p = strtok(line, "\t\n ");
+			p = strtok(line, "\t\r\n ");
 
 			if(!p)
 				continue;
@@ -473,7 +473,7 @@ fileformat TimeDataD::ParseFormat() {
 			strncpy(s2[count2], p, 9);
 			count2++;
 			do {
-				p = strtok(NULL, "\t\n ");
+				p = strtok(NULL, "\t\r\n ");
 				if(p) {
 					strncpy(s2[count2], p, 9);
 					count2++;

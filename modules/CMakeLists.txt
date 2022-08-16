@@ -9,6 +9,7 @@ set(headers
   bvoc.h 
   blaze.h
   simfire.h
+  lookup.h
   q10.h 
   globalco2file.h
   ncompete.h
@@ -17,6 +18,7 @@ set(headers
   spinupdata.h
   demoinput.h
   cfinput.h
+  siteinput.h
   management.h
   cropallocation.h
   cropsowing.h
@@ -46,6 +48,7 @@ set(source
   miscoutput.cpp
   spinupdata.cpp
   cfinput.cpp
+  siteinput.cpp
   management.cpp
   cropallocation.cpp
   cropsowing.cpp

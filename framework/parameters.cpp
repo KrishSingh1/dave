@@ -49,6 +49,10 @@ double nfix_a;
 double nfix_b;
 
 bool ifntransform;
+
+bool ifEucFACE;
+bool ambient_CO2;
+
 double frac_labile_carbon = 1.0;
 double pH_soil;
 
@@ -240,6 +244,8 @@ void initsettings() {
 	textured_soil = true;
 	disturb_pasture = false;
 	grassforcrop = false;
+	ambient_CO2 = true;
+	ifEucFACE = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -550,6 +556,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
+
+		declareitem("ambient_CO2", &ambient_CO2, 1, CB_NONE, "ambient CO2 or not");
+		declareitem("ifeucface", &ifEucFACE, 1, CB_NONE,
+			"Whether to simulate EucFACE");
+
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
@@ -1232,6 +1243,10 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
+
+		if (!itemparsed("ambient_CO2")) badins("ambient_CO2");
+		if (!itemparsed("ifeucface")) badins("ifeucface");
+
 		if (!itemparsed("rootdistribution")) badins("rootdistribution");
 
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");

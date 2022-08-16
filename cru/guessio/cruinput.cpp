@@ -433,8 +433,14 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-	gridcell.dNH4dep = dNH4dep[date.day];
-	gridcell.dNO3dep = dNO3dep[date.day];
+	if (ifEucFACE) {
+		gridcell.dNH4dep = 0.0001125 / date.year_length();
+		gridcell.dNO3dep = 0.0001125 / date.year_length();
+	}
+	else {
+		gridcell.dNH4dep = dNH4dep[date.day];
+		gridcell.dNO3dep = dNO3dep[date.day];
+	}
 
 	// Tmin, Tmax for BLAZE
 	// initialise first

@@ -816,6 +816,9 @@ public:
 	/// total daily photosynthetically-active radiation today (J/m2/day)
 	double par;
 
+	/// total daily photosynthetically-active radiation today (umol/m2/s)
+	double par_umol;
+
 	/// precipitation today (mm)
 	double prec;
 

@@ -170,6 +170,10 @@ extern double nfix_b;
 
 /// whether to use nitrification/denitrification in CENTURY SOM dynamics
 extern bool ifntransform;
+
+/// whether to simulate EucFACE or not
+extern bool ifEucFACE;
+
 /// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
 extern double frac_labile_carbon;
 
@@ -272,6 +276,9 @@ extern bool disturb_pasture;
 
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
+
+/// ambient CO2
+extern bool ambient_CO2;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files

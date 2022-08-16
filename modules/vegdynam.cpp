@@ -633,6 +633,20 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
+					// EucFACE
+					int start_year = 1869 + patch.id * 3;
+
+					if (ifEucFACE && date.get_calendar_year() > start_year && date.get_calendar_year() <= start_year + 30) {
+						if (!(patch.age % estinterval)) {
+							newindiv = 1;
+							nsapling = 25;
+						}
+						else {
+							newindiv = 0;
+							nsapling = 0;
+						}
+					}
+
 					// Now create 'newindiv' new Individual objects
 
 					for (i=0;i<newindiv;i++) {
@@ -1010,6 +1024,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 		}
 	}
 
+	if (ifEucFACE && date.get_calendar_year() > 1900)
+		fireprob = 0.0;
 
 	// FIRE MORTALITY GLOBFIRM
 	// For BLAZE there is a separate call in simulate_day (framework.cpp)
@@ -1404,6 +1420,11 @@ void fire(Patch& patch,double& fireprob) {
 		fail("fire: probability of fire >1.0");
 	else if (fireprob<0.001) fireprob=0.001; // c.f. LPJF
 
+	if (ifEucFACE && date.get_calendar_year() > 1900) {
+		fireprob = 0.0;
+		return;
+	}
+
 	// Calculate expected flux from litter due to fire
 	// (fluxes from vegetation calculated in mortality functions)
 
@@ -1550,8 +1571,20 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			}
 		}
 
+		// EucFACE
+		int start_year = 1869 + patch.id * 3;
+		if (ifEucFACE && date.get_calendar_year() == start_year) {
+			disturbance(patch, 1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
+
+		if (ifEucFACE && date.get_calendar_year() > start_year)
+			patch.disturbed = false;
+
 		// Normal disturbance with probability interval of distinterval
-		if (patch.has_disturbances()) {
+		if (patch.has_disturbances() && !(ifEucFACE && date.get_calendar_year() > start_year)) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&

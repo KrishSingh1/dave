@@ -15,6 +15,8 @@
 using std::min;
 using std::max;
 
+namespace InData {
+
 /// Type for storing grid cell longitude, latitude and description text
 struct Coord {
 	
@@ -24,12 +26,10 @@ struct Coord {
 	xtring descrip;
 };
 
-namespace InData {
-
 const int MAXLINE = 20000;
 const int MAXNAMESIZE = 50;
 const int MAXRECORDS = 200;
-const int MAXLINESPARSE = 30000;
+const int MAXLINESPARSE = 150000;
 const int NOTFOUND = -999;
 const double MAX_SEARCHRADIUS = 1.0;
 

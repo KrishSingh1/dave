@@ -146,8 +146,10 @@ private:
 
 	// Separate output files for stand types with pft columns
 	Table* out_cmass_pft_st;
-	Table* out_diamstruct_cmass_st;
 	Table* out_cmass_harv_killed_pft_st;
+
+	// Separate output files for stand types with diameter-class columns
+	Table* out_diamstruct_cmass_st;
 
 	// Separate output files for stands with pft columns
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
@@ -163,7 +165,7 @@ private:
 	// Separate output files for stands with age-class columns
 	Table* out_agestruct_stand[MAXNUMBER_STANDS];
 
-	// Separate output files for stands with age-class columns
+	// Separate output files for stands with diameter-class columns
 	Table* out_diamstruct_stand[MAXNUMBER_STANDS];
 	Table* out_diamstruct_cmass_stand[MAXNUMBER_STANDS];
 

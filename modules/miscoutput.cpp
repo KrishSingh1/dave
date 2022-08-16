@@ -257,7 +257,7 @@ MiscOutput::~MiscOutput() {
 	}
 }
 
-/// Help function to print structure header columns
+/// Help function to print forest structure header columns
 std::vector<std::string> get_structure_string(const char* type) {
 
 	char buffer2[300]={'\0'};
@@ -265,21 +265,21 @@ std::vector<std::string> get_structure_string(const char* type) {
 
 	if(!strcmp(type, "age")) {
 
-				for(int i=0;i<31;i++) {
+				for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
 
 					// age structure
 					int age_from, age_to;
 
-					if(i<30) {			// 1-10,...,291-300
+					if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			// 1-10,...,291-300
 						age_from = i*10+1;
 						age_to = i*10+10;
 					}
-					else if(i<31) {			// >300y, not used in column header
+					else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >300y, not used in column header
 						age_from = i*10+1;
 						age_to = 1500;
 					}
 
-					if(i == 30) {
+					if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
 						sprintf(buffer2, ">300");
 					}
 					else {
@@ -290,21 +290,21 @@ std::vector<std::string> get_structure_string(const char* type) {
 	}
 	else if (!strcmp(type, "diam")) {
 
-				for(int i=0;i<31;i++) {
+				for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
 
 					// diameter structure
 					double diam_from, diam_to;
 
-					if(i<30) {			//  1-5,...,135-150
+					if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			//  1-5,...,135-150
 						diam_from = (double)(i*5);
 						diam_to = (double)(i*5+5);
 					}
-					else if(i<31) {			// >150cm	// not used in column header
+					else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >150cm	// not used in column header
 						diam_from = i*10+1;
 						diam_to = 1500;
 					}
 
-					if(i == 30) {
+					if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
 						sprintf(buffer2, ">150");				// >150cm
 					}
 					else {
@@ -1848,16 +1848,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// FOREST STRUCTURE OUTPUT
-	for(int i=0;i<31;i++) {
+	for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
 
 		// age structure
 		int age_from, age_to;
 
-		if(i<30) {			// 1-10,...,291-300
+		if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			// 1-10,...,291-300
 			age_from = i*10+1;
 			age_to = i*10+10;
 		}
-		else if(i<31) {
+		else if(i < NFOREST_STRUCTURAL_CLASSES) {
 			age_from = i*10+1;
 			age_to = 1500;
 		}
@@ -1865,11 +1865,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		// diameter structure
 		double diam_from, diam_to;
 
-		if(i<30) {			//  1-5,...,135-150
+		if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			//  1-5,...,135-150
 			diam_from = (double)(i*5);
 			diam_to = (double)(i*5+5);
 		}
-		else if(i<31) {					// >150cm
+		else if(i < NFOREST_STRUCTURAL_CLASSES) {					// >150cm
 			diam_from = i*10+1;
 			diam_to = 1500;
 		}
@@ -1888,7 +1888,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				double age_dens_st = 0.0, diam_dens_st = 0.0, diam_cmass_st = 0.0, diam_vol_st = 0.0;
 
-				if(st.landcover == lc && (lc == NATURAL || lc == FOREST)) {
+				if(st.landcover == lc) {
 
 					Gridcell::iterator gc_itr = gridcell.begin();
 					while (gc_itr != gridcell.end()) {	
@@ -2638,13 +2638,6 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
-
-		stand.anpp=0.0;
-		stand.lai=0.0;
-		stand.cmass=0.0;
-		stand.cmass_wood=0.0;
-		stand.cmass_wood_harv=0.0;
-		stand.cmass_mort=0.0;
 
 		if(stand.first_year == date.year || stand.clone_year == date.year) {
 			if(stand.landcover == NATURAL) {

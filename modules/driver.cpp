@@ -894,6 +894,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 }
 
 void dailyaccounting_stand(Stand& stand) {
+
+	//  Variables used for output from separate stands
+	stand.anpp = 0.0;
+	stand.lai = 0.0;
+	stand.cmass = 0.0;
+	stand.cmass_wood = 0.0;
+	stand.cmass_wood_harv = 0.0;
+	stand.cmass_mort = 0.0;
 }
 
 /// Manages C and N fluxes from slow harvest pools

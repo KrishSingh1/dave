@@ -231,8 +231,10 @@ void LandcoverInput::init() {
 					all_fracs_const = false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
-				if(LUdata.GetNCells() > 100)
+				if(LUdata.GetNCells() > 100) {
 					printseparatestands = false;
+					dprintf("\nStand output disabled for simulations with land cover input files with more than 100 gridcells to avoid a large number of output files\nLandcover input file has data for %d gridcells\n", LUdata.GetNCells());
+				}
 
 				input_precision_parsed = LUdata.GetPrecision();
 			}

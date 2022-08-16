@@ -163,6 +163,9 @@ typedef enum {NO_GROSS_INPUT, LC_GROSS_INPUT, ST_GROSS_INPUT} gross_LCC_input_ty
 #define SELECT_DIAM_LARGE 2
 #define SELECT_DIAM_LIMIT 3
 
+/// Number of forest structure (age- and diameter) classes
+const int NFOREST_STRUCTURAL_CLASSES = 31;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 

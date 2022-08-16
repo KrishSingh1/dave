@@ -1,0 +1,61 @@
+!///////////////////////////////////////////////////////////////////////////////////////
+!
+! Eucface input files
+! To be used with siteinput module
+!
+!///////////////////////////////////////////////////////////////////////////////////////
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Forcing Data & gridlists
+!///////////////////////////////////////////////////////////////////////////////////////
+
+!param "file_gridlist_cf" (str "gridlist.txt")
+param "file_gridlist" (str "gridlist.txt")
+
+!param "file_co2"      (str "../data/co2/co2_1901_2018.txt")
+!param "file_cru"      (str "../data/cruncepv7cruP_2/cruncep_1901_2015.bin")
+!param "file_cru_misc" (str "../data/cruncepv7cruP_2/cruncep_1901_2015misc.bin")
+
+!param "file_temp"     (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.temp.nc")
+!param "file_prec"     (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.prec.nc")
+!param "file_insol"    (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.insol.nc")
+!param "file_wind"     (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.wind.nc")
+!param "file_relhum"  (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.rhum.nc")
+!param "file_relhum"   (str "")
+param "file_soildepth" (str "../data/soil_depths.txt")
+
+param "file_daily_input_climate" (str "../data/EucFACE_climate_var_full.txt")
+ifeucface 1
+ambient_CO2 1
+
+! Needed if relative humidity is not supplied
+param "file_pres"     (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.pres.nc")
+param "file_specifichum" (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.specifichum.nc")
+
+param "variable_temp" (str "temp")
+param "variable_prec" (str "prec")
+param "variable_insol" (str "insol")
+param "variable_wind"  (str "wind")
+param "variable_relhum" (str "rhum")
+!dave_canopy 1 ! Set to 1 to use dave canopy routines. 0 otherwise.
+! Needed if relative humidity is not supplied
+param "variable_pres" (str "pres")
+param "variable_specifichum" (str "specifichum")
+
+param "file_wetdays"     (str "")
+param "file_min_temp"    (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.tmin.nc")
+param "file_max_temp"    (str "../data/nc_forcing_data/CRU_JRA_v20/processed/crujra.v2.0.tmax.nc")
+
+param "variable_wetdays" (str "")
+param "variable_min_temp" (str "tmin")
+param "variable_max_temp" (str "tmax")
+
+! N deposition (blank string to use constant pre-industrial level of 2 kgN/ha/year)
+param "file_ndep"     (str "../data/ndep/GlobalNitrogenDeposition.bin")
+
+! SIMFIRE-BLAZE related files
+param "file_simfire"  (str "../data/fire/SimfireInput.bin")
+
+! Soil map
+param "file_soildata" (str "../data/soil/soilmap_center_interpolated.dat")
+!param "file_soildata" (str "../../../data/env/soils_lpj.dat")

@@ -2294,8 +2294,8 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	Stot = mineral + organic + ice + water + peat + coarse_root;
 
 	if (fabs(1.0 - (Stot + air) / combined_depth) > 1.0e-6)
-		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\nCombined depth %g Snow depth %g Air %g Ice %g Air %g", 
-			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth, combined_depth, snow_depth, snow_depth-snow_imass-snow_wmass, snow_imass, snow_wmass);
+		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\n", 
+			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
 
 	// Calculate log terms
 	lKforg = (organic / Stot) * Korg_log;
@@ -5756,6 +5756,32 @@ void Soilcolumn::vertical_movement() {
 
 		// Update organic volume
 		soillayer.organic_volume = soillayer.ccont(true) / soillayer.rho_org * MM_PER_M;
+
+		// If bottom layer organic volume exceed the total volume of layer
+		// then increase depth of layer by 100mm and fill it with mineral soil 
+		if (lyr == nsoillayers - 1 && soillayer.mineral_volume == 0 && soillayer.organic_volume > eff_volume) {
+			
+			// Depth to add
+			double add_depth = 100.0;
+
+			// Increase effective volume
+			eff_volume += add_depth;
+
+			// Increase soil layer depth
+			soillayer.depth += add_depth;
+			
+			// Update effective volume fraction of layer
+			soillayer.eff_volume_frac = eff_volume / soillayer.depth;
+
+			// Update soil layer depth profile
+			soillayer.depth_profile += add_depth / 2.0;
+
+			// Update soil columns array of soil layer depths
+			soillayerdepths[lyr] += add_depth;
+
+			// Update soil layer mineral volume
+			soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+		}
 		
 		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10)
 			dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",

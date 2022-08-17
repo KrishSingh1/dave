@@ -49,6 +49,11 @@ int main(int argc,char* argv[]) {
 
 	umask(S_IWGRP | S_IWOTH); // only disable write access for group and others
 
+#else
+
+	// Maximizing capacity of number of open files
+	_setmaxstdio(2048);
+
 #endif
 
 	// Parse command line arguments

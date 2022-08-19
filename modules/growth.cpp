@@ -1647,7 +1647,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.nstore_labile = indiv.nstore_longterm;
 					indiv.nstore_longterm = 0.0;
 
-					// Add N to leaf and roots to meet maximum C:N and C:P ratios
+					// Add N to leaf and roots to meet maximum C:N ratios
 					double demand_leaf = max(0.0, indiv.cmass_leaf / indiv.pft.cton_leaf_max - indiv.nmass_leaf);
 					double demand_root = max(0.0, indiv.cmass_root / indiv.pft.cton_root_max - indiv.nmass_root);
 					double frac = !negligible(demand_leaf + demand_root) ? min(1.0, indiv.nstore_labile / (demand_leaf + demand_root)) : 0.0;

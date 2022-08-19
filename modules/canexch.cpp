@@ -2008,6 +2008,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Get array with wcont
 	soilcolumn.get(WCONT, wcont);
 
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		wcont[lyr] = soilcolumn.soillayers[lyr].temp >= 0.0 ? soilcolumn.soillayers[lyr].wcont() : 0.0;
+	}
+
 	// Get array with awc
 	soilcolumn.get(AWC, awc);
 

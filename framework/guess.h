@@ -145,7 +145,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, 
 WSATS, AWC, WP, WCONTMAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
-ARH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+ARH, ASRH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -3261,6 +3261,7 @@ public:
 		cinc = 0.0;
 		ninc = 0.0;
 		respsum = 0.0;
+		respsum_surf = 0.0;
 		ligcfrac = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
@@ -3288,6 +3289,7 @@ public:
 		cinc = that.cinc;
 		ninc = that.ninc;
 		respsum = that.respsum;
+		respsum_surf = that.respsum_surf;
 		ntoc = that.ntoc;
 		ligcfrac = that.ligcfrac;
 		delta_cmass = that.delta_cmass;
@@ -3315,6 +3317,7 @@ public:
 		cinc = that.cinc;
 		ninc = that.ninc;
 		respsum = that.respsum;
+		respsum_surf = that.respsum_surf;
 		ntoc = that.ntoc;
 		ligcfrac = that.ligcfrac;
 		delta_cmass = that.delta_cmass;
@@ -3353,6 +3356,8 @@ public:
 	double ninc;
 	/// (potential) microbial respiration following decomposition today (kgC/m2)
 	double respsum;
+	/// (potential) surface microbial respiration following decomposition today (kgC/m2)
+	double respsum_surf;
 	/// daily change in carbon and nitrogen
 	double delta_cmass, delta_nmass;
 	/// lignin fractions
@@ -3586,8 +3591,10 @@ public:
 	/// daily carbon flux to atmosphere from soil respiration
 	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
 	double respsum;
-	/// Annual soil respiration [kg C m-2]
+	/// Annual total surface litter and soil respiration [kg C m-2]
 	double arespsum;
+	/// Annual surface litter respiration [kg C m-2]
+	double arespsum_surf;
 	/// Tiller area
 	double tiller_area;
 
@@ -3630,6 +3637,10 @@ public:
 	double acdec[2];
 	/// annual C mineralisation without and with N and/or P limitation
 	double acinc[2];
+
+	double atemp_mod;
+	double amoist_mod;
+	double atot_mod;
 
 	/// soil NH4 mass in pool (kgN/m2)
 	double NH4_mass;
@@ -3730,6 +3741,7 @@ public:
 		O2 = that.O2;
 		respsum = that.respsum;
 		arespsum = that.arespsum;
+		arespsum_surf = that.arespsum_surf;
 		tiller_area = that.tiller_area;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
@@ -3834,6 +3846,7 @@ public:
 		O2 = that.O2;
 		respsum = that.respsum;
 		arespsum = that.arespsum;
+		arespsum_surf = that.arespsum_surf;
 		tiller_area = that.tiller_area;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
@@ -4362,7 +4375,7 @@ public:
 	void calc_eff_volume();
 	/// Vertical mixing (diffusion) of SOM
 	void vertical_mixing(pooltype p, double ald, double timestep);
-	/// Vertical movement of peat organic matter
+	/// Vertical movement of mineral and organic matter
 	void vertical_movement();
 	/// Calculate this months average soil layer wcont
 	void calc_mwcont();

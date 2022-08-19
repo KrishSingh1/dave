@@ -535,15 +535,19 @@ double Soillayer::moisture_modifier() {
 	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
 
 	// Total water mass
-	double theta = wmass + imass;
+	double theta = wmass / depth;
+
+	double theta_sat = wsats / depth;
+
+	double theta_fc = fc() / depth;
 
 	double moist_mod;
 
 	if (theta < fc()) {
-		moist_mod = max(moist_mod_dry, moist_mod_max * (fc() + 0.1) / (theta + 0.1) * pow(theta / fc(), 1.0 + a * 2.0));
+		moist_mod = max(moist_mod_dry, moist_mod_max * (theta_fc + 0.1) / (theta + 0.1) * pow(theta / theta_fc, 1.0 + a * 2.0));
 	}
 	else { // wsats - theta >= 0.0 
-		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * moistsatmod_lut((wsats - theta) / (wsats - fc())));
+		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * moistsatmod_lut((theta_sat - theta) / (theta_sat - theta_fc)));
 	}
 	
 	return moist_mod;
@@ -558,20 +562,24 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
+
+	double surf_wd_scalar = 0.5; // DW_COMMENT
+	double som_scalar = 4.0; // DW_COMMENT
+
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
-	K_MAX[SURFFWD]    = 1.1e-2 * 0.5;
-	K_MAX[SURFCWD]    = 2.2e-3 * 0.5; // DW_COMMENT
-	K_MAX[SURFMICRO]  = 4.0e-2;
-	K_MAX[SURFHUMUS]  = 2.7e-4;
+	K_MAX[SURFFWD]    = 1.1e-2 * surf_wd_scalar;
+	K_MAX[SURFCWD]    = 2.2e-3 * surf_wd_scalar;
+	K_MAX[SURFMICRO]  = 4.0e-2 * som_scalar;
+	K_MAX[SURFHUMUS]  = 2.7e-4 * som_scalar;
 	K_MAX[SOILMETA]   = 1.0e-1;
 	K_MAX[SOILSTRUCT] = 2.7e-2;
-	K_MAX[SOILFWD]    = 1.4e-2;
-	K_MAX[SOILCWD]    = 2.7e-3;
+	K_MAX[SOILFWD]    = 1.4e-2 * som_scalar;
+	K_MAX[SOILCWD]    = 2.7e-3 * som_scalar;
 	K_MAX[SOILMICRO]  = 4.0e-2;
-	K_MAX[SLOWSOM]    = 2.7e-4;
-	K_MAX[PASSIVESOM] = 4.2e-6;
+	K_MAX[SLOWSOM]    = 2.7e-4 * som_scalar;
+	K_MAX[PASSIVESOM] = 4.2e-6 * som_scalar;
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -583,6 +591,10 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 
 	// Calculate decomposition moisture modifier
 	double moist_mod = moisture_modifier(); // DW_COMMENT slow
+
+	atemp_mod += temp_mod / date.year_length();
+	amoist_mod += moist_mod / date.year_length();
+	atot_mod += temp_mod * moist_mod / date.year_length();
 
 	// Combined moisture and temperature modifier
 
@@ -672,6 +684,10 @@ void transferdecomp(Soillayer& soillayer, pooltype donor, pooltype receiver,
 
 	// Transfer microbial respiration
 	sompool_donor.respsum += cdec * respfrac;
+
+	if (donor == SURFMETA || donor == SURFSTRUCT || donor == SURFFWD || donor == SURFCWD) {
+		sompool_donor.respsum_surf += cdec * respfrac;
+	}
 }
 
 /// Fluxes between the CENTURY pools, and CO2 release to the atmosphere
@@ -792,6 +808,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				sompool.ninc = 0.0;
 
 				sompool.respsum = 0.0;
+				sompool.respsum_surf = 0.0;
 			}
 
 			// Partition potential decomposition among receiver pools
@@ -1013,6 +1030,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		soillayer.acinc[1] += cinc_save[1];
 
 		double respsum_tot = 0.0;
+		double respsum_surf_tot = 0.0;
 
 		// Update pool sizes
 
@@ -1022,6 +1040,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			sompool.nmass += sompool.delta_nmass;
 
 			respsum_tot += sompool.respsum;
+			respsum_surf_tot += sompool.respsum_surf;
 		}
 
 		if (!ifequilsom) {
@@ -1035,6 +1054,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				soillayer.respsum = 0.0;
 			}
 			soillayer.arespsum += respsum_tot;
+			soillayer.arespsum_surf += respsum_surf_tot;
 
 			// Sum annual organic leaching
 			soillayer.aorgCleach += leachsum_cmass;
@@ -1975,8 +1995,8 @@ void equilsom(Patch& patch) {
 		// Maximum tries of iterations
 		const int MAX_TRIES = 1000;
 		// Maximum trend / std
-		const double EPS_trend = 1.0e-9;
-		const double EPS_trend_passive = 1.0e-11;
+		const double EPS_trend = 1.0e-5;
+		const double EPS_trend_passive = 1.0e-6;
 		// Number of trends that doesn't meet the criteria
 		int bad_trend = 1;
 		// Iteration tries
@@ -2006,6 +2026,14 @@ void equilsom(Patch& patch) {
 		Historic<double, 20> hist_passive[NSOILLAYERS_MAX];
 		Historic<double, 20> hist_ccont[NSOILLAYERS_MAX];
 
+		// Save initial water and ice fraction of wsats
+		double wmass_frac[NSOILLAYERS_MAX];
+		double imass_frac[NSOILLAYERS_MAX];
+
+		// Maximum surface woody debrise
+		double cmass_cwd_max = soilcolumn.soillayers[0].sompool[SURFCWD].cmass * 2.0;
+		double cmass_fwd_max = soilcolumn.soillayers[0].sompool[SURFFWD].cmass * 2.0;
+
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			for (int p = 0; p < NSOMPOOL; p++) {
@@ -2013,6 +2041,10 @@ void equilsom(Patch& patch) {
 				sign[lyr][p] = 1;
 				same_trend[lyr][p] = 0;
 			}
+
+			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			wmass_frac[lyr] = soillayer.wmass / soillayer.wsats;
+			imass_frac[lyr] = soillayer.imass / soillayer.wsats;
 		}
 
 		int peat_years = 0;
@@ -2061,8 +2093,13 @@ void equilsom(Patch& patch) {
 						if (lyr == 0) {
 							add_litter(soillayer, timestep, SURFSTRUCT);
 							add_litter(soillayer, timestep, SURFMETA);
-							add_litter(soillayer, timestep, SURFFWD);
-							add_litter(soillayer, timestep, SURFCWD);
+
+							if (soillayer.sompool[SURFFWD].cmass < cmass_fwd_max) {
+								add_litter(soillayer, timestep, SURFFWD);
+							}
+							if (soillayer.sompool[SURFCWD].cmass < cmass_cwd_max) {
+								add_litter(soillayer, timestep, SURFCWD);
+							}
 						}
 						add_litter(soillayer, timestep, SOILSTRUCT);
 						add_litter(soillayer, timestep, SOILMETA);
@@ -2257,6 +2294,9 @@ void equilsom(Patch& patch) {
 
 		//dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.get_sum(CCONT));		
 
+		// Water to be moved due to changes in the soil layers capability to hold water
+		double dval;
+
 		// Reset mineral nitrogen status
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -2264,6 +2304,10 @@ void equilsom(Patch& patch) {
 
 			soillayer.NH4_mass = save_NH4_avail[lyr];
 			soillayer.NO3_mass = save_NO3_avail[lyr];
+
+			soillayer.set_properties(dval, dval, true);
+			soillayer.wmass = wmass_frac[lyr] * soillayer.wsats;
+			soillayer.imass = imass_frac[lyr] * soillayer.wsats;
 
 			// Reset C and N litter status
 			for (int p = 0; p < NSOMPOOL; p++) {

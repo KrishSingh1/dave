@@ -753,10 +753,15 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			soillayer.arespsum = 0.0;
+			soillayer.arespsum_surf = 0.0;
 			soillayer.aorgCleach = 0.0;
 			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
 			soilcolumn.cmass_litter_input[lyr+1] = 0.0;
+
+			soillayer.atemp_mod = 0.0;
+			soillayer.amoist_mod = 0.0;
+			soillayer.atot_mod = 0.0;
 
 			for (int mth = 0; mth < 12; mth++) {
 				soillayer.mwmass[mth] = 0.0;

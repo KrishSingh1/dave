@@ -109,6 +109,10 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
+	if (ifEucFACE) {
+		return;
+	}
+
 	soil_code = format_input_header(fname);
 
 	if (soil_code) {
@@ -365,8 +369,11 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 
 // Get and set soil properties based on mineral soil input.
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
-	coord C = find_closest_point(searchradius_soil, c);
-	SoilDataMineral& soil = mineral_map[C];
+	SoilDataMineral soil;
+	if (!ifEucFACE) {
+		coord C = find_closest_point(searchradius_soil, c);
+		soil = mineral_map[C];
+	}
 
 	if (ifEucFACE) {
 		soil.sand = 0.8;

@@ -114,7 +114,8 @@ endif()
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
 set_target_properties(guess-bin
         PROPERTIES OUTPUT_NAME guess)
-add_library(guess SHARED ${guess_sources})
+add_library(guess STATIC ${guess_sources})
+set_property(TARGET guess PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Rule for building the unit test binary
 if (UNIT_TESTS)

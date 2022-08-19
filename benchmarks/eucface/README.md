@@ -29,6 +29,25 @@ then just create a symlink to the mountpoint:
 ln -s /path/to/mounted/hie-storage /path/to/lpjguess_dave_eucface/benchmarks/eucface/data
 ```
 
+**Soil Data**
+
+LPJ-Guess requires the following soil data:
+
+**lon** - Provided in eucface MIP (-33.61°)
+**lat** - Provided in eucface MIP (150.73°)
+**clay** - Provided in eucface MIP (0.11)
+**silt** - Provided in eucface MIP (0.09)
+**sand** - Provided in eucface MIP (0.8)
+**orgC** - Provided in eucface MIP (Soil carbon fraction for top 0-10, 10-20, 20-30cm: 1.55, 0.71, 0.42. Avr 0.89)
+**CN** - Not actually used anywhere afaik
+**pH** - (Provided in eucface MIP (top 0-10, 10-20, 20-30cm: 5.52, 5.39 , 5.28. Avr 5.40)
+**cellfraction** - Not actually used anywhere afaik
+
+In that sense,the soil input data file is not actually necessary when running with `ifeucface 1`.
+
+I note that LPJ-Guess supports setting initial soil C content and bulk density
+in the soil map file. We're currently not doing this.
+
 ### Running
 
 You need to use the siteinput module, which was created by David Warlind

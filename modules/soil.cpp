@@ -4388,8 +4388,8 @@ void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
 	double nsubdays_prec = 12.0;
 	// Initial sub daily timesteps on days with no precipitation
 	double nsubdays_noprec = 6.0;
-	// Minimum timestep (60 sec)
-	double dtmin = 60.0;
+	// Minimum timestep (10 sec)
+	double dtmin = 10.0;
 	// Model timestep length in seconds (daily timestep)
 	double dtime = SECS_PER_DAY;
 	// tolerance (mm) to halve length of substep
@@ -4925,18 +4925,23 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 		fluxNet1[lyr] = qin[lyr] - qout[lyr] - qflx_root[lyr];
 
 		// Check for negative water
-		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0 && dtsub > dtmin && !calcsub) {
+		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0 && !calcsub) {
 
-			// Halve the length of the sub - step
-			if (dtsub / 2.0 > dtmin) {
+			if (dtsub > dtmin) {
+				// Halve the length of the sub - step
 				dtsub /= 2.0;
+
+				// Need to recalculate this substep
+				calcsub = true;
 			}
 			else {
-				dtsub = dtmin;
+				// DW_COMMENT // Something that resolved the negative mass
+				dprintf("ERROR!!! Negative wmass! Year %d Day %d lyr %d wmass %g\n",
+					date.year,date.day,lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+
+				// Set soil layer water to ZERO // DW_COMMENT not correct
+				dwat[lyr] = -soillayers[lyr].wmass / dz[lyr];
 			}
-			
-			// Need to recalculate this substep
-			calcsub = true;
 		}
 	}
 

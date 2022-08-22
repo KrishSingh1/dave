@@ -271,7 +271,7 @@ void CommonOutput::define_output_tables() {
 	for (int d = 0; d < 7; d++) {
 		soildepth_columns += ColumnDescriptor(depths[d], 9, 3);
 		soildepth_columns_med += ColumnDescriptor(depths[d], 10, 6);
-		soildepth_columns_low += ColumnDescriptor(depths[d], 9, 0);
+		soildepth_columns_low += ColumnDescriptor(depths[d], 9, 1);
 	}
 
 	// Create the columns for each output file

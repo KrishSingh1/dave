@@ -807,8 +807,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	ps_result.agd_g = (ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /
 														(2.0 * THETA) * daylength;
 
-
-	if (!iftwolayersoil) {
+	if (hydrology != GERTEN) {
 
 		// LIMITS TO PHOTOSYNTHESIS
 		// On wetlands, both agd_g and rd_g are scaled in the event of inundation (all PFTS),
@@ -1822,7 +1821,7 @@ double water_uptake(double wcont[NSOILLAYERS_MAX], double awc[NSOILLAYERS_MAX],
  * Returns plant water uptake (point scale, or mean for patch) as a fraction of
  * maximum possible (daily basis), after adding required water to obtain maximum
  * water uptake.
- * Irrigation water is added to the soil in hydrology_lpjf
+ * Irrigation water is added to the soil in hydrology schemes
  *
  * Only ROOTDIST currently supported plant water uptake parameterisation:
  *

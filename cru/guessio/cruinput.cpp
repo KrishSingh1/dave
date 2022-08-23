@@ -135,9 +135,8 @@ void CRUInput::init() {
 
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
-	if (!iftwolayersoil) {
+	if (hydrology == RICHARDS) {
 		soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
-
 		soilinput.init_slope(param["file_soilslope"].str, translate_gridlist_to_coord(gridlist));
 	}
 

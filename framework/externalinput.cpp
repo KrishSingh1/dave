@@ -66,8 +66,8 @@ void LandcoverInput::init() {
 	bool openLUfile = false;
 
 	// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
-	if (iftwolayersoil && run[PEATLAND]) {
-		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if iftwolayersoil = 1");
+	if (hydrology == GERTEN && run[PEATLAND]) {
+		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if hydrology is set to GERTEN");
 	}
 
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
@@ -716,7 +716,7 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 				StandType& st = stlist.getobj();
 				Gridcellst& gcst = gridcell.st[st.id];
 				if(st.landcover == CROPLAND) {
-					if(st.rotation.ncrops == 1 && st.get_management(0).hydrology == RAINFED) {
+					if(st.rotation.ncrops == 1 && st.get_management(0).wateruse == RAINFED) {
 						if(gridcell.get_lat() > 30 || gridcell.get_lat() < -30) {
 							if(pftlist[pftlist.getpftid(st.get_management(0).pftname)].tb <= 5) {
 								gcst.frac = 1.0;

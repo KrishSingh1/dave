@@ -311,7 +311,7 @@ void MiscOutput::define_output_tables() {
 	// Create snow and soil layer columns
 	ColumnDescriptors snowsoillyr_columns;
 	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
-	if (iftwolayersoil) {
+	if (hydrology == GERTEN) {
 		for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
 			sprintf(lyr_nr, "soil%d", lyr);
 			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);

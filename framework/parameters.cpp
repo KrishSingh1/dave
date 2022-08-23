@@ -24,6 +24,7 @@ xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
+hydrologytype hydrology;
 
 int npatch;
 int npatch_secondarystand;
@@ -71,7 +72,6 @@ bool ifrainonwetdaysonly;
 bool ifbvoc;
 
 // Soil, arctic and wetland options
-bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
 double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
 bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
@@ -184,10 +184,10 @@ bool Paramlist::isparam(xtring name) {
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,	
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
-	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
-	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
+	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTWATERUSE,
+	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STWATERUSE, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
-	CB_FIREMODEL, CB_WEATHERGENERATOR
+	CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY
 };
 
 // File local variables
@@ -231,6 +231,7 @@ void initsettings() {
 
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
+	hydrology=GERTEN;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -478,6 +479,8 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
 			"Weather Generator (\"INTERP\", \"GWGEN\")");
+		declareitem("hydrology", &strparam, 20, CB_HYDROLOGY,
+			"Hydrology schemes (\"GERTEN\", \"MILLER\", \"RICHARDS\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -518,8 +521,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 
-		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
-			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
 		declareitem("slope", &slope, -1.0, 90.0, 1, CB_NONE,
 			"Whether to use fixed slope value (>=0 degree) or input data (<0) ");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
@@ -934,7 +935,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
 		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
 		declareitem("rottime",&pmt->nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
-		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
+		declareitem("wateruse",&strparam,16,CB_MTWATERUSE, "ater use of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
@@ -990,7 +991,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name");
 				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names");
 				declareitem("rottime",&pst->management.nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
-				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
+				declareitem("wateruse",&strparam,16,CB_STWATERUSE, "Water use of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
@@ -1061,6 +1062,16 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+			plibabort();
+		}
+		break;
+	case CB_HYDROLOGY:
+		if (strparam.upper() == "GERTEN") hydrology = GERTEN;
+		else if (strparam.upper() == "MILLER") hydrology = MILLER;
+		else if (strparam.upper() == "RICHARDS") hydrology = RICHARDS;
+		else {
+			sendmessage("Error",
+				"Unknown hydrology scheme (valid types: \"GERTEN\", \"MILLER\", \"RICHARDS\")");
 			plibabort();
 		}
 		break;
@@ -1142,13 +1153,13 @@ void plib_callback(int callback) {
 	case CB_MTSELECTION:
 		pmt->selection = strparam;
 		break;
-	case CB_MTHYDROLOGY:
-		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
+	case CB_MTWATERUSE:
+		if (strparam.upper()=="RAINFED") pmt->wateruse = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pmt->wateruse = IRRIGATED;
 		else 
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1173,13 +1184,13 @@ void plib_callback(int callback) {
 	case CB_STSELECTION:
 		pst->management.selection = strparam;
 		break;
-	case CB_STHYDROLOGY:
-		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
+	case CB_STWATERUSE:
+		if (strparam.upper()=="RAINFED") pst->management.wateruse = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pst->management.wateruse = IRRIGATED;
 		else 
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1228,6 +1239,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("vegmode")) badins("vegmode");
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
+		if (!itemparsed("hydrology")) badins("hydrology");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE){
 			if (weathergenerator!=GWGEN) {
@@ -1244,7 +1256,10 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 		if (!itemparsed("depth_soil")) badins("depth_soil");
-
+		if (hydrology != RICHARDS && depth_soil != 1500.0) {
+			sendmessage("Error", "Soil depth must be set to 1500mm with GERTEN or MILLER hydrology. Soil depth SET to 1500mm!");
+			depth_soil = 1500.0;
+		}
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
 		if (!itemparsed("nfix_b")) badins("nfix_b");
@@ -1282,27 +1297,21 @@ void plib_callback(int callback) {
 		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 		
-
-		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
-		if (iftwolayersoil == 1 && depth_soil == 0) {
-			sendmessage("Error", "Need to specify soil depth with two layer soil!");
-			plibabort();
-		}
 		if (!itemparsed("slope")) badins("slope");
 		if (!itemparsed("ifbedrock")) badins("ifbedrock");
-		if (iftwolayersoil == 1 && ifbedrock == 1) {
-			sendmessage("Error", "Can't account for bedrock with two layer soil!");
+		if (hydrology != RICHARDS && ifbedrock == 1) {
+			sendmessage("Error", "Can't account for bedrock with GERTEN or MILLER hydrology!");
 			plibabort();
 		}
 		if (!itemparsed("ifsupercooled")) badins("ifsupercooled");
 		if (!itemparsed("homrootdistfrac")) badins("homrootdistfrac");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
-		if (iftwolayersoil == 1 && ifmultilayersnow == 1) {
-			sendmessage("Error", "Can't have multilayer snow scheme together with two layer soil!");
+		if (hydrology == GERTEN && ifmultilayersnow == 1) {
+			sendmessage("Error", "Can't have multilayer snow scheme together with GERTEN hydrology!");
 			plibabort();
 		}
-		if (iftwolayersoil == 0 && ifmultilayersnow == 0) {
-			sendmessage("Error", "Can't have simple snow scheme together with multi layer soil!");
+		if (hydrology == RICHARDS && ifmultilayersnow == 0) {
+			sendmessage("Error", "Can't have simple snow scheme together with RICHARDS hydrology!");
 			plibabort();
 		}
 

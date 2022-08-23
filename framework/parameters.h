@@ -76,6 +76,15 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
+/// Type of hydrology used 
+/**     One of:
+ *      GERTEN          Standard two-layer hydrology (0.5 and 1m layers) based on Gerten et al. (2004)
+ *      MILLER          Extention of GERTEN where each layer is divided into 10 cm layers. What distribution
+ *						within the two basic layers is based on Miller et al. (in prep.)
+ *      RICHARDS        Flexible hydrology scheme based on Richards (1931)
+ */
+typedef enum { GERTEN, MILLER, RICHARDS } hydrologytype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -122,6 +131,9 @@ extern firemodeltype firemodel;
 
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
+
+/// Hydrology switch
+extern hydrologytype hydrology;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -306,9 +318,6 @@ extern bool ifbvoc;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Soil, arctic and wetland inputs
-
-/// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-extern bool iftwolayersoil;
 
 /// Whether to use fixed slope value (>=0 degree) or input data (<0)
 extern double slope;

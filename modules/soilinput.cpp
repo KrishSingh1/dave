@@ -512,16 +512,16 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Soil depth
 	// soil_depth is defined in global.ins
 	// if zero then use input map of soil depth
-	if (negligible(depth_soil)) {
-		if (iftwolayersoil) {
-			gridcell.soil_depth = 1500.0;
+	if (hydrology == RICHARDS) {
+		if (negligible(depth_soil)) {
+			gridcell.soil_depth = depth_map[c] * MM_PER_M;
 		}
 		else {
-			gridcell.soil_depth = depth_map[c] * MM_PER_M;
+			gridcell.soil_depth = depth_soil;
 		}
 	}
 	else {
-		gridcell.soil_depth = depth_soil;
+		gridcell.soil_depth = 1500.0;
 	}
 
 	gridcell.soil_depth = max(200.0, gridcell.soil_depth); // DW_COMMENT

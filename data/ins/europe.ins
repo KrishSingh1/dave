@@ -106,6 +106,7 @@ ifcalccton 1          		! Whether to calculate leaf C:N min from leaf longevity
                       		! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
+hydrology "GERTEN"		! GERTEN, MILLER, RICHARDS
 npatch 25             		! Number of replicate patches to simulate
 patcharea 1000        		! Patch area (m2)
 estinterval 5         		! Years between establishment events in cohort mode
@@ -143,10 +144,6 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
-
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
-				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
-				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
 
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content (1), or not (0)

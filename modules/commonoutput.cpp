@@ -213,7 +213,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors soillyr_columns_xlarge, soillyr_columns_large, soillyr_columns_short, soillyr_columns_med, soillyr_columns_high, soillyr_columns, surfsoillyr_columns;
 	surfsoillyr_columns += ColumnDescriptor("surf", 11, 6);
 	char lyr_nr[20];
-	int number_of_layers = iftwolayersoil ? NSOILLAYERS_SIMPLE : NSOILLAYERS_MAX;
+	int number_of_layers = hydrology == GERTEN ? NSOILLAYERS_SIMPLE : NSOILLAYERS_MAX;
 	for (int lyr = 0; lyr < number_of_layers; lyr++) {
 		sprintf(lyr_nr, "lyr%d", lyr);
 		surfsoillyr_columns += ColumnDescriptor(lyr_nr, 10, 5);
@@ -234,7 +234,7 @@ void CommonOutput::define_output_tables() {
 	// Create soil layer columns
 	ColumnDescriptors temp_columns;
 	temp_columns += ColumnDescriptor("air", 8, 2);
-	if (iftwolayersoil) {
+	if (hydrology == GERTEN) {
 		for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
 			sprintf(lyr_nr, "soil%d", lyr);
 			temp_columns += ColumnDescriptor(lyr_nr, 8, 2);
@@ -1760,9 +1760,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
-				mald[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m])*M_PER_MM*to_gridcell_average;
-				mwtp[m] += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m])*M_PER_MM*to_gridcell_average;
-				mtemp25cm[m] += (iftwolayersoil ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
+				mald[m] += (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m])*M_PER_MM*to_gridcell_average;
+				mwtp[m] += (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m])*M_PER_MM*to_gridcell_average;
+				mtemp25cm[m] += (hydrology == GERTEN ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
 				
 				mch4[m] += fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				mch4_diff[m] += fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
@@ -1813,9 +1813,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			maxald_gridcell += (iftwolayersoil ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
-			permafrost_full_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth + PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
-			permafrost_3m_gridcell += (iftwolayersoil || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
+			maxald_gridcell += (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM * to_gridcell_average;
+			permafrost_full_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth + PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
+			permafrost_3m_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI
 
@@ -1983,7 +1983,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// Print soil layer variables
 	// Total gridcell soil C
-	int number_of_layers = iftwolayersoil ? 2 : NSOILLAYERS_MAX;
+	int number_of_layers = hydrology == GERTEN ? NSOILLAYERS_SIMPLE : NSOILLAYERS_MAX;
 	double tot_cdec[2] = { 0.0 };
 	double tot_cinc[2] = { 0.0 };
 	double clitterinput_tot = clitterinput[0];
@@ -2352,7 +2352,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTMONTH, mth + 1);
 
 		outlimit(out, out_mtemp, gridcell.climate.hmtemp_20[mth].lastadd());
-		if (iftwolayersoil) {
+		if (hydrology == GERTEN) {
 			for (int lyr = NSNOWLAYERS_MAX; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_SIMPLE; lyr++) {
 				outlimit(out, out_mtemp, mtemp[lyr][mth]);
 			}

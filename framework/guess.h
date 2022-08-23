@@ -98,7 +98,7 @@ typedef enum { SURFMETA, SURFSTRUCT, SURFFWD, SURFCWD, SURFMICRO, SURFHUMUS,
 SOILMETA, SOILSTRUCT, SOILFWD, SOILCWD, SOILMICRO, SLOWSOM, PASSIVESOM, NSOMPOOL } pooltype;
 
 /// Irrigation type for PFTs
-typedef enum {RAINFED, IRRIGATED} hydrologytype;
+typedef enum {RAINFED, IRRIGATED} waterusetype;
 /// Intercrop type for PFTs
 typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;
 
@@ -1508,8 +1508,8 @@ public:
 	xtring selection;
 	/// Rotation period in years
 	double nyears;
-	/// hydrology (RAINFED,IRRIGATED) 
-	hydrologytype hydrology;
+	/// Water use (RAINFED,IRRIGATED) 
+	waterusetype wateruse;
 	/// irrigation efficiency
 //	double firr;
 	/// forced sowing date, unless sdate_force read from file
@@ -1530,7 +1530,7 @@ public:
 		pftname = "";
 		selection = "";
 		nyears = 1.0;
-		hydrology = RAINFED;
+		wateruse = RAINFED;
 //		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
@@ -1544,7 +1544,7 @@ public:
 
 		name = from.name;
 		pftname = from.pftname;
-		hydrology = from.hydrology;
+		wateruse = from.wateruse;
 		sdate = from.sdate;
 		hdate = from.hdate;
 		nfert = from.nfert;
@@ -1554,7 +1554,7 @@ public:
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  wateruse == IRRIGATED || fallow || nfert > -1.0)
 			return true;
 		else
 			return false;
@@ -2346,7 +2346,7 @@ public:
 		// Total soil layer depth
 		double tot_depth;
 
-		if (!iftwolayersoil) {
+		if (hydrology != GERTEN) {
 
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
@@ -4407,10 +4407,12 @@ public:
 	void hydrology_peat(const Climate& climate, double fevap);
 	/// Mineral wetland hydrology (simplistic placeholder)
 	void hydrology_wetland(const Climate& climate, double fevap);
-	/// simpler hydrology routine from LPJ-GUESS v4.0
-	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
-	/// main hydrology routine
-	void hydrology_lpjf(const Climate& climate, double fevap);
+	/// Two layer hydrology routine from LPJ-GUESS v4.0
+	void hydrology_gerten(const Climate& climate, double fevap);
+	/// 15 layer hydrology routine from LPJ-GUESS v4.1
+	void hydrology_miller(const Climate& climate, double fevap);
+	/// Flexible layer hydrology routine
+	void hydrology_richards(const Climate& climate, double fevap);
 	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double psi[NSOILLAYERS_MAX], 
 		double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
 		double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],

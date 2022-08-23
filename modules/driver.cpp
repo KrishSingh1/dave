@@ -446,7 +446,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	Climate& climate = gridcell.climate;
 
 	// On first day of the simulation ...
-	if (iftwolayersoil && date.day == 0 && date.year == 0) {
+	if (hydrology == GERTEN && date.day == 0 && date.year == 0) {
 		// Override some of the wetland Booleans when using the two layer soil. These have no effect in any case, as 
 		// run_peatland must be false
 		ifinundationstress = false;
@@ -455,7 +455,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// Fail in these cases
 		if (ifcarbonfreeze || ifmultilayersnow) {
-			fail("dailyaccounting_gridcell: ifcarbonfreeze and ifmultilayersnow must all be 0 if iftwolayersoil = 1");
+			fail("dailyaccounting_gridcell: ifcarbonfreeze and ifmultilayersnow must all be 0 if hydrology is set to GERTEN");
 		}
 	}
 
@@ -891,7 +891,7 @@ void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 
 	// Possible updates to gtemp used if temp < 0degC
 	// Needed for root respiration
-	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && !iftwolayersoil) {
+	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && hydrology != GERTEN) {
 
 		double decomp_at_freezing_point = exp(308.56 * (1.0 / 56.02 - 1.0 / (0.0 + 46.02)));
 

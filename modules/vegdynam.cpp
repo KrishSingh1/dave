@@ -110,10 +110,10 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		climate.mtemp_max < pft.twmin_est ||
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
-	if (!iftwolayersoil) {
-		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
-		if (patch.soilcolumn.snow.snowpack_avrmax3mth() < pft.min_snow ||
-			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
+	// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
+	if (patch.soilcolumn.snow.snowpack_avrmax3mth() < pft.min_snow ||
+		climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) {
+		return false;
 	}
 
 	if(patch.stand.landcover != CROPLAND) {
@@ -1412,7 +1412,7 @@ void fire(Patch& patch, double& fireprob) {
 	for (int mth = 0; mth < 12; mth++) {
 
 		// No fires unless there is some soil melt.
-		if (iftwolayersoil || (soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+		if (hydrology == GERTEN || (soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
 			pm = exp(-PI * surflayer.mwcont[mth] / me_mean * surflayer.mwcont[mth] / me_mean) * date.ndaymonth[mth];		// Eqn 2
 		}
 		else {

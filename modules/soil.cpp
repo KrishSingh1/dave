@@ -1756,8 +1756,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		perc_base = min_frac_eff * soiltype.perc_base + org_frac_eff * soiltype.perc_base_org;
 	}
 
-	// If two layer soil scheme then wmass is never below wp
-	if (iftwolayersoil) {
+	// For Gerten and Miller hydrology schemes wmass should never be below wp
+	if (hydrology != RICHARDS) {
 		double wadded = max(0.0, wp - wmass);
 		wmass += wadded;
 		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
@@ -2791,7 +2791,7 @@ double Soilcolumn::gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]) {
 
 /// Performs daily updates to soil layer temperatures using an analytic function
 /**
- * Call each simulation day (if iftwolayersoil true) following update of daily air temperature
+ * Call each simulation day (if hydrology set to GERTEN) following update of daily air temperature
  * prior to canopy exchange and SOM dynamics
  * Calculation of mid soil layer temperature.
  * Soil temperatures are assumed to follow surface temperatures according to an
@@ -3500,7 +3500,7 @@ void Soilcolumn::update_acrotelm_co2(double atmo_co2) {
 
 /// Updates the water content for each soil layer in peatland soils
 /**
-* Call each simulation day (if iftwolayersoil false).
+* Call each simulation day (if stand is of peat type).
 * Soil class method used to update the water content for each soil layer
 * given snow melt, rainfall, evapotranspiration from vegetation (AET) and
 * percolation between layers. Runoff is also calculated.
@@ -4072,7 +4072,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 
 /// Updates the water content for each soil layer
 /**
-* Call each simulation day (if iftwolayersoil true).
+* Call each simulation day (if hydrology set to GERTEN).
 * Soil class method used to update the water content for each soil layer
 * given snow melt, rainfall, evapotranspiration from vegetation (AET) and
 * percolation between layers. Runoff is also calculated.
@@ -4081,7 +4081,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 * \param fevap     fraction of modelled area (grid cell or patch) subject to
 *                  evaporation from soil surface
 */
-void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
+void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 
 	// DESCRIPTION
 	// This version replicates the hydrology_lpjf function in LPJ-GUESS v4.0, so 
@@ -4309,9 +4309,9 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	}
 }
 
-/// Updates the water content for each soil layer in non-peatland soils
+/// Updates the water content for each soil layer
 /**
-* Call each simulation day (if iftwolayersoil false).
+* Call each simulation day (if hydrology set to MILLER).
 * Soil class method used to update the water content for each soil layer
 * given snow melt, rainfall, evapotranspiration from vegetation (AET) and
 * percolation between layers. Runoff is also calculated.
@@ -4320,7 +4320,22 @@ void Soilcolumn::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 * \param fevap     fraction of modelled area (grid cell or patch) subject to
 *                  evaporation from soil surface
 */
-void Soilcolumn::hydrology_lpjf(const Climate& climate, double fevap) {
+void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
+
+}
+
+/// Updates the water content for each soil layer in non-peatland soils
+/**
+* Call each simulation day (if hydrology set to RICHARDS).
+* Soil class method used to update the water content for each soil layer
+* given snow melt, rainfall, evapotranspiration from vegetation (AET) and
+* percolation between layers. Runoff is also calculated.
+*
+* \param climate   The climate to use to update soil water
+* \param fevap     fraction of modelled area (grid cell or patch) subject to
+*                  evaporation from soil surface
+*/
+void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET), evaporation and percolation between
@@ -5017,7 +5032,7 @@ void Soilcolumn::initial_percolation() {
 
 	if (percolate) {
 
-		if (iftwolayersoil) {
+		if (hydrology == GERTEN) {
 
 			// Update water content in upper soil layer with rain and snowmelt
 			// and adjust wcont_evap
@@ -5035,6 +5050,9 @@ void Soilcolumn::initial_percolation() {
 			}
 
 			wcont_evap = surflayer.wcont();
+		}
+		else if (hydrology == MILLER) {
+			// DW_COMMENT MILLER
 		}
 		else {
 
@@ -5408,7 +5426,7 @@ void Soilcolumn::calc_temp() {
 */
 void Soilcolumn::temp() {
 
-	if (iftwolayersoil) {
+	if (hydrology == GERTEN) {
 		// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
 		// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.
 		calc_temp_analytic();

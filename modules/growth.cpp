@@ -1527,7 +1527,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
 
-					// Check so that C:N ratios of leaf, root, sap and heart are above minimum
+					// Check so that C:N ratios of leaf, root, sap and heart are not above maximum content
 					if (indiv.nmass_leaf > indiv.cmass_leaf / indiv.pft.cton_leaf_min) {
 						double nmove = indiv.nmass_leaf - indiv.cmass_leaf / indiv.pft.cton_leaf_min;
 						indiv.nstore_longterm += nmove;
@@ -1552,9 +1552,9 @@ void growth(Stand& stand, Patch& patch) {
 					// Update N compartments to C:N ratios before growth by using N storage
 					double ndemand_leaf = max(0.0, indiv.cmass_leaf_today() / max(indiv.pft.cton_leaf_min, cton_leaf_bg) - indiv.nmass_leaf);
 					double ndemand_root = max(0.0, indiv.cmass_root_today() / max(indiv.pft.cton_root_min, cton_root_bg) - indiv.nmass_root);
-					double ndemand_sap = max(0.0, indiv.cmass_sap / max(indiv.pft.cton_sap_min, cton_sap_bg) - indiv.nmass_sap);
-					double ndemand_heart = max(0.0, indiv.cmass_heart / max(indiv.pft.cton_heart_min, cton_heart_bg) - indiv.nmass_heart);
-					double ndemand_tot = ndemand_leaf + ndemand_root + ndemand_sap + ndemand_heart;
+					//double ndemand_sap = max(0.0, indiv.cmass_sap / max(indiv.pft.cton_sap_min, cton_sap_bg) - indiv.nmass_sap);
+					//double ndemand_heart = max(0.0, indiv.cmass_heart / max(indiv.pft.cton_heart_min, cton_heart_bg) - indiv.nmass_heart);
+					double ndemand_tot = ndemand_leaf + ndemand_root;// +ndemand_sap + ndemand_heart;
 
 					// If N demand then add from storage
 					if (!negligible(ndemand_tot)) {
@@ -1565,8 +1565,8 @@ void growth(Stand& stand, Patch& patch) {
 						// Add N to compartments
 						indiv.nmass_leaf += ndemand_leaf * nfrac;
 						indiv.nmass_root += ndemand_root * nfrac;
-						indiv.nmass_sap += ndemand_sap * nfrac;
-						indiv.nmass_heart += ndemand_heart * nfrac;
+						//indiv.nmass_sap += ndemand_sap * nfrac;
+						//indiv.nmass_heart += ndemand_heart * nfrac;
 
 						// Subtract N from storage
 						double ndemand_longterm = min(indiv.nstore_longterm, nfrac * ndemand_tot);
@@ -1648,8 +1648,8 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.nstore_longterm = 0.0;
 
 					// Add N to leaf and roots to meet maximum C:N ratios
-					double demand_leaf = max(0.0, indiv.cmass_leaf / indiv.pft.cton_leaf_max - indiv.nmass_leaf);
-					double demand_root = max(0.0, indiv.cmass_root / indiv.pft.cton_root_max - indiv.nmass_root);
+					double demand_leaf = max(0.0, indiv.cmass_leaf_today() / indiv.pft.cton_leaf_max - indiv.nmass_leaf);
+					double demand_root = max(0.0, indiv.cmass_root_today() / indiv.pft.cton_root_max - indiv.nmass_root);
 					double frac = !negligible(demand_leaf + demand_root) ? min(1.0, indiv.nstore_labile / (demand_leaf + demand_root)) : 0.0;
 					indiv.nmass_leaf += demand_leaf * frac;
 					indiv.nmass_root += demand_root * frac;

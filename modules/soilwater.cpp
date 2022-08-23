@@ -8,8 +8,9 @@
 /// Includes baseflow runoff
 ///
 /// Updates include initial_infiltration, irrigation and calls to new hydrology scheme that takes into 
-/// account soil water content in a greater number of layers. The Boolean iftwolayersoil (set in .ins file) 
-/// determines if the original (Gerten et al) scheme is used or the newer scheme.
+/// account soil water content in a greater number of layers. The type variable hydrology (set in .ins file) 
+/// determines if the original (Gerten et al. 2004), v4.1 (Miller et al. ), or Richards eqn (Richards et al. 1931)
+/// hydrology scheme is used.
 ///
 /// \author Ben Smith
 /// $Date$
@@ -307,15 +308,22 @@ void soilwater(Patch& patch, Climate& climate) {
 	else {	
 		
 		// HYDROLOGY FOR MINERAL SOILS 
-		if (patch.stand.is_true_wetland_stand())
+		if (patch.stand.is_true_wetland_stand()) {
 			// Mineral wetland hydrology
 			soilcolumn.hydrology_wetland(climate, bare_ground);
-		else if (iftwolayersoil)
+		}
+		else if (hydrology == GERTEN) {
 			// Standard two layer LPJ-GUESS hydrology
-			soilcolumn.hydrology_lpjf_twolayer(climate, bare_ground);
-		else
-			// Richards eqn hydrology (based on CLM5.0)
-			soilcolumn.hydrology_lpjf(climate, bare_ground);
+			soilcolumn.hydrology_gerten(climate, bare_ground);
+		}
+		else if (hydrology == MILLER) {
+			// v4.1 15 layer LPJ-GUESS hydrology
+			soilcolumn.hydrology_miller(climate, bare_ground);
+		}
+		else {
+			// Richards eqn hydrology
+			soilcolumn.hydrology_richards(climate, bare_ground);
+		}
 	}
 }
 
@@ -330,6 +338,8 @@ void soilwater(Patch& patch, Climate& climate) {
 //   Gerten, D., Lotze-Campen, H., Müller, C., Reichstein, M. and Smith, B. (2007),
 //   Modelling the role of agriculture for the 20th century global terrestrial carbon balance.
 //   Global Change Biology, 13: 679-706. doi: 10.1111/j.1365-2486.2006.01305.x
+// Richards, L. A. (1931) CAPILLARY CONDUCTION OF LIQUIDS THROUGH POROUS MEDIUMS. Physics, 
+//   1 (5). 318-333 doi:10.1063/1.1745010
 // Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),
 //   Agricultural green and blue water consumption and its influence on the global
 //   water system, Water Resour. Res., 44, W09405, doi:10.1029/2007WR006331

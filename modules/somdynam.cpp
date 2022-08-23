@@ -501,7 +501,7 @@ double temperature_modifier(double temp_soil) {
 
 	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
 	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
-	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && !iftwolayersoil) {
+	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && hydrology != GERTEN) {
 
 		if (false) {
 			// Alternative: Linear approach (Koven et al. 2011)
@@ -564,7 +564,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
 	double surf_wd_scalar = 0.5; // DW_COMMENT
-	double som_scalar = 4.0; // DW_COMMENT
+	double som_scalar = 2.0; // DW_COMMENT
 
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
@@ -1571,7 +1571,7 @@ void transfer_litter(Patch& patch) {
 /** Leaching fractions for both organic and mineral leaching
  *  Should be called every day in both daily and monthly mode
  */
-void leaching_LPJ(Soilcolumn& soilcolumn) {
+void leaching_gerten(Soilcolumn& soilcolumn) {
 
 	// Fluxes
 	Fluxes& fluxes = soilcolumn.patch.fluxes;
@@ -1660,7 +1660,15 @@ void leaching_LPJ(Soilcolumn& soilcolumn) {
 /** Leaching fractions for both organic and mineral leaching
 *  Should be called every day in both daily and monthly mode
 */
-void leaching_LSM(Soilcolumn& soilcolumn) {
+void leaching_miller(Soilcolumn& soilcolumn) {
+
+}
+
+/// Leaching
+/** Leaching fractions for both organic and mineral leaching
+*  Should be called every day in both daily and monthly mode
+*/
+void leaching_richards(Soilcolumn& soilcolumn) {
 
 	// Fluxes
 	Fluxes& fluxes = soilcolumn.patch.fluxes;
@@ -1751,12 +1759,14 @@ void leaching_LSM(Soilcolumn& soilcolumn) {
 	}
 }
 
-void leaching(Patch& patch) {
+void leaching(Patch& patch) { // DW_COMMENT
 
-	if (iftwolayersoil)
-		leaching_LPJ(patch.soilcolumn);
-	else
-		leaching_LSM(patch.soilcolumn);
+	if (hydrology == GERTEN)
+		leaching_gerten(patch.soilcolumn);
+	else if (hydrology == MILLER)
+		leaching_miller(patch.soilcolumn);
+	else if (hydrology == RICHARDS)
+		leaching_richards(patch.soilcolumn);
 }
 
 
@@ -2278,7 +2288,7 @@ void equilsom(Patch& patch) {
 					double hstdccont = !negligible(hccont_mean, 1.0e-12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
 
 					// Calculte how many trends and stds that are too big
-					if ((iftwolayersoil || lyr > 0) && (fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend_passive || fabs(hsccont) > EPS_trend) &&
+					if ((hydrology == GERTEN || lyr > 0) && (fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend_passive || fabs(hsccont) > EPS_trend) &&
 						(fabs(hstdslow) > EPS_trend || fabs(hstdpas) > EPS_trend_passive || fabs(hstdccont) > EPS_trend)) {
 
 						bad_trend++;

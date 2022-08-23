@@ -433,7 +433,7 @@ bool Patchpft::growingseason() const {
  */
 void Patchpft::calc_rootdist(double maxthaw, double soillyrdepth[NSOILLAYERS_MAX], int nsoillayers) {
 
-	if (!iftwolayersoil) {
+	if (hydrology != GERTEN) {
 
 		// Max thaw doesn't exceed first soil layer
 		// All roots in top soil layer
@@ -886,7 +886,7 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
 	current_rot = 0;
 
-	if (mt0.hydrology == IRRIGATED) {
+	if (mt0.wateruse == IRRIGATED) {
 		isirrigated = true;								// First main crop, may change during crop rotation
 		if (pftid >= 0)
 			pft[pftid].irrigated = true;
@@ -1045,7 +1045,7 @@ void Stand::rotate() {
 
 		Standpft& standpft = pft[pftid];
 
-		if (mt.hydrology == IRRIGATED) {
+		if (mt.wateruse == IRRIGATED) {
 			isirrigated = true;
 			standpft.irrigated = true;
 		}
@@ -2768,7 +2768,7 @@ void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoill
 		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
 	}
 
-	if (!iftwolayersoil) {
+	if (hydrology != GERTEN) {
 
 		// Standard soil layer thickness (mm)
 		double std_depths[NSOILLAYERS_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 500.0, 1000.0, 1000.0, 1500.0, 3000.0, 4000.0, 6000.0, 8000.0 };
@@ -2833,14 +2833,9 @@ void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoill
 		}
 	}
 	else {
-		if (soil_depth <= SOILDEPTH_UPPER) {
-			lyr_depths[0] = SOILDEPTH_EVAP;
-			lyr_depths[1] = soil_depth - SOILDEPTH_EVAP;
-		}
-		else {
-			lyr_depths[0] = min(SOILDEPTH_UPPER, soil_depth / 2.0);
-			lyr_depths[1] = soil_depth - lyr_depths[0];
-		}
+		lyr_depths[0] = SOILDEPTH_UPPER;
+		lyr_depths[1] = soil_depth - lyr_depths[0];
+
 		nsoillayers = 2;
 	}
 }

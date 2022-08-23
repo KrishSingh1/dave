@@ -458,7 +458,7 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	Soiltype& soiltype = gridcell.soiltype;
 
 	coord c(lon, lat);
-	SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
+	SoilProperties soilprop = soil_code && !ifEucFACE ? get_lpj(c) : get_mineral(c);
 
 	soiltype.soilcode = lpj_map[c];
 	soiltype.sand_frac = soilprop.sand;

@@ -2516,6 +2516,11 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			assimilation_wstress(pft, pftco2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
 		}
+		else {
+			lambda = pft.lambda_max;
+		}
+
+		indiv.mlambda[date.month] += max(0.0, lambda * indiv.dgpp_no);
 
 		assim = phot.net_assimilation();
 
@@ -2569,6 +2574,17 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		if (day.isend) {
 			indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
+		}
+
+		if (date.islastday && date.islastmonth) {
+			for (int m = 0; m < 12; m++) {
+				if (!negligible(indiv.mgpp_no[m])) {
+					indiv.mlambda[m] /= indiv.mgpp_no[m];
+				}
+				else {
+					indiv.mlambda[m] = pft.lambda_max;
+				}
+			}
 		}
 
 		vegetation.nextobj();
@@ -2712,6 +2728,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				indiv.mlai_max[m] = 0.0;
 				indiv.mgpp_no[m] = 0.0;
 				indiv.mvmaxnlim[m] = 0.0;
+				indiv.mlambda[m] = 0.0;
 			}
 
 			vegetation.nextobj();

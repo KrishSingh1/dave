@@ -145,7 +145,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, 
 WSATS, AWC, WP, WCONTMAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
-ARH, ASRH, ANMIN, ANIMMOB, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+ARH, ASRH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -2864,6 +2864,8 @@ public:
 	double avmaxnlim;
 	/// monthly nitrogen limitation on vmax
 	double mvmaxnlim[12];
+	/// monthly lambda limitation on photosythesis
+	double mlambda[12];
 	/// daily optimal leaf C:N ratio
 	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
@@ -4356,7 +4358,9 @@ public:
 	/// Add a soil layer
 	void add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm);
 	/// Returns surface litter C content
-	double get_surflitterC();
+	double get_surflittercmass();
+	/// Returns surface litter N content
+	double get_surflitternmass();
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals

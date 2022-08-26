@@ -563,15 +563,15 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
-	double surf_wd_scalar = 0.5; // DW_COMMENT
-	double som_scalar = 2.0; // DW_COMMENT
+	double surf_wd_scalar = 0.4; // DW_COMMENT
+	double som_scalar = 1.0; // DW_COMMENT
 
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
 	K_MAX[SURFFWD]    = 1.1e-2 * surf_wd_scalar;
 	K_MAX[SURFCWD]    = 2.2e-3 * surf_wd_scalar;
-	K_MAX[SURFMICRO]  = 4.0e-2 * som_scalar;
+	K_MAX[SURFMICRO]  = 4.0e-2;
 	K_MAX[SURFHUMUS]  = 2.7e-4 * som_scalar;
 	K_MAX[SOILMETA]   = 1.0e-1;
 	K_MAX[SOILSTRUCT] = 2.7e-2;
@@ -605,11 +605,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		double scalar = 1.0; // DW_COMMENT - testing to get total soil C in the correct ballpark!
-		if (p == SURFHUMUS || p == SLOWSOM || p == PASSIVESOM)
-			scalar = 1.0;
-
-		double k = scalar * K_MAX[p] * temp_mod * moist_mod;
+		double k = K_MAX[p] * temp_mod * moist_mod;
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
@@ -634,7 +630,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
-		som_pool.fracremain = exp(-k); // DW_COMMENT lookup table
+		som_pool.fracremain = exp(-k);
 
 		if (savesomcent) {
 			som_pool.mfracremain_mean[date.month] += som_pool.fracremain / date.ndaymonth[date.month];
@@ -1839,79 +1835,6 @@ void soilnadd(Patch& patch) {
 			soilcolumn.anfix_mean += soilcolumn.anfix;
 		}
 	}
-}
-
-/// Vertical mixing (diffusion) or movement of soil organic matter
-/** Vertical mixing (diffusion) or movement of soil organic matter
-*  Cryoturbation processes on the vertical profile of SOM stocks are captured
-*  by considering a simple diffusion scheme.
-*  And if organic C exceed maximum in soil layer, SOM is moved downwards
-*  Is done once a month
-*/
-void vertical_movement(Patch& patch) {
-
-	Soilcolumn& soilcolumn = patch.soilcolumn;
-
-	// Low carbon in soil -> no vertical mixing or movement
-	if (soilcolumn.get_sum(CCONT) < 1.0e-5)
-		return;
-
-	// Vertical mixing on last day of the month
-	if (ifverticalmixing && date.islastday && date.year > soilcolumn.solvesomcent_endyr && patch.stand.landcover != PEATLAND) {
-
-		// Average monthly active layer depth
-		double mald = min(soilcolumn.depth, max(0.0, soilcolumn.mthaw[date.month])) * M_PER_MM;
-
-		// DW_COMMENT move checks into vertical_mixing function
-
-		// Store pool sizes before mixing
-		double cpools[2] = { 0.0 };
-		double npools[2] = { 0.0 };
-
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-			Sompool& sompool_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM];
-			cpools[0] += sompool_slow.cmass;
-			npools[0] += sompool_slow.nmass;
-			Sompool& sompool_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM];
-			cpools[1] += sompool_passive.cmass;
-			npools[1] += sompool_passive.nmass;
-		}
-
-		// Timestep in Crank-Nicholson method 
-		// Diffusion is on a yearly timestep and as vertical mixing is done monthly
-		// the timestep will be 1 / 12
-		double timestep = 1.0 / 12.0;
-
-		soilcolumn.vertical_mixing(SLOWSOM, mald, timestep);
-		soilcolumn.vertical_mixing(PASSIVESOM, mald, timestep);
-
-		// Check pool sizes after mixing
-		double cpools_after[2] = { 0.0 };
-		double npools_after[2] = { 0.0 };
-
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-			Sompool& sompool_slow = soilcolumn.soillayers[lyr].sompool[SLOWSOM];
-			cpools_after[0] += sompool_slow.cmass;
-			npools_after[0] += sompool_slow.nmass;
-			Sompool& sompool_passive = soilcolumn.soillayers[lyr].sompool[PASSIVESOM];
-			cpools_after[1] += sompool_passive.cmass;
-			npools_after[1] += sompool_passive.nmass;
-		}
-
-		// Might be small rounding errors
-		// Add to/subtract from top pool
-		Sompool& sompool_slow = soilcolumn.soillayers[0].sompool[SLOWSOM];
-		sompool_slow.cmass += cpools[0] - cpools_after[0];
-		sompool_slow.nmass += npools[0] - npools_after[0];
-		Sompool& sompool_passive = soilcolumn.soillayers[0].sompool[PASSIVESOM];
-		sompool_passive.cmass += cpools[1] - cpools_after[1];
-		sompool_passive.nmass += npools[1] - npools_after[1];
-	}
-
-	// Vertical movement of organic matter if C density of soil layer exceed maximum
-	if (date.islastday && date.islastmonth) {
-		soilcolumn.vertical_movement();
-	}	
 }
 
 /// Add litter to equilsom()

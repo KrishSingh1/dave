@@ -24,14 +24,20 @@ const bool DEBUG_METHANE = false;
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
 const int NSOILLAYERS_SIMPLE = 2;
 
-/// maximum number of soil layers modelled
+/// Maximum number of soil layers modelled
 const int NSOILLAYERS_MAX = 15;
 
-/// number of padding layers in the soil
+/// Number of padding layers in the soil
 const int NPADLAYERS = 5;
 
-/// depth of the acrotelm (mm), catotelm rest of soil column
+/// MAximum acrotelm layers
+const int NACROTELMLAYERS = 3;
+
+/// Depth of the acrotelm (mm), catotelm rest of soil column
 const double ACROTELM_DEPTH = 300.0;
+
+/// Number of sublayers in the acrotelm, i.e. 10mm layers with this = 30
+const int NSUBLAYERS_ACRO = 30;
 
 /// Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest = true
 const double PAD_DEPTH = 50000;
@@ -54,10 +60,10 @@ const double Mindensity = 265.0;
 // C fraction of organic matter (56%) (Chadburn et al. 2022)
 const double fc = 0.56;
 
-// For dpm and rpm [kg C m-3] (Chadburn et al. 2022) DW_COMMENT
+// For dpm and rpm [kg C m-3] (Chadburn et al. 2022)
 const double rho_low = 35.0 * fc;
 
-// For bio and hum [kg C m-3] (Chadburn et al. 2022) DW_COMMENT
+// For bio and hum [kg C m-3] (Chadburn et al. 2022)
 const double rho_high = 210.0 * fc;
 
 // SNOW PARAMETERS

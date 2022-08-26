@@ -1533,7 +1533,7 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case ANMIN:
 		prop = anmin;
 		break;
-	case ANIMMOB:
+	case ANIMM:
 		prop = animmob;
 		break;
 	case AORGCLEACH:
@@ -1624,9 +1624,11 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		a = 0.0;
 
 		// Initially saturated
-		double wadded = wsats - (wmass + imass);
-		wmass += wadded;
-		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+		if ((*soilcolumn).patch.stand.first_year == date.year) {
+			double wadded = wsats - (wmass + imass);
+			wmass += wadded;
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+		}
 	}
 	// Catotelm
 	else if (catotelm) {
@@ -1644,9 +1646,11 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		a = 0.0;
 
 		// Initially saturated
-		double wadded = wsats - (wmass + imass);
-		wmass += wadded;
-		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+		if ((*soilcolumn).patch.stand.first_year == date.year) {
+			double wadded = wsats - (wmass + imass);
+			wmass += wadded;
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+		}
 	}
 	// Mineral soil and no influence of soil organic C
 	else if (!iforganicsoilproperties) {
@@ -1829,7 +1833,7 @@ void Soillayer::phase_change() {
 			const double max_sc_frac = 0.9;
 
 			// Temperature close to zero, maximum water is super cooled
-			if (temp > -0.02) {
+			if (temp > -0.002) {
 				wmass_sc = max_sc_frac * wsats;
 			}
 			// Niu scheme
@@ -1878,8 +1882,10 @@ void Soillayer::phase_change() {
 	}
 
 	// No phase change, return zero
-	if (!ifThaw && !ifFreeze)
+	if (!ifThaw && !ifFreeze) {
+		temp_old = temp;
 		return;
+	}
 
 	// Temperature difference from previous phase change
 	delta_T = temp - temp_old;
@@ -1947,7 +1953,7 @@ void Soillayer::phase_change() {
 		Fthaw = -energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
 
 		// Maximum ice that could be turned into liquid form
-		double Fimass_thaw = min(Fimass, Fwmass_sc - Fwmass);
+		double Fimass_thaw = temp > 0.0 ? Fimass : min(Fimass, Fwmass_sc - Fwmass);
 
 		// Can't thaw all
 		if (Fimass_thaw > Fthaw) {
@@ -2287,9 +2293,9 @@ void Soillayer::update_thermal_properties(bool combine_snow, double snow_depth, 
 	double ice = imass;
 	double water = wmass;
 	double peat = peat_frac * depth;
-	double mineral = mineral_volume * (1.0 - (*soilcolumn).soiltype.wsats_min);
-	double organic = organic_volume * (1.0 - organic_wsats);
-	double coarse_root = (1.0 - eff_volume_frac) * depth;
+	double mineral = (!acrotelm && !catotelm) ? mineral_volume * (1.0 - (*soilcolumn).soiltype.wsats_min) : 0.0;
+	double organic = (!acrotelm && !catotelm) ? organic_volume * (1.0 - organic_wsats) : 0.0;
+	double coarse_root = (!acrotelm && !catotelm) ? (1.0 - eff_volume_frac) * depth : 0.0;
 
 	// Soil layer air (mm)
 	double air = max(0.0, por - (wmass + imass));
@@ -2495,10 +2501,19 @@ void Soilcolumn::add_soillayer(double soil_layer_depth, double soil_layer_depth_
 /// Returns surface litter C content
 /** Returns surface litter C content
  */
-double Soilcolumn::get_surflitterC() {
+double Soilcolumn::get_surflittercmass() {
 	Soillayer& soillayer = soillayers[0];
 	return soillayer.sompool[SURFMETA].cmass + soillayer.sompool[SURFSTRUCT].cmass +
 		soillayer.sompool[SURFFWD].cmass + soillayer.sompool[SURFCWD].cmass;
+}
+
+/// Returns surface litter N content
+/** Returns surface litter N content
+ */
+double Soilcolumn::get_surflitternmass() {
+	Soillayer& soillayer = soillayers[0];
+	return soillayer.sompool[SURFMETA].nmass + soillayer.sompool[SURFSTRUCT].nmass +
+		soillayer.sompool[SURFFWD].nmass + soillayer.sompool[SURFCWD].nmass;
 }
 
 /// Returns a vector with soillayer values for a certain property
@@ -2597,7 +2612,7 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 		case ANMIN:
 			prop[lyr] = soillayers[lyr].anmin;
 			break;
-		case ANIMMOB:
+		case ANIMM:
 			prop[lyr] = soillayers[lyr].animmob;
 			break;
 		case AORGCLEACH:
@@ -3589,7 +3604,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	else {
 		evap = 0.0;
 	}
-		
+
 
 	// Evapotranspiration
 
@@ -3654,10 +3669,12 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Water runoff (Granberg et al. 1999 eqn 10, table 1)
 	double ideal_runoff = exp(-0.01 * wtd);
-	if (wtot_acrotelm > 0.0 && soillayers[0].imass / soillayers[0].wsats < 0.7)
+	if (wtot_acrotelm > 0.0 && soillayers[0].imass * 0.7 < soillayers[0].wmass) {
 		runoff_surf = min(ideal_runoff, wtot_acrotelm);
-	else
-		runoff_surf = 0.0;	
+	}
+	else {
+		runoff_surf = 0.0;
+	}
 
 	// Water runon
 	// External run on or off - but only when there's flowing water
@@ -3753,8 +3770,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Water content in each sublayer
 	double surfw_sat = 0.0;
-	double value[NSOILLAYERS_MAX];
-	double sub_water[NSOILLAYERS_MAX];
+	double value[NSUBLAYERS_ACRO];
+	double sub_water[NSUBLAYERS_ACRO];
 
 	// Water table below surface
 	if (wtd > 0.0) {
@@ -3833,7 +3850,24 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	}
 
 	// Total water change during calculation of water content based on WTD
-	waddon += wtot_acrotelm - wtot_acrotelm_init;
+	double wdiff = wtot_acrotelm_init - wtot_acrotelm;
+
+	// Lost water, need to be added. Start from lowest acrotelm layer
+	if (wdiff > 1.0e-14) {
+		for (int lyr = nacrotelm -1; lyr >= 0; lyr--) {
+			double wadd = min(soillayers[lyr].wsats - (soillayers[lyr].wmass + soillayers[lyr].imass), wdiff);
+			soillayers[lyr].wmass += wadd;
+			wdiff -= wadd;
+		}
+	}
+	// Too much water, need to subtract. Start from top acrotelm layer
+	else if (wdiff < -1.0e-14) {
+		for (int lyr = 0; lyr < nacrotelm; lyr++) {
+			double wsub = min(soillayers[lyr].wmass, -wdiff);
+			soillayers[lyr].wmass -= wsub;
+			wdiff += wsub;
+		}
+	}
 
 	// Remove missing water from runoff
 	double wmass_moved = min(runoff_surf, waddon);
@@ -5730,6 +5764,21 @@ void Soilcolumn::vertical_movement() {
 					// Fraction of matter to be moved
 					double frac;
 
+					// Move mineral nitrogen
+					frac = diff_volume / (mineral_volume + som_volume + humus_volume);
+					soillayer_below.NH4_mass += soillayer.NH4_mass * frac;
+					soillayer_below.NO3_mass += soillayer.NO3_mass * frac;
+					soillayer_below.N2O_mass += soillayer.N2O_mass * frac;
+					soillayer_below.NO2_mass += soillayer.NO2_mass * frac;
+					soillayer_below.NO_mass += soillayer.NO_mass * frac;
+					soillayer_below.N2_mass += soillayer.N2_mass * frac;
+					soillayer.NH4_mass *= 1.0 - frac;
+					soillayer.NO3_mass *= 1.0 - frac;
+					soillayer.N2O_mass *= 1.0 - frac;
+					soillayer.NO2_mass *= 1.0 - frac;
+					soillayer.NO_mass *= 1.0 - frac;
+					soillayer.N2_mass *= 1.0 - frac;
+
 					if (organic_frac_int < organic_frac_move) {
 						// Check if mineral matter is enough to fulfill move
 						if (diff_volume <= mineral_volume) {
@@ -5758,11 +5807,11 @@ void Soilcolumn::vertical_movement() {
 							// Only organic matter to move
 							if (negligible(mineral_volume)) {
 								frac_min = 0.0;
-								frac_org = diff_volume / som_volume;
+								frac_org = min(1.0, diff_volume / som_volume);
 							}
 							// Only mineral matter to move
 							else if (negligible(som_volume)) {
-								frac_min = diff_volume / mineral_volume;
+								frac_min = min(1.0, diff_volume / mineral_volume);
 								frac_org = 0.0;
 							}
 							// All mineral and organic matter needs to move. Only humus left
@@ -5824,12 +5873,29 @@ void Soilcolumn::vertical_movement() {
 						}
 					}
 				}
+				// Movement upwards
 				else {
+
+					// Move mineral nitrogen
+					double frac = -diff_volume / (soillayer_below.depth * soillayer_below.eff_volume_frac);
+					soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
+					soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
+					soillayer.N2O_mass += soillayer_below.N2O_mass * frac;
+					soillayer.NO2_mass += soillayer_below.NO2_mass * frac;
+					soillayer.NO_mass += soillayer_below.NO_mass * frac;
+					soillayer.N2_mass += soillayer_below.N2_mass * frac;
+					soillayer_below.NH4_mass *= 1.0 - frac;
+					soillayer_below.NO3_mass *= 1.0 - frac;
+					soillayer_below.N2O_mass *= 1.0 - frac;
+					soillayer_below.NO2_mass *= 1.0 - frac;
+					soillayer_below.NO_mass *= 1.0 - frac;
+					soillayer_below.N2_mass *= 1.0 - frac;
+
 					// Move mineral, organic and humus matter upwards from the layer below
 					double up_volume = -diff_volume;
 
 					// First move humus
-					double humus_volume_below = (soillayer_below.sompool[SURFHUMUS].cmass + 
+					double humus_volume_below = (soillayer_below.sompool[SURFHUMUS].cmass +
 						soillayer_below.sompool[SURFMICRO].cmass) / rho_high * MM_PER_M;
 
 					if (!negligible(humus_volume_below)) {
@@ -5859,12 +5925,12 @@ void Soilcolumn::vertical_movement() {
 						// Check if mineral and organic matter is enough to fulfill move
 						double frac_min, frac_org;
 						if (negligible(organic_volume_below)) {
-							frac_min = up_volume / mineral_volume_below;
+							frac_min = min(1.0, up_volume / mineral_volume_below);
 							frac_org = 0.0;
 						}
 						else if (negligible(mineral_volume_below)) {
 							frac_min = 0.0;
-							frac_org = up_volume / organic_volume_below;
+							frac_org = min(1.0, up_volume / organic_volume_below);
 						}
 						else {
 							// Calculate mineral volume to be moved with interface fraction
@@ -5937,16 +6003,25 @@ void Soilcolumn::vertical_movement() {
 			// Update soil layer mineral volume
 			soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
 
-			double wsats_min_new = soillayer.mineral_volume * soiltype.wsats_min;
-
-			if (soillayer.temp > 0.0) {
-				soillayer.wmass += wsats_min_new;
+			double wsats_new;
+			if (soillayer.acrotelm) {
+				wsats_new = soillayer.mineral_volume * acrotelm_por;			
+			} 
+			else if (soillayer.catotelm) {
+				wsats_new = soillayer.mineral_volume * catotelm_por;
 			}
 			else {
-				soillayer.imass += wsats_min_new;
+				wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
 			}
 
-			patch.fluxes.report_flux(Fluxes::WADDED, wsats_min_new);
+			if (soillayer.temp > 0.0) {
+				soillayer.wmass += wsats_new;
+			}
+			else {
+				soillayer.imass += wsats_new;
+			}
+
+			patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 		}
 		
 		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10)

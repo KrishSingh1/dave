@@ -18,6 +18,7 @@ outputdirectory "./"
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.
 file_cmass "cmass.out"
+file_cmass_agb "cmass_agb.out"
 file_anpp "anpp.out"
 file_agpp "agpp.out"
 file_agpp_no "agpp_no.out"
@@ -33,9 +34,13 @@ file_cpool "cpool.out"
 !file_clitter "clitter.out"
 file_soildepth "soildepth.out"
 file_csoil "csoil.out"
+file_csoil_depth "csoil_depth.out"
 file_rsoil "rsoil.out"
-!file_aburned_area_out "annual_burned_area.out"
-!file_simfireanalysis_out "simfireanalysis.out"
+file_rsoil_depth "rsoil_depth.out"
+file_tau_soil "tau_soil.out"
+file_tau_soil_depth "tau_soil_depth.out"
+file_aburned_area_out "annual_burned_area.out"
+file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
@@ -48,6 +53,8 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_nsoil_depth "nsoil_depth.out"
+file_netnminsoil_depth "netnminsoil_depth.out"
 file_ctonsom "cton_som.out"
 !file_nlitter "nlitter.out"
 file_nuptake "nuptake.out"
@@ -62,22 +69,33 @@ file_clitterinput "clitterinput.out"
 file_csomlitterinput "csomlitterinput.out"
 file_soilcperma "soilc_permafrost.out"
 file_csom "csom.out"
+file_eff_volume "eff_volume.out"
+file_temp_mod "mod_temp.out"
+file_moist_mod "mod_moist.out"
+file_tot_mod "mod_total.out"
+
+file_wflux "wflux.out"
+file_wpool "wpool.out"
+file_wsats "wsats.out"
 
 ! Monthly outputs
-!file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
-!file_mrh "mrh.out"
-!file_mgpp "mgpp.out"
-!file_mra "mra.out"
-!file_mnee "mnee.out"
+file_mnpp "mnpp.out"
+file_mlai "mlai.out"
+file_mrh "mrh.out"
+file_mgpp "mgpp.out"
+file_mra "mra.out"
+file_mnee "mnee.out"
 file_mnetmin "mnetmin.out"
-!file_maet "maet.out"
-!file_mpet "mpet.out"
-!file_mevap "mevap.out"
-!file_mintercep "mintercep.out"
-!file_mrunoff "mrunoff.out"
-!file_mwmass "mwmass.out"
-!file_mimass "mimass.out"
+file_mcton_leaf "mcton_leaf.out"
+file_mvmaxnlim "mvmaxnlim.out"
+file_mlambda "mlambda.out"
+file_maet "maet.out"
+file_mpet "mpet.out"
+file_mevap "mevap.out"
+file_mintercep "mintercep.out"
+file_mrunoff "mrunoff.out"
+file_mwmass "mwmass.out"
+file_mimass "mimass.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
@@ -86,23 +104,22 @@ file_mwcont_lower "mwcont_lower.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
 file_mtemp "mtemp.out"
-file_msoiltempdepth25 "soiltemp25cm.out"
 file_mwmasslyr "mwmasslyr.out"
 file_mimasslyr "mimasslyr.out"
 file_mwimasslyr "mwimasslyr.out"
 file_mdrainlyr "mdrainlyr.out"
-file_mch4 "mch4.out"
-file_mch4diff "mch4_diffusion.out"
-file_mch4plan "mch4_plant.out"
-file_mch4ebull "mch4_ebullition.out"
+!file_mch4 "mch4.out"
+!file_mch4diff "mch4_diffusion.out"
+!file_mch4plan "mch4_plant.out"
+!file_mch4ebull "mch4_ebullition.out"
 
 file_msnow "msnowdepth.out"
 file_msnowcover "msnowcover.out"
 file_mwtp "mwtp.out"
 file_mald "mald.out"
-file_wetland_water_added "wetland_water_added.out"
+!file_wetland_water_added "wetland_water_added.out"
 
-!file_mburned_area_out "monthly_burned_area.out"
+file_mburned_area_out "monthly_burned_area.out"
 
 ! Daily output
 !file_daily_climate "dclimate.out"
@@ -130,6 +147,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
+hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
 npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
@@ -170,14 +188,15 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 
 depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
-ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM), 2 - Jin et al. 2020
+ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-ifsoaksnow 0			! Whether to soak snowpack with melted water (1), or not (0)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content (1), or not (0)
+ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
+iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
+ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifverticalmixing 1              ! Whether to vertical mix soil organic matter
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
@@ -324,6 +343,7 @@ group "shrub" (
 	root_dist 0.6 0.4
 	root_beta 0.938
 	longevity 100
+	ag_woody_frac 0.45
 
 	fireresist 0.12 	! Common to all shrubs
 

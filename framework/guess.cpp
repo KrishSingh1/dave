@@ -1352,8 +1352,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	for (m=0; m<12; m++) {
 		mlai[m] = 0.0;
 		mlai_max[m] = 0.0;
-		mvmaxnlim[m] = 0.0;
 		mgpp_no[m] = 0.0;
+		mvmaxnlim[m] = 0.0;
+		mlambda[m] = 0.0;
 	}
 
 	// bvoc
@@ -1890,7 +1891,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
-		storendemand = max(0.0, min(max(0.0, agpp_no) * scale_n_storage, max_n_storage) - nstore()); // DW_COMMENT needed all min max
+		storendemand = max(0.0, min(max(0.0, agpp_no) * scale_n_storage, max_n_storage) - nstore());
 
 	return storendemand;
 }
@@ -2768,7 +2769,7 @@ void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoill
 		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
 	}
 
-	if (hydrology != GERTEN) {
+	if (hydrology == RICHARDS) {
 
 		// Standard soil layer thickness (mm)
 		double std_depths[NSOILLAYERS_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 500.0, 1000.0, 1000.0, 1500.0, 3000.0, 4000.0, 6000.0, 8000.0 };
@@ -2819,7 +2820,7 @@ void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoill
 				double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
 				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYERS_MAX - 1) {
 					double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
-					lyr_depths[lyr] = floor(lyr_depth / 100.0) * 100.0;;
+					lyr_depths[lyr] = floor(lyr_depth / 100.0) * 100.0;
 					tot_depth += lyr_depths[lyr];
 					remain_depth = depth - tot_depth;
 				}
@@ -2832,7 +2833,15 @@ void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoill
 			nsoillayers = lyr;
 		}
 	}
-	else {
+	else if (hydrology == MILLER) {
+		// 100mm thick layers
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			lyr_depths[lyr] = soil_depth / NSOILLAYERS_MAX;
+		}
+		nsoillayers = NSOILLAYERS_MAX;
+	}
+	else if (hydrology == GERTEN) {
+		// Upper layer 500mm thick and lower layer 1000mm
 		lyr_depths[0] = SOILDEPTH_UPPER;
 		lyr_depths[1] = soil_depth - lyr_depths[0];
 

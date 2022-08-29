@@ -5755,17 +5755,19 @@ void Soilcolumn::vertical_movement() {
 				Soillayer& soillayer_below = soillayers[lyr+1];
 
 				// Interface organic fraction
-				double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
-					(soillayer.organic_volume + soillayer.mineral_volume + soillayer_below.organic_volume + soillayer_below.mineral_volume);
+				//double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
+				//	(soillayer.organic_volume + soillayer.mineral_volume + soillayer_below.organic_volume + soillayer_below.mineral_volume);
 
 				if (diff_volume > 0.0) {
 					// Move mineral and organic matter downwards to the next layer
-					
+					double organic_frac_int = (2.0 * soillayer.organic_volume + soillayer_below.organic_volume) /
+						(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) + soillayer_below.organic_volume + soillayer_below.mineral_volume);
+
 					// Fraction of matter to be moved
 					double frac;
 
 					// Move mineral nitrogen
-					frac = diff_volume / (mineral_volume + som_volume + humus_volume);
+					frac = min(1.0, diff_volume / (mineral_volume + som_volume + humus_volume));
 					soillayer_below.NH4_mass += soillayer.NH4_mass * frac;
 					soillayer_below.NO3_mass += soillayer.NO3_mass * frac;
 					soillayer_below.N2O_mass += soillayer.N2O_mass * frac;
@@ -5875,9 +5877,12 @@ void Soilcolumn::vertical_movement() {
 				}
 				// Movement upwards
 				else {
+					
+					double organic_frac_int = (soillayer.organic_volume + 2.0 * soillayer_below.organic_volume) /
+						(soillayer.organic_volume + soillayer.mineral_volume + 2.0 * (soillayer_below.organic_volume + soillayer_below.mineral_volume));
 
 					// Move mineral nitrogen
-					double frac = -diff_volume / (soillayer_below.depth * soillayer_below.eff_volume_frac);
+					double frac = min(1.0, -diff_volume / (soillayer_below.depth * soillayer_below.eff_volume_frac));
 					soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
 					soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
 					soillayer.N2O_mass += soillayer_below.N2O_mass * frac;

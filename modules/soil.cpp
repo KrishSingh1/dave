@@ -1411,6 +1411,8 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 		vegetation.nextobj();
 	}
+
+	// Restrict aet used to a value below the maximum available liquid water above the wilting point
 	aet_acrotelm = min(aet_acrotelm, water_acro);
 	aet_evap = min(aet_evap, water_evap);
 
@@ -1456,7 +1458,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		hydrological cycle in LPJ-WHy. 
 		Kim and Verma (1996): ET = PET * (1.02 + 0.00075 * WTP)
 		*/ 
-
+		 
 		// Note 1. that this is now the TOTAL evapotranspiration, replacing aet_total
 
 		// Note 2: An alternative parameterisation was given by Yurova et al. (2006)
@@ -2935,7 +2937,7 @@ void Soil::update_snow_properties(const int& daynum, const double& dailyairtemp,
 	// Update snowdens using the Wania et al. simple snow compaction scheme
 
 	// We assume fresh snow unless snow_days > 0.75 * 365;
-	if (date.year >= 1 && snow_days >= 0.75 * snow_days_prev) {
+	if (date.year >= 1 && snow_days > 0.75 * snow_days_prev) {
 		snowdens = snowdens_start + (snowdens_end - snowdens_start) / (snow_days_prev * 0.25) * (snow_days - 0.75 * snow_days_prev);
 		 
 		// Restrict density to the range [snowdens_end,snowdens_start]

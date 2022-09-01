@@ -1603,7 +1603,7 @@ double Individual::sla() const {
 
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
-		current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] * 0.9) / get_cmass_leaf();
+		current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 	}
 
 	return current_sla;

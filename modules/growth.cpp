@@ -200,16 +200,18 @@ double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass
 * At 70% of maximum storage capacity the fraction relocated is dropped
 * At 100% it is zero
 */
-double calc_nrelocfrac_daily(double cton_min, double cmass_storage, double nmass_storage) {
+double calc_nrelocfrac_daily(double cton_min, double cton_max, double cmass_storage, double nmass_storage) {
 	
 	// Current N storage level
-	double cton_current = cmass_storage / nmass_storage;
+	double ntoc_current = nmass_storage / cmass_storage;
 
-	// If nearing maximum N storage level
-	if (1.0 / cton_current > 1.0 / cton_min * 0.7) 
-		return max(0.0, nrelocfrac * (1.0 - (1.0 / cton_current - 1.0 / cton_min * 0.7) / (1.0 / cton_min * (1.0 - 0.7))));
-	else
-		return nrelocfrac;
+	// 20% decrease or increase in N retranslocation depending on if you are at 
+	// the maximum storage capacity or minimum
+	double nreloc_max = nrelocfrac * 1.2;
+	double nreloc_min = nrelocfrac / 1.2;
+
+	return max(nreloc_min, min(nreloc_max, nreloc_max - (nreloc_max - nreloc_min) *	
+		(ntoc_current - 1.0 / cton_max) / (1.0 / cton_min - 1.0 / cton_max)));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1615,9 +1617,11 @@ void growth_daily_grass(Patch& patch) {
 	// maximum daily growth rate
 	const double MAX_GROWTH_RATE = 0.05;
 	// maximum gpp trend growth modifier
-	const double GPP_FAC_MAX = 0.1;
+	const double GPP_FAC_MAX = 1.0;
 	// storage to biomass ratio growth modifier max
-	const double SB_FAC_MAX = 1.0;
+	const double SB_FAC_MAX = 2.0;
+	// water scalar minimum for growth
+	const double WSCAL_MIN = 0.2;
 	// fraction of N limitation that C growth will experience
 	const double FRAC_C_OF_N_LIM = 0.8;
 	// C retranslocation fraction for C3 grass senescense
@@ -1807,10 +1811,16 @@ void growth_daily_grass(Patch& patch) {
 			double gpp_trend = indiv.gpptolai_15.trend();
 			double gpp_fac = gpp_trend > 0.0 ? GPP_FAC_MAX : GPP_FAC_MAX * 0.5;
 
-			// Storage to biomass growth modifier 
+			// Storage to biomass growth modifier (adopted from eqn 13 Johnson & Thornley 1983)
 			// Lower storage fraction less growth
-			double sb_ratio = !negligible(indiv.get_cmass_leaf() + indiv.cmass_root) ? min(5.0, indiv.cmass_storage / (indiv.get_cmass_leaf() + indiv.cmass_root)) : SB_FAC_MAX;
-			double sb_fac = sb_ratio > 1.0 && gpp_trend > 0.0 ? sb_ratio : min(1.0, 1.0 - (SB_FAC_MAX - min(SB_FAC_MAX, sb_ratio)) * (SB_FAC_MAX - min(SB_FAC_MAX, sb_ratio)) / (SB_FAC_MAX * SB_FAC_MAX));
+			double sb_ratio = !negligible(indiv.get_cmass_leaf() + indiv.cmass_root) ? min(SB_FAC_MAX, indiv.cmass_storage / (indiv.get_cmass_leaf() + indiv.cmass_root)) : SB_FAC_MAX;
+			double sb_fac;
+			if (sb_ratio <= SB_FAC_MAX / 2.0) {
+				sb_fac = (sb_ratio * (SB_FAC_MAX - sb_ratio)) / (SB_FAC_MAX * SB_FAC_MAX);
+			}
+			else {
+				sb_fac = gpp_trend > 0.0 ? sb_ratio * sb_ratio / (SB_FAC_MAX * SB_FAC_MAX) : 0.25;
+			}
 
 			// Fraction of leaves that die during one day due to frost (eqn 2 and 3 Höglind 2016, error in paper eqn)
 			// Temperature where half the leaves would be killed. Should be flexible due to hardening, but here set to a fixed value
@@ -1819,8 +1829,7 @@ void growth_daily_grass(Patch& patch) {
 			double frost_sen = air_temp < 0.0 ? 1.0 - max(0.5, 1.0 / (1.0 + exp(lethal_temp_50 - air_temp))) : 0.0;
 
 			// Water stress growth modifier 
-			double wscal_fac = (patch.soil.temp > 0.0 && patch.pft[indiv.pft.id].wscal_5.mean() > 0.2) ? 
-				(patch.pft[indiv.pft.id].wscal_5.mean() - 0.2) / 0.8 : 0.0;
+			double wscal_fac = max(0.0, (patch.pft[indiv.pft.id].wscal_5.mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
 			
 			// Water limitation increases senescence
 			double wscal_sen = 1.0 + (1.0 - wscal_fac);
@@ -1828,13 +1837,15 @@ void growth_daily_grass(Patch& patch) {
 			// Temperature growth modifier
 			double opt_temp = (indiv.pft.pstemp_high + indiv.pft.pstemp_low) / 2.0;
 			double min_temp = max(0.0, indiv.pft.pstemp_min);
-			double tscal_fac = max(0.0, (air_temp - min_temp) / (opt_temp - min_temp));
+			double tscal_fac = (1.0 - 0.01 * exp(4.6 * (air_temp - indiv.pft.pstemp_high) / (indiv.pft.pstemp_max - indiv.pft.pstemp_high))) /
+				(1.0 + exp(4.6 * (opt_temp - air_temp) / (opt_temp - indiv.pft.pstemp_min)));
 			
 			// Temperature senescence modifier
 			double tscal_sen = max(0.1, tscal_fac);
 
 			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, Höglind 2016)
-			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_fac);
+			double const g_max = 0.1;
+			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 			
 			// Storage used for new leaf and root growth and updating old leaves and roots
@@ -1858,38 +1869,13 @@ void growth_daily_grass(Patch& patch) {
 				// Total N demand
 				double ndemand_tot = ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand;
 				
-				// Growth and Update N fraction of storage
-				double guN_fac = ndemand_tot / indiv.nmass_storage;
-
-				// Fration of growth and update N demand meet
-				double fndemand = 0.0;
-				double fupndemand = 0.0;
-
-				// Only N growth or update if there is C growth
-				if (g_fac > 0.0) {
-
-					// Fraction of N storage used is less that C storage used -> no N limitation
-					if (guN_fac <= g_fac) {
-						fndemand = 1.0;
-						fupndemand = 1.0;
-					}
-					// N demand higher than total storage pool -> strong N limitation
-					else if (guN_fac > 1.0) {
-						fndemand = 0.05 * indiv.nmass_storage / ndemand_tot;
-						fupndemand = fndemand;
-					}
-					else {
-						// N limitation determined from difference between C storage fraction to N storage fraction used
-						double fnlim = 0.9;
-						fndemand = 0.05 + 0.95 * pow(fnlim, guN_fac / g_fac - 1.0);
-						fupndemand = fndemand;
-					}
-				}
+				// Fraction of growth and update N that storage can meet
+				double fndemand = min(1.0, 0.9 * indiv.nmass_storage / ndemand_tot);
 
 				// Leaf and root N growth and update
 				ngrow_leaf = ngrow_leaf_demand * fndemand;
-				ngrow_root = ngrow_root_demand * fndemand + nup_root_demand * fupndemand;
-				nup_leaf = nup_leaf_demand * fupndemand;
+				ngrow_root = (ngrow_root_demand + nup_root_demand) * fndemand;
+				nup_leaf = nup_leaf_demand * fndemand;
 
 				// Leaf N mass update according to compartment size
 				if (!negligible(indiv.get_cmass_leaf())) {
@@ -1900,7 +1886,7 @@ void growth_daily_grass(Patch& patch) {
 				}
 
 				// Reduce C depending on fndemand to not get too high C:N ratios
-				if (ifnlim && date.year > freenyears && !negligible(fndemand - 1.0)) {
+				if (ifnlim && date.year > freenyears) {
 					cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
 					cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
 
@@ -1926,7 +1912,7 @@ void growth_daily_grass(Patch& patch) {
 
 			// Calculate daily C and N retranslocation fraction
 			crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
-			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.cton_leaf_aopt, indiv.cmass_storage, indiv.nmass_storage);
+			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.cmass_storage, indiv.nmass_storage);
 
 			// Movement variables for C and N (eqn 26a-d Johnson & Thornley 1983)
 			c1 = min(1.0, LAMBDA * s_fac) * indiv.cmass_leafs[0];

@@ -15,6 +15,7 @@
 #include <vector>
 #include "gutil.h"
 #include "globalco2file.h"
+#include "soilinput.h"
 #include "spinupdata.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"
@@ -101,7 +102,7 @@ protected:
 	                                     double hist_mprec[NYEAR_HIST][12],
 	                                     double hist_msun[NYEAR_HIST][12]);
 
-protected:
+private:
 
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
@@ -111,6 +112,10 @@ protected:
 		double lat;
 		xtring descrip;
 	};
+
+	std::vector<std::pair<double, double> > translate_gridlist_to_coord(ListArray_id<Coord>& gridlist);
+
+	SoilInput soilinput;
 
 	/// Land cover input module
 	LandcoverInput landcover_input;

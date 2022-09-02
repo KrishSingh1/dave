@@ -898,7 +898,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 		
 			if (mort_shade>0.0) {
-				//mort_shade=mort_shade;
+				mort_shade=mort_shade;
 			}
 
 			// Mortality due to fire
@@ -1327,8 +1327,13 @@ void fire(Patch& patch,double& fireprob) {
 	for (int day = 0; day < date.year_length(); day++) {
 
 		// Eqn 2
+		// WHyMe - no fires unless there is some soil melt.
+		if (patch.soil.dthaw[day] > 0.0 && date.year > 100) // m
 		pm=exp(-PI*patch.soil.dwcontupper[day]/me_mean*patch.soil.dwcontupper[day]/
 			me_mean);
+
+		else
+			pm = 0.0;
 
 		// Eqn 4
 		n+=pm;

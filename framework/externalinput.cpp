@@ -27,6 +27,10 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 		// Read next record in file
 		eof =! readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
 
+		// Deal with rounding errors associated with reading in text files
+		dlon = roundoff(dlon, 6);
+		dlat = roundoff(dlat, 6);
+
 		if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
 			Coord& c = gridlist.createobj(); // add new coordinate to grid list
 
@@ -61,6 +65,16 @@ void LandcoverInput::init() {
 
 	bool openLUfile = false;
 
+	// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
+	if (iftwolayersoil && run[PEATLAND]) {
+		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if iftwolayersoil = 1");
+	}
+
+	// Must used fixed root distribution when using the two layer soil 
+	if (iftwolayersoil && rootdistribution == ROOTDIST_JACKSON) {
+		fail("LandcoverInput::init(): rootdistribution must be fixed, not jackson, if iftwolayersoil = 1");
+	}
+
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 		if(run[i] && i != NATURAL)
 			openLUfile = true;
@@ -73,7 +87,7 @@ void LandcoverInput::init() {
 
 		if(file_lu != "")	{
 			if(!LUdata.Open(file_lu, gridlist)) {
-				fail("initio: could not open %s for input",(char*)file_lu);
+				fail("LandcoverInput::init(): could not open %s for input",(char*)file_lu);
 			}
 			else {
 				lcfrac_fixed = false;
@@ -398,6 +412,24 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 						lc.frac[i] = lcfrac;
 						sum_tot += lcfrac;
+						sum_active += run[i] * lc.frac[i];
+					}
+				}
+
+				// Peatland/Natural balance
+				if (run[NATURAL] && run[PEATLAND]) {
+					if (lc.frac[NATURAL] >= lc.frac[PEATLAND])
+						lc.frac[NATURAL] -= lc.frac[PEATLAND]; // Reduce the Natural fraction by the Peatland fraction
+					else {
+						lc.frac[PEATLAND] = lc.frac[NATURAL]; // Limit the peatland to the Natural fraction
+						lc.frac[NATURAL] = 0.0; // ... and set the Natural fraction to 0.0 this year.
+					}
+
+					// Recalculate sum_tot and sum_active
+					sum_tot = 0.0;
+					sum_active = 0.0;
+					for (int i=0; i<NLANDCOVERTYPES; i++) {
+						sum_tot += lc.frac[i];
 						sum_active += run[i] * lc.frac[i];
 					}
 				}

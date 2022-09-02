@@ -238,7 +238,8 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			if(indiv.daily_nmass_leafloss > indiv.nmass_leaf) {
 				indiv.daily_nmass_leafloss = 0.0;
 			}
-		} else {
+		} 
+		else {
 			indiv.daily_nmass_leafloss = 0.0;
 		}
 
@@ -531,7 +532,7 @@ void growth_daily_crop(Patch& patch) {
 						cmass_seed = 0.1 * CMASS_SEED;
 						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
 					}
-				}
+				} 
 				else {
 					// add seed carbon on sowing date
 					if(date.day == ppftcrop.sdate) {

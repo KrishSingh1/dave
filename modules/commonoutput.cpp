@@ -39,6 +39,8 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_cpool", &file_cpool, 300, "Soil C output file");
 	declare_parameter("file_clitter", &file_clitter, 300, "Litter C output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
+	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
+
 	declare_parameter("file_firert", &file_firert, 300, "Fire retrun time output file");
 
 	declare_parameter("file_nmass", &file_nmass, 300, "N biomass output file");
@@ -79,7 +81,32 @@ CommonOutput::CommonOutput() {
 
 	// Daily output variables
 	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
-	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
+	declare_parameter("file_dflux", &file_dflux, 300, "Daily flux output file");
+	declare_parameter("file_dcmass_grass", &file_dcmass_grass, 300, "Daily cmass grass output file");
+
+    declare_parameter("file_msoiltempdepth5", &file_msoiltempdepth5, 300, "Soil temperature output file (5cm depth)");
+    declare_parameter("file_msoiltempdepth15", &file_msoiltempdepth15, 300, "Soil temperature output file (15cm depth)");
+	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
+    declare_parameter("file_msoiltempdepth35", &file_msoiltempdepth35, 300, "Soil temperature output file (35cm depth)");
+    declare_parameter("file_msoiltempdepth45", &file_msoiltempdepth45, 300, "Soil temperature output file (45cm depth)");
+    declare_parameter("file_msoiltempdepth55", &file_msoiltempdepth55, 300, "Soil temperature output file (55cm depth)");
+    declare_parameter("file_msoiltempdepth65", &file_msoiltempdepth65, 300, "Soil temperature output file (65cm depth)");
+    declare_parameter("file_msoiltempdepth75", &file_msoiltempdepth75, 300, "Soil temperature output file (75cm depth)");
+    declare_parameter("file_msoiltempdepth85", &file_msoiltempdepth85, 300, "Soil temperature output file (85cm depth)");
+    declare_parameter("file_msoiltempdepth95", &file_msoiltempdepth95, 300, "Soil temperature output file (95cm depth)");
+    declare_parameter("file_msoiltempdepth105", &file_msoiltempdepth105, 300, "Soil temperature output file (105cm depth)");
+    declare_parameter("file_msoiltempdepth115", &file_msoiltempdepth115, 300, "Soil temperature output file (115cm depth)");
+    declare_parameter("file_msoiltempdepth125", &file_msoiltempdepth125, 300, "Soil temperature output file (125cm depth)");
+    declare_parameter("file_msoiltempdepth135", &file_msoiltempdepth135, 300, "Soil temperature output file (135cm depth)");
+    declare_parameter("file_msoiltempdepth145", &file_msoiltempdepth145, 300, "Soil temperature output file (145cm depth)");
+
+	declare_parameter("file_mch4", &file_mch4, 300, "Monthly CH4 emissions, total");
+	declare_parameter("file_mch4diff", &file_mch4diff, 300, "Monthly CH4 emissions, diffusion");
+	declare_parameter("file_mch4plan", &file_mch4plan, 300, "Monthly CH4 emissions, plant-mediated");
+	declare_parameter("file_mch4ebull", &file_mch4ebull, 300, "Monthly CH4 emissions, ebullition");
+	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
+	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
+	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
 }
 
 
@@ -154,6 +181,10 @@ void CommonOutput::define_output_tables() {
 	cmass_columns += ColumnDescriptors(pfts,               8, 3);
 	cmass_columns += ColumnDescriptor("Total",             8, 3);
 	cmass_columns += ColumnDescriptors(landcovers,        13, 3);
+
+	// ALD
+	ColumnDescriptors mald_columns = month_columns;
+	mald_columns += ColumnDescriptor("MAXALD", 8, 3);
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
@@ -230,6 +261,10 @@ void CommonOutput::define_output_tables() {
 	runoff_columns += ColumnDescriptor("Base",             8, 1);
 	runoff_columns += ColumnDescriptor("Total",            8, 1);
 
+	// WETLAND WATER ADDED
+	ColumnDescriptors wetland_water_added_columns;
+	wetland_water_added_columns += ColumnDescriptor("H2OAdded", 10, 1);
+
 	// SPECIESHEIGHTS
 	ColumnDescriptors speciesheights_columns;
 	speciesheights_columns += ColumnDescriptors(pfts,      8, 2);
@@ -255,10 +290,10 @@ void CommonOutput::define_output_tables() {
 	nsources_columns += ColumnDescriptor("fix",            8, 2);
 	nsources_columns += ColumnDescriptor("fert",           8, 2);
 	nsources_columns += ColumnDescriptor("input",          8, 2);
-	nsources_columns += ColumnDescriptor("min",            7, 2);
-	nsources_columns += ColumnDescriptor("imm",            7, 2);
-	nsources_columns += ColumnDescriptor("netmin",         7, 2);
-	nsources_columns += ColumnDescriptor("Total",          7, 2);
+	nsources_columns += ColumnDescriptor("min",            8, 2);
+	nsources_columns += ColumnDescriptor("imm",            8, 2);
+	nsources_columns += ColumnDescriptor("netmin",         8, 2);
+	nsources_columns += ColumnDescriptor("Total",          8, 2);
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
@@ -328,6 +363,15 @@ void CommonOutput::define_output_tables() {
 	dflux_columns += ColumnDescriptor("Est", 14, 6);
 	dflux_columns += ColumnDescriptor("NEE", 14, 6);
 
+	ColumnDescriptors dcmass_columns;
+	dcmass_columns += ColumnDescriptor("L0", 10, 6);
+	dcmass_columns += ColumnDescriptor("L1", 10, 6);
+	dcmass_columns += ColumnDescriptor("L2", 10, 6);
+	dcmass_columns += ColumnDescriptor("L3", 10, 6);
+	dcmass_columns += ColumnDescriptor("Ltot", 10, 6);
+	dcmass_columns += ColumnDescriptor("Cstore", 10, 6);
+
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -343,7 +387,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	create_output_table(out_firert,         file_firert,         firert_columns);
-	create_output_table(out_runoff,         file_runoff,         runoff_columns);
+	create_output_table(out_runoff,			file_runoff,         runoff_columns);
+	create_output_table(out_wetland_water_added, file_wetland_water_added, wetland_water_added_columns);
+	
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
 	create_output_table(out_amon,           file_amon,           amon_columns);
@@ -379,12 +425,40 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
+    
+    // Methane
+	create_output_table(out_mch4,           file_mch4,           month_columns);
+	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
+	create_output_table(out_mch4plan,       file_mch4plan,       month_columns);
+	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns);
+    
+    // Snow
+	create_output_table(out_msnow,          file_msnow,          month_columns);
+	create_output_table(out_mwtp,           file_mwtp,           month_columns);
+	create_output_table(out_mald,           file_mald,           mald_columns);
+
+	// Soil temperatures
+	create_output_table(out_msoiltempdepth5, file_msoiltempdepth5, month_columns);
+    create_output_table(out_msoiltempdepth15, file_msoiltempdepth15, month_columns);
+    create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
+    create_output_table(out_msoiltempdepth35, file_msoiltempdepth35, month_columns);
+    create_output_table(out_msoiltempdepth45, file_msoiltempdepth45, month_columns);
+    create_output_table(out_msoiltempdepth55, file_msoiltempdepth55, month_columns);
+    create_output_table(out_msoiltempdepth65, file_msoiltempdepth65, month_columns);
+    create_output_table(out_msoiltempdepth75, file_msoiltempdepth75, month_columns);
+    create_output_table(out_msoiltempdepth85, file_msoiltempdepth85, month_columns);
+    create_output_table(out_msoiltempdepth95, file_msoiltempdepth95, month_columns);
+    create_output_table(out_msoiltempdepth105, file_msoiltempdepth105, month_columns);
+    create_output_table(out_msoiltempdepth115, file_msoiltempdepth115, month_columns);
+    create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
+    create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
+    create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
 
 	// *** DAILY OUTPUT VARIABLES ***
 
-	create_output_table(out_dlai,		 file_dlai,			 dlai_columns);
-	create_output_table(out_dflux,		 file_dflux,		 dflux_columns);
-
+	create_output_table(out_dlai,			file_dlai,				dlai_columns);
+	create_output_table(out_dflux,			file_dflux,				dflux_columns);
+	create_output_table(out_dcmass_grass,	file_dcmass_grass,		dcmass_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -579,7 +653,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=nyear_spinup)
+	if (date.year >= 0)//nyear_spinup)
 		out.add_value(table, d);
 }
 
@@ -602,9 +676,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
 	double flux_nh3, flux_nox, flux_n2o, flux_n2, flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
 
-	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon
-	double m2toha = 10000.0;
-
 	// hold the monthly average across patches
 	double mnpp[12];
 	double mgpp[12];
@@ -624,7 +695,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mmon[12];
 	double mmon_mt1[12];
 	double mmon_mt2[12];
-	double aaet, apet, aevap, arunoff, aintercep;
+	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
+
+	double msoilt[12][SOILTEMPOUT];
+	double mch4[12];
+	double mch4_diff[12];
+	double mch4_ebull[12];
+	double mch4_plant[12];
+	double msnowdepth[12];
+	double mwtp[12];
+	double mald[12];
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -633,10 +713,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// output table
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year());
 
+
 	// guess2008 - reset monthly and annual sums across patches each year
-	for (m=0;m<12;m++)
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=mmon_mt1[m]=mmon_mt2[m]=0.0;
-	aaet = apet = aevap = arunoff = aintercep = 0.0;
+	for (m = 0; m < 12; m++) {
+		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
+
+		for (int sl = 0; sl < SOILTEMPOUT; sl++) msoilt[m][sl] = 0.0;
+		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
+	}
+	aaet = apet = aevap = arunoff = aintercep = awetland_water_added = 0.0;
 
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
 	double landcover_nmass[NLANDCOVERTYPES]={0.0};
@@ -697,6 +782,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double drainrunoff_gridcell=0.0;
 	double baserunoff_gridcell=0.0;
 	double runoff_gridcell=0.0;
+	double wetland_water_added_gridcell = 0.0;
 	double dens_gridcell=0.0;
 	double firert_gridcell=0.0;
 	double aiso_gridcell=0.0;
@@ -705,6 +791,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double amon_mt2_gridcell=0.0;
 	double nuptake_gridcell=0.0;
 	double vmaxnlim_gridcell=0.0;
+	double maxald_gridcell=0.0;
 
 	double andep_gridcell=0.0;
 	double anfert_gridcell=0.0;
@@ -736,7 +823,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_amon_mt2=0.0;
 	double standpft_nuptake=0.0;
 	double standpft_vmaxnlim=0.0;
-
 
 	// *** Loop through PFTs ***
 
@@ -844,7 +930,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
-
+					
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
@@ -1004,7 +1090,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					plot("C mass [kgC/m2]",pft.name,date.year,mean_standpft_cmass);
 					plot("NPP [kgC/m2/yr]",pft.name,date.year,mean_standpft_anpp);
 					plot("LAI [m2/m2]",pft.name,date.year,mean_standpft_lai);
-					if (pft.lifeform == TREE) plot("Dens [indiv/ha]",pft.name,date.year,mean_standpft_densindiv_total*m2toha);
+					if (pft.lifeform == TREE) plot("Dens [indiv/ha]",pft.name,date.year,mean_standpft_densindiv_total*M2_PER_HA);
 					if (mean_standpft_cmass_leaf > 0.0 && ifnlim) {
 						plot("Vmax N lim",pft.name,date.year,mean_standpft_vmaxnlim);
 						plot("leaf C:N [kgC/kg N]",pft.name,date.year,mean_standpft_cmass_leaf/mean_standpft_nmass_leaf);
@@ -1031,11 +1117,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_amon,      mean_standpft_amon);
 		outlimit(out,out_amon_mt1,  mean_standpft_amon_mt1);
 		outlimit(out,out_amon_mt2,  mean_standpft_amon_mt2);
-		outlimit(out,out_nmass,     (mean_standpft_nmass + mean_standpft_nlitter) * m2toha);
+		outlimit(out,out_nmass,     (mean_standpft_nmass + mean_standpft_nlitter) * M2_PER_HA);
 		outlimit(out,out_cton_leaf, standpft_mean_cton_leaf);
 		outlimit(out,out_vmaxnlim,  mean_standpft_vmaxnlim);
-		outlimit(out,out_nuptake,   mean_standpft_nuptake * m2toha);
-		outlimit(out,out_nlitter,   mean_standpft_nlitter * m2toha);
+		outlimit(out,out_nuptake,   mean_standpft_nuptake * M2_PER_HA);
+		outlimit(out,out_nlitter,   mean_standpft_nlitter * M2_PER_HA);
 
 		// print species heights
 		double height = 0.0;
@@ -1072,7 +1158,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 		stand.firstobj();
-		
+					
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
@@ -1115,7 +1201,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			surfrunoff_gridcell+=patch.asurfrunoff*to_gridcell_average;
 			drainrunoff_gridcell+=patch.adrainrunoff*to_gridcell_average;
 			baserunoff_gridcell+=patch.abaserunoff*to_gridcell_average;
-			runoff_gridcell+=patch.arunoff*to_gridcell_average;
+			runoff_gridcell += patch.arunoff*to_gridcell_average;
+			wetland_water_added_gridcell += patch.awetland_water_added*to_gridcell_average;
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001)
@@ -1189,9 +1276,23 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
+				msnowdepth[m] += patch.soil.msnowdepth[m]*M_PER_MM*to_gridcell_average;
+				mald[m] += patch.soil.mthaw[m]*M_PER_MM*to_gridcell_average;			// mm to m
+				mwtp[m] += patch.soil.mwtp[m]*M_PER_MM*to_gridcell_average;				// mm to m
+				
+				mch4[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
+				mch4_diff[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
+				mch4_plant[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
+				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
+				
+				for (int sl = 0; sl < SOILTEMPOUT; sl++) {
+					msoilt[m][sl] += patch.soil.T_soil_monthly[m][sl] * to_gridcell_average;
+				}
+
 			}
 
-
+			maxald_gridcell += patch.soil.maxthawdepththisyear*M_PER_MM*to_gridcell_average;	// mm to m
+			
 			// Calculate monthly NPP and LAI
 
 			Vegetation& vegetation = patch.vegetation;
@@ -1216,7 +1317,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		} // patch loop
 		++gc_itr;
 	} // stand loop
-
 
 	// In contrast to annual NEE, monthly NEE does not include fire
 	// or establishment fluxes
@@ -1248,26 +1348,28 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_runoff, drainrunoff_gridcell);
 	outlimit(out,out_runoff, baserunoff_gridcell);
 	outlimit(out,out_runoff, runoff_gridcell);
+	outlimit(out,out_wetland_water_added, wetland_water_added_gridcell);
+	
 	outlimit(out,out_aiso,   aiso_gridcell);
 	outlimit(out,out_amon,   amon_gridcell);
 	outlimit(out,out_amon_mt1,  amon_mt1_gridcell);
 	outlimit(out,out_amon_mt2,  amon_mt2_gridcell);
 
-	outlimit(out,out_nmass,    (nmass_gridcell + nlitter_gridcell) * m2toha);
+	outlimit(out,out_nmass,    (nmass_gridcell + nlitter_gridcell) * M2_PER_HA);
 	outlimit(out,out_cton_leaf, cton_leaf_gridcell);
 	outlimit(out,out_vmaxnlim,  vmaxnlim_gridcell);
-	outlimit(out,out_nuptake,   nuptake_gridcell * m2toha);
-	outlimit(out,out_nlitter,   nlitter_gridcell * m2toha);
+	outlimit(out,out_nuptake,   nuptake_gridcell * M2_PER_HA);
+	outlimit(out,out_nlitter,   nlitter_gridcell * M2_PER_HA);
 
-	outlimit(out,out_nsources, andep_gridcell * m2toha);
-	outlimit(out,out_nsources, anfix_gridcell * m2toha);
-	outlimit(out,out_nsources, anfert_gridcell * m2toha);
-	outlimit(out,out_nsources, (andep_gridcell + anfix_gridcell + anfert_gridcell) * m2toha);
-	outlimit(out,out_nsources, anmin_gridcell * m2toha);
-	outlimit(out,out_nsources, animm_gridcell * m2toha);
-	outlimit(out,out_nsources, (anmin_gridcell - animm_gridcell) * m2toha);
+	outlimit(out,out_nsources, andep_gridcell * M2_PER_HA);
+	outlimit(out,out_nsources, anfix_gridcell * M2_PER_HA);
+	outlimit(out,out_nsources, anfert_gridcell * M2_PER_HA);
+	outlimit(out,out_nsources, (andep_gridcell + anfix_gridcell + anfert_gridcell) * M2_PER_HA);
+	outlimit(out,out_nsources, anmin_gridcell * M2_PER_HA);
+	outlimit(out,out_nsources, animm_gridcell * M2_PER_HA);
+	outlimit(out,out_nsources, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 	outlimit(out,out_nsources, (anmin_gridcell - animm_gridcell + andep_gridcell +
-				anfix_gridcell + anfert_gridcell) * m2toha);
+				anfix_gridcell + anfert_gridcell) * M2_PER_HA);
 
 	// Print landcover totals to files
 	if (run_landcover) {
@@ -1293,41 +1395,68 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					landcover_vmaxnlim[i] /= landcover_cmass_leaf[i];
 				}
 
-				outlimit(out,out_nmass,     (landcover_nmass[i] + landcover_nlitter[i]) * m2toha);
+				outlimit(out,out_nmass,     (landcover_nmass[i] + landcover_nlitter[i]) * M2_PER_HA);
 				outlimit(out,out_cton_leaf, landcover_cton_leaf);
 				outlimit(out,out_vmaxnlim,  landcover_vmaxnlim[i]);
-				outlimit(out,out_nuptake,   landcover_nuptake[i] * m2toha);
-				outlimit(out,out_nlitter,   landcover_nlitter[i] * m2toha);
+				outlimit(out,out_nuptake,   landcover_nuptake[i] * M2_PER_HA);
+				outlimit(out,out_nlitter,   landcover_nlitter[i] * M2_PER_HA);
 			}
 		}
 	}
 
 	// Print monthly output variables
 	for (m=0;m<12;m++) {
-			outlimit(out,out_mnpp,         mnpp[m]);
-			outlimit(out,out_mlai,         mlai[m]);
-			outlimit(out,out_mgpp,         mgpp[m]);
-			outlimit(out,out_mra,          mra[m]);
-			outlimit(out,out_maet,         maet[m]);
-			outlimit(out,out_mpet,         mpet[m]);
-			outlimit(out,out_mevap,        mevap[m]);
-			outlimit(out,out_mrunoff,      mrunoff[m]);
-			outlimit(out,out_mintercep,    mintercep[m]);
-			outlimit(out,out_mrh,          mrh[m]);
-			outlimit(out,out_mnee,         mnee[m]);
-			outlimit(out,out_mwcont_upper, mwcont_upper[m]);
-			outlimit(out,out_mwcont_lower, mwcont_lower[m]);
-			outlimit(out,out_miso,         miso[m]);
-			outlimit(out,out_mmon,         mmon[m]);
-			outlimit(out,out_mmon_mt1,     mmon_mt1[m]);
-			outlimit(out,out_mmon_mt2,     mmon_mt2[m]);
+		outlimit(out,out_mnpp,         mnpp[m]);
+		outlimit(out,out_mlai,         mlai[m]);
+		outlimit(out,out_mgpp,         mgpp[m]);
+		outlimit(out,out_mra,          mra[m]);
+		outlimit(out,out_maet,         maet[m]);
+		outlimit(out,out_mpet,         mpet[m]);
+		outlimit(out,out_mevap,        mevap[m]);
+		outlimit(out,out_mrunoff,      mrunoff[m]);
+		outlimit(out,out_mintercep,    mintercep[m]);
+		outlimit(out,out_mrh,          mrh[m]);
+		outlimit(out,out_mnee,         mnee[m]);
+		outlimit(out,out_mwcont_upper, mwcont_upper[m]);
+		outlimit(out,out_mwcont_lower, mwcont_lower[m]);
+		outlimit(out,out_miso,         miso[m]);
+		outlimit(out,out_mmon,         mmon[m]);
+		outlimit(out,out_mmon_mt1,     mmon_mt1[m]);
+		outlimit(out,out_mmon_mt2,     mmon_mt2[m]);
 
-			aaet += maet[m];
-			apet += mpet[m];
-			aevap += mevap[m];
-			arunoff += mrunoff[m];
-			aintercep += mintercep[m];
+		aaet += maet[m];
+		apet += mpet[m];
+		aevap += mevap[m];
+		arunoff += mrunoff[m];
+		aintercep += mintercep[m];
+
+		// Arctic and wetland output
+		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.  
+		outlimit(out,out_msoiltempdepth5, msoilt[m][0]);
+        outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
+        outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
+        outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
+        outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
+        outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
+        outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
+        outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
+        outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
+        outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
+        outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
+        outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
+        outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
+        outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
+        outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
+		outlimit(out,out_mch4, mch4[m]);
+		outlimit(out,out_mch4diff, mch4_diff[m]);
+		outlimit(out,out_mch4plan, mch4_plant[m]);
+		outlimit(out,out_mch4ebull, mch4_ebull[m]);		
+		outlimit(out,out_msnow, msnowdepth[m]);
+		outlimit(out,out_mwtp, mwtp[m]);
+		outlimit(out,out_mald, mald[m]);
 	}
+
+	outlimit(out,out_mald, maxald_gridcell); // [m]
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)
@@ -1348,15 +1477,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soil.cpool_fast);
 			}
 			else {
-				plot("N flux [kgN/ha/yr]","fix",   date.year, -anfix_gridcell * m2toha);
-				plot("N flux [kgN/ha/yr]","dep",   date.year, -andep_gridcell * m2toha);
-				plot("N flux [kgN/ha/yr]","fert",  date.year, -anfert_gridcell * m2toha);
-				plot("N flux [kgN/ha/yr]","leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-				plot("N flux [kgN/ha/yr]","emissions",  date.year, flux_ntot * m2toha);
+				plot("N flux [kgN/ha/yr]","fix",   date.year, -anfix_gridcell * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","dep",   date.year, -andep_gridcell * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","fert",  date.year, -anfert_gridcell * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","emissions",  date.year, flux_ntot * M2_PER_HA);
 				plot("N flux [kgN/ha/yr]","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell -
-					(anfix_gridcell + andep_gridcell + anfert_gridcell)) * m2toha);
+					(anfix_gridcell + andep_gridcell + anfert_gridcell)) * M2_PER_HA);
 
-				plot("N mineralization [kgN/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
+				plot("N mineralization [kgN/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 
 				plot("Soil C [kgC/m2]","fine litter",   date.year, surfsoillitterc);
 				plot("Soil C [kgC/m2]","coarse litter", date.year, cwdc);
@@ -1377,7 +1506,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-	// Write fluxes to file
+    // Write fluxes to file
 
 	Landcover& lc = gridcell.landcover;
 
@@ -1395,32 +1524,32 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + c_org_leach_gridcell +
 			flux_seed + flux_charvest + lc.acflux_landuse_change + lc.acflux_harvest_slow);
 
-	outlimit(out,out_doc, (c_org_leach_gridcell) * m2toha);
+	outlimit(out,out_doc, (c_org_leach_gridcell) * M2_PER_HA);
 
 	if (run_landcover) {
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			if(run[i]) {
-				outlimit(out,out_doc, c_org_leach_lc[i] * m2toha);
+				outlimit(out,out_doc, c_org_leach_lc[i] * M2_PER_HA);
 			}
 		}
 	}
 
-	outlimit(out,out_nflux, -andep_gridcell * m2toha);
-	outlimit(out,out_nflux, -anfix_gridcell * m2toha);
-	outlimit(out,out_nflux, -anfert_gridcell * m2toha);
-	outlimit(out,out_nflux, anest_gridcell * m2toha);
-	outlimit(out,out_nflux, flux_ntot * m2toha);
-	outlimit(out,out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+	outlimit(out,out_nflux, -andep_gridcell * M2_PER_HA);
+	outlimit(out,out_nflux, -anfix_gridcell * M2_PER_HA);
+	outlimit(out,out_nflux, -anfert_gridcell * M2_PER_HA);
+	outlimit(out,out_nflux, -anest_gridcell * M2_PER_HA);
+	outlimit(out,out_nflux, flux_ntot * M2_PER_HA);
+	outlimit(out,out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * M2_PER_HA);
 	if (run_landcover) {
-			outlimit(out,out_nflux, flux_nseed * m2toha);
-			outlimit(out,out_nflux, flux_nharvest * m2toha);
-			outlimit(out,out_nflux, lc.anflux_landuse_change * m2toha);
-			outlimit(out,out_nflux, lc.anflux_harvest_slow * m2toha);
+			outlimit(out,out_nflux, flux_nseed * M2_PER_HA);
+			outlimit(out,out_nflux, flux_nharvest * M2_PER_HA);
+			outlimit(out,out_nflux, lc.anflux_landuse_change * M2_PER_HA);
+			outlimit(out,out_nflux, lc.anflux_harvest_slow * M2_PER_HA);
 	}
 	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_landuse_change +
 				lc.anflux_harvest_slow + flux_nseed + flux_ntot +
 				n_min_leach_gridcell + n_org_leach_gridcell -
-				(andep_gridcell + anfix_gridcell + anfert_gridcell - anest_gridcell)) * m2toha);
+				(andep_gridcell + anfix_gridcell + anfert_gridcell - anest_gridcell)) * M2_PER_HA);
 
 	// CPOOL Write cpool to file
 
@@ -1458,7 +1587,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_cpool, cpool_total);
 
 	// NPOOL Write npool to file
-
+	
 	if (ifcentury) {
 		outlimit(out,out_npool, nmass_gridcell + nlitter_gridcell);
 		outlimit(out,out_npool, surfsoillittern + cwdn);
@@ -1473,12 +1602,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-	outlimit(out,out_ngases, flux_nh3   * m2toha);
-	outlimit(out,out_ngases, flux_nox   * m2toha);
-	outlimit(out,out_ngases, flux_n2o   * m2toha);
-	outlimit(out,out_ngases, flux_n2    * m2toha);
-	outlimit(out,out_ngases, flux_nsoil * m2toha);
-	outlimit(out,out_ngases, flux_ntot  * m2toha);
+	outlimit(out,out_ngases, flux_nh3   * M2_PER_HA);
+	outlimit(out,out_ngases, flux_nox   * M2_PER_HA);
+	outlimit(out,out_ngases, flux_n2o   * M2_PER_HA);
+	outlimit(out,out_ngases, flux_n2    * M2_PER_HA);
+	outlimit(out,out_ngases, flux_nsoil * M2_PER_HA);
+	outlimit(out,out_ngases, flux_ntot  * M2_PER_HA);
 
 	// Output of tree stand age structure, monthly soil water and 3D vegetation view
 	// (Windows shell only - no effect otherwise)
@@ -1510,7 +1639,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								plot("Age structure [indiv/ha]", pft.name,
 								c * estinterval + estinterval*0.5,
 								densindiv[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
-							}
+						}
 
 						pftlist.nextobj();
 					}
@@ -1578,6 +1707,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	double lai_gridcell=0.0;
 	double npp_gridcell=0.0;
 	double gpp_gridcell=0.0;
+	double cmass_grass_gridcell[5] = { 0.0 };
 
 	double standpft_lai=0.0;
 	double standpft_npp=0.0;
@@ -1630,6 +1760,8 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 			stand.firstobj();
 
+			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+
 			// Loop through Patches
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
@@ -1643,12 +1775,21 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
 
+
 						if (indiv.id!=-1 && indiv.alive) {
 
 							if (indiv.pft.id==pft.id) {
 
 								if(ifdailygrass && indiv.alive && indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()){
 									standpft_lai += indiv.lai;
+
+									if (pft.name == "C3G") {
+										cmass_grass_gridcell[0] += indiv.cmass_leafs[0] * to_gridcell_average;
+										cmass_grass_gridcell[1] += indiv.cmass_leafs[1] * to_gridcell_average;
+										cmass_grass_gridcell[2] += indiv.cmass_leafs[2] * to_gridcell_average;
+										cmass_grass_gridcell[3] += indiv.cmass_leafs[3] * to_gridcell_average;
+										cmass_grass_gridcell[4] += indiv.cmass_storage * to_gridcell_average;
+									}
 								}
 								else{
 									standpft_lai += indiv.lai*indiv.phen;
@@ -1732,8 +1873,15 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	outlimit_daily(out,out_dflux, flux_est);
 
 	// daily NEE do not include fire, establishment as monthly NEE
-	outlimit_daily(out,out_dflux, flux_veg   +  flux_soil );
+	outlimit_daily(out,out_dflux, flux_veg + flux_soil);
 
+
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[0]);
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[1]);
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[2]);
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[3]);
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[0] + cmass_grass_gridcell[1] + cmass_grass_gridcell[2] + cmass_grass_gridcell[3]);
+	outlimit_daily(out, out_dcmass_grass, cmass_grass_gridcell[4]);
 }
 
 } // namespace

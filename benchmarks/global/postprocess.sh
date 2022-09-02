@@ -1,4 +1,3 @@
-
 #!/bin/bash
 describe_benchmark "LPJ-GUESS - Global Benchmarks"
 

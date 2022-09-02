@@ -23,6 +23,7 @@
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
+#include "soilmethane.h"
 
 #include <memory>
 
@@ -82,11 +83,11 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 		stand.firstobj();
 		while (stand.isobj) {
+
 			// START OF LOOP THROUGH PATCHES
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
-
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -118,6 +119,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
+			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
+			methane_dynamics(patch);
 
 			if (date.islastday && date.islastmonth) {
 

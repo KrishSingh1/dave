@@ -1445,9 +1445,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					// add other soil stuff:
 					for(int i=0; i<NSOILLAYER; i++) {
-						patch.soil.wcont[i] = (patch.soil.wcont[i] * old_frac + from.transfer_wcont[i] * added_frac) / new_frac;
+						patch.soil.set_layer_soil_water(i,(patch.soil.get_layer_soil_water(i) * old_frac + from.transfer_wcont[i] * added_frac) / new_frac);
 					}
-					patch.soil.wcont_evap = (patch.soil.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					patch.soil.set_layer_soil_water_evap((patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac);
 
 					patch.soil.snowpack = (patch.soil.snowpack * old_frac + from.transfer_snowpack * added_frac) / new_frac;
 					patch.soil.snowpack_nmass = (patch.soil.snowpack_nmass * old_frac + from.transfer_snowpack_nmass * added_frac) / new_frac;

@@ -158,9 +158,9 @@ struct landcover_change_transfer {
 
 			// sum wcont:
 			for(int i=0; i<NSOILLAYER; i++) {
-				transfer_wcont[i] += patch.soil.wcont[i] * scale;
+				transfer_wcont[i] += patch.soil.get_layer_soil_water(i) * scale;
 			}
-			transfer_wcont_evap += patch.soil.wcont_evap * scale;
+			transfer_wcont_evap += patch.soil.get_layer_soil_water_evap() * scale;
 
 			transfer_snowpack += patch.soil.snowpack * scale;
 			transfer_snowpack_nmass += patch.soil.snowpack_nmass * scale;

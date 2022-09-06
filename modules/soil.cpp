@@ -1782,7 +1782,7 @@ void Soillayer::freeze_lyr() {
 	// If monthly mean soil temperature is below freezing half of the year
 	// then fill soil layer and freeze all water.
 	if (freeze_mths >= 6) {
-		imass = wsats;
+		imass = hydrology == RICHARDS ? wsats : fc();
 		wmass = 0.0;
 	}
 }
@@ -2397,6 +2397,7 @@ void Soilcolumn::initdrivers() {
 	rain_melt = 0.0;
 	rain_melt_temp = 0.0;
 	max_rain_melt = 0.0;
+	wmass_wetland_added = 0.0;
 	percolate = false;
 
 	// Peatland hydrology variables
@@ -4003,12 +4004,12 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
 	// evap       = evaporation (mm/day)
-	// wetland_wmass_added_today = water added to soil to keep saturation (mm)
+	// wmass_wetland_added = water added to soil to keep saturation (mm)
 
 	// Minimum water considerred (equals to a 0.1 mm3)
 	const double EPS = 1.0e-9;
 
-	double wmass_begin = get_sum(WMASS) + rain_melt - patch.wetland_wmass_added_today;
+	double wmass_begin = get_sum(WMASS) + rain_melt - wmass_wetland_added;
 
 	double evap = 0.0;
 
@@ -4051,7 +4052,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 
 	// Missing water
 	if (wbudget <= 0.0) {
-		patch.wetland_wmass_added_today -= wbudget;
+		wmass_wetland_added -= wbudget;
 	}
 	// Excess was is lost through surface runoff
 	else {
@@ -4065,7 +4066,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	fluxes.report_flux(Fluxes::WRUNOFF_BASE, 0.0);
 	fluxes.report_flux(Fluxes::WEVAP, evap);
 	fluxes.report_flux(Fluxes::WAET, aet_total);
-	fluxes.report_flux(Fluxes::WADDED, patch.wetland_wmass_added_today);
+	fluxes.report_flux(Fluxes::WADDED, wmass_wetland_added);
 
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -4098,7 +4099,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	}
 
 	// Water balance check
-	double wmass_end = get_sum(WMASS) + runoff_surf + evap + aet_total - patch.wetland_wmass_added_today;
+	double wmass_end = get_sum(WMASS) + runoff_surf + evap + aet_total - wmass_wetland_added;
 
 	if (fabs(wmass_begin - wmass_end) > 1.0e-10)
 		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, wmass_begin - wmass_end, wmass_begin, wmass_end);
@@ -4175,6 +4176,12 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 	// Water mass balance check
 	double wbefore = get_sum(WMASS) + rain_melt;
 
+	// Initial water masses of each layer
+	double wmass_org[NSOILLAYERS_MAX] = { 0.0 };
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		wmass_org[lyr] = soillayers[lyr].wmass;
+	}
+
 	// Actual Evapotranspiration from soil column
 
 	// AET for a particular layer and individual (mm)
@@ -4212,6 +4219,9 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	soillayer_top.wmass += rain_melt - aet_layer[0] - evap;
+
+	// Save water influx for water movement calculation
+	double wmass_infilt_tot = rain_melt - evap;
 
 	// Two-layer hydrology always have water up to wilting point
 	if (soillayer_top.wmass <= soillayer_top.wp) { 
@@ -4304,6 +4314,13 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 		soillayer_bottom.runoff_baseflow = 0.0;
 	}
 
+	// Resolve todays water movements
+	wfluxes[0] = wmass_infilt_tot;
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		Soillayer& soillayer = soillayers[lyr];
+		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + soillayer.runoff_baseflow + aet_layer[lyr]);
+	}
+
 	// Water balance check
 	double wafter = get_sum(WMASS) + runoff_surf + get_sum(RUNOFFDRAIN) + get_sum(RUNOFFBASE) + aet_total + evap;
 	if (fabs(wbefore-wafter) > 1.0e-10)
@@ -4356,6 +4373,415 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 */
 void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 
+	// DESCRIPTION
+	// Soil class method used to update the water content for each soil layer 
+	// given snow melt, rainfall, evapotranspiration from vegetation (AET) and 
+	// percolation between layers. Runoff is also calculated.
+	// Updated to deal with 15 soil layers and ice formation.  
+
+	// INPUT PARAMETERS
+	// fevap      = fraction of modelled area (grid cell or patch) subject to
+	//              evaporation from soil surface
+
+	// UPDATED PARAMETERS
+	// wmass      = water mass of soil layers [mm]
+	// wcont_evap = water mass of evaporation sublayers (20 cm) at top of soil column
+	// awcont     = wcont averaged over the growing season
+	// dperc      = daily percolation beyond system (mm)
+	// runoff     = total daily runoff from all soil layers (mm/day)
+
+	// depth of sublayer at top of upper soil layer, from which evaporation is
+	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+	const double SOILDEPTH_EVAP = 200.0;
+	// Number of layers in the evaporation depth
+	const int NEVAPLAYERS = 2;
+	// Fraction of standard percolation amount from lower soil layer that is
+	// diverted to baseflow runoff
+	const double BASEFLOW_FRAC = 0.5;
+	// Minimum water amount for percolation to occur (mm)
+	const double MIN_WATER_PERC = 0.0000001;
+	// max error allowed (mm)
+	const double maxerr = 0.0001;
+
+	// Initial water masses of each layer
+	double wmass_org[NSOILLAYERS_MAX] = { 0.0 };
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		wmass_org[lyr] = soillayers[lyr].wmass;
+	}
+
+	// Initial estimate of evaporation
+
+	double evap_init = 0;
+	double wmass_evap_init = 0.0;
+	double awc_evap = 0.0;
+	double wcont_evap_init = 0.0;
+
+	for (int lyr = 0; lyr < NEVAPLAYERS; lyr++) {
+		Soillayer& soillayer = soillayers[lyr];
+		wmass_evap_init += soillayer.wcont() * soillayer.awc;
+		awc_evap += soillayer.awc;
+	}
+
+	wcont_evap_init = wmass_evap_init / awc_evap;
+
+	// Only potential evaporation if snow depth < 10mm
+	if (snow.depth() < 10.0) {
+		evap_init = climate.eet * PRIESTLEY_TAYLOR * wcont_evap_init * wcont_evap_init * fevap;
+	}
+
+	// Transpiration
+
+	// AET for a particular layer and individual (mm)
+	double aet = 0.0;
+	// Total AET (mm)
+	double aet_total = 0.0;
+	// Total AET for each soil layer (mm)
+	double aet_layer[NSOILLAYERS_MAX] = { 0.0 };
+
+	// Sum AET for across all vegetation individuals
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			aet_layer[lyr] += aet;
+		}
+		vegetation.nextobj();
+	}
+
+	// Water that can still be added to each soil layer (mm)
+	double wmass_pot_layer[NSOILLAYERS_MAX] = { 0.0 };
+
+	// Top and bottom GERTEN layers, initial water and potential water that can be added
+	double wmass_layer1 = 0.0;
+	double wmass_layer2 = 0.0;
+	double wmass_pot_layer1 = 0.0;
+	double wmass_pot_layer2 = 0.0;
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		Soillayer& soillayer = soillayers[lyr];
+
+		// Remove AET from each soil layer
+		double aet_lyr = min(aet_layer[lyr], soillayer.wmass);
+		soillayer.wmass -= aet_lyr;
+		aet_total += aet_lyr;
+
+		// Determine potential for each soil layer
+		wmass_pot_layer[lyr] = max(0.0, soillayer.fc() - (soillayer.wmass + soillayer.imass));
+
+		// Determine potential for GERTEN layers
+		if (lyr < NSOILLAYERS_UPPER) {
+			wmass_pot_layer1 += wmass_pot_layer[lyr];
+		}
+		else {
+			wmass_pot_layer2 += wmass_pot_layer[lyr];
+		}
+	}
+
+	// Evaporation
+
+	// Update water mass available for evaporation
+	double wmass_evap = 0.0;
+	for (int lyr = 0; lyr < NEVAPLAYERS; lyr++) {
+		Soillayer& soillayer = soillayers[lyr];
+		wmass_evap += soillayer.wcont() * soillayer.awc;
+	}
+
+	// Evaporation from bare surface (after AET removed)
+	double evap = min(evap_init, max(0.0, wmass_evap));
+
+	// Removal of water from the evaporation layers of the soil
+	if (evap > 0.0) {
+
+		for (int lyr = 0; lyr < NEVAPLAYERS; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
+			// Remove the water in proportional to the available water remaining in each layer
+			double proportion = evap * (soillayer.wcont() * soillayer.awc / wmass_evap);
+
+			// Remove water
+			soillayer.wmass -= proportion;
+
+			// And increae potential to add water
+			wmass_pot_layer[lyr] += proportion;
+		}
+	}
+	else {
+		// No evaporation in this case
+		evap = 0.0;
+	}
+
+	// Implement in- and outgoing fluxes to the top 50cm soil layers, taking into account AET in those layers and evaporation
+	double wmass_flux_in = rain_melt;
+	rain_melt = 0.0;
+
+	// Initialise runoff variables
+
+	// Surface runoff (mm) 
+	double runoff_surf = 0.0;
+	// Drainage runoff (mm)
+	double runoff_drain = 0.0;
+	// Baseflow runoff (mm) (Dieter Gerten 021216) (rain or snowmelt days only)
+	double runoff_baseflow = 0.0;
+
+	// Input to top GERTEN layer
+	if (wmass_flux_in > 0) {
+
+		// Potential in the top layer
+		double wmass_pot_top_layer = 0.0;
+		for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+			wmass_pot_top_layer += wmass_pot_layer[lyr];
+		}
+
+		// Addition of water to the top layers (rain_melt > 0)
+		if (wmass_flux_in < wmass_pot_top_layer) {
+
+			// The upper soil layers can absorb all of this water today
+			// so add the water to layers in proportion to their capacity
+			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+
+				Soillayer& soillayer = soillayers[lyr];
+
+				double water_input = wmass_flux_in * (wmass_pot_layer[lyr] / wmass_pot_top_layer);
+
+				soillayer.wmass += water_input;
+				wmass_pot_layer[lyr] -= water_input;
+			}
+
+			// No surface runoff
+			runoff_surf = 0.0;
+		}
+		else {
+
+			// The upper soil layers cannot absorb all of this water today, so take up what can be absorbed 
+			// (i.e. wmass_pot_top_layer) and add the rest to surface runoff
+
+			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
+
+				soillayer.wmass = soillayer.fc() - soillayer.imass;
+				wmass_pot_layer[lyr] = 0.0;
+			}
+
+			// Update surface runoff
+			runoff_surf = wmass_flux_in - wmass_pot_top_layer;
+		}
+	}
+
+	// Total water infiltration for water flux calculations
+	double wmass_infilt_tot = wmass_flux_in - (runoff_surf + evap);
+
+	// Update wmass_layer1
+
+	double awc1 = 0.0;
+	wmass_layer1 = 0.0;
+	for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+		Soillayer& soillayer = soillayers[lyr];
+		wmass_layer1 += soillayer.wcont() * soillayer.awc;
+		awc1 += soillayer.awc;
+	}
+
+	double wcont_layer1 = wmass_layer1 / awc1;
+
+	// Percolation
+	// We assume there are two percolation layers. 
+	// 1: the top 50cm soil layers considered in the Gerten et al. scheme
+	// 2: Lower 1.0 m layers considered in the Gerten et al. scheme
+
+	if (percolate) {
+
+		// Percolation from top layer if there is enough water (at least MIN_WATER_PERC)
+		double perc = 0.0;
+
+		if (wmass_layer1 > MIN_WATER_PERC) {
+
+			// Percolation from the top layer (mm; limited to available liquid water)
+			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), wmass_layer1);
+
+			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
+
+				// Take water proportionally from the layers.
+				double perc_layer = perc * (soillayer.wcont() * soillayer.awc / wmass_layer1);
+				soillayer.wmass -= perc_layer;
+				wmass_pot_layer[lyr] += perc_layer;
+			}
+		}
+
+		// Percolation and fluxes to and from the soil layers below the top 50cm
+
+		// Excess water transferred to runoff
+		// Eqns 26, 27, 31, Haxeltine & Prentice 1996
+
+		double water_input = 0.0;
+
+		// First we need to add the water percolated from above (perc) to this layer
+		if (perc > wmass_pot_layer2) {
+			// Fill the layer and reduce water_input
+			water_input = wmass_pot_layer2;
+			// The excess is run off and not percolated further (added to runoff_drain)
+			runoff_drain = perc - wmass_pot_layer2;
+		}
+		else {
+			water_input = perc;
+		}
+
+		double wmass_perc_layer_2 = 0.0;
+		double awc_perc_layer_2 = 0.0;
+		double wcont_perc_layer_2 = 0.0;
+
+		if (water_input > 0.0) {
+
+			// Add any water (water_input) to layers 5-14 in proportion to the capacity
+			for (int lyr = NSOILLAYERS_UPPER; lyr < nsoillayers; lyr++) {
+
+				Soillayer& soillayer = soillayers[lyr];
+
+				wmass_layer2 += soillayer.wcont() * soillayer.awc;
+
+				double water_input_lyr = water_input * (wmass_pot_layer[lyr] / wmass_pot_layer2);
+
+				soillayer.wmass += water_input_lyr;
+				wmass_pot_layer[lyr] -= water_input_lyr;
+
+				wmass_perc_layer_2 += soillayer.wcont() * soillayer.awc;
+				awc_perc_layer_2 += soillayer.awc;
+			}
+
+			// Update wcont for these layers before percolation
+			wcont_perc_layer_2 = wmass_perc_layer_2 / awc_perc_layer_2;
+		}
+
+		// Percolation from base layer
+		double perc_from_base = 0.0;
+		if (percolate && wmass_perc_layer_2 > MIN_WATER_PERC) {
+
+			perc_from_base = min(wmass_perc_layer_2, min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt));
+
+			// As in LPJ-GUESS v4.0
+			if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
+				perc_from_base = rain_melt - runoff_surf; // DW_COMMENT what does rainmelt contain?
+			}
+		}
+		else {
+			// No percolation
+			perc_from_base = 0.0;
+		}
+
+		// Now remove the water (i.e. perc_from_base) from layers 5-14 in proportion to the available water
+		if (perc_from_base > 0) {
+
+			for (int lyr = NSOILLAYERS_UPPER; lyr < nsoillayers; lyr++) {
+
+				Soillayer& soillayer = soillayers[lyr];
+
+				// Remove the water (perc_from_base) in proportional to the available water remaining in each layer
+				double proportion = perc_from_base * (soillayer.wcont() * soillayer.awc / wmass_perc_layer_2); // mm
+				// Subtract water
+				soillayer.wmass -= proportion;
+				// Increase potential to add water
+				wmass_pot_layer[lyr] += proportion;
+			}
+		}
+
+		// Baseflow
+		runoff_baseflow = perc_from_base;
+	}
+	else {
+		// No percolation at all, so reset runoff to 0 
+		runoff_baseflow = 0.0;
+		runoff_drain = 0.0;
+	}
+
+	double runoff = runoff_surf + runoff_drain + runoff_baseflow;
+
+	// water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
+	// in proportion to its components
+	if (patch.stand.is_true_wetland_stand() && wmass_wetland_added > 0.0) {
+
+		if (runoff <= wmass_wetland_added && runoff > 0.0) {
+
+			// Not enough runoff to balance the water added to the wetland, i.e. we added more than was run off.
+
+			// Update wetland_water_added by taking back the amount used for runoff.
+			wmass_wetland_added -= runoff;
+
+			// All runoff removed 
+			runoff_surf = 0.0;
+			runoff_baseflow = 0.0;
+			runoff_drain = 0.0;
+			runoff = 0.0;
+		}
+		else if (runoff > wmass_wetland_added && runoff > 0.0) {
+
+			// Enough runoff to balance the water added to the wetland so we take it back.
+			runoff_surf -= wmass_wetland_added * runoff_surf / runoff;
+			runoff_drain -= wmass_wetland_added * runoff_drain / runoff;
+			runoff_baseflow -= wmass_wetland_added * runoff_baseflow / runoff;
+			// Recalculate total runoff 
+			runoff = runoff_surf + runoff_drain + runoff_baseflow;
+
+			// Reset wetland_water_added
+			wmass_wetland_added = 0.0;
+		}
+	}
+
+	// Assign runoff to layers
+	if (wmass_layer2 > 0.0) {
+		for (int lyr = NSOILLAYERS_UPPER; lyr < nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+			soillayer.runoff_drain = runoff_drain * soillayer.wcont() * soillayer.awc / wmass_layer2;
+		}
+	}
+	soillayers[nsoillayers - 1].runoff_baseflow = runoff_baseflow;
+
+	// Resolve todays water movements
+	wfluxes[0] = wmass_infilt_tot;
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		Soillayer& soillayer = soillayers[lyr];
+		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + soillayer.runoff_baseflow + aet_layer[lyr]);
+	}
+
+	// Save fluxes
+	Fluxes& fluxes = patch.fluxes;
+	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, runoff_drain);
+	fluxes.report_flux(Fluxes::WRUNOFF_BASE, runoff_baseflow);
+	fluxes.report_flux(Fluxes::WEVAP, evap);
+	fluxes.report_flux(Fluxes::WAET, aet_total);
+	fluxes.report_flux(Fluxes::WADDED, wmass_wetland_added);
+
+	// Drought limited establishment - update awcont_upper
+	// Original algorithm by Thomas Hickler
+	for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+
+		// Reset on the first day of every year
+		if (date.day == 0 && lyr == 0) {
+			awcont_upper = 0.0;
+			patch.growingseasondays = 0;
+		}
+
+		// If it's warm enough for growth, update awcont with this day's wcont
+		if (climate.temp > 5.0) {
+			awcont_upper += soillayers[lyr].wcont() / (double)NSOILLAYERS_UPPER;
+			if (lyr == 0) {
+				patch.growingseasondays++;
+			}
+		}
+	}
+
+	// Average awcont_upper on the last day of every year
+	if (date.islastday && date.islastmonth) {
+		if (patch.growingseasondays > 1)
+			awcont_upper /= (double)patch.growingseasondays;
+		else
+			awcont_upper = 0.0; // This will lead to no establishment for this PFT/species if ifdroughtlimitedestab is TRUE
+	}
 }
 
 /// Updates the water content for each soil layer in non-peatland soils
@@ -4691,7 +5117,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	wfluxes[0] = wmass_infilt_tot;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		Soillayer& soillayer = soillayers[lyr];
-		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + aet_layer[lyr]);
+		wfluxes[lyr + 1] = wfluxes[lyr] + wmass_org[lyr] - (soillayer.wmass + soillayer.runoff_drain + soillayer.runoff_baseflow + aet_layer[lyr]);
 	}
 
 	int start_yr = 12008; // DW_COMMENT
@@ -5062,7 +5488,7 @@ void Soilcolumn::update_wtp() {
  */
 void Soilcolumn::initial_percolation() {
 
-	patch.wetland_wmass_added_today = 0.0;
+	wmass_wetland_added = 0.0;
 
 	if (percolate) {
 
@@ -5085,84 +5511,111 @@ void Soilcolumn::initial_percolation() {
 
 			wcont_evap = surflayer.wcont();
 		}
-		else if (hydrology == MILLER) {
-			// DW_COMMENT MILLER
-		}
-		else {
+		else if (patch.stand.is_highlatitude_peatland_stand()) {
 
-			if (patch.stand.is_highlatitude_peatland_stand()) {
+			// Peatland soils
+			// Distribute the water in the acrotelm in proportion to the capacity
 
-				// Peatland soils
-				// Distribute the water in the acrotelm in proportion to the capacity
+			// water that can still be added to each soil layer (kg m-2)
+			double wmass_pot_layer[NSOILLAYERS_MAX];
 
-				// water that can still be added to each soil layer (kg m-2)
-				double potential_layer[NSOILLAYERS_MAX];
+			double imass_fraction = 0.0;
+			double imass_impedance = 1.0;
 
-				double imass_fraction = 0.0;
-				double imass_impedance = 1.0;
+			double imass_tot = 0.0;
+			double wsats_tot = 0.0;
 
-				double imass_tot = 0.0;
-				double wsats_tot = 0.0;
+			// Total potential of the soil to store water, from the current content up to saturation
+			double wmass_pot_total = 0.0;
 
-				// Total potential of the soil to store water, from the current content up to saturation
-				double total_potential = 0.0;
+			for (int lyr = 0; lyr < nacrotelm; lyr++) {
 
-				for (int lyr = 0; lyr < nacrotelm; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
 
-					Soillayer& soillayer = soillayers[lyr];
+				wmass_pot_layer[lyr] = max(0.0, soillayer.wsats - (soillayer.wmass + soillayer.imass));
 
-					potential_layer[lyr] = max(0.0, soillayer.wsats - (soillayer.wmass + soillayer.imass));
+				wsats_tot += soillayer.wsats;
+				imass_tot += soillayer.imass;
+				wmass_pot_total += wmass_pot_layer[lyr];
+			}
 
-					wsats_tot += soillayer.wsats;
-					imass_tot += soillayer.imass;
-					total_potential += potential_layer[lyr];
+			// Potential for infiltration exist
+			if (wmass_pot_total > 0.0) {
+
+				imass_fraction = imass_tot / wsats_tot;
+
+				// Impedance - this is the fraction of water that can infiltrate initially 
+				// imass_fraction = 0 (e.g. summer, no phase change etc.)
+				// imass_fraction = 1 (e.g. winter, saturated soil to field capacity, all soil water frozen)
+				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
+				if (IMASS_IMPEDANCE && can_freeze()) {
+
+					imass_impedance = pow(10.0, -6.0 * imass_fraction);
+				}
+				else {
+					imass_impedance = 1.0;
 				}
 
-				// Potential for infiltration exist
-				if (total_potential > 0.0) {
+				double wmass_in = 0.0;
+				double rain_melt_orig = rain_melt;
 
-					imass_fraction = imass_tot / wsats_tot;
+				// Assume the amount of water available for initial infiltration is limited by the ice content in the top layer
+				double wmass_for_infiltration = imass_impedance * rain_melt;
 
-					// Impedance - this is the fraction of water that can infiltrate initially 
-					// imass_fraction = 0 (e.g. summer, no phase change etc.)
-					// imass_fraction = 1 (e.g. winter, saturated soil to field capacity, all soil water frozen)
-					// CLM4.5 - see Swenson et al (2012) Eqn. (8)
-					if (IMASS_IMPEDANCE && can_freeze()) {
+				// Only infiltrate what we can. The rest remains in rain_melt.
+				if (wmass_for_infiltration >= wmass_pot_total) {
+					wmass_in = wmass_pot_total;
+					rain_melt -= wmass_pot_total;
+				}
+				else {
+					// All water can infiltrate
+					wmass_in = wmass_for_infiltration;
+					rain_melt -= wmass_for_infiltration; // i.e. 0.0 when there is no ice
+				}
 
-						imass_impedance = max(0.0, 1.0 - imass_fraction);
-						// CLM method: imass_impedance = pow(10.0, -6.0 * imass_fraction);
-					}
-					else {
-						imass_impedance = 1.0;
-					}
+				// Now add the rain_melt to each layer in proportion to the capacity if total_potential > 0.0 mm
+				for (int lyr = 0; lyr < nacrotelm; lyr++) {
+					soillayers[lyr].wmass += wmass_in * (wmass_pot_layer[lyr] / wmass_pot_total);
+				}
+			}
+		}
+		else if (hydrology == MILLER && !patch.stand.is_true_wetland_stand()) {
 
-					double wmass_in = 0.0;
-					double rain_melt_orig = rain_melt;
+			// NEITHER PEATLAND NOR WETLAND SOILS
+			// Distribute the water in the upper 50cm in proportion to the capacity:
 
-					// Assume the amount of water available for initial infiltration is limited by the ice content in the top layer
-					double wmass_for_infiltration = imass_impedance * rain_melt;
+			// Water that can still be added to each soil layer (mm)
+			double wmass_pot_layer[NSOILLAYERS_UPPER] = { 0.0 };
+			double wmass_pot_total = 0.0;
 
-					// Only infiltrate what we can. The rest remains in rain_melt.
-					if (wmass_for_infiltration >= total_potential) {
-						wmass_in = total_potential;
-						rain_melt -= total_potential;
-					}
-					else {
-						// All water can infiltrate
-						wmass_in = wmass_for_infiltration;
-						rain_melt -= wmass_for_infiltration; // i.e. 0.0 when there is no ice
-					}
+			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
 
-					// Now add the rain_melt to each layer in proportion to the capacity if total_potential > 0.0 mm
-					for (int lyr = 0; lyr < nacrotelm; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
 
-						Soillayer& soillayer = soillayers[lyr];
+				wmass_pot_layer[lyr] = max(0.0, soillayer.fc() - (soillayer.wmass + soillayer.imass));
+				wmass_pot_total += wmass_pot_layer[lyr];
+			}
 
-						soillayer.wmass += wmass_in * (potential_layer[lyr] / total_potential);
+			double water_in = 0.0;
 
-						if (soillayer.wmass - soillayer.wsats > 1.0e-12)
-							fail("ERROR: Year %d Day %d Lyr %d initial_infiltration - TOO much water added! - is_highlatitude_peatland_stand\n", date.year,date.day,lyr);
-					}
+			// Only infiltrate what we can. The rest remains in rain_melt.
+			if (rain_melt >= wmass_pot_total) {
+				water_in = wmass_pot_total;
+				rain_melt -= wmass_pot_total;
+			}
+			else {
+				// Because ALL the water can infiltrate
+				water_in = rain_melt;
+				rain_melt = 0.0;
+			}
+
+			// There is a potential to add water
+			if (wmass_pot_total > 0.0) {
+
+				// Now add the rain_melt in proportion to the capacity if total_potential > 0.0 mm
+				for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
+
+					soillayers[lyr].wmass += water_in * (wmass_pot_layer[lyr] / wmass_pot_total);
 				}
 			}
 		}
@@ -5188,11 +5641,10 @@ void Soilcolumn::initial_percolation() {
 		}
 
 		// Record the water added to this wetland today
-		patch.wetland_wmass_added_today = max(0.0, wmass_added - rain_melt);
+		wmass_wetland_added = max(0.0, wmass_added - rain_melt);
 
+		// Subtract added water from rain_melt
 		rain_melt -= min(rain_melt, wmass_added);
-
-		// End mineral wetlands
 	}
 }
 

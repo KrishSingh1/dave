@@ -4228,6 +4228,8 @@ public:
 	double rain_melt_temp;
 	/// upper limit for percolation (mm)
 	double max_rain_melt;
+	/// water added to wetland today (mm)
+	double wmass_wetland_added;
 	/// whether to percolate today
 	bool percolate;
 	/// Soil temperature padding
@@ -4952,8 +4954,6 @@ public:
 	double intercep;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
-	/// water added to wetlands today (mm)
-	double wetland_wmass_added_today;
 
 	/// equilibrium evapotranspiration today, deducting interception (mm)
 	double eet_net_veg;

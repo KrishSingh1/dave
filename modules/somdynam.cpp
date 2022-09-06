@@ -1563,108 +1563,14 @@ void transfer_litter(Patch& patch) {
 	}
 }
 
-/// Leaching
-/** Leaching fractions for both organic and mineral leaching
- *  Should be called every day in both daily and monthly mode
+/// Organic and mineral N leaching
+/** Organic and mineral N leaching
+ * 
  */
-void leaching_gerten(Soilcolumn& soilcolumn) {
+void leaching(Patch& patch) {
 
-	// Fluxes
-	Fluxes& fluxes = soilcolumn.patch.fluxes;
-
-	double minleachfrac, minmovefrac, runoff;
-
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-
-		Soillayer& soillayer = soilcolumn.soillayers[lyr];
-
-		if (lyr == 0) {
-			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day);
-		}
-		else {
-			runoff = soillayer.runoff_drain;
-		}
-
-		if (!negligible(soillayer.perc_mass + runoff)) {
-
-			// Leaching from available nitrogen mineral pool
-			// in proportion to amount of water precolated and drained
-			minleachfrac = runoff / (soillayer.perc_mass + runoff + soillayer.wmass);
-			minmovefrac = soillayer.perc_mass / (soillayer.perc_mass + runoff + soillayer.wmass);
-
-			// Leaching from decayed organic carbon/nitrogen
-			// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
-			// reorganised as: leachfrac = [water_leaching/OMLECH(3)]*[OMLECH(1)+OMLECH(2)*sand_fraction]
-			// water_leaching was originally in cm/month
-			double OMLECH_1 = 0.03;
-			double OMLECH_2 = 0.12;
-			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H2O/month)
-			double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
-
-			// precolation and drainage results in direct loss of organic C
-			soillayer.orgleachfrac = min(1.0, (soillayer.perc_mass + runoff) / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
-		}
-		else {
-			minleachfrac = 0.0;
-			minmovefrac = 0.0;
-			soillayer.orgleachfrac = 0.0;
-		}
-
-		// Leaching of soil mineral nitrogen
-		// Allowed on days with residual nitrogen following vegetation uptake
-		// in proportion to amount of water drainage
-		const double nmin_avail = soillayer.nmass_avail(NO3);
-		if (nmin_avail > 0.0) {
-
-			// Lateral leaching
-			double leaching = nmin_avail * minleachfrac;
-
-			soillayer.nmass_subtract(leaching, NO3);
-			soillayer.aminleach += leaching;
-			fluxes.report_flux(Fluxes::LEACHMINN, leaching);
-
-			// Mass balance 
-			// nextra += leaching;
-
-			// Vertical leaching
-			leaching = nmin_avail * minmovefrac;
-
-			soillayer.nmass_subtract(leaching, NO3);
-
-			// Bottom layer then N is lost
-			if (lyr == soilcolumn.nsoillayers - 1) {
-				soillayer.aminleach += leaching;
-				fluxes.report_flux(Fluxes::LEACHMINN, leaching);
-
-				// Mass balance
-				//nextra += leaching;
-			}
-			// else if is transferred to layer below
-			else {
-				soilcolumn.soillayers[lyr + 1].nmass_inc(leaching, NO3);
-			}
-		}
-
-		if (soilcolumn.savesomcent) {
-			soillayer.morgleach_mean[date.month] += soillayer.orgleachfrac / date.ndaymonth[date.month];
-			soillayer.mminleach_mean[date.month] += minleachfrac / date.ndaymonth[date.month];
-		}
-	}
-}
-
-/// Leaching
-/** Leaching fractions for both organic and mineral leaching
-*  Should be called every day in both daily and monthly mode
-*/
-void leaching_miller(Soilcolumn& soilcolumn) {
-
-}
-
-/// Leaching
-/** Leaching fractions for both organic and mineral leaching
-*  Should be called every day in both daily and monthly mode
-*/
-void leaching_richards(Soilcolumn& soilcolumn) {
+	// Soilcolumn
+	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	// Fluxes
 	Fluxes& fluxes = soilcolumn.patch.fluxes;
@@ -1753,16 +1659,6 @@ void leaching_richards(Soilcolumn& soilcolumn) {
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 		soilcolumn.soillayers[lyr].nmass_inc(NO3_delta[lyr], NO3);
 	}
-}
-
-void leaching(Patch& patch) { // DW_COMMENT
-
-	if (hydrology == GERTEN)
-		leaching_gerten(patch.soilcolumn);
-	else if (hydrology == MILLER)
-		leaching_miller(patch.soilcolumn);
-	else if (hydrology == RICHARDS)
-		leaching_richards(patch.soilcolumn);
 }
 
 

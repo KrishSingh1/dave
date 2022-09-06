@@ -27,11 +27,14 @@ const int NSOILLAYERS_SIMPLE = 2;
 /// Maximum number of soil layers modelled
 const int NSOILLAYERS_MAX = 15;
 
+/// Number of soil layers in upper part (Miller hydrology)
+const int NSOILLAYERS_UPPER = 5;
+
 /// Number of padding layers in the soil
 const int NPADLAYERS = 5;
 
 /// MAximum acrotelm layers
-const int NACROTELMLAYERS = 3;
+const int NACROTELMLAYERS_MAX = 3;
 
 /// Depth of the acrotelm (mm), catotelm rest of soil column
 const double ACROTELM_DEPTH = 300.0;

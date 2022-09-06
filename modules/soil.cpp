@@ -5952,6 +5952,10 @@ void Soilcolumn::calc_msnow() {
  */
 void Soilcolumn::calc_eff_volume() {
 
+	if (!ifeffvolume) {
+		return;
+	}
+
 	// Calculate total coarse root biomass
 	double cmass_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
 
@@ -5986,20 +5990,19 @@ void Soilcolumn::calc_eff_volume() {
 
 		// Effective soillayer volume that isn't taken by coarse root biomass
 		// Minimum value if 50%
-		if (ifeffvolume) {
-			// Coarse root density [kg C m-3]
-			const double coarserootdens = 200.0;
-			soillayer.eff_volume_frac = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
-				soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM));
-		
-			// If organic matter doesn't affect soil properties, then they 
-			// need to be updated here if effective volume is updated
-			if (!iforganicsoilproperties) {
-				soillayer.wp = soiltype.wp_min * soillayer.eff_volume_frac * soillayer.depth;
-				soillayer.awc = soiltype.awc_min * soillayer.eff_volume_frac * soillayer.depth;
-				soillayer.wsats = soiltype.wsats_min * soillayer.eff_volume_frac * soillayer.depth;
-				soillayer.por = soillayer.wsats;
-			}
+
+		// Coarse root density [kg C m-3]
+		const double coarserootdens = 200.0;
+		soillayer.eff_volume_frac = max(0.5, max(0.0, soillayer.depth * M_PER_MM - (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass +
+			soillayer.sompool[SOILFWD].cmass) / coarserootdens) / (soillayer.depth * M_PER_MM));
+
+		// If organic matter doesn't affect soil properties, then they 
+		// need to be updated here if effective volume is updated
+		if (!iforganicsoilproperties) {
+			soillayer.wp = soiltype.wp_min * soillayer.eff_volume_frac * soillayer.depth;
+			soillayer.awc = soiltype.awc_min * soillayer.eff_volume_frac * soillayer.depth;
+			soillayer.wsats = soiltype.wsats_min * soillayer.eff_volume_frac * soillayer.depth;
+			soillayer.por = soillayer.wsats;
 		}
 	}
 }
@@ -6010,6 +6013,10 @@ void Soilcolumn::calc_eff_volume() {
 *  by considering a simple diffusion scheme.
 */
 void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
+
+	if (patch.stand.landcover == PEATLAND || !ifverticalmixing) {
+		return;
+	}
 
 	// Fixed multiplier to the active layer depth for maximum mixing depth
 	double k = 3.0;
@@ -6436,49 +6443,55 @@ void Soilcolumn::vertical_movement() {
 		// then increase depth of layer by 100mm and fill it with mineral soil 
 		if (lyr == nsoillayers - 1 && soillayer.mineral_volume == 0 && soillayer.organic_volume > eff_volume) {
 			
-			// Depth to add
-			double add_depth = 100.0;
+			if (hydrology == RICHARDS) {
 
-			// Increase effective volume
-			eff_volume += add_depth;
+				// Depth to add
+				double add_depth = 100.0;
 
-			// Increase soil layer depth
-			soillayer.depth += add_depth;
-			
-			// Update effective volume fraction of layer
-			soillayer.eff_volume_frac = eff_volume / soillayer.depth;
+				// Increase effective volume
+				eff_volume += add_depth;
 
-			// Update soil layer depth profile
-			soillayer.depth_profile += add_depth / 2.0;
+				// Increase soil layer depth
+				soillayer.depth += add_depth;
 
-			// Update soil columns array of soil layer depths
-			soillayerdepths[lyr] += add_depth;
+				// Update effective volume fraction of layer
+				soillayer.eff_volume_frac = eff_volume / soillayer.depth;
 
-			// Update total soil column depth
-			depth += add_depth;
+				// Update soil layer depth profile
+				soillayer.depth_profile += add_depth / 2.0;
 
-			// Update soil layer mineral volume
-			soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+				// Update soil columns array of soil layer depths
+				soillayerdepths[lyr] += add_depth;
 
-			double wsats_new;
-			if (soillayer.acrotelm) {
-				wsats_new = soillayer.mineral_volume * acrotelm_por;			
-			} 
-			else if (soillayer.catotelm) {
-				wsats_new = soillayer.mineral_volume * catotelm_por;
+				// Update total soil column depth
+				depth += add_depth;
+
+				// Update soil layer mineral volume
+				soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+
+				double wsats_new;
+				if (soillayer.acrotelm) {
+					wsats_new = soillayer.mineral_volume * acrotelm_por;
+				}
+				else if (soillayer.catotelm) {
+					wsats_new = soillayer.mineral_volume * catotelm_por;
+				}
+				else {
+					wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+				}
+
+				if (soillayer.temp > 0.0) {
+					soillayer.wmass += wsats_new;
+				}
+				else {
+					soillayer.imass += wsats_new;
+				}
+
+				patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 			}
 			else {
-				wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+				soillayer.organic_volume = eff_volume;
 			}
-
-			if (soillayer.temp > 0.0) {
-				soillayer.wmass += wsats_new;
-			}
-			else {
-				soillayer.imass += wsats_new;
-			}
-
-			patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 		}
 		
 		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10)

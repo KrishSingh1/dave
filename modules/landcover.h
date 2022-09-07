@@ -68,6 +68,9 @@ struct landcover_change_transfer {
 	double transfer_soil_depth_profile[NSOILLAYERS_MAX];
 	double transfer_soil_wmass[NSOILLAYERS_MAX];
 	double transfer_soil_imass[NSOILLAYERS_MAX];
+	double transfer_soil_mineral_volume[NSOILLAYERS_MAX];
+	double transfer_soil_organic_volume[NSOILLAYERS_MAX];
+	double transfer_soil_eff_volume_frac[NSOILLAYERS_MAX];
 	double transfer_soil_temp[NSOILLAYERS_MAX];
 	double transfer_soil_CO2[NSOILLAYERS_MAX];
 	double transfer_soil_CH4[NSOILLAYERS_MAX];
@@ -217,6 +220,9 @@ struct landcover_change_transfer {
 				transfer_soil_depth_profile[lyr] += soillayer.depth_profile * scale;
 				transfer_soil_wmass[lyr] += soillayer.wmass * scale;
 				transfer_soil_imass[lyr] += soillayer.imass * scale;
+				transfer_soil_mineral_volume[lyr] += soillayer.mineral_volume * scale;
+				transfer_soil_organic_volume[lyr] += soillayer.organic_volume * scale;
+				transfer_soil_eff_volume_frac[lyr] += soillayer.eff_volume_frac * scale;
 				transfer_soil_temp[lyr] += soillayer.temp * scale;
 				transfer_soil_CO2[lyr] += soillayer.CO2 * scale;
 				transfer_soil_CH4[lyr] += soillayer.CH4 * scale;
@@ -315,6 +321,9 @@ struct landcover_change_transfer {
 			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
 			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
 			transfer_soil_imass[lyr] = from.transfer_soil_imass[lyr];
+			transfer_soil_mineral_volume[lyr] = from.transfer_soil_mineral_volume[lyr];
+			transfer_soil_organic_volume[lyr] = from.transfer_soil_organic_volume[lyr];
+			transfer_soil_eff_volume_frac[lyr] = from.transfer_soil_eff_volume_frac[lyr];
 			transfer_soil_temp[lyr] = from.transfer_soil_temp[lyr];
 			transfer_soil_CO2[lyr] = from.transfer_soil_CO2[lyr];
 			transfer_soil_CH4[lyr] = from.transfer_soil_CH4[lyr];
@@ -409,6 +418,9 @@ struct landcover_change_transfer {
 			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
 			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;
 			transfer_soil_imass[lyr] += from.transfer_soil_imass[lyr] * multiplier;
+			transfer_soil_mineral_volume[lyr] += from.transfer_soil_mineral_volume[lyr] * multiplier;
+			transfer_soil_organic_volume[lyr] += from.transfer_soil_organic_volume[lyr] * multiplier;
+			transfer_soil_eff_volume_frac[lyr] += from.transfer_soil_eff_volume_frac[lyr] * multiplier;
 			transfer_soil_temp[lyr] += from.transfer_soil_temp[lyr] * multiplier;
 			transfer_soil_CO2[lyr] += from.transfer_soil_CO2[lyr] * multiplier;
 			transfer_soil_CH4[lyr] += from.transfer_soil_CH4[lyr] * multiplier;

@@ -1759,7 +1759,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 	// For Gerten and Miller hydrology schemes wmass should never be below wp
 	if (hydrology != RICHARDS) {
-		double wadded = max(0.0, wp - wmass);
+		double wadded = max(0.0, wp - (wmass+imass));
 		wmass += wadded;
 		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
 	}

@@ -1536,6 +1536,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.depth_profile = (soillayer.depth_profile * old_frac + from.transfer_soil_depth_profile[lyr] * added_frac) / new_frac;
 						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_soil_wmass[lyr] * added_frac) / new_frac;
 						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
+						soillayer.mineral_volume = (soillayer.mineral_volume * old_frac + from.transfer_soil_mineral_volume[lyr] * added_frac) / new_frac;
+						soillayer.organic_volume = (soillayer.organic_volume * old_frac + from.transfer_soil_organic_volume[lyr] * added_frac) / new_frac;
+						soillayer.eff_volume_frac = (soillayer.eff_volume_frac * old_frac + from.transfer_soil_eff_volume_frac[lyr] * added_frac) / new_frac;
 						soillayer.temp = (soillayer.temp * old_frac + from.transfer_soil_temp[lyr] * added_frac) / new_frac;
 						soillayer.CO2 = (soillayer.CO2 * old_frac + from.transfer_soil_CO2[lyr] * added_frac) / new_frac;
 						soillayer.CH4 = (soillayer.CH4 * old_frac + from.transfer_soil_CH4[lyr] * added_frac) / new_frac;
@@ -1560,10 +1563,20 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							sompool.ligcfrac = (sompool.ligcfrac * old_frac + from.transfer_soil_sompool_ligcfrac[lyr][p] * added_frac) / new_frac;
 							sompool.litterme = (sompool.litterme * old_frac + from.transfer_soil_sompool_litterme[lyr][p] * added_frac) / new_frac;
 						}
+					}
 
-						// Update soil layer properties
-						double wmass_add = 0.0;
-						double imass_add = 0.0;
+					// Calculate new effective volume
+					soilcolumn.calc_eff_volume();
+					
+					// Vertical movement of organic matter if C density of soil layer exceed maximum
+					soilcolumn.vertical_movement();
+
+					// Update soil properties
+					double wmass_add = 0.0;
+					double imass_add = 0.0;
+					for (int lyr = 0; lyr < nsoillayers; lyr++) {
+						Soillayer& soillayer = soilcolumn.soillayers[lyr];
+						
 						soillayer.set_properties(wmass_add, imass_add, true);
 					}
 
@@ -2786,6 +2799,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
+		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_eff_volume_frac[lyr] = 0.0;
 		transfer_soil_temp[lyr] = 0.0;
 		transfer_soil_CO2[lyr] = transfer_soil_CH4[lyr] = transfer_soil_O2[lyr] = 0.0;
 		transfer_soil_NH4[lyr] = transfer_soil_NO3[lyr] = transfer_soil_NO2[lyr] = 0.0;

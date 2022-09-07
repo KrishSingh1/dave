@@ -530,23 +530,21 @@ double Soillayer::moisture_modifier() {
 
 	// Minimum moist modifier for dry soils
 	double moist_mod_dry = 0.064;
-
 	// Maximum moist modifier at optimal moisture
 	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
-
-	// Total water mass
+	// Water fraction of soil layer volume
 	double theta = wmass / depth;
-
+	// Saturation fraction of soil layer volume
 	double theta_sat = wsats / depth;
-
+	// Field capacity of soil layer volume
 	double theta_fc = fc() / depth;
-
+	// Moist modifier [0-1]
 	double moist_mod;
 
 	if (theta < fc()) {
 		moist_mod = max(moist_mod_dry, moist_mod_max * (theta_fc + 0.1) / (theta + 0.1) * pow(theta / theta_fc, 1.0 + a * 2.0));
 	}
-	else { // wsats - theta >= 0.0 
+	else { 
 		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * moistsatmod_lut((theta_sat - theta) / (theta_sat - theta_fc)));
 	}
 	

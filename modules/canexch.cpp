@@ -1934,7 +1934,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 						Faw_layer[ly] = soillayer.wcont() * soillayer.awc; // mm
 
 						// Water in this layer
-						potential_layer[ly] = soillayer.wsats - Faw_layer[ly];
+						potential_layer[ly] = soillayer.awc - Faw_layer[ly];
 						potential_water += potential_layer[ly];
 					}
 				} // for loop (ly)
@@ -1959,8 +1959,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 						soillayer.wmass += water_input_ly;
 					}
 					
-					total_available_water += wcont_cp[s] * soillayer.awc; // mm
-					total_capacity += soillayer.wsats; // mm
+					total_available_water += wcont_cp[s] * soillayer.awc;
+					total_capacity += soillayer.awc;
 
 					// Error check
 					if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {

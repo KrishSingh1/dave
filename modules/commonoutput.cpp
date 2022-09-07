@@ -1844,8 +1844,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 			}
 
-			maxald_gridcell += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.maxthaw) * M_PER_MM) * to_gridcell_average;
-			permafrost_full_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= patch.soilcolumn.depth + PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
+			maxald_gridcell += min(50.0, (hydrology == GERTEN ? PAD_DEPTH : patch.soilcolumn.maxthaw) * M_PER_MM) * to_gridcell_average;
+			permafrost_full_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
 			permafrost_3m_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 			
 			// Calculate monthly NPP and LAI

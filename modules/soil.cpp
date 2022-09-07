@@ -1482,9 +1482,6 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case WP:
 		prop = wp;
 		break;
-	case WCONTMAX:
-		prop = wcont_max();
-		break;
 	case MDRAIN:
 		prop = mdrain[m];
 		break;
@@ -1675,12 +1672,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// Two layer hydrology parameter
 		perc_base = soiltype.perc_base;
 
-		// Move water downwards if water content exceeds wsats
-		if (wsats < wmass + imass) {
-			double wmass_frac = wmass / (wmass + imass);
-			double move = wmass + imass - wsats;
-			wmass_move = wmass_frac * move;
-			imass_move = (1 - wmass_frac) * move;
+		// Move water downwards if water content exceeds maximum water content
+		double wmass_max_lyr = wmass_max();
+		if (wmass_max_lyr < wmass + imass) {
+			double frac = (wmass + imass - wmass_max_lyr) / (wmass + imass);
+			wmass_move = wmass * frac;
+			imass_move = imass * frac;
 			wmass -= wmass_move;
 			imass -= imass_move;
 		}
@@ -1691,7 +1688,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 	// the soil and an increase in pore space will lead to an increase in water holding capacity of the soil.
 	else {
 
-		// added moved water and ice due to shrinking wsats
+		// added moved water and ice due to shrinking maximum water content
 		wmass += wmass_move;
 		imass += imass_move;
 		wmass_move = imass_move = 0.0;
@@ -1714,12 +1711,12 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		peat_frac = 0.0;
 		bulk_density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
-		// Move water downwards if water content exceeds wsats
-		if (wsats < wmass + imass) {
-			double wmass_frac = wmass / (wmass + imass);
-			double move = wmass + imass - wsats;
-			wmass_move = wmass_frac * move;
-			imass_move = (1 - wmass_frac) * move;
+		// Move water downwards if water content exceeds maximum water content
+		double wmass_max_lyr = wmass_max();
+		if (wmass_max_lyr < wmass + imass) {
+			double frac = (wmass + imass - wmass_max_lyr) / (wmass + imass);
+			wmass_move = wmass * frac;
+			imass_move = imass * frac;
 			wmass -= wmass_move;
 			imass -= imass_move;
 		}
@@ -1827,6 +1824,9 @@ void Soillayer::phase_change() {
 	// (2) - Jin et al. 2020 eqn 28 
 	if (ifsupercooled) {
 
+		// Maximum water capacity of soil layer
+		double wmass_max_lyr = wmass_max();
+
 		if (temp < 0.0) {
 
 			// Maximum super cooled water fraction
@@ -1834,11 +1834,11 @@ void Soillayer::phase_change() {
 
 			// Temperature close to zero, maximum water is super cooled
 			if (temp > -0.002) {
-				wmass_sc = max_sc_frac * wsats;
+				wmass_sc = max_sc_frac * wmass_max_lyr;
 			}
 			// Niu scheme
 			else if (ifsupercooled == 1) {
-				wmass_sc = wsats * min(max_sc_frac, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
+				wmass_sc = wmass_max_lyr * min(max_sc_frac, pow(Lheat * temp / (gravity * (K2degC + temp) * Psi_max), -1.0 / b));
 			}
 			// Jin scheme
 			else if (ifsupercooled == 2) {
@@ -1846,7 +1846,7 @@ void Soillayer::phase_change() {
 				double S = 0.37;
 				double C_1 = 0.041;
 				double C = (*soilcolumn).soiltype.ssa * S * C_1 * pow(K2degC - temp, 0.5);
-				wmass_sc = wsats * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
+				wmass_sc = wmass_max_lyr * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
 			}
 
 			Fwmass_sc = wmass_sc / depth;
@@ -1863,7 +1863,7 @@ void Soillayer::phase_change() {
 		else if (temp > 0.0 && Fimass > 0.0) {
 			ifThaw = true;
 			temp_old = 0.0;
-			wmass_sc = wsats;
+			wmass_sc = wmass_max_lyr;
 			Fwmass_sc = wmass_sc / depth;
 		}
 	}
@@ -2053,6 +2053,20 @@ double Soillayer::fc() {
 	return awc + wp;
 }
 
+/// Maximum water capacity of soil layer
+/** Maximum water capacity of soil layer
+ */
+double Soillayer::wmass_max() {
+	if (hydrology == RICHARDS || 
+		(*soilcolumn).patch.stand.is_highlatitude_peatland_stand() || 
+		(*soilcolumn).patch.stand.is_true_wetland_stand()) {
+		return wsats;
+	}
+	else {
+		return fc();
+	}
+}
+
 /// Fraction of air in soil layer
 /** Fraction of air in soil layer
  */
@@ -2065,13 +2079,6 @@ double Soillayer::fracair() {
  */
 double Soillayer::wfps() {
 	return max(0.0, min(1.0, (wmass + imass) / wsats));
-}
-
-/// Get the maximum wcont possible
-/** Get the maximum wcont possible
- */
-double Soillayer::wcont_max() {
-	return (wsats - wp) / awc;
 }
 
 /// C content of soil layer
@@ -2562,9 +2569,6 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 		case WP:
 			prop[lyr] = soillayers[lyr].wp;
 			break;
-		case WCONTMAX:
-			prop[lyr] = soillayers[lyr].wcont_max();
-			break;
 		case MDRAIN:
 			prop[lyr] = soillayers[lyr].mdrain[m];
 			break;
@@ -2989,30 +2993,6 @@ double Soilcolumn::to_depth(double depth, soilproptype SPT_var) {
 		lyr++;
 	}
 	return acc_var;
-}
-
-/// Add water to a certain soil layer and return the water that cannot be added due to limited capacity
-/** Add water to a certain soil layer and return the water that cannot be added due to limited capacity
- */
-double Soilcolumn::add_wmass(int layer, double extrawmass) {
-
-	Soillayer& soillayer = soillayers[layer];
-
-	// Add water
-	soillayer.wmass += extrawmass;
-
-	double overflow = 0.0;
-	
-	// Check if water exceed saturation
-	if (soillayer.wmass + soillayer.imass > soillayer.wsats) {
-		overflow = soillayer.wmass + soillayer.imass - soillayer.wsats;
-		soillayer.wmass -= overflow;
-	}
-	else {
-		overflow = 0.0;
-	}
-
-	return overflow;
 }
 
 /// Update soil matrix potential for the soil column
@@ -5463,14 +5443,17 @@ void Soilcolumn::update_wtp() {
 
 		Soillayer& soillayer = soillayers[slyr];
 
-		if ((soillayer.wmass + soillayer.imass) / soillayer.wsats > sat_lev) {
+		// Maximum water capacity of soil layer
+		double wmass_max_lyr = soillayer.wmass_max();
+
+		if ((soillayer.wmass + soillayer.imass) / wmass_max_lyr > sat_lev) {
 			saturated = true;
 			wtp -= soillayer.depth;
 			slyr--;
 		}
-		else if ((soillayer.wmass + soillayer.imass) / soillayer.wsats > 
+		else if ((soillayer.wmass + soillayer.imass) / wmass_max_lyr >
 			sat_lev * sat_lev_frac) {
-			double frac = ((soillayer.wmass + soillayer.imass) / soillayer.wsats -
+			double frac = ((soillayer.wmass + soillayer.imass) / wmass_max_lyr -
 				sat_lev * sat_lev_frac) / (sat_lev * (1.0 - sat_lev_frac));
 			wtp -= frac * soillayer.depth;
 			saturated = false;

@@ -143,7 +143,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
 typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, 
-WSATS, AWC, WP, WCONTMAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
+WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ASRH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 
@@ -3936,8 +3936,8 @@ public:
 	/// Water filled pore space ([0-1])
 	double wfps();
 
-	/// Maximum soil layer water content
-	double wcont_max();
+	/// Maximum water capacity of soil layer
+	double wmass_max();	
 	/// Set target nutrient to carbon ratios for SOM pools
 	void setntoc(double fac, double& ntoc, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
@@ -4393,8 +4393,6 @@ public:
 	double to_depth(double depth, soilproptype SPT_var);
 	/// Returns the value of some vector down to a depth with a scalar
 	double to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
-	/// add water and return the water that cannot be added due to limited capacity
-	double add_wmass(int layer, double extrawmass);
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity

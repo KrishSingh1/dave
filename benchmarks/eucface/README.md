@@ -26,7 +26,7 @@ you've already mounted it somewhere else on your computer (even better!),
 then just create a symlink to the mountpoint:
 
 ```bash
-ln -s /path/to/mounted/hie-storage /path/to/lpjguess_dave_eucface/benchmarks/eucface/data
+ln -s /path/to/mounted/hie-storage /path/to/lpjguess_dave/benchmarks/eucface/data
 ```
 
 **Soil Data**

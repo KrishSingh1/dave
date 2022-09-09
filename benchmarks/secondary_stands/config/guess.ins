@@ -1,27 +1,29 @@
-! This is a test that updates to the code don't introduce errors when simulating multiple stands (e.g. by initialisations at the start of the simulation) and that forest 
+! This is a test that verifies that updates to the code don't introduce errors when simulating
+! multiple stands (e.g. by initialisations at the start of the simulation), and that forest 
 ! management starts at firstmanageyear (1951). Cloning functionality is also tested.
-! Natural and mixed stand types should have identical output (in e.g. cmass_sts.out) until 1951, when fire and disturbance stops in the mixed stand and wood harvest starts.
-! Restart should also be tested and the files should be identical with and without restart
-! At the start of the simulation, one Natural stand and one mixed forest stand (identical with the Natural stand until 1951, when management starts) are created.
-! A new mixed forest stand is created in 1875 by cloning. This should be identical with the first mixed forest stand for the rest of the simulation (if needed verified by
-! comparing cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out.
+! Natural and mixed stand types should have identical output (in e.g. cmass_sts.out) until 1951, 
+! when fire and disturbance stops in the mixed stand and wood harvest starts.
+! Restart should also be tested and the files should be identical with and without restart.
+! At the start of the simulation, one natural stand and one mixed forest stand 
+! (identical with the natural stand until 1951, when management starts) are created.
+! A new mixed forest stand is created in 1875 by cloning. This should be identical 
+! with the first mixed forest stand for the rest of the simulation (if needed verified by
+! comparing cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out.)
 
 import "../../europe.ins"
 import "../../../data/ins/landcover.ins"
 
-param "file_gridlist" (str "gridlist.txt")
-param "file_lu"       (str "/data/landuse/benchmark_secondary_stands/lufrac_multiplestands_test_C.txt")
-
-
 !outputdirectory "./save&restart/"
 
-
-searchradius 1
+param "file_gridlist" (str "gridlist.txt")
+param "file_lu"       (str "/data/landuse/benchmark_secondary_stands/lufrac_multiplestands_test_C.txt")
 
 file_cmass_sts "cmass_sts.out"
 
 printseparatestands 1	! cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out should be identical
 print_cmass_stand 1
+
+searchradius 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 

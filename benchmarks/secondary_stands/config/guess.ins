@@ -6,14 +6,11 @@
 ! A new mixed forest stand is created in 1875 by cloning. This should be identical with the first mixed forest stand for the rest of the simulation (if needed verified by
 ! comparing cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out.
 
-import "..\..\data\ins\europe.ins"
-import "..\..\data\ins\landcover.ins"
+import "../../europe.ins"
+import "../../../data/ins/landcover.ins"
 
-!Climate data and co2
-import "paths.4.1.ins"
-
-param "file_gridlist" (str "gridlist_slovenia.txt")
-param "file_lu"       (str "lufrac_multiplestands_test_C.txt")
+param "file_gridlist" (str "gridlist.txt")
+param "file_lu"       (str "/data/landuse/benchmark_secondary_stands/lufrac_multiplestands_test_C.txt")
 
 
 !outputdirectory "./save&restart/"
@@ -81,7 +78,7 @@ st "mixed" (
 	secondintervalstart 0
 	secondcutinterval 20
 	secondthintime 0 0 0 0 0
-	secondthinstr 0.3 0 0 0 0
+	secondthinstrength 0.3 0 0 0 0
 	secondthinselectdiam 2 0 0 0 0
 	cutfirstyear 0		! iftransfer_to_new_stand must be 1 !
 	firstmanageyear 1951

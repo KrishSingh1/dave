@@ -8,18 +8,14 @@ cat cmass_sts.out | tail -n+2 | head -n50\
 
 cat testresult.txt >>guess.log
 
-if [ "$(wc -l testresult.txt)" != "0" ]; then	# Test failed
-#  describe_benchmark "LPJ-GUESS - Secondary stands technical test \n$(cat testresult.txt)"
-  echo failed $(wc -l testresult.txt)
-else			# Test passed.
-#  describe_benchmark "LPJ-GUESS - Secondary stands technical test \n\nTest passed."
-  echo ok $(wc -l testresult.txt)
-fi
 
+# Benchmark report
 
-#This does not work, unfortunately. Syntax error from awk at '!'"
-#awkmsg1="TEST FAILED! Natural and mixed columns differ at line";\
-#awkmsg2="\nThis indicates a problem with secondary stands";\
-#cat cmass_sts.out | tail -n+2 | head -n51\
-# | awk -v awkmsg1=$awkmsg1 -v awkmsg2=$awkmsg2 '$4 != $5 {print $awkmsg1, NR, "in cmass_sts.out",$awkmsg1; exit;}'\
-# | less
+describe_benchmark "LPJ-GUESS - Secondary stands technical test"
+
+if [ -z "$(cat testresult.txt)" ]; then		# Test passed.
+  echo "Test passed." >testresult.txt
+fi						# If test failed, use the pre-existing text in testresult.txt
+
+describe_textfile testresult.txt
+

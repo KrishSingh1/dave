@@ -8,7 +8,8 @@
 ! (identical with the natural stand until 1951, when management starts) are created.
 ! A new mixed forest stand is created in 1875 by cloning. This should be identical 
 ! with the first mixed forest stand for the rest of the simulation (if needed verified by
-! comparing cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out.)
+! comparing cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out, which
+! should be identical)
 
 import "../../europe.ins"
 import "../../../data/ins/landcover.ins"
@@ -20,19 +21,21 @@ param "file_lu"       (str "/data/landuse/benchmark_secondary_stands/lufrac_mult
 
 file_cmass_sts "cmass_sts.out"
 
-printseparatestands 1	! cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out should be identical
-print_cmass_stand 1
-
-searchradius 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 
-!
+!///////////////////////////////////////////////////////////////////////////////////////
 
-title 'LPJ-GUESS test multiple stands'
+
+title 'LPJ-GUESS test Secondary stands'
 
 npatch 5			! number of replicate patches to simulate
 npatch_secondarystand 1
+
+printseparatestands 1		! cmass_mixed_14.75_46.25_1.out and cmass_mixed_14.75_46.25_2.out should be identical
+print_cmass_stand 1
+
+searchradius 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -50,15 +53,15 @@ run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)				!
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS 
 !///////////////////////////////////////////////////////////////////////////////
+
 state_year 570			! Year to save/start state file (no setting = after spinup)
 !save_state 1			! wheter to save a state file
 !restart 0			! wheter to start from a state file
 state_path "./"			! directory to put state files in
 
-!///////////////////////////////////////////////////////////////////////////////
-
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
+!///////////////////////////////////////////////////////////////////////////////////////
 
 group "managed" (
 

@@ -2906,7 +2906,7 @@ void Soil::update_from_yesterday() {
 }
 
 
-void Soil::update_snow_properties(const int& daynum, const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow) {
+void Soil::update_snow_properties(const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow) {
 
 	// DESCRIPTION
 	// Hillel (1982) gives values for porosity, Csnow and Ksnow.       
@@ -2993,7 +2993,7 @@ double Soil::heatcapacity(double Frac_min, double Frac_org, double Frac_ice, dou
 }
 
 
-void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
+void Soil::update_soil_diffusivities(bool ansoln) {
 
 	// DESCRIPTION
 	// Called daily to update diffusivities, heat capacities and thermal conductivities of the 
@@ -3633,7 +3633,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 	// ------------------------------------------
 
 	bool snow_active_old = snow_active;
-	update_snow_properties(daynum, dailyairtemp, Dsnow, Csnow, Ksnow);
+	update_snow_properties(dailyairtemp, Dsnow, Csnow, Ksnow);
 
 	if (analyticalSolutionTest) snow_active = 0;
 
@@ -3771,7 +3771,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 	// Update the heat capacities, thermal conductivities and diffusivities (Di[i]) in the soil layers
 	if (!iftwolayersoil)
-		update_soil_diffusivities(daynum, analyticalSolutionTest);
+		update_soil_diffusivities(analyticalSolutionTest);
 
 	// Do one timestep of the Crank-Nicholson method.
 	// ------------------------------------------

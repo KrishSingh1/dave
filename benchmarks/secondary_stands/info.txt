@@ -1,0 +1,18 @@
+Intended use of this benchmark.
+
+This is a works-or-breaks type of test, similarly to crop_mixed_sites.
+It is not intended for making an html-report page.
+
+When the benchmark is run as part of a stardard run if the full benchmark suite:
+It is run without restart
+The user, or ideally the postprocess script (not implemented yet) should check 
+that columns Natural and mixed in the file cmass_sts.out are identical up through 1950.
+A fail to that test indicates that developer forgot to initiate something when stands are 
+created later than year zero.
+
+When the benchmark is run as part of a test of the model's  savestate/restart (e.g using the wrapper script on simba):
+Use the stateyear in file benchmarks\forestry\guess.ins.
+A fail indicates, for example, that the variable-lists in serialize() functions are not complete, etc; or 
+could indicate an error to cloning or running multiple stands. 
+Caution: it might be that we decide that the ins-file of the savestate/restart-test should be another one than the ins-file
+of the standard benchmark suite above benchmarks\forestry\guess.ins.

@@ -40,7 +40,7 @@ const int IDX_STD = NLAYERS-NSOILLAYER;
 const int PAD_LAYERS = 5;
 
 /// number of total soil layers in evaporation depth
-const int NEVAP = 2;
+const int NSOILLAYER_EVAP = 2;
 
 /// number of total soil layers in the acrotelm
 const int NACROTELM = 3;
@@ -113,7 +113,7 @@ const double peat_wp = 0.066;
 const int FIRST_FREEZE_YEAR = 90;
 
 /// Freezing point [degree C]
-const double freeze_T = 0.0;
+const double T_freeze = 0.0;
 
 /// time step [day]
 const double Dt = 1;

@@ -1339,7 +1339,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Available water in evaporation and acrotelm layers
 	double water_evap = 0.0;
-	for (int ly = IDX; ly < IDX + NEVAP; ly++) {
+	for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
 		water_evap += Frac_water[ly] * Dz[ly];
 	}
 	double water_acro = 0.0;
@@ -1394,7 +1394,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// PFT total root frac down to evaporation depth (200mm) 
 		double pft_evap_root_frac = 0.0;
 
-		for (int ly = IDX; ly < IDX + NEVAP; ly++) {
+		for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
 			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
 		}
 
@@ -3086,7 +3086,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 
 	const double SMALLVOLFRAC = 0.0000001;	// Minimum volume fraction [m-3] allowed
 
-	double delta_T;	// temperature difference (current - previous)
+	double T_delta;	// temperature difference (current - previous)
 
 	for (int i = MIDX; i<NLAYERS; i++) {
 
@@ -3108,24 +3108,24 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		Frac_water[i] += Frac_water_belowpwp[i];
 		Frac_ice[i] += (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 
-		delta_T = T_soil[i] - freeze_T;
+		T_delta = T_soil[i] - T_freeze;
 
 		// FREEZING
-		if (T_soil[i] < 0.0 && T_soil[i] < freeze_T) {
+		if (T_soil[i] < 0.0 && T_soil[i] < T_freeze) {
 			Fthaw = 0.0;
 			if (Frac_water[i] > 0.0) {
 
 				// Energy change (J m-3) in this layer since last timestep
-				energy = heat_capacity_layer * delta_T; 
+				energy = heat_capacity_layer * T_delta; 
 
 				// Fraction ice that can be frozen [m3 m-3]
-				Ffreez = energy / ((Cp_ice - Cp_water) * (freeze_T + K2degC) + Lheat);
+				Ffreez = energy / ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
 
 				if (Frac_water[i] > Ffreez) {
 					Frac_ice[i] += Ffreez;
 					Frac_water[i] -= Ffreez;
 
-					T_soil[i] = freeze_T;
+					T_soil[i] = T_freeze;
 
 					// New heat capacity (J m-3 K-1), after some of the water has become ice
 					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
@@ -3164,7 +3164,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					// Update soil temperature in this layer
 
 					// Energy used for phase change and to keep layer at initial temperature [J m-3]
-					double energy_loss = Frac_water[i] * ((Cp_ice - Cp_water) * (freeze_T + K2degC) + Lheat);
+					double energy_loss = Frac_water[i] * ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
 
 					// Calculate remaining energy to lower the temperature
 					double energy_remain = energy - energy_loss;
@@ -3173,7 +3173,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], 0.0, Frac_peat[i], Frac_air[i]);
 
 					// Update soil temperature
-					T_soil[i] = freeze_T + energy_remain / heat_capacity_layer;
+					T_soil[i] = T_freeze + energy_remain / heat_capacity_layer;
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = -Frac_water[i] * Lheat;
@@ -3197,15 +3197,15 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		} // end of FREEZING
 
 		// THAWING
-		else if (T_soil[i] >= 0.0 && T_soil[i] > freeze_T) {
+		else if (T_soil[i] >= 0.0 && T_soil[i] > T_freeze) {
 			Ffreez = 0.0;
 			if (Frac_ice[i] > 0.0) {
 
 				// Energy from full soil layer to thaw water [J m-3]
-				energy = heat_capacity_layer * delta_T;
+				energy = heat_capacity_layer * T_delta;
 
 				// Fraction ice that can be thawed [m3 m-3]
-				Fthaw = -energy / ((Cp_ice - Cp_water) * (freeze_T + K2degC) + Lheat);
+				Fthaw = -energy / ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
 
 				if (Frac_ice[i] > Fthaw) {
 
@@ -3214,7 +3214,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					Frac_ice[i] -= Fthaw;
 
 					// Soil temperature stays at previous timestep's temperature
-					T_soil[i] = freeze_T;
+					T_soil[i] = T_freeze;
 
 					// New heat capacity (J m-3 K-1), now that some of the ice has become water
 					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
@@ -3252,7 +3252,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					// Update soil temperature in this layer
 
 					// Energy used for phase change and to keep layer at initial temperature [J m-3]
-					double energy_loss = -Frac_ice[i] * ((Cp_ice - Cp_water) * (freeze_T + K2degC) + Lheat);
+					double energy_loss = -Frac_ice[i] * ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
 
 					// Calculate remaining energy to lower the temperature [J m-3]
 					double energy_remain = energy - energy_loss;
@@ -3261,7 +3261,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], 0.0, Frac_water[i], Frac_peat[i], Frac_air[i]);
 
 					// Update soil temperature in this layer
-					T_soil[i] = freeze_T + energy_remain / heat_capacity_layer;
+					T_soil[i] = T_freeze + energy_remain / heat_capacity_layer;
 
 					// Energy used for phase change [J m-3]
 					phase_change_energy = Frac_ice[i] * Lheat;
@@ -3308,11 +3308,11 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		}
 
 		// Maximum error
-		const double EPS = 1.0e-10;
+		const double EPS_SOIL_ENERGY = 1.0e-10;
 		double energy_final = heat_capacity_layer * (T_soil[i] + K2degC) - phase_change_energy;
 
 		// energy balance checks:
-		if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
+		if ((fabs(energy_initial - energy_final)) > energy_initial * EPS_SOIL_ENERGY) {
 			dprintf("Year %d Day %d Energy balance is off during freezing or thawing in Soil::update_ice_fraction for layer %d. Init %g, Final %g, Diff %g \n", 
 				date.year, date.day, i, energy_initial, energy_final, energy_initial - energy_final);
 		}

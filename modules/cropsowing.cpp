@@ -407,14 +407,11 @@ void calc_m_climate_20y_mean(Climate& climate) {
 	double mprec_petmin_thisyear = 1.0;
 	double mprec_petmax_thisyear = 0.0;
 
-	//climate.aprec = 0.0;
-
 	for(int m=0; m<12; m++) {
 
 		// 1) this year
 		climate.mtemp20[m] = climate.hmtemp_20[m].lastadd();
 		climate.mprec20[m] = climate.hmprec_20[m].lastadd();
-		//climate.aprec += climate.hmprec_20[m].lastadd();
 		climate.mpet_year[m] = climate.hmeet_20[m].lastadd()*PRIESTLEY_TAYLOR;
 		//
 		climate.mpet20[m] = climate.mpet_year[m];

@@ -2722,7 +2722,7 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	return balance;
 }
 
-bool MassBalance::check_patch_W(Patch& patch) {
+bool MassBalance::check_patch_water(Patch& patch) {
 
 	bool balance = true;
 
@@ -2746,7 +2746,7 @@ bool MassBalance::check_patch_W(Patch& patch) {
  */
 bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 
-	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest) && check_patch_W(patch);
+	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest) && check_patch_water(patch);
 }
 
 void MassBalance::check_year_N(Gridcell& gridcell) {
@@ -2799,7 +2799,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 	ccont = ccont_year;
 }
 
-void MassBalance::check_year_W(Gridcell& gridcell) {
+void MassBalance::check_year_water(Gridcell& gridcell) {
 
 	double wcontent_year = gridcell.wcontent();
 	double wflux_year = gridcell.wflux();
@@ -2834,7 +2834,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 	if (ifcentury) 
 		check_year_N(gridcell);
 
-	check_year_W(gridcell);
+	check_year_water(gridcell);
 
 }
 

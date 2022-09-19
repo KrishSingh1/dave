@@ -3102,7 +3102,7 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		double ice_thislayer = Frac_ice[i] + (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 		double water_thislayer = Frac_water[i] + Frac_water_belowpwp[i];
 		// The total amount of ice and water should not change in this routine
-		double wtotal_initial = ice_thislayer + water_thislayer;
+		double water_total_initial = ice_thislayer + water_thislayer;
 
 		// Add the water (not ice) below wp before calculating phase change
 		Frac_water[i] += Frac_water_belowpwp[i];
@@ -3320,10 +3320,10 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		// water balance checks:
 		double ice_thislayer_new = Frac_ice[i] + (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 		double water_thislayer_new = Frac_water[i] + Frac_water_belowpwp[i];
-		double wtotal_final = ice_thislayer_new + water_thislayer_new;
+		double water_total_final = ice_thislayer_new + water_thislayer_new;
 
-		if ((fabs(wtotal_initial - wtotal_final)) > SMALLVOLFRAC)
-			fail("Water mass balance during freezing or thawing in Soil::update_ice_fraction. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+		if ((fabs(water_total_initial - water_total_final)) > SMALLVOLFRAC)
+			fail("Water mass balance during freezing or thawing in Soil::update_ice_fraction. Init %g, Final %g, Diff %g \n", water_total_initial, water_total_final, water_total_initial - water_total_final);
 
 	} // end of loop through layers
 }

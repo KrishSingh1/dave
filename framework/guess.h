@@ -4234,13 +4234,13 @@ public:
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch water and ice mass
-	double wcontent();
+	double water_content();
 	/// Total patch carbon fluxes so far this year
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
 	/// Total patch water fluxes so far this year
-	double wflux();
+	double water_flux();
 	
 	/// Get 5-year mean of wood C mass increase (periodic annual increment)
 	double get_cmass_wood_inc_5() {
@@ -4456,13 +4456,13 @@ public:
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
 	/// Total stand water and ice
-	double wcontent();
+	double water_content();
 	/// Total stand carbon fluxes so far this year
 	double cflux();
 	/// Total stand nitrogen fluxes so far this year
 	double nflux();
 	/// Total stand water fluxes so far this year
-	double wflux();
+	double water_flux();
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -4860,13 +4860,13 @@ public:
 	/// Total gridcell nitrogen biomass and litter
 	double ncont();
 	/// Total gridcell water and ice
-	double wcontent();
+	double water_content();
 	/// Total gridcell carbon fluxes so far this year
 	double cflux();
 	/// Total gridcell nitrogen fluxes so far this year
 	double nflux();
 	/// Total gridcell water fluxes so far this year
-	double wflux();
+	double water_flux();
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

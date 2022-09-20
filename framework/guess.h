@@ -510,9 +510,9 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
-	double water_content;
-	double water_content_zero;
-	double water_content_zero_scaled;
+	double water_cont;
+	double water_cont_zero;
+	double water_cont_zero_scaled;
 	double water_flux;
 	double water_flux_zero;
 
@@ -530,9 +530,9 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
-		water_content = 0.0;
-		water_content_zero = 0.0;
-		water_content_zero_scaled = 0.0;
+		water_cont = 0.0;
+		water_cont_zero = 0.0;
+		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
 	}
@@ -550,9 +550,9 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
-		water_content = 0.0;
-		water_content_zero = 0.0;
-		water_content_zero_scaled = 0.0;
+		water_cont = 0.0;
+		water_cont_zero = 0.0;
+		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
 	}

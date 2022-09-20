@@ -2545,14 +2545,14 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& ncont_zero
 		& ncont_zero_scaled
 		& nflux_zero
-		& wcontent_zero
-		& wflux_zero
+		& water_content_zero
+		& water_flux_zero
 		& ccont
 		& ncont
-		& wcontent
+		& water_content
 		& cflux
 		& nflux
-		& wflux;
+		& water_flux;
 }
 
 /// Should be used together with check_indiv()
@@ -2667,8 +2667,8 @@ void MassBalance::init_patch(Patch& patch) {
 	if (stand.get_gridcell_fraction())
 		nflux_zero += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 
-	wcontent_zero = patch.wcontent();
-	wflux_zero = patch.wflux();
+	water_content_zero = patch.wcontent();
+	water_flux_zero = patch.wflux();
 }
 
 bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
@@ -2729,10 +2729,10 @@ bool MassBalance::check_patch_water(Patch& patch) {
 	double wcontent = patch.wcontent();
 	double wflux = patch.wflux();
 
-	if (date.year >= nyear_spinup && !negligible(wcontent - wcontent_zero + wflux - wflux_zero, -8)) {
-		dprintf("\nStand %d Patch %d Water balance year %d day %d: %.9f\n", patch.stand.id, patch.id, date.year, date.day, wcontent - wcontent_zero + wflux - wflux_zero);
-		dprintf("Water pool change: %.10f\n", wcontent - wcontent_zero);
-		dprintf("Water flux: %.10f\n\n", wflux - wflux_zero);
+	if (date.year >= nyear_spinup && !negligible(wcontent - water_content_zero + wflux - water_flux_zero, -8)) {
+		dprintf("\nStand %d Patch %d Water balance year %d day %d: %.9f\n", patch.stand.id, patch.id, date.year, date.day, wcontent - water_content_zero + wflux - water_flux_zero);
+		dprintf("Water pool change: %.10f\n", wcontent - water_content_zero);
+		dprintf("Water flux: %.10f\n\n", wflux - water_flux_zero);
 		balance = false;
 	}
 
@@ -2805,21 +2805,21 @@ void MassBalance::check_year_water(Gridcell& gridcell) {
 	double wflux_year = gridcell.wflux();
 
 	if (date.year == start_year) {
-		wcontent_zero = wcontent_year;
+		water_content_zero = wcontent_year;
 	}
 	else {
 
-		wflux += wflux_year;
+		water_flux += wflux_year;
 
 		// Water balance check:
-		if (!negligible(wcontent_year - wcontent + wflux_year, -5)) {
-			dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent_year - wcontent + wflux_year);
-			dprintf("Water pool change: %.7f\n", wcontent_year - wcontent);
+		if (!negligible(wcontent_year - water_content + wflux_year, -5)) {
+			dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent_year - water_content + wflux_year);
+			dprintf("Water pool change: %.7f\n", wcontent_year - water_content);
 			dprintf("Water flux: %.7f\n", wflux_year);
 		}
 	}
 
-	wcontent = wcontent_year;
+	water_content = wcontent_year;
 }
 
 
@@ -2857,10 +2857,10 @@ void MassBalance::check_period(Gridcell& gridcell) {
 	}
 
 	// Water balance check:
-	if (!negligible(wcontent - wcontent_zero + wflux, -4)) {
-		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), wcontent - wcontent_zero + wflux);
-		dprintf("Water pool change: %.6f\n", wcontent - wcontent_zero);
-		dprintf("Water fluxes: %.6f\n", wflux);
+	if (!negligible(water_content - water_content_zero + water_flux, -4)) {
+		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), water_content - water_content_zero + water_flux);
+		dprintf("Water pool change: %.6f\n", water_content - water_content_zero);
+		dprintf("Water fluxes: %.6f\n", water_flux);
 	}
 }
 
@@ -2871,8 +2871,8 @@ void MassBalance::init(Gridcell& gridcell) {
 	cflux_zero = gridcell.cflux();
 	ncont_zero = gridcell.ncont();
 	nflux_zero = gridcell.nflux();
-	wcontent_zero = gridcell.wcontent();
-	wflux_zero = gridcell.wflux();
+	water_content_zero = gridcell.wcontent();
+	water_flux_zero = gridcell.wflux();
 }
 
 void MassBalance::check(Gridcell& gridcell) {
@@ -2897,9 +2897,9 @@ void MassBalance::check(Gridcell& gridcell) {
 	double wcontent = gridcell.ncont();
 	double wflux = gridcell.nflux();
 
-	if (!negligible(wcontent - wcontent_zero + wflux, -5)) {
-		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent - wcontent_zero + wflux);
-		dprintf("Water pool change: %.7f\n", wcontent - wcontent_zero);
+	if (!negligible(wcontent - water_content_zero + wflux, -5)) {
+		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, wcontent - water_content_zero + wflux);
+		dprintf("Water pool change: %.7f\n", wcontent - water_content_zero);
 		dprintf("Water flux: %.7f\n\n", wflux);
 	}
 }

@@ -1099,6 +1099,9 @@ public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
 
+		var_prec = 0.0;
+		var_temp = 0.0;
+
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 

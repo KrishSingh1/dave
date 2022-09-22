@@ -1524,6 +1524,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	leafndemand_store = 0.0;
 	rootndemand_store = 0.0;
 
+	n_opt_isabovelim      = false;
 	nstress           = false;
 
 	// additional initialisation

@@ -971,6 +971,19 @@ void dailyaccounting_patch(Patch& patch) {
 			if(patch.age == 1) {
 				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
 			}
+
+			// Reset month phen and set driest month for RAINGREENS
+			double phen_min = 1.0;
+			patchpft.driest_mth = 0;
+			for (int mth = 0; mth < 12; mth++) {
+				if (patchpft.pft.phenology == RAINGREEN) {
+					if (patchpft.mphen[mth] < phen_min) {
+						phen_min = patchpft.mphen[mth];
+						patchpft.driest_mth = mth;
+					}
+				}
+				patchpft.mphen[mth] = 0.0;
+			}
 		}
 	}
 

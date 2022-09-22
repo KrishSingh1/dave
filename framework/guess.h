@@ -4150,25 +4150,29 @@ public:
 	double wscal_mean_est;
 	/// vegetation phenological state (fraction of potential leaf cover), updated daily
 	double phen;
+	/// monthly sum of daily fractional leaf cover
+	double mphen[12];
 	/// annual sum of daily fractional leaf cover
 	/** equivalent number of days with full leaf cover
 	 *  (reset on expected coldest day of year)
 	 */
 	double aphen;
+	/// Month of lowest phen for RAINGREEN
+	int driest_mth;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_leaf;
+	double cmass_litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_root;
+	double cmass_litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap;
+	double cmass_litter_sap;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart;
+	double cmass_litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
-	double litter_repr;
+	double cmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4244,11 +4248,11 @@ public:
 	/// Constructor: initialises id, pft and data members
 	Patchpft(int i,Pft& p):id(i),pft(p) {
 
-		litter_leaf = 0.0;
-		litter_root = 0.0;
-		litter_sap   = 0.0;
-		litter_heart = 0.0;
-		litter_repr = 0.0;
+		cmass_litter_leaf = 0.0;
+		cmass_litter_root = 0.0;
+		cmass_litter_sap   = 0.0;
+		cmass_litter_heart = 0.0;
+		cmass_litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
@@ -4260,6 +4264,7 @@ public:
 		anetps_ff = 0.0;
 		aphen = 0.0;
 		phen = 0.0;
+		driest_mth = 0;
 		wsupply = 0.0;
 		wsupply_leafon = 0.0;
 		anetps_ff_est = 0.0;
@@ -4267,8 +4272,11 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 
-		for(int i=0;i<NSOILLAYER;i++)
-			fwuptake[i]=0.0;
+		for (int mth = 0; mth < 12; mth++)
+			mphen[mth] = 0.0;
+
+		for (int i = 0; i < NSOILLAYER; i++)
+			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;

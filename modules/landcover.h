@@ -144,11 +144,11 @@ struct landcover_change_transfer {
 			// sum original litter C & N:
 			for(int n=0; n<npft; n++)
 			{
-				transfer_cmass_litter_leaf[n] += patch.pft[n].litter_leaf * scale;
-				transfer_cmass_litter_root[n] += patch.pft[n].litter_root * scale;
-				transfer_cmass_litter_sap[n] += patch.pft[n].litter_sap * scale;
-				transfer_cmass_litter_heart[n] += patch.pft[n].litter_heart * scale;
-				transfer_cmass_litter_repr[n] += patch.pft[n].litter_repr * scale;
+				transfer_cmass_litter_leaf[n] += patch.pft[n].cmass_litter_leaf * scale;
+				transfer_cmass_litter_root[n] += patch.pft[n].cmass_litter_root * scale;
+				transfer_cmass_litter_sap[n] += patch.pft[n].cmass_litter_sap * scale;
+				transfer_cmass_litter_heart[n] += patch.pft[n].cmass_litter_heart * scale;
+				transfer_cmass_litter_repr[n] += patch.pft[n].cmass_litter_repr * scale;
 
 				transfer_nmass_litter_leaf[n] += patch.pft[n].nmass_litter_leaf * scale;
 				transfer_nmass_litter_root[n] += patch.pft[n].nmass_litter_root*scale;

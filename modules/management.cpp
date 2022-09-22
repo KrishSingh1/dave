@@ -1745,7 +1745,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 			// than the first day of the year.
 			if(indiv.alive && pft.lifeform == TREE) {
 				if(anpp > 0.0) {
-					ppft.litter_sap += anpp;
+					ppft.cmass_litter_sap += anpp;
 				}
 				else {
 					patch.fluxes.report_flux(Fluxes::HARVESTC, anpp);

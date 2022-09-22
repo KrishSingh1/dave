@@ -1139,8 +1139,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_cmass_leaf_root_turnover += patchpft.cmass_leaf_root_turnover;
 				standpft_cmass_repr += patchpft.cmass_repr;
 				standpft_cmass_est += patchpft.cmass_est;
-				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap
-					+ patchpft.litter_heart + patchpft.litter_repr;
+				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap
+					+ patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
 					+ patchpft.nmass_litter_heart;
 

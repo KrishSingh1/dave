@@ -140,6 +140,9 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen);
 
+			// Update monthly leaf-on sum
+			ppft.mphen[date.month] += ppft.phen / date.ndaymonth[date.month];
+
 			// Update annual leaf-on sum
 			if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
 				 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
@@ -1079,8 +1082,8 @@ void flush_litter_repr(Patch& patch) {
 		Patchpft& pft = patch.pft.getobj();
 
 		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::REPRC, pft.litter_repr);
-		pft.litter_repr = 0.0;
+		patch.fluxes.report_flux(Fluxes::REPRC, pft.cmass_litter_repr);
+		pft.cmass_litter_repr = 0.0;
 
 		patch.pft.nextobj();
 	}
@@ -1248,7 +1251,7 @@ void growth(Stand& stand, Patch& patch) {
 				// Transfer excess leaves to litter
 				// only for 'alive' individuals
 				if (indiv.alive) {
-					patch.pft[indiv.pft.id].litter_leaf += cmass_excess;
+					patch.pft[indiv.pft.id].cmass_litter_leaf += cmass_excess;
 					if (!negligible(cton_leaf_bg))
 						raingreen_ndemand = min(indiv.nmass_leaf, cmass_excess / cton_leaf_bg);
 					else
@@ -1276,8 +1279,8 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 						indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 						indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-						patch.pft[indiv.pft.id].litter_leaf,
-						patch.pft[indiv.pft.id].litter_root, patch.pft[indiv.pft.id].cmass_leaf_root_turnover,
+						patch.pft[indiv.pft.id].cmass_litter_leaf,
+						patch.pft[indiv.pft.id].cmass_litter_root, patch.pft[indiv.pft.id].cmass_leaf_root_turnover,
 						patch.pft[indiv.pft.id].nmass_litter_leaf,
 						patch.pft[indiv.pft.id].nmass_litter_root,
 						indiv.nstore_longterm,indiv.max_n_storage,
@@ -1289,7 +1292,7 @@ void growth(Stand& stand, Patch& patch) {
 				// Transfer reproduction straight to litter
 				// only for 'alive' individuals
 				if (indiv.alive) {
-					patch.pft[indiv.pft.id].litter_repr += cmass_repr;
+					patch.pft[indiv.pft.id].cmass_litter_repr += cmass_repr;
 				}
 
 				if (indiv.pft.lifeform == TREE) {
@@ -1348,8 +1351,8 @@ void growth(Stand& stand, Patch& patch) {
 
 					// alive check before ensuring C balance
 					if (indiv.alive) {
-						patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
-						patch.pft[indiv.pft.id].litter_root += litter_root_inc * indiv.densindiv;
+						patch.pft[indiv.pft.id].cmass_litter_leaf += litter_leaf_inc * indiv.densindiv;
+						patch.pft[indiv.pft.id].cmass_litter_root += litter_root_inc * indiv.densindiv;
 						patchpft.cmass_mort += (litter_leaf_inc + litter_root_inc) * indiv.densindiv;
 
 						// C litter exceeding existing biomass
@@ -1437,8 +1440,8 @@ void growth(Stand& stand, Patch& patch) {
 						// alive check before ensuring C balance
 						if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
-							patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc;
-							patch.pft[indiv.pft.id].litter_root += litter_root_inc;
+							patch.pft[indiv.pft.id].cmass_litter_leaf += litter_leaf_inc;
+							patch.pft[indiv.pft.id].cmass_litter_root += litter_root_inc;
 
 							patchpft.cmass_mort += litter_leaf_inc + litter_root_inc;
 

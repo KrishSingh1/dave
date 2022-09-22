@@ -334,10 +334,10 @@ struct Harvest_CN {
 
 		if(copy_dead_C) {
 
-			cmass_litter_leaf = ppft.litter_leaf;
-			cmass_litter_root = ppft.litter_root;
-			cmass_litter_sap = ppft.litter_sap;
-			cmass_litter_heart = ppft.litter_heart;
+			cmass_litter_leaf = ppft.cmass_litter_leaf;
+			cmass_litter_root = ppft.cmass_litter_root;
+			cmass_litter_sap = ppft.cmass_litter_sap;
+			cmass_litter_heart = ppft.cmass_litter_heart;
 
 			nmass_litter_leaf = ppft.nmass_litter_leaf;
 			nmass_litter_root = ppft.nmass_litter_root;
@@ -400,10 +400,10 @@ struct Harvest_CN {
 			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
 		}
 
-		ppft.litter_leaf = cmass_litter_leaf;
-		ppft.litter_root = cmass_litter_root;
-		ppft.litter_sap = cmass_litter_sap;
-		ppft.litter_heart = cmass_litter_heart;
+		ppft.cmass_litter_leaf = cmass_litter_leaf;
+		ppft.cmass_litter_root = cmass_litter_root;
+		ppft.cmass_litter_sap = cmass_litter_sap;
+		ppft.cmass_litter_heart = cmass_litter_heart;
 		ppft.nmass_litter_leaf = nmass_litter_leaf;
 		ppft.nmass_litter_root = nmass_litter_root;
 		ppft.nmass_litter_sap = nmass_litter_sap;

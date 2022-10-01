@@ -4771,7 +4771,7 @@ public:
 	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
 	ListArray_idin1<Gridcellst,StandType> st;
 
-	/// object for keeping track of carbon and nitrogen balance
+	/// object for keeping track of carbon, nitrogen and water balance
 	MassBalance balance;
 
 	// SIMFIRE

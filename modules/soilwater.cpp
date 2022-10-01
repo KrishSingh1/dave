@@ -377,10 +377,14 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 			} // for loop (ly)
 
-			if (soil.rain_melt < total_potential)
+			if (soil.rain_melt < total_potential) {
+				climate.aprec -= soil.rain_melt;
 				soil.rain_melt = 0.0;
-			else
+			}
+			else {
 				soil.rain_melt -= total_potential;
+				climate.aprec -= total_potential;
+			}
 
 			if (total_potential > 0.0) {
 

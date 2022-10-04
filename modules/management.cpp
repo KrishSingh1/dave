@@ -1465,8 +1465,10 @@ void manage_forest(Patch& patch) {
 	int cut_interval = mt.cutinterval;
 	bool clearcut_now = false;
 
-	// Force clearcut in first_manageyear only in stands created at start of simulation.
-	if(mt.cutfirstyear && date.year == first_manageyear && stand.first_year == 0)
+	// clearcut_first_manageyear: clearcut in year==first_manageyear only in stands created at start of simulation (false),
+	//							  clearcut in year==first_manageyear in all stands (true)
+	bool clearcut_first_manageyear = false;
+	if(mt.cutfirstyear && date.year == first_manageyear && (stand.first_year == 0 || clearcut_first_manageyear))
 		clearcut_now = true;
 
 	if(mt.ifthin_reineke)

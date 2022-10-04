@@ -2832,6 +2832,36 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 		return;
 
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
+
+		for(int st=0;st<nst;st++) {
+			if(!out_anpp_stand[id][st].invalid())
+				close_output_table(out_anpp_stand[id][st]);
+			if(!out_lai_stand[id][st].invalid())
+				close_output_table(out_lai_stand[id][st]);
+			if(!out_cmass_stand[id][st].invalid())
+				close_output_table(out_cmass_stand[id][st]);
+			if(!out_diam_stand[id][st].invalid())
+				close_output_table(out_diam_stand[id][st]);
+			if(!out_height_stand[id][st].invalid())
+				close_output_table(out_height_stand[id][st]);
+			if(!out_dens_stand[id][st].invalid())
+				close_output_table(out_dens_stand[id][st]);
+			if(!out_cmass_wood_stand[id][st].invalid())
+				close_output_table(out_cmass_wood_stand[id][st]);
+			if(!out_cmass_wood_harv_stand[id][st].invalid())
+				close_output_table(out_cmass_wood_harv_stand[id][st]);
+			if(!out_agestruct_stand[id][st].invalid())
+				close_output_table(out_agestruct_stand[id][st]);
+			if(!out_cmass_mort_stand[id][st].invalid())
+				close_output_table(out_cmass_mort_stand[id][st]);
+			if(!out_diamstruct_stand[id][st].invalid())
+				close_output_table(out_diamstruct_stand[id][st]);
+			if(!out_diamstruct_cmass_stand[id][st].invalid())
+				close_output_table(out_diamstruct_cmass_stand[id][st]);
+		}
+	}
+
+	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 		if(out_anpp_stand[id])
 			delete[] out_anpp_stand[id];
 		if(out_lai_stand[id])

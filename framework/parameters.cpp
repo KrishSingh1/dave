@@ -86,7 +86,7 @@ bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool frac_fixed[NLANDCOVERTYPES];
 bool lcfrac_fixed;
-bool all_fracs_const;
+bool all_fracs_const = true;
 bool no_barren_frac_corr = true;
 bool ifslowharvestpool;
 bool ifintercropgrass;

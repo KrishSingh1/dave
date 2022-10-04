@@ -8,7 +8,8 @@
 #include "externalinput.h"
 
 /// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
-double INPUT_RESOLUTION;
+/// Initial value willl be modified by parsing input files or setting value in instruction file
+double INPUT_RESOLUTION = 1.0e-6;
 /// Reasonable guess of landcover area fraction input resolution in original data; used to take into account 
 /// very small additional error added by rescaling area fractions so the sum is 1.0.
 const double ORIGINAL_INPUT_RESOLUTION = 0.5e-6;

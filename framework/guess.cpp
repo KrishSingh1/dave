@@ -3019,7 +3019,7 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 		
 		// N balance check:
-		double epsilon_biomass = pow(10.0, -9);
+		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
 		if ((ncont_year - ncont + nflux_year) > epsilon_biomass) {
@@ -3047,7 +3047,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 		cflux += cflux_year;
 
 		// C balance check:
-		double epsilon_biomass = pow(10.0, -9);
+		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
 		if ((ccont_year - ccont + cflux_year) > epsilon_biomass) {
@@ -3077,7 +3077,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 void MassBalance::check_period(Gridcell& gridcell) {
 
-	double epsilon_biomass = pow(10.0, -9);
+	double epsilon_biomass = 1.0e-9;
 	if(!all_fracs_const)
 		epsilon_biomass = 50 * INPUT_RESOLUTION;
 

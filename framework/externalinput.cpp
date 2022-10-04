@@ -207,6 +207,8 @@ void LandcoverInput::init() {
 							 * landcover_dynamics will call get_landcover() each year
 							 */
 
+	bool LU_input_present = false;
+
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
 
 	bool openLUfile = false;
@@ -238,6 +240,8 @@ void LandcoverInput::init() {
 				}
 
 				input_precision_parsed = LUdata.GetPrecision();
+
+				LU_input_present = true;
 			}
 		}
 	}
@@ -265,10 +269,13 @@ void LandcoverInput::init() {
 	file_lu_st[NATURAL] = param["file_lunatural"].str;
 	file_lu_st[FOREST] = param["file_luforest"].str;
 
+	if(file_lu_st[CROPLAND] != "" || file_lu_st[PASTURE] != "" || file_lu_st[NATURAL] != "" || file_lu_st[FOREST] != "")
+		LU_input_present = true;
+
 	int input_precision_parsed_st_max = 0;
 	bool st_input = false;
 
-	if(!all_fracs_const)
+	if(LU_input_present)
 		dprintf("initio: Landcover text input information:\n--------------------------------------------------------\n");
 
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
@@ -335,7 +342,7 @@ void LandcoverInput::init() {
 
 	if(input_precision_force)
 		dprintf("Manual instruction file input=%d\n\n", input_precision_force);
-	if(!all_fracs_const) {
+	if(LU_input_present) {
 		dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
 		dprintf("--------------------------------------------------------\n\n");
 	}

@@ -1279,7 +1279,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				int id = stand.id;
 				if(stand.id >= MAXNUMBER_STANDS)
-					fail("Number of stands above limit, increase MAXNUMBER_STANDS for output of individual stands !\n");
+					fail("Number of stands above limit, increase MAXNUMBER_STANDS for output of individual stands !\n\n");
 
 				if(!out_anpp_stand[id][stand.stid].invalid())
 					outlimit_misc(out, out_anpp_stand[id][stand.stid], standpft_anpp);

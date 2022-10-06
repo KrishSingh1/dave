@@ -236,7 +236,7 @@ void LandcoverInput::init() {
 				// Avoid large number of output files
 				if(printseparatestands && LUdata.GetNCells() > 100) {
 					printseparatestands = false;
-					dprintf("\nStand output disabled for simulations with land cover input files with more than 100 gridcells to avoid a large number of output files\nLandcover input file has data for %d gridcells\n", LUdata.GetNCells());
+					dprintf("\nStand output disabled for simulations with land cover input files with more than 100 gridcells to avoid a large number of output files\nLandcover input file has data for %d gridcells\n\n", LUdata.GetNCells());
 				}
 
 				input_precision_parsed = LUdata.GetPrecision();
@@ -275,8 +275,10 @@ void LandcoverInput::init() {
 	int input_precision_parsed_st_max = 0;
 	bool st_input = false;
 
-	if(LU_input_present)
-		dprintf("initio: Landcover text input information:\n--------------------------------------------------------\n");
+	if(LU_input_present) {
+		dprintf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		dprintf("Landcover text input information:\n\n");
+	}
 
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 		if(run[lc] && file_lu_st[lc] != "")	{
@@ -344,7 +346,7 @@ void LandcoverInput::init() {
 		dprintf("Manual instruction file input=%d\n\n", input_precision_force);
 	if(LU_input_present) {
 		dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
-		dprintf("--------------------------------------------------------\n\n");
+		dprintf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
 	}
 
 	if(!frac_fixed[CROPLAND]) {

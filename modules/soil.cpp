@@ -6175,7 +6175,7 @@ void Soilcolumn::vertical_movement() {
 		// Difference in matrial and effetive volume
 		double diff_volume = mineral_volume + som_volume + humus_volume - eff_volume;
 
-		// If a difference, solve it by moving matrial either down or upwards
+		// If a difference, solve it by moving material either down or upwards
 		if (!negligible(diff_volume)) {
 
 			// For the bottom soil layer only mineral volume is updated
@@ -6198,9 +6198,10 @@ void Soilcolumn::vertical_movement() {
 					// Volume will be exchanged with layer below
 					Soillayer& soillayer_below = soillayers[lyr + 1];
 
-					// Move mineral and organic matter downwards to the next layer
+					// Organic matter fraction at the interface between the layers
 					double organic_frac_int = (2.0 * soillayer.organic_volume + soillayer_below.organic_volume) /
-						(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) + soillayer_below.organic_volume + soillayer_below.mineral_volume);
+						(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) +
+						soillayer_below.organic_volume + soillayer_below.mineral_volume);
 
 					// Fraction of matter to be moved
 					double frac;
@@ -6220,12 +6221,16 @@ void Soilcolumn::vertical_movement() {
 					soillayer.NO_mass *= 1.0 - frac;
 					soillayer.N2_mass *= 1.0 - frac;
 
+					// At very low organic matter fraction at the interface 
+					// between the layers, then only mineral volume should be moved
 					if (organic_frac_int < organic_frac_move) {
+
 						// Check if mineral matter is enough to fulfill move
 						if (diff_volume <= mineral_volume) {
 							frac = diff_volume / mineral_volume;
 						}
 						else {
+							// Else all mineral volume will be moved
 							frac = 1.0;
 						}
 
@@ -6313,6 +6318,12 @@ void Soilcolumn::vertical_movement() {
 							}
 						}
 					}
+
+					// Update organic carbon density in layer below
+					soillayer_below.calc_organic_density();
+
+					// Update organic volume in layer below
+					soillayer_below.organic_volume = soillayer_below.ccont(true) / soillayer_below.rho_org * MM_PER_M;
 				}
 				// Movement upwards
 				else {
@@ -6328,20 +6339,28 @@ void Soilcolumn::vertical_movement() {
 						// Move mineral, organic and humus matter upwards from the layer below
 						double up_volume;
 
-						if (soillayer_below.depth > fabs(diff_volume)) {
+						// Effective soil volume below
+						double eff_volume_below = soillayer_below.depth * soillayer_below.eff_volume_frac;
+
+						if (eff_volume_below > fabs(diff_volume)) {
 							up_volume = fabs(diff_volume);
 							diff_volume = 0.0;
 						}
 						else {
-							up_volume = soillayer_below.depth;
-							diff_volume += soillayer_below.depth;
+							up_volume = eff_volume_below;
+							diff_volume += eff_volume_below;
 						}
 
-						double organic_frac_int = (soillayer.organic_volume + 2.0 * soillayer_below.organic_volume) /
-							(soillayer.organic_volume + soillayer.mineral_volume + 2.0 * (soillayer_below.organic_volume + soillayer_below.mineral_volume));
+						// Organic matter fraction at the interface between the layers
+						double organic_frac_int = 0.0;
+						if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
+							organic_frac_int = (2.0 * soillayer.organic_volume + soillayer_below.organic_volume) /
+								(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) +
+									soillayer_below.organic_volume + soillayer_below.mineral_volume);
+						}
 
 						// Move mineral nitrogen
-						double frac = min(1.0, up_volume / (soillayer_below.depth * soillayer_below.eff_volume_frac));
+						double frac = min(1.0, up_volume / eff_volume_below);
 						soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
 						soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
 						soillayer.N2O_mass += soillayer_below.N2O_mass * frac;
@@ -6373,43 +6392,43 @@ void Soilcolumn::vertical_movement() {
 							}
 
 							up_volume -= humus_volume_below * frac_humus;
+							soillayer_below.organic_volume -= humus_volume_below * frac_humus;
 						}
 
 						if (up_volume > 1.0e-16) {
 
-							// Update soil layer organic carbon density as humus might have been removed
-							soillayer_below.calc_organic_density();
-
-							double organic_volume_below = soillayer_below.ccont(true) / soillayer_below.rho_org * MM_PER_M;
-							double mineral_volume_below = soillayer_below.mineral_volume;
-
-							if (!negligible(organic_volume_below) || !negligible(mineral_volume_below)) {
+							if (!negligible(soillayer_below.organic_volume) || !negligible(soillayer_below.mineral_volume)) {
 
 								// Check if mineral and organic matter is enough to fulfill move
 								double frac_min, frac_org;
-								if (negligible(organic_volume_below)) {
-									frac_min = min(1.0, up_volume / mineral_volume_below);
+								if (up_volume > soillayer_below.mineral_volume + soillayer_below.organic_volume) {
+									frac_min = 1.0;
+									frac_org = 1.0;
+								}
+								else if (negligible(soillayer_below.organic_volume)) {
+									frac_min = min(1.0, up_volume / soillayer_below.mineral_volume);
 									frac_org = 0.0;
 								}
-								else if (negligible(mineral_volume_below)) {
+								else if (negligible(soillayer_below.mineral_volume)) {
 									frac_min = 0.0;
-									frac_org = min(1.0, up_volume / organic_volume_below);
+									frac_org = min(1.0, up_volume / soillayer_below.organic_volume);
 								}
 								else {
 									// Calculate mineral volume to be moved with interface fraction
 									double up_volume_org = up_volume * organic_frac_int;
 									double up_volume_min = up_volume - up_volume_org;
 
-									if (up_volume_min <= mineral_volume_below && up_volume_org <= organic_volume_below) {
-										frac_min = up_volume_min / mineral_volume_below;
-										frac_org = up_volume_org / organic_volume_below;
+									if (up_volume_min <= soillayer_below.mineral_volume && 
+										up_volume_org <= soillayer_below.organic_volume) {
+										frac_min = up_volume_min / soillayer_below.mineral_volume;
+										frac_org = up_volume_org / soillayer_below.organic_volume;
 									}
-									else if (up_volume_org > organic_volume_below) {
+									else if (up_volume_org > soillayer_below.organic_volume) {
 										frac_org = 1.0;
-										frac_min = (up_volume - organic_volume_below) / mineral_volume_below;
+										frac_min = (up_volume - soillayer_below.organic_volume) / soillayer_below.mineral_volume;
 									}
 									else {
-										frac_org = (up_volume - mineral_volume_below) / organic_volume_below;
+										frac_org = (up_volume - soillayer_below.mineral_volume) / soillayer_below.organic_volume;
 										frac_min = 1.0;
 									}
 								}
@@ -6429,6 +6448,12 @@ void Soilcolumn::vertical_movement() {
 								soillayer_below.mineral_volume *= 1.0 - frac_min;
 							}
 						}
+
+						// Update organic carbon density in layer below
+						soillayer_below.calc_organic_density();
+
+						// Update organic volume in layer below
+						soillayer_below.organic_volume = soillayer_below.ccont(true) / soillayer_below.rho_org * MM_PER_M;
 
 						lyr_below++;
 					}
@@ -6501,7 +6526,7 @@ void Soilcolumn::vertical_movement() {
 				soillayer.organic_volume = eff_volume;
 			}
 		}
-		
+
 		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10)
 			dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
 				date.year,date.day,lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),

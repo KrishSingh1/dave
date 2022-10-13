@@ -747,7 +747,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 			// If soil layer temperature is negative throughout the year 
 			// at FIRST_FREEZE_YEAR year then move all water to ice
-			if (date.year == FIRST_FREEZE_YEAR) {
+			if (date.year == FIRST_FREEZE_YEAR && hydrology != GERTEN) {
 				soillayer.freeze_lyr();
 				soillayer.temp_old = 0.0;
 			}

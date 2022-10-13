@@ -6154,6 +6154,9 @@ void Soilcolumn::vertical_movement() {
 		// Calculate soil layer organic carbon density
 		soillayer.calc_organic_density();
 
+		// Update organic volume
+		soillayer.organic_volume = soillayer.ccont(true) / soillayer.rho_org * MM_PER_M;
+
 		// Humus C mass [kg C m-2]
 		double cmass_humus = soillayer.sompool[SURFHUMUS].cmass + soillayer.sompool[SURFMICRO].cmass;
 
@@ -6335,6 +6338,12 @@ void Soilcolumn::vertical_movement() {
 
 						// Volume will be exchanged with layer below
 						Soillayer& soillayer_below = soillayers[lyr_below];
+
+						// Update organic carbon density in layer below
+						soillayer_below.calc_organic_density();
+
+						// Update organic volume in layer below
+						soillayer_below.organic_volume = soillayer_below.ccont(true) / soillayer_below.rho_org * MM_PER_M;
 
 						// Move mineral, organic and humus matter upwards from the layer below
 						double up_volume;
@@ -6527,10 +6536,14 @@ void Soilcolumn::vertical_movement() {
 			}
 		}
 
-		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10)
+		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10) {
 			dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
-				date.year,date.day,lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
+				date.year, date.day, lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
 				eff_volume, soillayer.mineral_volume + soillayer.organic_volume);
+		}
+
+		soillayer.mineral_volume = max(0.0, eff_volume - soillayer.organic_volume);
+		soillayer.organic_volume = max(0.0, eff_volume - soillayer.mineral_volume);
 	}
 
 	double ccont_after = get_sum(CCONT);

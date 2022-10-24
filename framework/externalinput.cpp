@@ -1863,7 +1863,8 @@ ManagementInput::ManagementInput() {
 
 ManagementInput::~ManagementInput() {
 
-	delete[] targetfrac_pft_mt;
+	if(targetfrac_pft_mt)
+		delete[] targetfrac_pft_mt;
 }
 
 void ManagementInput::init() {

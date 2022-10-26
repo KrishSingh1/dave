@@ -377,10 +377,10 @@ void TimeDataD::ParsePrecision() {
 				for(int i=first_data_column ;i<count1;i++) {
 					char word_copy[MAXNAMESIZE] = {'\0'};
 					strncpy(word_copy, s1[i], MAXNAMESIZE-1);
-					int str_length  = strlen(word_copy);
+					int str_length  = int(strlen(word_copy));
 					if(chp = strrchr(word_copy, '.'))
 						*chp='\0';
-					int precision_local = str_length - strlen(word_copy) - 1;
+					int precision_local = str_length - int(strlen(word_copy)) - 1;
 					if(precision_local > precision)
 					precision = precision_local;
 				}

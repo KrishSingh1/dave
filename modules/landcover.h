@@ -56,6 +56,8 @@ struct landcover_change_transfer {
 	double transfer_cpool_fast;
 	double transfer_cpool_slow;
 	double transfer_wcont[NSOILLAYER];
+	double transfer_Fwater[NSOILLAYER];
+	double transfer_Fice[NSOILLAYER];
 	double transfer_wcont_evap;
 	double transfer_decomp_litter_mean;
 	double transfer_k_soilfast_mean;
@@ -198,6 +200,8 @@ struct landcover_change_transfer {
 			// sum wcont:
 			for(int i=0; i<NSOILLAYER; i++) {
 				transfer_wcont[i] += patch.soil.get_layer_soil_water(i) * scale;
+				transfer_Fwater[i] += patch.soil.Frac_water[i + patch.soil.IDX] * scale;
+				transfer_Fice[i] += patch.soil.Frac_ice[i + patch.soil.IDX] * scale;
 			}
 			transfer_wcont_evap += patch.soil.get_layer_soil_water_evap() * scale;
 
@@ -251,8 +255,11 @@ struct landcover_change_transfer {
 		transfer_anflux_harvest = from.transfer_anflux_harvest;
 		transfer_cpool_fast = from.transfer_cpool_fast;
 		transfer_cpool_slow = from.transfer_cpool_slow;
-		for(int i=0; i<NSOILLAYER; i++)
+		for(int i=0; i<NSOILLAYER; i++) {
 			transfer_wcont[i] = from.transfer_wcont[i];
+			transfer_Fwater[i] = from.transfer_Fwater[i];
+			transfer_Fice[i] = from.transfer_Fice[i];
+		}
 		transfer_wcont_evap = from.transfer_wcont_evap;
 		transfer_decomp_litter_mean = from.transfer_decomp_litter_mean;
 		transfer_k_soilfast_mean = from.transfer_k_soilfast_mean;
@@ -323,8 +330,11 @@ struct landcover_change_transfer {
 		transfer_anflux_harvest += from.transfer_anflux_harvest * multiplier;
 		transfer_cpool_fast += from.transfer_cpool_fast * multiplier;
 		transfer_cpool_slow += from.transfer_cpool_slow * multiplier;
-		for(int i=0; i<NSOILLAYER; i++)
+		for(int i=0; i<NSOILLAYER; i++) {
 			transfer_wcont[i] += from.transfer_wcont[i] * multiplier;
+			transfer_Fwater[i] += from.transfer_Fwater[i] * multiplier;
+			transfer_Fice[i] += from.transfer_Fwater[i] * multiplier;
+		}
 		transfer_wcont_evap += from.transfer_wcont_evap * multiplier;
 		transfer_decomp_litter_mean += from.transfer_decomp_litter_mean * multiplier;
 		transfer_k_soilfast_mean += from.transfer_k_soilfast_mean * multiplier;

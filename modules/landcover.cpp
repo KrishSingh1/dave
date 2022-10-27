@@ -1290,7 +1290,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
-						kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
+					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
 					to.transfer_cmass_litter_leaf[indiv.pft.id] += cp.cmass_litter_leaf * scale;
@@ -1531,14 +1531,30 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soil.N2O_mass_d = (patch.soil.N2O_mass_d * old_frac + from.transfer_N2O_mass_d * added_frac) / new_frac;
 
 
+					double wcont_evap_new = 0.0;
+					double awc_evap = 0.0;
+					double Faw_evap = 0.0;
+
 					// add other soil stuff:
 					for(int i=0; i<NSOILLAYER; i++) {
-						double wcont_new = (patch.soil.get_layer_soil_water(i) * old_frac + from.transfer_wcont[i] * added_frac) / new_frac;
-						oob_check_wcont(wcont_new); // Remove tiny errors > 1 or < 0
-						patch.soil.set_layer_soil_water(i,wcont_new);
+						// double wcont_new = (patch.soil.get_layer_soil_water(i) * old_frac + from.transfer_wcont[i] * added_frac) / new_frac;
+						patch.soil.Frac_water[i+patch.soil.IDX] = (patch.soil.Frac_water[i+patch.soil.IDX] * old_frac + from.transfer_Fwater[i] * added_frac) / new_frac;
+						patch.soil.Frac_ice[i+patch.soil.IDX] = (patch.soil.Frac_ice[i+patch.soil.IDX] * old_frac + from.transfer_Fice[i] * added_frac) / new_frac;
+						double wcont_new_test = patch.soil.Frac_water[i + patch.soil.IDX] * patch.soil.Dz[i + patch.soil.IDX] / patch.soil.soiltype.awc[i]; 
+						// oob_check_wcont(wcont_new); // Remove tiny errors > 1 or < 0
+						oob_check_wcont(wcont_new_test); // Remove tiny errors > 1 or < 0
+						//patch.soil.set_layer_soil_water(i,wcont_new);
+						patch.soil.set_layer_soil_water(i,wcont_new_test);
+
+						if (i < 2){
+							Faw_evap += patch.soil.Frac_water[i + patch.soil.IDX] * patch.soil.Dz[i + patch.soil.IDX];
+							awc_evap += patch.soil.soiltype.awc[i];
+						}
 					}
 
-					double wcont_evap_new = (patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					wcont_evap_new = Faw_evap / awc_evap;
+
+					//double wcont_evap_new = (patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					oob_check_wcont(wcont_evap_new); // Remove tiny errors > 1 or < 0
 					patch.soil.set_layer_soil_water_evap(wcont_evap_new);
 
@@ -2262,6 +2278,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		return;
 	}
 
+	if (date.year >= 604)
+		int test = 1;
+
 	double* st_frac_transfer = NULL;
 	double* primary_st_frac_transfer = NULL;
 	bool LCchangeCtransfer = true;
@@ -2726,8 +2745,11 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_NH4_mass_d = transfer_NO3_mass_d = transfer_N2O_mass_d = transfer_NO2_mass_d = transfer_NO_mass_d = 0.0;
 	transfer_NH4_mass_w = transfer_NO3_mass_w = transfer_N2O_mass_w = transfer_NO2_mass_w = transfer_NO_mass_w = 0.0;
 
-	for(int i=0;i<NSOILLAYER;i++)
+	for(int i=0;i<NSOILLAYER;i++) {
 		transfer_wcont[i] = 0.0;
+		transfer_Fwater[i] = 0.0;
+		transfer_Fice[i] = 0.0;
+	}
 
 	for(int i=0; i<NSOMPOOL; i++)
 		transfer_sompool[i].ntoc = 0.0;

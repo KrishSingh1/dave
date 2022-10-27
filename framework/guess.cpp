@@ -2399,6 +2399,7 @@ double Gridcell::water_content() {
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
 		Stand& stand = (*this)[s];
+		double sfrac = stand.get_gridcell_fraction();
 		water_content += stand.water_content() * stand.get_gridcell_fraction();
 	}
 
@@ -2441,6 +2442,7 @@ double Gridcell::water_flux() {
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
 		Stand& stand = (*this)[s];
+		double sfrac = stand.get_gridcell_fraction();
 		water_flux += stand.water_flux() * stand.get_gridcell_fraction();
 	}
 
@@ -2800,6 +2802,9 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 }
 
 void MassBalance::check_year_water(Gridcell& gridcell) {
+
+	if (date.year >= 604)
+		int test = 1;
 
 	double water_cont_year = gridcell.water_content();
 	double water_flux_year = gridcell.water_flux();

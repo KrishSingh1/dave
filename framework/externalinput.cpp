@@ -1859,6 +1859,8 @@ int LandcoverInput::getfirsthistyear() {
 }
 
 ManagementInput::ManagementInput() {
+
+	targetfrac_pft_mt = NULL;
 }
 
 ManagementInput::~ManagementInput() {

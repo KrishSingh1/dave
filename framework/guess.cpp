@@ -774,6 +774,17 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 	bool naturalveg = st.naturalveg == "ALL";
 	bool naturalgrass = st.naturalveg == "ALL" || st.naturalveg == "GRASSONLY";
 
+	// Initialise soil some variables, including temperature, in each patch
+	if (date.year > 0) {
+		bool valid_temperature = false;
+		double initial_temperature = get_climate().temp;
+		for (unsigned int p = 0; p < nobj; p++)
+			valid_temperature = (*this)[p].soil.soil_temp_multilayer(initial_temperature);
+
+		if (!valid_temperature)
+			dprintf("Warning: invalid initial soil temperature in Stand::init_stand_lu for stand type %d !\n", stid);
+	}
+
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pftx = pftlist.getobj();

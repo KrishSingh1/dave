@@ -1535,16 +1535,28 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					double awc_evap = 0.0;
 					double Faw_evap = 0.0;
 
-					// add other soil stuff:
+					// Add soil water/ice fractions and recalculate wcont
 					for(int i=0; i<NSOILLAYER; i++) {
-						// double wcont_new = (patch.soil.get_layer_soil_water(i) * old_frac + from.transfer_wcont[i] * added_frac) / new_frac;
-						patch.soil.Frac_water[i+patch.soil.IDX] = (patch.soil.Frac_water[i+patch.soil.IDX] * old_frac + from.transfer_Fwater[i] * added_frac) / new_frac;
-						patch.soil.Frac_ice[i+patch.soil.IDX] = (patch.soil.Frac_ice[i+patch.soil.IDX] * old_frac + from.transfer_Fice[i] * added_frac) / new_frac;
-						double wcont_new_test = patch.soil.Frac_water[i + patch.soil.IDX] * patch.soil.Dz[i + patch.soil.IDX] / patch.soil.soiltype.awc[i]; 
-						// oob_check_wcont(wcont_new); // Remove tiny errors > 1 or < 0
-						oob_check_wcont(wcont_new_test); // Remove tiny errors > 1 or < 0
-						//patch.soil.set_layer_soil_water(i,wcont_new);
-						patch.soil.set_layer_soil_water(i,wcont_new_test);
+						unsigned int lix = patch.soil.IDX; // layer index
+
+						double layerwater_orig = (patch.soil.Frac_water[i + lix] + patch.soil.Frac_ice[i + lix]) * patch.soil.Dz[i + lix]; // mm
+						double layerwater_from = (from.transfer_Fwater[i] + from.transfer_Fice[i]) * patch.soil.Dz[i + lix]; // mm
+
+						patch.soil.Frac_water[i + lix] = (patch.soil.Frac_water[i + lix] * old_frac + from.transfer_Fwater[i] * added_frac) / new_frac;
+						patch.soil.Frac_water_belowpwp[i + lix] = (patch.soil.Frac_water_belowpwp[i + lix] * old_frac + from.transfer_Fwater_below_wp[i] * added_frac) / new_frac;
+						patch.soil.Frac_air[i + lix] = (patch.soil.Frac_air[i + lix] * old_frac + from.transfer_Fair[i] * added_frac) / new_frac;
+						patch.soil.Frac_ice[i + lix] = (patch.soil.Frac_ice[i + lix] * old_frac + from.transfer_Fice[i] * added_frac) / new_frac;
+						
+						double layerwater_final = (patch.soil.Frac_water[i + lix] + patch.soil.Frac_ice[i + lix]) * patch.soil.Dz[i + lix]; // mm
+
+						double wcont_new = patch.soil.Frac_water[i + lix] * patch.soil.Dz[i + lix] / patch.soil.soiltype.awc[i];
+
+						// Update alwhc and whc using the rescaled values
+						patch.soil.alwhc[i] = patch.soil.alwhc_init[i] - patch.soil.Frac_ice[i + lix];
+						patch.soil.whc[i] = max(0.0, patch.soil.soiltype.awc[i] - patch.soil.Frac_ice[i + lix] * patch.soil.Dz[i + lix]);
+
+						oob_check_wcont(wcont_new); // Remove tiny errors > 1 or < 0
+						patch.soil.set_layer_soil_water(i, wcont_new);
 
 						if (i < 2){
 							Faw_evap += patch.soil.Frac_water[i + patch.soil.IDX] * patch.soil.Dz[i + patch.soil.IDX];
@@ -1554,7 +1566,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					wcont_evap_new = Faw_evap / awc_evap;
 
-					//double wcont_evap_new = (patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					oob_check_wcont(wcont_evap_new); // Remove tiny errors > 1 or < 0
 					patch.soil.set_layer_soil_water_evap(wcont_evap_new);
 
@@ -2748,6 +2759,8 @@ landcover_change_transfer::landcover_change_transfer() {
 	for(int i=0;i<NSOILLAYER;i++) {
 		transfer_wcont[i] = 0.0;
 		transfer_Fwater[i] = 0.0;
+		transfer_Fwater_below_wp[i] = 0.0;
+		transfer_Fair[i] = 0.0;
 		transfer_Fice[i] = 0.0;
 	}
 

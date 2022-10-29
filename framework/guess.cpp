@@ -2814,7 +2814,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 
 void MassBalance::check_year_water(Gridcell& gridcell) {
 
-	if (date.year >= 604)
+	if (date.year >= 503)
 		int test = 1;
 
 	double water_cont_year = gridcell.water_content();

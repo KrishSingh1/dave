@@ -1546,10 +1546,13 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						patch.soil.Frac_water_belowpwp[i + lix] = (patch.soil.Frac_water_belowpwp[i + lix] * old_frac + from.transfer_Fwater_below_wp[i] * added_frac) / new_frac;
 						patch.soil.Frac_air[i + lix] = (patch.soil.Frac_air[i + lix] * old_frac + from.transfer_Fair[i] * added_frac) / new_frac;
 						patch.soil.Frac_ice[i + lix] = (patch.soil.Frac_ice[i + lix] * old_frac + from.transfer_Fice[i] * added_frac) / new_frac;
+						patch.soil.Frac_ice_yesterday[i + lix] = (patch.soil.Frac_ice_yesterday[i + lix] * old_frac + from.transfer_Fice_yesterday[i] * added_frac) / new_frac;
 						
 						double layerwater_final = (patch.soil.Frac_water[i + lix] + patch.soil.Frac_ice[i + lix]) * patch.soil.Dz[i + lix]; // mm
 
 						double wcont_new = patch.soil.Frac_water[i + lix] * patch.soil.Dz[i + lix] / patch.soil.soiltype.awc[i];
+
+						double wcont_old = (patch.soil.get_layer_soil_water(i) * old_frac + from.transfer_wcont[i] * added_frac) / new_frac;
 
 						// Update alwhc and whc using the rescaled values
 						patch.soil.alwhc[i] = patch.soil.alwhc_init[i] - patch.soil.Frac_ice[i + lix];
@@ -2289,7 +2292,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		return;
 	}
 
-	if (date.year >= 604)
+	if (date.year >= 503)
 		int test = 1;
 
 	double* st_frac_transfer = NULL;
@@ -2762,6 +2765,7 @@ landcover_change_transfer::landcover_change_transfer() {
 		transfer_Fwater_below_wp[i] = 0.0;
 		transfer_Fair[i] = 0.0;
 		transfer_Fice[i] = 0.0;
+		transfer_Fice_yesterday[i] = 0.0;
 	}
 
 	for(int i=0; i<NSOMPOOL; i++)

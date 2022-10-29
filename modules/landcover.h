@@ -60,6 +60,7 @@ struct landcover_change_transfer {
 	double transfer_Fwater_below_wp[NSOILLAYER];
 	double transfer_Fair[NSOILLAYER];
 	double transfer_Fice[NSOILLAYER];
+	double transfer_Fice_yesterday[NSOILLAYER];
 	double transfer_wcont_evap;
 	double transfer_decomp_litter_mean;
 	double transfer_k_soilfast_mean;
@@ -206,6 +207,7 @@ struct landcover_change_transfer {
 				transfer_Fwater_below_wp[i] += patch.soil.Frac_water_belowpwp[i + patch.soil.IDX] * scale;
 				transfer_Fair[i] += patch.soil.Frac_air[i + patch.soil.IDX] * scale;
 				transfer_Fice[i] += patch.soil.Frac_ice[i + patch.soil.IDX] * scale;
+				transfer_Fice_yesterday[i] += patch.soil.Frac_ice_yesterday[i + patch.soil.IDX] * scale;
 			}
 			transfer_wcont_evap += patch.soil.get_layer_soil_water_evap() * scale;
 
@@ -265,6 +267,7 @@ struct landcover_change_transfer {
 			transfer_Fwater_below_wp[i] = from.transfer_Fwater_below_wp[i];
 			transfer_Fair[i] = from.transfer_Fair[i];
 			transfer_Fice[i] = from.transfer_Fice[i];
+			transfer_Fice_yesterday[i] = from.transfer_Fice_yesterday[i];
 		}
 		transfer_wcont_evap = from.transfer_wcont_evap;
 		transfer_decomp_litter_mean = from.transfer_decomp_litter_mean;
@@ -342,6 +345,7 @@ struct landcover_change_transfer {
 			transfer_Fwater_below_wp[i] += from.transfer_Fwater_below_wp[i] * multiplier;
 			transfer_Fair[i] += from.transfer_Fair[i] * multiplier;
 			transfer_Fice[i] += from.transfer_Fice[i] * multiplier;
+			transfer_Fice_yesterday[i] += from.transfer_Fice_yesterday[i] * multiplier;
 		}
 		transfer_wcont_evap += from.transfer_wcont_evap * multiplier;
 		transfer_decomp_litter_mean += from.transfer_decomp_litter_mean * multiplier;

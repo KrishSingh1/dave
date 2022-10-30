@@ -74,10 +74,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
-
-		if (date.year >= 503)
-			int test = 1;
-		
+	
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 

@@ -148,7 +148,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	if (date.day == 0) {
 		patch.awetland_water_added = 0.0;
 	}
- 
+
 	patch.wetland_water_added_today = 0.0;
 
 	if (soil.percolate) {
@@ -377,13 +377,20 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 			} // for loop (ly)
 
+
 			if (soil.rain_melt < total_potential) {
-				climate.aprec -= soil.rain_melt;
-				soil.rain_melt = 0.0;
+				// Extra water is needed to saturate the soil, in addition to the rainfall
+				if (ifsaturatewetlands)
+					patch.wetland_water_added_today = total_potential - soil.rain_melt; 
+				
+				soil.rain_melt = 0.0; // All rain has been used to saturate the soil
 			}
 			else {
+				// No extra water needed to saturate the soil today, rainfall is enough
 				soil.rain_melt -= total_potential;
-				climate.aprec -= total_potential;
+
+				if (ifsaturatewetlands)
+					patch.wetland_water_added_today = 0.0; // Rainfall is enough to saturate. No need to add extra water
 			}
 
 			if (total_potential > 0.0) {
@@ -396,10 +403,6 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 					// Add water to the layer, and update wcont and Frac_water for this layer:
 					soil.add_layer_soil_water(ly, water_input_ly);
 				}
-
-				// Record the water added to this wetland today
-				if (ifsaturatewetlands)
-					patch.wetland_water_added_today = total_potential;
 			}
 
 			soil.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont

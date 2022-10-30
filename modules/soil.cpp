@@ -1159,7 +1159,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Total runoff
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 
-	// water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
+	// Water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
 	// in proportion to its components
 	if (patch.stand.is_true_wetland_stand() && ifsaturatewetlands) {
 
@@ -1177,7 +1177,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 			runoff = 0.0;
 
 		}
-		else if (runoff > patch.wetland_water_added_today  && runoff > 0.0) {
+		else if (runoff > patch.wetland_water_added_today && runoff > 0.0) {
 
 			// Enough runoff to balance the water added to the wetland so we take it back.
 			runoff_surf -= patch.wetland_water_added_today * runoff_surf / runoff;
@@ -1900,7 +1900,8 @@ double Soil::get_soil_water(int layer1, int layer2) const {
 	for (int ly = layer1; ly < layer2; ly++) {
 		
 		if (wcont[ly] < 0.0 || (wcont[ly] > 1.0 && !negligible(wcont[ly] - 1.0, -12))) {
-			fail("Soil::get_soil_water - bad wcont!\n");
+			//fail("Soil::get_soil_water - bad wcont!\n");
+			dprintf("Soil::get_soil_water - bad wcont!\n");
 			return -999;
 		}
 

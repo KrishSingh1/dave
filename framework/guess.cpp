@@ -2814,9 +2814,6 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 
 void MassBalance::check_year_water(Gridcell& gridcell) {
 
-	if (date.year >= 500)
-		int test = 1;
-
 	double water_cont_year = gridcell.water_content();
 	double water_flux_year = gridcell.water_flux();
 

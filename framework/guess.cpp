@@ -694,6 +694,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 
 	first_year = date.year;
 	clone_year = -1;
+	transfer_area_st = NULL;
 	transfer_area_st = new double[nst];
 	for(int i=0;i<nst;i++)
 		transfer_area_st[i] = 0.0;

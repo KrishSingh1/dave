@@ -48,6 +48,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 
 	if(checkdata) {
 		delete[] checkdata;
+		checkdata = NULL;
 		year = NULL;
 	}
 
@@ -244,6 +245,7 @@ bool TimeDataD::Open(const char* name) {
 			return false;
 		}
 		else {
+			fileName[0] = '\0';
 			strcpy(fileName,name);
 		}
 
@@ -502,8 +504,10 @@ fileformat TimeDataD::ParseFormat() {
 	}
 	while(!(count1 > 0));
 
-	for(int q=0;q<count1;q++)
+	for(int q=0;q<count1;q++) {
 		header_arr[q]=new char[MAXNAMESIZE];
+		header_arr[q][0] = '\0';
+	}
 
 	if(!strcmp(s1[0], "lon") || !strcmp(s1[0], "Lon") || !strcmp(s1[0], "LON")) {
 
@@ -1904,6 +1908,10 @@ void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX) {
 			for(int y=0;y<nColumns*nYears;y++)
 				data[i][y] = 0.0;
 		}
+		gridlist[i].descrip = "";
+		gridlist[i].id = 0;
+		gridlist[i].lat = 0.0;
+		gridlist[i].lon = 0.0;
 	}
 }
 
@@ -1917,8 +1925,10 @@ void TimeDataDmem::Close() {
 		gridlist = NULL;
 	}
 	for(int i=0; i<nCells; i++) {
-		if(data[i])
+		if(data[i]) {
 			delete[] data[i];
+			data[i] = NULL;
+		}
 	}
 	if(data) {
 		delete[] data;
@@ -1937,8 +1947,10 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	int cell_no = 0;
 
-	for(int q=0;q<Data.GetnColumns();q++)
+	for(int q=0;q<Data.GetnColumns();q++) {
 		header_arr[q]=new char[MAXNAMESIZE];
+		header_arr[q][0] = '\0';
+	}
 
 	if(Data.GetHeader(header_arr))
 		ifheader = true;
@@ -1948,8 +1960,10 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 	double offset = Data.GetOffset();
 
-	double *celldata;
-	celldata = new double[Data.GetnColumns() * Data.GetnYears()];
+	double *celldata = new double[Data.GetnColumns() * Data.GetnYears()];
+	for(int i=0;i<Data.GetnColumns() * Data.GetnYears();i++) {
+		celldata[i] = 0.0;
+	}
 
 	if(Data.GetFormat() == GLOBAL_STATIC) {
 		Data.Get(celldata);

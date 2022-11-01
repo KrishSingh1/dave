@@ -5049,6 +5049,8 @@ struct forest_st_frac_transfer {
 	double* secondary_young;
 
 	forest_st_frac_transfer(int nst) {
+		primary = NULL;
+		secondary_young = NULL;
 		primary = new double[nst * nst];
 		secondary_young = new double[nst * nst];
 

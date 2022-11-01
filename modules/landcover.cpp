@@ -2529,8 +2529,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	}
 
 	// Test if the sum of gross lcc for a stand type is the same as net lcc:
-	double *test_st_change;
-	test_st_change = new double[nst];
+	double *test_st_change = new double[nst];
 	for(int i=0;i<nst;i++) {
 		test_st_change[i] = 0.0;
 	}
@@ -2688,8 +2687,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 		for(int to=0; to<nst; to++) {
 
-			double *test_st_change;
-			test_st_change = new double[nst];
+			double *test_st_change = new double[nst];
 			for(int i=0;i<nst;i++)
 				test_st_change[i] = 0.0;
 
@@ -3301,13 +3299,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 									// gridcell variables pool_from_all_landcovers and pool_to_all_landcovers (set in 
 									// the gridcell constructor)
 
-		landcover_change_transfer* transfer_st_2d;
-		landcover_change_transfer* transfer_st;
-		landcover_change_transfer* transfer_st_from;
-
-		transfer_st_2d = new landcover_change_transfer[nst * nst];
-		transfer_st = new landcover_change_transfer[nst];
-		transfer_st_from = new landcover_change_transfer[nst];
+		landcover_change_transfer* transfer_st_2d = new landcover_change_transfer[nst * nst];
+		landcover_change_transfer* transfer_st = new landcover_change_transfer[nst];
+		landcover_change_transfer* transfer_st_from = new landcover_change_transfer[nst];
 
 		// handle harvest and turnover of reduced stands at landcover change
 

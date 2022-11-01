@@ -243,6 +243,25 @@ MiscOutput::MiscOutput() {
 		"Whether to print pft cmass in diameter classes for stand types (except cropland) separately");
 	declare_parameter("print_cmass_harv_killed_pft_st",&print_cmass_harv_killed_pft_st,
 		"Whether to print pft cmass killed in harvest for stand types (except cropland) separately");
+
+	Table* out_cmass_pft_st = NULL;
+	Table* out_cmass_harv_killed_pft_st = NULL;
+	Table* out_diamstruct_cmass_st = NULL;
+
+	for(int id=0;id<MAXNUMBER_STANDS;id++) {
+		out_anpp_stand[id] = NULL;
+		out_lai_stand[id] = NULL;
+		out_cmass_stand[id] = NULL;
+		out_diam_stand[id] = NULL;
+		out_height_stand[id] = NULL;
+		out_dens_stand[id] = NULL;
+		out_cmass_wood_stand[id] = NULL;
+		out_cmass_wood_harv_stand[id] = NULL;
+		out_cmass_mort_stand[id] = NULL;
+		out_agestruct_stand[id] = NULL;
+		out_diamstruct_stand[id] = NULL;
+		out_diamstruct_cmass_stand[id] = NULL;
+	}
 }
 
 MiscOutput::~MiscOutput() {
@@ -2570,6 +2589,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		delete[] st_pft_cmass;
 	if(st_total_cmass)
 		delete[] st_total_cmass;
+	if(st_pft_cmass_harv_killed)
+		delete[] st_pft_cmass_harv_killed;
+	if(st_total_cmass_harv_killed)
+		delete[] st_total_cmass_harv_killed;
 }
 
 /// Output of simulation results at the end of each day
@@ -2883,6 +2906,19 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 			delete[] out_diamstruct_stand[id];
 		if(out_diamstruct_cmass_stand[id])
 			delete[] out_diamstruct_cmass_stand[id];
+
+		out_anpp_stand[id] = NULL;
+		out_lai_stand[id] = NULL;
+		out_cmass_stand[id] = NULL;
+		out_diam_stand[id] = NULL;
+		out_height_stand[id] = NULL;
+		out_dens_stand[id] = NULL;
+		out_cmass_wood_stand[id] = NULL;
+		out_cmass_wood_harv_stand[id] = NULL;
+		out_cmass_mort_stand[id] = NULL;
+		out_agestruct_stand[id] = NULL;
+		out_diamstruct_stand[id] = NULL;
+		out_diamstruct_cmass_stand[id] = NULL;
 	}
 }
 

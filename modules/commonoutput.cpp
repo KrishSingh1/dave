@@ -1730,7 +1730,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		if (!(date.year%PLOT_UPDATE_INTERVAL)) {
 
-			double* densindiv=NULL;
+			double* densindiv = NULL;
 			int nageclass;
 			get_stand_age_structure(gridcell, densindiv, nageclass, false);
 

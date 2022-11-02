@@ -16,7 +16,7 @@
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
 NPROCESS=20                # NB: Should be multiple of 20 on Aurora!
-WALLTIME=150:00:00
+WALLTIME=30:00:00
 WALLTIME_APPEND=01:30:00   # Does not need to be as long as guess walltime
 INSFILE=guess.ins
 INPUT_MODULE=cru_ncep
@@ -79,7 +79,7 @@ fi
 CORES_PER_NODE=20
 if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
     echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
-    exit 1
+#    exit 1
 fi
 
 # Convert INSFILE to an absolute path since we will be starting the
@@ -145,6 +145,7 @@ cat <<EOF > guess.cmd
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
 #SBATCH -o "slurm-%j.log"
+#SBATCH -A lu2021-2-113
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -177,8 +178,8 @@ cat <<EOF > append.cmd
 #!/bin/bash
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
-#SBATCH --mem-per-cpu=12000
 #SBATCH -o "slurm-%j.log"
+#SBATCH -A lu2021-2-113
 set -e
 
 function append_files {

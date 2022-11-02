@@ -261,6 +261,7 @@ EOF
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
+#SBATCH -A lu2021-2-113
 $(cat $common_script)
 EOF
     fi
@@ -426,6 +427,10 @@ function meta_data {
 	    echo "Local WC path:" > $file2
 	    pwd -P >> $file2
 	    echo >> $file2
+            if has_slurm ; then
+                module list 2>&1 | grep -v '^[[:space:]]*$' >> $file2
+                echo >> $file2
+            fi
 	    echo "$changesdiff" >> $file2
 	fi
     else

@@ -261,7 +261,7 @@ EOF
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
-#SBATCH -A lu2021-2-113
+$SBATCH_COMPUTEACCOUNT
 $(cat $common_script)
 EOF
     fi
@@ -448,7 +448,6 @@ echo "The following benchmarks are done:" > progress.txt
 # If necessary, create the working directory where all the benchmarks will be
 # run from.
 mkdir -p $work_dir
-
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
 
@@ -502,6 +501,13 @@ do
       fi
   fi
 done
+
+
+# Read the compute account number from the environment, if available.
+# Only used on a SLURM system.
+if [ -n "$COMPUTEACCOUNT" ]; then
+    SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
+fi
 
 # Call run_benchmark for each test
 for test_name in "${test_names[@]}"

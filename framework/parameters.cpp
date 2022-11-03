@@ -2129,7 +2129,7 @@ void read_instruction_file(const char* insfilename) {
 		fail("Error: could not open %s for input", (const char*)insfilename);
 	}
 
-	// Initialise PFT count
+	// Initialise PFT StandType and ManagementType count
 
 	npft = 0;
 	nst = 0;
@@ -2137,8 +2137,14 @@ void read_instruction_file(const char* insfilename) {
 
 	checked_pft.clear();
 	includepft_map.clear();
+	checked_st.clear();
+	includest_map.clear();
+	checked_mt.clear();
+	includemt_map.clear();
 
 	pftlist.killall();
+	stlist.killall();
+	mtlist.killall();
 
 	initsettings();
 

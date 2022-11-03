@@ -33,7 +33,14 @@ OUTFILES='*.out'
 #                     and separated by spaces (filenames only, including
 #                     extension, no directory.) Shell wildcards are allowed.
 #
-#   3. Run the script using the command:
+#   3. Optionally specify an compute account nmumber (i.e. a code) by
+#      exporting the following variable to the environment.
+#      On your command line or in your .bashrc, do:
+#        export COMPUTEACCOUNT=<compute account nmumber>
+#      An account number is necessary on lunarc systems if you are
+#      member of more than one compute project.
+#
+#   4. Run the script using the command:
 #        ./submit.sh
 #      or:
 #        ./submit.sh [-n <name>] [-s <file>] [-i <ins-file>]
@@ -69,6 +76,12 @@ fi
 if [ -n "$ins" ]; then
     INSFILE=$ins
 fi
+
+# Read the compute account number from the environment, if available.
+if [ -n "$COMPUTEACCOUNT" ]; then
+    SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
+fi
+
 
 # On Aurora, the recommendation is to submit jobs with the --exclusive
 # option, so we get exclusive nodes. Since each node has 20 cores, we
@@ -145,7 +158,7 @@ cat <<EOF > guess.cmd
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
 #SBATCH -o "slurm-%j.log"
-#SBATCH -A lu2021-2-113
+$SBATCH_COMPUTEACCOUNT
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -179,7 +192,7 @@ cat <<EOF > append.cmd
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
 #SBATCH -o "slurm-%j.log"
-#SBATCH -A lu2021-2-113
+$SBATCH_COMPUTEACCOUNT
 set -e
 
 function append_files {

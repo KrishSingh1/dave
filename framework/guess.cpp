@@ -646,6 +646,7 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& anetps_ff_max
 		& fpc_total
 		& active
+		& selection
 		& plant
 		& reestab
 		& plantdensity
@@ -2552,6 +2553,7 @@ void Gridcellst::serialize(ArchiveStream& arch) {
 	arch & frac
 		& frac_old_orig
 		& nstands
+		& distinterval_st
 		& diam_cut_low
 		& nfert;
 }
@@ -2566,12 +2568,22 @@ Landcover::Landcover() {
 
 	acflux_harvest_slow = 0.0;
 	acflux_landuse_change = 0.0;
+	acflux_landuse_change_orig = 0.0;
 	acflux_wood_harvest = 0.0;
+	acflux_wood_harvest_orig = 0.0;
 	acflux_clearing = 0.0;
+	acflux_clearing_orig = 0.0;
+	cmass_stem_harvest = 0.0;
+	cmass_stem_toprod = 0.0;
+	cmass_harv_killed = 0.0;
+	cmass_harv_tolitter = 0.0;
 	anflux_harvest_slow = 0.0;
 	anflux_landuse_change = 0.0;
+	anflux_landuse_change_orig = 0.0;
 	anflux_wood_harvest = 0.0;
+	anflux_wood_harvest_orig = 0.0;
 	anflux_clearing = 0.0;
+	anflux_clearing_orig = 0.0;
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 
@@ -2581,6 +2593,7 @@ Landcover::Landcover() {
 		acflux_harvest_slow_lc[i] = 0.0;
 		acflux_wood_harvest_lc[i] = 0.0;
 		acflux_clearing_lc[i] = 0.0;
+		acflux_cloned_lc[i] = 0.0;
 		acflux_landuse_change_lc[i] = 0.0;
 		anflux_harvest_slow_lc[i] = 0.0;
 		anflux_landuse_change_lc[i] = 0.0;

@@ -1393,26 +1393,22 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Nitrogen always return to soil litter and storage
 					// Leaf
-					if (indiv.nmass_leaf > 0.0) {
-						double nmass = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
-						double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass * nrelocfrac));
-						ppft.nmass_litter_leaf += nmass - nreloc;
-						indiv.nstore_longterm += nreloc;
+					double nmass_leaf = max(0.0, min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg));
+					double nreloc_leaf = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass_leaf * nrelocfrac));
+					ppft.nmass_litter_leaf += nmass_leaf - nreloc_leaf;
+					indiv.nstore_longterm += nreloc_leaf;
 
-						// Subtracting litter nitrogen from individuals
-						indiv.nmass_leaf -= nmass;
-					}
+					// Subtracting litter nitrogen from individuals
+					indiv.nmass_leaf -= nmass_leaf;
 
 					// Root
-					if (indiv.nmass_root > 0.0) {
-						double nmass = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
-						double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass * nrelocfrac));
-						ppft.nmass_litter_root += nmass - nreloc;
-						indiv.nstore_longterm += nreloc;
+					double nmass_root = max(0.0, min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg));
+					double nreloc_root = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass_root * nrelocfrac));
+					ppft.nmass_litter_root += nmass_root - nreloc_root;
+					indiv.nstore_longterm += nreloc_root;
 
-						// Subtracting litter nitrogen from individuals
-						indiv.nmass_root -= nmass;
-					}
+					// Subtracting litter nitrogen from individuals
+					indiv.nmass_root -= nmass_root;
 
 					// Update individual age
 

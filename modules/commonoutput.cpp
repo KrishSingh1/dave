@@ -46,14 +46,18 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_csoil_depth", &file_csoil_depth, 300, "Soil depth C output file");
 	declare_parameter("file_nsoil_depth", &file_nsoil_depth, 300, "Soil depth N output file");
 	declare_parameter("file_netnminsoil_depth", &file_netnminsoil_depth, 300, "Soil depth net N mineralisation output file");
-	declare_parameter("file_rsoil", &file_rsoil, 300, "Soil layer C respiration output file");
-	declare_parameter("file_rsoil_depth", &file_rsoil_depth, 300, "Soil depth C respiration output file");
+	declare_parameter("file_rh", &file_rh, 300, "Soil layer C respiration output file");
+	declare_parameter("file_rh_depth", &file_rh_depth, 300, "Soil depth C respiration output file");
 	declare_parameter("file_tau_soil", &file_tau_soil, 300, "Soil layer C residence time output file");
 	declare_parameter("file_tau_soil_depth", &file_tau_soil_depth, 300, "Soil depth C residence time output file");
 	declare_parameter("file_eff_volume", &file_eff_volume, 300, "Soil layer effective volume output file");
+	declare_parameter("file_eff_volume_depth", &file_eff_volume_depth, 300, "Soil layer effective volume output file");
 	declare_parameter("file_temp_mod", &file_temp_mod, 300, "Soil layer temperature rate modifier output file");
 	declare_parameter("file_moist_mod", &file_moist_mod, 300, "Soil layer moisture rate modifier output file");
 	declare_parameter("file_tot_mod", &file_tot_mod, 300, "Soil layer temperature and moisture rate modifier output file");
+	declare_parameter("file_temp_mod_depth", &file_temp_mod_depth, 300, "Soil layer temperature rate modifier output file");
+	declare_parameter("file_moist_mod_depth", &file_moist_mod_depth, 300, "Soil layer moisture rate modifier output file");
+	declare_parameter("file_tot_mod_depth", &file_tot_mod_depth, 300, "Soil layer temperature and moisture rate modifier output file");
 	declare_parameter("file_csom", &file_csom, 300, "Soil Organic Matter C output file");
 	declare_parameter("file_ctonsom", &file_ctonsom, 300, "Soil Organic Matter C:N ratio output file");
 	declare_parameter("file_soildeclim", &file_soildeclim, 300, "Annual nitrogen decay rate limitation on SOM decomposition output file");
@@ -61,6 +65,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_soiltotlim", &file_soiltotlim, 300, "Annual nitrogen total limitation on SOM decomposition output file");
 	declare_parameter("file_soilcuelim", &file_soilcuelim, 300, "Annual carbon use efficiency on SOM decomposition output file");
 	declare_parameter("file_clitterinput", &file_clitterinput, 300, "Annual carbon litter input to soil column output file");
+	declare_parameter("file_clitterinput_depth", &file_clitterinput_depth, 300, "Annual carbon litter input to soil column output file");
 	declare_parameter("file_csomlitterinput", &file_csomlitterinput, 300, "Annual carbon litter input to SOM pools output file");
 	declare_parameter("file_soilcperma", &file_soilcperma, 300, "Fraction of soil C in permafrost output file");
 	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
@@ -68,6 +73,11 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mimasslyr", &file_mimasslyr, 300, "Monthly soil layer ice output file");
 	declare_parameter("file_mwimasslyr", &file_mwimasslyr, 300, "Monthly soil layer water+ice output file");
 	declare_parameter("file_mdrainlyr", &file_mdrainlyr, 300, "Monthly soil layer lateral drainage output file");
+	declare_parameter("file_mtemp_depth", &file_mtemp_depth, 300, "Air, snow and soil layer temperature output file");
+	declare_parameter("file_mwmass_depth", &file_mwmass_depth, 300, "Monthly soil layer water output file");
+	declare_parameter("file_mimass_depth", &file_mimass_depth, 300, "Monthly soil layer ice output file");
+	declare_parameter("file_mwimass_depth", &file_mwimass_depth, 300, "Monthly soil layer water+ice output file");
+	declare_parameter("file_mdrain_depth", &file_mdrain_depth, 300, "Monthly soil layer lateral drainage output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_wetland_water_added", &file_wetland_water_added, 300, "Wetland water added output file");
 
@@ -80,6 +90,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_nlitter", &file_nlitter, 300, "Litter nitrogen output file");
 	declare_parameter("file_nuptake", &file_nuptake, 300, "Annual nitrogen uptake output file");
 	declare_parameter("file_vmaxnlim", &file_vmaxnlim, 300, "Annual nitrogen limitation on vm output file");
+	declare_parameter("file_lambda", &file_lambda, 300, "Annual lambda limitation on photosynthesis output file");
 	declare_parameter("file_nflux", &file_nflux, 300, "Annual nitrogen fluxes output file");
 	declare_parameter("file_ngases", &file_ngases, 300, "Annual nitrogen gases output file");
 	declare_parameter("file_soil_npool", &file_soil_npool, 300, "Annual soil N pools output file");
@@ -90,6 +101,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_wflux", &file_wflux, 300, "Annual water fluxes output file");
 	declare_parameter("file_wpool", &file_wpool, 300, "Annual water pools output file");
 	declare_parameter("file_wsats", &file_wsats, 300, "Annual water holding capacity at saturation output file");
+	declare_parameter("file_wsats_depth", &file_wsats_depth, 300, "Annual water holding capacity at saturation output file");
 
 	// Monthly output variables
 	declare_parameter("file_mnpp", &file_mnpp, 300, "Monthly NPP output file");
@@ -269,12 +281,27 @@ void CommonOutput::define_output_tables() {
 	soms_ratio_columns += ColumnDescriptor("Total", 11, 2);
 
 	// Create soil depth columns
-	ColumnDescriptors soildepth_columns, soildepth_columns_med, soildepth_columns_low;
-	xtring depths[] = { "d0_0.3", "d0.3_0.5", "d0.5_1", "d1_1.5", "d1.5_2", "d2_3", "Total" };
-	for (int d = 0; d < 7; d++) {
+	ColumnDescriptors surfsoildepth_columns, surfsoildepth_columns_med, surfsoildepth_columns_low,
+		soildepth_columns, soildepth_columns_med, soildepth_columns_low;
+	xtring depths[] = { "d0_0.3", "d0.3_0.5", "d0.5_1", "d1_1.5", "d1.5_2", "d2_3", "d3_max", "Total" };
+	surfsoildepth_columns += ColumnDescriptor("Surf", 9, 3);
+	surfsoildepth_columns_med += ColumnDescriptor("Surf", 11, 6);
+	surfsoildepth_columns_low += ColumnDescriptor("Surf", 9, 1);
+	for (int d = 0; d < 8; d++) {
 		soildepth_columns += ColumnDescriptor(depths[d], 9, 3);
 		soildepth_columns_med += ColumnDescriptor(depths[d], 11, 6);
 		soildepth_columns_low += ColumnDescriptor(depths[d], 9, 1);
+		surfsoildepth_columns += ColumnDescriptor(depths[d], 9, 3);
+		surfsoildepth_columns_med += ColumnDescriptor(depths[d], 11, 6);
+		surfsoildepth_columns_low += ColumnDescriptor(depths[d], 9, 1);
+	}
+
+	// Create soil temperature depth columns
+	ColumnDescriptors tempdepth_columns;
+	xtring temp_depths[] = { "d0_0.3", "d0.3_0.5", "d0.5_1", "d1_1.5", "d1.5_2", "d2_3", "d3_5", "d5_10", "d10_20", "d20_30", "d30_40", "d40_50" };
+	tempdepth_columns += ColumnDescriptor("AirT", 9, 3);
+	for (int d = 0; d < 12; d++) {
+		tempdepth_columns += ColumnDescriptor(temp_depths[d], 9, 3);
 	}
 
 	// Create the columns for each output file
@@ -540,17 +567,21 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 	create_output_table(out_soildepth,      file_soildepth,      soillyr_columns_large);
 	create_output_table(out_csoil,          file_csoil,          soillyr_columns_med);
-	create_output_table(out_csoil_depth,    file_csoil_depth,    soildepth_columns);
-	create_output_table(out_nsoil_depth,    file_nsoil_depth,    soildepth_columns);
+	create_output_table(out_csoil_depth,    file_csoil_depth,    surfsoildepth_columns);
+	create_output_table(out_nsoil_depth,    file_nsoil_depth,    surfsoildepth_columns);
 	create_output_table(out_netnminsoil_depth, file_netnminsoil_depth, soildepth_columns);
-	create_output_table(out_rsoil,          file_rsoil,          soillyr_columns_med); 
-	create_output_table(out_rsoil_depth,    file_rsoil_depth,    soildepth_columns_med);
+	create_output_table(out_rh,             file_rh,             soillyr_columns_med); 
+	create_output_table(out_rh_depth,       file_rh_depth,       surfsoildepth_columns_med);
 	create_output_table(out_tau_soil,		file_tau_soil,       soillyr_columns_xlarge);
-	create_output_table(out_tau_soil_depth, file_tau_soil_depth, soildepth_columns_low);
+	create_output_table(out_tau_soil_depth, file_tau_soil_depth, surfsoildepth_columns_low);
 	create_output_table(out_temp_mod,       file_temp_mod,       soillyr_columns);
 	create_output_table(out_moist_mod,      file_moist_mod,      soillyr_columns);
 	create_output_table(out_tot_mod,        file_tot_mod,        soillyr_columns);
+	create_output_table(out_temp_mod_depth, file_temp_mod_depth, soildepth_columns);
+	create_output_table(out_moist_mod_depth,file_moist_mod_depth,soildepth_columns);
+	create_output_table(out_tot_mod_depth,  file_tot_mod_depth,  soildepth_columns);
 	create_output_table(out_eff_volume,     file_eff_volume,     soillyr_columns);
+	create_output_table(out_eff_volume_depth, file_eff_volume_depth, soildepth_columns);
 	create_output_table(out_csom,           file_csom,           soms_columns);
 	create_output_table(out_ctonsom,        file_ctonsom,        soms_ratio_columns);
 	create_output_table(out_soildeclim,     file_soildeclim,     soillyr_columns_short);
@@ -558,6 +589,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_soiltotlim,     file_soiltotlim,     soillyr_columns_short);
 	create_output_table(out_soilcuelim,     file_soilcuelim,     soillyr_columns_short);
 	create_output_table(out_clitterinput,   file_clitterinput,   surfsoillyr_columns);
+	create_output_table(out_clitterinput_depth, file_clitterinput_depth, surfsoildepth_columns);
 	create_output_table(out_csomlitterinput,file_csomlitterinput,soms_columns);
 	create_output_table(out_soilcperma,     file_soilcperma,     soilc_perma_columns);
 	create_output_table(out_mtemp,          file_mtemp,          temp_columns);
@@ -565,6 +597,11 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mimasslyr,      file_mimasslyr,      soillyr_columns_short);
 	create_output_table(out_mwimasslyr,     file_mwimasslyr,     soillyr_columns_short);
 	create_output_table(out_mdrainlyr,      file_mdrainlyr,	     soillyr_columns_short);
+	create_output_table(out_mtemp_depth,    file_mtemp_depth,    tempdepth_columns);
+	create_output_table(out_mwmass_depth,   file_mwmass_depth,   soildepth_columns);
+	create_output_table(out_mimass_depth,   file_mimass_depth,   soildepth_columns);
+	create_output_table(out_mwimass_depth,  file_mwimass_depth,  soildepth_columns);
+	create_output_table(out_mdrain_depth,   file_mdrain_depth,   soildepth_columns);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -588,6 +625,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_nlitter,        file_nlitter,        nlitter_columns);
 	create_output_table(out_nuptake,        file_nuptake,        nuptake_columns);
 	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
+	create_output_table(out_lambda,         file_lambda,         vmaxnlim_columns);
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
 	create_output_table(out_ngases,         file_ngases,         ngases_columns);
 	create_output_table(out_soil_npool,		file_soil_npool,     soil_npool_columns);
@@ -596,6 +634,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_wflux,          file_wflux,          wflux_columns);
 	create_output_table(out_wpool,          file_wpool,          wpool_columns);
 	create_output_table(out_wsats,          file_wsats,          soillyr_columns_short);
+	create_output_table(out_wsats_depth,    file_wsats_depth,    soildepth_columns);
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -853,8 +892,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	const double NOT_A_VALUE_LARGE = -999.9;
 
 	// Soil sections layers [mm]
-	const int sslyr = 6;
-	double soil_sections[sslyr] = { 300.0, 500.0, 1000.0, 1500.0, 2000.0, 3000.0 };
+	const int sslyr = 7;
+	double soil_sections[sslyr] = { 300.0, 500.0, 1000.0, 1500.0, 2000.0, 3000.0, 50000.0 };
+
+	// Soil sections temperature layers [mm]
+	const int sstlyr = 12;
+	double soil_temp_sections[sstlyr] = { 300.0, 500.0, 1000.0, 1500.0, 2000.0, 3000.0, 5000.0, 10000.0, 20000.0, 30000.0, 40000.0, 50000.0 };
 
 	int c, m;
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
@@ -873,14 +916,19 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double soildepth[NSOILLAYERS_MAX] = { 0.0 };
 	double soilc[NSOILLAYERS_MAX + 1] = { 0.0 };
-	double soilc_depth[sslyr + 1] = { 0.0 };
+	double soilc_depth[sslyr + 2] = { 0.0 };
 	double soilr[NSOILLAYERS_MAX + 1] = { 0.0 };
-	double soilr_depth[sslyr + 1] = { 0.0 };
-	double soiln_depth[sslyr + 1] = { 0.0 };
+	double soilr_depth[sslyr + 2] = { 0.0 };
+	double soiln_depth[sslyr + 2] = { 0.0 };
 	double soilnetnmin_depth[sslyr + 1] = { 0.0 };
+	double clitterinput_depth[sslyr + 2] = { 0.0 };
+	double eff_volume_depth[sslyr + 1] = { 0.0 };
 	double temp_mod[NSOILLAYERS_MAX] = { 0.0 };
 	double moist_mod[NSOILLAYERS_MAX] = { 0.0 };
 	double tot_mod[NSOILLAYERS_MAX] = { 0.0 };
+	double temp_mod_depth[sslyr + 1] = { 0.0 };
+	double moist_mod_depth[sslyr + 1] = { 0.0 };
+	double tot_mod_depth[sslyr + 1] = { 0.0 };
 	double eff_volume[NSOILLAYERS_MAX] = { 0.0 };
 	double somc[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
 	double somn[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
@@ -889,6 +937,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double clitterinput[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double csomlitterinput[NSOMPOOL + 1] = { 0.0 };
 	double wsats[NSOILLAYERS_MAX + 1] = { 0.0 };
+	double wsats_depth[sslyr + 1] = { 0.0 };
 	double soilc_tot, soilc_ald;
 
 	// hold the monthly average across patches
@@ -925,10 +974,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mwtp[12];
 	double mald[12];
 	double mtemp[NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS][12];
+	double mtemp_depth[sstlyr][12] = { 0.0 };
 	double mtemp25cm[12];
 	double mwmasslyr[NSOILLAYERS_MAX + 1][12];
 	double mimasslyr[NSOILLAYERS_MAX + 1][12];
 	double mdrainlyr[NSOILLAYERS_MAX + 1][12];
+	double mwmass_depth[sslyr + 1][12] = { 0.0 };
+	double mimass_depth[sslyr + 1][12] = { 0.0 };
+	double mwimass_depth[sslyr + 1][12] = { 0.0 };
+	double mdrain_depth[sslyr + 1][12] = { 0.0 };
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -978,6 +1032,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double landcover_amon_mt2[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_nuptake[NLANDCOVERTYPES] = { 0.0 };
 	double landcover_vmaxnlim[NLANDCOVERTYPES] = { 0.0 };
+	double landcover_lambda[NLANDCOVERTYPES] = { 0.0 };
 
 	double mean_standpft_cmass = 0.0;
 	double mean_standpft_nmass = 0.0;
@@ -1004,6 +1059,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_amon_mt2 = 0.0;
 	double mean_standpft_nuptake = 0.0;
 	double mean_standpft_vmaxnlim = 0.0;
+	double mean_standpft_lambda = 0.0;
 	double mean_standpft_mcmass_leaf[12] = { 0.0 };
 	double mean_standpft_mnmass_leaf[12] = { 0.0 };
 	double mean_standpft_mvmaxnlim[12] = { 0.0 };
@@ -1047,6 +1103,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double amon_mt2_gridcell = 0.0;
 	double nuptake_gridcell = 0.0;
 	double vmaxnlim_gridcell = 0.0;
+	double lambda_gridcell = 0.0;
 	double maxald_gridcell = 0.0;
 	double permafrost_full_gridcell = 0.0;
 	double permafrost_3m_gridcell = 0.0;
@@ -1091,6 +1148,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_amon_mt2 = 0.0;
 	double standpft_nuptake = 0.0;
 	double standpft_vmaxnlim = 0.0;
+	double standpft_lambda = 0.0;
 	double standpft_mcmass_leaf[12] = { 0.0 };
 	double standpft_mnmass_leaf[12] = { 0.0 };
 	double standpft_mvmaxnlim[12] = { 0.0 };
@@ -1128,7 +1186,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_amon_mt1=0.0;
 		mean_standpft_amon_mt2=0.0;
 		mean_standpft_nuptake=0.0;
-		mean_standpft_vmaxnlim=0.0;
+		mean_standpft_vmaxnlim = 0.0;
+		mean_standpft_lambda = 0.0;
 
 		for (int m = 0; m < 12; m++) {
 			mean_standpft_mcmass_leaf[m] = 0.0;
@@ -1190,6 +1249,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2=0.0;
 				standpft_nuptake=0.0;
 				standpft_vmaxnlim=0.0;
+				standpft_lambda=0.0;
 
 				for (int m = 0; m < 12; m++) {
 					standpft_mcmass_leaf[m] = 0.0;
@@ -1263,6 +1323,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								}
 								standpft_agpp_no_norm += indiv.agpp_no;
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.agpp_no;
+								standpft_lambda += indiv.alambda * indiv.agpp_no;
 								standpft_nuptake += indiv.anuptake;
 								
 								for (int m = 0; m < 12; m++) {
@@ -1320,6 +1381,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2*=fraction_of_stand;
 				standpft_nuptake*=fraction_of_stand;
 				standpft_vmaxnlim*=fraction_of_stand;
+				standpft_lambda*=fraction_of_stand;
 				standpft_heightindiv_total*=fraction_of_stand;
 
 				for (int m = 0; m < 12; m++) {
@@ -1329,6 +1391,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				if (!negligible(standpft_agpp_no_norm)) {
 					standpft_vmaxnlim/=standpft_agpp_no_norm;
+					standpft_lambda/=standpft_agpp_no_norm;
 				}
 
 				// Update landcover totals
@@ -1360,6 +1423,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_amon_mt2[stand.landcover]+=standpft_amon_mt2*fraction_of_landcover;
 				landcover_nuptake[stand.landcover]+=standpft_nuptake*fraction_of_landcover;
 				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*standpft_agpp_no_norm*fraction_of_landcover;
+				landcover_lambda[stand.landcover]+=standpft_lambda*standpft_agpp_no_norm*fraction_of_landcover;
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
@@ -1391,6 +1455,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_amon_mt2 += standpft_amon_mt2 * fraction_of_gridcell / active_fraction;
 					mean_standpft_nuptake += standpft_nuptake * fraction_of_gridcell / active_fraction;
 					mean_standpft_vmaxnlim += standpft_vmaxnlim * fraction_of_gridcell / active_fraction;
+					mean_standpft_lambda += standpft_lambda * fraction_of_gridcell / active_fraction;
 					for (int m = 0; m < 12; m++) {
 						mean_standpft_mcmass_leaf[m] += standpft_mcmass_leaf[m] * fraction_of_gridcell / active_fraction;
 						mean_standpft_mnmass_leaf[m] += standpft_mnmass_leaf[m] * fraction_of_gridcell / active_fraction;
@@ -1430,6 +1495,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				amon_mt2_gridcell+=standpft_amon_mt2*fraction_of_gridcell;
 				nuptake_gridcell+=standpft_nuptake*fraction_of_gridcell;
 				vmaxnlim_gridcell+=standpft_vmaxnlim*standpft_agpp_no_norm*fraction_of_gridcell;
+				lambda_gridcell += standpft_lambda*standpft_agpp_no_norm*fraction_of_gridcell;
 				
 				// Graphical output every PLOT_INTERVAL years
 				// (Windows shell only - "plot" statements have no effect otherwise)
@@ -1470,6 +1536,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_nmass,     (mean_standpft_nmass + mean_standpft_nlitter) * M2_PER_HA);
 		outlimit(out,out_cton_leaf, mean_standpft_cton_leaf);
 		outlimit(out,out_vmaxnlim,  mean_standpft_vmaxnlim);
+		outlimit(out,out_lambda,    mean_standpft_lambda);
 		outlimit(out,out_nuptake,   mean_standpft_nuptake * M2_PER_HA);
 		outlimit(out,out_nlitter,   mean_standpft_nlitter * M2_PER_HA);
 
@@ -1546,7 +1613,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			flux_nseed+=fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
 			flux_nharvest+=fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
-			// N fluxes
+			//Nfluxes
 			flux_NH3_fire+=fluxes.get_annual_flux(Fluxes::NH3_FIRE)*to_gridcell_average;
 			flux_NOx_fire+=fluxes.get_annual_flux(Fluxes::NOx_FIRE)*to_gridcell_average;
 			flux_N2O_fire+=fluxes.get_annual_flux(Fluxes::N2O_FIRE)*to_gridcell_average;
@@ -1554,11 +1621,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			flux_NH3_soil+=fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
 			flux_NOx_soil+=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
 			flux_N2O_soil+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			flux_N2_soil+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;	
-			
+			flux_N2_soil+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
+
 			//Soil N flux from ntransform.cpp
 			NH3_mass_inc+=fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
-			NO_mass_inc +=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			NO_mass_inc+=fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
 			N2O_mass_inc+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 			N2_mass_inc+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
 			gross_nitrif+=fluxes.get_annual_flux(Fluxes::GROSS_NITRIF)*to_gridcell_average;
@@ -1590,7 +1657,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			drainrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN)*to_gridcell_average;
 			baserunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)*to_gridcell_average;
 			runoff_gridcell += (fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
-			wetland_wmass_added_gridcell += fluxes.get_annual_flux(Fluxes::WADDED) * to_gridcell_average; 
+			wetland_wmass_added_gridcell += fluxes.get_annual_flux(Fluxes::WADDED) * to_gridcell_average;
 			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI) * to_gridcell_average;
 			intercept_gridcell += fluxes.get_annual_flux(Fluxes::WINTERCEP) * to_gridcell_average;
 			evap_gridcell += fluxes.get_annual_flux(Fluxes::WEVAP) * to_gridcell_average;
@@ -1603,15 +1670,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001) {
-				firert_gridcell+=1000.0 * to_gridcell_average; // Set a limit of 1000 years
+				firert_gridcell += 1000.0 * to_gridcell_average; // Set a limit of 1000 years
 			}
 			else {
-				firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
-				burned_area_gridcell+=patch.fireprob * to_gridcell_average;
+				firert_gridcell += (1.0 / patch.fireprob) * to_gridcell_average;
+				burned_area_gridcell += patch.fireprob * to_gridcell_average;
 			}
 
-			aNH4dep_gridcell += gridcell.aNH4dep  * to_gridcell_average;
-			aNO3dep_gridcell += gridcell.aNO3dep  * to_gridcell_average;
+			aNH4dep_gridcell += gridcell.aNH4dep * to_gridcell_average;
+			aNO3dep_gridcell += gridcell.aNO3dep * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
 			anmin_gridcell += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
 			animm_gridcell += soilcolumn.get_sum(ANIMM) * to_gridcell_average;
@@ -1623,12 +1690,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			c_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
 
-			clitterinput[0] += soilcolumn.cmass_litter_input[0] * to_gridcell_average;
-
 			for (int p = 0; p < NSOMPOOL; p++) {
 				csomlitterinput[p] += soilcolumn.csom_litter_input[p] * to_gridcell_average;
 				csomlitterinput[NSOMPOOL] += soilcolumn.csom_litter_input[p] * to_gridcell_average;
 			}
+
+			clitterinput[0] += soilcolumn.asurflitterinput * to_gridcell_average;
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -1643,13 +1710,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				// Soil layer depths
 				soildepth[lyr] += soilcolumn.soillayerdepths[lyr] * to_gridcell_average;
-				
+
 				cdec[lyr][0] += soillayer.acdec[0] * to_gridcell_average;
 				cdec[lyr][1] += soillayer.acdec[1] * to_gridcell_average;
 				cinc[lyr][0] += soillayer.acinc[0] * to_gridcell_average;
 				cinc[lyr][1] += soillayer.acinc[1] * to_gridcell_average;
 
-				clitterinput[lyr + 1] += soilcolumn.cmass_litter_input[lyr + 1] * to_gridcell_average;
+				clitterinput[lyr + 1] += soillayer.get(ALITTERINPUT) * to_gridcell_average;
 
 				c_fast += soillayer.cpool_fast * to_gridcell_average;
 				c_slow += soillayer.cpool_slow * to_gridcell_average;
@@ -1690,40 +1757,94 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			for (int lyr = soilcolumn.nsoillayers; lyr < NSOILLAYERS_MAX; lyr++) {
 				// Soil layer depths
-				soildepth[lyr] += soilcolumn.soillayerdepths[soilcolumn.nsoillayers-1] * to_gridcell_average;
+				soildepth[lyr] += soilcolumn.soillayerdepths[soilcolumn.nsoillayers - 1] * to_gridcell_average;
 			}
 
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
 			double surflitc = soilcolumn.get_surflittercmass();
 			double surflitn = soilcolumn.get_surflitternmass();
-			double surflitr = soilcolumn.soillayers[0].get(ASRH);
+			double surflitr = soilcolumn.asurflitterresp;
+			double surflitinput = soilcolumn.asurflitterinput;
+
+			soilc_depth[0] += surflitc * to_gridcell_average;
+			soiln_depth[0] += surflitn * to_gridcell_average;
+			soilr_depth[0] += surflitr * to_gridcell_average;
+			clitterinput_depth[0] += surflitinput * to_gridcell_average;
 
 			// Soil to specific depths
+			double depth_prev = 0.0;
 			double soilc_prev = surflitc;
 			double soiln_prev = surflitn;
 			double soilr_prev = surflitr;
-			double soilnetnmin_prev = 0.0;
+
 			for (int lyr = 0; lyr < sslyr; lyr++) {
-				double soilc_this = soilcolumn.to_depth(soil_sections[lyr], CCONT);
-				double soiln_this = soilcolumn.to_depth(soil_sections[lyr], NCONT);
-				double soilr_this = soilcolumn.to_depth(soil_sections[lyr], ARH);
-				double soilnetnmin_this = soilcolumn.to_depth(soil_sections[lyr], ANMIN) - soilcolumn.to_depth(soil_sections[lyr], ANIMM);
+				double depth_this = min(soilcolumn.depth, soil_sections[lyr]);
+				double depth_lyr = depth_this - depth_prev;
 
-				soilc_depth[lyr] += (soilc_this - soilc_prev) * to_gridcell_average;
-				soiln_depth[lyr] += (soiln_this - soiln_prev) * to_gridcell_average;
-				soilr_depth[lyr] += (soilr_this - soilr_prev) * to_gridcell_average;
-				soilnetnmin_depth[lyr] += (soilnetnmin_this - soilnetnmin_prev) * to_gridcell_average;
+				if (depth_lyr > 1.0e-12) {
 
-				soilc_prev = soilc_this;
-				soiln_prev = soiln_this;
-				soilr_prev = soilr_this;
-				soilnetnmin_prev = soilnetnmin_this;
+					soilc_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, CCONT) - soilc_prev) * to_gridcell_average;
+					soiln_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, NCONT) - soiln_prev)* to_gridcell_average;
+					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, ARH) - soilr_prev)* to_gridcell_average;
+					clitterinput_depth[lyr + 1] += soilcolumn.var_depth(depth_prev, depth_this, ALITTERINPUT) * to_gridcell_average;
+					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, ANMIN) - soilcolumn.var_depth(depth_prev, depth_this, ANIMM)) * to_gridcell_average;
+					eff_volume_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, EFFVOLUME) / depth_lyr * to_gridcell_average;
+					double wsats = soilcolumn.var_depth(depth_prev, depth_this, WSATS);
+					wsats_depth[lyr] += wsats / depth_lyr * to_gridcell_average;
+					temp_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODTEMP, DEPTH) * to_gridcell_average;
+					moist_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODMOIS, DEPTH) * to_gridcell_average;
+					tot_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODTOT, DEPTH) * to_gridcell_average;
+
+					for (int mth = 0; mth < 12; mth++) {
+						double wmass = soilcolumn.var_depth(depth_prev, depth_this, MWMASS, mth) / wsats;
+						double imass = soilcolumn.var_depth(depth_prev, depth_this, MIMASS, mth) / wsats;
+						mwmass_depth[lyr][mth] += wmass * to_gridcell_average;
+						mimass_depth[lyr][mth] += imass * to_gridcell_average;
+						mwimass_depth[lyr][mth] += (wmass + imass) * to_gridcell_average;
+						mdrain_depth[lyr][mth] += soilcolumn.var_depth(depth_prev, depth_this, MDRAIN, mth) * to_gridcell_average;
+					}
+
+					soilc_prev = 0.0;
+					soiln_prev = 0.0;
+					soilr_prev = 0.0;
+				}
+
+				depth_prev = depth_this;
 			}
 
-			soilc_depth[sslyr] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
-			soiln_depth[sslyr] += (soilcolumn.get_sum(NCONT) - surflitn) * to_gridcell_average;
-			soilr_depth[sslyr] += (soilcolumn.get_sum(ARH) - surflitr) * to_gridcell_average;
+			soilc_depth[sslyr + 1] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soiln_depth[sslyr + 1] += soilcolumn.get_sum(NCONT) * to_gridcell_average;
+			soilr_depth[sslyr + 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(ANMIN) - soilcolumn.get_sum(ANIMM)) * to_gridcell_average;
+			clitterinput_depth[sslyr + 1] += (surflitinput + soilcolumn.get_sum(ALITTERINPUT)) * to_gridcell_average;
+			eff_volume_depth[sslyr] += soilcolumn.get_sum(EFFVOLUME) / soilcolumn.depth * to_gridcell_average;
+			double wsats_tot = soilcolumn.get_sum(WSATS);
+			wsats_depth[sslyr] += wsats_tot / soilcolumn.depth * to_gridcell_average;
+			temp_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODTEMP, DEPTH) * to_gridcell_average;
+			moist_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODMOIS, DEPTH) * to_gridcell_average;
+			tot_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODTOT, DEPTH) * to_gridcell_average;
+
+			depth_prev = 0.0;
+			for (int lyr = 0; lyr < sstlyr; lyr++) {
+				double depth_this = soil_temp_sections[lyr];
+				double depth_lyr = depth_this - depth_prev;
+
+				for (int mth = 0; mth < 12; mth++) {
+					mtemp_depth[lyr][mth] += soilcolumn.var_depth(depth_prev, depth_this, MTEMP, DEPTH, mth) * to_gridcell_average;
+				}
+
+				depth_prev = depth_this;
+			}
+
+			for (int mth = 0; mth < 12; mth++) {
+				double wmass_tot = soilcolumn.get_sum(MWMASS, mth);
+				double imass_tot = soilcolumn.get_sum(MIMASS, mth);
+
+				mwmass_depth[sslyr][mth] += wmass_tot / wsats_tot * to_gridcell_average;
+				mimass_depth[sslyr][mth] += imass_tot / wsats_tot * to_gridcell_average;
+				mwimass_depth[sslyr][mth] += (wmass_tot + imass_tot) / wsats_tot * to_gridcell_average;
+				mdrain_depth[sslyr][mth] += soilcolumn.get_sum(MDRAIN, mth) * to_gridcell_average;
+			}
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -1736,16 +1857,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
 				}
 				eff_volume[lyr] += soillayer.eff_volume_frac * to_gridcell_average;
-				temp_mod[lyr] += soillayer.atemp_mod * to_gridcell_average;
-				moist_mod[lyr] += soillayer.amoist_mod * to_gridcell_average;
-				tot_mod[lyr] += soillayer.atot_mod * to_gridcell_average;
+				temp_mod[lyr] += soillayer.get(MODTEMP) * to_gridcell_average;
+				moist_mod[lyr] += soillayer.get(MODMOIS) * to_gridcell_average;
+				tot_mod[lyr] += soillayer.get(MODTOT) * to_gridcell_average;
 				wsats[lyr] += soillayer.wsats / soillayer.depth * to_gridcell_average;
 				wsats[NSOILLAYERS_MAX] += soillayer.wsats / soilcolumn.depth * to_gridcell_average;
 			}
 			soilc[NSOILLAYERS_MAX] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
-			soilr[NSOILLAYERS_MAX] += (soilcolumn.get_sum(ARH) - soilcolumn.get_sum(ASRH)) * to_gridcell_average;
+			soilr[NSOILLAYERS_MAX] += (soilcolumn.get_sum(ARH) - soilcolumn.asurflitterresp) * to_gridcell_average;
 
-			soilc_ald += soilcolumn.to_depth(soilcolumn.maxthaw, CCONT) * to_gridcell_average;
+			soilc_ald += soilcolumn.var_depth(0.0, soilcolumn.maxthaw, CCONT) * to_gridcell_average;
 			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
 
 			// Monthly output variables
@@ -1761,9 +1882,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
 				mimass[m] += soilcolumn.get_sum(MIMASS, m) * to_gridcell_average;
-				double mwcontupper = soilcolumn.to_depth(SOILDEPTH_UPPER, MWCONT, AWC, m);
-				mwcont_upper[m] += mwcontupper * to_gridcell_average;
-				mwcont_lower[m] += (patch.soilcolumn.depth > SOILDEPTH_UPPER ? (patch.soilcolumn.to_depth(soilcolumn.depth, MWCONT, AWC, m) * soilcolumn.depth - mwcontupper * SOILDEPTH_UPPER) / (soilcolumn.depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
+				mwcont_upper[m] += soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, MWCONT, AWC, m) * to_gridcell_average;
+				mwcont_lower[m] += soilcolumn.var_depth(SOILDEPTH_UPPER, soilcolumn.depth, MWCONT, AWC, m) * to_gridcell_average;
 
 				mgpp[m] += fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -1899,6 +2019,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// Determine total vmax nitrogen limitation
 	if (agpp_no_norm_gridcell > 0.0) {
 		vmaxnlim_gridcell /= agpp_no_norm_gridcell;
+		lambda_gridcell /= agpp_no_norm_gridcell;
 	}
 
 	outlimit(out,out_cmass,					cmass_gridcell);
@@ -1935,6 +2056,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nmass,    (nmass_gridcell + nlitter_gridcell) * M2_PER_HA);
 	outlimit(out,out_cton_leaf, cton_leaf_gridcell);
 	outlimit(out,out_vmaxnlim,  vmaxnlim_gridcell);
+	outlimit(out,out_lambda,    lambda_gridcell);
 	outlimit(out,out_nuptake,   nuptake_gridcell * M2_PER_HA);
 	outlimit(out,out_nlitter,   nlitter_gridcell * M2_PER_HA);
 
@@ -2001,11 +2123,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				if (landcover_agpp_no_norm[i] > 0.0) {
 					landcover_vmaxnlim[i] /= landcover_agpp_no_norm[i];
+					landcover_lambda[i] /= landcover_agpp_no_norm[i];
 				}
 
 				outlimit(out,out_nmass,     (landcover_nmass[i] + landcover_nlitter[i]) * M2_PER_HA);
 				outlimit(out,out_cton_leaf, landcover_cton_leaf);
 				outlimit(out,out_vmaxnlim,  landcover_vmaxnlim[i]);
+				outlimit(out,out_lambda,    landcover_lambda[i]);
 				outlimit(out,out_nuptake,   landcover_nuptake[i] * M2_PER_HA);
 				outlimit(out,out_nlitter,   landcover_nlitter[i] * M2_PER_HA);
 			}
@@ -2044,7 +2168,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		clitterinput_tot += clitterinput[lyr + 1];
 
 		outlimit(out, out_csoil, soilc[lyr]);
-		outlimit(out, out_rsoil, soilr[lyr]);
+		outlimit(out, out_rh, soilr[lyr]);
 		outlimit(out, out_tau_soil, !negligible(soilr[lyr]) ? soilc[lyr] / soilr[lyr] : 0.0);
 		outlimit(out, out_eff_volume, eff_volume[lyr]);
 		outlimit(out, out_temp_mod, temp_mod[lyr]);
@@ -2071,16 +2195,30 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_clitterinput, clitterinput_tot);
 
 	outlimit(out, out_csoil, soilc[NSOILLAYERS_MAX]);
-	outlimit(out, out_rsoil, soilr[NSOILLAYERS_MAX]);
+	outlimit(out, out_rh, soilr[NSOILLAYERS_MAX]);
 	outlimit(out, out_tau_soil, !negligible(soilr[NSOILLAYERS_MAX]) ? soilc[NSOILLAYERS_MAX] / soilr[NSOILLAYERS_MAX] : 0.0);
 	outlimit(out, out_wsats, wsats[NSOILLAYERS_MAX]);
 
+	// Surface output
+	outlimit(out, out_csoil_depth, soilc_depth[0]);
+	outlimit(out, out_nsoil_depth, soiln_depth[0]);
+	outlimit(out, out_rh_depth, soilr_depth[0]);
+	outlimit(out, out_tau_soil_depth, !negligible(soilr_depth[0]) ? soilc_depth[0] / soilr_depth[0] : 0.0);
+	outlimit(out, out_clitterinput_depth, clitterinput_depth[0]);
+
+	// Soil depth and total output
 	for (int depths = 0; depths < sslyr + 1; depths++) {
-		outlimit(out, out_csoil_depth, soilc_depth[depths]);
-		outlimit(out, out_nsoil_depth, soiln_depth[depths]);
+		outlimit(out, out_csoil_depth, soilc_depth[depths+1]);
+		outlimit(out, out_nsoil_depth, soiln_depth[depths+1]);
 		outlimit(out, out_netnminsoil_depth, soilnetnmin_depth[depths] * M2_PER_HA);
-		outlimit(out, out_rsoil_depth, soilr_depth[depths]);
-		outlimit(out, out_tau_soil_depth, !negligible(soilr_depth[depths]) ? soilc_depth[depths] / soilr_depth[depths] : 0.0);
+		outlimit(out, out_rh_depth, soilr_depth[depths+1]);
+		outlimit(out, out_tau_soil_depth, !negligible(soilr_depth[depths+1]) ? soilc_depth[depths+1] / soilr_depth[depths+1] : 0.0);
+		outlimit(out, out_clitterinput_depth, clitterinput_depth[depths + 1]);
+		outlimit(out, out_eff_volume_depth, eff_volume_depth[depths]);
+		outlimit(out, out_wsats_depth, wsats_depth[depths]);
+		outlimit(out, out_temp_mod_depth, temp_mod_depth[depths]);
+		outlimit(out, out_moist_mod_depth, moist_mod_depth[depths]);
+		outlimit(out, out_tot_mod_depth, tot_mod_depth[depths]);
 	}
 
 	outlimit(out, out_soilcperma, soilc_ald);
@@ -2392,6 +2530,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 		}
 
+		outlimit(out, out_mtemp_depth, gridcell.climate.hmtemp_20[mth].lastadd());
+
 		for (int lyr = 0; lyr < number_of_layers; lyr++) {
 			outlimit(out, out_mwmasslyr, mwmasslyr[lyr][mth]);
 			outlimit(out, out_mimasslyr, mimasslyr[lyr][mth]);
@@ -2402,6 +2542,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_mimasslyr, mimasslyr[NSOILLAYERS_MAX][mth]);
 		outlimit(out, out_mwimasslyr, mwmasslyr[NSOILLAYERS_MAX][mth] + mimasslyr[NSOILLAYERS_MAX][mth]);
 		outlimit(out, out_mdrainlyr, mdrainlyr[NSOILLAYERS_MAX][mth]);
+
+		for (int depths = 0; depths < sslyr + 1; depths++) {
+			outlimit(out, out_mwmass_depth, mwmass_depth[depths][mth]);
+			outlimit(out, out_mimass_depth, mimass_depth[depths][mth]);
+			outlimit(out, out_mwimass_depth, mwimass_depth[depths][mth]);
+			outlimit(out, out_mdrain_depth, mdrain_depth[depths][mth]);
+		}
+
+		for (int depths = 0; depths < sstlyr; depths++) {
+			outlimit(out, out_mtemp_depth, mtemp_depth[depths][mth]);
+		}
 
 		// Loop through PFTs
 		pftlist.firstobj();

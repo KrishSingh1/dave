@@ -1859,8 +1859,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
 
-	double wcont_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, WCONT, AWC);
-	double awc_upper = soilcolumn.to_depth(SOILDEPTH_UPPER, AWC);
+	double wcont_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, WCONT, AWC);
+	double awc_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, AWC);
 
 	if (wcont_upper < 0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
@@ -1901,7 +1901,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		if (irrigate_soil && soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
-			if (!soilcolumn.to_depth(SOILDEPTH_UPPER, IMASS)) {
+			if (!soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, IMASS)) {
 
 				// Irrigation water for this PFT:
 
@@ -2520,6 +2520,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			lambda = pft.lambda_max;
 		}
 
+		indiv.alambda += max(0.0, lambda * indiv.dgpp_no);
 		indiv.mlambda[date.month] += max(0.0, lambda * indiv.dgpp_no);
 
 		assim = phot.net_assimilation();
@@ -2577,6 +2578,14 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 
 		if (date.islastday && date.islastmonth) {
+
+			if (!negligible(indiv.agpp_no)) {
+				indiv.alambda /= indiv.agpp_no;
+			}
+			else {
+				indiv.alambda = 1.0;
+			}
+
 			for (int m = 0; m < 12; m++) {
 				if (!negligible(indiv.mgpp_no[m])) {
 					indiv.mlambda[m] /= indiv.mgpp_no[m];
@@ -2718,6 +2727,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.storendemand   = 0.0;
 			indiv.hondemand      = 0.0;
 			indiv.avmaxnlim      = 0.0;
+			indiv.alambda        = 0.0;
 			indiv.cton_leaf_aavr = 0.0;
 			indiv.cton_leaf_aopt = 0.0;
 

@@ -721,6 +721,9 @@ void dailyaccounting_patch(Patch& patch) {
 			soilcolumn.savesomcent = false;
 		}
 
+		soilcolumn.asurflitterinput = 0.0;
+		soilcolumn.asurflitterresp = 0.0;
+
 		for (int p = 0; p < NSOMPOOL; p++) {
 			soilcolumn.csom_litter_input[p] = 0.0;
 		}
@@ -737,9 +740,6 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 		}
 
-		// Soil surface
-		soilcolumn.cmass_litter_input[0] = 0.0;
-
 		// Soil layers
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -753,11 +753,10 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			soillayer.arespsum = 0.0;
-			soillayer.arespsum_surf = 0.0;
 			soillayer.aorgCleach = 0.0;
 			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
-			soilcolumn.cmass_litter_input[lyr+1] = 0.0;
+			soillayer.acmassinput = 0.0;
 
 			soillayer.atemp_mod = 0.0;
 			soillayer.amoist_mod = 0.0;

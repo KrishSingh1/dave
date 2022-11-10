@@ -1568,7 +1568,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					// Calculate new effective volume
 					soilcolumn.calc_eff_volume();
 					
-					// Vertical movement of organic matter if C density of soil layer exceed maximum
+					// Vertical movement of organic and mineral matter if different than effective volume of a soil layer
 					soilcolumn.vertical_movement();
 
 					// Update soil properties

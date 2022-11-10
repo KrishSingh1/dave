@@ -524,8 +524,8 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		gridcell.soil_depth = 1500.0;
 	}
 
-	// Minimum soil depth is set to 200mm
-	gridcell.soil_depth = max(200.0, gridcell.soil_depth);
+	// Make sure soil depth is within ranges (mm)
+	gridcell.soil_depth = min(SOILDEPTH_MAX, max(SOILDEPTH_MIN, gridcell.soil_depth));
 
 	// Soil depth need to be of 100mm intervals
 	double soil_depth_interval = round(gridcell.soil_depth / 100.0) * 100.0;

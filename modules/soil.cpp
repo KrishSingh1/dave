@@ -1409,7 +1409,6 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Daily heterotrophic respiration
 	respsum = 0.0;
 	arespsum = 0.0;
-	arespsum_surf = 0.0;
 	acdec[0] = 0.0;
 	acdec[1] = 0.0;
 	acinc[0] = 0.0;
@@ -1451,6 +1450,9 @@ double Soillayer::get(soilproptype SPT, int m) {
 		break;
 	case TEMP:
 		prop = temp;
+		break;
+	case MTEMP:
+		prop = mtemp[m];
 		break;
 	case WMASS:
 		prop = wmass;
@@ -1524,9 +1526,6 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case ARH:
 		prop = arespsum;
 		break;
-	case ASRH:
-		prop = arespsum_surf;
-		break;
 	case ANMIN:
 		prop = anmin;
 		break;
@@ -1541,6 +1540,21 @@ double Soillayer::get(soilproptype SPT, int m) {
 		break;
 	case AMINLEACH:
 		prop = aminleach;
+		break;
+	case ALITTERINPUT:
+		prop = acmassinput;
+		break;
+	case EFFVOLUME:
+		prop = eff_volume_frac * depth;
+		break;
+	case MODTEMP:
+		prop = atemp_mod;
+		break;
+	case MODMOIS:
+		prop = amoist_mod;
+		break;
+	case MODTOT:
+		prop = atot_mod;
 		break;
 	default:
 		// Should never happen
@@ -2539,6 +2553,9 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 		case TEMP:
 			prop[lyr] = soillayers[lyr].temp;
 			break;
+		case MTEMP:
+			prop[lyr] = soillayers[lyr].mtemp[m];
+			break;
 		case WMASS:
 			prop[lyr] = soillayers[lyr].wmass;
 			break;
@@ -2611,9 +2628,6 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 		case ARH:
 			prop[lyr] = soillayers[lyr].arespsum;
 			break;
-		case ASRH:
-			prop[lyr] = soillayers[lyr].arespsum_surf;
-			break;
 		case ANMIN:
 			prop[lyr] = soillayers[lyr].anmin;
 			break;
@@ -2628,6 +2642,21 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 			break;
 		case AMINLEACH:
 			prop[lyr] = soillayers[lyr].aminleach;
+			break;
+		case ALITTERINPUT:
+			prop[lyr] = soillayers[lyr].acmassinput;
+			break;
+		case EFFVOLUME:
+			prop[lyr] = soillayers[lyr].eff_volume_frac;
+			break;
+		case MODTEMP:
+			prop[lyr] = soillayers[lyr].atemp_mod;
+			break;
+		case MODMOIS:
+			prop[lyr] = soillayers[lyr].amoist_mod;
+			break;
+		case MODTOT:
+			prop[lyr] = soillayers[lyr].atot_mod;
 			break;
 		default:
 			// Should never happen
@@ -2952,46 +2981,96 @@ void Soilcolumn::calc_temp_analytic() {
 	}
 }
 
-/// Returns the value of some vector down to a depth with a scalar
-/** Returns the value of some vector down to a depth with a scalar
+/// Returns the value of some vector for a certain depth interval
+/** Returns the value of some vector for a certain depth interval
  */
-double Soilcolumn::to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth) {
+double Soilcolumn::var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth) {
 
-	// Calculate variable values for layers down to depth
+	// Calculate variable values for layers within depth range
+	double lyr_start, lyr_end;
 	double layer_depth, scalar;
 	double acc_depth = 0.0;
 	double acc_var = 0.0;
 	double acc_scalar = 0.0;
 	int lyr = 0;
-	while (acc_depth < depth && lyr < nsoillayers) {
+
+	// depth_end can't be larger than soil column depth
+	double depth_soil_end = min(depth, depth_end);
+
+	while (acc_depth < depth_soil_end && lyr < nsoillayers) {
+
 		Soillayer& soillayer = soillayers[lyr];
-		layer_depth = acc_depth + soillayer.depth < depth ? soillayer.depth : depth - acc_depth;
-		scalar = soillayer.get(SPT_scal);
-		acc_var += soillayer.get(SPT_var, mth) * scalar * layer_depth / soillayer.depth;
-		acc_depth += layer_depth;
-		acc_scalar += scalar * layer_depth / soillayer.depth;
+
+		lyr_start = min(max(acc_depth, depth_start), depth_soil_end);
+		lyr_end = min(max(acc_depth + soillayer.depth, depth_start), depth_soil_end);
+		layer_depth = lyr_end - lyr_start;
+
+		if (layer_depth > 0.0) {
+			scalar = soillayer.get(SPT_scal) * layer_depth / soillayer.depth;
+			acc_var += soillayer.get(SPT_var, mth) * scalar;
+			acc_scalar += scalar;
+		}
+
+		acc_depth += soillayer.depth;
 		lyr++;
 	}
+
+	// If monthly temperature then padding layer can also be used
+	if (depth_end > depth && SPT_var == MTEMP && SPT_scal == DEPTH) {
+		int lyr = 0;
+
+		while (acc_depth < depth_end && lyr < NPADLAYERS) {
+
+			padding& padlyr = pad[lyr];
+
+			lyr_start = min(max(acc_depth, depth_start), depth_end);
+			lyr_end = min(max(acc_depth + padlyr.depth, depth_start), depth_end);
+			layer_depth = lyr_end - lyr_start;
+
+			if (layer_depth > 0.0) {
+				acc_var += padlyr.mtemp[mth] * layer_depth;
+				acc_scalar += layer_depth;
+			}
+
+			acc_depth += padlyr.depth;
+			lyr++;
+		}
+	}
+
 	return !negligible(acc_scalar) ? acc_var / acc_scalar : acc_var;
 }
 
-/// Returns the value of some vector down to a depth
-/** Returns the value of some vector down to a depth
+/// Returns the value of some vector for a certain depth interval
+/** Returns the value of some vector for a certain depth interval
  */
-double Soilcolumn::to_depth(double depth, soilproptype SPT_var) {
+double Soilcolumn::var_depth(double depth_start, double depth_end, soilproptype SPT_var, int mth) {
 
-	// Calculate variable values for layers down to depth
+	// Calculate variable values for layers within depth range
+	double lyr_start, lyr_end;
 	double layer_depth;
 	double acc_depth = 0.0;
 	double acc_var = 0.0;
 	int lyr = 0;
-	while (acc_depth < depth && lyr < nsoillayers) {
+
+	// depth_end can't be larger than soil column depth
+	double depth_soil_end = min(depth, depth_end);
+
+	while (acc_depth < depth_soil_end && lyr < nsoillayers) {
+
 		Soillayer& soillayer = soillayers[lyr];
-		layer_depth = acc_depth + soillayer.depth < depth ? soillayer.depth : depth - acc_depth;
-		acc_var += soillayer.get(SPT_var) * layer_depth / soillayer.depth;
-		acc_depth += layer_depth;
+
+		lyr_start = min(max(acc_depth, depth_start), depth_soil_end);
+		lyr_end = min(max(acc_depth + soillayer.depth, depth_start), depth_soil_end);
+		layer_depth = lyr_end - lyr_start;
+
+		if (layer_depth > 0.0) {
+			acc_var += soillayer.get(SPT_var, mth) * layer_depth / soillayer.depth;
+		}
+
+		acc_depth += soillayer.depth;
 		lyr++;
 	}
+
 	return acc_var;
 }
 
@@ -3527,9 +3606,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Total fpc for mosses. Not used at the moment
 	double fpc_moss_total = 0.0;
 	// Total water in acrotelm layers (mm)
-	double wtot_acrotelm = to_depth(ACROTELM_DEPTH, WMASS);
+	double wtot_acrotelm = var_depth(0.0, ACROTELM_DEPTH, WMASS);
 	// Total ice in acrotelm layers (mm)
-	double itot_acrotelm = to_depth(ACROTELM_DEPTH, IMASS);
+	double itot_acrotelm = var_depth(0.0, ACROTELM_DEPTH, IMASS);
 	/// Minimum fractional water content at surface in mm3/mm3 - see Wania et al (2009a), Eqn 22. Granberg et al. (1999), Eqns. 1-3.
 	const double minvtot = 0.25;
 	/// The soil water characteristics in the upper peat are considered to be linear in the suction interval 0-zmin and constant 
@@ -4884,8 +4963,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	bool finished = false;
 
 	// Calculate static ice mass and saturation level for infiltation depth (top layer)
-	double imass_infilt = to_depth(depth_infilt, IMASS);
-	double wsats_infilt = to_depth(depth_infilt, WSATS);
+	double imass_infilt = var_depth(0.0, depth_infilt, IMASS);
+	double wsats_infilt = var_depth(0.0,depth_infilt, WSATS);
 
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
@@ -4942,7 +5021,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 			if (qflx_rain > 0.0) {
 
 				// Calculate changing water content for infiltration layers
-				double wmass_infilt = to_depth(depth_infilt, WMASS);
+				double wmass_infilt = var_depth(0.0, depth_infilt, WMASS);
 
 				// Fraction pore spaces that are filled with water and ice
 				double totwcont_infilt = (wmass_infilt + imass_infilt) / wsats_infilt;
@@ -6198,13 +6277,12 @@ void Soilcolumn::vertical_movement() {
 
 				if (diff_volume > 0.0) {
 
-					// Volume will be exchanged with layer below
+					// Volume will be moved to layer below
 					Soillayer& soillayer_below = soillayers[lyr + 1];
 
-					// Organic matter fraction at the interface between the layers
-					double organic_frac_int = (2.0 * soillayer.organic_volume + soillayer_below.organic_volume) /
-						(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) +
-						soillayer_below.organic_volume + soillayer_below.mineral_volume);
+					double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
+						(soillayer.organic_volume + soillayer.mineral_volume +
+							soillayer_below.organic_volume + soillayer_below.mineral_volume);
 
 					// Fraction of matter to be moved
 					double frac;
@@ -6306,9 +6384,11 @@ void Soilcolumn::vertical_movement() {
 						}
 
 						// Check if humus needs to be moved as well
-						if (diff_volume > 1.0e-16 && diff_volume < humus_volume) {
+						if (diff_volume > 1.0e-16) {
 
-							double frac_humus = diff_volume / humus_volume;
+							double frac_humus = min(1.0, diff_volume / humus_volume);
+
+							diff_volume -= frac_humus * humus_volume;
 
 							// Move humus
 							for (int p = 0; p < NSOMPOOL; p++) {
@@ -6318,6 +6398,10 @@ void Soilcolumn::vertical_movement() {
 									soillayer.sompool[p].cmass *= 1.0 - frac_humus;
 									soillayer.sompool[p].nmass *= 1.0 - frac_humus;
 								}
+							}
+
+							if (diff_volume > 1.0e-12) {
+								dprintf("Year %d Day %d Lyr %d ERROR in vertical movement! No more volume to move (%g).\n",date.year, date.day, lyr, diff_volume);
 							}
 						}
 					}
@@ -6348,28 +6432,29 @@ void Soilcolumn::vertical_movement() {
 						// Move mineral, organic and humus matter upwards from the layer below
 						double up_volume;
 
-						// Effective soil volume below
-						double eff_volume_below = soillayer_below.depth * soillayer_below.eff_volume_frac;
+						// Organic and mineral volume below
+						double volume_below = soillayer_below.mineral_volume + soillayer_below.organic_volume;
 
-						if (eff_volume_below > fabs(diff_volume)) {
+						if (volume_below > fabs(diff_volume)) {
 							up_volume = fabs(diff_volume);
 							diff_volume = 0.0;
 						}
 						else {
-							up_volume = eff_volume_below;
-							diff_volume += eff_volume_below;
+							up_volume = volume_below;
+							diff_volume += volume_below;
 						}
 
 						// Organic matter fraction at the interface between the layers
 						double organic_frac_int = 0.0;
+
 						if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
-							organic_frac_int = (2.0 * soillayer.organic_volume + soillayer_below.organic_volume) /
-								(2.0 * (soillayer.organic_volume + soillayer.mineral_volume) +
+							organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
+								(soillayer.organic_volume + soillayer.mineral_volume +
 									soillayer_below.organic_volume + soillayer_below.mineral_volume);
 						}
 
 						// Move mineral nitrogen
-						double frac = min(1.0, up_volume / eff_volume_below);
+						double frac = min(1.0, up_volume / volume_below);
 						soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
 						soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
 						soillayer.N2O_mass += soillayer_below.N2O_mass * frac;

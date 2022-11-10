@@ -142,10 +142,11 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
-typedef enum {TEMP, DEPTH, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT, 
+typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT,
 WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
-ARH, ASRH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
+ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, ALITTERINPUT,
+EFFVOLUME, MODTEMP, MODMOIS, MODTOT} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -154,6 +155,12 @@ ARH, ASRH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH} soilproptype;
 const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
 
 // SOIL DEPTH VALUES
+
+/// Maximum soil depth (mm)
+const double SOILDEPTH_MAX = 5000.0;
+
+/// Minimum soil depth (mm)
+const double SOILDEPTH_MIN = 200.0;
 
 /// soil upper layer depth (mm)
 const double SOILDEPTH_UPPER = 500.0;
@@ -2864,6 +2871,8 @@ public:
 	double avmaxnlim;
 	/// monthly nitrogen limitation on vmax
 	double mvmaxnlim[12];
+	/// annual lambda limitation on photosythesis
+	double alambda;
 	/// monthly lambda limitation on photosythesis
 	double mlambda[12];
 	/// daily optimal leaf C:N ratio
@@ -3595,8 +3604,6 @@ public:
 	double respsum;
 	/// Annual total surface litter and soil respiration [kg C m-2]
 	double arespsum;
-	/// Annual surface litter respiration [kg C m-2]
-	double arespsum_surf;
 	/// Tiller area
 	double tiller_area;
 
@@ -3639,6 +3646,8 @@ public:
 	double acdec[2];
 	/// annual C mineralisation without and with N and/or P limitation
 	double acinc[2];
+	/// annual litter C input
+	double acmassinput;
 
 	double atemp_mod;
 	double amoist_mod;
@@ -3743,7 +3752,6 @@ public:
 		O2 = that.O2;
 		respsum = that.respsum;
 		arespsum = that.arespsum;
-		arespsum_surf = that.arespsum_surf;
 		tiller_area = that.tiller_area;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
@@ -3769,6 +3777,7 @@ public:
 		acdec[1] = that.acdec[1];
 		acinc[0] = that.acinc[0];
 		acinc[1] = that.acinc[1];
+		acmassinput = that.acmassinput;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
@@ -3848,7 +3857,6 @@ public:
 		O2 = that.O2;
 		respsum = that.respsum;
 		arespsum = that.arespsum;
-		arespsum_surf = that.arespsum_surf;
 		tiller_area = that.tiller_area;
 		cpool_slow = that.cpool_slow;
 		cpool_fast = that.cpool_fast;
@@ -3874,6 +3882,7 @@ public:
 		acdec[1] = that.acdec[1];
 		acinc[0] = that.acinc[0];
 		acinc[1] = that.acinc[1];
+		acmassinput = that.acmassinput;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
@@ -4195,8 +4204,10 @@ public:
 	double soillayerdepths[NSOILLAYERS_MAX];
 	/// number of soil layers
 	int nsoillayers;
-	/// vector with surface and soil layer litter input
-	double cmass_litter_input[NSOILLAYERS_MAX+1]; // DW_COMMENT good for debugging - removed after finished
+	/// Annual surface litter input [kg C m-2 yr-1]
+	double asurflitterinput;
+	/// Annual surface litter respiration [kg C m-2 yr-1]
+	double asurflitterresp;
 	/// vector with SOM pool litter input
 	double csom_litter_input[NSOMPOOL]; // DW_COMMENT good for debugging - remove after finished
 	/// number of acrotelm soil layers
@@ -4333,22 +4344,144 @@ public:
 
 	// 1. copy constructor
 	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype) {
+
 		soillayers = that.soillayers;
+		depth = that.depth;
+		nsoillayers = that.nsoillayers;
+		asurflitterinput = that.asurflitterinput; 
+		asurflitterresp = that.asurflitterresp;
+		nacrotelm = that.nacrotelm;
+		ncatotelm = that.ncatotelm;
+		tpara = that.tpara;
+		NH4_input = that.NH4_input;
+		NO3_input = that.NO3_input;
+		anfix = that.anfix;
+		anfix_mean = that.anfix_mean;
+		anfix_calc = that.anfix_calc;
+		awcont_upper = that.awcont_upper;
+		wcont_evap = that.wcont_evap;
+		rain_melt = that.rain_melt;
+		rain_melt_temp = that.rain_melt_temp;
+		max_rain_melt = that.max_rain_melt;
+		wmass_wetland_added = that.wmass_wetland_added;
+		percolate = that.percolate;
+		snow = that.snow;
+		maxthaw = that.maxthaw;
+		thaw = that.thaw;
+		maxthaw_10 = that.maxthaw_10;
+		acro_co2 = that.acro_co2;
+		dmoss_wtp_limit = that.dmoss_wtp_limit;
+		dgraminoid_wtp_limit = that.dgraminoid_wtp_limit;
+		wtp = that.wtp;
+		awtp = that.awtp;
+		wtd = that.wtd;
+		stand_wmass = that.stand_wmass;
+		sat_lev = that.sat_lev;
+		k_O2 = that.k_O2;
+		k_CO2 = that.k_CO2;
+		k_CH4 = that.k_CH4;
+		Ceq_O2 = that.Ceq_O2;
+		Ceq_CO2 = that.Ceq_CO2;
+		Ceq_CH4 = that.Ceq_CH4;
+		firstTempCalc = that.firstTempCalc;
+		solvesom_end = that.solvesom_end;
+		solvesom_begin = that.solvesom_begin;
+		solvesomcent_beginyr = that.solvesomcent_beginyr;
+		solvesomcent_endyr = that.solvesomcent_endyr;
+		savesomcent = that.savesomcent;
+
 		for (int mth = 0; mth < 12; mth++) {
+			mthaw[mth] = that.mthaw[mth];
+			mald_mean[mth] = that.mald_mean[mth];
+			mwtp[mth] = that.mwtp[mth];
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
 			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
 		}
-		// other variables // DW_COMMENT
+
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			soillayerdepths[lyr] = that.soillayerdepths[lyr];
+			wfluxes[lyr] = that.wfluxes[lyr];
+		}
+		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			csom_litter_input[p] = that.csom_litter_input[p];
+		}
+
+		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
+			pad[plyr] = that.pad[plyr];
+		}
 	}
 
 	// 2. copy assignment operator
 	Soilcolumn& operator=(const Soilcolumn& that) {
-		// etc.
+
 		soillayers = that.soillayers;	
 		soiltype = that.soiltype;
+		depth = that.depth;
+		nsoillayers = that.nsoillayers;
+		asurflitterinput = that.asurflitterinput;
+		asurflitterresp = that.asurflitterresp;
+		nacrotelm = that.nacrotelm;
+		ncatotelm = that.ncatotelm;
+		tpara = that.tpara;
+		NH4_input = that.NH4_input;
+		NO3_input = that.NO3_input;
+		anfix = that.anfix;
+		anfix_mean = that.anfix_mean;
+		anfix_calc = that.anfix_calc;
+		awcont_upper = that.awcont_upper;
+		wcont_evap = that.wcont_evap;
+		rain_melt = that.rain_melt;
+		rain_melt_temp = that.rain_melt_temp;
+		max_rain_melt = that.max_rain_melt;
+		wmass_wetland_added = that.wmass_wetland_added;
+		percolate = that.percolate;
+		snow = that.snow;
+		maxthaw = that.maxthaw;
+		thaw = that.thaw;
+		maxthaw_10 = that.maxthaw_10;
+		acro_co2 = that.acro_co2;
+		dmoss_wtp_limit = that.dmoss_wtp_limit;
+		dgraminoid_wtp_limit = that.dgraminoid_wtp_limit;
+		wtp = that.wtp;
+		awtp = that.awtp;
+		wtd = that.wtd;
+		stand_wmass = that.stand_wmass;
+		sat_lev = that.sat_lev;
+		k_O2 = that.k_O2;
+		k_CO2 = that.k_CO2;
+		k_CH4 = that.k_CH4;
+		Ceq_O2 = that.Ceq_O2;
+		Ceq_CO2 = that.Ceq_CO2;
+		Ceq_CH4 = that.Ceq_CH4;
+		firstTempCalc = that.firstTempCalc;
+		solvesom_end = that.solvesom_end;
+		solvesom_begin = that.solvesom_begin;
+		solvesomcent_beginyr = that.solvesomcent_beginyr;
+		solvesomcent_endyr = that.solvesomcent_endyr;
+		savesomcent = that.savesomcent;
+
 		for (int mth = 0; mth < 12; mth++) {
+			mthaw[mth] = that.mthaw[mth];
+			mald_mean[mth] = that.mald_mean[mth];
+			mwtp[mth] = that.mwtp[mth];
 			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
 			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
+		}
+
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			soillayerdepths[lyr] = that.soillayerdepths[lyr];
+			wfluxes[lyr] = that.wfluxes[lyr];
+		}
+		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			csom_litter_input[p] = that.csom_litter_input[p];
+		}
+
+		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
+			pad[plyr] = that.pad[plyr];
 		}
 		return *this;
 	}
@@ -4389,10 +4522,10 @@ public:
 	void calc_mtemp();
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
-	/// Returns the value of some vector down to a depth
-	double to_depth(double depth, soilproptype SPT_var);
-	/// Returns the value of some vector down to a depth with a scalar
-	double to_depth(double depth, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
+	/// Returns the value of some vector within a certain depth interval
+	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, int mth = 0);
+	/// Returns the value of some vector within a certain depth interval with a scalar
+	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity

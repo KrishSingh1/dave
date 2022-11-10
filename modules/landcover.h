@@ -240,7 +240,7 @@ struct landcover_change_transfer {
 					Sompool& sompool = soillayer.sompool[p];
 					transfer_soil_sompool_cmass[lyr][p] += sompool.cmass * scale;
 					transfer_soil_sompool_nmass[lyr][p] += sompool.nmass * scale;
-					transfer_soil_sompool_ntoc[lyr][p] += sompool.ntoc * scale;
+					transfer_soil_sompool_ntoc[lyr][p] += sompool.ntoc * scale; // DW_COMMENT Should be done with cmass and nmass
 					transfer_soil_sompool_fireresist[lyr][p] += sompool.fireresist * scale;
 					transfer_soil_sompool_fracremain[lyr][p] += sompool.fracremain * scale;
 					transfer_soil_sompool_ligcfrac[lyr][p] += sompool.ligcfrac * scale;

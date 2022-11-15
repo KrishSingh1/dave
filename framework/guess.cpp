@@ -665,6 +665,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
    soiltype(st),
    landcover(landcoverX),
    lc_origin(landcoverX),
+   st_origin(0),
    frac(1.0) {
 
 	// Constructor: initialises reference member of climate and

@@ -377,20 +377,15 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 			} // for loop (ly)
 
-
 			if (soil.rain_melt < total_potential) {
 				// Extra water is needed to saturate the soil, in addition to the rainfall
-				if (ifsaturatewetlands)
-					patch.wetland_water_added_today = total_potential - soil.rain_melt; 
-				
+				patch.wetland_water_added_today = total_potential - soil.rain_melt; 
 				soil.rain_melt = 0.0; // All rain has been used to saturate the soil
 			}
 			else {
 				// No extra water needed to saturate the soil today, rainfall is enough
 				soil.rain_melt -= total_potential;
-
-				if (ifsaturatewetlands)
-					patch.wetland_water_added_today = 0.0; // Rainfall is enough to saturate. No need to add extra water
+				patch.wetland_water_added_today = 0.0; // Rainfall is enough to saturate. No need to add extra water
 			}
 
 			if (total_potential > 0.0) {

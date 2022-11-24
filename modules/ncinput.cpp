@@ -139,6 +139,7 @@ void NCInput::init(void) {
 		// Record length of input data.
 		first_timestep = temp->get_first_date();
 		final_timestep = temp->get_last_date();
+		date.set_first_calendar_year(first_timestep.year - nyear_spinup);
 
 		// Initialise PRNG.
 		srand(met_sampling_seed);

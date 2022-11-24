@@ -195,6 +195,10 @@ extern bool iftransfer_to_new_stand;
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 
+// Whether to use closest available n deposition data, should a particular
+// gridcell be missing (ie when not running a 0.25 degree grid).
+extern bool useClosestNdep;
+
 // Number of years to calculate dynamic phu if dynamic_phu_limit is true
 extern int nyear_dyn_phu;
 

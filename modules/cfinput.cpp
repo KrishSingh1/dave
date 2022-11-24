@@ -15,6 +15,7 @@
 #include "guess.h"
 #include "driver.h"
 #include "guessstring.h"
+#include "ncutil.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -26,25 +27,6 @@ using namespace GuessNC::CF;
 namespace {
 
 const int SECONDS_PER_DAY = 24*60*60;
-
-// Converts a CF standard name to one of our insolation types
-// Calls fail() if the standard name is invalid
-insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
-	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
-	    standard_name == "surface_downwelling_shortwave_flux") {
-		return SWRAD_TS;
-	}
-	else if (standard_name == "surface_net_downward_shortwave_flux") {
-		return NETSWRAD_TS;
-	}
-	else if (standard_name == "cloud_area_fraction") {
-		return SUNSHINE;
-	}
-	else {
-		fail("Unknown insolation type: %s", standard_name.c_str());
-		return SUNSHINE; // To avoid compiler warning
-	}
-}
 
 // Gives the maximum allowed value for insolation, given an insolation type
 // Used as an upper limit when interpolating from monthly to daily values
@@ -446,7 +428,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	spinup_temp.detrend_data();
 
-	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
+	gridcell.climate.instype = parse_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
@@ -692,7 +674,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 	populate_daily_prec_array(seed);
 	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
-	                     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
+	                     max_insolation(parse_insoltype(cf_insol->get_standard_name())));
 
 	if (cf_min_temp) {
 		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);
@@ -703,7 +685,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 	}
 
 	// Convert to units the model expects
-	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
+	bool cloud_fraction_to_sunshine = (parse_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < date.year_length(); ++i) {
 		dtemp[i] -= K2degC;
 

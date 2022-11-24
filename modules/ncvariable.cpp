@@ -26,7 +26,7 @@ int NCVariable::get_num_dimensions(int var_id) const {
 	int status = nc_inq_varndims(id_file, var_id, &ndims);
 
 	handle_nc_error(status, "Failed to read number of dimensions of variable %s"
-	, var_name);
+	, (const char *)var_name);
 
 	return ndims;
 }
@@ -49,7 +49,7 @@ xtring NCVariable::get_units() const {
 	}
 	else {
 		// The units attribute isn't required by the CF standard
-		throw_xtring("Variable %s doesn't have a units attribute", var_name);
+		throw_xtring("Variable %s doesn't have a units attribute", (const char *)var_name);
 	}
 }
 
@@ -74,7 +74,7 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 				throw std::runtime_error((const char *)msg);
 			} else {
 				dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
-				, (const char *)msg, actual);
+				, (const char *)msg, (const char *)actual);
 			}
 		}
 	}
@@ -370,7 +370,7 @@ int NCVariable::index_of(double x, int var_id) const {
 	int id_dim;
 	int status = nc_inq_vardimid(id_file, var_id, &id_dim);
 	handle_nc_error(status, "Failed to get dimensions of variable %s"
-	, GuessNC::get_variable_name(id_file, var_id));
+	, GuessNC::get_variable_name(id_file, var_id).c_str());
 
 	// Get the length of the dimension.
 	size_t length = get_dimension_length(id_dim);
@@ -379,7 +379,7 @@ int NCVariable::index_of(double x, int var_id) const {
 	double data[length];
 	status = nc_get_var_double(id_file, var_id, data);
 	handle_nc_error(status, "Failed to read data for %s"
-	, GuessNC::get_variable_name(id_file, var_id));
+	, GuessNC::get_variable_name(id_file, var_id).c_str());
 
 	// Finally we can search the data for the specified input value (x).
 	for (int i = 0; i < length; i++) {

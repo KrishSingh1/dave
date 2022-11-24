@@ -110,19 +110,15 @@ void NCInput::init(void) {
 		// Open soil data file.
 		soil_input.init(file_soildata);
 
-		std::vector<xtring> temp_units = {
-			"degC",
-		};
-		std::vector<xtring> insol_units = {
-			"W/m2"
-			// Should provide units for other insol types as well...
-		};
-		std::vector<xtring> precip_units = {
-			"mm"
-		};
-		std::vector<xtring> co2_units = {
-			"ppm"
-		};
+		std::vector<xtring> temp_units(1);
+		temp_units[0] = "degC";
+		std::vector<xtring> insol_units(1);
+		insol_units[0] = "W/m2";
+		// Should provide units for other insol types as well...
+		std::vector<xtring> precip_units(1);
+		precip_units[0] = "mm";
+		std::vector<xtring> co2_units(1);
+		co2_units[0] = "ppm";
 
 		// Create NCVariable objects for each variable of interest.
 		// This will also do some basic sanity checking.

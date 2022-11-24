@@ -1,0 +1,23 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! RobsonCreek_L6_20130801_20211218 master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: RobsonCreek_L6_20130801_20211218"
+
+! Gridlist
+param "file_gridlist" (str "gridlist.txt")
+
+! CO2 Data
+param "file_co2" (str "../forcing/co2/RobsonCreek_L6_20130801_20211218_co2.txt")
+
+! Other site-specific metadata
+param "first_hist_year" (num 2014)
+param "nyear_hist" (num 7)
+param "nyear_spinup_data" (num 7)
+
+! Instruction files
+import "../settings.ins"
+import "../outputs.ins"
+import "../soiln.ins"

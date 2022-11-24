@@ -53,12 +53,12 @@ has_leap_years                0
 variable_lon                "longitude"
 variable_lat                "latitude"
 variable_time                "time"
-variable_temp                "tmean"
+variable_temp                "tav"
 variable_insol                "insol"
 variable_precip                "prec"
 variable_co2                "co2"
-variable_tmax                "" ! Empty string means it will be calculated from subdaily temperature
-variable_tmin                "" ! Empty string means it will be calculated from subdaily temperature
+variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
+variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
 
 useClosestNdep      1         ! Use closest available N Deposition data if none found for this gridcell
 ifdailygrass        1

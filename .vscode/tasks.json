@@ -42,9 +42,6 @@
                 ]
             },
             "osx": {
-                "args": [
-                    "-j`sysctl hw.logicalcpu | cut -d' ' -f 2`"
-                ]
             },
             "options": {
                 "cwd": "${workspaceRoot}/build",

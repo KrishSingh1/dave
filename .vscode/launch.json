@@ -1,0 +1,1136 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Adelaide River",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "AdelaideRiver_L6_20071017_20090524.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/AdelaideRiver_L6_20071017_20090524",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Alice Springs Mulga",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "AliceSpringsMulga_L6_20100903_20211231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/AliceSpringsMulga_L6_20100903_20211231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Boyagin",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Boyagin_L6_20171020_20211231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Boyagin_L6_20171020_20211231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Cape Tribulation",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CapeTribulation_L6_20100101_20181102.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CapeTribulation_L6_20100101_20181102",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Collie",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Collie_L6_20170804_20191111.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Collie_L6_20170804_20191111",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Cow Bay",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CowBay_L6_20090101_20211231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CowBay_L6_20090101_20211231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Cumberland Plain",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CumberlandPlain_L6_20140101_20220101.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain_L6_20140101_20220101",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Daly Pasture",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "DalyPasture_L6_20080101_20130908.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyPasture_L6_20080101_20130908",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Daly Uncleared",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "DalyUncleared_L6_20080101_20220217.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyUncleared_L6_20080101_20220217",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Dry River",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "DryRiver_L6_20091025_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DryRiver_L6_20091025_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Emerald",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Emerald_L6_20110610_20131231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Emerald_L6_20110610_20131231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Fogg Dam",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "FoggDam_L6_20060207_20081031.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/FoggDam_L6_20060207_20081031",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Gingin",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Gingin_L6_20111013_20201231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Gingin_L6_20111013_20201231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Great Western Woodlands",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "GreatWesternWoodlands_L6_20130101_20220101.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/GreatWesternWoodlands_L6_20130101_20220101",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Howard Springs",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "HowardSprings_L6_20020101_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/HowardSprings_L6_20020101_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Litchfield",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Litchfield_L6_20150623_20211128.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Litchfield_L6_20150623_20211128",
+            "environment": [],
+            "externalConsole": false,
+            // "MIMode": "lldb",
+            // "miDebuggerPath": "lldb",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Loxton",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Loxton_L6_20080819_20090609.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Loxton_L6_20080819_20090609",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Otway",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Otway_L6_20070811_20110101.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Otway_L6_20070811_20110101",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Red Dirt Melon Farm",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "RedDirtMelonFarm_L6_20110923_20130721.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RedDirtMelonFarm_L6_20110923_20130721",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Ridgefield",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Ridgefield_L6_20160101_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Ridgefield_L6_20160101_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Riggs Creek",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "RiggsCreek_L6_20110101_20170712.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RiggsCreek_L6_20110101_20170712",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Robson Creek",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "RobsonCreek_L6_20130801_20211218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek_L6_20130801_20211218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Silver Plains",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "SilverPlains_L6_20200101_20211231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/SilverPlains_L6_20200101_20211231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Sturt Plains",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "SturtPlains_L6_20080828_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/SturtPlains_L6_20080828_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Ti Tree East",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "TiTreeEast_L6_20120718_20220117.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/TiTreeEast_L6_20120718_20220117",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Tumbarumba",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Tumbarumba_L6_20020107_20191231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Tumbarumba_L6_20020107_20191231",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Wallaby Creek",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "WallabyCreek_L6_20050825_20130409.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/WallabyCreek_L6_20050825_20130409",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Warra",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Warra_L6_20130305_20210923.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Warra_L6_20130305_20210923",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Whroo",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Whroo_L6_20111201_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Whroo_L6_20111201_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Wombat State Forest",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "WombatStateForest_L6_20100120_20210529.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/WombatStateForest_L6_20100120_20210529",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Yanco",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Yanco_L6_20130101_20220218.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yanco_L6_20130101_20220218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        }
+    ]
+}

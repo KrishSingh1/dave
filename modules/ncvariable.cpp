@@ -1,7 +1,7 @@
 #ifdef HAVE_NETCDF
 
 #include <algorithm>
-#include <netcdf>
+#include <netcdf.h>
 #include <vector>
 
 #include "cftime.h"

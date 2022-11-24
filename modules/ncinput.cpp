@@ -2,7 +2,7 @@
 
 #include <exception>
 #include <limits.h>
-#include <netcdf>
+#include <netcdf.h>
 #include <stdexcept>
 #include <string>
 #include <istream>

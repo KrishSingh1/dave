@@ -6,18 +6,12 @@
 
 title "LPJ-Guess ozflux site: FoggDam_L6_20060207_20081031"
 
+file_met_forcing        "../forcing/met/FoggDam_L6_20060207_20081031.nc"
+
 ! Gridlist
-param "file_gridlist" (str "gridlist.txt")
-
-! CO2 Data
-param "file_co2" (str "../forcing/co2/FoggDam_L6_20060207_20081031_co2.txt")
-
-! Other site-specific metadata
-param "first_hist_year" (num 2007)
-param "nyear_hist" (num 1)
-param "nyear_spinup_data" (num 1)
+file_gridlist    	    "gridlist.txt"
 
 ! Instruction files
-import "../settings.ins"
-import "../outputs.ins"
-import "../soiln.ins"
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

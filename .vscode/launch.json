@@ -116,6 +116,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "Calperum",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Calperum_L6_20100730_20220829.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Calperum_L6_20100730_20220829",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build"
+        },
+        {
             "name": "Cape Tribulation",
             "type": "cppdbg",
             "request": "launch",
@@ -578,6 +615,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "Longreach",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Longreach_L6_20181009_20220607.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach_L6_20181009_20220607",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
             "name": "Loxton",
             "type": "cppdbg",
             "request": "launch",
@@ -774,6 +848,43 @@
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek_L6_20130801_20211218",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Samford",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Samford_L6_20100602_20171231.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Samford_L6_20100602_20171231",
             "environment": [],
             "externalConsole": false,
             "osx": {

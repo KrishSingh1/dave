@@ -274,6 +274,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.dndep = dndep[date.day];
+	date.subdaily = nsteps_day;
 
 	if (tmax && tmin) {
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);

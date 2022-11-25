@@ -10,6 +10,7 @@
 #include "config.h"
 #include "outputmodule.h"
 #include "parameters.h"
+#include "ncutil.h"
 #include "guess.h"
 
 namespace GuessOutput {
@@ -56,6 +57,9 @@ void OutputModuleContainer::init() {
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
+
+	// Create output directory if it doesn't already exist.
+	mkdir_p(outputdirectory.c_str());
 
 	// Create the output channel
 	output_channel = new FileOutputChannel(outputdirectory.c_str(),

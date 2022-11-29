@@ -163,6 +163,13 @@ private:
 	int get_nyear_data() const;
 
 	/*
+	Get the progress of the current simulation in range [0, 1].
+
+	@param since_spinup: If true, only consider progress since the restart.
+	*/
+	double get_progress(bool since_restart);
+
+	/*
 	Land cover input module.
 	*/
 	LandcoverInput landcover_input;
@@ -298,6 +305,11 @@ private:
 	xtring variable_tmin;
 
 	/*
+	Name of the VPD variable in the NetCDF file.
+	*/
+	xtring variable_vpd;
+
+	/*
 	Temp variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> temp;
@@ -326,6 +338,11 @@ private:
 	Tmin variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> tmin;
+
+	/*
+	VPD variable in the NetCDF file (kPa).
+	*/
+	std::unique_ptr<NCVariable> vpd;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.

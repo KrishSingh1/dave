@@ -884,6 +884,9 @@ public:
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
 
+	/// Sub-daily VPD values (kPa).
+	std::vector<double> vpds;
+
 	/// Variables used for crop sowing date or seasonality calculation
 
 	/// daily precipitations for the last 10 days (mm)

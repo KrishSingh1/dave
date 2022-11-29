@@ -71,7 +71,7 @@ private:
 	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
 	
 	// Snow, water table depth and active layer depth
-	xtring file_msnow, file_msnowcover, file_mwtp, file_mald, file_msoiltempdepth25;
+	xtring file_msnow, file_msnowcover, file_snowdays, file_mwtp, file_mald, file_msoiltempdepth25;
 	xtring file_wflux, file_wpool, file_wsats, file_wsats_depth;
 
 	// Output tables
@@ -95,7 +95,7 @@ private:
 	Table out_simfireanalysis;
 
 	// Methane, snow, water table and active layer depth
-	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_msnowcover, out_mwtp, out_mald, out_msoiltempdepth25;
+	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_msnowcover, out_snowdays, out_mwtp, out_mald, out_msoiltempdepth25;
 	Table out_wflux, out_wpool, out_wsats, out_wsats_depth;
 
 	// Soil temperatures and water

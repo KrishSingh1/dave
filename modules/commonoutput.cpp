@@ -68,6 +68,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_clitterinput_depth", &file_clitterinput_depth, 300, "Annual carbon litter input to soil column output file");
 	declare_parameter("file_csomlitterinput", &file_csomlitterinput, 300, "Annual carbon litter input to SOM pools output file");
 	declare_parameter("file_soilcperma", &file_soilcperma, 300, "Fraction of soil C in permafrost output file");
+	declare_parameter("file_snowdays", &file_snowdays, 300, "Snow days output file");
 	declare_parameter("file_mtemp", &file_mtemp, 300, "Air, snow and soil layer temperature output file");
 	declare_parameter("file_mwmasslyr", &file_mwmasslyr, 300, "Monthly soil layer water output file");
 	declare_parameter("file_mimasslyr", &file_mimasslyr, 300, "Monthly soil layer ice output file");
@@ -391,6 +392,10 @@ void CommonOutput::define_output_tables() {
 	soilc_perma_columns += ColumnDescriptor("Active", 8, 3);
 	soilc_perma_columns += ColumnDescriptor("Frost", 8, 3);
 
+	// Permafrost fraction
+	ColumnDescriptors snow_columns;
+	snow_columns += ColumnDescriptor("Snowdays", 9, 1);
+
 	// FIRERT
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",			8, 1);
@@ -602,6 +607,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mimass_depth,   file_mimass_depth,   soildepth_columns);
 	create_output_table(out_mwimass_depth,  file_mwimass_depth,  soildepth_columns);
 	create_output_table(out_mdrain_depth,   file_mdrain_depth,   soildepth_columns);
+	create_output_table(out_snowdays,       file_snowdays,       snow_columns);
 
 	if ( firemodel == BLAZE ) {
 		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
@@ -869,7 +875,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year >= nyear_spinup)
+	if (date.year >= nyear_spinup-100)
 		out.add_value(table, d);
 }
 
@@ -885,7 +891,7 @@ void outlimit(OutputRows& out, const Table& table, double d) {
   */
 void CommonOutput::outannual(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup)
+	if (date.year < nyear_spinup-100)
 		return;
 
 	const double NOT_A_VALUE_SMALL = -9.999;
@@ -939,6 +945,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double wsats[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double wsats_depth[sslyr + 1] = { 0.0 };
 	double soilc_tot, soilc_ald;
+	double snowdays;
 
 	// hold the monthly average across patches
 	double mnpp[12];
@@ -1572,6 +1579,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	flux_NH3_fire = flux_NOx_fire = flux_N2O_fire = flux_N2_fire = 0.0;
 	flux_ntot = flux_nharvest = flux_nseed = 0.0;
 	soilc_ald = soilc_tot = 0.0;
+	snowdays = 0.0;
 
 	// Nitrogen in soil
 	NH4_mass = NH3_mass = NO3_mass = 0.0;
@@ -1868,6 +1876,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			soilc_ald += soilcolumn.var_depth(0.0, soilcolumn.maxthaw, CCONT) * to_gridcell_average;
 			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			snowdays += (double)soilcolumn.snow.snowdays * to_gridcell_average;
 
 			// Monthly output variables
 
@@ -2223,6 +2232,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	outlimit(out, out_soilcperma, soilc_ald);
 	outlimit(out, out_soilcperma, soilc_tot - soilc_ald);
+	outlimit(out, out_snowdays, snowdays);
 
 	for (int p = 0; p < NSOMPOOL; p++) {
 		outlimit(out, out_csom, csom_gridcell[p]);

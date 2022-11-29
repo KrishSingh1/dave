@@ -4061,6 +4061,8 @@ public:
 	double mdepth[12];
 	/// Monthly snow cover (average) [-]
 	double mcover[12];
+	/// Number of snow days during the year
+	int snowdays;
 	/// Monthly snow layer temperature [C]
 	double mtemp[NSNOWLAYERS_MAX][12];
 	/// Excess snow depth fractions

@@ -6006,6 +6006,11 @@ void Soilcolumn::calc_msnow() {
 			snow.mtemp[lyr][date.month] += patch.get_climate().temp / date.ndaymonth[date.month];
 		}
 	}
+
+	// Sum number of snow days
+	if (snow.depth() > 10.0) {
+		snow.snowdays++;
+	}
 }
 
 /// Calculate effective soillayer volume that isn't taken by coarse root biomass

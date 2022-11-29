@@ -731,6 +731,8 @@ void dailyaccounting_patch(Patch& patch) {
 		// Snow
 		Snow& snow = soilcolumn.snow;
 
+		snow.snowdays = 0;
+
 		for (int mth = 0; mth < 12; mth++) {
 			snow.mdepth[mth] = 0.0;
 			snow.mcover[mth] = 0.0;

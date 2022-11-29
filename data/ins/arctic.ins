@@ -33,12 +33,13 @@ file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
 file_soildepth "soildepth.out"
-file_csoil "csoil.out"
+!file_csoil "csoil.out"
 file_csoil_depth "csoil_depth.out"
-file_rsoil "rsoil.out"
-file_rsoil_depth "rsoil_depth.out"
-file_tau_soil "tau_soil.out"
+!file_rh "rh.out"
+file_rh_depth "rh_depth.out"
+!file_tau_soil "tau_soil.out"
 file_tau_soil_depth "tau_soil_depth.out"
+file_clitterinput_depth "clitterinput_depth.out"
 file_aburned_area_out "annual_burned_area.out"
 file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -61,22 +62,29 @@ file_nuptake "nuptake.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
 
-file_soildeclim "soildeclim.out"
-file_soilgrolim "soilgrolim.out"
-file_soiltotlim "soiltotlim.out"
-file_soilcuelim "soilcuelim.out"
-file_clitterinput "clitterinput.out"
+!file_soildeclim "soildeclim.out"
+!file_soilgrolim "soilgrolim.out"
+!file_soiltotlim "soiltotlim.out"
+!file_soilcuelim "soilcuelim.out"
+!file_clitterinput "clitterinput.out"
 file_csomlitterinput "csomlitterinput.out"
 file_soilcperma "soilc_permafrost.out"
+file_snowdays "snowdays.out"
 file_csom "csom.out"
-file_eff_volume "eff_volume.out"
-file_temp_mod "mod_temp.out"
-file_moist_mod "mod_moist.out"
-file_tot_mod "mod_total.out"
+!file_eff_volume "eff_volume.out"
+file_eff_volume_depth "eff_volume_depth.out"
+!file_temp_mod "mod_temp.out"
+!file_moist_mod "mod_moist.out"
+!file_tot_mod "mod_total.out"
+file_temp_mod_depth "mod_temp_depth.out"
+file_moist_mod_depth "mod_moist_depth.out"
+file_tot_mod_depth "mod_total_depth.out"
 
 file_wflux "wflux.out"
 file_wpool "wpool.out"
-file_wsats "wsats.out"
+!file_wsats "wsats.out"
+file_wsats_depth "wsats_depth.out"
+file_lambda "lambda.out"
 
 ! Monthly outputs
 file_mnpp "mnpp.out"
@@ -104,10 +112,15 @@ file_mwcont_lower "mwcont_lower.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
 file_mtemp "mtemp.out"
-file_mwmasslyr "mwmasslyr.out"
-file_mimasslyr "mimasslyr.out"
-file_mwimasslyr "mwimasslyr.out"
-file_mdrainlyr "mdrainlyr.out"
+!file_mwmasslyr "mwmasslyr.out"
+!file_mimasslyr "mimasslyr.out"
+!file_mwimasslyr "mwimasslyr.out"
+!file_mdrainlyr "mdrainlyr.out"
+file_mtemp_depth "mtemp_depth.out"
+file_mwmass_depth "mwmass_depth.out"
+file_mimass_depth "mimass_depth.out"
+file_mwimass_depth "mwimass_depth.out"
+file_mdrain_depth "mdrain_depth.out"
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
@@ -148,7 +161,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 15			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -187,7 +200,7 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 10000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
@@ -266,6 +279,8 @@ group "common" (
 	landcover "natural"
 	harv_eff 0
 	res_outtake 0
+
+	ag_woody_frac 1.0
 
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -441,6 +456,7 @@ group "boreal" (
 	pstemp_high 25
 	pstemp_max 38
 	respcoeff 1.0
+	ag_woody_frac 0.75
 )
 
 group "temperate" (
@@ -601,6 +617,7 @@ pft "TeBS" (
 	twmin_est 5
 	gdd5min_est 1100
 	longevity 400
+	ag_woody_frac 0.81
 	fireresist 0.1
 	eps_iso 45.0
 	seas_iso 1

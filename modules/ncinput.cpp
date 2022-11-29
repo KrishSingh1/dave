@@ -53,6 +53,8 @@ NCInput::NCInput() {
 
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
 
+	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -266,6 +268,12 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	// Generate daily N deposition values on first day of year.
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
+
+		if (use_mean_annual_co2) {
+			int year_len = get_year_len(year, has_leap_years);
+			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
+			mean_annual_co2 = mean(co2_annual);
+		}
 	}
 
 	// Read data from variables (not necessarily from the file - these variable
@@ -273,7 +281,6 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	std::vector<double> temps = temp->read(lon, lat, year, date.day, 1);
 	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
-	std::vector<double> co2s = co2->read(lon, lat, year, date.day, 1);
 	std::vector<double> vpds = vpd->read(lon, lat, year, date.day, 1);
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
@@ -283,11 +290,14 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.temp = mean(temps);
 	climate.prec = sum(precs);
 	climate.insol = mean(insols);
-	climate.co2 = mean(co2s);
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.dndep = dndep[date.day];
 	date.subdaily = nsteps_day;
+
+	climate.co2 = use_mean_annual_co2
+					? mean_annual_co2
+					: mean(co2->read(lon, lat, year, date.day, 1));
 
 	if (tmax && tmin) {
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);

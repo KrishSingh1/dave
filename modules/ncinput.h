@@ -310,6 +310,12 @@ private:
 	xtring variable_vpd;
 
 	/*
+	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
+	of that day's subdaily data will be used.
+	*/
+	bool use_mean_annual_co2;
+
+	/*
 	Temp variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> temp;
@@ -417,6 +423,11 @@ private:
 	Total walltime spent in ncinput (cumulatively) (ms).
 	*/
 	double ncinput_walltime_use;
+
+	/*
+	Annual mean CO2 concentration (ppm) for the current simulation year.
+	*/
+	double mean_annual_co2;
 };
 
 #endif // HAVE_NETCDF

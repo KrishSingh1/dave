@@ -150,7 +150,8 @@ FileOutputChannel::FileOutputChannel(const char* out_dir,
 
 FileOutputChannel::~FileOutputChannel() {
 	 for (size_t i = 0; i < files.size(); i++) {
-		  fclose(files[i]);
+		 if(files[i] != NULL)
+			fclose(files[i]);
 	 }
 }
 
@@ -202,6 +203,7 @@ void FileOutputChannel::close_table(Table& table) {
 
 	 FILE* file = files[table.id()];
 	 fclose(file);
+	 files[table.id()] = NULL;
 }
 
 void FileOutputChannel::finish_row(const Table& table, 

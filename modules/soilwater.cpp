@@ -151,6 +151,9 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 	patch.wetland_water_added_today = 0.0;
 
+	if (date.year > 500)
+		int test = 1;
+
 	if (soil.percolate) {
 
 		if (iftwolayersoil) {
@@ -427,9 +430,10 @@ void irrigation(Patch& patch) {
 	for (int i = 0; i < npft; i++) {
 
 		Patchpft& ppft = patch.pft[i];
-		if (patch.stand.pft[i].irrigated && ppft.growingseason()) {
+		Standpft& spft = patch.stand.pft[i];
+		if (spft.active && spft.irrigated && ppft.growingseason()) {
 			if (ppft.water_deficit_d < 0.0) {
-				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
+				fail("irrigation(): Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
 			}
 			patch.irrigation_d += ppft.water_deficit_d;
 		}

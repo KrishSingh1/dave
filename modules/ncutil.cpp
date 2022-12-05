@@ -27,16 +27,24 @@ insoltype parse_insoltype(const std::string& standard_name) {
 	}
 }
 
-double sum(const std::vector<double>& data) {
+double sum(const double *arr, size_t length) {
 	double sum = 0;
-	for (int i = 0; i < data.size(); i++) {
-		sum += data[i];
+	for (size_t i = 0; i < length; i++) {
+		sum += arr[i];
 	}
 	return sum;
 }
 
+double mean(const double *arr, size_t length) {
+	return sum(arr, length) / length;
+}
+
+double sum(const std::vector<double>& data) {
+	return sum(&(data.front()), data.size());
+}
+
 double mean(const std::vector<double>& data) {
-	return sum(data) / data.size();
+	return mean(&(data.front()), data.size());
 }
 
 bool floats_equal(double x, double y) {
@@ -165,6 +173,23 @@ void maybe_mkdir(const char* path, mode_t mode)
 		std::string reason = "Path already exists but is not a directory";
         throw_xtring("Unable to create directory %s: %s", path, reason.c_str());
     }
+}
+
+std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
+	, double (*aggregator)(const double *, size_t)) {
+
+	if (in.size() % out_length != 0) {
+		throw_xtring("Unable to aggregate data; input size (%d) must be an integer multiple of out size (%d)"
+		, in.size(), out_length);
+	}
+	int step_size = in.size() / out_length;
+
+	std::vector<double> out(out_length);
+	for (size_t i = 0; i < out_length; i++) {
+		out[i] = aggregator(&(in[i * step_size]), step_size);
+	}
+
+	return out;
 }
 
 void mkdir_p(const char *path)

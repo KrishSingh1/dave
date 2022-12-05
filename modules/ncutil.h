@@ -77,11 +77,27 @@ name is invalid.
 insoltype parse_insoltype(const std::string& standard_name);
 
 /*
+Calculate the sum of a c-style array of data.
+
+@param arr: The array.
+@param length: Length of the array.
+*/
+double sum(const double *arr, size_t length);
+
+/*
 Calculate the sum of a vector of doubles.
 
 @param data: The input data.
 */
 double sum(const std::vector<double>& data);
+
+/*
+Calculate the sum of a c-style array of data.
+
+@param arr: The array.
+@param length: Length of the array.
+*/
+double mean(const double *arr, size_t length);
 
 /*
 Calculate the mean of a vector of doubles.
@@ -205,6 +221,20 @@ xtring get_nested_error_msg(const std::exception& e);
 Return current time (in μs since unix epoch).
 */
 double get_wall_time();
+
+/*
+This function aggregates data over a vector in a given chunk size using the
+specified aggregator function.
+
+@param in: The input vector.
+@param step_size: Desired length of the output vector. An exception will be
+				  thrown if length of the input vector is not an integer
+				  multiple of this value.
+@param aggregator: Function which takes a C-style array and length as input, and
+                   aggregates the contents into a single output value.
+*/
+std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
+	, double (*aggregator)(const double *, size_t));
 
 /*
 Attempt to create the specified directory tree (equivalent to mkdir -p). Will

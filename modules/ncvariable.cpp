@@ -81,13 +81,12 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 }
 
 NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
-, xtring lat_name, xtring time_name, int nsteps_day, bool has_leap
+, xtring lat_name, xtring time_name, bool has_leap
 , CacheStrategy chunk_mode, bool sensibility_checks, bounds b
 , std::vector<xtring> units, bool force_legal_units) {
 	try {
 		id_file = file_id;
 		var_name = name;
-		day_length = nsteps_day;
 		cache_strategy = chunk_mode;
 		id_var = get_variable_id(name);
 		has_leap_years = has_leap;
@@ -113,11 +112,23 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		id_time = get_variable_id(time_name);
 		check_num_dims(id_time, 1);
 
+		// Check total number of timesteps. This will be useful later.
+		ntime = get_dimension_length(id_time);
+
+		// Determine and validate the calendar type used by this NetCDF file.
+		calendar_type = get_calendar_type();
+
+		// Determine and validate time units.
+		time_spec = get_time_spec();
+
 		// Get the first time step.
 		data_start = get_first_date();
 
-		// Check total number of timesteps. This will be useful later.
-		ntime = get_dimension_length(id_time);
+		// Calculate and store the number of timesteps per day.
+		day_length = calculate_day_length();
+		if (day_length == -1) {
+			throw std::runtime_error("File contains only a single day of data");
+		}
 
 		// Get pointer to end of the dimensions array.
 		int *dims_end = dimensions + ndim * sizeof(int);
@@ -421,16 +432,41 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 	return result;
 }
 
+GuessNC::CF::DateTime NCVariable::get_nth_date(size_t n) const {
+	double value;
+	int status = nc_get_var1_double(id_file, id_time, &n, &value);
+	GuessNC::handle_error(status, "Failed to read from time variable");
+
+	// Parse this time value according to the specified calendar type.
+	return time_spec.get_date_time(value, calendar_type);
+}
+
 timepoint NCVariable::get_first_date() const {
-	std::string units;
-	// Get the units on the time variable.std::string attribute;
-	if (!GuessNC::get_attribute(id_file, id_time, ATTR_UNITS, units)) {
-		throw std::runtime_error("Unable to read units attribute on time variable");
+	return to_timepoint(get_nth_date(0));
+}
+
+timepoint NCVariable::get_last_date() const {
+	return to_timepoint(get_nth_date(ntime - 1));
+}
+
+int NCVariable::calculate_day_length() const {
+	int first_day = get_nth_date(0).get_day();
+
+	// Keep moving forward in time until we reach a different day.
+	for (size_t i = 1; i < ntime; i++) {
+		GuessNC::CF::DateTime timestep = get_nth_date(i);
+		if (timestep.get_day() != first_day) {
+			return i;
+		}
 	}
+	return -1;
+}
 
-	// Parse units (this will throw if invalid).
-	GuessNC::CF::TimeUnitSpecification spec(units.c_str());
+int NCVariable::get_day_length() const {
+	return day_length;
+}
 
+GuessNC::CF::CalendarType NCVariable::get_calendar_type() const {
 	// Verify datatype - we require one of the NetCDF classic numeric types,
 	// even though that's not a CF requirement. The 64 bit integral types in
 	// NetCDF4 would require special care since we can't represent that with
@@ -455,46 +491,18 @@ timepoint NCVariable::get_first_date() const {
 		throw std::runtime_error(msg);
 	}
 
-	GuessNC::CF::CalendarType calendar = \
-		GuessNC::CF::parse_calendar(calendar_attribute.c_str());
-
-	// Read the first time value.
-	double first;
-	size_t start = 0;
-	status = nc_get_var1_double(id_file, id_time, &start, &first);
-	GuessNC::handle_error(status, "Failed to read from time variable");
-
-	// Parse this time value according to the specified calendar type.
-	GuessNC::CF::DateTime start_date = spec.get_date_time(first, calendar);
-
-	return to_timepoint(start_date);
+	return GuessNC::CF::parse_calendar(calendar_attribute.c_str());
 }
 
-timepoint NCVariable::get_last_date() const {
-	// Seek to correct year.
-	timepoint result;
-	result.year = data_start.year;
-
-	int index;
-	for (index = 0; index < ntime; index++) {
-		int year_len = get_year_len(result.year, has_leap_years) * day_length;
-		if (index + year_len > ntime) {
-			break;
-		}
-		result.year++;
-		index += year_len;
+GuessNC::CF::TimeUnitSpecification NCVariable::get_time_spec() const {
+	std::string units;
+	// Get the units on the time variable.std::string attribute;
+	if (!GuessNC::get_attribute(id_file, id_time, ATTR_UNITS, units)) {
+		throw std::runtime_error("Unable to read units attribute on time variable");
 	}
 
-	// Get number of timesteps in the final year.
-	int remaining_timesteps = ntime - index;
-
-	// Integer division (truncate remainder).
-	result.day = remaining_timesteps / day_length;
-
-	// Just the remainder.
-	result.timestep = remaining_timesteps % day_length;
-
-	return result;
+	// Parse units (this will throw if invalid).
+	return GuessNC::CF::TimeUnitSpecification(units.c_str());
 }
 
 #endif

@@ -415,7 +415,7 @@ private:
 	Timer progress_progress_timer;
 
 	/*
-	Minimum number of sec to wait between progress messages
+	Minimum amount of time (in seconds) to wait between progress messages.
 	*/
 	static const int PROGRESS_INTERVAL=20;
 
@@ -425,7 +425,9 @@ private:
 	double ncinput_walltime_use;
 
 	/*
-	Annual mean CO2 concentration (ppm) for the current simulation year.
+	Annual mean CO2 concentration (ppm) for the current simulation year. This
+	will only have a value during the simulation (not before), and only if
+	use_mean_annual_co2 is enabled by the user.
 	*/
 	double mean_annual_co2;
 };

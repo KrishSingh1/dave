@@ -201,6 +201,7 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		double getgridcell_start = get_wall_time();
 
 		if (current_gridcell == gridlist.end()) {
+			dprintf("Simulations completed. Total time spent in ncinput: %.2fms\n", ncinput_walltime_use);
 			return false;
 		}
 
@@ -315,6 +316,10 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	//
 	// nsteps_day is the desired simulation timestep.
 	// temp->get_day_length is the input data timestep.
+
+	double maxt = max(temps);
+	double mint = min(temps);
+
 	if (nsteps_day != temp->get_day_length()) {
 		temps = aggregate(temps, nsteps_day, mean);
 		insols = aggregate(insols, nsteps_day, mean);
@@ -338,8 +343,8 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
 		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
 		climate.dtr = mean(tmaxs) - mean(tmins);
-	} else if (temps.size() > 1) {
-		climate.dtr = max(temps) - min(temps);
+	} else if (temp->get_day_length() > 1) {
+		climate.dtr = maxt - mint;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}

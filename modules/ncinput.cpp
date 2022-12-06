@@ -191,7 +191,6 @@ void NCInput::init(void) {
 	ncinput_walltime_use += init_duration;
 
 	} catch (const std::exception& error) {
-		// todo: do we need to manually unwrap nested exceptions?
 		fail(get_nested_error_msg(error));
 	}
 }
@@ -202,7 +201,8 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 
 		if (current_gridcell == gridlist.end()) {
 			double total_walltime = (getgridcell_start - ctor_start) * 1000;
-			dprintf("Simulations completed. Total time: %.2fms. Total time spent in ncinput: %.2fms.\n", total_walltime, ncinput_walltime_use);
+			double prop = ncinput_walltime_use / total_walltime;
+			dprintf("Simulations completed. Total time: %.2fms. Total time spent in ncinput: %.2fms. ncinput_prop = %.2f\n", total_walltime, ncinput_walltime_use, prop);
 			return false;
 		}
 

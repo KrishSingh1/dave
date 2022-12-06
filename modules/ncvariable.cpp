@@ -185,6 +185,8 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 			date.timestep = 0;
 
 			int start_index = get_cache_offset(date);
+
+			// This is an exclusive index.
 			int end_index = min(start_index + result_len, cache.size());
 
 			cache_prev.year = year;
@@ -241,7 +243,7 @@ std::vector<double> NCVariable::load_day(double lon, double lat, int year, int d
 	t.day = day;
 	t.timestep = 0;
 	int start = get_timesteps_between(data_start, t);
-	return load(lon, lat, start, day_length);
+	return load_data(lon, lat, start, day_length);
 }
 
 std::vector<double> NCVariable::load_year(double lon, double lat, int year) const {
@@ -260,8 +262,6 @@ std::vector<double> NCVariable::load_all(double lon, double lat) const {
 std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 , int ntimesteps) const {
 
-	// Fixme - we're going to check this once per variable, which is rather
-	// redundant.
 	int index_lat = index_of(lat, id_lat);
 	int index_lon = index_of(lon, id_lon);
 
@@ -291,6 +291,9 @@ std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 }
 
 int NCVariable::get_cache_offset(timepoint date) const {
+	if (cache_strategy == None) {
+		return date.timestep;
+	}
 	// Shortcut - use previous index + day_length.
 	if (date.timestep == 0
 	&&	cache_prev.timestep == 0

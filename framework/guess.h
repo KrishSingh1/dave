@@ -875,6 +875,9 @@ public:
 	/// Sub-daily insolation (\see insol)
 	std::vector<double> insols;
 
+	/// Sub-daily vapour pressure deficit (kPa).
+	std::vector<double> vpds;
+
 	/// Sub-daily PAR (\see par)
 	std::vector<double> pars;
 

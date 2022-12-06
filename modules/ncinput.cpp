@@ -20,7 +20,7 @@
 REGISTER_INPUT_MODULE("nc", NCInput)
 
 NCInput::NCInput() {
-	double ctor_start = get_wall_time();
+	ctor_start = get_wall_time();
 
 	// Register instruction file parameters.
 
@@ -201,7 +201,8 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		double getgridcell_start = get_wall_time();
 
 		if (current_gridcell == gridlist.end()) {
-			dprintf("Simulations completed. Total time spent in ncinput: %.2fms\n", ncinput_walltime_use);
+			double total_walltime = (getgridcell_start - ctor_start) * 1000;
+			dprintf("Simulations completed. Total time: %.2fms. Total time spent in ncinput: %.2fms.\n", total_walltime, ncinput_walltime_use);
 			return false;
 		}
 
@@ -323,12 +324,14 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	if (nsteps_day != temp->get_day_length()) {
 		temps = aggregate(temps, nsteps_day, mean);
 		insols = aggregate(insols, nsteps_day, mean);
+		vpds = aggregate(vpds, nsteps_day, mean);
 		// If required, we can aggregate using other functions as well. E.g.
 		// precs = aggregate(precs, nsteps_day, sum);
 	}
 
 	climate.temps = temps;
 	climate.insols = insols;
+	climate.vpds = vpds;
 	climate.dndep = dndep[date.day];
 	date.subdaily = nsteps_day;
 

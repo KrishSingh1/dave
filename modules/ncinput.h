@@ -425,6 +425,11 @@ private:
 	double ncinput_walltime_use;
 
 	/*
+	Walltime at start of simulation.
+	*/
+	double ctor_start;
+
+	/*
 	Annual mean CO2 concentration (ppm) for the current simulation year. This
 	will only have a value during the simulation (not before), and only if
 	use_mean_annual_co2 is enabled by the user.

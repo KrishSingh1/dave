@@ -40,7 +40,7 @@ nc_check_inputs                1
 ! 0 = cache entire file (fastest, most memory intensive)
 ! 1 = cache one year at a time (slower, but uses less memory)
 ! 2 = no caching (slowest, not recommended)
-cache_strategy                1
+cache_strategy                2
 
 ! Scenario to be used for nitrogen deposition data.
 ! HISTORIC, RCP26, RCP45, RCP60, RCP85
@@ -170,7 +170,7 @@ nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root 
 !///////////////////////////////////////////////////////////////////////////////
 
 !state_year 500            ! Year to save/start state file (no setting = after spinup)
-restart 0            ! Whether to start from a state file
+restart 1            ! Whether to start from a state file
 save_state 0            ! Whether to save a state file
 state_path "./state/"            ! Directory to put state files in
 

@@ -46,11 +46,12 @@
 #include "parameters.h"
 #include "guesscontainer.h"
 #include "soil.h"
+#include "guessstring.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
-/// Life form class for PFTs (trees, grasses)
+/// Life form class for PFTs (trees, grasses, mosses)
 typedef enum {NOLIFEFORM, TREE, GRASS, MOSS} lifeformtype;
 
 /// Phenology class for PFTs
@@ -140,6 +141,31 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
 /// Nitrogen preferance
 typedef enum {NO, NH4, NO3} n_pref_type;
+
+/// Gross landcover change input type
+typedef enum {NO_GROSS_INPUT, LC_GROSS_INPUT, ST_GROSS_INPUT} gross_LCC_input_type;
+
+/// thinselectpft types (integers in instruction file)
+#define SELECT_PFT_NOPREF 0
+#define SELECT_PFT_UNSEL 1
+#define SELECT_PFT_SEL 2
+#define SELECT_PFT_UNSEL_SEL_SEPARATE 3
+#define SELECT_PFT_SHADEINTOL 4
+
+/// thinselectage types (integers in instruction file)
+#define SELECT_AGE_NOPREF 0
+#define SELECT_AGE_YOUNG 1
+#define SELECT_AGE_OLD 2
+
+/// thinselectdiam types (integers in instruction file)
+#define SELECT_DIAM_NOPREF 0
+#define SELECT_DIAM_SMALL 1
+#define SELECT_DIAM_LARGE 2
+#define SELECT_DIAM_LIMIT 3
+
+/// Number of forest structure (age- and diameter) classes
+const int NFOREST_STRUCTURAL_CLASSES = 31;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -221,11 +247,6 @@ const double CO2_CONV = 1.0e-6;
 
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
-
-/// Precision in land cover fraction input
-const double INPUT_PRECISION = 1.0e-14;
-const double INPUT_ERROR = 0.5e-6;
-const double INPUT_RESOLUTION = INPUT_PRECISION - INPUT_PRECISION * INPUT_ERROR;
 
 /// Averaging interval for average maximum annual fapar (SIMFIRE)
 const int AVG_INTERVAL_FAPAR = 3;
@@ -867,6 +888,9 @@ public:
 	/// latitude (degrees; +=north, -=south)
 	double lat;
 
+	/// gridcell mean elevation
+	double mean_elevation;
+
 	/// Insolation today, see also instype
 	double insol;
 
@@ -997,7 +1021,7 @@ public:
 
 	/// Variables used for crop sowing date or seasonality calculation
 
-	/// max temperature during the last test period
+	/// max temperature during the last crop test period (between two summer seasons)
 	double maxtemp;
 	/// summer day when we test last year's crossing of sowing temperature limits; NH:June 30(day 180), SH:Dec.31(day 364), set in getgridcell()
 	int testday_temp;
@@ -1075,6 +1099,9 @@ public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
 
+		var_prec = 0.0;
+		var_temp = 0.0;
+
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 
@@ -1112,6 +1139,7 @@ public:
 		temp_seasonality=COLD;
 		temp_seasonality_lastyear=COLD;
 		biseasonal=false;
+		mean_elevation = 0;
 
 		eet=0.0;
 
@@ -1346,12 +1374,14 @@ public:
 	int id;
 	/// name of management type
 	xtring name;
-
-	/// First management year (calendar year): sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
-	/** \this currently only applies for stands with wood havest */
+	/// First management year (calendar year)
+	/** Sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins.
+	 *  This currently only applies for stands with wood havest */
 	int firstmanageyear;
 	/// First year with wood harvest (calendar year)
 	int firstcutyear;
+	// Whether the reference age for thinning timing is time since firstcutyear rather than the pach age
+	bool firstcutyear_is_referenceyear;
 	/// First year with clearcut (calendar year)
 	int firstclearcutyear;
 	/// Number of years to distribute clearcut of patches that were due to be cut before firstclearcutyear (using ifclearcut_by_density)
@@ -1360,24 +1390,40 @@ public:
 	int firsttargetyear;
 	/// When to stop cutting to reach pft target fractions (calendar year)
 	int lasttargetyear;
-	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings in target cuttings
-	int	target_thinning_select_age;
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0) in target cuttings
-	int	target_thinning_select_diam;
 	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
 	xtring planting_system;
 	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
 	xtring harvest_system;
 	/// name of crop pft 
 	xtring pftname;
-	/// pft planting density
+	/// pft planting density (seedlings/ha)
 	double plantdensity_pft;
 	/// string of pft selection
 	xtring selection;
-	/// string of pft planting densities
+	/// string of pft planting densities (seedlings/ha)
 	xtring plantdensity;
 	/// string of pft target cmass fractions
 	xtring targetfrac;
+	/// pft target cmass fraction input file name
+	xtring file_targetfrac_pft_mt;
+	/// How to use values in file_targetfrac_pft_mt
+	/*  (0): use values for target cutting and keep the selection defined in the instruction file, 
+	 *  (1): use values for target cutting and restrict selection to pft:s in input file with non-zero fractions (overriding selection defined in the instruction file),
+	 *  (2): only use target fractions to define selection (can be 0/1 values) as in (1), without using target cutting.
+	 */
+	int targetfrac_input_mode;
+	/// Patch age when target cutting starts
+	int targetstartage;
+	/// Interval of target cuttings
+	int targetcutinterval;
+	/// Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used (see documentation for details)
+	int targetcutmode;
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0) in target cuttings; overridden by thinselectdiam[] settings
+	int	targetthinselectage;
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0) in target cuttings.
+	int	targetthinselectdiam;
+	/// Whether to stop cutting to reach pft fraction targets when second (continuous) period starts
+	bool suppress_second_target;
 	/// Rotation time in years
 	int cutinterval;
 	/// Whether to use Reineke's rule-based automatic thinning
@@ -1388,63 +1434,42 @@ public:
 	double rdi_target;
 	/// Whether to use tree density as a trigger for clearcut
 	bool ifclearcut_by_density;
-	/// Tree density target for clearcut (ind/ha)
+	/// Tree density target (trees/ha) below which a clearcut will occur for clearcut_by_density
 	int dens_target_cc;
 	/// Whether to use optimum rotation age as a trigger for clearcut
 	bool ifclearcut_optimal_age;
 	/// Whether to distribute patch ages in a new managed forest stand
 	bool distribute_patch_ages;
-	/// Lower tree diameter limit (cm) for cutting
-	double diam_limit;
-	/// Whether to adapt diam_limit to forest stands with small trees
+	/// Minimum tree diameter limit (cm) for cutting (thinstrength*100)% of trees
+	double diam_cut_low;
+	/// Minimum tree diameter limit (cm) for cutting 100% of trees
+	double diam_cut_high;
+	/// Whether to adapt diam_cut_low to forest stands with small trees
 	bool adapt_diam_limit;
 	/// Timing of thinning events, relative to rotation period
-	double thinning_time[NTHINNINGLOOPS][NTHINNINGS];
-	/// Strength (percent cut) of thinning events
-	double thinning_strength[NTHINNINGLOOPS][NTHINNINGS];
-	/// Strength (percent cut) of thinning events for unselected pft:s
-	double thinning_strength_unsel[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), shrubs and shade-intolerant species preferentially cut (4) or no preference (0)
-	int thinning_select_pft[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinning_select_diam[] settings
-	int thinning_select_age[NTHINNINGLOOPS][NTHINNINGS];
-	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstr of trees above diam_limit and 90% of trees with diam > 2*diam_limit (3).or no preference (0)
-	int thinning_select_diam[NTHINNINGLOOPS][NTHINNINGS];
-	/// When to start start contiuous cutting period (years after start of regeneration period)
+	double thintime[NTHINNINGLOOPS][NTHINNINGS];
+	/// Strength (fraction cut) of thinning events
+	double thinstrength[NTHINNINGLOOPS][NTHINNINGS];
+	/// Strength (fraction cut) of thinning events for unselected pft:s
+	double thinstrength_unsel[NTHINNINGLOOPS][NTHINNINGS];
+	/// Whether non-selected (1) or selected (2) pft:s are preferentially cut, unselected and selected cutting strengths specified separately (3), ...
+	/** shrubs and shade-intolerant species preferentially cut (4) or no preference (0) */
+	int thinselectpft[NTHINNINGLOOPS][NTHINNINGS];
+	/// Whether young (1) or old (2) individuals are preferentially cut, or no preference (0); overridden by thinselectdiam[] settings
+	int thinselectage[NTHINNINGLOOPS][NTHINNINGS];
+	/// Whether small (1) or large (2) diameter individuals are preferentially cut, thinstrength of trees with diam between diam_cut_low and diam_cut_high...
+	/** and 100% of trees with diam > diam_cut_high (3), or no preference (0) */
+	int thinselectdiam[NTHINNINGLOOPS][NTHINNINGS];
+	/// When to start contiuous cutting period (years after start of regeneration period)
 	int secondintervalstart;
 	/// Wood cutting interval in years in the contiuous cutting period
 	int secondcutinterval;
-	/// Whether to distribute cleacuts in a managed forest stand among patches
-	bool distribute_clearcuts;
-	/// Whether to distribute continuous cuttings in a managed forest stand among patches
-	bool distribute_continuous_cuttings;
-	/// Patch age when target cutting starts
-	int targetstartage;
-	/// Interval of target cuttings
-	int targetcutinterval;
-	/// Mode of deciding when and how much to cut to reach target
-	int targetcutmode;
-	/// Whether to stop cutting to reach pft fraction targets when continuous period starts
-	bool suppress_second_target;
-
-	/// hydrology (RAINFED,IRRIGATED) 
-	hydrologytype hydrology;
-	/// irrigation efficiency
-//	double firr;
-	/// forced sowing date, unless sdate_force read from file
-	int sdate;
-	/// forced harvest date, unless hdate_force read from file
-	int hdate;
+	/// Whether to distribute cuttings evenly in time among patches in a managed forest stand
+	bool distribute_cuttings_among_patches;
 	/// Harvested forest area fraction, unless woodharv_frac read from file
 	double woodharv_frac;
 	/// Wood harvest C mass for gridcell, unless woodharv_cmass read from file
 	double woodharv_cmass;
-	/// Nitrogen fertilisation amount, unless Nfert_read read from file
-	double nfert;
-	/// Tillage intensity
-	double tillage_int;
-	/// Whether grass is grown in fallow
-	bool fallow;
 	/// Whether to ignore climate establishment limits
 	bool relaxed_establishment;
 	/// Whether to suppress fires
@@ -1453,10 +1478,10 @@ public:
 	bool suppress_disturbance;
 	/// Whether to use tree pft planting densities after clearcut (plus bypass all envirinmental establishment limits)
 	bool set_planting_density;
-	/// Whether to clearcut first management year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
+	/// Whether to clearcut firstmanageyear or rotation year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
 	int cutfirstyear;
 	/// Whether to cut pft:s outside of selection clone year or first year of new management in a rotation (if reestab "restricted" or "none")
-	bool cutfirstyear_nonsel;
+	bool cutfirstyear_unsel;
 	/// Whether to kill grass at clearcut
 	bool killgrass_at_cc;
 	/// Whether to use stochastic mortality
@@ -1476,11 +1501,27 @@ public:
 	/// Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s
 	double res_outtake_coarse_root_cc;
 
+	/// hydrology (RAINFED,IRRIGATED) 
+	hydrologytype hydrology;
+	/// irrigation efficiency
+//	double firr;
+	/// forced sowing date, unless sdate_force read from file
+	int sdate;
+	/// forced harvest date, unless hdate_force read from file
+	int hdate;
+	/// Nitrogen fertilisation amount, unless Nfert_read read from file
+	double nfert;
+	/// Tillage factor (1.0 - 4.5)
+	double tillage_fact;
+	/// Whether grass is grown in fallow
+	bool fallow;
+
 	ManagementType() {
 
 		id = -1;
 		firstmanageyear = FAR_FUTURE_YEAR;
 		firstcutyear = FAR_FUTURE_YEAR;
+		firstcutyear_is_referenceyear = false;
 		firstclearcutyear = FAR_PREHISTORIC_YEAR;
 		delayduecutting = 0;
 		firsttargetyear = FAR_FUTURE_YEAR;
@@ -1492,135 +1533,63 @@ public:
 		selection = "";
 		plantdensity = "";
 		targetfrac = "";
+		file_targetfrac_pft_mt = "";
+		targetfrac_input_mode = 0;
 		targetstartage = 10;
 		targetcutinterval = 5;
 		targetcutmode = 1;
-		target_thinning_select_age = 1;
-		target_thinning_select_diam = 0;
+		targetthinselectage = SELECT_AGE_NOPREF;
+		targetthinselectdiam = SELECT_DIAM_LARGE;
 		suppress_second_target = false;
 		cutinterval = 0;
 		ifthin_reineke = false;
 		alpha_st = 0;
 		rdi_target = 0;
 		ifclearcut_by_density = false;
+		dens_target_cc = 0;
 		ifclearcut_optimal_age = false;
 		distribute_patch_ages = false;
-		dens_target_cc = 0;
+		for(int n=0;n<NTHINNINGLOOPS;n++) {
+			for(int t=0;t<NTHINNINGS;t++) {
+				thintime[n][t] = 0.0;
+				thinstrength[n][t] = 0.0;
+				thinstrength_unsel[n][t] = 0.0;
+				thinselectpft[n][t] = SELECT_PFT_NOPREF;
+				thinselectage[n][t] = SELECT_AGE_NOPREF;
+				thinselectdiam[n][t] = SELECT_DIAM_NOPREF;
+			}
+		}
+		diam_cut_low = 0.0;
+		diam_cut_high = 1000.0;
+		adapt_diam_limit = false;
 		secondintervalstart = -1;
 		secondcutinterval = 0;
-		distribute_clearcuts = false;
-		distribute_continuous_cuttings = false;
-		diam_limit = 0.0;
-		adapt_diam_limit = false;
-		hydrology = RAINFED;
-//		firr = 0.0;
-		sdate = -1;
-		hdate = -1;
-		nfert = -1.0;
-		tillage_int = 0.0;
+		distribute_cuttings_among_patches = false;
 		woodharv_frac = -1.0;
 		woodharv_cmass = -1.0;
-		fallow = false;
 		relaxed_establishment = false;
 		suppress_fire = false;
 		suppress_disturbance = false;
 		set_planting_density = false;
 		cutfirstyear = 1;
-		cutfirstyear_nonsel = false;
+		cutfirstyear_unsel = false;
 		killgrass_at_cc = false;
 		stochmort = true;
 		stochestab = true;
-		for(int n=0;n<NTHINNINGLOOPS;n++) {
-			for(int t=0;t<NTHINNINGS;t++) {
-				thinning_time[n][t] = 0.0;
-				thinning_strength[n][t] = 0.0;
-				thinning_strength_unsel[n][t] = 0.0;
-				thinning_select_pft[n][t] = 0;
-				thinning_select_age[n][t] = 0;
-				thinning_select_diam[n][t] = 0;
-			}
-		}
 		harv_eff_thin = -1.0;
 		res_outtake_twig_thin = -1.0;
 		res_outtake_coarse_root_thin = -1.0;
 		harv_eff_cc = -1.0;
 		res_outtake_twig_cc = -1.0;
 		res_outtake_coarse_root_cc = -1.0;
-	}
 
-	// Copy constructor;
-	ManagementType(const ManagementType& from) {
-
-		id = from.id;
-		name = from.name;
-		firstmanageyear = from.firstmanageyear;
-		firstcutyear = from.firstcutyear;
-		firstclearcutyear = from.firstclearcutyear;
-		delayduecutting = from.delayduecutting;
-		firsttargetyear = from.firsttargetyear;
-		lasttargetyear = from.lasttargetyear;
-		target_thinning_select_age = from.target_thinning_select_age;
-		target_thinning_select_diam = from.target_thinning_select_diam;
-		planting_system = from.planting_system;
-		harvest_system = from.harvest_system;
-		pftname = from.pftname;
-		plantdensity_pft = from.plantdensity_pft;
-		selection = from.selection;
-		plantdensity = from.plantdensity;
-		targetfrac = from.targetfrac;
-		cutinterval = from.cutinterval;
-		ifthin_reineke = from.ifthin_reineke;
-		alpha_st = from.alpha_st;
-		rdi_target = from.rdi_target;
-		ifclearcut_by_density = from.ifclearcut_by_density;
-		dens_target_cc = from.dens_target_cc;
-		ifclearcut_optimal_age = from.ifclearcut_optimal_age;
-		distribute_patch_ages = from.distribute_patch_ages;
-		diam_limit = from.diam_limit;
-		adapt_diam_limit = from.adapt_diam_limit;
-		for(int n=0;n<NTHINNINGLOOPS;n++) {
-			for(int t=0;t<NTHINNINGS;t++) {
-				thinning_time[n][t] = from.thinning_time[n][t];
-				thinning_strength[n][t] = from.thinning_strength[n][t];
-				thinning_strength_unsel[n][t] = from.thinning_strength_unsel[n][t];
-				thinning_select_pft[n][t] = from.thinning_select_pft[n][t];
-				thinning_select_age[n][t] = from.thinning_select_age[n][t];
-				thinning_select_diam[n][t] = from.thinning_select_diam[n][t];
-			}
-		}
-		secondintervalstart = from.secondintervalstart;
-		secondcutinterval = from.secondcutinterval;
-		distribute_clearcuts = from.distribute_clearcuts;
-		distribute_continuous_cuttings = from.distribute_continuous_cuttings;
-		targetstartage = from.targetstartage;
-		targetcutinterval = from.targetcutinterval;
-		targetcutmode = from.targetcutmode;
-		suppress_second_target = from.suppress_second_target;
-
-		hydrology = from.hydrology;
-//		firr = from.firr;
-		sdate = from.sdate;
-		hdate = from.hdate;
-		woodharv_frac = from.woodharv_frac;
-		woodharv_cmass = from.woodharv_cmass;
-		nfert = from.nfert;
-		tillage_int = from.tillage_int;
-		fallow = from.fallow;
-		relaxed_establishment = from.relaxed_establishment;
-		suppress_fire = from.suppress_fire;
-		suppress_disturbance = from.suppress_disturbance;
-		set_planting_density = from.set_planting_density;
-		cutfirstyear = from.cutfirstyear;
-		cutfirstyear_nonsel = from.cutfirstyear_nonsel;
-		killgrass_at_cc = from.killgrass_at_cc;
-		stochmort = from.stochmort;
-		stochestab = from.stochestab;
-		harv_eff_thin = from.harv_eff_thin;
-		res_outtake_twig_thin = from.res_outtake_twig_thin;
-		res_outtake_coarse_root_thin = from.res_outtake_coarse_root_thin;
-		harv_eff_cc = from.harv_eff_cc;
-		res_outtake_twig_cc = from.res_outtake_twig_cc;
-		res_outtake_coarse_root_cc = from.res_outtake_coarse_root_cc;
+		hydrology = RAINFED;
+//		firr = 0.0;
+		sdate = -1;
+		hdate = -1;
+		nfert = -1.0;
+		tillage_fact = 1.0;
+		fallow = false;
 	}
 
 	bool is_managed() {
@@ -1683,18 +1652,18 @@ public:
 /// The one and only linked list of ManagementType objects	
 extern ManagementTypelist mtlist;
 
-/// Storage class of crop rotation information for a stand type, read from the instruction file.
-struct CropRotation {
+/// Storage class of management rotation information for a stand type, read from the instruction file.
+struct Rotation {
 
-	/// Number of crops in rotation
-	int ncrops;
-	/// First rotation year
+	/// Number of managements in rotation
+	int nmanagements;
+	/// First crop rotation year
 	int firstrotyear;
 	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
 
-	CropRotation() {
-		ncrops = 0;
+	Rotation() {
+		nmanagements = 0;
 		firstrotyear = 0;
 		multicrop = false;
 	}
@@ -1716,15 +1685,15 @@ public:
 	/** \see landcovertype */
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
 	/// Rotation information, read from the instruction file
-	CropRotation rotation;
-	/// Management struct (static)
+	Rotation rotation;
+	/// Management struct (static); temporary storage of mt when defined directly in the instruction file stand type; copied to mt in mtlist
 	ManagementType management;
 	/// Management types in a rotation cycle
 	xtring mtnames[NROTATIONPERIODS_MAX];
 	/// Start of the managements in a rotation cycle (calendar year)
 	int mtstartyear[NROTATIONPERIODS_MAX];
 	/// Whether to wait for clearcut before moving to next mt in a forestry rotation
-	bool rot_wait_for_cc;
+	bool rotation_wait_for_cc;
 	/// Disturbance interval (years)
 	double distinterval;
 
@@ -1747,26 +1716,29 @@ public:
 	double cmass_mort;
 	double cmass_fire;
 	double cmass_dist;
-	double cmass_turnover;
+	double cmass_leaf_root_turnover;
 	double cmass_repr;
 	double cmass_est;
 	double cmass_wood_harv;
 	double cmass_wood_harv_toprod;
 	double cmass_wood_clearcut;
 	double cmass_harv_tolitter;
-	double cmass_killed_harv;
+	double cmass_harv_killed;
 	double densindiv;
 	double diam_g;
 	double csoil;
 	double clitter;
 	double csink;
+	double lai;
+	double lai_tree;
+	double height;
 
 	StandType() {
 
 		intercrop = NOINTERCROP;
 		naturalveg = "";
 		reestab = "ALL";
-		rot_wait_for_cc = false;
+		rotation_wait_for_cc = false;
 		distinterval = 1.0e10;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)
 			mtstartyear[m] = -1;
@@ -1774,19 +1746,14 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		if(rotation.ncrops > 1) {
-			return mtlist[mtlist.getmtid(mtnames[rot])];
-		}
-		else {
-			return management;
-		}
+		return mtlist[mtlist.getmtid(mtnames[rot])];
 	}
 
 	/// Returns position of management in rotation list if present. Returns -1 if not.
 	int mtinrotation(xtring name) {
 
 		int mtno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
+		for(int i=0; i<rotation.nmanagements; i++) {
 			if(name == mtnames[i])
 				mtno = i;
 		}
@@ -1798,7 +1765,7 @@ public:
 	int pftinrotation(xtring name) {
 
 		int cropno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
+		for(int i=0; i<rotation.nmanagements; i++) {
 			if(name == get_management(i).pftname)
 				cropno = i;
 		}
@@ -2003,14 +1970,14 @@ public:
 	/// interception coefficient (unitless)
 	double intc;
 
-	/// the amount of N that is applied (kg N m-2)
+	/// nitrogen fertilisation amount (kgN/m2/year)
 	double N_appfert;
-	/// 0 - 1 how much of the fertiliser is applied the first date, default 1.
+	/// 0 - 1 how much of the fertiliser is applied at the two fertdates, default 1.
 	double fertrate[2];
-	/// dates relative to sowing date
+	/// fertilisation dates relative to sowing date
 	int fertdates[2];
+	/// development stage at the two fertilisation events after sowing
 	double fert_stages[2];
-	bool fertilised[2];
 
 	double T_vn_min;
 	double T_vn_opt;
@@ -2091,7 +2058,7 @@ public:
 	/// fraction of residue outtake at harvest
 	double res_outtake;
 	/// plant density after clearcut (seedlings/ha)
-	double plantnumber;
+	double plantdensity;
 	/// harvest efficiency
 	double harv_eff;
 	/// harvest efficiency of intercrop grass
@@ -2199,7 +2166,7 @@ public:
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
-		plantnumber = 0.0;
+		plantdensity = 0.0;
 		harv_eff = 0.0;
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
@@ -2237,8 +2204,6 @@ public:
 
 		fert_stages[0] = 0.5;
 		fert_stages[1] = 0.9;
-		fertilised[0] = false;
-		fertilised[1] = false;
 
 		N_appfert = 0.0;
 
@@ -2455,6 +2420,36 @@ public:
 			return true;
 		else
 			return false;
+	}
+
+	bool is_shrub() const {
+
+		// Current limit for shrubs (10 m); may be changed.
+		return crownarea_max < 10.0 && lifeform == TREE;
+	}
+
+	bool is_shade_intolerant_tree() const {
+
+		// Current limit for shade intolerant trees (10 in europe.ins); may be changed.
+		return alphar >= 10.0 && lifeform == TREE;
+	}
+
+	bool is_boreal() const {
+
+		// Current value of pstemp_low for boreal trees and cold (C3) grass in global.ins and europe.ins is 10; may be changed.
+		return pstemp_low <= 12;
+	}
+
+	bool is_temperate() const {
+
+		// Current value of pstemp_low for temperate trees in global.ins and europe.ins is 15; may be changed.
+		return pstemp_low > 12 && pstemp_low <= 20;
+	}
+
+	bool is_tropical() const {
+
+		// Current value of pstemp_low for tropical trees and warm (C4) grass in global.ins and europe.ins is 20; may be changed.
+		return pstemp_low > 20;
 	}
 };
 
@@ -2829,6 +2824,8 @@ public:
 	double ltor;
 	/// plant height (m)
 	double height;
+	// stem diameter (m)
+	double diam;
 	/// plant crown area (m2)
 	double crownarea;
 	/// increment in fpc since last simulation year
@@ -2910,6 +2907,8 @@ public:
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
 	double nmass_veg;
+	/// whether individual optimal leaf nitrogen is above allowed limit
+	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
@@ -2966,7 +2965,7 @@ public:
 	/// Pointer to struct with crop-specific data
 	cropindiv_struct *cropindiv;
 
-	/// cutting intensity (percent cut)
+	/// cutting intensity (fraction cut)
 	double man_strength;
 
 	// MEMBER FUNCTIONS
@@ -4051,7 +4050,7 @@ struct cropphen_struct : public Serializable {
 	double f_alloc_horg;
 	/// The fraction of the daily assimilates allocated to stem.
 	double f_alloc_stem;
-	/// Development stage from Wang & Engel 1998
+	/// Development stage (0-2) from Wang & Engel 1998
 	double dev_stage;
 	// A variable holding the memory of whether this field was fertilised or not.
 	bool fertilised[3];
@@ -4151,25 +4150,29 @@ public:
 	double wscal_mean_est;
 	/// vegetation phenological state (fraction of potential leaf cover), updated daily
 	double phen;
+	/// monthly sum of daily fractional leaf cover
+	double mphen[12];
 	/// annual sum of daily fractional leaf cover
 	/** equivalent number of days with full leaf cover
 	 *  (reset on expected coldest day of year)
 	 */
 	double aphen;
+	/// Month of lowest phen for RAINGREEN
+	int driest_mth;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_leaf;
+	double cmass_litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_root;
+	double cmass_litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap;
+	double cmass_litter_sap;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart;
+	double cmass_litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
-	double litter_repr;
+	double cmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4177,13 +4180,13 @@ public:
 	/// carbon lost during ´disturbance
 	double cmass_dist;
 	/// carbon lost during turnover
-	double cmass_turnover;
+	double cmass_leaf_root_turnover;
 	/// carbon lost to reproduction
 	double cmass_repr;
 	/// carbon added at establishment
 	double cmass_est;
 	/// carbon in biomass killed in harvest this year (kgC/m2)
-	double cmass_killed_harv;
+	double cmass_harv_killed;
 	/// harvested wood C before removing part to the product pool (kgC/m2)
 	double cmass_wood_harv;
 	/// harvested wood C removed to the product pool (kgC/m2)
@@ -4219,9 +4222,9 @@ public:
 	bool wstress_day;
 
 	/// carbon depository for long-lived products like wood
-	double harvested_products_slow;
+	double cmass_harvested_products_slow;
 	/// nitrogen depository for long-lived products like wood
-	double harvested_products_slow_nmass;
+	double nmass_harvested_products_slow;
 	/// first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
 	int swindow[2];
 	/// daily value of water deficit, calculated in irrigated_water_uptake()
@@ -4245,11 +4248,11 @@ public:
 	/// Constructor: initialises id, pft and data members
 	Patchpft(int i,Pft& p):id(i),pft(p) {
 
-		litter_leaf = 0.0;
-		litter_root = 0.0;
-		litter_sap   = 0.0;
-		litter_heart = 0.0;
-		litter_repr = 0.0;
+		cmass_litter_leaf = 0.0;
+		cmass_litter_root = 0.0;
+		cmass_litter_sap   = 0.0;
+		cmass_litter_heart = 0.0;
+		cmass_litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
@@ -4261,6 +4264,7 @@ public:
 		anetps_ff = 0.0;
 		aphen = 0.0;
 		phen = 0.0;
+		driest_mth = 0;
 		wsupply = 0.0;
 		wsupply_leafon = 0.0;
 		anetps_ff_est = 0.0;
@@ -4268,12 +4272,15 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 
-		for(int i=0;i<NSOILLAYER;i++)
-			fwuptake[i]=0.0;
+		for (int mth = 0; mth < 12; mth++)
+			mphen[mth] = 0.0;
+
+		for (int i = 0; i < NSOILLAYER; i++)
+			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
-		harvested_products_slow = 0.0;
-		harvested_products_slow_nmass = 0.0;
+		cmass_harvested_products_slow = 0.0;
+		nmass_harvested_products_slow = 0.0;
 
 		swindow[0]=-1;
 		swindow[1]=-1;
@@ -4292,7 +4299,7 @@ public:
 		cmass_wood_harv_toprod = 0.0;
 		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
-		cmass_killed_harv = 0.0;
+		cmass_harv_killed = 0.0;
 	}
 
 	~Patchpft() {
@@ -4398,7 +4405,7 @@ public:
 	bool managed;
 	/// whether cutting started on this patch
 	bool has_been_cut;
-	/// cutting intensity (initial percent of trees cut, further selection at individual level is done in a separate function)
+	/// cutting intensity (initial fraction of trees cut, further selection at individual level is done in a separate function)
 	double man_strength;
 
 	/// Non-commercial thinning (harvest to litter)
@@ -4409,6 +4416,8 @@ public:
 	bool clearcut_this_year;
 	/// Latest cutting interval (patch age at year of clearcut)
 	int cutinterval_actual;
+	/// Cutting interval if patch has been cut this year (patch age at year of clearcut)
+	int cutinterval_actual_thisyear;
 	/// Whether patch should be planted this year
 	bool plant_this_year;
 	/// Whether man_strength has been partitioned on individuals this year
@@ -4529,7 +4538,7 @@ public:
 
 			// Disregard shrubs (crownarea_max = 10)
 			Individual& indiv = vegetation[i];
-			if(indiv.pft.lifeform == TREE && indiv.pft.crownarea_max > 10) {
+			if(indiv.pft.lifeform == TREE && !indiv.pft.is_shrub()) {
 				if(indiv.cmass_wood_inc_5.size())
 					cmass_wood_inc_5_mean += indiv.cmass_wood_inc_5.mean();
 			}
@@ -4537,13 +4546,13 @@ public:
 		return cmass_wood_inc_5_mean;
 	}
 	
-	/// Get cmass_wood of all individuals in patch
+	/// Get cmass_wood of all individuals in patch (including shrubs unless function parameter exclude_shrubs is true)
 	double cmass_wood(bool exclude_shrubs = false) {
 		double cmass_wood = 0.0;
 		for (unsigned int i=0; i<vegetation.nobj; i++) {
 
 			Individual& indiv = vegetation[i];
-			if(!exclude_shrubs || indiv.pft.crownarea_max > 10) {
+			if(!exclude_shrubs || !indiv.pft.is_shrub()) {
 				cmass_wood += indiv.cmass_wood();
 			}
 		}
@@ -4581,7 +4590,7 @@ public:
 	bool plant;
 	/// Whether this PFT is allowed to establish (after planting) in this stand
 	bool reestab;
-	/// plants per ha
+	/// Planting density (seedlings/ha)
 	double plantdensity;
 	/// target cmass fraciton
 	double targetfrac;
@@ -4635,14 +4644,13 @@ public:
 	/// pft id of main crop, updated during rotation
 	int pftid;
 	/// Number of PFTs in selection
-	int npftsinselection;
-
-	/// current crop rotation item
+	int npft_selection;
+	/// current management rotation item
 	int current_rot;
 	/// number of years passed in current rotation item
-	int nyears_inrotation;
+	int nyears_in_rotation;
 	/// number of days passed in current rotation item
-	int ndays_inrotation;
+	int ndays_in_rotation;
 	/// Returns true if stand is in fallow (with cover crop grass)
 	bool infallow;
 	/// Returns true if crop rotation item is to be updated today
@@ -4682,7 +4690,7 @@ public:
 	landcovertype lc_origin;
 	/// stand type origin of this stand
 	int st_origin; 
-	/// Variables used for output from separate stands
+	//  Variables used for output from separate stands
 	/// NPP
 	double anpp;
 	/// LAI
@@ -4714,14 +4722,14 @@ public:
 	 */
 	landcovertype landcover;
 
-	/// The year when this stand was created.
+	/// The simulation year when this stand was created.
 	/** Will typically be year zero unless running with dynamic
 	 *  land cover.
 	 *
 	 *  Needed to set patchpft.anetps_ff_est_initial
 	 */
 	int first_year;
-	// The year this stand was cloned from another stand
+	// The simulation year this stand was cloned from another stand
 	int clone_year;
 	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
 	double scale_LC_change;
@@ -4882,9 +4890,9 @@ public:
 	int sdate_force;
 	/// harvest date from input file
 	int hdate_force;
-	/// N fertilization from input file
+	/// N fertilization (total, including manure) from input file (kgN/m2/year)
 	double Nfert_read;
-	/// Manure N fertilization from input file
+	/// Manure N fertilization from input file (kgN/m2/year)
 	double Nfert_man_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
@@ -4894,7 +4902,7 @@ public:
 	int swindow[2];
 	/// first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
 	int swindow_irr[2];
-	/// temperature limits precludes crop sowing
+	/// flag to preclude crop sowing during fallow
 	bool sowing_restriction;
 
 	// MEMBER FUNCTIONS
@@ -4973,11 +4981,15 @@ public:
 	bool reset_cutinterval_st;
 	/// cutting interval
 	double cutinterval_st;
+	/// stand type elevation
+	double elevation_st;
+	/// first management year
+	int firstmanageyear_st;
 
 	// current number of stands of this stand type
 	int nstands;
 
-	/// Nitrogen fertilisation amount
+	/// Nitrogen fertilisation amount (kgN/m2/year)
 	double nfert;
 
 	/// Harvested forest area fraction
@@ -4985,7 +4997,7 @@ public:
 	/// Wood harvest C mass / m2 for gridcell
 	double woodharv_cmass;
 	/// Lower tree diameter limit (cm) for cutting (dynamic variable)
-	double diam_limit;
+	double diam_cut_low;
 
 	// MEMBER FUNCTIONS
 
@@ -5005,10 +5017,12 @@ public:
 		nfert = -1.0;
 		woodharv_frac = -1.0;
 		woodharv_cmass = -1.0;
-		diam_limit = 0.0;
+		diam_cut_low = 0.0;
 		reset_cutinterval_st = false;
 		cutinterval_st = 0.0;
+		firstmanageyear_st = FAR_FUTURE_YEAR;
 		distinterval_st = 1.0e10;
+		elevation_st = 0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -5035,6 +5049,8 @@ struct forest_st_frac_transfer {
 	double* secondary_young;
 
 	forest_st_frac_transfer(int nst) {
+		primary = NULL;
+		secondary_young = NULL;
 		primary = new double[nst * nst];
 		secondary_young = new double[nst * nst];
 
@@ -5077,7 +5093,7 @@ struct Landcover : public Serializable {
 
 	/// Transfer matrices
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	forest_lc_frac_transfer  forest_lc_frac_transfer_s;
+	forest_lc_frac_transfer  forest_lc_subset_transfer;
 
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics
@@ -5100,13 +5116,13 @@ struct Landcover : public Serializable {
 	/// Gridcell-level C removal at clearing NATURAL and FOREST stands for cropland and pasture
 	double acflux_clearing_orig;
 	/// Gridcell-level C removal of harvested tree stem
-	double stem_harvest;
+	double cmass_stem_harvest;
 	/// Gridcell-level C harvested tree stem going to the product pool
-	double stem_toprod;
+	double cmass_stem_toprod;
 	/// Gridcell-level C of killed trees in wood harvest
-	double harv_killed_c;
+	double cmass_harv_killed;
 	/// Gridcell-level C of killed trees in wood harvest left on site
-	double harv_tolitt;
+	double cmass_harv_tolitter;
 
 	/// Gridcell-level N flux from slow harvested products
 	double anflux_harvest_slow;
@@ -5134,7 +5150,7 @@ struct Landcover : public Serializable {
 	/// Landcover-level C flux from clearing NATURAL and FOREST stands for cropland and pasture (donating landcover)
 	double acflux_clearing_lc[NLANDCOVERTYPES];
 	/// Landcover-level C flux transferred during cloning of stands
-	double cloned_c_lc[NLANDCOVERTYPES];
+	double acflux_cloned_lc[NLANDCOVERTYPES];
 
 	/// Landcover-level N flux from slow harvested products (donating landcover)
 	double anflux_harvest_slow_lc[NLANDCOVERTYPES];

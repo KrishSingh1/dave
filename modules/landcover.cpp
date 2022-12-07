@@ -16,6 +16,11 @@
 #include "guessmath.h"
 
 enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
+
+/// CLONESTAND, CLONESTAND_KILLTREES are currently used for land transfers between and among NATURAL and FOREST stands,
+/** copying the patches and leaving the vegetation intact or harvesting all the trees, respectively.
+ *  NEWSTAND_KILLALL kills all vegetation and transfers litter, soil and water to a stand with npatch_secondarystand patches
+ */
 enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
 
 /// Query whether a date is within a period spanned by two dates.
@@ -29,10 +34,12 @@ bool dayinperiod(int day, int start, int end) {
 	if(start > end)
 		acrossnewyear = true;
 
-	if(day >= start && day <= end && !acrossnewyear || (day >= start || day <= end) && acrossnewyear)
+	if(day >= start && day <= end && !acrossnewyear || (day >= start || day <= end) && acrossnewyear) {
 		return true;
-	else
+	}
+	else {
 		return false;
+	}
 }
 
 /// Step n days from a date.
@@ -95,9 +102,10 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
  *  INTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between 
+ *										the different stand types
  */
-void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s) {
+void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_subset_transfer) {
 
 	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
 		Gridcellst& gcst = gridcell.st[i];
@@ -130,26 +138,26 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 
 			if(gcst.nstands > 1) {
 
-/*			Rules for selecting stands:
-
-			natural to cropland: young_stands_first=true
-			ifprimary_lc_transfer:
-				secondary mature lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
-				(secondary young lap): young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
-					restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
-				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
-
-			natural to natural: young_stands_first=false
-			ifprimary_lc_transfer:
-				secondary mature lap: young_stands_first=false, secondary_harvest=true						(will use old -> young secondary stands over age limit)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
-				secondary young lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
-					restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands before primary stand)
-				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
-*/
+			/* Rules for selecting stands:
+			 *	
+			 * natural to cropland: young_stands_first=true
+			 * ifprimary_lc_transfer:
+			 *	secondary mature lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
+			 *		restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
+			 *	(secondary young lap): young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
+			 *		restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
+			 *	primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
+			 *		restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+			 *
+			 * natural to natural: young_stands_first=false
+			 * ifprimary_lc_transfer:
+			 *	secondary mature lap: young_stands_first=false, secondary_harvest=true						(will use old -> young secondary stands over age limit)
+			 *		restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
+			 *	secondary young lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
+			 *		restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands before primary stand)
+			 *	primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
+			 *		restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+			 */
 				int nlaps = 1;
 				if(use_primary_lc_transfer)
 					nlaps = NFORESTCLASSES;
@@ -163,31 +171,36 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 							double st_change_remain = -st_frac_transfer[index(from, to)];
 
 							bool secondary_harvest = false;
-							bool young_stands_first = true;	//convert area from youngest stands first
+							bool young_stands_first = true;	// Convert area from youngest stands first
 
 							if(st.landcover == NATURAL || st.landcover == FOREST) {
 
-								if(stlist[to].landcover == NATURAL || stlist[to].landcover == FOREST)
+								if(stlist[to].landcover == NATURAL || stlist[to].landcover == FOREST) {
 									young_stands_first = false;
-								else
+								}
+								else {
 									young_stands_first = true;
+								}
 							}
 
 							if(use_primary_lc_transfer) {
 								if(n == SECONDARY_MATURE) {
-									// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array + secondary_young_st_frac_transfer[index(from, to))
+									// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array 
+									// + secondary_young_st_frac_transfer[index(from, to)).
 									// Without secondary forest young/mature information in the input, secondary transfers occur here.
-									st_change_remain += forest_st_frac_transfer_s.primary[index(from, to)] + forest_st_frac_transfer_s.secondary_young[index(from, to)];
+									st_change_remain += 
+										forest_st_subset_transfer.primary[index(from, to)] + forest_st_subset_transfer.secondary_young[index(from, to)];
 									secondary_harvest = true;
-								} else if(n == SECONDARY_YOUNG) {
+								}
+								else if(n == SECONDARY_YOUNG) {
 									// Then reduce young secondary stands
-									st_change_remain = -forest_st_frac_transfer_s.secondary_young[index(from, to)];
+									st_change_remain = -forest_st_subset_transfer.secondary_young[index(from, to)];
 									young_stands_first = true;
 									secondary_harvest = true;
 								}
 								else if(n == PRIMARY) {
 									// Finally, reduce primary stands (fraction in primary_st_frac_transfer array)
-									st_change_remain = -forest_st_frac_transfer_s.primary[index(from, to)];
+									st_change_remain = -forest_st_subset_transfer.primary[index(from, to)];
 									young_stands_first = false;
 								}
 							}
@@ -212,15 +225,18 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 
 									if(st_change_remain > -INPUT_RESOLUTION * 0.1 || stands_frac_sum == 0.0) {
 										if(st_change_remain <= -INPUT_RESOLUTION && stands_frac_sum == 0.0)
-											dprintf("\nWarning: no more stand area left of stand type %d ! Residual reduction demand %.15f ignored.\n", st.id, -st_change_remain);
+											dprintf("\nWarning: no more stand area left of stand type %d ! Residual reduction demand %.15f ignored.\n", 
+												st.id, -st_change_remain);
 										st_change_remain = 0.0;
 										break;
 									}
 
-									if(young_stands_first)
+									if(young_stands_first) {
 										index = (int) gridcell.size() - 1 - i;
-									else
+									}
+									else {
 										index = i;
+									}
 
 									Stand& stand = gridcell[index];
 
@@ -231,16 +247,19 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 										if(secondary_harvest && first_year == 0)
 											continue;
 
-										// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
+										// Don't reduce stands younger than the age limit, unless this is the last stand 
+										// in the loop or the initial stand has been killed
 										if(date.year - first_year < age_limit_reduce && !reduce_all_stands && !restart_loop) 
 											continue;
-							
+
+										double stand_frac = stand.get_gridcell_fraction();
+
 										// convert equal percentage of areas from all stands
 										if(reduce_all_stands) {
-											stand.frac_change += st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
-											stand.gross_frac_decrease -= st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
-											stand.transfer_area_st[to] = -st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
-											stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain * stand.get_gridcell_fraction() / gcst.frac);
+											stand.frac_change += st_change_remain * stand_frac / gcst.frac;
+											stand.gross_frac_decrease -= st_change_remain * stand_frac / gcst.frac;
+											stand.transfer_area_st[to] = -st_change_remain * stand_frac / gcst.frac;
+											stand.set_gridcell_fraction(stand_frac + st_change_remain * stand_frac / gcst.frac);
 										}
 										else {
 											if(stand.get_gridcell_fraction() > 0.0) {
@@ -250,11 +269,12 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 													stand.frac_change += st_change_remain;
 													stand.gross_frac_decrease -= st_change_remain;
 													stand.transfer_area_st[to] -= st_change_remain;
-													stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain);
+													stand.set_gridcell_fraction(stand_frac + st_change_remain);	// Fraction updated.
 
 													if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
-														gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
-														gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+														stand_frac = stand.get_gridcell_fraction();				// Use updated fraction.
+														gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
+														gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 														stand.set_gridcell_fraction(0.0);
 													}
 
@@ -263,10 +283,10 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 												}
 												//more stands will have to be reduced
 												else {
-													stand.frac_change -= stand.get_gridcell_fraction();
-													stand.gross_frac_decrease += stand.get_gridcell_fraction();
-													stand.transfer_area_st[to] += stand.get_gridcell_fraction();
-													st_change_remain += stand.get_gridcell_fraction();
+													stand.frac_change -= stand_frac;
+													stand.gross_frac_decrease += stand_frac;
+													stand.transfer_area_st[to] += stand_frac;
+													st_change_remain += stand_frac;
 													stand.set_gridcell_fraction(0.0);	//will be killed below
 												}
 											}
@@ -300,19 +320,23 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 					if(stand.stid == gcst.id) {
 
 						bool expand_to_new_stand = gridcell.landcover.expand_to_new_stand[stand.landcover];
-						if(gcst.gross_frac_decrease > stand.get_gridcell_fraction()) {
+						double stand_frac = stand.get_gridcell_fraction();
 
-							if((gcst.gross_frac_decrease - stand.get_gridcell_fraction() > INPUT_RESOLUTION))
-								dprintf("\nYear %d: Warning. no more stand area left of stand type %d ! Residual reduction demand %.15f ignored.\n", date.year, stand.stid, gcst.gross_frac_decrease - stand.get_gridcell_fraction());
-							gcst.gross_frac_decrease = stand.get_gridcell_fraction();
+						if(gcst.gross_frac_decrease > stand_frac) {
+
+							if((gcst.gross_frac_decrease - stand_frac > INPUT_RESOLUTION))
+								dprintf("\nYear %d: Warning. no more stand area left of stand type %d ! Residual reduction demand %.15f ignored.\n", 
+									date.year, stand.stid, gcst.gross_frac_decrease - stand_frac);
+							gcst.gross_frac_decrease = stand_frac;
 						}
 						stand.frac_change = -gcst.gross_frac_decrease;
 						stand.gross_frac_decrease = gcst.gross_frac_decrease;
-						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
+						stand.set_gridcell_fraction(stand_frac + stand.frac_change);	// Fraction updated.
 
 						if(stand.get_gridcell_fraction() < INPUT_RESOLUTION && (!gcst.gross_frac_increase || expand_to_new_stand)) {
-							gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
-							gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+							stand_frac = stand.get_gridcell_fraction();					// Use updated fraction.
+							gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
+							gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 							stand.set_gridcell_fraction(0.0);
 						}
 
@@ -330,12 +354,15 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 		Stand& stand = gridcell[j];
 		StandType& st = stlist[stand.stid];
 		Gridcellst& gcst = gridcell.st[stand.stid];
+		double stand_frac = stand.get_gridcell_fraction();
 
 		if(!gcst.frac && stand.get_gridcell_fraction() < INPUT_RESOLUTION * 100.0) {
-			if(stand.get_gridcell_fraction() > INPUT_RESOLUTION * 10.0)
-				dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", date.year, st.id, stand.get_gridcell_fraction());
-			gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
-			gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+			if(stand.get_gridcell_fraction() > INPUT_RESOLUTION * 10.0) {
+				dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", 
+					date.year, st.id, stand_frac);
+			}
+			gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
+			gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 			stand.set_gridcell_fraction(0.0);
 		}
 	}
@@ -344,16 +371,17 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 /// Identifies which stands to reduce in area when using wood harvest C mass from input file (using LUC functionality)
 /** Updates frac, frac_change, frac_old and gross_frac_decrease for reduced stands
  *  Updates frac_old and frac_temp for all stands
- *  Updates st_frac_transfer, lc_frac_transfer, forest_st_frac_transfer_s and forest_lc_frac_transfer_s
+ *  Updates st_frac_transfer, lc_frac_transfer, forest_st_subset_transfer and forest_lc_subset_transfer
  *
  *  OUTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
  *  \param lc_frac_transfer				array with this year's transferred area fractions between the different landcover types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
- *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between the different stand types
+ *  \param forest_lc_subset_transfer	array with this year's transferred area fractions representing wood harvest between the landcover types
  */
-bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_frac_transfer_s, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
+bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_transfer& forest_st_subset_transfer, 
+							double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_subset_transfer) {
 
 	bool frac_changed = false;
 
@@ -367,18 +395,17 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 
 		if(st.landcover == NATURAL) {
 
-/*			Rules for selecting stands:
-
-			natural to natural: young_stands_first=false
-			ifprimary_lc_transfer:
-				secondary mature lap: young_stands_first=false, secondary_harvest=true						(will use old -> young secondary stands over age limit)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
-				secondary young lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
-					restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands before primary stand)
-				primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
-					restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
-
-*/
+		/*	Rules for selecting stands:
+		 *
+		 *	natural to natural: young_stands_first=false
+		 *	ifprimary_lc_transfer:
+		 *		secondary mature lap: young_stands_first=false, secondary_harvest=true						(will use old -> young secondary stands over age limit)
+		 *			restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use primary stand before age-limited stands)
+		 *		secondary young lap: young_stands_first=true, secondary_harvest=true						(will use young -> old secondary stands over age limit)
+		 *			restart: young_stands_first=true, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands before primary stand)
+		 *		primary lap: young_stands_first=false, secondary_harvest=false								(will use old -> young secondary stands if no more primary stand)
+		 *			restart: young_stands_first=false, secondary_harvest=false, ignore age_limit_reduce		(will use age-limited stands)
+		 */
 			int nlaps = NFORESTCLASSES;
 
 			for(int n=0; n<nlaps; n++) {
@@ -398,17 +425,21 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 
 						if(st.landcover == NATURAL || st.landcover == FOREST) {
 
-							if(stlist[to].landcover == NATURAL || stlist[to].landcover == FOREST)
+							if(stlist[to].landcover == NATURAL || stlist[to].landcover == FOREST) {
 								young_stands_first = false;
-							else
+							}
+							else {
 								young_stands_first = true;
+							}
 						}
 
 						if(n == SECONDARY_MATURE) {
-							// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer array + secondary_young_st_frac_transfer[index(from, to))
+							// First reduce secondary (mature) stands (fraction not in primary_st_frac_transfer  
+							// array + secondary_young_st_frac_transfer[index(from, to)).
 							st_change_remain = -gridcell.landcover.wood_harvest.sec_mature_cmass;
 							secondary_harvest = true;
-						} else if(n == SECONDARY_YOUNG) {
+						}
+						else if(n == SECONDARY_YOUNG) {
 							// Then reduce young secondary stands
 							st_change_remain = -gridcell.landcover.wood_harvest.sec_young_cmass;
 							young_stands_first = true;
@@ -439,16 +470,20 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 								}
 
 								if(st_change_remain > -INPUT_RESOLUTION * 0.1 || stands_frac_sum == 0.0) {
-									if(st_change_remain <= -INPUT_RESOLUTION && stands_frac_sum == 0.0)
-										dprintf("\nWarning: year %d: no more wood left in stand type %d ! Residual harvest demand %.15f ignored.\n", date.get_calendar_year(), st.id, -st_change_remain);
+									if(st_change_remain <= -INPUT_RESOLUTION && stands_frac_sum == 0.0) {
+										dprintf("\nWarning: year %d: no more wood left in stand type %d ! Residual harvest demand %.15f ignored.\n", 
+											date.get_calendar_year(), st.id, -st_change_remain);
+									}
 									st_change_remain = 0.0;
 									break;
 								}
 
-								if(young_stands_first)
-									index = gridcell.size() - 1 - i;
-								else
+								if(young_stands_first) {
+									index = (int)gridcell.size() - 1 - i;
+								}
+								else {
 									index = i;
+								}
 
 								Stand& stand = gridcell[index];
 
@@ -459,32 +494,37 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 									if(secondary_harvest && first_year == 0)
 										continue;
 
-									// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
-									if(date.year - first_year < age_limit_reduce && !reduce_all_stands && !restart) continue;
-						
-									if(stand.get_gridcell_fraction() > 0.0) {
+									// Don't reduce stands younger than the age limit, unless this is the last stand  
+									// in the loop or the initial stand has been killed
+									if(date.year - first_year < age_limit_reduce && !reduce_all_stands && !restart)
+										continue;
+
+									double stand_frac = stand.get_gridcell_fraction();
+
+									if(stand_frac > 0.0) {
 
 										double harvestable_cmass = check_harvest_cmass(stand);
 
 										//all natural landcover decrease is taken from this stand
 										if(harvestable_cmass >= -st_change_remain) {
-											double change_frac = st_change_remain / harvestable_cmass * stand.get_gridcell_fraction();
+											double change_frac = st_change_remain / harvestable_cmass * stand_frac;
 											stand.frac_change += change_frac;
 											stand.gross_frac_decrease -= change_frac;
 											stand.transfer_area_st[to] -= change_frac;
-											stand.set_gridcell_fraction(stand.get_gridcell_fraction() + change_frac);
+											stand.set_gridcell_fraction(stand_frac + change_frac);	// Fraction updated.
 											st_frac_transfer[transfer_index] += -change_frac;
 											lc_frac_transfer[NATURAL][NATURAL] += -change_frac;
 											gcst_to.gross_frac_increase -= change_frac;
 											gcst_to.gross_frac_decrease -= change_frac;
 											if(first_year == 0) {
-												forest_st_frac_transfer_s.primary[transfer_index] += -change_frac;
-												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += -change_frac;
+												forest_st_subset_transfer.primary[transfer_index] += -change_frac;
+												forest_lc_subset_transfer.primary[NATURAL][NATURAL] += -change_frac;
 											}
 
 											if(stand.get_gridcell_fraction() < INPUT_RESOLUTION * 0.1) {
-												gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
-												gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+												stand_frac = stand.get_gridcell_fraction();			// Use updated fraction.
+												gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
+												gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 												stand.set_gridcell_fraction(0.0);
 											}
 
@@ -494,17 +534,17 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 										}
 										//more stands will have to be reduced
 										else {						
-											stand.frac_change -= stand.get_gridcell_fraction();
-											stand.gross_frac_decrease += stand.get_gridcell_fraction();
-											stand.transfer_area_st[to] += stand.get_gridcell_fraction();
+											stand.frac_change -= stand_frac;
+											stand.gross_frac_decrease += stand_frac;
+											stand.transfer_area_st[to] += stand_frac;
 											st_change_remain += harvestable_cmass;
-											st_frac_transfer[transfer_index] += stand.get_gridcell_fraction();
-											lc_frac_transfer[NATURAL][NATURAL] += stand.get_gridcell_fraction();
-											gcst_to.gross_frac_increase += stand.get_gridcell_fraction();
-											gcst_to.gross_frac_decrease += stand.get_gridcell_fraction();
+											st_frac_transfer[transfer_index] += stand_frac;
+											lc_frac_transfer[NATURAL][NATURAL] += stand_frac;
+											gcst_to.gross_frac_increase += stand_frac;
+											gcst_to.gross_frac_decrease += stand_frac;
 											if(first_year == 0) {
-												forest_st_frac_transfer_s.primary[transfer_index] += stand.get_gridcell_fraction();
-												forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += stand.get_gridcell_fraction();
+												forest_st_subset_transfer.primary[transfer_index] += stand_frac;
+												forest_lc_subset_transfer.primary[NATURAL][NATURAL] += stand_frac;
 											}
 											stand.set_gridcell_fraction(0.0);	//will be killed below
 											frac_changed = true;
@@ -530,12 +570,15 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 		Stand& stand = gridcell[j];
 		StandType& st = stlist[stand.stid];
 		Gridcellst& gcst = gridcell.st[stand.stid];
+		double stand_frac = stand.get_gridcell_fraction();
 
-		if(!gcst.frac && stand.get_gridcell_fraction() < INPUT_RESOLUTION * 100.0) {
-			if(stand.get_gridcell_fraction() > INPUT_RESOLUTION * 10.0)
-				dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", date.year, st.id, stand.get_gridcell_fraction());
-			gridcell.landcover.acflux_landuse_change += stand.ccont() * stand.get_gridcell_fraction();
-			gridcell.landcover.anflux_landuse_change += stand.ncont() * stand.get_gridcell_fraction();
+		if(!gcst.frac && stand_frac < INPUT_RESOLUTION * 100.0) {
+			if(stand_frac > INPUT_RESOLUTION * 10.0) {
+				dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", 
+					date.year, st.id, stand_frac);
+			}
+			gridcell.landcover.acflux_landuse_change += stand.ccont() * stand_frac;
+			gridcell.landcover.anflux_landuse_change += stand.ncont() * stand_frac;
 			stand.set_gridcell_fraction(0.0);
 		}
 	}
@@ -548,7 +591,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
  *
  *  INTPUT PARAMETERS
  *
- *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
+ *  \param st_frac_transfer			array with this year's transferred area fractions between the different stand types
  */
 void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 
@@ -739,7 +782,8 @@ void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[
 					for(int to=0; to<NLANDCOVERTYPES; to++) {
 
 						// Identify receiving land covers:
-						if(target_preference[from][to] + origin_preference[from][to] == score && receptor_remain[to] > INPUT_RESOLUTION * 0.1 && donor_remain[from] > INPUT_RESOLUTION * 0.1) {
+						if(target_preference[from][to] + origin_preference[from][to] == score && receptor_remain[to] > INPUT_RESOLUTION * 0.1 
+							&& donor_remain[from] > INPUT_RESOLUTION * 0.1) {
 
 							// all donor land is put into this land cover
 							if(receptor_remain[to] >= donor_remain[from]) {
@@ -775,10 +819,13 @@ void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[
  *  OUTPUT PARAMETERS
  *
  *  \param st_frac_transfer				array with this year's transferred area fractions between the different stand types
- *  \param forest_st_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the different stand types
- *  \param forest_lc_frac_transfer_s	array with this year's transferred area fractions representing wood harvest between the landcover types
+ *  \param forest_st_subset_transfer	array with this year's transferred area fractions representing wood harvest between
+ *										the different stand types
+ *  \param forest_lc_subset_transfer	array with this year's transferred area fractions representing wood harvest between 
+ *										the landcover types
  */
-void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer, forest_lc_frac_transfer& forest_lc_frac_transfer_s, forest_st_frac_transfer& forest_st_frac_transfer_s) {
+void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer, 
+				forest_lc_frac_transfer& forest_lc_subset_transfer, forest_st_frac_transfer& forest_st_subset_transfer) {
 
 	double* recip_donor_remain = new double[nst];
 	double* recip_receptor_remain = new double[nst];
@@ -807,9 +854,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		}
 	}
 
-	//
 	// Net land cover change
-	//
 
 	int nsts[NLANDCOVERTYPES] = {0};
 	int nsts_active[NLANDCOVERTYPES] = {0};
@@ -825,7 +870,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 					nsts_active[lc]++;
 			}
 		}
-		if(nsts[lc] > 1)
+		if(nsts_active[lc] > 1)
 			multi_st = true;
 	}
 
@@ -839,7 +884,10 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 			StandType& st_receptor = stlist[to];
 
-			if(nsts[st_receptor.landcover] < 2 && nsts[st_donor.landcover] < 2 && net_transfer_remain[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1) {
+			if(nsts_active[st_receptor.landcover] < 2 && nsts_active[st_donor.landcover] < 2
+					&& gridcell.st[from].frac_old && gridcell.st[to].frac
+					&& net_transfer_remain[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1) {
+
 				st_frac_transfer[index(from, to)] += net_transfer_remain[st_donor.landcover][st_receptor.landcover];
 				net_transfer_remain[st_donor.landcover][st_receptor.landcover] = 0.0;
 			}
@@ -918,7 +966,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				StandType& st_donor = stlist[from];
 				Gridcellst& gcst_donor = gridcell.st[from];
 
-				if(st_donor.landcover == from_lc && nsts[st_donor.landcover] >=2) {
+				if(st_donor.landcover == from_lc && nsts_active[st_donor.landcover] >=2) {
 
 					double net_st_increase = net_lc_receptor_remain[st_donor.landcover] * receptor_weight[from];
 					double net_st_decrease = net_st_increase - gcst_donor.frac_change;
@@ -968,8 +1016,11 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 					if(st_donor.landcover == from_lc) {
 
-						if(receptor_weight[from] == gcst_donor.frac / gridcell.landcover.frac[st_donor.landcover] && gridcell.landcover.frac[st_donor.landcover] != exclude_frac_0) {
-							receptor_weight[from] = gcst_donor.frac / (gridcell.landcover.frac[st_donor.landcover] - exclude_frac_0) * (net_lc_receptor_remain[st_donor.landcover] - exclude_frac) / net_lc_receptor_remain[st_donor.landcover];
+						if(receptor_weight[from] == gcst_donor.frac / gridcell.landcover.frac[st_donor.landcover] 
+								&& gridcell.landcover.frac[st_donor.landcover] != exclude_frac_0) {
+
+							receptor_weight[from] = gcst_donor.frac / (gridcell.landcover.frac[st_donor.landcover] - exclude_frac_0) 
+								* (net_lc_receptor_remain[st_donor.landcover] - exclude_frac) / net_lc_receptor_remain[st_donor.landcover];
 							double net_st_increase = net_lc_receptor_remain[st_donor.landcover] * receptor_weight[from];
 							double net_st_decrease = net_st_increase - gcst_donor.frac_change;
 							reduce[from] = (influx_st[from] - outflux_st[from]) + net_st_decrease;
@@ -1001,7 +1052,9 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 									// This shouldn't happen really...
 									if(reduce[i] < 0.0)
 										dprintf("Year %d: st %d reduce[from] = %.15f !\n", date.get_calendar_year(), i, reduce[i]);
-									double transfer = reduce[i] * net_transfer_remain_initial[from][to] / net_lc_decrease[from] * (gcst_receptor.frac / gridcell.landcover.frac[to]);
+
+									double transfer = reduce[i] * net_transfer_remain_initial[from][to] / net_lc_decrease[from] 
+										* (gcst_receptor.frac / gridcell.landcover.frac[to]);
 									st_frac_transfer[index(i, j)] += transfer;
 									net_transfer_remain[from][to] -= transfer;
 									net_lc_receptor_remain[to] -= transfer;					
@@ -1026,10 +1079,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 				StandType& st_receptor = stlist[to];
 
-				if(nsts[st_receptor.landcover] >= 2 && net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1
+				if(nsts_active[st_receptor.landcover] >= 2 && net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] > INPUT_RESOLUTION * 0.1
 					&& gridcell.landcover.frac_old[st_donor.landcover]) {
 
-					double transfer = net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] * receptor_weight[to] * gcst_donor.frac_old / gridcell.landcover.frac_old[st_donor.landcover];
+					double transfer = net_transfer_remain_initial[st_donor.landcover][st_receptor.landcover] 
+						* receptor_weight[to] * gcst_donor.frac_old / gridcell.landcover.frac_old[st_donor.landcover];
+
 					st_frac_transfer[index(from, to)] += transfer;
 					net_transfer_remain[st_donor.landcover][st_receptor.landcover] -= transfer;
 				}
@@ -1048,8 +1103,9 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	}
 
 
-	// Add "reciprocal" lc change (gross-net)
-	// Also transitions from primary to secondary natural stands are done here
+	/* Add "reciprocal" lc change (gross-net)
+	 * Also transitions from primary to secondary natural stands are done here
+	 */
 
 	double* donated_st = new double[nst];
 	double* received_st = new double[nst];
@@ -1096,10 +1152,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 						recip_donor_remain[i] = recip_lc_change[st.landcover] * max_transfer_st / max_transfer_lc[st.landcover];
 
 						if(gcst.frac_old - donated_st[i] - recip_donor_remain[i] < -1e-13) {
-							dprintf("Year %d: not enough room for reciprocal transfer for st %d, %g missing\n", date.get_calendar_year(), i, -(gcst.frac_old - donated_st[i] - recip_donor_remain[i]));
+							dprintf("Year %d: not enough room for reciprocal transfer for st %d, %g missing\n", 
+								date.get_calendar_year(), i, -(gcst.frac_old - donated_st[i] - recip_donor_remain[i]));
 						}
 						if(gcst.frac - received_st[i] - recip_receptor_remain[i] < -1e-13) {
-							dprintf("Year %d: not enough room for reciprocal transfer for st %d, %g missing\n", date.get_calendar_year(), i, -(gcst.frac - received_st[i] - recip_receptor_remain[i]));
+							dprintf("Year %d: not enough room for reciprocal transfer for st %d, %g missing\n", 
+								date.get_calendar_year(), i, -(gcst.frac - received_st[i] - recip_receptor_remain[i]));
 						}
 					}
 				}
@@ -1115,7 +1173,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				if(st.landcover == lc) {
 
 					if(max_receptor_lc[st.landcover]) {
-						recip_receptor_remain[i] = recip_lc_change[st.landcover] * (gcst.frac - received_st[i]) / max_receptor_lc[st.landcover];
+						recip_receptor_remain[i] = recip_lc_change[st.landcover] 
+							* (gcst.frac - received_st[i]) / max_receptor_lc[st.landcover];
 					}
 					if(max_donor_lc[st.landcover]) {
 						recip_donor_remain[i] = recip_lc_change[st.landcover] * (gcst.frac_old - donated_st[i]) / max_donor_lc[st.landcover];
@@ -1198,14 +1257,16 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		dif_lc[stlist[from].landcover] += fabs(dif_st[from]) / 2.0;
 	}
 
+	// The fraction errors in dif_st[] may be too large for this allowed error size if the number of stand types is large.
 	const double ROUNDING_ERROR = INPUT_RESOLUTION;
 
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 
-		// identify land cover with need for st frac adjustment
-		if(nsts[lc] >= 2 && dif_lc[lc] >= INPUT_RESOLUTION * 0.1) {
+		// Identify land cover with need for st frac adjustment
+		if(nsts_active[lc] >= 2 && dif_lc[lc] >= INPUT_RESOLUTION * 0.1) {
 			
-			// find second land cover that has most transfers to or from the first land cover (with only one stand type with frac/frac_old > 0)
+			// Find second land cover that has most transfers to or from the first land cover 
+			// (with only one stand type with frac/frac_old > 0).
 			bool error = true;
 
 			for(int use_lc=0; use_lc<NLANDCOVERTYPES && error; use_lc++) {
@@ -1220,7 +1281,9 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 							if(st_donor.landcover == use_lc && (gridcell.st[st_help].frac || gridcell.st[st_help].frac_old)) {
 								for(int st_dif=0; st_dif<nst; st_dif++) {
 									StandType& st_receptor = stlist[st_dif];
-									if(st_receptor.landcover == lc && !(dif_st[st_dif] >= 0.0 || st_frac_transfer[index(st_help, st_dif)] + dif_st[st_dif] > -ROUNDING_ERROR)) {
+									if(st_receptor.landcover == lc && !(dif_st[st_dif] >= 0.0 
+										|| st_frac_transfer[index(st_help, st_dif)] + dif_st[st_dif] > -ROUNDING_ERROR)) {
+
 										skip = true;
 										break;
 									}
@@ -1241,7 +1304,10 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 							if(st_donor.landcover == lc) {
 								for(int st_help=0; st_help<nst; st_help++) {
 									StandType& st_receptor = stlist[st_help];
-									if(st_receptor.landcover == use_lc && (gridcell.st[st_help].frac || gridcell.st[st_help].frac_old) && !(dif_st[st_dif] <= 0.0 || st_frac_transfer[index(st_dif, st_help)] - dif_st[st_dif] > -ROUNDING_ERROR)) {
+									if(st_receptor.landcover == use_lc && (gridcell.st[st_help].frac 
+										|| gridcell.st[st_help].frac_old) && !(dif_st[st_dif] <= 0.0 
+										|| st_frac_transfer[index(st_dif, st_help)] - dif_st[st_dif] > -ROUNDING_ERROR)) {
+
 										skip = true;
 										break;
 									}
@@ -1266,7 +1332,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 									StandType& st_receptor = stlist[st_help];
 
-									if(st_receptor.landcover == use_lc && (gridcell.st[st_help].frac || gridcell.st[st_help].frac_old) && fabs(dif_st[st_dif]) >= INPUT_RESOLUTION * 0.1) {
+									if(st_receptor.landcover == use_lc && (gridcell.st[st_help].frac || gridcell.st[st_help].frac_old) 
+										&& fabs(dif_st[st_dif]) >= INPUT_RESOLUTION * 0.1) {
 
 										// after tests above, this should always work (overshoots < ROUNDING_ERROR are zeroed here)
 										if(use_donor) {
@@ -1298,7 +1365,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 							StandType& st_receptor = stlist[to];
 
-							if(st_donor.landcover == st_receptor.landcover && -dif_st[from] > INPUT_RESOLUTION * 0.1 && dif_st[to] >= INPUT_RESOLUTION * 0.1) {
+							if(st_donor.landcover == st_receptor.landcover 
+								&& -dif_st[from] > INPUT_RESOLUTION * 0.1 && dif_st[to] >= INPUT_RESOLUTION * 0.1) {
 
 								double donor_effective = -dif_st[from];
 								double receptor_effective = dif_st[to];
@@ -1351,9 +1419,13 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 			Gridcellst& gcst_receptor = gridcell.st[to];
 			double transfer_frac = st_frac_transfer[index(from, to)];
 			if(transfer_frac > (gcst_donor.frac_old) || transfer_frac > (gcst_receptor.frac)) {
-				if((transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION || (transfer_frac - gcst_donor.frac_old) > INPUT_RESOLUTION) {
-					dprintf("\nYear %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", date.year, from, to);
-					dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f\n", transfer_frac, gcst_donor.frac_old, gcst_receptor.frac);
+				if((transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION 
+					|| (transfer_frac - gcst_donor.frac_old) > INPUT_RESOLUTION) {
+
+					dprintf("\nYear %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", 
+						date.year, from, to);
+					dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f\n", 
+						transfer_frac, gcst_donor.frac_old, gcst_receptor.frac);
 				}
 				if(transfer_frac > (gcst_receptor.frac) && transfer_frac < (gcst_receptor.frac + INPUT_RESOLUTION * 100.0)) {
 					if((transfer_frac - gcst_receptor.frac) > INPUT_RESOLUTION)
@@ -1369,7 +1441,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		}
 	}
 
-	// Set the transfer fraction from primary stands within a stand type (simple case: equal primary/secondary ratio for all stand types in a lc->lc transfer)
+	// Set the transfer fraction from primary stands within a stand type (simple case: equal primary/secondary ratio 
+	// for all stand types in a lc->lc transfer).
 	if(use_primary_lc_transfer) {
 		for(int from=0; from<nst; from++) {
 
@@ -1384,12 +1457,16 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				double secondary_young_frac = 0.0;
 
 				if(lc_frac_transfer[st_donor.landcover][st_receptor.landcover] > 0.0) {
-					primary_frac = forest_lc_frac_transfer_s.primary[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
-					secondary_young_frac = forest_lc_frac_transfer_s.secondary_young[st_donor.landcover][st_receptor.landcover] / lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
+
+					primary_frac = forest_lc_subset_transfer.primary[st_donor.landcover][st_receptor.landcover] 
+						/ lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
+
+					secondary_young_frac = forest_lc_subset_transfer.secondary_young[st_donor.landcover][st_receptor.landcover] 
+						/ lc_frac_transfer[st_donor.landcover][st_receptor.landcover];
 				}
 
-				forest_st_frac_transfer_s.primary[index(from, to)] = primary_frac * st_frac_transfer[index(from, to)];
-				forest_st_frac_transfer_s.secondary_young[index(from, to)] = secondary_young_frac * st_frac_transfer[index(from, to)];
+				forest_st_subset_transfer.primary[index(from, to)] = primary_frac * st_frac_transfer[index(from, to)];
+				forest_st_subset_transfer.secondary_young[index(from, to)] = secondary_young_frac * st_frac_transfer[index(from, to)];
 			}
 		}
 	}
@@ -1407,7 +1484,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
  *
  *  INPUT PARAMETERS
  *
- *  \param receiving_fraction				sum of added area to expanding stands
+ *  \param receiving_area					sum of added area (fraction of gridcell) to expanding stands
  *  \param landcover_receptor				restriction of donor stands transferring to specified receptor landcover
  *  \param landcover_donor 					restriction of donor stands according to landcover
  *  \param stid_receptor 					restriction of donor stands transferring to specified receptor stand type
@@ -1447,7 +1524,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
  *   - transfer_sompool.nmass
  *   - transfer_sompool.ntoc
  */
-void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcover_change_transfer& to,
+void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_change_transfer& to,
 		int landcover_receptor = -1, int landcover_donor = -1,
 		int stid_receptor = -1, int stid_donor = -1,
 		int standid = -1, lc_change_harvest_params* harv_params = NULL) {
@@ -1461,20 +1538,24 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 		double donor_area = 0.0;
 
-		if(stid_receptor >= 0)
+		if(stid_receptor >= 0) {
 			donor_area = stand.transfer_area_st[stid_receptor];
-		else if(landcover_receptor >= 0)
+		}
+		else if(landcover_receptor >= 0) {
 			donor_area = stand.transfer_area_lc((landcovertype)landcover_receptor);
-		else
+		}
+		else {
 			donor_area = stand.gross_frac_decrease;
+		}
 
-		if(donor_area > 0.0 && (stand.id == standid || standid < 0) && (stand.landcover == landcover_donor || landcover_donor < 0) && (stand.stid == stid_donor || stid_donor < 0)) {
+		if(donor_area > 0.0 && (stand.id == standid || standid < 0) && (stand.landcover == landcover_donor 
+			|| landcover_donor < 0) && (stand.stid == stid_donor || stid_donor < 0)) {
 
 			count++;
 
 			stand.frac_temp -= donor_area;
 			stand.frac_temp = max(0.0, stand.frac_temp);
-			double scale = donor_area / receiving_fraction / (double)stand.nobj;
+			double scale = donor_area / receiving_area / (double)stand.nobj;
 
 			// Add non-living C, N and water of stand to transfer struct:
 			to.add_from_stand(stand, scale);
@@ -1492,21 +1573,28 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					Individual& indiv = vegetation.getobj();
 					Patchpft& patchpft = patch.pft[indiv.pft.id];
 
-					if(indiv.has_daily_turnover())
+					if(indiv.has_daily_turnover()) {
 						cp.copy_from_indiv(indiv, true, false);
-					else
+					}
+					else {
 						cp.copy_from_indiv(indiv, false, false);
+					}
 
 					double wood_harvest_ratio = 0.0;
 					double clearing_to_pasture_ratio = 0.0;
 					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 						if(landcover_receptor == -1 && stid_receptor == -1) {
-							if(stand.transfer_area_lc((landcovertype)NATURAL) || stand.transfer_area_lc((landcovertype)FOREST))
-								wood_harvest_ratio = (stand.transfer_area_lc((landcovertype)NATURAL) + stand.transfer_area_lc((landcovertype)FOREST)) / stand.gross_frac_decrease;
+							if(stand.transfer_area_lc((landcovertype)NATURAL) || stand.transfer_area_lc((landcovertype)FOREST)) {
+
+								wood_harvest_ratio = (stand.transfer_area_lc((landcovertype)NATURAL) + stand.transfer_area_lc((landcovertype)FOREST)) 
+									/ stand.gross_frac_decrease;
+							}
 							if(stand.transfer_area_lc((landcovertype)PASTURE))
 								clearing_to_pasture_ratio = stand.transfer_area_lc((landcovertype)PASTURE) / stand.gross_frac_decrease;
 						}
-						else if(landcover_receptor == NATURAL || landcover_receptor == FOREST || stid_receptor > -1 && (stlist[stid_receptor].landcover == NATURAL || stlist[stid_receptor].landcover == FOREST)) {
+						else if(landcover_receptor == NATURAL || landcover_receptor == FOREST || stid_receptor > -1 
+								&& (stlist[stid_receptor].landcover == NATURAL || stlist[stid_receptor].landcover == FOREST)) {
+
 							wood_harvest_ratio = 1.0;
 						}
 						else if(landcover_receptor == PASTURE || stid_receptor> -1 && stlist[stid_receptor].landcover == PASTURE) {
@@ -1569,10 +1657,12 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					case URBAN:
 					case PEATLAND:
 						if(harv_params) {
-							harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
+							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, 
+								harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
 						}
 						else {
-							harvest_wood(cp, indiv.height, indiv.pft, indiv.alive, 1.0, harv_eff_mean, res_outtake_twig_mean, res_outtake_coarse_root_mean);
+							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_mean, 
+								res_outtake_twig_mean, res_outtake_coarse_root_mean);
 						}
 						break;
 					case BARREN: // Assuming there is nothing to harvest on barren
@@ -1585,51 +1675,53 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
-					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
-					to.transfer_litter_root[indiv.pft.id] += cp.litter_root * scale;
-					to.transfer_litter_sap[indiv.pft.id] += cp.litter_sap * scale;
-					to.transfer_litter_heart[indiv.pft.id] += cp.litter_heart * scale;
+					to.transfer_cmass_litter_leaf[indiv.pft.id] += cp.cmass_litter_leaf * scale;
+					to.transfer_cmass_litter_root[indiv.pft.id] += cp.cmass_litter_root * scale;
+					to.transfer_cmass_litter_sap[indiv.pft.id] += cp.cmass_litter_sap * scale;
+					to.transfer_cmass_litter_heart[indiv.pft.id] += cp.cmass_litter_heart * scale;
 
 					to.transfer_nmass_litter_leaf[indiv.pft.id] += cp.nmass_litter_leaf * scale;
 					to.transfer_nmass_litter_root[indiv.pft.id] += cp.nmass_litter_root * scale;
 					to.transfer_nmass_litter_sap[indiv.pft.id] += cp.nmass_litter_sap * scale;
 					to.transfer_nmass_litter_heart[indiv.pft.id] += cp.nmass_litter_heart * scale;
 
-					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
-						lc.acflux_wood_harvest += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
-						lc.anflux_wood_harvest += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
+					double scale_lc = donor_area / (double)stand.nobj;
 
-						lc.stem_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * donor_area / (double)stand.nobj;
-						lc.stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * donor_area / (double)stand.nobj;
-						lc.harv_tolitt += wood_harvest_ratio * cp.acflux_harvest_tolitter * donor_area / (double)stand.nobj;
-						lc.harv_killed_c += wood_harvest_ratio * indiv.ccont() * donor_area / (double)stand.nobj;
+					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+						lc.acflux_wood_harvest += wood_harvest_ratio * cp.acflux_harvest * scale_lc;
+						lc.acflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.acflux_harvest * scale_lc;
+						lc.acflux_wood_harvest_orig += wood_harvest_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * scale_lc;
+						lc.anflux_wood_harvest += wood_harvest_ratio * cp.anflux_harvest * scale_lc;
+						lc.anflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.anflux_harvest * scale_lc;
+						lc.anflux_wood_harvest_orig += wood_harvest_ratio * (cp.anflux_harvest + cp.nmass_harvested_products_slow) * scale_lc;
+
+						lc.cmass_stem_harvest += wood_harvest_ratio * cp.acflux_harvest_wood * scale_lc;
+						lc.cmass_stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * scale_lc;
+						lc.cmass_harv_tolitter += wood_harvest_ratio * cp.acflux_harvest_tolitter * scale_lc;
+						lc.cmass_harv_killed += wood_harvest_ratio * indiv.ccont() * scale_lc;
 
 						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
-						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
-						lc.acflux_clearing_lc[stand.landcover] += clearing_ratio * cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_clearing += clearing_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_clearing_orig += clearing_ratio * (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
-						lc.anflux_clearing_lc[stand.landcover] += clearing_ratio * cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * scale_lc;
+						lc.acflux_clearing_orig += clearing_ratio * (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * scale_lc;
+						lc.acflux_clearing_lc[stand.landcover] += clearing_ratio * cp.acflux_harvest * scale_lc;
+						lc.anflux_clearing += clearing_ratio * cp.anflux_harvest * scale_lc;
+						lc.anflux_clearing_orig += clearing_ratio * (cp.anflux_harvest + cp.nmass_harvested_products_slow) * scale_lc;
+						lc.anflux_clearing_lc[stand.landcover] += clearing_ratio * cp.anflux_harvest * scale_lc;
 					}
 					else {
-						lc.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.acflux_landuse_change_orig += (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * donor_area / (double)stand.nobj;
-						lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
-						lc.anflux_landuse_change_orig += (cp.anflux_harvest + cp.harvested_products_slow_nmass) * donor_area / (double)stand.nobj;
-						lc.anflux_landuse_change_lc[stand.landcover] += cp.anflux_harvest * donor_area / (double)stand.nobj;
+						lc.acflux_landuse_change += cp.acflux_harvest * scale_lc;
+						lc.acflux_landuse_change_orig += (cp.acflux_harvest + cp.acflux_harvest_wood_toprod) * scale_lc;
+						lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * scale_lc;
+						lc.anflux_landuse_change += cp.anflux_harvest * scale_lc;
+						lc.anflux_landuse_change_orig += (cp.anflux_harvest + cp.nmass_harvested_products_slow) * scale_lc;
+						lc.anflux_landuse_change_lc[stand.landcover] += cp.anflux_harvest * scale_lc;
 					}
 
 					// gridcell.acflux_landuse_change += -cp.debt_excess * donor_area / (double)stand.nobj;
 
 					if(ifslowharvestpool) {
-						to.transfer_harvested_products_slow[indiv.pft.id] += cp.harvested_products_slow * scale;
-						to.transfer_harvested_products_slow_nmass[indiv.pft.id] += cp.harvested_products_slow_nmass * scale;
+						to.transfer_cmass_harvested_products_slow[indiv.pft.id] += cp.cmass_harvested_products_slow * scale;
+						to.transfer_nmass_harvested_products_slow[indiv.pft.id] += cp.nmass_harvested_products_slow * scale;
 					}
 
 					vegetation.nextobj();
@@ -1671,11 +1763,13 @@ void stand_dynamics(Gridcell& gridcell) {
 			// first stand created
 			if((gcst.frac_old == 0.0 || stand_sum == 0.0) && gcst.gross_frac_increase > 0.0) {
 				int npatch;
-				if(date.year == 0)
+				if(date.year == 0) {
 					// with npatch=0, number of patches will be chosen in the stand constructor  
 					npatch = 0;
-				else
+				}
+				else {
 					npatch = npatch_secondarystand;
+				}
 				Stand& stand = gridcell.create_stand_lu(st, gcst.gross_frac_increase, npatch);
 				if(date.year)
 					stand.lc_origin = NLANDCOVERTYPES;	// Represents unknown (possibly mixed) origin
@@ -1793,22 +1887,34 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					// add litter C & N:
 					for (int i=0; i<npft; i++) {
-						Patchpft& patchpft = patch.pft[i];
+						Patchpft& ppft = patch.pft[i];
 
-						patchpft.litter_leaf = (patchpft.litter_leaf * old_frac + from.transfer_litter_leaf[i] * added_frac) / new_frac;
-						patchpft.litter_sap = (patchpft.litter_sap * old_frac + from.transfer_litter_sap[i] * added_frac) / new_frac;
-						patchpft.litter_heart = (patchpft.litter_heart * old_frac + from.transfer_litter_heart[i] * added_frac) / new_frac;
-						patchpft.litter_root = (patchpft.litter_root * old_frac + from.transfer_litter_root[i] * added_frac) / new_frac;
-						patchpft.litter_repr = (patchpft.litter_repr * old_frac + from.transfer_litter_repr[i] * added_frac) / new_frac;
+						ppft.cmass_litter_leaf = 
+							(ppft.cmass_litter_leaf * old_frac + from.transfer_cmass_litter_leaf[i] * added_frac) / new_frac;
+						ppft.cmass_litter_sap = 
+							(ppft.cmass_litter_sap * old_frac + from.transfer_cmass_litter_sap[i] * added_frac) / new_frac;
+						ppft.cmass_litter_heart = 
+							(ppft.cmass_litter_heart * old_frac + from.transfer_cmass_litter_heart[i] * added_frac) / new_frac;
+						ppft.cmass_litter_root = 
+							(ppft.cmass_litter_root * old_frac + from.transfer_cmass_litter_root[i] * added_frac) / new_frac;
+						ppft.cmass_litter_repr = 
+							(ppft.cmass_litter_repr * old_frac + from.transfer_cmass_litter_repr[i] * added_frac) / new_frac;
 
-						patchpft.nmass_litter_leaf = (patchpft.nmass_litter_leaf * old_frac + from.transfer_nmass_litter_leaf[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_root = (patchpft.nmass_litter_root * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_sap = (patchpft.nmass_litter_sap * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_heart = (patchpft.nmass_litter_heart * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
+						ppft.nmass_litter_leaf = 
+							(ppft.nmass_litter_leaf * old_frac + from.transfer_nmass_litter_leaf[i] * added_frac) / new_frac;
+						ppft.nmass_litter_root = 
+							(ppft.nmass_litter_root * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
+						ppft.nmass_litter_sap = 
+							(ppft.nmass_litter_sap * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
+						ppft.nmass_litter_heart = 
+							(ppft.nmass_litter_heart * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
 
 						if(ifslowharvestpool) {
-							patchpft.harvested_products_slow = (patchpft.harvested_products_slow * old_frac + from.transfer_harvested_products_slow[i] * added_frac) / new_frac;
-							patchpft.harvested_products_slow_nmass = (patchpft.harvested_products_slow_nmass * old_frac + from.transfer_harvested_products_slow_nmass[i] * added_frac) / new_frac;
+
+							ppft.cmass_harvested_products_slow = 
+								(ppft.cmass_harvested_products_slow * old_frac + from.transfer_cmass_harvested_products_slow[i] * added_frac) / new_frac;
+							ppft.nmass_harvested_products_slow = 
+								(ppft.nmass_harvested_products_slow * old_frac + from.transfer_nmass_harvested_products_slow[i] * added_frac) / new_frac;
 						}
 					}
 
@@ -1817,13 +1923,20 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soil.cpool_slow = (patch.soil.cpool_slow * old_frac + from.transfer_cpool_slow * added_frac) / new_frac;
 
 					for(int i=0; i<NSOMPOOL; i++) {
-						patch.soil.sompool[i].cmass = (patch.soil.sompool[i].cmass * old_frac + from.transfer_sompool[i].cmass * added_frac) / new_frac;
-						patch.soil.sompool[i].fireresist = (patch.soil.sompool[i].fireresist * old_frac + from.transfer_sompool[i].fireresist * added_frac) / new_frac;
-						patch.soil.sompool[i].fracremain = (patch.soil.sompool[i].fracremain * old_frac + from.transfer_sompool[i].fracremain * added_frac) / new_frac;
-						patch.soil.sompool[i].ligcfrac = (patch.soil.sompool[i].ligcfrac *old_frac + from.transfer_sompool[i].ligcfrac * added_frac) / new_frac;
-						patch.soil.sompool[i].litterme = (patch.soil.sompool[i].litterme * old_frac + from.transfer_sompool[i].litterme * added_frac) / new_frac;
-						patch.soil.sompool[i].nmass = (patch.soil.sompool[i].nmass * old_frac + from.transfer_sompool[i].nmass * added_frac) / new_frac;
-						patch.soil.sompool[i].ntoc = (patch.soil.sompool[i].ntoc * old_frac + from.transfer_sompool[i].ntoc * added_frac) / new_frac;
+						patch.soil.sompool[i].cmass = 
+							(patch.soil.sompool[i].cmass * old_frac + from.transfer_sompool[i].cmass * added_frac) / new_frac;
+						patch.soil.sompool[i].fireresist = 
+							(patch.soil.sompool[i].fireresist * old_frac + from.transfer_sompool[i].fireresist * added_frac) / new_frac;
+						patch.soil.sompool[i].fracremain = 
+							(patch.soil.sompool[i].fracremain * old_frac + from.transfer_sompool[i].fracremain * added_frac) / new_frac;
+						patch.soil.sompool[i].ligcfrac = 
+							(patch.soil.sompool[i].ligcfrac *old_frac + from.transfer_sompool[i].ligcfrac * added_frac) / new_frac;
+						patch.soil.sompool[i].litterme = 
+							(patch.soil.sompool[i].litterme * old_frac + from.transfer_sompool[i].litterme * added_frac) / new_frac;
+						patch.soil.sompool[i].nmass = 
+							(patch.soil.sompool[i].nmass * old_frac + from.transfer_sompool[i].nmass * added_frac) / new_frac;
+						patch.soil.sompool[i].ntoc = 
+							(patch.soil.sompool[i].ntoc * old_frac + from.transfer_sompool[i].ntoc * added_frac) / new_frac;
 					}
 
 					patch.soil.NH4_mass = (patch.soil.NH4_mass * old_frac + from.transfer_NH4_mass * added_frac) / new_frac;
@@ -1853,17 +1966,23 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						patch.soil.set_layer_soil_water(i,wcont_new);
 					}
 
-					double wcont_evap_new = (patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					double wcont_evap_new = 
+						(patch.soil.get_layer_soil_water_evap() * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					oob_check_wcont(wcont_evap_new); // Remove tiny errors > 1 or < 0
 					patch.soil.set_layer_soil_water_evap(wcont_evap_new);
 
 					patch.soil.snowpack = (patch.soil.snowpack * old_frac + from.transfer_snowpack * added_frac) / new_frac;
-					patch.soil.snowpack_NH4_mass = (patch.soil.snowpack_NH4_mass * old_frac + from.transfer_snowpack_NH4_mass * added_frac) / new_frac;
-					patch.soil.snowpack_NO3_mass = (patch.soil.snowpack_NO3_mass * old_frac + from.transfer_snowpack_NO3_mass * added_frac) / new_frac;
+					patch.soil.snowpack_NH4_mass = 
+						(patch.soil.snowpack_NH4_mass * old_frac + from.transfer_snowpack_NH4_mass * added_frac) / new_frac;
+					patch.soil.snowpack_NO3_mass = 
+						(patch.soil.snowpack_NO3_mass * old_frac + from.transfer_snowpack_NO3_mass * added_frac) / new_frac;
 
-					patch.soil.decomp_litter_mean = (patch.soil.decomp_litter_mean * old_frac + from.transfer_decomp_litter_mean * added_frac) / new_frac;
-					patch.soil.k_soilfast_mean = (patch.soil.k_soilfast_mean * old_frac + from.transfer_k_soilfast_mean * added_frac) / new_frac;
-					patch.soil.k_soilslow_mean = (patch.soil.k_soilslow_mean * old_frac + from.transfer_k_soilslow_mean * added_frac) / new_frac;
+					patch.soil.decomp_litter_mean = 
+						(patch.soil.decomp_litter_mean * old_frac + from.transfer_decomp_litter_mean * added_frac) / new_frac;
+					patch.soil.k_soilfast_mean = 
+						(patch.soil.k_soilfast_mean * old_frac + from.transfer_k_soilfast_mean * added_frac) / new_frac;
+					patch.soil.k_soilslow_mean = 
+						(patch.soil.k_soilslow_mean * old_frac + from.transfer_k_soilslow_mean * added_frac) / new_frac;
 
 					double aaet_5_cp[NYEARAAET] = {0.0};
 					patch.aaet_5.to_array(aaet_5_cp);
@@ -1884,7 +2003,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 				}
 
 				// set scaling factor to be used in growth() for scaling vegetation C and N:
-				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease + min(0.0, stand.cloned_fraction)) / stand.get_gridcell_fraction();
+				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease + min(0.0, stand.cloned_fraction)) 
+					/ stand.get_gridcell_fraction();
 				gridcell.landcover.updated = true;
 			}
 		}
@@ -1911,29 +2031,36 @@ int copy_stand_type_from_stand(int stid_donor, int stid_receptor) {
 	if(landcover_donor == CROPLAND) {
 
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == PASTURE) {
 
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST) {
-			if(!stlist[stid_receptor].get_management().cutfirstyear)
+			if(!stlist[stid_receptor].get_management().cutfirstyear) {
 				copy_type = CLONESTAND;
-			else if(stlist[stid_receptor].get_management().cutfirstyear == 1)	// Will be created in transfer_to_new_stand_from_st_lc() or in stand_dynamics()
-				copy_type = NONEWSTAND;											// as a stand with npatch_secondarystand identical patches
-			else if(stlist[stid_receptor].get_management().cutfirstyear == 2)
+			}
+			else if(stlist[stid_receptor].get_management().cutfirstyear == 1) {	// Will be created in transfer_to_new_stand_from_st_lc() 
+				copy_type = NONEWSTAND;											// or in stand_dynamics() as a stand with 
+																				// npatch_secondarystand identical patches.
+			}
+			else if(stlist[stid_receptor].get_management().cutfirstyear == 2) {
 				copy_type = CLONESTAND_KILLTREES;
+			}
 		}
 	}
 	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
 
 		if(landcover_receptor == FOREST || landcover_receptor == NATURAL) {
-			if(!stlist[stid_receptor].get_management().cutfirstyear)
+			if(!stlist[stid_receptor].get_management().cutfirstyear) {
 				copy_type = CLONESTAND;
-			else if(stlist[stid_receptor].get_management().cutfirstyear == 1)	// Will be created in transfer_to_new_stand_from_st_lc() or in stand_dynamics()
-				copy_type = NONEWSTAND;											// as a stand with npatch_secondarystand identical patches
-			else if(stlist[stid_receptor].get_management().cutfirstyear == 2)
+			}
+			else if(stlist[stid_receptor].get_management().cutfirstyear == 1) {	// Will be created in transfer_to_new_stand_from_st_lc() 
+				copy_type = NONEWSTAND;											// or in stand_dynamics() as a stand with 
+																				// npatch_secondarystand identical patches.
+			}
+			else if(stlist[stid_receptor].get_management().cutfirstyear == 2) {
 				copy_type = CLONESTAND_KILLTREES;
+			}
 		}
 		
 	}
@@ -1961,14 +2088,12 @@ int copy_stand_type_from_st(int stid_donor, int stid_receptor) {
 
 		// Separate new stand from each crop type donor
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == PASTURE) {
 
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
 		
@@ -2000,20 +2125,17 @@ int copy_stand_type_from_lc(int landcover_donor, int stid_receptor) {
 
 		// Common new stand from cropland donor stands
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == PASTURE) {
 
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
 		
 		if(landcover_receptor == FOREST || landcover_receptor == NATURAL) {
-			copy_type = NONEWSTAND;
-//			copy_type = NEWSTAND_KILLALL;
+			copy_type = NONEWSTAND;	// Alternative setting: copy_type = NEWSTAND_KILLALL;
 		}
 		
 	}
@@ -2049,7 +2171,8 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 
 			if(copy_type) {
 
-				bool suppress_disturbance = suppress_disturbance_in_forestry_stands && (stand.landcover == NATURAL || stand.landcover == FOREST) && (stlist[stid_receptor].landcover == NATURAL || stlist[stid_receptor].landcover == FOREST);
+				bool suppress_disturbance = suppress_disturbance_in_forestry_stands && (stand.landcover == NATURAL || stand.landcover == FOREST) 
+					&& (stlist[stid_receptor].landcover == NATURAL || stlist[stid_receptor].landcover == FOREST);
 
 				if(copy_type == CLONESTAND || copy_type == CLONESTAND_KILLTREES) {
 
@@ -2135,7 +2258,8 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
  *
  *  \param st_frac_transfer  				array of transfer fractions between stand types
  */
-double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_frac, double* st_frac_transfer, int stid_receptor, int stid_donor = -1, int lc_donor = -1) {
+double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_frac, double* st_frac_transfer, 
+										int stid_receptor, int stid_donor = -1, int lc_donor = -1) {
 
 	double new_stand_area = 0.0;
 	landcover_change_transfer transfer;
@@ -2157,7 +2281,8 @@ double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_fra
 
 	if(copy_type) {
 
-		bool suppress_disturbance = suppress_disturbance_in_forestry_stands && (lct_donor == NATURAL || lct_donor == FOREST) && (lct_receptor == NATURAL || lct_receptor == FOREST);
+		bool suppress_disturbance = suppress_disturbance_in_forestry_stands && (lct_donor == NATURAL 
+			|| lct_donor == FOREST) && (lct_receptor == NATURAL || lct_receptor == FOREST);
 
 		for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
@@ -2168,29 +2293,29 @@ double transfer_to_new_stand_from_st_lc(Gridcell& gridcell, double new_stand_fra
 
 			if(transfer_area > 0.0 && (stand.stid == stid_donor || stid_donor < 0) && (stand.landcover == lc_donor || lc_donor < 0)) {
 
-/*				// Example of more detailed control of harvest parameters
-				lc_change_harvest_params harvest_params;
-
-				if(lct_receptor == NATURAL || lct_receptor == FOREST) {
-					// removing smaller amounts of residues
-					harvest_params.harv_eff = 0.9;
-					harvest_params.res_outtake_twig = 0.4;
-					harvest_params.res_outtake_coarse_root = 0.1;
-				}
-				else if(lct_receptor == PASTURE) {
-					// removing above-ground residues
-					harvest_params.harv_eff = 1.0;
-					harvest_params.res_outtake_twig = 0.95;
-					harvest_params.res_outtake_coarse_root = 0.1;
-				}
-				else {
-					// default values for natural to cropland transition
-					harvest_params.harv_eff = 1.0;
-					harvest_params.res_outtake_twig = 0.95;
-					harvest_params.res_outtake_coarse_root = 0.9;
-				}
-				donor_stand_change(gridcell, new_stand_frac, transfer, -1,-1, stid_receptor, -1, stand.id, &harvest_params);
-*/
+			/*	// Example of more detailed control of harvest parameters
+			 *	lc_change_harvest_params harvest_params;
+			 *
+			 *	if(lct_receptor == NATURAL || lct_receptor == FOREST) {
+			 *		// removing smaller amounts of residues
+			 *		harvest_params.harv_eff = 0.9;
+			 *		harvest_params.res_outtake_twig = 0.4;
+			 *		harvest_params.res_outtake_coarse_root = 0.1;
+			 *	}
+			 *	else if(lct_receptor == PASTURE) {
+			 *		// removing above-ground residues
+			 *		harvest_params.harv_eff = 1.0;
+			 *		harvest_params.res_outtake_twig = 0.95;
+			 *		harvest_params.res_outtake_coarse_root = 0.1;
+			 *	}
+			 *	else {
+			 *		// default values for natural to cropland transition
+			 *		harvest_params.harv_eff = 1.0;
+			 *		harvest_params.res_outtake_twig = 0.95;
+			 *		harvest_params.res_outtake_coarse_root = 0.9;
+			 *	}
+			 *	donor_stand_change(gridcell, new_stand_frac, transfer, -1,-1, stid_receptor, -1, stand.id, &harvest_params);
+			 */
 				// Harvest parameters selected in donor_stand_change() using non-clear_residues values from pft parameters
 				donor_stand_change(gridcell, new_stand_frac, transfer, -1,-1, stid_receptor, -1, stand.id);
 
@@ -2371,7 +2496,6 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 		dprintf("\nCheck 1: Year %d: landcover fraction sum: %.15f", date.year, lc_frac_sum);
 		error = true;
 	}
-	/////////
 
 	// Check that stand type sum is 1:
 	double st_frac_sum = 0.0;
@@ -2381,7 +2505,6 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 		dprintf("\nCheck 2: Year %d: stand type fraction sum: %.15f", date.year, st_frac_sum);
 		error = true;
 	}
-	/////////
 
 	// Test if the sum of gross lcc for a landcover is the same as net lcc:
 	double test_lc_change[NLANDCOVERTYPES] = {0.0};
@@ -2398,16 +2521,15 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 
 		if(fabs(test_lc_change[i] - landcoverfrac_change[i]) > INPUT_RESOLUTION * 10.0) {
-			dprintf("\nCheck 3: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, i);
+			dprintf("\nCheck 3: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", 
+				date.year, i);
 			dprintf("dif=%.15f", test_lc_change[i] - landcoverfrac_change[i]);
 			error = true;
 		}
 	}
-	////////////
 
 	// Test if the sum of gross lcc for a stand type is the same as net lcc:
-	double *test_st_change;
-	test_st_change = new double[nst];
+	double *test_st_change = new double[nst];
 	for(int i=0;i<nst;i++) {
 		test_st_change[i] = 0.0;
 	}
@@ -2427,14 +2549,14 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 		Gridcellst& gcst = gridcell.st[i];
 
 		if(fabs(test_st_change[i] - gcst.frac_change) > INPUT_RESOLUTION * 10.0) {
-			dprintf("\nCheck 4: Year %d: st_change_array sum not equal to st.frac_change value for stand type %d\n", date.year, i);
+			dprintf("\nCheck 4: Year %d: st_change_array sum not equal to st.frac_change value for stand type %d\n", 
+				date.year, i);
 			dprintf("dif=%.15f", test_st_change[i] - gcst.frac_change);
 			error = true;
 		}
 	}
 	if(test_st_change)
 		delete[] test_st_change;
-	////////////
 
 	// Test if st_change_array is compatible with st.frac_old/frac values
 	for(int from=0; from<nst; from++) {
@@ -2446,9 +2568,13 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 			StandType& st_receptor = stlist[to];
 			Gridcellst& gcst_receptor = gridcell.st[to];
-			if(st_change_array[index(from, to)] > (gcst_donor.frac_old + INPUT_RESOLUTION) || st_change_array[index(from, to)] > (gcst_receptor.frac + INPUT_RESOLUTION)) {
-				dprintf("\nCheck 5: Year %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", date.year, from, to);
-				dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f", st_change_array[index(from, to)], gcst_donor.frac_old, gcst_receptor.frac);
+			if(st_change_array[index(from, to)] > (gcst_donor.frac_old + INPUT_RESOLUTION) 
+					|| st_change_array[index(from, to)] > (gcst_receptor.frac + INPUT_RESOLUTION)) {
+
+				dprintf("\nCheck 5: Year %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", 
+					date.year, from, to);
+				dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f", 
+					st_change_array[index(from, to)], gcst_donor.frac_old, gcst_receptor.frac);
 				error = true;
 			}
 		}
@@ -2487,7 +2613,8 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 			for(int to=0; to<NLANDCOVERTYPES; to++) {
 
 				if(fabs(lc_change_arr[from][to] - lc_change_array[from][to]) > INPUT_RESOLUTION * 10.0) {
-					dprintf("\nCheck 7: Year %d: lc_change_arr sum not equal to lc_change_array value for %d, %d\n", date.year, from, to);
+					dprintf("\nCheck 7: Year %d: lc_change_arr sum not equal to lc_change_array value for %d, %d\n", 
+						date.year, from, to);
 					dprintf("dif=%.15f", lc_change_arr[from][to] - lc_change_array[from][to]);
 					error = true;
 				}
@@ -2499,7 +2626,8 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 			for(int to=0; to<NLANDCOVERTYPES; to++) {
 
 				if(lc_change_array[from][to] < 0.0) {
-					dprintf("\nCheck 7b: Year %d: Negative lc_change_array[%d][%d]: %.15f\n", date.year, from, to, lc_change_array[from][to]);
+					dprintf("\nCheck 7b: Year %d: Negative lc_change_array[%d][%d]: %.15f\n", 
+						date.year, from, to, lc_change_array[from][to]);
 					error = true;
 				}
 			}
@@ -2559,8 +2687,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 		for(int to=0; to<nst; to++) {
 
-			double *test_st_change;
-			test_st_change = new double[nst];
+			double *test_st_change = new double[nst];
 			for(int i=0;i<nst;i++)
 				test_st_change[i] = 0.0;
 
@@ -2573,7 +2700,8 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 			}
 
 			if(fabs(test_st_change[to] - st_change_array[index(from, to)]) > INPUT_RESOLUTION * 100.0) {
-				dprintf("\nCheck 9: Year %d: stand transfer area sum not equal to stand type value for stand types %d and %d\n", date.year, from, to);
+				dprintf("\nCheck 9: Year %d: stand transfer area sum not equal to stand type value for stand types %d and %d\n", 
+					date.year, from, to);
 				dprintf("dif=%.15f", fabs(test_st_change[to] - st_change_array[index(from, to)]));
 				error = true;
 			}
@@ -2582,21 +2710,21 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 				delete[] test_st_change;
 		}
 	}
-	////////////
 
 	// Test if stand.frac_change for a stand is equal to stand.gross_frac_increase + stand.gross_frac_decrease:
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
 		Stand& stand = gridcell[i];
 
-		if(largerthanzero(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease), -12)) {
-			dprintf("\nCheck 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", date.year, stand.id);
+		if(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease) > INPUT_RESOLUTION * 10.0) {
+			dprintf("\nCheck 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", 
+				date.year, stand.id);
 			dprintf("dif=%.15f\n", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
-			dprintf("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f", stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);
+			dprintf("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f", 
+				stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);
 			error = true;
 		}
 	}
-	////////////
 
 	// Test that no stands remain when stand type fraction is 0 (after reduce_stands, so stands may remain, but with frac 0):
 	for(int s=0; s<nst; s++) {
@@ -2651,7 +2779,8 @@ bool check_fractions3(Gridcell& gridcell) {
 
 		if(gcst.frac_change < 0.0) {
 			if(fabs(gcst.frac - stands_frac_sum - gcst.gross_frac_increase) > INPUT_RESOLUTION * 100.0) {
-				dprintf("\nCheck 12: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
+				dprintf("\nCheck 12: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", 
+					date.year, s);
 				dprintf("dif=%.15f", fabs(gcst.frac - stands_frac_sum - gcst.gross_frac_increase));
 				error = true;
 			}
@@ -2690,7 +2819,8 @@ bool check_fractions4(Gridcell& gridcell) {
 				dprintf("st frac=%.15f\n\n", gcst.frac);
 			}
 			else if(fabs(gcst.frac - stands_frac_sum) > INPUT_RESOLUTION * 100.0) {
-				dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
+				dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", 
+					date.year, s);
 				dprintf("dif=%.15f", fabs(gcst.frac - stands_frac_sum));
 				error = true;
 			}
@@ -2750,10 +2880,12 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 
 					double stfrac_change = gcst.frac_change;
 
-					if(stfrac_change < 0.0)
+					if(stfrac_change < 0.0) {
 						transferred_fraction -= stfrac_change;
-					else if(stfrac_change > 0.0)
+					}
+					else if(stfrac_change > 0.0) {
 						receiving_fraction += stfrac_change;
+					}
 
 					if(stfrac_sum_old[lc] != 0.0) {
 						change_st += fabs(stfrac_change) / 2.0;
@@ -2778,19 +2910,20 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 		}
 	}
 
-	// if no changes, do nothing.
-	if(changeLC < INPUT_RESOLUTION * 0.1 && change_st < INPUT_RESOLUTION * 0.1 && change_gross_lcc < INPUT_RESOLUTION * 0.1 && !force_small_change) {
+	// If no changes, do nothing.
+	if(changeLC < INPUT_RESOLUTION * 0.1 && change_st < INPUT_RESOLUTION * 0.1 && change_gross_lcc < INPUT_RESOLUTION * 0.1 
+			&& !force_small_change) {
 		change = false;
 	}
 	// check for balance of reduced and increased stand fractions
 	else {
 		if(fabs(transferred_fraction - receiving_fraction) > 0.0001 || fabs(change_stand-receiving_fraction) > 0.0001) {
 			if(run[CROPLAND] && run[NATURAL] && run[PASTURE]) {
-				// end program if balance is expected (no landcovers inactivated)
+				// End program if balance is expected (no landcovers inactivated)
 				fail("Transferred landcover fractions not balanced !\n");
 			}
 			else {
-				// allow program to continue, but inactivate landcover change mass transfer 
+				// Allow program to continue, but inactivate landcover change mass transfer 
 				LCchangeCtransfer = false;
 				dprintf("Transferred landcover fractions not balanced !\nLandcover change fluxes not calculated.\n");
 			}
@@ -2802,20 +2935,23 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 }
 
 /// Transfers harvested forest area to transition matrix
-bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], forest_lc_frac_transfer& forest_lc_frac_transfer_s) {
+bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], 
+								  forest_lc_frac_transfer& forest_lc_subset_transfer) {
 
 	bool transfer_harvest = false;
 
 	if(gridcell.landcover.wood_harvest.prim_frac > INPUT_RESOLUTION * 0.1) {
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
-		forest_lc_frac_transfer_s.primary[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
+		forest_lc_subset_transfer.primary[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.prim_frac;
 		use_primary_lc_transfer = true;
 		transfer_harvest = true;
 	}
-	if(harvest_secondary_to_new_stand && gridcell.landcover.wood_harvest.sec_mature_frac + gridcell.landcover.wood_harvest.sec_young_frac > INPUT_RESOLUTION * 0.1) {
+	if(harvest_secondary_to_new_stand 
+			&& gridcell.landcover.wood_harvest.sec_mature_frac + gridcell.landcover.wood_harvest.sec_young_frac > INPUT_RESOLUTION * 0.1) {
+
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_mature_frac;
 		lc_frac_transfer[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
-		forest_lc_frac_transfer_s.secondary_young[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
+		forest_lc_subset_transfer.secondary_young[NATURAL][NATURAL] += gridcell.landcover.wood_harvest.sec_young_frac;
 		transfer_harvest = true;
 	}
 
@@ -2823,26 +2959,26 @@ bool transfer_harvested_fractions(Gridcell& gridcell, double lc_frac_transfer[][
 }
 
 /// Updates all landcover, stand type and stand area fractions each year, possibly resulting in the creation and killing of stands.
-/** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
- *  and (in the case of wood) to long-lived pools.
+/** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to 
+ *  fluxes and (in the case of wood) to long-lived pools.
  *
- *  Land cover fraction files need to be read together with gross land transition files. Net and gross land cover change is 
- *  expected to be compatible, although rounding errors are handled by the input code.
+ *  Land cover fraction files need to be read together with gross land transition files. Net and gross land cover change 
+ *  is expected to be compatible, although rounding errors are handled by the input code.
  *
  *  If instruction file parameter iftransfer_to_new_stand is true, new stands may be created for separate land transfers  
  *  in transfer_to_new_stand(), according to rules in copy_stand_type().
  *
- *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; 1: land cover-level; 
- *  2: stand type-level) and rules in the gridcell arrays pool_from_all_landcovers[to] and pool_to_all_landcovers[from], set
- *  in the Gridcell constructor.
- *  New stands may then be created in stand_dynamics() from the pooled land if the gridcell array expand_to_new_stand[lc] value for the 
- *  receiving land cover, set in the Gridcell constructor, is true (natural and forest).
+ *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; ; 
+ *  1: land cover-level, 2: stand type-level) and rules in the gridcell arrays pool_from_all_landcovers[to] and 
+ *  pool_to_all_landcovers[from], set in the Gridcell constructor.
+ *  New stands may then be created in stand_dynamics() from the pooled land if the gridcell array expand_to_new_stand[lc] 
+ *  value for the receiving land cover, set in the Gridcell constructor, is true (natural and forest).
  *  If not, soil and litter carbon and nitrogen as well as water is pooled with the receiving stands (cropland, pasture).
  *
- *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning mode in 
- *  transfer_to_new_stand(). Stands with living plant mass should not be pooled with newly transferred land, unconditionally so 
- *  if they contain trees (pasture can be expanded without too much problems). New stands should instead be created, either in stand_dynamics()
- *  or transfer_to_new_stand() as described above.
+ *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning  
+ *  mode in transfer_to_new_stand(). Stands with living plant mass should not be pooled with newly transferred land,  
+ *  unconditionally so if they contain trees (pasture can be expanded without too much problems). New stands should 
+ *  instead be created, either in stand_dynamics() or transfer_to_new_stand() as described above.
  */
 void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
@@ -2851,7 +2987,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	double* st_frac_transfer = NULL;
-	forest_st_frac_transfer forest_st_frac_transfer_s(nst);
+	forest_st_frac_transfer forest_st_subset_transfer(nst);
 	bool LCchangeCtransfer = true;
 	Landcover& lc = gridcell.landcover;
 
@@ -2863,14 +2999,14 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		for(int j=0;j<NLANDCOVERTYPES;j++) {
 			lc.frac_transfer[i][j] = 0.0;
-			lc.forest_lc_frac_transfer_s.primary[i][j] = 0.0;
-			lc.forest_lc_frac_transfer_s.secondary_young[i][j] = 0.0;
+			lc.forest_lc_subset_transfer.primary[i][j] = 0.0;
+			lc.forest_lc_subset_transfer.secondary_young[i][j] = 0.0;
 		}
 	}
 	for(int i=0;i<nst*nst;i++) {
 		st_frac_transfer[i] = 0.0;
-		forest_st_frac_transfer_s.primary[i] = 0.0;
-		forest_st_frac_transfer_s.secondary_young[i] = 0.0;
+		forest_st_subset_transfer.primary[i] = 0.0;
+		forest_st_subset_transfer.secondary_young[i] = 0.0;
 	}
 
 	gridcell.landcover.updated = false;
@@ -2881,7 +3017,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	bool no_changes = true;
 
 	// Transfer area to new stands during wood harvest.
-	if(transfer_harvested_fractions(gridcell, lc.frac_transfer, lc.forest_lc_frac_transfer_s))
+	if(transfer_harvested_fractions(gridcell, lc.frac_transfer, lc.forest_lc_subset_transfer))
 		no_changes = false;
 
 	// Rescale stand fractions so sum is 1
@@ -2906,8 +3042,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const || !no_changes) {
-		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
-		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
+		/* This call returns 0, causing this function to return, if no significant landcover changes this year, 
+		 * sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), 
+		 * thus inactivating transfer of C and N.
+		 */
 		if(lc_changed(gridcell, LCchangeCtransfer, input_module)) {
 			no_changes = false;
 		}
@@ -2920,22 +3058,23 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	// Transfer all landcover changes to stand type transition matrix, if not already done.
 
-	if(gross_land_transfer == 2) {
+	if(gross_land_transfer == ST_GROSS_INPUT) {
 
 		// Option to read stand type transitions from file.
 		fail("Currently no code for gross stand type transfer option\n");
 	}
-	else if(gross_land_transfer == 1 && gross_input_present) {
+	else if(gross_land_transfer == LC_GROSS_INPUT && gross_input_present) {
 
 		// Option to read landcover transitions from file. Update the st_frac_transfer array.
-		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_frac_transfer_s, forest_st_frac_transfer_s);
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_subset_transfer, forest_st_subset_transfer);
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
 	}
 	else {
 
-		// Option not to read landcover or stand type transitions or to simulate these
-		// The st_frac_transfer array always needs to be updated.
+		/* Option not to read landcover or stand type transitions or to simulate these
+		 * The st_frac_transfer array always needs to be updated.
+		 */
 
 		// Simulation of land transitions for test purposes only
 		const bool simulate_lc = false;	// simulate gross lcc simulation at land cover level
@@ -2947,8 +3086,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			simulate_gross_lc_transfer(gridcell, lc.frac_transfer);
 		// The lc_frac_transfer-array may contain overshoots if wood harvest with fraction transfer occurred.
 		double dummy;
-		adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_frac_transfer_s, dummy);
-		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_frac_transfer_s, forest_st_frac_transfer_s);
+		adjust_gross_transfers(gridcell, lc.frac_change, lc.frac_transfer, lc.forest_lc_subset_transfer, dummy);
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_subset_transfer, forest_st_subset_transfer);
 
 		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
 			dprintf("Fraction error after set_st_change_array()\n\n");
@@ -2977,19 +3116,16 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
-	double ccont_tot_1 = gridcell.ccont();
-	double cflux_tot_1 = gridcell.cflux();
-	double ncont_tot_1 = gridcell.ncont();
-	double nflux_tot_1 = gridcell.nflux();
-
-	// check how many stands of each stand type exist
-	// identify which stands to reduce in area
-	// set stand variables frac, frac_old, frac_temp, frac_change and gross_frac_decrease for reduced stands and stand types
-	reduce_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s);
+	/* check how many stands of each stand type exist
+	 * identify which stands to reduce in area
+	 * set stand variables frac, frac_old, frac_temp, frac_change and gross_frac_decrease for reduced stands and stand types
+	 */
+	reduce_stands(gridcell, st_frac_transfer, forest_st_subset_transfer);
 
 	// Wood harvest cmass input -> fraction harvested (using LUC functionality)
 	if(harvest_secondary_to_new_stand) {
-		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_frac_transfer_s, lc.frac_transfer, lc.forest_lc_frac_transfer_s) && no_changes) {
+		if(!reduce_forestry_stands(gridcell, st_frac_transfer, forest_st_subset_transfer, lc.frac_transfer, lc.forest_lc_subset_transfer) 
+				&& no_changes) {
 			delete[] st_frac_transfer;
 			return;
 		}
@@ -3025,8 +3161,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		fail("Fraction error after expand_stands()\n");
 
 
-	// Pooling options
-	// transfer_level: 0: one big pool; 1: land cover-level; 2: stand type-level
+	/* Pooling options
+	 * transfer_level: 0: one big pool; 1: land cover-level; 2: stand type-level
+	 */
 
 	if(transfer_level == 0) {	// One big pool for all transfers (as in old code)
 
@@ -3054,7 +3191,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		receiving_stand_change(gridcell, transfer, LCchangeCtransfer);
 	}
-	else if(transfer_level == 1) {	// Landcover-level pools, larger pools available by the gridcell variables pool_from_all_landcovers and pool_to_all_landcovers (set in gridcell constructor)
+	else if(transfer_level == 1) {	// Landcover-level pools, larger pools available by the gridcell variables 
+									// pool_from_all_landcovers and pool_to_all_landcovers (set in gridcell constructor).
 
 		landcover_change_transfer transfer_lc_2d[NLANDCOVERTYPES][NLANDCOVERTYPES];
 		landcover_change_transfer transfer_lc[NLANDCOVERTYPES];
@@ -3144,26 +3282,26 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 					if(gross_landcoverfrac_transfer[from][to] > 0.0) {
 						if(!gridcell.landcover.pool_to_all_landcovers[from]) {
 							// Alt.b: Transfers from donors are independent:
-							receiving_stand_change(gridcell, transfer_lc_2d[from][to], LCchangeCtransfer, to, -1, gross_landcoverfrac_transfer[from][to] / gross_landcoverfrac_increase[to]);
+							receiving_stand_change(gridcell, transfer_lc_2d[from][to], LCchangeCtransfer, to, -1, 
+								gross_landcoverfrac_transfer[from][to] / gross_landcoverfrac_increase[to]);
 						}
 						else {
 							// Alt.c: Donor lc:s are pooled before transfer to recipients:
-							receiving_stand_change(gridcell, transfer_lc_from[from], LCchangeCtransfer, to, -1, gross_landcoverfrac_transfer[from][to] / gross_landcoverfrac_increase[to]);
+							receiving_stand_change(gridcell, transfer_lc_from[from], LCchangeCtransfer, to, -1, 
+								gross_landcoverfrac_transfer[from][to] / gross_landcoverfrac_increase[to]);
 						}
 					}
 				}
 			}
 		}
 	}
-	else if(transfer_level == 2) { // Unique transfers between stand types. Stand type-level pools available by the gridcell variables pool_from_all_landcovers and pool_to_all_landcovers (set in gridcell constructor)
+	else if(transfer_level == 2) {	// Unique transfers between stand types. Stand type-level pools available by the 
+									// gridcell variables pool_from_all_landcovers and pool_to_all_landcovers (set in 
+									// the gridcell constructor)
 
-		landcover_change_transfer* transfer_st_2d;
-		landcover_change_transfer* transfer_st;
-		landcover_change_transfer* transfer_st_from;
-
-		transfer_st_2d = new landcover_change_transfer[nst * nst];
-		transfer_st = new landcover_change_transfer[nst];
-		transfer_st_from = new landcover_change_transfer[nst];
+		landcover_change_transfer* transfer_st_2d = new landcover_change_transfer[nst * nst];
+		landcover_change_transfer* transfer_st = new landcover_change_transfer[nst];
+		landcover_change_transfer* transfer_st_from = new landcover_change_transfer[nst];
 
 		// handle harvest and turnover of reduced stands at landcover change
 
@@ -3174,7 +3312,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			Gridcellst& gcst = gridcell.st[from];
 
 			// Pooling of donor stands within a stand type
-			if(gridcell.landcover.pool_to_all_landcovers[st.landcover] || !(st.landcover == NATURAL || st.landcover == FOREST)) { // alt.c
+			if(gridcell.landcover.pool_to_all_landcovers[st.landcover] 
+					|| !(st.landcover == NATURAL || st.landcover == FOREST)) { // alt.c
 				if(gcst.gross_frac_decrease > 0.0) {
 					donor_stand_change(gridcell, gcst.gross_frac_decrease, transfer_st_from[from], -1, -1, -1, from);
 				}
@@ -3196,7 +3335,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 				if(receiving_fraction_2d > 0.0) {
 
 					if(gridcell.landcover.pool_from_all_landcovers[st_to.landcover]) {
-						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] || !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {	// alt.a
+						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] 
+								|| !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {	// alt.a
 							// Add from->to transfer to to-pool:
 							donor_stand_change(gridcell, receiving_fraction, transfer_st[to], -1, -1, to, from);
 						}
@@ -3206,7 +3346,8 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 						}
 					}
 					else {
-						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] || !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {	// alt.b
+						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] 
+								|| !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {	// alt.b
 							// Add from->to transfer to [from][to] place in 2d-array:
 							donor_stand_change(gridcell, receiving_fraction_2d, transfer_st_2d[index(from, to)], -1, -1, to, from);
 						}
@@ -3240,13 +3381,16 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 					if(st_frac_transfer[index(from, to)] > 0.0) {
 						StandType& st_from = stlist[from];
 						Gridcellst& gcst_from = gridcell.st[from];
-						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] || !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {
+						if(!(gridcell.landcover.pool_to_all_landcovers[st_from.landcover] 
+								|| !(st_from.landcover == NATURAL || st_from.landcover == FOREST))) {
 							// Alt.b: Transfers between donor and receptor st:s are independent:
-							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
+							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, 
+								st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 						else {
 							// Alt.c: Donor stands in a stand type are pooled before transfer to recipients:
-							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
+							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, 
+								st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 					}
 				}
@@ -3261,36 +3405,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			delete[] transfer_st_from;
 	}
 
-	double ccont_tot = 0.0;
-	double cflux_tot = gridcell.cflux();
-
-	for(unsigned int i=0; i<gridcell.size(); i++) {
-		Stand& stand = gridcell[i];
-
-		double ccont_stand = stand.ccont(stand.scale_LC_change);
-		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
-	}
-
-//	if(!negligible(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1, -11))
-//		dprintf("WARNING ! C balance after lcc off year %d by %.12f\n",date.year, cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1);
-
-	double ncont_tot = 0.0;
-	double nflux_tot = 0.0;
-
-	for(unsigned int i=0; i<gridcell.size(); i++) {
-		Stand& stand = gridcell[i];
-
-		double ncont_stand = stand.ncont(stand.scale_LC_change);
-		ncont_tot += ncont_stand * stand.get_gridcell_fraction();
-		nflux_tot += stand.nflux() * stand.get_gridcell_fraction();
-	}
-
-	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems
-	nflux_tot += gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow + gridcell.landcover.anflux_wood_harvest + gridcell.landcover.anflux_clearing;
-
-//	if(!negligible(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1, -12))
-//		dprintf("WARNING ! N balance after lcc off\n");
-
 	if(st_frac_transfer)
 		delete[] st_frac_transfer;
 }
@@ -3303,10 +3417,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 /// landcover_change_transfer constructor
 landcover_change_transfer::landcover_change_transfer() {
 
-	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = NULL;
-	transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
+	transfer_cmass_litter_leaf = transfer_cmass_litter_sap = transfer_cmass_litter_heart = NULL;
+	transfer_cmass_litter_root = transfer_cmass_litter_repr = transfer_cmass_harvested_products_slow = NULL;
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
-	transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
+	transfer_nmass_litter_root = transfer_nmass_harvested_products_slow = NULL;
 
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = 0.0;
 	transfer_cpool_slow = transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
@@ -3329,47 +3443,47 @@ landcover_change_transfer::landcover_change_transfer() {
 /// landcover_change_transfer deconstructor
 landcover_change_transfer::~landcover_change_transfer() {
 
-	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
-	if(transfer_litter_sap) delete[] transfer_litter_sap;
-	if(transfer_litter_heart) delete[] transfer_litter_heart;
-	if(transfer_litter_root) delete[] transfer_litter_root;
-	if(transfer_litter_repr) delete[] transfer_litter_repr;
-	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;
+	if(transfer_cmass_litter_leaf) delete[] transfer_cmass_litter_leaf;
+	if(transfer_cmass_litter_sap) delete[] transfer_cmass_litter_sap;
+	if(transfer_cmass_litter_heart) delete[] transfer_cmass_litter_heart;
+	if(transfer_cmass_litter_root) delete[] transfer_cmass_litter_root;
+	if(transfer_cmass_litter_repr) delete[] transfer_cmass_litter_repr;
+	if(transfer_cmass_harvested_products_slow) delete[] transfer_cmass_harvested_products_slow;
 	if(transfer_nmass_litter_leaf) delete[] transfer_nmass_litter_leaf;
 	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
 	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
 	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
-	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
+	if(transfer_nmass_harvested_products_slow) delete[] transfer_nmass_harvested_products_slow;
 }
 
 /// allocates memory for landcover_change_transfer object
 void landcover_change_transfer::allocate() {
 
-	transfer_litter_leaf = new double[npft];
-	transfer_litter_sap = new double[npft];
-	transfer_litter_heart = new double[npft];
-	transfer_litter_root = new double[npft];
-	transfer_litter_repr = new double[npft];
-	transfer_harvested_products_slow = new double[npft];
+	transfer_cmass_litter_leaf = new double[npft];
+	transfer_cmass_litter_sap = new double[npft];
+	transfer_cmass_litter_heart = new double[npft];
+	transfer_cmass_litter_root = new double[npft];
+	transfer_cmass_litter_repr = new double[npft];
+	transfer_cmass_harvested_products_slow = new double[npft];
 
 	transfer_nmass_litter_leaf = new double[npft];
 	transfer_nmass_litter_sap = new double[npft];
 	transfer_nmass_litter_heart = new double[npft];
 	transfer_nmass_litter_root = new double[npft];
-	transfer_harvested_products_slow_nmass = new double[npft];
+	transfer_nmass_harvested_products_slow = new double[npft];
 
 	for(int i=0;i<npft;i++) {
-		transfer_litter_leaf[i] = 0.0;
-		transfer_litter_sap[i] = 0.0;
-		transfer_litter_heart[i] = 0.0;
-		transfer_litter_root[i] = 0.0;
-		transfer_litter_repr[i] = 0.0;
-		transfer_harvested_products_slow[i] = 0.0;
+		transfer_cmass_litter_leaf[i] = 0.0;
+		transfer_cmass_litter_sap[i] = 0.0;
+		transfer_cmass_litter_heart[i] = 0.0;
+		transfer_cmass_litter_root[i] = 0.0;
+		transfer_cmass_litter_repr[i] = 0.0;
+		transfer_cmass_harvested_products_slow[i] = 0.0;
 		transfer_nmass_litter_leaf[i] = 0.0;
 		transfer_nmass_litter_sap[i] = 0.0;
 		transfer_nmass_litter_heart[i] = 0.0;
 		transfer_nmass_litter_root[i] = 0.0;
-		transfer_harvested_products_slow_nmass[i] = 0.0;
+		transfer_nmass_harvested_products_slow[i] = 0.0;
 	}
 }
 

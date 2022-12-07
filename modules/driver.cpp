@@ -31,7 +31,6 @@
 #include "driver.h"
 #include "blaze.h"
 #include "simfire.h"
-#include "cropsowing.h"
 
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
@@ -428,6 +427,218 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 	}
 }
 
+/// Updates various climate 20-year means, used for sowing date calculation
+/** Called from crop_sowing_gridcell() once a year
+ */
+void calc_m_climate_20y_mean(Climate& climate) {
+	int startyear = 20 - (int)min(19, date.year);
+	double mprec_petmin_thisyear = 1.0;
+	double mprec_petmax_thisyear = 0.0;
+
+	climate.aprec = 0.0;
+
+	for(int m=0; m<12; m++) {
+
+		// 1) this year
+		climate.mtemp20[m] = climate.hmtemp_20[m].lastadd();
+		climate.mprec20[m] = climate.hmprec_20[m].lastadd();
+		climate.aprec += climate.hmprec_20[m].lastadd();
+		climate.mpet_year[m] = climate.hmeet_20[m].lastadd()*PRIESTLEY_TAYLOR;
+		//
+		climate.mpet20[m] = climate.mpet_year[m];
+		if (climate.mpet_year[m] > 0.0) {
+			climate.mprec_pet20[m] = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
+		}
+		else {
+			climate.mprec_pet20[m] = 0.0;
+		}
+
+		if (climate.hmprec_20[m].lastadd() / climate.mpet_year[m] < mprec_petmin_thisyear) {
+			mprec_petmin_thisyear = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
+		}
+		if (climate.hmprec_20[m].lastadd() / climate.mpet_year[m] > mprec_petmax_thisyear) {
+			mprec_petmax_thisyear = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
+		}
+
+		// 2) past 20 years or less
+		for (int y=startyear; y<20; y++) {
+			climate.mtemp_20[y-1][m] = climate.mtemp_20[y][m];
+			climate.mtemp20[m] += climate.mtemp_20[y][m];
+
+			climate.mprec_20[y-1][m] = climate.mprec_20[y][m];
+			climate.mprec20[m] += climate.mprec_20[y][m];
+
+			climate.mpet_20[y-1][m] = climate.mpet_20[y][m];
+			climate.mpet20[m] += climate.mpet_20[y][m];
+
+			climate.mprec_pet_20[y-1][m] = climate.mprec_pet_20[y][m];
+			climate.mprec_pet20[m] += climate.mprec_pet_20[y][m];
+		}
+		// 3) 20 years average means:
+		climate.mtemp20[m] /= min(20, date.year + 1);
+		climate.mprec20[m] /= min(20, date.year + 1);
+		climate.mpet20[m] /= min(20, date.year + 1);
+		climate.mprec_pet20[m] /= min(20, date.year + 1);
+
+		climate.mtemp_20[19][m] = climate.hmtemp_20[m].lastadd();
+		climate.mprec_20[19][m] = climate.hmprec_20[m].lastadd();
+
+		climate.mpet_20[19][m] = climate.mpet_year[m];
+		if (climate.mpet_year[m] > 0.0) {
+			climate.mprec_pet_20[19][m] = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
+		}
+		else {
+			climate.mprec_pet_20[19][m] = 0.0;
+		}
+	}
+
+	climate.mprec_petmin20 = mprec_petmin_thisyear;
+	climate.mprec_petmax20 = mprec_petmax_thisyear;
+	for (int y=startyear; y<20; y++) {
+		climate.mprec_petmin_20[y-1] = climate.mprec_petmin_20[y];
+		climate.mprec_petmin20 += climate.mprec_petmin_20[y];
+		climate.mprec_petmax_20[y-1] = climate.mprec_petmax_20[y];
+		climate.mprec_petmax20 += climate.mprec_petmax_20[y];
+	}
+	climate.mprec_petmin20 /= min(20, date.year + 1);
+	climate.mprec_petmin_20[19] = mprec_petmin_thisyear;
+	climate.mprec_petmax20 /= min(20, date.year + 1);
+	climate.mprec_petmax_20[19] = mprec_petmax_thisyear;
+}
+
+/// Determines climate seasonality of gridcell
+/** Called from crop_sowing_gridcell() last day of the year
+ */
+void calc_seasonality(Gridcell& gridcell) {
+
+	Climate& climate = gridcell.climate;
+	double var_temp = 0, var_prec = 0;
+	const double TEMPMIN = 10.0; // temperature limit of coldest month used to determine type of temperature seasonality
+	const int NMONTH = 12;
+	double mtempKelvin[NMONTH], prec_pet_ratio20[NMONTH];
+	double maxprec_pet20 = 0.0;
+	double minprec_pet20 = 1000;
+
+	for(int m=0;m<NMONTH;m++) {
+		mtempKelvin[m] = 0.0;
+		prec_pet_ratio20[m] = 0.0;
+	}
+
+	// calculate absolute temperature and prec/pet ratio for each month this year
+	for(int i=0; i < NMONTH; ++i) {
+		// The temperature has got to be in Kelvin, the limit 0.010 is based on that.
+		mtempKelvin[i] = gridcell.climate.mtemp20[i] + K2degC;
+		// Calculate precipitation/PET ratio if monthly PET is above zero
+		prec_pet_ratio20[i] = (gridcell.climate.mpet20[i] > 0) ? gridcell.climate.mprec20[i] / gridcell.climate.mpet20[i] : 0;
+	}
+	
+	// calculate variation coeffecients of temperature and prec/pet ratio for this year
+	var_temp = variation_coefficient(mtempKelvin, NMONTH);
+	var_prec = variation_coefficient(prec_pet_ratio20, NMONTH);
+
+	gridcell.climate.var_prec = var_prec;
+	gridcell.climate.var_temp = var_temp;
+
+	if (var_prec <= 0.4 && var_temp <= 0.010) {				// no seasonality
+		climate.seasonality_lastyear = SEASONALITY_NO;				// 0
+	}
+	else if (var_prec > 0.4) {
+
+		if (var_temp <= 0.010) {								// precipitation seasonality only
+			climate.seasonality_lastyear = SEASONALITY_PREC;		// 1
+		}
+		else if (var_temp > 0.010) {
+
+			if (gridcell.climate.mtemp_min20 > TEMPMIN) {		// both seasonalities, but "weak" temperature seasonality (coldest month > 10degC)
+				climate.seasonality_lastyear = SEASONALITY_PRECTEMP;// 2
+			}
+			else if (gridcell.climate.mtemp_min20 < TEMPMIN) {	// both seasonalities, but temperature most important
+				climate.seasonality_lastyear = SEASONALITY_TEMPPREC;// 4
+			}
+		}
+	}
+	else if (var_prec <= 0.4 && var_temp > .01) {
+		// Temperature seasonality only
+		climate.seasonality_lastyear = SEASONALITY_TEMP;			// 3
+	}
+
+	for(int m=0; m<NMONTH; m++) {
+		if (climate.mprec_pet20[m] > maxprec_pet20)
+			maxprec_pet20 = climate.mprec_pet20[m];
+		if (climate.mprec_pet20[m] < minprec_pet20)
+			minprec_pet20 = climate.mprec_pet20[m];
+	}
+
+	if (minprec_pet20 <= 0.5 && maxprec_pet20 <= 0.5)							//Extremes of monthly means
+		climate.prec_seasonality_lastyear = DRY;					// 0
+	else if (minprec_pet20 <= 0.5 && maxprec_pet20>0.5 && maxprec_pet20 <= 1.0)
+		climate.prec_seasonality_lastyear = DRY_INTERMEDIATE;		// 1
+	else if (minprec_pet20 <= 0.5 && maxprec_pet20 > 1.0)
+		climate.prec_seasonality_lastyear = DRY_WET;				// 2
+	else if (minprec_pet20 > 0.5 && minprec_pet20 <= 1.0 && maxprec_pet20 > 0.5 && maxprec_pet20 <= 1.0)
+		climate.prec_seasonality_lastyear = INTERMEDIATE;			// 3
+	else if (minprec_pet20 > 1.0 && maxprec_pet20 > 1.0)
+		climate.prec_seasonality_lastyear = WET;					// 5
+	else if (minprec_pet20 > 0.5 && minprec_pet20 <= 1.0 && maxprec_pet20 > 1.0)
+		climate.prec_seasonality_lastyear = INTERMEDIATE_WET;		// 4
+	else
+		dprintf("Problem with calculating precipitation seasonality !\n");
+
+	if (climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 <= 0.5)			//Average of extremes
+		climate.prec_range_lastyear = DRY;							//0
+	else if (climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 > 0.5 && climate.mprec_petmax20 <= 1.0)
+		climate.prec_range_lastyear = DRY_INTERMEDIATE;				//1
+	else if (climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 > 1.0)
+		climate.prec_range_lastyear = DRY_WET;						//2
+	else if (climate.mprec_petmin20 > 0.5 && climate.mprec_petmin20 <= 1.0 && climate.mprec_petmax20 > 0.5 && climate.mprec_petmax20 <= 1.0)
+		climate.prec_range_lastyear = INTERMEDIATE;					//3
+	else if (climate.mprec_petmin20 > 1.0 && climate.mprec_petmax20 > 1.0)
+		climate.prec_range_lastyear = WET;							//5
+	else if (climate.mprec_petmin20 > 0.5 && climate.mprec_petmin20 <= 1.0 && climate.mprec_petmax20 > 1.0)
+		climate.prec_range_lastyear = INTERMEDIATE_WET;				//4
+	else
+		dprintf("Problem with calculating precipitation range !\n");
+
+	if (climate.mtemp_max20 <= 10)
+		climate.temp_seasonality_lastyear = COLD;					//0
+	else if (climate.mtemp_min20 <= 10 && climate.mtemp_max20 > 10 && climate.mtemp_max20 <= 30)
+		climate.temp_seasonality_lastyear = COLD_WARM;				//1
+	else if (climate.mtemp_min20 <= 10 && climate.mtemp_max20 > 30)
+		climate.temp_seasonality_lastyear = COLD_HOT;				//2
+	else if (climate.mtemp_min20 > 10 && climate.mtemp_max20 <= 30)
+		climate.temp_seasonality_lastyear = WARM;					//3
+	else if (climate.mtemp_min20 > 30)
+		climate.temp_seasonality_lastyear = HOT;					//5
+	else if (climate.mtemp_min20 > 10 && climate.mtemp_max20 > 30)
+		climate.temp_seasonality_lastyear = WARM_HOT;				//4
+	else
+		dprintf("Problem with calculating temperature seasonality !\n");
+}
+
+/// Calculates climate seasonality
+void update_seasonality(Climate& climate) {
+
+	climate.seasonality = climate.seasonality_lastyear;
+	climate.temp_seasonality = climate.temp_seasonality_lastyear;
+	climate.prec_seasonality = climate.prec_seasonality_lastyear;
+	climate.prec_range = climate.prec_range_lastyear;
+}
+
+/// Calculates climate seasonality
+void climate_seasonality(Gridcell& gridcell) {
+
+	if(date.islastmonth && date.islastday) {
+		// Update various climate 20-year means
+		calc_m_climate_20y_mean(gridcell.climate);
+		// Determines climate seasonality of gridcell
+		calc_seasonality(gridcell);
+	}
+
+	if(date.day == gridcell.climate.testday_temp) {	// June 30(180) in the north, December 31(364) in the south
+		update_seasonality(gridcell.climate);
+	}
+}
+
 /// Called each simulation day before any other driver or process functions
 /** All variables in Stand and objects contained therein that are reset here must also be initialised in the constructor.
  */
@@ -491,17 +702,17 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.anflux_clearing=0.0;
 		gridcell.landcover.anflux_clearing_orig=0.0;
 
-		gridcell.landcover.stem_harvest=0.0;
-		gridcell.landcover.stem_toprod=0.0;
-		gridcell.landcover.harv_killed_c=0.0;
-		gridcell.landcover.harv_tolitt=0.0;
+		gridcell.landcover.cmass_stem_harvest=0.0;
+		gridcell.landcover.cmass_stem_toprod=0.0;
+		gridcell.landcover.cmass_harv_killed=0.0;
+		gridcell.landcover.cmass_harv_tolitter=0.0;
 
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
 			gridcell.landcover.acflux_wood_harvest_lc[i]=0.0;
 			gridcell.landcover.acflux_clearing_lc[i]=0.0;
 			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
-			gridcell.landcover.cloned_c_lc[i]=0.0;
+			gridcell.landcover.acflux_cloned_lc[i]=0.0;
 			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
 			gridcell.landcover.anflux_wood_harvest_lc[i]=0.0;
 			gridcell.landcover.anflux_clearing_lc[i]=0.0;
@@ -541,7 +752,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				for(unsigned int i=0;i<pftlist.nobj;i++) {
 					Patchpft& patchpft = patch.pft[i];
-					patchpft.cmass_killed_harv = 0.0;
+					patchpft.cmass_harv_killed = 0.0;
 					patchpft.cmass_harv_tolitter = 0.0;
 					patchpft.cmass_wood_harv = 0.0;
 					patchpft.cmass_wood_harv_toprod = 0.0;
@@ -559,6 +770,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
 				patch.distributed_cutting = false;
+				patch.cutinterval_actual_thisyear = 0;
 
 				Vegetation& vegetation = patch.vegetation;
 				vegetation.firstobj();
@@ -682,6 +894,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 }
 
 void dailyaccounting_stand(Stand& stand) {
+
+	//  Variables used for output from separate stands
+	stand.anpp = 0.0;
+	stand.lai = 0.0;
+	stand.cmass = 0.0;
+	stand.cmass_wood = 0.0;
+	stand.cmass_wood_harv = 0.0;
+	stand.cmass_mort = 0.0;
 }
 
 /// Manages C and N fluxes from slow harvest pools
@@ -699,13 +919,13 @@ void dailyaccounting_patch_lc(Patch& patch) {
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 
-		lc.acflux_harvest_slow += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow = ppft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+		lc.acflux_harvest_slow += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.cmass_harvested_products_slow = ppft.cmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
-		lc.anflux_harvest_slow += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow_nmass = ppft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+		lc.anflux_harvest_slow += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.nmass_harvested_products_slow = ppft.nmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 		pftlist.nextobj();
 	}
@@ -745,11 +965,24 @@ void dailyaccounting_patch(Patch& patch) {
 			patchpft.cmass_mort = 0.0;
 			patchpft.cmass_fire = 0.0;
 			patchpft.cmass_dist = 0.0;
-			patchpft.cmass_turnover = 0.0;
+			patchpft.cmass_leaf_root_turnover = 0.0;
 			patchpft.cmass_repr = 0.0;
 			patchpft.cmass_est = 0.0;
 			if(patch.age == 1) {
 				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
+			}
+
+			// Reset month phen and set driest month for RAINGREENS
+			double phen_min = 1.0;
+			patchpft.driest_mth = 0;
+			for (int mth = 0; mth < 12; mth++) {
+				if (patchpft.pft.phenology == RAINGREEN) {
+					if (patchpft.mphen[mth] < phen_min) {
+						phen_min = patchpft.mphen[mth];
+						patchpft.driest_mth = mth;
+					}
+				}
+				patchpft.mphen[mth] = 0.0;
 			}
 		}
 	}
@@ -1130,6 +1363,21 @@ void daylengthinsoleet(Climate& climate) {
 	else hn=acos(-uu / vv); // Eqn 25
 	// Calculate total EET (equilibrium evapotranspiration) for this day, mm/day
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
+}
+
+/// ADJUSTING LOCAL TEMPERATURE BY ELEVATION
+/** To be called each simulation day following update of daily air temperature
+ *  and before canopy exchange processes. May be called from climate input module getclimate()
+ *  if only one local climate is simulated (pending code update).
+ */
+double get_local_temp(double gridcell_temp, double gridcell_elevation, double local_elevation) {
+
+	double local_temp = gridcell_temp;
+
+	if(local_elevation)
+		local_temp = gridcell_temp - (local_elevation - gridcell_elevation) * 6.49 / 1000;
+
+	return local_temp;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

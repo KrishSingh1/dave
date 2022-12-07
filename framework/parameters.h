@@ -210,10 +210,10 @@ extern bool no_barren_frac_corr;
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 
-/// If a slow harvested product pool is included in patchpft.
+/// Whether a fraction of harvested wood is put into a product pool
 extern bool ifslowharvestpool;
 
-/// If grass is allowed to grow between crop growingseasons
+/// Whether grass is allowed to grow between crop growingseasons
 extern bool ifintercropgrass;
 
 /// Whether to calculate dynamic potential heat units
@@ -288,23 +288,20 @@ extern bool readdisturbance_st;
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 
+/// Whether to read stand type elevation from input file
+extern bool readelevation_st;
+
+/// Whether to read firstmanageyear for stand types from input file
+extern bool readfirstmanageyear_st;
+
+// Whether to read target-cutting distribution for selection in mt from input file
+extern bool readtargetcutting;
+
 /// Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)
 extern bool harvest_burn_thin_trees;
 
 /// Whether to print multiple stands within a stand type (except cropland) separately
 extern bool printseparatestands;
-extern bool print_anpp_stand;
-extern bool print_lai_stand;
-extern bool print_cmass_stand;
-extern bool print_cmass_wood_stand;
-extern bool print_cmass_wood_harv_stand;
-extern bool print_cmass_mort_stand;
-extern bool print_height_stand;
-extern bool print_diam_stand;
-extern bool print_dens_stand;
-extern bool print_agestruct_stand;
-extern bool print_diamstruct_stand;
-extern bool print_diamstruct_cmass_stand;
 
 /// Whether to simulate tillage by increasing soil respiration
 extern bool iftillage;

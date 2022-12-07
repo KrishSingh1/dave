@@ -191,9 +191,9 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
-		trans_litter_leaf  += patchpft.litter_leaf;
-		trans_litter_sap   += patchpft.litter_sap;
-		trans_litter_heart += patchpft.litter_heart;
+		trans_litter_leaf  += patchpft.cmass_litter_leaf;
+		trans_litter_sap   += patchpft.cmass_litter_sap;
+		trans_litter_heart += patchpft.cmass_litter_heart;
 		patch.pft.nextobj();
 	}
 
@@ -493,6 +493,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 bool blaze(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
+	ManagementType& mt = patch.stand.get_current_management();
 	
 	// Flammable area witin gridcell
 	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[NATURAL];
@@ -629,7 +630,7 @@ bool blaze(Patch& patch, Climate& climate) {
 			else {
 				// TREE PFT
 
-				if (ifstochmort) {
+				if (ifstochmort && mt.stochmort) {
 					/* Impose stochastic mortality.
 					 * Each individual in cohort dies with probability 'mort_fire'
 					 * Number of individuals represented by 'indiv'
@@ -691,15 +692,15 @@ bool blaze(Patch& patch, Climate& climate) {
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
 		
-		double lton = lignin_to_n_ratio(patchpft.litter_leaf, patchpft.nmass_litter_leaf,
+		double lton = lignin_to_n_ratio(patchpft.cmass_litter_leaf, patchpft.nmass_litter_leaf,
 						LIGCFRAC_LEAF, patchpft.pft.cton_leaf_avr);
 		double fm_leaf = metabolic_litter_fraction(lton); 
 		
 		// Carbon transitional litter fluxes
-		double cmtb2atm = fab * patch.litf_to_atm * patchpft.litter_leaf * fm_leaf;
-		double cstr2atm = fab * patch.litf_to_atm * patchpft.litter_leaf * (1.-fm_leaf);
-		double cfwd2atm = fab * patch.lfwd_to_atm * patchpft.litter_sap;
-		double ccwd2atm = fab * patch.lcwd_to_atm * patchpft.litter_heart;
+		double cmtb2atm = fab * patch.litf_to_atm * patchpft.cmass_litter_leaf * fm_leaf;
+		double cstr2atm = fab * patch.litf_to_atm * patchpft.cmass_litter_leaf * (1.-fm_leaf);
+		double cfwd2atm = fab * patch.lfwd_to_atm * patchpft.cmass_litter_sap;
+		double ccwd2atm = fab * patch.lcwd_to_atm * patchpft.cmass_litter_heart;
 
 		// Nitrogen transitional litter fluxes
 		double nmtb2atm = fab * patch.litf_to_atm * patchpft.nmass_litter_leaf * fm_leaf;
@@ -709,9 +710,9 @@ bool blaze(Patch& patch, Climate& climate) {
 		
 		// Update transitional rest-of-year litter pools
 		// Carbon
-		patchpft.litter_leaf             -= (cmtb2atm + cstr2atm);
-		patchpft.litter_sap              -= cfwd2atm;
-		patchpft.litter_heart            -= ccwd2atm;
+		patchpft.cmass_litter_leaf             -= (cmtb2atm + cstr2atm);
+		patchpft.cmass_litter_sap              -= cfwd2atm;
+		patchpft.cmass_litter_heart            -= ccwd2atm;
 		// Nitrogen
 		patchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
 		patchpft.nmass_litter_sap        -= nfwd2atm; 
@@ -813,7 +814,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Compute mass per area fluxes from live pools
 
 	Patchpft& ppft = patchpft();
-	double lton = lignin_to_n_ratio(ppft.litter_leaf, ppft.nmass_litter_leaf, LIGCFRAC_LEAF, 
+	double lton = lignin_to_n_ratio(ppft.cmass_litter_leaf, ppft.nmass_litter_leaf, LIGCFRAC_LEAF,
 					ppft.pft.cton_leaf_avr);
 
 
@@ -855,7 +856,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 
 	// Root litter lignin:N ratio
-	lton = lignin_to_n_ratio(ppft.litter_root, ppft.nmass_litter_root, LIGCFRAC_ROOT, 
+	lton = lignin_to_n_ratio(ppft.cmass_litter_root, ppft.nmass_litter_root, LIGCFRAC_ROOT,
 					ppft.pft.cton_root_avr);
 
 	// Metabolic litter fraction for root 

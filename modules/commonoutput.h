@@ -33,7 +33,7 @@ public:
 
 	void outdaily(Gridcell& gridcell);
 
-	void openlocalfiles(Gridcell& gridcell) {};
+	void openlocalfiles(Gridcell& gridcell, int coordinates_precision) {};
 
 	void closelocalfiles(Gridcell& gridcell) {};
 

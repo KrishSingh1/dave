@@ -8,7 +8,7 @@
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Input files
-!
+!///////////////////////////////////////////////////////////////////////////////////////
 
 param "file_lu"      (str "")
 param "file_grossLUC" (str "")
@@ -20,12 +20,13 @@ param "file_woodharv_frac"      (str "")
 param "file_woodharv_cmass"      (str "")
 param "file_Nfert_st" (str "")
 param "file_cutinterval_st" (str "")
+param "file_firstmanageyear_st" (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
-!
+!///////////////////////////////////////////////////////////////////////////////////////
 
-! Prefined yearly output
+! Predefined yearly output
 ! These files may be outcommented if their output is not required. 
 
 !file_cmass_cropland "cmass_cropland.out"
@@ -50,6 +51,11 @@ param "file_cutinterval_st" (str "")
 !file_speciesdiam_forest "diam_forest.out"
 !file_speciesheights_natural "height_natural.out"
 !file_speciesheights_forest "height_forest.out"
+
+!file_cmass_landscape "cmass_landscape.out"
+!file_cmass_landscape_forest "cmass_landscape_forest.out"
+!file_anpp_landscape "anpp_landscape.out"
+!file_anpp_landscape_forest "anpp_landscape_forest.out"
 
 !file_cflux_cropland "cflux_cropland.out"
 !file_cflux_pasture "cflux_pasture.out"
@@ -76,13 +82,14 @@ param "file_cutinterval_st" (str "")
 !file_cmass_sts "cmass_sts.out"
 !file_cmass_tree_sts "cmass_tree_sts.out"
 !file_cmass_tree_mort_sts "cmass_tree_mort_sts.out"
-!file_cmass_killed_harv_sts "cmass_killed_harv_sts.out"
+!file_cmass_harv_killed_sts "cmass_harv_killed_sts.out"
 !file_cmass_wood_sts "cmass_wood_sts.out"
 !file_cmass_wood_harv_sts "cmass_wood_harv_sts.out"
 !file_cmass_wood_harv_toprod_sts "cmass_wood_harv_toprod_sts.out"
 !file_dens_sts "dens_sts.out"
 !file_diam_g_sts "diam_g_sts.out"
 !file_cutinterval_sts "cutinterval_sts.out"
+!file_cutinterval_thisyear_sts "cutinterval_thisyear_sts.out"
 !file_csoil_sts "csoil_sts.out"
 !file_clitter_sts "clitter_sts.out"
 !file_csink_sts "csink_sts.out"
@@ -94,7 +101,7 @@ param "file_cutinterval_st" (str "")
 !file_diamstruct_cmass_natural "diamstruct_cmass_natural.out"
 !file_diamstruct_cmass_forest "diamstruct_cmass_forest.out"
 
-!file_forest_cmass_killed_harv "forest_cmass_killed_harv.out"
+!file_forest_cmass_harv_killed "forest_cmass_harv_killed.out"
 
 !file_forest_vegc "forest_vegc.out"
 !file_forest_cflux_veg "forest_cflux_veg.out"
@@ -109,28 +116,26 @@ param "file_cutinterval_st" (str "")
 
 printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
 
-print_anpp_stand 0
-print_lai_stand 1
-print_cmass_stand 1
-print_cmass_mort_stand 0
-print_cmass_wood_stand 0
-print_cmass_wood_harv_stand 0
-print_height_stand 0
-print_diam_stand 0
-print_dens_stand 0
-print_agestruct_stand 0
-print_diamstruct_stand 0
-print_diamstruct_cmass_stand 0
+!print_anpp_stand 0
+!print_lai_stand 1
+!print_cmass_stand 1
+!print_cmass_mort_stand 0
+!print_cmass_wood_stand 0
+!print_cmass_wood_harv_stand 0
+!print_height_stand 0
+!print_diam_stand 0
+!print_dens_stand 0
+!print_agestruct_stand 0
+!print_diamstruct_stand 0
+!print_diamstruct_cmass_stand 0
 
 printstandtypes 0
-print_cmass_pft_st 1
-print_diamstruct_cmass_st 1
+!print_cmass_pft_st 1
+!print_diamstruct_cmass_st 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
-!// RUN PARAMETERS AND OPTIONS 
-!
-
-!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!
+!// PANDCOVER PARAMETERS
+!///////////////////////////////////////////////////////////////////////////////////////
 
 npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
 reduce_all_stands 0			! Whether to reduce equal percentage of all stands of a stand type at land cover change
@@ -160,6 +165,7 @@ harvest_burn_thin_trees 0
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR MANAGEMENT TYPES
+!///////////////////////////////////////////////////////////////////////////////////////
 
 group "crop_management" (
 
@@ -168,6 +174,7 @@ group "crop_management" (
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
+!///////////////////////////////////////////////////////////////////////////////////////
 
 group "crop_stand" (
 
@@ -175,7 +182,7 @@ group "crop_stand" (
 	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
 	planting_system "monoculture"
 	hydrology "rainfed"
-	tillage_int 1
+	tillage_fact 2.0
 )
 
 st "Urban" (
@@ -199,6 +206,13 @@ st "Pasture" (
 	landcover "pasture"
 )
 
+st "Barren" (
+
+	common_stand
+	stinclude 1
+	landcover "barren"
+)
+
 st "Forest" (
 
 	common_stand
@@ -212,73 +226,10 @@ st "Forest" (
 	res_outtake_coarse_root_thin 0
 )
 
-
-! Example forestry stand types using functional tree pft classes and automated harvest methods
-
-group "st_man" (
-
-	landcover "forest"
-	naturalveg "all"
-	reestab "restricted"
-)
-
-group "mt_man" (
-	suppress_fire 1
-	suppress_disturbance 1
-	harvest_system "clearcut"
-	ifclearcut_by_density 1
-	ifthin_reineke 1
-	stochmort 0
-	res_outtake_twig_thin 0.4
-	res_outtake_coarse_root_thin 0
-	res_outtake_twig_cc 0.6
-	res_outtake_coarse_root_cc 0.1
-)
-
-st "ForestNE" (
-
-	st_man
-	stinclude 0
-	mt_man
-	planting_system "NEEDLELEAF_EVERGREEN"
-)
-
-st "ForestND" (
-
-	st_man
-	stinclude 0
-	mt_man
-	planting_system "NEEDLELEAF_DECIDUOUS"
-)
-
-st "ForestBE" (
-
-	st_man
-	stinclude 0
-	mt_man
-	planting_system "BROADLEAF_EVERGREEN"
-)
-
-st "ForestBD" (
-
-	st_man
-	stinclude 0
-	mt_man
-	planting_system "BROADLEAF_DECIDUOUS"
-)
-
-st "Barren" (
-
-	common_stand
-	stinclude 1
-	landcover "barren"
-)
-
-
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
-
+!///////////////////////////////////////////////////////////////////////////////////////
 
 pft "C3G_pas" (
 	C3G

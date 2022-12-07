@@ -13,50 +13,71 @@ struct Harvest_CN;
 
 /// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool isintercropgrass);
+
 /// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grs);
+
 /// Sets forest management for all stands this year
 void manage_forests(Gridcell& gridcell);
+
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
-void set_forest(Gridcell& gridcell);
+void set_forest_pft_structure(Gridcell& gridcell);
+
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Harvest_CN& indiv_cp, double height,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+void harvest_wood(Harvest_CN& indiv_cp, double diam,Pft& pft, bool alive, double frac_cut, double harv_eff,
+				  double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool lc_change = false);
+void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0,
+				  double res_outtake_coarse_root = 0.0, bool lc_change = false);
+
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
+
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change = false);
+
 /// Harvest function for managed forest
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
+
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
+
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Individual& indiv, bool burn = false, bool lc_change = false);
-/// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased their area fraction this year.
+
+/// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased area fraction this year.
 void scale_indiv(Individual& indiv, bool scale_grsC);
+
 /// Yearly function for harvest of all land covers. Should only be called from growth()
-bool harvest_year(Individual& indiv, double anpp);
+bool harvest_year(Individual& indiv);
+
 /// Yield function for true crops and intercrop grass
 void yield_crop(Individual& indiv);
+
 /// Yield function for pasture grass grown in cropland landcover
 void yield_pasture(Individual& indiv, double cmass_leaf_inc);
+
 /// Determines amount of nitrogen applied today
 void nfert(Patch& patch);
+
 /// Updates crop rotation status
 void crop_rotation(Stand& stand);
+
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
+
 /// Sets forest management for patch this year
-double manage_forest(Patch& patch);
+void manage_forest(Patch& patch);
+
 // Returns harvestable cmass for individual
 double check_harvest_cmass(Individual& indiv, bool stem_cmass_only = false, bool to_product_pool = false);
+
 // Returns harvestable cmass for patch
 double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool check_selection = false);
+
 // Returns harvestable cmass for stand
 double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
-/// Help function that splits string into "words"
-int split_string(char* str);
 
 /// Class for ranking stands by harvestable cmass etc.
 class Rank_stands {
@@ -190,10 +211,7 @@ public:
 		diam_vect.reserve(patch.vegetation.nobj);
 		for(unsigned int i=0;i<patch.vegetation.nobj;i++) {
 			Individual& indiv = patch.vegetation[i];
-			double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-			if(!indiv.height)
-				diam = 0.0;
-			diam_vect.push_back(diam);
+			diam_vect.push_back(indiv.diam);
 		}
 		// Make sure sort_vect is filled
 		sort_diameter();
@@ -231,36 +249,38 @@ struct Harvest_CN {
 	double nstore_labile;
 	double max_n_storage;
 
-	double litter_leaf;
-	double litter_root;
-	double litter_sap;
-	double litter_heart;
+	double cmass_litter_leaf;
+	double cmass_litter_root;
+	double cmass_litter_sap;
+	double cmass_litter_heart;
 	double nmass_litter_leaf;
 	double nmass_litter_root;
 	double nmass_litter_sap;
 	double nmass_litter_heart;
 	double acflux_harvest;
 	double anflux_harvest;
-	double harvested_products_slow;		// May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
-	double harvested_products_slow_nmass;
-	// Partly overlapping with acflux_harvest; not to be included in copy functions.
-	double acflux_harvest_wood;
+	double cmass_harvested_products_slow; // May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
+	double nmass_harvested_products_slow;
+
+	// The following members are partly overlapping with acflux_harvest; not to be included in balance check functions.
+	double acflux_harvest_wood;			// Harvested wood including wood fraction oxidised the same year (1-harvest_slow_frac)
 	double acflux_harvest_wood_toprod;	// Always zero before harvest
 	double acflux_harvest_tolitter;
-	double acflux_harvest_killed;
 
 	Harvest_CN() {
 
-		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem = cmass_dead_leaf = debt_excess = 0.0;
-		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm = nstore_labile = max_n_storage = 0.0;
-		litter_leaf = litter_root = litter_sap = litter_heart = 0.0;
+		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem 
+			= cmass_dead_leaf = debt_excess = 0.0;
+		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm 
+			= nstore_labile = max_n_storage = 0.0;
+		cmass_litter_leaf = cmass_litter_root = cmass_litter_sap = cmass_litter_heart = 0.0;
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
-		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = acflux_harvest_killed = 0.0;
+		cmass_harvested_products_slow = nmass_harvested_products_slow = 0.0;
+		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
 	}
 
-	/// Copies C and N values from individual and patchpft tp struct.
+	/// Copies C and N values from individual and patchpft to struct.
 	void copy_from_indiv(Individual& indiv, bool copy_grsC = false, bool copy_dead_C = true) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -292,8 +312,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				cmass_ho = indiv.cropindiv->cmass_ho;
 				cmass_agpool = indiv.cropindiv->cmass_agpool;
-//				cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
-//				cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
+				// cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
+				// cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 			}
 		}
 
@@ -314,10 +334,10 @@ struct Harvest_CN {
 
 		if(copy_dead_C) {
 
-			litter_leaf = ppft.litter_leaf;
-			litter_root = ppft.litter_root;
-			litter_sap = ppft.litter_sap;
-			litter_heart = ppft.litter_heart;
+			cmass_litter_leaf = ppft.cmass_litter_leaf;
+			cmass_litter_root = ppft.cmass_litter_root;
+			cmass_litter_sap = ppft.cmass_litter_sap;
+			cmass_litter_heart = ppft.cmass_litter_heart;
 
 			nmass_litter_leaf = ppft.nmass_litter_leaf;
 			nmass_litter_root = ppft.nmass_litter_root;
@@ -325,12 +345,14 @@ struct Harvest_CN {
 			nmass_litter_heart = ppft.nmass_litter_heart;
 
 			// acflux_harvest and anflux_harvest only for output
-			harvested_products_slow = ppft.harvested_products_slow;
-			harvested_products_slow_nmass = ppft.harvested_products_slow_nmass;
+			cmass_harvested_products_slow = ppft.cmass_harvested_products_slow;
+			nmass_harvested_products_slow = ppft.nmass_harvested_products_slow;
 		}
 	}
 
-	/// Copies C and N values from struct to individual, patchpft and patch (fluxes). Use only after a call to copy_from_indiv() before harvest function.
+	/// Copies C and N values from struct to individual and patchpft living and dead C and N pools. Fluxes are added to patch and patchpft variables.
+	/** Use only after a call to copy_from_indiv() before harvest function.
+	*/
 	void copy_to_indiv(Individual& indiv, bool copy_grsC = false, bool lc_change = false) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -359,8 +381,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;
 				indiv.cropindiv->cmass_agpool = cmass_agpool;
-//				indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
-//				indiv.cropindiv->grs_cmass_stem = cmass_stem;
+				// indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
+				// indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
 		}
 
@@ -378,29 +400,29 @@ struct Harvest_CN {
 			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
 		}
 
-		ppft.litter_leaf = litter_leaf;
-		ppft.litter_root = litter_root;
-		ppft.litter_sap = litter_sap;
-		ppft.litter_heart = litter_heart;
+		ppft.cmass_litter_leaf = cmass_litter_leaf;
+		ppft.cmass_litter_root = cmass_litter_root;
+		ppft.cmass_litter_sap = cmass_litter_sap;
+		ppft.cmass_litter_heart = cmass_litter_heart;
 		ppft.nmass_litter_leaf = nmass_litter_leaf;
 		ppft.nmass_litter_root = nmass_litter_root;
 		ppft.nmass_litter_sap = nmass_litter_sap;
 		ppft.nmass_litter_heart = nmass_litter_heart;
 
 		if(!lc_change) {
-			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at land use change
-			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at land use change
+			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at lcc
+			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at lcc
 		}
 
 		ppft.cmass_wood_harv += acflux_harvest_wood;
 		ppft.cmass_wood_harv_toprod += acflux_harvest_wood_toprod;
 		ppft.cmass_harv_tolitter += acflux_harvest_tolitter;
 	
-//		indiv.report_flux(Fluxes::NPP, debt_excess);
-//		indiv.report_flux(Fluxes::RA, -debt_excess);
+		// indiv.report_flux(Fluxes::NPP, debt_excess);
+		// indiv.report_flux(Fluxes::RA, -debt_excess);
 
-		ppft.harvested_products_slow = harvested_products_slow;
-		ppft.harvested_products_slow_nmass = harvested_products_slow_nmass;
+		ppft.cmass_harvested_products_slow = cmass_harvested_products_slow;
+		ppft.nmass_harvested_products_slow = nmass_harvested_products_slow;
 	}
 };
 

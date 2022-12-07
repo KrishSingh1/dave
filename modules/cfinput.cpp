@@ -494,7 +494,7 @@ void CFInput::init() {
 
 	current_gridcell = gridlist.begin();
 
-	// Open landcover files
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
@@ -535,10 +535,15 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		return false;
 	}
 
-	if(readdisturbance || readdisturbance_st) {
-		misc_input.loaddisturbance(lon, lat);
+	if(readdisturbance || readdisturbance_st || readelevation_st) {
 		// Not all gridcells have to be included in input file
+		misc_input.loaddisturbance(lon, lat);
+		misc_input.loadelevation(lon, lat);
 	}
+
+//	gridcell.climate.mean_elevation = elevation;		// Get elevation from cru_ncep
+//	if(readelevation_st)
+//		dprintf("Mean elevation = %d\n", elevation);
 
 	if (run_landcover) {
 		bool LUerror = false;

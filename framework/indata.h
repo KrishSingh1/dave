@@ -35,7 +35,8 @@ struct Coord {
 	xtring descrip;
 };
 
-namespace InData {
+/// Classes for text input data (used e.g. for landcover input)
+namespace TextInput {
 
 const int MAXLINE = 40000;
 const int MAXNAMESIZE = 50;
@@ -98,6 +99,8 @@ class TimeDataD	{
 	bool loaded;
 	/// Whether data sums up to 1.0
 	bool unity_data;
+	// Precision of data in input file (number of decimals)
+	int precision;
 
 	/// Pointer to memory copy of all data for the gridlist
 	TimeDataDmem *memory_copy;
@@ -114,6 +117,7 @@ class TimeDataD	{
 	void ParseNCells();
 	double ParseSpatialResolution();			//Called from Open()
 	bool ParseNormalisation();
+	void ParsePrecision();
 
 	/// Allocates memory for dynamic data structures
 	bool Allocate();							//Called from Open()
@@ -200,6 +204,7 @@ public:
 	double GetSpacialResolution() const {return spatial_resolution;}
 	double GetOffset() const { return offset;}
 	bool NormalisedData();
+	int GetPrecision() {return precision;}
 
 // Functions for finding out if data columns contain sensible data for a specified gridlist
 
@@ -281,6 +286,6 @@ public:
 	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 };
 
-} // namespace InData
+} // namespace TextInput
 
 #endif//INDATA_H

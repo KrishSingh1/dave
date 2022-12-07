@@ -45,9 +45,6 @@ static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
 static const double TAU_SOILFAST=33.0;
 static const double TAU_SOILSLOW=1000.0;
 
-static const double TILLAGE_FACTOR = 33.0 / 17.0;
-	// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
-
 static const double FASTFRAC=0.985;
 	// fraction of litter decomposition entering fast SOM pool
 static const double ATMFRAC=0.7;
@@ -98,7 +95,7 @@ void setconstants() {
 // used by som_dynamic_lpj()
 
 void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soilslow,
-	double& fr_litter,double& fr_soilfast,double& fr_soilslow, double tillage) {
+	double& fr_litter,double& fr_soilfast,double& fr_soilslow, double tillage_fact) {
 
 	// DESCRIPTION
 	// Calculation of fractional decay amounts for litter and fast and slow SOM
@@ -109,7 +106,9 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// gtemp_soil  = respiration temperature response incorporating damping of Q10
 	//               response due to temperature acclimation (Eqn 11, Lloyd & Taylor
 	//               1994)
-	// tillage	   = tillage intensity relative to TILLAGE_FACTOR
+	// tillage_fact	 = tillage factor scaling daily decay constant for fast SOM fraction (k_soilfast),
+					// default values: 1.0 for no-till soils, 2.0 for conventially tilled soils.
+					// Inverse of "tillage factor" in Chatskikh et al. 2009 (mean value 1 / 0.48).
 
 	// OUTPUT PARAMETERS
 	// k_soilfast  = adjusted daily decay constant for fast SOM fraction
@@ -136,8 +135,8 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 
 	k_soilfast=k_soilfast10*gtemp_soil*moist_response/(double)date.year_length();
 
-	double tillage_fact = (TILLAGE_FACTOR - 1.0) * tillage + 1.0;
-	k_soilfast *= tillage_fact; // Increased HR for crops (tillage)
+	// Increased HR for crops (tillage)
+	k_soilfast *= tillage_fact;
 
 	k_soilslow=k_soilslow10*gtemp_soil*moist_response/(double)date.year_length();
 
@@ -184,7 +183,7 @@ void equilsom_lpj(Soil& soil) {
 // To be called each simulation day for each modelled area or patch, following update
 // of soil temperature and soil water.
 
-void som_dynamics_lpj(Patch& patch, double tillage) {
+void som_dynamics_lpj(Patch& patch, double tillage_fact) {
 
 	// DESCRIPTION
 	// Calculation of soil decomposition and transfer of C between litter and soil
@@ -209,7 +208,7 @@ void som_dynamics_lpj(Patch& patch, double tillage) {
 	// temperature
 
 	decayrates(soil.get_soil_water_upper(),soil.gtemp,k_soilfast,k_soilslow,fr_litter,
-		fr_soilfast,fr_soilslow, tillage);
+		fr_soilfast,fr_soilslow, tillage_fact);
 
 	// From year soil.solvesom_begin, update running means for later solution
 	// (at year soil.solvesom_end) of equilibrium SOM pool sizes
@@ -234,17 +233,17 @@ void som_dynamics_lpj(Patch& patch, double tillage) {
 
 		// For this PFT ...
 
-		decomp_litter+=(patch.pft[p].litter_leaf+
-			patch.pft[p].litter_root+
-			patch.pft[p].litter_sap+
-			patch.pft[p].litter_heart+
-			patch.pft[p].litter_repr)*(1.0-fr_litter);
+		decomp_litter+=(patch.pft[p].cmass_litter_leaf+
+			patch.pft[p].cmass_litter_root+
+			patch.pft[p].cmass_litter_sap+
+			patch.pft[p].cmass_litter_heart+
+			patch.pft[p].cmass_litter_repr)*(1.0-fr_litter);
 
-		patch.pft[p].litter_leaf*=fr_litter;
-		patch.pft[p].litter_root*=fr_litter;
-		patch.pft[p].litter_sap*=fr_litter;
-		patch.pft[p].litter_heart*=fr_litter;
-		patch.pft[p].litter_repr*=fr_litter;
+		patch.pft[p].cmass_litter_leaf*=fr_litter;
+		patch.pft[p].cmass_litter_root*=fr_litter;
+		patch.pft[p].cmass_litter_sap*=fr_litter;
+		patch.pft[p].cmass_litter_heart*=fr_litter;
+		patch.pft[p].cmass_litter_repr*=fr_litter;
 	}
 
 	if (date.year>=soil.soiltype.solvesom_begin)
@@ -404,7 +403,7 @@ double moisture_modifier(double wfps) {
 /** Calculates CENTURY instantaneous decay rates given soil temperature,
  *  water content of upper soil layer
  */
-void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, double tillage) {
+void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, double tillage_fact) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -483,10 +482,8 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, double 
 				k *= texture_mod;
 		}
 
-		// // tillage = tillage intensity relative to TILLAGE_FACTOR
-		double tillage_fact = (TILLAGE_FACTOR - 1.0) * tillage + 1.0;
-
-		// Increased HR for crops (tillage)
+		// Increased HR for crops (tillage), default values: 1.0 for no-till soils, 2.0 for conventially tilled soils.
+		// tillage_fact is inverse of "tillage factor" in Chatskikh et al. 2009 (mean value 1 / 0.48).
 		if ((p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
 			k *= tillage_fact; 
 		}
@@ -548,9 +545,9 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
  *  \param ifequilsom Whether the function is called during calculation om SOM pool equilibrium,
  *                    \see equilsom(). During this stage, somfluxes shouldn't calculate decayrates
  *                    itself, and shouldn't produce output like fluxes etc.
- *  \param tillage	  tillage intensity relative to TILLAGE_FACTOR
+ *  \param tillage_fact	 tillage factor scaling daily decay constant for fast SOM fraction (k_soilfast)
  */
-void somfluxes(Patch& patch, bool ifequilsom, double tillage) {
+void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 
 	double respsum ;
 	double leachsum_cmass, leachsum_nmass;
@@ -587,7 +584,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no nitrogen limitation)
-		decayrates_century(soil, soil.get_soil_temp_25(), soil.get_soil_water_upper(), tillage);
+		decayrates_century(soil, soil.get_soil_temp_25(), soil.get_soil_water_upper(), tillage_fact);
 
 	}
 
@@ -866,16 +863,12 @@ double metabolic_litter_fraction(double lton) {
 }
 
 /// Transfers litter from growth, mortality and fire
-/** Called monthly to transfer last year's litter from vegetation
+/** Called daily to transfer last year's litter from vegetation
  *  (turnover, mortality and fire) to soil litter pools.
  *  Alternatively, with daily allocation and harvest/turnover,
  *  the litter produced a certain day.
  */
 void transfer_litter(Patch& patch) {
-
-	// First day of every month or other harvest/turnover day
-	if (!(date.dayofmonth == 0 || patch.is_litter_day))
-		return;
 
 	Soil& soil = patch.soil;
 
@@ -905,25 +898,52 @@ void transfer_litter(Patch& patch) {
 	double root_litter = 0.0;
 	double wood_litter = 0.0;
 
-	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6) || patch.is_litter_day;
-
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft=patch.pft.getobj();
 
-		// For stands with yearly growth, drop leaf and root litter on first day of the year for northern hemisphere
-		// and first day of the second half of the year for southern hemisphere.
+		// For stands with yearly growth, drop leaf and root litter on first month of the year for northern hemisphere
+		// and first month of the second half of the year for southern hemisphere for summergreen trees. For evergreens
+		// as a fraction every day and for raingreens on the drierst month from last year. 
 		// For stands with daily growth, harvest and/or turnover, do this when patch.is_litter_day is true.
-		if (drop_leaf_root_litter) {
 
-			// LEAF
+		double cmass_litter_leaf, nmass_litter_leaf;
+		double cmass_litter_root, nmass_litter_root;
 
-			leaf_litter += pft.litter_leaf;
+		double frac_lr = 0.0;
+		//  Is a litter day, drop all leaf litter (crop)
+		if (patch.is_litter_day) {
+			frac_lr = 1.0;
+		}
+		// For summergreens drop leaf litter over all days during Jan in NH and July SH
+		// and raingreens on the month with lowest phen
+		else if ((pft.pft.phenology == SUMMERGREEN && ((lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6))) ||
+			(pft.pft.phenology == RAINGREEN && date.month == pft.driest_mth)) {
+			frac_lr = 1.0 / (date.ndaymonth[date.month] - date.dayofmonth);
+		}
+		// Evergreens drops leaf litter every day
+		else if (pft.pft.phenology == EVERGREEN || pft.pft.phenology == ANY) {
+			frac_lr = 1.0 / (date.year_length() - date.day);
+		}
+
+		cmass_litter_leaf = pft.cmass_litter_leaf * frac_lr;
+		nmass_litter_leaf = pft.nmass_litter_leaf * frac_lr;
+		cmass_litter_root = pft.cmass_litter_root * frac_lr;
+		nmass_litter_root = pft.nmass_litter_root * frac_lr;
+
+		pft.cmass_litter_leaf -= cmass_litter_leaf;
+		pft.nmass_litter_leaf -= nmass_litter_leaf;
+		pft.cmass_litter_root -= cmass_litter_root;
+		pft.nmass_litter_root -= nmass_litter_root;
+
+		// LEAF
+
+		if (!negligible(cmass_litter_leaf) || !negligible(nmass_litter_leaf)) {
 
 			// Calculate inputs to surface structural and metabolic litter
 
 			// Leaf litter lignin:N ratio
-			double leaf_lton = lignin_to_n_ratio(pft.litter_leaf, pft.nmass_litter_leaf, LIGCFRAC_LEAF, pft.pft.cton_leaf_avr);
+			double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, LIGCFRAC_LEAF, pft.pft.cton_leaf_avr);
 
 			// Metabolic litter fraction for leaf litter
 			double fm = metabolic_litter_fraction(leaf_lton);
@@ -931,63 +951,64 @@ void transfer_litter(Patch& patch) {
 			ligcmass_old = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].ligcfrac;
 
 			// Add to pools
-			soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf       * (1.0 - fm);
-			soil.sompool[SURFSTRUCT].nmass += pft.nmass_litter_leaf * (1.0 - fm);
-			soil.sompool[SURFMETA].cmass   += pft.litter_leaf       * fm;
-			soil.sompool[SURFMETA].nmass   += pft.nmass_litter_leaf * fm;
+			soil.sompool[SURFSTRUCT].cmass += cmass_litter_leaf * (1.0 - fm);
+			soil.sompool[SURFSTRUCT].nmass += nmass_litter_leaf * (1.0 - fm);
+			soil.sompool[SURFMETA].cmass += cmass_litter_leaf * fm;
+			soil.sompool[SURFMETA].nmass += nmass_litter_leaf * fm;
 
 			// Save litter input for equilsom()
 			if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-				soil.litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), pft.nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
-				soil.litterSolveSOM.add_litter(pft.litter_leaf * fm, pft.nmass_litter_leaf * fm, SURFMETA);
+				soil.litterSolveSOM.add_litter(cmass_litter_leaf * (1.0 - fm), nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
+				soil.litterSolveSOM.add_litter(cmass_litter_leaf * fm, nmass_litter_leaf * fm, SURFMETA);
 			}
 
 			// Fire
-			if ( firemodel == GLOBFIRM ) {
+			if (firemodel == GLOBFIRM) {
 
-				litterme[SURFSTRUCT]   += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
-				fireresist[SURFSTRUCT] += pft.litter_leaf * (1.0 - fm) * pft.pft.fireresist;
-				
-				litterme[SURFMETA]     += pft.litter_leaf * fm * pft.pft.litterme;		
-				fireresist[SURFMETA]   += pft.litter_leaf * fm * pft.pft.fireresist;
+				litterme[SURFSTRUCT] += cmass_litter_leaf * (1.0 - fm) * pft.pft.litterme;
+				fireresist[SURFSTRUCT] += cmass_litter_leaf * (1.0 - fm) * pft.pft.fireresist;
+
+				litterme[SURFMETA] += cmass_litter_leaf * fm * pft.pft.litterme;
+				fireresist[SURFMETA] += cmass_litter_leaf * fm * pft.pft.fireresist;
 			}
 			// NB: reproduction litter cannot contain nitrogen!!
 
-			ligcmass_new = pft.litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
+			ligcmass_new = cmass_litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
 
 			if (negligible(soil.sompool[SURFSTRUCT].cmass)) {
 				soil.sompool[SURFSTRUCT].ligcfrac = 0.0;
 			}
 			else {
-				soil.sompool[SURFSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old)/
+				soil.sompool[SURFSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
 					soil.sompool[SURFSTRUCT].cmass;
 			}
+		}
 
-			// ROOT
+		// ROOT
 
-			root_litter += pft.litter_root;
+		if (!negligible(cmass_litter_root) || !negligible(nmass_litter_root)) {
 
 			// Calculate inputs to soil structural and metabolic litter
 
 			// Root litter lignin:N ratio
-			double root_lton = lignin_to_n_ratio(pft.litter_root, pft.nmass_litter_root, LIGCFRAC_ROOT, pft.pft.cton_root_avr);
+			double root_lton = lignin_to_n_ratio(cmass_litter_root, nmass_litter_root, LIGCFRAC_ROOT, pft.pft.cton_root_avr);
 
 			// Metabolic litter fraction for root litter
-			fm = metabolic_litter_fraction(root_lton);
+			double fm = metabolic_litter_fraction(root_lton);
 
-			ligcmass_new = pft.litter_root * (1.0 - fm) * LIGCFRAC_ROOT;
+			ligcmass_new = cmass_litter_root * (1.0 - fm) * LIGCFRAC_ROOT;
 			ligcmass_old = soil.sompool[SOILSTRUCT].cmass * soil.sompool[SOILSTRUCT].ligcfrac;
 
 			// Add to pools and update lignin fraction in structural pool
-			soil.sompool[SOILSTRUCT].cmass += pft.litter_root       * (1.0 - fm);
-			soil.sompool[SOILSTRUCT].nmass += pft.nmass_litter_root * (1.0 - fm);
-			soil.sompool[SOILMETA].cmass   += pft.litter_root       * fm;
-			soil.sompool[SOILMETA].nmass   += pft.nmass_litter_root * fm;
+			soil.sompool[SOILSTRUCT].cmass += cmass_litter_root * (1.0 - fm);
+			soil.sompool[SOILSTRUCT].nmass += nmass_litter_root * (1.0 - fm);
+			soil.sompool[SOILMETA].cmass   += cmass_litter_root * fm;
+			soil.sompool[SOILMETA].nmass   += nmass_litter_root * fm;
 
 			// Save litter input for equilsom()
 			if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-				soil.litterSolveSOM.add_litter(pft.litter_root * (1.0 - fm), pft.nmass_litter_root * (1.0 - fm), SOILSTRUCT);
-				soil.litterSolveSOM.add_litter(pft.litter_root * fm, pft.nmass_litter_root * fm, SOILMETA);
+				soil.litterSolveSOM.add_litter(cmass_litter_root * (1.0 - fm), nmass_litter_root * (1.0 - fm), SOILSTRUCT);
+				soil.litterSolveSOM.add_litter(cmass_litter_root * fm, nmass_litter_root * fm, SOILMETA);
 			}
 
 			if (negligible(soil.sompool[SOILSTRUCT].cmass)) {
@@ -997,115 +1018,91 @@ void transfer_litter(Patch& patch) {
 				soil.sompool[SOILSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
 					soil.sompool[SOILSTRUCT].cmass;
 			}
-
-			// Remove association with vegetation
-			pft.litter_leaf = 0.0;
-			pft.litter_root = 0.0;
-			pft.nmass_litter_leaf = 0.0;
-			pft.nmass_litter_root = 0.0;
 		}
 
 		// WOOD
 
-		if (pft.pft.lifeform == TREE && date.dayofmonth == 0) {
+		// Woody debris enters two woody litter pools as described in
+		// Kirschbaum and Paul (2002).
 
-			// Woody debris enters two woody litter pools as described in
-			// Kirschbaum and Paul (2002).
+		// Woody litter is dropped as a fraction every day
+		double frac = 1.0 / (date.year_length() - date.day);
+		double cmass_litter_sap = pft.cmass_litter_sap * frac;
+		double nmass_litter_sap = pft.nmass_litter_sap * frac;
+		double cmass_litter_heart = pft.cmass_litter_heart * frac;
+		double nmass_litter_heart = pft.nmass_litter_heart * frac;
 
-			// Monthly fraction of REMAINING last year's sapwood litter
-			// Get this month's litter = remaining_litter/remaining_months
-			// pft.litter_sap might be modified by sub annual burns and thus
-			// the litterfall needs to be adjusted monthly
-			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
-			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
-			pft.litter_sap         -= litter_sap;
-			pft.nmass_litter_sap   -= nmass_litter_sap;
+		pft.cmass_litter_sap -= cmass_litter_sap;
+		pft.nmass_litter_sap -= nmass_litter_sap;
+		pft.cmass_litter_heart -= cmass_litter_heart;
+		pft.nmass_litter_heart -= nmass_litter_heart;
 
+		// SAP WOOD
+
+		if (!negligible(cmass_litter_sap) || !negligible(nmass_litter_sap)) {
+
+			// Fine woody debris
+
+			ligcmass_new = cmass_litter_sap * LIGCFRAC_WOOD;
+			ligcmass_old = soil.sompool[SURFFWD].cmass * soil.sompool[SURFFWD].ligcfrac;
+
+			// Add to fine woody pool and update lignin fraction in pool
+			soil.sompool[SURFFWD].cmass += cmass_litter_sap;
 			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
-			if (!negligible(litter_sap)) {
-
-				// Fine woody debris
-
-				wood_litter += litter_sap;
-
-				assert(litter_sap >= EPS);
-				ligcmass_new = litter_sap * LIGCFRAC_WOOD;
-				ligcmass_old = soil.sompool[SURFFWD].cmass * soil.sompool[SURFFWD].ligcfrac;
-
-				// Add to structural pool and update lignin fraction in pool
-				soil.sompool[SURFFWD].cmass += litter_sap;
-
-				// Save litter input for equilsom()
-				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					soil.litterSolveSOM.add_litter(litter_sap, nmass_litter_sap, SURFFWD);
-				}
-
-				if (negligible(soil.sompool[SURFFWD].cmass)) {
-					soil.sompool[SURFFWD].ligcfrac = 0.0;
-				}
-				else {
-					double ligcfrac = (ligcmass_new + ligcmass_old) /
-						soil.sompool[SURFFWD].cmass;
-					soil.sompool[SURFFWD].ligcfrac = ligcfrac;
-				}
-
-				// Fire
-				if ( firemodel == GLOBFIRM ) {
-					litterme[SURFFWD]   += litter_sap * pft.pft.litterme;
-					fireresist[SURFFWD] += litter_sap * pft.pft.fireresist;
-				}
+			// Save litter input for equilsom()
+			if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
+				soil.litterSolveSOM.add_litter(cmass_litter_sap, nmass_litter_sap, SURFFWD);
 			}
 
-			// Monthly fraction of REMAINING last year's heartwood litter 
-			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
-			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
-			pft.litter_heart         -= litter_heart;
-			pft.nmass_litter_heart   -= nmass_litter_heart;
+			if (negligible(soil.sompool[SURFFWD].cmass)) {
+				soil.sompool[SURFFWD].ligcfrac = 0.0;
+			}
+			else {
+				double ligcfrac = (ligcmass_new + ligcmass_old) /
+					soil.sompool[SURFFWD].cmass;
+				soil.sompool[SURFFWD].ligcfrac = ligcfrac;
+			}
 
-			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
-
-			if (!negligible(litter_heart)) {
-
-				// Coarse woody debris
-
-				wood_litter += litter_heart;
-
-				assert(litter_heart >= EPS);
-				ligcmass_new = litter_heart * LIGCFRAC_WOOD;
-				ligcmass_old = soil.sompool[SURFCWD].cmass * soil.sompool[SURFCWD].ligcfrac;
-
-				// Add to structural pool and update lignin fraction in pool
-				soil.sompool[SURFCWD].cmass += litter_heart;
-
-				// Save litter input for equilsom()
-				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					soil.litterSolveSOM.add_litter(litter_heart, nmass_litter_heart, SURFCWD);
-				}
-
-				if (negligible(soil.sompool[SURFCWD].cmass)) {
-					soil.sompool[SURFCWD].ligcfrac = 0.0;
-				}
-				else {
-					double ligcfrac = (ligcmass_new + ligcmass_old) /
-						soil.sompool[SURFCWD].cmass;
-					soil.sompool[SURFCWD].ligcfrac = ligcfrac;
-				}
-
-				// Fire
-				if ( firemodel == GLOBFIRM ) {
-					litterme[SURFCWD]   += litter_heart * pft.pft.litterme;
-					fireresist[SURFCWD] += litter_heart * pft.pft.fireresist;
-				}
+			// Fire
+			if (firemodel == GLOBFIRM) {
+				litterme[SURFFWD] += cmass_litter_sap * pft.pft.litterme;
+				fireresist[SURFFWD] += cmass_litter_sap * pft.pft.fireresist;
 			}
 		}
 
-		// Remove association with vegetation
-		if (date.islastmonth) {
-			pft.litter_sap = 0.0;
-			pft.litter_heart = 0.0;
-			pft.nmass_litter_sap = 0.0;
-			pft.nmass_litter_heart = 0.0;
+		// HEART WOOD
+
+		if (!negligible(cmass_litter_heart) || !negligible(nmass_litter_heart)) {
+
+			// Coarse woody debris
+
+			ligcmass_new = cmass_litter_heart * LIGCFRAC_WOOD;
+			ligcmass_old = soil.sompool[SURFCWD].cmass * soil.sompool[SURFCWD].ligcfrac;
+
+			// Add to coarse woody pool and update lignin fraction in pool
+			soil.sompool[SURFCWD].cmass += cmass_litter_heart;
+			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
+
+			// Save litter input for equilsom()
+			if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
+				soil.litterSolveSOM.add_litter(cmass_litter_heart, nmass_litter_heart, SURFCWD);
+			}
+
+			if (negligible(soil.sompool[SURFCWD].cmass)) {
+				soil.sompool[SURFCWD].ligcfrac = 0.0;
+			}
+			else {
+				double ligcfrac = (ligcmass_new + ligcmass_old) /
+					soil.sompool[SURFCWD].cmass;
+				soil.sompool[SURFCWD].ligcfrac = ligcfrac;
+			}
+
+			// Fire
+			if (firemodel == GLOBFIRM) {
+				litterme[SURFCWD] += cmass_litter_heart * pft.pft.litterme;
+				fireresist[SURFCWD] += cmass_litter_heart * pft.pft.fireresist;
+			}
 		}
 
 		patch.pft.nextobj();
@@ -1470,7 +1467,7 @@ void equilsom(Soil& soil) {
  *  of soil temperature and soil water.
  *  Transfers litter, performes nitrogen uptake and addition, leaching and decomposition.
  */
-void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
+void som_dynamics_century(Patch& patch, Climate& climate, double tillage_fact) {
 
 	// Transfer litter to SOM pools
 	transfer_litter(patch);
@@ -1485,7 +1482,7 @@ void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
 	leaching(patch.soil);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
-	somfluxes(patch, false, tillage);
+	somfluxes(patch, false, tillage_fact);
 
 	// Nitrogen transformation in soil
 	ntransform(patch, climate);
@@ -1499,12 +1496,13 @@ void som_dynamics_century(Patch& patch, Climate& climate, double tillage) {
 */
 void som_dynamics(Patch& patch, Climate& climate) {
 
-	double tillage = iftillage && patch.stand.landcover == CROPLAND ? patch.stand.get_current_management().tillage_int : 0.0;
+	Stand& stand = patch.stand;
+	double tillage_fact = iftillage && stand.landcover == CROPLAND ? stand.get_current_management().tillage_fact : 1.0;
 	if (ifcentury) {
-		som_dynamics_century(patch, climate, tillage);
+		som_dynamics_century(patch, climate, tillage_fact);
 	}
 	else {
-		som_dynamics_lpj(patch, tillage);
+		som_dynamics_lpj(patch, tillage_fact);
 	}
 }
 

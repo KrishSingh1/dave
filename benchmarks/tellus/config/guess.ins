@@ -118,9 +118,11 @@ ifprimary_lc_transfer 1   ! Whether to use primary/secondary land transition inf
 ifprimary_to_secondary_transfer 0 ! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
                                   ! transfer input file (1). or not (0)
                                   ! 0 if running with wood harvest file_woodharv_frac, otherwise double counting
-!transfer_level 2          ! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 
+transfer_level 1          ! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+iftransfer_to_new_stand 1		! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 
+input_precision_force 9
 
 !///////////////////////////////////////////////////////////////////////////////////////
 

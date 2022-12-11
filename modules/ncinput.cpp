@@ -242,7 +242,7 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 }
 
 bool NCInput::getclimate(Gridcell& gridcell) {
-	try {
+try {
 	double getclimate_start = get_wall_time();
 
 	// Shorthand access to some variables.
@@ -374,10 +374,10 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 
 	// We have enough data to simulate another day.
 	return true;
-	} catch (const std::exception& e) {
-		fail(get_nested_error_msg(e));
-		return false; // To eliminate a compiler warning.
-	}
+} catch (const std::exception& e) {
+	fail(get_nested_error_msg(e));
+	return false; // To eliminate a compiler warning.
+}
 }
 
 void NCInput::getlandcover(Gridcell& gridcell) {

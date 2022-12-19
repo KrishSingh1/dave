@@ -535,7 +535,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
-
+		declareitem("ifnewphotosyn", &ifnewphotosyn, 1, CB_NONE, "Use new (DAVE) photosynthesis routine");
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);

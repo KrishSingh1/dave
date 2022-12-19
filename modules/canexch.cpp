@@ -2652,7 +2652,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anp = 0.5 * vcmax - Rd;
 
 				// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
-				An = min(Anc,Anj,Anp);
+				An = min(Anc,min(Anj,Anp));
 
 				// Stomatal conductance to CO2 (mol m-2 s-1)
 				gsc = g0 + An * X;

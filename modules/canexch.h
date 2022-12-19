@@ -29,6 +29,17 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					double vm,
 					PhotosynthesisResult& result);
 
+// Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
+double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS);
+
+// System of equations to solve coupled photosynthesis-stomatal conductance scheme.
+// Wang & Leuning 1998
+double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
+					   double gamstar, double Rd, double Ca);
+
+// Calculate electron transport rate from PAR
+// e.g. von Caemmerer 2013
+double electron_transport_rate(double PAR,double Jmax);
 
 /// Nitrogen- and landuse specific alpha a
 double alphaa(const Pft& pft);

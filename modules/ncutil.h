@@ -201,7 +201,18 @@ Get the nested error message for the given exception.
 */
 xtring get_nested_error_msg(const std::exception& e);
 
+/*
+Return current time (in μs since unix epoch).
+*/
 double get_wall_time();
+
+/*
+Attempt to create the specified directory tree (equivalent to mkdir -p). Will
+throw upon failure, but "directory already exists" is considered success.
+
+@param path: The directory tree to be created.
+*/
+void mkdir_p(const char *path);
 
 #endif // HAVE_NETCDF
 

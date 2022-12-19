@@ -955,7 +955,7 @@ void daylengthinsoleet(Climate& climate) {
 			climate.rads.resize(date.subdaily);
 			for (int i=0; i<date.subdaily; i++) {
 				climate.rads[i] = climate.insols[i] * net_coeff * averaging_period;
-				climate.pars[i] = climate.rads[i] * FRADPAR;
+				climate.pars[i] = climate.insols[i] * FRADPAR;
 			}
 		}
 

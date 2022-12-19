@@ -2554,6 +2554,267 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	patch.wdemand_day = 0;
 }
 
+
+// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022
+void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		double leaf_NtoP = 22.9; // from EucFACE -> to be moved to constants
+		double pmass_leaf = indiv.get_nmass_leaf() / leaf_NtoP;  // kgP m-2 
+
+		indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * 1000.0) + 0.197 * 
+										log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+		indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * 1000.0) + 0.112 * 
+										log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+
+		vegetation.nextobj();
+	}
+
+}
+
+
+// Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
+void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+    double par, temp, rad, vpd, ca;
+	double fpar, apar;
+	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
+	double Rm, Rs, Je, Vpmax, Vp, Kp, Vpr;
+	double Anc, Anj, Anp, Ag, An, gsc, ci;
+	double ci_diff, ci_diff_max, ci_new;
+	int    nit, nit_max;
+	
+	// Loop through cohorts (=individuals)
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		
+		// Retrieve information about cohort
+		Individual& indiv = vegetation.getobj();
+		Pft& pft = indiv.pft;
+
+		// get PFT-specfic parameters
+		g0 = pft.g0;  // mol m-2 s-1
+		g1 = pft.g1;  // kPa^0.5
+
+		// get FPAR for this individual
+		// TODO: replace with indiv.fpar.layer and move to layer loop!!!
+		fpar = indiv.fpar;
+
+		// Atmospheric CO2 concentration (mol mol-1)
+		// TODO: check if annual global means would make more sense 
+ 		ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
+
+		// Loop over time steps per day
+        for (Day day; day.period != date.subdaily; day.next()) {
+		
+			// get subdiurnal climate variables
+			par   = climate.pars[day.period];    // W m-2; 0.5 * climate.insols
+			temp  = climate.temps[day.period];   // degC
+			vpd   = climate.vpds[day.period];    // kPa	
+
+			// TODO here: loop over canopy layers
+			
+			// Stomatal term (Medlyn et al. 2011)
+			// X needs to represent gs for CO2, hence no 1.6 factor
+    		X = (1.0 + g1 / sqrt(max(vpd,0.1))) / ca; 
+
+          	if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
+					
+				// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
+				Ko      = Arrhenius_temp_response(KO25,temp,HA_KO,0.0,0.0);
+				Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
+				gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
+
+				// Temperature dependencies of Vcmax and Jmax
+				vcmax = Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+				jmax  = Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
+
+				// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
+				Rd = BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
+
+				// 1) Rubisco-limited gross photosynthesis
+				gamma = vcmax;
+				beta  = Kc * (1.0 + (PO2/1.0E5) / Ko);   // Note conversion O2 from Pa -> mol mol-1
+				Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+
+				// 2) RuBP regeneration-limited gross photosynthesis
+				apar  = fpar * par;   // 'available' PAR in this layer. TODO: check for double counting of absorption
+				Je    = electron_transport_rate(apar,jmax);   
+				gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
+				beta  = 2.0 * gamstar;
+				Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+
+				// 3) TPU-limited gross photosynthesis
+				// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
+				Anp = 0.5 * vcmax - Rd;
+
+				// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
+				An = min(Anc,Anj,Anp);
+
+				// Stomatal conductance to CO2 (mol m-2 s-1)
+				gsc = g0 + An * X;
+
+				// Re-calculate intercellular CO2 concentration (mol mol-1)
+				ci = ca - An / gsc;
+
+			}
+			else {  // C4 photosynthesis (von Caemmerer 2000)
+
+				//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
+				// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
+				Rd = BC4 * Vcmax25_C4;
+				Rm = 0.5 * Rd; // Rd in the mesophyll cells
+				Rs = Rd - Rm;  // Rd in the bundle-sheath cells
+
+				// Temperature dependency of Vcmax
+				// TODO: different temp dependency in C3 and C4 plants??
+				vcmax = Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
+				jmax  = Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
+
+				// Temperature dependency of Vpmax and Kp
+				Vpmax = Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
+				Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
+
+				// Iteration to find An, gs, and ci
+				ci = 0.5 * ca;
+				ci_diff_max = 0.5e-6; // mol mol-1
+				ci_diff = 2.0 * ci_diff_max;
+				nit = 0;
+				nit_max = 20;
+				while (abs(ci_diff) > ci_diff_max & nit < nit_max) {
+					// PEP carboxylation rate
+					// TODO: is Vpr a constant??
+					Vp = min((ci * Vpmax) / (ci + Kp),Vpr);
+
+					// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
+					Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
+
+					// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
+					apar  = fpar * par;  // TODO: calculate before loop 
+					Je = electron_transport_rate(apar,jmax);
+
+					// Light-limited net photosynthesis rate (mol m-2 s-1)
+					Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
+
+					// Net photosynthesis rate (mol m-2 s-1)
+					An = min(Anc,Anj);
+
+					// Stomatal conductance to CO2 (mol m-2 s-1)
+					gsc = g0 + An * X;
+
+					// Intercellular CO2 concentration (mol mol-1)
+					ci_new = ca - An / gsc;
+
+					ci_diff = ci - ci_new;
+					ci -= ci_diff / 2.0;
+					nit += 1;
+				}
+				ci = ci_new; 
+
+			}
+			// save key variables to PhotosynthesisSubdaily Structure
+			indiv.ps_subdaily.Rd[day.period]    = Rd;
+			indiv.ps_subdaily.An[day.period]    = An;
+			indiv.ps_subdaily.Anc[day.period]   = Anc;
+			indiv.ps_subdaily.Anj[day.period]   = Anj;
+			indiv.ps_subdaily.gsw[day.period]   = gsc * DWDC;
+			indiv.ps_subdaily.ci[day.period]    = ci;
+			indiv.ps_subdaily.vcmax[day.period] = vcmax;
+			indiv.ps_subdaily.jmax[day.period]  = jmax;
+
+			// sum up over the day
+			indiv.photosynthesis.agd_g += An + Rd;
+			indiv.photosynthesis.rd_g  += Rd;
+			indiv.photosynthesis.je    += indiv.ps_subdaily.Anj[day.period];
+
+		} // end subdaily loop
+
+		// Calculate daily means for the PhotosynthesisResult Structure that goes to ouput
+		indiv.photosynthesis.agd_g /= date.subdaily;
+		indiv.photosynthesis.rd_g  /= date.subdaily;
+		indiv.photosynthesis.je    /= date.subdaily;
+
+		// Convert units from molar to mass units and from seconds to day
+		indiv.photosynthesis.agd_g *= CMOL2G * SECS_PER_DAY;  // gC m-2 d-1
+		indiv.photosynthesis.rd_g *= CMOL2G * SECS_PER_DAY;   // gC m-2 d-1
+		// Give values all variables even they aren't used (yet)
+		indiv.photosynthesis.vm          = indiv.ps_subdaily.vcmax25 * UMOL_PER_MOL;  // umol m-2 s-1; not used
+		indiv.photosynthesis.adtmm       = 0.0;    // not used
+		indiv.photosynthesis.nactive_opt = 0.0;    // not used
+		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 
+
+		vegetation.nextobj();
+
+	} // end cohort loop
+}
+
+
+// System of equations to solve coupled photosynthesis-stomatal conductance scheme.
+// Wang & Leuning 1998
+double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
+					   double gamstar, double Rd, double Ca) {
+	
+	double b2, b1, b0, Ci, An;
+
+	b2 = g0 + X * (gamma - Rd);
+	b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
+	b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
+
+	Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
+	An = gamma * ((Ci - gamstar) / (Ci + beta)) - Rd;
+
+	return(An);  // net photosynthesis (mol m-2 s-1)
+
+}
+
+// Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
+double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS) {
+
+	/// Inputs
+	// k25 = process rate at 25 degC
+	// Tl  = leaf temperature (deg C)
+	// Ha  = activation energy (kJ mol-1)
+	// Hd  = deactivation energy (kJ mol-1)
+	// dS  = entropy term (J mol-1 K-1)
+	
+	// Define reference temperature and convert units
+	double Tref = 25.0 + K2degC; // Reference Temperature (25 degC in K)
+    Tl += K2degC;
+    Ha *= J_PER_KJ; 
+	Hd *= J_PER_KJ; 
+
+	double kTl = k25 * exp(Ha * (Tl - Tref)/(Tref * R_gas * Tl)) * 
+				      (1.0 + exp((Tref * dS - Hd)/(Tref * R_gas))) / 
+				      (1.0 + exp((Tl * dS - Hd)/(Tl * R_gas)));
+
+	return(kTl);  // process rate at leaf Temperature TKl
+}
+
+
+// Calculate electron transport rate from PAR
+// e.g. von Caemmerer 2013
+double electron_transport_rate(double PAR,double Jmax) {
+
+	/// Inputs
+	// PAR  = incident photosynthetically active radiation (W m-2) 
+    // Jmax = max. electron transport rate (mol m-2 s-1)
+
+	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
+	double alpha = 0.3; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
+						// value from Medlyn et al. 2002
+						// von Caemmerer 2013: ~0.36
+	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
+				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  
+
+	return(J);   // electron transport rate in mol (electrons) m-2 s-1
+
+}
+
+
+
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations
  *  of actual evapotranspiration (AET), canopy conductance, carbon assimilation
@@ -2584,23 +2845,36 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	// Canopy exchange processes
 	fpar(patch);
 
-	// Calculates no-stress daily values of photosynthesis and gpterm
-	photosynthesis_nostress(patch, climate);
 
-	// Nitrogen demand
-	ndemand(patch, vegetation);
+    if (ifnewphotosyn) {
 
-	// Nitrogen stress
-	vmax_nitrogen_stress(patch, climate, vegetation);
+		// Calculate photosynthetic capacity from leaf N
+		vcmax_from_N(patch, vegetation);
 
-	// Only these processes are affected in diurnal mode
-	for (Day day; day.period != date.subdaily; day.next()) {
+		// Calculate subdaily photosynthesis and stomatal conductance 
+		photosynthesis_gs(patch, climate, vegetation);
 
-		wdemand(patch, climate, vegetation, day);
-		aet_water_stress(patch, vegetation, day);
-		water_scalar(patch, vegetation, day);
-		npp(patch, climate, vegetation, day);
 	}
+	else {
+		// Calculates no-stress daily values of photosynthesis and gpterm
+		photosynthesis_nostress(patch, climate);
+
+		// Nitrogen demand
+		ndemand(patch, vegetation);
+
+		// Nitrogen stress
+		vmax_nitrogen_stress(patch, climate, vegetation);
+
+		// Only these processes are affected in diurnal mode
+		for (Day day; day.period != date.subdaily; day.next()) {
+
+			wdemand(patch, climate, vegetation, day);
+			aet_water_stress(patch, vegetation, day);
+			water_scalar(patch, vegetation, day);
+			npp(patch, climate, vegetation, day);
+		}
+	}
+
 	leaf_senescence(vegetation);
 
 	// Forest-floor conditions

@@ -262,6 +262,9 @@ extern bool ifbvoc;
 /// whether daily carbon allocation for grasses is turned on
 extern bool ifdailygrass;
 
+/// whether new (empirical) photosynthesis scheme is turned on
+extern bool ifnewphotosyn;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs
 

@@ -24,6 +24,7 @@
 #include "bvoc.h"
 #include "commonoutput.h"
 #include "soilmethane.h"
+#include "ncutil.h"
 
 #include <memory>
 
@@ -194,6 +195,8 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
+		// Create state_path if it doesn't already exist.
+		mkdir_p((const char *)state_path);
 		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 

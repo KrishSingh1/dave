@@ -53,6 +53,8 @@ NCInput::NCInput() {
 
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
 
+	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -68,6 +70,8 @@ NCInput::NCInput() {
 	, "Name of the precipitation variable in the NetCDF file");
 	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
 	, "Name of the co2 variable in the NetCDF file");
+	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
+	, "Name of the VPD variable in the NetCDF file");
 	declare_parameter("variable_tmax", &variable_tmax, NC_MAX_NAME
 	, "Name of the max temperature variable in the NetCDF file");
 	declare_parameter("variable_tmin", &variable_tmin, NC_MAX_NAME
@@ -120,12 +124,21 @@ void NCInput::init(void) {
 		std::vector<xtring> co2_units(1);
 		co2_units[0] = "ppm";
 
+		std::vector<xtring> vpd_units(1);
+		vpd_units[0] = "kPa";
+
 		// Create NCVariable objects for each variable of interest.
 		// This will also do some basic sanity checking.
 		temp = create_variable(variable_temp, bounds_temp, temp_units, true);
 		insol = create_variable(variable_insol, bounds_insol, insol_units, true);
 		precip = create_variable(variable_precip, bounds_prec, precip_units, true);
 		co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
+
+		bounds bounds_vpd;
+		bounds_vpd.max = 100;
+		bounds_vpd.min = 0;
+		vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
+
 		if (variable_tmax != "") {
 			tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
 		}
@@ -152,6 +165,7 @@ void NCInput::init(void) {
 	// Set timers.
 	progress_timer.init();
 	progress_progress_timer.init();
+	progress_progress_timer.setprogress(1);
 
 	progress_timer.settimer();
 	progress_progress_timer.settimer(PROGRESS_INTERVAL);
@@ -254,6 +268,12 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	// Generate daily N deposition values on first day of year.
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
+
+		if (use_mean_annual_co2) {
+			int year_len = get_year_len(year, has_leap_years);
+			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
+			mean_annual_co2 = mean(co2_annual);
+		}
 	}
 
 	// Read data from variables (not necessarily from the file - these variable
@@ -261,7 +281,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	std::vector<double> temps = temp->read(lon, lat, year, date.day, 1);
 	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
-	std::vector<double> co2s = co2->read(lon, lat, year, date.day, 1);
+	std::vector<double> vpds = vpd->read(lon, lat, year, date.day, 1);
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;
@@ -270,10 +290,14 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.temp = mean(temps);
 	climate.prec = sum(precs);
 	climate.insol = mean(insols);
-	climate.co2 = mean(co2s);
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.dndep = dndep[date.day];
+	date.subdaily = nsteps_day;
+
+	climate.co2 = use_mean_annual_co2
+					? mean_annual_co2
+					: mean(co2->read(lon, lat, year, date.day, 1));
 
 	if (tmax && tmin) {
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
@@ -293,23 +317,14 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 
 	// Progress reporting.
 	if (date.day == 0 && progress_progress_timer.getprogress() >= 1.0) {
-
-		// Number of gridcells which have been run.
-		int cells_done = distance(gridlist.begin(), current_gridcell) - 1;
-
-		// Number of years to simulate per gridcell.
-		int years_to_simulate = nyear_spinup + get_nyear_data();
-
-		// Total number of years to be simulated across all gridcells.
-		int total_years = years_to_simulate * gridlist.size();
-
-		// Number of years which have been simulated (date.year starts at 0).
-		int years_simulated = years_to_simulate * cells_done + date.year;
-
-		double progress = 1.0 * years_simulated / total_years;
+		double overall_progress = get_progress(false);
+		double progress = overall_progress;
+		if (restart) {
+			progress = get_progress(true);
+		}
 		progress_timer.setprogress(progress);
 		dprintf("%3d%% complete, %s elapsed, %s remaining\n"
-			, (int)(progress * 100), progress_timer.elapsed.str
+			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str);
 		progress_progress_timer.settimer(PROGRESS_INTERVAL);
 	}
@@ -406,10 +421,10 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 int NCInput::get_nyear_data() const {
 	int nyear = final_timestep.year - first_timestep.year;
 
-	// If final timestep is not the last timestep in the year, then we don't
-	// have a full year of data for the final year. Therefore decrement nyear.
-	if (!is_end_of_year(final_timestep, nsteps_day, has_leap_years)) {
-		nyear--;
+	// If final timestep is the last timestep in a year, then we can add that
+	// simulate that entire year (so increment nyear).
+	if (is_end_of_year(final_timestep, nsteps_day, has_leap_years)) {
+		nyear++;
 	}
 
 	// If first timestep is not the first timestep in the year, then we don't
@@ -420,6 +435,26 @@ int NCInput::get_nyear_data() const {
 
 	// Clamp to lower bound of 0.
 	return max(nyear, 0);
+}
+
+double NCInput::get_progress(bool since_restart) {
+	// Number of gridcells which have been run.
+		int cells_done = distance(gridlist.begin(), current_gridcell) - 1;
+
+		// Number of years to simulate per gridcell.
+		int years_to_simulate = nyear_spinup + get_nyear_data();
+
+		int skip = since_restart && restart ? state_year : 0;
+		years_to_simulate -= skip;
+
+		// Total number of years to be simulated across all gridcells.
+		int total_years = years_to_simulate * gridlist.size();
+
+		// Number of years which have been simulated (date.year starts at 0).
+		int years_simulated = years_to_simulate * cells_done + date.year - skip;
+
+		double progress = 1.0 * years_simulated / total_years;
+		return progress;
 }
 
 #endif // HAVE_NETCDF

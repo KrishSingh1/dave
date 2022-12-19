@@ -216,6 +216,8 @@ const double CO2_CONV = 1.0e-6;
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
 
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -546,6 +548,81 @@ public:
 
 	void serialize(ArchiveStream& arch);
 };
+
+
+/// Structure containing variables for sub-daily photosynthesis calculation.
+struct PhotosynthesisSubdaily : public Serializable {
+
+	// Constructs an empty structure
+	PhotosynthesisSubdaily() {
+		vcmax.reserve(date.subdaily);
+		jmax.reserve(date.subdaily);
+		gamstar.reserve(date.subdaily);
+		Rd.reserve(date.subdaily);
+		An.reserve(date.subdaily);
+		Anc.reserve(date.subdaily);
+		Anj.reserve(date.subdaily);
+		gsw.reserve(date.subdaily);
+		ci.reserve(date.subdaily);
+
+		clear();
+	}
+
+	// clears all variables
+	void clear(){
+		vcmax25   = 0.0;
+		jmax25    = 0.0;
+
+		for (int i = 0; i < date.subdaily; i++) {
+			vcmax[i]   = 0.0; 
+			jmax[i]    = 0.0;
+			gamstar[i] = 0.0;
+			Rd[i] 	   = 0.0;
+			An[i]      = 0.0;
+			Anc[i]     = 0.0;
+			Anj[i]     = 0.0;     
+			gsw[i]     = 0.0;   
+			ci[i]      = 0.0;
+		}
+	}
+
+	// Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	double vcmax25;
+
+	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
+	double jmax25;  
+
+	// Maximum carboxylation rate (mol m-2 s-1)
+	std::vector<double> vcmax;
+
+	// Maximum electron transport rate (mol m-2 s-1)
+	std::vector<double> jmax;
+
+	// Photorespiratory CO2 compensation point (mol mol-1)
+	std::vector<double> gamstar;
+
+	// Leaf day respiration (mol m-2 s-1)
+    std::vector<double> Rd; 
+
+	// Net photosynthesis (mol m-2 s-1)
+	std::vector<double> An;
+
+	// Rubisco-limited net photosynthesis (mol m-2 s-1)
+	std::vector<double> Anc;
+
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1)
+	std::vector<double> Anj;
+
+	// Stomatal conductance to water vapour (mol m-2 s-1)
+	std::vector<double> gsw;
+
+	// Intercellular CO2 concentration (mol mol-1)
+	std::vector<double> ci;
+
+
+    void serialize(ArchiveStream& arch);
+};
+
 
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
@@ -883,6 +960,9 @@ public:
 
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
+
+	/// Sub-daily VPD values (kPa).
+	std::vector<double> vpds;
 
 	/// Variables used for crop sowing date or seasonality calculation
 
@@ -1510,6 +1590,10 @@ public:
     double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
+    /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
+    double g0;
+    /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
+    double g1;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
@@ -2451,6 +2535,9 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
+
+    /// Photosynthesis variables for subdaily calculations
+	PhotosynthesisSubdaily ps_subdaily;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;

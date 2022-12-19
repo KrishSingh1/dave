@@ -45,6 +45,7 @@ const double G_PER_KG		= 1E3;
 const double G_PER_MG		= 1E-3;
 const double MG_PER_G		= 1E3;
 const double MMOL_PER_MOL	= 1E3;
+const double UMOL_PER_MOL   = 1E6;
 const double J_PER_KJ		= 1E3;
 
 inline bool negligible(double dval, int limit = 0) {

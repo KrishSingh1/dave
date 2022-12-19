@@ -163,6 +163,13 @@ private:
 	int get_nyear_data() const;
 
 	/*
+	Get the progress of the current simulation in range [0, 1].
+
+	@param since_spinup: If true, only consider progress since the restart.
+	*/
+	double get_progress(bool since_restart);
+
+	/*
 	Land cover input module.
 	*/
 	LandcoverInput landcover_input;
@@ -298,6 +305,17 @@ private:
 	xtring variable_tmin;
 
 	/*
+	Name of the VPD variable in the NetCDF file.
+	*/
+	xtring variable_vpd;
+
+	/*
+	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
+	of that day's subdaily data will be used.
+	*/
+	bool use_mean_annual_co2;
+
+	/*
 	Temp variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> temp;
@@ -326,6 +344,11 @@ private:
 	Tmin variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> tmin;
+
+	/*
+	VPD variable in the NetCDF file (kPa).
+	*/
+	std::unique_ptr<NCVariable> vpd;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.
@@ -400,6 +423,11 @@ private:
 	Total walltime spent in ncinput (cumulatively) (ms).
 	*/
 	double ncinput_walltime_use;
+
+	/*
+	Annual mean CO2 concentration (ppm) for the current simulation year.
+	*/
+	double mean_annual_co2;
 };
 
 #endif // HAVE_NETCDF

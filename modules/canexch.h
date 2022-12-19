@@ -59,6 +59,84 @@ const double BC3 = 0.015;
 /// leaf respiration as fraction of maximum rubisco, C4 plants
 const double BC4 = 0.02;
 
+/// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1
+const double JTOMOL = 4.6E-6;
+
+/// Ratio of the molecular diffusivities for water vapour and CO2
+const double DWDC = 1.6;
+
+/// Molecular mass of Carbon (g mol-1)
+const double CMOL2G = 12.011;
+
+/// Michaelis-Menten constants at 25 degC (mol mol-1)
+const double KO25      = 278.4E-3; // MM constant for O2 (Bernacchi et al. 2001)
+const double KC25      = 404.9E-6; // MM constant for CO2 (Bernacchi et al. 2001)
+const double GAMSTAR25 = 42.75E-6; // photorespiratory CO2 comp. point (Bernacchi et al. 2001)
+
+/// Activation energies (kJ mol-1)
+const double HA_V  = 59.70;  // Vcmax (Kumarathunge et al. 2019)
+const double HA_J  = 40.71;  // Jmax (Kumarathunge et al. 2019)
+const double HA_R  = 25.49;  // Rd (Kumarathunge et al. 2019) TODO: check!
+const double HA_KO = 36.38;  // Ko (Bernacchi et al. 2001)
+const double HA_KC = 79.43;  // Kc (Bernacchi et al. 2001)
+const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
+
+/// Entropy terms (J mol-1 K-1)
+const double DS_V = 639.43;  // Vcmax (Kumarathunge et al. 2019)
+const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
+
+// Deactivation energy for Vcmax, Jmax (kJ mol-1)
+const double HD = 200.0;
+
+
+/// -----------------------------------------------
+/// C4 photosynthesis parameters
+/// -----------------------------------------------
+// Maximum Rubisco carboxylation rate (mol m-2 s-1)
+const double Vcmax25_C4 = 30.0E-6;
+
+// Activation and deactivation energy and entropy term for Vcmax (Massad et al. 2007)
+const double HA_V4 = 67.29;   // kJ mol-1
+const double HD_V4 = 144.57;  // kJ mol-1
+const double DS_V4 = 472.0;   // J mol-1 K-1
+
+// Maximum electron transport rate (mol m-2 s-1)
+const double Jmax25_C4 = 200.0E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2000
+
+// Activation and deactivation energy and entropy term for Jmax (Massad et al. 2007)
+const double HA_J4 = 77.90;   // kJ mol-1
+const double HD_J4 = 191.93;  // kJ mol-1
+const double DS_J4 = 627.0;   // J mol-1 K-1
+
+// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+const double Vpmax25 = 120.0E-6; 
+
+// Activation and deactivation energy and entropy term for Vpmax (Massad et al. 2007) 
+const double HA_VP = 70.37;  // kJ mol-1
+const double HD_VP = 117.91; // kJ mol-1
+const double DS_VP = 376.0;  // J mol-1 K-1 
+
+// PEP regeneration rate (mol m-2 s-1)
+const double Vpr = 80.0E-6;
+
+// Michaelis-Menten constant of PEP carboxylase 
+const double KP25 = 80.0E-6;  // (mol mol-1) (von Caemmerer 2000)
+const double HA_KP = 68.1;    // activation energy for KP25 (kJ mol-1)
+							  // Yin et al. 2016
+
+// Partitioning factor of electron transport in mesophyll and bundle-sheath cells
+const double xj = 0.4;
+
+// Bundle-sheath conductance to CO2 (mol m-2 s-1)
+const double gbs = 0.003;  // von Caemmerer 2000
+						   // 0.00287 in Yin et al. 2016 
+
+
+
+
+
+
+
 /// leaf respiration as fraction of maximum rubisco, mosses
 // see Wania et al. (2009b)
 const double BC_moss = 0.03;

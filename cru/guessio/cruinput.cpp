@@ -438,7 +438,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// DW_COMMENT
-	int start_year = 1820;
+	int start_year = 111820;
 	int end_year = 1850;
 	double temp_inc = 4.0;
 	double temp_end = 1.5;

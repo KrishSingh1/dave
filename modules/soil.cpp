@@ -6285,9 +6285,12 @@ void Soilcolumn::vertical_movement() {
 					// Volume will be moved to layer below
 					Soillayer& soillayer_below = soillayers[lyr + 1];
 
-					double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
-						(soillayer.organic_volume + soillayer.mineral_volume +
-							soillayer_below.organic_volume + soillayer_below.mineral_volume);
+					//double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
+					//	(soillayer.organic_volume + soillayer.mineral_volume +
+					//		soillayer_below.organic_volume + soillayer_below.mineral_volume);
+
+					double organic_frac_int = soillayer.organic_volume /
+						(soillayer.organic_volume + soillayer.mineral_volume);
 
 					// Fraction of matter to be moved
 					double frac;
@@ -6452,10 +6455,15 @@ void Soilcolumn::vertical_movement() {
 						// Organic matter fraction at the interface between the layers
 						double organic_frac_int = 0.0;
 
+						//if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
+						//	organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
+						//		(soillayer.organic_volume + soillayer.mineral_volume +
+						//			soillayer_below.organic_volume + soillayer_below.mineral_volume);
+						//}
+
 						if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
-							organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
-								(soillayer.organic_volume + soillayer.mineral_volume +
-									soillayer_below.organic_volume + soillayer_below.mineral_volume);
+							organic_frac_int = soillayer_below.organic_volume /
+								(soillayer_below.organic_volume + soillayer_below.mineral_volume);
 						}
 
 						// Move mineral nitrogen

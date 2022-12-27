@@ -2377,12 +2377,23 @@ public:
 			// If a fraction of root distribution should be homogenously distributed
 			if (!negligible(homrootdistfrac)) {
 
-				double frac_per_depth = homrootdistfrac / tot_depth * CM_PER_MM;
+				double hom_depth = depth_soil > 3000.0 ? 3000.0 : depth_soil;
+
+				double frac_per_depth = homrootdistfrac / hom_depth;
 				tot = 0.0;
+				double acc_depth = 0.0;
 
 				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * soil_lyr_depth[lyr];
+					double depth = soil_lyr_depth[lyr];
+					if (acc_depth >= hom_depth) {
+						depth = 0.0;
+					}
+					else if (acc_depth + depth > hom_depth) {
+						depth = hom_depth - acc_depth;
+					}
+					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * depth;
 					tot += rootdist[lyr];
+					acc_depth += depth;
 				}
 			}
 

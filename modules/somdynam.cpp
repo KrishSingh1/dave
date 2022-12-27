@@ -562,7 +562,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
 	double surf_wd_scalar = 0.4; // DW_COMMENT
-	double som_scalar = 1.0; // DW_COMMENT
+	double som_scalar = 1.4; // DW_COMMENT
 
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
@@ -617,7 +617,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 			k *= texture_mod;
 		}
 
-		// Decay rate modifier depending on depth only after non wetland soils
+		// Decay rate modifier depending on depth only affect non wetland soils
 		if ((*soilcolumn).patch.stand.landcover != PEATLAND) {
 			k *= depth_mod;
 		}

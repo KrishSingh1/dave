@@ -461,13 +461,15 @@ void Patchpft::calc_rootdist(double maxthaw, double soillyrdepth[NSOILLAYERS_MAX
 			// If a fraction of root distribution should be homogenously distributed
 			if (!negligible(homrootdistfrac)) {
 
-				double frac_per_depth = homrootdistfrac / min(maxthaw, soillyrdepth[nsoillayers - 1]);
+				double hom_depth = min(maxthaw, min(soillyrdepth[nsoillayers - 1], 3000.0));
+
+				double frac_per_depth = homrootdistfrac / hom_depth;
 				rootdist_tot = 0.0;
 				double prev_depth = 0.0;
 
 				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * (min(maxthaw, soillyrdepth[lyr]) - prev_depth);
-					prev_depth = min(maxthaw, soillyrdepth[lyr]);
+					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * (min(hom_depth, soillyrdepth[lyr]) - prev_depth);
+					prev_depth = min(soillyrdepth[lyr], hom_depth);
 					rootdist_tot += rootdist[lyr];
 				}
 			}

@@ -524,16 +524,17 @@ double temperature_modifier(double temp_soil) {
  *  Yan et al 2018 - A moisture function of soil heterotrophic
  *  respiration that incorporates microscale processes
  *
- *  \param theta  Total water mass (ice + water)
+ *  \param theta  Total water mass
  */
 double Soillayer::moisture_modifier() {
 
 	// Minimum moist modifier for dry soils
 	double moist_mod_dry = 0.064;
-	// Maximum moist modifier at optimal moisture
-	double moist_mod_max = (*soilcolumn).patch.stand.landcover == PEATLAND ? RMOIST : 1.0;
+	// Minimum moist modifier for anaerobic soils 
+	// (Frolking et al (2001, 2010), Ise et al. (2008))
+	double moist_mod_anaerobic = 0.025;
 	// Water fraction of soil layer volume
-	double theta = wmass / depth;
+	double theta = (imass + wmass) / depth;
 	// Saturation fraction of soil layer volume
 	double theta_sat = wsats / depth;
 	// Field capacity of soil layer volume
@@ -541,11 +542,11 @@ double Soillayer::moisture_modifier() {
 	// Moist modifier [0-1]
 	double moist_mod;
 
-	if (theta < fc()) {
-		moist_mod = max(moist_mod_dry, moist_mod_max * (theta_fc + 0.1) / (theta + 0.1) * pow(theta / theta_fc, 1.0 + a * 2.0));
+	if (theta < theta_fc) {
+		moist_mod = max(moist_mod_dry, (theta_fc + 0.1) / (theta + 0.1) * pow(theta / theta_fc, 1.0 + a * 2.0));
 	}
 	else { 
-		moist_mod = max(RMOIST_ANAEROBIC, moist_mod_max * moistsatmod_lut((theta_sat - theta) / (theta_sat - theta_fc)));
+		moist_mod = max(moist_mod_anaerobic, moistsatmod_lut((theta_sat - theta) / (theta_sat - theta_fc)));
 	}
 	
 	return moist_mod;

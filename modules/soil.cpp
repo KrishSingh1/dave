@@ -6089,7 +6089,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 	double k = 3.0;
 
 	// active layer depth is not deep enough to create any vertical mixing then return
-	if (k * ald < soillayers[0].depth_profile * M_PER_MM)
+	if (k * ald < soillayers[1].depth_profile * M_PER_MM)
 		return;
 
 	// Diffusion constant resulting from the mixing due to cryoturbation (m2 yr-1)
@@ -6113,6 +6113,9 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 
 		// SOM pool C concentration
 		VMpara.psi[lyr] = soillayer.sompool[p].cmass / VMpara.dz[lyr];
+
+		// SOM pool C concentration
+		VMpara.cap[lyr] = 1.0;
 
 		// Depth of mixing is a function of the active layer depth, with mixing rates 
 		// constant through the active layer and tapering linearly to zero at a depth of some 
@@ -6210,6 +6213,13 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 		}
 	}
 
+	if (delta_cmass[0] > 0.0) {
+		delta_cmass[1] += delta_cmass[0];
+		delta_nmass[1] += delta_nmass[0];
+		delta_cmass[0] = 0.0;
+		delta_nmass[0] = 0.0;
+	}
+
 	// Make C and N changes
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		Sompool& sompool = soillayers[lyr].sompool[p];
@@ -6259,7 +6269,7 @@ void Soilcolumn::vertical_movement() {
 		// Effective soil volume
 		double eff_volume = soillayer.depth * soillayer.eff_volume_frac;
 
-		// Difference in matrial and effetive volume
+		// Difference in material and effetive volume
 		double diff_volume = mineral_volume + som_volume + humus_volume - eff_volume;
 
 		// If a difference, solve it by moving material either down or upwards
@@ -6285,12 +6295,13 @@ void Soilcolumn::vertical_movement() {
 					// Volume will be moved to layer below
 					Soillayer& soillayer_below = soillayers[lyr + 1];
 
-					//double organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
-					//	(soillayer.organic_volume + soillayer.mineral_volume +
-					//		soillayer_below.organic_volume + soillayer_below.mineral_volume);
-
 					double organic_frac_int = soillayer.organic_volume /
 						(soillayer.organic_volume + soillayer.mineral_volume);
+
+					// For peat move mineral soil first
+					if (patch.stand.landcover == PEATLAND) {
+						organic_frac_int = 0.0;
+					}
 
 					// Fraction of matter to be moved
 					double frac;
@@ -6455,15 +6466,14 @@ void Soilcolumn::vertical_movement() {
 						// Organic matter fraction at the interface between the layers
 						double organic_frac_int = 0.0;
 
-						//if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
-						//	organic_frac_int = (soillayer.organic_volume + soillayer_below.organic_volume) /
-						//		(soillayer.organic_volume + soillayer.mineral_volume +
-						//			soillayer_below.organic_volume + soillayer_below.mineral_volume);
-						//}
-
 						if (!negligible(soillayer_below.organic_volume + soillayer_below.mineral_volume)) {
 							organic_frac_int = soillayer_below.organic_volume /
 								(soillayer_below.organic_volume + soillayer_below.mineral_volume);
+						}
+
+						// For peat move organic matter up first
+						if (patch.stand.landcover == PEATLAND) {
+							organic_frac_int = 1.0;
 						}
 
 						// Move mineral nitrogen

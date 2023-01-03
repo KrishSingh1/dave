@@ -552,18 +552,33 @@ public:
 
 /// Structure containing variables for sub-daily photosynthesis calculation.
 struct PhotosynthesisSubdaily : public Serializable {
-
+public:
 	// Constructs an empty structure
 	PhotosynthesisSubdaily() {
-		vcmax.reserve(date.subdaily);
-		jmax.reserve(date.subdaily);
-		gamstar.reserve(date.subdaily);
-		Rd.reserve(date.subdaily);
-		An.reserve(date.subdaily);
-		Anc.reserve(date.subdaily);
-		Anj.reserve(date.subdaily);
-		gsw.reserve(date.subdaily);
-		ci.reserve(date.subdaily);
+		// Ensure capacity is initialised before it's accessed for the 1st time.
+		capacity = 0;
+		resize(date.subdaily);
+	}
+
+	/*
+	Resize the arrays to the specified size.
+	@param size: Desired size of the arrays.
+	*/
+	void resize(int size) {
+		if (capacity == size) {
+			return;
+		}
+
+		capacity = size;
+		vcmax.reserve(size);
+		jmax.reserve(size);
+		gamstar.reserve(size);
+		Rd.reserve(size);
+		An.reserve(size);
+		Anc.reserve(size);
+		Anj.reserve(size);
+		gsw.reserve(size);
+		ci.reserve(size);
 
 		clear();
 	}
@@ -573,7 +588,7 @@ struct PhotosynthesisSubdaily : public Serializable {
 		vcmax25   = 0.0;
 		jmax25    = 0.0;
 
-		for (int i = 0; i < date.subdaily; i++) {
+		for (int i = 0; i < capacity; i++) {
 			vcmax[i]   = 0.0; 
 			jmax[i]    = 0.0;
 			gamstar[i] = 0.0;
@@ -621,6 +636,9 @@ struct PhotosynthesisSubdaily : public Serializable {
 
 
     void serialize(ArchiveStream& arch);
+
+private:
+	int capacity;
 };
 
 

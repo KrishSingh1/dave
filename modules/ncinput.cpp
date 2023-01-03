@@ -203,6 +203,25 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		ndep_input.getndep(file_ndep, lon, lat
 		, Lamarque::parse_timeseries((const char *)ndep_scenario));
 
+		// Initialise subdaily photosynthesis structures with the correct number
+		// of elements corresponding to number of subdaily timesteps.
+		date.subdaily = nsteps_day;
+		for (Stand& stand : gridcell) {
+			stand.firstobj();
+			while(stand.isobj) {
+				Patch& patch = stand.getobj();
+				Vegetation& vegetation = patch.vegetation;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					
+					Individual& indiv = vegetation.getobj();
+					indiv.ps_subdaily.resize(nsteps_day);
+					vegetation.nextobj();
+				}
+				stand.nextobj();
+			}
+		}
+
 		dprintf("\nCommencing simulation for gridcell at (%g,%g)", lon, lat);
 		if (current_gridcell->description != "") {
 			dprintf(" (%s)", (const char *)current_gridcell->description);
@@ -293,6 +312,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.dndep = dndep[date.day];
+	climate.vpds = vpds;
 	date.subdaily = nsteps_day;
 
 	climate.co2 = use_mean_annual_co2

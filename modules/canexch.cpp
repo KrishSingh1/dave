@@ -2586,6 +2586,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
 	double ci_diff, ci_diff_max, ci_new;
 	int    nit, nit_max;
+
+	// Ensure Vpr is assigned to before it's accessed. This line can be removed
+	// if it ends up being calculated elsewhere.
+	Vpr = 0;
 	
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
@@ -2684,7 +2688,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				ci_diff = 2.0 * ci_diff_max;
 				nit = 0;
 				nit_max = 20;
-				while (abs(ci_diff) > ci_diff_max & nit < nit_max) {
+				while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
 					// PEP carboxylation rate
 					// TODO: is Vpr a constant??
 					Vp = min((ci * Vpmax) / (ci + Kp),Vpr);

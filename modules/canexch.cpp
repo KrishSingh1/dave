@@ -2565,10 +2565,12 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 		double leaf_NtoP = 22.9; // from EucFACE -> to be moved to constants
 		double pmass_leaf = indiv.get_nmass_leaf() / leaf_NtoP;  // kgP m-2 
 
-		indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * 1000.0) + 0.197 * 
-										log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
-		indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * 1000.0) + 0.112 * 
-										log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+		if (!negligible(pmass_leaf)) {
+			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * 1000.0) + 0.197 * 
+											log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * 1000.0) + 0.112 * 
+											log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+		}
 
 		vegetation.nextobj();
 	}
@@ -2623,7 +2625,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			
 			// Stomatal term (Medlyn et al. 2011)
 			// X needs to represent gs for CO2, hence no 1.6 factor
-    		X = (1.0 + g1 / sqrt(max(vpd,0.1))) / ca; 
+    		X = divide(divide(1.0 + g1, sqrt(max(vpd,0.1))), ca); 
 
           	if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
@@ -2641,7 +2643,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// 1) Rubisco-limited gross photosynthesis
 				gamma = vcmax;
-				beta  = Kc * (1.0 + (PO2/1.0E5) / Ko);   // Note conversion O2 from Pa -> mol mol-1
+				beta  = Kc * divide(1.0 + (PO2/1.0E5), Ko);   // Note conversion O2 from Pa -> mol mol-1
 				Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 				// 2) RuBP regeneration-limited gross photosynthesis
@@ -2662,7 +2664,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				gsc = g0 + An * X;
 
 				// Re-calculate intercellular CO2 concentration (mol mol-1)
-				ci = ca - An / gsc;
+				ci = ca - divide(An, gsc);
 
 			}
 			else {  // C4 photosynthesis (von Caemmerer 2000)
@@ -2691,7 +2693,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
 					// PEP carboxylation rate
 					// TODO: is Vpr a constant??
-					Vp = min((ci * Vpmax) / (ci + Kp),Vpr);
+					Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
 
 					// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
 					Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
@@ -2710,7 +2712,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					gsc = g0 + An * X;
 
 					// Intercellular CO2 concentration (mol mol-1)
-					ci_new = ca - An / gsc;
+					ci_new = ca - divide(An, gsc);
 
 					ci_diff = ci - ci_new;
 					ci -= ci_diff / 2.0;
@@ -2767,8 +2769,10 @@ double photosyn_solver(double g0, double g1, double X, double gamma, double beta
 	b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
 	b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
+	assert(b2 != 0);
 	Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
-	An = gamma * ((Ci - gamstar) / (Ci + beta)) - Rd;
+	
+	An = gamma * divide(Ci - gamstar, Ci + beta) - Rd;
 
 	return(An);  // net photosynthesis (mol m-2 s-1)
 
@@ -2817,7 +2821,65 @@ double electron_transport_rate(double PAR,double Jmax) {
 
 }
 
+/*
+DAVE water scalar routine (see water_scalar()).
 
+todo: change name as required.
+
+@param patch: The patch.
+*/
+void wscal_dave(Patch &patch) {
+	// Must set:
+	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
+	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
+	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
+	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
+	// - ppft.wscal_5 -> 5 day running mean of wscal
+
+	// Iterate over individuals in patch.
+	patch.vegetation.firstobj();
+	while (patch.vegetation.isobj) {
+		Individual &indiv = patch.vegetation.getobj();
+		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		// todo: actual calculation of water stress.
+		// wstress should be between 0 (max stress) and 1 (no stress).
+		double wstress = 1.0 * rand() / RAND_MAX;
+
+		// Mean daily water stress value.
+		ppft.wscal = wstress;
+
+		if (date.day == 0 && (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass) ) {
+			ppft.cropphen->growingdays_y = 0;
+		}
+
+		if (patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
+			|| ppft.pft.phenology==ANY &&
+			ppft.pft.id==patch.stand.pftid) {
+			// Normal grass growth.
+			ppft.wscal_mean += ppft.wscal;
+
+			// Convert from sum to mean on last day of year.
+			if (date.islastday && date.islastmonth) {
+				ppft.wscal_mean /= date.year_length();
+			}
+		}
+		else if (ppft.cropphen->growingseason
+				|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
+				|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
+			// True crops and cover-crop grass.
+			ppft.cropphen->growingdays_y++;
+			ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
+		} else {
+			// No wscal_mean for you...
+		}
+
+		indiv.wscal_running.add(wstress);
+		ppft.wscal_5.add(ppft.wscal);
+
+		patch.vegetation.nextobj();
+	}
+}
 
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations
@@ -2852,12 +2914,45 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
     if (ifnewphotosyn) {
 
+		// Supply function for nitrogen and determination of nitrogen stress leading
+		// to down-regulation of vmax.
+
+		// Nitrogen within projective cover of all individuals
+		double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
+
+		if (patch.stand.landcover == CROPLAND && ifnlim) { // Also for other landcovers ??
+			// Take soil wcont into account
+			tot_nmass_avail *= patch.soil.get_soil_water_upper() * 0.9 + patch.soil.get_soil_water_lower() * 0.1;
+		}
+
+		// Nitrogen demand
+		ndemand(patch, vegetation);
+
+		// Calculate individual uptake fraction of nitrogen demand
+		if (patch.ndemand > tot_nmass_avail) {
+
+			// Determine individual nitrogen uptake fractions
+			fnuptake(vegetation, tot_nmass_avail);
+		}
+
+		// Resolve nitrogen stress with longterm stored nitrogen
+		nstore_usage(vegetation);
+
 		// Calculate photosynthetic capacity from leaf N
 		vcmax_from_N(patch, vegetation);
 
 		// Calculate subdaily photosynthesis and stomatal conductance 
 		photosynthesis_gs(patch, climate, vegetation);
 
+		// Water stress.
+		wscal_dave(patch);
+		// for (Day day; day.period != date.subdaily; day.next()) {
+
+		// 	wdemand(patch, climate, vegetation, day);
+		// 	aet_water_stress(patch, vegetation, day);
+		// 	water_scalar(patch, vegetation, day);
+		// 	npp(patch, climate, vegetation, day);
+		// }
 	}
 	else {
 		// Calculates no-stress daily values of photosynthesis and gpterm

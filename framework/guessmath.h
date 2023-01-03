@@ -88,6 +88,14 @@ inline double mean(double x, double y) {
 	return (x+y)/2.0;
 }
 
+// Divide x by y. Raise an error if denominator is 0.
+inline double divide(double x, double y) {
+	if (negligible(y)) {
+		throw std::runtime_error("Divide by 0 error");
+	}
+	return x / y;
+}
+
 /// Calculates variation coefficient of values in an array
 inline double variation_coefficient(double* data, int n) {
 	// 0 and 1 will give division with zero.

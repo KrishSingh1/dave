@@ -262,6 +262,8 @@ void fpar(Patch& patch) {
 
 				indiv.fpar=0.0;
 				indiv.fpar_leafon=0.0;
+				// Empty the daily layerwise-fpar vector.
+				indiv.fpar_layerwise.clear();
 				if (indiv.height>height_veg) height_veg=indiv.height;
 				plai_leafon+=indiv.lai;
 
@@ -379,9 +381,13 @@ void fpar(Patch& patch) {
 						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
 							indiv.lai_leafon_layer/plai_leafon_layer;
 
-					if (!negligible(plai_layer))
-						indiv.fpar+=fpar_uptake_layer*
+					if (!negligible(plai_layer)) {
+						double fpar_layer = fpar_uptake_layer*
 							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
+						indiv.fpar+=fpar_layer;
+						// Store layer-wise fpar in the individual.
+						indiv.fpar_layerwise.push_back(fpar_layer);
+					}
 				}
 
 				// ... on to next individual
@@ -2607,6 +2613,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// get FPAR for this individual
 		// TODO: replace with indiv.fpar.layer and move to layer loop!!!
+		// note: can now use indiv.fpar_layerwise. E.g.
+		// for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {
+		//     double fpar_layer = indiv.fpar_layerwise[i];
+		// }
 		fpar = indiv.fpar;
 
 		// Atmospheric CO2 concentration (mol mol-1)

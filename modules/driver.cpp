@@ -798,8 +798,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.ifsensechill = true;
 	}
 
-	climate.aprec += climate.prec;
-
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);

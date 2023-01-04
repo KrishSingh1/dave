@@ -195,6 +195,7 @@ void Soil::init_states() {
 				// First day only:
 				Frac_water[ly] = 0.0;
 				T[ly] = 0.0;
+				T_old[ly] = 0.0;
 				Frac_org[ly] = 0.0;
 				Frac_peat[ly] = 0.0;
 				Frac_min[ly] = 0.0;
@@ -1159,7 +1160,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	// Total runoff
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 
-	// Water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
+	// water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
 	// in proportion to its components
 	if (patch.stand.is_true_wetland_stand() && ifsaturatewetlands) {
 
@@ -1177,7 +1178,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 			runoff = 0.0;
 
 		}
-		else if (runoff > patch.wetland_water_added_today && runoff > 0.0) {
+		else if (runoff > patch.wetland_water_added_today  && runoff > 0.0) {
 
 			// Enough runoff to balance the water added to the wetland so we take it back.
 			runoff_surf -= patch.wetland_water_added_today * runoff_surf / runoff;
@@ -1337,16 +1338,6 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		patch.mrunoff[date.month] = 0.0;
 	}
 
-	// Available water in evaporation and acrotelm layers
-	double water_evap = 0.0;
-	for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
-		water_evap += Frac_water[ly] * Dz[ly];
-	}
-	double water_acro = 0.0;
-	for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
-		water_acro += Frac_water[ly] * Dz[ly];
-	}
-	 
 	// Update Wtot, whc[], awhc[], and wcont[]
 	if (!update_layer_water_content(daynum)) 
 		fail();
@@ -1371,10 +1362,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Transpiration from the acrotelm  
 	double aet_acrotelm = 0.0;
-	// Transpiration from the evaporation depth
-	double aet_evap = 0.0;
-	// AET for a particular layer and individual (mm)
-	double aet = 0.0;
+	double aet = 0.0; // AET for a particular layer and individual (mm)
 
 	// Sum AET for across all vegetation individuals in this patch
 
@@ -1385,23 +1373,14 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		// PFT total root frac in the acrotelm 
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
 			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
 
-		// PFT total root frac down to evaporation depth (200mm) 
-		double pft_evap_root_frac = 0.0;
-
-		for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
-			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
-		}
-
 		// this includes mosses, which have root_frac = 1 in the acrotelm
 		// Fraction of the aet from the acrotelm only.
 		aet_acrotelm += indiv.aet * pft_acro_root_frac;
-		aet_evap += indiv.aet * pft_evap_root_frac;
 		
 		// Total aet, assumed from acrotelm and catotelm combined 
 		aet_total += indiv.aet;
@@ -1412,27 +1391,13 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		vegetation.nextobj();
 	}
 
-	// Restrict aet used to a value below the maximum available liquid water above the wilting point
-	aet_acrotelm = min(aet_acrotelm, water_acro);
-	aet_evap = min(aet_evap, water_evap);
-
-	// Check if acrotelm AET over evap AET needs to be taken from the evap layers
-	if ((aet_acrotelm - aet_evap) > (water_acro - water_evap))
-		aet_evap += (aet_acrotelm - aet_evap) - (water_acro - water_evap);
-
-	// Add AET from catotelm. Runon keeps it constant saturated
-	patch.awetland_water_added += aet_total - aet_acrotelm;
-
 
 	// *** EVAPORATION *** 
 	// Evaporation from soil surface
 
-	// Available water for evaporation after AET is removed from evaporation layers
-	water_evap -= aet_evap;
-
 	// Wania et al (2009)
 	if (snowpack < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
-		evap = min(water_evap, fevap*climate.eet*PRIESTLEY_TAYLOR*(0.99 / (1+exp(-1.0*(-wtd + 98.7)/22.6) + 0.02)));
+		evap = fevap*climate.eet*PRIESTLEY_TAYLOR*(0.99 / (1+exp(-1.0*(-wtd + 98.7)/22.6) + 0.02));
 	} 
 	else {
 		evap = 0.0;
@@ -1458,7 +1423,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		hydrological cycle in LPJ-WHy. 
 		Kim and Verma (1996): ET = PET * (1.02 + 0.00075 * WTP)
 		*/ 
-		 
+
 		// Note 1. that this is now the TOTAL evapotranspiration, replacing aet_total
 
 		// Note 2: An alternative parameterisation was given by Yurova et al. (2006)
@@ -1467,7 +1432,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// when the water table is at the surface
 
 		if (snowpack < 10.0) { // i.e. evap only if snow depth < 1cm
-			evapotranspiration = min(water_acro, climate.eet*(1.02 - 0.00075 * wtd)*fevap); // wtd [-100,+300]
+			evapotranspiration = climate.eet*(1.02 - 0.00075 * wtd)*fevap; // wtd [-100,+300]
 		}
 		else {
 			evapotranspiration = 0.0;
@@ -1487,27 +1452,19 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	// Drainage - could possibly be read in for site-specific studies
 	runoff_drain = 0; 
 
-	// Update available water and ice
+	// Update available water 
 	Wtot += rain_melt-evapotranspiration-runoff_drain;
 	 
 	// *** RUNOFF AND RUNON***
 
-	// Available water for surface runoff
-	double acrowater = 0.0;
+	double acrowater = 0.0; // Frac_water[MIDX] * Dz[MIDX];
 
-	for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
-		acrowater += Frac_water[ly] * Dz[ly];
-	}
-	acrowater += rain_melt - evapotranspiration - runoff_drain;
+	for (int ly = IDX; ly < IDX + NACROTELM; ly++)
+		acrowater += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
 
-	// Ideal runoff
 	double ideal_runoff = exp(-0.01 * wtd);
-
-	// Ice fraction of total water and ice in top soil layer
-	double ice_frac = (Frac_water[IDX] + Frac_ice[IDX] + Fpwp_ref[IDX]) > 0.0 ? (Frac_ice[IDX] + Fpwp_ref[IDX] - Frac_water_belowpwp[IDX]) / (Frac_water[IDX] + Frac_ice[IDX] + Fpwp_ref[IDX]) : 0.0;
-	
-	if (acrowater > 0.0 && ice_frac < 0.7) // Granberg et al. (1999) use the same ice condition - see f_icestop in their Table 1
-		runoff_surf = min(ideal_runoff, acrowater);
+	if (acrowater > 0.0 && Frac_ice[IDX] < 0.7) // Granberg et al. (1999) use the same ice condition - see f_icestop in their Table 1
+		runoff_surf = min(ideal_runoff,acrowater);
 	else
 		runoff_surf = 0.0;
 
@@ -1522,9 +1479,6 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	if (runoff_surf > 0.0) {
 
 		double runofforon = soiltype.runon;
-
-	// Add to annual runon
-	patch.awetland_water_added += runofforon;
 
 		if (runofforon < 0) 
 			runoff_surf -= runofforon;	// e.g. 3 mm/day for bog-like/hummock conditions
@@ -1634,16 +1588,8 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	double surfw_sat = 0.0;
 	double value[NSUBLAYERS_ACRO];
-	double acro_water = 0.0; // mm of water in acrotelm
-	double cato_water = 0.0; // mm of water in catotelm
-
-
-	// Initial water and ice content in acrotelm
-	double acro_ice_init = 0.0;
-	for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
-		acro_ice_init += (Frac_ice[lyr] + Fpwp_ref[lyr] - Frac_water_belowpwp[lyr]) * Dz[lyr];
-	}
-	double acro_water_init = Wtot - acro_ice_init;
+	double acro_aw = 0.0; // mm of plant available water in acrotelm
+	double cato_aw = 0.0; // mm of plant available water in catotelm
 
 	if (wtd > 0.0) {
 
@@ -1652,7 +1598,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// Determine the subsurface layer (0 to NSUBLAYERS_ACRO) within which wtd lies. 
 		// Possible values:
 		// = 0 if wtd < 10 mm 
-		// = NSUBLAYERS_ACRO if wtd = Dz_acro
+		// = NSUBLAYERS_ACRO iff wtd = Dz_acro
 		int wtd_layer = (int)(wtd / Dz_sub); // Takes the integer part only
 
 		surfw_sat = max(minvtot, acro_por - az * wtd); // Granberg - eqn 3.
@@ -1685,7 +1631,9 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		}
 
 		// Water content in each acrotelm layer
-		double Ftotal[NLAYERS] = { 0.0 }; // Volumetric fraction in the acrotelm layers
+		double Ftotal[NLAYERS]; // Volumetric fraction in the acrotelm layers
+		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
+			Ftotal[ly] = 0.0;
 
 		int sublayers_per_layer = (int)Dz_acro/(int)Dz_sub; 
 
@@ -1708,43 +1656,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
 			Frac_water[ly] = max(Ftotal[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0);
-			acro_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
-		}
-
-		// Check for error in acrotelm water balance
-		double acro_water_error = acro_water - acro_water_init;
-		if (!negligible(acro_water_error, -12)) {
-
-			// Too much water
-			if (acro_water_error > 0.0) {
-
-				// Water available for reduction
-				double water_avail = 0.0;
-				for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
-					water_avail += Frac_water[lyr] * Dz_acro;
-				}
-
-				// Remaining water fraction per layer
-				double frac = water_avail > 0.0 ? max(0.0, water_avail - acro_water_error) / water_avail : 0.0;
-				for (int lyr = IDX; lyr < IDX + NACROTELM; lyr++) {
-					Frac_water[lyr] *= frac;
-				}
-			}
-			// Water is missing. Fill from bottom
-			else {
-				for (int lyr = IDX + NACROTELM - 1; lyr >= IDX; lyr--) {
-
-					// Space for adding water
-					double avail = max(0.0, acro_por - (Frac_water[lyr] + Frac_ice[lyr] + Fpwp_ref[lyr])) * Dz_acro;
-
-					// Water to add to this layer
-					double wmass_to_add = max(0.0, min(avail, -acro_water_error));
-
-					// Update fraction available water in layer and reduce error
-					Frac_water[lyr] += wmass_to_add / Dz_acro;
-					acro_water_error += wmass_to_add;
-				}
-			}
+			acro_aw += Frac_water[ly] * Dz[ly];
 		}
 	} 
 	else { 
@@ -1760,23 +1672,21 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// ACROTELM - saturated
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++) {
 			Frac_water[ly] = max(por[ly]-Frac_ice[ly]-Fpwp_ref[ly], 0.0);
-			acro_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
+			acro_aw += Frac_water[ly] * Dz[ly];
 		}
 	}
 
-	// Additional runon to catotelm
-	double cato_runon = 0.0;
-
 	// CATOTELM - assumed to be always saturated
 	for (int ly = IDX + NACROTELM; ly < NLAYERS; ly++) {
-		double water_diff = max(por[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0) - Frac_water[ly];
-		Frac_water[ly] += water_diff;
-		cato_runon += water_diff;
-		cato_water += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
+		Frac_water[ly] = max(por[ly] - Frac_ice[ly] - Fpwp_ref[ly], 0.0);
+		cato_aw += Frac_water[ly] * Dz[ly];
 	}
 
-	// Add catotelm runon to annual runon
-	patch.awetland_water_added += cato_runon;
+	// Tidy up Frac_water
+	for (int ly = 0; ly < NLAYERS; ly++) {
+		if (Frac_water[ly] < Fpwp_ref[ly]) 
+			Frac_water[ly] = 0.0;
+	}
 
 	// *** WATER CONTENT IN EACH SOIL LATER (FOR PLANT GROWTH) ***
 	if (!update_layer_water_content(daynum)) 
@@ -2906,7 +2816,7 @@ void Soil::update_from_yesterday() {
 }
 
 
-void Soil::update_snow_properties(const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow) {
+void Soil::update_snow_properties(const int& daynum, const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow) {
 
 	// DESCRIPTION
 	// Hillel (1982) gives values for porosity, Csnow and Ksnow.       
@@ -2937,7 +2847,7 @@ void Soil::update_snow_properties(const double& dailyairtemp, double& Dsnow, dou
 	// Update snowdens using the Wania et al. simple snow compaction scheme
 
 	// We assume fresh snow unless snow_days > 0.75 * 365;
-	if (date.year >= 1 && snow_days > 0.75 * snow_days_prev) {
+	if (date.year >= 1 && snow_days >= 0.75 * snow_days_prev) {
 		snowdens = snowdens_start + (snowdens_end - snowdens_start) / (snow_days_prev * 0.25) * (snow_days - 0.75 * snow_days_prev);
 		 
 		// Restrict density to the range [snowdens_end,snowdens_start]
@@ -2984,16 +2894,8 @@ bool Soil::valid_layer_num(const int& ngr) const {
 		return true;
 }
 
-double Soil::heatcapacity(double Frac_min, double Frac_org, double Frac_ice, double Frac_water, double Frac_peat, double Frac_air) {
 
-	if (!negligible(fabs(Frac_min + Frac_org + Frac_ice + Frac_water + Frac_peat + Frac_air - 1.0), -12))
-		fail("ERROR heat capacity: Year %d Day %d total Frac (%g) isn't equal to 1\n",date.year,date.day, Frac_min + Frac_org + Frac_ice + Frac_water + Frac_peat + Frac_air);
-
-	return Frac_min * Cp_min + Frac_org * Cp_org + Frac_ice * Cp_ice + Frac_water * Cp_water + Frac_peat * Cp_peat + Frac_air * Cp_air;
-}
-
-
-void Soil::update_soil_diffusivities(bool ansoln) {
+void Soil::update_soil_diffusivities(const int& daynum, bool ansoln) {
 
 	// DESCRIPTION
 	// Called daily to update diffusivities, heat capacities and thermal conductivities of the 
@@ -3004,8 +2906,8 @@ void Soil::update_soil_diffusivities(bool ansoln) {
 	double lKforg;						// log of therm. cond. for the org. fraction
 	double lKfpeat;						// log of therm. cond. for the peat fraction
 	double lKfmin;						// log of therm. cond. for the min. fraction
-	double therm_cond_total[NLAYERS];	// total thermal condunctivity
-	double heat_capacity_total[NLAYERS];	// total heat capacity
+	double ThermCond_total[NLAYERS];	// total thermal condunctivity
+	double HeatCapacity_total[NLAYERS];	// total heat capacity
 	double Ftot;						// total of solid fraction in soil
 
 	for (int i = IDX; i<NLAYERS; i++) {
@@ -3027,7 +2929,8 @@ void Soil::update_soil_diffusivities(bool ansoln) {
 
 		if (ansoln) Frac_air[i] = 0.0; // No air if analytic soln. sought
 
-		heat_capacity_total[i] = heatcapacity(Frac_min[i], Frac_org[i], totaliceinlayer, totalwaterinlayer, Frac_peat[i], Frac_air[i]);
+		HeatCapacity_total[i] = Frac_min[i] * Cp_min + Frac_org[i] * Cp_org + totaliceinlayer * Cp_ice +
+			 totalwaterinlayer * Cp_water + Frac_peat[i] * Cp_peat + Frac_air[i] * Cp_air;
 
 		// Update the THERMAL CONDUCTIVITY K - which follows
 		// Granberg et al. 1999, who refers to Farouki, 1986
@@ -3043,17 +2946,17 @@ void Soil::update_soil_diffusivities(bool ansoln) {
 		lKfwater = (totalwaterinlayer / Ftot) * lKwater;
 		lKfice = (totaliceinlayer / Ftot) * lKice;
 
-		therm_cond_total[i] = Frac_air[i] * Kair + Ftot * exp(lKfwater + lKfice + lKforg + lKfmin + lKfpeat);
+		ThermCond_total[i] = Frac_air[i] * Kair + Ftot * exp(lKfwater + lKfice + lKforg + lKfmin + lKfpeat);
 
 		// Update THERMAL DIFFUSIVITY for each SOIL layer
 		// multiply by 86400 to get from m2 s-1 to m2 d-1
 		// multiply by 1E6 to get from m2 d-1 to mm2 d-1
-		Di[i] = therm_cond_total[i] / heat_capacity_total[i] * SECS_PER_DAY * MM2_PER_M2;	
+		Di[i] = ThermCond_total[i] / HeatCapacity_total[i] * SECS_PER_DAY * MM2_PER_M2;	
 
 		// Conversion from (W m-1 K-1) TO (J day-1 mm-1 K-1)
-		Ki[i] = therm_cond_total[i] * SECS_PER_DAY * M_PER_MM;
+		Ki[i] = ThermCond_total[i] * SECS_PER_DAY * M_PER_MM;
 		// Conversion from (J m-3  K-1) TO (J mm-3 K-1)
-		Ci[i] = heat_capacity_total[i] * M3_PER_MM3;
+		Ci[i] = HeatCapacity_total[i] * M3_PER_MM3;
 
 		// Note that K/C = D has units mm2/day, as above
 	} // i 
@@ -3080,58 +2983,48 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 	// if there's standing water, include that layer for the phase change 
 	// calculation, if not, start with the top soil layer
 
+
 	double Ffreez;	// fraction of water which freezes
 	double Fthaw;	// fraction of ice which thaws
 	double energy;	// Energy per volume [J m-3]
 
 	const double SMALLVOLFRAC = 0.0000001;	// Minimum volume fraction [m-3] allowed
 
-	double T_delta;	// temperature difference (current - previous)
+	double delta_T;	// temperature difference (current - previous)
 
 	for (int i = MIDX; i<NLAYERS; i++) {
 
+		if (firstTempCalc)
+			delta_T = 0.0;
+
 		double heat_capacity_layer = Ci[i] * MM3_PER_M3; // J m-3 K-1
-
-		// Initial soil energy
-		double energy_initial = heat_capacity_layer * (T_soil[i] + K2degC); // J m-3
-
-		// Phase change energy consumption [J]
-		double phase_change_energy = 0.0;
 
 		double waterabovepwp = Frac_ice[i] + Frac_water[i]; 
 		double ice_thislayer = Frac_ice[i] + (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 		double water_thislayer = Frac_water[i] + Frac_water_belowpwp[i];
 		// The total amount of ice and water should not change in this routine
-		double water_total_initial = ice_thislayer + water_thislayer;
+		double wtotal_initial = ice_thislayer + water_thislayer;
 
 		// Add the water (not ice) below wp before calculating phase change
 		Frac_water[i] += Frac_water_belowpwp[i];
 		Frac_ice[i] += (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 
-		T_delta = T_soil[i] - T_freeze;
+		// Initialise temperatures on first day
+		if (daynum == 0 && date.year == FIRST_FREEZE_YEAR)
+			T_old[i] = T_soil[i];
+
+		delta_T = T_soil[i] - T_old[i];
 
 		// FREEZING
-		if (T_soil[i] < 0.0 && T_soil[i] < T_freeze) {
+		if (T_soil[i] < 0.0 && T_soil[i] < T_old[i]) { // Wania conditions 
 			Fthaw = 0.0;
-			if (Frac_water[i] > 0.0) {
-
-				// Energy change (J m-3) in this layer since last timestep
-				energy = heat_capacity_layer * T_delta; 
-
-				// Fraction ice that can be frozen [m3 m-3]
-				Ffreez = energy / ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
+			if (Frac_water[i] > 0.0 /*&& T_old[i] < 1.0*/) {
+				energy = Cp_water * fabs(delta_T); //energy in J m-3 
+				Ffreez = energy / Lheat; //unitless fraction
 
 				if (Frac_water[i] > Ffreez) {
 					Frac_ice[i] += Ffreez;
 					Frac_water[i] -= Ffreez;
-
-					T_soil[i] = T_freeze;
-
-					// New heat capacity (J m-3 K-1), after some of the water has become ice
-					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
-
-					// Energy used for phase change [J m-3]
-					phase_change_energy = -Ffreez * Lheat;
 
 					// How much of the water is below pwp?
 					if (Frac_water[i] < Fpwp_ref[i]) {
@@ -3142,6 +3035,8 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 						Frac_water_belowpwp[i] = Fpwp_ref[i];  
 						Frac_water[i] -= Fpwp_ref[i]; // So there is liquid water above the pwp
 					}
+
+					T_soil[i] = 0.0;
 
 					// Remove tiny amounts of water for numerical stability
 					if (DEBUG_SOIL_WATER) {
@@ -3162,21 +3057,13 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					Frac_ice[i] += Frac_water[i];
 					
 					// Update soil temperature in this layer
+					T_soil[i] = -(Ffreez - Frac_water[i]) * Lheat / Cp_water;
 
-					// Energy used for phase change and to keep layer at initial temperature [J m-3]
-					double energy_loss = Frac_water[i] * ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
-
-					// Calculate remaining energy to lower the temperature
-					double energy_remain = energy - energy_loss;
-
-					// New heat capacity (J m-3 K-1), now that the water has become ice
-					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], 0.0, Frac_peat[i], Frac_air[i]);
-
-					// Update soil temperature
-					T_soil[i] = T_freeze + energy_remain / heat_capacity_layer;
-
-					// Energy used for phase change [J m-3]
-					phase_change_energy = -Frac_water[i] * Lheat;
+					// Note that this gives the same result as the following method:
+					// double temp_rise = Frac_water[i] * Lheat / Cp_water; // temp rise resulting from freezing water.
+					// T_soil[i] += temp_rise;
+					
+					T_soil[i] = min(0.0, T_soil[i]); // Ensures we don't go back over 0 degrees
 
 					// Remove tiny amounts of water for numerical stability
 					if (DEBUG_SOIL_WATER) {
@@ -3197,30 +3084,15 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 		} // end of FREEZING
 
 		// THAWING
-		else if (T_soil[i] >= 0.0 && T_soil[i] > T_freeze) {
+		else if (T_soil[i] >= 0.0  && T_soil[i] > T_old[i]) { // Wania conditions
 			Ffreez = 0.0;
 			if (Frac_ice[i] > 0.0) {
-
-				// Energy from full soil layer to thaw water [J m-3]
-				energy = heat_capacity_layer * T_delta;
-
-				// Fraction ice that can be thawed [m3 m-3]
-				Fthaw = -energy / ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
-
+				energy = Cp_water * fabs(delta_T); //energy in J m-3
+				Fthaw = energy / Lheat; //unitless fraction
 				if (Frac_ice[i] > Fthaw) {
 
 					// There is some ice left, even after melt
 					Frac_water[i] += Fthaw;
-					Frac_ice[i] -= Fthaw;
-
-					// Soil temperature stays at previous timestep's temperature
-					T_soil[i] = T_freeze;
-
-					// New heat capacity (J m-3 K-1), now that some of the ice has become water
-					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], Frac_ice[i], Frac_water[i], Frac_peat[i], Frac_air[i]);
-
-					// Energy used for phase change [J m-3]
-					phase_change_energy = Fthaw * Lheat;
 
 					// How much of the water is below the pwp now?
 					if (Frac_water[i] < Fpwp_ref[i]) {
@@ -3231,6 +3103,9 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 						Frac_water_belowpwp[i] = Fpwp_ref[i];  
 						Frac_water[i] -= Fpwp_ref[i]; // So there is liquid water above the pwp
 					}
+
+					Frac_ice[i] -= Fthaw;
+					T_soil[i] = 0.0;
 
 					// Remove tiny amounts of water for numerical stability
 					if (DEBUG_SOIL_WATER) {
@@ -3248,26 +3123,18 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					// left-over energy will increase the temperature.
 
 					Frac_water[i] += Frac_ice[i];
-
-					// Update soil temperature in this layer
-
-					// Energy used for phase change and to keep layer at initial temperature [J m-3]
-					double energy_loss = -Frac_ice[i] * ((Cp_ice - Cp_water) * (T_freeze + K2degC) + Lheat);
-
-					// Calculate remaining energy to lower the temperature [J m-3]
-					double energy_remain = energy - energy_loss;
-
-					// New heat capacity (J m-3 K-1), now that the ice has become water
-					heat_capacity_layer = heatcapacity(Frac_min[i], Frac_org[i], 0.0, Frac_water[i], Frac_peat[i], Frac_air[i]);
-
-					// Update soil temperature in this layer
-					T_soil[i] = T_freeze + energy_remain / heat_capacity_layer;
-
-					// Energy used for phase change [J m-3]
-					phase_change_energy = Frac_ice[i] * Lheat;
-
 					Frac_water_belowpwp[i] = Fpwp_ref[i]; // All water is unfrozen
 					Frac_water[i] -= Frac_water_belowpwp[i]; // Only store liquid water above the pwp
+
+					// Update soil temperature in this layer
+					T_soil[i] = (Fthaw - Frac_ice[i]) * Lheat / Cp_water;					
+
+					// Note that this gives the same result as the following method:
+					// double temp_reduction = Frac_ice[i] * Lheat / Cp_water; // temp reduction resulting from thawing ice.
+					// T_soil[i] -= temp_reduction;
+
+					T_soil[i] = max(0.0, T_soil[i]); // Ensures we don't go back under 0 degrees
+
 					Frac_ice[i] = 0.0;
 
 					// Remove tiny amounts of water for numerical stability
@@ -3307,23 +3174,16 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 				Frac_water[i] = 0.0;
 		}
 
-		// Maximum error
-		const double EPS_SOIL_ENERGY = 1.0e-10;
-		double energy_final = heat_capacity_layer * (T_soil[i] + K2degC) - phase_change_energy;
-
-		// energy balance checks:
-		if ((fabs(energy_initial - energy_final)) > energy_initial * EPS_SOIL_ENERGY) {
-			dprintf("Year %d Day %d Energy balance is off during freezing or thawing in Soil::update_ice_fraction for layer %d. Init %g, Final %g, Diff %g \n", 
-				date.year, date.day, i, energy_initial, energy_final, energy_initial - energy_final);
-		}
-
 		// water balance checks:
 		double ice_thislayer_new = Frac_ice[i] + (Fpwp_ref[i]-Frac_water_belowpwp[i]);
 		double water_thislayer_new = Frac_water[i] + Frac_water_belowpwp[i];
-		double water_total_final = ice_thislayer_new + water_thislayer_new;
+		double wtotal_final = ice_thislayer_new + water_thislayer_new;
 
-		if ((fabs(water_total_initial - water_total_final)) > SMALLVOLFRAC)
-			fail("Water mass balance during freezing or thawing in Soil::update_ice_fraction. Init %g, Final %g, Diff %g \n", water_total_initial, water_total_final, water_total_initial - water_total_final);
+		if ((fabs(wtotal_initial - wtotal_final)) > SMALLVOLFRAC)
+			fail("Water mass balance during freezing or thawing in Soil::update_ice_fraction. Init %g, Final %g, Diff %g \n", wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+
+		// Update T_old after possible phase change
+		T_old[i] = T_soil[i];
 
 	} // end of loop through layers
 }
@@ -3561,6 +3421,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 			// Could also initialise T_soil with Tm (MAAT) * depth(m) * 0.015 as in Wisser et al. (2011)
 			T_soil[i] = 0.0;
 			T_soil_yesterday[i] = 0.0;
+			T_old[i] = 0.0;
 			Di[i] = 0.04 * MM2_PER_M2;
 			Ci[i] = Cp_air * M3_PER_MM3;
 			Ki[i] = Di[i] * Ci[i];
@@ -3633,7 +3494,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 	// ------------------------------------------
 
 	bool snow_active_old = snow_active;
-	update_snow_properties(dailyairtemp, Dsnow, Csnow, Ksnow);
+	update_snow_properties(daynum, dailyairtemp, Dsnow, Csnow, Ksnow);
 
 	if (analyticalSolutionTest) snow_active = 0;
 
@@ -3771,7 +3632,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 	// Update the heat capacities, thermal conductivities and diffusivities (Di[i]) in the soil layers
 	if (!iftwolayersoil)
-		update_soil_diffusivities(analyticalSolutionTest);
+		update_soil_diffusivities(daynum, analyticalSolutionTest);
 
 	// Do one timestep of the Crank-Nicholson method.
 	// ------------------------------------------
@@ -3788,10 +3649,10 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 			double dayfrac = Dt / (double)TIMESTEPS;
 
-			// Wania at al. (2009a) algorithm. Assumes vertical homogeneity in Ci.
-			//cnstep(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp);
-			// Better algorithm that does not assume vertical homogeneity in Ki and Ci:
-			cnstep_full(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp, Ki, Ci);
+			// Wania at al. (2009a) algorithm. Assumes vertical homogeneity in Ki and Ci.
+			cnstep(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp);
+			// Alternative algorithm that does not assume vertical homogeneity in Ki and Ci:
+			// cnstep_full(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp, Ki, Ci);
 
 		}
 	}
@@ -4019,6 +3880,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& runoff
 		& temp25
 		& Dz // optimise through init after restart?
+		& T_old
 		& T_soil_yesterday
 		& T_soil_monthly
 		& dtemp

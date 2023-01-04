@@ -150,6 +150,14 @@ extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
 
+/// Number of vertical layers used for canopy-area integration.
+/// Mutually exclusive with layer_thickness_canopy.
+extern int nlayer_canopy;
+
+/// Width of vertical layers for canopy-area integration (m) (default: 2).
+/// Mutually exclusive with nlayer_canopy.
+extern double layer_thickness_canopy;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings
 

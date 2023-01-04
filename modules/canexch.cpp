@@ -169,8 +169,7 @@ void fpar(Patch& patch) {
 	//       k       = extinction coefficient;
 	//       plai(z) = summed leaf-area index for leaves of all individuals, above
 	//                 canopy depth z, taking account of current phenological status
-
-	const double VSTEP=2.0; // width of vertical layers for canopy-area integration (m)
+ 
 	const double PHEN_GROWINGSEASON=0.5;
 		// minimum expected vegetation leaf-on fraction for growing season
 
@@ -200,7 +199,7 @@ void fpar(Patch& patch) {
 		// individual or cohort
 	double atoh; // term in calculating LAI sum for a given layer
 	double height_veg; // maximum vegetation height (m)
-	int toplayer; // number of vertical layers of width VSTEP in vegetation (minus 1)
+	int toplayer; // number of vertical layers of width vstep in vegetation (minus 1)
 	int layer; // layer number (0=lowest)
 	double lowbound; // lower bound of current layer (m)
 	double highbound; // upper bound of current layer (m)
@@ -286,8 +285,11 @@ void fpar(Patch& patch) {
 		else
 			phen_veg=1.0;
 
+		// width of vertical layers for canopy-area integration (m)
+		double vstep = nlayer_canopy ? height_veg / nlayer_canopy : layer_thickness_canopy;
+
 		// Calculate number of layers (minus 1) from ground surface to top of canopy
-		toplayer=(int)(height_veg/VSTEP-0.0001);
+		toplayer = (int)(height_veg/vstep-0.0001);
 
 		// Calculate FPAR by integration from the top of the canopy (Eqn 2)
 		plai=0.0;
@@ -300,8 +302,8 @@ void fpar(Patch& patch) {
 
 		for (layer=toplayer;layer>=0;layer--) {
 
-			lowbound=(double)layer*VSTEP;
-			highbound=lowbound+VSTEP;
+			lowbound=(double)layer*vstep;
+			highbound=lowbound+vstep;
 
 			// FPAR at top of this layer = FPAR at bottom of layer above
 
@@ -328,14 +330,14 @@ void fpar(Patch& patch) {
 
 						frac=1.0;
 						if (indiv.height<highbound)
-							frac-=(highbound-indiv.height)/VSTEP;
+							frac-=(highbound-indiv.height)/vstep;
 						if (indiv.boleht>lowbound)
-							frac-=(indiv.boleht-lowbound)/VSTEP;
+							frac-=(indiv.boleht-lowbound)/vstep;
 
 						// Calculate summed LAI of this cohort in this layer
 
 						atoh=indiv.lai/(indiv.height-indiv.boleht);
-						indiv.lai_leafon_layer=atoh*frac*VSTEP;
+						indiv.lai_leafon_layer=atoh*frac*vstep;
 						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
 						plai_leafon_layer+=indiv.lai_leafon_layer;
 					}
@@ -2602,7 +2604,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
 	while (vegetation.isobj) {
-		
+
 		// Retrieve information about cohort
 		Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;

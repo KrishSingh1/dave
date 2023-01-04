@@ -54,6 +54,8 @@ bool ifbvoc;
 
 bool ifdailygrass;
 bool ifnewphotosyn;
+int nlayer_canopy = 0;
+double layer_thickness_canopy = 0;
 
 // Arctic and wetland options
 bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
@@ -536,6 +538,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifnewphotosyn", &ifnewphotosyn, 1, CB_NONE, "Use new (DAVE) photosynthesis routine");
+		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
+		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
+
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -1252,6 +1257,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch")) badins("npatch");
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");
+		}
+		
+		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
+		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
+			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");
+			plibabort();
+		} else if (!itemparsed("nlayer_canopy") && !itemparsed("layer_thickness_canopy")) {
+			// If neither are specified, use default layer thickness of 2m.
+			layer_thickness_canopy = 2;
 		}
 		else if (vegmode==POPULATION && npatch!=1) {
 			sendmessage("Information",

@@ -61,11 +61,18 @@ variable_vpd                 "vpd"
 variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
 variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
 
-useClosestNdep      1         ! Use closest available N Deposition data if none found for this gridcell
-ifdailygrass        1	      ! daily allocation for grasses and crops 
-ifnewphotosyn 		0 		  ! new photosynthesis scheme (in need of a better name...)
-use_mean_annual_co2 0           ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
+useClosestNdep           1   ! Use closest available N Deposition data if none found for this gridcell
+ifdailygrass             1   ! daily allocation for grasses and crops 
+ifnewphotosyn 		     1   ! new photosynthesis scheme (in need of a better name...)
+use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 
+! Number of vertical layers used for canopy-area integration.
+! Mutually exclusive with layer_thickness_canopy.
+!nlayer_canopy           10
+
+! Width of vertical layers for canopy-area integration (m) (default: 2).
+! Mutually exclusive with nlayer_canopy.
+!layer_thickness_canopy   2
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! RUN PARAMETERS AND OPTIONS
@@ -172,7 +179,7 @@ nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root 
 !///////////////////////////////////////////////////////////////////////////////
 
 !state_year 500            ! Year to save/start state file (no setting = after spinup)
-restart 0            ! Whether to start from a state file
+restart 1            ! Whether to start from a state file
 save_state 0            ! Whether to save a state file
 state_path "./state/"            ! Directory to put state files in
 

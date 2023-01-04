@@ -2046,7 +2046,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		outlimit_misc(out, out_diam_g_sts, diam_g);
 		outlimit_misc(out, out_height_sts, height);
 
-		// Determine number of patches of this stand type that have been clear-cut this yéar (area fraction not considered)
+		// Determine number of patches of this stand type that have been clear-cut this year (area fraction not considered)
 		int npatches_cc = 0;
 		int npatches_cc_thisyear = 0;
 		double cutinterval_mean = 0.0;

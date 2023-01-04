@@ -4685,7 +4685,7 @@ public:
 	double *transfer_area_st;
 	/// land cover origin of this stand
 	/** Set to landcover for primary stands, for secondary stands: origin lc if created by transfer_to_new_stand..(),
-	/*  otherwise to NLANDCOVERTYPES
+	 *  otherwise to NLANDCOVERTYPES
 	 */
 	landcovertype lc_origin;
 	/// stand type origin of this stand
@@ -5208,9 +5208,9 @@ public:
 	// SIMFIRE
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
-	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
+	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/km2)
 	double hyde31_pop_density[57];
-	/// current year's population density (inhabitants/ha)
+	/// current year's population density (inhabitants/km2)
 	double pop_density;
 	/// tuning factor for available litter
 	double k_tun_litter;

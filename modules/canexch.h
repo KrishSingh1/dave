@@ -143,9 +143,11 @@ const double gbs = 0.003;  // von Caemmerer 2000
 						   // 0.00287 in Yin et al. 2016 
 
 
-
-
-
+/// -----------------------------------------------
+/// Canopy-level parameters
+/// -----------------------------------------------
+// Nitrogen extinction coefficient within the canopy (Friend and Kiang 2005)
+const double kn = 0.11;
 
 
 /// leaf respiration as fraction of maximum rubisco, mosses

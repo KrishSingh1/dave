@@ -2592,6 +2592,7 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
     double par, temp, rad, vpd, ca;
+	double lai_layer, lai_cum_bottom, lai_cum, Nscal;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
 	double Rm, Rs, Je, Vpmax, Vp, Kp, Vpr;
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
@@ -2642,13 +2643,25 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// X needs to represent gs for CO2, hence no 1.6 factor
     		X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
 
-			// Loop over canopy layers
-		    for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {
+			// initialise cumulative LAI
+			lai_cum_bottom = 0.0;
 
+			// Loop over canopy layers
+		    for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {   // TODO: reconstruct to go from top to bottom
+
+				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
 				double apar_layer = fpar_layer * par;  // absorbed PAR in this layer (W m-2), TODO: check for double counting of absorption
-				double lai_layer = indiv.lai_layer;    // LAI per layer and individual from fpar function.
-		    
+				
+				// determine LAI and cumulative LAI of the layer
+				lai_layer = indiv.lai_layerwise[i];          // LAI of the layer and individual
+		    	lai_cum_bottom += lai_layer;                 // cumulative LAI at the bottom of current layer
+				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
+
+				// determine N scalar of the layer
+				Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[1]));
+
+
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -2656,12 +2669,12 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
 					gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
-					// Temperature dependencies of Vcmax and Jmax and water stress scaling
-					vcmax = ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
-					jmax  = ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
+					// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
+					vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+					jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-					Rd = BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
+					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
 					// 1) Rubisco-limited gross photosynthesis
 					gamma = vcmax;
@@ -2692,17 +2705,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = BC4 * Vcmax25_C4;
+					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4;
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					// Temperature dependency and water scalar of Vcmax and Jmax
+					// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 					// TODO: different temp dependency in C3 and C4 plants??
-					vcmax = ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-					jmax  = ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
+					vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
+					jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 
 					// Temperature dependency of Vpmax and Kp
-					Vpmax = ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
+					Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
 					Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 
 					// Iteration to find An, gs, and ci

@@ -128,6 +128,22 @@ void interception(Patch& patch,Climate& climate) {
 
 }
 
+double get_veg_height(Vegetation &vegetation) {
+	double height_veg = 0;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+
+		if (indiv.growingseason()) {
+			if (indiv.height>height_veg) {
+				height_veg=indiv.height;
+			}
+		}
+
+		vegetation.nextobj(); // ... on to next individual
+	}
+	return height_veg;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FPAR
@@ -2631,6 +2647,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double vcmax_canopy = 0.0;
 		double jmax_canopy = 0.0;
 
+		double height_veg = get_veg_height(vegetation);
+
+		// width of vertical layers for canopy-area integration (m)
+		double vstep = nlayer_canopy ? height_veg / nlayer_canopy : layer_thickness_canopy;
+
+		// Calculate number of layers (minus 1) from ground surface to top of canopy
+		int toplayer = (int)(height_veg/vstep-0.0001);
+
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
 		
@@ -2646,8 +2670,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// initialise cumulative LAI
 			lai_cum_bottom = 0.0;
 
-			// Loop over canopy layers
-		    for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {   // TODO: reconstruct to go from top to bottom
+			// Loop over canopy layers (from top layer to bottom layer)
+		    for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {
 
 				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
@@ -2660,7 +2684,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine N scalar of the layer
 				Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[1]));
-
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
@@ -2944,9 +2967,48 @@ void water_stress(Patch &patch) {
 
 
 // Canopy transpiration
-void Transpiration(Patch &patch) {
+void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
+	double transp;
+	// this formulation assumes infinite Ga
+	// TODO: include Ga --> Penman-Monteith (?)
+    
+	// Loop through cohorts (=individuals)
+	vegetation.firstobj();
+	while (vegetation.isobj) {
 
+		// Retrieve information about cohort
+		Individual& indiv = vegetation.getobj();
+		Pft& pft = indiv.pft;
+		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (date.day == 0)
+			indiv.aaet = 0.0;
+		
+		// Loop over time steps per day
+		for (Day day; day.period != date.subdaily; day.next()) {	
+
+			// T = Gc / VPD * pressure 
+			// Gc in mol m-2 s-1
+			// VPD and pressure in Pa
+			transp += indiv.ps_subdaily.gsw[day.period] / climate.vpds[day.period] * 1000.0 * 1e5;
+			// TODO: replace 1e5 with constant atmospheric pressure (Pa)
+
+		} // end sub-daily loop
+		
+		// daily transpiration rate in mol m-2 s-1 
+		transp /= date.subdaily;
+		
+		// daily transpiration rate in mm d-1
+		indiv.aet = transp * H2OMOL2G * 1000.0 * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
+        
+		// add to annual transpiration
+		indiv.aaet += indiv.aet;
+
+		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
+		// which is incorrect as soil evaporation is calculated separately.
+
+	} // end cohort loop
 }
 
 /// Canopy exchange

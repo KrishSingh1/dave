@@ -79,6 +79,9 @@ const double DWDC = 1.6;
 /// Molecular mass of Carbon (g mol-1)
 const double CMOL2G = 12.011;
 
+/// Molecular mass of Water (g mol-1)
+const double H2OMOL2G = 18.01528;
+
 /// Michaelis-Menten constants at 25 degC (mol mol-1)
 const double KO25      = 278.4E-3; // MM constant for O2 (Bernacchi et al. 2001)
 const double KC25      = 404.9E-6; // MM constant for CO2 (Bernacchi et al. 2001)

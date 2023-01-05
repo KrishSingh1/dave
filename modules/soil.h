@@ -302,6 +302,13 @@ const double water_min = 0.1;
 // But south of this, then the PEATLAND stands are irrigated to avoid water stress, and can be a source of methane
 const double PEATLAND_WETLAND_LATITUDE_LIMIT = 40.0;
 
+///////////////////////////////////////////
+// Soil Parameters for DAVE model version
+///////////////////////////////////////////
+// Critical soil moisture content (fraction of AWC) below which plant stress occurs
+const double wcont_crit = 0.7; 
+
+
 // INLINE FUNCTIONS
 
 inline void tridiag(int n, long double a[], long double b[], long double c[], long double r[], long double u[]) {

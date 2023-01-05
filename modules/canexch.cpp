@@ -2608,6 +2608,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		// Retrieve information about cohort
 		Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;
+		Patchpft &ppft = patch.pft[indiv.pft.id];
 
 		// get PFT-specfic parameters
 		g0 = pft.g0;  // mol m-2 s-1
@@ -2637,7 +2638,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			
 			// Stomatal term (Medlyn et al. 2011)
 			// X needs to represent gs for CO2, hence no 1.6 factor
-    		X = divide(divide(1.0 + g1, sqrt(max(vpd,0.1))), ca); 
+    		X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
 
           	if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
@@ -2646,9 +2647,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
 				gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
-				// Temperature dependencies of Vcmax and Jmax
-				vcmax = Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
-				jmax  = Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
+				// Temperature dependencies of Vcmax and Jmax and water stress scaling
+				vcmax = ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+				jmax  = ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
 				// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 				Rd = BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
@@ -2836,11 +2837,9 @@ double electron_transport_rate(double PAR,double Jmax) {
 /*
 DAVE water scalar routine (see water_scalar()).
 
-todo: change name as required.
-
 @param patch: The patch.
 */
-void wscal_dave(Patch &patch) {
+void water_stress(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
@@ -2853,10 +2852,21 @@ void wscal_dave(Patch &patch) {
 	while (patch.vegetation.isobj) {
 		Individual &indiv = patch.vegetation.getobj();
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+		Pft &pft = ppft.pft; 
+		
+		double wstress_layer[NSOILLAYER];
+		double wstress;
 
-		// todo: actual calculation of water stress.
-		// wstress should be between 0 (max stress) and 1 (no stress).
-		double wstress = 1.0 * rand() / RAND_MAX;
+		for (int i = 0; i<NSOILLAYER; i++) {
+			// get actual water content and available water content per layer
+			double wcont = patch.soil.get_layer_soil_water(i);
+
+			// calculate water stress factor per layer and weight with root fraction
+			wstress_layer[i] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[i];
+			wstress += wstress_layer[i];
+		}
+		// water stress factor [0-1] in the root zone
+		wstress /= NSOILLAYER;
 
 		// Mean daily water stress value.
 		ppft.wscal = wstress;
@@ -2953,11 +2963,12 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate photosynthetic capacity from leaf N
 		vcmax_from_N(patch, vegetation);
 
+		// Calculate water stress factor
+		water_stress(patch);
+
 		// Calculate subdaily photosynthesis and stomatal conductance 
 		photosynthesis_gs(patch, climate, vegetation);
 
-		// Water stress.
-		wscal_dave(patch);
 		// for (Day day; day.period != date.subdaily; day.next()) {
 
 		// 	wdemand(patch, climate, vegetation, day);

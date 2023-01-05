@@ -10,7 +10,7 @@
 #include "config.h"
 #include "outputmodule.h"
 #include "parameters.h"
-#include "ncutil.h"
+#include "util.h"
 #include "guess.h"
 
 namespace GuessOutput {

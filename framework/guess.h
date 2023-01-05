@@ -2545,6 +2545,11 @@ public:
 	/// layer-wise fpar (see fpar description)
 	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
 	std::vector<double> fpar_layerwise;
+
+	/// layer-wise lai (see lai description).
+	/// I've opted not to serialise this, as it's reinitialised each day.
+	std::vector<double> lai_layerwise;
+
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
 	/// vegetation phenological state (fraction of potential leaf cover)

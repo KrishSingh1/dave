@@ -1201,6 +1201,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	last_turnover_day = -1;
 
 	fpar_layerwise.clear();
+	lai_layerwise.clear();
 
 	Stand& stand = vegetation.patch.stand;
 

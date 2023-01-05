@@ -263,6 +263,7 @@ void fpar(Patch& patch) {
 				indiv.fpar_leafon=0.0;
 				// Empty the daily layerwise-fpar vector.
 				indiv.fpar_layerwise.clear();
+				indiv.lai_layerwise.clear();
 				if (indiv.height>height_veg) height_veg=indiv.height;
 				plai_leafon+=indiv.lai;
 
@@ -338,6 +339,7 @@ void fpar(Patch& patch) {
 
 						atoh=indiv.lai/(indiv.height-indiv.boleht);
 						indiv.lai_leafon_layer=atoh*frac*vstep;
+						indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);
 						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
 						plai_leafon_layer+=indiv.lai_leafon_layer;
 					}

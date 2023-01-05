@@ -7,28 +7,7 @@
 
 #include "guess.h"
 #include "ncvariable.h"
-
-/*
-Throw an exception using the specified format string and arguments.
-
-@param fmt: printf-style format string.
-@param ...: Arguments to the format string.
-*/
-#define throw_xtring(fmt, ...) \
-	xtring tmp_msg; \
-	tmp_msg.printf((fmt), __VA_ARGS__); \
-	throw std::runtime_error((const char *)tmp_msg);
-
-/*
-Throw a nested exception using the specified format string and arguments.
-
-@param fmt: printf-style format string.
-@param ...: Arguments to the format string.
-*/
-#define throw_xtring_nested(fmt, ...) \
-	xtring tmp_msg; \
-	tmp_msg.printf((fmt), __VA_ARGS__); \
-	std::throw_with_nested(std::runtime_error((const char *)tmp_msg));
+#include "util.h"
 
 /*
 This macro will check the status code returned by functions in the NetCDF API,
@@ -235,14 +214,6 @@ specified aggregator function.
 */
 std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
 	, double (*aggregator)(const double *, size_t));
-
-/*
-Attempt to create the specified directory tree (equivalent to mkdir -p). Will
-throw upon failure, but "directory already exists" is considered success.
-
-@param path: The directory tree to be created.
-*/
-void mkdir_p(const char *path);
 
 #endif // HAVE_NETCDF
 

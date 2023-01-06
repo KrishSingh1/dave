@@ -3011,6 +3011,143 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 	} // end cohort loop
 }
 
+
+
+// This is a modification of the original npp routine of standard LPJ-GUESS.
+// Modifications include:
+// - called once a day (no sub-daily option, day structure not an input)
+// - no more calculation of photosynthesis
+// - bvoc function not implemented (could be added later)
+void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+	double assim, resp, lambda, gtemp;
+
+	gtemp = climate.gtemp;  // TODO: find out what that is.
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		// For this individual ...
+
+		// Retrieve PFT and patch PFT
+
+		Pft& pft = indiv.pft;
+		Patchpft& ppft = patch.pft[pft.id];
+
+		//Don't do calculations for crops outside their growingseason
+		if (!indiv.growingseason()) {
+			indiv.dnpp=0.0;
+			vegetation.nextobj();
+			continue;
+		}
+
+		// get daily net assimilation
+		assim = indiv.photosynthesis.agd_g - indiv.photosynthesis.rd_g;
+		
+		// Calculate autotrophic respiration
+		double cmass_root;
+		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
+			cmass_root = 0.0;
+		else
+			cmass_root = indiv.cmass_root_today();
+
+		// Static root and sap wood C:N ratio if no N limitation
+		// to not let N affect respiration for C only version of model
+		// Also not allow lower C:N ratios than minimum which
+		// would affect respiration severely (happens for deciduous trees
+		// in the beginning of the season)
+
+		double cton_sap, cton_root;
+		if (ifnlim) {
+			cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
+			cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+		}
+		else {
+			cton_sap = pft.cton_sap_avr;
+			cton_root = pft.cton_root_avr;
+		}
+
+		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+			indiv.pft.respcoeff, cton_sap, cton_root,
+			indiv.cmass_sap, cmass_root, assim, resp);
+
+		// Update accumulated annual NPP and daily vegetation-atmosphere flux
+		// Note that resp does not include leaf day respiration.
+		indiv.dnpp = assim - resp;
+		indiv.anpp += indiv.dnpp;
+
+		// Save GPP over leaf mass for daily growth of grass
+		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+			double gpptolai = 0.0;
+			if (!negligible(indiv.lai)) {
+				gpptolai = assim / indiv.lai;
+			}
+			indiv.gpptolai_15.add(gpptolai);
+		}
+
+		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
+		indiv.report_flux(Fluxes::GPP, assim);
+		indiv.report_flux(Fluxes::RA, resp);
+
+		if (indiv.lai_today() > indiv.mlai_max[date.month])
+			indiv.mlai_max[date.month] = indiv.lai_today();
+
+		//if (day.isend) {
+		indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
+		//}
+
+		vegetation.nextobj();
+	}
+}
+
+/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
+void leaf_senescence(Vegetation& vegetation) {
+
+	if (!(vegetation.patch.stand.is_true_crop_stand() && ifnlim)) {
+		return;
+	}
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		// Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
+		if (indiv.patchpft().cropphen->dev_stage > 1.0) {
+			const double senNr = 0.1;
+			double senN = senNr * (indiv.get_nmass_leaf()-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
+
+			// Senescence is not done during spinup
+			if (date.year > nyear_spinup && senN > 0) {
+				indiv.nmass_leaf -= senN;
+				indiv.cropindiv->nmass_agpool += senN;
+			}
+		}
+
+		double r = 0.0;
+
+		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
+		if (indiv.cmass_leaf_today() > 0.0) {
+			double Ln = indiv.lai_nitrogen_today();
+			double Lnld = indiv.lai_today();
+			r = (Lnld - min(Lnld, Ln))/indiv.sla()/10.0;
+		}
+		// No senescence during the initial growing period
+		if (indiv.patchpft().cropphen->fphu < 0.05) {
+			indiv.daily_cmass_leafloss = 0.0;
+		} 
+		else {
+			indiv.daily_cmass_leafloss = max(0.0, r);
+		}
+		indiv.daily_nmass_leafloss = 0.0;
+
+		vegetation.nextobj();
+	}
+}
+
+
+
+
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations
  *  of actual evapotranspiration (AET), canopy conductance, carbon assimilation
@@ -3080,12 +3217,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Transpiration from VPD and canopy conductance
 		transpiration(patch, climate, vegetation);
 
-		// for (Day day; day.period != date.subdaily; day.next()) {
+		// Calculate respiration and NPP on a daily basis
+		npp_dave(patch, climate, vegetation);
 
-		// 	aet_water_stress(patch, vegetation, day);
-		// 	water_scalar(patch, vegetation, day);
-		// 	npp(patch, climate, vegetation, day);
-		// }
 	}
 	else {
 		// Calculates no-stress daily values of photosynthesis and gpterm

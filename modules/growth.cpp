@@ -870,6 +870,19 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		 indiv.cmass_storage = bminit * indiv.densindiv;
 		 indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
 
+		if (ifnewphotosyn){
+			// allocate cmass and nmass in storage to leaves and roots
+			indiv.cmass_leaf = ltor * indiv.cmass_storage;
+			indiv.cmass_root = indiv.cmass_storage - indiv.cmass_leaf;
+			indiv.cmass_leafs[0] = indiv.cmass_leaf; 
+			indiv.cmass_storage = 0.0;
+
+			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
+			indiv.nmass_leafs[0] = indiv.nmass_leaf;
+			indiv.nmass_storage = 0.0;
+		}
+
 		 indiv.alive = true;
 		 indiv.report_flux(Fluxes::ESTC, -indiv.cmass_storage);
 		 indiv.report_flux(Fluxes::ESTN, -indiv.nmass_storage);
@@ -881,8 +894,15 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
 		indiv.cmass_root = cmass_root_ind * indiv.densindiv;
 
-		indiv.nmass_leaf = 0.0;
-		indiv.nmass_root = 0.0;
+		if (ifnewphotosyn){
+			// we need initial values for nmass_leaf when calling ifnewphotosyn
+			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
+		}
+		else {
+			indiv.nmass_leaf = 0.0;
+			indiv.nmass_root = 0.0;
+		}
 	}
 
 	if (indiv.pft.lifeform == TREE) {

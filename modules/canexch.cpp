@@ -2827,6 +2827,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.nactive_opt = 0.0;    // not used
 		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 
 
+		// temporary assignment of initial Anet
+		// TODO: calculate this properly 
+		ppft.anetps_ff = 4.0;  // kg C m-2 yr-1
+
 		vegetation.nextobj();
 
 	} // end cohort loop
@@ -3223,6 +3227,8 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate respiration and NPP on a daily basis
 		npp_dave(patch, climate, vegetation);
 
+		leaf_senescence(vegetation);
+
 	}
 	else {
 		// Calculates no-stress daily values of photosynthesis and gpterm
@@ -3242,12 +3248,12 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 			water_scalar(patch, vegetation, day);
 			npp(patch, climate, vegetation, day);
 		}
+
+		leaf_senescence(vegetation);
+
+		// Forest-floor conditions
+		forest_floor_conditions(patch);
 	}
-
-	leaf_senescence(vegetation);
-
-	// Forest-floor conditions
-	forest_floor_conditions(patch);
 
 	// Total potential evapotranspiration for patch (mm, patch basis)
 	// is a sum of: (1) potential transpirative demand of the vegetation;

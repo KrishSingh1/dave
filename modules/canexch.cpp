@@ -3184,6 +3184,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Supply function for nitrogen and determination of nitrogen stress leading
 		// to down-regulation of vmax.
 
+		/*
 		// Nitrogen within projective cover of all individuals
 		double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
@@ -3204,6 +3205,8 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 		// Resolve nitrogen stress with longterm stored nitrogen
 		nstore_usage(vegetation);
+
+		*/
 
 		// Calculate photosynthetic capacity from leaf N
 		vcmax_from_N(patch, vegetation);

@@ -1799,7 +1799,13 @@ void growth_daily_grass(Patch& patch) {
 
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
-					indiv.nscal_running.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
+					if (ifnewphotosyn) {
+						// evaluate current C:N ratio against 10-day C:N ratio, not the optimal one
+						indiv.nscal_running.add(min(1.0, indiv.cton_leaf() / indiv.nscal_running.mean()));
+					}
+					else {
+						indiv.nscal_running.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
+					}
 				}
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
@@ -1863,13 +1869,27 @@ void growth_daily_grass(Patch& patch) {
 				cgrow_root = cgrow / (1.0 + indiv.ltor);
 				cgrow_leaf += cgrow - cgrow_root;
 
-				// N demand for growth
-				double ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf_opt;
-				double ngrow_root_demand = cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+				double ngrow_leaf_demand, ngrow_root_demand, nup_leaf_demand, nup_root_demand;
+				if (ifnewphotosyn){
+					// N demand for growth
+					ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf();
+					ngrow_root_demand = cgrow_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+					// TODO: assuming C:N root proportional to C:N leaf at the moment
 
-				// N demand for update current tissue to optimal value (10% day-1)
-				double nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf_opt - indiv.get_nmass_leaf()) * 0.1;
-				double nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+					// N demand for update current tissue to optimal value (10% day-1)
+					nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf() - indiv.get_nmass_leaf()) * 0.1;
+					nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+					// TODO: Check this.
+				}
+				else {
+					// N demand for growth
+					ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf_opt;
+					ngrow_root_demand = cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+
+					// N demand for update current tissue to optimal value (10% day-1)
+					nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf_opt - indiv.get_nmass_leaf()) * 0.1;
+					nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+				}
 
 				// Total N demand
 				double ndemand_tot = ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand;

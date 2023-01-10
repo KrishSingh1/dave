@@ -49,7 +49,8 @@ const double UMOL_PER_MOL   = 1E6;
 const double J_PER_KJ		= 1E3;
 
 inline bool negligible(double dval, int limit = 0) {
-	// Returns true if |dval| < EPSILON, otherwise false
+	// If limit is nonzero, returns true if |dval| < 10^limit.
+	// Otherwise, returns true if |dval| < EPSILON, otherwise false
 	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
 }
 

@@ -362,6 +362,7 @@ void fpar(Patch& patch) {
 					else {
 						indiv.lai_layer=0.0;
 						indiv.lai_leafon_layer=0.0;
+						indiv.lai_layerwise.push_back(0);
 					}
 				}
 
@@ -407,6 +408,7 @@ void fpar(Patch& patch) {
 						indiv.fpar+=fpar_layer;
 						// Store layer-wise fpar in the individual.
 						indiv.fpar_layerwise.push_back(fpar_layer);
+						indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);
 					}
 				}
 
@@ -465,7 +467,8 @@ void fpar(Patch& patch) {
 					fpar_min=1.0;
 
 				indiv.fpar=max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min));
-
+				indiv.fpar_layerwise.push_back(indiv.fpar);
+				indiv.lai_layerwise.push_back(indiv.lai);
 				// Repeat assuming full leaf cover for all individuals
 
 				if (!negligible(plai_leafon_grass))
@@ -2575,6 +2578,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	// if it ends up being calculated elsewhere.
 	Vpr = 0;
 	
+	double height_veg = get_veg_height(vegetation);
+
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -2603,13 +2608,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double vcmax_canopy = 0.0;
 		double jmax_canopy = 0.0;
 
-		double height_veg = get_veg_height(vegetation);
-
-		// width of vertical layers for canopy-area integration (m)
-		double vstep = nlayer_canopy ? height_veg / nlayer_canopy : layer_thickness_canopy;
-
-		// Calculate number of layers (minus 1) from ground surface to top of canopy
-		int toplayer = (int)(height_veg/vstep-0.0001);
+		indiv.photosynthesis.agd_g = 0.0;
+		indiv.photosynthesis.rd_g = 0.0;
+		indiv.photosynthesis.je = 0.0;
 
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
@@ -2967,7 +2968,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
 		// which is incorrect as soil evaporation is calculated separately.
-
+		vegetation.nextobj();
 	} // end cohort loop
 }
 

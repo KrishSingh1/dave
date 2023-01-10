@@ -570,15 +570,6 @@ public:
 		}
 
 		capacity = size;
-		vcmax.reserve(size);
-		jmax.reserve(size);
-		gamstar.reserve(size);
-		Rd.reserve(size);
-		An.reserve(size);
-		Anc.reserve(size);
-		Anj.reserve(size);
-		gsw.reserve(size);
-		ci.reserve(size);
 
 		clear();
 	}
@@ -588,16 +579,25 @@ public:
 		vcmax25   = 0.0;
 		jmax25    = 0.0;
 
+		vcmax.clear();
+		jmax.clear();
+		gamstar.clear();
+		Rd.clear();
+		An.clear();
+		Anc.clear();
+		Anj.clear();
+		gsw.clear();
+		ci.clear();
 		for (int i = 0; i < capacity; i++) {
-			vcmax[i]   = 0.0; 
-			jmax[i]    = 0.0;
-			gamstar[i] = 0.0;
-			Rd[i] 	   = 0.0;
-			An[i]      = 0.0;
-			Anc[i]     = 0.0;
-			Anj[i]     = 0.0;     
-			gsw[i]     = 0.0;   
-			ci[i]      = 0.0;
+			vcmax.push_back(0.0); 
+			jmax.push_back(0.0);
+			gamstar.push_back(0.0);
+			Rd.push_back(0.0);
+			An.push_back(0.0);
+			Anc.push_back(0.0);
+			Anj.push_back(0.0);     
+			gsw.push_back(0.0);   
+			ci.push_back(0.0);
 		}
 	}
 

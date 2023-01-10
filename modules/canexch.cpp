@@ -2633,9 +2633,20 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
 				double apar_layer = fpar_layer * par;  // absorbed PAR in this layer (W m-2), TODO: check for double counting of absorption
-				
+				double lai_layer = indiv.lai_layerwise[i]; // LAI of the layer and individual
+
+				if (negligible(fpar_layer, 9)) {
+					if (negligible(lai_layer, 9)) {
+						// LAI and fpar both 0 - tree may be shorter than this layer.
+						continue;
+					}
+					//  else {
+					// 	fail("Lai is nonzero (%.2f) but fpar is 0 (%.2f) in layer %d day %d year %d patch %d",
+					// 	lai_layer, fpar_layer, i, date.day, date.year, patch.id);
+					// }
+				}
+
 				// determine LAI and cumulative LAI of the layer
-				lai_layer = indiv.lai_layerwise[i];          // LAI of the layer and individual
 		    	lai_cum_bottom += lai_layer;                 // cumulative LAI at the bottom of current layer
 				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
 
@@ -2644,38 +2655,45 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
-					// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
-					Ko      = Arrhenius_temp_response(KO25,temp,HA_KO,0.0,0.0);
-					Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
-					gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
-
-					// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-					vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
-					jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
-
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
-					// 1) Rubisco-limited gross photosynthesis
-					gamma = vcmax;
-					beta  = Kc * divide(1.0 + (PO2/1.0E5), Ko);   // Note conversion O2 from Pa -> mol mol-1
-					Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+					if (negligible(par)) {
+						// Night
+						An = -Rd;
+						gsc = g0;
+					} else {
 
-					// 2) RuBP regeneration-limited gross photosynthesis
-					Je    = electron_transport_rate(apar_layer,jmax);   
-					gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
-					beta  = 2.0 * gamstar;
-					Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
+						Ko      = Arrhenius_temp_response(KO25,temp,HA_KO,0.0,0.0);
+						Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
+						gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
-					// 3) TPU-limited gross photosynthesis
-					// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
-					Anp = 0.5 * vcmax - Rd;
+						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
+						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+						jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
-					// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
-					An = min(Anc,min(Anj,Anp));
+						// 1) Rubisco-limited gross photosynthesis
+						gamma = vcmax;
+						beta  = Kc * divide(1.0 + (PO2/1.0E5), Ko);   // Note conversion O2 from Pa -> mol mol-1
+						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
-					// Stomatal conductance to CO2 (mol m-2 s-1)
-					gsc = g0 + An * X;
+						// 2) RuBP regeneration-limited gross photosynthesis
+						Je    = electron_transport_rate(apar_layer,jmax);   
+						gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
+						beta  = 2.0 * gamstar;
+						Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+
+						// 3) TPU-limited gross photosynthesis
+						// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
+						Anp = 0.5 * vcmax - Rd;
+
+						// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
+						An = min(Anc,min(Anj,Anp));
+
+						// Stomatal conductance to CO2 (mol m-2 s-1)
+						gsc = g0 + An * X;
+					}
 
 					// Re-calculate intercellular CO2 concentration (mol mol-1)
 					ci = ca - divide(An, gsc);
@@ -2689,49 +2707,58 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-					// TODO: different temp dependency in C3 and C4 plants??
-					vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-					jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
+					if (negligible(par)) {
+						// No photosynthesis at night.
+						An = -Rd;
+						gsc = g0;
+						ci = ca - divide(An, gsc);
+					} else {
+						// C4/day time
 
-					// Temperature dependency of Vpmax and Kp
-					Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
-					Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
+						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
+						// TODO: different temp dependency in C3 and C4 plants??
+						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
+						jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 
-					// Iteration to find An, gs, and ci
-					ci = 0.5 * ca;
-					ci_diff_max = 0.5e-6; // mol mol-1
-					ci_diff = 2.0 * ci_diff_max;
-					nit = 0;
-					nit_max = 20;
-					while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
-						// PEP carboxylation rate
-						// TODO: is Vpr a constant??
-						Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
+						// Temperature dependency of Vpmax and Kp
+						Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
+						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 
-						// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
-						Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
+						// Iteration to find An, gs, and ci
+						ci = 0.5 * ca;
+						ci_diff_max = 0.5e-6; // mol mol-1
+						ci_diff = 2.0 * ci_diff_max;
+						nit = 0;
+						nit_max = 20;
+						while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
+							// PEP carboxylation rate
+							// TODO: is Vpr a constant??
+							Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
 
-						// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-						Je = electron_transport_rate(apar_layer,jmax);
+							// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
+							Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
 
-						// Light-limited net photosynthesis rate (mol m-2 s-1)
-						Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
+							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
+							Je = electron_transport_rate(apar_layer,jmax);
 
-						// Net photosynthesis rate (mol m-2 s-1)
-						An = min(Anc,Anj);
+							// Light-limited net photosynthesis rate (mol m-2 s-1)
+							Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
 
-						// Stomatal conductance to CO2 (mol m-2 s-1)
-						gsc = g0 + An * X;
+							// Net photosynthesis rate (mol m-2 s-1)
+							An = min(Anc,Anj);
 
-						// Intercellular CO2 concentration (mol mol-1)
-						ci_new = ca - divide(An, gsc);
+							// Stomatal conductance to CO2 (mol m-2 s-1)
+							gsc = g0 + An * X;
 
-						ci_diff = ci - ci_new;
-						ci -= ci_diff / 2.0;
-						nit += 1;
-					}
-					ci = ci_new; 
+							// Intercellular CO2 concentration (mol mol-1)
+							ci_new = ca - divide(An, gsc);
+
+							ci_diff = ci - ci_new;
+							ci -= ci_diff / 2.0;
+							nit += 1;
+						}
+						ci = ci_new; 
+					} // end if c4+daytime
 
 				}  // end photosynthetic pathway switch
 

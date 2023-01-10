@@ -46,6 +46,9 @@ double alphaa(const Pft& pft);
 
 // Constants for photosynthesis calculations
 
+// atmospheric pressure (Pa)
+const double PATMOS = 1e5;
+
 /// conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
 const double CQ = 4.6e-6;
 
@@ -77,10 +80,10 @@ const double JTOMOL = 4.6E-6;
 const double DWDC = 1.6;
 
 /// Molecular mass of Carbon (g mol-1)
-const double CMOL2G = 12.011;
+const double MOL2G_C = 12.011;
 
 /// Molecular mass of Water (g mol-1)
-const double H2OMOL2G = 18.01528;
+const double MOL2G_H2O = 18.01528;
 
 /// Michaelis-Menten constants at 25 degC (mol mol-1)
 const double KO25      = 278.4E-3; // MM constant for O2 (Bernacchi et al. 2001)

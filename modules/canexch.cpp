@@ -643,8 +643,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
 
-	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
-
 	// Get the environmental variables
 	double temp = ps_env.get_temp();
 	double co2 = ps_env.get_co2();
@@ -2803,8 +2801,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.je    /= date.subdaily;
 
 		// Convert units from molar to mass units and from seconds to day
-		indiv.photosynthesis.agd_g *= CMOL2G * SECS_PER_DAY;  // gC m-2 d-1
-		indiv.photosynthesis.rd_g *= CMOL2G * SECS_PER_DAY;   // gC m-2 d-1
+		indiv.photosynthesis.agd_g *= MOL2G_C * SECS_PER_DAY;  // gC m-2 d-1
+		indiv.photosynthesis.rd_g *= MOL2G_C * SECS_PER_DAY;   // gC m-2 d-1
 		// Give values all variables even they aren't used (yet)
 		indiv.photosynthesis.vm          = indiv.ps_subdaily.vcmax25 * UMOL_PER_MOL;  // umol m-2 s-1; not used
 		indiv.photosynthesis.adtmm       = 0.0;    // not used
@@ -2976,11 +2974,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		// Loop over time steps per day
 		for (Day day; day.period != date.subdaily; day.next()) {	
 
-			// T = Gc / VPD * pressure 
+			// T = Gc / (pressure/VPD) 
 			// Gc in mol m-2 s-1
 			// VPD and pressure in Pa
-			transp += indiv.ps_subdaily.gsw[day.period] / climate.vpds[day.period] * 1000.0 * 1e5;
-			// TODO: replace 1e5 with constant atmospheric pressure (Pa)
+			transp += indiv.ps_subdaily.gsw[day.period] / (PATMOS / (climate.vpds[day.period] * 1000.0));
 
 		} // end sub-daily loop
 		
@@ -2988,13 +2985,14 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		transp /= date.subdaily;
 		
 		// daily transpiration rate in mm d-1
-		indiv.aet = transp * H2OMOL2G * 1000.0 * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
+		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
         
 		// add to annual transpiration
 		indiv.aaet += indiv.aet;
 
 		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
 		// which is incorrect as soil evaporation is calculated separately.
+
 		vegetation.nextobj();
 	} // end cohort loop
 }

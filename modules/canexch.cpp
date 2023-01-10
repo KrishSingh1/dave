@@ -2595,24 +2595,24 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		// TODO: check if annual global means would make more sense 
  		ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
 
-		// initialise canopy-level variables
-		double Rd_canopy = 0.0;
-		double An_canopy = 0.0;
-		double Ag_canopy = 0.0;
-		double Anc_canopy = 0.0;
-		double Anj_canopy = 0.0;
-		double gsw_canopy = 0.0;
-		double ci_canopy = 0.0;
-		double vcmax_canopy = 0.0;
-		double jmax_canopy = 0.0;
-
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
 		indiv.photosynthesis.je = 0.0;
 
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
-		
+
+			// initialise timestep-level variables
+			double Rd_canopy = 0.0;
+			double An_canopy = 0.0;
+			double Ag_canopy = 0.0;
+			double Anc_canopy = 0.0;
+			double Anj_canopy = 0.0;
+			double gsw_canopy = 0.0;
+			double ci_canopy = 0.0;
+			double vcmax_canopy = 0.0;
+			double jmax_canopy = 0.0;
+
 			// get subdiurnal climate variables
 			par   = climate.pars[day.period];    // W m-2; 0.5 * climate.insols
 			temp  = climate.temps[day.period];   // degC
@@ -2955,7 +2955,7 @@ void water_stress(Patch &patch) {
 // Canopy transpiration
 void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
-	double transp;
+	double transp = 0;
 	// this formulation assumes infinite Ga
 	// TODO: include Ga --> Penman-Monteith (?)
     

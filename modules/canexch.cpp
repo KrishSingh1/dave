@@ -2635,8 +2635,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double apar_layer = fpar_layer * par;  // absorbed PAR in this layer (W m-2), TODO: check for double counting of absorption
 				double lai_layer = indiv.lai_layerwise[i]; // LAI of the layer and individual
 
-				if (negligible(fpar_layer, 9)) {
-					if (negligible(lai_layer, 9)) {
+				if (negligible(fpar_layer, -9)) {
+					if (negligible(lai_layer, -9)) {
 						// LAI and fpar both 0 - tree may be shorter than this layer.
 						continue;
 					}
@@ -2658,7 +2658,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
-					if (negligible(par)) {
+					if (negligible(par, -9)) {
 						// Night
 						An = -Rd;
 						gsc = g0;
@@ -2707,7 +2707,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					if (negligible(par)) {
+					if (negligible(par, -9)) {
 						// No photosynthesis at night.
 						An = -Rd;
 						gsc = g0;

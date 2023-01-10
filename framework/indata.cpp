@@ -1330,12 +1330,17 @@ bool TimeDataD::LoadNext(filepos *pos) {
 				error = true;
 			}
 
-			for(int i=0; i<nYears && error==false && count>0;) {
+			for(int i=0; i<nYears && !error && count>0;) {
 
 				if(ifheader && firstyear) {
 					firstyear = false;
 				}
-				else if(fgets(line, sizeof(line), ifp)) {
+				else {
+					if(fgets(line, sizeof(line), ifp) == NULL)
+						error = true;
+				}
+
+				if(!error) {
 
 					int k = 0;
 					int count1 = 0;
@@ -1382,7 +1387,6 @@ bool TimeDataD::LoadNext(filepos *pos) {
 				}
 				else {
 					dprintf("TimeDataD::LoadNext: An ERROR occurred reading file %s\n", fileName);
-					error=true;
 					break;
 				}
 			}
@@ -1428,7 +1432,7 @@ bool TimeDataD::LoadNext(filepos *pos) {
 				error = true;
 			}
 
-			for(int i=0; i<nYears && error==false && count>0;) {
+			for(int i=0; i<nYears && !error && count>0;) {
 
 				int k = 0;
 				int count1 = 0;
@@ -1436,7 +1440,12 @@ bool TimeDataD::LoadNext(filepos *pos) {
 				if(ifheader && firstyear) {
 					firstyear = false;
 				}
-				else if(fgets(line, sizeof(line), ifp)) {
+				else {
+					if(fgets(line, sizeof(line), ifp) == NULL)
+						error = true;
+				}
+
+				if(!error) {
 
 					for(int q=0;q<nColumns;q++)
 						d[q] = 0.0;;
@@ -1472,10 +1481,8 @@ bool TimeDataD::LoadNext(filepos *pos) {
 						i++;
 					}
 				}
-				else
-				{
+				else {
 					dprintf("TimeDataD::LoadNext: An ERROR occurred reading file %s\n", fileName);
-					error = true;
 					break;
 				}
 			}

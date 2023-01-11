@@ -1746,7 +1746,12 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		return mtlist[mtlist.getmtid(mtnames[rot])];
+		int mtid = mtlist.getmtid(mtnames[rot]);
+
+		if(mtid < 0) {
+			fail("get_management(): mt name not in mtlist; check instruction file.\n");
+		}
+		return mtlist[mtid];
 	}
 
 	/// Returns position of management in rotation list if present. Returns -1 if not.

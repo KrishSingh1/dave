@@ -1203,6 +1203,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fpar_layerwise.clear();
 	lai_layerwise.clear();
 
+	andemand_leaf     = 0.0;
+	andemand_root     = 0.0;
+	andemand_sap      = 0.0;
+	andemand          = 0.0;
+
 	Stand& stand = vegetation.patch.stand;
 
 	if (pft.landcover==CROPLAND) {
@@ -1298,7 +1303,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		& nday_leafon;
+		& nday_leafon
+
+		& andemand_leaf
+		& andemand_root
+		& andemand_sap
+		& andemand;
 
 	if (pft.landcover==CROPLAND)
 		arch & *cropindiv;
@@ -1579,6 +1589,18 @@ double Individual::cton_sap() const {
 			return cmass_sap / nmass_sap;
 		else
 			return pft.cton_sap_max;
+	}
+	else {
+		return 1.0;
+	}
+}
+
+double Individual::cton_heart() const {
+	if (pft.lifeform == TREE) {
+		if (!negligible(cmass_heart) && !negligible(nmass_heart))
+			return cmass_heart / nmass_heart;
+		else
+			return pft.cton_sap_max; // Close enough
 	}
 	else {
 		return 1.0;

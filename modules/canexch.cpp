@@ -355,14 +355,12 @@ void fpar(Patch& patch) {
 
 						atoh=indiv.lai/(indiv.height-indiv.boleht);
 						indiv.lai_leafon_layer=atoh*frac*vstep;
-						indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);
 						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
 						plai_leafon_layer+=indiv.lai_leafon_layer;
 					}
 					else {
 						indiv.lai_layer=0.0;
 						indiv.lai_leafon_layer=0.0;
-						indiv.lai_layerwise.push_back(0);
 					}
 				}
 
@@ -2633,15 +2631,20 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double apar_layer = fpar_layer * par;  // absorbed PAR in this layer (W m-2), TODO: check for double counting of absorption
 				double lai_layer = indiv.lai_layerwise[i]; // LAI of the layer and individual
 
-				if (negligible(fpar_layer, -9)) {
-					if (negligible(lai_layer, -9)) {
+				if (negligible(fpar_layer, -12)) {
+					if (negligible(lai_layer, -12)) {
 						// LAI and fpar both 0 - tree may be shorter than this layer.
 						continue;
+					} else if (!negligible(par)) {
+						// fpar is 0, lai and par both non zero. This means there
+						// is par and leaf in this layer, but no fpar.
+						// For grasses, this can happen if PAR is below the threshold
+						// required for grass growth.
+						// if (pft.lifeform != GRASS && pft.lifeform != MOSS) {
+						// 	fail("Lai (%.2f) and par (%.2f) are both nonzero but fpar is 0 in layer %d day %d year %d patch %d",
+						// 	lai_layer, par, i, date.day, date.year, patch.id);
+						// }
 					}
-					//  else {
-					// 	fail("Lai is nonzero (%.2f) but fpar is 0 (%.2f) in layer %d day %d year %d patch %d",
-					// 	lai_layer, fpar_layer, i, date.day, date.year, patch.id);
-					// }
 				}
 
 				// determine LAI and cumulative LAI of the layer
@@ -2649,14 +2652,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
 
 				// determine N scalar of the layer
-				Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[1]));
+				Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
-					if (negligible(par, -9)) {
+					if (negligible(par, -12)) {
 						// Night
 						An = -Rd;
 						gsc = g0;

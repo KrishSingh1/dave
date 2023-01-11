@@ -1216,6 +1216,7 @@ void growth(Stand& stand, Patch& patch) {
 	patch.man_strength = cut_fraction(patch);
 
 	// Loop through individuals
+	double total_ndemand = 0;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1251,7 +1252,7 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
 			// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-			double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
+			double cton_leaf_aopt = max(ifnewphotosyn ? indiv.cton_leaf() : indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 			if (ifnlim)
 				nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
@@ -1379,6 +1380,20 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
+
+						if (ifnewphotosyn) {
+							// Set annual N demand when running in newphotosyn mode.
+							indiv.andemand_leaf = cmass_leaf_inc * indiv.cton_leaf();
+							indiv.andemand_root = cmass_root_inc * indiv.cton_root();
+							indiv.andemand_sap = cmass_sap_inc * indiv.cton_sap();
+							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root + indiv.andemand_sap;
+							indiv.ndemand = indiv.andemand / 365; // fixme!! (Assaf)
+							total_ndemand += indiv.ndemand;
+
+							indiv.leaffndemand = indiv.andemand_leaf / indiv.ndemand;
+							indiv.rootfndemand = indiv.andemand_root / indiv.ndemand;
+							indiv.sapfndemand = indiv.andemand_sap / indiv.ndemand;
+						}
 
 						indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);
 
@@ -1549,6 +1564,14 @@ void growth(Stand& stand, Patch& patch) {
 							indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
 						} // else use last years scaling factor
 					}
+				} else if (ifnewphotosyn) {
+					// This tree was killed and newphotosyn is enabled. Let's reset
+					// ndemand variables just to be on the safe side.
+					indiv.ndemand = 0;
+					indiv.andemand = 0;
+					indiv.andemand_leaf = 0;
+					indiv.andemand_root = 0;
+					indiv.andemand_sap = 0;
 				}
 			}
 
@@ -1619,6 +1642,17 @@ void growth(Stand& stand, Patch& patch) {
 			if (!killed) {
 				vegetation.nextobj();
 			}
+		}
+	}
+
+	if (ifnewphotosyn) {
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual &indiv = vegetation.getobj();
+			if (indiv.pft.lifeform == TREE) {
+				indiv.fnuptake = indiv.ndemand / total_ndemand;
+			}
+			vegetation.nextobj();
 		}
 	}
 

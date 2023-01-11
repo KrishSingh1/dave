@@ -156,7 +156,7 @@ const double lgamstar = 0.0003817;  // Boyd et al. 2015
 const double a0 = 0.047;
 
 // Fraction of PSII activity in the bundle sheath
-const double alpha_PSII = 0.5;
+const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
 
 // Partitioning factor of electron transport in mesophyll and bundle-sheath cells
 const double xj = 0.4;

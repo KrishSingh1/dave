@@ -2673,7 +2673,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 						// 1) Rubisco-limited gross photosynthesis
 						gamma = vcmax;
-						beta  = Kc * divide(1.0 + O2atm, Ko);   // Note conversion O2 from Pa -> mol mol-1
+						beta  = Kc * divide(1.0 + O2atm, Ko);
 						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 						// 2) RuBP regeneration-limited gross photosynthesis
@@ -2723,7 +2723,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 						Kc    = Arrhenius_temp_response(KC25_C4,temp,HA_KC_C4,0.0,0.0);
 						Ko    = Arrhenius_temp_response(KO25_C4,temp,HA_KO_C4,0.0,0.0);
-						Km    = Kc * (1.0 + O2atm/Kc);
+						Km    = Kc * divide(1.0 + O2atm, Ko);
 
 						// Iteration to find An, gs, and ci
 						ci = 0.5 * ca;
@@ -2740,14 +2740,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 								Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
 							} 
 							else {
-								a_c = alpha_PSII/a0 * Kc/Ko;
+								a_c = 1.0 - alpha_PSII/a0 * Kc/Ko;
 								b_c = -((Vp - Rm + gbs * ci) + (vcmax - Rd) + gbs*Km + alpha_PSII/a0 
 								 	  * (lgamstar * vcmax + Rd * Kc/Ko));
-								c_c = (vcmax - Rd) * (Vp - Rm + gbs * O2atm) - 
+								c_c = (vcmax - Rd) * (Vp - Rm + gbs * ci) - 
 								  	  (vcmax * gbs * lgamstar * O2atm + Rd * gbs * Km);
 
-								Anc = (-b_c + sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
+								Anc = (-b_c - sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
 							}
+							// TODO: check value of alpha_PSII.
+							// TODO: check differences to von Caemmerer 2021.
+
 							// Light-limited net photosynthesis rate (mol m-2 s-1)
 							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
 							Je = electron_transport_rate(apar_layer,jmax);
@@ -2756,16 +2759,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							} 
 							else {
 								a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
-								b_j = -(((xj * Je)/2.0 - Rm + gbs * ci) + (((1.0 - xj) * Je)/3 - Rd) 
+								b_j = -(((xj * Je)/2.0 - Rm + gbs * ci) + (((1.0 - xj) * Je)/3.0 - Rd) 
 								  	  + gbs * ((7.0 * lgamstar * O2atm)/3.0) + 
-								  	  (alpha_PSII * lgamstar)/0.047 * (((1.0 - xj) * Je)/3 - (7.0 * Rd)/3.0));
-								c_j = (((xj * Je)/2.0 - Rm + gbs * ci) * (((1.0 - xj) * Je)/3 - Rd)) - 
-								  	  gbs * lgamstar * O2atm * (((1.0 - xj) * Je)/3 - (7.0 * Rd)/3.0);
+								  	  (alpha_PSII * lgamstar)/a0 * (((1.0 - xj) * Je)/3.0 + (7.0 * Rd)/3.0));
+								c_j = (((xj * Je)/2.0 - Rm + gbs * ci) * (((1.0 - xj) * Je)/3.0 - Rd)) - 
+								  	  gbs * lgamstar * O2atm * (((1.0 - xj) * Je)/3.0 + (7.0 * Rd)/3.0);
 
-								Anj = (-b_j + sqrt(pow(b_j,2) - 4.0 * a_j * c_j)) / (2 * a_j);
+								Anj = (-b_j - sqrt(pow(b_j,2) - 4.0 * a_j * c_j)) / (2 * a_j);
 							}
-							// TODO: check xj vs. z
-							// TODO: define oxygen concentration
+							// TODO: check xj vs. z in von Caemmerer 2021
 
 							// Net photosynthesis rate (mol m-2 s-1)
 							An = min(Anc,Anj);

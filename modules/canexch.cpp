@@ -2565,14 +2565,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
     double par, temp, rad, vpd, ca;
 	double lai_layer, lai_cum_bottom, lai_cum, Nscal;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
-	double Rm, Rs, Je, Vpmax, Vp, Kp, Vpr;
+	double Rm, Rs, Je, Vpmax, Vp, Kp, Vpr, Km;
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
 	double ci_diff, ci_diff_max, ci_new;
+	double a_c, b_c, c_c, a_j, b_j, c_j; 
 	int    nit, nit_max;
-
-	// Ensure Vpr is assigned to before it's accessed. This line can be removed
-	// if it ends up being calculated elsewhere.
-	Vpr = 0;
 	
 	double height_veg = get_veg_height(vegetation);
 
@@ -2721,9 +2718,12 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
 						jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 
-						// Temperature dependency of Vpmax and Kp
+						// Temperature dependency of Vpmax and Michaelis-Menten constants
 						Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
 						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
+						Kc    = Arrhenius_temp_response(KC25_C4,temp,HA_KC_C4,0.0,0.0);
+						Ko    = Arrhenius_temp_response(KO25_C4,temp,HA_KO_C4,0.0,0.0);
+						Km    = Kc * (1.0 + (PO2/1.0E5)/Kc);
 
 						// Iteration to find An, gs, and ci
 						ci = 0.5 * ca;
@@ -2737,13 +2737,36 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
 
 							// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
-							Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
+							if (ifapproximate_C4){
+								Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
+							} 
+							else {
+								a_c = alpha_PSII/a0 * Kc/Ko;
+								b_c = -((Vp - Rm + gbs * ci) + (vcmax - Rd) + gbs*Km + alpha_PSII/a0 
+								 	  * (lgamstar * vcmax + Rd * Kc/Ko));
+								c_c = (vcmax - Rd) * (Vp - Rm + gbs * (PO2/1.0E5)) - 
+								  	  (vcmax * gbs * lgamstar * (PO2/1.0E5) + Rd * gbs * Km);
 
+								Anc = (-b_c + sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
+							}
+							// Light-limited net photosynthesis rate (mol m-2 s-1)
 							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
 							Je = electron_transport_rate(apar_layer,jmax);
+							if (ifapproximate_C4){
+								Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
+							} 
+							else {
+								a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
+								b_j = -(((xj * Je)/2.0 - Rm + gbs * ci) + (((1.0 - xj) * Je)/3 - Rd) 
+								  	  + gbs * ((7.0 * lgamstar * (PO2/1.0E5))/3.0) + 
+								  	  (alpha_PSII * lgamstar)/0.047 * (((1.0 - xj) * Je)/3 - (7.0 * Rd)/3.0));
+								c_j = (((xj * Je)/2.0 - Rm + gbs * ci) * (((1.0 - xj) * Je)/3 - Rd)) - 
+								  	  gbs * lgamstar * (PO2/1.0E5) * (((1.0 - xj) * Je)/3 - (7.0 * Rd)/3.0);
 
-							// Light-limited net photosynthesis rate (mol m-2 s-1)
-							Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
+								Anj = (-b_j + sqrt(pow(b_j,2) - 4.0 * a_j * c_j)) / (2 * a_j);
+							}
+							// TODO: check xj vs. z
+							// TODO: define oxygen concentration
 
 							// Net photosynthesis rate (mol m-2 s-1)
 							An = min(Anc,Anj);

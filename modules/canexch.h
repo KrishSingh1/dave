@@ -136,10 +136,24 @@ const double DS_VP = 376.0;  // J mol-1 K-1
 // PEP regeneration rate (mol m-2 s-1)
 const double Vpr = 80.0E-6;
 
-// Michaelis-Menten constant of PEP carboxylase 
-const double KP25 = 80.0E-6;  // (mol mol-1) (von Caemmerer 2000)
-const double HA_KP = 68.1;    // activation energy for KP25 (kJ mol-1)
-							  // Yin et al. 2016
+// Michaelis-Menten constants (von Caemmerer 2021 and references therein)
+const double KP25    = 82.0E-6;  // (mol mol-1) 
+const double KC25_C4 = 1210E-6;  // (mol mol-1)
+const double KO25_C4 = 292E-3;   // (mol mol-1)
+
+// Activation energies for Michaelis-Menten constants
+const double HA_KP    = 38.3;   // activation energy for KP_C4 (kJ mol-1), DiMario & Cousins 2019
+const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
+const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
+
+// Half the reciprocal of Rubisco specificity
+const double lgamstar = 0.0003817;  // Boyd et al. 2015
+
+// Ratio of solubility and diffusivity of O2 to CO2
+const double a0 = 0.047;
+
+// Fraction of PSII activity in the bundle sheath
+const double alpha_PSII = 0.5;
 
 // Partitioning factor of electron transport in mesophyll and bundle-sheath cells
 const double xj = 0.4;

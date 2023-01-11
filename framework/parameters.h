@@ -273,6 +273,9 @@ extern bool ifdailygrass;
 /// whether new (empirical) photosynthesis scheme is turned on
 extern bool ifnewphotosyn;
 
+/// whether approximated solution for C4 photosynthesis is used
+extern bool ifapproximate_C4;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs
 

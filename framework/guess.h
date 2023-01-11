@@ -2675,6 +2675,14 @@ public:
 	double nmass_storage_luc;
 	/// daily total nitrogen demand
 	double ndemand;
+	/// Annual total leaf nitrogen demand. Only used for trees when ifnewphotosyn is 1
+	double andemand_leaf;
+	/// Annual total root nitrogen demand. Only used for trees when ifnewphotosyn is 1
+	double andemand_root;
+	/// Annual total sapwood nitrogen demand. Only used for trees when ifnewphotosyn is 1
+	double andemand_sap;
+	/// Total annual nitrogen demand. Only used for trees when ifnewphotosyn is 1.
+	double andemand;
 	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
 	/// annual nitrogen uptake
@@ -2853,6 +2861,9 @@ public:
 
 	/// Current sap C:N ratio
 	double cton_sap() const;
+
+	/// Current heartwood C:N ratio.
+	double cton_heart() const;
 
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft() const;

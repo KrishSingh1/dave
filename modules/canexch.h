@@ -61,6 +61,9 @@ const double ALPHA_C4 = 0.053;
 /// O2 partial pressure (Pa)
 const double PO2 = 2.09e4;
 
+/// atmospheric O2 concentration (mixing ratio in mol mol-1)
+const double O2atm = 0.2095;
+
 /// colimitation (shape) parameter
 const double THETA = 0.7;
 

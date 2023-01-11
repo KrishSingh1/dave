@@ -72,6 +72,8 @@ NCInput::NCInput() {
 	, "Name of the co2 variable in the NetCDF file");
 	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
 	, "Name of the VPD variable in the NetCDF file");
+	declare_parameter("variable_ps", &variable_ps, NC_MAX_NAME
+	, "Name of the atmospheric pressure variable in the NetCDF file");
 	declare_parameter("variable_tmax", &variable_tmax, NC_MAX_NAME
 	, "Name of the max temperature variable in the NetCDF file");
 	declare_parameter("variable_tmin", &variable_tmin, NC_MAX_NAME
@@ -88,6 +90,13 @@ NCInput::NCInput() {
 
 	bounds_temp.max = 100;
 	bounds_temp.min = -100;
+
+	bounds_vpd.max = 100;
+	bounds_vpd.min = 0;
+
+	// Are these too generous?
+	bounds_ps.max = 150000;
+	bounds_ps.min = 50000;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -127,17 +136,17 @@ void NCInput::init(void) {
 		std::vector<xtring> vpd_units(1);
 		vpd_units[0] = "kPa";
 
+		std::vector<xtring> ps_units(1);
+		ps_units[0] = "Pa";
+
 		// Create NCVariable objects for each variable of interest.
 		// This will also do some basic sanity checking.
 		temp = create_variable(variable_temp, bounds_temp, temp_units, true);
 		insol = create_variable(variable_insol, bounds_insol, insol_units, true);
 		precip = create_variable(variable_precip, bounds_prec, precip_units, true);
 		co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
-
-		bounds bounds_vpd;
-		bounds_vpd.max = 100;
-		bounds_vpd.min = 0;
 		vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
+		ps = create_variable(variable_ps, bounds_ps, ps_units, true);
 
 		if (variable_tmax != "") {
 			tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
@@ -301,6 +310,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
 	std::vector<double> vpds = vpd->read(lon, lat, year, date.day, 1);
+	std::vector<double> pressure = ps->read(lon, lat, year, date.day, 1);
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;
@@ -313,6 +323,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.insols = insols;
 	climate.dndep = dndep[date.day];
 	climate.vpds = vpds;
+	climate.pressure = pressure;
 	date.subdaily = nsteps_day;
 
 	climate.co2 = use_mean_annual_co2

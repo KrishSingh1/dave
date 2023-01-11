@@ -310,6 +310,11 @@ private:
 	xtring variable_vpd;
 
 	/*
+	Name of the atmospheric pressure variable in the NetCDF file.
+	*/
+	xtring variable_ps;
+
+	/*
 	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
 	of that day's subdaily data will be used.
 	*/
@@ -349,6 +354,11 @@ private:
 	VPD variable in the NetCDF file (kPa).
 	*/
 	std::unique_ptr<NCVariable> vpd;
+
+	/*
+	Atmospheric pressure variable in the NetCDF file (Pa).
+	*/
+	std::unique_ptr<NCVariable> ps;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.
@@ -395,6 +405,16 @@ private:
 	Upper and lower bounds for co2.
 	*/	
 	bounds bounds_co2;
+
+	/*
+	Upper and lower bounds for VPD.
+	*/
+	bounds bounds_vpd;
+
+	/*
+	Upper and lower bounds for atmospheric pressure.
+	*/
+	bounds bounds_ps;
 
 	/*
 	The year of data currently being sampled in the spinup. This will have a

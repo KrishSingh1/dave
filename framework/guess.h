@@ -982,6 +982,9 @@ public:
 	/// Sub-daily VPD values (kPa).
 	std::vector<double> vpds;
 
+	/// Sub-daily atmospheric pressure values (Pa).
+	std::vector<double> pressure;
+
 	/// Variables used for crop sowing date or seasonality calculation
 
 	/// daily precipitations for the last 10 days (mm)

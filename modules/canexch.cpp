@@ -3002,7 +3002,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 			// T = Gc / (pressure/VPD) 
 			// Gc in mol m-2 s-1
 			// VPD and pressure in Pa
-			transp += indiv.ps_subdaily.gsw[day.period] / (PATMOS / (climate.vpds[day.period] * 1000.0));
+			double patmos = climate.pressure[day.period];
+			double vpd = climate.vpds[day.period];
+			double gsw = indiv.ps_subdaily.gsw[day.period];
+			transp += gsw / (patmos / (vpd * 1000.0));
 
 		} // end sub-daily loop
 		

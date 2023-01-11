@@ -2565,7 +2565,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
     double par, temp, rad, vpd, ca;
 	double lai_layer, lai_cum_bottom, lai_cum, Nscal;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
-	double Rm, Rs, Je, Vpmax, Vp, Kp, Vpr, Km;
+	double Rm, Rs, Je, Vpmax, Vp, Kp, Km;
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
 	double ci_diff, ci_diff_max, ci_new;
 	double a_c, b_c, c_c, a_j, b_j, c_j; 
@@ -2733,7 +2733,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						nit_max = 20;
 						while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
 							// PEP carboxylation rate
-							// TODO: is Vpr a constant??
 							Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
 
 							// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
@@ -2780,7 +2779,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							ci_diff = ci - ci_new;
 							ci -= ci_diff / 2.0;
 							nit += 1;
-						}
+						} // end solver
 						ci = ci_new; 
 					} // end if c4+daytime
 

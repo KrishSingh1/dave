@@ -58,6 +58,7 @@ variable_insol               "insol"
 variable_precip              "prec"
 variable_co2                 "co2"
 variable_vpd                 "vpd"
+variable_ps                  "ps"  ! Atmospheric Pressure (Pa)
 variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
 variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
 
@@ -180,9 +181,9 @@ nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root 
 !///////////////////////////////////////////////////////////////////////////////
 
 !state_year 500            ! Year to save/start state file (no setting = after spinup)
-restart 1            ! Whether to start from a state file
-save_state 0            ! Whether to save a state file
-state_path "./state/"            ! Directory to put state files in
+restart 0                  ! Whether to start from a state file
+save_state 0               ! Whether to save a state file
+state_path "./state/"      ! Directory to put state files in
 
 
 !///////////////////////////////////////////////////////////////////////////////

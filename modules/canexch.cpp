@@ -2930,7 +2930,8 @@ void water_stress(Patch &patch) {
 		Pft &pft = ppft.pft; 
 		
 		double wstress_layer[NSOILLAYER];
-		double wstress;
+		double wstress = 0.0;
+		double rootdist_sum = 0.0;
 
 		for (int i = 0; i<NSOILLAYER; i++) {
 			// get actual water content and available water content per layer
@@ -2939,9 +2940,10 @@ void water_stress(Patch &patch) {
 			// calculate water stress factor per layer and weight with root fraction
 			wstress_layer[i] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[i];
 			wstress += wstress_layer[i];
+			rootdist_sum += pft.rootdist[i]; // rootdist should add up to 1 but summed here just in case...
 		}
 		// water stress factor [0-1] in the root zone
-		wstress /= NSOILLAYER;
+		wstress /= rootdist_sum;
 
 		// Mean daily water stress value.
 		ppft.wscal = wstress;
@@ -3013,7 +3015,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		
 		// daily transpiration rate in mol m-2 s-1 
 		transp /= date.subdaily;
-		
+
 		// daily transpiration rate in mm d-1
 		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
         

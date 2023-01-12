@@ -459,12 +459,19 @@ void fpar(Patch& patch) {
 				else
 					flai=1.0;
 
-				if (!negligible(climate.par))
-					fpar_min=min(indiv.pft.parff_min/climate.par,1.0);
-				else
-					fpar_min=1.0;
+				// If using dave photosynthesis, just ignore parff_min and
+				// fpar_min. We check in photosynthesis_gs() whether there's
+				// enough PAR for photosynthesis to occur.
+				double t2 = fpar_ff * flai;
+				if (!ifnewphotosyn) {
+					if (!negligible(climate.par))
+						fpar_min=min(indiv.pft.parff_min/climate.par,1.0);
+					else
+						fpar_min=1.0;
 
-				indiv.fpar=max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min));
+					t2 = max(t2, fpar_min);
+				}
+				indiv.fpar=max(0.0,fpar_grass*flai-t2);
 				indiv.fpar_layerwise.push_back(indiv.fpar);
 				indiv.lai_layerwise.push_back(indiv.lai);
 				// Repeat assuming full leaf cover for all individuals

@@ -2739,6 +2739,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						nit = 0;
 						nit_max = 20;
 						while (abs(ci_diff) > ci_diff_max && nit < nit_max) {
+							if (nit == nit_max - 1) {
+								// No solution found. Use initial guess.
+								ci = 0.5 * ca;
+							}
 							// PEP carboxylation rate
 							Vp = min(divide(ci * Vpmax, ci + Kp),Vpr);
 
@@ -2786,10 +2790,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							ci_new = ca - divide(An, gsc);
 
 							ci_diff = ci - ci_new;
-							ci -= ci_diff / 2.0;
+							if (nit != nit_max - 1) {
+								// If we can't find a solution, use initial guess
+								// on last iteration.
+								ci -= ci_diff / 2.0;
+							}
 							nit += 1;
 						} // end solver
-						ci = ci_new; 
+						if (nit != nit_max) {
+							// If we didn't find a solution, use initial guess.
+							ci = ci_new;
+						}
 					} // end if c4+daytime
 
 				}  // end photosynthetic pathway switch

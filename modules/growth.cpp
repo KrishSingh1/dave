@@ -37,6 +37,7 @@
 #include "growth.h"
 #include "canexch.h"
 #include "landcover.h"
+#include "ncompete.h"
 #include <assert.h>
 
 
@@ -872,15 +873,17 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 
 		if (ifnewphotosyn){
 			// allocate cmass and nmass in storage to leaves and roots
-			indiv.cmass_leaf = ltor * indiv.cmass_storage;
-			indiv.cmass_root = indiv.cmass_storage - indiv.cmass_leaf;
-			indiv.cmass_leafs[0] = indiv.cmass_leaf; 
-			indiv.cmass_storage = 0.0;
+			// Half to leaf, half to storage.
+			indiv.cmass_leaf = (ltor * indiv.cmass_storage) / 2;
+			indiv.cmass_leafs[0] = indiv.cmass_leaf;
+			indiv.cmass_storage = indiv.cmass_leaf;
+			indiv.cmass_root = bminit * indiv.densindiv - indiv.cmass_leaf - indiv.cmass_storage;
 
-			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+			// Half to leaf, half to storage.
+			indiv.nmass_leaf = (indiv.cmass_leaf / indiv.pft.cton_leaf_avr) / 2;
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
 			indiv.nmass_leafs[0] = indiv.nmass_leaf;
-			indiv.nmass_storage = 0.0;
+			indiv.nmass_storage = indiv.nmass_leaf;
 		}
 
 		 indiv.alive = true;
@@ -1135,6 +1138,20 @@ void flush_litter_repr(Patch& patch) {
 
 		patch.pft.nextobj();
 	}
+}
+
+std::vector<NCompetingIndividual> get_competing_individuals(Vegetation &vegetation) {
+	std::vector<NCompetingIndividual> result;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual &indiv = vegetation.getobj();
+		NCompetingIndividual competing;
+		competing.ndemand = indiv.ndemand;
+		competing.strength = nitrogen_uptake_strength(indiv);
+		result.push_back(competing);
+		vegetation.nextobj();
+	}
+	return result;
 }
 
 /// GROWTH
@@ -1729,12 +1746,21 @@ void growth_daily_grass(Patch& patch) {
 				stand.pft[p].cmass_repr = 0.0;
 	}
 
+	std::vector<NCompetingIndividual> competing_individuals;
+	std::vector<int> competing_individual_indices;
+	
+	std::vector<double> ngrow_leaf_demands;
+	std::vector<double> ngrow_root_demands;
+	std::vector<double> nup_root_demands;
+	std::vector<double> nup_leaf_demands;
+	std::vector<double> initcs;
+	double patch_total_ndemand = 0;
+	int i = 0;
+
 	// Loop through individuals
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
-
-		bool killed=false;
 
 		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
 			
@@ -1770,6 +1796,7 @@ void growth_daily_grass(Patch& patch) {
 			// Check C budget
 			double initc = bminc + indiv.get_cmass_leaf() + indiv.cmass_leafs[3] + indiv.cmass_storage +
 				indiv.cmass_root + patch.pft[indiv.pft.id].litter_leaf + patch.pft[indiv.pft.id].litter_root;
+			initcs.push_back(initc);
 
 			// Update state of biomass and storage pools
 
@@ -1914,6 +1941,15 @@ void growth_daily_grass(Patch& patch) {
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 			
 			// Storage used for new leaf and root growth and updating old leaves and roots
+			double ngrow_leaf_demand = 0;
+			double ngrow_root_demand = 0;
+			double nup_leaf_demand = 0;
+			double nup_root_demand = 0;
+
+			NCompetingIndividual competing_individual;
+			competing_individual.ndemand = 0;
+			competing_individual.fnuptake = 1;
+
 			if (!negligible(indiv.cmass_storage) && !negligible(indiv.nmass_storage)) {
 
 				// Todays growth
@@ -1923,7 +1959,6 @@ void growth_daily_grass(Patch& patch) {
 				cgrow_root = cgrow / (1.0 + indiv.ltor);
 				cgrow_leaf += cgrow - cgrow_root;
 
-				double ngrow_leaf_demand, ngrow_root_demand, nup_leaf_demand, nup_root_demand;
 				if (ifnewphotosyn){
 					// N demand for growth
 					ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf();
@@ -1947,33 +1982,102 @@ void growth_daily_grass(Patch& patch) {
 
 				// Total N demand
 				double ndemand_tot = ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand;
-				
-				// Fraction of growth and update N that storage can meet
-				double fndemand = min(1.0, 0.9 * indiv.nmass_storage / ndemand_tot);
+				patch_total_ndemand += ndemand_tot;
 
-				// Leaf and root N growth and update
-				ngrow_leaf = ngrow_leaf_demand * fndemand;
-				ngrow_root = (ngrow_root_demand + nup_root_demand) * fndemand;
-				nup_leaf = nup_leaf_demand * fndemand;
+				competing_individual.ndemand = ndemand_tot;
 
-				// Leaf N mass update according to compartment size
-				if (!negligible(indiv.get_cmass_leaf())) {
-					for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
-						double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
-						indiv.nmass_leafs[lf] += nup_leaf * fnup;
-					}
+				// In DAVE photosynthesis mode, we now need to update
+				// nmass_storage, which requires us to first compute fnuptake,
+				// which requires us to know total n demand for all individuals
+				// in advance. Therefore, we end this loop (so that ndemand is
+				// calculated for all individuals now), then calculate fnuptake/
+				// nmass_storage, then we resume the loop, transferring a few
+				// required local variables into the next loop via temporary
+				// vectors. This should cause no difference in results when
+				// ifnewphotosyn is disabled.
+
+			}
+
+			if (ifnewphotosyn) {
+				competing_individual.strength = nitrogen_uptake_strength(indiv);
+			}
+			competing_individuals.push_back(competing_individual);
+			competing_individual_indices.push_back(i);
+			ngrow_leaf_demands.push_back(ngrow_leaf_demand);
+			ngrow_root_demands.push_back(ngrow_root_demand);
+			nup_root_demands.push_back(nup_root_demand);
+			nup_leaf_demands.push_back(nup_leaf_demand);
+
+			i++;
+		}
+		vegetation.nextobj();
+	}
+
+	if (ifnewphotosyn) {
+		// Multiply nmass_avail by fpc in case patch is sparsely populated.
+		double nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
+		if (nmass_avail < patch_total_ndemand) {
+			// Insufficient N to match demand.
+			ncompete(competing_individuals, nmass_avail);
+		}
+
+		vegetation.firstobj();
+		// Update nmass_storage in individuals.
+		for (int i = 0; i < competing_individuals.size(); i++) {
+			Individual &indiv = vegetation[competing_individual_indices[i]];
+			indiv.fnuptake = competing_individuals[i].fnuptake;
+			indiv.ndemand = competing_individuals[i].ndemand;
+			// Taken out of soil in somdynam::vegetation_n_uptake().
+			indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
+		}
+	}
+
+	vegetation.firstobj();
+	i = 0;
+	while (vegetation.isobj) {
+		Individual &indiv = vegetation.getobj();
+
+
+		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
+
+			double initc = initcs[i];
+
+			double nuptake = competing_individuals[i].ndemand * competing_individuals[i].fnuptake;
+
+			// Fraction of growth and update N that storage can meet
+			double fndemand;
+			if (negligible(nuptake) || indiv.nmass_storage * 0.9 > nuptake) { 
+				// 90% of storage is more than sufficient to meet demand.
+				// Therefore, take as much as we need.
+				fndemand = 1;
+			} else {
+				// 90% of storage is not enough to meet demand. Only take
+				// up to 90% of uptake from storage.
+				fndemand = 0.9 * indiv.nmass_storage / nuptake;
+			}
+
+			// Leaf and root N growth and update
+			ngrow_leaf = ngrow_leaf_demands[i] * fndemand;
+			ngrow_root = (ngrow_root_demands[i] + nup_root_demands[i]) * fndemand;
+			nup_leaf = nup_leaf_demands[i] * fndemand;
+
+			// Leaf N mass update according to compartment size
+			if (!negligible(indiv.get_cmass_leaf())) {
+				for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
+					double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
+					indiv.nmass_leafs[lf] += nup_leaf * fnup;
 				}
+			}
 
-				// Reduce C depending on fndemand to not get too high C:N ratios
-				if (ifnlim && date.year > freenyears) {
-					cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
-					cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
+			// Reduce C depending on fndemand to not get too high C:N ratios
+			if (ifnlim && date.year > freenyears) {
+				cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
+				cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
 
-					// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
-					if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
-						cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
-						cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
-					}
+				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
+				if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
+					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
+					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
 				}
 			}
 
@@ -2095,12 +2199,10 @@ void growth_daily_grass(Patch& patch) {
 
 				indiv.deltafpc = 0.0;
 			} // Last day of year
+			i++;
 		} // Grass
 
-		if (!killed) {
-			vegetation.nextobj();
-		}
-
+		vegetation.nextobj();
 	} // while vegetation is object
 
 } // growth_daily() 

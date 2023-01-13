@@ -2856,7 +2856,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// temporary assignment of initial Anet
 		// TODO: calculate this properly 
-		ppft.anetps_ff = 4.0;  // kg C m-2 yr-1
 
 		vegetation.nextobj();
 
@@ -3027,7 +3026,9 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 			double patmos = climate.pressure[day.period];
 			double vpd = climate.vpds[day.period];
 			double gsw = indiv.ps_subdaily.gsw[day.period];
-			transp += gsw / (patmos / (vpd * 1000.0));
+			if (vpd > 0 && patmos > 0) {
+				transp += gsw / (patmos / (vpd * 1000.0));
+			}
 
 		} // end sub-daily loop
 		

@@ -512,7 +512,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							bminit = SAPSIZE * 0.01;
 						else if(patch.has_disturbances() && patch.disturbed)
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
-						else
+						else if (ifdailygrass) {
+							patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
+						} else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
 						if (ifdailygrass && pft.phenology != CROPGREEN)

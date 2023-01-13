@@ -44,6 +44,15 @@ double electron_transport_rate(double PAR,double Jmax);
 /// Nitrogen- and landuse specific alpha a
 double alphaa(const Pft& pft);
 
+/// Calculates individual fnuptake based on surface of fine root
+/** Calculates individual fraction nitrogen uptake based on surface of fine root
+ *  Roots are cone formed with height == radius.
+ *  V = PI * r^3 / 3
+ *  A = (2^1/2 + 1) * PI * r^2
+ *  -> A = const * cmass_root^2/3
+ */
+double nitrogen_uptake_strength(const Individual& indiv);
+
 // Constants for photosynthesis calculations
 
 // atmospheric pressure (Pa)

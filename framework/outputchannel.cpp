@@ -221,6 +221,13 @@ void FileOutputChannel::finish_row(const Table& table,
 	 const std::vector<double>& row = get_current_row(table);
 	 const TableDescriptor& td = get_table_descriptor(table);
 
+	if (row.size() == 0) {
+		// fixme - need better way of doing this. Currently this gets called by
+		// the OutputRows destructor when we already call it on a subdaily
+		// basis, which results in a double clear.
+		return;
+	}
+
 	 if (row.size() < td.columns().size()) {
 		  fail("Too few values in a row in table %s", td.name().c_str());
 	 }

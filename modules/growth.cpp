@@ -880,7 +880,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 			indiv.cmass_root = bminit * indiv.densindiv - indiv.cmass_leaf - indiv.cmass_storage;
 
 			// Half to leaf, half to storage.
-			indiv.nmass_leaf = (indiv.cmass_leaf / indiv.pft.cton_leaf_avr) / 2;
+			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
 			indiv.nmass_leafs[0] = indiv.nmass_leaf;
 			indiv.nmass_storage = indiv.nmass_leaf;
@@ -1961,8 +1961,10 @@ void growth_daily_grass(Patch& patch) {
 
 				if (ifnewphotosyn){
 					// N demand for growth
-					ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf();
-					ngrow_root_demand = cgrow_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+					// ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf();
+					// ngrow_root_demand = cgrow_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+					ngrow_leaf_demand = cgrow_leaf / indiv.pft.cton_leaf_avr;
+					ngrow_root_demand = cgrow_root / indiv.pft.cton_root_avr;
 					// TODO: assuming C:N root proportional to C:N leaf at the moment
 
 					// N demand for update current tissue to optimal value (10% day-1)
@@ -2046,10 +2048,10 @@ void growth_daily_grass(Patch& patch) {
 
 			// Fraction of growth and update N that storage can meet
 			double fndemand;
-			if (negligible(nuptake) || indiv.nmass_storage * 0.9 > nuptake) { 
+			if (indiv.nmass_storage * 0.9 > nuptake) { 
 				// 90% of storage is more than sufficient to meet demand.
 				// Therefore, take as much as we need.
-				fndemand = 1;
+				fndemand = competing_individuals[i].fnuptake;
 			} else {
 				// 90% of storage is not enough to meet demand. Only take
 				// up to 90% of uptake from storage.
@@ -2076,6 +2078,17 @@ void growth_daily_grass(Patch& patch) {
 
 				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
 				if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
+					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
+					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
+				}
+			}
+			if (ifnewphotosyn) {
+				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
+				if (negligible(ngrow_leaf, -12) && negligible(ngrow_root, -12)) {
+					// Don't allow C growth if no n growth occurs.
+					cgrow_leaf = 0;
+					cgrow_root = 0;
+				} else if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
 					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
 					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
 				}
@@ -2161,7 +2174,7 @@ void growth_daily_grass(Patch& patch) {
 				indiv.cmass_root + patch.pft[indiv.pft.id].litter_leaf + patch.pft[indiv.pft.id].litter_root;
 
 			if (fabs(initc - finalc) > 1.0e-12)
-				dprintf("Year %d Day %d Diff %g Init %g Final %g\n",date.year,date.day, initc - finalc, initc, finalc);
+				dprintf("Year %d Day %d Diff %g (%g%%) Init %g Final %g\n",date.year,date.day, initc - finalc, 100.0 * (finalc - initc) / initc, initc, finalc);
 
 			// Update allometry - updates LAI and FPC based on cmass
 			allometry(indiv);

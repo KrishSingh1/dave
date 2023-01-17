@@ -112,6 +112,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_dave_lai", &file_dave_lai, 300, "LAI by individual (m2/m2)");
 	declare_parameter("file_dave_sla", &file_dave_sla, 300, "SLA by individual (m2/kgC)");
 	declare_parameter("file_dave_cmass_leaf", &file_dave_cmass_leaf, 300, "Leaf C mass (kgC/m2)");
+	declare_parameter("file_dave_nmass", &file_dave_nmass, 300, "N mass available (kgN/m2)");
 	declare_parameter("file_fpar", &file_fpar, 300, "Daily fpar [0-1]");
 	declare_parameter("file_fpar_layerwise", &file_fpar_layerwise, 300, "Daily layered fpar [0-1]");
 	declare_parameter("file_lai_layerwise", &file_lai_layerwise, 300, "Daily layered LAI (m2/m2)");
@@ -404,12 +405,11 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors agd_g_columns;
 	ColumnDescriptors subdaily_an_columns;
 
-	if (ifpatchoutputs) {
-		fpar_columns += ColumnDescriptor("patch", 10, 0);
-		fpar_layerwise_columns += ColumnDescriptor("patch", 10, 0);
-		agd_g_columns += ColumnDescriptor("patch", 10, 0);
-		subdaily_an_columns += ColumnDescriptor("patch", 10, 0);
-	}
+	fpar_columns += ColumnDescriptor("patch", 10, 0);
+	fpar_layerwise_columns += ColumnDescriptor("patch", 10, 0);
+	agd_g_columns += ColumnDescriptor("patch", 10, 0);
+	subdaily_an_columns += ColumnDescriptor("patch", 10, 0);
+
 	agd_g_columns += ColumnDescriptors(pfts, 14, 8);
 
 	fpar_columns += ColumnDescriptors(pfts, 14, 8);
@@ -422,6 +422,9 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors lai_dave_columns = fpar_columns;
 	ColumnDescriptors cmass_leaf_dave_columns = fpar_columns;
 	ColumnDescriptors sla_dave_columns = fpar_columns;
+	ColumnDescriptors nmass_dave_columns;
+	nmass_dave_columns += ColumnDescriptor("patch", 10, 0);
+	nmass_dave_columns += ColumnDescriptor("nmass (kgN/m2)", 14, 8);
 
 	ColumnDescriptors lai_layerwise_columns = fpar_layerwise_columns;
 
@@ -552,6 +555,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_dave_lai,       file_dave_lai,          lai_dave_columns);
 	create_output_table(out_dave_sla,       file_dave_sla,          sla_dave_columns);
 	create_output_table(out_dave_cmass_leaf,file_dave_cmass_leaf,   cmass_leaf_dave_columns);
+	create_output_table(out_dave_nmass,     file_dave_nmass,        nmass_dave_columns);
 	create_output_table(out_fpar_layerwise,	file_fpar_layerwise, 	fpar_layerwise_columns);
 	create_output_table(out_lai_layerwise,	file_lai_layerwise, 	lai_layerwise_columns);
 	create_output_table(out_agd_g,			file_agd_g, 			agd_g_columns);
@@ -2022,21 +2026,19 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 			Patch& patch = stand.getobj();
 
-			if (ifpatchoutputs) {
-				// Write patch ID to dave output files.
-				outlimit_daily(out, out_fpar, patch.id);
-				outlimit_daily(out, out_dave_lai, patch.id);
-				outlimit_daily(out, out_dave_cmass_leaf, patch.id);
-				outlimit_daily(out, out_dave_sla, patch.id);
-				outlimit_daily(out, out_agd_g, patch.id);
-				outlimit_daily(out, out_rd_g, patch.id);
-				outlimit_daily(out, out_je, patch.id);
-				outlimit_daily(out, out_vm, patch.id);
-				outlimit_daily(out, out_assim, patch.id);
-				outlimit_daily(out, out_resp, patch.id);
-				outlimit_daily(out, out_dnpp, patch.id);
-			}
-
+			// Write patch ID to dave output files.
+			outlimit_daily(out, out_fpar, patch.id);
+			outlimit_daily(out, out_dave_lai, patch.id);
+			outlimit_daily(out, out_dave_cmass_leaf, patch.id);
+			outlimit_daily(out, out_dave_sla, patch.id);
+			outlimit_daily(out, out_dave_nmass, patch.id);
+			outlimit_daily(out, out_agd_g, patch.id);
+			outlimit_daily(out, out_rd_g, patch.id);
+			outlimit_daily(out, out_je, patch.id);
+			outlimit_daily(out, out_vm, patch.id);
+			outlimit_daily(out, out_assim, patch.id);
+			outlimit_daily(out, out_resp, patch.id);
+			outlimit_daily(out, out_dnpp, patch.id);
 
 			std::vector<char *> pfts;			
 			pftlist.firstobj();
@@ -2064,6 +2066,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				double npp = indiv ? indiv->dnpp : 0;
 				double assim = indiv ? indiv->photosynthesis.net_assimilation() : 0;
 				double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
+				double nmass_avail = patch.soil.nmass_avail;
 				int indiv_id = indiv ? indiv->id : i;
 
 				// fpar
@@ -2077,6 +2080,9 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 				// sla
 				outlimit_daily(out, out_dave_sla, sla);
+
+				// nmass_avail
+				outlimit_daily(out, out_dave_nmass, nmass_avail);
 
 				// agd_g
 				outlimit_daily(out, out_agd_g, agd_g);
@@ -2104,9 +2110,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				// fpar_layerwise
 				if (indiv) {
 					for (int j = 0; j < indiv->fpar_layerwise.size(); j++) {
-						if (ifpatchoutputs) {
-							outlimit_daily(out, out_fpar_layerwise, patch.id);
-						}
+						outlimit_daily(out, out_fpar_layerwise, patch.id);
 						double fpar = indiv ? indiv->fpar_layerwise[j] : 0;
 						outlimit_daily(out, out_fpar_layerwise, indiv_id);
 						outlimit_daily(out, out_fpar_layerwise, j);
@@ -2116,9 +2120,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 					// lai_layerwise
 					for (int j = 0; j < indiv->lai_layerwise.size(); j++) {
-						if (ifpatchoutputs) {
-							outlimit_daily(out, out_lai_layerwise, patch.id);
-						}
+						outlimit_daily(out, out_lai_layerwise, patch.id);
 						double lai = indiv ? indiv->lai_layerwise[j] : 0;
 						outlimit_daily(out, out_lai_layerwise, indiv_id);
 						outlimit_daily(out, out_lai_layerwise, j);
@@ -2130,19 +2132,17 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				// 2. SUBDAILY
 
 				for (int j = 0; j < date.subdaily; j++) {
-					if (ifpatchoutputs) {
-						outlimit_daily(out, out_subdaily_an, patch.id);
-						outlimit_daily(out, out_subdaily_rd, patch.id);
-						outlimit_daily(out, out_subdaily_anc, patch.id);
-						outlimit_daily(out, out_subdaily_anj, patch.id);
-						outlimit_daily(out, out_subdaily_gsw, patch.id);
-						outlimit_daily(out, out_subdaily_ci, patch.id);
-						outlimit_daily(out, out_subdaily_vcmax, patch.id);
-						outlimit_daily(out, out_subdaily_jmax, patch.id);
-						outlimit_daily(out, out_temps, patch.id);
-						outlimit_daily(out, out_pars, patch.id);
-						outlimit_daily(out, out_vpds, patch.id);
-					}
+					outlimit_daily(out, out_subdaily_an, patch.id);
+					outlimit_daily(out, out_subdaily_rd, patch.id);
+					outlimit_daily(out, out_subdaily_anc, patch.id);
+					outlimit_daily(out, out_subdaily_anj, patch.id);
+					outlimit_daily(out, out_subdaily_gsw, patch.id);
+					outlimit_daily(out, out_subdaily_ci, patch.id);
+					outlimit_daily(out, out_subdaily_vcmax, patch.id);
+					outlimit_daily(out, out_subdaily_jmax, patch.id);
+					outlimit_daily(out, out_temps, patch.id);
+					outlimit_daily(out, out_pars, patch.id);
+					outlimit_daily(out, out_vpds, patch.id);
 
 					double an = indiv ? indiv->ps_subdaily.An[j] : 0;
 					double rd = indiv ? indiv->ps_subdaily.Rd[j] : 0;

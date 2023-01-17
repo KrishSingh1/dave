@@ -2786,6 +2786,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							// Stomatal conductance to CO2 (mol m-2 s-1)
 							gsc = g0 + An * X;
 
+							if (An < 0) {
+								gsc = g0;
+							}
+
 							// Intercellular CO2 concentration (mol mol-1)
 							ci_new = ca - divide(An, gsc);
 
@@ -2797,9 +2801,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							}
 							nit += 1;
 						} // end solver
-						if (nit != nit_max) {
+						if (nit == nit_max) {
 							// If we didn't find a solution, use initial guess.
-							ci = ci_new;
+							ci = 0.5 * ca;
+							gsc = max(gsc, 0.0);
 						}
 					} // end if c4+daytime
 
@@ -3016,7 +3021,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 		if (date.day == 0)
 			indiv.aaet = 0.0;
-		
+
 		// Loop over time steps per day
 		for (Day day; day.period != date.subdaily; day.next()) {	
 
@@ -3036,13 +3041,43 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		transp /= date.subdaily;
 
 		// daily transpiration rate in mm d-1
-		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
+		double wsupply = 0;
+		for (int i = 0; i < NSOILLAYER; i++) {
+			wsupply += patch.soil.get_layer_soil_water(i);
+		}
+		indiv.aet = min(wsupply, transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY); // assuming 1kg m-2 = 1l m-2 == 1mm
         
 		// add to annual transpiration
 		indiv.aaet += indiv.aet;
 
 		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
 		// which is incorrect as soil evaporation is calculated separately.
+
+		// Limit water uptake.
+		double wr;
+
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+
+		if (spft.irrigated && pft.id == patch.stand.pftid) {
+			Day day;
+			wr = irrigated_water_uptake(patch, pft, day);
+		}
+		else {
+			double wcont_local[NSOILLAYER];
+			for (int i = 0; i<NSOILLAYER; i++) {
+				wcont_local[i] = patch.soil.get_layer_soil_water(i);
+			}
+
+			if (iftwolayersoil) {
+				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
+							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance);
+			} else {
+				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
+							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance);
+			}
+		}
 
 		vegetation.nextobj();
 	} // end cohort loop

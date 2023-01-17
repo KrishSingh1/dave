@@ -113,6 +113,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_dave_sla", &file_dave_sla, 300, "SLA by individual (m2/kgC)");
 	declare_parameter("file_dave_cmass_leaf", &file_dave_cmass_leaf, 300, "Leaf C mass (kgC/m2)");
 	declare_parameter("file_dave_nmass", &file_dave_nmass, 300, "N mass available (kgN/m2)");
+	declare_parameter("file_dave_wscal", &file_dave_wscal, 300, "Water scalar [0-1], 1 = min stress");
 	declare_parameter("file_fpar", &file_fpar, 300, "Daily fpar [0-1]");
 	declare_parameter("file_fpar_layerwise", &file_fpar_layerwise, 300, "Daily layered fpar [0-1]");
 	declare_parameter("file_lai_layerwise", &file_lai_layerwise, 300, "Daily layered LAI (m2/m2)");
@@ -422,6 +423,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors lai_dave_columns = fpar_columns;
 	ColumnDescriptors cmass_leaf_dave_columns = fpar_columns;
 	ColumnDescriptors sla_dave_columns = fpar_columns;
+	ColumnDescriptors wscal_dave_columns = fpar_columns;
 	ColumnDescriptors nmass_dave_columns;
 	nmass_dave_columns += ColumnDescriptor("patch", 10, 0);
 	nmass_dave_columns += ColumnDescriptor("nmass", 14, 8);
@@ -556,6 +558,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_dave_sla,       file_dave_sla,          sla_dave_columns);
 	create_output_table(out_dave_cmass_leaf,file_dave_cmass_leaf,   cmass_leaf_dave_columns);
 	create_output_table(out_dave_nmass,     file_dave_nmass,        nmass_dave_columns);
+	create_output_table(out_dave_wscal,     file_dave_wscal,        wscal_dave_columns);
 	create_output_table(out_fpar_layerwise,	file_fpar_layerwise, 	fpar_layerwise_columns);
 	create_output_table(out_lai_layerwise,	file_lai_layerwise, 	lai_layerwise_columns);
 	create_output_table(out_agd_g,			file_agd_g, 			agd_g_columns);
@@ -2039,6 +2042,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			outlimit_daily(out, out_assim, patch.id);
 			outlimit_daily(out, out_resp, patch.id);
 			outlimit_daily(out, out_dnpp, patch.id);
+			outlimit_daily(out, out_dave_wscal, patch.id);
 
 			std::vector<char *> pfts;			
 			pftlist.firstobj();
@@ -2053,6 +2057,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			// for (Vegetation &vegetation = patch.vegetation; vegetation.isobj; vegetation.nextobj()) {
 			// 	Individual &indiv = vegetation.getobj();
 				Individual *indiv = get_indiv(patch.vegetation, pfts[i]);
+				Patchpft *ppft = indiv ? &patch.pft[indiv->pft.id] : NULL;
 
 				// 0. SCALARS
 				double fpar = indiv ? indiv->fpar : 0;
@@ -2067,6 +2072,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				double assim = indiv ? indiv->photosynthesis.net_assimilation() : 0;
 				double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
 				double nmass_avail = patch.soil.nmass_avail;
+				double wscal = indiv ? ppft->wscal : 0;
 				int indiv_id = indiv ? indiv->id : i;
 
 				// fpar
@@ -2083,6 +2089,9 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 				// nmass_avail
 				outlimit_daily(out, out_dave_nmass, nmass_avail);
+
+				// wscal
+				outlimit_daily(out, out_dave_wscal, wscal);
 
 				// agd_g
 				outlimit_daily(out, out_agd_g, agd_g);
@@ -2218,6 +2227,8 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			output_channel->finish_row(out_dave_lai, lon, lat, date.year, date.day);
 			output_channel->finish_row(out_dave_cmass_leaf, lon, lat, date.year, date.day);
 			output_channel->finish_row(out_dave_sla, lon, lat, date.year, date.day);
+			output_channel->finish_row(out_dave_nmass, lon, lat, date.year, date.day);
+			output_channel->finish_row(out_dave_wscal, lon, lat, date.year, date.day);
 			output_channel->finish_row(out_agd_g, lon, lat, date.year, date.day);
 			output_channel->finish_row(out_rd_g, lon, lat, date.year, date.day);
 			output_channel->finish_row(out_je, lon, lat, date.year, date.day);

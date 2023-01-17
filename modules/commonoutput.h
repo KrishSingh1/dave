@@ -64,7 +64,7 @@ private:
 	xtring file_dlai, file_dflux, file_dcmass_grass;
 
 	// dave outputs
-	xtring file_fpar, file_dave_lai, file_dave_cmass_leaf, file_dave_sla, file_dave_nmass, file_fpar_layerwise, file_lai_layerwise, file_agd_g, file_rd_g, file_je, file_vm, file_assim, file_resp, file_dnpp, file_subdaily_an, file_subdaily_rd, file_subdaily_anc, file_subdaily_anj, file_subdaily_gsw, file_subdaily_ci, file_subdaily_vcmax, file_subdaily_jmax, file_temps, file_pars, file_vpds;
+	xtring file_fpar, file_dave_lai, file_dave_cmass_leaf, file_dave_sla, file_dave_nmass, file_dave_wscal, file_fpar_layerwise, file_lai_layerwise, file_agd_g, file_rd_g, file_je, file_vm, file_assim, file_resp, file_dnpp, file_subdaily_an, file_subdaily_rd, file_subdaily_anc, file_subdaily_anj, file_subdaily_gsw, file_subdaily_ci, file_subdaily_vcmax, file_subdaily_jmax, file_temps, file_pars, file_vpds;
 
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_firert, out_runoff, out_speciesheights;
@@ -90,7 +90,7 @@ private:
 	Table out_dlai, out_dflux, out_dcmass_grass;
 
 	// Dave
-	Table out_fpar, out_dave_lai, out_dave_cmass_leaf, out_dave_sla, out_dave_nmass, out_fpar_layerwise, out_lai_layerwise, out_agd_g, out_rd_g, out_je, out_vm, out_assim, out_resp, out_dnpp, out_subdaily_an, out_subdaily_rd, out_subdaily_anc, out_subdaily_anj, out_subdaily_gsw, out_subdaily_ci, out_subdaily_vcmax, out_subdaily_jmax, out_temps, out_pars, out_vpds;
+	Table out_fpar, out_dave_lai, out_dave_cmass_leaf, out_dave_sla, out_dave_nmass, out_dave_wscal, out_fpar_layerwise, out_lai_layerwise, out_agd_g, out_rd_g, out_je, out_vm, out_assim, out_resp, out_dnpp, out_subdaily_an, out_subdaily_rd, out_subdaily_anc, out_subdaily_anj, out_subdaily_gsw, out_subdaily_ci, out_subdaily_vcmax, out_subdaily_jmax, out_temps, out_pars, out_vpds;
 };
 
 }

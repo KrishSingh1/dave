@@ -424,7 +424,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors sla_dave_columns = fpar_columns;
 	ColumnDescriptors nmass_dave_columns;
 	nmass_dave_columns += ColumnDescriptor("patch", 10, 0);
-	nmass_dave_columns += ColumnDescriptor("nmass (kgN/m2)", 14, 8);
+	nmass_dave_columns += ColumnDescriptor("nmass", 14, 8);
 
 	ColumnDescriptors lai_layerwise_columns = fpar_layerwise_columns;
 

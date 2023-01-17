@@ -1042,12 +1042,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	for(int stid=0; stid<nst; stid++) {
 		st_total_cmass[stid] = 0.0;
 		st_total_cmass_harv_killed[stid] = 0.0;
-		st_pft_cmass[stid] = 0.0;
-		st_pft_cmass_harv_killed[stid] = 0.0;
 	}
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
+
+		for(int stid=0; stid<nst; stid++) {
+			st_pft_cmass[stid] = 0.0;
+			st_pft_cmass_harv_killed[stid] = 0.0;
+		}
 
 		Pft& pft=pftlist.getobj();
 

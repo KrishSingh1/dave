@@ -225,8 +225,8 @@ void CommonOutput::define_output_tables() {
 
 	// AET
 	ColumnDescriptors aaet_columns;
-	aaet_columns += ColumnDescriptors(pfts,                8, 2);
-	aaet_columns += ColumnDescriptor("Total",              8, 2);
+	aaet_columns += ColumnDescriptors(pfts,               14, 2);
+	aaet_columns += ColumnDescriptor("Total",             14, 2);
 	aaet_columns += ColumnDescriptors(landcovers,         13, 2);
 
 	// DENS

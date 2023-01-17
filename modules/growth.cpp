@@ -1700,6 +1700,8 @@ void growth_daily_grass(Patch& patch) {
 	const double WSCAL_MIN = 0.2;
 	// fraction of N limitation that C growth will experience
 	const double FRAC_C_OF_N_LIM = 0.8;
+	// fraction of N limitation that C growth will experience in DAVE mode.
+	const double FRAC_C_OF_N_LIM_DAVE = 1;
 	// C retranslocation fraction for C3 grass senescense
 	const double C3_RETRANS = 0.1;
 	// C retranslocation fraction for C4 grass senescense
@@ -1720,9 +1722,9 @@ void growth_daily_grass(Patch& patch) {
 	// root N growth this time period
 	double ngrow_root = 0.0;
 	// Retranslocation fraction of C
-	double crelocfrac_daily;
+	double crelocfrac_daily = 0;
 	// Retranslocation fraction of N
-	double nrelocfrac_daily;
+	double nrelocfrac_daily = 0;
 
 	// Movment factors for growth
 	double g_fac;
@@ -2072,23 +2074,13 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			// Reduce C depending on fndemand to not get too high C:N ratios
-			if (ifnlim && date.year > freenyears) {
-				cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
-				cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * FRAC_C_OF_N_LIM);
+			if (ifnewphotosyn || (ifnlim && date.year > freenyears) ) {
+				double c_scal = ifnewphotosyn ? FRAC_C_OF_N_LIM_DAVE : FRAC_C_OF_N_LIM;
+				cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
+				cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
 
 				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
-				if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
-					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
-					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
-				}
-			}
-			if (ifnewphotosyn) {
-				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
-				if (negligible(ngrow_leaf, -12) && negligible(ngrow_root, -12)) {
-					// Don't allow C growth if no n growth occurs.
-					cgrow_leaf = 0;
-					cgrow_root = 0;
-				} else if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
+				if (negligible(ngrow_leaf) && cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
 					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
 					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
 				}
@@ -2108,7 +2100,9 @@ void growth_daily_grass(Patch& patch) {
 
 			// Calculate daily C and N retranslocation fraction
 			crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
-			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.cmass_storage, indiv.nmass_storage);
+			if (!negligible(indiv.cmass_storage)) {
+				nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.cmass_storage, indiv.nmass_storage);
+			}
 
 			// Movement variables for C and N (eqn 26a-d Johnson & Thornley 1983)
 			c1 = min(1.0, LAMBDA * s_fac) * indiv.cmass_leafs[0];

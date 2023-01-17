@@ -463,6 +463,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		else
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 
+		if (ifnewphotosyn) {
+			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
+		}
+
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
 				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
@@ -513,7 +517,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						else if(patch.has_disturbances() && patch.disturbed)
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 						else if (ifdailygrass) {
-							patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 						} else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;

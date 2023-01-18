@@ -1544,7 +1544,6 @@ void growth(Stand& stand, Patch& patch) {
 						// Kill individual and transfer biomass to litter if either biomass
 						// compartment negative
 
-
 						// Note - what happens if cmass_root = 0?
 						if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
 
@@ -1726,6 +1725,9 @@ void growth_daily_grass(Patch& patch) {
 	// Retranslocation fraction of N
 	double nrelocfrac_daily = 0;
 
+	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+	double kNmin = 0.05;   // copied from Ndemand function
+
 	// Movment factors for growth
 	double g_fac;
 	// Movment factors for senescense and movement to litter
@@ -1801,7 +1803,6 @@ void growth_daily_grass(Patch& patch) {
 			initcs.push_back(initc);
 
 			// Update state of biomass and storage pools
-
 			// Storage 
 			// Positive bminc is added to storage pool for retranslocation out to leaves/roots further down
 			if (bminc >= 0.0) {
@@ -1938,10 +1939,11 @@ void growth_daily_grass(Patch& patch) {
 			double tscal_sen = max(0.1, tscal_fac);
 
 			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, H�glind 2016)
-			double const g_max = 0.1; // DW_COMMENT to be calibrated
+			// double const g_max = 0.1; // DW_COMMENT to be calibrated
+			double const g_max = 1.0; // DW_COMMENT to be calibrated
 			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
-			
+
 			// Storage used for new leaf and root growth and updating old leaves and roots
 			double ngrow_leaf_demand = 0;
 			double ngrow_root_demand = 0;
@@ -2003,6 +2005,36 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			if (ifnewphotosyn) {
+
+				// Figure out N uptake strength (adopted from ndemand() function)
+				// Scale to maximum nitrogen concentrations
+				
+				// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
+				double soilT = patch.soil.get_soil_temp_25();
+				double temp_scale = soilT > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) : 0.0;
+
+				// Current plant mobile nitrogen concentration
+				double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
+				
+				// Scale to maximum nitrogen concentrations
+				indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
+
+				// Nitrogen availablilty scalar due to saturating Michaelis-Menten kinetics
+				//double nmin_scale = kNmin + patch.soil.nmass_avail / (patch.soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
+
+				// Maximum available soil mineral nitrogen for this individual is base on its root area.
+				// This is considered to be related to FPC which is proportional to crown area which is approx
+				// 4 times smaller than the root area
+				//double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * patch.soil.nmass_avail;
+
+				// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
+				// and soil available nitrogen within individual projectived coverage
+				//double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
+
+				// Nitrogen demand limitation due to maximum nitrogen uptake capacity
+				//double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
+
+				// Calculate Individual N uptake strength
 				competing_individual.strength = nitrogen_uptake_strength(indiv);
 			}
 			competing_individuals.push_back(competing_individual);

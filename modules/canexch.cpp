@@ -2637,7 +2637,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				if (negligible(fpar_layer, -12)) {
 					if (negligible(lai_layer, -12)) {
-						// LAI and fpar both 0 - tree may be shorter than this layer.
+						// LAI and fpar both 0 - no photosynthesis calculation 
+						// tree may be shorter than this layer.
 						continue;
 					} else if (!negligible(par)) {
 						// fpar is 0, lai and par both non zero. This means there
@@ -2663,7 +2664,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
-					if (negligible(par, -12)) {
+					if (negligible(par, -9)) {
 						// Night
 						An = -Rd;
 						gsc = g0;

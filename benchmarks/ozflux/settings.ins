@@ -94,10 +94,10 @@ ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
 !firemodel "BLAZE"        ! BLAZE, GLOBFIRM, NOFIRE
 iffire 1
 !weathergenerator "GWGEN"    ! GWGEN, INTERP
-npatch 50            ! Number of replicate patches to simulate
+npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -105,7 +105,7 @@ ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
+wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
                             ! see documentation for water_uptake()
 !rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype

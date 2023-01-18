@@ -2078,18 +2078,19 @@ void growth_daily_grass(Patch& patch) {
 
 			double initc = initcs[i];
 
-			double nuptake = competing_individuals[i].ndemand * competing_individuals[i].fnuptake;
+			double ndemand = competing_individuals[i].ndemand;
+			double nuptake = ndemand * competing_individuals[i].fnuptake;
 
 			// Fraction of growth and update N that storage can meet
 			double fndemand;
-			if (indiv.nmass_storage * 0.9 > nuptake) { 
+			if (indiv.nmass_storage * 0.9 > ndemand) { 
 				// 90% of storage is more than sufficient to meet demand.
 				// Therefore, take as much as we need.
-				fndemand = competing_individuals[i].fnuptake;
+				fndemand = 1.0;
 			} else {
 				// 90% of storage is not enough to meet demand. Only take
 				// up to 90% of uptake from storage.
-				fndemand = 0.9 * indiv.nmass_storage / nuptake;
+				fndemand = 0.9 * indiv.nmass_storage / ndemand;
 			}
 
 			// Leaf and root N growth and update

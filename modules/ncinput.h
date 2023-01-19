@@ -417,7 +417,13 @@ private:
 	/*
 	Minimum amount of time (in seconds) to wait between progress messages.
 	*/
-	int progress_interval=20;
+	int progress_interval;
+
+	/*
+	If enabled, invalid mathematical operations (e.g. division by 0) will result
+	in a fatal error.
+	*/
+	bool strict_math;
 
 	/*
 	Total walltime spent in ncinput (cumulatively) (ms).

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
+#include <fenv.h>
 
 #include "driver.h"
 #include "guessnc.h"
@@ -56,6 +57,8 @@ NCInput::NCInput() {
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
 
 	declare_parameter("progress_interval", &progress_interval, -1, __INT32_MAX__, "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+
+	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
@@ -179,6 +182,12 @@ void NCInput::init(void) {
 		if (nyear_data < 1) {
 			throw std::runtime_error("Insufficient met forcing data (<1 year)");
 		}
+
+	if (strict_math) {
+#ifndef _WIN32
+		feenableexcept(FE_DIVBYZERO);
+#endif
+	}
 
 	// Set timers.
 	progress_timer.init();

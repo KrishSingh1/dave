@@ -201,10 +201,11 @@ void NCInput::init(void) {
 	// Set timers.
 	progress_timer.init();
 	progress_progress_timer.init();
-	progress_progress_timer.setprogress(1);
 
 	progress_timer.settimer();
-	progress_progress_timer.settimer(progress_interval);
+	if (progress_interval > 0) {
+		progress_progress_timer.settimer(progress_interval);
+	}
 
 	double init_end = get_wall_time();
 	double init_duration = (init_end - init_start) * 1000;
@@ -413,7 +414,9 @@ try {
 		dprintf("%3d%% complete, %s elapsed, %s remaining\n"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str);
-		progress_progress_timer.settimer(progress_interval);
+		if (progress_interval > 0) {
+			progress_progress_timer.settimer(progress_interval);
+		}
 	}
 
 	// We have enough data to simulate another day.

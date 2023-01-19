@@ -417,7 +417,7 @@ private:
 	/*
 	Minimum amount of time (in seconds) to wait between progress messages.
 	*/
-	static const int PROGRESS_INTERVAL=20;
+	int progress_interval=20;
 
 	/*
 	Total walltime spent in ncinput (cumulatively) (ms).

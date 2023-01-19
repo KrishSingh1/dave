@@ -55,6 +55,8 @@ NCInput::NCInput() {
 
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
 
+	declare_parameter("progress_interval", &progress_interval, -1, __INT32_MAX__, "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -184,7 +186,7 @@ void NCInput::init(void) {
 	progress_progress_timer.setprogress(1);
 
 	progress_timer.settimer();
-	progress_progress_timer.settimer(PROGRESS_INTERVAL);
+	progress_progress_timer.settimer(progress_interval);
 
 	double init_end = get_wall_time();
 	double init_duration = (init_end - init_start) * 1000;
@@ -359,7 +361,9 @@ try {
 	ncinput_walltime_use += getclimate_duration;
 
 	// Progress reporting.
-	if (date.day == 0 && progress_progress_timer.getprogress() >= 1.0) {
+	if (progress_interval == -1 ||
+		(progress_interval == 0 && date.day == 0) ||
+		(date.day == 0 && progress_progress_timer.getprogress() >= 1.0) ) {
 		double overall_progress = get_progress(false);
 		double progress = overall_progress;
 		if (restart) {
@@ -369,7 +373,7 @@ try {
 		dprintf("%3d%% complete, %s elapsed, %s remaining\n"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str);
-		progress_progress_timer.settimer(PROGRESS_INTERVAL);
+		progress_progress_timer.settimer(progress_interval);
 	}
 
 	// We have enough data to simulate another day.

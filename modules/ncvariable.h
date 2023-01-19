@@ -87,7 +87,7 @@ public:
 	@param check_units: Iff true, an error will be generated for invalid units.
 	*/
 	NCVariable(int file_id, xtring name, xtring dim_lon, xtring dim_lat
-	, xtring dim_time, int day_length, bool has_leap, CacheStrategy chunk_mode
+	, xtring dim_time, bool has_leap, CacheStrategy chunk_mode
 	, bool sensibility_checks, bounds limits, std::vector<xtring> units
 	, bool check_units);
 
@@ -119,6 +119,12 @@ public:
 	Get the date/time of the final timestep in the input data.
 	*/
 	timepoint get_last_date() const;
+
+	/*
+	Get the number of timesteps per day in this NetCDF file. Note that this does
+	not calculate the value.
+	*/
+	int get_day_length() const;
 
 private:
 	/*
@@ -280,6 +286,27 @@ private:
 	timepoint to_timepoint(const GuessNC::CF::DateTime& date) const;
 
 	/*
+	Calculate the number of timesteps per day based on the contents of the
+	time variable. Returns -1 if file only contains a single day (or less).
+	*/
+	int calculate_day_length() const;
+
+	/*
+	Get the calendar type used by this NetCDF.
+	*/
+	GuessNC::CF::CalendarType get_calendar_type() const;
+
+	/*
+	Get the units of the time variable used in this file.
+	*/
+	GuessNC::CF::TimeUnitSpecification get_time_spec() const;
+
+	/*
+	Get the nth date/time step in the NetCDF file.
+	*/
+	GuessNC::CF::DateTime get_nth_date(size_t n) const;
+
+	/*
 	NetCDF file ID.
 	*/
 	int id_file;
@@ -385,6 +412,16 @@ private:
 	The starting date of the data in the input file.
 	*/
 	timepoint data_start;
+
+	/*
+	The calendar type used by this variable.
+	*/
+	GuessNC::CF::CalendarType calendar_type;
+
+	/*
+	The way that time data is represented in the file (ie time units).
+	*/
+	GuessNC::CF::TimeUnitSpecification time_spec;
 
 	/*
 	Upper and lower bounds for data.

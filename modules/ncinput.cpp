@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
+#include <fenv.h>
 
 #include "driver.h"
 #include "guessnc.h"
@@ -20,7 +21,7 @@
 REGISTER_INPUT_MODULE("nc", NCInput)
 
 NCInput::NCInput() {
-	double ctor_start = get_wall_time();
+	ctor_start = get_wall_time();
 
 	// Register instruction file parameters.
 
@@ -54,6 +55,10 @@ NCInput::NCInput() {
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
 
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
+
+	declare_parameter("progress_interval", &progress_interval, -1, __INT32_MAX__, "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+
+	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
@@ -136,6 +141,10 @@ void NCInput::init(void) {
 		std::vector<xtring> vpd_units(1);
 		vpd_units[0] = "kPa";
 
+		if (nsteps_day >= SIZE_MAX) {
+			throw_xtring("nsteps_day is too large: %d", nsteps_day);
+		}
+
 		std::vector<xtring> ps_units(1);
 		ps_units[0] = "Pa";
 
@@ -155,6 +164,18 @@ void NCInput::init(void) {
 			tmin = create_variable(variable_tmin, bounds_temp, temp_units, true);
 		}
 
+		// Ensure that input timestep is an integer multiple of simulation
+		// timestep.
+		int input_timestep = temp->get_day_length();
+		if (input_timestep < nsteps_day) {
+			throw_xtring("Input timestep (%d/day) must be >= simulation timestep (%d/day)"
+			, input_timestep, nsteps_day);
+		}
+		if (input_timestep % nsteps_day != 0) {
+			throw_xtring("Input timestep (%d/day) must be an integer multiple of simulation timestep (%d/day)"
+			, input_timestep, nsteps_day);
+		}
+
 		// Move to first gridcell in the gridlist.
 		current_gridcell = gridlist.begin();
 
@@ -171,20 +192,25 @@ void NCInput::init(void) {
 			throw std::runtime_error("Insufficient met forcing data (<1 year)");
 		}
 
+	if (strict_math) {
+#ifndef _WIN32
+		feenableexcept(FE_DIVBYZERO | FE_INVALID);
+#endif
+	}
+
 	// Set timers.
 	progress_timer.init();
 	progress_progress_timer.init();
 	progress_progress_timer.setprogress(1);
 
 	progress_timer.settimer();
-	progress_progress_timer.settimer(PROGRESS_INTERVAL);
+	progress_progress_timer.settimer(progress_interval);
 
 	double init_end = get_wall_time();
 	double init_duration = (init_end - init_start) * 1000;
 	ncinput_walltime_use += init_duration;
 
 	} catch (const std::exception& error) {
-		// todo: do we need to manually unwrap nested exceptions?
 		fail(get_nested_error_msg(error));
 	}
 }
@@ -194,6 +220,9 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		double getgridcell_start = get_wall_time();
 
 		if (current_gridcell == gridlist.end()) {
+			double total_walltime = (getgridcell_start - ctor_start) * 1000;
+			double prop = ncinput_walltime_use / total_walltime;
+			dprintf("Simulations completed. Total time: %.2fms. Total time spent in ncinput: %.2fms. ncinput_prop = %.2f\n", total_walltime, ncinput_walltime_use, prop);
 			return false;
 		}
 
@@ -252,7 +281,7 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 }
 
 bool NCInput::getclimate(Gridcell& gridcell) {
-	try {
+try {
 	double getclimate_start = get_wall_time();
 
 	// Shorthand access to some variables.
@@ -262,7 +291,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	int year = date.get_calendar_year();
 
 	// First, check if we have enough data to simulate another day.
-	if (year == final_timestep.year) {
+	if (date.day == 0 && year == final_timestep.year) {
 		if (final_timestep.day < Date::MAX_YEAR_LENGTH - 1) {
 			// We are in the final year, which is missing some days of data.
 			// Because the N deposition disaggregation requires an entire years'
@@ -270,7 +299,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 			return false;
 		}
 
-		if (final_timestep.timestep < nsteps_day - 1) {
+		if (final_timestep.timestep < temp->get_day_length() - 1) {
 			// We are in the final year, and the final day is missing some
 			// timesteps.
 			return false;
@@ -282,7 +311,7 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 		// year, select another year at random.
 		if (date.day == 0) {
 			int first_year = first_timestep.year;
-			if (!is_start_of_year(first_timestep, nsteps_day)) {
+			if (!is_start_of_year(first_timestep, temp->get_day_length())) {
 				first_year++;
 			}
 			spinup_year = rand() % get_nyear_data() + first_year;
@@ -306,6 +335,8 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 
 	// Read data from variables (not necessarily from the file - these variable
 	// objects will handle caching internally).
+	// Note that these arrays will still be on the timestep of the input data,
+	// which is not necessarily the same as that of the nsteps_day parameter.
 	std::vector<double> temps = temp->read(lon, lat, year, date.day, 1);
 	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
@@ -319,8 +350,28 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	climate.temp = mean(temps);
 	climate.prec = sum(precs);
 	climate.insol = mean(insols);
+
+	// Aggregate from one subdaily timescale to another. Note that this will
+	// only work if the input timestep is larger than the output timestep, a
+	// condition which we have already verified is true in init().
+	//
+	// nsteps_day is the desired simulation timestep.
+	// temp->get_day_length is the input data timestep.
+
+	double maxt = max(temps);
+	double mint = min(temps);
+
+	if (nsteps_day != temp->get_day_length()) {
+		temps = aggregate(temps, nsteps_day, mean);
+		insols = aggregate(insols, nsteps_day, mean);
+		vpds = aggregate(vpds, nsteps_day, mean);
+		// If required, we can aggregate using other functions as well. E.g.
+		// precs = aggregate(precs, nsteps_day, sum);
+	}
+
 	climate.temps = temps;
 	climate.insols = insols;
+	climate.vpds = vpds;
 	climate.dndep = dndep[date.day];
 	climate.vpds = vpds;
 	climate.pressure = pressure;
@@ -331,11 +382,14 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 					: mean(co2->read(lon, lat, year, date.day, 1));
 
 	if (tmax && tmin) {
+		// It only really makes sense to provide separate variables for tmin and
+		// tmax if input data is daily. Therefore these arrays will usually be
+		// of length 1.
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
 		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
 		climate.dtr = mean(tmaxs) - mean(tmins);
-	} else if (temps.size() > 1) {
-		climate.dtr = max(temps) - min(temps);
+	} else if (temp->get_day_length() > 1) {
+		climate.dtr = maxt - mint;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}
@@ -347,7 +401,9 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 	ncinput_walltime_use += getclimate_duration;
 
 	// Progress reporting.
-	if (date.day == 0 && progress_progress_timer.getprogress() >= 1.0) {
+	if (progress_interval == -1 ||
+		(progress_interval == 0 && date.day == 0) ||
+		(date.day == 0 && progress_progress_timer.getprogress() >= 1.0) ) {
 		double overall_progress = get_progress(false);
 		double progress = overall_progress;
 		if (restart) {
@@ -357,15 +413,15 @@ bool NCInput::getclimate(Gridcell& gridcell) {
 		dprintf("%3d%% complete, %s elapsed, %s remaining\n"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str);
-		progress_progress_timer.settimer(PROGRESS_INTERVAL);
+		progress_progress_timer.settimer(progress_interval);
 	}
 
 	// We have enough data to simulate another day.
 	return true;
-	} catch (const std::exception& e) {
-		fail(get_nested_error_msg(e));
-		return false; // To eliminate a compiler warning.
-	}
+} catch (const std::exception& e) {
+	fail(get_nested_error_msg(e));
+	return false; // To eliminate a compiler warning.
+}
 }
 
 void NCInput::getlandcover(Gridcell& gridcell) {
@@ -387,7 +443,6 @@ std::unique_ptr<NCVariable> NCInput::create_variable(xtring variable_name
 		variable_lon,
 		variable_lat,
 		variable_time,
-		nsteps_day,
 		has_leap_years,
 		(CacheStrategy)cache_strategy,
 		nc_check_inputs,
@@ -432,25 +487,20 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 	// precipitation data.
 
 	// Read precipitation data for entire year.
-	std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0
-	, Date::MAX_YEAR_LENGTH);
+	int n = Date::MAX_YEAR_LENGTH;
+	std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
 
-	// Aggregate to daily values.
-	double daily_prec[Date::MAX_YEAR_LENGTH];
-
-	// Iterate over each day of year and calculate a mean of the subdaily
-	// values.
-	for (int i = 0; i < Date::MAX_YEAR_LENGTH; i++) {
-		double *start = &(subdaily_prec[i]);
-		daily_prec[i] = mean(start, nsteps_day);
-	}
+	// Aggregate to daily values. Note that precip is currently only allowed to
+	// be in mm, so we can sum the subdaily values to get a daily one.
+	std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
 
 	// Now aggregate to generate daily N deposition values.
-	distribute_ndep(ndep_dry, ndep_wet, daily_prec, dndep);
+	distribute_ndep(ndep_dry, ndep_wet, &(daily_prec.front()), dndep);
 }
 
 int NCInput::get_nyear_data() const {
 	int nyear = final_timestep.year - first_timestep.year;
+	int nsteps_day = temp->get_day_length();
 
 	// If final timestep is the last timestep in a year, then we can add that
 	// simulate that entire year (so increment nyear).

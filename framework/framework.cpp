@@ -24,7 +24,7 @@
 #include "bvoc.h"
 #include "commonoutput.h"
 #include "soilmethane.h"
-#include "ncutil.h"
+#include "util.h"
 
 #include <memory>
 

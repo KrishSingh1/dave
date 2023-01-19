@@ -68,6 +68,12 @@ ifnewphotosyn 		     1   ! new photosynthesis scheme (in need of a better name..
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 
+! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
+progress_interval             0
+
+! Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
+strict_math                   1
+
 ! Number of vertical layers used for canopy-area integration.
 ! Mutually exclusive with layer_thickness_canopy.
 !nlayer_canopy           10
@@ -180,10 +186,10 @@ nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root 
 ! SERIALIZATION SETTINGS
 !///////////////////////////////////////////////////////////////////////////////
 
-!state_year 500            ! Year to save/start state file (no setting = after spinup)
-restart 0                  ! Whether to start from a state file
-save_state 0               ! Whether to save a state file
-state_path "./state/"      ! Directory to put state files in
+!state_year 500                  ! Year to save/start state file (no setting = after spinup)
+restart  1                       ! Whether to start from a state file
+save_state 0                     ! Whether to save a state file
+state_path "./state/"            ! Directory to put state files in
 
 
 !///////////////////////////////////////////////////////////////////////////////

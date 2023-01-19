@@ -970,6 +970,9 @@ public:
 	/// Sub-daily insolation (\see insol)
 	std::vector<double> insols;
 
+	/// Sub-daily vapour pressure deficit (kPa).
+	std::vector<double> vpds;
+
 	/// Sub-daily PAR (\see par)
 	std::vector<double> pars;
 
@@ -978,9 +981,6 @@ public:
 
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
-
-	/// Sub-daily VPD values (kPa).
-	std::vector<double> vpds;
 
 	/// Sub-daily atmospheric pressure values (Pa).
 	std::vector<double> pressure;

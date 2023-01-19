@@ -7,28 +7,7 @@
 
 #include "guess.h"
 #include "ncvariable.h"
-
-/*
-Throw an exception using the specified format string and arguments.
-
-@param fmt: printf-style format string.
-@param ...: Arguments to the format string.
-*/
-#define throw_xtring(fmt, ...) \
-	xtring tmp_msg; \
-	tmp_msg.printf((fmt), __VA_ARGS__); \
-	throw std::runtime_error((const char *)tmp_msg);
-
-/*
-Throw a nested exception using the specified format string and arguments.
-
-@param fmt: printf-style format string.
-@param ...: Arguments to the format string.
-*/
-#define throw_xtring_nested(fmt, ...) \
-	xtring tmp_msg; \
-	tmp_msg.printf((fmt), __VA_ARGS__); \
-	std::throw_with_nested(std::runtime_error((const char *)tmp_msg));
+#include "util.h"
 
 /*
 This macro will check the status code returned by functions in the NetCDF API,
@@ -77,11 +56,27 @@ name is invalid.
 insoltype parse_insoltype(const std::string& standard_name);
 
 /*
+Calculate the sum of a c-style array of data.
+
+@param arr: The array.
+@param length: Length of the array.
+*/
+double sum(const double *arr, size_t length);
+
+/*
 Calculate the sum of a vector of doubles.
 
 @param data: The input data.
 */
 double sum(const std::vector<double>& data);
+
+/*
+Calculate the sum of a c-style array of data.
+
+@param arr: The array.
+@param length: Length of the array.
+*/
+double mean(const double *arr, size_t length);
 
 /*
 Calculate the mean of a vector of doubles.
@@ -207,12 +202,18 @@ Return current time (in μs since unix epoch).
 double get_wall_time();
 
 /*
-Attempt to create the specified directory tree (equivalent to mkdir -p). Will
-throw upon failure, but "directory already exists" is considered success.
+This function aggregates data over a vector in a given chunk size using the
+specified aggregator function.
 
-@param path: The directory tree to be created.
+@param in: The input vector.
+@param step_size: Desired length of the output vector. An exception will be
+				  thrown if length of the input vector is not an integer
+				  multiple of this value.
+@param aggregator: Function which takes a C-style array and length as input, and
+                   aggregates the contents into a single output value.
 */
-void mkdir_p(const char *path);
+std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
+	, double (*aggregator)(const double *, size_t));
 
 #endif // HAVE_NETCDF
 

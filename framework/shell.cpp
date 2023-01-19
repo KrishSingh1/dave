@@ -121,6 +121,7 @@ void CommandLineShell::log_message(const char* message) {
 	fprintf(stdout,"%s", message);
 	fprintf(logfile,"%s", message);
 	fflush(logfile);
+	fflush(stdout);
 }
 
 void CommandLineShell::plot(const char* window_name, 

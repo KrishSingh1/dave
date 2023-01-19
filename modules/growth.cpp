@@ -1940,7 +1940,7 @@ void growth_daily_grass(Patch& patch) {
 
 			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, H�glind 2016)
 			// double const g_max = 0.1; // DW_COMMENT to be calibrated
-			double const g_max = 1.0; // DW_COMMENT to be calibrated
+			double const g_max = 0.5; // DW_COMMENT to be calibrated
 			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 

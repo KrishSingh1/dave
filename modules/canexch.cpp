@@ -2570,7 +2570,7 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
     double par, temp, rad, vpd, ca;
-	double lai_layer, lai_cum_bottom, lai_cum, Nscal;
+	double lai_layer, apar_layer, lai_cum_bottom, lai_cum, Nscal;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
 	double Rm, Rs, Je, Vpmax, Vp, Kp, Km;
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
@@ -2632,7 +2632,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
-				double apar_layer = fpar_layer * par;  // absorbed PAR in this layer (W m-2), TODO: check for double counting of absorption
 				double lai_layer = indiv.lai_layerwise[i]; // LAI of the layer and individual
 
 				if (negligible(fpar_layer, -12)) {
@@ -2653,11 +2652,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 
 				// determine LAI and cumulative LAI of the layer
-		    	lai_cum_bottom += lai_layer;                 // cumulative LAI at the bottom of current layer
-				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
+				apar_layer = (fpar_layer * par) / lai_layer;  	// absorbed PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
+		    	lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
+				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
 
 				// determine N scalar of the layer
-				Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
+				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
+				Nscal = max(1.0e-12, exp(-kn * lai_cum)); 
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					

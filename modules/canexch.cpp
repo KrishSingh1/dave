@@ -2550,14 +2550,20 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		double leaf_NtoP = 22.9; // from EucFACE -> to be moved to constants
-		double pmass_leaf = indiv.get_nmass_leaf() / leaf_NtoP;  // kgP m-2 
+		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
+
+        // leaf N of first fully expanded leaves per leaf area (kgN m-2 leaf)
+		// take fully expanded leaves only and calculate leaf N per single leaf area
+		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
+		double nmass_leaf = indiv.nmass_leafs[1] / (indiv.cmass_leafs[1] * indiv.sla());
+		// total leaf P of all leaves in the canopy (kgP m-2 leaf) 
+		double pmass_leaf = nmass_leaf / leaf_NtoP;              
 
 		if (!negligible(pmass_leaf, -6)) {
-			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * 1000.0) + 0.197 * 
-											log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
-			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * 1000.0) + 0.112 * 
-											log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
+			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
+											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
+											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
 		}
 
 		vegetation.nextobj();

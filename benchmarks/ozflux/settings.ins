@@ -69,9 +69,9 @@ ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photos
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval             0
+progress_interval             10
 
-! Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
+! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                   1
 
 ! Number of vertical layers used for canopy-area integration.

@@ -2553,7 +2553,7 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 		double leaf_NtoP = 22.9; // from EucFACE -> to be moved to constants
 		double pmass_leaf = indiv.get_nmass_leaf() / leaf_NtoP;  // kgP m-2 
 
-		if (!negligible(pmass_leaf)) {
+		if (!negligible(pmass_leaf, -6)) {
 			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * 1000.0) + 0.197 * 
 											log(indiv.get_nmass_leaf() * 1000.0)) / UMOL_PER_MOL;
 			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * 1000.0) + 0.112 * 
@@ -2665,7 +2665,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
 
-					if (negligible(par, -9)) {
+					if (negligible(apar_layer, -9)) {
 						// Night
 						An = -Rd;
 						gsc = g0;

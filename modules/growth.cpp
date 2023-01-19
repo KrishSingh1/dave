@@ -2113,7 +2113,7 @@ void growth_daily_grass(Patch& patch) {
 				cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
 
 				// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
-				if (negligible(ngrow_leaf) && cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
+				if (!negligible(ngrow_leaf) && cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
 					cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
 					cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
 				}

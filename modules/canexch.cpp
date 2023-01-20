@@ -2550,14 +2550,17 @@ void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+        double nmass_leaf;
 		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
-
+		
         // leaf N of first fully expanded leaves per leaf area (kgN m-2 leaf)
-		// take fully expanded leaves only and calculate leaf N per single leaf area
+		// take fully expanded leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
-		double nmass_leaf = indiv.nmass_leafs[1] / (indiv.cmass_leafs[1] * indiv.sla());
-		// total leaf P of all leaves in the canopy (kgP m-2 leaf) 
-		double pmass_leaf = nmass_leaf / leaf_NtoP;              
+		nmass_leaf = (!negligible(indiv.nmass_leafs[1])) ? 
+					 indiv.nmass_leafs[1] / (indiv.cmass_leafs[1] * indiv.sla()) : 0.0;
+
+		// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
+		double pmass_leaf = nmass_leaf / leaf_NtoP;         
 
 		if (!negligible(pmass_leaf, -6)) {
 			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
@@ -2669,7 +2672,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  
+					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: temperature response
 
 					if (negligible(apar_layer, -9)) {
 						// Night
@@ -2716,7 +2719,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4;
+					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4;  // TODO: temperature response
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
@@ -2866,9 +2869,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.adtmm       = 0.0;    // not used
 		indiv.photosynthesis.nactive_opt = 0.0;    // not used
 		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 
-
-		// temporary assignment of initial Anet
-		// TODO: calculate this properly 
 
 		vegetation.nextobj();
 

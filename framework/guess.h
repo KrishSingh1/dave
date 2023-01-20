@@ -2150,7 +2150,8 @@ public:
 
 			// Used for daily grass growth. Results in correct leaf longevity under 0.75 * perfect conditions
 
-			transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+			transferconst = 0.005 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 		}
 	}
     

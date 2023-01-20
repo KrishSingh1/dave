@@ -1879,7 +1879,8 @@ void growth_daily_grass(Patch& patch) {
 			// or only water limitation and current leaf to root status if N limitation is turned off
 
 			// Current leaf to root status
-			double ltor_status = (!negligible(indiv.get_cmass_leaf()) && !negligible(indiv.cmass_root)) ? indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root) : 1.0;
+			//double ltor_status = (!negligible(indiv.get_cmass_leaf()) && !negligible(indiv.cmass_root)) ? indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root) : 1.0;
+			double ltor_status = (!negligible(indiv.get_cmass_leaf()) && !negligible(indiv.cmass_root)) ? indiv.get_cmass_leaf() / indiv.cmass_root : 1.0;
 
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
@@ -1893,10 +1894,12 @@ void growth_daily_grass(Patch& patch) {
 				}
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
-				indiv.ltor = min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * indiv.pft.ltor_max * ltor_status;
+				//indiv.ltor = min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * indiv.pft.ltor_max * ltor_status;
+				indiv.ltor = min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * indiv.pft.ltor_max;
 			}
 			else {
-				indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max * ltor_status;
+				//indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max * ltor_status;
+				indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max;
 			}
 			
 			// Growth rate modifiers
@@ -1960,8 +1963,10 @@ void growth_daily_grass(Patch& patch) {
 				double cgrow = g_fac * indiv.cmass_storage;
 
 				// Leaf and root C growth
-				cgrow_root = cgrow / (1.0 + indiv.ltor);
-				cgrow_leaf += cgrow - cgrow_root;
+				//cgrow_root = cgrow / (1.0 + indiv.ltor);
+				//cgrow_leaf += cgrow - cgrow_root;
+				cgrow_leaf = cgrow * indiv.ltor;
+				cgrow_root = cgrow - cgrow_leaf;
 
 				if (ifnewphotosyn){
 					// N demand for growth

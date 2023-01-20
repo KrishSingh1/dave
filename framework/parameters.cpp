@@ -73,6 +73,7 @@ bool ifbvoc;
 
 // Soil, arctic and wetland options
 double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
+double b_infilt;					// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
 bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
@@ -522,7 +523,9 @@ void plib_declarations(int id,xtring setname) {
 			"Whether or not BVOC calculations are performed (0,1)");
 
 		declareitem("slope", &slope, -1.0, 90.0, 1, CB_NONE,
-			"Whether to use fixed slope value (>=0 degree) or input data (<0) ");
+			"Whether to use fixed slope value (>=0 degree) or input data (<0)");
+		declareitem("b_infilt", &b_infilt, 0.0001, 0.4, 1, CB_NONE,
+			"Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
 			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
 		declareitem("ifsupercooled", &ifsupercooled, 0, 2, 1, CB_NONE,
@@ -1298,6 +1301,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 		
 		if (!itemparsed("slope")) badins("slope");
+		if (!itemparsed("b_infilt")) badins("b_infilt");
 		if (!itemparsed("ifbedrock")) badins("ifbedrock");
 		if (hydrology != RICHARDS && ifbedrock == 1) {
 			sendmessage("Error", "Can't account for bedrock with GERTEN or MILLER hydrology!");

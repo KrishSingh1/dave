@@ -676,6 +676,8 @@ double Patch::wcontent() {
 
 	wcontent += soilcolumn.snow.wcontent();
 
+	wcontent += soilcolumn.wmass_stand;
+
 	return wcontent;
 }
 

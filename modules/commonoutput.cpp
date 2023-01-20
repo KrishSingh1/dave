@@ -73,6 +73,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mwmasslyr", &file_mwmasslyr, 300, "Monthly soil layer water output file");
 	declare_parameter("file_mimasslyr", &file_mimasslyr, 300, "Monthly soil layer ice output file");
 	declare_parameter("file_mwimasslyr", &file_mwimasslyr, 300, "Monthly soil layer water+ice output file");
+	declare_parameter("file_wsatslyr", &file_wsatslyr, 300, "Yearly water holding capacity at saturation output file");
 	declare_parameter("file_mdrainlyr", &file_mdrainlyr, 300, "Monthly soil layer lateral drainage output file");
 	declare_parameter("file_mtemp_depth", &file_mtemp_depth, 300, "Air, snow and soil layer temperature output file");
 	declare_parameter("file_mwmass_depth", &file_mwmass_depth, 300, "Monthly soil layer water output file");
@@ -601,6 +602,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwmasslyr,      file_mwmasslyr,      soillyr_columns_short);
 	create_output_table(out_mimasslyr,      file_mimasslyr,      soillyr_columns_short);
 	create_output_table(out_mwimasslyr,     file_mwimasslyr,     soillyr_columns_short);
+	create_output_table(out_wsatslyr,       file_wsatslyr,       soillyr_columns_large);
 	create_output_table(out_mdrainlyr,      file_mdrainlyr,	     soillyr_columns_short);
 	create_output_table(out_mtemp_depth,    file_mtemp_depth,    tempdepth_columns);
 	create_output_table(out_mwmass_depth,   file_mwmass_depth,   soildepth_columns);
@@ -986,6 +988,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mwmasslyr[NSOILLAYERS_MAX + 1][12];
 	double mimasslyr[NSOILLAYERS_MAX + 1][12];
 	double mdrainlyr[NSOILLAYERS_MAX + 1][12];
+	double wsatslyr[NSOILLAYERS_MAX + 1];
 	double mwmass_depth[sslyr + 1][12] = { 0.0 };
 	double mimass_depth[sslyr + 1][12] = { 0.0 };
 	double mwimass_depth[sslyr + 1][12] = { 0.0 };
@@ -1009,6 +1012,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			mwmasslyr[lyr][m] = 0.0;
 			mimasslyr[lyr][m] = 0.0;
 			mdrainlyr[lyr][m] = 0.0;
+			if (m == 0) {
+				wsatslyr[lyr] = 0.0;
+			}
 		}
 	}
 
@@ -1959,16 +1965,25 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						imass_tot += max(0.0, soillayer.mimass[m]);
 						mdrainlyr[lyr][m] += soillayer.mdrain[m] * to_gridcell_average;
 						drain_tot += soillayer.mdrain[m];
+						if (m == 0) {
+							wsatslyr[lyr] += soillayer.wsats * to_gridcell_average;
+						}
 					}
 					else if (lyr == NSOILLAYERS_MAX) {
 						mwmasslyr[lyr][m] += wmass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
 						mimasslyr[lyr][m] += imass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
 						mdrainlyr[lyr][m] += drain_tot * to_gridcell_average;
+						if (m == 0) {
+							wsatslyr[lyr] += soilcolumn.get_sum(WSATS) * to_gridcell_average;
+						}
 					}
 					else {
 						mwmasslyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
 						mimasslyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
-						mdrainlyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average;
+						mdrainlyr[lyr][m] += NOT_A_VALUE_SMALL * to_gridcell_average; 
+						if (m == 0) {
+							wsatslyr[lyr] += NOT_A_VALUE_SMALL * to_gridcell_average;
+						}
 					}
 				}
 			}
@@ -2547,11 +2562,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out, out_mimasslyr, mimasslyr[lyr][mth]);
 			outlimit(out, out_mwimasslyr, mwmasslyr[lyr][mth] >= 0.0 ? mwmasslyr[lyr][mth] + mimasslyr[lyr][mth] : NOT_A_VALUE_SMALL);
 			outlimit(out, out_mdrainlyr, mdrainlyr[lyr][mth]);
+			if (mth == 0) {
+				outlimit(out, out_wsatslyr, wsatslyr[lyr]);
+			}
 		}
 		outlimit(out, out_mwmasslyr, mwmasslyr[NSOILLAYERS_MAX][mth]);
 		outlimit(out, out_mimasslyr, mimasslyr[NSOILLAYERS_MAX][mth]);
 		outlimit(out, out_mwimasslyr, mwmasslyr[NSOILLAYERS_MAX][mth] + mimasslyr[NSOILLAYERS_MAX][mth]);
 		outlimit(out, out_mdrainlyr, mdrainlyr[NSOILLAYERS_MAX][mth]);
+		if (mth == 0) {
+			outlimit(out, out_wsatslyr, wsatslyr[NSOILLAYERS_MAX]);
+		}
 
 		for (int depths = 0; depths < sslyr + 1; depths++) {
 			outlimit(out, out_mwmass_depth, mwmass_depth[depths][mth]);

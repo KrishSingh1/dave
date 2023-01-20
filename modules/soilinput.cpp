@@ -160,13 +160,13 @@ void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist
 		std::istringstream iss(line);
 
 		double lon, lat;
-		double slope_input;
-		if (iss >> lon >> lat >> slope_input) {
+		double slope_mean, slope_median, slope_max, slope_min, slope_std;
+		if (iss >> lon >> lat >> slope_mean >> slope_median >> slope_max >> slope_min >> slope_std) {
 			coord c(lon, lat);
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
-			slope_map[c] = slope_input;
+			slope_map[c] = slope_median;
 			if (slope_map.size() == coords.size()) {
 				break;
 			}
@@ -477,6 +477,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
 	soiltype.Psi_max_min = -pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
 
+	// Super cooled water setting 2
 	// Soil specific surface area (m2 g−1) from Sepaskhah et al. (2011)
 	// eqn 11
 	double D = 3.0 - 0.118 * (-log(soiltype.clay_frac) + soiltype.silt_frac + soiltype.sand_frac);
@@ -504,10 +505,40 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	}
 
 	// Slope [degree] limits
-	slope = min(90.0, max(0.0, slope));
+	slope = min(90.0, max(0.01, slope));
+
+	// Slope in radians
+	double slope_rad = slope * PI / 180.0;
 
 	// Slope gradient [m m-1]
-	soiltype.slope_grade = tan(slope * PI / 180.0);
+	soiltype.slope_grade_tan = tan(slope_rad);
+	soiltype.slope_grade_sin = sin(slope_rad);
+
+	// Beta_0 as a function of maximum topographical distribution (Ekcic et al. 2019; eqn 3)
+	double beta_0 = 1.357209;
+	// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	soiltype.slope_sigma = pow(slope_rad + beta_0, -3.0) * MM_PER_M;
+
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell
+	soiltype.wmass_stand_frac_thresh = 0.4;
+
+	// Calculate surface water threshold below which no single connected  
+	// inundated area spans the grid cell
+	if (soiltype.slope_sigma > 1.0e-6) {
+		double d = 0.0;
+		for (int i = 0; i < 4; i++) {
+			double fd = 0.5 * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) - soiltype.wmass_stand_frac_thresh;
+			double dfdd = exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2))) / (soiltype.slope_sigma * sqrt(2.0 * PI));
+			d = d - fd / dfdd;
+			int sch = 0;
+		}
+		soiltype.wmass_stand_thresh = 0.5 * d * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) +
+			soiltype.slope_sigma / sqrt(2.0 * PI) * exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2)));
+	}
+	else {
+		soiltype.wmass_stand_thresh = 0.0;
+	}
 
 	// Soil depth
 	// soil_depth is defined in global.ins

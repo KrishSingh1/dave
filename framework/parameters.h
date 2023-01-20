@@ -322,6 +322,9 @@ extern bool ifbvoc;
 /// Whether to use fixed slope value (>=0 degree) or input data (<0)
 extern double slope;
 
+/// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
+extern double b_infilt;
+
 /// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 extern bool ifbedrock;
 

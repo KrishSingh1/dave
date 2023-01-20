@@ -1030,7 +1030,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.0;
+		indiv.boleht = indiv.height / 2.0;
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;

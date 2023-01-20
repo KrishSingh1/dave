@@ -313,7 +313,7 @@ void soilwater(Patch& patch, Climate& climate) {
 			soilcolumn.hydrology_wetland(climate, bare_ground);
 		}
 		else if (hydrology == GERTEN) {
-			// Standard two layer LPJ-GUESS hydrology
+			// Original two layer LPJ-GUESS hydrology
 			soilcolumn.hydrology_gerten(climate, bare_ground);
 		}
 		else if (hydrology == MILLER) {

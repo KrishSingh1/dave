@@ -156,10 +156,10 @@ const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
 
 // SOIL DEPTH VALUES
 
-/// Maximum soil depth (mm)
-const double SOILDEPTH_MAX = 5000.0;
+/// Maximum soil depth - 50m (mm)
+const double SOILDEPTH_MAX = 50000.0;
 
-/// Minimum soil depth (mm)
+/// Minimum soil depth - 0.2m (mm)
 const double SOILDEPTH_MIN = 200.0;
 
 /// soil upper layer depth (mm)
@@ -3193,7 +3193,7 @@ public:
 
 	/// Mineral exponential in Campbell (1974) parameterization for soil water retention curves
 	double b_min;
-	/// Mineral hydraulic conductivity at saturation (m s-1)
+	/// Mineral hydraulic conductivity at saturation (mm s-1)
 	double Kw_max_min;
 	/// Saturated mineral matter water suction (matrix potential) (mm)
 	double Psi_max_min;
@@ -3241,7 +3241,16 @@ public:
 	/// Volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
 	/// Slope gradient [m m-1]
-	double slope_grade;
+	double slope_grade_tan;
+	double slope_grade_sin;
+	/// icrotopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	double slope_sigma;
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell (-)
+	double wmass_stand_frac_thresh;
+	// Surface water threshold below which no single connected  
+	// inundated area spans the grid cell (mm)
+	double wmass_stand_thresh;
 
 	// MEMBER FUNCTIONS
 
@@ -3539,8 +3548,6 @@ public:
 	double Psi_max;
 	/// Soil organic C microorganism collocation factor
 	double a;
-	/// Ice impedance factor
-	double imp_ice;
 	/// Lateral drainage runoff
 	double runoff_drain;
 	/// Monthly lateral drainage runoff
@@ -3729,7 +3736,6 @@ public:
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
-		imp_ice = that.imp_ice;
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
@@ -3834,7 +3840,6 @@ public:
 		Kw = that.Kw;
 		Kw_max = that.Kw_max;
 		b = that.b;
-		imp_ice = that.imp_ice;
 		Psi_max = that.Psi_max;
 		a = that.a;
 		runoff_drain = that.runoff_drain;
@@ -3941,7 +3946,7 @@ public:
 	/// Phase change
 	void phase_change();
 	/// Water content of soil layer
-	double wcont();
+	double wcont(double wmass_added = 0.0);
 	/// Field capacity of soil layer
 	double fc();
 	/// Fraction air in soil layer
@@ -4294,8 +4299,10 @@ public:
 	double awtp;
 	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
-	/// Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
-	double stand_wmass;
+	/// Standing surface water (up to a max of 100mm) [mm]
+	double wmass_stand;
+	/// Fraction of surface covered by standing water
+	double wmass_stand_frac;
 	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur
 	double sat_lev;
 
@@ -4388,7 +4395,7 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		stand_wmass = that.stand_wmass;
+		wmass_stand = that.wmass_stand;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4460,7 +4467,7 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		stand_wmass = that.stand_wmass;
+		wmass_stand = that.wmass_stand;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4505,6 +4512,12 @@ public:
 	void create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]);
 	/// Add a soil layer
 	void add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm);
+	/// Returns the Climate for this Patch
+	/** This function returns a const reference to prevent code which operates
+	 *  on a patch basis to modify the climate and thereby affect other
+	 *  patches/stands.
+	 */
+	const Climate& get_climate() const;
 	/// Returns surface litter C content
 	double get_surflittercmass();
 	/// Returns surface litter N content
@@ -4539,6 +4552,10 @@ public:
 	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, int mth = 0);
 	/// Returns the value of some vector within a certain depth interval with a scalar
 	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
+	/// Calculate surface evaporation, infiltration and runoff
+	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
+		double imass_infilt, double wsats_infilt, double imp_ice, double fevap, double& qflx_evap, 
+		double& qflx_surf_runoff, double& qflx_in_surf, double& qflx_infilt);
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity

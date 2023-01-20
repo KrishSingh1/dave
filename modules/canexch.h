@@ -143,7 +143,7 @@ const double Vpmax25 = 50.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caem
 // Activation and deactivation energy and entropy term for Vpmax (Massad et al. 2007) 
 const double HA_VP = 70.37;  // kJ mol-1
 const double HD_VP = 117.91; // kJ mol-1
-const double DS_VP = 376.0;  // J mol-1 K-1 
+const double DS_VP = 376.0;  // J mol-1 K-1
 
 // PEP regeneration rate (mol m-2 s-1)
 const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
@@ -157,6 +157,9 @@ const double KO25_C4 = 292E-3;   // (mol mol-1)
 const double HA_KP    = 38.3;   // activation energy for KP_C4 (kJ mol-1), DiMario & Cousins 2019
 const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
 const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
+
+// Activation energy for day respiration in C4 plants
+const double HA_RD_C4 = 66.4;   // kJ mol-1 (von Caemmerer 2021)
 
 // Half the reciprocal of Rubisco specificity
 const double lgamstar = 0.0003817;  // Boyd et al. 2015

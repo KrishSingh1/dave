@@ -2641,7 +2641,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
-				double lai_layer = indiv.lai_layerwise[i]; // LAI of the layer and individual
+				double lai_layer = indiv.lai_layerwise[i];   // LAI of the layer and individual
 
 				if (negligible(fpar_layer, -12)) {
 					if (negligible(lai_layer, -12)) {
@@ -2661,9 +2661,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 
 				// determine LAI and cumulative LAI of the layer
-				apar_layer = (fpar_layer * par) / lai_layer;  	// absorbed PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
-		    	lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
+				lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
 				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
+				apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
 
 				// determine N scalar of the layer
 				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
@@ -2719,7 +2719,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);  // TODO: temperature response
+					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
@@ -2916,7 +2916,7 @@ double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, doub
 				      (1.0 + exp((Tref * dS - Hd)/(Tref * R_gas))) / 
 				      (1.0 + exp((Tl * dS - Hd)/(Tl * R_gas)));
 
-	return(kTl);  // process rate at leaf Temperature TKl
+	return(kTl);  // process rate at leaf Temperature Tl
 }
 
 

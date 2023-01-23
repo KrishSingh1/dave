@@ -2152,10 +2152,10 @@ public:
 
 			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 			if (pathway == C3) {
-				transferconst = 0.005 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 			} 
 			else {
-				transferconst = 0.012 / leaflong; 
+				transferconst = 0.02 / leaflong; 
 			}
 		}
 	}

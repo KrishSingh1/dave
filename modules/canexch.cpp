@@ -2667,7 +2667,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine N scalar of the layer
 				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
-				Nscal = max(1.0e-12, exp(-kn * lai_cum)); 
+				//Nscal = max(1.0e-12, exp(-kn * lai_cum)); 
+				Nscal = max(1.0e-12, exp(-0.30 * lai_cum));   // temporarily increase kn to compensate for big-leaf approach. 
+				// TODO discretise grass layers
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					

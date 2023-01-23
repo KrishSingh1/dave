@@ -315,6 +315,16 @@ private:
 	xtring variable_ps;
 
 	/*
+	Constant to be added to daily temperature (°C). Set in instruction file.
+	*/
+	double temperature_delta;
+
+	/*
+	Constant to be added to daily co2 (ppm). Set in instruction file.
+	*/
+	double co2_delta;
+
+	/*
 	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
 	of that day's subdaily data will be used.
 	*/

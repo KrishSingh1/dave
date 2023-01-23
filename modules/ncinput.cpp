@@ -60,6 +60,9 @@ NCInput::NCInput() {
 
 	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
+	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
+	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -98,6 +101,9 @@ NCInput::NCInput() {
 
 	bounds_vpd.max = 100;
 	bounds_vpd.min = 0;
+
+	temperature_delta = 0;
+	co2_delta = 0;
 
 	// Are these too generous?
 	bounds_ps.max = 150000;
@@ -393,6 +399,17 @@ try {
 		climate.dtr = maxt - mint;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
+	}
+
+	if (temperature_delta > 0) {
+		for (int i = 0; i < date.subdaily; i++) {
+			climate.temps[i] += temperature_delta;
+		}
+		climate.temp += temperature_delta;
+	}
+
+	if (co2_delta > 0) {
+		climate.co2 += co2_delta;
 	}
 
 	// rads and pars are calculated automatically in daylengthinsoleet().

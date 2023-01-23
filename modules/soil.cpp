@@ -3359,17 +3359,17 @@ void Soilcolumn::update_hydraulic_properties() {
 			soillayer.Kw = imp_ice * soillayer.Kw_max * hydro_pow(theta_w, 2.0 * soillayer.b + 3.0);
 		}
 
-		if (soillayer.Kw < 1.0e-15) {
+		if (soillayer.Kw < 1.0e-20) {
 			soillayer.Kw = 0.0;
 		}
 
-		// Smarter if frozen layer below, then Kw = 0
+		/*// Smarter if frozen layer below, then Kw = 0
 		if (lyr == full_lyr && ifbedrock) {
 			soillayer.Kw = 0.0;
 			if (soillayer.wmass + soillayer.imass >= soillayer.wsats) {
 				full_lyr--;
 			}
-		}
+		}*/
 
 		// Derivative in hydraulic conductivity w.r.t relative saturation
 		soillayer.dKwdw = imp_ice * (2.0 * soillayer.b + 3.0) * soillayer.Kw / theta_w;
@@ -5347,7 +5347,6 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 			}
 
 			// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
-			double lateralflow_scalar = 1.0;
 			double lateralflow_frac = min(1.0, lateralflow_scalar * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_tan * dtime / SECS_PER_DAY);
 			double drained_wmass = lateralflow_frac * wmass_excees;
 			soillayer.runoff_drain += drained_wmass;

@@ -204,6 +204,7 @@ depth_soil 10000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed so
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
+lateralflow_scalar 1.0		! Scalar for slope dependant drainage of liquid water above fixed fraction of wsats
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 

@@ -1701,13 +1701,15 @@ void plib_callback(int callback) {
 
 					if(st.mtnames[rot] != "") {
 						st.rotation.nmanagements++;
-						if(rot == 0) {
-							int mtid = mtlist.getmtid(st.mtnames[rot]);
-							if(mtid > -1) {
-								ManagementType& mt = mtlist[mtid];
-								// Copy management from mtlist to stand type management, used only if nmanagements=1
+						int mtid = mtlist.getmtid(st.mtnames[rot]);
+						if(mtid > -1) {
+							ManagementType& mt = mtlist[mtid];
+							// Copy management from mtlist to stand type management, used only if nmanagements=1
+							if(rot == 0)
 								st.management = mt;
-							}
+						}
+						else {
+							fail("Check stand type rotation parameter setting, mt missing in instruction file\n");
 						}
 					}
 					else {

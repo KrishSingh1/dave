@@ -3828,6 +3828,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double evap;
 	// Evapotranspiration (mm/day)
 	double evapotranspiration;
+	// An empirical evapotranspiration parameterisation from Kim & Verma
+	bool empirical_evapotranspiration = false;
 	// Wetland runon set externally (mm)
 	double runon = 0.0;
 	// Water added to keep water mass balance (mm)
@@ -3838,6 +3840,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double wtot_acrotelm = var_depth(0.0, ACROTELM_DEPTH, WMASS);
 	// Total ice in acrotelm layers (mm)
 	double itot_acrotelm = var_depth(0.0, ACROTELM_DEPTH, IMASS);
+	// Initial water mass in the acrotelm
+	double wtot_acrotelm_init;
 	/// Minimum fractional water content at surface in mm3/mm3 - see Wania et al (2009a), Eqn 22. Granberg et al. (1999), Eqns. 1-3.
 	const double minvtot = 0.25;
 	/// The soil water characteristics in the upper peat are considered to be linear in the suction interval 0-zmin and constant 
@@ -3883,115 +3887,175 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Water extracted from catotelm
 	waddon += aet_total - aet_acrotelm;
 
-	
-	// Evaporation
+	// Water interaction with the surface
+	bool wania_approach = false;
+	if (wania_approach) {
 
-	// Evaporation from soil surface (Wania et al 2009)
-	if (snow.depth() < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
-		evap = fevap * climate.eet * PRIESTLEY_TAYLOR * (0.99 / (1.0 + exp(-1.0 * (-wtd + 98.7) / 22.6) + 0.02));
-	}
-	else {
-		evap = 0.0;
-	}
+		// Evaporation
 
-
-	// Evapotranspiration
-
-	bool empirical_evapotranspiration = false;
-	double evap_excess = 0.0;
-
-	if (empirical_evapotranspiration) {
-
-		// An empirical evapotranspiration parameterisation from Kim & Verma
-
-		// From LPJ-WHyMe:
-		// Calculate transpiration and evaporation from wetlands together.
-		// dpet is the equilibrium ET but is the same as the potential ET in
-		// Kim and Verma (1996).  (BAD choice of variable names in original
-		// LPJ!)  Hence, we can use dpet as approximation for potential
-		// evapotranspiration and scale it by the water table depth.  daept
-		// is allowed to happen even if the wtp is at -300mm because plants
-		// will be able to extract water from the unsaturated acrotelm or the
-		// saturated catotelm.  This however makes it impossible to close the
-		// hydrological cycle in LPJ-WHy.
-		// Kim and Verma (1996): ET = PET * (1.02 + 0.00075 * WTP)
-
-		// Note 1. that this is now the TOTAL evapotranspiration, replacing aet_total
-
-		// Note 2: An alternative parameterisation was given by Yurova et al. (2006)
-		// evapotranspiration = eet * exp[0.02 * wtp_cm], where // wtp_cm [100,-30]
-		// This would give almost identical results to the Kim & Verma formula below 
-		// when the water table is at the surface
-
-		if (snow.depth() < 10.0) { // i.e. evap only if snow depth < 1cm
-			evapotranspiration = climate.eet * (1.02 - 0.00075 * wtd) * fevap; // wtd [-100,+300]
+		// Evaporation from soil surface (Wania et al 2009)
+		if (snow.depth() < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
+			evap = fevap * climate.eet * PRIESTLEY_TAYLOR * (0.99 / (1.0 + exp(-1.0 * (-wtd + 98.7) / 22.6) + 0.02));
 		}
 		else {
-			evapotranspiration = 0.0;
+			evap = 0.0;
 		}
 
-		// Evapotranspiration can't exceed available water in the acrotelm
-		evapotranspiration = min(wtot_acrotelm, evapotranspiration);
+
+		// Evapotranspiration
+
+		double evap_excess = 0.0;
+
+		if (empirical_evapotranspiration) {
+
+			// An empirical evapotranspiration parameterisation from Kim & Verma
+
+			// From LPJ-WHyMe:
+			// Calculate transpiration and evaporation from wetlands together.
+			// dpet is the equilibrium ET but is the same as the potential ET in
+			// Kim and Verma (1996).  (BAD choice of variable names in original
+			// LPJ!)  Hence, we can use dpet as approximation for potential
+			// evapotranspiration and scale it by the water table depth.  daept
+			// is allowed to happen even if the wtp is at -300mm because plants
+			// will be able to extract water from the unsaturated acrotelm or the
+			// saturated catotelm.  This however makes it impossible to close the
+			// hydrological cycle in LPJ-WHy.
+			// Kim and Verma (1996): ET = PET * (1.02 + 0.00075 * WTP)
+
+			// Note 1. that this is now the TOTAL evapotranspiration, replacing aet_total
+
+			// Note 2: An alternative parameterisation was given by Yurova et al. (2006)
+			// evapotranspiration = eet * exp[0.02 * wtp_cm], where // wtp_cm [100,-30]
+			// This would give almost identical results to the Kim & Verma formula below 
+			// when the water table is at the surface
+
+			if (snow.depth() < 10.0) { // i.e. evap only if snow depth < 1cm
+				evapotranspiration = climate.eet * (1.02 - 0.00075 * wtd) * fevap; // wtd [-100,+300]
+			}
+			else {
+				evapotranspiration = 0.0;
+			}
+
+			// Evapotranspiration can't exceed available water in the acrotelm
+			evapotranspiration = min(wtot_acrotelm, evapotranspiration);
+		}
+		else {
+			// This is JUST evapotranspiration from the acrotelm
+			evapotranspiration = aet_acrotelm + evap;
+		}
+
+		// Drainage - could possibly be read in for site-specific studies
+		runoff_drain = 0;
+
+		// Check so evapotranspiration doesn't exceed available water in the acrotelm
+		// If so, then decrease evap accordingly (if negative, water will be added as runon) 
+		if (evapotranspiration + runoff_drain > wtot_acrotelm + rain_melt) {
+			evap_excess += evapotranspiration + runoff_drain - (wtot_acrotelm + rain_melt);
+		}
+
+		// Add water that has been taken about available
+		waddon += evap_excess;
+
+		// Update acrotelm water mass
+
+		// Water fluxes in and out of the acrotelm 
+		wtot_acrotelm += rain_melt + evap_excess - evapotranspiration - runoff_drain;
+		rain_melt = 0.0;
+
+		// Water runoff (Granberg et al. 1999 eqn 10, table 1)
+		double ideal_runoff = exp(-0.01 * wtd);
+		if (wtot_acrotelm > 0.0 && soillayers[0].imass * 0.7 < soillayers[0].wmass) {
+			runoff_surf = min(ideal_runoff, wtot_acrotelm);
+		}
+		else {
+			runoff_surf = 0.0;
+		}
+
+		// Water runon
+		// External run on or off - but only when there's flowing water
+		if (runoff_surf > 0.0) {
+
+			// e.g. 3 mm/day for bog-like/hummock conditions
+			if (wetland_runon < 0)
+				runoff_surf -= wetland_runon;
+
+			// 3-5 mm/day for fen-like conditions
+			if (wetland_runon > 0)
+				runon += wetland_runon;
+		}
+
+		// Save initial water mass in the acrotelm
+		wtot_acrotelm_init = wtot_acrotelm;
+
+		// Update acrotelm water mass
+		wtot_acrotelm += runon - runoff_surf + wmass_stand;
+
+		// If negative total water, then all initial water has gone to runoff and water is set to zero
+		if (wtot_acrotelm < 0.0) {
+			wtot_acrotelm = 0.0;
+			runoff_surf = wtot_acrotelm_init;
+			runon = 0.0;
+			wmass_stand = 0.0;
+		}
 	}
 	else {
-		// This is JUST evapotranspiration from the acrotelm
-		evapotranspiration = aet_acrotelm + evap;
+
+		// Water fluxes after calculating the interaction with the surface (mm s-1)
+		double wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt;
+
+		// Timeset (sec)
+		double dtsub = SECS_PER_DAY;
+
+		// Water flux into the surfcae (mm s-1)
+		double wflux_rain_melt = rain_melt / dtsub;
+
+		// Total saturation level for acrotelm layers (mm)
+		double wsats_acrotelm = var_depth(0.0, ACROTELM_DEPTH, WSATS);
+
+		// Calculate ice impedance factor
+		double imp_ice = ice_imp(itot_acrotelm / wsats_acrotelm);
+
+		// Calculate infiltration and surface runoff
+		compute_evap_infilt_and_runoff(dtsub, wflux_rain_melt, ACROTELM_DEPTH, itot_acrotelm,
+			wsats_acrotelm, imp_ice, fevap, wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt);
+
+		// Update standing surface water (mm)
+		wmass_stand += wflux_surf * dtsub;
+
+		// Accumulate evaporation
+		evap = wflux_evap * dtsub;
+
+		// Accumulate surface runoff
+		runoff_surf = wflux_runoff_surf * dtsub;
+
+		// Water fluxes to the acrotelm 
+		wtot_acrotelm += wflux_infilt * dtsub - aet_acrotelm;
+
+		// If negative total water, then take water from standing, runoff, and evap until it is zero 
+		if (wtot_acrotelm < 0.0) {
+
+			double wmass_move = min(-wtot_acrotelm, wmass_stand);
+			wtot_acrotelm += wmass_move;
+			wmass_stand -= wmass_move;
+
+			wmass_move = wtot_acrotelm < 0.0 ? min(-wtot_acrotelm, runoff_surf) : 0.0;
+			wtot_acrotelm += wmass_move;
+			runoff_surf -= wmass_move;
+
+			wmass_move = wtot_acrotelm < 0.0 ? min(evap, wmass_stand) : 0.0;
+			wtot_acrotelm += wmass_move;
+			evap -= wmass_move;
+
+			if (wtot_acrotelm < 0.0) {
+				dprintf("Year %d Day %d ERROR: Peat surface water balance negative (%g)\n", 
+					date.year, date.day, wtot_acrotelm);
+				runon -= wtot_acrotelm;
+				wtot_acrotelm = 0.0;
+			}
+		}
+
+		rain_melt = 0.0;
 	}
-
-	// Drainage - could possibly be read in for site-specific studies
-	runoff_drain = 0;
-
-	// Check so evapotranspiration doesn't exceed available water in the acrotelm
-	// If so, then decrease evap accordingly (if negative, water will be added as runon) 
-	if (evapotranspiration + runoff_drain > wtot_acrotelm + rain_melt) {
-		evap_excess += evapotranspiration + runoff_drain - (wtot_acrotelm + rain_melt);
-	}
-
-	// Add water that has been taken about available
-	waddon += evap_excess;
-
-	// Update acrotelm water mass
-
-	// Water fluxes in and out of the acrotelm 
-	wtot_acrotelm += rain_melt + evap_excess - evapotranspiration - runoff_drain;
-	rain_melt = 0.0;	
-
-	// Water runoff (Granberg et al. 1999 eqn 10, table 1)
-	double ideal_runoff = exp(-0.01 * wtd);
-	if (wtot_acrotelm > 0.0 && soillayers[0].imass * 0.7 < soillayers[0].wmass) {
-		runoff_surf = min(ideal_runoff, wtot_acrotelm);
-	}
-	else {
-		runoff_surf = 0.0;
-	}
-
-	// Water runon
-	// External run on or off - but only when there's flowing water
-	if (runoff_surf > 0.0) {
-
-		// e.g. 3 mm/day for bog-like/hummock conditions
-		if (wetland_runon < 0)
-			runoff_surf -= wetland_runon;	
-
-		// 3-5 mm/day for fen-like conditions
-		if (wetland_runon > 0)
-			runon += wetland_runon;		
-	}
-
-	// Save initial water mass in the acrotelm
-	double wtot_acrotelm_init = wtot_acrotelm;
-
-	// Update acrotelm water mass
-	wtot_acrotelm += runon - runoff_surf + wmass_stand;
-
-	// If negative total water, then all initial water has gone to runoff and water is set to zero
-	if (wtot_acrotelm < 0.0) {
-		wtot_acrotelm = 0.0;
-		runoff_surf = wtot_acrotelm_init;
-		runon = 0.0;
-		wmass_stand = 0.0;
-	}
-
 
 	// Update water table depth
 
@@ -4023,10 +4087,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtd = -wtp;
 
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
-
-		// Wetlands does NOT include standing water
-		// we assume no standing water 
-		wmass_stand = 0.0;
 	}
 	else {
 
@@ -4039,10 +4099,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtd = min(ACROTELM_DEPTH, wtd);
 
 		wtp = -wtd;
-
-		// Wetlands does NOT include standing water
-		// we assume no standing water 
-		wmass_stand = 0.0;
 	}
 
 
@@ -5316,7 +5372,9 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		}
 	}  // substep loop
 
-	// Move saturated water upwards
+	// The excess water greater than soil moisture capacity (wsats) 
+	// is recharged to the unsaturated layers above the current layer
+	// (Seok et al. 2011)
 	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
 
 		Soillayer& soillayer = soillayers[lyr];

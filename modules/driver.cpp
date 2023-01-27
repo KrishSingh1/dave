@@ -803,8 +803,8 @@ void dailyaccounting_patch(Patch& patch) {
 	// Done first day of each month and not daily to reduce computational cost
 	if (date.dayofmonth == 0) {
 
-		// Calculate effective soil layer volume that isn't taken by coarse root biomass
-		soilcolumn.calc_eff_volume();
+		// Calculate soil layers root volume
+		soilcolumn.calc_root_volume();
 		
 		// Vertical soil C mixing (diffusion)
 		

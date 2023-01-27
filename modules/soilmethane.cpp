@@ -417,21 +417,25 @@ void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, dou
 		Dz_m[lyr] = soillayer.depth * M_PER_MM;
 
 		total_volume_water[lyr] = (soillayer.wmass + soillayer.imass) * M_PER_MM;
-
-		if (thisgastype == CO2gas) {
-			initialAmount += soillayer.CO2;
-			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayer.CO2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
-		}
-		else if (thisgastype == CH4gas) {
-			initialAmount += soillayer.CH4;
-			// g layer - 1 to mmol m - 3
-			C[lyr] = soillayer.CH4 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+		if (total_volume_water[lyr] > 1.0e-6) {
+			if (thisgastype == CO2gas) {
+				initialAmount += soillayer.CO2;
+				// g layer-1 to mmol m-3
+				C[lyr] = soillayer.CO2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			}
+			else if (thisgastype == CH4gas) {
+				initialAmount += soillayer.CH4;
+				// g layer-1 to mmol m-3
+				C[lyr] = soillayer.CH4 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			}
+			else {
+				initialAmount += soillayer.O2;
+				// mol layer-1 to mmol m-3
+				C[lyr] = soillayer.O2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			}
 		}
 		else {
-			initialAmount += soillayer.O2;
-			// mol layer-1 to mmol m-3
-			C[lyr] = soillayer.O2 / atomic_mass / total_volume_water[lyr] * MMOL_PER_MOL;
+			C[lyr] = 0.0;
 		}
 	}
 

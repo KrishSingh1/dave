@@ -1538,7 +1538,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
 						soillayer.mineral_volume = (soillayer.mineral_volume * old_frac + from.transfer_soil_mineral_volume[lyr] * added_frac) / new_frac;
 						soillayer.organic_volume = (soillayer.organic_volume * old_frac + from.transfer_soil_organic_volume[lyr] * added_frac) / new_frac;
-						soillayer.eff_volume_frac = (soillayer.eff_volume_frac * old_frac + from.transfer_soil_eff_volume_frac[lyr] * added_frac) / new_frac;
+						soillayer.root_volume = (soillayer.root_volume * old_frac + from.transfer_soil_root_volume[lyr] * added_frac) / new_frac;
 						soillayer.temp = (soillayer.temp * old_frac + from.transfer_soil_temp[lyr] * added_frac) / new_frac;
 						soillayer.CO2 = (soillayer.CO2 * old_frac + from.transfer_soil_CO2[lyr] * added_frac) / new_frac;
 						soillayer.CH4 = (soillayer.CH4 * old_frac + from.transfer_soil_CH4[lyr] * added_frac) / new_frac;
@@ -1565,8 +1565,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						}
 					}
 
-					// Calculate new effective volume
-					soilcolumn.calc_eff_volume();
+					// Calculate new root volume
+					soilcolumn.calc_root_volume();
 					
 					// Vertical movement of organic and mineral matter if different than effective volume of a soil layer
 					soilcolumn.vertical_movement();
@@ -2799,7 +2799,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
-		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_eff_volume_frac[lyr] = 0.0;
+		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_root_volume[lyr] = 0.0;
 		transfer_soil_temp[lyr] = 0.0;
 		transfer_soil_CO2[lyr] = transfer_soil_CH4[lyr] = transfer_soil_O2[lyr] = 0.0;
 		transfer_soil_NH4[lyr] = transfer_soil_NO3[lyr] = transfer_soil_NO2[lyr] = 0.0;

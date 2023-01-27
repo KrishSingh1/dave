@@ -50,8 +50,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_rh_depth", &file_rh_depth, 300, "Soil depth C respiration output file");
 	declare_parameter("file_tau_soil", &file_tau_soil, 300, "Soil layer C residence time output file");
 	declare_parameter("file_tau_soil_depth", &file_tau_soil_depth, 300, "Soil depth C residence time output file");
-	declare_parameter("file_eff_volume", &file_eff_volume, 300, "Soil layer effective volume output file");
-	declare_parameter("file_eff_volume_depth", &file_eff_volume_depth, 300, "Soil layer effective volume output file");
+	declare_parameter("file_volume_org_depth", &file_volume_org_depth, 300, "Soil depths volume of organic matter output file");
+	declare_parameter("file_volume_min_depth", &file_volume_min_depth, 300, "Soil depths volume of mineral matter output file");
+	declare_parameter("file_volume_root_depth", &file_volume_root_depth, 300, "Soil depths volume of root matter output file");
 	declare_parameter("file_temp_mod", &file_temp_mod, 300, "Soil layer temperature rate modifier output file");
 	declare_parameter("file_moist_mod", &file_moist_mod, 300, "Soil layer moisture rate modifier output file");
 	declare_parameter("file_tot_mod", &file_tot_mod, 300, "Soil layer temperature and moisture rate modifier output file");
@@ -586,8 +587,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_temp_mod_depth, file_temp_mod_depth, soildepth_columns);
 	create_output_table(out_moist_mod_depth,file_moist_mod_depth,soildepth_columns);
 	create_output_table(out_tot_mod_depth,  file_tot_mod_depth,  soildepth_columns);
-	create_output_table(out_eff_volume,     file_eff_volume,     soillyr_columns);
-	create_output_table(out_eff_volume_depth, file_eff_volume_depth, soildepth_columns);
+	create_output_table(out_volume_org_depth, file_volume_org_depth, soildepth_columns);
+	create_output_table(out_volume_min_depth, file_volume_min_depth, soildepth_columns);
+	create_output_table(out_volume_root_depth, file_volume_root_depth, soildepth_columns);
 	create_output_table(out_csom,           file_csom,           soms_columns);
 	create_output_table(out_ctonsom,        file_ctonsom,        soms_ratio_columns);
 	create_output_table(out_soildeclim,     file_soildeclim,     soillyr_columns_short);
@@ -930,14 +932,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soiln_depth[sslyr + 2] = { 0.0 };
 	double soilnetnmin_depth[sslyr + 1] = { 0.0 };
 	double clitterinput_depth[sslyr + 2] = { 0.0 };
-	double eff_volume_depth[sslyr + 1] = { 0.0 };
+	double volume_org_depth[sslyr + 1] = { 0.0 };
+	double volume_min_depth[sslyr + 1] = { 0.0 };
+	double volume_root_depth[sslyr + 1] = { 0.0 };
 	double temp_mod[NSOILLAYERS_MAX] = { 0.0 };
 	double moist_mod[NSOILLAYERS_MAX] = { 0.0 };
 	double tot_mod[NSOILLAYERS_MAX] = { 0.0 };
 	double temp_mod_depth[sslyr + 1] = { 0.0 };
 	double moist_mod_depth[sslyr + 1] = { 0.0 };
 	double tot_mod_depth[sslyr + 1] = { 0.0 };
-	double eff_volume[NSOILLAYERS_MAX] = { 0.0 };
 	double somc[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
 	double somn[NSOMPOOL][NSOILLAYERS_MAX] = { 0.0 };
 	double cdec[NSOILLAYERS_MAX][2] = { 0.0 };
@@ -1802,7 +1805,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, ARH) - soilr_prev)* to_gridcell_average;
 					clitterinput_depth[lyr + 1] += soilcolumn.var_depth(depth_prev, depth_this, ALITTERINPUT) * to_gridcell_average;
 					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, ANMIN) - soilcolumn.var_depth(depth_prev, depth_this, ANIMM)) * to_gridcell_average;
-					eff_volume_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, EFFVOLUME) / depth_lyr * to_gridcell_average;
+					volume_org_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ORG) * to_gridcell_average;
+					volume_min_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_MIN) * to_gridcell_average;
+					volume_root_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ROOT) * to_gridcell_average;
 					double wsats = soilcolumn.var_depth(depth_prev, depth_this, WSATS);
 					wsats_depth[lyr] += wsats / depth_lyr * to_gridcell_average;
 					temp_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODTEMP, DEPTH) * to_gridcell_average;
@@ -1831,7 +1836,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			soilr_depth[sslyr + 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(ANMIN) - soilcolumn.get_sum(ANIMM)) * to_gridcell_average;
 			clitterinput_depth[sslyr + 1] += (surflitinput + soilcolumn.get_sum(ALITTERINPUT)) * to_gridcell_average;
-			eff_volume_depth[sslyr] += soilcolumn.get_sum(EFFVOLUME) / soilcolumn.depth * to_gridcell_average;
+			volume_org_depth[sslyr] += soilcolumn.get_sum(VOL_ORG) * to_gridcell_average;
+			volume_min_depth[sslyr] += soilcolumn.get_sum(VOL_MIN) * to_gridcell_average;
+			volume_root_depth[sslyr] += soilcolumn.get_sum(VOL_ROOT) * to_gridcell_average;
 			double wsats_tot = soilcolumn.get_sum(WSATS);
 			wsats_depth[sslyr] += wsats_tot / soilcolumn.depth * to_gridcell_average;
 			temp_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODTEMP, DEPTH) * to_gridcell_average;
@@ -1870,7 +1877,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					soilc[lyr] += soillayer.ccont() * to_gridcell_average;
 					soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
 				}
-				eff_volume[lyr] += soillayer.eff_volume_frac * to_gridcell_average;
 				temp_mod[lyr] += soillayer.get(MODTEMP) * to_gridcell_average;
 				moist_mod[lyr] += soillayer.get(MODMOIS) * to_gridcell_average;
 				tot_mod[lyr] += soillayer.get(MODTOT) * to_gridcell_average;
@@ -2194,7 +2200,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_csoil, soilc[lyr]);
 		outlimit(out, out_rh, soilr[lyr]);
 		outlimit(out, out_tau_soil, !negligible(soilr[lyr]) ? soilc[lyr] / soilr[lyr] : 0.0);
-		outlimit(out, out_eff_volume, eff_volume[lyr]);
 		outlimit(out, out_temp_mod, temp_mod[lyr]);
 		outlimit(out, out_moist_mod, moist_mod[lyr]);
 		outlimit(out, out_tot_mod, tot_mod[lyr]);
@@ -2238,7 +2243,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_rh_depth, soilr_depth[depths+1]);
 		outlimit(out, out_tau_soil_depth, !negligible(soilr_depth[depths+1]) ? soilc_depth[depths+1] / soilr_depth[depths+1] : 0.0);
 		outlimit(out, out_clitterinput_depth, clitterinput_depth[depths + 1]);
-		outlimit(out, out_eff_volume_depth, eff_volume_depth[depths]);
+		outlimit(out, out_volume_org_depth, volume_org_depth[depths] * M_PER_MM);
+		outlimit(out, out_volume_min_depth, volume_min_depth[depths] * M_PER_MM);
+		outlimit(out, out_volume_root_depth, volume_root_depth[depths] * M_PER_MM);
 		outlimit(out, out_wsats_depth, wsats_depth[depths]);
 		outlimit(out, out_temp_mod_depth, temp_mod_depth[depths]);
 		outlimit(out, out_moist_mod_depth, moist_mod_depth[depths]);

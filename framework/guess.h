@@ -146,7 +146,7 @@ typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, A
 WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, ALITTERINPUT,
-EFFVOLUME, MODTEMP, MODMOIS, MODTOT} soilproptype;
+VOL_ORG, VOL_MIN, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -3526,11 +3526,11 @@ public:
 	double awc;
 	/// wilting point of soil layer (mm) Cosby et al 1984
 	double wp;
-	/// Effective soillayer volume fraction that isn't taken by coarse root biomass [-]
-	double eff_volume_frac;
-	/// Mineral volume [mm]
+	/// Coarse root volume (mm)
+	double root_volume;
+	/// Mineral volume (mm)
 	double mineral_volume;
-	/// Organic matter volume [mm]
+	/// Organic matter volume (mm)
 	double organic_volume;
 	/// percolation mass from this layer
 	double perc_mass;
@@ -3728,7 +3728,7 @@ public:
 		wsats = that.wsats;
 		awc = that.awc;
 		wp = that.wp;
-		eff_volume_frac = that.eff_volume_frac;
+		root_volume = that.root_volume;
 		mineral_volume = that.mineral_volume;
 		organic_volume = that.organic_volume;
 		perc_mass = that.perc_mass;
@@ -3832,7 +3832,7 @@ public:
 		wsats = that.wsats;
 		awc = that.awc;
 		wp = that.wp;
-		eff_volume_frac = that.eff_volume_frac;
+		root_volume = that.root_volume;
 		mineral_volume = that.mineral_volume;
 		organic_volume = that.organic_volume;
 		perc_mass = that.perc_mass;
@@ -3966,7 +3966,7 @@ public:
 	/// Set target nutrient to carbon ratios for SOM pools
 	void setntoc(double fac, double& ntoc, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
-	void decayrates_century(bool tillage, bool savesomcent);
+	void decayrates_century(bool tillage, bool savesomcent, double temp_surf);
 
 	double moisture_modifier();
 
@@ -4536,8 +4536,8 @@ public:
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
-	/// Calculate effective soil volume
-	void calc_eff_volume();
+	/// Calculate root volume
+	void calc_root_volume();
 	/// Vertical mixing (diffusion) of SOM
 	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// Vertical movement of mineral and organic matter

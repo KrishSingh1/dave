@@ -493,25 +493,25 @@ void Soillayer::setntoc(double fac, double& ntoc, double cton_max, double cton_m
  *  [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
  *  effect of soil temperature, Parton et al 1993, Fig 2)
  *
- *  \param temp_soil  Soil temperature at 25 cm depth
+ *  \param temp  Temperature of layer
  */
-double temperature_modifier(double temp_soil) {
+double temperature_modifier(double temp) {
 
-	double temp_mod = temp_soil > 0.0 ? tempmod_lut(temp_soil) : 0.0;
+	double temp_mod = temp > 0.0 ? tempmod_lut(temp) : 0.0;
 
 	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
 	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
-	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && hydrology != GERTEN) {
+	if (ifcarbonfreeze && temp <= 0.0 && temp >= MIN_DECOMP_TEMP && hydrology != GERTEN) {
 
 		if (false) {
 			// Alternative: Linear approach (Koven et al. 2011)
 			double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
 			double decrease = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-			temp_mod = decrease * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
+			temp_mod = decrease * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
 		} 
 		else {
 			// Default: Q10 relationship (Schaefer & Jafarov, 2016; Natali et al., 2019)
-			temp_mod = tempfreezemod_lut(temp_soil);
+			temp_mod = tempfreezemod_lut(temp);
 		}
 	}
 
@@ -556,7 +556,7 @@ double Soillayer::moisture_modifier() {
 /** Calculates CENTURY instantaneous decay rates given soil layer temperature,
 *  water content, texture etc
 */
-void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
+void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_surf) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -586,6 +586,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 	const double texture_mod = 1.0 - 0.75 * ((*soilcolumn).soiltype.clay_frac + (*soilcolumn).soiltype.silt_frac);
 
 	// Calculate decomposition temperature modifier (in range 0-1)
+	double temp_surf_mod = temperature_modifier(temp_surf);
 	double temp_mod = temperature_modifier(temp); // DW_COMMENT slow
 
 	// Calculate decomposition moisture modifier
@@ -604,7 +605,14 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent) {
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		double k = K_MAX[p] * temp_mod * moist_mod;
+		double k = K_MAX[p] * moist_mod;
+
+		if (p == SURFMETA || p == SURFSTRUCT || p == SURFFWD || p == SURFCWD ) {
+			k *= temp_surf_mod;
+		}
+		else {
+			k *= temp_mod;
+		}
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
@@ -699,6 +707,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	Soiltype soiltype = soilcolumn.soiltype;
 	Fluxes& fluxes = patch.fluxes;
 
+	double temp_surf = soilcolumn.snow.depth() > 50.0 ? soilcolumn.snow.snowlayers[0].temp : patch.get_climate().temp;
+
 	// Organic C and N leached
 	double leachsum_cmass = 0.0;
 	double leachsum_nmass = 0.0;
@@ -747,7 +757,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			// Calculate potential fraction remaining following decay today for all pools
 			// (assumes no nitrogen limitation)
-			soillayer.decayrates_century(tillage, soilcolumn.savesomcent);
+			soillayer.decayrates_century(tillage, soilcolumn.savesomcent, temp_surf);
 		}
 
 		// Calculate decomposition in all pools assuming these decay rates
@@ -1883,9 +1893,13 @@ void equilsom(Patch& patch) {
 
 		int peat_years = 0;
 
+		// Peat with specific age
+		bool peat_with_age = peat_age && patch.stand.landcover == PEATLAND;
+
 		// Spinup SOM pools until trends of slow and passive SOM pools 
 		// are within limits or maximum tries have been done
-		while ((bad_trend && tries < MAX_TRIES) || tries < MIN_TRIES) {
+		while ((peat_with_age && bad_trend) ||
+			(!peat_with_age && ((bad_trend && tries < MAX_TRIES) || tries < MIN_TRIES))) {
 
 			// Update soil layers total C mass fractions
 			cconttot = soilcolumn.get_sum(CCONT);
@@ -2010,7 +2024,7 @@ void equilsom(Patch& patch) {
 			tries++;
 
 			// If peat age is defined, then only do soil spinup for peat_age minus nyear_spinup
-			if (peat_age && patch.stand.landcover == PEATLAND) {
+			if (peat_with_age) {
 				peat_years += EQUILSOM_YEARS;
 
 				// If peat age is to short, then set bad_trend to 1 so while loop continues

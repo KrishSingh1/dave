@@ -438,8 +438,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// DW_COMMENT
-	int start_year = 111820;
-	int end_year = 1850;
+	int start_year = 11111820;
+	int end_year = 1860;
 	double temp_inc = 4.0;
 	double temp_end = 1.5;
 
@@ -447,23 +447,23 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		dprintf("Year %d Temp %g ",date.get_calendar_year(), climate.temp);
 
 	if (date.get_calendar_year() >= start_year) {
-		if (true) {
+		if (false) {
 			if (date.get_calendar_year() >= end_year) {
 				climate.temp += temp_end;
 			}
 			else if (date.get_calendar_year() < start_year + 10) {
 				climate.temp += temp_inc * (date.get_calendar_year() - start_year) / 10.0;
 			}
-			else if (date.get_calendar_year() < start_year + 20) {
+			else if (date.get_calendar_year() < start_year + 30) {
 				climate.temp += temp_inc;
 			}
 			else {
-				climate.temp += temp_inc - (temp_inc - temp_end) * (date.get_calendar_year() - (start_year + 20)) / 10.0;
+				climate.temp += temp_inc - (temp_inc - temp_end) * (date.get_calendar_year() - (start_year + 30)) / 10.0;
 			}
 		}
 		else {
 			if (date.get_calendar_year() < end_year) {
-				climate.temp += temp_end * (date.get_calendar_year() - start_year) / 30.0;
+				climate.temp += temp_end * (date.get_calendar_year() - start_year) / 40.0;
 			}
 			else {
 				climate.temp += temp_end;

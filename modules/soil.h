@@ -112,6 +112,19 @@ const double Fgas = 0.00;
 /// Wilting point in peat
 const double peat_wp = 0.066;
 
+/// Minimum fractional water content at peat surface in mm3/mm3 - see Wania et al (2009a), Eqn 22. Granberg et al. (1999), Eqns. 1-3.
+const double minvtot = 0.25;
+
+/// The soil water characteristics in the upper peat are considered to be linear in the suction interval 0-zmin and constant 
+/// in the interval zmin - acrotelm depth (normally 300mm). See: Granberg et al. (1999), Eqns. 1-3.
+const double zmin = 100.0;
+
+/// The soil water characteristics in the upper peat are considered
+/// to be linear in the suction interval 0 - 0.1 m
+/// Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
+/// Unit here being mm, m in Granberg (1999)
+const double az = (acrotelm_por - minvtot) / zmin;
+
 /// Threshold for randomly distributed organic and mineral fractions for connecting flow pathways
 const double threshold_frac = 0.5;
 

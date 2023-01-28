@@ -1641,7 +1641,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = (acrotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
 		por = acrotelm_por * depth;
-		peat_frac = 1.0 - acrotelm_por; // DW_COMMENT
+		peat_frac = 1.0 - acrotelm_por;
 		bulk_density = peat_frac * rho_org;
 
 		Kw_max = Kw_max_org;
@@ -2786,7 +2786,7 @@ double Soilcolumn::nmass_avail(n_pref_type pref, bool wmass_limited) {
 
 /// Extracts N from soillayers
 /** Extracts N from soillayers
- *  This should be done more advanced depending on root distribution and competition in each soil layer // DW_COMMENT 
+ *  This should be done more advanced depending on root distribution and competition in each soil layer
  */
 void Soilcolumn::nmass_avail_uptake(double uptake, n_pref_type pref) {
 	double tot_nmass_avail = nmass_avail(pref);
@@ -2805,6 +2805,10 @@ void Soilcolumn::nmass_avail_uptake(double uptake, n_pref_type pref) {
 void Soilcolumn::calc_mwcont() {
 	double acc_wcont = 0.0;
 	double acc_awc = 0.0;
+
+	// Monthly standing water
+	mwmass_stand[date.month] += wmass_stand / date.ndaymonth[date.month];
+
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 		Soillayer& soillayer = soillayers[lyr];
@@ -4407,7 +4411,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
+			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
 			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
 			aet_total += aet;
 		}
@@ -5043,7 +5047,7 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 
 			// As in LPJ-GUESS v4.0
 			if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
-				perc_from_base = rain_melt - runoff_surf; // DW_COMMENT what does rainmelt contain?
+				perc_from_base = rain_melt - runoff_surf;
 			}
 		}
 		else {
@@ -5222,7 +5226,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
+			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
 			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
 			aet_layer[lyr] += aet;
 			aet_total += aet;
@@ -5725,11 +5729,11 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 				calcsub = true;
 			}
 			else {
-				// DW_COMMENT // Something that resolved the negative mass
+				// Negative water mass
 				dprintf("ERROR!!! Negative wmass! Year %d Day %d lyr %d wmass %g\n",
 					date.year,date.day,lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
 
-				// Set soil layer water to ZERO // DW_COMMENT not correct
+				// Set soil layer water to ZERO (not keeping mass balance)
 				dwat[lyr] = -soillayers[lyr].wmass / dz[lyr];
 			}
 		}

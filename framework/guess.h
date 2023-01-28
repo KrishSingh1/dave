@@ -4227,7 +4227,7 @@ public:
 	/// Annual surface litter respiration [kg C m-2 yr-1]
 	double asurflitterresp;
 	/// vector with SOM pool litter input
-	double csom_litter_input[NSOMPOOL]; // DW_COMMENT good for debugging - remove after finished
+	double csom_litter_input[NSOMPOOL];
 	/// number of acrotelm soil layers
 	int nacrotelm;
 	/// number of catotelm soil layers
@@ -4299,8 +4299,10 @@ public:
 	double awtp;
 	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
-	/// Standing surface water (up to a max of 100mm) [mm]
+	/// Standing surface water [mm]
 	double wmass_stand;
+	/// Monthly standing surface water [mm]
+	double mwmass_stand[12];
 	/// Fraction of surface covered by standing water
 	double wmass_stand_frac;
 	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur

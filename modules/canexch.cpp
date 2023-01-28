@@ -1981,7 +1981,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	// Get array with updated wcont and awc
 	soilcolumn.get(WCONT, wcont);
-	soilcolumn.get(AWC, awc); // DW_COMMENT maybe send in patch and then look at soil layers.
+	soilcolumn.get(AWC, awc);
 
 	return water_uptake(wcont, awc, ppft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);

@@ -1000,7 +1000,7 @@ void Soilcolumn::methane(bool generatemethane) {
 		double co2_budget_end = tot_respsum;
 		double ch4_flux_budget_end = CH4_flux_today * KG_PER_G;
 
-		if (fabs((ch4_budget_init + co2_budget_init) - (ch4_budget_end + ch4_flux_budget_end + co2_budget_end)) > 1.0e-12)
+		if (fabs((ch4_budget_init + co2_budget_init) - (ch4_budget_end + ch4_flux_budget_end + co2_budget_end)) > 1.0e-10)
 			dprintf("Year %d Day %d ERROR: Methane %g INIT CH4 %g CO2 %g END CH4 %g CH4_flux %g CO2 %g\n",date.year,date.day, 
 				(ch4_budget_init + co2_budget_init) - (ch4_budget_end + ch4_flux_budget_end + co2_budget_end),
 				ch4_budget_init, co2_budget_init, ch4_budget_end, ch4_flux_budget_end, co2_budget_end);

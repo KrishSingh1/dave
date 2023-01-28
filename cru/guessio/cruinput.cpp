@@ -437,43 +437,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
 
-	// DW_COMMENT
-	int start_year = 11111820;
-	int end_year = 1860;
-	double temp_inc = 4.0;
-	double temp_end = 1.5;
-
-	if (date.get_calendar_year() >= start_year && date.get_calendar_year() < end_year + 10 && date.day == 0)
-		dprintf("Year %d Temp %g ",date.get_calendar_year(), climate.temp);
-
-	if (date.get_calendar_year() >= start_year) {
-		if (false) {
-			if (date.get_calendar_year() >= end_year) {
-				climate.temp += temp_end;
-			}
-			else if (date.get_calendar_year() < start_year + 10) {
-				climate.temp += temp_inc * (date.get_calendar_year() - start_year) / 10.0;
-			}
-			else if (date.get_calendar_year() < start_year + 30) {
-				climate.temp += temp_inc;
-			}
-			else {
-				climate.temp += temp_inc - (temp_inc - temp_end) * (date.get_calendar_year() - (start_year + 30)) / 10.0;
-			}
-		}
-		else {
-			if (date.get_calendar_year() < end_year) {
-				climate.temp += temp_end * (date.get_calendar_year() - start_year) / 40.0;
-			}
-			else {
-				climate.temp += temp_end;
-			}
-		}
-	}
-
-	if (date.get_calendar_year() >= start_year && date.get_calendar_year() < end_year + 10 && date.day == 0)
-		dprintf("Temp_inc %g\n", climate.temp);
-
 	// Nitrogen deposition
 	gridcell.dNH4dep = dNH4dep[date.day];
 	gridcell.dNO3dep = dNO3dep[date.day];

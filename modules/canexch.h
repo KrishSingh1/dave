@@ -68,7 +68,7 @@ const double ALPHAA = 0.5;		// value chosen to give global carbon pool and flux 
 								// scaling factor for PAR absorption from leaf to plant projective area level
 								// alias "twigloss". Should normally be in the range 0-1
 
-const double ALPHAA_NLIM = 0.55;// DW_COMMENT 6;	// Same as ALPHAA above but chosen to give pools and flux values
+const double ALPHAA_NLIM = 0.6;	// Same as ALPHAA above but chosen to give pools and flux values
 								// that agree with published estimates when Nitrogen limitation is
 								// switched on.
 

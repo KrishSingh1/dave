@@ -728,6 +728,10 @@ void dailyaccounting_patch(Patch& patch) {
 			soilcolumn.csom_litter_input[p] = 0.0;
 		}
 
+		for (int mth = 0; mth < 12; mth++) {
+			soilcolumn.mwmass_stand[mth] = 0.0;
+		}
+
 		// Snow
 		Snow& snow = soilcolumn.snow;
 

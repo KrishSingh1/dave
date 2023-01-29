@@ -532,7 +532,7 @@ double Soillayer::moisture_modifier() {
 	double moist_mod_dry = 0.064;
 	// Minimum moist modifier for anaerobic soils 
 	// (Frolking et al (2001, 2010), Ise et al. (2008))
-	double moist_mod_anaerobic = 0.025;
+	double moist_mod_anaerobic = 0.1;
 	// Water fraction of soil layer volume
 	double theta = (imass + wmass) / depth;
 	// Saturation fraction of soil layer volume
@@ -1704,7 +1704,7 @@ void soilnadd(Patch& patch) {
 	// nitrogen fixation is reduced (nitrogen rich soils)
 
 	// Get soil layers total C mass
-	const double cconttot = soilcolumn.get_sum(CCONT);
+	const double cconttot = soilcolumn.ccont();
 
 	// Get available NH4 and NO3
 	const double navailtot = soilcolumn.get_sum(NH_4) + soilcolumn.get_sum(NO_3);
@@ -1902,7 +1902,7 @@ void equilsom(Patch& patch) {
 			(!peat_with_age && ((bad_trend && tries < MAX_TRIES) || tries < MIN_TRIES))) {
 
 			// Update soil layers total C mass fractions
-			cconttot = soilcolumn.get_sum(CCONT);
+			cconttot = soilcolumn.ccont();
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				for (int p = 0; p < NSOMPOOL; p++) {
@@ -1988,7 +1988,7 @@ void equilsom(Patch& patch) {
 
 						// Monthly nitrogen addition from fixation to the soil layer
 						if (!negligible(cconttot, 1.0e-12))
-							soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.get(CCONT) / cconttot, NH4);
+							soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.ccont() / cconttot, NH4);
 
 						// Monthly decomposition and fluxes between SOM pools
 
@@ -2140,7 +2140,7 @@ void equilsom(Patch& patch) {
 			}
 		}
 
-		//dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.get_sum(CCONT));		
+		//dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.ccont());		
 
 		// Water to be moved due to changes in the soil layers capability to hold water
 		double dval;

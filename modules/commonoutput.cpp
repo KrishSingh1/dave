@@ -1819,8 +1819,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				if (depth_lyr > 1.0e-12) {
 
-					soilc_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, CCONT) - soilc_prev) * to_gridcell_average;
-					soiln_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, NCONT) - soiln_prev)* to_gridcell_average;
+					soilc_depth[lyr + 1] += (soilcolumn.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
+					soiln_depth[lyr + 1] += (soilcolumn.var_depth_ncont(depth_prev, depth_this) - soiln_prev) * to_gridcell_average;
 					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, ARH) - soilr_prev)* to_gridcell_average;
 					clitterinput_depth[lyr + 1] += soilcolumn.var_depth(depth_prev, depth_this, ALITTERINPUT) * to_gridcell_average;
 					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, ANMIN) - soilcolumn.var_depth(depth_prev, depth_this, ANIMM)) * to_gridcell_average;
@@ -1862,14 +1862,19 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					frac = 0.0;
 				}
 
-				double carbon = soilcolumn.var_depth(dcm, dcm + dint, CCONT);
+				double carbon = soilcolumn.var_depth_ccont(dcm, dcm + dint);
+
+				if (d == 0) {
+					carbon -= surflitc;
+				}
+
 				soilc_cm[d] += carbon * frac * to_gridcell_average;
 				soilcp_cm[d] += carbon * (1.0 - frac) * to_gridcell_average;
 				dcm += dint;
 			}
 
-			soilc_depth[sslyr + 1] += soilcolumn.get_sum(CCONT) * to_gridcell_average;
-			soiln_depth[sslyr + 1] += soilcolumn.get_sum(NCONT) * to_gridcell_average;
+			soilc_depth[sslyr + 1] += soilcolumn.ccont() * to_gridcell_average;
+			soiln_depth[sslyr + 1] += soilcolumn.ncont() * to_gridcell_average;
 			soilr_depth[sslyr + 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(ANMIN) - soilcolumn.get_sum(ANIMM)) * to_gridcell_average;
 			clitterinput_depth[sslyr + 1] += (surflitinput + soilcolumn.get_sum(ALITTERINPUT)) * to_gridcell_average;
@@ -1920,11 +1925,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				wsats[lyr] += soillayer.wsats / soillayer.depth * to_gridcell_average;
 				wsats[NSOILLAYERS_MAX] += soillayer.wsats / soilcolumn.depth * to_gridcell_average;
 			}
-			soilc[NSOILLAYERS_MAX] += (soilcolumn.get_sum(CCONT) - surflitc) * to_gridcell_average;
+			soilc[NSOILLAYERS_MAX] += (soilcolumn.ccont() - surflitc) * to_gridcell_average;
 			soilr[NSOILLAYERS_MAX] += (soilcolumn.get_sum(ARH) - soilcolumn.asurflitterresp) * to_gridcell_average;
 
-			soilc_ald += soilcolumn.var_depth(0.0, soilcolumn.maxthaw, CCONT) * to_gridcell_average;
-			soilc_tot += soilcolumn.get_sum(CCONT) * to_gridcell_average;
+			soilc_ald += soilcolumn.var_depth_ccont(0.0, soilcolumn.maxthaw) * to_gridcell_average;
+			soilc_tot += soilcolumn.ccont() * to_gridcell_average;
 			snowdays += (double)soilcolumn.snow.snowdays * to_gridcell_average;
 
 			// Monthly output variables

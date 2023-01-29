@@ -63,10 +63,13 @@ const double Mindensity = 265.0;
 // C fraction of organic matter (56%) (Chadburn et al. 2022)
 const double fc = 0.56;
 
-// For dpm and rpm [kg C m-3] (Chadburn et al. 2022)
+// For fine root litter [kg C m-3] (Chadburn et al. 2022)
 const double rho_low = 35.0 * fc;
 
-// For bio and hum [kg C m-3] (Chadburn et al. 2022)
+// For micro, humus, and slow pools [kg C m-3] (Chadburn et al. 2022)
+const double rho_mean = 105.0 * fc;
+
+// For passive pools [kg C m-3] (Chadburn et al. 2022)
 const double rho_high = 210.0 * fc;
 
 // SNOW PARAMETERS

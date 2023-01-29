@@ -144,7 +144,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 /// Soil property types
 typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT,
 WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CCONT, NCONT, CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
+CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, ALITTERINPUT,
 VOL_ORG, VOL_MIN, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
 
@@ -4524,6 +4524,10 @@ public:
 	double get_surflittercmass();
 	/// Returns surface litter N content
 	double get_surflitternmass();
+	/// C content of soil column
+	double ccont(bool exclude_litter = false);
+	/// N content of soil column
+	double ncont(bool exclude_litter = false);
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
@@ -4554,6 +4558,10 @@ public:
 	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, int mth = 0);
 	/// Returns the value of some vector within a certain depth interval with a scalar
 	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
+	/// Returns the value of soil C within a certain depth interval
+	double var_depth_ccont(double depth_start, double depth_end, bool surf = false);
+	/// Returns the value of soil N within a certain depth interval
+	double var_depth_ncont(double depth_start, double depth_end, bool surf = false);
 	/// Calculate surface evaporation, infiltration and runoff
 	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
 		double imass_infilt, double wsats_infilt, double imp_ice, double fevap, double& qflx_evap, 

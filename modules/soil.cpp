@@ -1518,12 +1518,6 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case RUNOFFBASE:
 		prop = runoff_baseflow;
 		break;
-	case CCONT:
-		prop = ccont();
-		break;
-	case NCONT:
-		prop = ncont();
-		break;
 	case CSLOW:
 		prop = cpool_slow;
 		break;
@@ -1579,7 +1573,7 @@ double Soillayer::get(soilproptype SPT, int m) {
 
 /// Calculates the effective organic density
 /** Based on Chadburn et al. 2022
- *
+ *	Coarse root litter is not affecting soil properties, just taking up space
  */ 
 void Soillayer::calc_organic_density() {
 
@@ -1591,8 +1585,11 @@ void Soillayer::calc_organic_density() {
 			volume_tot += sompool[p].cmass / rho_low;
 			cmass_tot += sompool[p].cmass;
 		}
-		// Coarse root litter is not affecting soil properties, just taking up space
-		else if (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
+		else if (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) {
+			volume_tot += sompool[p].cmass / rho_mean;
+			cmass_tot += sompool[p].cmass;
+		}
+		else if (p == PASSIVESOM) {
 			volume_tot += sompool[p].cmass / rho_high;
 			cmass_tot += sompool[p].cmass;
 		}
@@ -2555,6 +2552,32 @@ double Soilcolumn::get_surflitternmass() {
 		soillayer.sompool[SURFFWD].nmass + soillayer.sompool[SURFCWD].nmass;
 }
 
+/// Returns soil C content
+/** Returns soil C content
+ */
+double Soilcolumn::ccont(bool surf) {
+
+	double ccont = 0.0;
+	// Loop over soil layers and extract property
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		ccont += soillayers[lyr].ccont(surf);
+	}
+	return ccont;
+}
+
+/// Returns soil N content
+/** Returns soil N content
+ */
+double Soilcolumn::ncont(bool surf) {
+
+	double ncont = 0.0;
+	// Loop over soil layers and extract property
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		ncont += soillayers[lyr].ncont(surf);
+	}
+	return ncont;
+}
+
 /// Returns a vector with soillayer values for a certain property
 /** Returns a vector with soillayer values for a certain property
  */
@@ -2629,12 +2652,6 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 			break;
 		case RUNOFFBASE:
 			prop[lyr] = soillayers[lyr].runoff_baseflow;
-			break;
-		case CCONT:
-			prop[lyr] = soillayers[lyr].ccont();
-			break;
-		case NCONT:
-			prop[lyr] = soillayers[lyr].ncont();
 			break;
 		case CSLOW:
 			prop[lyr] = soillayers[lyr].cpool_slow;
@@ -3092,6 +3109,78 @@ double Soilcolumn::var_depth(double depth_start, double depth_end, soilproptype 
 
 		if (layer_depth > 0.0) {
 			acc_var += soillayer.get(SPT_var, mth) * layer_depth / soillayer.depth;
+		}
+
+		acc_depth += soillayer.depth;
+		lyr++;
+	}
+
+	return acc_var;
+}
+
+/// Returns the value of soil C for a certain depth interval
+/** Returns the value of soil C for a certain depth interval
+ */
+double Soilcolumn::var_depth_ccont(double depth_start, double depth_end, bool surf) {
+
+	// Calculate variable values for layers within depth range
+	double lyr_start, lyr_end;
+	double layer_depth, scalar;
+	double acc_depth = 0.0;
+	double acc_var = 0.0;
+	int lyr = 0;
+
+	// depth_end can't be larger than soil column depth
+	//double depth_soil_end = min(depth, depth_end);
+	double depth_soil_end = depth_end;
+
+	while (acc_depth < depth_soil_end && lyr < nsoillayers) {
+
+		Soillayer& soillayer = soillayers[lyr];
+
+		lyr_start = min(max(acc_depth, depth_start), depth_soil_end);
+		lyr_end = min(max(acc_depth + soillayer.depth, depth_start), depth_soil_end);
+		layer_depth = lyr_end - lyr_start;
+
+		if (layer_depth > 0.0) {
+			scalar = layer_depth / soillayer.depth;
+			acc_var += soillayer.ccont(surf) * scalar;
+		}
+
+		acc_depth += soillayer.depth;
+		lyr++;
+	}
+
+	return acc_var;
+}
+
+/// Returns the value of soil N for a certain depth interval
+/** Returns the value of soil N for a certain depth interval
+ */
+double Soilcolumn::var_depth_ncont(double depth_start, double depth_end, bool surf) {
+
+	// Calculate variable values for layers within depth range
+	double lyr_start, lyr_end;
+	double layer_depth, scalar;
+	double acc_depth = 0.0;
+	double acc_var = 0.0;
+	int lyr = 0;
+
+	// depth_end can't be larger than soil column depth
+	//double depth_soil_end = min(depth, depth_end);
+	double depth_soil_end = depth_end;
+
+	while (acc_depth < depth_soil_end && lyr < nsoillayers) {
+
+		Soillayer& soillayer = soillayers[lyr];
+
+		lyr_start = min(max(acc_depth, depth_start), depth_soil_end);
+		lyr_end = min(max(acc_depth + soillayer.depth, depth_start), depth_soil_end);
+		layer_depth = lyr_end - lyr_start;
+
+		if (layer_depth > 0.0) {
+			scalar = layer_depth / soillayer.depth;
+			acc_var += soillayer.ncont(surf) * scalar;
 		}
 
 		acc_depth += soillayer.depth;
@@ -6491,7 +6580,7 @@ void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
 */
 void Soilcolumn::vertical_movement() {
 
-	double ccont_before = get_sum(CCONT);
+	double ccont_before = ccont();
 
 	double organic_frac_move = 0.001;
 
@@ -6854,7 +6943,7 @@ void Soilcolumn::vertical_movement() {
 		soillayer.organic_volume = max(0.0, eff_volume - soillayer.mineral_volume);
 	}
 
-	double ccont_after = get_sum(CCONT);
+	double ccont_after = ccont();
 
 	if (fabs(ccont_after - ccont_before) > 1.0e-10) {
 		dprintf("Year %d ERROR VERTMOVE C before %g after %g Diff %g\n",date.year, ccont_before, ccont_after, ccont_before - ccont_after);

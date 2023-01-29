@@ -613,7 +613,7 @@ bool Patch::has_disturbances() const {
  */
 double Patch::ccont(double scale_indiv, bool luc) {
 
-	double ccont = soilcolumn.get_sum(CCONT);
+	double ccont = soilcolumn.ccont();
 
 	ccont += soilcolumn.get_sum(CH_4) * KG_PER_G;
 
@@ -646,7 +646,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 */
 double Patch::ncont(double scale_indiv, bool luc) {
 
-	double ncont = soilcolumn.get_sum(NCONT);
+	double ncont = soilcolumn.ncont();
 
 	ncont += soilcolumn.snow.ncont();
 

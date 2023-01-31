@@ -62,6 +62,12 @@ variable_ps                  "ps"  ! Atmospheric Pressure (Pa)
 variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
 variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
 
+! Optional constant to be added to daily temperature (°C).
+temperature_delta            0
+
+! Optional constant to be added to daily co2 (ppm).
+co2_delta                    0
+
 useClosestNdep           1   ! Use closest available N Deposition data if none found for this gridcell
 ifdailygrass             1   ! daily allocation for grasses and crops 
 ifnewphotosyn 		     1   ! new photosynthesis scheme (in need of a better name...)

@@ -401,6 +401,7 @@ struct lc_change_harvest_params {
 
 	lc_change_harvest_params() {
 
+		harv_eff = 0.0;
 		res_outtake_twig = 0.0;
 		res_outtake_coarse_root = 0.0;
 		burn = false;

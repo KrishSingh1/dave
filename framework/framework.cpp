@@ -20,6 +20,8 @@
 #include "somdynam.h"
 #include "growth.h"
 #include "vegdynam.h"
+#include "blaze.h"
+#include "simfire.h"
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
@@ -57,25 +59,25 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// Calculate daylength, insolation and potential evapotranspiration
 	daylengthinsoleet(gridcell.climate);
 
-	if (run_landcover) {
-		if (run[CROPLAND]) {
-			// Update crop sowing date calculation framework
-			crop_sowing_gridcell(gridcell);
-		}
-		if (date.day == 0) {
-			// Dynamic landcover and crop fraction data during historical
-			// period and create/kill stands.
-			landcover_dynamics(gridcell, input_module);
+	// Read miscellanous dynamic data, e.g. disturbance interval.
+	input_module->getmiscinput_yearly(gridcell);
 
-			// Update dynamic management options
-			input_module->getmanagement(gridcell);
-		}
-	}
+	// Update crop sowing date calculation framework
+	crop_sowing_gridcell(gridcell);
 
+	// Update dynamic management options
+	input_module->getmanagement(gridcell);
+
+	// Update dynamic landcover and crop fraction data during historical
+	// period and create/kill stands.
+	landcover_dynamics(gridcell, input_module);
+
+	// Perform forest management for all stands this year
+	manage_forests(gridcell);
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
-
+	
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 
@@ -88,6 +90,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
+
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -95,32 +98,37 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			if(run_landcover)
 				nfert(patch);
 
-			if (stand.landcover == CROPLAND) {
-				// Calculate crop sowing dates
-				crop_sowing_patch(patch);
-				// Crop phenology
-				crop_phenology(patch);
-				// necessary updates after changing growingperiod status
-				update_patch_fpc(patch);
-			}
+			// Calculate crop sowing dates
+			crop_sowing_patch(patch);
+			// Crop phenology
+			crop_phenology(patch);
 
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
+
 			// Interception
 			interception(patch, gridcell.climate);
 			initial_infiltration(patch, gridcell.climate);
+
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
+
 			// Sum total required irrigation
 			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
-			// Daily C allocation (grass and crops)
+
+			// Daily C allocation
 			growth_daily(patch);
+
 			// Soil organic matter and litter dynamics
-			som_dynamics(patch);
+			som_dynamics(patch, gridcell.climate);
+
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
+
+			// BLAZE fire model
+			blaze_driver(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 
@@ -220,11 +228,9 @@ int framework(const CommandLineArguments& args) {
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		if (run_landcover && !restart) {
-			// Read landcover and cft fraction data from 
-			// data files for the spinup period and create stands
-			landcover_init(gridcell, input_module.get());
-		}
+		// Read landcover and cft fraction data from 
+		// data files for the spinup period and create stands
+		landcover_init(gridcell, input_module.get());
 
 		if (restart) {
 			// Get the whole grid cell from file...
@@ -232,6 +238,9 @@ int framework(const CommandLineArguments& args) {
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
+
+		// Read miscellanous static data, e.g. local elevation.
+		input_module->getmiscinput_static(gridcell);
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
@@ -247,6 +256,7 @@ int framework(const CommandLineArguments& args) {
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
+				output_modules.openlocalfiles(gridcell);
 				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);
@@ -269,6 +279,8 @@ int framework(const CommandLineArguments& args) {
 
 			// End of loop through simulation days
 		}	//while (getclimate())
+
+		output_modules.closelocalfiles(gridcell);
 
 		gridcell.balance.check_period(gridcell);
 

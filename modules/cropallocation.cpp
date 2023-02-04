@@ -101,10 +101,11 @@ void turnover_grass(Individual& indiv) {
 		indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 		indiv.cropindiv->grs_cmass_leaf, indiv.cropindiv->grs_cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-		patchpft.litter_leaf,
-		patchpft.litter_root,
+		patchpft.cmass_litter_leaf,
+		patchpft.cmass_litter_root,
 		patchpft.nmass_litter_leaf,
 		patchpft.nmass_litter_root,
+		patchpft.cmass_leaf_root_turnover,
 		indiv.nstore_longterm, indiv.max_n_storage,
 		true);
 
@@ -117,7 +118,7 @@ void turnover_grass(Individual& indiv) {
 		cmass_root_pre_turnover * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
 
 	// Max longterm nitrogen storage
-	indiv.max_n_storage = max(0.0, min(cmass_root_pre_turnover * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+	indiv.max_n_storage = max(0.0, max(cmass_root_pre_turnover * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
 
 	// Scale this year productivity to max storage
 	if (grs_npp > 0.0) {
@@ -532,7 +533,7 @@ void growth_daily_crop(Patch& patch) {
 						cmass_seed = 0.1 * CMASS_SEED;
 						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
 					}
-				} 
+				}
 				else {
 					// add seed carbon on sowing date
 					if(date.day == ppftcrop.sdate) {
@@ -940,7 +941,6 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
-// S. Olin, G. Schurgers, M. Lindeskog, D. W�rlind, B. Smith, P. Bodin, J. Holm�r, and A. Arneth. 2015
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
 //   Biogeosciences 12, 2489-2515. Modelling the response of yields and tissue C:N to changes in
 //   atmospheric CO2 and N management in the main wheat regions of western Europe
-   

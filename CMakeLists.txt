@@ -5,7 +5,7 @@
 # If it's not installed it can be downloaded for free from www.cmake.org.
 #
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
 
 # Compiler flags for building with Microsoft Visual C++
@@ -40,20 +40,30 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, platon, alarik or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, aurora or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules
 # (used by cmake when the include() command is used in a cmake file)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-# NetCDF - look for libraries and include files, and use them if found
+# NetCDF - look for libraries and include files, and use them if found.
+# If this CMakeList script does not find the path to the NetCDF library on
+# your system, then consult LPJ-GUESS/reference/guessdoc.doc.
+# On easybuild systems, it may help to use the same line as for aurora here.
+# i.e.: set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
+if ("$ENV{ARCH}" STREQUAL "aurora")
+  set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}")
+endif()
 find_package(NetCDF QUIET)
 
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
   add_definitions(-DHAVE_NETCDF)
+else()
+  message("find_package: not found: NETCDF_C_LIBRARY and NETCDF_INCLUDE_DIR. See LPJ-GUESS documentation." )
+  message("NETCDF disabled." )
 endif()
 
 # MPI - used if found (not needed on Windows)
@@ -85,7 +95,7 @@ add_subdirectory(libraries)
 if (WIN32)
   add_subdirectory(windows_version)
 endif()
-  
+
 if (UNIT_TESTS)
   add_subdirectory(tests)
 endif()

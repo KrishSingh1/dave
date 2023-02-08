@@ -201,13 +201,17 @@ double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass
 */
 double calc_nrelocfrac_daily(double cton_min, double cton_max, double cmass_storage, double nmass_storage) {
 	
-	// Current N storage level
-	double ntoc_current = nmass_storage / cmass_storage;
-
 	// 20% decrease or increase in N retranslocation depending on if you are at 
 	// the maximum storage capacity or minimum
 	double nreloc_max = nrelocfrac * 1.2;
 	double nreloc_min = nrelocfrac / 1.2;
+
+	if (negligible(cmass_storage, 12)) {
+		return nreloc_min;
+	}
+
+	// Current N storage level
+	double ntoc_current = nmass_storage / cmass_storage;
 
 	return max(nreloc_min, min(nreloc_max, nreloc_max - (nreloc_max - nreloc_min) *	
 		(ntoc_current - 1.0 / cton_max) / (1.0 / cton_min - 1.0 / cton_max)));
@@ -1827,7 +1831,7 @@ void growth_daily_grass(Patch& patch) {
 				sb_fac = gpp_trend > 0.0 ? sb_ratio * sb_ratio / (SB_FAC_MAX * SB_FAC_MAX) : 0.25;
 			}
 
-			// Fraction of leaves that die during one day due to frost (eqn 2 and 3 Höglind 2016, error in paper eqn)
+			// Fraction of leaves that die during one day due to frost (eqn 2 and 3 Hï¿½glind 2016, error in paper eqn)
 			// Temperature where half the leaves would be killed. Should be flexible due to hardening, but here set to a fixed value
 			// also should use snow temperature if snowpack covers grass.
 			double lethal_temp_50 = -15.0;
@@ -1848,7 +1852,7 @@ void growth_daily_grass(Patch& patch) {
 			// Temperature senescence modifier
 			double tscal_sen = max(0.1, tscal_fac);
 
-			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, Höglind 2016)
+			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, Hï¿½glind 2016)
 			double const g_max = 0.1; // DW_COMMENT to be calibrated
 			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);

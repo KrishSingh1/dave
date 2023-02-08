@@ -651,6 +651,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						indiv.age=0.0;
 
+						// Height will be set in allometry very soon, but it's
+						// accessed in allocation_init(), so let's initialize it
+						// to 0 here rather than rely on uninitialized memory.
+						indiv.height = 0;
+
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 

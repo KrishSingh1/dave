@@ -3974,7 +3974,7 @@ public:
 
 	void update_matric_potential();
 
-	void update_thermal_properties(bool combine_snow = false, double snow_depth = 0.0, double snow_imass = 0.0, double snow_wmass = 0.0);
+	void update_thermal_properties();
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4024,7 +4024,7 @@ struct Snowlayer : public Serializable {
 	/// ice mass in snow layer (kg m-2)
 	double imass;
 
-	/// Snow density per layer
+	/// Snow density per layer (kg m-3)
 	double dens;
 
 	/// Snow water holding capacity per layer
@@ -4301,9 +4301,17 @@ public:
 	double wtd;
 	/// Standing surface water [mm]
 	double wmass_stand;
-	/// Monthly standing surface water [mm]
+	/// Standing surface ice [mm]
+	double imass_stand;
+	/// Standing water heat capacity (J m-3 K-1)
+	double Ch_stand;
+	// Standing water thermal conductivity (J m-1 K-1 s-1)
+	double Kh_stand;
+	/// Standing surface water temperature [C]
+	double temp_stand;	
+	/// Monthly standing surface water and ice [mm]
 	double mwmass_stand[12];
-	/// Fraction of surface covered by standing water
+	/// Fraction of surface covered by standing water and ice
 	double wmass_stand_frac;
 	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur
 	double sat_lev;
@@ -4398,6 +4406,10 @@ public:
 		awtp = that.awtp;
 		wtd = that.wtd;
 		wmass_stand = that.wmass_stand;
+		imass_stand = that.imass_stand;
+		Ch_stand = that.Ch_stand;
+		Kh_stand = that.Kh_stand;
+		temp_stand = that.temp_stand;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4470,6 +4482,10 @@ public:
 		awtp = that.awtp;
 		wtd = that.wtd;
 		wmass_stand = that.wmass_stand;
+		imass_stand = that.imass_stand;
+		Ch_stand = that.Ch_stand;
+		Kh_stand = that.Kh_stand;
+		temp_stand = that.temp_stand;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4565,15 +4581,17 @@ public:
 	/// Calculate surface evaporation, infiltration and runoff
 	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
 		double imass_infilt, double wsats_infilt, double imp_ice, double fevap, double& qflx_evap, 
-		double& qflx_surf_runoff, double& qflx_in_surf, double& qflx_infilt);
+		double& qflx_surf_runoff, double& qflx_in_surf, double& qflx_infilt, double& qflx_stand_drain); // DW_COMMENT
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity
 	void update_hydraulic_properties();
 	/// Update soil layer temperatures due to water fluxes
-	void wflow_temp();
+	void wflow_temp(double temp_infilt);
+	/// Update standing water temperatures due to water fluxes
+	void update_stand_temp(double temp_add, double wmass_add);
 	/// Update heat capacity and conductivity for soil layers
-	void update_thermal_properties(bool combine_snow = false);
+	void update_thermal_properties();
 	/// Set padding layers depth
 	void set_padding_depth();
 	/// Soil water freezing allowed?
@@ -4630,6 +4648,8 @@ public:
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
 
+	/// Update thermal properties for standing water
+	void update_thermal_properties_for_stand();
 	/// Update thermal properties for padding layers
 	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
@@ -4638,6 +4658,8 @@ public:
 	void calc_temp();
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
+	/// Calculate standing water and ice
+	void phase_change_stand(bool& updated);
 	/// Calculate water and ice for each layer
 	void phase_change();
 	/// Calculate thaw depth

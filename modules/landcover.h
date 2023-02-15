@@ -60,6 +60,9 @@ struct landcover_change_transfer {
 	Historic<double, NYEARAAET> transfer_aaet_5;
 	Historic<double, 10> transfer_maxthaw_10;
 	double transfer_anfix_calc;
+	double transfer_wmass_stand;
+	double transfer_imass_stand;
+	double transfer_temp_stand;
 	int transfer_soil_nsoillayers;
 
 	// Soil layers
@@ -210,6 +213,9 @@ struct landcover_change_transfer {
 				transfer_maxthaw_10.add(maxthaw_10_cp[i] + soilcolumn.maxthaw_10[i] * scale);
 			}
 			transfer_anfix_calc += soilcolumn.anfix_calc * scale;
+			transfer_wmass_stand += soilcolumn.wmass_stand * scale;
+			transfer_imass_stand += soilcolumn.imass_stand * scale;
+			transfer_temp_stand += soilcolumn.temp_stand * scale;
 			transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, soilcolumn.nsoillayers);
 
 			// Sum soil layers
@@ -312,6 +318,9 @@ struct landcover_change_transfer {
 			transfer_maxthaw_10.add(from.transfer_maxthaw_10[i]);
 		}
 		transfer_anfix_calc = from.transfer_anfix_calc;
+		transfer_wmass_stand = from.transfer_wmass_stand;
+		transfer_imass_stand = from.transfer_imass_stand;
+		transfer_temp_stand = from.transfer_temp_stand;
 		transfer_soil_nsoillayers = from.transfer_soil_nsoillayers;
 
 		// Sum soil layers
@@ -409,6 +418,9 @@ struct landcover_change_transfer {
 		for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++)
 			transfer_maxthaw_10.add(maxthaw_10_cp[i] + from.transfer_maxthaw_10[i] * multiplier);
 		transfer_anfix_calc += from.transfer_anfix_calc * multiplier;
+		transfer_wmass_stand += from.transfer_wmass_stand * multiplier;
+		transfer_imass_stand += from.transfer_imass_stand * multiplier;
+		transfer_temp_stand += from.transfer_temp_stand * multiplier;
 		transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, from.transfer_soil_nsoillayers);
 
 		// Soil layers

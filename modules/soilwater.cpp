@@ -56,16 +56,8 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// INPUT AND OUTPUT PARAMETER
 	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
-	// Water mass balance check
-	//double wbefore = soilcolumn.snow.wcontent() + prec + soilcolumn.rain_melt;
-
 	// Snowfall, precipitation or snowmelt 
 	soilcolumn.snow.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
-
-	// Water mass balance check
-	//double wmid = soilcolumn.snow.wcontent() + soilcolumn.rain_melt;
-	//if (fabs(wmid - wbefore) > 1.0e-11)
-	//	dprintf("Year %d Day %d mid() %g\n", date.year, date.day, wmid - wbefore);
 
 	// Update snow density after mechanical compaction
 	soilcolumn.snow.compaction(soilcolumn.patch, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
@@ -75,15 +67,6 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 
 	// Save maximum rain and melt water
 	soilcolumn.max_rain_melt = soilcolumn.rain_melt;
-
-	// Water mass balance check
-	//double wafter = soilcolumn.snow.wcontent() + soilcolumn.rain_melt;
-
-	//if (fabs(wafter - wmid) > 1.0e-11)
-	//	dprintf("Year %d Day %d comp() %g\n", date.year, date.day, wafter - wmid);
-
-	//if (fabs(wafter - wbefore) > 1.0e-11)
-	//	dprintf("Year %d Day %d snow() %g\n",date.year,date.day, wafter - wbefore);
 }
 
 /// SNOW_NINPUT

@@ -309,6 +309,10 @@ void development_stage(Patch& patch, Pft& pft) {
  */
 void crop_phenology(Patch& patch) {
 
+	if (patch.stand.landcover != CROPLAND) {
+		return;
+	}
+
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
@@ -484,6 +488,9 @@ void crop_phenology(Patch& patch) {
 
 		patch.pft.nextobj();
 	}
+
+	// necessary updates after changing growingperiod status
+	update_patch_fpc(patch);
 }
 
 /// Updates crop phen from yesterday's lai_daily

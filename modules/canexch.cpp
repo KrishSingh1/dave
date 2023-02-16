@@ -36,6 +36,7 @@
 #include "q10.h"
 #include "bvoc.h"
 #include "ncompete.h"
+#include "somdynam.h"
 #include <assert.h>
 
 
@@ -967,17 +968,14 @@ void nstore_usage(Vegetation& vegetation) {
 
 		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
 
-			indiv.nstress = false;
+			indiv.nstress = ifnlim && date.year > freenyears;
 
 			// Check if current tissue N mass matches optimal level otherwise N limitation on photosynthesis
 			if (indiv.get_nmass_leaf() < indiv.get_cmass_leaf() / indiv.cton_leaf_opt) {
 
-				// N stressed photosynthesis is allowed only when N limitation is turned on
-				indiv.nstress = ifnlim;
+				// Nitrogen stressed photosynthesis is allowed only if optimal leaf nitrogen is above allowed level 
+				indiv.nstress = indiv.n_opt_isabovelim;
 			}
-
-			// N uptake added to storage
-			indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
 		}
 		else {
 
@@ -1001,7 +999,8 @@ void nstore_usage(Vegetation& vegetation) {
 					indiv.nmass_root += root_ndemand;
 					indiv.nstore_labile -= root_ndemand;
 
-					indiv.nstress = false;
+					// nitrogen stressed photosynthesis is allowed only if optimal leaf nitrogen is above allowed level 
+					indiv.nstress = indiv.n_opt_isabovelim;
 				}
 				else {
 
@@ -1026,13 +1025,13 @@ void nstore_usage(Vegetation& vegetation) {
 					}
 
 					// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-					indiv.nstress = ifnlim;
+					indiv.nstress = ifnlim && date.year > freenyears;
 
 				}
 			}
 			else {
-				// photosynthesis will not be nitrogen stresses
-				indiv.nstress = false;
+				// photosynthesis will not be nitrogen stresses unless optimal leaf N is above maximum limit
+				indiv.nstress = indiv.n_opt_isabovelim;
 			}
 		}
 
@@ -1054,10 +1053,12 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	/// daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
+	// soil available mineral nitrogen (kgN/m2)
+	const double nmin_avail = soil.nmass_avail(NO);
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double soilT = patch.soil.get_soil_temp_25();
-	double temp_scale = soilT > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) : 0.0;
-
+	double temp_scale = temperature_modifier(soilT); 
+	
 	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
 	double kNmin = 0.05;
 
@@ -1068,18 +1069,24 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Rescaler of nitrogen uptake
 		indiv.fnuptake = 1.0;
 
+		// Assume that optimal leaf nitrogen isn't above allowed limit
+		indiv.n_opt_isabovelim = false;
+
 		// Starts with no nitrogen stress
 		indiv.nstress = false;
 
 		// Optimal leaf nitrogen content
 		double leafoptn;
 
+		// If grass with daily allocation
+		bool daily_grass = indiv.pft.lifeform == GRASS && ifdailygrass;
+
 		// Calculate optimal leaf nitrogen content and demand
-		if ((!negligible(indiv.phen) || (indiv.pft.lifeform == GRASS && ifdailygrass)) && !negligible(indiv.cmass_leaf_today())) {
+		if ((!negligible(indiv.phen) && !daily_grass) || (!negligible(indiv.cmass_leaf_today()) && daily_grass)) {
 
 			indiv.nday_leafon++;
 
-			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
+			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves
 			// Peltoniemi et al. 2012
 			indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
 
@@ -1091,6 +1098,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf_today() / leafoptn < indiv.pft.cton_leaf_min) {
 				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_min;
+
+				// Optimal leaf N above limit -> always N limitation on Vmax
+				indiv.n_opt_isabovelim = ifnlim && date.year > freenyears;
 			}
 			// Can not have lower nitrogen concentration than maximum leaf C:N ratio
 			else if (indiv.cmass_leaf_today() / leafoptn > indiv.pft.cton_leaf_max) {
@@ -1101,10 +1111,10 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.cton_leaf_aopt = min(indiv.cmass_leaf_today() / leafoptn, indiv.cton_leaf_aopt);
 
 			// Leaf nitrogen demand
-			indiv.leafndemand = !(indiv.pft.lifeform == GRASS && ifdailygrass) ? max(leafoptn - indiv.get_nmass_leaf(), 0.0) : 0.0;
+			indiv.leafndemand = !daily_grass ? max(leafoptn - indiv.get_nmass_leaf(), 0.0) : 0.0;
 
 			// Setting daily optimal leaf C:N ratio
-			if (indiv.leafndemand || (indiv.pft.lifeform == GRASS && ifdailygrass)) {
+			if (indiv.leafndemand || daily_grass) {
 				indiv.cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
 			}
 			else {
@@ -1118,22 +1128,33 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Nitrogen demand
 
-		// Root nitrogen demand
-		indiv.rootndemand = !(indiv.pft.lifeform == GRASS && ifdailygrass) ? max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) : 0.0;
+		// Total nitrogen demand of individual
+		double ndemand_tot;
 
-		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
-		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (indiv.cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
+		// Annual growth
+		if (!daily_grass) {
+
+			// Root nitrogen demand
+			indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
+
+			// Sap wood nitrogen demand. Demand is ramped up throughout the year.
+			if (indiv.pft.lifeform == TREE) {
+				indiv.sapndemand = max(0.0, indiv.cmass_sap / (indiv.cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day) / date.year_length());
+			}
+
+			// Labile nitrogen storage demand
+			indiv.storendemand = indiv.ndemand_storage(indiv.cton_leaf_opt);
+
+			//TODO HO demand
+			indiv.hondemand = 0.0;
+
+			// Total nitrogen demand
+			ndemand_tot = max(0.0, indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand);
 		}
-
-		// Labile nitrogen storage demand
-		indiv.storendemand = indiv.ndemand_storage(indiv.cton_leaf_opt);
-
-		//TODO HO demand
-		indiv.hondemand = 0.0;
-
-		// Total nitrogen demand
-		double ndemand_tot = max(0.0, indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand);
+		// Daily growth
+		else {
+			ndemand_tot = indiv.ndemand_storage(indiv.cton_leaf_opt);
+		}
 
 		// Calculate scalars to possible nitrogen uptake
 
@@ -1143,13 +1164,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
-		// Nitrogen availablilty scalar due to saturating Michaelis-Menten kinetics
-		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
+		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		double nmin_scale = kNmin + nmin_avail / (nmin_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
 		// This is considered to be related to FPC which is proportional to crown area which is approx
 		// 4 times smaller than the root area
-		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
+		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * nmin_avail;
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
@@ -1158,44 +1179,52 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
-		// Root and leaf demand from storage pools
-		indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);
-		indiv.rootndemand_store = indiv.rootndemand * (1.0 - fractomax);
+		// Annual growth
+		if (!daily_grass) {
 
-		// Nitrogen demand after adjustment to maximum uptake capacity
-		indiv.leafndemand  *= fractomax;
-		indiv.rootndemand  *= fractomax;
-		indiv.sapndemand   *= fractomax;
-		indiv.storendemand *= fractomax;
+			// Root and leaf demand from storage pools
+			indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);
+			indiv.rootndemand_store = indiv.rootndemand * (1.0 - fractomax);
 
-		// Sum total nitrogen demand individual is capable of taking up
-		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
+			// Nitrogen demand after adjustment to maximum uptake capacity
+			indiv.leafndemand *= fractomax;
+			indiv.rootndemand *= fractomax;
+			indiv.sapndemand *= fractomax;
+			indiv.storendemand *= fractomax;
 
-		// Negative nitrogen demand not allowed
-		if (indiv.ndemand <= 0.0) {
-			indiv.ndemand = 0.0;
+			// Sum total nitrogen demand individual is capable of taking up
+			indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
 
-			// Compartments fraction of total nitrogen demand
-			indiv.leaffndemand  = 0.0;
-			indiv.rootfndemand  = 0.0;
-			indiv.sapfndemand   = 0.0;
-			indiv.storefndemand = 0.0;
-		}
-		else {
+			// Negative nitrogen demand not allowed
+			if (indiv.ndemand <= 0.0) {
+				indiv.ndemand = 0.0;
 
-			// Compartments fraction of total nitrogen demand
-			if (indiv.storendemand >= 0.0) {
-				indiv.leaffndemand = indiv.leafndemand / indiv.ndemand;
-				indiv.rootfndemand = indiv.rootndemand / indiv.ndemand;
-				indiv.sapfndemand = indiv.sapndemand / indiv.ndemand;
-				indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
-			}
-			else {
-				indiv.leaffndemand = indiv.leafndemand / (indiv.leafndemand + indiv.rootndemand);
-				indiv.rootfndemand = indiv.rootndemand / (indiv.leafndemand + indiv.rootndemand);
+				// Compartments fraction of total nitrogen demand
+				indiv.leaffndemand = 0.0;
+				indiv.rootfndemand = 0.0;
 				indiv.sapfndemand = 0.0;
 				indiv.storefndemand = 0.0;
 			}
+			else {
+
+				// Compartments fraction of total nitrogen demand
+				if (indiv.storendemand >= 0.0) {
+					indiv.leaffndemand = indiv.leafndemand / indiv.ndemand;
+					indiv.rootfndemand = indiv.rootndemand / indiv.ndemand;
+					indiv.sapfndemand = indiv.sapndemand / indiv.ndemand;
+					indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
+				}
+				else {
+					indiv.leaffndemand = indiv.leafndemand / (indiv.leafndemand + indiv.rootndemand);
+					indiv.rootfndemand = indiv.rootndemand / (indiv.leafndemand + indiv.rootndemand);
+					indiv.sapfndemand = 0.0;
+					indiv.storefndemand = 0.0;
+				}
+			}
+		}
+		// Daily growth
+		else {
+			indiv.ndemand = max(0.0, min(maxnup, ndemand_tot));
 		}
 
 		// Sum total patch nitrogen demand
@@ -1215,12 +1244,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// to down-regulation of vmax.
 
 	// Nitrogen within projective cover of all individuals
-	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
-
-	if (patch.stand.landcover == CROPLAND && ifnlim) { // Also for other landcovers ??
-		// Take soil wcont into account
-		tot_nmass_avail *= patch.soil.get_soil_water_upper() * 0.9 + patch.soil.get_soil_water_lower() * 0.1;
-	}
+	double tot_nmass_avail = patch.soil.nmass_avail(NO) * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {
@@ -1687,6 +1711,21 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
 	
+	// Prepare for water balance tests
+	double initial_water_in_column = 0.0;
+
+	for (int ly = 0; ly < NSOILLAYER; ly++) {
+
+		double Faw_layer = patch.soil.get_layer_soil_water(ly) * patch.soil.soiltype.awc[ly]; // mm
+		double ice_layer = patch.soil.Frac_ice[ly + patch.soil.IDX] * patch.soil.Dz[ly + patch.soil.IDX]; // mm
+		double layerwater = Faw_layer + ice_layer; // mm
+		// for water balance checks
+		initial_water_in_column += layerwater;
+
+	} // for loop (ly)
+
+
+
 	double awc0 = patch.soil.soiltype.gawc[0]; // available water holding capacity; see Gerten et al., 2004  
 	double awc1 = patch.soil.soiltype.gawc[1]; // see Gerten et al., 2004
 	double grootdist[2] = { 0.0, 0.0 };
@@ -1706,7 +1745,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			ppft.water_deficit_y = 0.0;
 		}
 	}
-	 
+
+	double wcont_opt[NSOILLAYER_UPPER];
+	bool add_water[NSOILLAYER_UPPER];
+	for (int i = 0; i<NSOILLAYER_UPPER; i++) add_water[i] = true;
+
 	if (patch.soil.get_soil_water_upper()<0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
 		double wr_opt = min(1.0, patch.wdemand / ppft.phen / pft.emax);
@@ -1717,18 +1760,66 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			if (wcont_0_opt * awc0 * patch.fpc_rescale > pft.emax * grootdist[0]) {
 				wcont_0_opt = pft.emax * grootdist[0] / awc0 / patch.fpc_rescale;
 			}
+
+			if (!iftwolayersoil) {
+
+				// Array of optimal wcont_values instead.
+				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
+					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
+			
+					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
+						wcont_opt[i] = pft.emax * pft.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
+					}
+
+					if (wcont_cp[i] > wcont_opt[i]) {
+						// Do not change wcont for layers that already have enough available water, or add water to them
+						wcont_opt[i] = wcont_cp[i];
+						add_water[i] = false;
+					}
+				}
+
+			}
+
 		}
 		else {
 			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 		}
 
-		if (wcont_0_opt > patch.soil.get_soil_water_upper() && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
+		bool irrigate_soil = false;
+
+		if (iftwolayersoil) {
+			if (wcont_0_opt > patch.soil.get_soil_water_upper()) 
+				irrigate_soil = true;
+		}
+		else {
+			for (int i = 0; i < NSOILLAYER_UPPER; i++) {
+				if (add_water[i])
+					irrigate_soil = true; // Allows irrigation if even one layer needs more water 
+			}
+		}
+
+		if (irrigate_soil && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
 			if (!patch.soil.ice_in_top_layer()) {
 
 				// Irrigation water for this PFT:
-				double water_to_add = (wcont_0_opt - patch.soil.get_soil_water_upper()) * awc0;
+
+				double water_to_add = 0.0;
+
+				double water_to_add_ly[NSOILLAYER_UPPER];
+				for (int i = 0; i < NSOILLAYER_UPPER; i++) water_to_add_ly[i] = 0.0;
+
+				if (iftwolayersoil)
+					water_to_add = (wcont_0_opt - patch.soil.get_soil_water_upper()) * awc0;
+				else {
+					for (int i = 0; i<NSOILLAYER_UPPER; i++) {
+						if (add_water[i]) {
+							water_to_add_ly[i] = max((wcont_opt[i] - wcont_cp[i]) * patch.soil.soiltype.awc[i], 0.0); // ensures that we add water
+							water_to_add += water_to_add_ly[i];
+						}
+					}
+				}
 
 				ppft.water_deficit_d += water_to_add;
 
@@ -1749,14 +1840,14 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				double potential_water = 0.0;
 
 				for (int ly = 0; ly < NSOILLAYER_UPPER; ly++) {
+					if (add_water[ly]) {
+						// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
+						Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
 
-					// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
-					Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
-
-					// Water in this layer
-					potential_layer[ly] = soil.aw_max[ly] - Faw_layer[ly];
-					potential_water += potential_layer[ly];
-
+						// Water in this layer
+						potential_layer[ly] = soil.aw_max[ly] - Faw_layer[ly];
+						potential_water += potential_layer[ly];
+					}
 				} // for loop (ly)
 
 				// to test the new wcont
@@ -1765,27 +1856,47 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	
 				for (int s=0; s<NSOILLAYER_UPPER; s++) {
 
-					double water_input_ly = 0.0;
-					water_input_ly = water_to_add * (potential_layer[s] / potential_water);
+					if (add_water[s]) {
 
-					Faw_layer[s] += water_input_ly;
-					potential_layer[s] -= water_input_ly;
-					wcont_cp[s] = Faw_layer[s] / soil.soiltype.awc[s];
+						double water_input_ly = 0.0;
+						
+						if (iftwolayersoil)
+							water_input_ly = water_to_add * (potential_layer[s] / potential_water);
+						else
+							water_input_ly = water_to_add_ly[s];
+
+						Faw_layer[s] += water_input_ly;
+						potential_layer[s] -= water_input_ly;
+						wcont_cp[s] = Faw_layer[s] / soil.soiltype.awc[s];
 				
-					// Update wcont (and wcont_evap, Frac_water etc.) too
-					soil.set_layer_soil_water(s, Faw_layer[s] / soil.soiltype.awc[s]);
+						// Update wcont (and wcont_evap, Frac_water etc.) too
+						soil.set_layer_soil_water(s, Faw_layer[s] / soil.soiltype.awc[s]);
 
+					}
+					
 					total_available_water += wcont_cp[s] * soil.soiltype.awc[s]; // mm
 					total_capacity += soil.soiltype.awc[s]; // mm
 
 					oob_check_wcont(wcont_cp[s]);
+
+					// Error check
+					if (!iftwolayersoil) {
+						if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {
+							dprintf("irrigated_water_uptake - error in the water balance!\n");
+							return -9999.0;
+						}
+					}
+
 				}
 
 				// Error check
-				double new_wcont = total_available_water/ total_capacity;
-				if (fabs(new_wcont - wcont_0_opt) > 0.0001) {
-					dprintf("irrigated_water_uptake - error in the water balance!\n");
-					return -9999.0;
+				if (iftwolayersoil) {
+					double new_wcont = total_available_water/ total_capacity;
+			
+					if (fabs(new_wcont - wcont_0_opt) > 0.0001) {
+						dprintf("irrigated_water_uptake - error in the water balance!\n");
+						return -9999.0;
+					}
 				}
 			}
 		}
@@ -1796,12 +1907,37 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		}
 	}
 
+
+	// Prepare for water balance test
+	double final_water_in_column = 0.0;
+
+	for (int ly = 0; ly < NSOILLAYER; ly++) {
+
+		double Faw_layer = patch.soil.get_layer_soil_water(ly) * patch.soil.soiltype.awc[ly]; // mm
+		double ice_layer = patch.soil.Frac_ice[ly + patch.soil.IDX] * patch.soil.Dz[ly + patch.soil.IDX]; // mm
+		double layerwater = Faw_layer + ice_layer; // mm
+		// for water balance checks
+		final_water_in_column += layerwater;
+
+	} // for loop (ly)
+
+	// is water in + initial storage = water out + final storage?
+	double water_in_storage_in = initial_water_in_column + ppft.water_deficit_d;
+	double water_out_storage_out = final_water_in_column;
+
+	const double maxerr = 0.0001; // mm - max error allowed
+
+	if (fabs(water_in_storage_in - water_out_storage_out) > maxerr) {
+		fail("irrigated_water_uptake - error in the water balance!\n");
+	}
+
+
 	if (iftwolayersoil) 
 		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
 		return water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
-				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
 
@@ -1831,15 +1967,15 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (day.isstart || spft.irrigated && pft.id == patch.stand.pftid) {
+		if (day.isstart || patch.stand.isirrigated) {
 
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
 			// (this then represents the average amount of water available over an
 			// individual's FPC, assuming individuals are equal in competition for water)
 			double wr;
-
-			if (spft.irrigated && pft.id == patch.stand.pftid) {
+ 
+			if (patch.stand.isirrigated) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
@@ -1852,22 +1988,52 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
-			else
-				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
+			else {
+
+				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
+					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
+							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance);
+				else
+					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 
+				}
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
+			if (patch.stand.landcover != CROPLAND && !(ifdailygrass && ppft.pft.lifeform == GRASS)){
 				ppft.wsupply_leafon = pft.emax * wr;
-			else
-				ppft.wsupply_leafon = 0.0;
-			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+			}
+			else if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+				ppft.wsupply_leafon = pft.emax * wr;
+				ppft.wsupply = ppft.wsupply_leafon;
+			}
+			else {  // crop specific water supply
+				// Temporarily removed the scaling with fpc due to 
+				// too high water stress for young crops. (r10394)
+				// TODO: Make the water supply dependant on root allocation
+				if (ppft.cropphen->growingseason) {
+					ppft.wsupply_leafon = pft.emax * wr;
+					ppft.wsupply = ppft.wsupply_leafon;
+				}
+				else {
+					ppft.wsupply_leafon = 0.0;
+					ppft.wsupply = 0.0;
+				}
+			}
 		}
 
+		if (date.get_calendar_year() == 1853 && date.day == 200)
+			int sch = 0;
+
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));
+
+		if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+			ppft.wstress = ppft.wsupply < patch.wdemand;
+		}
 
 		// Calculate water-stressed canopy conductance on FPC basis assuming
 		// FPAR=1 and deducting canopy conductance component not associated
@@ -1986,19 +2152,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		ppft.wscal_5.add(ppft.wscal);
 	}
-
-	// calculate the running sum of wscal to use for daily carbon allocation
-	if (day.isend && ifdailygrass){
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			
-			Individual& indiv = vegetation.getobj();
-			indiv.wscal_running.add(patch.pft[indiv.pft.id].wscal);
-
-			vegetation.nextobj();
-		}
-	}
 }
 
 
@@ -2079,7 +2232,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
-	double xmid;
+	double xmid = 0.0;
 
 	// Implement numerical solution
 
@@ -2290,7 +2443,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	// conductance from function aet_water_stress (above).
 	// Plant respiration obtained by a call to function respiration (above).
 
-	double par, temp, assim, resp, lambda, rad, gtemp;
+	double par, temp, assim, resp, rad, gtemp;
 	double hours = 24;			// diurnal "daylength" to convert to daily units
 
 	if (date.diurnal()) {
@@ -2318,9 +2471,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 
-		//Don't do calculations for crops outside their growingseason
+		// Don't do calculations for crops outside their growingseason
 		if (!indiv.growingseason()) {
-			indiv.dnpp=0.0;
+			indiv.dnpp = 0.0;
+			indiv.lambda = 0.0;
 			vegetation.nextobj();
 			continue;
 		}
@@ -2338,8 +2492,15 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// of light- and conductance-based equations of photosynthesis
 
 			assimilation_wstress(pft, pftco2, temp, par, hours, indiv.fpar, indiv.fpc,
-				ppft.gcbase, phot.vm, phot, lambda,
+				ppft.gcbase, phot.vm, phot, indiv.lambda,
 				indiv.nactive / indiv.nextin, ifnlim, moss_wtp_limit, graminoid_wtp_limit, inund_stress);
+
+			// Make sure that lambda isn't negative (-1) if something went wrong in the photosynthesis call
+			indiv.lambda = max(0.0, indiv.lambda);
+		}
+		else {
+			// No water limitation
+			indiv.lambda = pft.lambda_max;
 		}
 
 		assim = phot.net_assimilation();
@@ -2381,17 +2542,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		resp /= date.subdaily;
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
+		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
 
-		// Save GPP over leaf mass for daily growth of grass
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
-			double gpptolai = 0.0;
-			if (!negligible(indiv.lai)) {
-				gpptolai = assim / indiv.lai;
-			}
-			indiv.gpptolai_15.add(gpptolai);
-		}
+		// Save historical GPP for daily growth of grass
+		indiv.gpp_15.add(assim);
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
@@ -2424,8 +2580,8 @@ void leaf_senescence(Vegetation& vegetation) {
 			const double senNr = 0.1;
 			double senN = senNr * (indiv.get_nmass_leaf()-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
 
-			// Senescence is not done during spinup
-			if (date.year > nyear_spinup && senN > 0) {
+			// Senescence is not done during the period without no N-limitation
+			if (date.year > freenyears && senN > 0) {
 				indiv.nmass_leaf -= senN;
 				indiv.cropindiv->nmass_agpool += senN;
 			}
@@ -2433,12 +2589,13 @@ void leaf_senescence(Vegetation& vegetation) {
 
 		double r = 0.0;
 
-		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
+		// N dependent C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
 		if (indiv.cmass_leaf_today() > 0.0) {
 			double Ln = indiv.lai_nitrogen_today();
 			double Lnld = indiv.lai_today();
 			r = (Lnld - min(Lnld, Ln))/indiv.sla()/10.0;
 		}
+
 		// No senescence during the initial growing period
 		if (indiv.patchpft().cropphen->fphu < 0.05) {
 			indiv.daily_cmass_leafloss = 0.0;

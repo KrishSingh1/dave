@@ -51,6 +51,13 @@ int main(int argc,char* argv[]) {
 
 #endif
 
+#ifdef _MSC_VER
+
+	// Maximizing capacity of number of open files
+	_setmaxstdio(2048);
+
+#endif
+
 	// Parse command line arguments
 	CommandLineArguments args(argc, argv);
 

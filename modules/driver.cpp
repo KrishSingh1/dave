@@ -787,7 +787,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		}
 	}
 	
-	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+	if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) || 
 	     (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
@@ -796,13 +796,17 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	else if ( (climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
 	          (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
 		climate.ifsensechill = true;
+		// ensure climate.chilldays doesn't count up if mtemp doesn't drop below 5 for extended period of times.
+		climate.chilldays = 0;
 	}
+
+	climate.aprec += climate.prec;
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);
-	if (climate.temp < 5.0 && climate.chilldays <= Date::MAX_YEAR_LENGTH)
-		climate.chilldays++;
+	if (climate.temp < 5.0 && climate.chilldays < Date::MAX_YEAR_LENGTH)
+			climate.chilldays++;
 
 	climate.gdd0 += max(0.0, climate.temp);
 	climate.agdd0 += max(0.0, climate.temp);

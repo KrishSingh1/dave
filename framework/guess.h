@@ -386,6 +386,8 @@ public:
 		}
 		subdaily = 1;
 		first_calendar_year = 0;
+		nyear = 0;
+		ismidday = false;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -541,6 +543,12 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
+	double water_cont;
+	double water_cont_zero;
+	double water_cont_zero_scaled;
+	double water_flux;
+	double water_flux_zero;
+
 public:
 	MassBalance() {
 
@@ -555,6 +563,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		water_cont = 0.0;
+		water_cont_zero = 0.0;
+		water_cont_zero_scaled = 0.0;
+		water_flux = 0.0;
+		water_flux_zero = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -570,6 +583,11 @@ public:
 		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
 		nflux_zero = 0.0;
+		water_cont = 0.0;
+		water_cont_zero = 0.0;
+		water_cont_zero_scaled = 0.0;
+		water_flux = 0.0;
+		water_flux_zero = 0.0;
 	}
 
 	void init(Gridcell& gridcell);
@@ -584,10 +602,12 @@ public:
 	bool check_patch(Patch& patch, bool check_harvest = false);
 	bool check_patch_C(Patch& patch, bool check_harvest = false);
 	bool check_patch_N(Patch& patch, bool check_harvest = false);
+	bool check_patch_water(Patch& patch);
 
 	void check_year(Gridcell& gridcell); // calls both check_year_C and check_year_N
 	void check_year_C(Gridcell& gridcell);
 	void check_year_N(Gridcell& gridcell);
+	void check_year_water(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
 	void serialize(ArchiveStream& arch);
@@ -602,6 +622,11 @@ struct Wood_harvest_struct {
 	double sec_mature_cmass;
 	double sec_young_frac;
 	double sec_young_cmass;
+
+	/// Constructs an empty Wood_harvest_struct struct
+	Wood_harvest_struct() {
+		zero();
+	}
 
 	void zero() {
 		prim_frac = 0.0;
@@ -1142,9 +1167,12 @@ public:
 		mean_elevation = 0;
 
 		eet=0.0;
+		par = 0.0;
 
 		gdd0 = 0.0;
 		agdd0 = 0.0;
+
+		chilldays = 0;
 	};
 
 	/// Initialises certain member variables
@@ -1746,7 +1774,12 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		return mtlist[mtlist.getmtid(mtnames[rot])];
+		int mtid = mtlist.getmtid(mtnames[rot]);
+
+		if(mtid < 0) {
+			fail("get_management(): mt name not in mtlist; check instruction file.\n");
+		}
+		return mtlist[mtid];
 	}
 
 	/// Returns position of management in rotation list if present. Returns -1 if not.
@@ -2186,6 +2219,10 @@ public:
 		pb = -1.0;
 		vern_lag=0;
 		ps = -1.0;
+		pstemp_high = 0.0;
+		pstemp_low = 0.0;	
+		pstemp_max = 0.0;
+		pstemp_min = 0.0;
 		phu = -1.0;
 		phu_red_spring_sow = 1.0;
 		fphusen = -1.0;
@@ -2668,6 +2705,7 @@ struct cropindiv_struct : public Serializable {
 		dcmass_plant=0.0;
 		dcmass_ho=0.0;
 		dcmass_agpool=0.0;
+		dcmass_stem = 0.0;
 		grs_cmass_leaf=0.0;
 		grs_cmass_root=0.0;
 		grs_cmass_plant=0.0;
@@ -3278,6 +3316,7 @@ public:
 		
 		// Assume no mineral content on peatlands
 		sand_frac_peat = clay_frac_peat = silt_frac_peat = 0.0;
+		wtot_peat = 0.0;
 
 		runon = 0.0;
 		for (int ii = 0; ii < 10; ii++)
@@ -3311,6 +3350,7 @@ public:
 		fracremain = 0.0;
 		litterme = 0.0;
 		fireresist = 0.0;
+		ntoc = 0.0;
 
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = 0.0;
@@ -3487,8 +3527,6 @@ public:
 	double T_soil[NLAYERS];
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double T_soil_monthly[12][SOILTEMPOUT];
-	/// soil temperature from previous time step
-	double T_old[NLAYERS];
 	/// soil temperature in each layer YESTERDAY
 	double T_soil_yesterday[NLAYERS];
 	/// soil temperature at 25 cm depth, as calculated using previous versions of the model [deg C]
@@ -3918,9 +3956,10 @@ private:
 
 	// Soil temperature and hydrology methods
 	void update_from_yesterday();
-	void update_snow_properties(const int& daynum, const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow);
+	void update_snow_properties(const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow);
 	void snowpack_dynamics(const double &snowdepth, const int& soilsurfaceindex, int& snow_active_layers);
-	void update_soil_diffusivities(const int& daynum, bool ansoln);
+	void update_soil_diffusivities(bool ansoln);
+	double heatcapacity(double Frac_min, double Frac_org, double Frac_ice, double Frac_water, double Frac_peat, double Frac_air);
 	void update_ice_fraction(const int& daynum, const int& MIDX);
 	void update_layer_fractions(const int& daynum, const int& mixedl, const int& MIDX);
 
@@ -4271,6 +4310,7 @@ public:
 		anetps_ff_est_initial = 0.0;
 		wscal_mean_est = 0.0;
 		nsapling = 0;
+		water_deficit_y = 0.0;
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
@@ -4526,10 +4566,14 @@ public:
 	double ccont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false);
+	/// Total patch water and ice mass
+	double water_content();
 	/// Total patch carbon fluxes so far this year
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
+	/// Total patch water fluxes so far this year
+	double water_flux();
 	
 	/// Get 5-year mean of tree wood C mass increase (periodic annual increment)
 	double get_tree_cmass_wood_inc_5() {
@@ -4617,6 +4661,7 @@ public:
 		irrigated = false;
 		sdate_force = -1;
 		hdate_force = -1;
+		cmass_repr = 0.0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -4685,7 +4730,7 @@ public:
 	double *transfer_area_st;
 	/// land cover origin of this stand
 	/** Set to landcover for primary stands, for secondary stands: origin lc if created by transfer_to_new_stand..(),
-	/*  otherwise to NLANDCOVERTYPES
+	 *  otherwise to NLANDCOVERTYPES
 	 */
 	landcovertype lc_origin;
 	/// stand type origin of this stand
@@ -4778,10 +4823,14 @@ public:
 	double ccont(double scale_indiv = 1.0);
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
+	/// Total stand water and ice
+	double water_content();
 	/// Total stand carbon fluxes so far this year
 	double cflux();
 	/// Total stand nitrogen fluxes so far this year
 	double nflux();
+	/// Total stand water fluxes so far this year
+	double water_flux();
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -4941,6 +4990,8 @@ public:
 		wintertype=false;
 		swindow[0]=-1;
 		swindow[1]=-1;
+		swindow_irr[0] = -1;
+		swindow_irr[1] = -1;
 		sowing_restriction = false;
 	}
 
@@ -5202,15 +5253,15 @@ public:
 	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
 	ListArray_idin1<Gridcellst,StandType> st;
 
-	/// object for keeping track of carbon and nitrogen balance
+	/// object for keeping track of carbon, nitrogen and water balance
 	MassBalance balance;
 
 	// SIMFIRE
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
-	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
+	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/km2)
 	double hyde31_pop_density[57];
-	/// current year's population density (inhabitants/ha)
+	/// current year's population density (inhabitants/km2)
 	double pop_density;
 	/// tuning factor for available litter
 	double k_tun_litter;
@@ -5292,10 +5343,14 @@ public:
 	double ccont();
 	/// Total gridcell nitrogen biomass and litter
 	double ncont();
+	/// Total gridcell water and ice
+	double water_content();
 	/// Total gridcell carbon fluxes so far this year
 	double cflux();
 	/// Total gridcell nitrogen fluxes so far this year
 	double nflux();
+	/// Total gridcell water fluxes so far this year
+	double water_flux();
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

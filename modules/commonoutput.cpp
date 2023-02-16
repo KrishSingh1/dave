@@ -111,6 +111,7 @@ CommonOutput::CommonOutput() {
 	// Dave daily output files.
 	declare_parameter("file_dave_lai", &file_dave_lai, 300, "LAI by individual (m2/m2)");
 	declare_parameter("file_dave_sla", &file_dave_sla, 300, "SLA by individual (m2/kgC)");
+	declare_parameter("file_dave_cmass", &file_dave_cmass, 300, "Above-ground C biomass (kgC/m2)");
 	declare_parameter("file_dave_cmass_leaf", &file_dave_cmass_leaf, 300, "Leaf C mass (kgC/m2)");
 	declare_parameter("file_dave_nmass", &file_dave_nmass, 300, "N mass available (kgN/m2)");
 	declare_parameter("file_dave_wscal", &file_dave_wscal, 300, "Water scalar [0-1], 1 = min stress");
@@ -121,7 +122,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_rd_g", &file_rd_g, 300, "Daily leaf respiration (gC/m2/day)");
 	declare_parameter("file_je", &file_je, 300, "Daily PAR-limited photosynthesis rate (gC/m2/h)");
 	declare_parameter("file_vm", &file_vm, 300, "RuBisCO capacity (gC/m2/day)");
-	declare_parameter("file_assim", &file_assim, 300, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
+	declare_parameter("file_assim", &file_dave_assim, 300, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
 	declare_parameter("file_resp", &file_resp, 300, "Daily growth respiration (kgC/m2/day)");
 	declare_parameter("file_dnpp", &file_dnpp, 300, "Daily NPP (kgC/m2/day)");
 	declare_parameter("file_subdaily_an", &file_subdaily_an, 300, "Subdaily net photosynthesis (mol/m2/s)");
@@ -403,17 +404,19 @@ void CommonOutput::define_output_tables() {
 
 	ColumnDescriptors fpar_columns;
 	ColumnDescriptors fpar_layerwise_columns;
-	ColumnDescriptors agd_g_columns;
 	ColumnDescriptors subdaily_an_columns;
 
 	fpar_columns += ColumnDescriptor("patch", 10, 0);
 	fpar_layerwise_columns += ColumnDescriptor("patch", 10, 0);
-	agd_g_columns += ColumnDescriptor("patch", 10, 0);
 	subdaily_an_columns += ColumnDescriptor("patch", 10, 0);
 
-	agd_g_columns += ColumnDescriptors(pfts, 14, 8);
-
 	fpar_columns += ColumnDescriptors(pfts, 14, 8);
+
+	// nmass_avail and wscal don't have a 'total' column.
+	ColumnDescriptors wscal_dave_columns = fpar_columns;
+	ColumnDescriptors nmass_dave_columns = fpar_columns;
+
+	fpar_columns += ColumnDescriptor("Total", 14, 8);
 
 	fpar_layerwise_columns += ColumnDescriptor("indiv", 14, 8);
 	fpar_layerwise_columns += ColumnDescriptor("layer", 8, 0);
@@ -421,19 +424,18 @@ void CommonOutput::define_output_tables() {
 	subdaily_an_columns += ColumnDescriptor("timestep", 14, 0);
 
 	ColumnDescriptors lai_dave_columns = fpar_columns;
+	ColumnDescriptors cmass_dave_columns = fpar_columns;
 	ColumnDescriptors cmass_leaf_dave_columns = fpar_columns;
 	ColumnDescriptors sla_dave_columns = fpar_columns;
-	ColumnDescriptors wscal_dave_columns = fpar_columns;
-	ColumnDescriptors nmass_dave_columns = fpar_columns;
+	ColumnDescriptors agd_g_columns = fpar_columns;
+	ColumnDescriptors rd_g_columns = fpar_columns;
+	ColumnDescriptors je_columns = fpar_columns;
+	ColumnDescriptors vm_columns = fpar_columns;
+	ColumnDescriptors assim_columns = fpar_columns;
+	ColumnDescriptors resp_columns = fpar_columns;
+	ColumnDescriptors dnpp_columns = fpar_columns;
 
 	ColumnDescriptors lai_layerwise_columns = fpar_layerwise_columns;
-
-	ColumnDescriptors rd_g_columns = agd_g_columns;
-	ColumnDescriptors je_columns = agd_g_columns;
-	ColumnDescriptors vm_columns = agd_g_columns;
-	ColumnDescriptors assim_columns = agd_g_columns;
-	ColumnDescriptors resp_columns = agd_g_columns;
-	ColumnDescriptors dnpp_columns = agd_g_columns;
 
 	ColumnDescriptors subdaily_rd_columns = subdaily_an_columns;
 	ColumnDescriptors subdaily_anc_columns = subdaily_an_columns;
@@ -554,6 +556,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_fpar,			file_fpar, 				fpar_columns);
 	create_output_table(out_dave_lai,       file_dave_lai,          lai_dave_columns);
 	create_output_table(out_dave_sla,       file_dave_sla,          sla_dave_columns);
+	create_output_table(out_dave_cmass,     file_dave_cmass,   		cmass_dave_columns);
 	create_output_table(out_dave_cmass_leaf,file_dave_cmass_leaf,   cmass_leaf_dave_columns);
 	create_output_table(out_dave_nmass,     file_dave_nmass,        nmass_dave_columns);
 	create_output_table(out_dave_wscal,     file_dave_wscal,        wscal_dave_columns);
@@ -563,7 +566,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_rd_g,			file_rd_g, 				rd_g_columns);
 	create_output_table(out_je,				file_je, 				je_columns);
 	create_output_table(out_vm,				file_vm, 				vm_columns);
-	create_output_table(out_assim,			file_assim,				assim_columns);
+	create_output_table(out_dave_assim,		file_dave_assim,		assim_columns);
 	create_output_table(out_resp,			file_resp, 				resp_columns);
 	create_output_table(out_dnpp,			file_dnpp, 				dnpp_columns);
 	create_output_table(out_subdaily_an,	file_subdaily_an, 		subdaily_an_columns);
@@ -2030,6 +2033,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			// Write patch ID to dave output files.
 			outlimit_daily(out, out_fpar, patch.id);
 			outlimit_daily(out, out_dave_lai, patch.id);
+			outlimit_daily(out, out_dave_cmass, patch.id);
 			outlimit_daily(out, out_dave_cmass_leaf, patch.id);
 			outlimit_daily(out, out_dave_sla, patch.id);
 			outlimit_daily(out, out_dave_nmass, patch.id);
@@ -2037,7 +2041,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			outlimit_daily(out, out_rd_g, patch.id);
 			outlimit_daily(out, out_je, patch.id);
 			outlimit_daily(out, out_vm, patch.id);
-			outlimit_daily(out, out_assim, patch.id);
+			outlimit_daily(out, out_dave_assim, patch.id);
 			outlimit_daily(out, out_resp, patch.id);
 			outlimit_daily(out, out_dnpp, patch.id);
 			outlimit_daily(out, out_dave_wscal, patch.id);
@@ -2050,6 +2054,19 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				pftlist.nextobj();
 			}
 
+			// Total amounts across all PFTs.
+			double total_fpar = 0;
+			double total_dave_lai = 0;
+			double total_dave_cmass = 0;
+			double total_dave_cmass_leaf = 0;
+			double total_dave_sla = 0;
+			double total_agd_g = 0;
+			double total_rd_g = 0;
+			double total_je = 0;
+			double total_vm = 0;
+			double total_dave_assim = 0;
+			double total_resp = 0;
+			double total_dnpp = 0;
 
 			for (int i = 0; i < pfts.size(); i++) {
 			// for (Vegetation &vegetation = patch.vegetation; vegetation.isobj; vegetation.nextobj()) {
@@ -2071,13 +2088,30 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
 				double nmass_avail = patch.soil.nmass_avail;
 				double wscal = indiv ? ppft->wscal : 0;
+				double cmass = indiv ? indiv->cmass_wood() + indiv->get_cmass_leaf() : 0;
 				int indiv_id = indiv ? indiv->id : i;
+
+				total_fpar += fpar;
+				total_dave_lai += lai;
+				total_dave_cmass += cmass;
+				total_dave_cmass_leaf += cmass_leaf;
+				total_dave_sla += sla;
+				total_agd_g += agd_g;
+				total_rd_g += rd_g;
+				total_je += je;
+				total_vm += vm;
+				total_dave_assim += assim;
+				total_resp += resp;
+				total_dnpp += npp;
 
 				// fpar
 				outlimit_daily(out, out_fpar, fpar);
 
 				// lai
 				outlimit_daily(out, out_dave_lai, lai);
+
+				// cmass_leaf
+				outlimit_daily(out, out_dave_cmass, cmass);
 
 				// cmass_leaf
 				outlimit_daily(out, out_dave_cmass_leaf, cmass_leaf);
@@ -2104,7 +2138,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				outlimit_daily(out, out_vm, vm);
 
 				// assim
-				outlimit_daily(out, out_assim, assim);
+				outlimit_daily(out, out_dave_assim, assim);
 
 				// resp
 				outlimit_daily(out, out_resp, resp);
@@ -2122,7 +2156,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 						outlimit_daily(out, out_fpar_layerwise, indiv_id);
 						outlimit_daily(out, out_fpar_layerwise, j);
 						outlimit_daily(out, out_fpar_layerwise, fpar);
-						output_channel->finish_row(out_fpar_layerwise, lon, lat, date.year, date.day);
+						output_channel->finish_row(out_fpar_layerwise, lon, lat, date.get_calendar_year(), date.day);
 					}
 
 					// lai_layerwise
@@ -2132,7 +2166,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 						outlimit_daily(out, out_lai_layerwise, indiv_id);
 						outlimit_daily(out, out_lai_layerwise, j);
 						outlimit_daily(out, out_lai_layerwise, lai);
-						output_channel->finish_row(out_lai_layerwise, lon, lat, date.year, date.day);
+						output_channel->finish_row(out_lai_layerwise, lon, lat, date.get_calendar_year(), date.day);
 					}
 				}
 
@@ -2163,77 +2197,91 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 					// subdaily_an
 					outlimit_daily(out, out_subdaily_an, j);
 					outlimit_daily(out, out_subdaily_an, an);
-					output_channel->finish_row(out_subdaily_an, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_an, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_rd
 					outlimit_daily(out, out_subdaily_rd, j);
 					outlimit_daily(out, out_subdaily_rd, rd);
-					output_channel->finish_row(out_subdaily_rd, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_rd, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_anc
 					outlimit_daily(out, out_subdaily_anc, j);
 					outlimit_daily(out, out_subdaily_anc, anc);
-					output_channel->finish_row(out_subdaily_anc, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_anc, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_anj
 					outlimit_daily(out, out_subdaily_anj, j);
 					outlimit_daily(out, out_subdaily_anj, anj);
-					output_channel->finish_row(out_subdaily_anj, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_anj, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_gsw
 					outlimit_daily(out, out_subdaily_gsw, j);
 					outlimit_daily(out, out_subdaily_gsw, gsw);
-					output_channel->finish_row(out_subdaily_gsw, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_gsw, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_ci
 					outlimit_daily(out, out_subdaily_ci, j);
 					outlimit_daily(out, out_subdaily_ci, ci);
-					output_channel->finish_row(out_subdaily_ci, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_ci, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_vcmax
 					outlimit_daily(out, out_subdaily_vcmax, j);
 					outlimit_daily(out, out_subdaily_vcmax, vcmax);
-					output_channel->finish_row(out_subdaily_vcmax, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_vcmax, lon, lat, date.get_calendar_year(), date.day);
 
 					// subdaily_jmax
 					outlimit_daily(out, out_subdaily_jmax, j);
 					outlimit_daily(out, out_subdaily_jmax, jmax);
-					output_channel->finish_row(out_subdaily_jmax, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_subdaily_jmax, lon, lat, date.get_calendar_year(), date.day);
 
 					// 3. MET
 
 					// temps
 					outlimit_daily(out, out_temps, j);
 					outlimit_daily(out, out_temps, gridcell.climate.temps[j]);
-					output_channel->finish_row(out_temps, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_temps, lon, lat, date.get_calendar_year(), date.day);
 
 					// pars
 					outlimit_daily(out, out_pars, j);
 					outlimit_daily(out, out_pars, gridcell.climate.pars[j]);
-					output_channel->finish_row(out_pars, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_pars, lon, lat, date.get_calendar_year(), date.day);
 
 					// vpds
 					outlimit_daily(out, out_vpds, j);
 					outlimit_daily(out, out_vpds, gridcell.climate.vpds[j]);
-					output_channel->finish_row(out_vpds, lon, lat, date.year, date.day);
+					output_channel->finish_row(out_vpds, lon, lat, date.get_calendar_year(), date.day);
 
 				} // subdaily loop
 
 			} // individual loop
 
-			output_channel->finish_row(out_fpar, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dave_lai, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dave_cmass_leaf, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dave_sla, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dave_nmass, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dave_wscal, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_agd_g, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_rd_g, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_je, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_vm, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_assim, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_resp, lon, lat, date.year, date.day);
-			output_channel->finish_row(out_dnpp, lon, lat, date.year, date.day);
+			outlimit_daily(out, out_fpar, total_fpar);
+			outlimit_daily(out, out_dave_lai, total_dave_lai);
+			outlimit_daily(out, out_dave_cmass, total_dave_cmass);
+			outlimit_daily(out, out_dave_cmass_leaf, total_dave_cmass_leaf);
+			outlimit_daily(out, out_dave_sla, total_dave_sla);
+			outlimit_daily(out, out_agd_g, total_agd_g);
+			outlimit_daily(out, out_rd_g, total_rd_g);
+			outlimit_daily(out, out_je, total_je);
+			outlimit_daily(out, out_vm, total_vm);
+			outlimit_daily(out, out_dave_assim, total_dave_assim);
+			outlimit_daily(out, out_resp, total_resp);
+			outlimit_daily(out, out_dnpp, total_dnpp);
+
+			output_channel->finish_row(out_fpar, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_lai, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_cmass, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_cmass_leaf, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_sla, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_nmass, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_wscal, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_agd_g, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_rd_g, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_je, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_vm, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dave_assim, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_resp, lon, lat, date.get_calendar_year(), date.day);
+			output_channel->finish_row(out_dnpp, lon, lat, date.get_calendar_year(), date.day);
 
 			stand.nextobj();
 		} // patch loop

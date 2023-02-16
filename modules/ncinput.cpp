@@ -372,6 +372,7 @@ try {
 		temps = aggregate(temps, nsteps_day, mean);
 		insols = aggregate(insols, nsteps_day, mean);
 		vpds = aggregate(vpds, nsteps_day, mean);
+		pressure = aggregate(pressure, nsteps_day, mean);
 		// If required, we can aggregate using other functions as well. E.g.
 		// precs = aggregate(precs, nsteps_day, sum);
 	}

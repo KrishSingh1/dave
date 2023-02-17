@@ -3825,7 +3825,9 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
  */
 void Soilcolumn::update_stand_temp(double temp_add, double wmass_add) {
 
-	if (!negligible(wmass_stand + imass_stand + wmass_add)) {
+	// Only update standing water temperature if the added water is positive. 
+	// Negative would be removal of water and would not change temperature.
+	if (wmass_add > 1.0e-6) {
 		temp_stand = (temp_stand * (wmass_stand + imass_stand) * Ch_stand + temp_add * wmass_add * Cp_water) /
 			((wmass_stand + imass_stand) * Ch_stand + wmass_add * Cp_water);
 	}
@@ -4182,9 +4184,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		double wmass_stand_added = wflux_surf * dtsub;
 
 		// Update standing water temperature
-		if (wmass_stand_added > 0.0) {
-			update_stand_temp(rain_melt_temp, wmass_stand_added);
-		}
+		update_stand_temp(rain_melt_temp, wmass_stand_added);
 
 		// Add water to standing water (mm)
 		wmass_stand += wmass_stand_added;

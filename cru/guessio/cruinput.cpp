@@ -132,7 +132,7 @@ void CRUInput::init() {
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 

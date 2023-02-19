@@ -33,7 +33,7 @@ public:
 	MiscInput() {;}
 
 	/// Opens land cover input files
-	void init();
+	void init(xtring file_gridlist);
 
 	/// Loads disturbance from input file
 	bool loaddisturbance(double lon, double lat);

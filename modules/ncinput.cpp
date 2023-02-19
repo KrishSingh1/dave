@@ -120,7 +120,7 @@ void NCInput::init(void) {
 		soil_input.init(file_soildata);
 
 		// Open misc input file.
-		misc_input.init();
+		misc_input.init(file_gridlist);
 
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";

@@ -4,6 +4,11 @@
 
 ! outputdirectory is mandatory. Should be "./" for parallel runs.
 outputdirectory "./out/"
+ifdailyoutput 1
+
+file_assim "gpp.out"
+file_resp "resp.out"
+file_dave_lai "lai.out"
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.
@@ -12,7 +17,7 @@ file_cmass "cmass.out"
 file_agpp "agpp.out"
 file_fpc "fpc.out"
 !file_aaet "aaet.out"
-file_lai "lai.out"
+!file_lai "lai.out"
 !file_cflux "cflux.out"
 !file_doc "doc.out"
 file_dens "dens.out"

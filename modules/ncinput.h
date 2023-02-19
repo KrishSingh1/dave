@@ -106,6 +106,16 @@ public:
 	*/
 	void getmanagement(Gridcell&);
 
+	/*
+	Obtains additional environmental data that are not dynamic (e.g. elevation).
+	*/
+	void getmiscinput_static(Gridcell& gridcell);
+
+	/*
+	Obtains additional environmental data (e.g. disturbance) for one year.
+	*/
+	void getmiscinput_yearly(Gridcell& gridcell);
+
 private:
 
 	/*
@@ -178,6 +188,11 @@ private:
 	Management input module.
 	*/
 	ManagementInput management_input;
+
+	/*
+	Additional text data input module.
+	*/
+	MiscInput misc_input;
 
 	/*
 	Soil input module.
@@ -372,9 +387,14 @@ private:
 	timepoint final_timestep;
 
 	/*
-	Daily N deposition data for the current year.
+	Daily NH4 deposition data for the current year.
 	*/
-	double dndep[Date::MAX_YEAR_LENGTH];
+	double nh4_dep[Date::MAX_YEAR_LENGTH];
+
+	/*
+	Daily NO3 deposition data for the current year.
+	*/
+	double no3_dep[Date::MAX_YEAR_LENGTH];
 
 	/*
 	Upper and lower bounds for prec.

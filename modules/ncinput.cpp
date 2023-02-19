@@ -119,6 +119,9 @@ void NCInput::init(void) {
 		// Open soil data file.
 		soil_input.init(file_soildata);
 
+		// Open misc input file.
+		misc_input.init();
+
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";
 		std::vector<xtring> insol_units(1);
@@ -233,6 +236,12 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		ndep_input.getndep(file_ndep, lon, lat
 		, Lamarque::parse_timeseries((const char *)ndep_scenario));
 
+		if(readdisturbance || readdisturbance_st || readelevation_st) {
+			// Not all gridcells have to be included in input file.
+			misc_input.loaddisturbance(lon, lat);
+			misc_input.loadelevation(lon, lat);
+		}
+
 		dprintf("\nCommencing simulation for gridcell at (%g,%g)", lon, lat);
 		if (current_gridcell->description != "") {
 			dprintf(" (%s)", (const char *)current_gridcell->description);
@@ -344,7 +353,8 @@ try {
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.vpds = vpds;
-	climate.dndep = dndep[date.day];
+	gridcell.dNH4dep = nh4_dep[date.day];
+	gridcell.dNO3dep = no3_dep[date.day];
 	date.subdaily = nsteps_day;
 
 	climate.co2 = use_mean_annual_co2
@@ -403,7 +413,15 @@ void NCInput::getlandcover(Gridcell& gridcell) {
 
 void NCInput::getmanagement(Gridcell& gridcell) {
 	// Proxy this request through to the management input module.
-	management_input.getmanagement(gridcell);
+	management_input.getmanagement(gridcell, landcover_input);
+}
+
+void NCInput::getmiscinput_static(Gridcell& gridcell) {
+	misc_input.getmiscinput_static(gridcell);
+}
+
+void NCInput::getmiscinput_yearly(Gridcell& gridcell) {
+	misc_input.getmiscinput_yearly(gridcell);
 }
 
 std::unique_ptr<NCVariable> NCInput::create_variable(xtring variable_name
@@ -451,9 +469,11 @@ std::vector<NCInput::Coord> NCInput::parse_gridlist(xtring filename) const {
 
 void NCInput::update_ndep(double lon, double lat, int year) {
 	// Read monthly N deposition values from input file.
-	double ndep_dry[12];
-	double ndep_wet[12];
-	ndep_input.get_one_calendar_year(year, ndep_dry, ndep_wet);
+	double nhx_dry[12];
+	double noy_dry[12];
+	double nhx_wet[12];
+	double noy_wet[12];
+	ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
 
 	// Converting N deposition data to daily values requires daily
 	// precipitation data.
@@ -466,8 +486,9 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 	// be in mm, so we can sum the subdaily values to get a daily one.
 	std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
 
-	// Now aggregate to generate daily N deposition values.
-	distribute_ndep(ndep_dry, ndep_wet, &(daily_prec.front()), dndep);
+	// Distribute N deposition
+	distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
+					&(daily_prec.front()), nh4_dep, no3_dep);
 }
 
 int NCInput::get_nyear_data() const {

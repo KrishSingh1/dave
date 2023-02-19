@@ -829,7 +829,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 
 	if ( !is_daily(cf_temp) && weathergenerator == GWGEN ) {
 
-		int instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
+		int instype = parse_insoltype(cf_insol->get_standard_name());
 		
 		// TODO IMPLEMENT cloud-frac
 		if (!cf_min_temp || !cf_max_temp || !cf_wind || ( ( !cf_pres || !cf_specifichum ) && !cf_relhum ) ||
@@ -938,7 +938,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 		populate_daily_prec_array(gridcell.seed);
 		populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
-				     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
+				     max_insolation(parse_insoltype(cf_insol->get_standard_name())));
 		
 		if (cf_min_temp) {
 			populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);

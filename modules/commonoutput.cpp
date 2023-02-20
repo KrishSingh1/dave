@@ -2025,6 +2025,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 		stand.firstobj();
+		double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 		//Loop through Patches
 		while (stand.isobj) {
 
@@ -2084,8 +2085,10 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				double je = indiv ? indiv->photosynthesis.je : 0;
 				double vm = indiv ? indiv->photosynthesis.vm : 0;
 				double npp = indiv ? indiv->dnpp : 0;
-				double assim = indiv ? indiv->photosynthesis.net_assimilation() : 0;
-				double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
+				// double assim = indiv ? indiv->photosynthesis.net_assimilation() : 0;
+				double assim = patch.fluxes.get_daily_flux(Fluxes::GPP, date.day) * to_gridcell_average;
+				// double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
+				double resp = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * to_gridcell_average;
 				double nmass_avail = patch.soil.nmass_avail;
 				double wscal = indiv ? ppft->wscal : 0;
 				double cmass = indiv ? indiv->cmass_wood() + indiv->get_cmass_leaf() : 0;

@@ -3207,7 +3207,6 @@ void water_stress(Patch &patch) {
 			// No wscal_mean for you...
 		}
 
-		indiv.wscal_running.add(wstress);
 		ppft.wscal_5.add(ppft.wscal);
 
 		patch.vegetation.nextobj();
@@ -3361,15 +3360,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
 
-		// Save GPP over leaf mass for daily growth of grass
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
-			double gpptolai = 0.0;
-			if (!negligible(indiv.lai)) {
-				gpptolai = assim / indiv.lai;
-			}
-			indiv.gpptolai_15.add(gpptolai);
-		}
-
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
@@ -3384,53 +3374,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		vegetation.nextobj();
 	}
 }
-
-/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
-void leaf_senescence(Vegetation& vegetation) {
-
-	if (!(vegetation.patch.stand.is_true_crop_stand() && ifnlim)) {
-		return;
-	}
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		// Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
-		if (indiv.patchpft().cropphen->dev_stage > 1.0) {
-			const double senNr = 0.1;
-			double senN = senNr * (indiv.get_nmass_leaf()-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
-
-			// Senescence is not done during spinup
-			if (date.year > nyear_spinup && senN > 0) {
-				indiv.nmass_leaf -= senN;
-				indiv.cropindiv->nmass_agpool += senN;
-			}
-		}
-
-		double r = 0.0;
-
-		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
-		if (indiv.cmass_leaf_today() > 0.0) {
-			double Ln = indiv.lai_nitrogen_today();
-			double Lnld = indiv.lai_today();
-			r = (Lnld - min(Lnld, Ln))/indiv.sla()/10.0;
-		}
-		// No senescence during the initial growing period
-		if (indiv.patchpft().cropphen->fphu < 0.05) {
-			indiv.daily_cmass_leafloss = 0.0;
-		} 
-		else {
-			indiv.daily_cmass_leafloss = max(0.0, r);
-		}
-		indiv.daily_nmass_leafloss = 0.0;
-
-		vegetation.nextobj();
-	}
-}
-
-
-
 
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations

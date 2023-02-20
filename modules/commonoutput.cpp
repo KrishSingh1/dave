@@ -2284,7 +2284,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				double assim = patch.fluxes.get_daily_flux(Fluxes::GPP, date.day) * to_gridcell_average;
 				// double resp = indiv ? indiv->dnpp - indiv->photosynthesis.net_assimilation() : 0;
 				double resp = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * to_gridcell_average;
-				double nmass_avail = patch.soil.nmass_avail;
+				double nmass_avail = patch.soil.nmass_avail();
 				double wscal = indiv ? ppft->wscal : 0;
 				double cmass = indiv ? indiv->cmass_wood() + indiv->get_cmass_leaf() : 0;
 				int indiv_id = indiv ? indiv->id : i;

@@ -1933,7 +1933,7 @@ void growth_daily_grass(Patch& patch) {
 				if (!negligible(indiv.get_cmass_leaf())) {
 					if (ifnewphotosyn) {
 						// evaluate current C:N ratio against 10-day C:N ratio, not the optimal one
-						indiv.nscal_5.add(min(1.0, indiv.cton_leaf() / indiv.nscal_running.mean()));
+						indiv.nscal_5.add(min(1.0, indiv.cton_leaf() / indiv.nscal_5.mean()));
 					}
 					else {
 						indiv.nscal_5.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
@@ -1942,11 +1942,11 @@ void growth_daily_grass(Patch& patch) {
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
 				//indiv.ltor = min(indiv.wscal_running.mean(), indiv.nscal_5.mean()) * indiv.pft.ltor_max * ltor_status;
-				indiv.ltor = min(indiv.wscal_running.mean(), indiv.nscal_5.mean()) * indiv.pft.ltor_max;
+				indiv.ltor = min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * indiv.pft.ltor_max;
 			}
 			else {
 				//indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max * ltor_status;
-				indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max;
+				indiv.ltor = ppft.wscal_5.mean() * indiv.pft.ltor_max;
 			}
 			
 			// Growth rate modifiers
@@ -1990,8 +1990,8 @@ void growth_daily_grass(Patch& patch) {
 			// double const g_max = 0.1; // DW_COMMENT to be calibrated
 			// double const g_max = 0.25;
 			double const g_max = 0.2;
-			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * sb_fac * wscal_fac * tscal_fac);
-			s_fac = max(indiv.frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
+			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * indiv.sb_fac * indiv.wscal_fac * indiv.tscal_fac);
+			s_fac = max(indiv.frost_sen, indiv.pft.transferconst * indiv.wscal_sen * indiv.tscal_sen);
 
 			// Storage used for new leaf and root growth and updating old leaves and roots
 			double ngrow_leaf_demand = 0;
@@ -2064,19 +2064,18 @@ void growth_daily_grass(Patch& patch) {
 				double soilT = patch.soil.get_soil_temp_25();
 				double temp_scale = soilT > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) : 0.0;
 
-				// N limitation on growth
-				double nlim = 1.0;
-				if (ndemand_tot > 1.0e-12) {
-					nlim = min(1.0, MAX_GROWTH_RATE * indiv.nmass_storage / ndemand_tot);
-				}
-				/*
-				merge conflict - figure out if we need this
+				// // N limitation on growth
+				// double nlim = 1.0;
+				// if (ndemand_tot > 1.0e-12) {
+				// 	nlim = min(1.0, MAX_GROWTH_RATE * indiv.nmass_storage / ndemand_tot);
+				// }
+
+				// merge conflict - figure out if we need this
 				// Current plant mobile nitrogen concentration
 				double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
-				
+
 				// Scale to maximum nitrogen concentrations
 				indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
-				*/
 
 				// Calculate Individual N uptake strength
 				competing_individual.strength = nitrogen_uptake_strength(indiv);
@@ -2095,7 +2094,7 @@ void growth_daily_grass(Patch& patch) {
 
 	if (ifnewphotosyn) {
 		// Multiply nmass_avail by fpc in case patch is sparsely populated.
-		double nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
+		double nmass_avail = patch.soil.nmass_avail() * min(1.0, patch.fpc_total);
 		if (nmass_avail < patch_total_ndemand) {
 			// Insufficient N to match demand.
 			ncompete(competing_individuals, nmass_avail);
@@ -2116,7 +2115,7 @@ void growth_daily_grass(Patch& patch) {
 	i = 0;
 	while (vegetation.isobj) {
 		Individual &indiv = vegetation.getobj();
-
+		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
 

@@ -1294,7 +1294,7 @@ void vegetation_n_uptake(Patch& patch) {
 		if (date.day == 0)
 			indiv.anuptake = 0.0;
 
-		nuptake_day = max(0.0, min(soil.nmass_avail, indiv.ndemand * indiv.fnuptake));
+		nuptake_day = max(0.0, min(soil.nmass_avail(), indiv.ndemand * indiv.fnuptake));
 
 		// Add nitrogen uptake to daily growth indiv
 		if (indiv.pft.lifeform == GRASS && ifdailygrass) {

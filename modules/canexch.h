@@ -125,12 +125,14 @@ const double HD = 200.0;
 const double Vcmax25_C4 = 10.0E-6;
 
 // Activation and deactivation energy and entropy term for Vcmax (Massad et al. 2007)
-const double HA_V4 = 67.29;   // kJ mol-1
+//const double HA_V4 = 67.29;   // kJ mol-1
+const double HA_V4 = 78.00;   // kJ mol-1  // Boyd 2015
 const double HD_V4 = 144.57;  // kJ mol-1
 const double DS_V4 = 472.0;   // J mol-1 K-1
 
 // Maximum electron transport rate (mol m-2 s-1)
-const double Jmax25_C4 = 62.5E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+//const double Jmax25_C4 = 62.5E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+const double Jmax25_C4 = 101.5E-6; // max. Jmax corresponding to 62.5 umol m-2 s-1 at 25degC. To be replaced!!
 
 // Activation and deactivation energy and entropy term for Jmax (Massad et al. 2007)
 const double HA_J4 = 77.90;   // kJ mol-1
@@ -141,12 +143,18 @@ const double DS_J4 = 627.0;   // J mol-1 K-1
 const double Vpmax25 = 50.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
 
 // Activation and deactivation energy and entropy term for Vpmax (Massad et al. 2007) 
-const double HA_VP = 70.37;  // kJ mol-1
-const double HD_VP = 117.91; // kJ mol-1
-const double DS_VP = 376.0;  // J mol-1 K-1
+//const double HA_VP = 70.37;  // kJ mol-1
+//const double HD_VP = 117.91; // kJ mol-1
+//const double DS_VP = 376.0;  // J mol-1 K-1
+
+// Activation and deactivation energy and entropy term for Vpmax (Boyd et al. 2015) 
+const double HA_VP = 94.8;   // kJ mol-1
+const double HD_VP = 73.3;   // kJ mol-1
+const double DS_VP = 250.0;  // J mol-1 K-1
 
 // PEP regeneration rate (mol m-2 s-1)
-const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+//const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+const double Vpr = 40.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
 
 // Michaelis-Menten constants (von Caemmerer 2021 and references therein)
 const double KP25    = 82.0E-6;  // (mol mol-1) 

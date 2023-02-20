@@ -2152,10 +2152,12 @@ public:
 
 			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 			if (pathway == C3) {
-				transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				transferconst = 0.02 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				//transferconst = 0.005 / leaflong; // Sturt Plains: 0.005, Yanco: 0.02, Otway: 0.025
 			} 
 			else {
-				transferconst = 0.02 / leaflong; 
+				transferconst = 0.022 / leaflong; 
+				//transferconst = 0.01 / leaflong; // Otway: 0.02, Yanco: 0.022
 			}
 		}
 	}

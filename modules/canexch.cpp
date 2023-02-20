@@ -2667,8 +2667,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine N scalar of the layer
 				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
-				//Nscal = max(1.0e-12, exp(-kn * lai_cum)); 
-				Nscal = max(1.0e-12, exp(-0.30 * lai_cum));   // temporarily increase kn to compensate for big-leaf approach. 
+				Nscal = max(1.0e-12, exp(-kn * lai_cum));
 				// TODO discretise grass layers
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
@@ -2693,7 +2692,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 						// 1) Rubisco-limited gross photosynthesis
 						gamma = vcmax;
-						beta  = Kc * divide(1.0 + O2atm, Ko);
+						beta  = Kc * (1.0 + divide(O2atm,Ko));
 						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 						// 2) RuBP regeneration-limited gross photosynthesis
@@ -2735,15 +2734,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						// TODO: different temp dependency in C3 and C4 plants??
-						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-						jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
+						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
+						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
+						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
+						jmax  = Nscal * ppft.wscal * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
 
 						// Temperature dependency of Vpmax and Michaelis-Menten constants
 						Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
 						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 						Kc    = Arrhenius_temp_response(KC25_C4,temp,HA_KC_C4,0.0,0.0);
 						Ko    = Arrhenius_temp_response(KO25_C4,temp,HA_KO_C4,0.0,0.0);
-						Km    = Kc * divide(1.0 + O2atm, Ko);
+						Km    = Kc * (1.0 + divide(O2atm,Ko));
 
 						// Iteration to find An, gs, and ci
 						ci = 0.5 * ca;

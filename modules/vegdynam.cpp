@@ -722,19 +722,16 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-<<<<<<<
+						if (ifnewphotosyn) {
+							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
+						}
+
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
 							bminit = PLANTSIZE; // Fixed sap size after first cutting
 						}
 						else {
 							bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 						}
-=======
-						if (ifnewphotosyn) {
-							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
-						}
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
->>>>>>>
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter

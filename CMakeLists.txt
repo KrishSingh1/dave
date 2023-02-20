@@ -83,6 +83,8 @@ if (MPI_FOUND)
   add_definitions(-DHAVE_MPI)
 endif()
 
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=vla-extension")
+
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 

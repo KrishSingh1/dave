@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "getcliminput.h"
+#include "soilinput.h"
 #include "guessmath.h"
 
 #include "driver.h"
@@ -33,6 +34,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 GetclimInput::GetclimInput() {
 
+	in_clim = NULL;
 }
 
 
@@ -71,10 +73,17 @@ void GetclimInput::init() {
 	// DESCRIPTION
 	// Initialises input (e.g. opening files)
 
-	// Open landcover files
+	// Getclim input module currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
+	if (weathergenerator == GWGEN || firemodel == BLAZE) {
+		fail("Getclim input module currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
+	}
+
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init(param["file_gridlist"].str);
 
 	xtring driver_file_path = param["getclim_driver_file"].str;
 
@@ -104,6 +113,12 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 
 	if (grid_count++ > 0) return false;
 			
+	if(readdisturbance || readdisturbance_st || readelevation_st) {
+		// Not all gridcells have to be included in input file
+		misc_input.loaddisturbance(lon, lat);
+		misc_input.loadelevation(lon, lat);
+	}
+
 	if(run_landcover) {
 		LUerror = landcover_input.loadlandcover(lon, lat);
 		if(!LUerror)
@@ -174,7 +189,8 @@ bool GetclimInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / 365.0 * HA_PER_M2;
+	gridcell.dNH4dep  = ndep / 2.0 / 365.0 * HA_PER_M2;
+	gridcell.dNO3dep = ndep / 2.0 / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

@@ -154,7 +154,6 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 	return gridfound;
 }
 
-
 void DemoInput::init() {
 
 	// DESCRIPTION
@@ -168,6 +167,11 @@ void DemoInput::init() {
 	double dlon,dlat;
 	bool eof=false;
 	xtring descrip;
+
+	// Demo input currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
+	if (weathergenerator == GWGEN || firemodel == BLAZE) {
+		fail("Demo input currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins, europe.ins, and arctic.ins.");
+	}
 
 	// Read list of grid coordinates and store in global Coord object 'gridlist'
 
@@ -207,6 +211,8 @@ void DemoInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init(param["file_gridlist"].str);
 
 	// Retrieve input file names as read from ins file
 
@@ -250,6 +256,12 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
+
+			if(readdisturbance || readdisturbance_st || readelevation_st) {
+				// Not all gridcells have to be included in input file
+				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+				misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
+			}
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {
@@ -312,7 +324,8 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / 365.0 * HA_PER_M2;
+	gridcell.dNH4dep = ndep / 2.0 / 365.0 * HA_PER_M2;
+	gridcell.dNO3dep = ndep / 2.0 / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

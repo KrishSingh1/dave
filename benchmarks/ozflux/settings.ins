@@ -22,6 +22,15 @@ param "file_simfire"          (str "../forcing/SimfireInput.bin")               
 ! N Deposition Data
 param "file_ndep"             (str "../forcing/ndep/GlobalNitrogenDeposition.bin")    ! Relative to the main .ins file, not this one
 
+! Disturbance Data (optional)
+param "file_disturbance"      (str "")
+
+! Stand Disturbance Data (optional)
+param "file_disturbance_st"   (str "")
+
+! Elevation Data (optional)
+param "file_elevation_st"     (str "")
+
 ! Number of timesteps per day.
 nsteps_day            			8
 
@@ -103,9 +112,9 @@ ifcalcsla 1            ! Whether to calculate SLA from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
-!firemodel "BLAZE"        ! BLAZE, GLOBFIRM, NOFIRE
-iffire 1
-!weathergenerator "GWGEN"    ! GWGEN, INTERP
+firemodel "BLAZE"        ! BLAZE, GLOBFIRM, NOFIRE
+!iffire 1
+weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode

@@ -6,23 +6,25 @@
 1.0	0.5	0.0
 4 IBS
 0.5	0.5	0.5
-5 C3G
+5 TeBS
+0.0	0.5	0.0
+6 C3G
 0.1	1.0	0.0
-6 HSE
+7 HSE
 1.0	0.0	0.1
-7 HSS
+8 HSS
 0.0	0.0	0.0
-8 LSE
+9 LSE
 0.0	0.6	1.0
 10 LSS
 0.9	0.0	1.0
-12 GRT
+11 GRT
 0.2	0.0	0.2
-13 EPDS
+12 EPDS
 0.0	0.0	1.0
-14 SPDS
+13 SPDS
 0.8	0.8	0.1
-15 CLM
+14 CLM
 0.2	0.2	0.2
-19 No vegetation
+15 No vegetation
 1.0	1.0	1.0

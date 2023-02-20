@@ -80,8 +80,12 @@ private:
 	 */
 	std::vector<double> watch_temp, watch_swdown, watch_rainf, watch_snowf;
 
-	// Daily N deposition for one year
-	double dndep[365];
+	/// Nitrogen deposition forcing for current gridcell
+	Lamarque::NDepData ndep;
+
+	/// Daily N deposition for current year
+	double dNH4dep[Date::MAX_YEAR_LENGTH];
+	double dNO3dep[Date::MAX_YEAR_LENGTH];
 };
 
 #endif // LPJ_GUESS_WATCH_DIURNAL_H

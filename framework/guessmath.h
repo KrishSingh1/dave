@@ -34,7 +34,7 @@ const double HA_PER_M2		= 1E-4;
 const double M2_PER_HA		= 1E4;
 const double CM2_PER_M2		= 1E4;
 const double MM2_PER_M2		= 1E6;
-const double SQ_M			= 1.0; // 1 m2
+const double SQ_M			= 1.0;		// 1 m2
 const double M_PER_MM		= 1E-3;
 const double CM_PER_M		= 1E2;
 const double CM_PER_MM		= 1E-1;
@@ -43,10 +43,15 @@ const double MM_PER_CM		= 1E1;
 const double KG_PER_G		= 1E-3;
 const double G_PER_KG		= 1E3;
 const double G_PER_MG		= 1E-3;
-const double MG_PER_G		= 1E3;
+const double MG_PER_G		= 1E3;		// Milligrams
+const double KG_PER_MT		= 1E3;		// Metric tonnes
 const double MMOL_PER_MOL	= 1E3;
 const double UMOL_PER_MOL   = 1E6;
 const double J_PER_KJ		= 1E3;
+const double KMH_PER_MS         = 3.6;
+const double FRACT_TO_PERCENT   = 100.;
+const double PERCENT_TO_FRACT   = 0.01;
+const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 
 inline bool negligible(double dval, int limit = 0) {
 	// If limit is nonzero, returns true if |dval| < 10^limit.
@@ -174,6 +179,10 @@ public:
 
 	Historic()
 		: current_index(0), full(false) {
+		
+		for (size_t i = 0; i < capacity; ++i) {
+			values[i] = 0.0;
+		}
 	}
 
 	/// Adds a value, overwriting the oldest if full
@@ -271,9 +280,10 @@ public:
 
 	/// Trend/Slope of a linear regression of values
 	T trend() const {
+		T result = 0.0;
 
 		if (size() == 1)
-			return 0.0;
+			return result;
 		else {
 
 			const size_t nvalues = size();
@@ -299,7 +309,9 @@ public:
 				denominator += (x[i] - x_avr) * (x[i] - x_avr);
 			}
 
-			return numerator / denominator;
+			result = numerator / denominator;
+
+			return result;
 		}
 	}
 

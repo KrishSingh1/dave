@@ -1741,37 +1741,6 @@ void growth_daily_grass(Patch& patch) {
 	// C retranslocation fraction for C4 grass senescense
 	const double C4_RETRANS = 0.05;
 
-	// new biomass for this time period on modelled area basis (kgC/m2)
-	double bminc = 0.0;
-	// C allocated to reproduction this time period on modelled area basis (kgC/m2)
-	double cmass_repr = 0.0;
-	// leaf C growth this time period
-	double cgrow_leaf = 0.0;
-	// leaf N growth this time period
-	double ngrow_leaf = 0.0;
-	// leaf N update this time period
-	double nup_leaf = 0.0;
-	// root C growth this time period
-	double cgrow_root = 0.0;
-	// root N growth this time period
-	double ngrow_root = 0.0;
-	// Retranslocation fraction of C
-	double crelocfrac_daily = 0;
-	// Retranslocation fraction of N
-	double nrelocfrac_daily = 0;
-
-	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
-	double kNmin = 0.05;   // copied from Ndemand function
-
-	// Movment factors for growth
-	double g_fac;
-	// Movment factors for senescense and movement to litter
-	double s_fac;
-
-	// Temporary variables to move carbon and nitrogen between compartments
-	double c1, c2, c3, c4;
-	double n1, n2, n3, n4;
-
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
 	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
@@ -1789,6 +1758,8 @@ void growth_daily_grass(Patch& patch) {
 	std::vector<int> competing_individual_indices;
 	
 	std::vector<double> ngrow_leaf_demands;
+	std::vector<double> cgrow_leafs;
+	std::vector<double> cgrow_roots;
 	std::vector<double> ngrow_root_demands;
 	std::vector<double> nup_root_demands;
 	std::vector<double> nup_leaf_demands;
@@ -1805,11 +1776,21 @@ void growth_daily_grass(Patch& patch) {
 
 		bool killed=false;
 
+		// new biomass for this time period on modelled area basis (kgC/m2)
+		double bminc = 0.0;
+		// C allocated to reproduction this time period on modelled area basis (kgC/m2)
+		double cmass_repr = 0.0;
+		// leaf C growth this time period
+		double cgrow_leaf = 0.0;
+		// root C growth this time period
+		double cgrow_root = 0.0;
+
+		/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+		double kNmin = 0.05;   // copied from Ndemand function
+
 		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
 			
-			cgrow_leaf = cgrow_root = ngrow_leaf = nup_leaf = ngrow_root = 0.0;
-			c1 = c2 = c3 = c4 = 0.0;
-			n1 = n2 = n3 = n4 = 0.0;
+			cgrow_leaf = cgrow_root = 0.0;
 
 			// Initiate yearly maximum
 			if (date.day == 0) {
@@ -1886,6 +1867,9 @@ void growth_daily_grass(Patch& patch) {
 						indiv.nmass_root -= ndec;
 						bminc += cdec;
 						indiv.nmass_storage += ndec;
+
+						assert(indiv.cmass_root > 0);
+						assert(indiv.nmass_root > 0);
 
 						// Reduce leaf
 						int comp = 3;
@@ -1990,8 +1974,8 @@ void growth_daily_grass(Patch& patch) {
 			// double const g_max = 0.1; // DW_COMMENT to be calibrated
 			// double const g_max = 0.25;
 			double const g_max = 0.2;
-			g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * indiv.sb_fac * indiv.wscal_fac * indiv.tscal_fac);
-			s_fac = max(indiv.frost_sen, indiv.pft.transferconst * indiv.wscal_sen * indiv.tscal_sen);
+			indiv.g_fac = min(MAX_GROWTH_RATE, g_max * gpp_fac * indiv.sb_fac * indiv.wscal_fac * indiv.tscal_fac);
+			indiv.s_fac = max(indiv.frost_sen, indiv.pft.transferconst * indiv.wscal_sen * indiv.tscal_sen);
 
 			// Storage used for new leaf and root growth and updating old leaves and roots
 			double ngrow_leaf_demand = 0;
@@ -2086,7 +2070,8 @@ void growth_daily_grass(Patch& patch) {
 			ngrow_root_demands.push_back(ngrow_root_demand);
 			nup_root_demands.push_back(nup_root_demand);
 			nup_leaf_demands.push_back(nup_leaf_demand);
-
+			cgrow_leafs.push_back(cgrow_leaf);
+			cgrow_roots.push_back(cgrow_root);
 			i++;
 		}
 		vegetation.nextobj();
@@ -2118,6 +2103,8 @@ void growth_daily_grass(Patch& patch) {
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
+			double cgrow_leaf = cgrow_leafs[i];
+			double cgrow_root = cgrow_roots[i];
 
 			double initc = initcs[i];
 
@@ -2137,12 +2124,12 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			// Leaf and root N growth and update
-			ngrow_leaf = ngrow_leaf_demands[i] * fndemand;
-			ngrow_root = (ngrow_root_demands[i] + nup_root_demands[i]) * fndemand;
-			nup_leaf = nup_leaf_demands[i] * fndemand;
+			double ngrow_leaf = ngrow_leaf_demands[i] * fndemand;
+			double ngrow_root = (ngrow_root_demands[i] + nup_root_demands[i]) * fndemand;
+			double nup_leaf = nup_leaf_demands[i] * fndemand;
 
 			// Leaf N mass update according to compartment size
-			if (!negligible(indiv.get_cmass_leaf())) {
+			if (!negligible(indiv.get_cmass_leaf()) && !negligible(nup_leaf)) {
 				for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
 					double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
 					indiv.nmass_leafs[lf] += nup_leaf * fnup;
@@ -2169,26 +2156,33 @@ void growth_daily_grass(Patch& patch) {
 			// Root growth
 			indiv.cmass_root += cgrow_root;
 			indiv.nmass_root += ngrow_root;
-			
+
+			assert(indiv.cmass_root > 0);
+			assert(indiv.nmass_root > 0);
+
 			// Storage reduction
 			indiv.cmass_storage -= cgrow_leaf + cgrow_root;
 			indiv.nmass_storage -= ngrow_leaf + nup_leaf + ngrow_root;
 
+			assert(indiv.cmass_storage >= 0);
+			assert(indiv.nmass_storage >= 0);
+
 			// Calculate daily C and N retranslocation fraction
-			crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
+			double crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
+			double nrelocfrac_daily = 0;
 			if (!negligible(indiv.cmass_storage)) {
 				nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.cmass_storage, indiv.nmass_storage);
 			}
 
 			// Movement variables for C and N (eqn 26a-d Johnson & Thornley 1983)
-			c1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.cmass_leafs[0];
-			n1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.nmass_leafs[0];
-			c2 = indiv.s_fac * indiv.cmass_leafs[1];
-			n2 = indiv.s_fac * indiv.nmass_leafs[1];
-			c3 = indiv.s_fac * indiv.cmass_leafs[2];
-			n3 = indiv.s_fac * indiv.nmass_leafs[2];
-			c4 = indiv.s_fac * indiv.cmass_leafs[3];
-			n4 = indiv.s_fac * indiv.nmass_leafs[3];
+			double c1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.cmass_leafs[0];
+			double n1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.nmass_leafs[0];
+			double c2 = indiv.s_fac * indiv.cmass_leafs[1];
+			double n2 = indiv.s_fac * indiv.nmass_leafs[1];
+			double c3 = indiv.s_fac * indiv.cmass_leafs[2];
+			double n3 = indiv.s_fac * indiv.nmass_leafs[2];
+			double c4 = indiv.s_fac * indiv.cmass_leafs[3];
+			double n4 = indiv.s_fac * indiv.nmass_leafs[3];
 
 			// Growing leaves (eqn 26a Johnson & Thornley 1983)
 			indiv.cmass_leafs[0] += cgrow_leaf - c1;
@@ -2207,6 +2201,18 @@ void growth_daily_grass(Patch& patch) {
 			indiv.cmass_storage += crelocfrac_daily * c3;
 			indiv.nmass_leafs[3] += (1.0 - nrelocfrac_daily) * n3 - n4;
 			indiv.nmass_storage += nrelocfrac_daily * n3;
+
+			assert(indiv.cmass_storage >= 0);
+			assert(indiv.nmass_storage >= 0);
+
+			assert(indiv.cmass_leafs[0] > 0);
+			assert(indiv.nmass_leafs[0] > 0);
+			assert(indiv.cmass_leafs[1] >= 0);
+			assert(indiv.nmass_leafs[1] >= 0);
+			assert(indiv.cmass_leafs[2] >= 0);
+			assert(indiv.nmass_leafs[2] >= 0);
+			assert(indiv.cmass_leafs[3] >= 0);
+			assert(indiv.nmass_leafs[3] >= 0);
 
 			// Grazing
 			grazing_daily(indiv);

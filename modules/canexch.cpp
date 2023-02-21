@@ -3321,6 +3321,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		//Don't do calculations for crops outside their growingseason
 		if (!indiv.growingseason()) {
 			indiv.dnpp=0.0;
+			indiv.lambda = 0;
 			vegetation.nextobj();
 			continue;
 		}
@@ -3357,6 +3358,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.
+		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
 

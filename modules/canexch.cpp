@@ -3360,6 +3360,9 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
 
+		// Save historical GPP for daily growth of grass
+		indiv.gpp_15.add(assim);
+
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);

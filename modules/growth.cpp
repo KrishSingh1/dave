@@ -210,7 +210,7 @@ double calc_nrelocfrac_daily(double cton_min, double cton_max, double cmass_stor
 	double nreloc_max = nrelocfrac * 1.2;
 	double nreloc_min = nrelocfrac / 1.2;
 
-	if (negligible(cmass_storage, 12)) {
+	if (negligible(cmass_storage, -12)) {
 		return nreloc_min;
 	}
 
@@ -1156,20 +1156,6 @@ void flush_litter_repr(Patch& patch) {
 	}
 }
 
-std::vector<NCompetingIndividual> get_competing_individuals(Vegetation &vegetation) {
-	std::vector<NCompetingIndividual> result;
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual &indiv = vegetation.getobj();
-		NCompetingIndividual competing;
-		competing.ndemand = indiv.ndemand;
-		competing.strength = nitrogen_uptake_strength(indiv);
-		result.push_back(competing);
-		vegetation.nextobj();
-	}
-	return result;
-}
-
 /// GROWTH
 /** Tissue turnover and allocation of fixed carbon to reproduction and new biomass
  *	Accumulated NPP (assimilation minus maintenance and growth respiration) on
@@ -1245,9 +1231,7 @@ void growth(Stand& stand, Patch& patch) {
 		}
 	}
 
-	// Loop through individuals
 	double total_ndemand = 0;
-
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1878,8 +1862,8 @@ void growth_daily_grass(Patch& patch) {
 								double ntoc = indiv.nmass_leafs[comp] / indiv.cmass_leafs[comp];
 								double cdec = min(indiv.cmass_leafs[comp], -bminc);
 								double ndec = cdec * ntoc;
-								indiv.cmass_leafs[comp] -= cdec;
-								indiv.nmass_leafs[comp] -= ndec;
+								indiv.cmass_leafs[comp] = max(0.0, indiv.cmass_leafs[comp] - cdec);
+								indiv.nmass_leafs[comp] = max(0.0, indiv.nmass_leafs[comp] - ndec);
 								bminc += cdec;
 								indiv.nmass_storage += ndec;
 							}
@@ -1993,10 +1977,11 @@ void growth_daily_grass(Patch& patch) {
 				double cgrow = indiv.g_fac * indiv.cmass_storage;
 
 				// Leaf and root C growth
-				//cgrow_root = cgrow / (1.0 + indiv.ltor);
-				//cgrow_leaf += cgrow - cgrow_root;
-				cgrow_leaf = cgrow * indiv.ltor;
-				cgrow_root = cgrow - cgrow_leaf;
+				cgrow_root = cgrow / (1.0 + indiv.ltor);
+				cgrow_leaf = cgrow - cgrow_root;
+
+				assert(cgrow_root >= 0);
+				assert(cgrow_leaf >= 0);
 
 				if (ifnewphotosyn){
 					// N demand for growth
@@ -2188,19 +2173,22 @@ void growth_daily_grass(Patch& patch) {
 			indiv.cmass_leafs[0] += cgrow_leaf - c1;
 			indiv.nmass_leafs[0] += ngrow_leaf - n1;
 
-			// First fully expanded leaves (eqn 26b Johnson & Thornley 1983)
-			indiv.cmass_leafs[1] += c1 - c2;
-			indiv.nmass_leafs[1] += n1 - n2;
+			if (!negligible(indiv.s_fac, -14)) {
 
-			// Second fully expanded leaves (eqn 26c Johnson & Thornley 1983)
-			indiv.cmass_leafs[2] += c2 - c3;
-			indiv.nmass_leafs[2] += n2 - n3;
+				// First fully expanded leaves (eqn 26b Johnson & Thornley 1983)
+				indiv.cmass_leafs[1] += c1 - c2;
+				indiv.nmass_leafs[1] += n1 - n2;
 
-			// Senescing leaves (eqn 26d Johnson & Thornley 1983)
-			indiv.cmass_leafs[3] += (1.0 - crelocfrac_daily) * c3 - c4;
-			indiv.cmass_storage += crelocfrac_daily * c3;
-			indiv.nmass_leafs[3] += (1.0 - nrelocfrac_daily) * n3 - n4;
-			indiv.nmass_storage += nrelocfrac_daily * n3;
+				// Second fully expanded leaves (eqn 26c Johnson & Thornley 1983)
+				indiv.cmass_leafs[2] += c2 - c3;
+				indiv.nmass_leafs[2] += n2 - n3;
+
+				// Senescing leaves (eqn 26d Johnson & Thornley 1983)
+				indiv.cmass_leafs[3] += (1.0 - crelocfrac_daily) * c3 - c4;
+				indiv.cmass_storage += crelocfrac_daily * c3;
+				indiv.nmass_leafs[3] += (1.0 - nrelocfrac_daily) * n3 - n4;
+				indiv.nmass_storage += nrelocfrac_daily * n3;
+			}
 
 			assert(indiv.cmass_storage >= 0);
 			assert(indiv.nmass_storage >= 0);

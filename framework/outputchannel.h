@@ -243,7 +243,7 @@ inline double limited_cton(double cmass, double nmass) {
 	const double MAX_CTON = 1000;
 
 	if (nmass > 0.0) {
-		return min(MAX_CTON, cmass / nmass);
+		return std::min(MAX_CTON, cmass / nmass);
 	}
 	else if (cmass > 0.0) {
 		return MAX_CTON;

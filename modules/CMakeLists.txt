@@ -29,6 +29,7 @@ set(headers
   ncinput.h
   ncutil.h
   ncvariable.h
+  daveoutput.h
   )
 
 set(source  
@@ -61,6 +62,7 @@ set(source
   ncinput.cpp
   ncutil.cpp
   ncvariable.cpp
+  daveoutput.cpp
   )
 
 include(add_guess_sources)

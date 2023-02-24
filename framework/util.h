@@ -34,4 +34,9 @@ throw upon failure, but "directory already exists" is considered success.
 */
 void mkdir_p(const char *path);
 
+/*
+Return current time (in μs since unix epoch).
+*/
+double get_wall_time();
+
 #endif // _UTIL_H_

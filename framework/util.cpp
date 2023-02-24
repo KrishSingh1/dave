@@ -7,6 +7,10 @@
 #ifdef _WIN32
 #include <direct.h>
 #define mkdir(path, mode) _mkdir((path))
+#else
+#include <time.h>
+#include <sys/time.h>
+
 #endif
 
 /* Make a directory; already existing dir okay */
@@ -78,4 +82,16 @@ void mkdir_p(const char *path)
 		free(_path);
 		throw;
 	}
+}
+
+double get_wall_time() {
+#ifdef _WIN32
+	return 0;
+#endif
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }

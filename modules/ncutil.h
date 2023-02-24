@@ -197,11 +197,6 @@ Get the nested error message for the given exception.
 xtring get_nested_error_msg(const std::exception& e);
 
 /*
-Return current time (in μs since unix epoch).
-*/
-double get_wall_time();
-
-/*
 This function aggregates data over a vector in a given chunk size using the
 specified aggregator function.
 

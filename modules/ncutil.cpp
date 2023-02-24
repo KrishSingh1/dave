@@ -1,7 +1,5 @@
 #ifdef HAVE_NETCDF
 
-#include <time.h>
-#include <sys/time.h>
 #include <stdlib.h>
 
 #include "ncutil.h"
@@ -126,15 +124,6 @@ xtring get_nested_error_msg(const std::exception& e, int level = 0) {
 
 xtring get_nested_error_msg(const std::exception& e) {
 	return get_nested_error_msg(e, 0);
-}
-
-double get_wall_time() {
-    struct timeval time;
-    if (gettimeofday(&time,NULL)){
-        //  Handle error
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
 std::vector<double> aggregate(const std::vector<double>& in, size_t out_length

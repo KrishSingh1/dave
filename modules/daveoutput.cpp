@@ -64,7 +64,17 @@ DaveOutput::DaveOutput() {
 	add_annual_indiv_output("file_dave_alai", get_lai, "Annual LAI(m2/m2)");
 
 	// Daily outputs
-	add_daily_indiv_output("file_dave_dlai", [](Individual &i) { return i.lai; }, "Daily LAI(m2/m2)");
+	add_daily_indiv_output("file_dave_lai", [](Individual &i) { return i.lai; }, "LAI by individual (m2/m2)");
+	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
+	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
+	add_daily_indiv_output("file_dave_nmass_leaf", [](Individual &i) { return i.get_nmass_leaf(); }, "N mass available (kgN/m2)");
+	add_daily_indiv_output("file_dave_height", [](Individual &i) { return i.height; }, "Plant height (m)");
+	add_daily_indiv_output("file_dave_diameter", [](Individual &i) { return i.diam; }, "Stem diameter (m)");
+	add_daily_indiv_output("file_dave_density", [](Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
+	add_daily_indiv_output("file_dave_fpar", [](Individual &i) { return i.fpar; }, "Daily fpar [0-1]");
+	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
+	add_daily_indiv_output("file_dave_resp", [](Individual &i) { return i.dgpp - i.dnpp; }, "Daily growth respiration (kgC/m2/day)");
+	add_daily_indiv_output("file_dave_npp", [](Individual &i) { return i.dnpp; }, "Daily NPP (kgC/m2/day)");
 
 	// Register instruction file parameters.
 	declare_parameters();

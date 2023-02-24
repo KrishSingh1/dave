@@ -83,7 +83,11 @@ if (MPI_FOUND)
   add_definitions(-DHAVE_MPI)
 endif()
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=vla-extension")
+# MSVC doesn't seem to support variable-length arrays, so let's disable them on
+# all compilers. I'm also ignoring deprecated declations warnings, without this
+# we see a lot of noise about the usage of std::auto_ptr, which is something
+# that's being worked on but not something we need to be informed of repeatedly.
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=vla -Wno-deprecated-declarations")
 
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)

@@ -92,12 +92,21 @@ void mkdir_p(const char *path)
 
 double get_wall_time() {
 #ifdef _WIN32
-	return 0;
-#endif
+#include <windows.h>
+	LARGE_INTEGER time, freq;
+	if (!QueryPerformanceFrequency(&freq)) {
+		return 0;
+	}
+	if (!QueryPerformanceCounter(&time)) {
+		return 0;
+	}
+	return (double)time.QuadPart / freq.QuadPart;
+#else
     struct timeval time;
     if (gettimeofday(&time,NULL)){
         //  Handle error
         return 0;
     }
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
+#endif
 }

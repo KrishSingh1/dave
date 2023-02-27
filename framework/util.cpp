@@ -11,8 +11,6 @@
 #include <time.h>
 #include <sys/time.h>
 
-#endif
-
 /* Make a directory; already existing dir okay */
 void maybe_mkdir(const char* path, mode_t mode)
 {
@@ -44,8 +42,15 @@ void maybe_mkdir(const char* path, mode_t mode)
     }
 }
 
+#endif
+
 void mkdir_p(const char *path)
 {
+#ifdef _WIN32
+	// fixme: this won't create intermediate directories.
+	_mkdir(path);
+	return;
+#else
     /*
 	Adapted from
 	https://gist.github.com/JonathonReinhart/8c0d90191c38af2dcadb102c4e202950
@@ -82,6 +87,7 @@ void mkdir_p(const char *path)
 		free(_path);
 		throw;
 	}
+#endif
 }
 
 double get_wall_time() {

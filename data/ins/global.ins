@@ -165,7 +165,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 1			! Number of replicate patches to simulate
+npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -225,7 +225,7 @@ ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (
 ! WETLAND SWITCHES (no effect when run_peatland 0)
 !///////////////////////////////////////////////////////////////////////////////
 
-ifinundationstress 0		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
+ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
 ifmethane 1			! Whether to run the methane model and calculate methane fluxes
@@ -568,6 +568,8 @@ pft "BINE" (
 	seas_iso 0
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	greff_min 0.135
 )
 
 
@@ -745,6 +747,9 @@ pft "TrIBE" (
 	seas_iso 0
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	respcoeff 0.2
+	greff_min 0.135
 )
 
 

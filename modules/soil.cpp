@@ -5364,7 +5364,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		vegetation.nextobj();
 	}
 
-	// CLM5.0 hydrology
+	// Mixed-form of the Richards equation hydrology
 
 	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], wflux_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
 		Kw[NSOILLAYERS_MAX],dKwdw[NSOILLAYERS_MAX],psi[NSOILLAYERS_MAX],dpsidw[NSOILLAYERS_MAX],

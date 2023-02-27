@@ -612,9 +612,13 @@ bool blaze(Patch& patch, Climate& climate) {
 				// Reduce individual live biomass and freshly created litter
 				indiv.reduce_biomass(MAX_GRASS_BURN,MAX_GRASS_BURN);
 				
-				// Remove NPP and put it to fire flux
-				patch.fluxes.report_flux(Fluxes::FIREC,indiv.anpp*MAX_GRASS_BURN);
-				indiv.anpp *= (1. - MAX_GRASS_BURN);
+				if (!ifdailygrass || indiv.istruecrop_or_intercropgrass()) {
+
+					// Remove NPP and put it to fire flux
+					patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
+
+					indiv.anpp *= (1. - MAX_GRASS_BURN);
+				}
 
 				// Kill object if burn is total
 				if ( MAX_GRASS_BURN == 1.0 ) {

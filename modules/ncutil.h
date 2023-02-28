@@ -3,7 +3,7 @@
 
 #ifdef HAVE_NETCDF
 
-#include <limits.h>
+#include <limits>
 
 #include "guess.h"
 #include "ncvariable.h"
@@ -111,7 +111,7 @@ Return the smallest element in a vector.
 @param values: The vector.
 */
 inline double min(std::vector<double> values) {
-	double min = __DBL_MAX__;
+	double min = std::numeric_limits<double>::max();
 	for (const double& value : values) {
 		if (value < min) {
 			min = value;
@@ -126,7 +126,7 @@ Return the largest element in a vector.
 @param values: The vector.
 */
 inline double max(std::vector<double> values) {
-	double max = __DBL_MIN__;
+	double max = std::numeric_limits<double>::min();
 	for (const double& value : values) {
 		if (value > max) {
 			max = value;

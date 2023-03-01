@@ -676,12 +676,27 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 					}
 
-					double sum_dynamic = sum_tot - lc.frac[BARREN];
-					double sum_dynamic_adjusted = 1.0 - lc.frac[BARREN];
+					double sum_dynamic = sum_tot;
+					double sum_dynamic_adjusted = 1.0;
+					if (no_barren_frac_corr) {
+						sum_dynamic -= lc.frac[BARREN];
+						sum_dynamic_adjusted -= lc.frac[BARREN];
+					}
+					if (no_peatland_frac_corr) {
+						 sum_dynamic -= lc.frac[PEATLAND];
+						sum_dynamic_adjusted -= lc.frac[PEATLAND];
+					}
 
 					for(int i=0; i<NLANDCOVERTYPES; i++) {
-						if(no_barren_frac_corr) {
-							if(i != BARREN) {
+						if(no_barren_frac_corr||no_peatland_frac_corr) {
+							bool flag_adjust_lc = true;
+							if (i == BARREN && no_barren_frac_corr) {
+								flag_adjust_lc = false;
+							}
+							if (i == PEATLAND && no_peatland_frac_corr) {
+								flag_adjust_lc = false;
+							}
+							if(flag_adjust_lc) {
 								lc.frac[i] /= sum_dynamic / sum_dynamic_adjusted;
 							}
 						}

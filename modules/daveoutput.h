@@ -19,6 +19,8 @@ namespace GuessOutput {
 
 const int COLUMN_WIDTH = 14;
 const int NUMERIC_PRECISION = 8;
+const char *COLNAME_TOTAL = "total";
+const char *COLNAME_PATCH = "patch";
 
 // Output module for DAVE outputs, including per-patch outputs.
 class DaveOutput : public OutputModule {
@@ -253,6 +255,60 @@ private:
 			double (*read_output)(Individual &indiv);
 	};
 
+	class PatchLevelArrayOutput : public PatchLevelOutput {
+		public:
+			/*
+			Create a new patch-level array output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param col_name: Name of the columns in the output file (e.g. sw => sw0, sw1, sw2, ...).
+			@param n: Number of elements in the array.
+			@param get_output: A function which returns the n-th element of the array from the patch.
+			@param description: A description of the output (including units!!).
+			*/
+			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description);
+
+			/*
+			Destructor.
+			*/
+			~PatchLevelArrayOutput();
+
+			/*
+			Write a row of outputs containing one cell per array element.
+
+			@param patch: The patch for which outputs should be written.
+			@param out: Output rows instance to which outputs will be written.
+			*/
+			void write_patch(Patch &patch, OutputRows &out);
+
+		protected:
+			/*
+			Get column descriptors to be used for the output table.
+			*/
+			ColumnDescriptors get_columns();
+
+		private:
+			/*
+			Number of elements in the output array.
+			*/
+			int nelem;
+
+			/*
+			Name of the columns in the output file.
+			*/
+			std::string column_name;
+
+			/*
+			Pointer to a function which reads an element of the output array
+			from the specified patch.
+
+			@param patch: The patch.
+			@param i: Array index in range [0, n)
+			@return: The i-th element of the output array.
+			*/
+			double (*read_output)(Patch &patch, int i);
+	};
+
 	/*
 	Write the specified outputs.
 	*/
@@ -285,6 +341,28 @@ private:
 	@param description: Description of the output (with units!!).
 	*/
 	void add_annual_indiv_output(std::string name, double (*read_output)(Individual&), std::string description);
+
+	/*
+	Add a daily patch-level array output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param n: Number of array elements.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description);
+
+	/*
+	Add an annual patch-level array output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param n: Number of array elements.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_annual_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description);
 
 	/*
 	Register instruction file parameters for all output files defined by this
@@ -321,6 +399,17 @@ private:
 	@param description: Description of the output (with units!!).
 	*/
 	std::unique_ptr<OutputFile> create_individual_output(std::string name, double (*read_output)(Individual&), std::string description);
+
+	/*
+	Create a pointer to a patch-level array output. This is owned by the caller.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param n: Number of array elements.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	*/
+	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description);
 
 	/*
 	Total time spent in dave output code.

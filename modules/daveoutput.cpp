@@ -60,10 +60,10 @@ Individual *get_indiv(Vegetation &vegetation, const char *name) {
 DaveOutput::DaveOutput() {
 	double t_start = get_wall_time();
 
-	// Annual outputs.
+	// Annual individual-level outputs.
 	add_annual_indiv_output("file_dave_alai", get_lai, "Annual LAI(m2/m2)");
 
-	// Daily outputs
+	// Daily individiaul-level outputs.
 	add_daily_indiv_output("file_dave_lai", [](Individual &i) { return i.lai; }, "LAI by individual (m2/m2)");
 	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
 	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
@@ -75,6 +75,12 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_resp", [](Individual &i) { return i.dgpp - i.dnpp; }, "Daily growth respiration (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_npp", [](Individual &i) { return i.dnpp; }, "Daily NPP (kgC/m2/day)");
+
+	// Annual patch-level outputs.
+	// ...
+
+	// Daily patch-level outputs.
+	add_daily_patch_level_array_output("file_dave_sw", "sw", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity");
 
 	// Register instruction file parameters.
 	declare_parameters();
@@ -112,6 +118,14 @@ void DaveOutput::outdaily(Gridcell &gridcell) {
 	double t0 = get_wall_time();
 	write_outputs(gridcell, daily_outputs);
 	total_time += get_wall_time() - t0;
+}
+
+void DaveOutput::add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
+	daily_outputs.push_back(create_array_output(name, colname, nelem, read_output, description));
+}
+
+void DaveOutput::add_annual_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
+	annual_outputs.push_back(create_array_output(name, colname, nelem, read_output, description));
 }
 
 void DaveOutput::add_daily_indiv_output(std::string name, double (*read_output)(Individual&), std::string description) {
@@ -154,6 +168,16 @@ std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_individual_output(
 	std::string description) {
 
 	return std::make_unique<IndividualOutput>(name, read_output, description);
+}
+
+std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_array_output(
+	std::string name,
+	std::string colname,
+	int n,
+	double (*read_output)(Patch&, int),
+	std::string description) {
+
+	return std::make_unique<PatchLevelArrayOutput>(name, colname, n, read_output, description);
 }
 
 // #############################################################################
@@ -308,9 +332,9 @@ void DaveOutput::IndividualOutput::write_patch(Patch &patch, OutputRows &out) {
 
 ColumnDescriptors DaveOutput::IndividualOutput::get_columns() {
 	ColumnDescriptors columns;
-	columns += ColumnDescriptor("patch", COLUMN_WIDTH, 0);
+	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	columns += ColumnDescriptors(get_pfts(), COLUMN_WIDTH, NUMERIC_PRECISION);
-	columns += ColumnDescriptor("total", COLUMN_WIDTH, NUMERIC_PRECISION);
+	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 
 	return columns;
 }
@@ -323,6 +347,46 @@ std::vector<std::string> DaveOutput::IndividualOutput::get_pfts() {
 		pftlist.nextobj();
 	}
 	return pfts;
+}
+
+// #############################################################################
+// PatchLevelArrayOutput implementation.
+// #############################################################################
+
+DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
+		std::string param_name,
+		std::string col_name,
+		int n,
+		double (*get_output)(Patch &, int),
+		std::string description) : PatchLevelOutput(param_name, description) {
+	column_name = col_name;
+	nelem = n;
+	read_output = get_output;
+}
+
+DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
+
+void DaveOutput::PatchLevelArrayOutput::write_patch(
+		Patch &patch, OutputRows &out) {
+	double total = 0;
+	for (int i = 0; i < nelem; i++) {
+		double value = read_output(patch, i);
+		total += value;
+		write_output(out, value);
+	}
+	write_output(out, total);
+}
+
+ColumnDescriptors DaveOutput::PatchLevelArrayOutput::get_columns() {
+	ColumnDescriptors columns;
+
+	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
+	for (int i = 0; i < nelem; i++) {
+		std::string name = column_name + std::to_string(i);
+		columns += ColumnDescriptor(name.c_str(), COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+	return columns;
 }
 
 } // namespace GuessOutput

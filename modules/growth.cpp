@@ -39,6 +39,7 @@
 #include "landcover.h"
 #include "ncompete.h"
 #include <assert.h>
+#include "somdynam.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -887,21 +888,31 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		if (ifnewphotosyn){
 			// allocate cmass and nmass in storage to leaves and roots
 			// Half to leaf, half to storage.
-			indiv.cmass_leaf = (ltor * indiv.cmass_storage) / 2;
-			indiv.cmass_leafs[0] = indiv.cmass_leaf;
-			indiv.cmass_storage = indiv.cmass_leaf;
-			indiv.cmass_root = bminit * indiv.densindiv - indiv.cmass_leaf - indiv.cmass_storage;
+			double cmass_init = indiv.cmass_storage;
+
+			indiv.cmass_storage = cmass_init / 2;
+			double cmass_leaf = (cmass_init - indiv.cmass_storage) * ltor;
+			if (ifdailygrass) {
+				indiv.cmass_leafs[0] = cmass_leaf;
+			} else {
+				indiv.cmass_leaf = cmass_leaf;
+			}
+			indiv.cmass_root = cmass_init - indiv.cmass_storage - cmass_leaf;
 
 			// Half to leaf, half to storage.
-			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+			double nmass_leaf = cmass_leaf / indiv.pft.cton_leaf_avr;
+			if (ifdailygrass) {
+				indiv.nmass_leafs[0] = nmass_leaf;
+			} else {
+				indiv.nmass_leaf = nmass_leaf;
+			}
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
-			indiv.nmass_leafs[0] = indiv.nmass_leaf;
-			indiv.nmass_storage = indiv.nmass_leaf;
+			indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
 		}
 
-		 indiv.alive = true;
-		 indiv.report_flux(Fluxes::ESTC, -indiv.cmass_storage);
-		 indiv.report_flux(Fluxes::ESTN, -indiv.nmass_storage);
+		indiv.alive = true;
+		indiv.report_flux(Fluxes::ESTC, -(indiv.cmass_storage + indiv.get_cmass_leaf() + indiv.cmass_root) );
+		indiv.report_flux(Fluxes::ESTN, -(indiv.nmass_storage + indiv.get_nmass_leaf() + indiv.nmass_root) );
 	}
 	else {
 
@@ -1901,7 +1912,7 @@ void growth_daily_grass(Patch& patch) {
 				if (!negligible(indiv.get_cmass_leaf())) {
 					if (ifnewphotosyn) {
 						// evaluate current C:N ratio against 10-day C:N ratio, not the optimal one
-						indiv.nscal_5.add(min(1.0, indiv.cton_leaf() / indiv.nscal_5.mean()));
+						indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
 					}
 					else {
 						indiv.nscal_5.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
@@ -1992,8 +2003,8 @@ void growth_daily_grass(Patch& patch) {
 					// TODO: assuming C:N root proportional to C:N leaf at the moment
 
 					// N demand for update current tissue to optimal value (10% day-1)
-					nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf() - indiv.get_nmass_leaf()) * 0.1;
-					nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+					nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_avr - indiv.get_nmass_leaf()) * 0.1;
+					nup_root_demand = max(0.0, indiv.cmass_root / indiv.pft.cton_root_avr - indiv.nmass_root) * 0.1;
 					// TODO: Check this.
 				}
 				else {
@@ -2030,8 +2041,8 @@ void growth_daily_grass(Patch& patch) {
 				// Scale to maximum nitrogen concentrations
 				
 				// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
-				double soilT = patch.soil.get_soil_temp_25();
-				double temp_scale = soilT > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) : 0.0;
+				// double soilT = patch.soil.get_soil_temp_25();
+				// double temp_scale = temperature_modifier(soilT);
 
 				// // N limitation on growth
 				// double nlim = 1.0;
@@ -2041,10 +2052,13 @@ void growth_daily_grass(Patch& patch) {
 
 				// merge conflict - figure out if we need this
 				// Current plant mobile nitrogen concentration
-				double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
+				double cmass = indiv.cmass_leaf_today() + indiv.cmass_root_today();
+				double nmass = indiv.get_nmass_leaf() + indiv.nmass_root;
+				double ntoc = divide(nmass, cmass);
 
 				// Scale to maximum nitrogen concentrations
-				indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
+				double ntoc_min = 1.0 / indiv.pft.cton_leaf_min;
+				indiv.cton_status = max(0.0, (ntoc - ntoc_min) / (1.0 / indiv.pft.cton_leaf_avr - ntoc_min));
 
 				// Calculate Individual N uptake strength
 				competing_individual.strength = nitrogen_uptake_strength(indiv);
@@ -2070,14 +2084,16 @@ void growth_daily_grass(Patch& patch) {
 			ncompete(competing_individuals, nmass_avail);
 		}
 
+		patch.ndemand = 0;
 		vegetation.firstobj();
 		// Update nmass_storage in individuals.
 		for (int i = 0; i < competing_individuals.size(); i++) {
 			Individual &indiv = vegetation[competing_individual_indices[i]];
 			indiv.fnuptake = competing_individuals[i].fnuptake;
 			indiv.ndemand = competing_individuals[i].ndemand;
+			patch.ndemand += indiv.ndemand;
 			// Taken out of soil in somdynam::vegetation_n_uptake().
-			indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
+			// indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
 		}
 	}
 

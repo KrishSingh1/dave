@@ -203,7 +203,7 @@ void NCInput::init(void) {
 
 	if (strict_math) {
 #ifndef _WIN32
-		// feenableexcept(FE_DIVBYZERO | FE_INVALID);
+		feenableexcept(FE_DIVBYZERO | FE_INVALID);
 #endif
 	}
 

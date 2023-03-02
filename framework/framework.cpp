@@ -257,6 +257,9 @@ int framework(const CommandLineArguments& args) {
 
 			output_modules.outdaily(gridcell);
 
+			// Daily mass balance checks.
+			gridcell.balance.check_day(gridcell);
+
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
 				output_modules.openlocalfiles(gridcell);

@@ -2616,7 +2616,6 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 void Individual::kill(bool harvest /* = false */) {
 
 	Patchpft& ppft = patchpft();
-
 	double charvest_flux = 0.0;
 	double charvested_products_slow = 0.0;
 
@@ -3174,7 +3173,13 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& water_cont
 		& cflux
 		& nflux
-		& water_flux;
+		& water_flux
+		& ccont_yesterday
+		& cflux_yesterday
+		& ncont_yesterday
+		& nflux_yesterday
+		& water_cont_yesterday
+		& water_flux_yesterday;
 }
 
 /// Should be used together with check_indiv()
@@ -3403,6 +3408,112 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 	ncont = ncont_year;
 }
 
+void MassBalance::check_day(Gridcell &gridcell) {
+	// if (date.year < start_year) {
+	// 	return;
+	// }
+
+	check_day_c(gridcell);
+
+	if (ifcentury) {
+		// check_day_n(gridcell);
+	}
+
+	check_day_water(gridcell);
+}
+
+bool is_first_day() {
+	return date.day == 0 && date.year == 0;
+}
+
+void MassBalance::check_day_c(Gridcell &gridcell) {
+	double ccont = gridcell.ccont();
+	double cflux = gridcell.cflux();
+	if (date.day == 0) {
+		cflux_yesterday = 0;
+	}
+
+	int solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
+	bool check = ifnewphotosyn && \
+		!(date.year == solvesomcent_endyr && date.islastmonth && date.islastday);
+	 	/* || date.year >= nyear_spinup */;
+
+	if (!is_first_day() && check) {
+		double cflux_today = cflux_yesterday - cflux;
+		double expected_ccont = ccont_yesterday + cflux_today;
+
+		const double epsilon = 1e-9;
+
+		double err = ccont - expected_ccont;
+		if (fabs(err) > epsilon) {
+			dprintf("\n(%.2f, %.2f): C balance error year %d day %d: %.10f\n"
+				, gridcell.get_lon(), gridcell.get_lat(),
+				date.year, date.day, err);
+			dprintf("C pool change: %.10f\n", ccont - ccont_yesterday);
+			dprintf("C flux: %.10f\n", cflux_today);
+		}
+	}
+
+	ccont_yesterday = ccont;
+	cflux_yesterday = cflux;
+}
+
+void MassBalance::check_day_n(Gridcell &gridcell) {
+	double ncont = gridcell.ncont();
+	double nflux = gridcell.nflux(); // NO_SOIL, N2O_SOIL, gridcell.aNH4dep, gridcell.aNO3dep
+
+	if (date.day == 0) {
+		nflux_yesterday = 0;
+	}
+
+	if (!is_first_day()) {
+		double nflux_today = nflux_yesterday - nflux;
+		double expected_ncont = ncont_yesterday + nflux_today;
+
+		const double epsilon = 1e-9;
+
+		double err = ncont - expected_ncont;
+		if (fabs(err) > epsilon) {
+			dprintf("\n(%.2f, %.2f): N balance year %d day %d: %.10f\n"
+				, gridcell.get_lon(), gridcell.get_lat(),
+				date.year, date.day, err);
+			dprintf("N pool change: %.10f\n", ncont - ncont_yesterday);
+			dprintf("N flux: %.10f\n", nflux_today);
+		}
+	}
+
+	ncont_yesterday = ncont;
+	nflux_yesterday = nflux;
+}
+
+void MassBalance::check_day_water(Gridcell &gridcell) {
+	double wcont = gridcell.water_content();
+	double wflux = gridcell.water_flux();
+
+	if (date.day == 0) {
+		water_flux_yesterday = 0;
+	}
+
+	if (!is_first_day()) {
+		double wflux_today = water_flux_yesterday - wflux;
+		double expected_wcont = water_cont_yesterday + wflux_today;
+
+		const double epsilon = 1e-9;
+
+		// Ensure wcont matches yesterday's value + today's water flux.
+		double err = wcont - expected_wcont;
+		if (fabs(err) > epsilon) {
+			dprintf("\n(%.2f, %.2f): Water balance year %d day %d: %.10f\n"
+				, gridcell.get_lon(), gridcell.get_lat(),
+				date.year, date.day, err);
+			dprintf("Water content change: %.10f\n", wcont - water_cont_yesterday);
+			dprintf("Water flux: %.10f\n", wflux_today);
+		}
+	}
+
+	water_cont_yesterday = wcont;
+	water_flux_yesterday = wflux;
+}
 
 void MassBalance::check_year_C(Gridcell& gridcell) {
 

@@ -531,23 +531,33 @@ public:
 class MassBalance : public Serializable  {
 
 	int start_year;
+
 	double ccont;
 	double ccont_zero;
 	double ccont_zero_scaled;
+	double ccont_yesterday;
+
 	double cflux;
 	double cflux_zero;
+	double cflux_yesterday;
 
 	double ncont;
 	double ncont_zero;
 	double ncont_zero_scaled;
+	double ncont_yesterday;
+
 	double nflux;
 	double nflux_zero;
+	double nflux_yesterday;
 
 	double water_cont;
 	double water_cont_zero;
 	double water_cont_zero_scaled;
+	double water_cont_yesterday;
+
 	double water_flux;
 	double water_flux_zero;
+	double water_flux_yesterday;
 
 public:
 	MassBalance() {
@@ -568,6 +578,12 @@ public:
 		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
+		ccont_yesterday = 0.0;
+		cflux_yesterday = 0.0;
+		ncont_yesterday = 0.0;
+		nflux_yesterday = 0.0;
+		water_cont_yesterday = 0.0;
+		water_flux_yesterday = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -588,6 +604,12 @@ public:
 		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
+		ccont_yesterday = 0.0;
+		cflux_yesterday = 0.0;
+		ncont_yesterday = 0.0;
+		nflux_yesterday = 0.0;
+		water_cont_yesterday = 0.0;
+		water_flux_yesterday = 0.0;
 	}
 
 	void init(Gridcell& gridcell);
@@ -610,7 +632,14 @@ public:
 	void check_year_water(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
+	void check_day(Gridcell&);
+
 	void serialize(ArchiveStream& arch);
+
+private:
+	void check_day_c(Gridcell&);
+	void check_day_n(Gridcell&);
+	void check_day_water(Gridcell&);
 };
 
 /// Struct containing wood harvest information from from forest stands created by LUC functionality
@@ -1131,10 +1160,10 @@ public:
 	/// Sub-daily vapour pressure deficit (kPa).
 	std::vector<double> vpds;
 
-	/// Sub-daily PAR (\see par)
+	/// Sub-daily PAR (J/m2/day) (\see par)
 	std::vector<double> pars;
 
-	/// Sub-daily net downward shortwave solar radiation (\see rad)
+	/// Sub-daily net downward shortwave solar radiation (J/m2/day) (\see rad)
 	std::vector<double> rads;
 
 	/// Sub-daily respiration response (\see gtemp)

@@ -40,22 +40,6 @@ Get the first individual in the patch, if any are established.
 */
 Individual *get_first_indiv(Patch &patch);
 
-/*
-Get the number of canopy layers used for fpar calculations today in the
-specified patch.
-
-@param patch: A patch object.
-*/
-int get_nlayer_fpar(Patch &patch);
-
-/*
-Get the number of canopy layers used for light interception today in the
-specified patch.
-
-@param patch: A patch object.
-*/
-int get_nlayer_lai(Patch &patch);
-
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

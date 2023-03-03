@@ -4,19 +4,12 @@
 
 namespace GuessOutput {
 
-/*
-Ensure the output channel is open for writing. Abort the simualtion if not.
-*/
 void ensure_channel_open() {
 	if (!output_channel) {
 		fail("Output channel is NULL");
 	}
 }
 
-/*
-This is an example of a helper function which may be used instead of a lambda
-expression when defining an OutputFile.
-*/
 double get_lai(Individual &indiv) {
 	return indiv.lai;
 }
@@ -33,6 +26,16 @@ Individual *get_indiv(Vegetation &vegetation, const char *name) {
 		vegetation.nextobj();
 	}
 	return NULL;
+}
+
+std::vector<std::string> get_pfts() {
+	std::vector<std::string> pfts;
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		pfts.push_back((char *)pftlist.getobj().name);
+		pftlist.nextobj();
+	}
+	return pfts;
 }
 
 } // namespace GuessOutput

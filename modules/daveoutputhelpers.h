@@ -33,13 +33,6 @@ Get the name of all known PFTs.
 */
 std::vector<std::string> get_pfts();
 
-/*
-Get the first individual in the patch, if any are established.
-
-@param patch: A patch object.
-*/
-Individual *get_first_indiv(Patch &patch);
-
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

@@ -35,14 +35,4 @@ Individual *get_indiv(Vegetation &vegetation, const char *name) {
 	return NULL;
 }
 
-std::vector<std::string> get_pfts() {
-	std::vector<std::string> pfts;
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		pfts.push_back((char *)pftlist.getobj().name);
-		pftlist.nextobj();
-	}
-	return pfts;
-}
-
 } // namespace GuessOutput

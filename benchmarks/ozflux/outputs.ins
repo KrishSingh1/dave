@@ -28,34 +28,18 @@ ifdailyoutput 1
 !file_dave_met_par 			"dave_met_par.out" 			! Subdaily PAR (J/m2/timestep)");
 !file_dave_met_vpd 			"dave_met_vpd.out" 			! Subdaily VPD (kPa)");
 !file_dave_met_insol 		"dave_met_insol.out" 		! Subdaily insolation (units depend on instype)");
+!file_dave_met_pressure 	"dave_met_pressure.out" 	! Subdaily air pressure (Pa)
 
-! DAVE outputs
-file_fpar              "fpar.out"             ! Daily fpar [0-1]
-file_dave_lai          "dlai.out"             ! Daily LAI (m2/m2)
-!file_dave_cmass_leaf   "cmass_leaf.out"      ! Daily leaf cmass (kgC/m2)
-!file_dave_sla          "sla.out"             ! Daily SLA (m2/kgC)
-file_dave_nmass         "nmass_avail.out"     ! Daily N mass available (kgN/m2)
-file_dave_wscal         "wscal.out"           ! Daily water stress [0-1], 1 = min stress
-!file_fpar_layerwise    "fpar_layerwise.out"  ! Daily layered fpar [0-1]
-!file_lai_layerwise     "lai_layerwise.out"   ! Daily layered LAI (m2/m2)
-file_agd_g             "agd_g.out"           ! Daily gross photosynthesis (gC/m2/day)
-!file_rd_g              "rd_g.out"            ! Daily leaf respiration (gC/m2/day)
-!file_je                "je.out"              ! Daily PAR-limited photosynthesis rate (gC/m2/h)
-!file_vm                "vm.out"              ! RuBisCO capacity (gC/m2/day)
-!file_assim             "assim.out"           ! Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)
-!file_resp              "resp.out"            ! Daily growth respiration (kgC/m2/day)
-file_dnpp              "dnpp.out"            ! Daily NPP (kgC/m2/day)
-!file_subdaily_an       "subdaily_an.out"     ! Subdaily net photosynthesis (mol/m2/s)
-!file_subdaily_rd       "subdaily_rd.out"     ! Subdaily leaf respiration (mol/m2/s)
-!file_subdaily_anc      "subdaily_anc.out"    ! Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)
-!file_subdaily_anj      "subdaily_anj.out"    ! Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)
-!file_subdaily_gsw      "subdaily_gsw.out"    ! Subdaily stomatal conductance to water vapour (mol/m2/s)
-!file_subdaily_ci       "subdaily_ci.out"     ! Subdaily intercellular CO2 concentration (mol/mol)
-!file_subdaily_vcmax    "subdaily_vcmax.out"  ! Subdaily max carboxylation rate (mol/m2/s)
-!file_subdaily_jmax     "subdaily_jmax.out"   ! Subdaily max electron transport rate (mol/m2/s)
-!file_temps             "temps.out"           ! Subdaily temperature (°C)
-!file_pars              "pars.out"            ! Subdaily PAR (J/m2/timestep)
-!file_vpds              "vpds.out"            ! Subdaily VPD (kPa)
+!file_dave_layerwise_fpar 	"dave_layerwise_fpar.out" 	! Daily layered fpar [0-1]
+!file_dave_layerwise_lai 	"dave_layerwise_lai.out" 	! Daily layered LAI (m2/m2)
+!file_dave_subdaily_an 		"dave_subdaily_an.out" 		! Subdaily net photosynthesis (mol/m2/s)
+!file_dave_subdaily_rd 		"dave_subdaily_rd.out" 		! Subdaily leaf respiration (mol/m2/s)
+!file_dave_subdaily_anc 	"dave_subdaily_anc.out" 	! Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)
+!file_dave_subdaily_anj 	"dave_subdaily_anj.out" 	! Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)
+!file_dave_subdaily_gsw 	"dave_subdaily_gsw.out" 	! Subdaily stomatal conductance to water vapour (mol/m2/s)
+!file_dave_subdaily_ci 		"dave_subdaily_ci.out" 		! Subdaily intercellular CO2 concentration (mol/mol)
+!file_dave_subdaily_vcmax 	"dave_subdaily_vcmax.out" 	! Subdaily max carboxylation rate (mol/m2/s)
+!file_dave_subdaily_jmax 	"dave_subdaily_jmax.out" 	! Subdaily max electron transport rate (mol/m2/s)
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.

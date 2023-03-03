@@ -21,6 +21,7 @@ const int COLUMN_WIDTH = 14;
 const int NUMERIC_PRECISION = 8;
 const char *COLNAME_TOTAL = "total";
 const char *COLNAME_PATCH = "patch";
+const char *COLNAME_TIMESTEP = "timestep";
 
 // Output module for DAVE outputs, including per-patch outputs.
 class DaveOutput : public OutputModule {
@@ -187,7 +188,7 @@ private:
 			@param OutputRows: The output channel used to write output.
 			@param gridcell: The current gridcell.
 			*/
-			void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
 		protected:
 			/*
 			Create a new PatchLevelOutput instance. This is protected because
@@ -230,20 +231,15 @@ private:
 			@param patch: The patch for which outputs should be written.
 			@param out: Output rows instance to which outputs will be written.
 			*/
-			void write_patch(Patch &patch, OutputRows &out);
+			virtual void write_patch(Patch &patch, OutputRows &out);
 
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
 			*/
-			ColumnDescriptors get_columns();
+			virtual ColumnDescriptors get_columns();
 
 		private:
-
-			/*
-			Enumerate the names of all defined PFTs.
-			*/
-			std::vector<std::string> get_pfts();
 
 			/*
 			Pointer to a function which reads an output from a pointer to an
@@ -255,6 +251,65 @@ private:
 			double (*read_output)(Individual &indiv);
 	};
 
+	/*
+	This class writes an array to an output file. It writes one row of output
+	per array element. The array can (potentially) have a different number of
+	elements for each patch. One column of output is written per individual.
+	*/
+	class IndivLevelArrayOutput : public OutputFile {
+		public:
+			/*
+			Create a new individual output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param element_name: A name which describes the elements of the array (e.g. "layer"). This will be used as a column name.
+			@param get_nelem: Pointer to a function which returns the number of array elements for the specified patch. The assumption is that every individual in the patch has an output array of the same length.
+			@param get_output: A function which returns the output value from an individual.
+			@param description: A description of the output (including units!!).
+			*/
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(Patch &), double (*get_output)(Individual &, int), std::string description);
+
+			/*
+			Destructor.
+			*/
+			~IndivLevelArrayOutput() { }
+
+			/*
+			Write all rows of output to the output file for the current
+			timestep. One row will be written for each array element. One column
+			will be written for each individual.
+
+			@param OutputRows: The output channel used to write output.
+			@param gridcell: The current gridcell.
+			*/
+			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+		protected:
+			/*
+			Get column descriptors to be used for the output table.
+			*/
+			ColumnDescriptors get_columns() override;
+
+		private:
+			/*
+			Name of each element in the array (e.g. "layer").
+			*/
+			std::string elem_name;
+
+			/*
+			Get the number of elements in the output array.
+			*/
+			int (*get_n)(Patch &);
+
+			/*
+			Read the i-th element of the output array.
+			*/
+			double (*read_elem)(Individual &, int);
+	};
+
+	/*
+	This class writes an array output file. One row is written per timestep
+	(which can be yearly, daily, etc). One column is written per array element.
+	*/
 	class PatchLevelArrayOutput : public PatchLevelOutput {
 		public:
 			/*
@@ -325,6 +380,39 @@ private:
 	std::vector<std::unique_ptr<OutputFile>> annual_outputs;
 
 	/*
+	Add a daily individual-level array output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
+	@param get_nelem: Get the number of array elements for a given patch.
+	@param read_output: A function which returns the i-th element of the output property of an individual.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_daily_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
+
+	/*
+	Add an annual individual-level array output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
+	@param get_nelem: Get the number of array elements for a given patch.
+	@param read_output: A function which returns the i-th element of the output property of an individual.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_annual_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
+
+	/*
+	Add a daily individual-level array output.
+
+	This is really just a wrapper around add_daily_indiv_array_output().
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the i-th subdaily element of the output property of an individual.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_subdaily_indiv_output(std::string name, double (*read_output)(Individual&, int), std::string description);
+
+	/*
 	Add a daily individual-level output.
 
 	@param name: Parameter in the instruction file which determines output file name.
@@ -341,6 +429,17 @@ private:
 	@param description: Description of the output (with units!!).
 	*/
 	void add_annual_indiv_output(std::string name, double (*read_output)(Individual&), std::string description);
+
+	/*
+	Add a daily patch-level array output.
+
+	This is really just a wrapper around add_daily_patch_level_array_output().
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_subdaily_patch_level_output(std::string name, double (*read_output)(Patch&, int), std::string description);
 
 	/*
 	Add a daily patch-level array output.
@@ -410,6 +509,17 @@ private:
 	@param description: Description of the output (with units!!).
 	*/
 	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description);
+
+	/*
+	Create a pointer to an individual-level array output. This is owned by the caller.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
+	@param get_nelem: Get the number of array elements for a given patch.
+	@param read_output: A function which returns the i-th element of the output property of an individual.
+	@param description: Description of the output (with units!!).
+	*/
+	std::unique_ptr<OutputFile> create_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
 
 	/*
 	Total time spent in dave output code.

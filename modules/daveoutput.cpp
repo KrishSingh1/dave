@@ -11,6 +11,7 @@
 
 #include "commonoutput.h"
 #include "daveoutput.h"
+#include "daveoutputhelpers.h"
 #include "gutil.h"
 #include "outputchannel.h"
 #include "outputmodule.h"
@@ -22,37 +23,6 @@ namespace GuessOutput {
 // Register the DAVE output module.
 REGISTER_OUTPUT_MODULE("dave", DaveOutput)
 
-/*
-Ensure the output channel is open for writing. Abort the simualtion if not.
-*/
-void ensure_channel_open() {
-	if (!output_channel) {
-		fail("Output channel is NULL");
-	}
-}
-
-/*
-This is an example of a helper function which may be used instead of a lambda
-expression when defining an OutputFile.
-*/
-double get_lai(Individual &indiv) {
-	return indiv.lai;
-}
-
-Individual *get_indiv(Vegetation &vegetation, const char *name) {
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual &indiv = vegetation.getobj();
-
-		if (indiv.pft.name == name) {
-			return &indiv;
-		}
-
-		vegetation.nextobj();
-	}
-	return NULL;
-}
-
 // #############################################################################
 // DaveOutput implementation.
 // #############################################################################
@@ -60,10 +30,10 @@ Individual *get_indiv(Vegetation &vegetation, const char *name) {
 DaveOutput::DaveOutput() {
 	double t_start = get_wall_time();
 
-	// Annual individual-level outputs.
+	// Annual per-patch individual-level outputs.
 	add_annual_indiv_output("file_dave_alai", get_lai, "Annual LAI(m2/m2)");
 
-	// Daily individiaul-level outputs.
+	// Daily per-patch individiaul-level outputs.
 	add_daily_indiv_output("file_dave_lai", [](Individual &i) { return i.lai; }, "LAI by individual (m2/m2)");
 	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
 	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
@@ -75,12 +45,30 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_resp", [](Individual &i) { return i.dgpp - i.dnpp; }, "Daily growth respiration (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_npp", [](Individual &i) { return i.dnpp; }, "Daily NPP (kgC/m2/day)");
+	// fixme: wscal should really be a ppft-level output. Which is still TBI...
+	add_daily_indiv_output("file_dave_wscal", [](Individual &i) { return i.patchpft().wscal; }, "Water scalar [0-1], 1 = min stress");
+	add_daily_indiv_output("file_dave_agd_g", [](Individual &i) { return i.photosynthesis.agd_g; }, "Daily gross photosynthesis (gC/m2/day)");
+	add_daily_indiv_output("file_dave_rd_g", [](Individual &i) { return i.photosynthesis.rd_g; }, "Daily leaf respiration (gC/m2/day)");
+	add_daily_indiv_output("file_dave_je", [](Individual &i) { return i.photosynthesis.je; }, "Daily PAR-limited photosynthesis rate (gC/m2/h)");
+	add_daily_indiv_output("file_dave_vm", [](Individual &i) { return i.photosynthesis.vm; }, "RuBisCO capacity (gC/m2/day)");
+
+	// Daily individual-level array outputs.
+	// ...
+
+	// Subdaily individual-level outputs.
+	// ...
 
 	// Annual patch-level outputs.
 	// ...
 
 	// Daily patch-level outputs.
 	add_daily_patch_level_array_output("file_dave_sw", "sw", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity");
+
+	// Subdaily patch-level outputs.
+	add_subdaily_patch_level_output("file_dave_met_temp", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i]; }, "Subdaily temperature (°C)");
+	add_subdaily_patch_level_output("file_dave_met_par", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i]; }, "Subdaily PAR (J/m2/timestep)");
+	add_subdaily_patch_level_output("file_dave_met_vpd", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i]; }, "Subdaily VPD (kPa)");
+	add_subdaily_patch_level_output("file_dave_met_insol", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i]; }, "Subdaily insolation (units depend on instype)");
 
 	// Register instruction file parameters.
 	declare_parameters();
@@ -118,6 +106,22 @@ void DaveOutput::outdaily(Gridcell &gridcell) {
 	double t0 = get_wall_time();
 	write_outputs(gridcell, daily_outputs);
 	total_time += get_wall_time() - t0;
+}
+
+void DaveOutput::add_subdaily_indiv_output(std::string name, double (*read_output)(Individual&, int), std::string description) {
+	add_daily_indiv_array_output(name, COLNAME_TIMESTEP, [](Patch &p) { return date.subdaily; }, read_output, description);
+}
+
+void DaveOutput::add_daily_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description) {
+	daily_outputs.push_back(create_indiv_array_output(name, elem_name, get_nelem, read_output, description));
+}
+
+void DaveOutput::add_annual_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description) {
+	annual_outputs.push_back(create_indiv_array_output(name, elem_name, get_nelem, read_output, description));
+}
+
+void DaveOutput::add_subdaily_patch_level_output(std::string name, double (*read_output)(Patch&, int), std::string description) {
+	add_daily_patch_level_array_output(name, COLNAME_TIMESTEP, date.subdaily, read_output, description);
 }
 
 void DaveOutput::add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
@@ -178,6 +182,15 @@ std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_array_output(
 	std::string description) {
 
 	return std::make_unique<PatchLevelArrayOutput>(name, colname, n, read_output, description);
+}
+
+std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_indiv_array_output(
+		std::string name,
+		std::string elem_name,
+		int (*get_nelem)(Patch &),
+		double (*read_output)(Individual&, int),
+		std::string description) {
+	return std::make_unique<IndivLevelArrayOutput>(name, elem_name, get_nelem, read_output, description);
 }
 
 // #############################################################################
@@ -339,16 +352,6 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_columns() {
 	return columns;
 }
 
-std::vector<std::string> DaveOutput::IndividualOutput::get_pfts() {
-	std::vector<std::string> pfts;
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		pfts.push_back((char *)pftlist.getobj().name);
-		pftlist.nextobj();
-	}
-	return pfts;
-}
-
 // #############################################################################
 // PatchLevelArrayOutput implementation.
 // #############################################################################
@@ -386,6 +389,84 @@ ColumnDescriptors DaveOutput::PatchLevelArrayOutput::get_columns() {
 		columns += ColumnDescriptor(name.c_str(), COLUMN_WIDTH, NUMERIC_PRECISION);
 	}
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+	return columns;
+}
+
+// #############################################################################
+// IndivLevelArrayOutput implementation.
+// #############################################################################
+
+DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
+		std::string param_name,
+		std::string element_name,
+		int (*get_nelem)(Patch &),
+		double (*get_output)(Individual &, int),
+		std::string description) : OutputFile(param_name, description)
+{
+	elem_name = element_name;
+	get_n = get_nelem;
+	read_elem = get_output;
+}
+
+void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+	OutputRows rows(&channel, lon, lat, year, day);
+
+	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+
+		Stand &stand = *gc_itr;
+		stand.firstobj();
+
+		while (stand.isobj) {
+			Patch &patch = stand.getobj();
+
+			// Write patch ID.
+			write_output(rows, patch.id);
+
+			int nelem = get_n(patch);
+			Vegetation &vegetation = patch.vegetation;
+			for (int i = 0; i < nelem; i++) {
+
+				// Write array index.
+				write_output(rows, i);
+
+				vegetation.firstobj();
+				double total = 0;
+				while (vegetation.isobj) {
+					Individual &indiv = vegetation.getobj();
+
+					// Read array element for this individual.
+					double value = read_elem(indiv, i);
+					total += value;
+
+					// Write current array element for this individual.
+					write_output(rows, value);
+
+					vegetation.nextobj();
+				}
+
+				// Write total value across all individuals for this array elem.
+				write_output(rows, total);
+
+				// Finish the row, so next array element is written to next row.
+				finish_row(channel, lon, lat, year, day);
+			}
+		}
+	}
+}
+
+ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_columns() {
+	ColumnDescriptors columns;
+
+	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
+	columns += ColumnDescriptor(elem_name.c_str(), COLUMN_WIDTH, 0);
+	columns += ColumnDescriptors(get_pfts(), COLUMN_WIDTH, NUMERIC_PRECISION);
+	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+
 	return columns;
 }
 

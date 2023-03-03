@@ -44,6 +44,7 @@ Individual *get_first_indiv(Patch &patch) {
 	if (vegetation.isobj) {
 		return &(vegetation.getobj());
 	}
+	return NULL;
 }
 
 int get_nlayer_fpar(Patch &patch) {

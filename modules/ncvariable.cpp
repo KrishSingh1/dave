@@ -96,8 +96,8 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		ndim = get_num_dimensions(id_var);
 
 		// Get dimensions of this variable.
-		int dimensions[ndim];
-		int status = nc_inq_vardimid(id_file, id_var, dimensions);
+		std::vector<int> dimensions(ndim);
+		int status = nc_inq_vardimid(id_file, id_var, &(dimensions.front()));
 		GuessNC::handle_error(status, "Failed to get dimensions");
 
 		// Get longitude variable ID.
@@ -131,7 +131,7 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		}
 
 		// Get pointer to end of the dimensions array.
-		int *dims_end = dimensions + ndim * sizeof(int);
+		int *dims_end = &(dimensions.front()) + ndim * sizeof(int);
 
 		// Get the ordering of the dimensions for this variable.
 		for (int i = 0; i < ndim; i++) {
@@ -269,9 +269,9 @@ std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 		throw_xtring("Grid point (%.2f, %.2f) not found", lon, lat);
 	}
 
-	size_t start[ndim];
-	size_t count[ndim];
-	ptrdiff_t imap[ndim];
+	std::vector<size_t> start(ndim);
+	std::vector<size_t> count(ndim);
+	std::vector<ptrdiff_t> imap(ndim);
 	for (int i = 0; i < ndim; i++) {
 		start[i] = 0;
 		count[i] = 1;
@@ -284,8 +284,8 @@ std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 	count[dim_time] = ntimesteps;
 
 	std::vector<double> data(ntimesteps);
-	int status = nc_get_varm_double(id_file, id_var, start, count, NULL, imap
-	, &data.front());
+	int status = nc_get_varm_double(id_file, id_var, &(start.front())
+		, &(count.front()), NULL, &(imap.front()), &(data.front()));
 	GuessNC::handle_error(status, "Failed to load data from file");
 	return data;
 }
@@ -390,8 +390,8 @@ int NCVariable::index_of(double x, int var_id) const {
 	size_t length = get_dimension_length(id_dim);
 
 	// Read all data from this variable along its only dimension.
-	double data[length];
-	status = nc_get_var_double(id_file, var_id, data);
+	std::vector<double> data(length);
+	status = nc_get_var_double(id_file, var_id, &(data.front()));
 	handle_nc_error(status, "Failed to read data for %s"
 	, GuessNC::get_variable_name(id_file, var_id).c_str());
 

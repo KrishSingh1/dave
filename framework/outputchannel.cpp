@@ -224,9 +224,6 @@ void FileOutputChannel::finish_row(const Table& table,
 	 const TableDescriptor& td = get_table_descriptor(table);
 
 	if (row.size() == 0) {
-		// fixme - need better way of doing this. Currently this gets called by
-		// the OutputRows destructor when we already call it on a subdaily
-		// basis, which results in a double clear.
 		return;
 	}
 

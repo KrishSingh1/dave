@@ -1,6 +1,7 @@
 #ifdef HAVE_NETCDF
 
 #include <exception>
+#include <limits>
 #include <limits.h>
 #include <netcdf.h>
 #include <stdexcept>
@@ -17,6 +18,12 @@
 #include "ncinput.h"
 #include "ncutil.h"
 #include "parameters.h"
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 REGISTER_INPUT_MODULE("nc", NCInput)
 
@@ -50,13 +57,13 @@ NCInput::NCInput() {
 	declare_parameter("has_leap_years", &has_leap_years
 	, "1 iff input data contains leap years.");
 
-	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, __INT32_MAX__, "Seed used for random sampling of met data during spinup period");
+	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
 
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
 
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
 
-	declare_parameter("progress_interval", &progress_interval, -1, __INT32_MAX__, "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+	declare_parameter("progress_interval", &progress_interval, -1, std::numeric_limits<int>::max(), "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
 
 	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
@@ -439,9 +446,10 @@ try {
 			progress = get_progress(true);
 		}
 		progress_timer.setprogress(progress);
-		dprintf("%3d%% complete, %s elapsed, %s remaining\n"
+		const char *eol = isatty(fileno(stdout)) ? "\r" : "\n";
+		dprintf("%3d%% complete, %s elapsed, %s remaining%s"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
-			, progress_timer.remaining.str);
+			, progress_timer.remaining.str, eol);
 		if (progress_interval > 0) {
 			progress_progress_timer.settimer(progress_interval);
 		}

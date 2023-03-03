@@ -8,7 +8,9 @@
 #ifdef _WIN32
 #include <direct.h>
 #define mkdir(path, mode) _mkdir((path))
-#endif
+#else
+#include <time.h>
+#include <sys/time.h>
 
 /* Make a directory; already existing dir okay */
 void maybe_mkdir(const char* path, mode_t mode)
@@ -41,8 +43,15 @@ void maybe_mkdir(const char* path, mode_t mode)
     }
 }
 
+#endif
+
 void mkdir_p(const char *path)
 {
+#ifdef _WIN32
+	// fixme: this won't create intermediate directories.
+	_mkdir(path);
+	return;
+#else
     /*
 	Adapted from
 	https://gist.github.com/JonathonReinhart/8c0d90191c38af2dcadb102c4e202950
@@ -79,4 +88,18 @@ void mkdir_p(const char *path)
 		free(_path);
 		throw;
 	}
+#endif
+}
+
+double get_wall_time() {
+#ifdef _WIN32
+	return clock() / CLOCKS_PER_SEC;
+#else
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+#endif
 }

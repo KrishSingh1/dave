@@ -13,6 +13,7 @@
 #include "guessstring.h"
 #include <stdio.h>
 #include <string>
+#include <limits>
 #include "parameters.h"
 // header files for reading binary data archive of global nitrogen deposition
 #include "GlobalNitrogenDeposition.h"

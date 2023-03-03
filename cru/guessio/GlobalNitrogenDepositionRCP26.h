@@ -371,7 +371,7 @@ public:
 		long begin = 0;
 		long end = GLOBALNITROGENDEPOSITIONRCP26_NRECORD;
 
-		double min_diff = __DBL_MAX__;
+		double min_diff = std::numeric_limits<double>::max();
 		long closest_midpoint = -1;
 
 		while (begin < end) {

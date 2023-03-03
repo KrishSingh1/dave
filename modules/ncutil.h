@@ -3,7 +3,7 @@
 
 #ifdef HAVE_NETCDF
 
-#include <limits.h>
+#include <limits>
 
 #include "guess.h"
 #include "ncvariable.h"
@@ -111,7 +111,7 @@ Return the smallest element in a vector.
 @param values: The vector.
 */
 inline double min(std::vector<double> values) {
-	double min = __DBL_MAX__;
+	double min = std::numeric_limits<double>::max();
 	for (const double& value : values) {
 		if (value < min) {
 			min = value;
@@ -126,7 +126,7 @@ Return the largest element in a vector.
 @param values: The vector.
 */
 inline double max(std::vector<double> values) {
-	double max = __DBL_MIN__;
+	double max = std::numeric_limits<double>::min();
 	for (const double& value : values) {
 		if (value > max) {
 			max = value;
@@ -195,11 +195,6 @@ Get the nested error message for the given exception.
 @param e: The exception.
 */
 xtring get_nested_error_msg(const std::exception& e);
-
-/*
-Return current time (in μs since unix epoch).
-*/
-double get_wall_time();
 
 /*
 This function aggregates data over a vector in a given chunk size using the

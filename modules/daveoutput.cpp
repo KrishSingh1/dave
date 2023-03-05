@@ -64,7 +64,7 @@ DaveOutput::DaveOutput() {
 	// ...
 
 	// Daily patch-level outputs.
-	add_daily_patch_level_array_output("file_dave_sw", "sw", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity");
+	add_daily_patch_level_array_output("file_dave_sw", "sw", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
 
 	// Subdaily patch-level outputs.
 	add_subdaily_patch_level_output("file_dave_met_temp", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i]; }, "Subdaily temperature (°C)");
@@ -126,8 +126,8 @@ void DaveOutput::add_subdaily_patch_level_output(std::string name, double (*read
 	add_daily_patch_level_array_output(name, COLNAME_TIMESTEP, date.subdaily, read_output, description);
 }
 
-void DaveOutput::add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
-	daily_outputs.push_back(create_array_output(name, colname, nelem, read_output, description));
+void DaveOutput::add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum) {
+	daily_outputs.push_back(create_array_output(name, colname, nelem, read_output, description, total_is_sum));
 }
 
 void DaveOutput::add_annual_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
@@ -181,9 +181,10 @@ std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_array_output(
 	std::string colname,
 	int n,
 	double (*read_output)(Patch&, int),
-	std::string description) {
+	std::string description,
+	bool total_is_sum) {
 
-	return std::make_unique<PatchLevelArrayOutput>(name, colname, n, read_output, description);
+	return std::make_unique<PatchLevelArrayOutput>(name, colname, n, read_output, description, total_is_sum);
 }
 
 std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_indiv_array_output(
@@ -363,10 +364,12 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 		std::string col_name,
 		int n,
 		double (*get_output)(Patch &, int),
-		std::string description) : PatchLevelOutput(param_name, description) {
+		std::string description,
+		bool sum) : PatchLevelOutput(param_name, description) {
 	column_name = col_name;
 	nelem = n;
 	read_output = get_output;
+	total_is_sum = sum;
 }
 
 DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
@@ -378,6 +381,10 @@ void DaveOutput::PatchLevelArrayOutput::write_patch(
 		double value = read_output(patch, i);
 		total += value;
 		write_output(out, value);
+	}
+	// If total is not a sum, it is a mean. See documentation of total_is_sum.
+	if (!total_is_sum) {
+		total /= nelem;
 	}
 	write_output(out, total);
 }

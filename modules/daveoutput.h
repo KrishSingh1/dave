@@ -320,8 +320,9 @@ private:
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
+			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
 			*/
-			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description);
+			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
 
 			/*
 			Destructor.
@@ -362,6 +363,12 @@ private:
 			@return: The i-th element of the output array.
 			*/
 			double (*read_output)(Patch &patch, int i);
+
+			/*
+			If true, store the sum of the data columns in the total column. If
+			false, the mean will be stored instead.
+			*/
+			bool total_is_sum;
 	};
 
 	/*
@@ -449,8 +456,9 @@ private:
 	@param n: Number of array elements.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
+	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
 	*/
-	void add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description);
+	void add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
 
 	/*
 	Add an annual patch-level array output.
@@ -507,8 +515,9 @@ private:
 	@param n: Number of array elements.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
+	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
 	*/
-	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description);
+	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
 
 	/*
 	Create a pointer to an individual-level array output. This is owned by the caller.

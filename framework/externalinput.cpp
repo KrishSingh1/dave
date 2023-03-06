@@ -683,8 +683,16 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						sum_dynamic_adjusted -= lc.frac[BARREN];
 					}
 					if (no_peatland_frac_corr) {
-						 sum_dynamic -= lc.frac[PEATLAND];
+						sum_dynamic -= lc.frac[PEATLAND];
 						sum_dynamic_adjusted -= lc.frac[PEATLAND];
+					}
+					
+					// if only BARREN and/or PEATLAND are set, it can happen that sum_dynamic_adjusted is zero
+					if (negligible(sum_dynamic, -14)) {
+						sum_dynamic = sum_tot; // prevent div by zero
+					}
+					if (negligible(sum_dynamic_adjusted, -14)) {
+						sum_dynamic_adjusted = 1.0; // prevent div by zero
 					}
 
 					for(int i=0; i<NLANDCOVERTYPES; i++) {
@@ -1128,8 +1136,16 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		}
 	}
 	if(use_peatland_transfers && run[PEATLAND]) {
-		/** Note: We currently split the LUH2 NATURAL into NATURAL and PEATLAND(wetland) 
-		 * All net and gross lu data were adjusted, based on the wetland/(wetland+natural) ratios accordingly.
+		/** Various potential wetland approaches exists
+		 * 
+		 * wetland approach E:
+		 *   scale down avalable LU (1 - BARREN) and make room for time invariant PEATLAND
+		 *   all gross scalled down accordingly, all from and to PEATLAND should be zero
+		 *
+		 * wetland approach F: Note: approach F failed DO NOT USE!
+		 *   split the LUH2 NATURAL into NATURAL and PEATLAND(wetland)
+		 *   All net and gross lu data were adjusted, based on the wetland/(wetland+natural) ratios accordingly.
+		 *
 		 * A potential existing wood harvest on secondary natural (see file_woodharv_frac) is currently not split up,
 		 * since wetland has no tree PFTs, hence no wood harvest possible.
 		 */

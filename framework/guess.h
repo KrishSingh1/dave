@@ -1047,6 +1047,9 @@ public:
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
 
+	/// Sub-daily precipitation (mm) (\see prec)
+	std::vector<double> precs;
+
 	/// Variables used for crop sowing date or seasonality calculation
 
 	/// max temperature during the last crop test period (between two summer seasons)

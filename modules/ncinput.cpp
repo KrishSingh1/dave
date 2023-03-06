@@ -360,6 +360,7 @@ try {
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.vpds = vpds;
+	climate.precs = precs;
 	gridcell.dNH4dep = nh4_dep[date.day];
 	gridcell.dNO3dep = no3_dep[date.day];
 	date.subdaily = nsteps_day;

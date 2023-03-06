@@ -4,6 +4,11 @@
 #include "gutil.h"
 #include <stdexcept>
 
+#ifndef PATH_MAX
+// E.g. msvc
+#define PATH_MAX 4096
+#endif
+
 /*
 Throw an exception using the specified format string and arguments.
 

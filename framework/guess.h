@@ -1169,6 +1169,9 @@ public:
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
 
+	/// Sub-daily precipitation (mm) (\see prec)
+	std::vector<double> precs;
+
 	/// Sub-daily atmospheric pressure values (Pa).
 	std::vector<double> pressure;
 

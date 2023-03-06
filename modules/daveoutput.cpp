@@ -79,6 +79,7 @@ DaveOutput::DaveOutput() {
 	add_subdaily_patch_level_output("file_dave_met_par", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i]; }, "Subdaily PAR (J/m2/timestep)");
 	add_subdaily_patch_level_output("file_dave_met_vpd", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i]; }, "Subdaily VPD (kPa)");
 	add_subdaily_patch_level_output("file_dave_met_insol", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i]; }, "Subdaily insolation (units depend on instype)");
+	add_subdaily_patch_level_output("file_dave_met_precip", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i]; }, "Subdaily precipitation (mm)");
 	add_subdaily_patch_level_output("file_dave_met_pressure", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i]; }, "Subdaily air pressure (Pa)");
 
 	// Register instruction file parameters.

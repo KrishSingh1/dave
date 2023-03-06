@@ -94,6 +94,12 @@ endif()
 # on but not something we need to be informed of repeatedly.
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
+# Use CCache if it's available.
+find_program(CCACHE_FOUND ccache)
+if (CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+endif(CCACHE_FOUND)
+
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 

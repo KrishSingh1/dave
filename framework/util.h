@@ -5,8 +5,13 @@
 #include <stdexcept>
 
 #ifndef PATH_MAX
+#ifdef MAX_PATH
 // E.g. msvc
+#define PATH_MAX MAX_PATH
+#else
+// Fallback
 #define PATH_MAX 4096
+#endif
 #endif
 
 /*

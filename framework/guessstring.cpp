@@ -63,3 +63,42 @@ std::string format_string(const char* format, ...) {
 	vsnprintf(buffer, buffer_size, format, args);
 	return std::string(buffer);
 }
+
+int split_string(char* str) {
+
+	char *p = strtok(str, "\t\n ");
+	int count = 0;
+	while(p) {
+		count++;
+		p = strtok(NULL, "\t\n ");
+	}
+
+	return count;
+}
+
+bool issubstring(const char* string, const char* substring) {
+
+	bool found = false;
+
+	char *p = NULL, string_copy[200] = {0};
+
+	strcpy(string_copy, string);
+	p = strtok(string_copy, "\t\n ");
+	if(p) {
+		if(!strcmp(substring, p)) {
+			found = true;
+		}
+	}
+
+	do {
+		p = strtok(NULL, "\t\n ");
+		if(p) {
+			if(!strcmp(substring, p)) {
+				found = true;
+			}
+		}
+	}
+	while(p && !found);
+
+	return found;
+}

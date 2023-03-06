@@ -80,7 +80,7 @@ void OutputModuleContainer::outdaily(Gridcell& gridcell) {
 
 void OutputModuleContainer::openlocalfiles(Gridcell& gridcell) {
 	for (size_t i = 0; i < modules.size(); ++i) {
-		modules[i]->openlocalfiles(gridcell);
+		modules[i]->openlocalfiles(gridcell, coordinates_precision);
 	}
 }
 

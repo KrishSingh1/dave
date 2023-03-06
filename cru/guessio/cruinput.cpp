@@ -58,6 +58,7 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 
 CRUInput::CRUInput()
 	: searchradius(0),
+	  first_call(true),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
 	  spinup_mprec(NYEAR_SPINUP_DATA),
 	  spinup_msun(NYEAR_SPINUP_DATA),
@@ -126,10 +127,12 @@ void CRUInput::init() {
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
 
-	// Open landcover files
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
@@ -168,8 +171,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
 
-	int soilcode;
-	int elevation;
+	int soilcode = 0;
+	int elevation = 0;
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
@@ -202,6 +205,18 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
 									     hist_mfrs, hist_mwet, hist_mdtr, 
 									     hist_mwind, hist_mrhum);
+
+				if(gridfound) {
+					if(readdisturbance || readdisturbance_st || readelevation_st) {
+						// Not all gridcells have to be included in input file
+						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
+					}
+				}
+
+				gridcell.climate.mean_elevation = elevation;
+				if(readelevation_st)
+					dprintf("Mean elevation = %d\n", elevation);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);

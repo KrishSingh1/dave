@@ -18,6 +18,7 @@
 #include "ncinput.h"
 #include "ncutil.h"
 #include "parameters.h"
+#include "util.h" // Required by MSVC
 
 #ifdef _WIN32
 #include <io.h>

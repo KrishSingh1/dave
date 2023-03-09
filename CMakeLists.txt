@@ -87,12 +87,13 @@ endif()
 # all compilers. Note that the MSVC compiler doesn't support -Werror=vla.
 if (!MSVC)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=vla")
-endif()
 
-# Let's also ignore deprecated declations warnings; without this we see a lot of
-# noise about the usage of std::auto_ptr, which is something that's being worked
-# on but not something we need to be informed of repeatedly.
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+  # Let's also ignore deprecated declations warnings; without this we see a lot
+  # of noise about the usage of std::auto_ptr, which is something that's being
+  # worked on but not something we need to be informed of repeatedly.
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
+endif()
 
 # Use CCache if it's available.
 find_program(CCACHE_FOUND ccache)

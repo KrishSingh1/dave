@@ -72,7 +72,9 @@ DaveOutput::DaveOutput() {
 	// ...
 
 	// Daily patch-level outputs.
-	add_daily_patch_level_array_output("file_dave_sw", "sw", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity");
+	add_daily_patch_level_array_output("file_dave_sw", "sw_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
+	add_daily_patch_level_array_output("file_dave_swmm", "swmm_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i]; }, "Soil water content (mm)", false);
+	add_daily_patch_level_array_output("file_dave_swvol", "swvol_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", false);
 
 	// Subdaily patch-level outputs.
 	add_subdaily_patch_level_output("file_dave_met_temp", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i]; }, "Subdaily temperature (°C)");

@@ -95,6 +95,7 @@ private:
 
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
+			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			OutputFile(std::string param, std::string desc);
 
@@ -197,6 +198,7 @@ private:
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
 			@param cols: Columns in the output file.
+			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			PatchLevelOutput(std::string param, std::string desc);
 
@@ -217,6 +219,7 @@ private:
 			@param param_name: Name of the parameter in the instruction file which contains the output file name.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
+			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			IndividualOutput(std::string param_name, double (*get_output)(Individual &), std::string description);
 
@@ -266,6 +269,7 @@ private:
 			@param get_nelem: Pointer to a function which returns the number of array elements for the specified patch. The assumption is that every individual in the patch has an output array of the same length.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
+			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(Patch &), double (*get_output)(Individual &, int), std::string description);
 
@@ -320,6 +324,7 @@ private:
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
+			@param spinup_output: True to write outputs during spinup. False otherwise.
 			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
 			*/
 			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
@@ -535,6 +540,11 @@ private:
 	*/
 	double total_time;
 };
+
+/*
+True iff outputs should be written during spinup.
+*/
+extern bool spinup_output;
 
 }
 

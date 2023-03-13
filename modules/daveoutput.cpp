@@ -146,6 +146,8 @@ void DaveOutput::add_annual_indiv_output(std::string name, double (*read_output)
 }
 
 void DaveOutput::declare_parameters() {
+	declare_parameter("spinup_output", &spinup_output, "True to write DAVE outputs during the spinup, false otherwise.");
+
 	declare_parameters(daily_outputs);
 	declare_parameters(annual_outputs);
 }
@@ -233,9 +235,9 @@ void DaveOutput::OutputFile::close(OutputChannel &channel) {
 }
 
 bool DaveOutput::OutputFile::should_write(OutputRows &rows) {
-	// if (date.year < nyear_spinup) {
-	// 	return false;
-	// }
+	if (date.year < nyear_spinup && !spinup_output) {
+		return false;
+	}
 	return true;
 }
 
@@ -317,7 +319,8 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 DaveOutput::IndividualOutput::IndividualOutput(
 	std::string param_name,
 	double (*get_output)(Individual &),
-	std::string description) : PatchLevelOutput(param_name, description) {
+	std::string description)
+		: PatchLevelOutput(param_name, description) {
 
 	read_output = get_output;
 }
@@ -413,7 +416,8 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 		std::string element_name,
 		int (*get_nelem)(Patch &),
 		double (*get_output)(Individual &, int),
-		std::string description) : OutputFile(param_name, description)
+		std::string description)
+			: OutputFile(param_name, description)
 {
 	elem_name = element_name;
 	get_n = get_nelem;
@@ -481,5 +485,7 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_columns() {
 
 	return columns;
 }
+
+bool spinup_output;
 
 } // namespace GuessOutput

@@ -43,7 +43,7 @@ searchradius_soil               50
 met_sampling_seed             12345
 
 ! 1 to enable sensibility checking of inputs, 0 otherwise
-nc_check_inputs                1
+nc_check_inputs                0
 
 ! Cache strategy used when reading netcdf data.
 ! 0 = cache entire file (fastest, most memory intensive)
@@ -96,6 +96,8 @@ strict_math                   0
 ! Width of vertical layers for canopy-area integration (m) (default: 2).
 ! Mutually exclusive with nlayer_canopy.
 !layer_thickness_canopy   2
+
+spinup_output                  0
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! RUN PARAMETERS AND OPTIONS

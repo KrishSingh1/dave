@@ -35,16 +35,22 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "make",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
             "linux": {
                 "args": [
+                    "--build",
+                    "build",
                     "-j`nproc`"
                 ]
             },
             "osx": {
             },
             "options": {
-                "cwd": "${workspaceRoot}/build",
+                "cwd": "${workspaceRoot}",
                 "env": {
                     "CMAKE_BUILD_TYPE": "Debug"
                 }

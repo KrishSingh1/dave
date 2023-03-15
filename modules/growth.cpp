@@ -1417,13 +1417,22 @@ void growth(Stand& stand, Patch& patch) {
 							indiv.andemand_leaf = cmass_leaf_inc * indiv.cton_leaf();
 							indiv.andemand_root = cmass_root_inc * indiv.cton_root();
 							indiv.andemand_sap = cmass_sap_inc * indiv.cton_sap();
-							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root + indiv.andemand_sap;
+							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root;
+							// Note: sap_inc can be negative.
+							if (indiv.andemand_sap > 0) {
+								indiv.andemand += indiv.andemand_sap;
+							}
 							indiv.ndemand = indiv.andemand / 365; // fixme!! (Assaf)
 							total_ndemand += indiv.ndemand;
 
-							indiv.leaffndemand = indiv.andemand_leaf / indiv.ndemand;
-							indiv.rootfndemand = indiv.andemand_root / indiv.ndemand;
-							indiv.sapfndemand = indiv.andemand_sap / indiv.ndemand;
+							indiv.leaffndemand = indiv.andemand_leaf / indiv.andemand;
+							indiv.rootfndemand = indiv.andemand_root / indiv.andemand;
+							indiv.sapfndemand = indiv.andemand_sap > 0 ? indiv.andemand_sap / indiv.andemand : 0;
+
+							indiv.leafndemand = indiv.ndemand * indiv.leafndemand;
+							indiv.rootndemand = indiv.ndemand * indiv.rootfndemand;
+							indiv.sapndemand = indiv.ndemand * indiv.sapfndemand;
+							indiv.storendemand = 0;
 						}
 
 						indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);

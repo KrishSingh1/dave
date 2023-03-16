@@ -22,6 +22,9 @@
             "command": "cmake",
             "args": [
                 "-DCMAKE_BUILD_TYPE=Debug",
+                "-DCMAKE_CXX_STANDARD=14",
+                "-DCMAKE_CXX_STANDARD_REQUIRED=ON",
+                "-DCMAKE_CXX_EXTENSIONS=ON",
                 "-B",
                 "build"
             ],
@@ -35,19 +38,22 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "make",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
             "linux": {
                 "args": [
+                    "--build",
+                    "build",
                     "-j`nproc`"
                 ]
             },
             "osx": {
             },
             "options": {
-                "cwd": "${workspaceRoot}/build",
-                "env": {
-                    "CMAKE_BUILD_TYPE": "Debug"
-                }
+                "cwd": "${workspaceRoot}",
             },
             "problemMatcher": [],
             "group": {

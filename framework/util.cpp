@@ -38,8 +38,8 @@ void maybe_mkdir(const char* path, mode_t mode)
 
     /* If not, fail with ENOTDIR */
     if (!S_ISDIR(st.st_mode)) {
-		std::string reason = "Path already exists but is not a directory";
-        throw_xtring("Unable to create directory %s: %s", path, reason.c_str());
+		const char *reason = "Path already exists but is not a directory";
+        throw_xtring("Unable to create directory %s: %s", path, reason);
     }
 }
 

@@ -45,10 +45,11 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_diameter", [](Individual &i) { return i.diam; }, "Stem diameter (m)");
 	add_daily_indiv_output("file_dave_density", [](Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
 	add_daily_indiv_output("file_dave_fpar", [](Individual &i) { return i.fpar; }, "Daily fpar [0-1]");
-	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day)");
+	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily GPP (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_resp", [](Individual &i) { return i.dgpp - i.dnpp; }, "Daily growth respiration (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_npp", [](Individual &i) { return i.dnpp; }, "Daily NPP (kgC/m2/day)");
 	add_daily_indiv_output("file_dave_fpc", [](Individual &i) { return i.fpc; }, "Daily FPC ()");
+	add_daily_indiv_output("file_dave_crownarea", [](Individual &i) { return i.crownarea; }, "Daily Crown Area (m2)");
 	// fixme: wscal should really be a ppft-level output. Which is still TBI...
 	add_daily_indiv_output("file_dave_wscal", [](Individual &i) { return i.patchpft().wscal; }, "Water scalar [0-1], 1 = min stress");
 	add_daily_indiv_output("file_dave_agd_g", [](Individual &i) { return i.photosynthesis.agd_g; }, "Daily gross photosynthesis (gC/m2/day)");

@@ -12,10 +12,10 @@
             "args": [
                 "-input",
                 "nc",
-                "AdelaideRiver_L6_20071017_20090524.ins"
+                "AdelaideRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AdelaideRiver_L6_20071017_20090524",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/AdelaideRiver",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -49,10 +49,10 @@
             "args": [
                 "-input",
                 "nc",
-                "AliceSpringsMulga_L6_20100903_20211231.ins"
+                "AliceSpringsMulga.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AliceSpringsMulga_L6_20100903_20211231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/AliceSpringsMulga",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -86,10 +86,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Boyagin_L6_20171020_20211231.ins"
+                "Boyagin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Boyagin_L6_20171020_20211231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Boyagin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -123,10 +123,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Calperum_L6_20100730_20220829.ins"
+                "Calperum.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Calperum_L6_20100730_20220829",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Calperum",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -160,10 +160,10 @@
             "args": [
                 "-input",
                 "nc",
-                "CapeTribulation_L6_20100101_20181102.ins"
+                "CapeTribulation.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CapeTribulation_L6_20100101_20181102",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CapeTribulation",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -197,10 +197,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Collie_L6_20170804_20191111.ins"
+                "Collie.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Collie_L6_20170804_20191111",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Collie",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -234,10 +234,10 @@
             "args": [
                 "-input",
                 "nc",
-                "CowBay_L6_20090101_20211231.ins"
+                "CowBay.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CowBay_L6_20090101_20211231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CowBay",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -271,10 +271,10 @@
             "args": [
                 "-input",
                 "nc",
-                "CumberlandPlain_L6_20140101_20220101.ins"
+                "CumberlandPlain.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain_L6_20140101_20220101",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -308,10 +308,10 @@
             "args": [
                 "-input",
                 "nc",
-                "DalyPasture_L6_20080101_20130908.ins"
+                "DalyPasture.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyPasture_L6_20080101_20130908",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyPasture",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -345,10 +345,10 @@
             "args": [
                 "-input",
                 "nc",
-                "DalyUncleared_L6_20080101_20220217.ins"
+                "DalyUncleared.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyUncleared_L6_20080101_20220217",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyUncleared",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -382,10 +382,10 @@
             "args": [
                 "-input",
                 "nc",
-                "DryRiver_L6_20091025_20220218.ins"
+                "DryRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DryRiver_L6_20091025_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/DryRiver",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -419,10 +419,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Emerald_L6_20110610_20131231.ins"
+                "Emerald.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Emerald_L6_20110610_20131231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Emerald",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -456,10 +456,10 @@
             "args": [
                 "-input",
                 "nc",
-                "FoggDam_L6_20060207_20081031.ins"
+                "FoggDam.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/FoggDam_L6_20060207_20081031",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/FoggDam",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -493,10 +493,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Gingin_L6_20111013_20201231.ins"
+                "Gingin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Gingin_L6_20111013_20201231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Gingin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -530,10 +530,10 @@
             "args": [
                 "-input",
                 "nc",
-                "GreatWesternWoodlands_L6_20130101_20220101.ins"
+                "GreatWesternWoodlands.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/GreatWesternWoodlands_L6_20130101_20220101",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/GreatWesternWoodlands",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -567,10 +567,10 @@
             "args": [
                 "-input",
                 "nc",
-                "HowardSprings_L6_20020101_20220218.ins"
+                "HowardSprings.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/HowardSprings_L6_20020101_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/HowardSprings",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -604,10 +604,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Litchfield_L6_20150623_20211128.ins"
+                "Litchfield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Litchfield_L6_20150623_20211128",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Litchfield",
             "environment": [],
             "externalConsole": false,
             // "MIMode": "lldb",
@@ -622,47 +622,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Longreach_L6_20181009_20220607.ins"
+                "Longreach.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach_L6_20181009_20220607",
-            "environment": [],
-            "externalConsole": false,
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "MIMode": "gdb"
-            },
-            "preLaunchTask": "build"
-        },
-        {
-            "name": "Loxton",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "Loxton_L6_20080819_20090609.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Loxton_L6_20080819_20090609",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -696,10 +659,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Otway_L6_20070811_20110101.ins"
+                "Otway.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Otway_L6_20070811_20110101",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Otway",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -733,10 +696,10 @@
             "args": [
                 "-input",
                 "nc",
-                "RedDirtMelonFarm_L6_20110923_20130721.ins"
+                "RedDirtMelonFarm.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RedDirtMelonFarm_L6_20110923_20130721",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RedDirtMelonFarm",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -770,10 +733,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Ridgefield_L6_20160101_20220218.ins"
+                "Ridgefield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Ridgefield_L6_20160101_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Ridgefield",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -807,10 +770,10 @@
             "args": [
                 "-input",
                 "nc",
-                "RiggsCreek_L6_20110101_20170712.ins"
+                "RiggsCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RiggsCreek_L6_20110101_20170712",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RiggsCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -844,10 +807,10 @@
             "args": [
                 "-input",
                 "nc",
-                "RobsonCreek_L6_20130801_20211218.ins"
+                "RobsonCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek_L6_20130801_20211218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -881,10 +844,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Samford_L6_20100602_20171231.ins"
+                "Samford.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Samford_L6_20100602_20171231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Samford",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -918,10 +881,10 @@
             "args": [
                 "-input",
                 "nc",
-                "SilverPlains_L6_20200101_20211231.ins"
+                "SilverPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SilverPlains_L6_20200101_20211231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/SilverPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -955,10 +918,10 @@
             "args": [
                 "-input",
                 "nc",
-                "SturtPlains_L6_20080828_20220218.ins"
+                "SturtPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SturtPlains_L6_20080828_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/SturtPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -992,10 +955,10 @@
             "args": [
                 "-input",
                 "nc",
-                "TiTreeEast_L6_20120718_20220117.ins"
+                "TiTreeEast.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/TiTreeEast_L6_20120718_20220117",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/TiTreeEast",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1029,10 +992,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Tumbarumba_L6_20020107_20191231.ins"
+                "Tumbarumba.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Tumbarumba_L6_20020107_20191231",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Tumbarumba",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1066,10 +1029,10 @@
             "args": [
                 "-input",
                 "nc",
-                "WallabyCreek_L6_20050825_20130409.ins"
+                "WallabyCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WallabyCreek_L6_20050825_20130409",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/WallabyCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1103,10 +1066,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Warra_L6_20130305_20210923.ins"
+                "Warra.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Warra_L6_20130305_20210923",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Warra",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1140,10 +1103,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Whroo_L6_20111201_20220218.ins"
+                "Whroo.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Whroo_L6_20111201_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Whroo",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1177,10 +1140,10 @@
             "args": [
                 "-input",
                 "nc",
-                "WombatStateForest_L6_20100120_20210529.ins"
+                "WombatStateForest.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WombatStateForest_L6_20100120_20210529",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/WombatStateForest",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1214,10 +1177,10 @@
             "args": [
                 "-input",
                 "nc",
-                "Yanco_L6_20130101_20220218.ins"
+                "Yanco.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yanco_L6_20130101_20220218",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yanco",
             "environment": [],
             "externalConsole": false,
             "osx": {

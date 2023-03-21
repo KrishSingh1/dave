@@ -14,18 +14,19 @@ double get_lai(Individual &indiv) {
 	return indiv.lai;
 }
 
-Individual *get_indiv(Vegetation &vegetation, const char *name) {
+std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name) {
 	vegetation.firstobj();
+	std::vector<Individual *> result;
 	while (vegetation.isobj) {
 		Individual &indiv = vegetation.getobj();
 
 		if (indiv.pft.name == name) {
-			return &indiv;
+			result.push_back(&indiv);
 		}
 
 		vegetation.nextobj();
 	}
-	return NULL;
+	return result;
 }
 
 std::vector<std::string> get_pfts() {

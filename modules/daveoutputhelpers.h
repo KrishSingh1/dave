@@ -26,7 +26,7 @@ Get the individual in the patch with the specified name, or NULL if not found.
 @param vegetation: The vegetation in the patch.
 @param name: Name of a PFT.
 */
-Individual *get_indiv(Vegetation &vegetation, const char *name);
+std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name);
 
 /*
 Get the name of all known PFTs.

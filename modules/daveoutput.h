@@ -286,7 +286,7 @@ private:
 			@param OutputRows: The output channel used to write output.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) override;
 		protected:
 			/*
 			Get column descriptors to be used for the output table.

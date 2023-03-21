@@ -342,11 +342,17 @@ void DaveOutput::IndividualOutput::write_patch(Patch &patch, OutputRows &out) {
 	// mapping of PFTs to individuals, as some PFTs may not be established.
 	vegetation.firstobj();
 	for (int i = 0; i < pfts.size(); i++) {
-		Individual *indiv = get_indiv(vegetation, pfts[i].c_str());
+		std::vector<Individual *> indivs = get_indivs(vegetation, pfts[i].c_str());
 
-		double value = indiv ? read_output(*indiv) : 0;
-		write_output(out, value);
-		total += value;
+		double result = 0;
+		if (indivs.size() > 0) {
+			for (Individual *indiv : indivs) {
+				result += indiv ? read_output(*indiv) : 0;
+			}
+			// result /= indivs.size();
+		}
+		write_output(out, result);
+		total += result;
 
 		vegetation.nextobj();
 	}

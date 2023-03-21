@@ -112,7 +112,9 @@ void DaveOutput::outannual(Gridcell &gridcell) {
 
 void DaveOutput::outdaily(Gridcell &gridcell) {
 	double t0 = get_wall_time();
-	write_outputs(gridcell, daily_outputs);
+	if (spinup_output || date.year >= nyear_spinup) {
+		write_outputs(gridcell, daily_outputs);
+	}
 	total_time += get_wall_time() - t0;
 }
 

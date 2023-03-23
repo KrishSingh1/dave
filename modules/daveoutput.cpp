@@ -9,6 +9,7 @@
 
 #include <limits.h>
 
+#include "config.h"
 #include "commonoutput.h"
 #include "daveoutput.h"
 #include "daveoutputhelpers.h"
@@ -45,9 +46,9 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_diameter", [](Individual &i) { return i.diam; }, "Stem diameter (m)");
 	add_daily_indiv_output("file_dave_density", [](Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
 	add_daily_indiv_output("file_dave_fpar", [](Individual &i) { return i.fpar; }, "Daily fpar [0-1]");
-	add_daily_indiv_output("file_dave_assim", [](Individual &i) { return i.dgpp; }, "Daily GPP (kgC/m2/day)");
-	add_daily_indiv_output("file_dave_resp", [](Individual &i) { return i.dgpp - i.dnpp; }, "Daily growth respiration (kgC/m2/day)");
-	add_daily_indiv_output("file_dave_npp", [](Individual &i) { return i.dnpp; }, "Daily NPP (kgC/m2/day)");
+	add_daily_indiv_output("file_dave_indiv_gpp", [](Individual &i) { return i.dgpp * G_PER_KG; }, "Daily GPP (gC/m2/day)");
+	add_daily_indiv_output("file_dave_indiv_resp", [](Individual &i) { return (i.dgpp - i.dnpp) * G_PER_KG; }, "Daily growth respiration (gC/m2/day)");
+	add_daily_indiv_output("file_dave_indiv_npp", [](Individual &i) { return i.dnpp * G_PER_KG; }, "Daily NPP (gC/m2/day)");
 	add_daily_indiv_output("file_dave_fpc", [](Individual &i) { return i.fpc; }, "Daily FPC ()");
 	add_daily_indiv_output("file_dave_crownarea", [](Individual &i) { return i.crownarea; }, "Daily Crown Area (m2)");
 	// fixme: wscal should really be a ppft-level output. Which is still TBI...
@@ -70,6 +71,18 @@ DaveOutput::DaveOutput() {
 	add_daily_patch_level_array_output("file_dave_sw", "sw_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
 	add_daily_patch_level_array_output("file_dave_swmm", "swmm_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i]; }, "Soil water content (mm)");
 	add_daily_patch_level_array_output("file_dave_swvol", "swvol_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", false);
+	// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
+	// add_daily_patch_level_array_output("file_dave_cfluxes_pft", get_pft_flux_names(), (int)Fluxes::NPERPFTFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPFTFluxType)i, date.day) * G_PER_KG; }, "Daily PFT-level fluxes (g/m2/day)");
+	// -1 * NEE + ER = -(rh - npp) + ER = -(rh - (gpp - ra)) + ER = -rh + gpp - ra + ER
+	// npp = gpp - ra
+	// nee = rh - npp // todo: annual considers fire + est fluxes
+	// gpp = patch.fluxes.get_daily_flux(Fluxes::GPP, date.day)
+	// ra = patch.fluxes.get_daily_flux(Fluxes::RA, date.day)
+	// rh = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day)
+	add_daily_patch_level_array_output("file_dave_resp", "resp", 1, get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
+	add_daily_patch_level_array_output("file_dave_gpp", "gpp", 1, get_gpp, "Daily patch-level GPP (gC/m2/day)");
+	add_daily_patch_level_array_output("file_dave_npp", "npp", 1, get_npp, "Daily patch-level NPP (gC/m2/day)");
+	add_daily_patch_level_array_output("file_dave_nee", "nee", 1, get_nee, "Daily NEE (gC/m2/day)");
 
 	// Subdaily patch-level outputs.
 	add_subdaily_patch_level_output("file_dave_met_temp", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i]; }, "Subdaily temperature (°C)");
@@ -138,6 +151,10 @@ void DaveOutput::add_daily_patch_level_array_output(std::string name, std::strin
 	daily_outputs.push_back(create_array_output(name, colname, nelem, read_output, description, total_is_sum));
 }
 
+void DaveOutput::add_daily_patch_level_array_output(std::string name, std::vector<std::string> colnames, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum) {
+	daily_outputs.push_back(create_array_output(name, colnames, nelem, read_output, description, total_is_sum));
+}
+
 void DaveOutput::add_annual_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description) {
 	annual_outputs.push_back(create_array_output(name, colname, nelem, read_output, description));
 }
@@ -195,6 +212,17 @@ std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_array_output(
 	bool total_is_sum) {
 
 	return std::make_unique<PatchLevelArrayOutput>(name, colname, n, read_output, description, total_is_sum);
+}
+
+std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_array_output(
+	std::string name,
+	std::vector<std::string> colnames,
+	int n,
+	double (*read_output)(Patch&, int),
+	std::string description,
+	bool total_is_sum) {
+
+	return std::make_unique<PatchLevelArrayOutput>(name, colnames, n, read_output, description, total_is_sum);
 }
 
 std::unique_ptr<DaveOutput::OutputFile> DaveOutput::create_indiv_array_output(
@@ -383,7 +411,19 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 		double (*get_output)(Patch &, int),
 		std::string description,
 		bool sum) : PatchLevelOutput(param_name, description) {
-	column_name = col_name;
+
+	nelem = n;
+	read_output = get_output;
+	total_is_sum = sum;
+
+	for (int i = 0; i < n; i++) {
+		column_names.push_back(col_name + std::to_string(i));
+	}
+}
+
+DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(std::string param_name, std::vector<std::string> col_names, int n, double (*get_output)(Patch &, int), std::string description, bool sum)
+ : PatchLevelOutput(param_name, description) {
+	column_names = col_names;
 	nelem = n;
 	read_output = get_output;
 	total_is_sum = sum;
@@ -411,8 +451,9 @@ ColumnDescriptors DaveOutput::PatchLevelArrayOutput::get_columns() {
 
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	for (int i = 0; i < nelem; i++) {
-		std::string name = column_name + std::to_string(i);
-		columns += ColumnDescriptor(name.c_str(), COLUMN_WIDTH, NUMERIC_PRECISION);
+		std::string name = column_names[i];
+		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
+		columns += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
 	}
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 	return columns;

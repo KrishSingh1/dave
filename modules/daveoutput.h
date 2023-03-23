@@ -320,7 +320,7 @@ private:
 			Create a new patch-level array output.
 
 			@param param_name: Name of the parameter in the instruction file which contains the output file name.
-			@param col_name: Name of the columns in the output file (e.g. sw => sw0, sw1, sw2, ...).
+			@param col_name: Column name prefix. Will be suffixed with column index (0-n).
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
@@ -328,6 +328,19 @@ private:
 			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
 			*/
 			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
+
+			/*
+			Create a new patch-level array output using predefined column names.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param col_names: Predefined column names.
+			@param n: Number of elements in the array.
+			@param get_output: A function which returns the n-th element of the array from the patch.
+			@param description: A description of the output (including units!!).
+			@param spinup_output: True to write outputs during spinup. False otherwise.
+			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
+			*/
+			PatchLevelArrayOutput(std::string param_name, std::vector<std::string> col_names, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
 
 			/*
 			Destructor.
@@ -355,9 +368,9 @@ private:
 			int nelem;
 
 			/*
-			Name of the columns in the output file.
+			Vector of column names.
 			*/
-			std::string column_name;
+			std::vector<std::string> column_names;
 
 			/*
 			Pointer to a function which reads an element of the output array
@@ -457,13 +470,25 @@ private:
 	Add a daily patch-level array output.
 
 	@param name: Parameter in the instruction file which determines output file name.
-	@param colname: Column name in the output file.
+	@param colname: Column name prefix. Will be suffixed with column index.
 	@param n: Number of array elements.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
 	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
 	*/
 	void add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
+
+	/*
+	Add a daily patch-level array output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colnames: Column names in the output file. Should be length = n.
+	@param n: Number of array elements.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
+	*/
+	void add_daily_patch_level_array_output(std::string name, std::vector<std::string> colnames, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
 
 	/*
 	Add an annual patch-level array output.
@@ -516,13 +541,25 @@ private:
 	Create a pointer to a patch-level array output. This is owned by the caller.
 
 	@param name: Parameter in the instruction file which determines output file name.
-	@param colname: Column name in the output file.
+	@param colname: Column name prefix. Will be suffixed with column index.
 	@param n: Number of array elements.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
 	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
 	*/
 	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
+
+	/*
+	Create a pointer to a patch-level array output. This is owned by the caller.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colnames: Column names. Should have size = n.
+	@param n: Number of array elements.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
+	*/
+	std::unique_ptr<OutputFile> create_array_output(std::string name, std::vector<std::string> colnames, int n, double (*read_output)(Patch&, int), std::string description, bool total_is_sum);
 
 	/*
 	Create a pointer to an individual-level array output. This is owned by the caller.

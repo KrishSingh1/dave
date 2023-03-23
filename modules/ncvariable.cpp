@@ -234,7 +234,7 @@ const {
 	} else if (cache_strategy == All) {
 		return load_all(lon, lat);
 	}
-	throw std::runtime_error("Unknown caching strategy" + cache_strategy);
+	throw std::runtime_error("Unknown caching strategy: " + std::to_string((int)cache_strategy));
 }
 
 std::vector<double> NCVariable::load_day(double lon, double lat, int year, int day) const {

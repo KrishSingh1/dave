@@ -483,6 +483,8 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 	int day = date.day;
 	OutputRows rows(&channel, lon, lat, year, day);
 
+	std::vector<std::string> pfts = get_pfts();
+
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
@@ -504,17 +506,18 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 
 				vegetation.firstobj();
 				double total = 0;
-				while (vegetation.isobj) {
-					Individual &indiv = vegetation.getobj();
 
-					// Read array element for this individual.
-					double value = read_elem(indiv, i);
-					total += value;
+				for (int i = 0; i < pfts.size(); i++) {
+					std::vector<Individual *> indivs = get_indivs(vegetation, pfts[i].c_str());
+						double indiv_total = 0;
+					for (Individual *indiv : indivs) {
+						// Read array element for this individual.
+						indiv_total += read_elem(*indiv, i);
+					}
+					total += indiv_total;
 
 					// Write current array element for this individual.
-					write_output(rows, value);
-
-					vegetation.nextobj();
+					write_output(rows, indiv_total);
 				}
 
 				// Write total value across all individuals for this array elem.

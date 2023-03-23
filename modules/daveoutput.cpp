@@ -83,6 +83,7 @@ DaveOutput::DaveOutput() {
 	add_daily_patch_level_array_output("file_dave_gpp", "gpp", 1, get_gpp, "Daily patch-level GPP (gC/m2/day)");
 	add_daily_patch_level_array_output("file_dave_npp", "npp", 1, get_npp, "Daily patch-level NPP (gC/m2/day)");
 	add_daily_patch_level_array_output("file_dave_nee", "nee", 1, get_nee, "Daily NEE (gC/m2/day)");
+	add_daily_patch_level_array_output("file_dave_et", "et", 1, get_et, "Daily patch-level evapotranspiration (mm/day)");
 
 	// Subdaily patch-level outputs.
 	add_subdaily_patch_level_output("file_dave_met_temp", [](Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i]; }, "Subdaily temperature (°C)");

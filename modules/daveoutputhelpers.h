@@ -53,6 +53,14 @@ Get the patch-level ecosystem NEE.
 double get_nee(Patch &patch, int i);
 
 /*
+Get the patch-level daily evapotranspiration (mm/day).
+
+@param patch: The patch.
+@param i: Unused (required by API).
+*/
+double get_et(Patch &patch, int i);
+
+/*
 Get the individual in the patch with the specified name, or NULL if not found.
 
 @param vegetation: The vegetation in the patch.

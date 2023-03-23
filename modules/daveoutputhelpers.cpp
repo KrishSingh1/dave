@@ -36,6 +36,17 @@ double get_nee(Patch &patch, int i) {
 	return (rh_kg - npp_kg) * G_PER_KG;
 }
 
+double get_et(Patch &patch, int i) {
+	Vegetation &vegetation = patch.vegetation;
+	vegetation.firstobj();
+	double transpiration = 0;
+	while (vegetation.isobj) {
+		transpiration += vegetation.getobj().aet;
+		vegetation.nextobj();
+	}
+	return transpiration + patch.soil.get_layer_soil_water_evap();
+}
+
 std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name) {
 	vegetation.firstobj();
 	std::vector<Individual *> result;

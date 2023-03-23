@@ -118,38 +118,6 @@ std::vector<std::string> get_pft_flux_names() {
 	return fluxes;
 }
 
-/*
-Get the patch-level ecosystem ER.
-
-@param patch: The patch.
-@param i: Unused (required by API).
-*/
-double get_er(Patch &patch, int i);
-
-/*
-Get the patch-level ecosystem GPP.
-
-@param patch: The patch.
-@param i: Unused (required by API).
-*/
-double get_gpp(Patch &patch, int i);
-
-/*
-Get the patch-level ecosystem NPP.
-
-@param patch: The patch.
-@param i: Unused (required by API).
-*/
-double get_npp(Patch &patch, int i);
-
-/*
-Get the patch-level ecosystem NEE.
-
-@param patch: The patch.
-@param i: Unused (required by API).
-*/
-double get_nee(Patch &patch, int i);
-
 Individual *get_first_indiv(Patch &patch) {
 	Vegetation &vegetation = patch.vegetation;
 	vegetation.firstobj();

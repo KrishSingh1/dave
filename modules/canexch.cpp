@@ -2171,7 +2171,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
-	double xmid;
+	double xmid = 0.0;
 
 	// Implement numerical solution
 

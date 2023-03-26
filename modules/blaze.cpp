@@ -945,6 +945,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		anpp     -= loss_anpp;
 	}
 
+	ppft.cmass_fire += loss_anpp + loss_tot;
+
 	// Report C live -> atm flux 
 	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm);
 

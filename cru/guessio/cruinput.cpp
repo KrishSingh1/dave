@@ -58,6 +58,7 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 
 CRUInput::CRUInput()
 	: searchradius(0),
+	  first_call(true),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
 	  spinup_mprec(NYEAR_SPINUP_DATA),
 	  spinup_msun(NYEAR_SPINUP_DATA),
@@ -170,8 +171,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
 
-	int soilcode;
-	int elevation;
+	int soilcode = 0;
+	int elevation = 0;
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.

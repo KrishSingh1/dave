@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # This script is called with 3 arguments:
-# $1:	Name-tag for the comparison reference benchmark
-# $2:	Name-tag for the new output
+# $1:	Name-tag for the new output
+# $2:	Name-tag for the comparison reference benchmark
 # $3:	Path to the comparison reference benchmark output
 
 # The call to the Rscript tellme.Rmd here should have the folllowing syntax (email from Matt 2023-03-13)
@@ -20,8 +20,8 @@ DEBUG_LOG_NAME="exoprocess.debug.log"
 
 NAMETAG_NEW="$1"
 NAMETAG_REF="$2"
-REF_OUTPUT_PATH="$3"
 NEW_OUTPUT_PATH="$(dirname $(pwd))"
+REF_OUTPUT_PATH="$3"
 RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 
 
@@ -46,4 +46,4 @@ echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
 echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 
 # Here the call to the Rscript tellme.Rmd
-#$RSCRIPT_PATHFILE $NEW_OUTPUT_PATH $NAMETAG_NEW $REF_OUTPUT_PATH $NAMETAG_REF $DATA_PATH $LUDATA_PATH 
+$RSCRIPT_PATHFILE $NEW_OUTPUT_PATH $NAMETAG_NEW $REF_OUTPUT_PATH $NAMETAG_REF $DATA_PATH $LUDATA_PATH

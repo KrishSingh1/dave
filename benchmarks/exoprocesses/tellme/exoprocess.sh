@@ -13,16 +13,16 @@
 # These paths are compute center specific. Update to fit the center where you run your model.
 DATA_PATH=/data/benchmark_data/
 LUDATA_PATH=/data/benchmark_data/2019-04-29/landuse/
-RSCRIPT_PATHFILE="/.../.../tellme.Rmd"	# This is probably wrong. I bet tellme.Rmd is sitting in exoprocesses/tellme/
-					# and if so it's path needs to be provided as a call argument $4 to this script.
 
+
+RSCRIPT="tellme.Rmd"
 DEBUG_LOG_NAME="exoprocess.debug.log"
 
 NAMETAG_NEW="$1"
 NAMETAG_REF="$2"
 REF_OUTPUT_PATH="$3"
-
-NEW_OUTPUT_PATH="$(dirname $(pwd -P))"
+NEW_OUTPUT_PATH="$(dirname $(pwd))"
+RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 
 
 if [ $# -ne 3 ]; then
@@ -42,8 +42,8 @@ echo "Argument 3 = $REF_OUTPUT_PATH" | tee -a $DEBUG_LOG_NAME
 echo "Argument 4 = $NAMETAG_REF"     | tee -a $DEBUG_LOG_NAME
 echo "Argument 5 = $DATA_PATH"       | tee -a $DEBUG_LOG_NAME
 echo "Argument 6 = $LUDATA_PATH"     | tee -a $DEBUG_LOG_NAME
-echo "'$0' = $0"            | tee -a $DEBUG_LOG_NAME
-echo "pwd -P = $(pwd -P)"   | tee -a $DEBUG_LOG_NAME
+echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
+echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 
 # Here the call to the Rscript tellme.Rmd
 #$RSCRIPT_PATHFILE $NEW_OUTPUT_PATH $NAMETAG_NEW $REF_OUTPUT_PATH $NAMETAG_REF $DATA_PATH $LUDATA_PATH 

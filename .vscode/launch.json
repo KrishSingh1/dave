@@ -5,6 +5,43 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run Site",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "${input:site}.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/${input:site}",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "prepare-run",
+        },
+        {
             "name": "Adelaide River",
             "type": "cppdbg",
             "request": "launch",
@@ -39,7 +76,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "build"
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Alice Springs Mulga",
@@ -1205,6 +1242,54 @@
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "site",
+            "type": "command",
+            "command": "extension.commandvariable.pickStringRemember",
+            "args":
+            {
+                "key": "sitename",
+                "description": "Name of the ozflux site to run",
+                "default": "SturtPlains",
+                "options": [
+                    "AdelaideRiver",
+                    "AliceSpringsMulga",
+                    "Boyagin",
+                    "Calperum",
+                    "CapeTribulation",
+                    "Collie",
+                    "CowBay",
+                    "CumberlandPlain",
+                    "DalyPasture",
+                    "DalyUncleared",
+                    "DryRiver",
+                    "Emerald",
+                    "FoggDam",
+                    "Gingin",
+                    "GreatWesternWoodlands",
+                    "HowardSprings",
+                    "Litchfield",
+                    "Longreach",
+                    "Otway",
+                    "RedDirtMelonFarm",
+                    "Ridgefield",
+                    "RiggsCreek",
+                    "RobsonCreek",
+                    "Samford",
+                    "SilverPlains",
+                    "SturtPlains",
+                    "TiTreeEast",
+                    "Tumbarumba",
+                    "WallabyCreek",
+                    "Warra",
+                    "Whroo",
+                    "WombatStateForest",
+                    "Yanco"
+                ],
+            }
         }
     ]
 }

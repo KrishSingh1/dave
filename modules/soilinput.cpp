@@ -531,7 +531,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 			double fd = 0.5 * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) - soiltype.wmass_stand_frac_thresh;
 			double dfdd = exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2))) / (soiltype.slope_sigma * sqrt(2.0 * PI));
 			d = d - fd / dfdd;
-			int sch = 0;
 		}
 		soiltype.wmass_stand_thresh = 0.5 * d * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) +
 			soiltype.slope_sigma / sqrt(2.0 * PI) * exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2)));

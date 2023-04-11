@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file methane.cpp
 /// \brief Methane calculations and transport.
+///
 /// Implementation of member functions of class Soil.
 /// The class Soil and its member functions and variables are declared in guess.h
 ///

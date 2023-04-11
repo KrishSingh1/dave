@@ -1,7 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file ncompete.cpp
-/// \brief Distribution of N among individuals according to supply, demand and
-///        the individuals' uptake strength
+/// \brief Distribution of N among individuals according to supply, demand and the individuals' uptake strength
 ///
 /// \author David Wårlind
 /// $Date$

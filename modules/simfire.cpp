@@ -5,6 +5,10 @@
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 16:02:51 +0100 (Tue, 24 Jan 2017) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?

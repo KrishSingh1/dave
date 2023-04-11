@@ -2,8 +2,6 @@
 /// \file landcover.cpp
 /// \brief Functions handling landcover aspects, such as creating or resizing Stands
 ///
-/// Landcover change.
-///
 /// \author Mats Lindeskog,
 /// \Part of code in this file as well as in cropphenology.cpp, cropallocation.cpp and
 /// \management.cpp based on LPJ-mL C++ code received from Alberte Bondeau in 2008.

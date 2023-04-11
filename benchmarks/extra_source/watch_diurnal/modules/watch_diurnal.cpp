@@ -2,6 +2,10 @@
 /// \file watch_diurnal.cpp
 /// \brief Input module for reading in WATCH diurnal data from NetCDF files
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 /// \TODO This input module have not implemented reading in of relative humidity and 
 /// windspeed (needed) for Blaze, currently taken from cru_input. This has the implication 
 /// that the climate variables are not synced. 

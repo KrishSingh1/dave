@@ -2,6 +2,10 @@
 /// \file fluxnet.cpp
 /// \brief Input and output modules for the fluxnet benchmarks
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 /// \this module is most of all a copy of CRUInput and do use CRU data for its climate.
 /// \The CRU climate is then biascorrected with monthly fluxnet climate.
 ///

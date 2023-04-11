@@ -2,6 +2,10 @@
 /// \file ntransform.cpp
 /// \brief Nitrogen transformation in soil - nitrification and denitrification
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 /// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson, David Wårlind and Stefan Olin.
 /// $Date: 2013-10-14 14:12:00 +0100 (Mon, 10 Sep 2013) $
 ///

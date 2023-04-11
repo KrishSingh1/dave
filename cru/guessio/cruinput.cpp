@@ -2,6 +2,10 @@
 /// \file cruinput.cpp
 /// \brief LPJ-GUESS input module for CRU-NCEP binary data set.
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
 /// for 1901-2015.

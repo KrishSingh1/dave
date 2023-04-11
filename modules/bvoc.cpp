@@ -2,10 +2,6 @@
 /// \file bvoc.cpp
 /// \brief The BVOC module
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// Calculation of VOC production and emission by vegetation.
 ///
 /// \author Guy Schurgers (using Almut's previous attempts)

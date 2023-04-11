@@ -2,10 +2,6 @@
 /// \file growth.cpp
 /// \brief The growth module
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// Vegetation C allocation, litter production, tissue turnover
 /// leaf phenology, allometry and growth
 ///

@@ -2,10 +2,6 @@
 /// \file soilinput.cpp
 /// \brief Implementation of soil input from text files, soil codes or soil physical properties.
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 ///  Created on: 24 nov 2014
 /// \author : Stefan Olin
 ///

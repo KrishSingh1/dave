@@ -2,10 +2,6 @@
 /// \file canexch.cpp
 /// \brief The canopy exchange module
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// Vegetation-atmosphere exchange of H2O and CO2 via
 /// production, respiration and evapotranspiration.
 ///

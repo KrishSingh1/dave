@@ -2,10 +2,6 @@
 /// \file guess.h
 /// \brief Framework header file, LPJ-GUESS Combined Modular Framework
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// This header file contains:
 ///  (1) definitions of all main classes used by the framework and modules. Modules may
 ///      require classes to contain certain member variables and functions (see module

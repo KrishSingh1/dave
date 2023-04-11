@@ -2,10 +2,6 @@
 /// \file cru.cpp
 /// \brief Functions for reading the CRU-NCEP data set from binary FastArchive format.
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// $Date: 2013-11-04 16:30:55 +0100 (Mon, 04 Nov 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

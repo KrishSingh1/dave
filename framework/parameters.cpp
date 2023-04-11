@@ -2,10 +2,6 @@
 /// \file parameters.cpp
 /// \brief Implementation of the parameters module
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// New instructions (PLIB keywords) may be added (this would require addition of a
 /// declareitem call in function plib_declarations, and possibly some additional code in
 /// function plib_callback).

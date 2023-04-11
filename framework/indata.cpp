@@ -2,10 +2,6 @@
 /// \file indata.cpp
 /// \brief Classes for text input data (used mainly for landcover input).
 ///
-/// This Source Code Form is subject to the terms of the Mozilla Public
-/// License, v. 2.0. If a copy of the MPL was not distributed with this
-/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-///
 /// File format can be either line 1:lon lat, line 2 etc.: year data-columns OR line 1: header,
 /// line 2 etc.: lon lat year data-columns. For local static data, use: lon lat data-columns,
 /// for global static data, use: dummy data-columns (with "static" as first word in header).

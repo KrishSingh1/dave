@@ -10,8 +10,8 @@
 #   <path to evaluation data> <path to land use data>
 
 # These paths are compute center specific. Update them to fit the center where you run your model.
-EVALDATA_PATH=/data/evaluation_data/
-LUDATA_PATH=/data/benchmark_data/2019-04-29/landuse/
+EVALDATA_PATH=/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/evaluation_data
+LUDATA_PATH=/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
 
 RSCRIPT="tellme.Rmd"
@@ -44,5 +44,12 @@ echo "Argument 6 = $LUDATA_PATH"     | tee -a $DEBUG_LOG_NAME
 echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
 echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 
+
+set -x
+
 # Here the call to the Rscript tellme.Rmd
-$RSCRIPT_PATHFILE $NEW_OUTPUT_PATH $NAMETAG_NEW $REF_OUTPUT_PATH $NAMETAG_REF $EVALDATA_PATH $LUDATA_PATH
+cp $RSCRIPT_PATHFILE .
+Rscript -e "rmarkdown::render('tellme.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
+
+# Here the call to the Rscript tellme.Rmd
+#$RSCRIPT_PATHFILE $NEW_OUTPUT_PATH $NAMETAG_NEW $REF_OUTPUT_PATH $NAMETAG_REF $EVALDATA_PATH $LUDATA_PATH

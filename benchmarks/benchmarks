@@ -591,14 +591,14 @@ fi
 
 # Generate meta data about this run
 # (such as time stamp and version control information).
-if (( $pp_only == 0 )); then
+if (( $pp_only == 0 && $superreport_only == 0 )); then
     meta_data $work_dir
 fi
 
 # Build the model which will be used by benchmarks that don't have their own
 # special code. No need to build it if we're only doing post processing
 # however.
-if (( $pp_only == 0 )); then
+if (( $pp_only == 0 && $superreport_only == 0 )); then
     echo "Building standard model..."
     if ! build $work_dir/standard_build; then
 	echo "Not running any benchmarks!"
@@ -635,13 +635,15 @@ do
   fi
 done
 
-# Call run_benchmark for each test
-for test_name in "${test_names[@]}"
-do
-  if (( $pp_only == 1 )); then
+# Call run_benchmark for each test, unless we're doing exoprocessing only.
+if (( $superreport_only == 0 )); then
+  for test_name in "${test_names[@]}"
+  do
+    if (( $pp_only == 1 )); then
       run_pp $test_name
-  else
+    else
       run_benchmark $test_name
+    fi
   fi
 done
 

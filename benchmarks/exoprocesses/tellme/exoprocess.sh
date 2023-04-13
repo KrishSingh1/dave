@@ -32,7 +32,7 @@ if [ $# -ne 3 ]; then
   exit 1
 fi
 
-}
+{
 echo "Tellme tool" | tee $DEBUG_LOG_NAME
 echo "./benchmarks arguments = $@"   | tee -a $DEBUG_LOG_NAME
 echo "Arguments to the tellus R-script:" | tee -a $DEBUG_LOG_NAME

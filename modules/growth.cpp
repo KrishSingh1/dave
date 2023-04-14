@@ -885,7 +885,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		 indiv.cmass_storage = bminit * indiv.densindiv;
 		 indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
 
-		if (ifnewphotosyn){
+		if (ifdavephotosyn){
 			// allocate cmass and nmass in storage to leaves and roots
 			// Half to leaf, half to storage.
 			double cmass_init = indiv.cmass_storage;
@@ -921,8 +921,8 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
 		indiv.cmass_root = cmass_root_ind * indiv.densindiv;
 
-		if (ifnewphotosyn){
-			// we need initial values for nmass_leaf when calling ifnewphotosyn
+		if (ifdavephotosyn){
+			// we need initial values for nmass_leaf when calling ifdavephotosyn
 			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
 		}
@@ -1279,7 +1279,7 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
 			// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-			double cton_leaf_aopt = max(ifnewphotosyn ? indiv.cton_leaf() : indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
+			double cton_leaf_aopt = max(ifdavephotosyn ? indiv.cton_leaf() : indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 			if (ifnlim)
 				nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
@@ -1412,7 +1412,7 @@ void growth(Stand& stand, Patch& patch) {
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
 
-						if (ifnewphotosyn) {
+						if (ifdavephotosyn) {
 							// Set annual N demand when running in newphotosyn mode.
 							indiv.andemand_leaf = cmass_leaf_inc * indiv.cton_leaf();
 							indiv.andemand_root = cmass_root_inc * indiv.cton_root();
@@ -1614,7 +1614,7 @@ void growth(Stand& stand, Patch& patch) {
 							indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
 						} // else use last years scaling factor
 					}
-				} else if (ifnewphotosyn) {
+				} else if (ifdavephotosyn) {
 					// This tree was killed and newphotosyn is enabled. Let's reset
 					// ndemand variables just to be on the safe side.
 					indiv.ndemand = 0;
@@ -1698,7 +1698,7 @@ void growth(Stand& stand, Patch& patch) {
 		}
 	}
 
-	if (ifnewphotosyn) {
+	if (ifdavephotosyn) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual &indiv = vegetation.getobj();
@@ -1721,6 +1721,487 @@ void growth(Stand& stand, Patch& patch) {
  */
 //
 void growth_daily_grass(Patch& patch) {
+
+	Stand& stand = patch.stand;
+
+	// transfer constant between first and second compartment constant, to make that transfer faster following Johnson & Thornley 1983
+	const double LAMBDA = 2.0;
+	// maximum daily growth rate
+	const double MAX_GROWTH_RATE = 0.2;
+	// maximum gpp trend growth modifier
+	const double GPP_FAC_MAX = 1.0;
+	// storage to biomass ratio growth modifier exponent
+	const int SB_FAC_POW = 2;
+	// storage to biomass ratio growth modifier maximum
+	const double SB_FAC_MAX = 5.0;
+	// water scalar minimum for growth
+	const double WSCAL_MIN = 0.1;
+	// fraction of N limitation that C growth will experience
+	const double FRAC_C_OF_N_LIM = 0.8;
+	// C retranslocation fraction for C3 grass senescense
+	const double C3_RETRANS = 0.1;
+	// C retranslocation fraction for C4 grass senescense
+	const double C4_RETRANS = 0.05;
+
+	// new biomass for this time period on modelled area basis (kgC/m2)
+	double bminc = 0.0;
+	// C allocated to reproduction this time period on modelled area basis (kgC/m2)
+	double cmass_repr = 0.0;
+	// leaf C growth this time period
+	double cgrow_leaf = 0.0;
+	// leaf N growth this time period
+	double ngrow_leaf = 0.0;
+	// leaf N update this time period
+	double nup_leaf = 0.0;
+	// root C growth this time period
+	double cgrow_root = 0.0;
+	// root N growth this time period
+	double ngrow_root = 0.0;
+	// Retranslocation fraction of C
+	double crelocfrac_daily;
+	// Retranslocation fraction of N
+	double nrelocfrac_daily;
+
+	// Movment factors for growth
+	double g_fac;
+	// Movment factors for senescense and movement to litter
+	double s_fac;
+
+	// Temporary variables to move carbon and nitrogen between compartments
+	double c1, c2, c3, c4;
+	double n1, n2, n3, n4;
+
+	// Obtain reference to Vegetation object for this patch
+	Vegetation& vegetation = patch.vegetation;
+	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
+
+	// Air temperature or bottom snow layer if snow present
+	double grass_temp = patch.soil.T_soil[6];
+
+	if (date.day == 0) {
+		if (!patch.id)
+			for (int p=0; p < npft; p++)
+				stand.pft[p].cmass_repr = 0.0;
+	}
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		Patchpft& ppft = patch.pft[indiv.pft.id];
+
+		bool killed=false;
+
+		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
+			
+			cgrow_leaf = cgrow_root = ngrow_leaf = nup_leaf = ngrow_root = 0.0;
+			c1 = c2 = c3 = c4 = 0.0;
+			n1 = n2 = n3 = n4 = 0.0;
+
+			// Initiate yearly maximum
+			if (date.day == 0) {
+				indiv.cmass_leaf_ygrowth = 0.0;
+				indiv.cmass_root_ygrowth = 0.0;
+				indiv.lai_ymax = 0.0;
+				indiv.fpc_ymax = 0.0;
+				indiv.cmass_leaf_ymax = 0.0;
+				indiv.nmass_leaf_ymax = 0.0;
+				indiv.cmass_root_ymax = 0.0;
+				indiv.nmass_root_ymax = 0.0;
+
+				// scale indiv for landcover change
+				scale_indiv(indiv, false);
+			}
+
+			// Reproduction cost
+			reproduction(indiv.pft.reprfrac, indiv.dnpp, bminc, cmass_repr);
+
+			// Update pft reproduction and flush it directly to litter
+			if (cmass_repr > 0.0) {
+				stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
+				ppft.cmass_litter_repr += cmass_repr;
+				flush_litter_repr(patch);
+			}
+
+			// Check C budget
+			double initc = bminc + indiv.get_cmass_leaf() + indiv.cmass_leafs[3] + indiv.cmass_storage +
+				indiv.cmass_root + ppft.cmass_litter_leaf + ppft.cmass_litter_root;
+
+			// Update state of biomass and storage pools
+
+			// Storage 
+			// Positive bminc is added to storage pool for retranslocation out to leaves/roots further down
+			if (bminc >= 0.0) {
+				indiv.cmass_storage += bminc;
+			}
+			else {
+
+				// Negative bminc
+
+				// Respiration initially from labile (storage) pool
+				// Labile pool can meet demand
+				if (indiv.cmass_storage + bminc > 0.0) {
+					indiv.cmass_storage += bminc;
+					bminc = 0.0;
+				}
+				else {
+					bminc += indiv.cmass_storage;
+					indiv.cmass_storage = 0.0;
+				}
+				
+				// If bminc still negative respiration from existing leaf and root
+				// biomass and retranslocate corresponding N to keep leaf and root 
+				// C:N ratio
+
+				if (bminc < 0.0) {
+					
+					// Enough C to compensate for negative C storage
+					if (indiv.get_cmass_leaf() + indiv.cmass_leafs[3] + indiv.cmass_root + bminc > 0.0) {
+
+						// Root fraction to be reduced
+						double froot_dec = 0.0;
+						if (indiv.cmass_root > 0.0) {
+							double current_ltor = indiv.cmass_root > 0 ? (indiv.get_cmass_leaf() + indiv.cmass_leafs[3]) / indiv.cmass_root : 0.0;
+							froot_dec = 1.0 / (current_ltor + 1.0);
+						}
+
+						// Reduce root
+						double ntoc = indiv.nmass_root / indiv.cmass_root;
+						double cdec = -bminc * froot_dec;
+						double ndec = cdec * ntoc;
+						indiv.cmass_root -= cdec;
+						indiv.nmass_root -= ndec;
+						bminc += cdec;
+						indiv.nmass_storage += ndec;
+
+						// Reduce leaf
+						int comp = 3;
+						while (bminc < 0.0 && comp > -1) {
+							if (indiv.cmass_leafs[comp] > 0.0) {
+								double ntoc = indiv.nmass_leafs[comp] / indiv.cmass_leafs[comp];
+								double cdec = min(indiv.cmass_leafs[comp], -bminc);
+								double ndec = cdec * ntoc;
+								indiv.cmass_leafs[comp] -= cdec;
+								indiv.nmass_leafs[comp] -= ndec;
+								bminc += cdec;
+								indiv.nmass_storage += ndec;
+							}
+							comp--;
+						}
+					}
+					else {
+						// Not enough C to compensate (should never happen)
+						double diff = indiv.get_cmass_leaf() + indiv.cmass_leafs[3] + indiv.cmass_root + bminc;
+						for (int comp = 0; comp < indiv.cmass_leafs.size(); comp++)
+							indiv.cmass_leafs[comp] = 0.0;
+						indiv.cmass_root = 0.0;
+						bminc = 0.0;
+						fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+					}
+				}
+			}
+
+			// If no N limitation or free N years add N to match minimum C:N ratio of the storage pool
+			// Added N is reported as fertilisation to keep N mass balance
+			if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.cmass_storage / indiv.pft.cton_leaf_min) {
+				double nmass_missing = indiv.cmass_storage / indiv.pft.cton_leaf_min - indiv.nmass_storage;
+				indiv.nmass_storage += nmass_missing;
+				patch.fluxes.report_flux(Fluxes::NFERT, nmass_missing);
+			}
+
+			// Calculate leaf to root ratio based on N and water limitation and current leaf to root status 
+			// or only water limitation and current leaf to root status if N limitation is turned off
+
+			// Current leaf to root status
+			double ltor_status = (!negligible(indiv.get_cmass_leaf(), -6) && !negligible(indiv.cmass_root, -6)) ? max(0.5, min(2.0, indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root))) : 1.0;
+			double ltor_min = 0.5 * indiv.pft.ltor_max;
+			if (ifnlim && date.year > freenyears) {
+				if (!negligible(indiv.get_cmass_leaf())) {
+					indiv.nscal_5.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
+				}
+				
+				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
+				//indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * ltor_status;
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * ltor_status;
+			}
+			else {
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * ppft.wscal_5.mean() * ltor_status;
+			}
+			
+			// Growth rate modifiers
+
+			// GPP trend growth modifier 
+			// Negative gpp trend less growth more to storage
+			double gpp_trend = indiv.gpp_15.trend();
+			double gpp_fac = gpp_trend > 0.0 ? GPP_FAC_MAX : GPP_FAC_MAX * 0.05;
+			indiv.gpptrend_15.add(gpp_fac);
+			indiv.gpp_fac = indiv.gpptrend_15.mean();
+
+			// Storage to biomass growth modifier (adopted from eqn 13 Johnson & Thornley 1983)
+			// Lower storage fraction less growth
+			double sb_ratio = !negligible(indiv.get_cmass_leaf() + indiv.cmass_root) ? indiv.cmass_storage / (indiv.get_cmass_leaf() + indiv.cmass_root) : SB_FAC_MAX;
+			indiv.sb_fac = min(SB_FAC_MAX, pow(sb_ratio, SB_FAC_POW));
+
+			// Fraction of leaves that die during one day due to frost (eqn 2 and 3 H�glind 2016, error in paper eqn)
+			// Temperature where half the leaves would be killed. Should be flexible due to hardening, but here set to a fixed value
+			// also should use snow temperature if snowpack covers grass
+			double lethal_temp_50 = -15.0;
+			indiv.frost_sen = grass_temp < 0.0 ? 1.0 - max(0.5, 1.0 / (1.0 + exp(lethal_temp_50 - grass_temp))) : 0.0;
+			
+			// Water stress growth modifier 
+			indiv.wscal_fac = max(0.0, (ppft.wscal_5.mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
+			
+			// Temperature growth modifier
+			double low_temp = (indiv.pft.pstemp_min + indiv.pft.pstemp_low) / 2.0;
+			double min_temp = max(0.0, indiv.pft.pstemp_min);
+			indiv.tscal_fac = grass_temp > indiv.pft.pstemp_min ? (1.0 - 0.01 * exp(4.6 * (grass_temp - indiv.pft.pstemp_high) / (indiv.pft.pstemp_max - indiv.pft.pstemp_high))) /
+				(1.0 + exp(4.6 * (low_temp - grass_temp) / (low_temp - indiv.pft.pstemp_min))) : 0.0;
+			
+			// Senescence modifiers
+
+			// Water limitation increases senescence
+			indiv.wscal_sen = 1.0 + 1.0 * (1.0 - indiv.wscal_fac);
+
+			// Temperature senescence modifier
+			indiv.tscal_sen = 1.0 + 0.5 * (1.0 - indiv.tscal_fac);
+
+			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, H�glind 2016)
+			double const g_max = 1.0; // CALIBRATE
+			indiv.g_fac = min(MAX_GROWTH_RATE, g_max * indiv.gpp_fac * indiv.sb_fac * indiv.wscal_fac * indiv.tscal_fac);
+			indiv.s_fac = max(indiv.frost_sen, indiv.pft.transferconst * indiv.wscal_sen * indiv.tscal_sen);
+
+			// Storage used for new leaf and root growth and updating old leaves and roots
+			if (!negligible(indiv.cmass_storage) && !negligible(indiv.nmass_storage)) {
+
+				// Todays growth
+				double cgrow = indiv.g_fac * indiv.cmass_storage;
+
+				// Leaf and root C growth
+				cgrow_root = cgrow / (1.0 + indiv.ltor);
+				cgrow_leaf += cgrow - cgrow_root;
+
+				// N demand for growth
+				double ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf_opt;
+				double ngrow_root_demand = cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+
+				// N demand for update current tissue to optimal value (10% day-1)
+				double nup_leaf_demand = 0.0;
+				double nup_root_demand = 0.0;
+				if (!negligible(indiv.nmass_storage) && indiv.cmass_storage / indiv.nmass_storage < indiv.cton_leaf_opt) {
+					nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf_opt - indiv.get_nmass_leaf()) * 0.1;
+					nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+				}
+
+				// Total N demand
+				double ndemand_tot = ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand;
+
+				// N limitation on growth
+				double nlim = 1.0;
+				if (ndemand_tot > 1.0e-12) {
+					nlim = min(1.0, MAX_GROWTH_RATE * indiv.nmass_storage / ndemand_tot);
+				}
+
+				// Too small N growth of too strong N limitation-> no growth
+				if (ndemand_tot <= 1.0e-12 || nlim < 1.0e-6) {
+					nlim = 1.0;
+					cgrow = cgrow_root = cgrow_leaf = 0.0;
+					ngrow_leaf = ngrow_root = nup_leaf = 0.0;
+					ngrow_leaf_demand = ngrow_root_demand = nup_leaf_demand = nup_root_demand = 0.0;
+				}
+				// No new growth but N demand from current tissue
+				else if (negligible(cgrow, -10) && nup_leaf_demand + nup_root_demand > 1.0e-12) {
+					cgrow = cgrow_root = cgrow_leaf = 0.0;
+					ngrow_leaf_demand = ngrow_root_demand = 0.0;
+
+					// N limitation on N update on current biomass
+					double nup_lim = min(1.0, (MAX_GROWTH_RATE * indiv.nmass_storage) / (nup_leaf_demand + nup_root_demand));
+					ngrow_leaf = 0.0; 
+					ngrow_root = nup_root_demand * nup_lim;
+					nup_leaf = nup_leaf_demand * nup_lim;
+				}
+				// N limitation on growth
+				else if (nlim < 1.0 && ifnlim && date.year > freenyears) {
+
+					// Optimal C:N ratio of growth
+					double cton_grow_opt = cgrow / ndemand_tot;
+
+					// New growth C:N ratio without any effect on C growth
+					double cton_grow_fix = cgrow / (nlim * ndemand_tot);
+
+					// New growth C:N ratio with effect on C growth
+					double cton_grow_new = 1.0 / (FRAC_C_OF_N_LIM / cton_grow_fix + (1.0 - FRAC_C_OF_N_LIM) / cton_grow_opt);
+
+					// New fraction of storage N used for growth
+					double fNmax = MAX_GROWTH_RATE * min(1.0, (indiv.nmass_storage / indiv.cmass_storage + 1.0 / indiv.pft.cton_leaf_min) / (2.0 / indiv.pft.cton_leaf_min));
+					
+					// N growth
+					double ngrow = fNmax * indiv.nmass_storage;
+
+					// C growth limitation
+					double cgrow_lim = cton_grow_new * min(ndemand_tot, ngrow) / cgrow;
+
+					// New leaf and root C growth
+					cgrow *= cgrow_lim;
+					cgrow_root *= cgrow_lim;
+					cgrow_leaf *= cgrow_lim;
+
+					// N growth limitation
+					double ngrow_lim = ngrow / ndemand_tot;
+					
+					// New leaf and root N growth and update
+					ngrow_leaf = ngrow_leaf_demand * ngrow_lim;
+					ngrow_root = (ngrow_root_demand + nup_root_demand) * ngrow_lim;
+					nup_leaf = nup_leaf_demand * ngrow_lim;
+				}
+				// Full growth with no N limitation
+				else {
+					ngrow_leaf = ngrow_leaf_demand;
+					ngrow_root = (ngrow_root_demand + nup_root_demand);
+					nup_leaf = nup_leaf_demand;
+				}
+
+				// Leaf N mass update according to compartment size
+				if (!negligible(indiv.get_cmass_leaf()) && !negligible(nup_leaf)) {
+					for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
+						double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
+						indiv.nmass_leafs[lf] += nup_leaf * fnup;
+					}
+				}
+			}
+
+			// Save yearly leaf and root growth
+			indiv.cmass_leaf_ygrowth += cgrow_leaf;
+			indiv.cmass_root_ygrowth += cgrow_root;
+
+			// Root growth
+			indiv.cmass_root += cgrow_root;
+			indiv.nmass_root += ngrow_root;
+			
+			// Storage reduction
+			indiv.cmass_storage -= cgrow_leaf + cgrow_root;
+			indiv.nmass_storage -= ngrow_leaf + nup_leaf + ngrow_root;
+
+			// Calculate daily C and N retranslocation fraction
+			crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
+			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max, indiv.cmass_storage, indiv.nmass_storage);
+
+			// Movement variables for C and N (eqn 26a-d Johnson & Thornley 1983)
+			c1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.cmass_leafs[0];
+			n1 = min(1.0, LAMBDA * indiv.s_fac) * indiv.nmass_leafs[0];
+			c2 = indiv.s_fac * indiv.cmass_leafs[1];
+			n2 = indiv.s_fac * indiv.nmass_leafs[1];
+			c3 = indiv.s_fac * indiv.cmass_leafs[2];
+			n3 = indiv.s_fac * indiv.nmass_leafs[2];
+			c4 = indiv.s_fac * indiv.cmass_leafs[3];
+			n4 = indiv.s_fac * indiv.nmass_leafs[3];
+
+			// Growing leaves (eqn 26a Johnson & Thornley 1983)
+			indiv.cmass_leafs[0] += cgrow_leaf - c1;
+			indiv.nmass_leafs[0] += ngrow_leaf - n1;
+
+			// First fully expanded leaves (eqn 26b Johnson & Thornley 1983)
+			indiv.cmass_leafs[1] += c1 - c2;
+			indiv.nmass_leafs[1] += n1 - n2;
+
+			// Second fully expanded leaves (eqn 26c Johnson & Thornley 1983)
+			indiv.cmass_leafs[2] += c2 - c3;
+			indiv.nmass_leafs[2] += n2 - n3;
+
+			// Senescing leaves (eqn 26d Johnson & Thornley 1983)
+			indiv.cmass_leafs[3] += (1.0 - crelocfrac_daily) * c3 - c4;
+			indiv.cmass_storage += crelocfrac_daily * c3;
+			indiv.nmass_leafs[3] += (1.0 - nrelocfrac_daily) * n3 - n4;
+			indiv.nmass_storage += nrelocfrac_daily * n3;
+
+			// Grazing
+			grazing_daily(indiv);
+
+			// Litter - if we have leaf litter then all compartments have litter to be dropped.
+			if (c4 > 0.0) {
+
+				patch.is_litter_day = true;
+
+				// Maximum turnover rate (to prevent biomass becoming negligible)
+				double turnover_max = 0.1;
+
+				// Leaf turnover
+				ppft.cmass_litter_leaf += c4;
+				ppft.nmass_litter_leaf += n4;
+
+				// Daily leaf and root turnover
+				double total_cmass_leaf = indiv.get_cmass_leaf() + c3;
+				double leaves_turnover_frac = min(turnover_max, !negligible(total_cmass_leaf) ? c3 / total_cmass_leaf : 0.0);
+
+				// Root C turnover (use same fraction as for leaves)
+				double turnov = leaves_turnover_frac * indiv.cmass_root;
+				indiv.cmass_root -= turnov;
+				ppft.cmass_litter_root += turnov;
+
+				// Root N turnover
+				turnov = leaves_turnover_frac * indiv.nmass_root;
+				indiv.nmass_root -= turnov;
+				ppft.nmass_litter_root += turnov * (1.0 - nrelocfrac_daily);
+				indiv.nmass_storage += turnov * nrelocfrac_daily;
+			}
+
+			// C budget check
+			double finalc = indiv.get_cmass_leaf() + indiv.cmass_leafs[3] + indiv.cmass_storage +
+				indiv.cmass_root + ppft.cmass_litter_leaf + ppft.cmass_litter_root;
+
+			if (fabs(initc - finalc) > 1.0e-12)
+				dprintf("Year %d Day %d Diff %g Init %g Final %g\n",date.year,date.day, initc - finalc, initc, finalc);
+
+			// Update allometry - updates LAI and FPC based on cmass
+			allometry(indiv);
+
+			// Determine the yearly maximum values which is reported
+			indiv.lai_ymax = max(indiv.lai_ymax, indiv.lai);
+			indiv.fpc_ymax = max(indiv.fpc_ymax, indiv.fpc);
+
+			if (indiv.get_cmass_leaf() > indiv.cmass_leaf_ymax) {
+				indiv.cmass_leaf_ymax = indiv.get_cmass_leaf();
+				indiv.nmass_leaf_ymax = indiv.get_nmass_leaf();
+			}
+
+			if (indiv.cmass_root > indiv.cmass_root_ymax) {
+				indiv.cmass_root_ymax = indiv.cmass_root;
+				indiv.nmass_root_ymax = indiv.nmass_root;
+			}
+			
+			// Report yearly data
+			if (date.islastday && date.islastmonth) {
+
+				harvest_year(indiv);
+
+				// Calculate vegetation carbon and nitrogen mass and average C:N ratios for yearly outputs
+				indiv.cmass_veg = indiv.cmass_leaf_ymax + indiv.cmass_root_ymax;
+				indiv.nmass_veg = indiv.nmass_leaf_ymax + indiv.nmass_root_ymax;
+
+				// Save leaf annual average C:N ratio
+				if (!negligible(indiv.nday_leafon)) {
+					indiv.cton_leaf_aavr /= indiv.nday_leafon;
+				}
+				else {
+					indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
+				}
+
+				indiv.deltafpc = 0.0;
+			} // Last day of year
+		} // Grass
+
+		if (!killed) {
+			vegetation.nextobj();
+		}
+
+	} // while vegetation is object
+
+} // growth_daily() 
+
+
+
+
+void growth_daily_grass_dave(Patch& patch) {
 
 	Stand& stand = patch.stand;
 
@@ -1919,7 +2400,7 @@ void growth_daily_grass(Patch& patch) {
 
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
-					if (ifnewphotosyn) {
+					if (ifdavephotosyn) {
 						// evaluate current C:N ratio against 10-day C:N ratio, not the optimal one
 						indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
 					}
@@ -2003,7 +2484,7 @@ void growth_daily_grass(Patch& patch) {
 				assert(cgrow_root >= 0);
 				assert(cgrow_leaf >= 0);
 
-				if (ifnewphotosyn){
+				if (ifdavephotosyn){
 					// N demand for growth
 					// ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf();
 					// ngrow_root_demand = cgrow_root / (indiv.cton_leaf() * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
@@ -2040,11 +2521,11 @@ void growth_daily_grass(Patch& patch) {
 				// nmass_storage, then we resume the loop, transferring a few
 				// required local variables into the next loop via temporary
 				// vectors. This should cause no difference in results when
-				// ifnewphotosyn is disabled.
+				// ifdavephotosyn is disabled.
 
 			}
 
-			if (ifnewphotosyn) {
+			if (ifdavephotosyn) {
 
 				// Figure out N uptake strength (adopted from ndemand() function)
 				// Scale to maximum nitrogen concentrations
@@ -2085,7 +2566,7 @@ void growth_daily_grass(Patch& patch) {
 		vegetation.nextobj();
 	}
 
-	if (ifnewphotosyn) {
+	if (ifdavephotosyn) {
 		// Multiply nmass_avail by fpc in case patch is sparsely populated.
 		double nmass_avail = patch.soil.nmass_avail() * min(1.0, patch.fpc_total);
 		if (nmass_avail < patch_total_ndemand) {
@@ -2147,8 +2628,8 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			// Reduce C depending on fndemand to not get too high C:N ratios
-			if (ifnewphotosyn || (ifnlim && date.year > freenyears) ) {
-				double c_scal = ifnewphotosyn ? FRAC_C_OF_N_LIM_DAVE : FRAC_C_OF_N_LIM;
+			if (ifdavephotosyn || (ifnlim && date.year > freenyears) ) {
+				double c_scal = ifdavephotosyn ? FRAC_C_OF_N_LIM_DAVE : FRAC_C_OF_N_LIM;
 				cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
 				cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
 
@@ -2327,8 +2808,11 @@ void growth_daily(Patch& patch) {
 	if (ifdailygrass) {
 		
 		// daily C allocation (grass only)
-		growth_daily_grass(patch);
-
+		if (ifdavegrowth) {
+			growth_daily_grass_dave(patch);
+		} else {
+			growth_daily_grass(patch);
+		}
 		// necessary updates after daily change to fpc in daily grass
 		update_patch_fpc(patch);
 	}

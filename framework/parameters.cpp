@@ -70,7 +70,8 @@ bool ifrainonwetdaysonly;
 bool ifbvoc;
 
 bool ifdailygrass;
-bool ifnewphotosyn;
+bool ifdavephotosyn;
+bool ifdavegrowth;
 bool ifapproximate_C4;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
@@ -602,7 +603,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
-		declareitem("ifnewphotosyn", &ifnewphotosyn, 1, CB_NONE, "Use new (DAVE) photosynthesis routine");
+		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
+		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");

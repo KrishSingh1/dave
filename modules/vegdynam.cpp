@@ -505,7 +505,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
 
-		if (ifnewphotosyn) {
+		if (ifdavephotosyn) {
 			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
 		}
 
@@ -711,7 +711,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						if (ifnewphotosyn) {
+						if (ifdavephotosyn) {
 							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
 						}
 

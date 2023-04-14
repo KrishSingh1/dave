@@ -3434,7 +3434,7 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 	}
 
 	int solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
-	bool check = ifnewphotosyn && \
+	bool check = ifdavephotosyn && \
 		!(date.year == solvesomcent_endyr && date.islastmonth && date.islastday);
 	 	/* || date.year >= nyear_spinup */;
 

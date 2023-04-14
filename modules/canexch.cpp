@@ -464,7 +464,7 @@ void fpar(Patch& patch) {
 				// fpar_min. We check in photosynthesis_gs() whether there's
 				// enough PAR for photosynthesis to occur.
 				double t2 = fpar_ff * flai;
-				if (!ifnewphotosyn) {
+				if (!ifdavephotosyn) {
 					if (!negligible(climate.par))
 						fpar_min=min(indiv.pft.parff_min/climate.par,1.0);
 					else
@@ -3415,7 +3415,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	fpar(patch);
 
 
-    if (ifnewphotosyn) {
+    if (ifdavephotosyn) {
 
 		// Supply function for nitrogen and determination of nitrogen stress leading
 		// to down-regulation of vmax.

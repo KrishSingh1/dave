@@ -363,8 +363,11 @@ extern bool ifbvoc;
 /// whether daily carbon allocation for grasses is turned on
 extern bool ifdailygrass;
 
-/// whether new (empirical) photosynthesis scheme is turned on
-extern bool ifnewphotosyn;
+/// whether DAVE (empirical) photosynthesis scheme is turned on
+extern bool ifdavephotosyn;
+
+/// whether DAVE growth routine for grasses is turned on
+extern bool ifdavegrowth;
 
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;

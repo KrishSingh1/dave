@@ -47,6 +47,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_nsoil_depth", &file_nsoil_depth, 300, "Soil depth N output file");
 	declare_parameter("file_csoil_cm", &file_csoil_cm, 300, "Soil depth with 10cm interval C output file");
 	declare_parameter("file_csoilp_cm", &file_csoilp_cm, 300, "Soil depth with 10cm interval permafrost C output file");
+	declare_parameter("file_rh_cm", &file_rh_cm, 300, "Soil depth with 10cm interval Rh output file");
 	declare_parameter("file_netnminsoil_depth", &file_netnminsoil_depth, 300, "Soil depth net N mineralisation output file");
 	declare_parameter("file_rh", &file_rh, 300, "Soil layer C respiration output file");
 	declare_parameter("file_rh_depth", &file_rh_depth, 300, "Soil depth C respiration output file");
@@ -311,13 +312,14 @@ void CommonOutput::define_output_tables() {
 	}
 
 	// Create 10cm soil layer down to 3m columns
-	ColumnDescriptors depth_cm_columns;
+	ColumnDescriptors depth_cm_columns, depth_cm_columns_med;
 	double depth_cm = 0;
 	char depth_in_m[20];
 	for (int d = 0; d < 30; d++) {
 		depth_cm += 0.1;
 			sprintf(depth_in_m, "d%g", depth_cm);
 			depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 2);
+			depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
 	}
 
 	// Create the columns for each output file
@@ -591,6 +593,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_nsoil_depth,    file_nsoil_depth,    surfsoildepth_columns);
 	create_output_table(out_csoil_cm,       file_csoil_cm,       depth_cm_columns);
 	create_output_table(out_csoilp_cm,      file_csoilp_cm,      depth_cm_columns);
+	create_output_table(out_rh_cm,          file_rh_cm,          depth_cm_columns_med);
 	create_output_table(out_netnminsoil_depth, file_netnminsoil_depth, soildepth_columns);
 	create_output_table(out_rh,             file_rh,             soillyr_columns_med); 
 	create_output_table(out_rh_depth,       file_rh_depth,       surfsoildepth_columns_med);
@@ -945,6 +948,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soilc_depth[sslyr + 2] = { 0.0 };
 	double soilc_cm[30] = { 0.0 };
 	double soilcp_cm[30] = { 0.0 };
+	double rh_cm[30] = { 0.0 };
 	double soilr[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double soilr_depth[sslyr + 2] = { 0.0 };
 	double soiln_depth[sslyr + 2] = { 0.0 };
@@ -1870,6 +1874,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				soilc_cm[d] += carbon * frac * to_gridcell_average;
 				soilcp_cm[d] += carbon * (1.0 - frac) * to_gridcell_average;
+				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
 				dcm += dint;
 			}
 
@@ -2299,6 +2304,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	for (int d = 0; d < 30; d++) {
 		outlimit(out, out_csoil_cm, soilc_cm[d]);
 		outlimit(out, out_csoilp_cm, soilcp_cm[d]);
+		outlimit(out, out_rh_cm, rh_cm[d]);
 	}
 
 	outlimit(out, out_soilcperma, soilc_ald);

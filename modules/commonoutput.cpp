@@ -315,12 +315,14 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors depth_cm_columns, depth_cm_columns_med;
 	double depth_cm = 0;
 	char depth_in_m[20];
-	for (int d = 0; d < 30; d++) {
+	for (int d = 0; d < 50; d++) {
 		depth_cm += 0.1;
 			sprintf(depth_in_m, "d%g", depth_cm);
 			depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 2);
 			depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
 	}
+	depth_cm_columns += ColumnDescriptor("dmax", 8, 2);
+	depth_cm_columns_med += ColumnDescriptor("dmax", 10, 5);
 
 	// Create the columns for each output file
 
@@ -946,9 +948,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soildepth[NSOILLAYERS_MAX] = { 0.0 };
 	double soilc[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double soilc_depth[sslyr + 2] = { 0.0 };
-	double soilc_cm[30] = { 0.0 };
-	double soilcp_cm[30] = { 0.0 };
-	double rh_cm[30] = { 0.0 };
+	double soilc_cm[51] = { 0.0 };
+	double soilcp_cm[51] = { 0.0 };
+	double rh_cm[51] = { 0.0 };
 	double soilr[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double soilr_depth[sslyr + 2] = { 0.0 };
 	double soiln_depth[sslyr + 2] = { 0.0 };
@@ -1857,7 +1859,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			// 10 cm intervals down to 3m
 			double dcm = 0.0;
 			double dint = 100.0;
-			for (int d = 0; d < 30; d++) {
+			for (int d = 0; d < 50; d++) {
 				double frac = 1.0;
 				if (soilcolumn.maxthaw >= dcm && soilcolumn.maxthaw < dcm + dint) {
 					frac = (soilcolumn.maxthaw - dcm) / dint;
@@ -1877,6 +1879,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
 				dcm += dint;
 			}
+
+			// The rest of the depth
+			double frac = soilcolumn.maxthaw < dcm ? 0.0 : 1.0;
+			double carbon = soilcolumn.var_depth_ccont(dcm, dcm + 5000.0);
+			soilc_cm[50] += carbon * frac * to_gridcell_average;
+			soilcp_cm[50] += carbon * (1.0 - frac) * to_gridcell_average;
+			rh_cm[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, ARH) * to_gridcell_average;
 
 			soilc_depth[sslyr + 1] += soilcolumn.ccont() * to_gridcell_average;
 			soiln_depth[sslyr + 1] += soilcolumn.ncont() * to_gridcell_average;
@@ -2301,7 +2310,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Soil depth and total output
-	for (int d = 0; d < 30; d++) {
+	for (int d = 0; d < 51; d++) {
 		outlimit(out, out_csoil_cm, soilc_cm[d]);
 		outlimit(out, out_csoilp_cm, soilcp_cm[d]);
 		outlimit(out, out_rh_cm, rh_cm[d]);

@@ -532,7 +532,7 @@ double Soillayer::moisture_modifier() {
 	double moist_mod_dry = 0.064;
 	// Minimum moist modifier for anaerobic soils 
 	// (Frolking et al (2001, 2010), Ise et al. (2008))
-	double moist_mod_anaerobic = 0.1;
+	double moist_mod_anaerobic = 0.075;
 	// Water fraction of soil layer volume
 	double theta = (imass + wmass) / depth;
 	// Saturation fraction of soil layer volume
@@ -563,7 +563,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_s
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
 	double surf_wd_scalar = 0.4; // DW_COMMENT
-	double som_scalar = 1.4; // DW_COMMENT
+	double som_scalar = 1.5; // DW_COMMENT
 
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;

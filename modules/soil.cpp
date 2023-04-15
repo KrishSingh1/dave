@@ -912,7 +912,7 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 	// Compactive viscosity factor for snow
 	double eta_0 = 1E7;
 	// Reference snow density [kg m-3]
-	double rho_0 = 50.0;
+	double rho_0 = 80.0;
 
 	// Snow mass above current layer
 	double I_above = 0.0;
@@ -967,7 +967,7 @@ void Snow::snowfall(double airT, double& prec, double u10) {
 	// Constant [kg m-7/2 s-1/2]
 	int c = 26;			 
 	// Minimum snow density 
-	double dens_min = 100;
+	double dens_min = 80;
 	// Temperature of the melting point for water
 	double Tmelt = 0;
 
@@ -1581,11 +1581,11 @@ void Soillayer::calc_organic_density() {
 			volume_tot += sompool[p].cmass / rho_low;
 			cmass_tot += sompool[p].cmass;
 		}
-		else if (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) {
+		else if (p == SURFMICRO || p == SOILMICRO || p == SLOWSOM) {
 			volume_tot += sompool[p].cmass / rho_mean;
 			cmass_tot += sompool[p].cmass;
 		}
-		else if (p == PASSIVESOM) {
+		else if (p == PASSIVESOM || p == SURFHUMUS) {
 			volume_tot += sompool[p].cmass / rho_high;
 			cmass_tot += sompool[p].cmass;
 		}
@@ -6698,16 +6698,19 @@ void Soilcolumn::calc_msnow() {
  */
 void Soilcolumn::calc_root_volume() {
 
-	// Calculate total coarse root biomass
-	double cmass_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
+	// Calculate total coarse root volume
+	double volume_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
 
 	Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
-		double cmass_coarse_root_tot = indiv.cmass_wood() * (1.0 - indiv.pft.ag_woody_frac);
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			cmass_coarse_root[lyr] += cmass_coarse_root_tot * indiv.pft.rootdist[lyr];
+		if (indiv.pft.lifeform == TREE) {
+			double volume_coarse_root_tot = indiv.cmass_wood() * (1.0 - indiv.pft.ag_woody_frac) /
+				indiv.pft.wooddens * MM_PER_M;
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				volume_coarse_root[lyr] += volume_coarse_root_tot * indiv.pft.rootdist[lyr];
+			}
 		}
 		vegetation.nextobj();
 	}
@@ -6717,12 +6720,13 @@ void Soilcolumn::calc_root_volume() {
 	while (pftlist.isobj) {
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
-
-		double cmass_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - ppft.pft.ag_woody_frac);
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			cmass_coarse_root[lyr] += cmass_coarse_root_tot * ppft.pft.rootdist[lyr];
+		if (pft.lifeform == TREE) {
+			double volume_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - pft.ag_woody_frac) /
+				pft.wooddens * MM_PER_M;
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				volume_coarse_root[lyr] += volume_coarse_root_tot * pft.rootdist[lyr];
+			}
 		}
-
 		pftlist.nextobj();
 	}
 
@@ -6732,11 +6736,10 @@ void Soilcolumn::calc_root_volume() {
 
 		// Soillayers root volume (maximum value 50% of soil layer volume)
 
-		// Coarse root density [kg C m-3]
-		const double coarserootdens = 200.0;
+		// Root volume
 		soillayer.root_volume = min(0.5 * soillayer.depth, 
-			max(0.0, (cmass_coarse_root[lyr] + soillayer.sompool[SOILCWD].cmass + 
-				soillayer.sompool[SOILFWD].cmass) / coarserootdens * MM_PER_M));
+			max(0.0, volume_coarse_root[lyr] + (soillayer.sompool[SOILCWD].cmass +
+				soillayer.sompool[SOILFWD].cmass) / rho_high * MM_PER_M));
 
 		// If organic matter doesn't affect soil properties, then they 
 		// need to be updated here if effective volume is updated

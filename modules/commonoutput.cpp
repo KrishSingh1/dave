@@ -48,6 +48,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_csoil_cm", &file_csoil_cm, 300, "Soil depth with 10cm interval C output file");
 	declare_parameter("file_csoilp_cm", &file_csoilp_cm, 300, "Soil depth with 10cm interval permafrost C output file");
 	declare_parameter("file_rh_cm", &file_rh_cm, 300, "Soil depth with 10cm interval Rh output file");
+	declare_parameter("file_csoil_cm_peat", &file_csoil_cm_peat, 300, "Soil depth with 10cm interval C output file");
+	declare_parameter("file_csoilp_cm_peat", &file_csoilp_cm_peat, 300, "Soil depth with 10cm interval permafrost C output file");
+	declare_parameter("file_rh_cm_peat", &file_rh_cm_peat, 300, "Soil depth with 10cm interval Rh output file");
 	declare_parameter("file_netnminsoil_depth", &file_netnminsoil_depth, 300, "Soil depth net N mineralisation output file");
 	declare_parameter("file_rh", &file_rh, 300, "Soil layer C respiration output file");
 	declare_parameter("file_rh_depth", &file_rh_depth, 300, "Soil depth C respiration output file");
@@ -318,7 +321,7 @@ void CommonOutput::define_output_tables() {
 	for (int d = 0; d < 50; d++) {
 		depth_cm += 0.1;
 			sprintf(depth_in_m, "d%g", depth_cm);
-			depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 2);
+			depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 3);
 			depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
 	}
 	depth_cm_columns += ColumnDescriptor("dmax", 8, 2);
@@ -596,6 +599,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_csoil_cm,       file_csoil_cm,       depth_cm_columns);
 	create_output_table(out_csoilp_cm,      file_csoilp_cm,      depth_cm_columns);
 	create_output_table(out_rh_cm,          file_rh_cm,          depth_cm_columns_med);
+	create_output_table(out_csoil_cm_peat,  file_csoil_cm_peat,  depth_cm_columns);
+	create_output_table(out_csoilp_cm_peat, file_csoilp_cm_peat, depth_cm_columns);
+	create_output_table(out_rh_cm_peat,     file_rh_cm_peat,     depth_cm_columns_med);
 	create_output_table(out_netnminsoil_depth, file_netnminsoil_depth, soildepth_columns);
 	create_output_table(out_rh,             file_rh,             soillyr_columns_med); 
 	create_output_table(out_rh_depth,       file_rh_depth,       surfsoildepth_columns_med);
@@ -951,6 +957,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soilc_cm[51] = { 0.0 };
 	double soilcp_cm[51] = { 0.0 };
 	double rh_cm[51] = { 0.0 };
+	double soilc_cm_peat[51] = { 0.0 };
+	double soilcp_cm_peat[51] = { 0.0 };
+	double rh_cm_peat[51] = { 0.0 };
 	double soilr[NSOILLAYERS_MAX + 1] = { 0.0 };
 	double soilr_depth[sslyr + 2] = { 0.0 };
 	double soiln_depth[sslyr + 2] = { 0.0 };
@@ -1877,6 +1886,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				soilc_cm[d] += carbon * frac * to_gridcell_average;
 				soilcp_cm[d] += carbon * (1.0 - frac) * to_gridcell_average;
 				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
+
+				if (stand.landcover == PEATLAND) {
+					soilc_cm_peat[d] += carbon * frac * to_gridcell_average;
+					soilcp_cm_peat[d] += carbon * (1.0 - frac) * to_gridcell_average;
+					rh_cm_peat[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
+				}
+
 				dcm += dint;
 			}
 
@@ -1886,6 +1902,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			soilc_cm[50] += carbon * frac * to_gridcell_average;
 			soilcp_cm[50] += carbon * (1.0 - frac) * to_gridcell_average;
 			rh_cm[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, ARH) * to_gridcell_average;
+
+			if (stand.landcover == PEATLAND) {
+				soilc_cm_peat[50] += carbon * frac * to_gridcell_average;
+				soilcp_cm_peat[50] += carbon * (1.0 - frac) * to_gridcell_average;
+				rh_cm_peat[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, ARH) * to_gridcell_average;
+			}
 
 			soilc_depth[sslyr + 1] += soilcolumn.ccont() * to_gridcell_average;
 			soiln_depth[sslyr + 1] += soilcolumn.ncont() * to_gridcell_average;
@@ -2314,6 +2336,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_csoil_cm, soilc_cm[d]);
 		outlimit(out, out_csoilp_cm, soilcp_cm[d]);
 		outlimit(out, out_rh_cm, rh_cm[d]);
+		outlimit(out, out_csoil_cm_peat, soilc_cm_peat[d]);
+		outlimit(out, out_csoilp_cm_peat, soilcp_cm_peat[d]);
+		outlimit(out, out_rh_cm_peat, rh_cm_peat[d]);
 	}
 
 	outlimit(out, out_soilcperma, soilc_ald);

@@ -1164,8 +1164,9 @@ void transfer_litter(Patch& patch) {
 
 		double ligcmass_new, ligcmass_old;
 
-		// Annual surface C litter input
-		double& asurflitterinput = soilcolumn.asurflitterinput;
+		// Annual surface C fine and coarse litter input
+		double& asurfflitterinput = soilcolumn.asurfflitterinput;
+		double& asurfclitterinput = soilcolumn.asurfclitterinput;
 
 		// Fire (GlobFIRM)
 		double litterme[NSOMPOOL] = { 0.0 };
@@ -1256,8 +1257,9 @@ void transfer_litter(Patch& patch) {
 					// Soil object for this layer
 					Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-					// Annual soil layer litter input
-					double& acmassinput = soillayer.acmassinput;
+					// Annual soil layer fine and coarse litter input
+					double& acmassfinput = soillayer.acmassfinput;
+					double& acmasscinput = soillayer.acmasscinput;
 
 					double root_lyr_frac = ppft.rootdist[lyr];
 
@@ -1309,7 +1311,7 @@ void transfer_litter(Patch& patch) {
 						sompool_meta.cmass += cmass_litter_leaf * fm;
 						sompool_meta.nmass += nmass_litter_leaf * fm;
 
-						asurflitterinput += cmass_litter_leaf;
+						asurfflitterinput += cmass_litter_leaf;
 						soilcolumn.csom_litter_input[SURFSTRUCT] += cmass_litter_leaf * (1.0 - fm);
 						soilcolumn.csom_litter_input[SURFMETA] += cmass_litter_leaf * fm;
 
@@ -1362,7 +1364,7 @@ void transfer_litter(Patch& patch) {
 						sompool_meta.cmass += cmass_litter_root * root_lyr_frac * fm;
 						sompool_meta.nmass += nmass_litter_root * root_lyr_frac * fm;
 
-						acmassinput += cmass_litter_root * root_lyr_frac;
+						acmassfinput += cmass_litter_root * root_lyr_frac;
 						soilcolumn.csom_litter_input[SOILSTRUCT] += cmass_litter_root * root_lyr_frac * (1.0 - fm);
 						soilcolumn.csom_litter_input[SOILMETA] += cmass_litter_root * root_lyr_frac * fm;
 
@@ -1402,7 +1404,7 @@ void transfer_litter(Patch& patch) {
 							sompool_surffwd.cmass += cmass_litter_sap * (1.0 - COARSE_ROOT_FRAC);
 							sompool_surffwd.nmass += nmass_litter_sap * (1.0 - COARSE_ROOT_FRAC);
 
-							asurflitterinput += cmass_litter_sap * (1.0 - COARSE_ROOT_FRAC);
+							asurfclitterinput += cmass_litter_sap * (1.0 - COARSE_ROOT_FRAC);
 							soilcolumn.csom_litter_input[SURFFWD] += cmass_litter_sap * (1.0 - COARSE_ROOT_FRAC);
 
 							// Save litter input for equilsom()
@@ -1436,7 +1438,7 @@ void transfer_litter(Patch& patch) {
 						sompool_soilfwd.cmass += cmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac;
 						sompool_soilfwd.nmass += nmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac;
 
-						acmassinput += cmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac;
+						acmasscinput += cmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac;
 						soilcolumn.csom_litter_input[SOILFWD] += cmass_litter_sap * COARSE_ROOT_FRAC * root_lyr_frac;
 
 						// Save litter input for equilsom()
@@ -1469,7 +1471,7 @@ void transfer_litter(Patch& patch) {
 							sompool_surfcwd.cmass += cmass_litter_heart * (1.0 - COARSE_ROOT_FRAC);
 							sompool_surfcwd.nmass += nmass_litter_heart * (1.0 - COARSE_ROOT_FRAC);
 
-							asurflitterinput += cmass_litter_heart * (1.0 - COARSE_ROOT_FRAC);
+							asurfclitterinput += cmass_litter_heart * (1.0 - COARSE_ROOT_FRAC);
 							soilcolumn.csom_litter_input[SURFCWD] += cmass_litter_heart * (1.0 - COARSE_ROOT_FRAC);
 
 							// Save litter input for equilsom()
@@ -1503,7 +1505,7 @@ void transfer_litter(Patch& patch) {
 						sompool_soilcwd.cmass += cmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac;
 						sompool_soilcwd.nmass += nmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac;
 
-						acmassinput += cmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac;
+						acmasscinput += cmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac;
 						soilcolumn.csom_litter_input[SOILCWD] += cmass_litter_heart * COARSE_ROOT_FRAC * root_lyr_frac;
 
 						// Save litter input for equilsom()

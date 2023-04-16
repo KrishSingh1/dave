@@ -44,7 +44,7 @@ private:
 
 	// Output file names ...
 	xtring file_cmass,file_cmass_agb,file_anpp,file_agpp,file_agpp_no,file_agpp_ns,file_fpc,file_aaet,file_dens,file_lai,file_cflux,file_doc,file_cpool,file_clitter;
-	xtring file_csom, file_ctonsom, file_soildepth, file_csoil, file_csoil_depth, file_nsoil_depth, file_csoil_cm, file_csoilp_cm, file_rh_cm, file_csoil_cm_peat, file_csoilp_cm_peat, file_rh_cm_peat, file_netnminsoil_depth, file_rh, file_rh_depth, file_tau_soil, file_tau_soil_depth;
+	xtring file_csom, file_ctonsom, file_soildepth, file_csoil, file_csoil_depth, file_nsoil_depth, file_csoil_cm, file_csoilp_cm, file_rh_cm, file_flitter_cm, file_clitter_cm, file_csoil_cm_peat, file_csoilp_cm_peat, file_rh_cm_peat, file_netnminsoil_depth, file_rh, file_rh_depth, file_tau_soil, file_tau_soil_depth;
 	xtring file_temp_mod, file_moist_mod, file_tot_mod, file_temp_mod_depth, file_moist_mod_depth, file_tot_mod_depth, file_volume_org_depth, file_volume_min_depth, file_volume_root_depth, file_runoff;
 	xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 	xtring file_mnee,file_mnetmin,file_mcton_leaf,file_mvmaxnlim,file_mlambda,file_mwmass,file_mimass,file_mwcont_upper,file_mwcont_lower;
@@ -76,7 +76,7 @@ private:
 
 	// Output tables
 	Table out_cmass, out_cmass_agb, out_anpp, out_agpp, out_agpp_no, out_agpp_ns, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter; 
-	Table out_csom, out_ctonsom, out_soildepth, out_csoil, out_csoil_depth, out_nsoil_depth, out_csoil_cm, out_csoilp_cm, out_rh_cm, out_csoil_cm_peat, out_csoilp_cm_peat, out_rh_cm_peat, out_netnminsoil_depth, out_rh, out_rh_depth, out_tau_soil, out_tau_soil_depth;
+	Table out_csom, out_ctonsom, out_soildepth, out_csoil, out_csoil_depth, out_nsoil_depth, out_csoil_cm, out_csoilp_cm, out_rh_cm, out_flitter_cm, out_clitter_cm, out_csoil_cm_peat, out_csoilp_cm_peat, out_rh_cm_peat, out_netnminsoil_depth, out_rh, out_rh_depth, out_tau_soil, out_tau_soil_depth;
 	Table out_temp_mod, out_moist_mod, out_tot_mod, out_temp_mod_depth, out_moist_mod_depth, out_tot_mod_depth, out_volume_org_depth, out_volume_min_depth, out_volume_root_depth, out_firert, out_runoff, out_speciesheights;
 	Table out_wetland_water_added;
 	Table out_soildeclim, out_soilgrolim, out_soiltotlim, out_soilcuelim, out_clitterinput, out_clitterinput_depth, out_csomlitterinput, out_soilcperma;

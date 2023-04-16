@@ -721,7 +721,8 @@ void dailyaccounting_patch(Patch& patch) {
 			soilcolumn.savesomcent = false;
 		}
 
-		soilcolumn.asurflitterinput = 0.0;
+		soilcolumn.asurfflitterinput = 0.0;
+		soilcolumn.asurfclitterinput = 0.0;
 		soilcolumn.asurflitterresp = 0.0;
 
 		for (int p = 0; p < NSOMPOOL; p++) {
@@ -762,7 +763,8 @@ void dailyaccounting_patch(Patch& patch) {
 			soillayer.aorgCleach = 0.0;
 			soillayer.aorgNleach = 0.0;
 			soillayer.aminleach = 0.0;
-			soillayer.acmassinput = 0.0;
+			soillayer.acmassfinput = 0.0;
+			soillayer.acmasscinput = 0.0;
 
 			soillayer.atemp_mod = 0.0;
 			soillayer.amoist_mod = 0.0;

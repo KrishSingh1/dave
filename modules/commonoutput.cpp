@@ -48,6 +48,8 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_csoil_cm", &file_csoil_cm, 300, "Soil depth with 10cm interval C output file");
 	declare_parameter("file_csoilp_cm", &file_csoilp_cm, 300, "Soil depth with 10cm interval permafrost C output file");
 	declare_parameter("file_rh_cm", &file_rh_cm, 300, "Soil depth with 10cm interval Rh output file");
+	declare_parameter("file_flitter_cm", &file_flitter_cm, 300, "Soil depth with 10cm interval fine litter input output file");
+	declare_parameter("file_clitter_cm", &file_clitter_cm, 300, "Soil depth with 10cm interval coarse litter input output file");
 	declare_parameter("file_csoil_cm_peat", &file_csoil_cm_peat, 300, "Soil depth with 10cm interval C output file");
 	declare_parameter("file_csoilp_cm_peat", &file_csoilp_cm_peat, 300, "Soil depth with 10cm interval permafrost C output file");
 	declare_parameter("file_rh_cm_peat", &file_rh_cm_peat, 300, "Soil depth with 10cm interval Rh output file");
@@ -315,14 +317,16 @@ void CommonOutput::define_output_tables() {
 	}
 
 	// Create 10cm soil layer down to 3m columns
-	ColumnDescriptors depth_cm_columns, depth_cm_columns_med;
+	ColumnDescriptors depth_cm_columns, depth_cm_columns_med, litter_depth_cm_columns_med;
 	double depth_cm = 0;
 	char depth_in_m[20];
+	litter_depth_cm_columns_med += ColumnDescriptor("Surf", 10, 5);
 	for (int d = 0; d < 50; d++) {
 		depth_cm += 0.1;
-			sprintf(depth_in_m, "d%g", depth_cm);
-			depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 3);
-			depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
+		sprintf(depth_in_m, "d%g", depth_cm);
+		depth_cm_columns += ColumnDescriptor(depth_in_m, 8, 3);
+		depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
+		litter_depth_cm_columns_med += ColumnDescriptor(depth_in_m, 10, 5);
 	}
 	depth_cm_columns += ColumnDescriptor("dmax", 8, 2);
 	depth_cm_columns_med += ColumnDescriptor("dmax", 10, 5);
@@ -599,6 +603,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_csoil_cm,       file_csoil_cm,       depth_cm_columns);
 	create_output_table(out_csoilp_cm,      file_csoilp_cm,      depth_cm_columns);
 	create_output_table(out_rh_cm,          file_rh_cm,          depth_cm_columns_med);
+	create_output_table(out_flitter_cm,     file_flitter_cm,     litter_depth_cm_columns_med);
+	create_output_table(out_clitter_cm,     file_clitter_cm,     litter_depth_cm_columns_med);
 	create_output_table(out_csoil_cm_peat,  file_csoil_cm_peat,  depth_cm_columns);
 	create_output_table(out_csoilp_cm_peat, file_csoilp_cm_peat, depth_cm_columns);
 	create_output_table(out_rh_cm_peat,     file_rh_cm_peat,     depth_cm_columns_med);
@@ -957,6 +963,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double soilc_cm[51] = { 0.0 };
 	double soilcp_cm[51] = { 0.0 };
 	double rh_cm[51] = { 0.0 };
+	double litter_F_cm[51] = { 0.0 };
+	double litter_C_cm[51] = { 0.0 };
 	double soilc_cm_peat[51] = { 0.0 };
 	double soilcp_cm_peat[51] = { 0.0 };
 	double rh_cm_peat[51] = { 0.0 };
@@ -1746,7 +1754,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				csomlitterinput[NSOMPOOL] += soilcolumn.csom_litter_input[p] * to_gridcell_average;
 			}
 
-			clitterinput[0] += soilcolumn.asurflitterinput * to_gridcell_average;
+			clitterinput[0] += (soilcolumn.asurfflitterinput + soilcolumn.asurfclitterinput) * to_gridcell_average;
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -1767,7 +1775,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				cinc[lyr][0] += soillayer.acinc[0] * to_gridcell_average;
 				cinc[lyr][1] += soillayer.acinc[1] * to_gridcell_average;
 
-				clitterinput[lyr + 1] += soillayer.get(ALITTERINPUT) * to_gridcell_average;
+				clitterinput[lyr + 1] += (soillayer.get(AFLITTERINPUT) + soillayer.get(ACLITTERINPUT)) * to_gridcell_average;
 
 				c_fast += soillayer.cpool_fast * to_gridcell_average;
 				c_slow += soillayer.cpool_slow * to_gridcell_average;
@@ -1815,12 +1823,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			double surflitc = soilcolumn.get_surflittercmass();
 			double surflitn = soilcolumn.get_surflitternmass();
 			double surflitr = soilcolumn.asurflitterresp;
-			double surflitinput = soilcolumn.asurflitterinput;
+			double surfflitinput = soilcolumn.asurfflitterinput;
+			double surfclitinput = soilcolumn.asurfclitterinput;
 
 			soilc_depth[0] += surflitc * to_gridcell_average;
 			soiln_depth[0] += surflitn * to_gridcell_average;
 			soilr_depth[0] += surflitr * to_gridcell_average;
-			clitterinput_depth[0] += surflitinput * to_gridcell_average;
+			clitterinput_depth[0] += (surfflitinput + surfclitinput) * to_gridcell_average;
 
 			// Soil to specific depths
 			double depth_prev = 0.0;
@@ -1837,7 +1846,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					soilc_depth[lyr + 1] += (soilcolumn.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
 					soiln_depth[lyr + 1] += (soilcolumn.var_depth_ncont(depth_prev, depth_this) - soiln_prev) * to_gridcell_average;
 					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, ARH) - soilr_prev)* to_gridcell_average;
-					clitterinput_depth[lyr + 1] += soilcolumn.var_depth(depth_prev, depth_this, ALITTERINPUT) * to_gridcell_average;
+					clitterinput_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, AFLITTERINPUT) + soilcolumn.var_depth(depth_prev, depth_this, ACLITTERINPUT)) * to_gridcell_average;
 					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, ANMIN) - soilcolumn.var_depth(depth_prev, depth_this, ANIMM)) * to_gridcell_average;
 					volume_org_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ORG) * to_gridcell_average;
 					volume_min_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_MIN) * to_gridcell_average;
@@ -1865,7 +1874,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				depth_prev = depth_this;
 			}
 
-			// 10 cm intervals down to 3m
+			// 10 cm intervals down to 5m
+			litter_F_cm[0] += surfflitinput * to_gridcell_average;
+			litter_C_cm[0] += surfclitinput * to_gridcell_average;
 			double dcm = 0.0;
 			double dint = 100.0;
 			for (int d = 0; d < 50; d++) {
@@ -1886,6 +1897,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				soilc_cm[d] += carbon * frac * to_gridcell_average;
 				soilcp_cm[d] += carbon * (1.0 - frac) * to_gridcell_average;
 				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
+				litter_F_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, AFLITTERINPUT) * to_gridcell_average;
+				litter_C_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ACLITTERINPUT) * to_gridcell_average;
 
 				if (stand.landcover == PEATLAND) {
 					soilc_cm_peat[d] += carbon * frac * to_gridcell_average;
@@ -1913,7 +1926,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			soiln_depth[sslyr + 1] += soilcolumn.ncont() * to_gridcell_average;
 			soilr_depth[sslyr + 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
 			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(ANMIN) - soilcolumn.get_sum(ANIMM)) * to_gridcell_average;
-			clitterinput_depth[sslyr + 1] += (surflitinput + soilcolumn.get_sum(ALITTERINPUT)) * to_gridcell_average;
+			clitterinput_depth[sslyr + 1] += (surfflitinput + surfclitinput + soilcolumn.get_sum(AFLITTERINPUT) + soilcolumn.get_sum(ACLITTERINPUT)) * to_gridcell_average;
 			volume_org_depth[sslyr] += soilcolumn.get_sum(VOL_ORG) * to_gridcell_average;
 			volume_min_depth[sslyr] += soilcolumn.get_sum(VOL_MIN) * to_gridcell_average;
 			volume_root_depth[sslyr] += soilcolumn.get_sum(VOL_ROOT) * to_gridcell_average;
@@ -2332,6 +2345,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Soil depth and total output
+	outlimit(out, out_flitter_cm, litter_F_cm[0]);
+	outlimit(out, out_clitter_cm, litter_C_cm[0]);
 	for (int d = 0; d < 51; d++) {
 		outlimit(out, out_csoil_cm, soilc_cm[d]);
 		outlimit(out, out_csoilp_cm, soilcp_cm[d]);
@@ -2339,6 +2354,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_csoil_cm_peat, soilc_cm_peat[d]);
 		outlimit(out, out_csoilp_cm_peat, soilcp_cm_peat[d]);
 		outlimit(out, out_rh_cm_peat, rh_cm_peat[d]);
+		if (d < 50) {
+			outlimit(out, out_flitter_cm, litter_F_cm[d + 1]);
+			outlimit(out, out_clitter_cm, litter_C_cm[d + 1]);
+		}
 	}
 
 	outlimit(out, out_soilcperma, soilc_ald);

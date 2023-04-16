@@ -1538,8 +1538,11 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case AMINLEACH:
 		prop = aminleach;
 		break;
-	case ALITTERINPUT:
-		prop = acmassinput;
+	case AFLITTERINPUT:
+		prop = acmassfinput;
+		break;
+	case ACLITTERINPUT:
+		prop = acmasscinput;
 		break;
 	case VOL_ORG:
 		prop = organic_volume;
@@ -2662,8 +2665,11 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 		case AMINLEACH:
 			prop[lyr] = soillayers[lyr].aminleach;
 			break;
-		case ALITTERINPUT:
-			prop[lyr] = soillayers[lyr].acmassinput;
+		case AFLITTERINPUT:
+			prop[lyr] = soillayers[lyr].acmassfinput;
+			break;
+		case ACLITTERINPUT:
+			prop[lyr] = soillayers[lyr].acmasscinput;
 			break;
 		case VOL_ORG:
 			prop[lyr] = soillayers[lyr].organic_volume;

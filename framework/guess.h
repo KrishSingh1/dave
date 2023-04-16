@@ -145,7 +145,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT,
 WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
-ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, ALITTERINPUT,
+ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, AFLITTERINPUT, ACLITTERINPUT,
 VOL_ORG, VOL_MIN, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3664,8 +3664,9 @@ public:
 	double acdec[2];
 	/// annual C mineralisation without and with N and/or P limitation
 	double acinc[2];
-	/// annual litter C input
-	double acmassinput;
+	/// annual fine and coarse litter C input
+	double acmassfinput;
+	double acmasscinput;
 
 	double atemp_mod;
 	double amoist_mod;
@@ -3794,7 +3795,8 @@ public:
 		acdec[1] = that.acdec[1];
 		acinc[0] = that.acinc[0];
 		acinc[1] = that.acinc[1];
-		acmassinput = that.acmassinput;
+		acmassfinput = that.acmassfinput;
+		acmasscinput = that.acmasscinput;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
@@ -3898,7 +3900,8 @@ public:
 		acdec[1] = that.acdec[1];
 		acinc[0] = that.acinc[0];
 		acinc[1] = that.acinc[1];
-		acmassinput = that.acmassinput;
+		acmassfinput = that.acmassfinput;
+		acmasscinput = that.acmasscinput;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mwmass[mth] = that.mwmass[mth];
@@ -4222,8 +4225,10 @@ public:
 	double soillayerdepths[NSOILLAYERS_MAX];
 	/// number of soil layers
 	int nsoillayers;
-	/// Annual surface litter input [kg C m-2 yr-1]
-	double asurflitterinput;
+	/// Annual surface fine litter input [kg C m-2 yr-1]
+	double asurfflitterinput;
+	/// Annual surface coarse litter input [kg C m-2 yr-1]
+	double asurfclitterinput;
 	/// Annual surface litter respiration [kg C m-2 yr-1]
 	double asurflitterresp;
 	/// vector with SOM pool litter input
@@ -4378,7 +4383,8 @@ public:
 		soillayers = that.soillayers;
 		depth = that.depth;
 		nsoillayers = that.nsoillayers;
-		asurflitterinput = that.asurflitterinput; 
+		asurfflitterinput = that.asurfflitterinput;
+		asurfclitterinput = that.asurfclitterinput;
 		asurflitterresp = that.asurflitterresp;
 		nacrotelm = that.nacrotelm;
 		ncatotelm = that.ncatotelm;
@@ -4454,7 +4460,8 @@ public:
 		soiltype = that.soiltype;
 		depth = that.depth;
 		nsoillayers = that.nsoillayers;
-		asurflitterinput = that.asurflitterinput;
+		asurfflitterinput = that.asurfflitterinput;
+		asurfclitterinput = that.asurfclitterinput;
 		asurflitterresp = that.asurflitterresp;
 		nacrotelm = that.nacrotelm;
 		ncatotelm = that.ncatotelm;

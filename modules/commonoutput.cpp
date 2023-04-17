@@ -160,6 +160,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
 	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
+
+	declare_parameter("file_mald_peat", &file_mald_peat, 300, "Monthly peat active layer depth");
+	declare_parameter("file_peat_frac", &file_peat_frac, 300, "Peat frac");
 }
 
 
@@ -330,6 +333,9 @@ void CommonOutput::define_output_tables() {
 	}
 	depth_cm_columns += ColumnDescriptor("dmax", 8, 2);
 	depth_cm_columns_med += ColumnDescriptor("dmax", 10, 5);
+
+	ColumnDescriptors frac_columns;
+	frac_columns += ColumnDescriptor("Frac", 8, 5);
 
 	// Create the columns for each output file
 
@@ -718,6 +724,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
 	create_output_table(out_mald,           file_mald,           mald_columns);
 	create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
+
+
+	create_output_table(out_mald_peat,      file_mald_peat,      mald_columns);
+	create_output_table(out_peat_frac,      file_peat_frac,      frac_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -1027,6 +1037,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mwmass_stand[12];
 	double mwtp[12];
 	double mald[12];
+	double mald_peat[12];
 	double mtemp[NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS][12];
 	double mtemp_depth[sstlyr][12] = { 0.0 };
 	double mtemp25cm[12];
@@ -1049,7 +1060,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwmass[m] = mimass[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
-		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwmass_stand[m] = mwtp[m] = mald[m] = mtemp25cm[m] = 0.0;
+		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwmass_stand[m] = mwtp[m] = mald[m] = mald_peat[m] = mtemp25cm[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
 		}
@@ -1165,6 +1176,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double maxald_gridcell = 0.0;
 	double permafrost_full_gridcell = 0.0;
 	double permafrost_3m_gridcell = 0.0;
+	double maxald_peat_gridcell = 0.0;
+	double permafrost_full_peat_gridcell = 0.0;
+	double permafrost_3m_peat_gridcell = 0.0;
+	double peat_gridcell_average = 0.0;
 
 	double aNH4dep_gridcell = 0.0;
 	double aNO3dep_gridcell = 0.0;
@@ -2025,6 +2040,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
 				mwmass_stand[m] += patch.soilcolumn.mwmass_stand[m] * to_gridcell_average;
 				mald[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m]) * M_PER_MM) * to_gridcell_average;
+				if (stand.landcover == PEATLAND) {
+					mald_peat[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m]) * M_PER_MM) * to_gridcell_average;
+				}
+				
 				mwtp[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m]) * M_PER_MM) * to_gridcell_average;
 				mtemp25cm[m] += (hydrology == GERTEN ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
 				
@@ -2090,6 +2109,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			permafrost_full_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
 			permafrost_3m_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 			
+			if (stand.landcover == PEATLAND) {
+				maxald_peat_gridcell += min(50.0, (hydrology == GERTEN ? PAD_DEPTH : patch.soilcolumn.maxthaw) * M_PER_MM) * to_gridcell_average;
+				permafrost_full_peat_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
+				permafrost_3m_peat_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
+				peat_gridcell_average += to_gridcell_average;
+			}
+
 			// Calculate monthly NPP and LAI
 
 			Vegetation& vegetation = patch.vegetation;
@@ -2412,12 +2438,18 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mwmass_stand, mwmass_stand[m]);
 		outlimit(out,out_mwtp, mwtp[m]);
 		outlimit(out,out_mald, mald[m]);
+		outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? mald_peat[m] / peat_gridcell_average : 0.0);
 		outlimit(out,out_msoiltempdepth25,mtemp25cm[m]);
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]
 	outlimit(out,out_mald, permafrost_full_gridcell);
 	outlimit(out,out_mald, permafrost_3m_gridcell);
+
+	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? maxald_peat_gridcell / peat_gridcell_average : 0.0);
+	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_full_peat_gridcell / peat_gridcell_average : 0.0);
+	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_3m_peat_gridcell / peat_gridcell_average : 0.0);
+	outlimit(out,out_peat_frac, peat_gridcell_average);
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

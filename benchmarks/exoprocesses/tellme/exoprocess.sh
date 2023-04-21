@@ -47,8 +47,14 @@ echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
 echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 } >/dev/null	# Don't output debug info to the console / slurm.log.
 
+
+# Load the required software
+module purge
+module load foss/2022a netCDF/4.9.0 CMake/3.23.1 Ghostscript/9.56.1
+module load  GCC/10.3.0  OpenMPI/4.1.1  R/4.1.0  Pandoc
+
 set -x		# Debug. Remove later.
 
-# Here the call to the Rscript tellme.Rmd
+# Here the call to the R-script tellme.Rmd
 cp $RSCRIPT_PATHFILE .
 Rscript -e "rmarkdown::render('tellme.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"

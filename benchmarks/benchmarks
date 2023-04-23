@@ -307,6 +307,8 @@ EOF
 #SBATCH -J ppp_${supertool}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
+#SBATCH --exclusive
+$SBATCH_COMPUTEACCOUNT
 $(cat $common_script)
 EOF
     fi

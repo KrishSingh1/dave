@@ -646,8 +646,8 @@ if (( $superreport_only == 0 )); then
     else
       run_benchmark $test_name
     fi
-  fi
-done
+  done
+fi
 
 # Call run_exoprocessing after all other tests have been submitted
 if (( $superreport_flag == 1 )); then

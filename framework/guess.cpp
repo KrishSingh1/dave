@@ -1847,7 +1847,12 @@ double Individual::get_cmass_leaf() const {
 		return cmass_leaf;// cmass_leafs[0]; // alive leaves
 	}
 	else if (ifdailygrass && pft.lifeform == GRASS && alive) {
-		return cmass_leafs[0] + cmass_leafs[1] + cmass_leafs[2]; // growing leaves and first and second fully expanded leaves
+		if (ifdavegrowth) {
+			return cmass_leafs[0]; // only one green leaf pool in davegrowth
+		}
+		else {
+			return cmass_leafs[0] + cmass_leafs[1] + cmass_leafs[2]; // growing leaves and first and second fully expanded leaves
+		}
 	}
 	else {
 		return cmass_leaf;// cmass_leafs[0]; // all cmass_leaf
@@ -1862,7 +1867,12 @@ double Individual::get_nmass_leaf() const {
 		return nmass_leaf;// nmass_leafs[0]; // alive leaves
 	}
 	else if (ifdailygrass && pft.lifeform == GRASS && alive) {
-		return nmass_leafs[0] + nmass_leafs[1] + nmass_leafs[2]; // growing leaves and first and second fully expanded leaves
+		if (ifdavegrowth) {
+			return nmass_leafs[0];  // only one green leaf pool in davegrowth
+		} 
+		else {
+			return nmass_leafs[0] + nmass_leafs[1] + nmass_leafs[2]; // growing leaves and first and second fully expanded leaves
+		}
 	}
 	else {
 		return nmass_leaf;// nmass_leafs[0]; // all cmass_leaf

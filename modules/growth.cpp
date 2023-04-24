@@ -2454,7 +2454,8 @@ void ndemand(Vegetation& vegetation) {
 	double nupdate_demand_leaf, nupdate_demand_root;
 	double cton_leaf, cton_root;
 
-	const double max_CN_change = 0.005;
+	//const double max_CN_change = 0.005;
+	const double frac_nchange = 0.1;
 
 	// Loop through individuals
 	vegetation.firstobj();
@@ -2462,8 +2463,8 @@ void ndemand(Vegetation& vegetation) {
 		Individual& indiv = vegetation.getobj();
 
 		// Current C:N ratios
-		cton_leaf = indiv.get_cmass_leaf() / indiv.get_nmass_leaf();
-		cton_root = indiv.cmass_root / indiv.nmass_root;
+		cton_leaf = !negligible(indiv.get_nmass_leaf()) ? indiv.get_cmass_leaf() / indiv.get_nmass_leaf() : indiv.pft.cton_leaf_avr;
+		cton_root = !negligible(indiv.nmass_root) ? indiv.cmass_root / indiv.nmass_root : indiv.pft.cton_root_avr;
 
 		// N demand of new growth
 		if (!negligible(indiv.cgrow)) {
@@ -2510,7 +2511,7 @@ void nuptake(Vegetation& vegetation) {
 
 	// Calculate N competition.
 	double nmass_avail = soil.nmass_avail() * min(1.0, patch.fpc_total);
-	ncompete(competing_individuals, nmass_avail);
+	ncompete(competing_individuals, nmass_avail);  // TODO: check if OK/efficient to call ncompete even if ndemand < nsupply.
 
 	// Copy results back into Individual objects in the patch, and calculate
 	// total patch N demand.
@@ -2530,6 +2531,8 @@ void nuptake(Vegetation& vegetation) {
 		i++;
 	}
 }
+
+
 
 void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 
@@ -2673,7 +2676,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			// Check if there are enough nutrients to support growth, if not reduce growth and put C back into storage.
 			
 			// Calculate Ndemand based on growth and stoichiometry.
-			Ndemand(vegetation);
+			ndemand(vegetation);
 
 			// Calculate actual N uptake after taking competition among individuals into account
 			nuptake(vegetation);
@@ -2793,7 +2796,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 
 				// Total N demand
 				double ndemand_tot = ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand;
-				patch_total_ndemand += ndemand_tot;
+				//patch_total_ndemand += ndemand_tot;
 
 				competing_individual.ndemand = ndemand_tot;
 

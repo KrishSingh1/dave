@@ -2745,7 +2745,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 
 // Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022
-void vcmax_from_N(Patch& patch, Vegetation& vegetation) {
+void vcmax_from_N(Vegetation& vegetation) {
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -3445,7 +3445,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		*/
 
 		// Calculate photosynthetic capacity from leaf N
-		vcmax_from_N(patch, vegetation);
+		vcmax_from_N(vegetation);
 
 		// Calculate water stress factor
 		water_stress(patch);

@@ -2973,6 +2973,14 @@ public:
 	double cmass_root_post_turnover;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
+	/// daily total growth rate (kgC/m2/d)
+	double cgrow;
+    /// daily leaf growth rate (kgC/m2/d)
+	double cgrow_leaf;
+	/// daily root growth rate (kgC/m2/d)
+	double cgrow_root;
+	/// daily growth demand [0-1]
+	double growth_demand;
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
@@ -3021,6 +3029,8 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
+	/// phenological state of grasses. 0-1, where 0 is dormant and 1 is fully senescent
+	double growth_stage;
 
     /// Photosynthesis variables for subdaily calculations
 	PhotosynthesisSubdaily ps_subdaily;

@@ -2445,7 +2445,47 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 	//       For now, flush to litter
 }
 
+// Calculate N uptake which is limited by competition between individuals and
+// availability of N in the soil.
+void nuptake(Vegetation& vegetation) {
+	Patch& patch = vegetation.patch;
+	Soil& soil = patch.soil;
 
+	// Create vector of CompetingIndividual objects, which will be passed into
+	// ncompete(). These are populated from the Individuals in the patch.
+	std::vector<NCompetingIndividual> competing_individuals;
+	for (vegetation.firstobj(); vegetation.isobj; vegetation.nextobj()) {
+		Individual& indiv = vegetation.getobj();
+
+		NCompetingIndividual competing_individual;
+		competing_individual.ndemand = indiv.ndemand;
+		competing_individual.fnuptake = 1;
+		competing_individual.strength = nitrogen_uptake_strength(indiv);
+		competing_individuals.push_back(competing_individual);
+	}
+
+	// Calculate N competition.
+	double nmass_avail = soil.nmass_avail() * min(1.0, patch.fpc_total);
+	ncompete(competing_individuals, nmass_avail);
+
+	// Copy results back into Individual objects in the patch, and calculate
+	// total patch N demand.
+	patch.ndemand = 0;
+	int i = 0;
+	for (vegetation.firstobj(); vegetation.isobj; vegetation.nextobj()) {
+		Individual& indiv = vegetation.getobj();
+
+		indiv.fnuptake = competing_individuals[i].fnuptake;
+		indiv.ndemand = competing_individuals[i].ndemand;
+
+		patch.ndemand += indiv.ndemand;
+
+		// Taken out of soil in somdynam::vegetation_n_uptake().
+		// indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
+
+		i++;
+	}
+}
 
 void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 
@@ -2591,7 +2631,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			Ndemand();
 
 			// Calculate actual N uptake after taking competition among individuals into account
-			Nuptake();
+			nuptake(vegetation);
 
 			// update pools (C + N)
 

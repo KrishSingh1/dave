@@ -62,11 +62,32 @@ std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name) {
 	return result;
 }
 
-std::vector<std::string> get_pfts() {
+void remove_spaces(char *x) {
+	char *y = x;
+	char nxt;
+	do
+	{
+		bool space = false;
+		while (isspace(*y)) {
+			y++;
+			space = true;
+		}
+		nxt = *y++;
+		if (space) {
+			nxt = toupper(nxt);
+		}
+	} while (*x++ = nxt);
+}
+
+std::vector<std::string> get_pfts(bool remove_whitespace) {
 	std::vector<std::string> pfts;
 	pftlist.firstobj();
 	while (pftlist.isobj) {
-		pfts.push_back((char *)pftlist.getobj().name);
+		char *name = pftlist.getobj().name;
+		if (remove_whitespace) {
+			remove_spaces(name);
+		}
+		pfts.push_back(name);
 		pftlist.nextobj();
 	}
 	return pfts;

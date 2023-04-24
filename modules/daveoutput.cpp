@@ -373,7 +373,7 @@ DaveOutput::IndividualOutput::~IndividualOutput() { }
 void DaveOutput::IndividualOutput::write_patch(Patch &patch, OutputRows &out) {
 	Vegetation &vegetation = patch.vegetation;
 
-	std::vector<std::string> pfts = get_pfts();
+	std::vector<std::string> pfts = get_pfts(false);
 
 	// Running total.
 	double total = 0;
@@ -404,7 +404,7 @@ void DaveOutput::IndividualOutput::write_patch(Patch &patch, OutputRows &out) {
 ColumnDescriptors DaveOutput::IndividualOutput::get_columns() {
 	ColumnDescriptors columns;
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
-	columns += ColumnDescriptors(get_pfts(), COLUMN_WIDTH, NUMERIC_PRECISION);
+	columns += ColumnDescriptors(get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 
 	return columns;
@@ -493,7 +493,7 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 	int day = date.day;
 	OutputRows rows(&channel, lon, lat, year, day);
 
-	std::vector<std::string> pfts = get_pfts();
+	std::vector<std::string> pfts = get_pfts(false);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -545,7 +545,7 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_columns() {
 
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	columns += ColumnDescriptor(elem_name.c_str(), COLUMN_WIDTH, 0);
-	columns += ColumnDescriptors(get_pfts(), COLUMN_WIDTH, NUMERIC_PRECISION);
+	columns += ColumnDescriptors(get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 
 	return columns;

@@ -70,8 +70,10 @@ std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name);
 
 /*
 Get the name of all known PFTs.
+
+@param remove_whitespace: True to remove whitespace. False otherwise.
 */
-std::vector<std::string> get_pfts();
+std::vector<std::string> get_pfts(bool remove_whitespace);
 
 /*
 Get the names of all patch-level fluxes.

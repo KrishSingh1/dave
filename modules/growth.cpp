@@ -2445,6 +2445,50 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 	//       For now, flush to litter
 }
 
+
+
+// Calculate N demand based on growth and N status of the plant
+void ndemand(Vegetation& vegetation) {
+	
+	double ngrow_demand_leaf, ngrow_demand_root;
+	double nupdate_demand_leaf, nupdate_demand_root;
+	double cton_leaf, cton_root;
+
+	const double max_CN_change = 0.005;
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		// Current C:N ratios
+		cton_leaf = indiv.get_cmass_leaf() / indiv.get_nmass_leaf();
+		cton_root = indiv.cmass_root / indiv.nmass_root;
+
+		// N demand of new growth
+		if (!negligible(indiv.cgrow)) {
+			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
+			ngrow_demand_root = indiv.cgrow_root / cton_root;
+		} else {
+			ngrow_demand_leaf = 0.0;
+			ngrow_demand_root = 0.0;
+		}
+
+		// N demand of existing biomass (will also be applied to new biomass)
+		nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
+		nupdate_demand_root = max(0.0, indiv.cmass_root / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr) -
+									    - indiv.nmass_root) * frac_nchange;
+
+		// Total biomass N demand of individual
+		indiv.ndemand = ngrow_demand_leaf + ngrow_demand_root + nupdate_demand_leaf + nupdate_demand_root;
+
+
+		vegetation.nextobj();
+	}
+}
+
+
+
 // Calculate N uptake which is limited by competition between individuals and
 // availability of N in the soil.
 void nuptake(Vegetation& vegetation) {
@@ -2627,8 +2671,9 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			carbon_allocation_grass(vegetation);
 
 			// Check if there are enough nutrients to support growth, if not reduce growth and put C back into storage.
+			
 			// Calculate Ndemand based on growth and stoichiometry.
-			Ndemand();
+			Ndemand(vegetation);
 
 			// Calculate actual N uptake after taking competition among individuals into account
 			nuptake(vegetation);

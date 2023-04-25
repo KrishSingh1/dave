@@ -1585,7 +1585,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	growth_demand     = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
-	growth_stage        = 0.0;
+	growth_stage      = 0.0;
+	cexcess           = 0.0;
 	deltafpc          = 0.0;
 	lai_ymax					= 0.0;
 	fpc_ymax					= 0.0;
@@ -1631,6 +1632,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	storefndemand				= 0.0;
 	leafndemand_store			= 0.0;
 	rootndemand_store			= 0.0;
+
+	ps_sink_lim                 = 0.0;
 
 	n_opt_isabovelim      = false;
 	nstress           = false;
@@ -1730,6 +1733,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& growth_stage
+		& cexcess
 		& anpp
 		& gpp_15
 		& gpptrend_15
@@ -1798,6 +1802,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& leafndemand_store
 		& rootndemand_store
 		& nday_leafon
+		& ps_sink_lim
 
 		& andemand_leaf
 		& andemand_root

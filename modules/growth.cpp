@@ -2257,34 +2257,11 @@ double growth_demand(Individual& indiv) {
 }
 
 
-double cstorage_capacity(Individual& indiv) {
-
-	const double frac_cstorage_max = 0.2; // TODO: add to parameters
-	return frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root);
-
-}
-
-
-
-// Function that determines what to do with excess C. 
-// Called whenever C storage exceeds its capacity.
-void cstorage_overflow(Individual& indiv, double cexcess) {
-
-	// TODO: decide what to do with excess C.
-	// Option 1: respire
-	indiv.report_flux(Fluxes::RA, cexcess);
-
-	// Option 2; root exudates
-	// TODO: yet to be implemented
-
-}
-
-
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Function calculates cgrow (daily growth), cstore (change in cmass_storage) 
 // and updates indiv.cmass_storage. 
 // Note: cgrow and cstore are fluxes (kgC/m2/d), cmass_storage is a pool (kg/m2).
-void storage_growth_dynamics(Vegetation& vegetation) {
+void storage_growth_partitioning(Vegetation& vegetation) {
 	
 	// new parameters. TODO: move to pft parameters(?)
 	// maximum mobilisation rate of C in storage
@@ -2294,7 +2271,6 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 	
 	// Local:
 	double cstore = 0.0;
-	double cexcess = 0.0;
 	double Gpot, cstorage_max, cmass_deficit;
 
 	// Loop through individuals
@@ -2311,6 +2287,8 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 		// Maximum C storage pool size
 		cstorage_max = cstorage_capacity(indiv); // TODO: OK to calculate based on t-1?
 
+		// Set excess C to 0
+		indiv.cexcess = 0.0;
 
 		if (indiv.dnpp >= 0.0) {
 			
@@ -2326,11 +2304,10 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 			}
 			cstore = indiv.dnpp - indiv.cgrow;
 			
-			// Make sure C storage does not exceed its capacity
+			// If C storage exceed its capacity take track of the excess C
 			if (indiv.cmass_storage + cstore > cstorage_max) {
 				cstore = cstorage_max - indiv.cmass_storage;
-				cexcess = indiv.cmass_storage + cstore - cstorage_max;
-				cstorage_overflow(indiv, cexcess);
+				indiv.cexcess += indiv.cmass_storage + cstore - cstorage_max;
 			}
 
 		} else {
@@ -2564,7 +2541,6 @@ void update_pools(Vegetation& vegetation) {
 		double navail_root = indiv.rootndemand * indiv.fnuptake;	
 		double cstorage_max = 0.0; 
 		double creturn = 0.0; // kgC m-2 d-1
-		double cexcess = 0.0; // kgC m-2 d-1
 
 		if (!negligible(indiv.fnuptake - 1.0)) {   // TODO: indiv.fnuptake == 1 ??
 			
@@ -2598,12 +2574,11 @@ void update_pools(Vegetation& vegetation) {
 
 				// Make sure storage does not overflow.
 				// Maximum C storage pool size 
-				// Note that cstorage_max is now different from cstorage_max in storage_growth_dynamics because of new growth.
+				// TODO: OK that cstorage_max is now different from cstorage_max in storage_growth_dynamics because of new growth???
 				cstorage_max = cstorage_capacity(indiv);
 				if (indiv.cmass_storage + creturn > cstorage_max) {
-					cexcess = indiv.cmass_storage + creturn - cstorage_max;
+					indiv.cexcess += indiv.cmass_storage + creturn - cstorage_max;
 					creturn = cstorage_max - indiv.cmass_storage;
-					cstorage_overflow(indiv, cexcess);
 				} 
 				indiv.cmass_storage += creturn;
 			}
@@ -2618,7 +2593,159 @@ void update_pools(Vegetation& vegetation) {
 }
 
 
+void senescence(Vegetation& vegetation) {
+	
+	// Parameters
+	const double crelocfrac_c3 = 0.1;  // TODO: move to constants?
+	const double crelocfrac_c4 = 0.05; 
+	const double nrelocfrac = 0.5;
 
+	double senesc_base = 0.0;  // d-1
+	double senesc_fwater = 0.0;
+	double senesc_ftemp = 0.0;
+	double senesc_fage = 0.0;
+	double senesc = 0.0;
+	double csenesc = 0.0;
+	double nsenesc = 0.0;
+	double cstore = 0.0;
+	double nstore = 0.0;
+	double cstorage_max = 0.0;
+	double nstorage_max = 0.0;
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		// Do not senesce leaves in young plants at the beginning of their growth cycle.
+		if (indiv.growth_stage > 0.2) {
+			
+			// Baseline (minimum) senscence rate from leaf longevity under unstressed conditions.
+			senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+
+			// Increase in senescence with age
+			senesc_fage = 0.0;  // placeholder
+
+			// Increase in senescence caused by water stress
+			senesc_fwater = 0.0;  // placeholder
+
+			// Increase in senescence caused by temperature stress
+			senesc_ftemp = 0.0;  // placeholder
+
+			// Total senescence
+			senesc = senesc_base + senesc_fwater + senesc_ftemp + senesc_fage;
+
+		} 
+		else {
+			senesc = 0.0;
+		}
+
+		
+		// Retranslocation
+
+		// TODO: move fractions to parameters??
+		double crelocfrac = indiv.pft.pathway == C3 ? crelocfrac_c3 : crelocfrac_c4;
+			
+		// Carbon
+		csenesc = indiv.cmass_leafs[0] * senesc * (1.0 - crelocfrac);
+		cstore = indiv.cmass_leafs[0] * senesc * crelocfrac;
+
+		cstorage_max = cstorage_capacity(indiv);
+		if (indiv.cmass_storage + cstore > cstorage_max) {
+			csenesc = indiv.cmass_storage + cstore - cstorage_max;
+			cstore  = cstorage_max - indiv.cmass_storage;
+		}
+
+		indiv.cmass_leafs[0] -= csenesc;   // green pool
+		indiv.cmass_leafs[1] += csenesc;   // brown pool
+
+		indiv.cmass_storage += cstore;
+
+
+		// Nitrogen
+		nsenesc = indiv.nmass_leafs[0] * senesc * (1.0 - nrelocfrac);
+		nstore = indiv.nmass_leafs[0] * senesc * nrelocfrac;
+
+		nstorage_max = nstorage_capacity(indiv);
+		if (indiv.nmass_storage + nstore > nstorage_max) {
+			nsenesc = indiv.nmass_storage + nstore - nstorage_max;
+			nstore  = nstorage_max - indiv.nmass_storage;
+		}
+
+		indiv.nmass_leafs[0] -= nsenesc;   // green pool
+		indiv.nmass_leafs[1] += nsenesc;   // brown pool
+
+		indiv.nmass_storage += nstore;
+
+
+		vegetation.nextobj();
+	}
+}
+
+
+double cstorage_capacity(Individual& indiv) {
+
+	const double frac_cstorage_max = 0.2; // TODO: add to parameters
+	return frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root);
+
+}
+
+
+double nstorage_capacity(Individual& indiv) {
+
+	return indiv.cmass_storage / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+
+}
+
+
+// Determine what to do with excess C when storage exceeds its capacity.
+void cstorage_overflow(Individual& indiv) {
+
+	// TODO: decide what to do with excess C.
+	// Option 1: respire
+	indiv.report_flux(Fluxes::RA, indiv.cexcess);
+
+	// Option 2; root exudates
+	// TODO: yet to be implemented
+
+	// Option 3?
+
+}
+
+
+// Photosynthetic sink limitation.
+// Calculates downregulation factors applied to photosynthetic parameters.
+void sink_source_feedback(Individual& indiv) {
+	
+	// Do not let ps_sink_lim vary by more than 10% d-1
+	if (indiv.cexcess > 0.0) {
+		indiv.ps_sink_lim = max(0.9 * indiv.ps_sink_lim, (1.0 - indiv.cexcess / indiv.dgpp));
+	} 
+	else {
+		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * 1.1); 
+	}
+
+} 
+
+
+void storage_dynamics(Vegetation& vegetation) {
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+	
+		// Handle excessive C 
+		if (indiv.cexcess > 0.0){
+			cstorage_overflow(indiv);
+		}
+
+		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.
+		sink_source_feedback(indiv);
+
+		vegetation.nextobj();
+	}
+}
 
 
 
@@ -2718,22 +2845,21 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			- keep DAVE in funcction names
 			- keep indiv loop outside (not inside each function)
 			--> functions: 
-			- reproduction v
-			- check C budget
-			- leaf_to_root ratio v
-			- growth function (role of storage = NSC)
+			- reproduction   v
+			- leaf_to_root ratio   v
+			- growth function (role of storage = NSC)  v
 			- senescence function
-			- C and N demand (flexible C:N ratio)
+			- C and N demand (flexible C:N ratio)  v
 			- leaf to litter function
 			- C and N balance check 
-			- move Ncompete outside of growth? or new indiv loop
+			- move Ncompete outside of growth? or new indiv loop  v
 			- lower priority: grazing 
 
 			- annual (ephemerals) vs perennial grasses
 				--> check establishment every day 
 				--> fire effects on storage organs (do we need aboveground vs belowground storage?)
 
-		 	- stop Cstorage from becoming too big v
+		 	- stop Cstorage from becoming too big   v
 			*/ 
 
 
@@ -2753,10 +2879,10 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 		//	initcs.push_back(initc);
 
 			// Update nscal_5 (wscal_5 updated in canopy_exchange)
-			indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));  // TODO: move to somewhere else?
+			indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));  // TODO: move to somewhere else
 
 			// Calculate total daily growth and update C storage 
-			storage_growth_dynamics(vegetation);
+			storage_growth_partitioning(vegetation);
 
 			// Allocate available C for growth to different plant organs
 			carbon_allocation_grass(vegetation);
@@ -2769,11 +2895,28 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			// Calculate actual N uptake after taking competition among individuals into account
 			nuptake(vegetation);
 
-			// update pools (C + N)
+			// update pools (C + N) to account for growth
+			update_pools(vegetation);
 
-			// senescence()
+			// senescence
+			senescence(vegetation);
+
+			// C and N retranslocation (maybe integrate into senescence)
+			retranslocation(vegetation);
+
+			// C
+			storage_dynamics()
+
+			// Management
+			// grazing()
+
+			// Litter
+
+			// C balance checks
+
 
 			// TODO: implement negative feedback between full storage (or growth demand) and photosynthetic capacity.
+			// 		 only call when Cstorage overflows or before??
 
 
 
@@ -2997,6 +3140,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			double nup_leaf = nup_leaf_demands[i] * fndemand;
 
 			// Leaf N mass update according to compartment size
+			// JK: not needed any more as only one live leaf pool.
 			if (!negligible(indiv.get_cmass_leaf()) && !negligible(nup_leaf)) {
 				for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
 					double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
@@ -3005,6 +3149,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			}
 
 			// Reduce C depending on fndemand to not get too high C:N ratios
+			// JK: should now be handled by ndemand() function.
 			if (ifdavephotosyn || (ifnlim && date.year > freenyears) ) {
 				double c_scal = ifdavephotosyn ? FRAC_C_OF_N_LIM_DAVE : FRAC_C_OF_N_LIM;
 				cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * c_scal);
@@ -3025,6 +3170,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			indiv.cmass_root += cgrow_root;
 			indiv.nmass_root += ngrow_root;
 
+			// JK: do we need this in update_pools?
 			assert(indiv.cmass_root > 0);
 			assert(indiv.nmass_root > 0);
 

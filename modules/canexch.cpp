@@ -2784,7 +2784,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
     double par, temp, rad, vpd, ca;
-	double lai_layer, apar_layer, lai_cum_bottom, lai_cum, Nscal;
+	double lai_layer, apar_layer, lai_cum_bottom, lai_cum, Nscal, pslim;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
 	double Rm, Rs, Je, Vpmax, Vp, Kp, Km;
 	double Anc, Anj, Anp, Ag, An, gsc, ci;
@@ -2892,8 +2892,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
-						jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
+						pslim = indiv.ps_sink_lim * Nscal * ppft.wscal;
+						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
 						// 1) Rubisco-limited gross photosynthesis
 						gamma = vcmax;
@@ -2940,12 +2941,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						// TODO: different temp dependency in C3 and C4 plants??
 						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-						vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
+						pslim = indiv.ps_sink_lim * Nscal * ppft.wscal;
+						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
 						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
-						jmax  = Nscal * ppft.wscal * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
+						jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
 
 						// Temperature dependency of Vpmax and Michaelis-Menten constants
-						Vpmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
+						Vpmax = pslim * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
 						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 						Kc    = Arrhenius_temp_response(KC25_C4,temp,HA_KC_C4,0.0,0.0);
 						Ko    = Arrhenius_temp_response(KO25_C4,temp,HA_KO_C4,0.0,0.0);

@@ -2981,6 +2981,10 @@ public:
 	double cgrow_root;
 	/// daily growth demand [0-1]
 	double growth_demand;
+	/// C exceeding storage capacity (kgC/m2/d)
+	double cexcess;
+	/// photosynthetic limitation due to sink activity [0-1]
+	double ps_sink_lim;
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;

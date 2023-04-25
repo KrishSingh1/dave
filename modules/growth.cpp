@@ -2256,10 +2256,26 @@ double growth_demand(Individual& indiv) {
 
 }
 
-// Function that determines with excess C. Called whenever C storage overflows.
-void storage_overflow(Individual& indiv) {
+
+double cstorage_capacity(Individual& indiv) {
+
+	const double frac_cstorage_max = 0.2; // TODO: add to parameters
+	return frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root);
+
+}
+
+
+
+// Function that determines what to do with excess C. 
+// Called whenever C storage exceeds its capacity.
+void cstorage_overflow(Individual& indiv, double cexcess) {
 
 	// TODO: decide what to do with excess C.
+	// Option 1: respire
+	indiv.report_flux(Fluxes::RA, cexcess);
+
+	// Option 2; root exudates
+	// TODO: yet to be implemented
 
 }
 
@@ -2278,6 +2294,7 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 	
 	// Local:
 	double cstore = 0.0;
+	double cexcess = 0.0;
 	double Gpot, cstorage_max, cmass_deficit;
 
 	// Loop through individuals
@@ -2292,7 +2309,7 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 		Gpot = max_mobil_cstorage * indiv.cmass_storage + indiv.dnpp; 
 
 		// Maximum C storage pool size
-		cstorage_max = frac_cstorage_max * (indiv.cmass_leaf + indiv.cmass_root); // TODO: OK to calculate based on t-1?
+		cstorage_max = cstorage_capacity(indiv); // TODO: OK to calculate based on t-1?
 
 
 		if (indiv.dnpp >= 0.0) {
@@ -2311,14 +2328,9 @@ void storage_growth_dynamics(Vegetation& vegetation) {
 			
 			// Make sure C storage does not exceed its capacity
 			if (indiv.cmass_storage + cstore > cstorage_max) {
-				cstore = indiv.cmass_storage + cstore - cstorage_max;
-				
-				// TODO: decide what to do with excess C.
-				//       Root exudates? Respiration? For now, just respire
-				// TODO: if added to respiration, ensure it's in the output!!
-				//       problem is that this is done in canexch.cpp
-				//       So at the moment, C balance won't be closed.
-				// TODO: negative feedback with photosyn capacity.
+				cstore = cstorage_max - indiv.cmass_storage;
+				cexcess = indiv.cmass_storage + cstore - cstorage_max;
+				cstorage_overflow(indiv, cexcess);
 			}
 
 		} else {
@@ -2455,7 +2467,7 @@ void ndemand(Vegetation& vegetation) {
 	double cton_leaf, cton_root;
 
 	//const double max_CN_change = 0.005;
-	const double frac_nchange = 0.1;
+	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
 
 	// Loop through individuals
 	vegetation.firstobj();
@@ -2481,8 +2493,9 @@ void ndemand(Vegetation& vegetation) {
 									    - indiv.nmass_root) * frac_nchange;
 
 		// Total biomass N demand of individual
-		indiv.ndemand = ngrow_demand_leaf + ngrow_demand_root + nupdate_demand_leaf + nupdate_demand_root;
-
+		indiv.leafndemand = ngrow_demand_leaf + nupdate_demand_leaf;
+		indiv.rootndemand = ngrow_demand_root + nupdate_demand_root;
+		indiv.ndemand = indiv.leafndemand + indiv.rootndemand;
 
 		vegetation.nextobj();
 	}
@@ -2531,6 +2544,81 @@ void nuptake(Vegetation& vegetation) {
 		i++;
 	}
 }
+
+
+
+// Update C and N pools of vegetation  
+void update_pools(Vegetation& vegetation) { 
+
+	// new parameters. TODO: move to pft parameters(?)
+	// maximum mobilisation rate of N in storage
+	//const double max_mobil_nstorage = 0.9;
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+        // TODO: necessary to ensure Nstorage does not fall below certain value??
+		double navail_leaf = indiv.leafndemand * indiv.fnuptake;
+		double navail_root = indiv.rootndemand * indiv.fnuptake;	
+		double cstorage_max = 0.0; 
+		double creturn = 0.0; // kgC m-2 d-1
+		double cexcess = 0.0; // kgC m-2 d-1
+
+		if (!negligible(indiv.fnuptake - 1.0)) {   // TODO: indiv.fnuptake == 1 ??
+			
+			// N supply > N demand
+
+			indiv.cmass_leafs[0] += indiv.cgrow_leaf;
+			indiv.cmass_root += indiv.cgrow_root;
+			
+		}
+		else {
+
+			// N supply < N demand
+
+			if ( navail_leaf > (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) { // TODO: double check that this holds for roots as well
+				
+				// Enough N for new growth
+				
+				indiv.cmass_leafs[0] += indiv.cgrow_leaf;
+				indiv.cmass_root += indiv.cgrow_root;
+			}
+			else {
+				
+				// Not enough N for new growth -> reduce growth until CN_max is reached. 
+				
+				indiv.cmass_leafs[0] += navail_leaf * indiv.pft.cton_leaf_max;
+				indiv.cmass_root += navail_root * indiv.pft.cton_leaf_max;
+
+				// Put rest of C back into storage because you can't afford it.
+				creturn += indiv.cgrow_leaf - navail_leaf * indiv.pft.cton_leaf_max;
+				creturn += indiv.cgrow_root - navail_root * indiv.pft.cton_root_max;
+
+				// Make sure storage does not overflow.
+				// Maximum C storage pool size 
+				// Note that cstorage_max is now different from cstorage_max in storage_growth_dynamics because of new growth.
+				cstorage_max = cstorage_capacity(indiv);
+				if (indiv.cmass_storage + creturn > cstorage_max) {
+					cexcess = indiv.cmass_storage + creturn - cstorage_max;
+					creturn = cstorage_max - indiv.cmass_storage;
+					cstorage_overflow(indiv, cexcess);
+				} 
+				indiv.cmass_storage += creturn;
+			}
+		}
+		
+		// Always take up available N
+		indiv.nmass_leafs[0] += navail_leaf;
+		indiv.nmass_root += navail_root;
+
+		vegetation.nextobj();
+	}
+}
+
+
+
 
 
 
@@ -2675,7 +2763,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 
 			// Check if there are enough nutrients to support growth, if not reduce growth and put C back into storage.
 			
-			// Calculate Ndemand based on growth and stoichiometry.
+			// Calculate N demand based on growth and stoichiometry.
 			ndemand(vegetation);
 
 			// Calculate actual N uptake after taking competition among individuals into account

@@ -2959,6 +2959,8 @@ public:
 	double cmass_leaf;
 	/// fine root C biomass on modelled area basis (kgC/m2)
 	double cmass_root;
+	/// reproductive tissue C biomass (kgC/m2)
+	double cmass_repr;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
@@ -2979,6 +2981,8 @@ public:
 	double cgrow_leaf;
 	/// daily root growth rate (kgC/m2/d)
 	double cgrow_root;
+	/// daily reproductive growth rate (kgC/m2/d)
+	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
 	/// C exceeding storage capacity (kgC/m2/d)
@@ -2990,6 +2994,8 @@ public:
 	double nmass_leaf;
 	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
+	/// reproductive tissue biomass (kgN/m2)
+	double nmass_repr;
 	/// sap N biomass on modelled area basis (kgN/m2)
 	double nmass_sap;
 	/// heart N biomass on modelled area basis (kgN/m2)
@@ -3189,6 +3195,8 @@ public:
 	double leafndemand;
 	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
+	/// daily reproductive tissue nitrogen demand
+	double reprndemand;
 	/// daily sap wood nitrogen demand based on leafndemand
 	double sapndemand;
 	/// daily labile nitrogen demand based on npp

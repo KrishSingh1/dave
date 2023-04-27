@@ -1572,6 +1572,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	densindiv         = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
+	cmass_repr        = 0.0;
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
@@ -1582,6 +1583,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
+	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
@@ -1603,6 +1605,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
 	nmass_root        = 0.0;
+	nmass_repr        = 0.0;
 	nmass_sap         = 0.0;
 	nmass_heart       = 0.0;
 	cton_leaf_aopt    = 0.0;
@@ -1624,6 +1627,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	leafndemand					= 0.0;
 	rootndemand					= 0.0;
+	reprndemand					= 0.0;
 	sapndemand					= 0.0;
 	storendemand				= 0.0;
 	leaffndemand				= 0.0;
@@ -1715,6 +1719,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 void Individual::serialize(ArchiveStream& arch) {
 	arch & cmass_leaf
 		& cmass_root
+		& cmass_repr
 		& cmass_sap
 		& cmass_heart
 		& cmass_debt
@@ -1728,6 +1733,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow
 		& cgrow_leaf
 		& cgrow_root
+		& cgrow_repr
 		& growth_demand
 		& phen
 		& aphen
@@ -1770,6 +1776,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& fvocseas
 		& nmass_leaf
 		& nmass_root
+		& nmass_repr
 		& nmass_sap
 		& nmass_heart
 		& cmass_wood_old
@@ -1793,6 +1800,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nstress
 		& leafndemand
 		& rootndemand
+		& reprndemand
 		& sapndemand
 		& storendemand
 		& leaffndemand

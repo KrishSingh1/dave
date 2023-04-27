@@ -673,6 +673,8 @@ void plib_declarations(int id,xtring setname) {
 			"Leaf physiognomy (\"NEEDLELEAF\" or \"BROADLEAF\")");
 		declareitem("phengdd5ramp",&ppft->phengdd5ramp,0.0,1000.0,1,CB_NONE,
 			"GDD on 5 deg C base to attain full leaf cover");
+		declareitem("phengdd5mat",&ppft->phengdd5mat,0.0,5000.0,1,CB_NONE,
+			"GDD on 5 deg C base to attain full maturity/senescence");
 		declareitem("wscal_min",&ppft->wscal_min,0.0,1.0,1,CB_NONE,
 			"Water stress threshold for leaf abscission (raingreen PFTs)");
 		declareitem("pathway",&strparam,16,CB_PATHWAY,

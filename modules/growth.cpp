@@ -72,12 +72,18 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
 
 		if (pft.lifeform == GRASS) { 
+
+			// Reset growth stage if maturity has been reached the day before.
+			if (indiv.growth_stage >= 1.0) {
+				indiv.growth_stage = 0.0;
+			}
+
 			// Determine if grass is dormant based on climate conditions of the last 10 days.
-			// If not, determine phenological state (0=germination/start growing to 1 = full senescence].
+			// If not, determine phenological state (0=germination/start growing season to 1 = full senescence].
 			if (ppft.wscal_5.mean() < pft.wscal_min || climate.temp < 0.0) { 
 				indiv.growth_stage = 0.0;
 			} else {
-				indiv.growth_stage = 0.5; // TODO: calculate...
+				indiv.growth_stage = min(1.0, climate.gdd5 / pft.phengdd5mat);
 			}
 		} else {
 			indiv.growth_stage = 1.0;
@@ -2251,9 +2257,14 @@ void growth_daily_grass(Patch& patch) {
 // --> 0.0: put all available C of the day into storage.
 double growth_demand(Individual& indiv) {
 
-    // TODO: calculate based on growth stage 
-	return 0.5;
-
+    // first approximation: growth demand inversely related to growth stage
+	if (negligible(indiv.growth_stage)) { // dormant
+		return 0.0; 
+	} 
+	else { 
+		return 1.0 - indiv.growth_stage;
+	}
+	// TODO: do NOT call growth functions if grasses are dormant.
 }
 
 
@@ -2802,6 +2813,9 @@ void turnover_grass(Vegetation& vegetation) {
 			ppft.nmass_litter_leaf += indiv.nmass_repr; // TODO: decide where to put N from repr. 
 														//       Added to leaf litter for now.
 														//       Call report flux function??
+			// TODO: for annuals, flush everything to litter at the end of growing season.
+			//		 Simulate seeds as cmass_storage and nmass_storage.
+			// TODO: call establishment function every day for grasses?
 		}
 		
 		vegetation.nextobj();
@@ -2950,10 +2964,11 @@ void annual_accounting(Vegetation& vegetation) {
 			}
 
 			indiv.deltafpc = 0.0;
-	} // Last day of year
+		} // Last day of year
 
-} 
-
+		vegetation.nextobj();
+	}
+}
 
 
 void growth_daily_grass_dave(Patch& patch) {

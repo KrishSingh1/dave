@@ -1998,6 +1998,8 @@ public:
 	leafphysiognomytype leafphysiognomy;
 	/// growing degree sum on 5 degree base required for full leaf cover
 	double phengdd5ramp;
+	/// growing degree sum on 5 degree base required for full maturity/senescence (grasses only)
+	double phengdd5mat;
 	/// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
 	double wscal_min;
 	/// biochemical pathway for photosynthesis (C3 or C4)

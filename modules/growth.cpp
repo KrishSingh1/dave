@@ -2593,89 +2593,90 @@ void update_pools(Vegetation& vegetation) {
 }
 
 
+// Transfer of C and N from green (live) leaf pool to brown (dead) leaf pool
+// Accounts for retranslocation of C and N to storage prior to senescence. 
 void senescence(Vegetation& vegetation) {
 	
 	// Parameters
 	const double crelocfrac_c3 = 0.1;  // TODO: move to constants?
 	const double crelocfrac_c4 = 0.05; 
 	const double nrelocfrac = 0.5;
+	const double k = 10.0;            // Shape parameter in senescence function (steepness)
+	const double growth_stage0 = 0.5; // Shape parameter (mid point)
+	const double qwater_senesc = 1.0;
 
-	double senesc_base = 0.0;  // d-1
-	double senesc_fwater = 0.0;
-	double senesc_ftemp = 0.0;
-	double senesc_fage = 0.0;
-	double senesc = 0.0;
-	double csenesc = 0.0;
-	double nsenesc = 0.0;
-	double cstore = 0.0;
-	double nstore = 0.0;
-	double cstorage_max = 0.0;
-	double nstorage_max = 0.0;
+	double senesc, senesc_base, senesc_fwater, senesc_ftemp, senesc_max;
+	double csenesc, cstore, ctobrown;
+	double nsenesc, nstore, ntobrown;
+	double cstorage_max, nstorage_max;
+
+	// Air temperature or bottom snow layer if snow present
+	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// Loop through individuals
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		// Do not senesce leaves in young plants at the beginning of their growth cycle.
-		if (indiv.growth_stage > 0.2) {
-			
-			// Baseline (minimum) senscence rate from leaf longevity under unstressed conditions.
-			senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+		// Senescence
 
-			// Increase in senescence with age
-			senesc_fage = 0.0;  // placeholder
-
-			// Increase in senescence caused by water stress
-			senesc_fwater = 0.0;  // placeholder
-
-			// Increase in senescence caused by temperature stress
-			senesc_ftemp = 0.0;  // placeholder
-
-			// Total senescence
-			senesc = senesc_base + senesc_fwater + senesc_ftemp + senesc_fage;
-
-		} 
-		else {
-			senesc = 0.0;
+		// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
+		senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+		
+		// Stress factors increase senescence 
+		senesc_fwater = pow((1 - indiv.wscal_fac),qwater_senesc);
+		
+		senesc_ftemp  = 0.0;  // TODO: replace Temp response
+		if (grass_temp < 10.0) {
+			senesc_ftemp = (10.0 - grass_temp) / 20.0;
+		}
+		else if (grass_temp > 35.0) {
+			senesc_ftemp = (35.0 + grass_temp) / 20.0;
 		}
 
+		// Maximum senescence rate
+		senesc_max = senesc_base + (senesc_fwater + senesc_ftemp) * senesc_base;
+
+		// Total senescence rate
+		senesc = senesc_max / (1 + exp( -k * (indiv.growth_stage - growth_stage0) ));
+
 		
-		// Retranslocation
+		// Retranslocation and pool updates
+		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 
 		// TODO: move fractions to parameters??
 		double crelocfrac = indiv.pft.pathway == C3 ? crelocfrac_c3 : crelocfrac_c4;
 			
 		// Carbon
-		csenesc = indiv.cmass_leafs[0] * senesc * (1.0 - crelocfrac);
-		cstore = indiv.cmass_leafs[0] * senesc * crelocfrac;
+		csenesc  = indiv.cmass_leafs[0] * senesc;
+		cstore   = csenesc * crelocfrac;
+		ctobrown = csenesc * (1.0 - crelocfrac);
 
 		cstorage_max = cstorage_capacity(indiv);
 		if (indiv.cmass_storage + cstore > cstorage_max) {
-			csenesc = indiv.cmass_storage + cstore - cstorage_max;
-			cstore  = cstorage_max - indiv.cmass_storage;
+			cstore = cstorage_max - indiv.cmass_storage;
+			ctobrown = indiv.cmass_storage + cstore - cstorage_max;
 		}
 
-		indiv.cmass_leafs[0] -= csenesc;   // green pool
-		indiv.cmass_leafs[1] += csenesc;   // brown pool
-
-		indiv.cmass_storage += cstore;
+		indiv.cmass_leafs[0] -= csenesc;   // green leaf pool
+		indiv.cmass_leafs[1] += ctobrown;  // brown leaf pool
+		indiv.cmass_storage  += cstore;    // C storage
 
 
 		// Nitrogen
-		nsenesc = indiv.nmass_leafs[0] * senesc * (1.0 - nrelocfrac);
-		nstore = indiv.nmass_leafs[0] * senesc * nrelocfrac;
+		nsenesc = indiv.nmass_leafs[0] * senesc;
+		nstore = nsenesc * nrelocfrac;
+		ntobrown = nsenesc * (1.0 - nrelocfrac);
 
 		nstorage_max = nstorage_capacity(indiv);
 		if (indiv.nmass_storage + nstore > nstorage_max) {
-			nsenesc = indiv.nmass_storage + nstore - nstorage_max;
-			nstore  = nstorage_max - indiv.nmass_storage;
+			nstore = nstorage_max - indiv.nmass_storage;
+			ntobrown = indiv.nmass_storage + nstore - nstorage_max;
 		}
 
-		indiv.nmass_leafs[0] -= nsenesc;   // green pool
-		indiv.nmass_leafs[1] += nsenesc;   // brown pool
-
-		indiv.nmass_storage += nstore;
+		indiv.nmass_leafs[0] -= nsenesc;   // green leaf pool
+		indiv.nmass_leafs[1] += ntobrown;  // brown leaf pool
+		indiv.nmass_storage  += nstore;    // N storage
 
 
 		vegetation.nextobj();
@@ -2683,6 +2684,84 @@ void senescence(Vegetation& vegetation) {
 }
 
 
+// Transfer of brown leaf pool and fine root pool to leaf and root litter.
+void turnover_grass(Vegetation& vegetation) {
+
+    // TODO: move to constants
+	const double nrelocfrac = 0.5;
+
+	double frac_turnover_leaf, frac_turnover_root;
+	double nstorage_max;
+	double cturnover, nturnover;
+	double nstore, ntolitter;
+
+	// Determine turnover rate (same for all individuals).
+	// Assumed daily rates here (fraction d-1)!
+	// TODO: turnover rates should be moisture and temperature dependent
+	frac_turnover_leaf = indiv.pft.turnover_leaf / date.year_length();
+	frac_turnover_root = indiv.pft.turnover_root / date.year_length();
+
+
+	// Loop through individuals
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+
+		// Dead leaf turnover (brown leaves --> leaf litter)
+		if (indiv.cmass_leafs[1] > 0.0) {
+
+			// Carbon
+			cturnover = indiv.cmass_leafs[1] * frac_turnover_leaf;
+
+			indiv.cmass_leafs[1]   -= cturnover;
+			ppft.cmass_litter_leaf += cturnover;
+
+
+			// Nitrogen
+			nturnover = indiv.nmass_leafs[1] * frac_turnover_leaf;
+			
+			indiv.nmass_leafs[1]   -= nturnover;
+            ppft.nmass_litter_leaf += nturnover;
+
+		}
+
+
+		// Root turnover (fine roots --> root litter)
+		// TODO: should this be in senescence as well? Dead root pool?
+		if (indiv.cmass_root > 0.0) { 
+
+			// TODO: include C resorption from roots?
+			// Carbon
+			cturnover = indiv.cmass_root * frac_turnover_root;
+			
+			indiv.cmass_root       -= cturnover;
+			ppft.cmass_litter_root += cturnover;
+
+
+			// Nitrogen (including retranslocation)
+			nturnover = indiv.nmass_root * frac_turnover_root;
+			nstore    = nturnover * nrelocfrac;
+			ntolitter = nturnover * (1.0 - nrelocfrac);
+
+			nstorage_max = nstorage_capacity(indiv);
+		    if (indiv.nmass_storage + nstore > nstorage_max) {
+				nstore    = nstorage_max - indiv.nmass_storage;	
+				ntolitter = indiv.nmass_storage + nstore - nstorage_max;
+			}
+
+			indiv.nmass_root       -= nturnover;
+            ppft.nmass_litter_root += ntolitter;
+			indiv.nmass_storage    += nstore;
+
+		}
+		
+		vegetation.nextobj();
+	}
+}
+
+
+// Capacity of C storage (kg C m-2)
 double cstorage_capacity(Individual& indiv) {
 
 	const double frac_cstorage_max = 0.2; // TODO: add to parameters
@@ -2690,7 +2769,7 @@ double cstorage_capacity(Individual& indiv) {
 
 }
 
-
+// Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
 	return indiv.cmass_storage / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
@@ -2728,6 +2807,7 @@ void sink_source_feedback(Individual& indiv) {
 } 
 
 
+// Housekeeping of C storage. Handles overflow and feedback with source dynamics.
 void storage_dynamics(Vegetation& vegetation) {
 
 	// Loop through individuals
@@ -2884,10 +2964,8 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			// Calculate total daily growth and update C storage 
 			storage_growth_partitioning(vegetation);
 
-			// Allocate available C for growth to different plant organs
+			// Allocate available C for growth to different plant pools
 			carbon_allocation_grass(vegetation);
-
-			// Check if there are enough nutrients to support growth, if not reduce growth and put C back into storage.
 			
 			// Calculate N demand based on growth and stoichiometry.
 			ndemand(vegetation);
@@ -2898,26 +2976,24 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 			// update pools (C + N) to account for growth
 			update_pools(vegetation);
 
-			// senescence
+			// Leaf senescence and retranslocation
 			senescence(vegetation);
 
-			// C and N retranslocation (maybe integrate into senescence)
-			retranslocation(vegetation);
+			// Dead leaf and root to litter
+			turnover_grass(vegetation);	
 
-			// C
-			storage_dynamics()
+			// C storage housekeeping and feedback to photosynthesis
+			storage_dynamics(vegetation);
 
 			// Management
 			// grazing()
-
-			// Litter
+			//grazing_daily(indiv);
 
 			// C balance checks
 
+			// Allometry
 
-			// TODO: implement negative feedback between full storage (or growth demand) and photosynthetic capacity.
-			// 		 only call when Cstorage overflows or before??
-
+			// Annual reporting (combine to one function)
 
 
 			// If no N limitation or free N years add N to match minimum C:N ratio of the storage pool
@@ -3312,6 +3388,7 @@ void growth_daily_grass_dave(Patch& patch, Climate& climate) {
 	} // while vegetation is object
 
 } // growth_daily() 
+
 
 /// Handles daily crop allocation and daily lai calculation
 /** Simple allocation based on heat unit accumulation.

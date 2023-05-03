@@ -2787,7 +2787,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	double lai_layer, apar_layer, lai_cum_bottom, lai_cum, Nscal, pslim;
 	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
 	double Rm, Rs, Je, Vpmax, Vp, Kp, Km;
-	double Anc, Anj, Anp, Ag, An, gsc, ci;
+	double Anc = 0.0, Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0, ci = 0.0;
 	double ci_diff, ci_diff_max, ci_new;
 	double a_c, b_c, c_c, a_j, b_j, c_j; 
 	int    nit, nit_max;

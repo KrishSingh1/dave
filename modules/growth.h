@@ -19,6 +19,8 @@
 
 #include "guess.h"
 
+typedef enum {green, brown} leafpool;
+
 double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);
 void leaf_phenology(Patch& patch,Climate& climate);
 bool allometry(Individual& indiv); // guess2008 - now returns bool instead of void

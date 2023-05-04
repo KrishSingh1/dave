@@ -3070,6 +3070,8 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation
 	double cmass_storage;
+	/// Maximum capacity of C storage pool (kgC/m2)
+	double cstorage_max;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
 	/// leaf N biomass on modelled area basis (kgC/m2)

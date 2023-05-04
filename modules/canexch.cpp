@@ -2783,14 +2783,15 @@ void vcmax_from_N(Vegetation& vegetation) {
 // Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-    double par, temp, rad, vpd, ca;
-	double lai_layer, apar_layer, lai_cum_bottom, lai_cum, Nscal, pslim;
-	double g0, g1, X, beta, gamma, gamstar, Rd, Ko, Kc, vcmax, jmax;
-	double Rm, Rs, Je, Vpmax, Vp, Kp, Km;
+    double par = 0.0, temp = 0.0, rad = 0.0, vpd = 0.0, ca = 0.0;
+	double lai_layer = 0.0, apar_layer = 0.0, lai_cum_bottom = 0.0, lai_cum = 0.0, Nscal = 0.0, pslim = 0.0;
+	double g0 = 0.0, g1 = 0.0, X = 0.0, beta = 0.0, gamma = 0.0, gamstar = 0.0, Ko = 0.0, Kc = 0.0;
+	double Rd = 0.0, vcmax = 0.0, jmax = 0.0;
+	double Rm =0.0, Rs = 0.0, Je = 0.0, Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0;
 	double Anc = 0.0, Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0, ci = 0.0;
-	double ci_diff, ci_diff_max, ci_new;
-	double a_c, b_c, c_c, a_j, b_j, c_j; 
-	int    nit, nit_max;
+	double ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
+	double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0, c_j = 0.0; 
+	int    nit = 0.0, nit_max = 0.0;
 	
 	double height_veg = get_veg_height(vegetation);
 

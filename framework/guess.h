@@ -3083,6 +3083,8 @@ public:
 	double cmass_storage;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
+	/// Maximum capacity of N storage pool (kgN/m2)
+	double nstorage_max;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
 	/// leaf N biomass on modelled area basis (kgC/m2)

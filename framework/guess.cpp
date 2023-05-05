@@ -1599,6 +1599,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_storage				= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
+	nstorage_max				= 0.0;
 	cmass_leaf_ygrowth			= 0.0;
 	cmass_root_ygrowth			= 0.0;
 	cton_leaf_opt				= 0.0; 
@@ -1759,6 +1760,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_storage
 		& cstorage_max
 		& nmass_storage
+		& nstorage_max
 		& nscal_5   	
 		& cton_leaf_opt	 
 		& aet
@@ -2685,6 +2687,9 @@ void Individual::kill(bool harvest /* = false */) {
 
 	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
+		if (ifdavegrowth) {
+			ppft.cmass_litter_leaf += cmass_leafs[brown];
+		}
 		ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 	}
 
@@ -2823,6 +2828,9 @@ void Individual::kill(bool harvest /* = false */) {
 
 	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
 		ppft.nmass_litter_root += nmass_storage;	// storage growth to litter
+		if (ifdavegrowth) {
+			ppft.nmass_litter_leaf += nmass_leafs[brown];
+		}
 		ppft.nmass_litter_leaf += nmass_leafs[3];	// add senescing leaves and growth storage to litter
 	}
 

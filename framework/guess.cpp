@@ -1615,6 +1615,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
 	nmass_tot_luc     = 0.0;
+	cmass_litter_leaf = 0.0;
+	cmass_litter_root = 0.0;
+	cmass_litter_repr = 0.0;
+	nmass_litter_leaf = 0.0;
+	nmass_litter_root = 0.0;
 
 	nactive						= 0.0;
 	nextin						= 1.0;
@@ -1724,6 +1729,11 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap
 		& cmass_heart
 		& cmass_debt
+		& cmass_litter_leaf
+		& cmass_litter_root
+		& cmass_litter_repr
+		& nmass_litter_leaf
+		& nmass_litter_root
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
 		& last_turnover_day

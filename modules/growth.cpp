@@ -50,7 +50,7 @@
 const double APHEN_MAX = 210.0;
 
 // Maximum size of C storage pool as a fraction of total biomass (leaf + root). Grasses only.
-const double frac_cstorage_max = 0.2;
+const double frac_cstorage_max = 0.3;
 
 // maximum mobilisation rate of C in storage
 const double max_mobil_cstorage = 0.2;
@@ -2378,7 +2378,7 @@ double cstorage_capacity(Individual& indiv) {
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
-	return indiv.cmass_storage / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
 
 }
 
@@ -2414,7 +2414,7 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
 
-		if (date.year == 1 && date.day == 182){
+		if (date.year == 300 && date.day == 10){
 			printf("");
 		}
 
@@ -2707,6 +2707,8 @@ void update_pools(Vegetation& vegetation) {
 		double growth_max_leaf = 0.0, growth_max_root = 0.0, growth_max_repr = 0.0;
 		double cexcess = 0.0;
 
+		// TODO: check potential imbalance of Nuptake and Ndemand. At the moment Nuptake could exceed Ndemand and whole-plant C:N ratio could go below cton_min. 
+		// indiv.fnuptake *= fnavail;
 
 		if (negligible(indiv.fnuptake - 1.0)) {
 			
@@ -2803,7 +2805,6 @@ void senescence(Vegetation& vegetation) {
 	double senesc = 0.0, senesc_base = 0.0, senesc_fwater = 0.0, senesc_ftemp = 0.0, senesc_max = 0.0;
 	double csenesc = 0.0, cstore = 0.0, ctobrown = 0.0;
 	double nsenesc = 0.0, nstore = 0.0, ntobrown = 0.0;
-	double nstorage_max = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -2873,7 +2874,8 @@ void senescence(Vegetation& vegetation) {
 		}
 
 		// TODO: make sure N:C ratio in storage does not fall outside its ranges
-		//       understand what the N:C in storage looks like (values)
+		//       understand what the N:C in storage looks like (values). How flexible is N:C in storage?
+		//		 sufficient to only account for Nstorage_max as done here?
 
 		indiv.nmass_leafs[green] -= nsenesc;   // green leaf pool
 		indiv.nmass_leafs[brown] += ntobrown;  // brown leaf pool

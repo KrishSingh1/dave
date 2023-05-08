@@ -1951,7 +1951,11 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 			// add extra daily carbon pools to litter
 
-			cmass_leaf_litter += mortality * cmass_leafs[3];
+			if (ifdavegrowth) {
+				cmass_leaf_litter += mortality * cmass_leafs[1];
+			} else {
+				cmass_leaf_litter += mortality * cmass_leafs[3];
+			}
 			cmass_root_litter += mortality * cmass_storage;
 		}
 
@@ -1988,7 +1992,11 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
 			// add extra daily carbon pools to litter
 
-			nmass_leaf_litter += mortality * nmass_leafs[3];
+			if (ifdavegrowth) {
+				nmass_leaf_litter += mortality * nmass_leafs[1];
+			} else {
+				nmass_leaf_litter += mortality * nmass_leafs[3];
+			}
 			nmass_root_litter += mortality * nmass_storage;
 		}
 
@@ -2200,9 +2208,14 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont += (get_cmass_leaf() + cmass_root + cmass_sap + cmass_heart - cmass_debt) * scale_indiv;
 
-			if (ifdailygrass && pft.lifeform == GRASS) 
-				ccont += (cmass_storage + cmass_leafs[3]) * scale_indiv;
-			
+			if (ifdailygrass && pft.lifeform == GRASS) {
+				if (ifdavegrowth) {
+					ccont += (cmass_storage + cmass_leafs[1]) * scale_indiv;
+				} else {
+					ccont += (cmass_storage + cmass_leafs[3]) * scale_indiv;
+				}
+			}
+
 			if (pft.landcover == CROPLAND) {
 				ccont += (cropindiv->cmass_ho + cropindiv->cmass_agpool) * scale_indiv;
 				// Yearly allocation not defined for crops with nlim
@@ -2250,7 +2263,11 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 		ncont += nmass_storage * scale_indiv;
 
 		if (ifdailygrass && pft.lifeform == GRASS)
-			ncont += nmass_leafs[3] * scale_indiv;
+			if (ifdavegrowth) {
+				ncont += nmass_leafs[1] * scale_indiv;
+			} else {
+				ncont += nmass_leafs[3] * scale_indiv;
+			}
 	}
 
 	if (pft.landcover == CROPLAND) {
@@ -2689,8 +2706,9 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.cmass_litter_leaf += cmass_leafs[brown];
+		} else {
+			ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
-		ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive
@@ -2830,8 +2848,9 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.nmass_litter_root += nmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.nmass_litter_leaf += nmass_leafs[brown];
+		} else {
+			ppft.nmass_litter_leaf += nmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
-		ppft.nmass_litter_leaf += nmass_leafs[3];	// add senescing leaves and growth storage to litter
 	}
 
 	// Leaf: remove residue outtake and send the rest to litter

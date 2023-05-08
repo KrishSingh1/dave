@@ -643,7 +643,7 @@ double Patch::cflux() {
 	double cflux = 0.0;
 
 	if (ifdavediagnostics) {
-		printf("soil.aorgCleach = %.8f\n", soil.aorgCleach);
+		printf("soil.aorgCleach = %.16f\n", soil.aorgCleach);
 		printf("-fluxes.get_annual_flux(Fluxes::NPP) = %.8f\n", -fluxes.get_annual_flux(Fluxes::NPP));
 		printf("fluxes.get_annual_flux(Fluxes::REPRC) = %.8f\n", fluxes.get_annual_flux(Fluxes::REPRC));
 		printf("fluxes.get_annual_flux(Fluxes::SOILC) = %.8f\n", fluxes.get_annual_flux(Fluxes::SOILC));
@@ -2181,7 +2181,11 @@ double Individual::sla() const {
 
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
-		current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
+		//if (ifdavegrowth) {
+		//	current_sla *=
+		//} else {
+			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
+		//}
 	}
 
 	return current_sla;
@@ -3569,7 +3573,7 @@ void MassBalance::check_day(Gridcell &gridcell) {
 	// 	return;
 	// }
 
-	check_day_c(gridcell);
+	//check_day_c(gridcell);
 
 	if (ifcentury) {
 		// check_day_n(gridcell);

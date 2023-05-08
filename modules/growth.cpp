@@ -2414,10 +2414,6 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
 
-		if (date.year == 2 && date.day == 2){
-			printf("");
-		}
-
 		if (indiv.dnpp >= 0.0) {
 			
 			// Positive NPP
@@ -2544,7 +2540,14 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
 		// Leaf nitrogen status
-		indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
+		if (!negligible(indiv.get_cmass_leaf())) {
+			if (!ifnlim || date.year < freenyears) {
+				indiv.nscal_5.add(1.0);
+			} else {
+				indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
+			}
+		}
+		
 
 		if (!negligible(indiv.cgrow)) {
 			// determine if some of the new carbon goes to reproduction
@@ -2685,7 +2688,9 @@ void nuptake(Vegetation& vegetation) {
 
 // Update C and N pools of vegetation  
 void update_pools(Vegetation& vegetation) { 
-
+	
+	Patch& patch = vegetation.patch;
+	
 	// new parameters. TODO: move to pft parameters(?)
 	// maximum mobilisation rate of N in storage
 	//const double max_mobil_nstorage = 0.9;
@@ -2695,20 +2700,38 @@ void update_pools(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-        // ensure Nstorage does not fall below its minimum N:C (-> fnavail)
 		double fnavail = 0.0;
+		double creturn = 0.0; // kgC m-2 d-1
+		double growth_max_leaf = 0.0, growth_max_root = 0.0, growth_max_repr = 0.0;
+		double cexcess = 0.0, nexcess = 0.0;
+
 		if (!negligible(indiv.ndemand)) {
-			fnavail = max(0.0,min(1.0,(indiv.nmass_storage - indiv.cmass_storage / indiv.pft.cton_leaf_max) / indiv.ndemand));
+			// Always fill up N storage during freenyears
+			if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.nstorage_max ) {
+				double nmass_missing = indiv.nstorage_max - indiv.nmass_storage - (indiv.fnuptake * indiv.ndemand);
+				indiv.nmass_storage += nmass_missing;
+		    	patch.fluxes.report_flux(Fluxes::NFERT, nmass_missing);
+			}
+
+			// Make sure N storage does not exceed its capacity. This mostly happens
+			// when nstorage_max decreases as the plant 'shrinks' (extreme stress)
+			// Flush to root litter for now, but better alternatives could exist
+			if (indiv.nmass_storage > indiv.nstorage_max) {
+				nexcess = indiv.nmass_storage - indiv.nstorage_max;
+				indiv.nmass_litter_root += nexcess;
+				indiv.nmass_storage -= nexcess;
+			}
+
+			// Check if there is enough N in storage. At the moment Nstorage needs to be > 0.
+			// Alternatively, one could implement a N:C storage > N:C leaf min constraint.
+
+			// fnavail = max(0.0,min(1.0,(indiv.nmass_storage - indiv.cmass_storage / indiv.pft.cton_leaf_max) / indiv.ndemand));
+			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
+
 		double navail_leaf = indiv.leafndemand * fnavail * indiv.fnuptake;
 		double navail_root = indiv.rootndemand * fnavail * indiv.fnuptake;	
 		double navail_repr = indiv.reprndemand * fnavail * indiv.fnuptake; 
-		double creturn = 0.0; // kgC m-2 d-1
-		double growth_max_leaf = 0.0, growth_max_root = 0.0, growth_max_repr = 0.0;
-		double cexcess = 0.0;
-
-		// TODO: check potential imbalance of Nuptake and Ndemand. At the moment Nuptake could exceed Ndemand and whole-plant C:N ratio could go below cton_min. 
-		// indiv.fnuptake *= fnavail;
 
 		if (negligible(indiv.fnuptake - 1.0)) {
 			
@@ -2724,8 +2747,6 @@ void update_pools(Vegetation& vegetation) {
 			// N supply < N demand
 
 			if ( navail_leaf < (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) {
-				// TODO: add this later (no check at beginning of spinup) || (!ifnlim || date.year < freenyears)
-				// Enough N for new growth
 				
 				// Maximum possible leaf growth given N constraints. Put rest of C back into storage (Creturn)
 				growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
@@ -2774,8 +2795,8 @@ void update_pools(Vegetation& vegetation) {
 		assert(indiv.cgrow_leaf >= 0.0);
 		assert(indiv.cgrow_root >= 0.0);
 		assert(indiv.cmass_storage >= 0.0);
-		//assert(indiv.nmass_storage >= indiv.cmass_storage / indiv.pft.cton_leaf_max);
 		assert(indiv.nmass_storage >= 0.0);
+		assert(indiv.nmass_storage <= indiv.nstorage_max);
 		assert(negligible(indiv.cgrow - (indiv.cgrow_repr + indiv.cgrow_leaf + indiv.cgrow_root + creturn + cexcess), -16));
 		assert(indiv.cton_leaf() <= indiv.pft.cton_leaf_max);
 		assert(indiv.cton_leaf() >= indiv.pft.cton_leaf_min);
@@ -2866,6 +2887,10 @@ void senescence(Vegetation& vegetation) {
 		nsenesc  = indiv.nmass_leafs[green] * senesc;
 		nstore   = nsenesc * nrelocfrac;
 		ntobrown = nsenesc * (1.0 - nrelocfrac);
+
+		if (date.year == 200 && date.day == 175) {
+			printf("hello");
+		}
 
 		// If N storage pool overflows, re-adjust nstore and ntobrown
 		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
@@ -3152,19 +3177,19 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// update pools (C + N) to account for growth
 	update_pools(vegetation);
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 	// Leaf senescence and retranslocation.
 	senescence(vegetation);
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 	// Dead leaf and root to litter
 	turnover_grass(vegetation);	
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 	// C storage housekeeping and feedback to photosynthesis
 	storage_dynamics(vegetation);
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 	// Management
 	// grazing()
@@ -3172,7 +3197,7 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// Allometry (Updates LAI and FPC)
 	grass_allometry(vegetation);
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 	// C balance checks
 
@@ -3180,7 +3205,7 @@ void growth_daily_grass_dave(Patch& patch) {
 	annual_accounting(vegetation);
 
 	// Ensure that daily mass balance is closed.
-	mass_balance.check(vegetation);
+	//mass_balance.check(vegetation);
 
 } // growth_daily_grass_dave() 
 

@@ -338,7 +338,8 @@ try {
 			if (!is_start_of_year(first_timestep, temp->get_day_length())) {
 				first_year++;
 			}
-			spinup_year = rand() % get_nyear_data() + first_year;
+			//spinup_year = rand() % get_nyear_data() + first_year;
+			spinup_year = date.year % get_nyear_data() + first_year;
 		}
 		year = spinup_year;
 	} else {

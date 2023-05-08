@@ -2269,7 +2269,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			if (ifdailygrass && pft.lifeform == GRASS) {
 				if (ifdavegrowth) {
-					ccont += (cmass_storage + cmass_leafs[1]) * scale_indiv;
+					ccont += (cmass_storage + cmass_leafs[1] + cmass_repr) * scale_indiv;
 					if (ifdavediagnostics) {
 						printf("indiv.cmass_storage = %.8f\n", cmass_storage);
 						printf("indiv.cmass_leafs[1] = %.8f\n", cmass_leafs[1]);
@@ -2335,7 +2335,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 
 		if (ifdailygrass && pft.lifeform == GRASS)
 			if (ifdavegrowth) {
-				ncont += nmass_leafs[1] * scale_indiv;
+				ncont += (nmass_leafs[1] + nmass_repr) * scale_indiv;
 			} else {
 				ncont += nmass_leafs[3] * scale_indiv;
 			}

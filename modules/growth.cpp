@@ -2414,7 +2414,7 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
 
-		if (date.year == 300 && date.day == 10){
+		if (date.year == 2 && date.day == 2){
 			printf("");
 		}
 

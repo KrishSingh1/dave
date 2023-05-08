@@ -369,6 +369,9 @@ extern bool ifdavephotosyn;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
+/// Whether DAVE mass balance diagnostics are enabled.
+extern bool ifdavediagnostics;
+
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
 

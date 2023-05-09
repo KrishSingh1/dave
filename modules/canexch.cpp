@@ -2318,7 +2318,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root,
-	double cmass_sap, double cmass_root_today, double assim, double& resp) {
+	double cmass_sap, double cmass_root_today, double growth_demand, 
+	double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2429,7 +2430,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
-
 		resp_growth = (assim - resp_sap - resp_root) * 0.25;
 
 		// guess2008 - disallow negative growth respiration
@@ -2447,8 +2447,14 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration (see above)
-
-		resp_growth = (assim - resp_root) * 0.25;
+		
+		if (ifdavegrowth) {
+			// Growth respiration should depend on actual growth or at least its demand.
+			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
+			resp_growth = (assim - resp_sap - resp_root) * (growth_demand * Rg_max);
+		} else {
+			resp_growth = (assim - resp_root) * 0.25;
+		}
 
 		// guess2008 - disallow negative growth respiration
 		// (following a comment (060823) from Annett Wolf)
@@ -2567,7 +2573,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, assim, resp);
+			indiv.cmass_sap, cmass_root, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -3361,7 +3367,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, assim, resp);
+			indiv.cmass_sap, cmass_root, indiv.growth_demand, assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

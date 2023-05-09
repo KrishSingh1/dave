@@ -2185,7 +2185,6 @@ double Individual::sla() const {
 	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
 			// from data presented in Danalatos et al. 1994, Agronomie 14, 433-443.
-			// brought to a form that is independent of baseline SLA. 
 			// Note: growth_stage multiplied by 2.0 so that pft.sla is reached at the middle of the growing season.
 			// TODO: check if SLA should decrease further after growth_stage > 0.5 or stay constant.
 			const double sla_beta = -0.18;

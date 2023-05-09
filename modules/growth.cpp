@@ -2883,10 +2883,6 @@ void senescence(Vegetation& vegetation) {
 		nstore   = nsenesc * nrelocfrac;
 		ntobrown = nsenesc * (1.0 - nrelocfrac);
 
-		if (date.year == 200 && date.day == 175) {
-			printf("hello");
-		}
-
 		// If N storage pool overflows, re-adjust nstore and ntobrown
 		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
 			nstore = indiv.nstorage_max - indiv.nmass_storage;

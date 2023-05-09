@@ -2442,17 +2442,28 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	}
 	else if (lifeform == GRASS || lifeform == MOSS) {
 
-		// Root respiration
-
-		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
-
-		// Growth respiration (see above)
-		
 		if (ifdavegrowth) {
-			// Growth respiration should depend on actual growth or at least its demand.
+
+			// Handle respiration differently in DAVE: 
+			// -> scale down resp_root during dormancy
+			// -> account for growth_demand in Rgrowth
+
+			// Root respiration
+			// Reduction factor of resp_root during dormancy (note: assumes growth_demand = 0 during dormancy!)
+			double dorm_scal = negligible(growth_demand) ? fresp_dorm : 1.0;
+
+			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * dorm_scal;
+
+			// Growth respiration
 			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
 			resp_growth = (assim - resp_sap - resp_root) * (growth_demand * Rg_max);
+
 		} else {
+			
+			// Root respiration
+			resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
+			
+			// Growth respiration (see above)
 			resp_growth = (assim - resp_root) * 0.25;
 		}
 
@@ -2887,8 +2898,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
-					if (negligible(apar_layer, -9)) {
-						// Night
+					// Scale down leaf respiration during dormancy
+					if (negligible(indiv.growth_stage)) {
+						Rd *= fresp_dorm;
+					}
+
+					if (negligible(apar_layer, -9) || negligible(indiv.growth_stage)) {
+						// Night or dormancy
 						An = -Rd;
 						gsc = g0;
 					} else {
@@ -2934,11 +2950,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
 					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
+					
+					// Scale down leaf respiration during dormancy
+					if (negligible(indiv.growth_stage)) {
+						Rd *= fresp_dorm;
+					}
+					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					if (negligible(par, -9)) {
-						// No photosynthesis at night.
+					if (negligible(par, -9) || negligible(indiv.growth_stage)) {
+						// No photosynthesis at night or during dormancy.
 						An = -Rd;
 						gsc = g0;
 						ci = ca - divide(An, gsc);

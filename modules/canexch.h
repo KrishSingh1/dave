@@ -186,6 +186,11 @@ const double gbs = 0.003;  // von Caemmerer 2000
 						   // 0.00287 in Yin et al. 2016 
 
 
+
+// Downregulation factor of respiration during dormancy
+const double fresp_dorm = 0.1;
+
+
 /// -----------------------------------------------
 /// Canopy-level parameters
 /// -----------------------------------------------

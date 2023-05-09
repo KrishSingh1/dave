@@ -1219,7 +1219,7 @@ bool allometry(Individual& indiv) {
 			// guess2008 - bugfix - added if
 			if (!negligible(indiv.get_cmass_leaf())) {
 
-				// Grass "individual" LAI (Eqn 11)
+				// Grass "individual" LAI (Eqn 11). Green LAI only!
 				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 
 				// FPC (Eqn 10)

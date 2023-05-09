@@ -2991,6 +2991,8 @@ public:
 	double cexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
 	double ps_sink_lim;
+	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
+	double nmass_missing;
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;

@@ -1614,6 +1614,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	aphen             = 0.0;
 	growth_stage      = 0.0;
 	cexcess           = 0.0;
+	nmass_missing     = 0.0;
 	deltafpc          = 0.0;
 	lai_ymax					= 0.0;
 	fpc_ymax					= 0.0;
@@ -1777,6 +1778,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen_raingreen
 		& growth_stage
 		& cexcess
+		& nmass_missing
 		& anpp
 		& gpp_15
 		& gpptrend_15

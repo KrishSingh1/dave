@@ -66,21 +66,8 @@ public:
 		IndivState(const Individual &indiv);
 		void check(const Individual &indiv) const;
 private:
-		double cmass_storage;
-		double cmass_leaf_green;
-		double cmass_leaf_brown;
-		double cmass_root;
-		double cmass_repr;
-		double cmass_litter_leaf;
-		double cmass_litter_root;
-		double cmass_litter_repr;
-		double nmass_storage;
-		double nmass_leaf_green;
-		double nmass_leaf_brown;
-		double nmass_root;
-		double nmass_repr;
-		double nmass_litter_leaf;
-		double nmass_litter_root;
+		double n_start;
+		double c_start;
 	};
 	std::vector<const IndivState*> indivs;
 	void clear_indivs();
@@ -115,33 +102,40 @@ void DaveMassBalance::check(Vegetation &vegetation) {
 	}
 }
 
+double get_nmass(const Individual &indiv) {
+	return indiv.nmass_storage +
+		   indiv.nmass_leafs[green] +
+		   indiv.nmass_leafs[brown] +
+		   indiv.nmass_root +
+		   indiv.nmass_repr +
+		   indiv.nmass_litter_leaf +
+		   indiv.nmass_litter_root;
+}
+
+double get_cmass(const Individual &indiv) {
+	return indiv.cmass_storage +
+		   indiv.cmass_leafs[green] +
+		   indiv.cmass_leafs[brown] +
+		   indiv.cmass_root +
+		   indiv.cmass_repr +
+		   indiv.cmass_litter_leaf +
+		   indiv.cmass_litter_repr +
+		   indiv.cmass_litter_root;
+}
+
 DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
-	cmass_storage = indiv.cmass_storage;
-	cmass_leaf_green = indiv.cmass_leafs[green];
-	cmass_leaf_brown = indiv.cmass_leafs[brown];
-	cmass_root = indiv.cmass_root;
-	cmass_repr = indiv.cmass_repr;
-	nmass_storage = indiv.nmass_storage;
-	nmass_leaf_green = indiv.nmass_leafs[green];
-	nmass_leaf_brown = indiv.nmass_leafs[brown];
-	nmass_root = indiv.nmass_root;
-	nmass_repr = indiv.nmass_repr;
-	cmass_litter_leaf = indiv.cmass_litter_leaf;
-	cmass_litter_root = indiv.cmass_litter_root;
-	cmass_litter_repr = indiv.cmass_litter_repr;
-	nmass_litter_leaf = indiv.nmass_litter_leaf;
-	nmass_litter_root = indiv.nmass_litter_root;
+	n_start = get_nmass(indiv);
+	c_start = get_cmass(indiv);
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
-	double c_start = cmass_storage + cmass_leaf_green + cmass_leaf_brown + cmass_root + cmass_repr + cmass_litter_leaf + cmass_litter_repr + cmass_litter_root;
 	double c_flux = indiv.dnpp;
-	double c_end = indiv.cmass_storage + indiv.cmass_leafs[green] + indiv.cmass_leafs[brown] + indiv.cmass_root + indiv.cmass_repr + indiv.cmass_litter_leaf + indiv.cmass_litter_repr + indiv.cmass_litter_root + indiv.cexcess;
+	double c_end = get_cmass(indiv) + indiv.cexcess;
 	assert(negligible(c_end - (c_start + c_flux), -14));
 
-	double n_start = nmass_storage + nmass_leaf_green + nmass_leaf_brown + nmass_root + nmass_repr + nmass_litter_leaf + nmass_litter_root;
-	double n_end = indiv.nmass_storage + indiv.nmass_leafs[green] + indiv.nmass_leafs[brown] + indiv.nmass_root + indiv.nmass_repr + indiv.nmass_litter_leaf + indiv.nmass_litter_root;
-	assert(negligible(n_end - n_start, -14));
+	double n_flux = indiv.nmass_missing;
+	double n_end = get_nmass(indiv);
+	assert(negligible(n_end - (n_start + n_flux), -14));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2413,6 +2407,7 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		// Set indiv.cgrow and indiv.cexcess to 0
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
+		indiv.nmass_missing = 0;
 
 		if (indiv.dnpp >= 0.0) {
 			
@@ -2708,9 +2703,9 @@ void update_pools(Vegetation& vegetation) {
 		if (!negligible(indiv.ndemand)) {
 			// Always fill up N storage during freenyears
 			if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.nstorage_max ) {
-				double nmass_missing = indiv.nstorage_max - indiv.nmass_storage - (indiv.fnuptake * indiv.ndemand);
-				indiv.nmass_storage += nmass_missing;
-		    	patch.fluxes.report_flux(Fluxes::NFERT, nmass_missing);
+				indiv.nmass_missing = indiv.nstorage_max - indiv.nmass_storage - (indiv.fnuptake * indiv.ndemand);
+				indiv.nmass_storage += indiv.nmass_missing;
+		    	patch.fluxes.report_flux(Fluxes::NFERT, indiv.nmass_missing);
 			}
 
 			// Make sure N storage does not exceed its capacity. This mostly happens
@@ -3177,19 +3172,19 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// update pools (C + N) to account for growth
 	update_pools(vegetation);
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 	// Leaf senescence and retranslocation.
 	senescence(vegetation);
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 	// Dead leaf and root to litter
 	turnover_grass(vegetation);	
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 	// C storage housekeeping and feedback to photosynthesis
 	storage_dynamics(vegetation);
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 	// Management
 	// grazing()
@@ -3197,7 +3192,7 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// Allometry (Updates LAI and FPC)
 	grass_allometry(vegetation);
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 	// C balance checks
 
@@ -3205,7 +3200,7 @@ void growth_daily_grass_dave(Patch& patch) {
 	annual_accounting(vegetation);
 
 	// Ensure that daily mass balance is closed.
-	//mass_balance.check(vegetation);
+	mass_balance.check(vegetation);
 
 } // growth_daily_grass_dave() 
 

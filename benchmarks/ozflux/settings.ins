@@ -17,9 +17,10 @@
 ifdailygrass             1   ! daily allocation for grasses and crops 
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             1   ! DAVE growth scheme (grasses only at the moment)
+ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
-ifdavediagnostics        0
+
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one

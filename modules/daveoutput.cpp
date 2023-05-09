@@ -57,6 +57,8 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_rd_g", [](Individual &i) { return i.photosynthesis.rd_g; }, "Daily leaf respiration (gC/m2/day)");
 	add_daily_indiv_output("file_dave_je", [](Individual &i) { return i.photosynthesis.je; }, "Daily PAR-limited photosynthesis rate (gC/m2/h)");
 	add_daily_indiv_output("file_dave_vm", [](Individual &i) { return i.photosynthesis.vm; }, "RuBisCO capacity (gC/m2/day)");
+	add_daily_indiv_output("file_dave_growth_stage", [](Individual &i) { return i.growth_stage; }, "Growth Stage (0-1)");
+	add_daily_indiv_output("file_dave_growth_demand", [](Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)");
 
 	// Daily individual-level array outputs.
 	add_daily_indiv_array_output("file_dave_layerwise_fpar", "layer", get_nlayer_fpar, [](Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");

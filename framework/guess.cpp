@@ -630,6 +630,17 @@ double Patch::water_content() {
 	
 	for (int lyr = soil.IDX; lyr < NLAYERS; lyr++) {
 		water_content += (soil.Frac_ice[lyr] + soil.Frac_water[lyr] + soil.Fpwp_ref[lyr]) * soil.Dz[lyr];
+
+		if (ifdavediagnostics) {
+			printf("frac_ice[%d] = %.8f\n", lyr, soil.Frac_ice[lyr]);
+			printf("Frac_water[%d] = %.8f\n", lyr, soil.Frac_water[lyr]);
+			printf("Fpwp_ref[%d] = %.8f\n", lyr, soil.Fpwp_ref[lyr]);
+			printf("Dz[%d] = %.8f\n", lyr, soil.Dz[lyr]);
+		}
+	}
+
+	if (ifdavediagnostics) {
+		printf("snowpack = %.8f\n", soil.snowpack);
 	}
 
 	water_content += soil.snowpack;
@@ -696,6 +707,18 @@ double Patch::nflux() {
 
 /// water flux of patch
 double Patch::water_flux() {
+
+	if (ifdavediagnostics) {
+		printf("-aprec = %.8f\n", -get_climate().aprec);
+		printf("-irrigation_y = %.8f\n", -irrigation_y);
+		printf("-awetland_water_added = %.8f\n", -awetland_water_added);
+		printf("aintercep = %.8f\n", aintercep);
+		printf("aaet = %.8f\n", aaet);
+		printf("aevap = %.8f\n", aevap);
+		printf("asurfrunoff = %.8f\n", asurfrunoff);
+		printf("adrainrunof = %.8f\n", adrainrunoff);
+		printf("abaserunoff = %.8f\n", abaserunoff);
+	}
 
 	double wflux = 0.0;
 
@@ -3167,6 +3190,10 @@ double Gridcell::ncont() {
 
 double Gridcell::water_content() {
 
+	if (ifdavediagnostics) {
+		printf("[%d-%d] [wcont] -----\n", date.year, date.day);
+	}
+
 	double water_content = 0.0;
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
@@ -3222,6 +3249,10 @@ double Gridcell::nflux() {
 }
 
 double Gridcell::water_flux() {
+
+	if (ifdavediagnostics) {
+		printf("[%d-%d] [wflux] -----\n", date.year, date.day);
+	}
 
 	double water_flux = 0.0;
 
@@ -3575,11 +3606,11 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 }
 
 void MassBalance::check_day(Gridcell &gridcell) {
-	// if (date.year < start_year) {
-	// 	return;
-	// }
+	if (date.year < start_year) {
+		return;
+	}
 
-	//check_day_c(gridcell);
+	// check_day_c(gridcell);
 
 	if (ifcentury) {
 		// check_day_n(gridcell);
@@ -3589,7 +3620,13 @@ void MassBalance::check_day(Gridcell &gridcell) {
 }
 
 bool is_first_day() {
-	return date.day == 0 && date.year == 0;
+	if (date.day == 0 && date.year == 0) {
+		return true;
+	}
+	if (date.day == 0 && date.year == nyear_spinup) {
+		return true;
+	}
+	return false;
 }
 
 void MassBalance::check_day_c(Gridcell &gridcell) {

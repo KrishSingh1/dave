@@ -49,8 +49,14 @@
 // for summergreen PFTs
 const double APHEN_MAX = 210.0;
 
-// Maximum size of C storage pool as a fraction of total biomass (leaf + root). Grasses only.
+// ---------------------------------
+// Grass parameters
+// ---------------------------------
+// Maximum size of C storage pool as a fraction of total biomass (leaf + root).
 const double frac_cstorage_max = 0.3;
+
+// Fraction of C storage not available for growth expressed on a total biomass (leaf + root) basis.
+const double frac_cstorage_res = 0.05;
 
 // maximum mobilisation rate of C in storage
 const double max_mobil_cstorage = 0.2;
@@ -2352,12 +2358,15 @@ void growth_daily_grass(Patch& patch) {
 // --> 0.0: put all available C of the day into storage.
 double growth_demand(Individual& indiv) {
 
-    // first approximation: growth demand inversely related to growth stage
+	double kd = 15.0;  // Shape parameter
+
 	if (negligible(indiv.growth_stage)) { // dormant
 		return 0.0; 
 	} 
 	else { 
-		return 1.0 - indiv.growth_stage;
+		// relative growth demand [0-1] derived from logistic growth curves.
+		// kd can be tuned from data of biomass accumulation curves.
+		return 1.0 - 1.0 / (1.0 + exp(-kd * (indiv.growth_stage - 0.5)));
 	}
 	// TODO: do NOT call growth functions if grasses are dormant.
 }
@@ -2368,6 +2377,13 @@ double cstorage_capacity(Individual& indiv) {
 	return frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root);
 
 }
+
+// C storage unavailable for growth (kg C m-2)
+double cstorage_reserve(Individual& indiv){
+
+	return frac_cstorage_res * (indiv.get_cmass_leaf() + indiv.cmass_root);
+
+} 
 
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
@@ -2385,6 +2401,7 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 	// Local:
 	double cstore = 0.0;
 	double cexcess = 0.0;
+	double cstorage_res = 0.0;
 	double Gpot = 0.0;
 
 	// Loop through individuals
@@ -2397,12 +2414,15 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		// Determine growth demand based on growth stage
 		indiv.growth_demand = growth_demand(indiv);
 
-		// Potential growth rate
-		Gpot = max(0.0, max_mobil_cstorage * indiv.cmass_storage + indiv.dnpp); 
-
 		// Maximum C and N storage pool size
 		indiv.cstorage_max = cstorage_capacity(indiv);
 		indiv.nstorage_max = nstorage_capacity(indiv);
+
+		// C storage not available for growth
+		cstorage_res = cstorage_reserve(indiv);
+
+		// Potential growth rate
+		Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 		// Set indiv.cgrow and indiv.cexcess to 0
 		indiv.cgrow = 0.0;
@@ -2858,6 +2878,7 @@ void senescence(Vegetation& vegetation) {
 		// Retranslocation and pool updates
 		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 		// TODO: calculate retranslocation coefficients based on current C:N ratios?
+
 
 		// TODO: move fractions to parameters??
 		double crelocfrac = indiv.pft.pathway == C3 ? crelocfrac_c3 : crelocfrac_c4;

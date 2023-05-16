@@ -2771,12 +2771,12 @@ void vcmax_from_N(Vegetation& vegetation) {
         double nmass_leaf;
 		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
 		
-        // leaf N of first fully expanded leaves per leaf area (kgN m-2 leaf)
-		// take fully expanded leaves only and calculate leaf N per unit leaf area
+        // leaf N of green leaves per leaf area (kgN m-2 leaf)
+		// take green leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
 		if (indiv.pft.lifeform == GRASS) {
-			nmass_leaf = (!negligible(indiv.nmass_leafs[1])) ? 
-						indiv.nmass_leafs[1] / (indiv.cmass_leafs[1] * indiv.sla()) : 0.0;
+			nmass_leaf = (!negligible(indiv.nmass_leafs[0])) ? 
+						indiv.nmass_leafs[0] / (indiv.cmass_leafs[0] * indiv.sla()) : 0.0;
 		} else {
 			nmass_leaf = indiv.nmass_leaf;
 		}
@@ -3390,6 +3390,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root,
 			indiv.cmass_sap, cmass_root, indiv.growth_demand, assim, resp);
+
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

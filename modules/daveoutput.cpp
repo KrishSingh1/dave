@@ -39,7 +39,7 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_lai", [](Individual &i) { return i.lai; }, "LAI by individual (m2/m2)");
 	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
 	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
-	add_daily_indiv_output("file_dave_nmass_leaf", [](Individual &i) { return i.get_nmass_leaf(); }, "N mass available (kgN/m2)");
+	add_daily_indiv_output("file_dave_nmass_leaf", [](Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)");
 	add_daily_indiv_output("file_dave_cmass", [](Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)");
 	add_daily_indiv_output("file_dave_nmass", [](Individual &i) { return i.ncont(); }, "Total N biomass per individual per patch (kgN/m2)");
 	add_daily_indiv_output("file_dave_height", [](Individual &i) { return i.height; }, "Plant height (m)");
@@ -429,7 +429,11 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 	total_is_sum = sum;
 
 	for (int i = 0; i < n; i++) {
-		column_names.push_back(col_name + std::to_string(i));
+		if (n == 1) {
+			column_names.push_back(col_name);
+		} else {
+			column_names.push_back(col_name + std::to_string(i));
+		}
 	}
 }
 

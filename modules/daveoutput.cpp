@@ -35,13 +35,14 @@ DaveOutput::DaveOutput() {
 	add_annual_indiv_output("file_dave_alai", get_lai, "Annual LAI(m2/m2)");
 	add_annual_indiv_output("file_dave_afpc", [](Individual &i) { return i.fpc; }, "Annual FPC ()");
 
-	// Daily per-patch individiaul-level outputs.
+	// Daily per-patch individual-level outputs.
 	add_daily_indiv_output("file_dave_lai", [](Individual &i) { return i.lai; }, "LAI by individual (m2/m2)");
 	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
 	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
 	add_daily_indiv_output("file_dave_nmass_leaf", [](Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)");
 	add_daily_indiv_output("file_dave_cmass", [](Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)");
 	add_daily_indiv_output("file_dave_nmass", [](Individual &i) { return i.ncont(); }, "Total N biomass per individual per patch (kgN/m2)");
+	add_daily_indiv_output("file_dave_cmass_storage", [](Individual &i) { return i.cmass_storage; }, "Storage C mass (kgC/m2)");
 	add_daily_indiv_output("file_dave_height", [](Individual &i) { return i.height; }, "Plant height (m)");
 	add_daily_indiv_output("file_dave_diameter", [](Individual &i) { return i.diam; }, "Stem diameter (m)");
 	add_daily_indiv_output("file_dave_density", [](Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
@@ -78,6 +79,7 @@ DaveOutput::DaveOutput() {
 	// ...
 
 	// Daily patch-level outputs.
+	add_daily_patch_level_array_output("file_dave_soil_nmass_avail", "nmass", 1, [](Patch &p, int i) { return p.soil.nmass_avail() * min(1.0, p.fpc_total); }, "Available Soil N for plant uptake", false);
 	add_daily_patch_level_array_output("file_dave_sw", "sw_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
 	add_daily_patch_level_array_output("file_dave_swmm", "swmm_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i]; }, "Soil water content (mm)");
 	add_daily_patch_level_array_output("file_dave_swvol", "swvol_", NSOILLAYER, [](Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", false);

@@ -375,6 +375,10 @@ extern bool ifdavediagnostics;
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
 
+/// whether to use growing degree days for grass development
+extern bool ifusegdd;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs
 

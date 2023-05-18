@@ -75,9 +75,9 @@ inline bool largerthanzero(double dval, int limit = 0) {
 	return limit ? dval > pow(10.0, limit) : dval > 1.0e-30;
 }
 
-inline bool equal(double dval1, double dval2) {
+inline bool equal(double dval1, double dval2, int limit = 0) {
 	// Returns true if |dval1-dval2| < EPSILON, otherwise false
-	return negligible(dval1 - dval2);
+	return negligible(dval1 - dval2, limit = limit);
 }
 
 inline double mean(double* array, int nitem) {

@@ -337,6 +337,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wscal
 		& wscal_mean
 		& wscal_5
+		& wscal_10
+		& airtemp_10
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est

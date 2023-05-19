@@ -180,9 +180,10 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
 			double temp_dormancy = indiv.pft.pathway == C3 ? temp_dormancy_C3 : temp_dormancy_C4;
 
-			// Check if grasses are dormant
-			// TODO: look at temperature of last 5 or 10 days, not just last day!!
-			if ((ppft.wscal_5.size() > 0 && ppft.wscal_5.mean() < pft.wscal_min) || climate.temp < 0.0) { 
+			// Check if grasses should be dormant
+			ppft.airtemp_10.add(climate.temp);
+			if ( (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min) || 
+				 (ppft.airtemp_10.size() > 0 && ppft.airtemp_10.mean() < temp_dormancy) ) { 
 				
 				indiv.growth_stage = 0.0;
 

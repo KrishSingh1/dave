@@ -2183,6 +2183,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 
 		ppft.wscal_5.add(ppft.wscal);
+		ppft.wscal_10.add(ppft.wscal);
 	}
 }
 
@@ -3189,7 +3190,7 @@ void water_stress(Patch &patch) {
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
 	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
 	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
-	// - ppft.wscal_5 -> 5 day running mean of wscal
+	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
 
 	// Iterate over individuals in patch.
 	patch.vegetation.firstobj();
@@ -3243,6 +3244,7 @@ void water_stress(Patch &patch) {
 		}
 
 		ppft.wscal_5.add(ppft.wscal);
+		ppft.wscal_10.add(ppft.wscal);
 
 		patch.vegetation.nextobj();
 	}

@@ -2915,10 +2915,10 @@ void senescence(Vegetation& vegetation) {
 		}
 
 		// Senescence rate
-		senesc_max = senesc_base + (1.0 * senesc_fwater + senesc_ftemp) * senesc_base;
+		senesc = senesc_base + (3.0 * senesc_fwater + senesc_ftemp) * senesc_base;
 
 		// Total senescence rate
-		senesc = senesc_max / (1 + exp( -k * (min(1.0,indiv.growth_stage - growth_stage0)) ));
+		//senesc = senesc_max / (1 + exp( -k * (min(1.0,indiv.growth_stage - growth_stage0)) ));
 		
 		// Retranslocation and pool updates
 		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!

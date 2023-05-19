@@ -53,7 +53,7 @@ std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name) {
 	while (vegetation.isobj) {
 		Individual &indiv = vegetation.getobj();
 
-		if (indiv.pft.name == name) {
+		if (indiv.pft.name == name && indiv.alive) {
 			result.push_back(&indiv);
 		}
 

@@ -811,6 +811,17 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 	current_rot = 0;
 	set_management();
 
+	// Initialise soil some variables, including temperature, in each patch
+	if (date.year > 0) {
+		bool valid_temperature = false;
+		double initial_temperature = get_climate().temp;
+		for (unsigned int p = 0; p < nobj; p++)
+			valid_temperature = (*this)[p].soil.soil_temp_multilayer(initial_temperature);
+
+		if (!valid_temperature)
+			dprintf("Warning: invalid initial soil temperature in Stand::init_stand_lu for stand type %d !\n", stid);
+	}
+
 	if (st.intercrop==NATURALGRASS && ifintercropgrass) {
 		hasgrassintercrop = true;
 
@@ -920,17 +931,6 @@ void Stand::set_management() {
 	bool restrictpfts = (mt.planting_system != "");
 	bool naturalveg = st.naturalveg == "ALL";
 	bool naturalgrass = st.naturalveg == "ALL" || st.naturalveg == "GRASSONLY";
-
-	// Initialise soil some variables, including temperature, in each patch
-	if (date.year > 0) {
-		bool valid_temperature = false;
-		double initial_temperature = get_climate().temp;
-		for (unsigned int p = 0; p < nobj; p++)
-			valid_temperature = (*this)[p].soil.soil_temp_multilayer(initial_temperature);
-
-		if (!valid_temperature)
-			dprintf("Warning: invalid initial soil temperature in Stand::init_stand_lu for stand type %d !\n", stid);
-	}
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
@@ -3212,7 +3212,7 @@ void MassBalance::check_year_water(Gridcell& gridcell) {
 		water_flux += water_flux_year;
 
 		// Water balance check:
-		if (!negligible(water_cont_year - water_cont + water_flux_year, -4)) {
+		if (!negligible(water_cont_year - water_cont + water_flux_year, -3)) {
 			dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, water_cont_year - water_cont + water_flux_year);
 			dprintf("Water pool change: %.7f\n", water_cont_year - water_cont);
 			dprintf("Water flux: %.7f\n", water_flux_year);

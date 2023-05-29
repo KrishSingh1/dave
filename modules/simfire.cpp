@@ -434,7 +434,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
 		gridcell.nesterov_cur = 0.0;
 	}
-	else {
+	else if ( climate.tmax > 0. ) {
 		gridcell.nesterov_cur += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
 	}
 	gridcell.nesterov_cur = min(gridcell.nesterov_cur,MAXIMUM_NESTEROV) ;

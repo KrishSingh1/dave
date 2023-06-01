@@ -54,6 +54,14 @@ public:
 	/** Similar to outannual but called every day */
 	virtual void outdaily(Gridcell& gridcell) = 0;
 
+	/// Called by the framework at the end of the last day of each simulation year
+	/** Creates output files for new stands */
+	virtual void openlocalfiles(Gridcell& gridcell, int coordinates_precision) = 0;
+
+	/// Called by the framework after the last simulation year
+	/** Closes stand level output files */
+	virtual void closelocalfiles(Gridcell& gridcell) = 0;
+
 protected:
 
 	/// Help function to define_output_tables, creates one output table
@@ -93,6 +101,10 @@ public:
 
 	/// Calls outdaily on all output modules
 	void outdaily(Gridcell& gridcell);
+
+	void openlocalfiles(Gridcell& gridcell);
+
+	void closelocalfiles(Gridcell& gridcell);
 
 private:
 

@@ -4,6 +4,10 @@
 ///
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -241,6 +245,36 @@ void NDepData::get_one_calendar_year(int calendar_year,
 		mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
 		
 		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
+	}
+}
+
+void NDepData::get_one_calendar_year(int calendar_year,
+									 double mNHxdrydep[12],
+									 double mNOydrydep[12],
+									 double mNHxwetdep[12],
+									 double mNOywetdep[12]) {
+	int ndep_year = 0;
+
+	if (timeseries != FIXED && calendar_year >= Lamarque::FIRSTHISTYEARNDEP) {
+		ndep_year = (int)((calendar_year - Lamarque::FIRSTHISTYEARNDEP)/10);
+	}
+
+	if (timeseries == HISTORIC && ndep_year >= NYEAR_HISTNDEP) {
+		fail("Tried to get ndep for year %d (not included in Lamarque historic ndep data set)",
+		     calendar_year);
+	}
+	else if (timeseries != FIXED && ndep_year >= NYEAR_TOTNDEP) {
+		fail("Tried to get ndep for year %d (not included in Lamarque historic or scenario ndep data set)",
+		     calendar_year);
+	}
+
+	for (int m = 0; m < 12; m++) {
+
+		mNHxdrydep[m] = NHxDryDep[ndep_year][m];
+		mNOydrydep[m] = NOyDryDep[ndep_year][m];
+		
+		mNHxwetdep[m] = NHxWetDep[ndep_year][m];
+		mNOywetdep[m] = NOyWetDep[ndep_year][m];
 	}	
 }
 

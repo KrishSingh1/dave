@@ -4,6 +4,10 @@
 ///
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -66,7 +70,7 @@ void GenericSpinupData::detrend_data() {
 			annual_mean[y] += data[y][d];
 		}
 		annual_mean[y] /= data[y].size();
-		year_number[y] = y;
+		year_number[y] = (double)y;
 	}
 
 	double a, b;

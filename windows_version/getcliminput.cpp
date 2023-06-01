@@ -5,10 +5,16 @@
 /// \author Ben Smith
 /// $Date: 2016-07-26 16:25:45 +0100 (Tue, 26 Jul 2016) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "getcliminput.h"
+#include "soilinput.h"
+#include "guessmath.h"
 
 #include "driver.h"
 #include "outputchannel.h"
@@ -32,6 +38,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 GetclimInput::GetclimInput() {
 
+	in_clim = NULL;
 }
 
 
@@ -70,10 +77,17 @@ void GetclimInput::init() {
 	// DESCRIPTION
 	// Initialises input (e.g. opening files)
 
-	// Open landcover files
+	// Getclim input module currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
+	if (weathergenerator == GWGEN || firemodel == BLAZE) {
+		fail("Getclim input module currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
+	}
+
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	xtring driver_file_path = param["getclim_driver_file"].str;
 
@@ -103,6 +117,12 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 
 	if (grid_count++ > 0) return false;
 			
+	if(readdisturbance || readdisturbance_st || readelevation_st) {
+		// Not all gridcells have to be included in input file
+		misc_input.loaddisturbance(lon, lat);
+		misc_input.loadelevation(lon, lat);
+	}
+
 	if(run_landcover) {
 		LUerror = landcover_input.loadlandcover(lon, lat);
 		if(!LUerror)
@@ -114,16 +134,14 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 	// else ...
 
 	dprintf("\nCommencing simulation for stand at (%g,%g)\n\n",lon,lat);
-
 	// Tell framework the coordinates of this grid cell
 	gridcell.set_coordinates(lon, lat);
-
 	// The insolation data will be sent (in function getclimate, below)
 	// as total shortwave radiation for whole time step (based on CRU-NCEP database)
 	gridcell.climate.instype=SWRAD_TS;
 
 	// Tell framework the soil type of this grid cell
-	soilparameters(gridcell.soiltype,soilcode);
+	soil_parameters(gridcell.soiltype,soilcode);
 
 	// For Windows shell - clear graphical output
 	clear_all_graphs();
@@ -175,7 +193,8 @@ bool GetclimInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / (365.0 * 10000.0);
+	gridcell.dNH4dep  = ndep / 2.0 / 365.0 * HA_PER_M2;
+	gridcell.dNO3dep = ndep / 2.0 / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

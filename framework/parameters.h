@@ -58,6 +58,27 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
+/// Fire model setting. Either use 
+/**	One of
+ *	BLAZE 		Use the BLAZE model to generate fire fluxes 
+ *                      (must be accompanied by ignitionmode; DEFAULT)
+ *	GLOBFIRM	fire parameterization following Thonicke et al. 2001
+ *	NOFIRE		no fire model	
+ */
+typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
+
+/// Type of weathergenerator used 
+/**     One of:
+ *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
+ *                      additional rel. humidity and wind; DEFAULT)
+ *      INTERP          use standard interpolation scheme
+ *      NONE            Should be set if daily input is used (e.g. in cfinput) 
+ */
+typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
+
+///How to determine root distribution in soil layers
+typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -99,8 +120,11 @@ extern bool ifstochestab;
 /// Whether mortality stochastic (individual, cohort mode)
 extern bool ifstochmort;
 
-/// Whether fire enabled
-extern bool iffire;
+/// Fire-model switch
+extern firemodeltype firemodel;
+
+/// Weather Generator switch
+extern weathergeneratortype weathergenerator;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -123,19 +147,52 @@ extern bool ifcdebt;
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
 
+/// Parameterisation of root distribution
+extern rootdisttype rootdistribution;
+
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
+
 /// whether plant growth limited by available N
 extern bool ifnlim;
 
 /// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
+
 /// fraction of nitrogen relocated by plants from roots and leaves
 extern double nrelocfrac;
+
 /// first term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_a;
+
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
+
+/// whether to use nitrification/denitrification in CENTURY SOM dynamics
+extern bool ifntransform;
+/// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
+extern double frac_labile_carbon;
+
+/// Soil pH (used for calculating N-transformation), 3.5,8.5
+extern double pH_soil;
+/// Maximum nitrification rate, 0.03,0.15
+extern double f_nitri_max;
+/// Constant in denitrification, 0.001,0.1
+extern double k_N;
+/// Constant in temperature function for denitrification, 0.005,0.05
+extern double k_C;
+/// Maximum gaseus losses in nitrification
+extern double f_nitri_gas_max;
+/// Maximum fraction of NO3 converted to NO2
+extern double f_denitri_max;
+/// Maximum fraction of NO2 converted to gaseus N
+extern double f_denitri_gas_max;
+
+// Mapping of text input file data in index file.
+extern bool map_text_file;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Landuse and crop settings
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -149,37 +206,52 @@ extern bool lcfrac_fixed;
 /// Whether fractions of stand types of a specific land cover are not read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
 
+/// Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum
+extern bool no_barren_frac_corr;
+
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 
-/// If a slow harvested product pool is included in patchpft.
+/// Whether a fraction of harvested wood is put into a product pool
 extern bool ifslowharvestpool;
 
-// If grass is allowed to grow between crop growingseasons
+/// Whether grass is allowed to grow between crop growingseasons
 extern bool ifintercropgrass;
 
-// Whether to calculate dynamic potential heat units
+/// Whether to calculate dynamic potential heat units
 extern bool ifcalcdynamic_phu;
 
-// Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+/// Whether to use gross land transfer: read landcover transfer matrix input file (1), read stand type transfer matrix input file (2), or not (0)
 extern int gross_land_transfer;
 
-// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+/// Whether gross land transfer input read for this gridcell
+extern bool gross_input_present;
+
+/// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
 
-// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
+/// Distinguish between primary and secondary natural stands at area reduction
+extern bool use_primary_lc_transfer;
+
+/// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
 extern bool ifprimary_to_secondary_transfer;
 
-// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+/// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 extern int transfer_level;
 
-// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+/// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 extern bool iftransfer_to_new_stand;
 
-// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+/// Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
+extern bool suppress_disturbance_in_forestry_stands;
+
+/// Whether to harvest (remove) wood at natural-to-forest transitions
+extern bool harvest_natural_to_forest;
+
+/// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 
-// Number of years to calculate dynamic phu if dynamic_phu_limit is true
+/// Number of years to calculate dynamic phu if dynamic_phu_limit is true
 extern int nyear_dyn_phu;
 
 /// number of spinup years
@@ -194,10 +266,43 @@ extern bool readharvestdates;
 /// Whether to read N fertilization from input file
 extern bool readNfert;
 
-/// Whether to read N fertilization (stand tyoe level) from input file
+/// Whether to read manure N fertilization from input file
+extern bool readNman;
+
+/// Whether to read N fertilization (stand type level) from input file
 extern bool readNfert_st;
 
-/// Whether to print multiple stands within a land cover type (except cropland) separately
+/// Whether to use forest harvested fraction from input file (using LUC functionality)
+extern bool readwoodharvest_frac;
+
+/// Whether to use wood harvest C mass from input file (using LUC functionality)
+extern bool readwoodharvest_cmass;
+
+/// Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality)
+extern bool harvest_secondary_to_new_stand;
+
+/// Whether to read disturbance intervals from input file
+extern bool readdisturbance;
+
+/// Whether to read disturbance intervals for stand types from input file
+extern bool readdisturbance_st;
+
+/// Whether to read cutinterval for stand types from input file
+extern bool readcutinterval_st;
+
+/// Whether to read stand type elevation from input file
+extern bool readelevation_st;
+
+/// Whether to read firstmanageyear for stand types from input file
+extern bool readfirstmanageyear_st;
+
+// Whether to read target-cutting distribution for selection in mt from input file
+extern bool readtargetcutting;
+
+/// Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)
+extern bool harvest_burn_thin_trees;
+
+/// Whether to print multiple stands within a stand type (except cropland) separately
 extern bool printseparatestands;
 
 /// Whether to simulate tillage by increasing soil respiration
@@ -227,6 +332,9 @@ extern bool save_state;
 /// Save/restart year
 extern int state_year;
 
+/// The level of verbosity
+extern int verbosity;
+
 /// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 extern bool ifsmoothgreffmort;
 
@@ -238,6 +346,33 @@ extern bool ifrainonwetdaysonly;
 
 /// whether BVOC calculations are included
 extern bool ifbvoc;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Arctic and wetland inputs
+
+/// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
+extern bool iftwolayersoil; 
+
+/// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
+extern bool ifmultilayersnow;
+
+/// whether to reduce GPP if there's inundation (1), or not (0)
+extern bool ifinundationstress;
+
+/// Whether to limit soilC decomposition below 0 degC in upland soils (1), or not (0)
+extern bool ifcarbonfreeze;
+
+/// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
+extern double wetland_runon;
+
+/// Whether methane calculations are included
+extern bool ifmethane;
+
+/// Whether soil C pool input is used to update soil properties
+extern bool iforganicsoilproperties;
+
+/// Whether to take water from runoff to saturate low latitide wetlands
+extern bool ifsaturatewetlands;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -295,7 +430,6 @@ public:
 	/// Tests if param exists
 	bool isparam(xtring name);
 
-private:
 	/// Tries to find the parameter in the list
 	/** \returns 0 if it wasn't there. */
 	Paramtype* find(xtring name);

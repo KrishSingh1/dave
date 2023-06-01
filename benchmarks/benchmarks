@@ -190,7 +190,7 @@ function setup_workspace {
     mkdir $workspace
 
     # Get the submit script
-	cp $build_path/output/submit.sh $workspace
+    cp $build_path/output/submit.sh $workspace
 
     # Copy the config files to the workspace.
     # The ins file is excluded to avoid confusion. It's the ins
@@ -258,7 +258,9 @@ EOF
 	# Submit as a SLURM job
 	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
 #!/bin/sh
-#SBATCH -J bm_${test_name}_pp
+#SBATCH -J pp_${test_name}
+#SBATCH --mail-type=FAIL
+#SBATCH -o "slurm-%j.log"
 $(cat $common_script)
 EOF
     fi

@@ -12,6 +12,17 @@
 #define INDATA_H
 #include "guess.h"
 
+#ifdef _MSC_VER
+typedef __int64 filepos;
+#define fileseek _fseeki64
+#define filetell _ftelli64
+#else
+
+typedef long int filepos;
+#define fileseek fseek
+#define filetell ftell
+#endif
+
 using std::min;
 using std::max;
 
@@ -24,14 +35,15 @@ struct Coord {
 	xtring descrip;
 };
 
-namespace InData {
+/// Classes for text input data (used e.g. for landcover input)
+namespace TextInput {
 
-const int MAXLINE = 20000;
+const int MAXLINE = 40000;
 const int MAXNAMESIZE = 50;
-const int MAXRECORDS = 200;
+const int MAXRECORDS = 400;
 const int MAXLINESPARSE = 30000;
 const int NOTFOUND = -999;
-const double MAX_SEARCHRADIUS = 1.0;
+const double MAX_SEARCHDISTANCE = 1.0;
 
 /// Formats in text input file
 typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} fileformat;
@@ -40,7 +52,7 @@ typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} f
 struct CoordPos {
 	double lon;
 	double lat;
-	long int pos;
+	filepos pos;
 };
 
 // Forward declaration of TimeDataDmem
@@ -87,6 +99,8 @@ class TimeDataD	{
 	bool loaded;
 	/// Whether data sums up to 1.0
 	bool unity_data;
+	// Precision of data in input file (number of decimals)
+	int precision;
 
 	/// Pointer to memory copy of all data for the gridlist
 	TimeDataDmem *memory_copy;
@@ -103,6 +117,7 @@ class TimeDataD	{
 	void ParseNCells();
 	double ParseSpatialResolution();			//Called from Open()
 	bool ParseNormalisation();
+	void ParsePrecision();
 
 	/// Allocates memory for dynamic data structures
 	bool Allocate();							//Called from Open()
@@ -117,7 +132,7 @@ class TimeDataD	{
 	/// Creates map of the file positions of all gridcells' data
 	void CreateFileMap();
 	/// Sets the file pointer to required position (found in the file map)
-	void SetPosition(long int pos) {fseek(ifp, pos, 0);}
+	void SetPosition(filepos pos) {fileseek(ifp, pos, 0);}
 	/// Rewinds the file pointer
 	void Rewind() {if(ifp) rewind(ifp);}
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
@@ -140,7 +155,7 @@ public:
 
 	/// Opens input file, checks format and allocates memory. Returns false if error
 	bool Open(const char* name);
-	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if LUTOMEMORY is defined. Returns false if error.
+	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if map_text_file is true. Returns 0 if error.
 	bool Open(const char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
 	/// Releases dynamically allocated memory.
 	void Close();
@@ -151,11 +166,11 @@ public:
 	/// Loads data for a certain coordinate. Returns false if coordinate not found.
 	bool Load(Coord c);
 	/// Steps through a data file, loading each coordinate's data consecutively. Returns false if error.
-	bool LoadNext(long int *pos = NULL);
+	bool LoadNext(filepos *pos = NULL);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
-	double Get(int calender_year, const char* name) const;
+	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
 	/// Copies the data for the current gridcell for one year to an array.
 	void Get(int calender_year, double* dataX) const;
 	/// Copies all data for the current gridcell to an array.
@@ -189,6 +204,7 @@ public:
 	double GetSpacialResolution() const {return spatial_resolution;}
 	double GetOffset() const { return offset;}
 	bool NormalisedData();
+	int GetPrecision() {return precision;}
 
 // Functions for finding out if data columns contain sensible data for a specified gridlist
 
@@ -260,7 +276,7 @@ public:
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;		// Returns a single value.
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
-	double Get(int calender_year, const char* name) const;
+	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
 
 	/// Returns the first year in the input data
 	int GetFirstyear() {return firstyear;}
@@ -270,6 +286,6 @@ public:
 	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 };
 
-} // namespace InData
+} // namespace TextInput
 
 #endif//INDATA_H

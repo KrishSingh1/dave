@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "catch.hpp"
@@ -111,6 +115,7 @@ TEST_CASE("CF::DateTime/add_time", "Tests the DateTime::add_time function") {
 	start_tm.tm_mday = 2;
 	start_tm.tm_mon = 2;
 	start_tm.tm_year = 82;
+	start_tm.tm_isdst = 0;
 
 	time_t end_t = mktime(&start_tm)+25*365*24*3600;
 	tm* end_tm = localtime(&end_t);

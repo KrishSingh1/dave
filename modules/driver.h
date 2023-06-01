@@ -16,23 +16,25 @@
 
 #include "guess.h"
 #include <limits>
-
+#include <map>
 double randfrac(long& seed);
-void soilparameters(Soiltype& soiltype,int soilcode);
+
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
-                                   double minimum = -std::numeric_limits<double>::max(),
-                                   double maximum = std::numeric_limits<double>::max());
+	double minimum = -std::numeric_limits<double>::max(),
+	double maximum = std::numeric_limits<double>::max());
 void interp_monthly_totals_conserve(const double* mvals, double* dvals,
-                                   double minimum = -std::numeric_limits<double>::max(),
-                                   double maximum = std::numeric_limits<double>::max());
-void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep);
+	double minimum = -std::numeric_limits<double>::max(),
+	double maximum = std::numeric_limits<double>::max());
+void distribute_ndep(const double* mNH4dry, const double* mNO3dry, 
+	const double* mNH4wet, const double* mNO3wet,
+	const double* dprec, double* dNH4dep, double* dNO3dep);
 void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate = true);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);
 void respiration_temperature_response(double temp,double& gtemp);
 void daylengthinsoleet(Climate& climate);
-void soiltemp(Climate& climate,Soil& soil);
+double get_local_temp(Gridcell& gridcell, double gridcell_temp, double gridcell_elevation, double local_elevation);
+void climate_seasonality(Gridcell& gridcell);
 
 #endif // LPJ_GUESS_DRIVER_H

@@ -1,11 +1,15 @@
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file guessstring.cpp
 /// \brief Utility functions for working with strings (std::string and char*)
 ///
 /// \author Joe Siltberg
 /// $Date$
 ///
-////////////////////////////////////////////////////////////////////////////////
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "guessstring.h"
@@ -62,4 +66,43 @@ std::string format_string(const char* format, ...) {
 	va_start(args, format);
 	vsnprintf(buffer, buffer_size, format, args);
 	return std::string(buffer);
+}
+
+int split_string(char* str) {
+
+	char *p = strtok(str, "\t\n ");
+	int count = 0;
+	while(p) {
+		count++;
+		p = strtok(NULL, "\t\n ");
+	}
+
+	return count;
+}
+
+bool issubstring(const char* string, const char* substring) {
+
+	bool found = false;
+
+	char *p = NULL, string_copy[200] = {0};
+
+	strcpy(string_copy, string);
+	p = strtok(string_copy, "\t\n ");
+	if(p) {
+		if(!strcmp(substring, p)) {
+			found = true;
+		}
+	}
+
+	do {
+		p = strtok(NULL, "\t\n ");
+		if(p) {
+			if(!strcmp(substring, p)) {
+				found = true;
+			}
+		}
+	}
+	while(p && !found);
+
+	return found;
 }

@@ -31,10 +31,11 @@ function has_slurm {
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
     error "Usage: benchmarks [ -s ] [ -c ] [ -i TESTS | -x TESTS ] <workdir>"
+    error "Pwd needs to be the directory of this benchmark script."
     error
     error "Options"
     error "======="
-    error "-s   Single machine mode, don't use PBS"
+    error "-s   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests"
     error "-p   Post processing only"
     error "-r   Generate printer friendly report"
@@ -248,7 +249,7 @@ EOF
 
     if has_pbs ; then
 	# Submit as a PBS job
-	qsub -l walltime=$pp_walltime $dependency <<EOF &> /dev/null
+	qsub -l walltime=$pp_walltime $dependency <<EOF > /dev/null
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
@@ -256,7 +257,7 @@ $(cat $common_script)
 EOF
     else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
+	sbatch -n 1 --time=$pp_walltime $dependency <<EOF > /dev/null
 #!/bin/sh
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
@@ -283,9 +284,9 @@ function submit_job {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
     fi
 
     local submit_exit_status=$?
@@ -442,21 +443,25 @@ function meta_data {
 
 # Ok, let's start!
 
-# Create the progress.txt file, overwriting if it existed
-echo "The following benchmarks are done:" > progress.txt
-
 # If necessary, create the working directory where all the benchmarks will be
 # run from.
 mkdir -p $work_dir
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
 
+# Create the progress.txt file, or write to the pre-existing one if available.
+touch progress.txt
+echo >> progress.txt
+echo "Benchmarks submitted $(date)" >> progress.txt
+echo "$work_dir" >> progress.txt
+echo "The following benchmarks have finished:" >> progress.txt
+
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir
     exit 0
 fi
 
-# Generate meta data about this run 
+# Generate meta data about this run
 # (such as time stamp and version control information).
 if (( $pp_only == 0 )); then
     meta_data $work_dir

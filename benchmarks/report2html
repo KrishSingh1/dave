@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/sw/easybuild_milan/software/Python/2.7.18-GCCcore-11.3.0-bare/bin/python
 
 """Small script to convert a report in the form of an XML file,
 as generated in the post processing step of a benchmark, into HTML.

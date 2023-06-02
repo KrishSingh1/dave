@@ -159,6 +159,8 @@ cat <<EOF > guess.cmd
 #SBATCH --exclusive
 #SBATCH -o "slurm-%j.log"
 $SBATCH_COMPUTEACCOUNT
+module purge
+module load foss/2022a netCDF/4.9.0
 set -e
 
 if ! type -P mpirun &> /dev/null; then

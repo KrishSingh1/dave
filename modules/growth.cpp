@@ -2378,12 +2378,16 @@ void growth_daily_grass(Patch& patch) {
 // Put fraction into growth and 1-fraction into storage.
 // --> 1.0: put all available C of the day into growth.
 // --> 0.0: put all available C of the day into storage.
-double growth_demand(Individual& indiv, double Gpot) {
+double growth_demand(Individual& indiv) {
 
- 	// dormant
+	Vegetation& veg = indiv.vegetation;
+	Pft& pft = indiv.pft;
+    Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
+
+	// dormant
 	if (negligible(indiv.growth_stage)) {
 		return 0.0; 
-	}
+	} 
 
 
 	if (ifusegdd) {
@@ -2396,19 +2400,19 @@ double growth_demand(Individual& indiv, double Gpot) {
 
 	} else {
 
-		if (negligible(indiv.growth_demand)) {
-			indiv.growth_demand = 1.0;
-		}
-		//double growth_demand_abs = (indiv.growth_demand * Gpot) / (indiv.get_cmass_leaf() + indiv.cmass_storage + indiv.cmass_root);
-		//double cf = 15.0;
-		double growth_demand_abs = (max(0.0,indiv.dnpp)) / (indiv.get_cmass_leaf() + indiv.cmass_root);
-		double cf = 30.0;
+		double growth_rate = 0.0;
+		double growth_rate_pot = 0.04;
 
-		// first estimate based on cmass_storage/biomass and NPP_opt = 2% of biomass
-		return min(1.0,growth_demand_abs * cf);
+		if (negligible(indiv.cgrow)) {
+			growth_rate = 1.0;
+		} else {
+			growth_rate = indiv.cgrow_leaf / indiv.get_cmass_leaf();
+		}
+		
+		return min(1.0, growth_rate / growth_rate_pot);
 
 	}
-	// TODO: do NOT call growth functions if grasses are dormant.
+	
 }
 
 
@@ -2463,7 +2467,7 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 		// Determine growth demand based on growth stage
-		indiv.growth_demand = growth_demand(indiv,Gpot);
+		indiv.growth_demand = growth_demand(indiv);
 
 		// Set indiv.cgrow and indiv.cexcess to 0
 		indiv.cgrow = 0.0;
@@ -2866,6 +2870,9 @@ void update_pools(Vegetation& vegetation) {
 		// Save yearly leaf and root growth
 		indiv.cmass_leaf_ygrowth += indiv.cgrow_leaf;
 		indiv.cmass_root_ygrowth += indiv.cgrow_root;
+
+		// update indiv.cgrow (actual growth)
+		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_repr;
 		
 		vegetation.nextobj();
 	}
@@ -2880,13 +2887,13 @@ void senescence(Vegetation& vegetation) {
 	const double crelocfrac_c3 = 0.1;  // TODO: move to constants?
 	const double crelocfrac_c4 = 0.05; 
 	const double nrelocfrac = 0.5;
-	const double k = 10.0;            // Shape parameter in senescence function (steepness)
-	const double growth_stage0 = 0.5; // Shape parameter (mid point)
-	const double qwater_senesc = 1.0;
+	//const double k = 10.0;            // Shape parameter in senescence function (steepness)
+	const double growth_stage0 = 0.5;   // Shape parameter (mid point)
+	const double qwater_senesc = 0.5;
 
 	double senesc = 0.0, senesc_base = 0.0, senesc_fwater = 0.0, senesc_ftemp = 0.0, senesc_max = 0.0;
-	double csenesc = 0.0, cstore = 0.0, ctobrown = 0.0;
-	double nsenesc = 0.0, nstore = 0.0, ntobrown = 0.0;
+	double cstore = 0.0, ctobrown = 0.0;
+	double csenesc = 0.0, nsenesc = 0.0, nstore = 0.0, ntobrown = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -2999,7 +3006,8 @@ void turnover_grass(Vegetation& vegetation) {
 		// Assumed daily rates here (fraction d-1)!
 		// TODO: turnover rates should be moisture and temperature dependent
 		double frac_turnover_leaf = indiv.pft.turnover_leaf / date.year_length();
-		double frac_turnover_root = indiv.pft.turnover_root / date.year_length();
+		//double frac_turnover_root = (pow((1 - ppft.wscal),0.4) * 4.0) * indiv.pft.turnover_root / date.year_length();
+		double frac_turnover_root = 3.0 * indiv.pft.turnover_root / date.year_length();
 
 		// Dead leaf turnover (brown leaves --> leaf litter)
 		if (indiv.cmass_leafs[brown] > 0.0) {

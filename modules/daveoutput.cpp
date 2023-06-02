@@ -40,6 +40,7 @@ DaveOutput::DaveOutput() {
 	add_daily_indiv_output("file_dave_sla", [](Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)");
 	add_daily_indiv_output("file_dave_cmass_leaf", [](Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)");
 	add_daily_indiv_output("file_dave_nmass_leaf", [](Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)");
+	add_daily_indiv_output("file_dave_cmass_root", [](Individual &i) { return i.cmass_root; }, "Root C mass (kgC/m2)");
 	add_daily_indiv_output("file_dave_cmass", [](Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)");
 	add_daily_indiv_output("file_dave_nmass", [](Individual &i) { return i.ncont(); }, "Total N biomass per individual per patch (kgN/m2)");
 	add_daily_indiv_output("file_dave_cmass_storage", [](Individual &i) { return i.cmass_storage; }, "Storage C mass (kgC/m2)");

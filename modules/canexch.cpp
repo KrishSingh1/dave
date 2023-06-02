@@ -8,6 +8,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -1919,15 +1923,15 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (day.isstart || spft.irrigated && pft.id == patch.stand.pftid) {
+		if (day.isstart || patch.stand.isirrigated) {
 
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
 			// (this then represents the average amount of water available over an
 			// individual's FPC, assuming individuals are equal in competition for water)
 			double wr;
-
-			if (spft.irrigated && pft.id == patch.stand.pftid) {
+ 
+			if (patch.stand.isirrigated) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
@@ -2171,7 +2175,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
-	double xmid;
+	double xmid = 0.0;
 
 	// Implement numerical solution
 
@@ -2513,12 +2517,13 @@ void leaf_senescence(Vegetation& vegetation) {
 
 		double r = 0.0;
 
-		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
+		// N dependent C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
 		if (indiv.cmass_leaf_today() > 0.0) {
 			double Ln = indiv.lai_nitrogen_today();
 			double Lnld = indiv.lai_today();
 			r = (Lnld - min(Lnld, Ln))/indiv.pft.sla/10.0;
 		}
+
 		// No senescence during the initial growing period
 		if (indiv.patchpft().cropphen->fphu < 0.05) {
 			indiv.daily_cmass_leafloss = 0.0;

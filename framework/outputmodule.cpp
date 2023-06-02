@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -80,7 +84,7 @@ void OutputModuleContainer::outdaily(Gridcell& gridcell) {
 
 void OutputModuleContainer::openlocalfiles(Gridcell& gridcell) {
 	for (size_t i = 0; i < modules.size(); ++i) {
-		modules[i]->openlocalfiles(gridcell);
+		modules[i]->openlocalfiles(gridcell, coordinates_precision);
 	}
 }
 

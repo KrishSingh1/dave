@@ -5,6 +5,10 @@
 /// \author Ben Smith
 /// $Date: 2016-07-26 16:25:45 +0100 (Tue, 26 Jul 2016) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -34,6 +38,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 GetclimInput::GetclimInput() {
 
+	in_clim = NULL;
 }
 
 
@@ -77,10 +82,12 @@ void GetclimInput::init() {
 		fail("Getclim input module currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
 	}
 
-	// Open landcover files
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	xtring driver_file_path = param["getclim_driver_file"].str;
 
@@ -110,6 +117,12 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 
 	if (grid_count++ > 0) return false;
 			
+	if(readdisturbance || readdisturbance_st || readelevation_st) {
+		// Not all gridcells have to be included in input file
+		misc_input.loaddisturbance(lon, lat);
+		misc_input.loadelevation(lon, lat);
+	}
+
 	if(run_landcover) {
 		LUerror = landcover_input.loadlandcover(lon, lat);
 		if(!LUerror)

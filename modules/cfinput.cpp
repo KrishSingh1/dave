@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -494,10 +498,12 @@ void CFInput::init() {
 
 	current_gridcell = gridlist.begin();
 
-	// Open landcover files
+	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
@@ -532,6 +538,16 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		// simulation finished
 		return false;
 	}
+
+	if(readdisturbance || readdisturbance_st || readelevation_st) {
+		// Not all gridcells have to be included in input file
+		misc_input.loaddisturbance(lon, lat);
+		misc_input.loadelevation(lon, lat);
+	}
+
+//	gridcell.climate.mean_elevation = elevation;		// Get elevation from cru_ncep
+//	if(readelevation_st)
+//		dprintf("Mean elevation = %d\n", elevation);
 
 	if (run_landcover) {
 		bool LUerror = false;

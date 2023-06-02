@@ -5,6 +5,10 @@
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 17:03:10 +0100 (Tue, 24 Jan 2017) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -493,6 +497,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 bool blaze(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
+	ManagementType& mt = patch.stand.get_current_management();
 	
 	// Flammable area witin gridcell
 	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[NATURAL];
@@ -629,7 +634,7 @@ bool blaze(Patch& patch, Climate& climate) {
 			else {
 				// TREE PFT
 
-				if (ifstochmort) {
+				if (ifstochmort && mt.stochmort) {
 					/* Impose stochastic mortality.
 					 * Each individual in cohort dies with probability 'mort_fire'
 					 * Number of individuals represented by 'indiv'
@@ -941,6 +946,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		anpp2sstr = loss_anpp *                           croot2str   / loss_tot;
 		anpp     -= loss_anpp;
 	}
+
+	ppft.cmass_fire += loss_anpp + loss_tot;
 
 	// Report C live -> atm flux 
 	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm);

@@ -263,7 +263,7 @@ EOF
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $SBATCH_COMPUTEACCOUNT
-module purge
+module purge >/dev/null
 module load foss/2022a Ghostscript/9.56.1 Python/2.7.18
 $(cat $common_script)
 EOF
@@ -456,7 +456,7 @@ touch progress.txt
 echo >> progress.txt
 echo "Benchmarks submitted $(date)" >> progress.txt
 echo "$work_dir" >> progress.txt
-echo "The following benchmarks have finished:" >> progress.txt
+echo "The following benchmarks have been submitted:" >> progress.txt
 
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir

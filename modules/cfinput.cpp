@@ -148,7 +148,8 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
 		fail("Temperature variable doesn't seem to contain air temperature data");
 	}
-	if (cf_var->get_units() != "K") {
+	if (cf_var->get_units() != "K" && 
+		cf_var->get_units() != "k") {
 		fail("Temperature variable doesn't seem to be in Kelvin");
 	}
 }
@@ -161,8 +162,9 @@ void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 		}
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
-		if (cf_var->get_units() != "kg m-2") {
-			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
+		if (cf_var->get_units() != "kg m-2" && 
+			cf_var->get_units() != "mm" ) {
+			fail("Precipitation is given as amount but does not have the correct unit (kg m-2 or mm)");
 		}
 	}
 	else {
@@ -180,12 +182,15 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 
 	if (cf_var->get_standard_name() == "cloud_area_fraction") {
-		if (cf_var->get_units() != "1") {
+		if (cf_var->get_units() != "1" && 
+			cf_var->get_units() != "frac" &&
+			cf_var->get_units() != "Frac") {
 			fail("Unrecognized unit for cloud cover");
 		}
 	}
 	else {
-		if (cf_var->get_units() != "W m-2") {
+		if (cf_var->get_units() != "W m-2" && 
+			cf_var->get_units() != "w m-2") {
 			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
 		}
 	}
@@ -207,7 +212,8 @@ void check_pres_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != pres_standard_name) {
 		fail("Pressure variable should have standard name %s ",pres_standard_name);
 	}
-	if (cf_var->get_units() != "Pa") {
+	if (cf_var->get_units() != "Pa" &&
+		cf_var->get_units() != "pa") {
 		fail("Pressure must be given in Pa!");
 	}
 }
@@ -218,7 +224,9 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("QAir variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1") {
+	if (cf_var->get_units() != "1" && 
+		cf_var->get_units() != "frac" &&
+		cf_var->get_units() != "Frac") {
 		fail("Specific Humidity must be dimensionless (here, '1'!");
 	}
 }
@@ -229,8 +237,10 @@ void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("Relative humidity variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1") {
-		fail("Relative Humidity must be dimensionless (here, '1'!");
+	if (cf_var->get_units() != "1" && 
+		cf_var->get_units() != "frac" &&
+		cf_var->get_units() != "Frac") {
+		fail("Relative Humidity must be dimensionless ('1' or frac");
 	}
 }
 
@@ -456,7 +466,7 @@ void CFInput::init() {
 	// Read list of localities and store in gridlist member variable
 
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist_cf"].str;
+	xtring file_gridlist=param["file_gridlist"].str;
 
 	std::ifstream ifs(file_gridlist, std::ifstream::in);
 
@@ -467,6 +477,7 @@ void CFInput::init() {
 
 		// Read next record in file
 		int rlat, rlon;
+		double lon, lat;
 		int landid;
 		std::string descrip;
 		Coord c;
@@ -481,12 +492,13 @@ void CFInput::init() {
 			}
 		}
 		else {
-			if (iss >> rlon >> rlat) {
+			if (iss >> lon >> lat) {
 				getline(iss, descrip);
-
-				c.rlat = rlat;
+				cf_temp->get_index_for_coords(lon, lat, rlon, rlat);
+				c.lat = lat;
+				c.lon = lon;
 				c.rlon = rlon;
-
+				c.rlat = rlat;
 			}
 			else {
 				fail("The gridlist for netCDF input must be in X,Y coordinates");

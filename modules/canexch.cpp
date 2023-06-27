@@ -2319,7 +2319,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root,
-	double cmass_sap, double cmass_root_today, double growth_demand, 
+	double cmass_sap, double cmass_root_today, double growth_demand, double fphen_activity,
 	double assim, double& resp) {
 
 	// DESCRIPTION
@@ -2450,10 +2450,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// -> account for growth_demand in Rgrowth
 
 			// Root respiration
-			// Reduction factor of resp_root during dormancy (note: assumes growth_demand = 0 during dormancy!)
-			double dorm_scal = negligible(growth_demand) ? fresp_dorm : 1.0;
-
-			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * dorm_scal;
+			// Reduction factor of resp_root during dormancy
+			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// Growth respiration
 			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
@@ -2585,7 +2583,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, 0.0, assim, resp);
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -2897,15 +2895,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-					Rd = Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
-					// Scale down leaf respiration during dormancy
-					if (negligible(indiv.growth_stage)) {
-						Rd *= fresp_dorm;
-					}
-
-					if (negligible(apar_layer, -9) || negligible(indiv.growth_stage)) {
-						// Night or dormancy
+					if (negligible(apar_layer, -9)) {
+						// Night
 						An = -Rd;
 						gsc = g0;
 					} else {
@@ -2916,7 +2909,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						pslim = indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
 						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
 						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
@@ -2950,18 +2943,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
-					
-					// Scale down leaf respiration during dormancy
-					if (negligible(indiv.growth_stage)) {
-						Rd *= fresp_dorm;
-					}
+					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					if (negligible(par, -9) || negligible(indiv.growth_stage)) {
-						// No photosynthesis at night or during dormancy.
+					if (negligible(par, -9)) {
+						// No photosynthesis at night.
 						An = -Rd;
 						gsc = g0;
 						ci = ca - divide(An, gsc);
@@ -2971,7 +2959,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						// TODO: different temp dependency in C3 and C4 plants??
 						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-						pslim = indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
 						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
 						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 						jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
@@ -3390,8 +3378,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, indiv.growth_demand, assim, resp);
+			indiv.pft.respcoeff, cton_sap, cton_root, indiv.cmass_sap, 
+			cmass_root, indiv.growth_demand, indiv.fphen_activity, assim, resp);
 
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux

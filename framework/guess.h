@@ -3054,8 +3054,8 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
-	/// phenological state of grasses. 0-1, where 0 is dormant and 1 is fully senescent
-	double growth_stage;
+	/// physiological downregulation due to dormancy 
+	double fphen_activity;
 
     /// Photosynthesis variables for subdaily calculations
 	PhotosynthesisSubdaily ps_subdaily;

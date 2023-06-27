@@ -1637,7 +1637,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	growth_demand     = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
-	growth_stage      = 0.0;
+	fphen_activity    = 1.0;
 	cexcess           = 0.0;
 	nmass_missing     = 0.0;
 	deltafpc          = 0.0;
@@ -1801,7 +1801,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen
 		& aphen
 		& aphen_raingreen
-		& growth_stage
+		& fphen_activity
 		& cexcess
 		& nmass_missing
 		& anpp
@@ -2209,19 +2209,10 @@ double Individual::sla() const {
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
-			if (ifusegdd) {
-				// from data presented in Danalatos et al. 1994, Agronomie 14, 433-443.
-				// Note: growth_stage multiplied by 2.0 so that pft.sla is reached at the middle of the growing season.
-				// TODO: check if SLA should decrease further after growth_stage > 0.5 or stay constant.
-				const double sla_beta = -0.18;
-				double growth_stage_sla = negligible(growth_stage) ? 1.0 : growth_stage;
-				current_sla *= pow(max(0.01,growth_stage_sla) * 2.0,sla_beta);
-			} else {
-				//const double sla_beta = -0.12;
-				//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
-				//current_sla *= pow(max(0.01,growth_demand_sla),sla_beta);
-				current_sla *= 1.0; 
-			}
+			//const double sla_beta = -0.12;
+			//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
+			//current_sla *= pow(max(0.01,growth_demand_sla),sla_beta);
+			current_sla *= 1.0; 
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 		}

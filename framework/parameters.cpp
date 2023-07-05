@@ -110,6 +110,7 @@ int nyear_spinup;
 bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
+bool map_text_file = true;
 
 xtring state_path;
 bool restart;
@@ -579,6 +580,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
+		declareitem("map_text_file", &map_text_file, 1, CB_NONE, "Whether to map text input file data in index file");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");

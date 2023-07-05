@@ -817,15 +817,18 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		ManagementType& mt = stand.get_current_management();
 		const bool stem_cmass_only = false;						// The two options will give small differences with different  
 																// harvest_slow_frac (caused by rounding errors)
-		const bool relax_target_cutting_after_pft_gone = false; // Default value false will prioritise pft selection over 
-																// stand age (all other trees may be cut when one pft dies)
-		const bool no_target_cutting_before_man_start = true;	// No target-cutting before management starts
+		const bool relax_target_cutting_after_pft_gone = true;	// Default value true will prioritise stand age before pft selection
+																// (otherwise, all other trees may be cut when one pft dies)
+		bool no_target_cutting_before_man_start = true;			// No target-cutting before management starts
 
 		bool management_started = stand[0].managed;				// patch.managed is the same for all patches in a stand
 
-		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
-		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
+		int first_targetyear = 0;	// Simulation year when target cutting starts; default is first simulation year
+									// (unless no_target_cutting_before_man_start is true).
+		if (mt.firsttargetyear < FAR_FUTURE_YEAR) {	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
+			no_target_cutting_before_man_start = false;	// Overridden by firsttargetyear set in instruction file.
+		}
 		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting)
 			|| (readtargetcutting && mt.targetfrac_input_mode == 2)
 			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear
@@ -925,8 +928,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			double remove_cmass_stand = 0.0; 
 			if(target_stand[i] - 1.0) {
 				if((cmass_pft_stand[i] / cmass_total_stand) > 0.99 && target_stand[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
-					dprintf("Target cutting suspended year %d: cmass_pft_stand[i] / cmass_total_stand = %f\n\n",
-						date.get_calendar_year(), cmass_pft_stand[i] / cmass_total_stand);
+					dprintf("Target cutting suspended year %d: cmass_pft_stand[%d] / cmass_total_stand = %f\n\n",
+						date.get_calendar_year(), i, cmass_pft_stand[i] / cmass_total_stand);
 				}
 				else {
 					remove_cmass_stand = max(0.0, (target_stand[i] * cmass_total_stand - cmass_pft_stand[i]) / (target_stand[i] - 1.0));

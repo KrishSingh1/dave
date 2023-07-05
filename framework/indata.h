@@ -43,7 +43,7 @@ const int MAXNAMESIZE = 50;
 const int MAXRECORDS = 400;
 const int MAXLINESPARSE = 30000;
 const int NOTFOUND = -999;
-const double MAX_SEARCHRADIUS = 1.0;
+const double MAX_SEARCHDISTANCE = 1.0;
 
 /// Formats in text input file
 typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} fileformat;
@@ -155,7 +155,7 @@ public:
 
 	/// Opens input file, checks format and allocates memory. Returns false if error
 	bool Open(const char* name);
-	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if LUTOMEMORY is defined. Returns false if error.
+	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if map_text_file is true. Returns 0 if error.
 	bool Open(const char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
 	/// Releases dynamically allocated memory.
 	void Close();

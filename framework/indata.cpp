@@ -25,11 +25,8 @@ using namespace TextInput;
 /*  Input data will be parsed for finer resolution than the default value. For coarser resolutions, raise default value.or set manually */
 const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
 
-/// Write land use fraction data to memory; enables efficient usage of randomised gridlists for parallell simulations
-const bool LUTOMEMORY = false;
-
-// Mapping of input file data when LUTOMEMORY not defined
-const bool MAPFILE = true;
+/// Write data to memory or index data on disk in index file (if map_text_file = true)) for fast random access of text file data.
+const bool FAST_DATA_ACCESS = true;
 
 const bool ascendinglongitudes = false;	//Not true for randomised gridlists; set to false for now
 
@@ -463,11 +460,13 @@ bool TimeDataD::Open(const char* name, ListArray_id<Coord>& gridlist, double gri
 
 		if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
 		}
-		else if (LUTOMEMORY) {
-			CopyToMemory(gridlist.nobj, gridlist);
-		}
-		else if (MAPFILE) {
-			CreateFileMap();
+		else if (FAST_DATA_ACCESS) {
+			if (map_text_file) {
+				CreateFileMap();
+			}
+			else {
+				CopyToMemory(gridlist.nobj, gridlist);
+			}
 		}
 		return true;
 	}
@@ -1042,20 +1041,33 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 bool TimeDataD::LoadFromMap(Coord c) {
 
-	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
+	// With a regular grid, coordinates within the grid should be found using (spatial_resolution / 2.0) and should be 
+	// quicker than using MAX_SEARCHDISTANCE (default 1.0).
+
+	double searchdist = min(spatial_resolution / 2.0, MAX_SEARCHDISTANCE);
 	double min_dist = 1000;
 	filepos found_pos = -1;
 	int found_i;
 
-	for(int i=0; i<nCells; i++) {
+	for(int lap = 0; lap < 2 && found_pos == -1; lap++) {
 
-		double dif_lon = fabs(filemap[i].lon - c.lon);
-		double dif_lat = fabs(filemap[i].lat - c.lat);
-		if(dif_lon <= searchradius && dif_lat <= searchradius) {
-			if(min_dist > (dif_lon + dif_lat)) {
-				min_dist = dif_lon + dif_lat;
-				found_pos = filemap[i].pos;
-				found_i = i;
+		if(lap == 1 && searchdist != MAX_SEARCHDISTANCE)
+			searchdist = MAX_SEARCHDISTANCE;
+
+		for(int i=0; i<nCells; i++) {
+
+			double dif_lon = fabs(filemap[i].lon - c.lon);
+			double dif_lat = fabs(filemap[i].lat - c.lat);
+			
+			if(dif_lon <= searchdist && dif_lat <= searchdist) {
+				double dist_sq = dif_lon * dif_lon + dif_lat * dif_lat;
+				if(min_dist > dist_sq) {
+					min_dist = dist_sq;
+					found_pos = filemap[i].pos;
+					found_i = i;
+					if(dist_sq == 0.0)
+						break;
+				}
 			}
 		}
 	}
@@ -1064,6 +1076,8 @@ bool TimeDataD::LoadFromMap(Coord c) {
 		LoadNext();
 		if(currentStand.lon != filemap[found_i].lon || currentStand.lat != filemap[found_i].lat)
 			fail("TimeDataD::LoadFromMap: Error in saved file map for %s. Delete map.bin file and retry\n", fileName);
+//		else
+//			dprintf("%s; Text input coordinates = (%.2f, %.2f)\n", (char*)fileName, currentStand.lon, currentStand.lat);
 		loaded = true;
 	}
 	else {
@@ -1867,25 +1881,36 @@ double TimeDataDmem::Get(int calender_year, const char* name, bool suppress_warn
 
 bool TimeDataDmem::Load(Coord c) {
 
-	bool error = true;
-	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
+	// With a regular grid, coordinates within the grid should be found using (spatial_resolution / 2.0) and should be 
+	// quicker than using MAX_SEARCHDISTANCE (default 1.0).
 
-	//In case gridlist cell order is same as in land use files
-	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) <= searchradius
-			&& fabs(gridlist[currentCell+1].lat - c.lat) <= searchradius) {
-		currentCell++;
-		error = false;
-	}
-	else {
-		for(int i=0;i<nCells;i++) {
-			if(fabs(gridlist[i].lon - c.lon) <= searchradius && fabs(gridlist[i].lat - c.lat) <= searchradius) {
-				currentCell = i;
-				error = false;
-				break;
+	bool found =false;
+	double searchdist = min(spatial_resolution / 2.0, MAX_SEARCHDISTANCE);
+	double min_dist = 1000;
+
+	for(int lap = 0; lap < 2 && !found; lap++) {
+
+		if(lap == 1 && searchdist != MAX_SEARCHDISTANCE)
+			searchdist = MAX_SEARCHDISTANCE;
+
+		for(int i=0; i<nCells; i++) {
+
+			double dif_lon = fabs(gridlist[i].lon - c.lon);
+			double dif_lat = fabs(gridlist[i].lat - c.lat);
+			
+			if(dif_lon <= searchdist && dif_lat <= searchdist) {
+				double dist_sq = dif_lon * dif_lon + dif_lat * dif_lat;
+				if(min_dist > dist_sq) {
+					min_dist = dist_sq;
+					currentCell = i;
+					found = true;
+					if(dist_sq == 0.0)
+						break;
+				}
 			}
 		}
 	}
-	if(error) {
+	if(!found) {
 		loaded = false;
 	}
 	else {
@@ -1967,7 +1992,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	firstyear = Data.GetFirstyear();
 	spatial_resolution = Data.GetSpacialResolution();
-	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
+	double searchdist = min(spatial_resolution / 2.0, MAX_SEARCHDISTANCE);
 	double offset = Data.GetOffset();
 
 	double *celldata = new double[Data.GetnColumns() * Data.GetnYears()];
@@ -1983,7 +2008,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	gridlistX.firstobj();
 
-	while(Data.LoadNext() && cell_no < Data.GetNCells()) {
+	while(Data.LoadNext()) {
 
 		Coord c =Data.GetCoord();
 
@@ -1997,34 +2022,15 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 			dif_lon = fabs(c.lon - (cc.lon + offset));
 			dif_lat = fabs(c.lat - (cc.lat + offset));
 
-			if(dif_lon <= searchradius && dif_lat <= searchradius) {
-				bool done = false;
-				double dif_lon_saved;
-				double dif_lat_saved;
+			if(dif_lon <= searchdist && dif_lat <= searchdist) {
 
-				for(int i=cell_no-1; i>=0;i--) {
-					// has data close to the gridlist coord already been saved ?
-					dif_lon_saved = fabs(gridlist[i].lon - (cc.lon + offset));
-					dif_lat_saved = fabs(gridlist[i].lat - (cc.lat + offset));
-					if(dif_lon_saved <= searchradius && dif_lat_saved <= searchradius) {
-						// is the new data coord closer to the gridlist coord than the already saved coord is ?
-						if((dif_lon_saved + dif_lat_saved) > (dif_lon + dif_lat)) {	// This part is probably not needed
-							SetCoord(i, c);
-							Data.Get(celldata);
-							SetData(i, celldata);
-						}
-						done = true;
-						break;	// from saved gridlist loop
-					}
-				}
-				if(!done) {
-					SetCoord(cell_no, c);
-					Data.Get(celldata);
-					SetData(cell_no, celldata);
-					cell_no++;
-					nCells++;
-					break;	// from gridlist loop
-				}
+				SetCoord(cell_no, c);
+				Data.Get(celldata);
+				SetData(cell_no, celldata);
+				cell_no++;
+				nCells++;
+//				dprintf("lc coord %.2f, %.2f used\n", c.lon, c.lat);
+				break;	// from gridlist loop
 			}
 			gridlistX.nextobj();
 			no++;

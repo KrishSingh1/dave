@@ -73,6 +73,8 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction)
 const double dphen_activity_max = 0.3;
 
+// Fraction of reproductive pool available for reproduction
+const double fracseed = 0.5;
 
 
 class DaveMassBalance {
@@ -2488,6 +2490,27 @@ double nstorage_capacity(Individual& indiv) {
 
 }
 
+// Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
+// Happens every year at the onset of dormancy
+// TODO: deal with case of no dormancy
+void flush_repr_litter_DAVE(Individual& indiv){
+	indiv.patchpft().cmass_litter_repr += indiv.cmass_repr * fracseed; // TODO: turnover!!
+	indiv.patchpft().nmass_litter_repr += indiv.nmass_repr * fracseed; // TODO: turnover!!
+	indiv.patchpft().cmass_litter_leaf += indiv.cmass_repr * (1.0 - fracseed);
+	indiv.patchpft().nmass_litter_leaf += indiv.nmass_repr * (1.0 - fracseed);
+	indiv.cmass_repr = 0.0;
+	indiv.nmass_repr = 0.0;
+}
+
+void kill_grass(Individual& indiv) {
+
+	flush_repr_litter_DAVE(indiv);
+	
+	indiv.cmass_storage = 0.0;
+	indiv.kill();  // flushes all pools to litter (except for reproductive C, which is handled above)
+	indiv.vegetation.killobj();  // removes individual object
+}
+
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Function calculates cgrow (daily growth), cstore (change in cmass_storage) 
 // and updates indiv.cmass_storage. 
@@ -2561,8 +2584,13 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 				cstore = -indiv.cmass_storage;
 		
 				// Enough C to compensate for negative C storage
-				// Only allow 50% of biomass loss and call mortality if more than that
-				if ( 0.5 * (indiv.get_cmass_leaf() + indiv.cmass_root) > cmass_deficit) {
+				// Only allow 10% of biomass loss and call mortality if more than that.
+				// 10% Consistent with senescence retranslocation but needs a reference...
+				// TODO: replace 0.1 with constant.
+				if ( 0.1 * (indiv.get_cmass_leaf() + indiv.cmass_root) > cmass_deficit && 
+					 0.1 * (indiv.get_cmass_leaf() + indiv.cmass_root) > (indiv.cdeficit_5.sum() + cmass_deficit) ) {
+
+					indiv.cdeficit_5.add(cmass_deficit); 
 
 					// Reduce leaf to root ratio
 					double froot_dec = 0.0;
@@ -2604,18 +2632,10 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 				else {
 					// Not enough C to compensate --> kill individual
 
-					indiv.patchpft().cmass_litter_repr += indiv.cmass_repr;
-					indiv.patchpft().nmass_litter_leaf += indiv.nmass_repr;
-					indiv.cmass_repr = 0.0;
-					indiv.nmass_repr = 0.0;
-
-					indiv.cmass_storage = 0.0;
-
 					indiv.report_flux(Fluxes::RA, -cmass_deficit);
-					indiv.kill();  // flushes all pools to litter (except for reproductive C, which is handled above)
-					vegetation.killobj();  // removes individual object
-					// TODO: think about whether we want to kill grasses or just keep them dormant.
-					//       annuals might be a different case than perennials.
+					
+					kill_grass(indiv);
+										
 					//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
 					vegetation.nextobj();
 					continue;

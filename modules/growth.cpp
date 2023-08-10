@@ -87,9 +87,11 @@ private:
 public:
 		IndivState(const Individual &indiv);
 		void check(const Individual &indiv) const;
+		int get_id() const { return id; };
 private:
 		double n_start;
 		double c_start;
+		int id;
 	};
 	std::vector<const IndivState*> indivs;
 	void clear_indivs();
@@ -118,7 +120,14 @@ void DaveMassBalance::check(Vegetation &vegetation) {
 	vegetation.firstobj();
 	int i = 0;
 	while (vegetation.isobj) {
-		indivs[i]->check(vegetation.getobj());
+		// If an individual is killed during the day, it will be removed from
+		// the vegetation object. Ergo, we cannot rely on the order or size of
+		// the vegetation array matching the order and size of our internal
+		// vector. To allow for this we also check the indiv ID.
+		Individual &indiv = vegetation.getobj();
+		if (indivs[i]->get_id() == indiv.id) {
+			indivs[i]->check(indiv);
+		}
 		vegetation.nextobj();
 		i++;
 	}
@@ -148,6 +157,7 @@ double get_cmass(const Individual &indiv) {
 DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
 	n_start = get_nmass(indiv);
 	c_start = get_cmass(indiv);
+	id = indiv.id;
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
@@ -2516,17 +2526,17 @@ void kill_grass(Individual& indiv) {
 // and updates indiv.cmass_storage. 
 // Note: cgrow and cstore are fluxes (kgC/m2/d), cmass_storage is a pool (kg/m2).
 void storage_growth_partitioning(Vegetation& vegetation) {
-		
-	// Local:
-	double cstore = 0.0;
-	double cexcess = 0.0;
-	double cstorage_res = 0.0;
-	double Gpot = 0.0;
 
 	// Loop through individuals
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+
+		// Local:
+		double cstore = 0.0;
+		double cexcess = 0.0;
+		double cstorage_res = 0.0;
+		double Gpot = 0.0;
 
 		double ceaten = 0.0;
 

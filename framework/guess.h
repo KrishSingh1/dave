@@ -3099,6 +3099,8 @@ public:
 	double nmass_storage;
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
+	/// running mean of cdeficit for last 5 days for each individual.
+	Historic<double, 5> cdeficit_5;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -4503,8 +4505,10 @@ public:
 	double cmass_litter_sap;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_heart;
-	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
+	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
+	/// N litter derived from allocation to reproduction for PFT on modelled area basis (kgN/m2).
+	double nmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire

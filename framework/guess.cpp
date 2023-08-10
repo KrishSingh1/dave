@@ -352,6 +352,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& cmass_litter_sap
 		& cmass_litter_heart
 		& cmass_litter_repr
+		& nmass_litter_repr
 		& gcbase
 		& gcbase_day
 		& wsupply
@@ -614,6 +615,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 		ncont += ppft.nmass_litter_sap;
 		ncont += ppft.nmass_litter_heart;
 		ncont += ppft.nmass_harvested_products_slow;
+		ncont += ppft.nmass_litter_repr;
 	}
 
 	for (unsigned int i=0; i<vegetation.nobj; i++) {
@@ -1814,6 +1816,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_storage
 		& nstorage_max
 		& nscal_5   	
+		& cdeficit_5
 		& cton_leaf_opt	 
 		& aet
 		& aaet

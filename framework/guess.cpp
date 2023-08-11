@@ -575,12 +575,12 @@ double Patch::ccont(double scale_indiv, bool luc) {
 		ccont += ppft.cmass_litter_repr;
 		ccont += ppft.cmass_harvested_products_slow;
 		if (ifdavediagnostics) {
-			printf("ppft[%d].cmass_litter_leaf = %.8f\n", i, ppft.cmass_litter_leaf);
-			printf("ppft[%d].cmass_litter_root = %.8f\n", i, ppft.cmass_litter_root);
-			printf("ppft[%d].cmass_litter_sap = %.8f\n", i, ppft.cmass_litter_sap);
-			printf("ppft[%d].cmass_litter_heart = %.8f\n", i, ppft.cmass_litter_heart);
-			printf("ppft[%d].cmass_litter_repr = %.8f\n", i, ppft.cmass_litter_repr);
-			printf("ppft[%d].cmass_harvested_products_slow = %.8f\n", i, ppft.cmass_harvested_products_slow);
+			printf("ppft[\"%s\"].cmass_litter_leaf = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_leaf);
+			printf("ppft[\"%s\"].cmass_litter_root = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_root);
+			printf("ppft[\"%s\"].cmass_litter_sap = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_sap);
+			printf("ppft[\"%s\"].cmass_litter_heart = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_heart);
+			printf("ppft[\"%s\"].cmass_litter_repr = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_repr);
+			printf("ppft[\"%s\"].cmass_harvested_products_slow = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_harvested_products_slow);
 		}
 	}
 
@@ -2295,11 +2295,11 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 		else {
 
 			if (ifdavediagnostics) {
-				printf("indiv.get_cmass_leaf() = %.8f\n", get_cmass_leaf());
-				printf("indiv.cmass_root = %.8f\n", cmass_root);
-				printf("indiv.cmass_sap = %.8f\n", cmass_sap);
-				printf("indiv.cmass_heart = %.8f\n", cmass_heart);
-				printf("indiv.cmass_debt = %.8f\n", cmass_debt);
+				printf("indivs[\"%s\"].get_cmass_leaf() = %.8f\n", (const char *)pft.name, get_cmass_leaf());
+				printf("indivs[\"%s\"].cmass_root = %.8f\n", (const char *)pft.name, cmass_root);
+				printf("indivs[\"%s\"].cmass_sap = %.8f\n", (const char *)pft.name, cmass_sap);
+				printf("indivs[\"%s\"].cmass_heart = %.8f\n", (const char *)pft.name, cmass_heart);
+				printf("indivs[\"%s\"].cmass_debt = %.8f\n", (const char *)pft.name, cmass_debt);
 			}
 
 			ccont += (get_cmass_leaf() + cmass_root + cmass_sap + cmass_heart - cmass_debt) * scale_indiv;
@@ -2308,14 +2308,14 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 				if (ifdavegrowth) {
 					ccont += (cmass_storage + cmass_leafs[1] + cmass_repr) * scale_indiv;
 					if (ifdavediagnostics) {
-						printf("indiv.cmass_storage = %.8f\n", cmass_storage);
-						printf("indiv.cmass_leafs[1] = %.8f\n", cmass_leafs[1]);
+						printf("indivs[\"%s\"].cmass_storage = %.8f\n", (const char *)pft.name, cmass_storage);
+						printf("indivs[\"%s\"].cmass_leafs[1] = %.8f\n", (const char *)pft.name, cmass_leafs[1]);
 					}
 				} else {
 					ccont += (cmass_storage + cmass_leafs[3]) * scale_indiv;
 					if (ifdavediagnostics) {
-						printf("indiv.cmass_storage = %.8f\n", cmass_storage);
-						printf("indiv.cmass_leafs[3] = %.8f\n", cmass_leafs[3]);
+						printf("indivs[\"%s\"].cmass_storage = %.8f\n", (const char *)pft.name, cmass_storage);
+						printf("indivs[\"%s\"].cmass_leafs[3] = %.8f\n", (const char *)pft.name, cmass_leafs[3]);
 					}
 				}
 			}
@@ -3743,6 +3743,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 				ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);
 			dprintf("C flux: %.5f\n",  cflux_year);
+			dprintf("Imbalance: %.9f\n", ccont_year - ccont + cflux_year);
 		}
 	}
 
@@ -3780,6 +3781,11 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		return;
 	}
 
+	if (ifdavediagnostics) {
+		printf("----------------------------------------------------------------\n");
+		printf("DAVE annual mass balance diagnostics year %d (%04d-%02d-%02d)\n", date.year, date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
+	}
+
 	check_year_C(gridcell);
 
 	if (ifcentury) 
@@ -3787,6 +3793,10 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 	check_year_water(gridcell);
 
+	if (ifdavediagnostics) {
+		printf("End of DAVE annual mass balance diagnostics year %d (%04d-%02d-%02d)\n", date.year, date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
+		printf("----------------------------------------------------------------\n");
+	}
 }
 
 void MassBalance::check_period(Gridcell& gridcell) {

@@ -513,6 +513,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 		if (ifdavephotosyn) {
 			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
+			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
 		}
 
 		if (stand.pft[pft.id].active) {

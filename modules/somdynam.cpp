@@ -1305,6 +1305,7 @@ void vegetation_n_uptake(Patch& patch) {
 		else {
 			indiv.anuptake += nuptake_day;
 			indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
+			assert(indiv.nmass_leaf >= 0);
 			indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
 			indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
 			if (indiv.pft.phenology == CROPGREEN && ifnlim)

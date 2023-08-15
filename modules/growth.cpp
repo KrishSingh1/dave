@@ -85,6 +85,7 @@ public:
 	void init(Vegetation &vegetation);
 	void check(Vegetation &vegetation);
 private:
+	bool should_check(const Individual &);
 	class IndivState {
 public:
 		IndivState(const Individual &indiv);
@@ -110,28 +111,31 @@ void DaveMassBalance::clear_indivs() {
 	indivs.clear();
 }
 
+bool DaveMassBalance::should_check(const Individual &indiv) {
+	return indiv.pft.lifeform == GRASS;
+}
+
 void DaveMassBalance::init(Vegetation &vegetation) {
 	clear_indivs();
-	for (vegetation.firstobj(); vegetation.isobj; vegetation.nextobj()) {
-		IndivState *indiv = new IndivState(vegetation.getobj());
-		indivs.push_back(indiv);
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &individual = vegetation[i];
+		if (should_check(individual)) {
+			IndivState *indiv = new IndivState(individual);
+			indivs.push_back(indiv);
+		}
 	}
 }
 
 void DaveMassBalance::check(Vegetation &vegetation) {
-	vegetation.firstobj();
-	int i = 0;
-	while (vegetation.isobj) {
+	for (int i = 0; i < vegetation.nobj && i < indivs.size(); i++) {
 		// If an individual is killed during the day, it will be removed from
 		// the vegetation object. Ergo, we cannot rely on the order or size of
 		// the vegetation array matching the order and size of our internal
 		// vector. To allow for this we also check the indiv ID.
-		Individual &indiv = vegetation.getobj();
-		if (indivs[i]->get_id() == indiv.id) {
+		Individual &indiv = vegetation[i];
+		if (should_check(indiv) && indivs[i]->get_id() == indiv.id) {
 			indivs[i]->check(indiv);
 		}
-		vegetation.nextobj();
-		i++;
 	}
 }
 
@@ -487,6 +491,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	turnover = turnover_leaf * nmass_leaf;
 	nmass_leaf -= turnover;
+	assert(nmass_leaf >= 0);
 	nmass_litter_leaf += turnover * (1.0 - actual_nrelocfrac);
 	longterm_nstore += turnover * actual_nrelocfrac;
 
@@ -1117,6 +1122,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 				indiv.nmass_leafs[green] = nmass_leaf;
 			} else {
 				indiv.nmass_leaf = nmass_leaf;
+				assert(indiv.nmass_leaf >= 0);
 			}
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
 			indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
@@ -1136,6 +1142,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		if (ifdavephotosyn){
 			// we need initial values for nmass_leaf when calling ifdavephotosyn
 			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+			assert(indiv.nmass_leaf >= 0);
 			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
 		}
 		else {
@@ -1558,6 +1565,7 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_leaf += raingreen_ndemand * (1.0 - nrelocfrac);
 						indiv.nstore_longterm += raingreen_ndemand * nrelocfrac;
 						indiv.nmass_leaf -= raingreen_ndemand;
+						assert(indiv.nmass_leaf >= 0);
 					}
 
 					// Deduct from this year's C biomass increment
@@ -1629,20 +1637,29 @@ void growth(Stand& stand, Patch& patch) {
 
 						if (ifdavephotosyn) {
 							// Set annual N demand when running in newphotosyn mode.
-							indiv.andemand_leaf = cmass_leaf_inc * indiv.cton_leaf();
-							indiv.andemand_root = cmass_root_inc * indiv.cton_root();
-							indiv.andemand_sap = cmass_sap_inc * indiv.cton_sap();
-							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root;
-							// Note: sap_inc can be negative.
-							if (indiv.andemand_sap > 0) {
-								indiv.andemand += indiv.andemand_sap;
+							// fixme: this is just a placeholder, we need a way to run trees on
+							// an annual timestep. For now, just request enough N to meet the
+							// expected turnover this year.
+							indiv.andemand_leaf = indiv.get_nmass_leaf() * indiv.pft.turnover_leaf;
+							if (cmass_leaf_inc > 0) {
 							}
+							indiv.andemand_root = indiv.nmass_root * indiv.pft.turnover_root;
+							if (cmass_root_inc > 0) {
+							}
+							indiv.andemand_sap = indiv.nmass_sap * indiv.pft.turnover_sap;
+							if (cmass_sap_inc > 0) {
+							}
+							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root + indiv.andemand_sap;
 							indiv.ndemand = indiv.andemand / 365; // fixme!! (Assaf)
 							total_ndemand += indiv.ndemand;
 
-							indiv.leaffndemand = indiv.andemand_leaf / indiv.andemand;
-							indiv.rootfndemand = indiv.andemand_root / indiv.andemand;
-							indiv.sapfndemand = indiv.andemand_sap > 0 ? indiv.andemand_sap / indiv.andemand : 0;
+							indiv.leaffndemand = divide(indiv.andemand_leaf, indiv.andemand);
+							indiv.rootfndemand = divide(indiv.andemand_root, indiv.andemand);
+							indiv.sapfndemand = divide(indiv.andemand_sap, indiv.andemand);
+
+							assert(indiv.leaffndemand >= 0);
+							assert(indiv.rootfndemand >= 0);
+							assert(indiv.sapfndemand >= 0);
 
 							indiv.leafndemand = indiv.ndemand * indiv.leafndemand;
 							indiv.rootndemand = indiv.ndemand * indiv.rootfndemand;
@@ -1692,6 +1709,9 @@ void growth(Stand& stand, Patch& patch) {
 						// Subtracting litter nitrogen from individuals
 						indiv.nmass_leaf -= leaf_inc;
 						indiv.nmass_root -= root_inc;
+
+						assert(indiv.nmass_leaf >= 0);
+						assert(indiv.nmass_root >= 0);
 
 						// Update individual age
 
@@ -1776,6 +1796,7 @@ void growth(Stand& stand, Patch& patch) {
 								// Subtracting litter nitrogen from individuals
 								indiv.nmass_leaf -= nmass;
 							}
+							assert(indiv.nmass_leaf >= 0);
 
 							// Root
 							if (indiv.nmass_root > 0.0){
@@ -2548,9 +2569,18 @@ void kill_grass(Individual& indiv) {
 void storage_growth_partitioning(Vegetation& vegetation) {
 
 	// Loop through individuals
+	// Note - we sometimes kill individuals inside this loop, but vegetation.killobj()
+	// requires the internal pointer to be set appropriately, which effectively
+	// prevents us from using a range-based loop, and instead forces us to use
+	// the clunky mess you see below. todo: refactor the container classes!
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+
+		if (indiv.pft.lifeform != GRASS) {
+			vegetation.nextobj();
+			continue;
+		}
 
 		// Local:
 		double cstore = 0.0;
@@ -2674,7 +2704,6 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 					kill_grass(indiv);
 										
 					//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
-					vegetation.nextobj();
 					continue;
 				}
 			}
@@ -2700,12 +2729,15 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 	double calloc_leaf_max;
 	
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (pft.lifeform != GRASS) {
+			continue;
+		}
 
 		// Leaf nitrogen status
 		if (!negligible(indiv.get_cmass_leaf())) {
@@ -2746,8 +2778,6 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 		indiv.cgrow_leaf = calloc_leaf * indiv.cgrow;
 		indiv.cgrow_root = calloc_root * indiv.cgrow;
 		indiv.cgrow_repr = calloc_repr * indiv.cgrow;
-
-		vegetation.nextobj();
 	}
 }
 
@@ -2864,12 +2894,15 @@ void update_pools(Vegetation& vegetation) {
 	//const double max_mobil_nstorage = 0.9;
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (pft.lifeform != GRASS) {
+			continue;
+		}
 
 		double creturn = 0.0; // kgC m-2 d-1
 		double growth_max_leaf = 0.0, growth_max_root = 0.0, growth_max_repr = 0.0;
@@ -3016,7 +3049,6 @@ void update_pools(Vegetation& vegetation) {
 		assert(indiv.cton_leaf() > indiv.pft.cton_leaf_min || equal(indiv.cton_leaf(),indiv.pft.cton_leaf_min,-12));
 		assert(indiv.cton_root() <= indiv.pft.cton_root_max);
 		
-		vegetation.nextobj();
 	}
 }
 
@@ -3036,12 +3068,15 @@ void senescence(Vegetation& vegetation) {
 	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (pft.lifeform != GRASS) {
+			continue;
+		}
 
 		// Senescence
 
@@ -3127,8 +3162,6 @@ void senescence(Vegetation& vegetation) {
 
 		assert(negligible(csenesc - (cstore + ctobrown), -16));
 		assert(negligible(nsenesc - (ntobrown + nstore), -16));
-
-		vegetation.nextobj();
 	}
 }
 
@@ -3141,12 +3174,15 @@ void turnover_grass(Vegetation& vegetation) {
 	const double nrelocfrac = 0.5;
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (pft.lifeform != GRASS) {
+			continue;
+		}
 
 		// Determine turnover rate (same for all individuals in a PFT).
 		// Assumed daily rates here (fraction d-1)!
@@ -3222,8 +3258,6 @@ void turnover_grass(Vegetation& vegetation) {
 			indiv.cmass_repr = 0;
 			indiv.nmass_repr = 0;
 		}
-		
-		vegetation.nextobj();
 	}
 }
 
@@ -3267,9 +3301,12 @@ void sink_source_feedback(Individual& indiv) {
 void storage_dynamics(Vegetation& vegetation) {
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+
+		if (indiv.pft.lifeform != GRASS) {
+			continue;
+		}
 	
 		// Handle excessive C 
 		if (indiv.cexcess > 0.0){
@@ -3278,8 +3315,6 @@ void storage_dynamics(Vegetation& vegetation) {
 
 		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.
 		sink_source_feedback(indiv);
-
-		vegetation.nextobj();
 	}
 }
 
@@ -3291,13 +3326,12 @@ void storage_dynamics(Vegetation& vegetation) {
 void grass_allometry(Vegetation& vegetation) {
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		if (indiv.pft.lifeform != GRASS) {
+			continue;
+		}
 		allometry(indiv);
-
-		vegetation.nextobj();
 	}
 }
 
@@ -3306,9 +3340,12 @@ void grass_allometry(Vegetation& vegetation) {
 void annual_accounting(Vegetation& vegetation) {
 
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+
+		if (indiv.pft.lifeform != GRASS) {
+			continue;
+		}
 
 		// Initiate yearly maximum
 		if (date.day == 0) {
@@ -3359,8 +3396,6 @@ void annual_accounting(Vegetation& vegetation) {
 
 			indiv.deltafpc = 0.0;
 		} // Last day of year
-
-		vegetation.nextobj();
 	}
 }
 

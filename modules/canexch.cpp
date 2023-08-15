@@ -1024,6 +1024,7 @@ void nstore_usage(Vegetation& vegetation) {
 					// leaf nitrogen demand
 					double leaf_ndemand = indiv.leafndemand * (1.0 - indiv.fnuptake) + indiv.leafndemand_store;
 					indiv.nmass_leaf += leaf_ndemand;
+					assert(indiv.nmass_leaf >= 0);
 					indiv.nstore_labile -= leaf_ndemand;
 
 					// root nitrogen demand
@@ -1049,6 +1050,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 						// new leaf nitrogen
 						indiv.nmass_leaf += labile_nto_leaf;
+						assert(indiv.nmass_leaf >= 0);
 
 						// new root nitrogen
 						indiv.nmass_root += indiv.nstore_labile - labile_nto_leaf;
@@ -2631,6 +2633,7 @@ void leaf_senescence(Vegetation& vegetation) {
 			// Senescence is not done during the period without no N-limitation
 			if (date.year > freenyears && senN > 0) {
 				indiv.nmass_leaf -= senN;
+				assert(indiv.nmass_leaf >= 0);
 				indiv.cropindiv->nmass_agpool += senN;
 			}
 		}
@@ -2779,6 +2782,8 @@ void vcmax_from_N(Vegetation& vegetation) {
 		} else {
 			nmass_leaf = indiv.nmass_leaf;
 		}
+
+		assert(nmass_leaf >= 0);
 
 		// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
 		double pmass_leaf = nmass_leaf / leaf_NtoP;         

@@ -3285,6 +3285,12 @@ public:
 	double wscal_sen;
 	double tscal_sen;
 
+	// N content of the individual at time of establishment (g). This is needed
+	// because we need to report the initial N as an establishment flux 1 year
+	// later, because individuals experiencing allocation on an annual basis are
+	// not considered "alive" until 1 year after establishment.
+	double initialn;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -4594,6 +4600,7 @@ public:
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
+		nmass_litter_repr  = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

@@ -550,7 +550,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-
+						if (date.year > nyear_spinup && ifdavediagnostics) {
+							printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						}
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
@@ -696,6 +698,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
+					if (date.year > nyear_spinup && newindiv > 0 && ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					}
 					for (i=0;i<newindiv;i++) {
 
 						// Create average individual for a new cohort (cohort mode)

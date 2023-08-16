@@ -1129,8 +1129,9 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		}
 
 		indiv.alive = true;
+		indiv.initialn = indiv.nmass_storage + indiv.get_nmass_leaf() + indiv.nmass_root;
 		indiv.report_flux(Fluxes::ESTC, -(indiv.cmass_storage + indiv.get_cmass_leaf() + indiv.cmass_root) );
-		indiv.report_flux(Fluxes::ESTN, -(indiv.nmass_storage + indiv.get_nmass_leaf() + indiv.nmass_root) );
+		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 	}
 	else {
 
@@ -1149,11 +1150,22 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 			indiv.nmass_leaf = 0.0;
 			indiv.nmass_root = 0.0;
 		}
-	}
 
-	if (indiv.pft.lifeform == TREE) {
-		indiv.cmass_sap = cmass_sap_ind * indiv.densindiv;
-		indiv.nmass_sap = 0.0;
+		if (indiv.pft.lifeform == TREE) {
+			indiv.cmass_sap = cmass_sap_ind * indiv.densindiv;
+			indiv.nmass_sap = indiv.cmass_sap / indiv.pft.cton_sap_avr;
+		}
+
+		// We need to report the establishment C and N quantities as fluxes for
+		// trees, in much the same way we did for grasses. However, trees with
+		// annual allocation are not considered "alive" until 1 year after
+		// establishment, so we can't report the establishment flux until then.
+		// That is handled inside growth(), which reports the live C content as
+		// the establishment C, but it can't use the live N content, because
+		// that's based on a year's worth of uptake, which is already reported
+		// separately. Therefore, we need to record the establishment N content
+		// now, in order to report it as an establishment flux later.
+		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
 	}
 }
 
@@ -1883,6 +1895,7 @@ void growth(Stand& stand, Patch& patch) {
 							indiv.report_flux(Fluxes::ESTC,
 							              - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
 							              indiv.cmass_heart - indiv.cmass_debt));
+							indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 
 							patchpft.cmass_est -= (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
 							              indiv.cmass_heart - indiv.cmass_debt);

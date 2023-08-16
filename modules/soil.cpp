@@ -901,7 +901,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Check balance
 		if (potential_layer[ly] < -1.0 * maxerr) {
 			// fail("Soil::hydrology_lpjf - error in a soil layer's water balance!\n");	
-			dprintf("ERROR: Soil::hydrology_lpjf - error in a soil layer's water balance! potential_layer#: %g\n", ly);
+			dprintf("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - error in a soil layer's water balance! potential_layer[%d] = %f\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, potential_layer[ly]);
 		}
 		else {
 			potential_layer[ly] = max(0.0, potential_layer[ly]); // catches small negative values

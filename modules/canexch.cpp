@@ -2938,6 +2938,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 						// Stomatal conductance to CO2 (mol m-2 s-1)
 						gsc = g0 + An * X;
+						if (An < 0) {
+							gsc = g0;
+						}
 					}
 
 					// Re-calculate intercellular CO2 concentration (mol mol-1)

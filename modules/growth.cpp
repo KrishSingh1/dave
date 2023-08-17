@@ -1401,6 +1401,23 @@ void flush_litter_repr(Patch& patch) {
 	}
 }
 
+// Set standpft-level reproductive cmass to 0 if this is the first patch.
+// This should be called once per year. Called from growth() iff dailygrass is
+// disabled. Called from growth_daily_grass() on 1st day of year iff davegrowth
+// is disabled. Called from growth_daily_grass_dave() on 1st day of year
+// otherwise. Standpft-level reproductive cmass is used for tree establishment
+// when the spatial mass effect (ifsme) is enabled, so failure to reset this to
+// 0 results in absurdly large initial tree biomass at establishment. Resetting
+// to 0 on 1st day of year kind of works because establishment happens on the
+// last day of year (ie the day before).
+void flush_cmass_repr(Patch &patch) {
+	if (!patch.id) {
+		for (int p=0; p < npft; p++) {
+			patch.stand.pft[p].cmass_repr = 0.0;
+		}
+	}
+}
+
 /// GROWTH
 /** Tissue turnover and allocation of fixed carbon to reproduction and new biomass
  *	Accumulated NPP (assimilation minus maintenance and growth respiration) on
@@ -1469,12 +1486,7 @@ void growth(Stand& stand, Patch& patch) {
 	// record of summed allocation to reproduction
 
 	// Daily carbon allocation does this in growth_pasture_daily
-	if (!patch.id && !ifdailygrass){ 
-	
-		for (p=0; p<npft; p++){
-			stand.pft[p].cmass_repr = 0.0;
-		}
-	}
+	flush_cmass_repr(patch);
 
 	double total_ndemand = 0;
 
@@ -2032,9 +2044,7 @@ void growth_daily_grass(Patch& patch) {
 	double grass_temp = patch.soil.T_soil[6];
 
 	if (date.day == 0) {
-		if (!patch.id)
-			for (int p=0; p < npft; p++)
-				stand.pft[p].cmass_repr = 0.0;
+		flush_cmass_repr(patch);
 	}
 
 	// Loop through individuals
@@ -3412,7 +3422,6 @@ void annual_accounting(Vegetation& vegetation) {
 	}
 }
 
-
 void growth_daily_grass_dave(Patch& patch) {
 
 	// Obtain reference to Vegetation and Stand object for this patch
@@ -3422,6 +3431,10 @@ void growth_daily_grass_dave(Patch& patch) {
 	// Record mass balance at start of day.
 	DaveMassBalance mass_balance;
 	mass_balance.init(vegetation);
+
+	if (date.day == 0) {
+		flush_cmass_repr(patch);
+	}
 
 	// Calculate total daily growth and update C storage 
 	storage_growth_partitioning(vegetation);

@@ -3714,7 +3714,7 @@ void MassBalance::check_day(Gridcell &gridcell) {
 		// check_day_n(gridcell);
 	}
 
-	// check_day_water(gridcell);
+	check_day_water(gridcell);
 }
 
 bool is_first_day() {

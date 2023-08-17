@@ -807,7 +807,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		aet_layer[ly] = 0.0; // Initialise
 	}
 
-
 	// Sum AET for across all vegetation individuals
 	Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
@@ -871,7 +870,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		// Shouldn't happen
 		if (aet_layer[ly] > Faw_layer[ly]) {
-			int test = 1;
+			dprintf("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - aet in layer %d of %.8f exceeds Faw in this layer (%.8f)\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, aet_layer[ly], Faw_layer[ly]);
 		}
 
 		// AW

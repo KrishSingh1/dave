@@ -3250,10 +3250,16 @@ void water_stress(Patch &patch) {
 // Canopy transpiration
 void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
-	double transp = 0;
 	// this formulation assumes infinite Ga
 	// TODO: include Ga --> Penman-Monteith (?)
-    
+
+	double wsupply = 0;
+	double wcont_local[NSOILLAYER];
+	for (int i = 0; i < NSOILLAYER; i++) {
+		wcont_local[i] = patch.soil.get_layer_soil_water(i);
+		wsupply += wcont_local[i];
+	}
+
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -3265,6 +3271,8 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 		if (date.day == 0)
 			indiv.aaet = 0.0;
+
+		double transp = 0;
 
 		// Loop over time steps per day
 		for (Day day; day.period != date.subdaily; day.next()) {	
@@ -3285,10 +3293,6 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		transp /= date.subdaily;
 
 		// daily transpiration rate in mm d-1
-		double wsupply = 0;
-		for (int i = 0; i < NSOILLAYER; i++) {
-			wsupply += patch.soil.get_layer_soil_water(i);
-		}
 		indiv.aet = min(wsupply, transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY); // assuming 1kg m-2 = 1l m-2 == 1mm
         
 		// add to annual transpiration
@@ -3325,6 +3329,27 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 		vegetation.nextobj();
 	} // end cohort loop
+
+	// Ensure water uptake doesn't exceed availability in any layer.
+	double uptake[NSOILLAYER];
+	double total_uptake = 0;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		const Individual &indiv = vegetation[i];
+		const Patchpft &ppft = indiv.patchpft();
+		for (int j = 0; j < NSOILLAYER; j++) {
+			uptake[j] += indiv.aet * ppft.fwuptake[j];
+			total_uptake += uptake[j];
+		}
+	}
+	for (int i = 0; i < NSOILLAYER; i++) {
+		if (uptake[i] > wcont_local[i]) {
+			// Demand in this layer exceeds supply.
+			double fwavail = wcont_local[i] / uptake[i];
+			for (int j = 0; j < vegetation.nobj; j++) {
+				vegetation[j].patchpft().fwuptake[i] *= fwavail;
+			}
+		}
+	}
 }
 
 

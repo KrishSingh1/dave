@@ -2864,8 +2864,8 @@ void nuptake(Vegetation& vegetation) {
 	// Create vector of CompetingIndividual objects, which will be passed into
 	// ncompete(). These are populated from the Individuals in the patch.
 	std::vector<NCompetingIndividual> competing_individuals;
-	for (vegetation.firstobj(); vegetation.isobj; vegetation.nextobj()) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 
 		// Calculate whole-plant N:C status 
 		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.get_cmass_leaf() + indiv.cmass_root);
@@ -2888,9 +2888,8 @@ void nuptake(Vegetation& vegetation) {
 	// Copy results back into Individual objects in the patch, and calculate
 	// total patch N demand.
 	patch.ndemand = 0;
-	int i = 0;
-	for (vegetation.firstobj(); vegetation.isobj; vegetation.nextobj()) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 
 		indiv.fnuptake = competing_individuals[i].fnuptake;
 		indiv.ndemand = competing_individuals[i].ndemand;
@@ -2900,8 +2899,6 @@ void nuptake(Vegetation& vegetation) {
 		// Taken out of soil in somdynam::vegetation_n_uptake():
 		// indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
 		// This happens right after growth in simulate_day.
-		
-		i++;
 	}
 }
 
@@ -2964,12 +2961,21 @@ void update_pools(Vegetation& vegetation) {
 			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
 
+		if (date.year == 205 && date.day == 0 && indiv.id == 301) {
+			printf("debug\n");
+		}
 
 		double navail_leaf = indiv.leafndemand * fnavail;
 		double navail_root = indiv.rootndemand * fnavail;	
 		double navail_repr = indiv.reprndemand * fnavail; 
 
-		if (negligible(indiv.fnuptake - 1.0)) {
+		// Check with fnavail, not fnuptake. There are cases where fnuptake can
+		// be 1 but fnavail < 1. This can happen when n storage is low, because
+		// the uptake doesn't occur until after growth. If we were to check
+		// fnuptake in this case, we would incorrectly assume that we are able
+		// to meet the N demands today, and potentially allocate too much C,
+		// causing the C:N ratio to exceed its max.
+		if (negligible(fnavail - 1.0)) {
 			
 			// N supply >= N demand
 

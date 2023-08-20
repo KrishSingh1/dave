@@ -545,6 +545,8 @@ bool Patch::has_disturbances() const {
 		&& stand.landcover != BARREN && stand.landcover != URBAN;
 }
 
+const int DAVE_DIAGNOSTIC_PRECISION = 16;
+
 /// C content of patch
 /** INPUT PARAMETERS
  *
@@ -559,14 +561,14 @@ double Patch::ccont(double scale_indiv, bool luc) {
 	ccont += soil.cpool_slow;
 
 	if (ifdavediagnostics) {
-		printf("soil.cpool_fast = %.8f\n", soil.cpool_fast);
-		printf("soil.cpool_slow = %.8f\n", soil.cpool_slow);
+		printf("soil.cpool_fast = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.cpool_fast);
+		printf("soil.cpool_slow = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.cpool_slow);
 	}
 
 	for (int i=0; i<NSOMPOOL; i++) {
 		double cmass = soil.sompool[i].cmass;
 		if (ifdavediagnostics) {
-			printf("soil.sompool[%d] = %.8f\n", i, soil.sompool[i].cmass);
+			printf("soil.sompool[%d] = %.*f\n", i, DAVE_DIAGNOSTIC_PRECISION, soil.sompool[i].cmass);
 		}
 		ccont += cmass;
 	}
@@ -580,12 +582,12 @@ double Patch::ccont(double scale_indiv, bool luc) {
 		ccont += ppft.cmass_litter_repr;
 		ccont += ppft.cmass_harvested_products_slow;
 		if (ifdavediagnostics) {
-			printf("ppft[\"%s\"].cmass_litter_leaf = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_leaf);
-			printf("ppft[\"%s\"].cmass_litter_root = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_root);
-			printf("ppft[\"%s\"].cmass_litter_sap = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_sap);
-			printf("ppft[\"%s\"].cmass_litter_heart = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_heart);
-			printf("ppft[\"%s\"].cmass_litter_repr = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_litter_repr);
-			printf("ppft[\"%s\"].cmass_harvested_products_slow = %.8f\n", (const char *)ppft.pft.name, ppft.cmass_harvested_products_slow);
+			printf("ppft[\"%s\"].cmass_litter_leaf = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_litter_leaf);
+			printf("ppft[\"%s\"].cmass_litter_root = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_litter_root);
+			printf("ppft[\"%s\"].cmass_litter_sap = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_litter_sap);
+			printf("ppft[\"%s\"].cmass_litter_heart = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_litter_heart);
+			printf("ppft[\"%s\"].cmass_litter_repr = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_litter_repr);
+			printf("ppft[\"%s\"].cmass_harvested_products_slow = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.cmass_harvested_products_slow);
 		}
 	}
 
@@ -608,14 +610,14 @@ double Patch::ncont(double scale_indiv, bool luc) {
 	double ncont = 0.0;
 
 	if (ifdavediagnostics) {
-		printf("soil.NH4_mass = %.8f\n", soil.NH4_mass);
-		printf("soil.NO3_mass = %.8f\n", soil.NO3_mass);
-		printf("soil.NO2_mass = %.8f\n", soil.NO2_mass);
-		printf("soil.NO_mass = %.8f\n", soil.NO_mass);
-		printf("soil.N2O_mass = %.8f\n", soil.N2O_mass);
-		printf("soil.N2_mass = %.8f\n", soil.N2_mass);
-		printf("soil.snowpack_NH4_mass = %.8f\n", soil.snowpack_NH4_mass);
-		printf("soil.snowpack_NO3_mass = %.8f\n", soil.snowpack_NO3_mass);
+		printf("soil.NH4_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.NH4_mass);
+		printf("soil.NO3_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.NO3_mass);
+		printf("soil.NO2_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.NO2_mass);
+		printf("soil.NO_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.NO_mass);
+		printf("soil.N2O_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.N2O_mass);
+		printf("soil.N2_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.N2_mass);
+		printf("soil.snowpack_NH4_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.snowpack_NH4_mass);
+		printf("soil.snowpack_NO3_mass = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.snowpack_NO3_mass);
 	}
 
 	ncont += (soil.NH4_mass + soil.NO3_mass + soil.NO2_mass + soil.NO_mass + soil.N2O_mass + soil.N2_mass);
@@ -623,7 +625,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 
 	for (int i=0; i<NSOMPOOL; i++) {
 		if (ifdavediagnostics) {
-			printf("soil.sompool[%d].nmass = %.8f\n", i, soil.sompool[i].nmass);
+			printf("soil.sompool[%d].nmass = %.*f\n", i, DAVE_DIAGNOSTIC_PRECISION, soil.sompool[i].nmass);
 		}
 		ncont += soil.sompool[i].nmass;
 	}
@@ -631,12 +633,12 @@ double Patch::ncont(double scale_indiv, bool luc) {
 	for (int i=0; i<npft; i++) {
 		Patchpft& ppft = pft[i];
 		if (ifdavediagnostics) {
-			printf("ppft[\"%s\"].nmass_litter_leaf = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_litter_leaf);
-			printf("ppft[\"%s\"].nmass_litter_root = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_litter_root);
-			printf("ppft[\"%s\"].nmass_litter_sap = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_litter_sap);
-			printf("ppft[\"%s\"].nmass_litter_heart = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_litter_heart);
-			printf("ppft[\"%s\"].nmass_harvested_products_slow = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_harvested_products_slow);
-			printf("ppft[\"%s\"].nmass_litter_repr = %.8f\n", (const char *)ppft.pft.name, ppft.nmass_litter_repr);
+			printf("ppft[\"%s\"].nmass_litter_leaf = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_litter_leaf);
+			printf("ppft[\"%s\"].nmass_litter_root = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_litter_root);
+			printf("ppft[\"%s\"].nmass_litter_sap = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_litter_sap);
+			printf("ppft[\"%s\"].nmass_litter_heart = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_litter_heart);
+			printf("ppft[\"%s\"].nmass_harvested_products_slow = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_harvested_products_slow);
+			printf("ppft[\"%s\"].nmass_litter_repr = %.*f\n", (const char *)ppft.pft.name, DAVE_DIAGNOSTIC_PRECISION, ppft.nmass_litter_repr);
 		}
 		ncont += ppft.nmass_litter_leaf;
 		ncont += ppft.nmass_litter_root;
@@ -664,15 +666,15 @@ double Patch::water_content() {
 		water_content += (soil.Frac_ice[lyr] + soil.Frac_water[lyr] + soil.Fpwp_ref[lyr]) * soil.Dz[lyr];
 
 		if (ifdavediagnostics) {
-			printf("frac_ice[%d] = %.8f\n", lyr, soil.Frac_ice[lyr]);
-			printf("Frac_water[%d] = %.8f\n", lyr, soil.Frac_water[lyr]);
-			printf("Fpwp_ref[%d] = %.8f\n", lyr, soil.Fpwp_ref[lyr]);
-			printf("Dz[%d] = %.8f\n", lyr, soil.Dz[lyr]);
+			printf("frac_ice[%d] = %.*f\n", lyr, DAVE_DIAGNOSTIC_PRECISION, soil.Frac_ice[lyr]);
+			printf("Frac_water[%d] = %.*f\n", lyr, DAVE_DIAGNOSTIC_PRECISION, soil.Frac_water[lyr]);
+			printf("Fpwp_ref[%d] = %.*f\n", lyr, DAVE_DIAGNOSTIC_PRECISION, soil.Fpwp_ref[lyr]);
+			printf("Dz[%d] = %.*f\n", lyr, DAVE_DIAGNOSTIC_PRECISION, soil.Dz[lyr]);
 		}
 	}
 
 	if (ifdavediagnostics) {
-		printf("snowpack = %.8f\n", soil.snowpack);
+		printf("snowpack = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.snowpack);
 	}
 
 	water_content += soil.snowpack;
@@ -686,16 +688,16 @@ double Patch::cflux() {
 	double cflux = 0.0;
 
 	if (ifdavediagnostics) {
-		printf("soil.aorgCleach = %.16f\n", soil.aorgCleach);
-		printf("-fluxes.get_annual_flux(Fluxes::NPP) = %.8f\n", -fluxes.get_annual_flux(Fluxes::NPP));
-		printf("fluxes.get_annual_flux(Fluxes::REPRC) = %.8f\n", fluxes.get_annual_flux(Fluxes::REPRC));
-		printf("fluxes.get_annual_flux(Fluxes::SOILC) = %.8f\n", fluxes.get_annual_flux(Fluxes::SOILC));
-		printf("fluxes.get_annual_flux(Fluxes::FIREC) = %.8f\n", fluxes.get_annual_flux(Fluxes::FIREC));
-		printf("fluxes.get_annual_flux(Fluxes::ESTC) = %.8f\n", fluxes.get_annual_flux(Fluxes::ESTC));
-		printf("fluxes.get_annual_flux(Fluxes::SEEDC) = %.8f\n", fluxes.get_annual_flux(Fluxes::SEEDC));
-		printf("fluxes.get_annual_flux(Fluxes::MANUREC) = %.8f\n", fluxes.get_annual_flux(Fluxes::MANUREC));
-		printf("fluxes.get_annual_flux(Fluxes::HARVESTC) = %.8f\n", fluxes.get_annual_flux(Fluxes::HARVESTC));
-		printf("fluxes.get_annual_flux(Fluxes::CH4C) = %.8f\n", fluxes.get_annual_flux(Fluxes::CH4C));
+		printf("soil.aorgCleach = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.aorgCleach);
+		printf("-fluxes.get_annual_flux(Fluxes::NPP) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -fluxes.get_annual_flux(Fluxes::NPP));
+		printf("fluxes.get_annual_flux(Fluxes::REPRC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::REPRC));
+		printf("fluxes.get_annual_flux(Fluxes::SOILC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::SOILC));
+		printf("fluxes.get_annual_flux(Fluxes::FIREC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::FIREC));
+		printf("fluxes.get_annual_flux(Fluxes::ESTC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::ESTC));
+		printf("fluxes.get_annual_flux(Fluxes::SEEDC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::SEEDC));
+		printf("fluxes.get_annual_flux(Fluxes::MANUREC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::MANUREC));
+		printf("fluxes.get_annual_flux(Fluxes::HARVESTC) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::HARVESTC));
+		printf("fluxes.get_annual_flux(Fluxes::CH4C) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::CH4C));
 	}
 
 	cflux += soil.aorgCleach;
@@ -718,23 +720,23 @@ double Patch::nflux() {
 	double nflux = 0.0;
 
 	if (ifdavediagnostics) {
-		printf("-aNO3dep = %.8f\n", -stand.get_gridcell().aNO3dep);
-		printf("-aNH4dep = %.8f\n", -stand.get_gridcell().aNH4dep);
-		printf("-anfert = %.8f\n", -anfert);
-		printf("-soil.anfix = %.8f\n", -soil.anfix);
-		printf("soil.aminleach = %.8f\n", soil.aminleach);
-		printf("soil.aorgNleach = %.8f\n", soil.aorgNleach);
-		printf("fluxes.get_annual_flux(Fluxes::HARVESTN) = %.8f\n", fluxes.get_annual_flux(Fluxes::HARVESTN));
-		printf("fluxes.get_annual_flux(Fluxes::SEEDN) = %.8f\n", fluxes.get_annual_flux(Fluxes::SEEDN));
-		printf("fluxes.get_annual_flux(Fluxes::NH3_FIRE) = %.8f\n", fluxes.get_annual_flux(Fluxes::NH3_FIRE));
-		printf("fluxes.get_annual_flux(Fluxes::NOx_FIRE) = %.8f\n", fluxes.get_annual_flux(Fluxes::NOx_FIRE));
-		printf("fluxes.get_annual_flux(Fluxes::N2O_FIRE) = %.8f\n", fluxes.get_annual_flux(Fluxes::N2O_FIRE));
-		printf("fluxes.get_annual_flux(Fluxes::N2_FIRE) = %.8f\n", fluxes.get_annual_flux(Fluxes::N2_FIRE));
-		printf("fluxes.get_annual_flux(Fluxes::N2O_SOIL) = %.8f\n", fluxes.get_annual_flux(Fluxes::N2O_SOIL));
-		printf("fluxes.get_annual_flux(Fluxes::N2_SOIL) = %.8f\n", fluxes.get_annual_flux(Fluxes::N2_SOIL));
-		printf("fluxes.get_annual_flux(Fluxes::NO_SOIL) = %.8f\n", fluxes.get_annual_flux(Fluxes::NO_SOIL));
-		printf("fluxes.get_annual_flux(Fluxes::NH3_SOIL) = %.8f\n", fluxes.get_annual_flux(Fluxes::NH3_SOIL));
-		printf("fluxes.get_annual_flux(Fluxes::ESTN) = %.8f\n", fluxes.get_annual_flux(Fluxes::ESTN));
+		printf("-aNO3dep = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -stand.get_gridcell().aNO3dep);
+		printf("-aNH4dep = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -stand.get_gridcell().aNH4dep);
+		printf("-anfert = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -anfert);
+		printf("-soil.anfix = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -soil.anfix);
+		printf("soil.aminleach = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.aminleach);
+		printf("soil.aorgNleach = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.aorgNleach);
+		printf("fluxes.get_annual_flux(Fluxes::HARVESTN) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::HARVESTN));
+		printf("fluxes.get_annual_flux(Fluxes::SEEDN) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::SEEDN));
+		printf("fluxes.get_annual_flux(Fluxes::NH3_FIRE) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::NH3_FIRE));
+		printf("fluxes.get_annual_flux(Fluxes::NOx_FIRE) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::NOx_FIRE));
+		printf("fluxes.get_annual_flux(Fluxes::N2O_FIRE) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::N2O_FIRE));
+		printf("fluxes.get_annual_flux(Fluxes::N2_FIRE) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::N2_FIRE));
+		printf("fluxes.get_annual_flux(Fluxes::N2O_SOIL) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::N2O_SOIL));
+		printf("fluxes.get_annual_flux(Fluxes::N2_SOIL) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::N2_SOIL));
+		printf("fluxes.get_annual_flux(Fluxes::NO_SOIL) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::NO_SOIL));
+		printf("fluxes.get_annual_flux(Fluxes::NH3_SOIL) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::NH3_SOIL));
+		printf("fluxes.get_annual_flux(Fluxes::ESTN) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::ESTN));
 	}
 
 	nflux += -(stand.get_gridcell().aNH4dep+stand.get_gridcell().aNO3dep);
@@ -761,15 +763,15 @@ double Patch::nflux() {
 double Patch::water_flux() {
 
 	if (ifdavediagnostics) {
-		printf("-aprec = %.8f\n", -get_climate().aprec);
-		printf("-irrigation_y = %.8f\n", -irrigation_y);
-		printf("-awetland_water_added = %.8f\n", -awetland_water_added);
-		printf("aintercep = %.8f\n", aintercep);
-		printf("aaet = %.8f\n", aaet);
-		printf("aevap = %.8f\n", aevap);
-		printf("asurfrunoff = %.8f\n", asurfrunoff);
-		printf("adrainrunof = %.8f\n", adrainrunoff);
-		printf("abaserunoff = %.8f\n", abaserunoff);
+		printf("-aprec = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -get_climate().aprec);
+		printf("-irrigation_y = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -irrigation_y);
+		printf("-awetland_water_added = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -awetland_water_added);
+		printf("aintercep = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, aintercep);
+		printf("aaet = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, aaet);
+		printf("aevap = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, aevap);
+		printf("asurfrunoff = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, asurfrunoff);
+		printf("adrainrunof = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, adrainrunoff);
+		printf("abaserunoff = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, abaserunoff);
 	}
 
 	double wflux = 0.0;

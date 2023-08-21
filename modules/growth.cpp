@@ -3074,7 +3074,7 @@ void update_pools(Vegetation& vegetation) {
 		assert(indiv.nmass_storage >= 0.0);
 		assert(indiv.nmass_storage <= indiv.nstorage_max);
 		assert(negligible(cgrow_unlim - (indiv.cgrow_repr + indiv.cgrow_leaf + indiv.cgrow_root + creturn + cexcess), -16));
-		assert(indiv.cton_leaf() <= indiv.pft.cton_leaf_max);
+		assert(indiv.pft.cton_leaf_max - indiv.cton_leaf() > -1e-12); // Can't use negligible, because c:n may be less than max
 		assert(indiv.cton_leaf() > indiv.pft.cton_leaf_min || equal(indiv.cton_leaf(),indiv.pft.cton_leaf_min,-12));
 		assert(indiv.cton_root() <= indiv.pft.cton_root_max);
 		

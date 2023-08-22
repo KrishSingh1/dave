@@ -10,54 +10,48 @@ void ensure_channel_open() {
 	}
 }
 
-double get_lai(Individual &indiv) {
+double get_lai(const Individual &indiv) {
 	return indiv.lai;
 }
 
-double get_er(Patch &patch, int i) {
+double get_er(const Patch &patch, int i) {
 	double ra_kg = patch.fluxes.get_daily_flux(Fluxes::RA, date.day);
 	double rh_kg = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day);
 	return (ra_kg + rh_kg) * G_PER_KG;
 }
 
-double get_gpp(Patch &patch, int i) {
+double get_gpp(const Patch &patch, int i) {
 	double gpp_kg = patch.fluxes.get_daily_flux(Fluxes::GPP, date.day);
 	return gpp_kg * G_PER_KG;
 }
 
-double get_npp(Patch &patch, int i) {
+double get_npp(const Patch &patch, int i) {
 	double npp_kg = patch.fluxes.get_daily_flux(Fluxes::NPP, date.day);
 	return npp_kg * G_PER_KG;
 }
 
-double get_nee(Patch &patch, int i) {
+double get_nee(const Patch &patch, int i) {
 	double rh_kg = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day);
 	double npp_kg = patch.fluxes.get_daily_flux(Fluxes::NPP, date.day);
 	return (rh_kg - npp_kg) * G_PER_KG;
 }
 
-double get_et(Patch &patch, int i) {
-	Vegetation &vegetation = patch.vegetation;
-	vegetation.firstobj();
+double get_et(const Patch &patch, int i) {
+	const Vegetation &vegetation = patch.vegetation;
 	double transpiration = 0;
-	while (vegetation.isobj) {
-		transpiration += vegetation.getobj().aet;
-		vegetation.nextobj();
-	}
+	for (int i = 0; i < vegetation.nobj; i++)
+		transpiration += vegetation[i].aet;
 	return transpiration + patch.soil.get_layer_soil_water_evap();
 }
 
-std::vector<Individual *> get_indivs(Vegetation &vegetation, const char *name) {
-	vegetation.firstobj();
+std::vector<Individual *> get_indivs(const Vegetation &vegetation, const char *name) {
 	std::vector<Individual *> result;
-	while (vegetation.isobj) {
-		Individual &indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
 
 		if (indiv.pft.name == name && indiv.alive) {
 			result.push_back(&indiv);
 		}
-
-		vegetation.nextobj();
 	}
 	return result;
 }
@@ -150,16 +144,15 @@ std::vector<std::string> get_pft_flux_names() {
 	return fluxes;
 }
 
-Individual *get_first_indiv(Patch &patch) {
-	Vegetation &vegetation = patch.vegetation;
-	vegetation.firstobj();
-	if (vegetation.isobj) {
-		return &(vegetation.getobj());
+Individual *get_first_indiv(const Patch &patch) {
+	const Vegetation &vegetation = patch.vegetation;
+	if (vegetation.nobj > 0) {
+		return &(vegetation[0]);
 	}
 	return NULL;
 }
 
-int get_nlayer_fpar(Patch &patch) {
+int get_nlayer_fpar(const Patch &patch) {
 	Individual *indiv = get_first_indiv(patch);
 	if (indiv) {
 		return indiv->fpar_layerwise.size();
@@ -169,12 +162,49 @@ int get_nlayer_fpar(Patch &patch) {
 }
 
 
-int get_nlayer_lai(Patch &patch) {
+int get_nlayer_lai(const Patch &patch) {
 	Individual *indiv = get_first_indiv(patch);
 	if (indiv) {
 		return indiv->lai_layerwise.size();
 	}
 	return 0;
+}
+
+double get_pft_cmass_litter(const Patch &patch, const Pft &pft) {
+	const Patchpft &patchpft = patch.pft[pft.id];
+	return patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap + patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
+}
+
+void compute_stats(std::vector<double> data, double *mean, double *sd, double *median) {
+	double sum = 0;
+	for (double x : data) {
+		sum += x;
+	}
+	*mean = sum / data.size();;
+	double var = 0;
+	for (double x : data) {
+		var += (x - *mean) * (x - *mean);
+	}
+	*sd = data.size() > 1 ? sqrt(var / (data.size() - 1)) : 0;
+	std::sort(data.begin(), data.end());
+	int n = data.size() / 2;
+	if (data.size() % 2 == 0) {
+		*median = (data[n] + data[n - 1]) / 2;
+	} else {
+		*median = data[n];
+	}
+}
+
+double sum(double *array, int n) {
+	double total = 0;
+	for (int i = 0; i < n; i++) {
+		total += array[i];
+	}
+	return total;
+}
+
+double mean(double *array, int n) {
+	return divide(sum(array, n), n);
 }
 
 } // namespace GuessOutput

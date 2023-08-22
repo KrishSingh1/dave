@@ -3907,6 +3907,18 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 } // Soil::calcsoiltemp
 
+double Soil::get_nmass_avail(int pref) const {
+	double nmass = 0.0;
+	if (pref == NO) {
+		nmass = NH4_mass + NO3_mass;
+	} else if (pref == NH4) {
+		nmass = NH4_mass;
+	} else if (pref == NO3) {
+		nmass = NO3_mass;
+	}
+	return nmass;
+}
+
 double Soil::nmass_avail(int pref) {
 	double nmass = 0.0;
 	if (!ifntransform) {

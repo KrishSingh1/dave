@@ -20,10 +20,78 @@ namespace GuessOutput {
 const int COLUMN_WIDTH = 14;
 const int NUMERIC_PRECISION = 8;
 const char *COLNAME_TOTAL = "total";
+const char *COLNAME_MEAN = "mean";
 const char *COLNAME_PATCH = "patch";
 const char *COLNAME_TIMESTEP = "timestep";
 
+class ColumnDefinition {
+	public:
+		/*
+		Create a new column definition.
+
+		@param name: Column name.
+		@param get_output: Pointer to a function which returns the value to
+							be written to the rows of this column.
+		*/
+		ColumnDefinition(std::string name, double (*get_output)(const Patch &));
+
+		/*
+		Get the name of the column.
+		*/
+		std::string get_name() const;
+
+		/*
+		Read the current value of the column based on the current state of
+		the patch.
+		*/
+		double read_value(const Patch &patch) const;
+
+	private:
+		std::string name;
+
+		/*
+		Pointer to a function which reads an output from a pointer to an
+		object of the template type.
+
+		@param patch: The patch.
+		@return: The value which appears in each column of the output table.
+		*/
+		double (*read_output)(const Patch &patch);
+};
+
 // Output module for DAVE outputs, including per-patch outputs.
+template<class T>
+class OutputReader {
+	public:
+		OutputReader(double (*get_value)(const T&)) {
+			this->get_value = get_value;
+		}
+		double read(const T& t) const {
+			return get_value(t);
+		}
+	private:
+		double (*get_value)(const T&);
+};
+
+template<class T>
+class ArrayOutputReader {
+	public:
+		ArrayOutputReader(double (*get_value)(const T&, int)) {
+			this->get_value = get_value;
+			this->get_value_simple = NULL;
+		}
+		ArrayOutputReader(double (*get_value)(const T&)) {
+			this->get_value = NULL;
+			this->get_value_simple = get_value;
+		}
+		virtual double read(const T& t, int i) const {
+			return get_value ? get_value(t, i) : get_value_simple(t);
+		}
+	private:
+		double (*get_value)(const T&, int);
+		double (*get_value_simple)(const T&);
+};
+
 class DaveOutput : public OutputModule {
 public:
 	/*
@@ -44,6 +112,8 @@ public:
 	void openlocalfiles(Gridcell &, int) {}
 	void closelocalfiles(Gridcell&) {}
 private:
+	typedef enum {SUBDAILY, DAILY, ANNUAL} timestep_t;
+
 	class OutputFile {
 		public:
 			/*
@@ -129,7 +199,7 @@ private:
 			/*
 			Function which gets columns used by this output file.
 			*/
-			virtual ColumnDescriptors get_columns() = 0;
+			virtual ColumnDescriptors get_cols() = 0;
 		private:
 			/*
 			Name of the instruction file parameter controlling the file name.
@@ -190,6 +260,12 @@ private:
 			@param gridcell: The current gridcell.
 			*/
 			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+
+			/*
+			Function which gets columns used by this output file.
+			*/
+			virtual ColumnDescriptors get_cols();
+
 		protected:
 			/*
 			Create a new PatchLevelOutput instance. This is protected because
@@ -197,10 +273,15 @@ private:
 
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
-			@param cols: Columns in the output file.
-			@param spinup_output: True to write outputs during spinup. False otherwise.
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			PatchLevelOutput(std::string param, std::string desc);
+			PatchLevelOutput(std::string param, std::string desc, bool sum, bool mean);
+
+			/*
+			Function which gets columns used by this output file.
+			*/
+			virtual ColumnDescriptors get_columns() = 0;
 
 			/*
 			Write all required row for the specified patch.
@@ -208,7 +289,19 @@ private:
 			@param patch: The patch for which outputs should be written.
 			@param out: Output rows instance to which outputs will be written.
 			*/
-			virtual void write_patch(Patch &patch, OutputRows &out) = 0;
+			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out) = 0;
+		private:
+			/*
+			Iff true, a column containing the sum of all other columns will be
+			written to the output file.
+			*/
+			bool write_sum;
+
+			/*
+			Iff true, a column containing the mean of all other columns will be
+			written to the output file.
+			*/
+			bool write_mean;
 	};
 
 	class IndividualOutput : public PatchLevelOutput {
@@ -219,9 +312,11 @@ private:
 			@param param_name: Name of the parameter in the instruction file which contains the output file name.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
+			@param aggregator: A function which aggregates the output value across individuals.
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			IndividualOutput(std::string param_name, double (*get_output)(Individual &), std::string description);
+			IndividualOutput(std::string param_name, OutputReader<Individual> *get_output, std::string description, double (*aggregator)(double *, int), bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -234,13 +329,13 @@ private:
 			@param patch: The patch for which outputs should be written.
 			@param out: Output rows instance to which outputs will be written.
 			*/
-			virtual void write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
 
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
 			*/
-			virtual ColumnDescriptors get_columns();
+			virtual ColumnDescriptors get_columns() override;
 
 		private:
 
@@ -251,7 +346,13 @@ private:
 			@param indiv: An individual.
 			@return: The value which appears in each column of the output table.
 			*/
-			double (*read_output)(Individual &indiv);
+			std::unique_ptr<OutputReader<Individual>> read_output;
+
+			/*
+			Pointer to a function which aggregates the output value across
+			individuals. Usually this would be a sum() or mean() function.
+			*/
+			double (*aggregator)(double *, int);
 	};
 
 	/*
@@ -269,9 +370,8 @@ private:
 			@param get_nelem: Pointer to a function which returns the number of array elements for the specified patch. The assumption is that every individual in the patch has an output array of the same length.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(Patch &), double (*get_output)(Individual &, int), std::string description);
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description);
 
 			/*
 			Destructor.
@@ -291,9 +391,14 @@ private:
 			/*
 			Get column descriptors to be used for the output table.
 			*/
-			ColumnDescriptors get_columns() override;
+			ColumnDescriptors get_cols() override;
 
 		private:
+			/*
+			Get the output values for given row of a particular patch.
+			*/
+			std::vector<double> write_row(const Patch &patch, int i, const std::vector<std::string> &pfts);
+
 			/*
 			Name of each element in the array (e.g. "layer").
 			*/
@@ -302,12 +407,12 @@ private:
 			/*
 			Get the number of elements in the output array.
 			*/
-			int (*get_n)(Patch &);
+			int (*get_n)(const Patch &);
 
 			/*
 			Read the i-th element of the output array.
 			*/
-			double (*read_elem)(Individual &, int);
+			std::unique_ptr<ArrayOutputReader<Individual>> read_elem;
 	};
 
 	/*
@@ -325,9 +430,23 @@ private:
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
 			@param spinup_output: True to write outputs during spinup. False otherwise.
-			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
+			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
+
+			/*
+			Create a new patch-level array output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param col_name: Column name prefix. Will be suffixed with column index (0-n).
+			@param n: Pointer to a function which gets the number of columns for a given patch.
+			@param get_output: A function which returns the n-th element of the array from the patch.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			PatchLevelArrayOutput(std::string param_name, std::string col_name, int (*get_nelem)(), ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
 
 			/*
 			Create a new patch-level array output using predefined column names.
@@ -337,10 +456,10 @@ private:
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
-			@param sum: If true, the sum of the data columns will be stored in the total column. If false, the mean will be used instead.
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			PatchLevelArrayOutput(std::string param_name, std::vector<std::string> col_names, int n, double (*get_output)(Patch &, int), std::string description, bool sum = true);
+			PatchLevelArrayOutput(std::string param_name, std::vector<std::string> col_names, int n, ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -353,13 +472,13 @@ private:
 			@param patch: The patch for which outputs should be written.
 			@param out: Output rows instance to which outputs will be written.
 			*/
-			void write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputRows &out);
 
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
 			*/
-			ColumnDescriptors get_columns();
+			ColumnDescriptors get_columns() override;
 
 		private:
 			/*
@@ -380,13 +499,153 @@ private:
 			@param i: Array index in range [0, n)
 			@return: The i-th element of the output array.
 			*/
-			double (*read_output)(Patch &patch, int i);
+			std::unique_ptr<ArrayOutputReader<Patch>> read_output;
 
 			/*
-			If true, store the sum of the data columns in the total column. If
-			false, the mean will be stored instead.
+			Optional pointer to a function which gets the number of columns for
+			a given patch. This may be NULL at runtime.
 			*/
-			bool total_is_sum;
+			int (*get_nelem)();
+	};
+
+	class PftOutput : public PatchLevelOutput {
+		public:
+			/*
+			Create a new pft output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param get_output: A function which returns the output value from an individual.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			PftOutput(std::string param_name, double (*get_output)(const Patch &, const Pft &), std::string description, bool sum, bool mean);
+
+			/*
+			Destructor.
+			*/
+			~PftOutput();
+
+			/*
+			Write a row of outputs containing one cell per individual.
+
+			@param patch: The patch for which outputs should be written.
+			@param out: Output rows instance to which outputs will be written.
+			*/
+			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+
+		protected:
+			/*
+			Get column descriptors to be used for the output table.
+			*/
+			virtual ColumnDescriptors get_columns() override;
+
+		private:
+
+			/*
+			Pointer to a function which reads an output from a pointer to an
+			object of the template type.
+
+			@param patch: The patch.
+			@param pft: The PFT.
+			@return: The value which appears in each column of the output table.
+			*/
+			double (*read_output)(const Patch &patch, const Pft &pft);
+	};
+
+	class CustomPatchLevelOutput : public PatchLevelOutput {
+		public:
+			/*
+			Create a new patch-level output with custom columns.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param get_columns: A function which defines column definitions.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			CustomPatchLevelOutput(std::string param_name, std::vector<ColumnDefinition> (*get_columns)(), std::string description, bool sum, bool mean);
+
+			/*
+			Destructor.
+			*/
+			~CustomPatchLevelOutput();
+
+			/*
+			Write a row of outputs containing one cell per individual.
+
+			@param patch: The patch for which outputs should be written.
+			@param out: Output rows instance to which outputs will be written.
+			*/
+			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+
+		protected:
+			/*
+			Get column descriptors to be used for the output table.
+			*/
+			virtual ColumnDescriptors get_columns() override;
+
+		private:
+
+			/*
+			Pointer to a function which generates column definitions to be used
+			for this output file.
+
+			@param patch: The patch.
+			@param pft: The PFT.
+			@return: The value which appears in each column of the output table.
+			*/
+			std::vector<ColumnDefinition> (*get_column_definitions)();
+
+			/*
+			The column definitions. This will be empty until get_columns() is
+			called, when the output file is opened.
+			*/
+			std::vector<ColumnDefinition> columns;
+	};
+
+	class StandPftOutput : public PatchLevelOutput {
+		public:
+			/*
+			Create a new standpft output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param get_output: A function which returns the output value from an standpft.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			StandPftOutput(std::string param_name, OutputReader<Standpft> *get_output, std::string description, bool sum, bool mean);
+
+			/*
+			Destructor.
+			*/
+			~StandPftOutput();
+
+			/*
+			Write a row of outputs containing one cell per standpft.
+
+			@param patch: The patch for which outputs should be written.
+			@param out: Output rows instance to which outputs will be written.
+			*/
+			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+
+		protected:
+			/*
+			Get column descriptors to be used for the output table.
+			*/
+			virtual ColumnDescriptors get_columns() override;
+
+		private:
+
+			/*
+			Pointer to a function which reads an output from a pointer to an
+			object of the template type.
+
+			@param indiv: An individual.
+			@return: The value which appears in each column of the output table.
+			*/
+			std::unique_ptr<OutputReader<Standpft>> read_output;
 	};
 
 	/*
@@ -405,7 +664,30 @@ private:
 	std::vector<std::unique_ptr<OutputFile>> annual_outputs;
 
 	/*
-	Add a daily individual-level array output.
+	Add an individual-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns a property of an individual to be written to each column.
+	@param description: Description of the output (with units!!).
+	@param aggregator: Function which aggregates the output value across individuals.
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
+
+	/*
+	Add a pft-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns a property of an individual to be written to each column.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_pft_output(std::string name, timestep_t timestep, double (*read_output)(const Patch&, const Pft&), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add an individual-level array output.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
@@ -413,93 +695,86 @@ private:
 	@param read_output: A function which returns the i-th element of the output property of an individual.
 	@param description: Description of the output (with units!!).
 	*/
-	void add_daily_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
+	void add_indiv_array_output(std::string name, std::string elem_name, timestep_t timestep, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description);
 
 	/*
-	Add an annual individual-level array output.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
-	@param get_nelem: Get the number of array elements for a given patch.
-	@param read_output: A function which returns the i-th element of the output property of an individual.
-	@param description: Description of the output (with units!!).
-	*/
-	void add_annual_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
-
-	/*
-	Add a daily individual-level array output.
-
-	This is really just a wrapper around add_daily_indiv_array_output().
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param read_output: A function which returns the i-th subdaily element of the output property of an individual.
-	@param description: Description of the output (with units!!).
-	*/
-	void add_subdaily_indiv_output(std::string name, double (*read_output)(Individual&, int), std::string description);
-
-	/*
-	Add a daily individual-level output.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param read_output: A function which returns a property of an individual to be written to each column.
-	@param description: Description of the output (with units!!).
-	*/
-	void add_daily_indiv_output(std::string name, double (*read_output)(Individual&), std::string description);
-
-	/*
-	Add an annual individual-level output.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param read_output: A function which returns a property of an individual to be written to each column.
-	@param description: Description of the output (with units!!).
-	*/
-	void add_annual_indiv_output(std::string name, double (*read_output)(Individual&), std::string description);
-
-	/*
-	Add a daily patch-level array output.
+	Add a patch-level output.
 
 	This is really just a wrapper around add_daily_patch_level_array_output().
 
 	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_subdaily_patch_level_output(std::string name, double (*read_output)(Patch&, int), std::string description);
+	void add_patch_output(std::string name, std::string colname, timestep_t timestep, double (*read_output)(const Patch&), std::string description, bool sum = false, bool mean = false);
 
 	/*
-	Add a daily patch-level array output.
+	Add a patch-level array output.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param colname: Column name prefix. Will be suffixed with column index.
 	@param n: Number of array elements.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
-	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_daily_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
+	void add_patch_array_output(std::string name, std::string colname, timestep_t timestep, int nelem, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
-	Add a daily patch-level array output.
+	Add a patch-level array output.
 
 	@param name: Parameter in the instruction file which determines output file name.
-	@param colnames: Column names in the output file. Should be length = n.
-	@param n: Number of array elements.
+	@param colname: Column name prefix. Will be suffixed with column index.
+	@param get_nelem: Pointer to a function which gets the number of columns for the given patch.
 	@param read_output: A function which returns the i-th element of the output array.
 	@param description: Description of the output (with units!!).
-	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_daily_patch_level_array_output(std::string name, std::vector<std::string> colnames, int nelem, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
+	void add_patch_array_output(std::string name, std::string colname, timestep_t timestep, int (*get_nelem)(), double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
-	Add an annual patch-level array output.
+	Add a patch-level array output with a predetermined list of column names.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column names.
+	@param read_output: A function which returns the i-th element of the output array.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_patch_array_output(std::string name, std::vector<std::string> colnames, timestep_t timestep, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a standpft-level output.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param colname: Column name in the output file.
-	@param n: Number of array elements.
-	@param read_output: A function which returns the i-th element of the output array.
+	@param read_output: A function which returns the output value for a particular standpft.
 	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_annual_patch_level_array_output(std::string name, std::string colname, int nelem, double (*read_output)(Patch&, int), std::string description);
+	void add_spft_output(std::string name, timestep_t timestep, double (*read_output)(const Standpft&), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add an output file at the appropriate timestep.
+
+	@param file: The output file to be registered.
+	@param timestep: The timestep at which the file should be written.
+	*/
+	void register_output(OutputFile *file, timestep_t timestep);
+
+	/*
+	Get the vector of output files which corresponds to a particular timestep.
+
+	@param timestep: The timestep.
+	*/
+	std::vector<std::unique_ptr<OutputFile>> &get_outputs_vector(timestep_t timestep);
 
 	/*
 	Register instruction file parameters for all output files defined by this
@@ -528,51 +803,6 @@ private:
 	void declare_parameters(std::vector<std::unique_ptr<OutputFile>> &outputs);
 
 	/*
-	Create an individual output pointer using the specified name, function
-	pointer and description.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param read_output: A function which returns a property of an individual to be written to each column.
-	@param description: Description of the output (with units!!).
-	*/
-	std::unique_ptr<OutputFile> create_individual_output(std::string name, double (*read_output)(Individual&), std::string description);
-
-	/*
-	Create a pointer to a patch-level array output. This is owned by the caller.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param colname: Column name prefix. Will be suffixed with column index.
-	@param n: Number of array elements.
-	@param read_output: A function which returns the i-th element of the output array.
-	@param description: Description of the output (with units!!).
-	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
-	*/
-	std::unique_ptr<OutputFile> create_array_output(std::string name, std::string colname, int n, double (*read_output)(Patch&, int), std::string description, bool total_is_sum = true);
-
-	/*
-	Create a pointer to a patch-level array output. This is owned by the caller.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param colnames: Column names. Should have size = n.
-	@param n: Number of array elements.
-	@param read_output: A function which returns the i-th element of the output array.
-	@param description: Description of the output (with units!!).
-	@param total_is_sum: If true, the sum of all data columns will be written to the total column. If false, the mean will be written instead.
-	*/
-	std::unique_ptr<OutputFile> create_array_output(std::string name, std::vector<std::string> colnames, int n, double (*read_output)(Patch&, int), std::string description, bool total_is_sum);
-
-	/*
-	Create a pointer to an individual-level array output. This is owned by the caller.
-
-	@param name: Parameter in the instruction file which determines output file name.
-	@param elem_name: Name of the index column (e.g. "layer", "timestep", etc).
-	@param get_nelem: Get the number of array elements for a given patch.
-	@param read_output: A function which returns the i-th element of the output property of an individual.
-	@param description: Description of the output (with units!!).
-	*/
-	std::unique_ptr<OutputFile> create_indiv_array_output(std::string name, std::string elem_name, int (*get_nelem)(Patch &), double (*read_output)(Individual&, int), std::string description);
-
-	/*
 	Total time spent in dave output code.
 	*/
 	double total_time;
@@ -582,6 +812,11 @@ private:
 True iff outputs should be written during spinup.
 */
 extern bool spinup_output;
+
+/*
+Iff true, mean/std dev across patches will be written instead of raw outputs.
+*/
+extern bool patch_output_stats;
 
 }
 

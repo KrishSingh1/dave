@@ -4236,6 +4236,7 @@ public:
 
 	// Soil helper functions
 	double nmass_avail(int pref = NO);
+	double get_nmass_avail(int pref = NO) const;
 	void nmass_subtract(double nmass, int pref = NO);
 	void nmass_inc(double nmass, int pref = NO);
 	void nmass_multiplic_inc(double inc, int pref = NO);

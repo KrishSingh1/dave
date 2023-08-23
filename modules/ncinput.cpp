@@ -240,7 +240,7 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		if (current_gridcell == gridlist.end()) {
 			double total_walltime = (getgridcell_start - ctor_start) * 1000;
 			double prop = ncinput_walltime_use / total_walltime;
-			dprintf("Simulations completed. Total time: %.2fms. Total time spent in ncinput: %.2fms. ncinput_prop = %.2f\n", total_walltime, ncinput_walltime_use, prop);
+			dprintf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
 			return false;
 		}
 
@@ -346,6 +346,8 @@ try {
 		// We are now out of the spinup. Reset spinup_year to avoid confusion.
 		spinup_year = -1;
 	}
+
+	climate.met_year = year;
 
 	// Generate daily N deposition values on first day of year.
 	if (date.day == 0) {

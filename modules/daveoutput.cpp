@@ -78,7 +78,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");
 
 	// Subdaily individual-level outputs.
-	//                                              column name              function which gets number of array elems     function which returns the i-th output value
+	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file
 	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)");
 	add_indiv_array_output("file_dave_subdaily_rd"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Rd[i];    }, "Subdaily leaf respiration (mol/m2/s)");
 	add_indiv_array_output("file_dave_subdaily_anc"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anc[i];   }, "Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)");
@@ -109,6 +109,13 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_dsimfire"            , DAILY, simfire_columns, "Daily simfire analysis");
 	add_patch_output("file_dave_dfuel"               , DAILY, fuel_columns, "Daily blaze fuel availability (kgC/m2)");
 	add_patch_output("file_dave_dcoarse_woody_debris", DAILY, coarse_woody_debris_columns, "Daily coarse woody debris (gC/m2)");
+	add_patch_output("file_dave_met_temp"            , DAILY, "temp", [](const Patch &patch) { return patch.stand.get_gridcell().climate.temp;    }, "Daily air temperature (°C)");
+	add_patch_output("file_dave_met_par"             , DAILY, "par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par;     }, "Daily PAR (J/m2/timestep)");
+	add_patch_output("file_dave_met_vpd"             , DAILY, "vpd", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.vpds.front(), patch.stand.get_gridcell().climate.vpds.size());     }, "Daily VPD (kPa)");
+	add_patch_output("file_dave_met_insol"           , DAILY, "insol", [](const Patch &patch) { return patch.stand.get_gridcell().climate.insol;   }, "Daily insolation (units depend on instype)");
+	add_patch_output("file_dave_met_precip"          , DAILY, "precip", [](const Patch &patch) { return patch.stand.get_gridcell().climate.prec;    }, "Daily total precipitation (mm)");
+	add_patch_output("file_dave_met_pressure"        , DAILY, "pressure", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()); }, "Daily air pressure (Pa)");
+	add_patch_output("file_dave_met_co2"             , DAILY, "co2", [](const Patch &patch) { return patch.stand.get_gridcell().climate.co2;         }, "Daily atmospheric co2 concentration (ppm)");
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
@@ -124,13 +131,13 @@ DaveOutput::DaveOutput() {
 
 	// Subdaily patch-level outputs.
 	//                                               column name              function which gets number of array elems     function which returns the i-th output value
-	add_patch_array_output("file_dave_met_temp"      , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)");
-	add_patch_array_output("file_dave_met_par"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i];     }, "Subdaily PAR (J/m2/timestep)");
-	add_patch_array_output("file_dave_met_vpd"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)");
-	add_patch_array_output("file_dave_met_insol"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)");
-	add_patch_array_output("file_dave_met_precip"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)");
-	add_patch_array_output("file_dave_met_pressure"  , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i]; }, "Subdaily air pressure (Pa)");
-	add_patch_array_output("file_dave_met_co2"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)");
+	add_patch_array_output("file_dave_met_subdaily_temp"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)", false, true);
+	add_patch_array_output("file_dave_met_subdaily_par"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i];     }, "Subdaily PAR (J/m2/timestep)", true, false);
+	add_patch_array_output("file_dave_met_subdaily_vpd"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
+	add_patch_array_output("file_dave_met_subdaily_insol"   , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
+	add_patch_array_output("file_dave_met_subdaily_precip"  , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
+	add_patch_array_output("file_dave_met_subdaily_pressure", DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i]; }, "Subdaily air pressure (Pa)", false, true);
+	add_patch_array_output("file_dave_met_subdaily_co2"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
 
 	// Standpft-level outputs.
 	add_spft_output("file_dave_cmass_repr"           , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2/day)");
@@ -163,6 +170,10 @@ void DaveOutput::write_outputs(Gridcell &gridcell, std::vector<std::unique_ptr<O
 
 bool should_write_today() {
 	return spinup_output || date.year >= nyear_spinup;
+}
+
+bool write_stats() {
+	return patch_output_stats && npatch > 1;
 }
 
 void DaveOutput::outannual(Gridcell &gridcell) {
@@ -429,7 +440,7 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 			Patch &patch = stand.getobj();
 
 			std::vector<double> patch_data = write_patch(patch, rows);
-			if (patch_output_stats) {
+			if (write_stats()) {
 				data.push_back(patch_data);
 			} else {
 				// The code would be cleaner if we were to use the data 2d array
@@ -453,14 +464,14 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				}
 			}
 
-			if (!patch_output_stats) {
+			if (!write_stats()) {
 				finish_row(channel, lon, lat, year, day);
 			}
 
 			stand.nextobj();
 		}
 
-		if (patch_output_stats && data.size()) {
+		if (write_stats() && data.size()) {
 			// Each element of data contains all columns for each patch. We want
 			// to write one column at a time.
 
@@ -524,7 +535,7 @@ void add_column_with_suffix(ColumnDescriptors &cols, const char *colname, const 
 }
 
 void add_column(ColumnDescriptors &cols, const char *colname, int width, int precision) {
-	if (patch_output_stats) {
+	if (write_stats()) {
 		add_column_with_suffix(cols, colname, "mean", width, precision);
 		add_column_with_suffix(cols, colname, "median", width, precision);
 		add_column_with_suffix(cols, colname, "sd", width, precision);
@@ -541,7 +552,7 @@ void add_columns(ColumnDescriptors &cols, std::vector<std::string> names, int wi
 
 ColumnDescriptors create_column_descriptors() {
 	ColumnDescriptors columns;
-	if (!patch_output_stats) {
+	if (!write_stats()) {
 		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 	return columns;
@@ -623,7 +634,7 @@ ColumnDescriptors DaveOutput::PftOutput::get_columns() {
 
 	std::vector<std::string> pfts = get_pfts(true);
 
-	if (!patch_output_stats) {
+	if (!write_stats()) {
 		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 	add_columns(columns, pfts, COLUMN_WIDTH, NUMERIC_PRECISION);
@@ -674,7 +685,7 @@ ColumnDescriptors DaveOutput::CustomPatchLevelOutput::get_columns() {
 
 	ColumnDescriptors columns;
 
-	if (!patch_output_stats) {
+	if (!write_stats()) {
 		columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 
@@ -779,7 +790,7 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 		std::string description,
 		bool sum,
 		bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
-	get_nelem = get_nelem;
+	this->get_nelem = get_nelem;
 	column_names.push_back(col_name);
 	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
 }

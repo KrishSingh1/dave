@@ -132,7 +132,7 @@ void CRUInput::init() {
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
@@ -448,14 +448,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-	if (ifEucFACE) {
-		gridcell.dNH4dep = 0.0001125 / date.year_length();
-		gridcell.dNO3dep = 0.0001125 / date.year_length();
-	}
-	else {
-		gridcell.dNH4dep = dNH4dep[date.day];
-		gridcell.dNO3dep = dNO3dep[date.day];
-	}
+	gridcell.dNH4dep = dNH4dep[date.day];
+	gridcell.dNO3dep = dNO3dep[date.day];
 
 	// Tmin, Tmax for BLAZE
 	// initialise first

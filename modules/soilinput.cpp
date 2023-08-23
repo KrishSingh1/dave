@@ -109,10 +109,6 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
-	if (ifEucFACE) {
-		return;
-	}
-
 	soil_code = format_input_header(fname);
 
 	if (soil_code) {
@@ -121,62 +117,6 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 	else {
 		load_mineral_soils(fname, coords);
 	}
-}
-// Initialises the soil input class and determines the format of the supplied input file.
-void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist) {
-
-	std::set<coord> coords(gridlist.begin(), gridlist.end());
-
-	std::ifstream ifs(fname, std::ifstream::in);
-
-	std::string line;
-
-	while (getline(ifs, line)) {
-		std::istringstream iss(line);
-
-		double lon, lat;
-		double depth;
-		if (iss >> lon >> lat >> depth) {
-			coord c(lon, lat);
-			if (!coords.empty() && coords.count(c) == 0) {
-				continue;
-			}
-			depth_map[c] = depth;
-			if (depth_map.size() == coords.size()) {
-				break;
-			}
-		}
-	}
-	ifs.close();
-}
-
-// Initialises the soil input class and determines the format of the supplied input file.
-void SoilInput::init_sdor(const char* fname, const std::vector<coord>& gridlist) {
-
-	std::set<coord> coords(gridlist.begin(), gridlist.end());
-
-	std::ifstream ifs(fname, std::ifstream::in);
-
-	std::string line;
-
-	while (getline(ifs, line)) {
-		std::istringstream iss(line);
-
-		double lon, lat;
-		double sdor, slope;
-		if (iss >> lon >> lat >> sdor >> slope) {
-			coord c(lon, lat);
-			if (!coords.empty() && coords.count(c) == 0) {
-				continue;
-			}
-			sdor_map[c] = sdor;
-			slope_map[c] = slope;
-			if (slope_map.size() == coords.size()) {
-				break;
-			}
-		}
-	}
-	ifs.close();
 }
 
 // Read in routine for text file with LPJ soil codes.
@@ -369,17 +309,8 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 
 // Get and set soil properties based on mineral soil input.
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
-	SoilDataMineral soil;
-	if (!ifEucFACE) {
-		coord C = find_closest_point(searchradius_soil, c);
-		soil = mineral_map[C];
-	}
-
-	if (ifEucFACE) {
-		soil.sand = 0.8;
-		soil.clay = 0.11;
-	}
-
+	coord C = find_closest_point(searchradius_soil, c);
+	SoilDataMineral& soil = mineral_map[C];
 	double silt = 1.0 - soil.sand - soil.clay;
 
 	// Equation 1 from Cosby 1984
@@ -431,14 +362,7 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	else {
 		soiltype.porosity = Theta_s;
 	}
-
-	if (ifEucFACE) {
-		// pH for top 0-10, 10-20, 20-30cm: 5.52, 5.39 , 5.28. Avr 5.40
-		soiltype.pH = 5.4;
-		// Soil carbon fraction for top 0-10, 10-20, 20-30cm: 1.55, 0.71, 0.42. Avr 0.89
-		soiltype.soil_OC = 0.89;
-	}
-
+	
 	return soiltype;
 }
 
@@ -458,7 +382,7 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	Soiltype& soiltype = gridcell.soiltype;
 
 	coord c(lon, lat);
-	SoilProperties soilprop = soil_code && !ifEucFACE ? get_lpj(c) : get_mineral(c);
+	SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
 
 	soiltype.soilcode = lpj_map[c];
 	soiltype.sand_frac = soilprop.sand;

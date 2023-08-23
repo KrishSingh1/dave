@@ -238,6 +238,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
 	// Get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
 	avail_fuel = available_fuel(patch,fire_line_intensity_index,gridcell.k_tun_litter) * G_PER_KG;
+	patch.avail_fuel = avail_fuel;
 	// Check whether there is enough fuel to ignite a fire
 	if ( avail_fuel < MIN_FUEL ) { 
 		fire_line_intensity  =  -1. ;
@@ -612,9 +613,13 @@ bool blaze(Patch& patch, Climate& climate) {
 				// Reduce individual live biomass and freshly created litter
 				indiv.reduce_biomass(MAX_GRASS_BURN,MAX_GRASS_BURN);
 				
-				// Remove NPP and put it to fire flux
-				patch.fluxes.report_flux(Fluxes::FIREC,indiv.anpp*MAX_GRASS_BURN);
-				indiv.anpp *= (1. - MAX_GRASS_BURN);
+				if (!ifdailygrass || indiv.istruecrop_or_intercropgrass()) {
+
+					// Remove NPP and put it to fire flux
+					patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
+
+					indiv.anpp *= (1. - MAX_GRASS_BURN);
+				}
 
 				// Kill object if burn is total
 				if ( MAX_GRASS_BURN == 1.0 ) {
@@ -822,12 +827,49 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double fm_leaf = metabolic_litter_fraction(lton);
 
 	// Leaves
-	double cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
-	double cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
-	double cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
-	double nleaf2atm = fab * leaf_to_atm * nmass_leaf;
-	double nleaf2met = fab * leaf_to_lit * nmass_leaf * fm_leaf;
-	double nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);
+	double cleaf2atm, cleaf2met, cleaf2str, nleaf2atm, nleaf2met, nleaf2str;
+	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+		cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
+		cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
+		cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
+		nleaf2atm = fab * leaf_to_atm * nmass_leaf;
+		nleaf2met = fab * leaf_to_lit * nmass_leaf * fm_leaf;
+		nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);
+	}
+	else {
+		// Daily grass - dry leaves is burned first then fresh alive leaves
+		double cleaf_burned = fab * (leaf_to_atm * leaf_to_lit) * (cmass_leaf_today() + cmass_leafs[3]);
+		
+		// Dry leaves burned
+		double cleaf_dry = min(cleaf_burned, cmass_leafs[3]);
+
+		// Dry leaves burned fraction
+		double fleaf_dry = cmass_leafs[3] > 0.0 ? cleaf_dry / cmass_leafs[3] : 0.0;
+
+		// Remaining leaves to burn
+		cleaf_burned -= cleaf_dry;
+
+		// Fresh leaves burned fraction
+		double fleaf_fresh = cmass_leaf_today() > 0.0 ? cleaf_burned / cmass_leaf_today() : 0.0;
+
+		// Burn dry leaves
+		cleaf2atm = fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3];
+		cleaf2met = (fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3]) * fm_leaf;
+		cleaf2str = (fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3]) * (1.0 - fm_leaf);
+		nleaf2atm = fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3];
+		nleaf2met = (fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3]) * fm_leaf;
+		nleaf2str = (fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3]) * (1.0 - fm_leaf);
+
+		// Reduce leaves
+		cmass_leafs[0] *= 1.0 - fleaf_fresh;
+		cmass_leafs[1] *= 1.0 - fleaf_fresh;
+		cmass_leafs[2] *= 1.0 - fleaf_fresh;
+		cmass_leafs[3] *= 1.0 - fleaf_dry;
+		nmass_leafs[0] *= 1.0 - fleaf_fresh;
+		nmass_leafs[1] *= 1.0 - fleaf_fresh;
+		nmass_leafs[2] *= 1.0 - fleaf_fresh;
+		nmass_leafs[3] *= 1.0 - fleaf_dry;
+	}
 
 	// Sap-wood
 	double csapw2atm = fab * wood_to_atm * cmass_sap ; 
@@ -870,16 +912,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Update pools
 	
 	// Live carbon
-	cmass_leaf      -= (cleaf2atm + cleaf2met + cleaf2str);
-	cmass_sap       -= (csapw2atm + csapw2str + csapw2fwd);
-	cmass_heart     -= (chrtw2atm + chrtw2str + chrtw2cwd); 
-	cmass_root      -= (croot2met + croot2str); 
+	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+		cmass_leaf  -= (cleaf2atm + cleaf2met + cleaf2str);
+		cmass_sap   -= (csapw2atm + csapw2str + csapw2fwd);
+		cmass_heart -= (chrtw2atm + chrtw2str + chrtw2cwd);
+		cmass_root  -= (croot2met + croot2str);
+	}
 	
 	// Deal with c-debt before asserting to litter & atm pool
 	double saploss = csapw2atm + csapw2str + csapw2fwd;
 	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd;
-
-	ppft.cmass_fire += saploss + hrtloss + cleaf2atm + cleaf2met + cleaf2str + croot2met + croot2str;
 
 	if ( cmass_debt > 0. ) { 
 		if ( cmass_debt <= saploss + hrtloss ) {
@@ -913,65 +955,88 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 
 	// Live nitrogen
-	nmass_leaf      -= (nleaf2atm + nleaf2met + nleaf2str);
-	nmass_sap       -= (nsapw2atm + nsapw2str + nsapw2fwd);
-	nmass_heart     -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
-	nmass_root      -= (nroot2met + nroot2str); 
+	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+		nmass_leaf  -= (nleaf2atm + nleaf2met + nleaf2str);
+		nmass_sap   -= (nsapw2atm + nsapw2str + nsapw2fwd);
+		nmass_heart -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
+		nmass_root  -= (nroot2met + nroot2str);
+	}
 	
-       	double d_nstore = (nstore_longterm + nstore_labile) * (1. - frac_survive);
+	// C storage
+	double d_cstore = cmass_storage * (1.0 - frac_survive);
+	cmass_storage *= frac_survive;
+
+	// N storage
+    double d_nstore = (nstore_longterm + nstore_labile + nmass_storage) * (1.0 - frac_survive);
 	nstore_longterm *= frac_survive; 
 	nstore_labile   *= frac_survive; 
-
-	// Deal with accumulated NPP 
-	double loss_anpp = anpp * (1. - frac_survive);
-	double loss_tot  = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met + 
-		cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
-		croot2met + croot2str;
-	double anpp2atm  =  0.;
-	double anpp2met  =  0.;
-	double anpp2str  =  0.;
-	double anpp2fwd  =  0.;
-	double anpp2cwd  =  0.;
-	double anpp2smtb =  0.;
-	double anpp2sstr =  0.;
-	if ( loss_tot > 0. ) {
-		anpp2atm  = loss_anpp * ( cleaf2atm + csapw2atm + chrtw2atm ) / loss_tot;
-		anpp2met  = loss_anpp *                           cleaf2met   / loss_tot;
-		anpp2str  = loss_anpp * ( cleaf2str + csapw2str + chrtw2str ) / loss_tot;
-		anpp2fwd  = loss_anpp *                           csapw2fwd   / loss_tot;
-		anpp2cwd  = loss_anpp *                           chrtw2cwd   / loss_tot;
-		anpp2smtb = loss_anpp *                           croot2met   / loss_tot;
-		anpp2sstr = loss_anpp *                           croot2str   / loss_tot;
-		anpp     -= loss_anpp;
-	}
-
-	ppft.cmass_fire += loss_anpp + loss_tot;
+	nmass_storage   *= frac_survive;
 
 	// Report C live -> atm flux 
-	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm);
+	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + d_cstore);
 
 	// Report N live -> atm flux 
 	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
- 
+
 	// Soil-surface-litter carbon
-	patch.soil.sompool[SURFMETA].cmass   += anpp2met  + cleaf2met;
-	patch.soil.sompool[SURFSTRUCT].cmass += anpp2str  + cleaf2str + csapw2str + chrtw2str;
-	patch.soil.sompool[SURFFWD].cmass    += anpp2fwd  + csapw2fwd;
-	patch.soil.sompool[SURFCWD].cmass    += anpp2cwd  + chrtw2cwd;
+	patch.soil.sompool[SURFMETA].cmass += cleaf2met;
+	patch.soil.sompool[SURFSTRUCT].cmass += cleaf2str + csapw2str + chrtw2str;
+	patch.soil.sompool[SURFFWD].cmass += csapw2fwd;
+	patch.soil.sompool[SURFCWD].cmass += chrtw2cwd;
 
 	// Deep soil litter carbon
-	patch.soil.sompool[SOILMETA].cmass   += anpp2smtb + croot2met;
-	patch.soil.sompool[SOILSTRUCT].cmass += anpp2sstr + croot2str;
+	patch.soil.sompool[SOILMETA].cmass += croot2met;
+	patch.soil.sompool[SOILSTRUCT].cmass += croot2str;
 
 	// Soil-surface-litter nitrogen 
-	patch.soil.sompool[SURFMETA].nmass   += nleaf2met;
+	patch.soil.sompool[SURFMETA].nmass += nleaf2met;
 	patch.soil.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
-	patch.soil.sompool[SURFFWD].nmass    += nsapw2fwd;
-	patch.soil.sompool[SURFCWD].nmass    += nhrtw2cwd;
+	patch.soil.sompool[SURFFWD].nmass += nsapw2fwd;
+	patch.soil.sompool[SURFCWD].nmass += nhrtw2cwd;
 
 	// Deep soil litter nitrogen
-	patch.soil.sompool[SOILMETA].nmass   += nroot2met;
+	patch.soil.sompool[SOILMETA].nmass += nroot2met;
 	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;
+
+	// Deal with accumulated NPP 
+	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+		double loss_anpp = anpp * (1. - frac_survive);
+		double loss_tot = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met +
+			cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
+			croot2met + croot2str;
+		double anpp2atm = 0.;
+		double anpp2met = 0.;
+		double anpp2str = 0.;
+		double anpp2fwd = 0.;
+		double anpp2cwd = 0.;
+		double anpp2smtb = 0.;
+		double anpp2sstr = 0.;
+		if (loss_tot > 0.) {
+			anpp2atm = loss_anpp * (cleaf2atm + csapw2atm + chrtw2atm) / loss_tot;
+			anpp2met = loss_anpp * cleaf2met / loss_tot;
+			anpp2str = loss_anpp * (cleaf2str + csapw2str + chrtw2str) / loss_tot;
+			anpp2fwd = loss_anpp * csapw2fwd / loss_tot;
+			anpp2cwd = loss_anpp * chrtw2cwd / loss_tot;
+			anpp2smtb = loss_anpp * croot2met / loss_tot;
+			anpp2sstr = loss_anpp * croot2str / loss_tot;
+			anpp -= loss_anpp;
+		}
+
+		ppft.cmass_fire += loss_anpp + loss_tot;
+
+		// Report C live -> atm flux 
+		patch.fluxes.report_flux(Fluxes::FIREC, anpp2atm);
+
+		// Soil-surface-litter carbon
+		patch.soil.sompool[SURFMETA].cmass += anpp2met;
+		patch.soil.sompool[SURFSTRUCT].cmass += anpp2str;
+		patch.soil.sompool[SURFFWD].cmass += anpp2fwd;
+		patch.soil.sompool[SURFCWD].cmass += anpp2cwd;
+
+		// Deep soil litter carbon
+		patch.soil.sompool[SOILMETA].cmass += anpp2smtb;
+		patch.soil.sompool[SOILSTRUCT].cmass += anpp2sstr;
+	}
 
 	if (pft.lifeform != GRASS) {
 		densindiv *= frac_survive;

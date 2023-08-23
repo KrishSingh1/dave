@@ -29,6 +29,10 @@ void blaze_accounting_gridcell(Climate& climate);
  */
 void blaze_driver(Patch& patch, Climate& climate);
 
+double available_fuel (Patch& patch,int fli_index, double k_tun_litter);
+
+extern const double TURNOVERFRACT[13][5];
+
 #endif 
 
 

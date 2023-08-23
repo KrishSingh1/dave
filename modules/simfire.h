@@ -16,6 +16,11 @@
 
 #include "guess.h"
 
+double get_p_biome(const Gridcell &gridcell);
+double get_p_fpar(const Gridcell &gridcell);
+double get_p_nesterov(const Gridcell &gridcell);
+double get_p_popdens(const Gridcell &gridcell);
+
 // SIMFIRE biometypes
 enum {SF_NOVEG, SF_CROP, SF_NEEDLELEAF, SF_BROADLEAF, SF_MIXED_FOREST, SF_SHRUBS, SF_SAVANNA, SF_TUNDRA, SF_BARREN};
 

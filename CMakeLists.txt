@@ -83,6 +83,24 @@ if (MPI_FOUND)
   add_definitions(-DHAVE_MPI)
 endif()
 
+# MSVC doesn't seem to support variable-length arrays, so let's disable them on
+# all compilers. Note that the MSVC compiler doesn't support -Werror=vla.
+if (!MSVC)
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=vla")
+
+  # Let's also ignore deprecated declations warnings; without this we see a lot
+  # of noise about the usage of std::auto_ptr, which is something that's being
+  # worked on but not something we need to be informed of repeatedly.
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
+endif()
+
+# Use CCache if it's available.
+find_program(CCACHE_FOUND ccache)
+if (CCACHE_FOUND)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+endif(CCACHE_FOUND)
+
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 
@@ -106,16 +124,11 @@ if (WIN32)
   set(guess_command_name "guesscmd")
 else()
   # On Unix we don't have the dll so the command line binary can be called guess
-  set(guess_command_name "guess-bin")
-  set(guess_lib_name "guess")
+  set(guess_command_name "guess")
 endif()
 
 # Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
-set_target_properties(guess-bin
-        PROPERTIES OUTPUT_NAME guess)
-add_library(guess STATIC ${guess_sources})
-set_property(TARGET guess PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Rule for building the unit test binary
 if (UNIT_TESTS)
@@ -125,7 +138,6 @@ endif()
 
 # Specify libraries to link to the executable
 target_link_libraries(${guess_command_name} ${LIBS})
-target_link_libraries(${guess_lib_name} ${LIBS})
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)

@@ -1,0 +1,31 @@
+!///////////////////////////////////////////////////////////////////////////////
+! C3 grass PFT settings
+!///////////////////////////////////////////////////////////////////////////////
+
+group "C3G" (
+
+	! Cool (C3) grass
+
+	include 1
+	grass
+	pathway "c3"
+	respcoeff 1.0
+	pstemp_min -5
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000	! no limit
+	tcmin_est -1000 	! no limit
+	tcmax_est 1000  	! no limit
+	twmin_est -1000 	! no limit
+	gdd5min_est 0   	! no limit
+	eps_iso 16.0
+	seas_iso 1
+	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	harv_eff 0.5
+)
+
+pft "C3G" (
+	C3G
+)

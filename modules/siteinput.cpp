@@ -166,7 +166,7 @@ void SiteInput::init() {
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
 	// I've made the soilmap optional for eucface runs. We're not actually using it anyway.
-	xtring soil_data_file = ifEucFACE ? "" : param["file_soildata"].str;
+	xtring soil_data_file = param["file_soildata"].str;
 	soilinput.init(soil_data_file, translate_gridlist_to_coord(gridlist));
 
 	// DH: David W added a soil depth input file which is used to

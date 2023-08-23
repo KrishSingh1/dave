@@ -371,6 +371,9 @@ public:
 		long begin = 0;
 		long end = GLOBALNITROGENDEPOSITIONRCP26_NRECORD;
 
+		double min_diff = std::numeric_limits<double>::max();
+		long closest_midpoint = -1;
+
 		while (begin < end) {
 			long middle = (begin+end)/2;
 
@@ -378,6 +381,18 @@ public:
 			getdata();
 
 			int c = compare_index(pindex, ptarget);
+
+			if (useClosestNdep) {
+				double lat = popreal(pindex,3,10,0.25,-90);
+				double lon = popreal(pindex,3,11,0.25,-180);
+				double lat_diff = pow(lat - obj.latitude, 2);
+				double lon_diff = pow(lon - obj.longitude, 2);
+				double diff = lat_diff + lon_diff;
+				if (diff < min_diff) {
+					min_diff = diff;
+					closest_midpoint = middle;
+				}
+			}
 
 			if (c < 0) {
 				begin = middle + 1;
@@ -394,6 +409,23 @@ public:
 
 				return true;
 			}
+		}
+
+		if (useClosestNdep && closest_midpoint != -1) {
+			getindex(closest_midpoint);
+			getdata();
+
+			for (int i=131;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,9e-005);
+
+			// Write warning message. This isn't really normal behaviour.
+			double lat = popreal(pindex,3,10,0.25,-90);
+			double lon = popreal(pindex,3,11,0.25,-180);
+			dprintf("WARNING: Missing N deposition data for grid cell (%.2f, %.2f). Using closest available data, which is from (%.2f, %.2f).\n", obj.latitude, obj.longitude, lat, lon);
+
+			return true;
 		}
 
 		return false;

@@ -63,6 +63,8 @@ void nfert(Patch& patch);
 
 /// Updates crop rotation status
 void crop_rotation(Stand& stand);
+/// Grazing function for pasture
+void grazing_daily(Individual& indiv);
 
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
@@ -229,6 +231,7 @@ public:
 struct Harvest_CN {
 
 	double cmass_leaf;
+	double cmass_leafs[4];
 	double cmass_root;
 	double cmass_sap;
 	double cmass_heart;
@@ -238,7 +241,9 @@ struct Harvest_CN {
 	double cmass_stem;
 	double cmass_dead_leaf;
 	double debt_excess;
+	double cmass_storage;
 	double nmass_leaf;
+	double nmass_leafs[4];
 	double nmass_root;
 	double nmass_sap;
 	double nmass_heart;
@@ -248,6 +253,7 @@ struct Harvest_CN {
 	double nstore_longterm;
 	double nstore_labile;
 	double max_n_storage;
+	double nmass_storage;
 
 	double cmass_litter_leaf;
 	double cmass_litter_root;
@@ -278,6 +284,8 @@ struct Harvest_CN {
 		acflux_harvest = anflux_harvest = 0.0;
 		cmass_harvested_products_slow = nmass_harvested_products_slow = 0.0;
 		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
+		cmass_leafs[0] = cmass_leafs[1] = cmass_leafs[2] = cmass_leafs[3] = cmass_storage = 0.0;
+		nmass_leafs[0] = nmass_leafs[1] = nmass_leafs[2] = nmass_leafs[3] = nmass_storage = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft to struct.
@@ -315,6 +323,14 @@ struct Harvest_CN {
 				// cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
 				// cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 			}
+
+			if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+				cmass_leafs[0] = indiv.cmass_leafs[0];
+				cmass_leafs[1] = indiv.cmass_leafs[1];
+				cmass_leafs[2] = indiv.cmass_leafs[2];
+				cmass_leafs[3] = indiv.cmass_leafs[3];
+				cmass_storage = indiv.cmass_storage;
+			}
 		}
 
 
@@ -330,6 +346,14 @@ struct Harvest_CN {
 			nmass_ho = indiv.cropindiv->nmass_ho;
 			nmass_agpool = indiv.cropindiv->nmass_agpool;
 			nmass_dead_leaf = indiv.cropindiv->nmass_dead_leaf;
+		}
+
+		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+			nmass_leafs[0] = indiv.nmass_leafs[0];
+			nmass_leafs[1] = indiv.nmass_leafs[1];
+			nmass_leafs[2] = indiv.nmass_leafs[2];
+			nmass_leafs[3] = indiv.nmass_leafs[3];
+			nmass_storage = indiv.nmass_storage;
 		}
 
 		if(copy_dead_C) {
@@ -384,6 +408,14 @@ struct Harvest_CN {
 				// indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
 				// indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
+
+			if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+				indiv.cmass_leafs[0] = cmass_leafs[0];
+				indiv.cmass_leafs[1] = cmass_leafs[1];
+				indiv.cmass_leafs[2] = cmass_leafs[2];
+				indiv.cmass_leafs[3] = cmass_leafs[3];
+				indiv.cmass_storage = cmass_storage;
+			}
 		}
 
 		indiv.nmass_leaf = nmass_leaf;
@@ -398,6 +430,14 @@ struct Harvest_CN {
 			indiv.cropindiv->nmass_ho = nmass_ho;
 			indiv.cropindiv->nmass_agpool = nmass_agpool;
 			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
+		}
+
+		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+			indiv.nmass_leafs[0] = nmass_leafs[0];
+			indiv.nmass_leafs[1] = nmass_leafs[1];
+			indiv.nmass_leafs[2] = nmass_leafs[2];
+			indiv.nmass_leafs[3] = nmass_leafs[3];
+			indiv.nmass_storage = nmass_storage;
 		}
 
 		ppft.cmass_litter_leaf = cmass_litter_leaf;

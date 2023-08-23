@@ -3007,12 +3007,11 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		return;
 	}
 
-	double* st_frac_transfer = NULL;
 	forest_st_frac_transfer forest_st_subset_transfer(nst);
 	bool LCchangeCtransfer = true;
 	Landcover& lc = gridcell.landcover;
 
-	st_frac_transfer = new double[nst * nst];
+	double* st_frac_transfer = new double[nst * nst];
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) {
 

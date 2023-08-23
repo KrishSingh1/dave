@@ -212,7 +212,7 @@ void DemoInput::init() {
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 
 	// Retrieve input file names as read from ins file
 

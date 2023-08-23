@@ -51,10 +51,10 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
-void MiscInput::init() {
+void MiscInput::init(xtring file_gridlist) {
 
 	ListArray_id<Coord> gridlist;
-	read_gridlist(gridlist, param["file_gridlist"].str);
+	read_gridlist(gridlist, file_gridlist);
 
 	// See getdisturbance() for input file format and content of text files
 

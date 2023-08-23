@@ -241,6 +241,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
+						indiv.nscal_5.add(1.0);
 					}
 				}
 			}
@@ -368,6 +369,12 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 	}
 }
 
+// call every day if there is no living individual of the grass PFT in the patch
+void establishment_grass() {
+	// check conditions if germination is likely to occur 
+	// if yes, invest some of the seedbank into initial biomass
+	// if there is no seedbank, maybe don't try every day.
+}
 
 void establishment_guess(Stand& stand,Patch& patch) {
 
@@ -504,6 +511,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
 
+		if (ifdavephotosyn) {
+			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
+			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
+		}
+
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
 				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
@@ -538,12 +550,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-
+						if (date.year > nyear_spinup && ifdavediagnostics) {
+							printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						}
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
+						indiv.nscal_5.add(1.0);
 
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
@@ -553,10 +568,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						}
 						else if(patch.has_disturbances() && patch.disturbed) {
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
-						}
-						else {
+						} else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
-						}
+
+						if (ifdailygrass && pft.phenology != CROPGREEN)
+							bminit *= 0.1;
 
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter
@@ -576,7 +592,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
 						}
-						else {
+						else if (!(indiv.pft.lifeform == GRASS && ifdailygrass)){
 							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
@@ -680,22 +696,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
-					// EucFACE
-					int start_year = 1869 + patch.id * 3;
-
-					if (ifEucFACE && date.get_calendar_year() > start_year && date.get_calendar_year() <= start_year + 30) {
-						if (!(patch.age % estinterval)) {
-							newindiv = 1;
-							nsapling = 25;
-						}
-						else {
-							newindiv = 0;
-							nsapling = 0;
-						}
-					}
-
 					// Now create 'newindiv' new Individual objects
 
+					if (date.year > nyear_spinup && newindiv > 0 && ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					}
 					for (i=0;i<newindiv;i++) {
 
 						// Create average individual for a new cohort (cohort mode)
@@ -710,8 +715,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						indiv.age=0.0;
 
+						// Height will be set in allometry very soon, but it's
+						// accessed in allocation_init(), so let's initialize it
+						// to 0 here rather than rely on uninitialized memory.
+						indiv.height = 0;
+
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
+
+						if (ifdavephotosyn) {
+							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
+						}
 
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
 							bminit = PLANTSIZE; // Fixed sap size after first cutting
@@ -897,7 +911,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			//       c.f. LPJF, which uses net growth increment instead of NPP
 
 			mort_greffic=K_MORT1/(1.0+K_MORT2*max(indiv.anpp,0.0)/indiv.cmass_leaf/
-				indiv.pft.sla);
+				indiv.sla());
 
 			// Mortality associated with light competition
 			// Self thinning imposed when total tree cover above FPC_TREE_MAX,
@@ -1075,8 +1089,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 		}
 	}
 
-	if (ifEucFACE && date.get_calendar_year() > 1900)
-		fireprob = 0.0;
 
 	// FIRE MORTALITY GLOBFIRM
 	// For BLAZE there is a separate call in simulate_day (framework.cpp)
@@ -1191,7 +1203,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Eqn 31, Smith et al 2001
 
 				if (!negligible(indiv.cmass_leaf))
-					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.pft.sla;
+					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.sla();
 				else
 					greff=0.0;
 
@@ -1477,11 +1489,6 @@ void fire(Patch& patch,double& fireprob) {
 		fail("fire: probability of fire >1.0");
 	else if (fireprob<0.001) fireprob=0.001; // c.f. LPJF
 
-	if (ifEucFACE && date.get_calendar_year() > 1900) {
-		fireprob = 0.0;
-		return;
-	}
-
 	// Calculate expected flux from litter due to fire
 	// (fluxes from vegetation calculated in mortality functions)
 
@@ -1679,20 +1686,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			}
 		}
 
-		// EucFACE
-		int start_year = 1869 + patch.id * 3;
-		if (ifEucFACE && date.get_calendar_year() == start_year) {
-			disturbance(patch, 1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-
-		if (ifEucFACE && date.get_calendar_year() > start_year)
-			patch.disturbed = false;
-
 		// Normal disturbance with probability interval of distinterval
-		if (patch.has_disturbances() && !(ifEucFACE && date.get_calendar_year() > start_year)) {
+		if (patch.has_disturbances()) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&

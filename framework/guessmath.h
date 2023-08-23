@@ -46,6 +46,7 @@ const double G_PER_MG		= 1E-3;
 const double MG_PER_G		= 1E3;		// Milligrams
 const double KG_PER_MT		= 1E3;		// Metric tonnes
 const double MMOL_PER_MOL	= 1E3;
+const double UMOL_PER_MOL   = 1E6;
 const double J_PER_KJ		= 1E3;
 const double KMH_PER_MS         = 3.6;
 const double FRACT_TO_PERCENT   = 100.;
@@ -53,7 +54,8 @@ const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 
 inline bool negligible(double dval, int limit = 0) {
-	// Returns true if |dval| < EPSILON, otherwise false
+	// If limit is nonzero, returns true if |dval| < 10^limit.
+	// Otherwise, returns true if |dval| < EPSILON, otherwise false
 	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
 }
 
@@ -73,9 +75,9 @@ inline bool largerthanzero(double dval, int limit = 0) {
 	return limit ? dval > pow(10.0, limit) : dval > 1.0e-30;
 }
 
-inline bool equal(double dval1, double dval2) {
+inline bool equal(double dval1, double dval2, int limit = 0) {
 	// Returns true if |dval1-dval2| < EPSILON, otherwise false
-	return negligible(dval1 - dval2);
+	return negligible(dval1 - dval2, limit = limit);
 }
 
 inline double mean(double* array, int nitem) {
@@ -90,6 +92,14 @@ inline double mean(double* array, int nitem) {
 /// Gives the mean of just two values
 inline double mean(double x, double y) {
 	return (x+y)/2.0;
+}
+
+// Divide x by y. Raise an error if denominator is 0.
+inline double divide(double x, double y) {
+	if (negligible(y)) {
+		throw std::runtime_error("Divide by 0 error");
+	}
+	return x / y;
 }
 
 /// Calculates variation coefficient of values in an array
@@ -266,6 +276,43 @@ public:
 		}
 
 		return result;
+	}
+
+	/// Trend/Slope of a linear regression of values
+	T trend() const {
+		T result = 0.0;
+
+		if (size() == 1)
+			return result;
+		else {
+
+			const size_t nvalues = size();
+			std::vector<double> x(nvalues);
+			std::vector<double> y(nvalues);
+			double x_avr = 0.0;
+			double y_avr = 0.0;
+
+			for (size_t i = 0; i < nvalues; ++i) {
+
+				int p = (current_index - nvalues + i) % capacity;
+				x[i] = i;
+				y[i] = values[p];
+				x_avr += i / (double)nvalues;
+				y_avr += values[p] / (double)nvalues;
+			}
+
+			double numerator = 0.0;
+			double denominator = 0.0;
+
+			for (size_t i = 0; i < nvalues; ++i) {
+				numerator += (x[i] - x_avr) * (y[i] - y_avr);
+				denominator += (x[i] - x_avr) * (x[i] - x_avr);
+			}
+
+			result = numerator / denominator;
+
+			return result;
+		}
 	}
 
 	/// Returns a single value

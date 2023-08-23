@@ -13,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory>
-#include <stdexcept>
 
 namespace {
 
@@ -115,13 +114,14 @@ CommandLineShell::~CommandLineShell() {
 
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
-	throw std::runtime_error(message);
+	exit(99);
 }
 
 void CommandLineShell::log_message(const char* message) {
 	fprintf(stdout,"%s", message);
 	fprintf(logfile,"%s", message);
 	fflush(logfile);
+	fflush(stdout);
 }
 
 void CommandLineShell::plot(const char* window_name, 

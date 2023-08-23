@@ -9,7 +9,6 @@ set(headers
   bvoc.h 
   blaze.h
   simfire.h
-  lookup.h
   q10.h 
   globalco2file.h
   ncompete.h
@@ -18,7 +17,6 @@ set(headers
   spinupdata.h
   demoinput.h
   cfinput.h
-  siteinput.h
   management.h
   cropallocation.h
   cropsowing.h
@@ -28,6 +26,11 @@ set(headers
   soil.h
   soilinput.h
   ntransform.h
+  ncinput.h
+  ncutil.h
+  ncvariable.h
+  daveoutput.h
+  daveoutputhelpers.h
   )
 
 set(source  
@@ -48,7 +51,6 @@ set(source
   miscoutput.cpp
   spinupdata.cpp
   cfinput.cpp
-  siteinput.cpp
   management.cpp
   cropallocation.cpp
   cropsowing.cpp
@@ -58,6 +60,11 @@ set(source
   soil.cpp
   soilinput.cpp
   ntransform.cpp
+  ncinput.cpp
+  ncutil.cpp
+  ncvariable.cpp
+  daveoutput.cpp
+  daveoutputhelpers.cpp
   )
 
 include(add_guess_sources)

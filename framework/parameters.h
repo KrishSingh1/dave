@@ -85,6 +85,9 @@ typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 /// Title for this run
 extern xtring title;
 
+/// Whether to produce daily output
+extern bool ifdailyoutput; 
+
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 
@@ -170,10 +173,6 @@ extern double nfix_b;
 
 /// whether to use nitrification/denitrification in CENTURY SOM dynamics
 extern bool ifntransform;
-
-/// whether to simulate EucFACE or not
-extern bool ifEucFACE;
-
 /// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
 extern double frac_labile_carbon;
 
@@ -192,6 +191,14 @@ extern double f_denitri_max;
 /// Maximum fraction of NO2 converted to gaseus N
 extern double f_denitri_gas_max;
 
+
+/// Number of vertical layers used for canopy-area integration.
+/// Mutually exclusive with layer_thickness_canopy.
+extern int nlayer_canopy;
+
+/// Width of vertical layers for canopy-area integration (m) (default: 2).
+/// Mutually exclusive with nlayer_canopy.
+extern double layer_thickness_canopy;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings
@@ -253,7 +260,11 @@ extern bool harvest_natural_to_forest;
 /// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 
-/// Number of years to calculate dynamic phu if dynamic_phu_limit is true
+// Whether to use closest available n deposition data, should a particular
+// gridcell be missing (ie when not running a 0.25 degree grid).
+extern bool useClosestNdep;
+
+// Number of years to calculate dynamic phu if dynamic_phu_limit is true
 extern int nyear_dyn_phu;
 
 /// number of spinup years
@@ -319,9 +330,6 @@ extern bool disturb_pasture;
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
 
-/// ambient CO2
-extern bool ambient_CO2;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 
@@ -351,6 +359,25 @@ extern bool ifrainonwetdaysonly;
 
 /// whether BVOC calculations are included
 extern bool ifbvoc;
+
+/// whether daily carbon allocation for grasses is turned on
+extern bool ifdailygrass;
+
+/// whether DAVE (empirical) photosynthesis scheme is turned on
+extern bool ifdavephotosyn;
+
+/// whether DAVE growth routine for grasses is turned on
+extern bool ifdavegrowth;
+
+/// Whether DAVE mass balance diagnostics are enabled.
+extern bool ifdavediagnostics;
+
+/// whether approximated solution for C4 photosynthesis is used
+extern bool ifapproximate_C4;
+
+/// whether to use growing degree days for grass development
+extern bool ifusegdd;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs

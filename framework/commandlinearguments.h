@@ -20,12 +20,6 @@ public:
 	 */
 	CommandLineArguments(int argc, char** argv);
 
-	/*
-	Create a new CommandLineArguments instance for the given instruction file
-	and input module.
-	*/
-	CommandLineArguments(std::string input_modulename, std::string ins_file);
-
 	/// Returns the instruction filename
 	const char* get_instruction_file() const;
 

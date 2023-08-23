@@ -26,6 +26,7 @@
 #include "bvoc.h"
 #include "commonoutput.h"
 #include "soilmethane.h"
+#include "util.h"
 
 #include <memory>
 
@@ -118,7 +119,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
 
-			// Daily C allocation (cropland)
+			// Daily C allocation
 			growth_daily(patch);
 
 			// Soil organic matter and litter dynamics
@@ -202,6 +203,8 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
+		// Create state_path if it doesn't already exist.
+		mkdir_p((const char *)state_path);
 		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 
@@ -253,6 +256,9 @@ int framework(const CommandLineArguments& args) {
 			simulate_day(gridcell, input_module.get());
 
 			output_modules.outdaily(gridcell);
+
+			// Daily mass balance checks.
+			gridcell.balance.check_day(gridcell);
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR

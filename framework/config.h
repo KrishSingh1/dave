@@ -54,7 +54,7 @@ using std::max;
 // platform independent function for changing and making working directory
 // we'll call our new functions change_directory and make_directory
 // make_directory is non recursive.
-#ifdef _MSC_VER
+#ifdef _WIN32
 // The Microsoft way
 #include <direct.h>
 #define change_directory _chdir

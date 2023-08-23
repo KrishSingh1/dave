@@ -49,10 +49,6 @@ double nfix_a;
 double nfix_b;
 
 bool ifntransform;
-
-bool ifEucFACE;
-bool ambient_CO2;
-
 double frac_labile_carbon = 1.0;
 double pH_soil;
 
@@ -73,6 +69,15 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
+bool ifdailygrass;
+bool ifdavephotosyn;
+bool ifdavegrowth;
+bool ifdavediagnostics;
+bool ifapproximate_C4;
+bool ifusegdd;
+int nlayer_canopy = 0;
+double layer_thickness_canopy = 0;
+
 // Arctic and wetland options
 bool iftwolayersoil;			// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
 bool ifmultilayersnow;			// Whether to use the simple multilayer snow scheme (1), or not (0)
@@ -82,6 +87,8 @@ double wetland_runon;			// Extra daily water input or output, in mm, to wetlands
 bool ifmethane;					// Whether to run the methane model (for peatland only)
 bool iforganicsoilproperties;	// Whether soil C pool input is used to update soil properties
 bool ifsaturatewetlands;		// Whether to take water from runoff to saturate low latitide wetlands
+
+bool useClosestNdep;
 
 wateruptaketype wateruptake;
 rootdisttype rootdistribution;
@@ -116,6 +123,9 @@ bool restart;
 bool save_state;
 int state_year;
 int verbosity;
+
+
+bool ifdailyoutput;
 
 bool readsowingdates = false;
 bool readharvestdates = false;
@@ -258,8 +268,7 @@ void initsettings() {
 	textured_soil = true;
 	disturb_pasture = false;
 	grassforcrop = false;
-	ambient_CO2 = true;
-	ifEucFACE = false;
+	useClosestNdep = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -580,11 +589,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
-
-		declareitem("ambient_CO2", &ambient_CO2, 1, CB_NONE, "ambient CO2 or not");
-		declareitem("ifeucface", &ifEucFACE, 1, CB_NONE,
-			"Whether to simulate EucFACE");
-
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
@@ -593,10 +597,21 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
 		declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE,
 			"Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
+		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
+
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
+		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
+		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
+		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("ifdavediagnostics", &ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
+		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
+		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
+		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
+		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
@@ -662,6 +677,8 @@ void plib_declarations(int id,xtring setname) {
 			"Leaf physiognomy (\"NEEDLELEAF\" or \"BROADLEAF\")");
 		declareitem("phengdd5ramp",&ppft->phengdd5ramp,0.0,1000.0,1,CB_NONE,
 			"GDD on 5 deg C base to attain full leaf cover");
+		declareitem("phengdd5mat",&ppft->phengdd5mat,0.0,5000.0,1,CB_NONE,
+			"GDD on 5 deg C base to attain full maturity/senescence");
 		declareitem("wscal_min",&ppft->wscal_min,0.0,1.0,1,CB_NONE,
 			"Water stress threshold for leaf abscission (raingreen PFTs)");
 		declareitem("pathway",&strparam,16,CB_PATHWAY,
@@ -687,6 +704,11 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
+		// Subdaily photosynthesis parameters
+		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
+			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
+		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
+			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
@@ -986,6 +1008,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("killgrass_at_cc",&pmt->killgrass_at_cc,1,CB_NONE,"Whether to kill grass at clearcut");
 		declareitem("stochmort",&pmt->stochmort,1,CB_NONE,"Whether to use stochastic mortality");
 		declareitem("stochestab",&pmt->stochestab,1,CB_NONE,"Whether to use stochastic establishment");
+		declareitem("grazeintens",&pmt->grazeintens,0.0,1.0,1,CB_NONE,"Grazing intensity");
 
 		declareitem("cutinterval",&pmt->cutinterval,0,10000,1,CB_NONE,"Rotation time (years)");
 		declareitem("thintime",pmt->thintime[0],0.0,1.0,NTHINNINGS,CB_NONE, "Timing of thinning events, relative to rotation period");
@@ -1199,6 +1222,7 @@ void plib_declarations(int id,xtring setname) {
 					"Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s");
 				declareitem("mt1_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,
 					"When to start management 1 (if reverting from another mt (calendar year))");
+				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,32,CB_MANAGEMENT2,"");
@@ -1487,10 +1511,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-
-		if (!itemparsed("ambient_CO2")) badins("ambient_CO2");
-		if (!itemparsed("ifeucface")) badins("ifeucface");
-
 		if (!itemparsed("rootdistribution")) badins("rootdistribution");
 
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
@@ -1500,6 +1520,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
+		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
@@ -1523,6 +1544,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("k_C")) badins ("k_C");
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
+
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
@@ -1579,6 +1601,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch")) badins("npatch");
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");
+		}
+		
+		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
+		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
+			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");
+			plibabort();
+		} else if (!itemparsed("nlayer_canopy") && !itemparsed("layer_thickness_canopy")) {
+			// If neither are specified, use default layer thickness of 2m.
+			layer_thickness_canopy = 2;
 		}
 		else if (vegmode==POPULATION && npatch!=1) {
 			sendmessage("Information",
@@ -1872,6 +1903,9 @@ void plib_callback(int callback) {
 
 			// Calculate regeneration characteristics for population mode
 			ppft->initregen();
+
+			// Calculate transfer constant of leaf material between compartments
+			ppft->init_transferconst();
 
 			pftlist.nextobj();
 		}

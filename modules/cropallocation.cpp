@@ -14,7 +14,7 @@ const bool DELAYED_SEEDCARBON = false;
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
 
-	if(patch.stand.landcover != CROPLAND) {
+	if(patch.stand.landcover != CROPLAND && !ifdailygrass) {
 		return;
 	}
 
@@ -57,10 +57,10 @@ void lai_crop(Patch& patch) {
 			if(ppftcrop.growingseason) {
 
 				if(!ppftcrop.senescence || ifnlim)
-					indiv.lai_daily = cropindiv.grs_cmass_leaf * indiv.pft.sla;
+					indiv.lai_daily = cropindiv.grs_cmass_leaf * indiv.sla();
 				else
 					// Follow the senescence curve from leaf cmass at senescence (cmass_leaf_sen):
-					indiv.lai_daily = cropindiv.cmass_leaf_sen * indiv.pft.sla * senescence_curve(indiv.pft, ppftcrop.fphu);
+					indiv.lai_daily = cropindiv.cmass_leaf_sen * indiv.sla() * senescence_curve(indiv.pft, ppftcrop.fphu);
 
 				if(indiv.lai_daily < 0.0)
 					indiv.lai_daily = 0.0;
@@ -456,7 +456,7 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
  *  allocation_crop_nlim() or allocation_crop()
  *  Requires updated value of fphu and hi.
  */
-void growth_crop_daily(Patch& patch) {
+void growth_daily_crop(Patch& patch) {
 
 	if(date.day == 0)
 		patch.nharv = 0;
@@ -473,7 +473,7 @@ void growth_crop_daily(Patch& patch) {
 		Patchpft& patchpft = patch.pft[indiv.pft.id];
 		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-		if(date.day == 0) {
+		if (date.day == 0) {
 
 			cropindiv.ycmass_plant = 0.0;
 			cropindiv.ycmass_leaf = 0.0;
@@ -500,7 +500,7 @@ void growth_crop_daily(Patch& patch) {
 
 			cropindiv.cmass_leaf_max = 0.0;
 
-			if(indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		// zero of normal cc3g/cc4g cmass arbitrarily at new year
+			if (indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		// zero of normal cc3g/cc4g cmass arbitrarily at new year
 
 				cropindiv.grs_cmass_plant = 0.0;
 				cropindiv.grs_cmass_root = 0.0;
@@ -519,9 +519,9 @@ void growth_crop_daily(Patch& patch) {
 		cropindiv.dnmass_ho = 0.0;
 
 		// true crop allocation
-		if(indiv.pft.phenology == CROPGREEN) {
+		if (indiv.pft.phenology == CROPGREEN) {
 
-			if(ppftcrop.growingseason) {
+			if (ppftcrop.growingseason) {
 
 				double cmass_seed = 0.0;
 				double nmass_seed = 0.0;
@@ -559,10 +559,10 @@ void growth_crop_daily(Patch& patch) {
 				// Check that no plant cmass or nmass is negative, if so, and correct fluxes
 				double negative_cmass = indiv.check_C_mass();
 				if(largerthanzero(negative_cmass, -14))
-					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_daily_crop: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
 				double negative_nmass = indiv.check_N_mass();
 				if(largerthanzero(negative_nmass, -14))
-					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_daily_crop: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
 			}
 			else if(date.day == ppftcrop.hdate) {
 
@@ -614,9 +614,9 @@ void growth_crop_daily(Patch& patch) {
 		}
 		// crop grass allocation
 		// NB: Only intercrop grass enters here ! normal cc3g/cc4g grass is treated just like natural grass
-		else if(indiv.pft.phenology == ANY && indiv.pft.id != patch.stand.pftid) {
+		else if (indiv.pft.phenology == ANY && indiv.pft.id != patch.stand.pftid) {
 
-			if(ppftcrop.growingseason) {
+			if (ppftcrop.growingseason) {
 
 				cropindiv.dcmass_plant = 0.0;
 
@@ -747,22 +747,6 @@ void growth_crop_daily(Patch& patch) {
 	}
 }
 
-/// Handles daily crop allocation and daily lai calculation
-/** Simple allocation based on heat unit accumulation.
- *  LAI is set directly after allocation from leaf carbon mass.
- */
-void growth_daily(Patch& patch) {
-
-	if(patch.stand.landcover == CROPLAND) {
-
-		// allocate daily npp to leaf, roots and harvestable organs
-		growth_crop_daily(patch);
-
-		// update patchpft.lai_daily and fpc_daily
-		lai_crop(patch);
-	}
-}
-
 /// Handles yearly cropland lai and fpc calculation, called from allometry()
 /** Uses cmass_leaf_max for true crops and lai from whole-year grass stands for
  *  cover-crop grass if present (NB. grass pft names must be as described in code !).
@@ -773,7 +757,7 @@ void allometry_crop(Individual& indiv) {
 	// crop grass compatible with natural grass
 	if(indiv.pft.phenology == ANY) {
 
-		indiv.lai_indiv = indiv.cmass_leaf * indiv.pft.sla;
+		indiv.lai_indiv = indiv.cmass_leaf * indiv.sla();
 
 		// For intercrop grass, use LAI of parent grass in its own stand.
 		if(indiv.cropindiv->isintercropgrass) {
@@ -899,7 +883,7 @@ void allometry_crop(Individual& indiv) {
 		if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
 
 			// Grass "individual" LAI (Eqn 11)
-			indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.pft.sla;
+			indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.sla();
 
 			// FPC (Eqn 10)
 //			indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);

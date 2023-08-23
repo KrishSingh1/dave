@@ -531,23 +531,33 @@ public:
 class MassBalance : public Serializable  {
 
 	int start_year;
+
 	double ccont;
 	double ccont_zero;
 	double ccont_zero_scaled;
+	double ccont_yesterday;
+
 	double cflux;
 	double cflux_zero;
+	double cflux_yesterday;
 
 	double ncont;
 	double ncont_zero;
 	double ncont_zero_scaled;
+	double ncont_yesterday;
+
 	double nflux;
 	double nflux_zero;
+	double nflux_yesterday;
 
 	double water_cont;
 	double water_cont_zero;
 	double water_cont_zero_scaled;
+	double water_cont_yesterday;
+
 	double water_flux;
 	double water_flux_zero;
+	double water_flux_yesterday;
 
 public:
 	MassBalance() {
@@ -568,6 +578,12 @@ public:
 		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
+		ccont_yesterday = 0.0;
+		cflux_yesterday = 0.0;
+		ncont_yesterday = 0.0;
+		nflux_yesterday = 0.0;
+		water_cont_yesterday = 0.0;
+		water_flux_yesterday = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -588,6 +604,12 @@ public:
 		water_cont_zero_scaled = 0.0;
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
+		ccont_yesterday = 0.0;
+		cflux_yesterday = 0.0;
+		ncont_yesterday = 0.0;
+		nflux_yesterday = 0.0;
+		water_cont_yesterday = 0.0;
+		water_flux_yesterday = 0.0;
 	}
 
 	void init(Gridcell& gridcell);
@@ -610,7 +632,14 @@ public:
 	void check_year_water(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
+	void check_day(Gridcell&);
+
 	void serialize(ArchiveStream& arch);
+
+private:
+	void check_day_c(Gridcell&);
+	void check_day_n(Gridcell&);
+	void check_day_water(Gridcell&);
 };
 
 /// Struct containing wood harvest information from from forest stands created by LUC functionality
@@ -637,6 +666,99 @@ struct Wood_harvest_struct {
 		sec_young_cmass = 0.0;
 	}
 };
+
+
+/// Structure containing variables for sub-daily photosynthesis calculation.
+struct PhotosynthesisSubdaily : public Serializable {
+public:
+	// Constructs an empty structure
+	PhotosynthesisSubdaily() {
+		// Ensure capacity is initialised before it's accessed for the 1st time.
+		capacity = 0;
+		resize(date.subdaily);
+	}
+
+	/*
+	Resize the arrays to the specified size.
+	@param size: Desired size of the arrays.
+	*/
+	void resize(int size) {
+		if (capacity == size) {
+			return;
+		}
+
+		capacity = size;
+
+		clear();
+	}
+
+	// clears all variables
+	void clear(){
+		vcmax25   = 0.0;
+		jmax25    = 0.0;
+
+		vcmax.clear();
+		jmax.clear();
+		gamstar.clear();
+		Rd.clear();
+		An.clear();
+		Anc.clear();
+		Anj.clear();
+		gsw.clear();
+		ci.clear();
+		for (int i = 0; i < capacity; i++) {
+			vcmax.push_back(0.0); 
+			jmax.push_back(0.0);
+			gamstar.push_back(0.0);
+			Rd.push_back(0.0);
+			An.push_back(0.0);
+			Anc.push_back(0.0);
+			Anj.push_back(0.0);     
+			gsw.push_back(0.0);   
+			ci.push_back(0.0);
+		}
+	}
+
+	// Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	double vcmax25;
+
+	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
+	double jmax25;  
+
+	// Maximum carboxylation rate (mol m-2 s-1)
+	std::vector<double> vcmax;
+
+	// Maximum electron transport rate (mol m-2 s-1)
+	std::vector<double> jmax;
+
+	// Photorespiratory CO2 compensation point (mol mol-1)
+	std::vector<double> gamstar;
+
+	// Leaf day respiration (mol m-2 s-1)
+    std::vector<double> Rd; 
+
+	// Net photosynthesis (mol m-2 s-1)
+	std::vector<double> An;
+
+	// Rubisco-limited net photosynthesis (mol m-2 s-1)
+	std::vector<double> Anc;
+
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1)
+	std::vector<double> Anj;
+
+	// Stomatal conductance to water vapour (mol m-2 s-1)
+	std::vector<double> gsw;
+
+	// Intercellular CO2 concentration (mol mol-1)
+	std::vector<double> ci;
+
+
+    void serialize(ArchiveStream& arch);
+
+private:
+	int capacity;
+};
+
 
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
@@ -892,9 +1014,6 @@ public:
 	/// total daily photosynthetically-active radiation today (J/m2/day)
 	double par;
 
-	/// total daily photosynthetically-active radiation today (umol/m2/s)
-	double par_umol;
-
 	/// precipitation today (mm)
 	double prec;
 
@@ -1038,14 +1157,23 @@ public:
 	/// Sub-daily insolation (\see insol)
 	std::vector<double> insols;
 
-	/// Sub-daily PAR (\see par)
+	/// Sub-daily vapour pressure deficit (kPa).
+	std::vector<double> vpds;
+
+	/// Sub-daily PAR (J/m2/day) (\see par)
 	std::vector<double> pars;
 
-	/// Sub-daily net downward shortwave solar radiation (\see rad)
+	/// Sub-daily net downward shortwave solar radiation (J/m2/day) (\see rad)
 	std::vector<double> rads;
 
 	/// Sub-daily respiration response (\see gtemp)
 	std::vector<double> gtemps;
+
+	/// Sub-daily precipitation (mm) (\see prec)
+	std::vector<double> precs;
+
+	/// Sub-daily atmospheric pressure values (Pa).
+	std::vector<double> pressure;
 
 	/// Variables used for crop sowing date or seasonality calculation
 
@@ -1123,6 +1251,8 @@ public:
 	/// annual average precipitation (last year) (mm)
 	double aprec_lastyear;	
 
+	/// Current (calendar) year of met data from input file.
+	int met_year;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
@@ -1132,6 +1262,7 @@ public:
 
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
+		met_year = 0;
 
 		for(int m=0;m<12;m++) {
 
@@ -1259,6 +1390,8 @@ public:
 		MANUREN,
 		/// Flux to vegetation associated with N addition (kgN/m2) 
 		NFERT,
+		/// Nitrogen flux from atmosphere to vegetation associated with establishment (kgN/m2)
+		ESTN,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
 		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
@@ -1546,6 +1679,8 @@ public:
 	double tillage_fact;
 	/// Whether grass is grown in fallow
 	bool fallow;
+	/// Grazing intensity (daily grazing fraction)
+	double grazeintens;
 
 	ManagementType() {
 
@@ -1621,13 +1756,14 @@ public:
 		nfert = -1.0;
 		tillage_fact = 1.0;
 		fallow = false;
+		grazeintens = 0.0;
 	}
 
 	bool is_managed() {
 
 		// Add new management parameters here
 		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED 
-			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR)
+			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR || grazeintens)
 			return true;
 		else
 			return false;
@@ -1865,6 +2001,8 @@ public:
 	leafphysiognomytype leafphysiognomy;
 	/// growing degree sum on 5 degree base required for full leaf cover
 	double phengdd5ramp;
+	/// growing degree sum on 5 degree base required for full maturity/senescence (grasses only)
+	double phengdd5mat;
 	/// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
 	double wscal_min;
 	/// biochemical pathway for photosynthesis (C3 or C4)
@@ -1885,6 +2023,10 @@ public:
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
+    /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
+    double g0;
+    /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
+    double g1;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
@@ -2189,6 +2331,10 @@ public:
 	double avg_cton(const double& min, const double& max) {
 		return 2.0 / (1. / min + 1. / max);
 	}
+
+	/// transfer constant of leaf material between compartments (used for daily grass growth)
+	double transferconst;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -2411,6 +2557,31 @@ public:
 
 			regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
+
+	/// Initialises transfer constant of leaf material between compartments for daily growth of grass
+	void init_transferconst() {
+
+		if (lifeform == TREE) {
+
+			// Not used for trees yet
+
+			transferconst = 0.0;
+		}
+		else if (lifeform == GRASS) {
+
+			// Used for daily grass growth. Results in correct leaf longevity under 0.75 * perfect conditions
+
+			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+			if (pathway == C3) {
+				transferconst = 0.02 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				//transferconst = 0.005 / leaflong; // Sturt Plains: 0.005, Yanco: 0.02, Otway: 0.025
+			} 
+			else {
+				transferconst = 0.022 / leaflong; 
+				//transferconst = 0.01 / leaflong; // Otway: 0.02, Yanco: 0.022
+			}
+		}
+	}
     
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
@@ -2545,7 +2716,7 @@ extern Pftlist pftlist;
 /// Container for crop-specific data at the individual level
 struct cropindiv_struct : public Serializable {
 
-	//Plant carbon biomass variables are all on patch area basis (kgC/m2)
+	// Plant carbon biomass variables are all on patch area basis (kgC/m2)
 
 	/// year's harvestable organ C biomass (= ycmass_plant)
 	double cmass_ho;
@@ -2579,7 +2750,7 @@ struct cropindiv_struct : public Serializable {
 	/// today's increase of above-ground pool N biomass
 	double dnmass_agpool;
 
-	///CARBON
+	/// CARBON
 	/// daily updated whole plant C biomass, reset at harvest day
 	double grs_cmass_plant;
 	/// daily updated leaf C biomass, reset at harvest day
@@ -2636,7 +2807,7 @@ struct cropindiv_struct : public Serializable {
 	/// year's stem C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_stem;
 
-	///NITROGEN
+	/// NITROGEN
 	/// nitrogen content of harvestable organs
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
@@ -2793,6 +2964,8 @@ public:
 	double cmass_leaf;
 	/// fine root C biomass on modelled area basis (kgC/m2)
 	double cmass_root;
+	/// reproductive tissue C biomass (kgC/m2)
+	double cmass_repr;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
@@ -2807,17 +2980,46 @@ public:
 	double cmass_root_post_turnover;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
+	/// daily total growth rate (kgC/m2/d)
+	double cgrow;
+    /// daily leaf growth rate (kgC/m2/d)
+	double cgrow_leaf;
+	/// daily root growth rate (kgC/m2/d)
+	double cgrow_root;
+	/// daily reproductive growth rate (kgC/m2/d)
+	double cgrow_repr;
+	/// daily growth demand [0-1]
+	double growth_demand;
+	/// C exceeding storage capacity (kgC/m2/d)
+	double cexcess;
+	/// photosynthetic limitation due to sink activity [0-1]
+	double ps_sink_lim;
+	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
+	double nmass_missing;
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
 	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
+	/// reproductive tissue biomass (kgN/m2)
+	double nmass_repr;
 	/// sap N biomass on modelled area basis (kgN/m2)
 	double nmass_sap;
 	/// heart N biomass on modelled area basis (kgN/m2)
 	double nmass_heart;
 	/// Last year's cmass_wood value for calculation of period annual increment post mortality
 	double cmass_wood_old;
+
+	/// Leaf C litter content on modelled area basis (kgC/m2).
+	double cmass_litter_leaf;
+	/// Root C litter content on modelled area basis (kgC/m2).
+	double cmass_litter_root;
+	/// Repr C litter content on modelled area basis (kgC/m2).
+	double cmass_litter_repr;
+	/// Leaf N litter content on modelled area basis (kgN/m2).
+	double nmass_litter_leaf;
+	/// Root N litter content on modelled area basis (kgN/m2).
+	double nmass_litter_root;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
@@ -2836,6 +3038,14 @@ public:
 	double fpc_daily;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
+	/// layer-wise fpar (see fpar description)
+	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
+	std::vector<double> fpar_layerwise;
+
+	/// layer-wise lai (see lai description).
+	/// I've opted not to serialise this, as it's reinitialised each day.
+	std::vector<double> lai_layerwise;
+
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
 	/// vegetation phenological state (fraction of potential leaf cover)
@@ -2847,6 +3057,11 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
+	/// physiological downregulation due to dormancy 
+	double fphen_activity;
+
+    /// Photosynthesis variables for subdaily calculations
+	PhotosynthesisSubdaily ps_subdaily;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -2857,6 +3072,38 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+	/// yearly lai for daily allocation
+	double lai_ymax;
+	/// yearly fpc for daily allocation
+	double fpc_ymax;
+	/// yearly maximum cmass_leaf for daily allocation
+	double cmass_leaf_ymax;
+	/// yearly maximum nmass_leaf for daily allocation
+	double nmass_leaf_ymax;
+	/// yearly maximum cmass_root for daily allocation
+	double cmass_root_ymax;
+	/// yearly maximum nmass_root for daily allocation
+	double nmass_root_ymax;
+	/// Carbon storage for leaf daily allocation
+	double cmass_storage;
+	/// Maximum capacity of C storage pool (kgC/m2)
+	double cstorage_max;
+	/// Maximum capacity of N storage pool (kgN/m2)
+	double nstorage_max;
+	/// leaf C biomass on modelled area basis (kgC/m2)
+	std::vector<double> cmass_leafs;
+	/// leaf N biomass on modelled area basis (kgC/m2)
+	std::vector<double> nmass_leafs;
+	/// sum of growth of leaves
+	double cmass_leaf_ygrowth;
+	/// sum of growth of leaves
+	double cmass_root_ygrowth;
+	/// Nitrogen storage for leaf daily allocation
+	double nmass_storage;
+	/// running mean of nscal for last 5 days for each individual daily allocation
+	Historic<double, 5> nscal_5;
+	/// running mean of cdeficit for last 5 days for each individual.
+	Historic<double, 5> cdeficit_5;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2910,6 +3157,8 @@ public:
 
 	/// whether individual subject to water stress
 	bool wstress;
+	/// non-water-stressed ratio of intercellular to ambient CO2
+	double lambda;
 
 	/// leaf nitrogen that is photosyntetic active
 	double nactive;
@@ -2926,8 +3175,20 @@ public:
 	double nstore_longterm_luc;
 	/// storage of labile nitrogen saved on first day of land use change year
 	double nstore_labile_luc;
+	/// daily grass leaf nitrogen saved on first day of land use change year
+	double nmass_leafs_luc[4];
+	/// storage of root storage nitrogen saved on first day of land use change year
+	double nmass_storage_luc;
 	/// daily total nitrogen demand
 	double ndemand;
+	/// Annual total leaf nitrogen demand. Only used for trees when ifdavephotosyn is 1
+	double andemand_leaf;
+	/// Annual total root nitrogen demand. Only used for trees when ifdavephotosyn is 1
+	double andemand_root;
+	/// Annual total sapwood nitrogen demand. Only used for trees when ifdavephotosyn is 1
+	double andemand_sap;
+	/// Total annual nitrogen demand. Only used for trees when ifdavephotosyn is 1.
+	double andemand;
 	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
 	/// annual nitrogen uptake
@@ -2942,6 +3203,8 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
+	/// daily optimal leaf C:N ratio
+	double cton_leaf_opt;
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth
@@ -2956,6 +3219,8 @@ public:
 	double leafndemand;
 	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
+	/// daily reproductive tissue nitrogen demand
+	double reprndemand;
 	/// daily sap wood nitrogen demand based on leafndemand
 	double sapndemand;
 	/// daily labile nitrogen demand based on npp
@@ -2989,8 +3254,11 @@ public:
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
-	/// NPP this day
+	/// GPP and NPP this day
+	double dgpp;
 	double dnpp;
+	Historic<double, 15> gpp_15;
+	Historic<double, 15> gpptrend_15;
 
 	// bvoc
 
@@ -3008,6 +3276,23 @@ public:
 
 	/// cutting intensity (fraction cut)
 	double man_strength;
+
+	/// Daily allocation
+	double g_fac;
+	double gpp_fac;
+	double sb_fac;
+	double wscal_fac;
+	double tscal_fac;
+	double s_fac;
+	double frost_sen;
+	double wscal_sen;
+	double tscal_sen;
+
+	// N content of the individual at time of establishment (g). This is needed
+	// because we need to report the initial N as an establishment flux 1 year
+	// later, because individuals experiencing allocation on an annual basis are
+	// not considered "alive" until 1 year after establishment.
+	double initialn;
 
 	// MEMBER FUNCTIONS
 
@@ -3044,6 +3329,10 @@ public:
 	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
+
+	double get_cmass_leaf() const;
+
+	double get_nmass_leaf() const;
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -3108,8 +3397,14 @@ public:
 	/// Current sap C:N ratio
 	double cton_sap() const;
 
+	/// Current heartwood C:N ratio.
+	double cton_heart() const;
+
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft() const;
+
+	/// returns SLA value of indiv
+	double sla() const;
 
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
 	/**
@@ -3944,6 +4239,7 @@ public:
 
 	// Soil helper functions
 	double nmass_avail(int pref = NO);
+	double get_nmass_avail(int pref = NO) const;
 	void nmass_subtract(double nmass, int pref = NO);
 	void nmass_inc(double nmass, int pref = NO);
 	void nmass_multiplic_inc(double inc, int pref = NO);
@@ -4182,6 +4478,12 @@ public:
 	double anetps_ff;
 	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
+	/// five day mean of wscal. Used in daily grass growth
+	Historic<double, 5> wscal_5;
+	/// ten day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 10> wscal_10;
+	/// ten day mean of air temperature. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 10> airtemp_10;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)
@@ -4213,8 +4515,10 @@ public:
 	double cmass_litter_sap;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_heart;
-	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
+	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
+	/// N litter derived from allocation to reproduction for PFT on modelled area basis (kgN/m2).
+	double nmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4300,6 +4604,7 @@ public:
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
+		nmass_litter_repr  = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;
@@ -4409,6 +4714,8 @@ public:
 	bool burned;
 	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
+	/// BLAZE available fuel (g/m2)
+	double avail_fuel;
 
 	// BLAZE fire related carbon fluxes
 	/// BLAZE-fire carbon flux: live wood to atmosphere (kgC/m2)

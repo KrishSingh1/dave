@@ -1294,15 +1294,25 @@ void vegetation_n_uptake(Patch& patch) {
 		if (date.day == 0)
 			indiv.anuptake = 0.0;
 
-		nuptake_day           = indiv.ndemand * indiv.fnuptake;
-		indiv.anuptake        += nuptake_day;
-		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
-		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
-		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
-		if (indiv.pft.phenology == CROPGREEN && ifnlim)
-			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
-		else
-			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+		nuptake_day = max(0.0, min(soil.nmass_avail(), indiv.ndemand * indiv.fnuptake));
+
+		// Add nitrogen uptake to daily growth indiv
+		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+
+			// N uptake added to storage
+			indiv.nmass_storage += nuptake_day;
+		}
+		else {
+			indiv.anuptake += nuptake_day;
+			indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
+			assert(indiv.nmass_leaf >= 0);
+			indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
+			indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
+			if (indiv.pft.phenology == CROPGREEN && ifnlim)
+				indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
+			else
+				indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+		}
 
 
 		if (ifntransform) {
@@ -1369,21 +1379,21 @@ void equilsom(Soil& soil) {
 
 		// Monthly average decay rates
 		for (int p = 0; p < NSOMPOOL; p++) {
-			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / nyear, (double)date.ndaymonth[m]);
+			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / (double)nyear, (double)date.ndaymonth[m]);
 		}
 
 		// Monthly average mineral nitrogen uptake
-		soil.fnuptake_mean[m] /= nyear;
+		soil.fnuptake_mean[m] /= (double)nyear;
 
 		// Monthly average organic carbon and nitrogen leaching
-		soil.morgleach_mean[m] /= nyear;
+		soil.morgleach_mean[m] /= (double)nyear;
 
 		// Monthly average mineral nitrogen leaching
-		soil.mminleach_mean[m] /= nyear;
+		soil.mminleach_mean[m] /= (double)nyear;
 	}
 
 	// Annual average nitrogen fixation
-	soil.anfix_mean /= nyear;
+	soil.anfix_mean /= (double)nyear;
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 	// nitrogen uptake and leaching for EQUILSOM_YEARS years with monthly timesteps

@@ -9,11 +9,12 @@
             "command": "rm",
             "args": [
                 "-rf",
-                "*"
+                "build/*"
             ],
             "options": {
-                "cwd": "${workspaceRoot}/build"
-            }
+                "cwd": "${workspaceRoot}"
+            },
+            "problemMatcher": []
         },
         {
             "label": "configure",
@@ -21,28 +22,37 @@
             "command": "cmake",
             "args": [
                 "-DCMAKE_BUILD_TYPE=Debug",
-                ".."
+                "-DCMAKE_CXX_STANDARD=14",
+                "-DCMAKE_CXX_STANDARD_REQUIRED=ON",
+                "-DCMAKE_CXX_EXTENSIONS=ON",
+                "-B",
+                "build"
             ],
             "options": {
-                "cwd": "${workspaceRoot}/build",
+                "cwd": "${workspaceRoot}",
                 "env": {
                     "CMAKE_BUILD_TYPE": "Debug"
                 }
-            },
-            // "dependsOn": "clean"
+            }
         },
         {
             "label": "build",
             "type": "shell",
-            "command": "make",
+            "command": "cmake",
             "args": [
-                "-j`nproc`"
+                "--build",
+                "build"
             ],
+            "linux": {
+                "args": [
+                    "--build",
+                    "build",
+                    "-j`nproc`"
+                ]
+            },
+            "osx": {},
             "options": {
-                "cwd": "${workspaceRoot}/build",
-                "env": {
-                    "CMAKE_BUILD_TYPE": "Debug"
-                }
+                "cwd": "${workspaceRoot}"
             },
             "problemMatcher": [],
             "group": {
@@ -50,6 +60,68 @@
                 "isDefault": true
             },
             "dependsOn": "configure"
+        },
+        {
+            "label": "update-output-path",
+            "type": "shell",
+            "command": "sed",
+            "args": [
+                "-i",
+                "-r",
+                "-e",
+                "s/^([ \\t]*outputdirectory[ \\t]*\")[^\"]+(\".*)/\\1.\\/${input:outputdirectory}\\/\\2/gm",
+                "${workspaceFolder}/benchmarks/ozflux/outputs.ins",
+            ],
+            "problemMatcher": [],
+            "dependsOn": [
+                "build",
+                "test"
+            ],
+        },
+        {
+            "label": "create-output-directory",
+            "type": "shell",
+            "command": "mkdir",
+            "args": [
+                "-p",
+                "${workspaceFolder}/benchmarks/ozflux/${input:site}/${input:outputdirectory}"
+            ]
+        },
+        {
+            "label": "copy-ins-files",
+            "type": "shell",
+            "command": "cp",
+            "args": [
+                "${workspaceFolder}/benchmarks/ozflux/{,${input:site}/}*.ins",
+                "${workspaceFolder}/benchmarks/ozflux/${input:site}/${input:outputdirectory}"
+            ],
+            "dependsOn": "create-output-directory"
+        },
+        {
+            "label": "prepare-run",
+            "problemMatcher": [],
+            "dependsOn": [
+                "build",
+                "update-output-path",
+                "copy-ins-files"
+            ],
+            "dependsOrder": "sequence"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "outputdirectory",
+            "type": "promptString",
+            "default": "out",
+            "description": "Output dictory"
+        },
+        {
+            "id": "site",
+            "type": "command",
+            "command": "extension.commandvariable.remember",
+            "args": {
+                "key": "sitename"
+            }
         }
     ]
 }

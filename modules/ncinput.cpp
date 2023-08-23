@@ -209,6 +209,8 @@ void NCInput::init(void) {
 			throw std::runtime_error("Insufficient met forcing data (<1 year)");
 		}
 
+		date.subdaily = nsteps_day;
+
 	if (strict_math) {
 #ifndef _WIN32
 		// feenableexcept(FE_DIVBYZERO | FE_INVALID);

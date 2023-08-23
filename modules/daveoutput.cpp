@@ -32,6 +32,21 @@ REGISTER_OUTPUT_MODULE("dave", DaveOutput)
 DaveOutput::DaveOutput() {
 	double t_start = get_wall_time();
 
+	// Annual patch-level outputs.
+	add_patch_output("file_dave_patch_age"           , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
+	add_patch_output("file_dave_arunoff"             , ANNUAL, runoff_columns, "Annual runoff (mm)");
+	add_patch_output("file_dave_acpool"              , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)");
+	add_patch_output("file_dave_anpool"              , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
+	add_patch_output("file_dave_acflux"              , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
+	add_patch_output("file_dave_globfirm"            , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
+	add_patch_output("file_dave_mwcont_upper"        , ANNUAL, mwcont_upper_columns, "Monthly wcont_upper output file (0-1)");
+	add_patch_output("file_dave_mwcont_lower"        , ANNUAL, mwcont_lower_columns, "Monthly wcont_lower output file (0-1)");
+	add_patch_output("file_dave_apet"                , ANNUAL, pet_columns, "Annual potential patch-level evapotranspiration (mm)");
+	add_patch_output("file_dave_asimfire"            , ANNUAL, simfire_columns, "Annual simfire analysis");
+	add_patch_output("file_dave_afuel"               , ANNUAL, fuel_columns, "Annual blaze fuel availability (gC/m2)");
+	add_patch_output("file_dave_acoarse_woody_debris", ANNUAL, coarse_woody_debris_columns, "Annual coarse woody debris (gC/m2)");
+	add_patch_output("file_dave_amet_year"           , ANNUAL, met_year_columns, "Current year of met data being used");
+
 	// Annual per-patch individual-level outputs.
 	add_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);
 	add_indiv_output("file_dave_afpc"                , ANNUAL, [](const Individual &i) { return i.fpc; }, "Annual FPC ()", mean, false, true);
@@ -45,6 +60,20 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_anpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)");
 	add_pft_output("file_dave_agpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Total individual-level Annual GPP (kgC/m2/year)");
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
+
+	// Daily patch-level outputs.
+	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
+	add_patch_output("file_dave_soil_nmass_avail"    , DAILY, "nmass", [](const Patch &p) { return p.soil.get_nmass_avail() * min(1.0, p.fpc_total); }, "Available Soil N for plant uptake");
+	add_patch_output("file_dave_dsimfire"            , DAILY, simfire_columns, "Daily simfire analysis");
+	add_patch_output("file_dave_dfuel"               , DAILY, fuel_columns, "Daily blaze fuel availability (kgC/m2)");
+	add_patch_output("file_dave_dcoarse_woody_debris", DAILY, coarse_woody_debris_columns, "Daily coarse woody debris (gC/m2)");
+	add_patch_output("file_dave_met_temp"            , DAILY, "temp", [](const Patch &patch) { return patch.stand.get_gridcell().climate.temp;    }, "Daily air temperature (°C)");
+	add_patch_output("file_dave_met_par"             , DAILY, "par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par;     }, "Daily PAR (J/m2/timestep)");
+	add_patch_output("file_dave_met_vpd"             , DAILY, "vpd", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.vpds.front(), patch.stand.get_gridcell().climate.vpds.size());     }, "Daily VPD (kPa)");
+	add_patch_output("file_dave_met_insol"           , DAILY, "insol", [](const Patch &patch) { return patch.stand.get_gridcell().climate.insol;   }, "Daily insolation (units depend on instype)");
+	add_patch_output("file_dave_met_precip"          , DAILY, "precip", [](const Patch &patch) { return patch.stand.get_gridcell().climate.prec;    }, "Daily total precipitation (mm)");
+	add_patch_output("file_dave_met_pressure"        , DAILY, "pressure", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()); }, "Daily air pressure (Pa)");
+	add_patch_output("file_dave_met_co2"             , DAILY, "co2", [](const Patch &patch) { return patch.stand.get_gridcell().climate.co2;         }, "Daily atmospheric co2 concentration (ppm)");
 
 	// Daily per-patch individual-level outputs.
 	add_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
@@ -64,8 +93,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_npp"           , DAILY, [](const Individual &i) { return i.dnpp * G_PER_KG; }, "Daily NPP (gC/m2/day)", sum, true);
 	add_indiv_output("file_dave_fpc"                 , DAILY, [](const Individual &i) { return i.fpc; }, "Daily FPC ()", mean, false, true);
 	add_indiv_output("file_dave_crownarea"           , DAILY, [](const Individual &i) { return i.crownarea; }, "Daily Crown Area (m2)", sum, true);
-	// fixme: wscal should really be a ppft-level output. Which is still TBI...
-	add_indiv_output("file_dave_wscal"               , DAILY, [](const Individual &i) { return i.patchpft().wscal; }, "Water scalar [0-1], 1 = min stress", mean, false, true);
 	add_indiv_output("file_dave_agd_g"               , DAILY, [](const Individual &i) { return i.photosynthesis.agd_g; }, "Daily gross photosynthesis (gC/m2/day)", sum, true);
 	add_indiv_output("file_dave_rd_g"                , DAILY, [](const Individual &i) { return i.photosynthesis.rd_g; }, "Daily leaf respiration (gC/m2/day)", sum, true);
 	add_indiv_output("file_dave_je"                  , DAILY, [](const Individual &i) { return i.photosynthesis.je; }, "Daily PAR-limited photosynthesis rate (gC/m2/h)", sum, true);
@@ -77,6 +104,9 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");
 
+	// Daily pft-level per-patch outputs.
+	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
+
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file
 	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)");
@@ -87,35 +117,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_ci"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)");
 	add_indiv_array_output("file_dave_subdaily_vcmax", DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)");
 	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)");
-
-	// Annual patch-level outputs.
-	add_patch_output("file_dave_patch_age"           , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
-	add_patch_output("file_dave_arunoff"             , ANNUAL, runoff_columns, "Annual runoff (mm)");
-	add_patch_output("file_dave_acpool"              , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)");
-	add_patch_output("file_dave_anpool"              , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
-	add_patch_output("file_dave_acflux"              , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
-	add_patch_output("file_dave_globfirm"            , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
-	add_patch_output("file_dave_mwcont_upper"        , ANNUAL, mwcont_upper_columns, "Monthly wcont_upper output file (0-1)");
-	add_patch_output("file_dave_mwcont_lower"        , ANNUAL, mwcont_lower_columns, "Monthly wcont_lower output file (0-1)");
-	add_patch_output("file_dave_apet"                , ANNUAL, pet_columns, "Annual potential patch-level evapotranspiration (mm)");
-	add_patch_output("file_dave_asimfire"            , ANNUAL, simfire_columns, "Annual simfire analysis");
-	add_patch_output("file_dave_afuel"               , ANNUAL, fuel_columns, "Annual blaze fuel availability (gC/m2)");
-	add_patch_output("file_dave_acoarse_woody_debris", ANNUAL, coarse_woody_debris_columns, "Annual coarse woody debris (gC/m2)");
-	add_patch_output("file_dave_amet_year"           , ANNUAL, met_year_columns, "Current year of met data being used");
-
-	// Daily patch-level outputs.
-	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
-	add_patch_output("file_dave_soil_nmass_avail"    , DAILY, "nmass", [](const Patch &p) { return p.soil.get_nmass_avail() * min(1.0, p.fpc_total); }, "Available Soil N for plant uptake");
-	add_patch_output("file_dave_dsimfire"            , DAILY, simfire_columns, "Daily simfire analysis");
-	add_patch_output("file_dave_dfuel"               , DAILY, fuel_columns, "Daily blaze fuel availability (kgC/m2)");
-	add_patch_output("file_dave_dcoarse_woody_debris", DAILY, coarse_woody_debris_columns, "Daily coarse woody debris (gC/m2)");
-	add_patch_output("file_dave_met_temp"            , DAILY, "temp", [](const Patch &patch) { return patch.stand.get_gridcell().climate.temp;    }, "Daily air temperature (°C)");
-	add_patch_output("file_dave_met_par"             , DAILY, "par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par;     }, "Daily PAR (J/m2/timestep)");
-	add_patch_output("file_dave_met_vpd"             , DAILY, "vpd", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.vpds.front(), patch.stand.get_gridcell().climate.vpds.size());     }, "Daily VPD (kPa)");
-	add_patch_output("file_dave_met_insol"           , DAILY, "insol", [](const Patch &patch) { return patch.stand.get_gridcell().climate.insol;   }, "Daily insolation (units depend on instype)");
-	add_patch_output("file_dave_met_precip"          , DAILY, "precip", [](const Patch &patch) { return patch.stand.get_gridcell().climate.prec;    }, "Daily total precipitation (mm)");
-	add_patch_output("file_dave_met_pressure"        , DAILY, "pressure", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()); }, "Daily air pressure (Pa)");
-	add_patch_output("file_dave_met_co2"             , DAILY, "co2", [](const Patch &patch) { return patch.stand.get_gridcell().climate.co2;         }, "Daily atmospheric co2 concentration (ppm)");
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);

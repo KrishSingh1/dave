@@ -238,6 +238,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
 	// Get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
 	avail_fuel = available_fuel(patch,fire_line_intensity_index,gridcell.k_tun_litter) * G_PER_KG;
+	patch.avail_fuel = avail_fuel;
 	// Check whether there is enough fuel to ignite a fire
 	if ( avail_fuel < MIN_FUEL ) { 
 		fire_line_intensity  =  -1. ;

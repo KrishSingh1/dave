@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "guess.h"
+#include "daveoutput.h"
 
 namespace GuessOutput {
 
@@ -81,6 +82,92 @@ Get the names of all patch-level fluxes.
 std::vector<std::string> get_patch_flux_names();
 
 /*
+Calculate the sum of an array.
+
+@param array: An array of data.
+@param n: Length of the array.
+*/
+double sum(double *array, int n);
+
+/*
+Calculate a mean.
+
+@param array: An array of data.
+@param n: Length of the array.
+*/
+double mean(double *array, int n);
+
+/*
+Get the columns used in the patch-level runoff output file.
+*/
+std::vector<ColumnDefinition> runoff_columns();
+
+/*
+Get the columns used in the patch-level cpool file.
+*/
+std::vector<ColumnDefinition> cpool_columns();
+
+/*
+Get the columns used in the patch-level cflux file.
+*/
+std::vector<ColumnDefinition> cflux_columns();
+
+/*
+Get the columns used in the patch-level npool file.
+*/
+std::vector<ColumnDefinition> npool_columns();
+
+/*
+Get the columns used in the patch-level nflux file.
+*/
+std::vector<ColumnDefinition> nflux_columns();
+
+/*
+Get the columns used in the patch-level globfirm output file.
+*/
+std::vector<ColumnDefinition> globfirm_columns();
+
+/*
+Get the columns used in the patch-level mwcont_upper output file.
+*/
+std::vector<ColumnDefinition> mwcont_upper_columns();
+
+/*
+Get the columns used in the patch-level mwcont_lower output file.
+*/
+std::vector<ColumnDefinition> mwcont_lower_columns();
+
+/*
+Get the columns used in the patch-level PET output file.
+*/
+std::vector<ColumnDefinition> pet_columns();
+
+/*
+Get the columns used in the patch-level simfire output file.
+*/
+std::vector<ColumnDefinition> simfire_columns();
+
+/*
+Get the columns used in the patch-level fire fuel output file.
+*/
+std::vector<ColumnDefinition> fuel_columns();
+
+/*
+Get the columns used in the patch-level coarse woody debris output file.
+*/
+std::vector<ColumnDefinition> coarse_woody_debris_columns();
+
+/*
+Get the columns used in the met year output file.
+*/
+std::vector<ColumnDefinition> met_year_columns();
+
+/*
+Get the litter cmass for the specified pft in the specified patch (kgC/m2).
+*/
+double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
+
+/*
 Get the first individual in the patch, if any are established.
 
 @param patch: A patch object.
@@ -117,22 +204,6 @@ Compute summary statistics for the given row of data.
 @param median: (out parameter): The median of the data.
 */
 void compute_stats(std::vector<double> data, double *mean, double *sd, double *median);
-
-/*
-Calculate the sum of an array.
-
-@param array: An array of data.
-@param n: Length of the array.
-*/
-double sum(double *array, int n);
-
-/*
-Calculate a mean.
-
-@param array: An array of data.
-@param n: Length of the array.
-*/
-double mean(double *array, int n);
 
 } // namespace GuessOutput
 

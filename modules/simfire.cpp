@@ -33,6 +33,27 @@
 
 const int NFIREBIOMES = 9;
 
+/*
+// Globally trained parameters 
+//                    Crop    NL     BL      Mixed  Shrub  Savana Tundra Barren  
+const double A[8] = { 0.110,  0.095, 0.092  ,0.127, 0.470, 0.889, 0.059, 0.113  }; 
+const double B = 0.905;  
+const double C = 0.860; 
+const double E = -0.0168; 
+const double SCALAR = 1.0e-5;
+*/
+
+// Parameters trained for Australia / New Zealand - from Knorr via Lars Nieradzik
+//                    Crop     NL        BL      Mixed   Shrub  Savanna Tundra  Barren 
+const double A[8] = { 0.06974, 0.6535   ,0.6341 ,0.6438 ,2.209  ,1.710 ,    0. ,2.572  };
+const double B = 1.297; 
+const double C = 1.038;
+const double E = -0.05;
+const double SCALAR = 1.0e-5;
+
+const double FPAR_CORR1 = 0.428;
+const double FPAR_CORR2 = 0.148;
+
 // Annually update SIMFIRE BIOME for a patch from current vegetation
 /* Computes current SIMFIRE biome for this
  * gridcell depending on the last <n_year_biomeavg> years of
@@ -441,16 +462,28 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 }
 
+double get_p_biome(const Gridcell &gridcell) {
+	return A[gridcell.simfire_biome - 1];
+}
+
+double get_p_fpar(const Gridcell &gridcell) {
+	// fPAR correction Knorr for use with LPJ-GUESS only
+	double fpar_cor = FPAR_CORR1 * gridcell.fapar_annual_max + FPAR_CORR2 * gridcell.fapar_annual_max *
+	  gridcell.fapar_annual_max;
+
+	return pow(fpar_cor, B);
+}
+
+double get_p_nesterov(const Gridcell &gridcell) {
+	return pow((SCALAR * gridcell.nesterov_max), C);
+}
+
+double get_p_popdens(const Gridcell &gridcell) {
+	return exp(E * gridcell.pop_density);
+}
+
 // Calculate burned area in ha following Knorr 2014.
 double simfire_burned_area(Gridcell& gridcell) {
-
-	// Globally trained parameters 
-	//                    Crop    NL     BL      Mixed  Shrub  Savana Tundra Barren  
-	const double A[8] = { 0.110,  0.095, 0.092  ,0.127, 0.470, 0.889, 0.059, 0.113  }; 
-	const double B = 0.905;  
-	const double C = 0.860; 
-	const double E = -0.0168; 
-	const double SCALAR = 1.0e-5;
 
 	// Return if improper biome-type
 	if (gridcell.simfire_biome == SF_NOVEG) {
@@ -464,10 +497,10 @@ double simfire_burned_area(Gridcell& gridcell) {
 	  gridcell.fapar_annual_max;
 
 	// Compute annual burned area
-	double burned_area = A[gridcell.simfire_biome-1] *
-		pow(fpar_cor, B) *
-		pow((SCALAR * gridcell.nesterov_max), C) *
-		exp(E * gridcell.pop_density);
+	double burned_area = get_p_biome(gridcell) *
+		get_p_fpar(gridcell) *
+		get_p_nesterov(gridcell) *
+		get_p_popdens(gridcell);
 
 	// Compute daily burned_area
 	burned_area *= gridcell.monthly_fire_risk[date.month] /

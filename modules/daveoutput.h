@@ -17,12 +17,12 @@
 
 namespace GuessOutput {
 
-const int COLUMN_WIDTH = 14;
-const int NUMERIC_PRECISION = 8;
-const char *COLNAME_TOTAL = "total";
-const char *COLNAME_MEAN = "mean";
-const char *COLNAME_PATCH = "patch";
-const char *COLNAME_TIMESTEP = "timestep";
+extern const int COLUMN_WIDTH;
+extern const int NUMERIC_PRECISION;
+extern const char *COLNAME_TOTAL;
+extern const char *COLNAME_MEAN;
+extern const char *COLNAME_PATCH;
+extern const char *COLNAME_TIMESTEP;
 
 class ColumnDefinition {
 	public:
@@ -695,12 +695,10 @@ private:
 	@param read_output: A function which returns the i-th element of the output property of an individual.
 	@param description: Description of the output (with units!!).
 	*/
-	void add_indiv_array_output(std::string name, std::string elem_name, timestep_t timestep, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description);
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description);
 
 	/*
 	Add a patch-level output.
-
-	This is really just a wrapper around add_daily_patch_level_array_output().
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param colname: Column name in the output file.
@@ -709,7 +707,19 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_output(std::string name, std::string colname, timestep_t timestep, double (*read_output)(const Patch&), std::string description, bool sum = false, bool mean = false);
+	void add_patch_output(std::string name, timestep_t timestep, std::string colname, double (*read_output)(const Patch&), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a patch-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param timestep_t: Timestep at which the output file should be written.
+	@param get_columns: Pointer to a function which returns the columns used in this output file.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_patch_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a patch-level array output.
@@ -722,7 +732,7 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, std::string colname, timestep_t timestep, int nelem, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_patch_array_output(std::string name, timestep_t timestep, std::string colname, int nelem, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a patch-level array output.
@@ -735,7 +745,7 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, std::string colname, timestep_t timestep, int (*get_nelem)(), double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_patch_array_output(std::string name, timestep_t timestep, std::string colname, int (*get_nelem)(), double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a patch-level array output with a predetermined list of column names.
@@ -747,7 +757,7 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, std::vector<std::string> colnames, timestep_t timestep, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_patch_array_output(std::string name, timestep_t timestep, std::vector<std::string> colnames, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a standpft-level output.

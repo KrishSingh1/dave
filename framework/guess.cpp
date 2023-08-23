@@ -430,6 +430,7 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 
 	burned = false;
 	fire_line_intensity = 0.0;
+	avail_fuel = 0;
 	fireprob = 0.0;
 	ndemand = 0.0;
 	dnfert = 0.0;
@@ -503,6 +504,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& ndemand
 		& irrigation_y
 		& fire_line_intensity
+		& avail_fuel
 		& wood_to_atm
 		& leaf_to_atm
 		& leaf_to_lit

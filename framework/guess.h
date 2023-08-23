@@ -1251,6 +1251,8 @@ public:
 	/// annual average precipitation (last year) (mm)
 	double aprec_lastyear;	
 
+	/// Current (calendar) year of met data from input file.
+	int met_year;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
@@ -1260,6 +1262,7 @@ public:
 
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
+		met_year = 0;
 
 		for(int m=0;m<12;m++) {
 
@@ -4711,6 +4714,8 @@ public:
 	bool burned;
 	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
+	/// BLAZE available fuel (g/m2)
+	double avail_fuel;
 
 	// BLAZE fire related carbon fluxes
 	/// BLAZE-fire carbon flux: live wood to atmosphere (kgC/m2)

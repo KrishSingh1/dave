@@ -51,8 +51,10 @@ int main(int argc,char* argv[]) {
 
 #else
 
-	// Maximizing capacity of number of open files
+#ifndef __APPLE__
+	// Maximizing capacity of number of open files on Windows
 	_setmaxstdio(2048);
+#endif
 
 #endif
 

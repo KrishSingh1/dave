@@ -2766,9 +2766,8 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 // Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022
 void vcmax_from_N(Vegetation& vegetation) {
 
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 
         double nmass_leaf;
 		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
@@ -2783,7 +2782,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 			nmass_leaf = indiv.nmass_leaf;
 		}
 
-		assert(nmass_leaf >= 0);
+		assert(positive(nmass_leaf));
 
 		// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
 		double pmass_leaf = nmass_leaf / leaf_NtoP;         
@@ -2794,44 +2793,30 @@ void vcmax_from_N(Vegetation& vegetation) {
 			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
 											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
 		}
-
-		vegetation.nextobj();
 	}
-
 }
 
 
 // Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-    double par = 0.0, temp = 0.0, rad = 0.0, vpd = 0.0, ca = 0.0;
-	double lai_layer = 0.0, apar_layer = 0.0, lai_cum_bottom = 0.0, lai_cum = 0.0, Nscal = 0.0, pslim = 0.0;
-	double g0 = 0.0, g1 = 0.0, X = 0.0, beta = 0.0, gamma = 0.0, gamstar = 0.0, Ko = 0.0, Kc = 0.0;
-	double Rd = 0.0, vcmax = 0.0, jmax = 0.0;
-	double Rm =0.0, Rs = 0.0, Je = 0.0, Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0;
-	double Anc = 0.0, Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0, ci = 0.0;
-	double ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
-	double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0, c_j = 0.0; 
-	int    nit = 0.0, nit_max = 0.0;
-	
 	double height_veg = get_veg_height(vegetation);
 
 	// Loop through cohorts (=individuals)
-	vegetation.firstobj();
-	while (vegetation.isobj) {
+	for (int i = 0; i < vegetation.nobj; i++) {
 
 		// Retrieve information about cohort
-		Individual& indiv = vegetation.getobj();
+		Individual& indiv = vegetation[i];
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
 		// get PFT-specfic parameters
-		g0 = pft.g0;  // mol m-2 s-1
-		g1 = pft.g1;  // kPa^0.5
+		double g0 = pft.g0;  // mol m-2 s-1
+		double g1 = pft.g1;  // kPa^0.5
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
- 		ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
+ 		double ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -2852,23 +2837,23 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double jmax_canopy = 0.0;
 
 			// get subdiurnal climate variables
-			par   = climate.pars[day.period];    // W m-2; 0.5 * climate.insols
-			temp  = climate.temps[day.period];   // degC
-			vpd   = climate.vpds[day.period];    // kPa	
+			double par   = climate.pars[day.period];    // W m-2; 0.5 * climate.insols
+			double temp  = climate.temps[day.period];   // degC
+			double vpd   = climate.vpds[day.period];    // kPa	
 
 			// Stomatal term (Medlyn et al. 2011)
 			// X needs to represent gs for CO2, hence no 1.6 factor
-    		X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
+    		double X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
 
 			// initialise cumulative LAI
-			lai_cum_bottom = 0.0;
+			double lai_cum_bottom = 0.0;
 
 			// Loop over canopy layers (from top layer to bottom layer)
-		    for (int i = 0; i < indiv.fpar_layerwise.size(); i++) {
+		    for (int j = 0; j < indiv.fpar_layerwise.size(); j++) {
 
 				// determine fpar and apar of the layer
-		        double fpar_layer = indiv.fpar_layerwise[i]; // fPAR in this layer
-				double lai_layer = indiv.lai_layerwise[i];   // LAI of the layer and individual
+		        double fpar_layer = indiv.fpar_layerwise[j]; // fPAR in this layer
+				double lai_layer = indiv.lai_layerwise[j];   // LAI of the layer and individual
 
 				if (negligible(fpar_layer, -12)) {
 					if (negligible(lai_layer, -12)) {
@@ -2889,14 +2874,22 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine LAI and cumulative LAI of the layer
 				lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
-				lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
-				apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
+				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
+				double apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
 
 				// determine N scalar of the layer
 				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
-				Nscal = max(1.0e-12, exp(-kn * lai_cum));
-				// TODO discretise grass layers
+				double Nscal = max(1.0e-12, exp(-kn * lai_cum));
 
+				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
+				double vcmax = 0.0, jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;
+				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0, Anc = 0.0;
+				double Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0;
+				double ci = 0.0, ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
+				double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0;
+				double c_j = 0.0, nit = 0.0, nit_max = 0.0;
+
+				// TODO discretise grass layers
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
@@ -2911,7 +2904,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
 						Ko      = Arrhenius_temp_response(KO25,temp,HA_KO,0.0,0.0);
 						Kc      = Arrhenius_temp_response(KC25,temp,HA_KC,0.0,0.0); 
-						gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
+						double gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
@@ -2919,7 +2912,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
 						// 1) Rubisco-limited gross photosynthesis
-						gamma = vcmax;
+						double gamma = vcmax;
 						beta  = Kc * (1.0 + divide(O2atm,Ko));
 						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
@@ -3105,9 +3098,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.adtmm       = 0.0;    // not used
 		indiv.photosynthesis.nactive_opt = 0.0;    // not used
 		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 
-
-		vegetation.nextobj();
-
 	} // end cohort loop
 }
 
@@ -3117,19 +3107,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
 					   double gamstar, double Rd, double Ca) {
 	
-	double b2, b1, b0, Ci, An;
-
-	b2 = g0 + X * (gamma - Rd);
-	b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
-	b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
+	double b2 = g0 + X * (gamma - Rd);
+	double b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
+	double b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
 	assert(b2 != 0);
-	Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
+
+	double Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
 	
-	An = gamma * divide(Ci - gamstar, Ci + beta) - Rd;
+	double An = gamma * divide(Ci - gamstar, Ci + beta) - Rd;
 
-	return(An);  // net photosynthesis (mol m-2 s-1)
-
+	return An;  // net photosynthesis (mol m-2 s-1)
 }
 
 // Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
@@ -3152,7 +3140,7 @@ double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, doub
 				      (1.0 + exp((Tref * dS - Hd)/(Tref * R_gas))) / 
 				      (1.0 + exp((Tl * dS - Hd)/(Tl * R_gas)));
 
-	return(kTl);  // process rate at leaf Temperature Tl
+	return kTl;  // process rate at leaf Temperature Tl
 }
 
 
@@ -3171,7 +3159,7 @@ double electron_transport_rate(double PAR,double Jmax) {
 	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
 				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  
 
-	return(J);   // electron transport rate in mol (electrons) m-2 s-1
+	return J;   // electron transport rate in mol (electrons) m-2 s-1
 
 }
 
@@ -3189,9 +3177,8 @@ void water_stress(Patch &patch) {
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
 
 	// Iterate over individuals in patch.
-	patch.vegetation.firstobj();
-	while (patch.vegetation.isobj) {
-		Individual &indiv = patch.vegetation.getobj();
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 		Pft &pft = ppft.pft; 
 		
@@ -3199,14 +3186,14 @@ void water_stress(Patch &patch) {
 		double wstress = 0.0;
 		double rootdist_sum = 0.0;
 
-		for (int i = 0; i<NSOILLAYER; i++) {
+		for (int j = 0; j<NSOILLAYER; j++) {
 			// get actual water content and available water content per layer
-			double wcont = patch.soil.get_layer_soil_water(i);
+			double wcont = patch.soil.get_layer_soil_water(j);
 
 			// calculate water stress factor per layer and weight with root fraction
-			wstress_layer[i] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[i];
-			wstress += wstress_layer[i];
-			rootdist_sum += pft.rootdist[i]; // rootdist should add up to 1 but summed here just in case...
+			wstress_layer[j] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[j];
+			wstress += wstress_layer[j];
+			rootdist_sum += pft.rootdist[j]; // rootdist should add up to 1 but summed here just in case...
 		}
 		// water stress factor [0-1] in the root zone
 		wstress /= rootdist_sum;
@@ -3241,8 +3228,6 @@ void water_stress(Patch &patch) {
 
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
-
-		patch.vegetation.nextobj();
 	}
 }
 
@@ -3261,11 +3246,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 	}
 
 	// Loop through cohorts (=individuals)
-	vegetation.firstobj();
-	while (vegetation.isobj) {
+	for (int i = 0; i < vegetation.nobj; i++) {
 
 		// Retrieve information about cohort
-		Individual& indiv = vegetation.getobj();
+		Individual& indiv = vegetation[i];
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
@@ -3326,8 +3310,6 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 							pft.lifeform == TREE, pft.drought_tolerance);
 			}
 		}
-
-		vegetation.nextobj();
 	} // end cohort loop
 
 	// Ensure water uptake doesn't exceed availability in any layer.
@@ -3361,9 +3343,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 // - bvoc function not implemented (could be added later)
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	double assim, resp, lambda, gtemp;
-
-	gtemp = climate.gtemp;  // TODO: find out what that is.
+	double gtemp = climate.gtemp;  // TODO: find out what that is.
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -3385,8 +3365,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 
 		// get daily net assimilation
-		assim = indiv.photosynthesis.net_assimilation();
-		
+		double assim = indiv.photosynthesis.net_assimilation();
+
 		// Calculate autotrophic respiration
 		double cmass_root;
 		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
@@ -3410,10 +3390,10 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cton_root = pft.cton_root_avr;
 		}
 
+		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, indiv.cmass_sap, 
 			cmass_root, indiv.growth_demand, indiv.fphen_activity, assim, resp);
-
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

@@ -3227,6 +3227,11 @@ Gridcell::Gridcell():climate(*this) {
 	}
 	burned_area = 0.0;
 	simfire_region = 0;
+	simfire_biome = 0;
+	pop_density = 0;
+	simfire_annual_burned_area = 0;
+	nesterov_max = 0;
+	annual_burned_area = 0;
 }
 
 double Gridcell::get_lon() const {

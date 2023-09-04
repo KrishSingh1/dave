@@ -14,6 +14,7 @@
 #define LPJ_GUESS_GUESSMATH_H
 
 #include <assert.h>
+#include <float.h>
 #include "archive.h"
 
 #define _USE_MATH_DEFINES
@@ -75,9 +76,70 @@ inline bool largerthanzero(double dval, int limit = 0) {
 	return limit ? dval > pow(10.0, limit) : dval > 1.0e-30;
 }
 
-inline bool equal(double dval1, double dval2, int limit = 0) {
-	// Returns true if |dval1-dval2| < EPSILON, otherwise false
-	return negligible(dval1 - dval2, limit = limit);
+/*
+Returns true if x is sufficiently close to y.
+
+The tolerance increases with the magnitude of the operands, to allow for the
+loss in precision in floating-point numbers distant from 0.
+
+@param x: Any real number.
+@param y: Any real number.
+@param eps: Maximum difference between x and y at which they may be
+            considered equal. If the absolute or relative difference is less
+			than this number, this function will return true.
+*/
+inline bool equal(double x, double y, double eps = DBL_EPSILON) {
+	double diff = fabs(x - y);
+
+	// This absolute check is important when the numbers are close to 0.
+	if (diff <= eps) {
+		return true;
+	}
+
+	// If the numbers are distant from zero, a relative difference is useful.
+	double magnitude = std::max(fabs(x), fabs(y));
+	if (diff <= magnitude * eps) {
+		return true;
+	}
+
+	// The numbers appear to be distant from each other.
+	return false;
+}
+
+/*
+Return true iff x is greater than or equal to y, within certain tolerance.
+
+@param x: Any real number.
+@param y: Any real number.
+@param eps: Maximum absolute difference between x and y at which they may be
+            considered equal.
+*/
+inline bool greater_than_or_equal(double x, double y, double eps = DBL_EPSILON) {
+	return x > y || equal(x, y, eps);
+}
+
+/*
+Return true iff x is greater than or equal to 0, within certain tolerance.
+
+@param x: Any real number.
+@param y: Any real number.
+@param eps: Maximum absolute difference between x and y at which they may be
+            considered equal.
+*/
+inline bool positive(double x, double eps = DBL_EPSILON) {
+	return greater_than_or_equal(x, 0, eps);
+}
+
+/*
+Return true iff x is less than or equal to y, within certain tolerance.
+
+@param x: Any real number.
+@param y: Any real number.
+@param eps: Maximum absolute difference between x and y at which they may be
+            considered equal.
+*/
+inline bool less_than_or_equal(double x, double y, double eps = DBL_EPSILON) {
+	return x < y || equal(x, y, eps);
 }
 
 inline double mean(double* array, int nitem) {

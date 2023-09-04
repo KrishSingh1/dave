@@ -169,11 +169,11 @@ DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 	double c_flux = indiv.dnpp;
 	double c_end = get_cmass(indiv) + indiv.cexcess;
-	assert(negligible(c_end - (c_start + c_flux), -12));
+	assert(equal(c_end, c_start + c_flux));
 
 	double n_flux = indiv.nmass_missing;
 	double n_end = get_nmass(indiv);
-	assert(negligible(n_end - (n_start + n_flux), -12));
+	assert(equal(n_end, n_start + n_flux));
 }
 
 void flush_repr_litter_DAVE(Individual &indiv);
@@ -2692,8 +2692,8 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 					indiv.nmass_storage += ndec;
 					ceaten += cdec;
 
-					assert(indiv.cmass_root > 0);
-					assert(indiv.nmass_root > 0);
+					assert(positive(indiv.cmass_root));
+					assert(positive(indiv.nmass_root));
 
 					// Reduce leaf biomass (green pool only)
 					if (indiv.cmass_leafs[green] > 0.0) {
@@ -2707,9 +2707,9 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 						ceaten += cdec;
 					}
 
-					assert(indiv.cmass_leafs[green] > 0.0);
-					assert(indiv.nmass_leafs[green] > 0.0);
-					assert(negligible(cmass_deficit, -16));
+					assert(positive(indiv.cmass_leafs[green]));
+					assert(positive(indiv.nmass_leafs[green]));
+					assert(equal(cmass_deficit, 0));
 
 				}
 				else {
@@ -2727,13 +2727,17 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 					kill_grass(indiv);
 										
 					//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+					// Don't think we need to call nextobj() here, as we've just
+					// removed an element from the list; when this happens, the
+					// "current" pointer internal to the list object points to
+					// the element that was previously the "next" element.
 					continue;
 				}
 			}
 		}
 
-		assert(indiv.cmass_storage >= 0.0);
-		assert(negligible(indiv.dnpp - (indiv.cgrow + cstore + cexcess - ceaten), -16));
+		assert(positive(indiv.cmass_storage));
+		assert(equal(indiv.dnpp, indiv.cgrow + cstore + cexcess - ceaten));
 
 		// update cmass_storage
 		indiv.cmass_storage += cstore;
@@ -2748,9 +2752,6 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 // Note: 'leaf' includes shoot and leaves and 'root' includes coarse and fine roots.
 void carbon_allocation_grass(Vegetation& vegetation) {
 
-	double calloc_repr, calloc_leaf, calloc_root;
-	double calloc_leaf_max;
-	
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
@@ -2772,6 +2773,9 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 		}
 		
 
+		double calloc_repr = 0;
+		double calloc_leaf = 0;
+		double calloc_root = 0;
 		if (!negligible(indiv.cgrow)) {
 			// determine if some of the new carbon goes to reproduction
 			if (indiv.growth_demand < 0.5 && indiv.lai > 2.0){  // TODO: define threshold
@@ -2781,7 +2785,7 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 			}
 
 			// express ltor_max as maximum fractional allocation to leaves
-			calloc_leaf_max = 1.0 - 1.0/(1.0 + indiv.pft.ltor_max);
+			double calloc_leaf_max = 1.0 - 1.0/(1.0 + indiv.pft.ltor_max);
 
 			// calculate fraction of C allocated to leaves following Johnson 2016 Eq. 3.80
 			calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
@@ -2796,7 +2800,7 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 			calloc_repr = 0.0;
 		}
 
-		assert(negligible(1.0 - (calloc_leaf + calloc_root + calloc_repr), -15));
+		assert(equal(1.0, calloc_leaf + calloc_root + calloc_repr));
 
 		indiv.cgrow_leaf = calloc_leaf * indiv.cgrow;
 		indiv.cgrow_root = calloc_root * indiv.cgrow;
@@ -2825,6 +2829,13 @@ void ndemand(Vegetation& vegetation) {
 		cton_leaf = !negligible(indiv.get_nmass_leaf()) ? indiv.get_cmass_leaf() / indiv.get_nmass_leaf() : indiv.pft.cton_leaf_avr;
 		cton_root = !negligible(indiv.nmass_root) ? indiv.cmass_root / indiv.nmass_root : indiv.pft.cton_root_avr;
 
+		// Constrain C:N ratios of new biomass to the min/max defined in the PFT.
+		cton_leaf = min(cton_leaf, indiv.pft.cton_leaf_max);
+		cton_leaf = max(cton_leaf, indiv.pft.cton_leaf_min);
+		cton_root = min(cton_root, indiv.pft.cton_root_max);
+		double cton_root_min = 2.0 * indiv.pft.cton_root_avr - indiv.pft.cton_root_max;
+		cton_root = max(cton_root, cton_root_min);
+
 		// N demand of new growth
 		if (!negligible(indiv.cgrow)) {
 			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
@@ -2847,7 +2858,7 @@ void ndemand(Vegetation& vegetation) {
 		indiv.reprndemand = ngrow_demand_repr;
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.reprndemand;
 
-		assert(indiv.ndemand >= 0);
+		assert(positive(indiv.ndemand));
 
 		vegetation.nextobj();
 	}
@@ -3033,12 +3044,12 @@ void update_pools(Vegetation& vegetation) {
 			}
 
 			// Make sure storage does not overflow.
-			// Maximum C storage pool size 
+			// Maximum C storage pool size
 			if (indiv.cmass_storage + creturn > indiv.cstorage_max) {
 				cexcess = indiv.cmass_storage + creturn - indiv.cstorage_max;
 				indiv.cexcess += cexcess;
 				creturn = indiv.cstorage_max - indiv.cmass_storage;
-			} 
+			}
 			indiv.cmass_storage += creturn;
 
 			// nreturn doesn't need to go back into the storage pool, because we
@@ -3051,7 +3062,7 @@ void update_pools(Vegetation& vegetation) {
 			indiv.cmass_root += indiv.cgrow_root;
 			indiv.cmass_repr += indiv.cgrow_repr;
 
-			assert(negligible(indiv.ndemand * fnavail - navail_leaf - navail_root - navail_repr - nreturn, EPS));
+			assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_repr + nreturn));
 		}
 
 		// Always take up available N
@@ -3067,20 +3078,18 @@ void update_pools(Vegetation& vegetation) {
 		// update indiv.cgrow (actual growth)
 		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_repr;
 
-        assert(indiv.cgrow_repr >= 0.0);
-		assert(indiv.cgrow_leaf >= 0.0);
-		assert(indiv.cgrow_root >= 0.0);
-		assert(indiv.cmass_storage >= 0.0);
-		assert(indiv.nmass_storage >= 0.0);
-		assert(indiv.nmass_storage <= indiv.nstorage_max);
-		assert(negligible(cgrow_unlim - (indiv.cgrow_repr + indiv.cgrow_leaf + indiv.cgrow_root + creturn + cexcess), -16));
-		assert(indiv.pft.cton_leaf_max - indiv.cton_leaf() > -1e-12); // Can't use negligible, because c:n may be less than max
-		assert(indiv.cton_leaf() > indiv.pft.cton_leaf_min || equal(indiv.cton_leaf(),indiv.pft.cton_leaf_min,-12));
-		assert(indiv.cton_root() <= indiv.pft.cton_root_max);
-		
+        assert(positive(indiv.cgrow_repr));
+		assert(positive(indiv.cgrow_leaf));
+		assert(positive(indiv.cgrow_root));
+		assert(positive(indiv.cmass_storage));
+		assert(positive(indiv.nmass_storage));
+		assert(less_than_or_equal(indiv.nmass_storage, indiv.nstorage_max));
+		assert(equal(cgrow_unlim, indiv.cgrow_repr + indiv.cgrow_leaf + indiv.cgrow_root + creturn + cexcess));
+		assert(less_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_max));
+		assert(greater_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_min));
+		assert(less_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_max));
 	}
 }
-
 
 // Transfer of C and N from green (live) leaf pool to brown (dead) leaf pool
 // Accounts for retranslocation of C and N to storage prior to senescence. 
@@ -3181,16 +3190,16 @@ void senescence(Vegetation& vegetation) {
 		indiv.nmass_leafs[brown] += ntobrown;  // brown leaf pool
 		indiv.nmass_storage  += nstore;        // N storage
 
-		assert(indiv.cmass_leafs[green] >= 0.0);
-		assert(indiv.nmass_leafs[green] >= 0.0);
-		assert(indiv.cmass_leafs[brown] >= 0.0);
-		assert(indiv.nmass_leafs[brown] >= 0.0);
+		assert(positive(indiv.cmass_leafs[green]));
+		assert(positive(indiv.nmass_leafs[green]));
+		assert(positive(indiv.cmass_leafs[brown]));
+		assert(positive(indiv.nmass_leafs[brown]));
 
-		assert(indiv.cmass_storage >= 0.0);
-		assert(indiv.nmass_storage >= 0.0);
+		assert(positive(indiv.cmass_storage));
+		assert(positive(indiv.nmass_storage));
 
-		assert(negligible(csenesc - (cstore + ctobrown), -16));
-		assert(negligible(nsenesc - (ntobrown + nstore), -16));
+		assert(equal(csenesc, cstore + ctobrown));
+		assert(equal(nsenesc, ntobrown + nstore));
 	}
 }
 
@@ -3270,7 +3279,7 @@ void turnover_grass(Vegetation& vegetation) {
 
 			indiv.nmass_storage    += nstore;
 
-			assert(negligible(nturnover - (nstore + ntolitter), -16));
+			assert(equal(nturnover, nstore + ntolitter));
 		}
 
 		// Move reproductive C and N to litter at the beginning of dormancy

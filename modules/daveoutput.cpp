@@ -101,8 +101,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
 
 	// Daily individual-level array outputs.
-	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");
-	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");
+	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, get_fpar_layer, "Daily layered fpar [0-1]");
+	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , get_lai_layer , "Daily layered LAI (m2/m2)");
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
@@ -595,16 +595,17 @@ std::vector<double> DaveOutput::IndividualOutput::write_patch(Patch &patch, Outp
 
 	// Write one column per PFT - note that there will not necessarily be a 1:1
 	// mapping of PFTs to individuals, as some PFTs may not be established.
-	for (int i = 0; i < pfts.size(); i++) {
-		std::vector<Individual *> indivs = get_indivs(vegetation, pfts[i].c_str());
-
+	for (int i = 0; i < pftlist.nobj; i++) {
+		const Pft &pft = pftlist[i];
 		double result = 0;
-		if (indivs.size() > 0) {
-			for (Individual *indiv : indivs) {
-				result += indiv ? read_output->read(*indiv) : 0;
+
+		for (int j = 0; j < vegetation.nobj; j++) {
+			const Individual &indiv = vegetation[j];
+			if (indiv.pft.id == pft.id) {
+				result += read_output->read(indiv);
 			}
-			// result /= indivs.size();
 		}
+		// result /= indivs.size();
 		results.push_back(result);
 	}
 
@@ -878,12 +879,15 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 				vegetation.firstobj();
 				double total = 0;
 
-				for (int k = 0; k < pfts.size(); k++) {
-					std::vector<Individual *> indivs = get_indivs(vegetation, pfts[k].c_str());
+				for (int k = 0; k < pftlist.nobj; k++) {
+					// Read array element for all individuals of this PFT.
+					const Pft &pft = pftlist[k];
 					double indiv_total = 0;
-					for (Individual *indiv : indivs) {
-						// Read array element for this individual.
-						indiv_total += read_elem->read(*indiv, i);
+					for (int l = 0; l < vegetation.nobj; l++) {
+						const Individual &indiv = vegetation[l];
+						if (indiv.pft.id == pft.id) {
+							indiv_total += read_elem->read(indiv, i);
+						}
 					}
 					total += indiv_total;
 

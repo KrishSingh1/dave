@@ -77,6 +77,25 @@ inline bool largerthanzero(double dval, int limit = 0) {
 }
 
 /*
+Return true iff x is sufficiently close to 0.
+
+This is an optimised form of equal() which runs faster with a y-value of 0. It's
+faster because it skips the check against a relative epsilon, which is fairly
+meaningless when comparing against 0.
+
+Do not use this to check if the difference between 2 numbers is 0. This function
+will not work perfectly for that purpose, especially if one or both of the
+numbers is distant from 0. Use equal() for that purpose.
+
+@param x: The number to check.
+@param eps: The tolerance to be used for the comparison. If this really must be
+changed, make it a multiple of DBL_EPSILON.
+*/
+inline bool is_zero(double x, double eps = DBL_EPSILON) {
+	return fabs(x) < eps;
+}
+
+/*
 Returns true if x is sufficiently close to y.
 
 The tolerance increases with the magnitude of the operands, to allow for the
@@ -97,7 +116,9 @@ inline bool equal(double x, double y, double eps = DBL_EPSILON) {
 	}
 
 	// If the numbers are distant from zero, a relative difference is useful.
-	double magnitude = std::max(fabs(x), fabs(y));
+	x = fabs(x);
+	y = fabs(y);
+	double magnitude = (x > y) ? x : y;
 
 	// BLARP! It's best for the tolerance to be a multiple of DBL_EPSILON, but
 	// the question is, what multiple? Increasing this scalar will increase the
@@ -166,7 +187,7 @@ inline double mean(double x, double y) {
 
 // Divide x by y. Raise an error if denominator is 0.
 inline double divide(double x, double y) {
-	if (negligible(y)) {
+	if (equal(y, 0)) {
 		throw std::runtime_error("Divide by 0 error");
 	}
 	return x / y;

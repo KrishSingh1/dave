@@ -2791,7 +2791,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 		// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
 		double pmass_leaf = nmass_leaf / leaf_NtoP;         
 
-		if (!negligible(pmass_leaf, -6)) {
+		if (!is_zero(pmass_leaf)) {
 			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
 											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
 			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
@@ -2853,18 +2853,19 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double lai_cum_bottom = 0.0;
 
 			// Loop over canopy layers (from top layer to bottom layer)
-		    for (int j = 0; j < indiv.fpar_layerwise.size(); j++) {
+			size_t nlayer = indiv.fpar_layerwise.size();
+		    for (size_t j = 0; j < nlayer; j++) {
 
 				// determine fpar and apar of the layer
 		        double fpar_layer = indiv.fpar_layerwise[j]; // fPAR in this layer
 				double lai_layer = indiv.lai_layerwise[j];   // LAI of the layer and individual
 
-				if (negligible(fpar_layer, -12)) {
-					if (negligible(lai_layer, -12)) {
+				if (is_zero(fpar_layer)) {
+					if (is_zero(lai_layer)) {
 						// LAI and fpar both 0 - no photosynthesis calculation 
 						// tree may be shorter than this layer.
 						continue;
-					} else if (!negligible(par)) {
+					} else if (!is_zero(par)) {
 						// fpar is 0, lai and par both non zero. This means there
 						// is par and leaf in this layer, but no fpar.
 						// For grasses, this can happen if PAR is below the threshold
@@ -2899,7 +2900,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
-					if (negligible(apar_layer, -9)) {
+					if (is_zero(apar_layer)) {
 						// Night
 						An = -Rd;
 						gsc = g0;
@@ -2953,7 +2954,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
 
-					if (negligible(par, -9)) {
+					if (is_zero(par)) {
 						// No photosynthesis at night.
 						An = -Rd;
 						gsc = g0;

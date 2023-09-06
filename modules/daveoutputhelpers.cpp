@@ -155,21 +155,39 @@ Individual *get_first_indiv(const Patch &patch) {
 }
 
 int get_nlayer_fpar(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->fpar_layerwise.size();
+	size_t nlayer = 0;
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		nlayer = std::max(nlayer, patch.vegetation[i].fpar_layerwise.size());
 	}
-	// No individuals are established in this patch.
-	return 0;
+	return nlayer;
 }
 
+double get_fpar_layer(const Individual &indiv, int i) {
+	// i = 0 means bottom layer (so last element in the array), i = 1 means
+	// second layer, etc.
+	int index = indiv.fpar_layerwise.size() - i - 1;
+	if (index < 0 || index > indiv.fpar_layerwise.size()) {
+		return 0;
+	}
+	return indiv.fpar_layerwise[i];
+}
 
 int get_nlayer_lai(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->lai_layerwise.size();
+	size_t nlayer = 0;
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		nlayer = std::max(nlayer, patch.vegetation[i].lai_layerwise.size());
 	}
-	return 0;
+	return nlayer;
+}
+
+double get_lai_layer(const Individual &indiv, int i) {
+	// i = 0 means bottom layer (so last element in the array), i = 1 means
+	// second layer, etc.
+	int index = indiv.lai_layerwise.size() - i - 1;
+	if (index < 0 || index > indiv.lai_layerwise.size()) {
+		return 0;
+	}
+	return indiv.lai_layerwise[i];
 }
 
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft) {

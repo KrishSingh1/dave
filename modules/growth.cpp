@@ -84,6 +84,7 @@ public:
 	~DaveMassBalance();
 	void init(const Vegetation &vegetation);
 	void check(const Vegetation &vegetation);
+#ifndef NDEBUG
 private:
 	bool should_check(const Individual &);
 	class IndivState {
@@ -98,7 +99,10 @@ private:
 	};
 	std::vector<const IndivState*> indivs;
 	void clear_indivs();
+#endif // NDEBUG
 };
+
+#ifndef NDEBUG
 
 DaveMassBalance::~DaveMassBalance() {
 	clear_indivs();
@@ -113,30 +117,6 @@ void DaveMassBalance::clear_indivs() {
 
 bool DaveMassBalance::should_check(const Individual &indiv) {
 	return indiv.pft.lifeform == GRASS;
-}
-
-void DaveMassBalance::init(const Vegetation &vegetation) {
-	clear_indivs();
-	for (int i = 0; i < vegetation.nobj; i++) {
-		Individual &individual = vegetation[i];
-		if (should_check(individual)) {
-			IndivState *indiv = new IndivState(individual);
-			indivs.push_back(indiv);
-		}
-	}
-}
-
-void DaveMassBalance::check(const Vegetation &vegetation) {
-	for (int i = 0; i < vegetation.nobj && i < indivs.size(); i++) {
-		// If an individual is killed during the day, it will be removed from
-		// the vegetation object. Ergo, we cannot rely on the order or size of
-		// the vegetation array matching the order and size of our internal
-		// vector. To allow for this we also check the indiv ID.
-		Individual &indiv = vegetation[i];
-		if (should_check(indiv) && indivs[i]->get_id() == indiv.id) {
-			indivs[i]->check(indiv);
-		}
-	}
 }
 
 double get_nmass(const Individual &indiv) {
@@ -174,6 +154,36 @@ void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 	double n_flux = indiv.nmass_missing;
 	double n_end = get_nmass(indiv);
 	assert(equal(n_end, n_start + n_flux));
+}
+
+#endif // NDEBUG
+
+void DaveMassBalance::init(const Vegetation &vegetation) {
+#ifndef NDEBUG
+	clear_indivs();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &individual = vegetation[i];
+		if (should_check(individual)) {
+			IndivState *indiv = new IndivState(individual);
+			indivs.push_back(indiv);
+		}
+	}
+#endif // NDEBUG
+}
+
+void DaveMassBalance::check(const Vegetation &vegetation) {
+#ifndef NDEBUG
+	for (int i = 0; i < vegetation.nobj && i < indivs.size(); i++) {
+		// If an individual is killed during the day, it will be removed from
+		// the vegetation object. Ergo, we cannot rely on the order or size of
+		// the vegetation array matching the order and size of our internal
+		// vector. To allow for this we also check the indiv ID.
+		Individual &indiv = vegetation[i];
+		if (should_check(indiv) && indivs[i]->get_id() == indiv.id) {
+			indivs[i]->check(indiv);
+		}
+	}
+#endif
 }
 
 void flush_repr_litter_DAVE(Individual &indiv);
@@ -423,7 +433,7 @@ double calc_nrelocfrac_daily(double cton_min, double cton_max, double cmass_stor
 	double nreloc_max = nrelocfrac * 1.2;
 	double nreloc_min = nrelocfrac / 1.2;
 
-	if (negligible(cmass_storage, -12)) {
+	if (is_zero(cmass_storage)) {
 		return nreloc_min;
 	}
 
@@ -2177,7 +2187,7 @@ void growth_daily_grass(Patch& patch) {
 			// or only water limitation and current leaf to root status if N limitation is turned off
 
 			// Current leaf to root status
-			double ltor_status = (!negligible(indiv.get_cmass_leaf(), -6) && !negligible(indiv.cmass_root, -6)) ? max(0.5, min(2.0, indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root))) : 1.0;
+			double ltor_status = (!is_zero(indiv.get_cmass_leaf()) && !is_zero(indiv.cmass_root)) ? max(0.5, min(2.0, indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root))) : 1.0;
 			double ltor_min = 0.5 * indiv.pft.ltor_max;
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
@@ -2273,7 +2283,7 @@ void growth_daily_grass(Patch& patch) {
 					ngrow_leaf_demand = ngrow_root_demand = nup_leaf_demand = nup_root_demand = 0.0;
 				}
 				// No new growth but N demand from current tissue
-				else if (negligible(cgrow, -10) && nup_leaf_demand + nup_root_demand > 1.0e-12) {
+				else if (is_zero(cgrow) && nup_leaf_demand + nup_root_demand > 1.0e-12) {
 					cgrow = cgrow_root = cgrow_leaf = 0.0;
 					ngrow_leaf_demand = ngrow_root_demand = 0.0;
 

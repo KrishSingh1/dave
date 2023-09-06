@@ -82,8 +82,8 @@ const double EPS = -12;
 class DaveMassBalance {
 public:
 	~DaveMassBalance();
-	void init(Vegetation &vegetation);
-	void check(Vegetation &vegetation);
+	void init(const Vegetation &vegetation);
+	void check(const Vegetation &vegetation);
 private:
 	bool should_check(const Individual &);
 	class IndivState {
@@ -115,7 +115,7 @@ bool DaveMassBalance::should_check(const Individual &indiv) {
 	return indiv.pft.lifeform == GRASS;
 }
 
-void DaveMassBalance::init(Vegetation &vegetation) {
+void DaveMassBalance::init(const Vegetation &vegetation) {
 	clear_indivs();
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &individual = vegetation[i];
@@ -126,7 +126,7 @@ void DaveMassBalance::init(Vegetation &vegetation) {
 	}
 }
 
-void DaveMassBalance::check(Vegetation &vegetation) {
+void DaveMassBalance::check(const Vegetation &vegetation) {
 	for (int i = 0; i < vegetation.nobj && i < indivs.size(); i++) {
 		// If an individual is killed during the day, it will be removed from
 		// the vegetation object. Ergo, we cannot rely on the order or size of
@@ -2808,36 +2808,81 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 	}
 }
 
+/*
+Get the C:N ratio for new N growth which would maintain the current C:N ratio.
+If the current C:N ratio is already outside the allowed C:N bounds, calculate
+a C:N ratio for new growth which would put the C:N ratio back within the legal
+upper/lower bounds.
+
+@param cmass: Current mass of the C pool (kgC/m2).
+@param nmass: Current mass of the N pool (kgC/m2).
+@param cton_min: Minimum allowed C:N ratio.
+@param cton_max: Maximum allowed C:N ratio.
+@param cgrow: Today's C growth (kgC/m2).
+
+Note: technically the units don't really matter, as long as they're consistent.
+*/
+double constrain_cton(double cmass, double nmass, double cton_min, double cton_max, double cgrow) {
+	// Can this happen on the first day?
+	if (nmass == 0 || cgrow == 0) {
+		return 1;
+	}
+
+	// Get C:N ratio of existing biomass. If it's within the allowed bounds then
+	// there's nothing more to do.
+	double cton = cmass / nmass;
+
+	if (cton > cton_max || cton < cton_min) {
+		// Current C:N ratio is outside the allowed C:N ratio. We need to
+		// up- or down-regulate the N demand in order to move towards the
+		// nearest C:N ratio bounds.
+		double target_cton = cton > cton_max ? cton_max : cton_min;
+
+		// Get the N content which would put us at the target C:N ratio after
+		// today's growth.
+		double c_new = cmass + cgrow;
+		double n_new = c_new / target_cton;
+
+		// Get the delta between current and target N content.
+		double ngrow = n_new - nmass;
+
+		// Calculate the C:N ratio of new growth which will put us at the target
+		// C:N ratio.
+		cton = cgrow / ngrow;
+	}
+	assert(positive(cton));
+	return cton;
+}
 
 
 // Calculate N demand based on growth and N status of the plant
-void ndemand(Vegetation& vegetation) {
 	
+void ndemand(Vegetation& vegetation) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
 
-	// Local	
-	double ngrow_demand_repr, ngrow_demand_leaf, ngrow_demand_root;
-	double nupdate_demand_leaf, nupdate_demand_root;
-	double cton_leaf, cton_root;
-
 	// Loop through individuals
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 
-		// Current C:N ratios
-		cton_leaf = !negligible(indiv.get_nmass_leaf()) ? indiv.get_cmass_leaf() / indiv.get_nmass_leaf() : indiv.pft.cton_leaf_avr;
-		cton_root = !negligible(indiv.nmass_root) ? indiv.cmass_root / indiv.nmass_root : indiv.pft.cton_root_avr;
+		// Local	
+		double ngrow_demand_repr = 0;
+		double ngrow_demand_leaf = 0;
+		double ngrow_demand_root = 0;
 
-		// Constrain C:N ratios of new biomass to the min/max defined in the PFT.
-		cton_leaf = min(cton_leaf, indiv.pft.cton_leaf_max);
-		cton_leaf = max(cton_leaf, indiv.pft.cton_leaf_min);
-		cton_root = min(cton_root, indiv.pft.cton_root_max);
-		double cton_root_min = 2.0 * indiv.pft.cton_root_avr - indiv.pft.cton_root_max;
-		cton_root = max(cton_root, cton_root_min);
+		// double cton_root_min = 2.0 * indiv.pft.cton_root_avr - indiv.pft.cton_root_max;
+		// cton_root = max(cton_root, cton_root_min);
 
 		// N demand of new growth
 		if (!negligible(indiv.cgrow)) {
+			// Current C:N ratios
+			double cton_leaf = constrain_cton(
+				indiv.get_cmass_leaf(), indiv.get_nmass_leaf(),
+				indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
+				indiv.cgrow_leaf);
+			double cton_root = constrain_cton(
+				indiv.cmass_root, indiv.nmass_root,
+				0, indiv.pft.cton_root_max,
+				indiv.cgrow_root);
 			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
 			ngrow_demand_root = indiv.cgrow_root / cton_root;
 			ngrow_demand_repr = indiv.cgrow_repr / cton_leaf;  // C:N repr = C:N leaf for now.
@@ -2848,8 +2893,8 @@ void ndemand(Vegetation& vegetation) {
 		}
 
 		// N demand of existing biomass (will also be applied to new biomass)
-		nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
-		nupdate_demand_root = max(0.0, indiv.cmass_root / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr)
+		double nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
+		double nupdate_demand_root = max(0.0, indiv.cmass_root / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr)
 									    - indiv.nmass_root) * frac_nchange;
 
 		// Total biomass N demand of individual
@@ -2859,8 +2904,6 @@ void ndemand(Vegetation& vegetation) {
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.reprndemand;
 
 		assert(positive(indiv.ndemand));
-
-		vegetation.nextobj();
 	}
 }
 
@@ -2936,7 +2979,6 @@ void update_pools(Vegetation& vegetation) {
 		}
 
 		double creturn = 0.0; // kgC m-2 d-1
-		double growth_max_leaf = 0.0, growth_max_root = 0.0, growth_max_repr = 0.0;
 		double cexcess = 0.0, nexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;
 
@@ -2972,10 +3014,6 @@ void update_pools(Vegetation& vegetation) {
 			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
 
-		if (date.year == 205 && date.day == 0 && indiv.id == 301) {
-			printf("debug\n");
-		}
-
 		double navail_leaf = indiv.leafndemand * fnavail;
 		double navail_root = indiv.rootndemand * fnavail;	
 		double navail_repr = indiv.reprndemand * fnavail; 
@@ -3002,7 +3040,7 @@ void update_pools(Vegetation& vegetation) {
 			if ( navail_leaf < (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) {
 				
 				// Maximum possible leaf growth given N constraints. Put rest of C back into storage (Creturn)
-				growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
+				double growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
 				creturn += indiv.cgrow_leaf - growth_max_leaf;
 				indiv.cgrow_leaf = growth_max_leaf;
 			} else if ( navail_leaf > (indiv.cgrow_leaf / indiv.pft.cton_leaf_min) ) {
@@ -3017,7 +3055,7 @@ void update_pools(Vegetation& vegetation) {
 			if ( navail_root < (indiv.cgrow_root / indiv.pft.cton_root_max)) {
 				
 				// Maximum possible root growth given N constraints. Put rest of C back into storage (Creturn)
-				growth_max_root = navail_root * indiv.pft.cton_root_max;
+				double growth_max_root = navail_root * indiv.pft.cton_root_max;
 				creturn += indiv.cgrow_root - growth_max_root;
 				indiv.cgrow_root = growth_max_root;
 			} else if (navail_root > (indiv.cgrow_root / cton_root_min)) {
@@ -3031,7 +3069,7 @@ void update_pools(Vegetation& vegetation) {
 			if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_leaf_max)) {
 
 				// Maximum possible reproductive growth given N constraints. Put rest of C back into storage (Creturn)
-				growth_max_repr = navail_repr * indiv.pft.cton_leaf_max;
+				double growth_max_repr = navail_repr * indiv.pft.cton_leaf_max;
 				creturn += indiv.cgrow_repr - growth_max_repr;
 				indiv.cgrow_repr = growth_max_repr;
 			} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_leaf_min)) {

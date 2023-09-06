@@ -472,6 +472,9 @@ void fpar(Patch& patch) {
 
 					t2 = max(t2, fpar_min);
 				}
+				else {
+					fpar_min = 1.0;
+				}
 				indiv.fpar=max(0.0,fpar_grass*flai-t2);
 				indiv.fpar_layerwise.push_back(indiv.fpar);
 				indiv.lai_layerwise.push_back(indiv.lai);
@@ -2457,7 +2460,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Growth respiration
 			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim - resp_sap - resp_root) * (growth_demand * Rg_max);
+			resp_growth = (assim /*- resp_sap     DH: need to confirm with Juergen if this can be removed*/
+			               - resp_root) * (growth_demand * Rg_max);
 
 		} else {
 			
@@ -2769,7 +2773,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-        double nmass_leaf;
+        double nmass_leaf = 0;
 		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
 		
         // leaf N of green leaves per leaf area (kgN m-2 leaf)
@@ -3315,14 +3319,17 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 	// Ensure water uptake doesn't exceed availability in any layer.
 	double uptake[NSOILLAYER];
 	double total_uptake = 0;
-	for (int i = 0; i < vegetation.nobj; i++) {
-		const Individual &indiv = vegetation[i];
-		const Patchpft &ppft = indiv.patchpft();
-		for (int j = 0; j < NSOILLAYER; j++) {
-			uptake[j] += indiv.aet * ppft.fwuptake[j];
-			total_uptake += uptake[j];
+
+	for (int i = 0; i < NSOILLAYER; i++) {
+		uptake[i] = 0;
+		for (int j = 0; j < vegetation.nobj; j++) {
+			const Individual &indiv = vegetation[j];
+			const Patchpft &ppft = indiv.patchpft();
+			uptake[i] += indiv.aet * ppft.fwuptake[i];
 		}
+		total_uptake += uptake[i];
 	}
+
 	for (int i = 0; i < NSOILLAYER; i++) {
 		if (uptake[i] > wcont_local[i]) {
 			// Demand in this layer exceeds supply.
@@ -3343,7 +3350,16 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 // - bvoc function not implemented (could be added later)
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	double gtemp = climate.gtemp;  // TODO: find out what that is.
+	// TODO: find out what gtemp is.
+	// Note: climate.gtemp will be uninitialised here when running in diurnal
+	// (ie subdaily) mode, and climate.gtemps will be uninitialised when running
+	// in non-diurnal mode.
+	double gtemp;
+	if (date.diurnal()) {
+		gtemp = mean(&climate.gtemps.front(), date.subdaily);
+	} else {
+		gtemp = climate.gtemp;
+	}
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {

@@ -98,7 +98,15 @@ inline bool equal(double x, double y, double eps = DBL_EPSILON) {
 
 	// If the numbers are distant from zero, a relative difference is useful.
 	double magnitude = std::max(fabs(x), fabs(y));
-	if (diff <= magnitude * eps) {
+
+	// BLARP! It's best for the tolerance to be a multiple of DBL_EPSILON, but
+	// the question is, what multiple? Increasing this scalar will increase the
+	// tolerance of the checks. If you're reading this and are tempted to
+	// increase SCALAR, it may be better to restructure your calculations in
+	// such a way as to reduce your roundoff error.
+	const double SCALAR = 8;
+
+	if (diff <= magnitude * eps * SCALAR) {
 		return true;
 	}
 

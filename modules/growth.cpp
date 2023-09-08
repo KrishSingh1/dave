@@ -81,10 +81,10 @@ const double EPS = -12;
 
 class DaveMassBalance {
 public:
-	~DaveMassBalance();
 	void init(const Vegetation &vegetation);
 	void check(const Vegetation &vegetation);
 #ifndef NDEBUG
+	~DaveMassBalance();
 private:
 	bool should_check(const Individual &);
 	class IndivState {

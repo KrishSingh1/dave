@@ -4,7 +4,7 @@
                         PLEASE READ CAREFULLY
  
 This directory contains source code files and other files necessary to
-run a *demonstation version* of LPJ-GUESS:
+run a *demonstration version* of LPJ-GUESS:
      - in population mode (i.e. as LPJ-DGVM) or cohort mode (i.e. as GUESS)
      - on the Unix or Windows operating system
      - in Windows, as either a command-line executable or within the

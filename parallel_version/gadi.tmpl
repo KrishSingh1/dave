@@ -1,0 +1,403 @@
+#!/usr/bin/env bash
+#
+# Portable bash script to run LPJ-Guess as a parallel job using PBS on Gadi.
+#
+# Usage:
+#
+# submit_to_gadi.sh [-n <name>] [-s <file>] [-i <ins-file>]
+#
+# All arguments are optional and interpreted as:
+#
+#   name     = the name of the job (shown in PBS queue)
+#   file     = filename of a file which can override the input variables. If
+#              set, this file should contain lines of the form VARIABLE=Value
+#   ins-file = instruction file to use, overrides the hardcoded INSFILE
+#
+
+# Exit immediately if:
+# - Any command fails
+# - Any part of a pipeline fails
+# - We reference any unbound variables
+set -euo pipefail
+
+# Get directory containing this script.
+SUBMIT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"
+
+# ------------------------------------------------------------------------------
+# Input variables - change these as required.
+#
+# These can of course be modified in the script, but the recommended way is to
+# create a separate file which sets these variables, and pass that file to this
+# script with the -s command line argument. E.g.
+#
+# ./submit_to_gadi.sh -s myconfig.ini
+# ------------------------------------------------------------------------------
+
+# File paths
+OUT_DIR="${SUBMIT_DIR}" # Outut path.
+EXECUTABLE=BINARY # Path to LPJ-Guess binary. This is set by the cmake insfrastructure.
+
+# PBS/Cluster Settings
+NPROCESS=48                         # Number of processes in parallel job.
+WALLTIME=22:30:00                   # maximum wall (real) time for job hh:mm:ss
+MEMORY=96GB                         # Total amount of memory available to job.
+QUEUE=normal                        # PBS queue priority(?).
+PROJECT=vl59                        # Project name.
+EMAIL="${EMAIL_ADDR}"               # Email address of job owner.
+EMAIL_NOTIFICATIONS=1               # 1 to receive notifications, 0 otherwise.
+JOB_NAME=guess                      # Job name (overriden by -n CLI option).
+
+# LPJ-Guess Settings
+INSFILE="${SUBMIT_DIR}/global_cf.ins" # path to ins file from run directory.
+OUTFILES='*.out'                    # List of LPJ-Guess output files.
+
+# ------------------------------------------------------------------------------
+# End input variables section.
+# ------------------------------------------------------------------------------
+
+# Parse the command line arguments
+while getopts ":n:s:i:" opt; do
+    case $opt in
+	n ) JOB_NAME=$OPTARG ;;
+	s ) source $OPTARG ;;
+	i ) INSFILE=$OPTARG ;;
+    esac
+done
+
+# This function will print the absolute path to the given filename.
+# We could use readlink, but it's a Linux tool - not available on MacOS (afaik).
+function get_absolute_path() {
+  echo $( cd "$(dirname "$1")"; pwd -P )/$(basename "$1")
+}
+
+# Function to print all matches of a regular expression. 2 args:
+# 1: a sed expression
+# 2: Input file name
+function print_all_matches() {
+	for match in $( sed -Ene "$1" "$2" )
+	do
+		if [ -n "${match// /}" ]
+		then
+			echo "$match"
+		fi
+	done
+}
+
+# Print all of the netcdf gridlists directly imported by the given .ins file.
+function get_cf_gridlists() {
+	print_all_matches 's/^.*"file_gridlist_cf" \(str "([^"]+)"\)\r?$/\1/p' "$1"
+}
+
+# Print all of the cru gridlists directly imported by the given .ins file.
+function get_cru_gridlists() {
+	print_all_matches 's/^.*"file_gridlist" \(str "([^"]+)"\)\r?$/\1/p' "$1"
+}
+
+# Print all of the .ins files imported by the given .ins file.
+function get_imports() {
+	print_all_matches 's/^\s*import "?([^"]+)"/\1/p' "$1"
+}
+
+# Print the absolute path to all gridlist files imported by the specified .ins
+# file, or by any imported .ins file. Two variables will also be set:
+# - CF: set to 1 if the cf input module is to be used
+# - CRU: set to 1 if the cru input module is to be used.
+#
+# This function should only be called internally. Instead, the user should call
+# get_all_gridlists.
+function get_gridlists_recursive() {
+	# Change to directory of this .ins file, so we can resolve relative
+	# paths inside the .ins file.
+	pushd "$( dirname $1 )" >/dev/null 2>&1
+
+	IFS=$'\n'
+
+	# Not putting quotes around the value returned from the subshell, as this
+	# causes the variable to be an array of 1 element (empty string), even if
+	# the function doesn't actually return anything.
+	local cf_gridlists=($( get_cf_gridlists $1 ))
+	local cru_gridlists=($( get_cru_gridlists $1 ))
+	local all_imported=($( get_imports $1 ))
+
+	# Print the gridlist filename(s) if we found any.
+	local num_cf=${#cf_gridlists[@]}
+	local num_cru=${#cru_gridlists[@]}
+
+	if [ ${num_cf:-0} -gt 0 ]
+	then
+		CF=1
+		pushd "${MAIN_INS_FILE_DIR}" >/dev/null 2>&1
+		# Print absolute paths.
+		for cf_gridlist in ${cf_gridlists}
+		do
+			get_absolute_path "${cf_gridlist}"
+		done
+		popd >/dev/null 2>&1
+	fi
+
+	if [ ${num_cru:-0} -gt 0 ]
+	then
+		CRU=1
+		pushd "${MAIN_INS_FILE_DIR}" >/dev/null 2>&1
+		# Print absolute paths.
+		for cru_gridlist in ${cru_gridlists}
+		do
+			get_absolute_path "${cru_gridlist}"
+		done
+		popd >/dev/null 2>&1
+	fi
+
+	if [ ${#all_imported[@]} -gt 0 ]
+	then
+		for imported in $all_imported
+		do
+			get_gridlists_recursive "$( get_absolute_path "${imported}" )"
+		done
+	fi
+
+	# Return to previous directory.
+	popd >/dev/null 2>&1
+}
+
+# This function prints the absolute path to all gridlist files referenced by the
+# given .ins file (or any imported .ins file).
+function get_all_gridlists() {
+	MAIN_INS_FILE_DIR="$( get_absolute_path "$1" | xargs dirname )"
+	CF=0
+	CRU=0
+	local OUT_LOG=`mktemp`
+	get_gridlists_recursive "$@" >"${OUT_LOG}"
+	GRIDLISTS=($( cat "${OUT_LOG}" ))
+	MAIN_INS_FILE_DIR=
+}
+
+# Read gridlist file name from the .ins file.
+IFS=$'\n'
+get_all_gridlists "${INSFILE}"
+
+if [ ${#GRIDLISTS[@]} -gt 1 ]
+then
+  echo "$INSFILE references ${#GRIDLISTS[@]} gridlists"
+  exit 1
+fi
+
+# Absolute path to the gridlist file.
+GRIDLIST=${GRIDLISTS[0]}
+
+# Input module to be used.
+INPUT_MODULE=cf
+if [ "${CF}" -eq 1 ]
+then
+	if [ "${CRU}" -eq 1 ]
+	then
+		echo "${ins} references both cf and cru input files" >&2
+		exit 1
+	fi
+	INPUT_MODULE=cf
+elif [ ${CRU} -eq 1 ]
+then
+	INPUT_MODULE=cru_ncep
+else
+	echo "No gridlist file specified..."
+	exit 1
+fi
+
+
+# Convert to absolute paths.
+INSFILE="$(get_absolute_path "${INSFILE}")"
+OUT_DIR="$(get_absolute_path "${OUT_DIR}")"
+GRIDLIST="$(get_absolute_path "${GRIDLIST}")"
+
+# Input checking/validation.
+
+# This function will perform the specified check on the given file, and if the
+# check fails, will print the specified message and exit.
+#
+# Arguments:
+# - An argument to the test command - e.g. -f to check if file exists.
+# - The file path
+# - Error message
+check_permission() {
+  if [ ! $1 "$2" ]
+  then
+    echo $3
+    exit 1
+  fi
+}
+
+# Check if a file exists. If it does not, print an error message and return
+# non-zero exit code.
+#
+# Arguments:
+# - The file to be checked
+check_exists() {
+  check_permission -f $1 "Error: $1 does not exist"
+}
+
+# Check if a file or directory has read permission for the current user. If it
+# doesn't, print an error message and return a non-zero exit code.
+#
+# Arguments:
+# - The file to be checked
+check_read() {
+  check_permission -r $1 "Error: $1 does not have read permission"
+}
+
+# Check if a file or directory has execute permission for the current user. If
+# it doesn't, print an error message and return a non-zero exit code.
+#
+# Arguments:
+# - The file to be checked
+check_execute() {
+  check_permission -x $1 "Error: $1 does not have execute permission"
+}
+
+# Ensure the input files exist and have the required permissions.
+check_exists "${EXECUTABLE}"
+check_exists "${INSFILE}"
+check_exists "${GRIDLIST}"
+check_read "${EXECUTABLE}"
+check_read "${INSFILE}"
+check_read "${GRIDLIST}"
+check_execute "${EXECUTABLE}"
+
+# Create links and directories.
+mkdir -p "${OUT_DIR}/output"
+mkdir -p "${OUT_DIR}/logs"
+
+# Get the file name (without path) of the gridlist file.
+GRIDLIST_FILENAME=$(basename ${GRIDLIST})
+
+# This function creates the gridlist files for each run by splitting
+# the original gridlist file into approximately equal parts.
+function split_gridlist {
+    # Create empty gridlists first to make sure each run gets one.
+    for ((a=1; a <= NPROCESS ; a++))
+    do
+        mkdir -p "${OUT_DIR}/run${a}"
+        echo > "${OUT_DIR}/run${a}/${GRIDLIST_FILENAME}"
+    done
+
+    # Figure out suitable number of lines per gridlist, get the number of
+    # lines in original gridlist file, divide by NPROCESS and round up.
+    local lines_per_run=$(wc -l ${GRIDLIST} | \
+	awk '{ x = $1/'${NPROCESS}'; d = (x == int(x)) ? x : int(x)+1; print d}')
+
+    # Use the split command to split the files into temporary files
+    local tmp_prefix=tmpSPLITGRID_
+    split --suffix-length=4 --lines ${lines_per_run} ${GRIDLIST} "${tmp_prefix}"
+
+    # Move the temporary files into the runX-directories.
+    local files="${tmp_prefix}*"
+    local i=1
+    for file in ${files}
+    do
+      mv ${file} "${OUT_DIR}/run${i}/${GRIDLIST_FILENAME}"
+      i=$((i+1))
+    done
+}
+
+# Create header of progress.sh script
+# The progress script will print the progress of each run/process.
+progress_sh="${OUT_DIR}/progress.sh"
+echo "##############################################################" > "${progress_sh}"
+echo "# PROGRESS.SH" >> "${progress_sh}"
+echo "# Upload current guess.log files from local nodes and check" >> "${progress_sh}"
+echo "# Usage: sh progress.sh" >> "${progress_sh}"
+echo >> "${progress_sh}"
+echo 'DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P )"' >> "${progress_sh}"
+echo >> "${progress_sh}"
+
+# Create a run subdirectory for each process, clean up any existing files, and
+# append code to the progress script which reports progress of this run.
+for ((a=1; a <= NPROCESS ; a++))
+do
+    # Ensure the directory exists for this run.
+    mkdir -p "${OUT_DIR}/run${a}"
+
+    # Delete any existing log files.
+    cd "${OUT_DIR}/run${a}"; rm -f guess.log; rm -f ${GRIDLIST_FILENAME}; cd ..
+    echo "echo '********** Last few lines of ./run${a}/guess.log: **********'" >> "${progress_sh}"
+    echo "tail \${DIR}/run${a}/guess.log" >> "${progress_sh}"
+done
+
+# Split the grid list into equally sized chunks, 1 chunk per CPU.
+split_gridlist
+
+# Get PBS options for email notifications.
+# Check the qsub man page for more details.
+if [ ${EMAIL_NOTIFICATIONS} -eq 1 ]
+then
+  EMAIL_OPT=abe
+else
+  EMAIL_OPT=n
+fi
+
+# Create PBS script to request place in queue
+guess_cmd="${OUT_DIR}/guess.cmd"
+cat <<EOF > "${guess_cmd}"
+#!/bin/bash
+#PBS -l ncpus=${NPROCESS}
+#PBS -l walltime=${WALLTIME}
+#PBS -l mem=${MEMORY}
+#PBS -q ${QUEUE}
+#PBS -P ${PROJECT}
+#PBS -m ${EMAIL_OPT}
+#PBS -M ${EMAIL}
+#PBS -j oe
+#PBS -l wd
+#PBS -W umask=0022
+#PBS -S /bin/bash
+#PBS -l storage=gdata/${PROJECT}+scratch/${PROJECT}
+set -e
+module purge
+module load intel-mpi/2019.6.166
+umask 022
+mpirun ${EXECUTABLE} -parallel -input ${INPUT_MODULE} ${INSFILE}
+EOF
+
+# Create PBS script to generate combined output files. This will be run after
+# the main job has finished running.
+append_cmd="${OUT_DIR}/append.cmd"
+cat <<EOF > "${append_cmd}"
+#!/bin/bash
+#PBS -l ncpus=1
+#PBS -l walltime=${WALLTIME}
+#PBS -l mem=${MEMORY}
+#PBS -q normal
+#PBS -l wd
+#PBS -j oe
+#PBS -m ${EMAIL_OPT}
+#PBS -M ${EMAIL}
+#PBS -W umask=0022
+set -e
+function append_files {
+    local number_of_jobs=\$1
+    local file=\$2
+    cp run1/\$file \$file
+    local i=""
+    for ((i=2; i <= number_of_jobs; i++))
+    do
+      if [ -f run\$i/\$file ]; then
+        cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      fi
+    done
+}
+pushd run1 &> /dev/null
+outfiles_unexpanded='${OUTFILES}'
+outfiles_expanded=\$(echo \$outfiles_unexpanded)
+popd &> /dev/null
+for file in \$outfiles_expanded
+do
+  append_files ${NPROCESS} \$file
+done
+cat run*/guess.log > guess.log
+EOF
+
+# Submit guess job
+JOB_ID=$(qsub -N "${JOB_NAME}" "${guess_cmd}")
+# echo JOB_ID=${JOB_ID}
+
+# Submit append job
+APPEND_JOB_ID=$(qsub -W depend=afterok:${JOB_ID} -N "${JOB_NAME}_append" "${append_cmd}")
+echo "${APPEND_JOB_ID}"

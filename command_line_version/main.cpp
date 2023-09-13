@@ -49,6 +49,13 @@ int main(int argc,char* argv[]) {
 
 	umask(S_IWGRP | S_IWOTH); // only disable write access for group and others
 
+#else
+
+#ifndef __APPLE__
+	// Maximizing capacity of number of open files on Windows
+	_setmaxstdio(2048);
+#endif
+
 #endif
 
 #ifdef _MSC_VER

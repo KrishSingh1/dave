@@ -1756,17 +1756,21 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	n_opt_isabovelim      = false;
 	nstress           = false;
 
+	size_t nleafpools;
 	if (pft.phenology == CROPGREEN) {
-		cmass_leafs.resize(2); // 0 - alive leaf, 1 - dead leaf (not used yet)
-		nmass_leafs.resize(2); // 0 - alive leaf, 1 - dead leaf (not used yet)
+		nleafpools = 2; // 0 - alive leaf, 1 - dead leaf (not used yet)
 	}
 	else if (ifdailygrass && pft.lifeform == GRASS) {
-		cmass_leafs.resize(4); // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
-		nmass_leafs.resize(4); // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
+		nleafpools = 4; // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
 	}
 	else {
-		cmass_leafs.resize(1); // 0 - alive leaf (not used yet)
-		nmass_leafs.resize(1); // 0 - alive leaf (not used yet)
+		nleafpools = 1; // 0 - alive leaf (not used yet)
+	}
+	cmass_leafs.resize(nleafpools);
+	nmass_leafs.resize(nleafpools);
+	for (size_t i = 0; i < nleafpools; i++) {
+		cmass_leafs[i] = 0.0;
+		nmass_leafs[i] = 0.0;
 	}
 
 	// additional initialisation
@@ -3227,6 +3231,12 @@ Gridcell::Gridcell():climate(*this) {
 	}
 	burned_area = 0.0;
 	simfire_region = 0;
+	simfire_biome = 0;
+	pop_density = 0;
+	simfire_annual_burned_area = 0;
+	nesterov_max = 0;
+	annual_burned_area = 0;
+	k_tun_litter = 0;
 }
 
 double Gridcell::get_lon() const {

@@ -236,7 +236,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					// individual
 
 					Individual& indiv=vegetation.createobj(pft,vegetation);
-					if (pft.lifeform == GRASS || pft.lifeform == MOSS) {
+					if (pft.is_grass() || pft.lifeform == MOSS) {
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
@@ -269,7 +269,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			if (establish(patch, stand.get_climate(), indiv.pft)) ntree_est++;
 			fpc_tree+=indiv.fpc;
 		}
-		else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			fpc_grass+=indiv.fpc;
 			if (establish(patch, stand.get_climate(), indiv.pft)) ngrass_est++;
 		}
@@ -333,7 +333,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
 					indiv.pft.regen.cmass_sap +	indiv.pft.regen.cmass_heart) * est_pft);
 		}
-		else if (((indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
+		else if (((indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
 			establish(patch, stand.get_climate(), indiv.pft)) {
 
 			// ESTABLISHMENT OF GRASSES AND MOSSES
@@ -533,7 +533,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
 
-				if (pft.lifeform==GRASS || pft.lifeform==MOSS) {
+				if (pft.is_grass() || pft.lifeform==MOSS) {
 
 					// ESTABLISHMENT OF GRASSES AND MOSSES
 
@@ -592,7 +592,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
 						}
-						else if (!(indiv.pft.lifeform == GRASS && ifdailygrass)){
+						else if (!(indiv.pft.is_grass() && ifdailygrass)){
 							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
@@ -859,7 +859,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			deltafpc_tree_total+=indiv.deltafpc;
 
 		}
-		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) fpc_grass+=indiv.fpc;
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) fpc_grass+=indiv.fpc;
 
 		vegetation.nextobj(); // ... on to next individual
 	}
@@ -943,7 +943,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			// to account for loss of killed individuals
 			indiv.reduce_biomass(mort, mort_fire);
 		}
-		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) {
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
 			// GRASS AND MOSS MORTALITY
 
@@ -1080,7 +1080,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			// For this individual ...
 			if (indiv.pft.lifeform == MOSS)
 				fpc_moss += indiv.fpc;
-			else if (indiv.pft.lifeform == GRASS)
+			else if (indiv.pft.is_grass())
 				fpc_grass += indiv.fpc;
 			else
 				fpc_other += indiv.fpc;
@@ -1112,7 +1112,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				mort_fire=1.0-indiv.pft.fireresist;
 
-				if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
+				if (indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) {
 
 					// GRASS AND MOSS PFTs
 

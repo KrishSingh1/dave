@@ -52,7 +52,7 @@
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
 /// Life form class for PFTs (trees, grasses, mosses)
-typedef enum {NOLIFEFORM, TREE, GRASS, MOSS} lifeformtype;
+typedef enum {NOLIFEFORM, TREE, GRASS_PERENNIAL, GRASS_ANNUAL, MOSS} lifeformtype;
 
 /// Phenology class for PFTs
 typedef enum {NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, CROPGREEN, ANY} phenologytype;
@@ -2332,6 +2332,10 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
+    bool is_grass() const {
+		return lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL;
+	}
+
 	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
 
@@ -2489,7 +2493,7 @@ public:
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (lifeform == GRASS || lifeform == MOSS) {
+		if (is_grass() || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
 		} 
 		else {
@@ -2548,7 +2552,7 @@ public:
 
 			regen.cmass_heart = SAPLINGHW * regen.cmass_sap;
 		}
-		else if (lifeform == GRASS || lifeform==MOSS) {
+		else if (is_grass() || lifeform==MOSS) {
 
 			// Grass regeneration characteristics
 
@@ -2567,7 +2571,7 @@ public:
 
 			transferconst = 0.0;
 		}
-		else if (lifeform == GRASS) {
+		else if (is_grass()) {
 
 			// Used for daily grass growth. Results in correct leaf longevity under 0.75 * perfect conditions
 
@@ -2611,7 +2615,7 @@ public:
 
 	bool isgrass() const {
 
-		if (lifeform == GRASS)
+		if (is_grass())
 			return true;
 		else
 			return false;
@@ -2960,6 +2964,8 @@ public:
 	Vegetation& vegetation;
 	/// id code (0-based, sequential)
 	int id;
+	/// culm C biomass (kgC/m2)
+	double cmass_culm;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	double cmass_leaf;
 	/// fine root C biomass on modelled area basis (kgC/m2)
@@ -2982,6 +2988,8 @@ public:
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
 	double cgrow;
+	/// daily culm growth rate (kgC/m2/d)
+	double cgrow_culm;
     /// daily leaf growth rate (kgC/m2/d)
 	double cgrow_leaf;
 	/// daily root growth rate (kgC/m2/d)
@@ -2996,8 +3004,9 @@ public:
 	double ps_sink_lim;
 	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
 	double nmass_missing;
-
-	/// leaf N biomass on modelled area basis (kgN/m2)
+    /// culm N mass (kgN/m2)
+	double nmass_culm;
+	/// leaf N mass on modelled area basis (kgN/m2)
 	double nmass_leaf;
 	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
@@ -3084,8 +3093,10 @@ public:
 	double cmass_root_ymax;
 	/// yearly maximum nmass_root for daily allocation
 	double nmass_root_ymax;
-	/// Carbon storage for leaf daily allocation
+	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
+	/// 10-day record of carbon storage pool (kgC/m2)
+	Historic<double, 10> cmass_storage_10;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3102,8 +3113,6 @@ public:
 	double nmass_storage;
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
-	/// running mean of cdeficit for last 5 days for each individual.
-	Historic<double, 5> cdeficit_5;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -3215,7 +3224,9 @@ public:
 	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
-	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
+	/// daily culm nitrogen demand in grasses (kgN/m2)
+	double culmndemand;
+	/// daily leaf nitrogen demand. Calculated from Vmax in orig. LPJ-GUESS (kgN/m2)
 	double leafndemand;
 	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
@@ -4517,8 +4528,6 @@ public:
 	double cmass_litter_heart;
 	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
-	/// N litter derived from allocation to reproduction for PFT on modelled area basis (kgN/m2).
-	double nmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4550,6 +4559,8 @@ public:
 	double nmass_litter_sap;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
+	/// N content of reproductive litter pool (seedbank) (kgN/m2)
+	double nmass_litter_repr;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;

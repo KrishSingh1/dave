@@ -91,7 +91,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	
 		if (indiv.id!=-1 && indiv.alive) {
 	
-			if (indiv.pft.lifeform==GRASS) {
+			if (indiv.pft.is_grass()) {
 				fpar_grass += indiv.fpar_leafon;
 			}
 			else { // tree or shrub

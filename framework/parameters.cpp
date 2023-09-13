@@ -1315,11 +1315,12 @@ void plib_callback(int callback) {
 			break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
-		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
+		else if (strparam.upper() == "GRASS_PERENNIAL") ppft->lifeform = GRASS_PERENNIAL;
+		else if (strparam.upper() == "GRASS_ANNUAL") ppft->lifeform = GRASS_ANNUAL;
 		else if (strparam.upper() == "MOSS") ppft->lifeform = MOSS;
 		else {
 			sendmessage("Error",
-				"Unknown lifeform type (valid types: \"TREE\", \"GRASS\", \"MOSS\")");
+				"Unknown lifeform type (valid types: \"TREE\", \"GRASS_PERENNIAL\", \"GRASS_ANNUAL\", \"MOSS\")");
 			plibabort();
 		}
 		break;
@@ -1716,9 +1717,9 @@ void plib_callback(int callback) {
 			bool include = includepft_map[pft.name];
 
 			if(pft.landcover == NATURAL) {
-				if(!include_natural_grass_pfts && pft.lifeform == GRASS)
+				if(!include_natural_grass_pfts && pft.is_grass())
 					include = false;
-				else if(!include_natural_pfts && pft.lifeform != GRASS)
+				else if(!include_natural_pfts && !pft.is_grass())
 					include = false;
 			}
 			else {
@@ -1934,10 +1935,12 @@ void plib_callback(int callback) {
 				if (!itemparsed("wscal_min")) badins("wscal_min");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
-			if (!itemparsed("pstemp_min")) badins("pstemp_min");
-			if (!itemparsed("pstemp_low")) badins("pstemp_low");
-			if (!itemparsed("pstemp_high")) badins("pstemp_high");
-			if (!itemparsed("pstemp_max")) badins("pstemp_max");
+			if (!ifdavegrowth) {
+				if (!itemparsed("pstemp_min")) badins("pstemp_min");
+				if (!itemparsed("pstemp_low")) badins("pstemp_low");
+				if (!itemparsed("pstemp_high")) badins("pstemp_high");
+				if (!itemparsed("pstemp_max")) badins("pstemp_max");
+			}
 			if (!itemparsed("lambda_max")) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");

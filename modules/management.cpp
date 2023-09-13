@@ -12,7 +12,7 @@
 /// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
 void grazing_daily(Individual& indiv) { // DW_COMMENT
 
-	if (!(ifdailygrass && indiv.pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && indiv.pft.is_grass())) {
 		return;
 	}
 
@@ -226,7 +226,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 					double res_outtake_coarse_root) {
 
 	// only harvest trees
-	if (pft.lifeform == GRASS)
+	if (pft.is_grass())
 		return;
 
 	double stem_harvest = 0.0;
@@ -1752,7 +1752,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	// Whether to kill grass at clear-cut.
 	bool killgrass = mt.killgrass_at_cc && patch.man_strength == 1.00;
 
-	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.lifeform == GRASS) {
+	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.is_grass()) {
 
 		// Default forestry harvest parameters: pft values
 		double harv_eff_wood_harvest = pft.harv_eff;				// Default pft value for trees in global/europe.ins: 0.9
@@ -1790,7 +1790,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 
 		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 		// Kill grass at clear-cut and send biomass to litter if mt.killgrass_at_cc == true
-		if(pft.lifeform == GRASS)
+		if(pft.is_grass())
 			indiv.kill();
 
 		indiv.densindiv *= (1.0 - man_strength);
@@ -2595,7 +2595,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 			indiv.cropindiv->cmass_ho *= scale;
 		}
 
-		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+		if (ifdailygrass && indiv.pft.is_grass()) {
 			indiv.cmass_leafs[0] *= scale;
 			indiv.cmass_leafs[1] *= scale;
 			indiv.cmass_leafs[2] *= scale;
@@ -2617,7 +2617,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
 	}
 
-	if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+	if (ifdailygrass && indiv.pft.is_grass()) {
 		indiv.nmass_leafs[0] = indiv.nmass_leafs[0] - indiv.nmass_leafs_luc[0] * (1.0 - scale);
 		indiv.nmass_leafs[1] = indiv.nmass_leafs[1] - indiv.nmass_leafs_luc[1] * (1.0 - scale);
 		indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);

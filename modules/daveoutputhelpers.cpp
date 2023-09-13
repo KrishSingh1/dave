@@ -457,7 +457,7 @@ double get_half_cmass_grass(const Patch &patch) {
 		return 0;
 	}
 	return sum_indiv(patch, [](const Individual &i) {
-		return i.pft.lifeform == GRASS ? 0.5 * i.cmass_leaf_today() * G_PER_KG : 0;
+		return i.pft.is_grass() ? 0.5 * i.cmass_leaf_today() * G_PER_KG : 0;
 	});
 }
 

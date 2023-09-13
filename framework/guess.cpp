@@ -365,6 +365,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_root
 		& nmass_litter_sap
 		& nmass_litter_heart
+		& nmass_litter_repr
 		& nmass_harvested_products_slow
 		& swindow
 		& water_deficit_y
@@ -1058,8 +1059,8 @@ void Stand::set_management() {
 
 		if(!restrictpfts && pftx.landcover == landcover
 			|| !restrictpfts && naturalveg && pftx.landcover == NATURAL // Allow all natural pft:s to grow in e.g. forests
-			|| naturalgrass && pftx.landcover == NATURAL && pftx.lifeform == GRASS // Allow natural grass pft:s to grow in e.g. forests
-			|| pftx.landcover == landcover && landcover == FOREST && pftx.lifeform == GRASS) { // Always allow forest grass pft:s to grow in forests
+			|| naturalgrass && pftx.landcover == NATURAL && pftx.is_grass() // Allow natural grass pft:s to grow in e.g. forests
+			|| pftx.landcover == landcover && landcover == FOREST && pftx.is_grass()) { // Always allow forest grass pft:s to grow in forests
 
 			pft[pftx.id].active = true;
 			pft[pftx.id].reestab = true;
@@ -1674,6 +1675,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	densindiv         = 0.0;
+	cmass_culm        = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
 	cmass_repr        = 0.0;
@@ -1685,6 +1687,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_post_turnover      = 0.0;
 	cmass_tot_luc     = 0.0;
 	cgrow             = 0.0;
+	cgrow_culm        = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
 	cgrow_repr        = 0.0;
@@ -1711,6 +1714,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	initialn = 0.0;
 
+	nmass_culm        = 0.0;
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
 	nmass_root        = 0.0;
@@ -1739,6 +1743,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	max_n_storage				= 0.0;
 	scale_n_storage				= 0.0;
 
+	culmndemand                 = 0.0;
 	leafndemand					= 0.0;
 	rootndemand					= 0.0;
 	reprndemand					= 0.0;
@@ -1760,7 +1765,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	if (pft.phenology == CROPGREEN) {
 		nleafpools = 2; // 0 - alive leaf, 1 - dead leaf (not used yet)
 	}
-	else if (ifdailygrass && pft.lifeform == GRASS) {
+	else if (ifdailygrass && pft.is_grass()) {
 		nleafpools = 4; // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
 	}
 	else {
@@ -1835,7 +1840,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 }
 
 void Individual::serialize(ArchiveStream& arch) {
-	arch & cmass_leaf
+	arch & cmass_culm 
+	    & cmass_leaf
 		& cmass_root
 		& cmass_repr
 		& cmass_sap
@@ -1870,11 +1876,11 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
+		& cmass_storage_10
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
 		& nscal_5   	
-		& cdeficit_5
 		& cton_leaf_opt	 
 		& aet
 		& aaet
@@ -1901,6 +1907,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& alive
 		& monstor
 		& fvocseas
+		& nmass_culm
 		& nmass_leaf
 		& nmass_root
 		& nmass_repr
@@ -1925,6 +1932,7 @@ void Individual::serialize(ArchiveStream& arch) {
 
 		& photosynthesis
 		& nstress
+		& culmndemand
 		& leafndemand
 		& rootndemand
 		& reprndemand
@@ -1986,7 +1994,7 @@ double Individual::get_cmass_leaf() const {
 	if (pft.phenology == CROPGREEN) {
 		return cmass_leaf;// cmass_leafs[0]; // alive leaves
 	}
-	else if (ifdailygrass && pft.lifeform == GRASS && alive) {
+	else if (ifdailygrass && pft.is_grass() && alive) {
 		if (ifdavegrowth) {
 			return cmass_leafs[0]; // only one green leaf pool in davegrowth
 		}
@@ -2006,7 +2014,7 @@ double Individual::get_nmass_leaf() const {
 	if (pft.phenology == CROPGREEN) {
 		return nmass_leaf;// nmass_leafs[0]; // alive leaves
 	}
-	else if (ifdailygrass && pft.lifeform == GRASS && alive) {
+	else if (ifdailygrass && pft.is_grass() && alive) {
 		if (ifdavegrowth) {
 			return nmass_leafs[0];  // only one green leaf pool in davegrowth
 		} 
@@ -2047,7 +2055,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
-	assert(pft.lifeform == TREE || pft.lifeform == GRASS || pft.lifeform == MOSS);
+	assert(pft.lifeform == TREE || pft.is_grass() || pft.lifeform == MOSS);
 
 	if (!negligible(mortality)) {
 
@@ -2061,7 +2069,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double cmass_leaf_litter = mortality * get_cmass_leaf();
 		double cmass_root_litter = mortality * cmass_root;
 
-		if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
+		if (pft.is_grass() && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 			// add extra daily carbon pools to litter
 
 			if (ifdavegrowth) {
@@ -2102,7 +2110,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double nmass_leaf_litter = mortality * get_nmass_leaf();
 		double nmass_root_litter = mortality * nmass_root;
 
-		if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
+		if (pft.is_grass() && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
 			// add extra daily carbon pools to litter
 
 			if (ifdavegrowth) {
@@ -2150,7 +2158,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		const double remaining = 1.0 - mortality;
 
-		if (pft.lifeform != GRASS && pft.lifeform != MOSS) {
+		if (!pft.is_grass() && pft.lifeform != MOSS) {
 			densindiv *= remaining;
 		}
 
@@ -2174,7 +2182,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			cropindiv->nmass_agpool *= remaining;
 		}
 
-		if (ifdailygrass && pft.lifeform == GRASS) {
+		if (ifdailygrass && pft.is_grass()) {
 			// Leafs
 			cmass_leafs[0] *= remaining;	// growing leaves
 			nmass_leafs[0] *= remaining;
@@ -2268,7 +2276,7 @@ double Individual::sla() const {
 	double current_sla = pft.sla;
 
 	// Age dependent SLA for daily grass
-	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
+	if (ifdailygrass && pft.is_grass() && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
 			//const double sla_beta = -0.12;
 			//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
@@ -2362,7 +2370,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont += (get_cmass_leaf() + cmass_root + cmass_sap + cmass_heart - cmass_debt) * scale_indiv;
 
-			if (ifdailygrass && pft.lifeform == GRASS) {
+			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
 					ccont += (cmass_storage + cmass_leafs[1] + cmass_repr) * scale_indiv;
 					if (ifdavediagnostics) {
@@ -2414,7 +2422,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 			ncont += nstore_labile - nstore_labile_luc * (1.0 - scale_indiv);
 			ncont += nmass_storage - nmass_storage_luc * (1.0 - scale_indiv);
 
-			if (ifdailygrass && pft.lifeform == GRASS) {
+			if (ifdailygrass && pft.is_grass()) {
 				ncont += nmass_leafs[0] - nmass_leafs_luc[0] * (1.0 - scale_indiv);
 				ncont += nmass_leafs[1] - nmass_leafs_luc[1] * (1.0 - scale_indiv);
 				ncont += nmass_leafs[2] - nmass_leafs_luc[2] * (1.0 - scale_indiv);
@@ -2441,7 +2449,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
 
-			if (ifdailygrass && pft.lifeform == GRASS)
+			if (ifdailygrass && pft.is_grass())
 				if (ifdavegrowth) {
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].nmass_leafs[brown] = %.8f\n", (const char *)pft.name, nmass_leafs[1] * scale_indiv);
@@ -2507,7 +2515,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
-	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass()) {
+	else if (ifdailygrass && pft.is_grass() && !istruecrop_or_intercropgrass()) {
 		double froot = 1.0 / (1.0 + pft.ltor_max);
 		storendemand = max(0.0, cmass_storage / (cton_leaf_opt * (1.0 - froot) + (cton_leaf_opt * pft.cton_root_avr / pft.cton_leaf_avr) * froot) - nmass_storage);
 	}
@@ -2522,7 +2530,7 @@ double Individual::check_C_mass() {
 
 	double negative_cmass = 0.0;
 
-	if (ifdailygrass && pft.lifeform==GRASS) {
+	if (ifdailygrass && pft.is_grass()) {
 
 		if (cmass_storage < 0.0) {
 			negative_cmass -= cmass_storage;
@@ -2726,7 +2734,7 @@ void Individual::save_nmass_luc() {
 	nstore_labile_luc = nstore_labile;
 	nmass_storage_luc = nmass_storage;
 
-	if (ifdailygrass && pft.lifeform == GRASS) {
+	if (ifdailygrass && pft.is_grass()) {
 		nmass_leafs_luc[0] = nmass_leafs[0];
 		nmass_leafs_luc[1] = nmass_leafs[1];
 		nmass_leafs_luc[2] = nmass_leafs[2];
@@ -2746,7 +2754,7 @@ double Individual::cmass_leaf_today() const {
 
 	if (istruecrop_or_intercropgrass())
 		return patchpft().cropphen->growingseason ? cropindiv->grs_cmass_leaf : 0;
-	else if (ifdailygrass && pft.lifeform == GRASS)
+	else if (ifdailygrass && pft.is_grass())
 		return get_cmass_leaf();
 	else
 		return cmass_leaf * phen;
@@ -2757,7 +2765,7 @@ double Individual::cmass_root_today() const {
 
 	if (istruecrop_or_intercropgrass())
 		return patchpft().cropphen->growingseason ? cropindiv->grs_cmass_root : 0;
-	else if (ifdailygrass && pft.lifeform == GRASS)
+	else if (ifdailygrass && pft.is_grass())
 		return cmass_root;
 	else
 		return cmass_root * phen;
@@ -2768,7 +2776,7 @@ double Individual::fpc_today() const {
 
 	if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? fpc_daily : 0;
-	else if (pft.lifeform == GRASS && ifdailygrass)
+	else if (pft.is_grass() && ifdailygrass)
 		return fpc;
 	else
 		return fpc * phen;
@@ -2779,7 +2787,7 @@ double Individual::lai_today() const {
 
 	if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_daily : 0;
-	else if (pft.lifeform == GRASS && ifdailygrass)
+	else if (pft.is_grass() && ifdailygrass)
 		return lai;
 	else
 		return lai * phen;
@@ -2790,7 +2798,7 @@ double Individual::lai_indiv_today() const {
 
 	if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_indiv_daily : 0;
-	else if (pft.lifeform == GRASS && ifdailygrass)
+	else if (pft.is_grass() && ifdailygrass)
 		return lai_indiv;
 	else
 		return lai_indiv * phen;
@@ -2900,7 +2908,7 @@ void Individual::kill(bool harvest /* = false */) {
 		res_outtake = pft.res_outtake;
 	}
 
-	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
+	if (pft.is_grass() && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.cmass_litter_leaf += cmass_leafs[brown];
@@ -2917,7 +2925,7 @@ void Individual::kill(bool harvest /* = false */) {
 		// Leaf: remove residue outtake and send the rest to litter
 		if (has_daily_turnover() && cropindiv) {
 
-			if (pft.lifeform == GRASS && pft.phenology != CROPGREEN) {
+			if (pft.is_grass() && pft.phenology != CROPGREEN) {
 				charvest_flux += cropindiv->grs_cmass_leaf * harv_eff;
 				cropindiv->grs_cmass_leaf *= (1 - harv_eff);
 			}
@@ -2927,7 +2935,7 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 		else {
 
-			if (pft.lifeform == GRASS && pft.phenology != CROPGREEN) {
+			if (pft.is_grass() && pft.phenology != CROPGREEN) {
 				charvest_flux += cmass_leaf * harv_eff;
 				cmass_leaf *= (1 - harv_eff);
 			}
@@ -3042,7 +3050,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.nmass_litter_root += nstore();
 	}
 
-	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
+	if (pft.is_grass() && ifdailygrass && alive && !istruecrop_or_intercropgrass()) {
 		ppft.nmass_litter_root += nmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.nmass_litter_leaf += nmass_leafs[brown];

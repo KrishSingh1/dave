@@ -324,7 +324,7 @@ struct Harvest_CN {
 				// cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 			}
 
-			if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+			if (ifdailygrass && indiv.pft.is_grass()) {
 				cmass_leafs[0] = indiv.cmass_leafs[0];
 				cmass_leafs[1] = indiv.cmass_leafs[1];
 				cmass_leafs[2] = indiv.cmass_leafs[2];
@@ -348,7 +348,7 @@ struct Harvest_CN {
 			nmass_dead_leaf = indiv.cropindiv->nmass_dead_leaf;
 		}
 
-		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+		if (ifdailygrass && indiv.pft.is_grass()) {
 			nmass_leafs[0] = indiv.nmass_leafs[0];
 			nmass_leafs[1] = indiv.nmass_leafs[1];
 			nmass_leafs[2] = indiv.nmass_leafs[2];
@@ -409,7 +409,7 @@ struct Harvest_CN {
 				// indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
 
-			if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+			if (ifdailygrass && indiv.pft.is_grass()) {
 				indiv.cmass_leafs[0] = cmass_leafs[0];
 				indiv.cmass_leafs[1] = cmass_leafs[1];
 				indiv.cmass_leafs[2] = cmass_leafs[2];
@@ -432,7 +432,7 @@ struct Harvest_CN {
 			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
 		}
 
-		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+		if (ifdailygrass && indiv.pft.is_grass()) {
 			indiv.nmass_leafs[0] = nmass_leafs[0];
 			indiv.nmass_leafs[1] = nmass_leafs[1];
 			indiv.nmass_leafs[2] = nmass_leafs[2];

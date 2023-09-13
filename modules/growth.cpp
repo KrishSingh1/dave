@@ -1665,14 +1665,8 @@ void growth(Stand& stand, Patch& patch) {
 							// an annual timestep. For now, just request enough N to meet the
 							// expected turnover this year.
 							indiv.andemand_leaf = indiv.get_nmass_leaf() * indiv.pft.turnover_leaf;
-							if (cmass_leaf_inc > 0) {
-							}
 							indiv.andemand_root = indiv.nmass_root * indiv.pft.turnover_root;
-							if (cmass_root_inc > 0) {
-							}
 							indiv.andemand_sap = indiv.nmass_sap * indiv.pft.turnover_sap;
-							if (cmass_sap_inc > 0) {
-							}
 							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root + indiv.andemand_sap;
 							indiv.ndemand = indiv.andemand / 365; // fixme!! (Assaf)
 							total_ndemand += indiv.ndemand;

@@ -119,16 +119,16 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)");
 
 	// Daily patch-level array outputs.
-	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", false);
-	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i]; }, "Soil water content (mm)");
-	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", false);
+	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
+	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i]; }, "Soil water content (mm)", true, false);
+	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
 	// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
 	// add_daily_patch_level_array_output("file_dave_cfluxes_pft", get_pft_flux_names(), (int)Fluxes::NPERPFTFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPFTFluxType)i, date.day) * G_PER_KG; }, "Daily PFT-level fluxes (g/m2/day)");
-	add_patch_array_output("file_dave_resp"          , DAILY, "resp", 1, get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
-	add_patch_array_output("file_dave_gpp"           , DAILY, "gpp", 1, get_gpp, "Daily patch-level GPP (gC/m2/day)");
-	add_patch_array_output("file_dave_npp"           , DAILY, "npp", 1, get_npp, "Daily patch-level NPP (gC/m2/day)");
-	add_patch_array_output("file_dave_nee"           , DAILY, "nee", 1, get_nee, "Daily patch-level NEE (gC/m2/day)");
-	add_patch_array_output("file_dave_et"            , DAILY, "et", 1, get_et, "Daily patch-level evapotranspiration (mm/day)");
+	add_patch_array_output("file_dave_resp"          , DAILY, "resp", 1, get_er, "Daily patch-level ecosystem respiration (gC/m2/day)", true);
+	add_patch_array_output("file_dave_gpp"           , DAILY, "gpp", 1, get_gpp, "Daily patch-level GPP (gC/m2/day)", true);
+	add_patch_array_output("file_dave_npp"           , DAILY, "npp", 1, get_npp, "Daily patch-level NPP (gC/m2/day)", true);
+	add_patch_array_output("file_dave_nee"           , DAILY, "nee", 1, get_nee, "Daily patch-level NEE (gC/m2/day)", true);
+	add_patch_array_output("file_dave_et"            , DAILY, "et", 1, get_et, "Daily patch-level evapotranspiration (mm/day)", true);
 
 	// Subdaily patch-level outputs.
 	//                                               column name              function which gets number of array elems     function which returns the i-th output value

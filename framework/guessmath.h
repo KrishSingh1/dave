@@ -156,7 +156,7 @@ Return true iff x is greater than or equal to 0, within certain tolerance.
             considered equal.
 */
 inline bool positive(double x, double eps = DBL_EPSILON) {
-	return greater_than_or_equal(x, 0, eps);
+	return x > 0 || is_zero(x, eps);
 }
 
 /*

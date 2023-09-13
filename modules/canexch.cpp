@@ -2901,7 +2901,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					if (is_zero(apar_layer)) {
 						// Night
 						An = -Rd;
-						gsc = g0;
+						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
 					} else {
 
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -3349,11 +3349,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 // - bvoc function not implemented (could be added later)
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	// TODO: find out what gtemp is.
 	// Note: climate.gtemp will be uninitialised here when running in diurnal
 	// (ie subdaily) mode, and climate.gtemps will be uninitialised when running
 	// in non-diurnal mode.
-	double gtemp;
+	double gtemp; // Response of respiration rate to temperature
 	if (date.diurnal()) {
 		gtemp = mean(&climate.gtemps.front(), date.subdaily);
 	} else {

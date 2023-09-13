@@ -2848,7 +2848,7 @@ void ndemand(Vegetation& vegetation) {
 				indiv.cmass_root, indiv.nmass_root,
 				0, indiv.pft.cton_root_max,
 				indiv.cgrow_root);
-            ngrow_demand_culm = indiv.cgrow_culm / cton_leaf;
+            ngrow_demand_culm = indiv.cgrow_culm / cton_culm;
 			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
 			ngrow_demand_root = indiv.cgrow_root / cton_root;
 			ngrow_demand_repr = indiv.cgrow_repr / cton_leaf;  // C:N repr = C:N leaf for now.

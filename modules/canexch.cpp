@@ -2357,9 +2357,9 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations
 	// See the comment after Eqn (4) below.
 
-	double resp_sap;    // sapwood respiration (kg/m2/day)
-	double resp_root;   // root respiration (kg/m2/day)
-	double resp_growth; // growth respiration (kg/m2/day)
+	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
+	double resp_root = 0;   // root respiration (kg/m2/day)
+	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//

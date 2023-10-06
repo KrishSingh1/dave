@@ -723,6 +723,8 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
+		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,
+			"Fraction of NPP allocated to crowns");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
@@ -1964,6 +1966,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("fnstorage")) badins("fnstorage");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
+			if (!itemparsed("crownfrac")) badins("crownfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("ltor_max")) badins("ltor_max");

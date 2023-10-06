@@ -2063,6 +2063,8 @@ public:
 
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
+	/// fraction of NPP allocated to crowns
+	double crownfrac;
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
@@ -2964,12 +2966,12 @@ public:
 	Vegetation& vegetation;
 	/// id code (0-based, sequential)
 	int id;
-	/// culm C biomass (kgC/m2)
-	double cmass_culm;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	double cmass_leaf;
 	/// fine root C biomass on modelled area basis (kgC/m2)
 	double cmass_root;
+	/// crown C biomass (kgC/m2)
+	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
@@ -2988,12 +2990,12 @@ public:
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
 	double cgrow;
-	/// daily culm growth rate (kgC/m2/d)
-	double cgrow_culm;
     /// daily leaf growth rate (kgC/m2/d)
 	double cgrow_leaf;
 	/// daily root growth rate (kgC/m2/d)
 	double cgrow_root;
+	/// daily crown growth rate (kgC/m2/d)
+	double cgrow_crown;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
 	/// daily growth demand [0-1]
@@ -3004,12 +3006,12 @@ public:
 	double ps_sink_lim;
 	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
 	double nmass_missing;
-    /// culm N mass (kgN/m2)
-	double nmass_culm;
 	/// leaf N mass on modelled area basis (kgN/m2)
 	double nmass_leaf;
 	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
+	/// crown N mass (kgN/m2)
+	double nmass_crown;
 	/// reproductive tissue biomass (kgN/m2)
 	double nmass_repr;
 	/// sap N biomass on modelled area basis (kgN/m2)
@@ -3224,12 +3226,12 @@ public:
 	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
-	/// daily culm nitrogen demand in grasses (kgN/m2)
-	double culmndemand;
 	/// daily leaf nitrogen demand. Calculated from Vmax in orig. LPJ-GUESS (kgN/m2)
 	double leafndemand;
 	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
+	/// daily crown nitrogen demand in grasses (kgN/m2)
+	double crownndemand;
 	/// daily reproductive tissue nitrogen demand
 	double reprndemand;
 	/// daily sap wood nitrogen demand based on leafndemand

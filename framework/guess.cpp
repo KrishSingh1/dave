@@ -1675,9 +1675,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	densindiv         = 0.0;
-	cmass_culm        = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
+	cmass_crown       = 0.0;
 	cmass_repr        = 0.0;
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
@@ -1687,9 +1687,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_post_turnover      = 0.0;
 	cmass_tot_luc     = 0.0;
 	cgrow             = 0.0;
-	cgrow_culm        = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
+	cgrow_crown       = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
 	phen              = 0.0;
@@ -1714,10 +1714,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	initialn = 0.0;
 
-	nmass_culm        = 0.0;
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
 	nmass_root        = 0.0;
+	nmass_crown       = 0.0;
 	nmass_repr        = 0.0;
 	nmass_sap         = 0.0;
 	nmass_heart       = 0.0;
@@ -1743,9 +1743,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	max_n_storage				= 0.0;
 	scale_n_storage				= 0.0;
 
-	culmndemand                 = 0.0;
 	leafndemand					= 0.0;
 	rootndemand					= 0.0;
+	crownndemand                = 0.0;
 	reprndemand					= 0.0;
 	sapndemand					= 0.0;
 	storendemand				= 0.0;
@@ -1840,9 +1840,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 }
 
 void Individual::serialize(ArchiveStream& arch) {
-	arch & cmass_culm 
-	    & cmass_leaf
+	arch & cmass_leaf
 		& cmass_root
+		& cmass_crown 
 		& cmass_repr
 		& cmass_sap
 		& cmass_heart
@@ -1907,9 +1907,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& alive
 		& monstor
 		& fvocseas
-		& nmass_culm
 		& nmass_leaf
 		& nmass_root
+		& nmass_crown
 		& nmass_repr
 		& nmass_sap
 		& nmass_heart
@@ -1932,9 +1932,9 @@ void Individual::serialize(ArchiveStream& arch) {
 
 		& photosynthesis
 		& nstress
-		& culmndemand
 		& leafndemand
 		& rootndemand
+		& crownndemand
 		& reprndemand
 		& sapndemand
 		& storendemand

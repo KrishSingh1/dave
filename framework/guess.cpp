@@ -2372,10 +2372,11 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
-					ccont += (cmass_storage + cmass_leafs[1] + cmass_repr) * scale_indiv;
+					ccont += (cmass_storage + cmass_leafs[1] + cmass_crown + cmass_repr) * scale_indiv;
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].cmass_storage = %.8f\n", (const char *)pft.name, cmass_storage);
 						printf("indivs[\"%s\"].cmass_leafs[1] = %.8f\n", (const char *)pft.name, cmass_leafs[1]);
+						printf("indivs[\"%s\"].cmass_crown = %.8f\n", (const char *)pft.name, cmass_crown);
 					}
 				} else {
 					ccont += (cmass_storage + cmass_leafs[3]) * scale_indiv;
@@ -2454,8 +2455,9 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].nmass_leafs[brown] = %.8f\n", (const char *)pft.name, nmass_leafs[1] * scale_indiv);
 						printf("indivs[\"%s\"].nmass_repr = %.8f\n", (const char *)pft.name, nmass_repr * scale_indiv);
+						printf("indivs[\"%s\"].nmass_crown = %.8f\n", (const char *)pft.name, nmass_crown * scale_indiv);
 					}
-					ncont += (nmass_leafs[1] + nmass_repr) * scale_indiv;
+					ncont += (nmass_leafs[1] + nmass_crown + nmass_repr) * scale_indiv;
 				} else {
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].nmass_leafs[3] = %.8f\n", (const char *)pft.name, nmass_leafs[3] * scale_indiv);
@@ -2912,6 +2914,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.cmass_litter_leaf += cmass_leafs[brown];
+			flush_repr_litter_DAVE();
 		} else {
 			ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
@@ -2935,7 +2938,7 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 		else {
 
-			if (pft.is_grass() && pft.phenology != CROPGREEN) {
+			if (pft.is_grass() && pft.phenology != CROPGREEN && !ifdailygrass) {
 				charvest_flux += cmass_leaf * harv_eff;
 				cmass_leaf *= (1 - harv_eff);
 			}
@@ -2945,8 +2948,12 @@ void Individual::kill(bool harvest /* = false */) {
 		// Root: all goes to litter
 		if (has_daily_turnover() && cropindiv)
 			ppft.cmass_litter_root += cropindiv->grs_cmass_root;
-		else
+		else {
 			ppft.cmass_litter_root += cmass_root;
+			if (pft.is_grass() && ifdavegrowth && ifdailygrass) {
+				ppft.cmass_litter_root += cmass_crown;
+			}
+		}
 
 		if (pft.landcover == CROPLAND) {
 
@@ -3054,6 +3061,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.nmass_litter_root += nmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.nmass_litter_leaf += nmass_leafs[brown];
+			ppft.nmass_litter_root += nmass_crown;
 		} else {
 			ppft.nmass_litter_leaf += nmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
@@ -3087,6 +3095,21 @@ void Individual::kill(bool harvest /* = false */) {
 	// Add to biomass depositories for long-lived products
 	ppft.cmass_harvested_products_slow += charvested_products_slow;
 	ppft.nmass_harvested_products_slow += nharvested_products_slow;
+}
+
+// Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
+// Happens every year at the onset of dormancy
+// TODO: deal with case of no dormancy
+void Individual::flush_repr_litter_DAVE() {
+
+	// added for mass balance checks at the individual level
+	cmass_litter_repr += cmass_repr;
+	nmass_litter_leaf += nmass_repr;	
+				
+	patchpft().cmass_litter_repr += cmass_repr; // TODO: turnover!!
+	patchpft().nmass_litter_repr += nmass_repr; // TODO: turnover!!
+	cmass_repr = 0.0;
+	nmass_repr = 0.0;
 }
 
 double Individual::wscal_mean() const {

@@ -122,6 +122,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Daily C allocation
 			growth_daily(patch);
 
+			// Daily vegetation dynamics 
+			vegetation_dynamics_daily(patch);
+
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);
 

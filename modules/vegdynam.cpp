@@ -369,8 +369,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 	}
 }
 
+
 // call every day if there is no living individual of the grass PFT in the patch
-void establishment_grass() {
+void establishment_daily(Patch& patch) {
 	// check conditions if germination is likely to occur 
 	// if yes, invest some of the seedbank into initial biomass
 	// if there is no seedbank, maybe don't try every day.
@@ -1378,6 +1379,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	}
 }
 
+void mortality_daily(Patch& patch){
+	// TODO Assaf :)
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FIRE DISTURBANCE
@@ -1722,6 +1726,12 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	}
 }
 
+void vegetation_dynamics_daily(Patch& patch) {
+	if (ifdavegrowth){
+		establishment_daily(patch);
+		mortality_daily(patch); // TODO Assaf
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

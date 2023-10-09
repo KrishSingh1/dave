@@ -729,6 +729,8 @@ void plib_declarations(int id,xtring setname) {
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
 			"Fine root turnover (fraction/year)");
+		declareitem("turnover_repr",&ppft->turnover_repr,0.0,1.0,1,CB_NONE,
+			"Seed turnover (fraction/year)");	
 		declareitem("turnover_sap",&ppft->turnover_sap,0.0,1.0,1,CB_NONE,
 			"Sapwood turnover (fraction/year)");
 		declareitem("wooddens",&ppft->wooddens,10.0,1000.0,1,CB_NONE,
@@ -1969,6 +1971,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("crownfrac")) badins("crownfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
+			if (!itemparsed("turnover_repr")) badins("turnover_repr");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");

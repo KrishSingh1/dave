@@ -1953,7 +1953,7 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.cmass_leaf_ymax < MINCMASS || indiv.cmass_root_ymax < MINCMASS || indiv.cmass_leaf_ygrowth < MINCMASS) {
 
 					if (ifdavegrowth) {
-						flush_repr_litter_DAVE(indiv);
+						indiv.flush_repr_litter_DAVE();
 					}
 
 					indiv.kill();
@@ -3230,6 +3230,36 @@ void senescence(Vegetation& vegetation) {
 	}
 }
 
+// Seed turnover (decrease in viability over time).
+void turnover_seed(Vegetation& vegetation) {
+	
+	Patch& patch = vegetation.patch;
+	for (int i = 0; i < patch.pft.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+
+		if (ppft.cmass_litter_repr > 0.0) {
+			// Base turnover rate
+			double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
+			
+			// Carbon
+			double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
+			ppft.cmass_litter_repr -= cturnover_repr;
+			ppft.cmass_litter_root += cturnover_repr;
+
+			// Nitrogen
+			double nturnover_repr = frac_turnover_seed * ppft.nmass_litter_repr;
+			ppft.nmass_litter_repr -= nturnover_repr;
+			ppft.nmass_litter_root += nturnover_repr;
+		}
+	}
+}
+
+
+//double turnover_dave(double turnover_rate, double& source, double& sink, double max_sink_size){
+
+//}
+
+
 
 // Transfer of crown pool, brown shoot pool, and fine root pool to leaf and root litter.
 // Transfer reproductive tissue to litter if end of growth cycle is reached.
@@ -3282,6 +3312,7 @@ void turnover_grass(Vegetation& vegetation) {
 		}
 
 		// Crown turnover
+		// TODO: put into function (same for roots and crowns)!	
 		if (indiv.cmass_crown > 0.0) {
  
 			// baseline turnover rate
@@ -3353,6 +3384,8 @@ void turnover_grass(Vegetation& vegetation) {
 			}
 		}
 	}
+
+	turnover_seed(vegetation);
 }
 
 

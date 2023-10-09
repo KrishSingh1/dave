@@ -2069,6 +2069,8 @@ public:
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
 	double turnover_root;
+	/// annual seed turnover as a proportion of reproductive C biomass (patch-basis)
+	double turnover_repr;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
 	/// sapwood and heartwood density (kgC/m3)

@@ -2480,8 +2480,8 @@ void growth_daily_grass(Patch& patch) {
 // --------------------------------------
 // C storage unavailable for growth (kg C m-2)
 double cstorage_reserve(Individual& indiv){
-
-	return frac_cstorage_res * (indiv.get_cmass_leaf() + indiv.cmass_root);
+	// TODO: find a value or make the return value a function of turnover?
+	return frac_cstorage_res * (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_sap);
 
 } 
 // Determine growth demand (aka 'sink strength') 
@@ -2507,6 +2507,10 @@ double growth_demand(Individual& indiv) {
 
 	// Test: do we need to account for growth_rate_pot to get different behaviour of annuals vs perennials
 	//       or can we get that with SLA alone?
+	if (indiv.pft.lifeform == TREE) {
+		// TODO: think about phenology later
+		return 1;
+	}
 
 	if (!simple_formulation) {
 		// Air temperature or bottom snow layer if snow present
@@ -2551,9 +2555,13 @@ double growth_demand(Individual& indiv) {
 
 // Capacity of C storage (kg C m-2)
 double cstorage_capacity(Individual& indiv) {
-
-	double cstorage_new = frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root);
+	
+	double cmass_total = indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_sap;
+	
+	// TODO: change frac_cstorage_max calculation as PFT paramter (ASSAF)
+	double cstorage_new = frac_cstorage_max * cmass_total;
     
+	// prevent storage capacity from decreasing if the leaves are removed (grazing/fire/senescence)
 	if (cstorage_new > indiv.cstorage_max) {
 		return cstorage_new;
 	} else {
@@ -2567,8 +2575,20 @@ double cstorage_capacity(Individual& indiv) {
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
-	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+	double cton = 0;
 
+	if (indiv.pft.lifeform == TREE) {
+		// calcualte minimum cton using avrage and maximum values.
+		// TODO (ASSAF): check if works. Try to allow lower values. 
+		//     Maybe minimum not required?
+		cton = 2*indiv.pft.cton_sap_avr-indiv.pft.cton_sap_max;  
+	} else {
+		// TODO: OK to use leaf C:N here? Different limit for storage?
+		cton = indiv.pft.cton_leaf_min;
+	}
+
+	return indiv.cstorage_max / cton;
+	
 }
 
 // Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
@@ -2610,18 +2630,15 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		if (indiv.pft.lifeform != GRASS) {
-			vegetation.nextobj();
-			continue;
-		}
 
 		// Local:
-		double cstore = 0.0;
-		double cexcess = 0.0;
-		double cstorage_res = 0.0;
-		double Gpot = 0.0;
-
-		double ceaten = 0.0;
+		double cstore = 0.0; // mass of C going to storage
+		double cexcess = 0.0; // mass of C over maximum storage
+		double cstorage_res = 0.0; // mass of C that must be held in reserve (minimum)
+		double Gpot = 0.0; // potential growth 
+		double mobilisation_rate = 0.0; // proportion of storage that will be use for growth
+		const double max_mobilisation_rate = 0.1; // TODO: Find value for that
+		double ceaten = 0.0; // can be deleted. (self eating variable)
 
 		// Maximum C and N storage pool size
 		indiv.cstorage_max = cstorage_capacity(indiv);
@@ -2631,28 +2648,42 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		cstorage_res = cstorage_reserve(indiv);
 
 		// Potential growth rate
-		Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+		if (indiv.pft.lifeform == TREE) {
+			mobilisation_rate = indiv.cmass_storage / indiv.cstorage_max * max_mobilisation_rate;
+		} else {
+			mobilisation_rate = max_mobil_cstorage;
+		}
+		// calculate C allocated to potential growth
+		Gpot = max(0.0, mobilisation_rate * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
-		// Determine growth demand based on growth stage
+		// Determine growth demand based on growth stage (grasses). 
+		// For grasses, growth demand depends on the phenology and gorwind conditions
+		// For trees currently returns 1
 		indiv.growth_demand = growth_demand(indiv);
 
 		// Set indiv.cgrow and indiv.cexcess to 0
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
 		indiv.nmass_missing = 0;
-
+		
+		// calculates the amount of C that goes to storage (and if there's an excess),
+		// and to growth (from dnpp and storage pool). 
 		if (indiv.dnpp >= 0.0) {
 			
 			// Positive NPP
 
 			// TODO: make clear this only works for daily time steps (NPP in gC m-2 d-1)	
+			// note: indiv.cgrow is bminc		 
 			indiv.cgrow = indiv.growth_demand * Gpot;
 			cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 												// cstore = re-allocation if negative
-
+												// note: Gpot will always be >= 0, so 
+												// ...for trees (indiv.dnpp - indiv.cgrow) 
+												// ... will always be < 0
 			// would it help to have an absolute growth demand instead of a relative growth_demand?
 			
 			// If C storage exceed its capacity take track of the excess C and reduce cstore
+			// TODO (Juergen): maybe the excess should go to reproduction (ie, plant is happy)
 			if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
 				cexcess += indiv.cmass_storage + cstore - indiv.cstorage_max;
 				indiv.cexcess += cexcess;
@@ -3484,7 +3515,7 @@ void annual_accounting(Vegetation& vegetation) {
 		} // Last day of year
 	}
 }
-
+// also for trees.
 void growth_daily_grass_dave(Patch& patch) {
 
 	// Obtain reference to Vegetation and Stand object for this patch

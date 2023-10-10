@@ -2788,10 +2788,64 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 
 }
 
+void carbon_allocation_grass(Individual& indiv) {
+		Vegetation& vegetation = indiv.vegetation;
+		Patch& patch = vegetation.patch;
+		Patch& patch = vegetation.patch;
+		Pft& pft = indiv.pft;
+		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+	// Leaf nitrogen status (stress): 1 - not stressed; 0 - stressed
+	if (!negligible(indiv.get_cmass_leaf())) {
+		if (!ifnlim || date.year < freenyears) {
+			indiv.nscal_5.add(1.0);
+		} else {
+			indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
+		}
+	}
+	
+
+	double calloc_repr = 0;
+	double calloc_leaf = 0;
+	double calloc_root = 0;
+	if (!negligible(indiv.cgrow)) {
+		// determine if some of the new carbon goes to reproduction
+		if (indiv.growth_demand < 0.5 && indiv.lai > 2.0){  // TODO: define threshold
+			calloc_repr = indiv.pft.reprfrac;    // TODO: move to constants
+		} else {
+			calloc_repr = 0.0;
+		}
+
+		// express ltor_max as maximum fractional allocation to leaves
+		double calloc_leaf_max = 1.0 - 1.0/(1.0 + indiv.pft.ltor_max);
+
+		// calculate fraction of C allocated to leaves following Johnson 2016 Eq. 3.80
+		calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
+
+		// allocation to leaves and roots
+		calloc_leaf = calloc_leaf * (1.0 - calloc_repr);
+		calloc_root = 1.0 - calloc_leaf - calloc_repr;
+	}
+	else {
+		calloc_leaf = 0.0;
+		calloc_root = 1.0;
+		calloc_repr = 0.0;
+	}
+
+	assert(equal(1.0, calloc_leaf + calloc_root + calloc_repr));
+
+	indiv.cgrow_leaf = calloc_leaf * indiv.cgrow;
+	indiv.cgrow_root = calloc_root * indiv.cgrow;
+	indiv.cgrow_repr = calloc_repr * indiv.cgrow;
+}
+
+void carbon_allocation_tree(Individual& indiv) {
+
+}
 
 // Determine C allocation fractions to roots, leaves, and reproductive tissue in grasses.
 // Note: 'leaf' includes shoot and leaves and 'root' includes coarse and fine roots.
-void carbon_allocation_grass(Vegetation& vegetation) {
+void carbon_allocation_dave(Vegetation& vegetation) {
 
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
@@ -2800,52 +2854,12 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (pft.lifeform != GRASS) {
-			continue;
+		if (pft.lifeform == TREE) {
+			carbon_allocation_tree(indiv);
+		} else {
+			carbon_allocation_grass(indiv);
 		}
 
-		// Leaf nitrogen status
-		if (!negligible(indiv.get_cmass_leaf())) {
-			if (!ifnlim || date.year < freenyears) {
-				indiv.nscal_5.add(1.0);
-			} else {
-				indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
-			}
-		}
-		
-
-		double calloc_repr = 0;
-		double calloc_leaf = 0;
-		double calloc_root = 0;
-		if (!negligible(indiv.cgrow)) {
-			// determine if some of the new carbon goes to reproduction
-			if (indiv.growth_demand < 0.5 && indiv.lai > 2.0){  // TODO: define threshold
-				calloc_repr = indiv.pft.reprfrac;    // TODO: move to constants
-			} else {
-				calloc_repr = 0.0;
-			}
-
-			// express ltor_max as maximum fractional allocation to leaves
-			double calloc_leaf_max = 1.0 - 1.0/(1.0 + indiv.pft.ltor_max);
-
-			// calculate fraction of C allocated to leaves following Johnson 2016 Eq. 3.80
-			calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
-
-			// allocation to leaves and roots
-			calloc_leaf = calloc_leaf * (1.0 - calloc_repr);
-			calloc_root = 1.0 - calloc_leaf - calloc_repr;
-		}
-		else {
-			calloc_leaf = 0.0;
-			calloc_root = 1.0;
-			calloc_repr = 0.0;
-		}
-
-		assert(equal(1.0, calloc_leaf + calloc_root + calloc_repr));
-
-		indiv.cgrow_leaf = calloc_leaf * indiv.cgrow;
-		indiv.cgrow_root = calloc_root * indiv.cgrow;
-		indiv.cgrow_repr = calloc_repr * indiv.cgrow;
 	}
 }
 
@@ -3534,7 +3548,7 @@ void growth_daily_grass_dave(Patch& patch) {
 	storage_growth_partitioning(vegetation);
 
 	// Allocate available C for growth to different plant pools
-	carbon_allocation_grass(vegetation);
+	carbon_allocation_dave(vegetation);
 	
 	// Calculate N demand based on growth and stoichiometry.
 	ndemand(vegetation);

@@ -49,6 +49,9 @@
 // for summergreen PFTs
 const double APHEN_MAX = 210.0;
 
+/// External seed input (kgC m-2 d-1)
+const double ext_seed = 1.0e-5;
+
 // ---------------------------------
 // Grass parameters
 // ---------------------------------
@@ -206,7 +209,7 @@ double wscal_growth(double wscal) {
 
 // Temperature stress scalar used for growth and dormancy
 double temp_growth(double temp) {
-	return Arrhenius_temp_response(1.78,temp,76.8,285.0,933)/2.23;  // Note: parameterise properly (now: Parent et al. 2010)
+	return Arrhenius_temp_response(1.78,temp,76.8,285.0,933)/2.23;  // TODO: parameterise properly (now: Parent et al. 2010)
 }
 
 		
@@ -1090,68 +1093,53 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 
-void allocation_init(double bminit, double ltor, Individual& indiv) {
-
-	// DESCRIPTION
-	// Allocates initial biomass among tissues for a new individual (tree or grass),
-	// assuming standard LPJ allometry (see functions allocation, allometry).
-
-	// INPUT PARAMETERS
-	// bminit = initial total biomass (kgC)
-	// ltor   = initial leaf:root biomass ratio
-	//
-	// Note: indiv.densindiv (density of individuals across patch or modelled area)
-	//       should be set to a meaningful value before this function is called
+void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init) {
+	
+	if (is_zero(nmass_init)) {
+		nmass_init = cmass_init / indiv.pft.cton_leaf_avr;
+	}
 
 	double dval;
 	double cmass_leaf_ind;
 	double cmass_root_ind;
 	double cmass_sap_ind;
-
+	
 	if (indiv.pft.is_grass() && ifdailygrass) {
-		 indiv.cmass_storage = bminit * indiv.densindiv;
-		 indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
 
 		if (ifdavephotosyn){
-			// allocate cmass and nmass in storage to leaves and roots
-			// Initial C mass: set C storage to capacity, rest to leaves and roots.
-			double cmass_init = indiv.cmass_storage;
+			// allocate initial cmass and nmass to plant pools
 
 			// following equations solved for cshoot:
 			// cmass_init = cshoot + croot + cstorage
 			// croot = cshoot / ltor
 			// cstorage = frac_cstorage_max * cmass_init
 			double cmass_leaf = (cmass_init - frac_cstorage_max * cmass_init) * (ltor / (ltor + 1.0));
-			if (ifdailygrass) {
-				indiv.cmass_leafs[green] = cmass_leaf;
-			} else {
-				indiv.cmass_leaf = cmass_leaf;
-			}
-			indiv.cmass_root    = cmass_leaf / ltor;
-			indiv.cmass_storage = cmass_init - indiv.cmass_leaf - indiv.cmass_root;
-			indiv.cmass_crown   = 0.0;
+			indiv.cmass_leafs[green] += cmass_leaf;
+			indiv.cmass_root    += cmass_leaf / ltor;
+			indiv.cmass_storage += cmass_init - indiv.cmass_leaf - indiv.cmass_root;
+			indiv.cmass_crown   += 0.0;
+
+			double init_cton = cmass_init / nmass_init;
 
 			// Initial N mass
-			double nmass_leaf = cmass_leaf / indiv.pft.cton_leaf_avr;
-			if (ifdailygrass) {
-				indiv.nmass_leafs[green] = nmass_leaf;
-			} else {
-				indiv.nmass_leaf = nmass_leaf;
-				assert(indiv.nmass_leaf >= 0);
-			}
-			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
-			indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
-			indiv.nmass_crown = 0.0;
+			double nmass_leaf = cmass_leaf / init_cton;
+			indiv.nmass_leafs[green] += nmass_leaf;
+			indiv.nmass_root += indiv.cmass_root / init_cton;
+			indiv.nmass_storage += indiv.cmass_storage / init_cton;
+			indiv.nmass_crown += 0.0;
+
+		} else {
+			indiv.cmass_storage += cmass_init;
+		 	indiv.nmass_storage += nmass_init;
 		}
 
 		indiv.alive = true;
 		indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
-		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown));
-		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 	}
 	else {
 
-		allocation(bminit, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
+		// TODO: make sure tree establishment uses the C:N ratio of the seeds
+		allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
 
 		indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
 		indiv.cmass_root = cmass_root_ind * indiv.densindiv;
@@ -1182,6 +1170,30 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 		// separately. Therefore, we need to record the establishment N content
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+	}
+
+}
+
+
+void allocation_init(double bminit, double ltor, Individual& indiv) {
+
+	// DESCRIPTION
+	// Allocates initial biomass among tissues for a new individual (tree or grass),
+	// assuming standard LPJ allometry (see functions allocation, allometry).
+
+	// INPUT PARAMETERS
+	// bminit = initial total biomass (kgC)
+	// ltor   = initial leaf:root biomass ratio
+	//
+	// Note: indiv.densindiv (density of individuals across patch or modelled area)
+	//       should be set to a meaningful value before this function is called
+
+	establishment_biomass(bminit, ltor, indiv);
+
+	if (indiv.pft.is_grass() && ifdailygrass) {
+
+		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown));
+		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 	}
 }
 
@@ -3237,20 +3249,23 @@ void turnover_seed(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		if (ppft.cmass_litter_repr > 0.0) {
-			// Base turnover rate
-			double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
-			
-			// Carbon
-			double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
-			ppft.cmass_litter_repr -= cturnover_repr;
-			ppft.cmass_litter_root += cturnover_repr;
+		// add external seed input
+		ppft.cmass_litter_repr += ext_seed;
+		ppft.nmass_litter_repr += ext_seed / ppft.pft.cton_leaf_avr;
 
-			// Nitrogen
-			double nturnover_repr = frac_turnover_seed * ppft.nmass_litter_repr;
-			ppft.nmass_litter_repr -= nturnover_repr;
-			ppft.nmass_litter_root += nturnover_repr;
-		}
+		// Seed turnover
+		// Base turnover rate
+		double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
+			
+		// Carbon
+		double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
+		ppft.cmass_litter_repr -= cturnover_repr;
+		ppft.cmass_litter_root += cturnover_repr;
+
+		// Nitrogen
+		double nturnover_repr = frac_turnover_seed * ppft.nmass_litter_repr;
+		ppft.nmass_litter_repr -= nturnover_repr;
+		ppft.nmass_litter_root += nturnover_repr;
 	}
 }
 

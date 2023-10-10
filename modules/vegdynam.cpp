@@ -370,11 +370,68 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 }
 
 
+Individual* get_beneficiary(Patch& patch, Pft& pft) {
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		// Check if this individual is of the correct pft.
+		if (indiv.pft.id == pft.id) {
+			if (pft.lifeform == TREE && indiv.age > 0) {
+				// This indiv is the correct PFT, but it's a tree with age > 1 year.
+				// This tree will therefore not be the beneficiary of the new biomass.
+				continue;
+			}
+			// Return a pointer to this indiv.
+			return &indiv;
+		}
+	}
+	// No indiv found of this pft.
+	return NULL;
+}
+
+void get_seedbank(Patch& patch, Pft& pft, double& cmass_seed, double& nmass_seed){
+	// local seedbank (i.e. present in the grid cell)
+	Patchpft& ppft = patch.pft[pft.id];
+	cmass_seed = ppft.cmass_litter_repr;
+	nmass_seed = ppft.nmass_litter_repr; 
+
+	// external seedbank (from other grid cells)
+	// cmass_seed +=  // TODO: invasion 
+
+}
+
+
+
 // call every day if there is no living individual of the grass PFT in the patch
 void establishment_daily(Patch& patch) {
 	// check conditions if germination is likely to occur 
 	// if yes, invest some of the seedbank into initial biomass
 	// if there is no seedbank, maybe don't try every day.
+	Vegetation &vegetation = patch.vegetation;
+	
+	if (ifdailygrass && ifdavegrowth) {
+		for (int i = 0; i < pftlist.nobj; i++) {
+			Pft &pft = pftlist[i];
+			// check conditions for germination (germination fraction)
+			double frac_germ = 0.2;  // TODO: replace with function
+			double cmass_seed, nmass_seed;
+			get_seedbank(patch, pft, cmass_seed, nmass_seed);
+			if (frac_germ > 0.0 && cmass_seed > 0.0) {
+				Individual *indiv = get_beneficiary(patch, pft);
+				if (indiv == NULL) {
+					// Establish new individual.
+					Individual& individual = vegetation.createobj(pft, vegetation);
+					indiv = &individual; // & gets address of the variable (* is the opposite)
+					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
+					indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
+					indiv->densindiv=1.0;
+					indiv->fpc=1.0;  // TODO: is that right?
+					indiv->nscal_5.add(1.0);
+				}
+				// Add some new biomass into this individual.
+				establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
+			}
+		}
+	}
 }
 
 void establishment_guess(Stand& stand,Patch& patch) {

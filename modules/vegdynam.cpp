@@ -388,20 +388,20 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 	return NULL;
 }
 
-void get_seedbank(Patch& patch, Pft& pft, double& cmass_seed, double& nmass_seed){
-	// local seedbank (i.e. present in the grid cell)
-	Patchpft& ppft = patch.pft[pft.id];
-	cmass_seed = ppft.cmass_litter_repr;
-	nmass_seed = ppft.nmass_litter_repr; 
+// Calculates the fraction of the seedbank that is germinating today.
+double germination_fraction(Patchpft& ppft, Patch& patch) {
 
-	// external seedbank (from other grid cells)
-	// cmass_seed +=  // TODO: invasion 
+	// Water content and temperature of the first soil layer (0-10cm).
+	// wcont as fraction of available water holding capacity.
+	double wcont = patch.soil.get_layer_soil_water(0);
+	double tsoil = patch.soil.T_soil[7];  // TODO: check with DW that this is the right layer
+	double frac_germ = 0.2 * wcont;
 
+	return frac_germ;
 }
 
 
-
-// call every day if there is no living individual of the grass PFT in the patch
+// call every day
 void establishment_daily(Patch& patch) {
 	// check conditions if germination is likely to occur 
 	// if yes, invest some of the seedbank into initial biomass
@@ -411,11 +411,12 @@ void establishment_daily(Patch& patch) {
 	if (ifdailygrass && ifdavegrowth) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
+			Patchpft &ppft = vegetation.patch.pft[pft.id];
 			// check conditions for germination (germination fraction)
-			double frac_germ = 0.2;  // TODO: replace with function
-			double cmass_seed, nmass_seed;
-			get_seedbank(patch, pft, cmass_seed, nmass_seed);
-			if (frac_germ > 0.0 && cmass_seed > 0.0) {
+			double frac_germ = germination_fraction(ppft, patch);
+			double cmass_seed = ppft.cmass_litter_repr * frac_germ;
+			double nmass_seed = ppft.nmass_litter_repr * frac_germ;
+			if (cmass_seed > 0.0) {
 				Individual *indiv = get_beneficiary(patch, pft);
 				if (indiv == NULL) {
 					// Establish new individual.
@@ -427,8 +428,19 @@ void establishment_daily(Patch& patch) {
 					indiv->fpc=1.0;  // TODO: is that right?
 					indiv->nscal_5.add(1.0);
 				}
+				double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
+				double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
+				
+				// Take germinated biomass out of the seedbank
+				ppft.cmass_litter_repr -= cmass_seed;
+				ppft.nmass_litter_repr -= nmass_seed;
 				// Add some new biomass into this individual.
 				establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
+
+				double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
+				double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
+				assert(equal(cmass_before, cmass_after));
+				assert(equal(nmass_before, nmass_after));
 			}
 		}
 	}
@@ -503,6 +515,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	int newindiv = 0; // number of new Individual objects to add to vegetation for this PFT
 	double kest_bg = 0.0;
 	int i = 0;
+
+	// Establishment happens daily for DAVE version
+	if (ifdavegrowth) {
+		return;
+	}
 
 	// Obtain reference to Vegetation object
 

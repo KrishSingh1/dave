@@ -1095,7 +1095,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 
 void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init) {
 	
-	if (is_zero(nmass_init)) {
+	if (is_zero(nmass_init)) {  // not provided as input
 		nmass_init = cmass_init / indiv.pft.cton_leaf_avr;
 	}
 
@@ -3242,16 +3242,31 @@ void senescence(Vegetation& vegetation) {
 	}
 }
 
+
+// External seed input 
+void seed_dispersal(Vegetation& vegetation) {
+
+	Patch& patch = vegetation.patch;
+	for (int i = 0; i < patch.pft.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+
+		double ext_seed_n = ext_seed / ppft.pft.cton_leaf_avr;
+
+		ppft.cmass_litter_repr += ext_seed;
+		ppft.nmass_litter_repr += ext_seed_n;
+
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
+		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
+	}
+}
+
+
 // Seed turnover (decrease in viability over time).
 void turnover_seed(Vegetation& vegetation) {
 	
 	Patch& patch = vegetation.patch;
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
-
-		// add external seed input
-		ppft.cmass_litter_repr += ext_seed;
-		ppft.nmass_litter_repr += ext_seed / ppft.pft.cton_leaf_avr;
 
 		// Seed turnover
 		// Base turnover rate
@@ -3554,6 +3569,10 @@ void growth_daily_grass_dave(Patch& patch) {
 	if (date.day == 0) {
 		flush_cmass_repr(patch);
 	}
+
+	// External seed input
+	seed_dispersal(vegetation);
+	mass_balance.check(vegetation);
 
 	// Calculate total daily growth and update C storage 
 	storage_growth_partitioning(vegetation);

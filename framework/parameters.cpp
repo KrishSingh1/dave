@@ -753,6 +753,16 @@ void plib_declarations(int id,xtring setname) {
 			"Specific leaf area (m2/kgC)");
 		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
 			"Minimum leaf C:N mass ratio");
+		declareitem("cton_leaf_max",&ppft->cton_leaf_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum leaf C:N mass ratio");
+		declareitem("cton_root_min",&ppft->cton_root_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum root C:N mass ratio");
+		declareitem("cton_root_max",&ppft->cton_root_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum root C:N mass ratio");
+		declareitem("cton_sap_min",&ppft->cton_sap_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum sapwood C:N mass ratio");
+		declareitem("cton_sap_max",&ppft->cton_sap_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum sapwood C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
@@ -1976,6 +1986,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (ifdavegrowth) {
+				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
+				if (!itemparsed("cton_leaf_max")) badins("cton_leaf_max");
+				if (!itemparsed("cton_root_min")) badins("cton_root_min");
+				if (!itemparsed("cton_root_max")) badins("cton_root_max");
+				if (!itemparsed("cton_sap_min")) badins("cton_sap_min");
+				if (!itemparsed("cton_sap_max")) badins("cton_sap_max");
+			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

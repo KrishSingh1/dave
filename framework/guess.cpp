@@ -3106,8 +3106,8 @@ void Individual::flush_repr_litter_DAVE() {
 	cmass_litter_repr += cmass_repr;
 	nmass_litter_leaf += nmass_repr;	
 				
-	patchpft().cmass_litter_repr += cmass_repr; // TODO: turnover!!
-	patchpft().nmass_litter_repr += nmass_repr; // TODO: turnover!!
+	patchpft().cmass_litter_repr += cmass_repr;
+	patchpft().nmass_litter_repr += nmass_repr;
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
 }

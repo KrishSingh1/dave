@@ -2034,14 +2034,18 @@ public:
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
-	/// maximum leaf C:N mass ratio	allowed when nitrogen demand is determined
-	double cton_leaf_max;
 	/// average leaf C:N mass ratio (between min and max)
 	double cton_leaf_avr;
+	/// maximum leaf C:N mass ratio	allowed when nitrogen demand is determined
+	double cton_leaf_max;
+	/// minimum fine root C:N mass ratio (connected to cton_root_avr and cton_root_max)
+	double cton_root_min;
 	/// average fine root C:N mass ratio (connected cton_leaf_avr)
 	double cton_root_avr;
 	/// maximum fine root C:N mass ratio (used when mass is negligible)
 	double cton_root_max;
+	/// minimum sapwood C:N mass ratio (used when mass is negligible)
+	double cton_sap_min;
 	/// average sapwood C:N mass ratio (connected cton_leaf_avr)
 	double cton_sap_avr;
 	/// maximum sapwood C:N mass ratio (used when mass is negligible)
@@ -2475,24 +2479,33 @@ public:
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
 
+		if (ifdavegrowth) {
+			// TODO: revisit C:N avg!
+			// Maximum fine root C:N ratio
+			cton_root_max = cton_leaf_max * frac_leaftoroot;
+			cton_root_min = cton_leaf_min * frac_leaftoroot;
+
+			// Maximum sap C:N ratio
+			cton_sap_max = cton_leaf_max * frac_leaftosap;
+			cton_sap_min = cton_leaf_min * frac_leaftosap;
+		} else {
+			// Tighter C:N ratio range for roots and sapwood: picked out thin air
+			double frac_maxtomin = .9;
+
+			// Maximum fine root C:N ratio
+			cton_root_max = cton_leaf_max * frac_leaftoroot;
+			cton_root_min = cton_root_max * frac_maxtomin;
+
+			// Maximum sap C:N ratio
+			cton_sap_max  = cton_leaf_max * frac_leaftosap;
+			cton_sap_min = cton_sap_max * frac_maxtomin;
+		}
+
 		// Average leaf C:N ratio
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
 
-		// Tighter C:N ratio range for roots and sapwood: picked out thin air
-		double frac_maxtomin = .9;
-
-		// Maximum fine root C:N ratio
-		cton_root_max = cton_leaf_max * frac_leaftoroot;
-
-		double cton_root_min = cton_root_max * frac_maxtomin;
-
 		// Average fine root C:N ratio
 		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
-
-		// Maximum sap C:N ratio
-		cton_sap_max  = cton_leaf_max * frac_leaftosap;
-
-		double cton_sap_min = cton_sap_max * frac_maxtomin;
 
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
@@ -2506,6 +2519,19 @@ public:
 		}
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
+	/*
+		printf("%s: cton_leaf_min = %.2f\n", (const char *)name, cton_leaf_min);
+		printf("%s: cton_leaf_avr = %.2f\n", (const char *)name, cton_leaf_avr);
+		printf("%s: cton_leaf_max = %.2f\n", (const char *)name, cton_leaf_max);
+
+		printf("%s: cton_root_min = %.2f\n", (const char *)name, cton_root_min);
+		printf("%s: cton_root_avr = %.2f\n", (const char *)name, cton_root_avr);
+		printf("%s: cton_root_max = %.2f\n", (const char *)name, cton_root_max);
+
+		printf("%s: cton_sap_min = %.2f\n", (const char *)name, cton_sap_min);
+		printf("%s: cton_sap_avr = %.2f\n", (const char *)name, cton_sap_avr);
+		printf("%s: cton_sap_max = %.2f\n", (const char *)name, cton_sap_max);
+	*/
 	}
 
 	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake

@@ -102,6 +102,7 @@ private:
 		double n_start;
 		double c_start;
 		int id;
+		void check_cton(double cton, double cton_min, double cton_max) const;
 	};
 	std::vector<const IndivState*> indivs;
 	void clear_indivs();
@@ -154,6 +155,11 @@ DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
 	id = indiv.id;
 }
 
+void DaveMassBalance::IndivState::check_cton(double cton, double cton_min, double cton_max) const {
+	assert(cton > cton_min);
+	assert(cton < cton_max);
+}
+
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 	double c_flux = indiv.dnpp;
 	double c_end = get_cmass(indiv) + indiv.cexcess;
@@ -162,6 +168,17 @@ void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 	double n_flux = indiv.nmass_missing;
 	double n_end = get_nmass(indiv);
 	assert(equal(n_end, n_start + n_flux));
+
+	double cton_leaf = indiv.get_cmass_leaf() / indiv.get_nmass_leaf();
+	check_cton(cton_leaf, indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max);
+
+	double cton_root = indiv.cmass_root / indiv.nmass_root;
+	check_cton(cton_root, indiv.pft.cton_root_min, indiv.pft.cton_root_max);
+
+	if (!indiv.pft.is_grass()) {
+		double cton_sap = indiv.cmass_sap / indiv.nmass_sap;
+		check_cton(cton_sap, indiv.pft.cton_sap_min, indiv.pft.cton_sap_max);
+	}
 }
 
 #endif // NDEBUG
@@ -1103,6 +1120,9 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	double cmass_leaf_ind;
 	double cmass_root_ind;
 	double cmass_sap_ind;
+
+	double cmass_before = indiv.ccont();
+	double nmass_before = indiv.ncont();
 	
 	if (indiv.pft.is_grass() && ifdailygrass) {
 
@@ -1114,19 +1134,27 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// croot = cshoot / ltor
 			// cstorage = frac_cstorage_max * cmass_init
 			double cmass_leaf = (cmass_init - frac_cstorage_max * cmass_init) * (ltor / (ltor + 1.0));
+			double cmass_root = cmass_leaf / ltor;
+			double cmass_storage = cmass_init - cmass_leaf - cmass_root;
 			indiv.cmass_leafs[green] += cmass_leaf;
-			indiv.cmass_root    += cmass_leaf / ltor;
-			indiv.cmass_storage += cmass_init - indiv.cmass_leaf - indiv.cmass_root;
+			indiv.cmass_root    += cmass_root;
+			indiv.cmass_storage += cmass_storage;
 			indiv.cmass_crown   += 0.0;
 
+			assert(equal(cmass_init, cmass_leaf + cmass_root + cmass_storage));
+			
 			double init_cton = cmass_init / nmass_init;
 
 			// Initial N mass
 			double nmass_leaf = cmass_leaf / init_cton;
+			double nmass_root = cmass_root / init_cton;
+			double nmass_storage = cmass_storage / init_cton;
 			indiv.nmass_leafs[green] += nmass_leaf;
-			indiv.nmass_root += indiv.cmass_root / init_cton;
-			indiv.nmass_storage += indiv.cmass_storage / init_cton;
+			indiv.nmass_root += nmass_root;
+			indiv.nmass_storage += nmass_storage;
 			indiv.nmass_crown += 0.0;
+
+			assert(equal(nmass_init, nmass_leaf + nmass_root + nmass_storage));
 
 		} else {
 			indiv.cmass_storage += cmass_init;
@@ -1171,6 +1199,11 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
 	}
+
+	double cmass_after = indiv.ccont();
+	double nmass_after = indiv.ncont();
+	assert(equal(cmass_before + cmass_init, cmass_after));
+    assert(equal(nmass_before + nmass_init, nmass_after));
 
 }
 
@@ -2820,10 +2853,6 @@ void ndemand(Vegetation& vegetation) {
 		double ngrow_demand_repr  = 0.0;
 		double ngrow_demand_crown = 0.0;
 
-		// double cton_root_min = 2.0 * indiv.pft.cton_root_avr - indiv.pft.cton_root_max;
-		// cton_root = max(cton_root, cton_root_min);
-		// TODO: make min C:N for root
-
 		// N demand of new growth
 		if (!negligible(indiv.cgrow)) {
 			// Current C:N ratios
@@ -2833,19 +2862,16 @@ void ndemand(Vegetation& vegetation) {
 				indiv.cgrow_leaf);
 			double cton_root = constrain_cton(
 				indiv.cmass_root, indiv.nmass_root,
-				0, indiv.pft.cton_root_max,
+				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
 				indiv.cgrow_root);
 			double cton_crown = constrain_cton(
 				indiv.cmass_crown, indiv.nmass_crown,
-				0, indiv.pft.cton_root_max,
+				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
 				indiv.cgrow_crown);
 			ngrow_demand_leaf  = indiv.cgrow_leaf / cton_leaf;
 			ngrow_demand_root  = indiv.cgrow_root / cton_root;
 			ngrow_demand_crown = indiv.cgrow_crown / cton_crown;
 			ngrow_demand_repr  = indiv.cgrow_repr / cton_leaf;  // C:N repr = C:N leaf for now.
-			if (date.year == 60) {
-				printf("stop");
-			}
 		} else {
 			ngrow_demand_leaf  = 0.0;
 			ngrow_demand_root  = 0.0;
@@ -2855,8 +2881,7 @@ void ndemand(Vegetation& vegetation) {
 
 		// N demand of existing biomass (will also be applied to new biomass)
 		double nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
-		double nupdate_demand_root = max(0.0, indiv.cmass_root / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr)
-									    - indiv.nmass_root) * frac_nchange;
+		double nupdate_demand_root = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
 
 		// Total biomass N demand of individual
 		indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf;
@@ -2889,9 +2914,6 @@ void nuptake(Vegetation& vegetation) {
 		double ntoc_min = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
 		indiv.cton_status = max(0.0, (ntoc - ntoc_min) / (ntoc_avr - ntoc_min));
-	if (date.year == 49) {
-		printf("stop");
-	}
 		NCompetingIndividual competing_individual;
 		competing_individual.ndemand = indiv.ndemand;
 		competing_individual.fnuptake = 1;
@@ -2901,9 +2923,6 @@ void nuptake(Vegetation& vegetation) {
 
 	// Calculate N competition.
 	double nmass_avail = soil.nmass_avail() * min(1.0, patch.fpc_total);
-	if (date.year == 49) {
-		printf("stop");
-	}
 	ncompete(competing_individuals, nmass_avail);  // TODO: check if OK/efficient to call ncompete even if ndemand < nsupply. 
 												   // --> if (nmass_avail < patch_total_ndemand) {
 
@@ -2989,9 +3008,6 @@ void update_pools(Vegetation& vegetation) {
 		double navail_crown = indiv.crownndemand * fnavail;	
 		double navail_repr  = indiv.reprndemand * fnavail; 
 
-		if (date.year == 59){
-			printf("hi");
-		}
 
 		// Check with fnavail, not fnuptake. There are cases where fnuptake can
 		// be 1 but fnavail < 1. This can happen when n storage is low, because
@@ -3030,17 +3046,16 @@ void update_pools(Vegetation& vegetation) {
 			}
 
 			// Roots
-			double cton_root_min = indiv.pft.cton_root_avr - (indiv.pft.cton_root_max - indiv.pft.cton_root_avr);
 			if ( navail_root < (indiv.cgrow_root / indiv.pft.cton_root_max)) {
 				
 				// Maximum possible root growth given N constraints. Put rest of C back into storage (Creturn)
 				double growth_max_root = navail_root * indiv.pft.cton_root_max;
 				creturn += indiv.cgrow_root - growth_max_root;
 				indiv.cgrow_root = growth_max_root;
-			} else if (navail_root > (indiv.cgrow_root / cton_root_min)) {
+			} else if (navail_root > (indiv.cgrow_root / indiv.pft.cton_root_min)) {
 				// N:C ratio in new root exceeds max N:C ratio. Limit N in new
 				// root to the max N:C ratio and put the rest into nreturn.
-				double max_ngrow_root = indiv.cgrow_root / cton_root_min;
+				double max_ngrow_root = indiv.cgrow_root / indiv.pft.cton_root_min;
 				nreturn += navail_root - max_ngrow_root;
 				navail_root = max_ngrow_root;
 			}
@@ -3052,10 +3067,10 @@ void update_pools(Vegetation& vegetation) {
 				double growth_max_crown = navail_crown * indiv.pft.cton_root_max;
 				creturn += indiv.cgrow_crown - growth_max_crown;
 				indiv.cgrow_crown = growth_max_crown;
-			} else if ( navail_crown > (indiv.cgrow_crown / cton_root_min) ) {
+			} else if ( navail_crown > (indiv.cgrow_crown / indiv.pft.cton_root_min) ) {
 				// N:C ratio in new crown biomass exceeds max N:C ratio. Limit N in new
 				// crown tissue to the max N:C ratio and put the rest into nreturn.
-				double max_ngrow_crown = indiv.cgrow_crown / cton_root_min;
+				double max_ngrow_crown = indiv.cgrow_crown / indiv.pft.cton_root_min;
 				nreturn += navail_crown - max_ngrow_crown;
 				navail_crown = max_ngrow_crown;
 			}
@@ -3128,6 +3143,7 @@ void update_pools(Vegetation& vegetation) {
 		assert(less_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_max));
 		assert(greater_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_min));
 		assert(less_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_max));
+		assert(greater_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_min));
 	}
 }
 
@@ -3407,10 +3423,7 @@ void turnover_grass(Vegetation& vegetation) {
 		if (equal(indiv.fphen_activity, fphen_activity_min) || indiv.cmass_repr > (0.5 * indiv.get_cmass_leaf())) {
 			if (indiv.cmass_repr > 0.0) {
 				indiv.flush_repr_litter_DAVE();
-				// TODO: for annuals, flush everything to litter at the end of growing season.
-				//		 Simulate seeds as cmass_storage and nmass_storage.
 				// TODO: flush seeds even if grasses don't go dormant (do that for perennials at the same time annuals die (?))
-				// TODO: call establishment function every day for grasses?
 			}
 		}
 	}
@@ -3572,7 +3585,6 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// External seed input
 	seed_dispersal(vegetation);
-	mass_balance.check(vegetation);
 
 	// Calculate total daily growth and update C storage 
 	storage_growth_partitioning(vegetation);

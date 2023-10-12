@@ -24,7 +24,7 @@ const bool DEBUG_METHANE = false;
 /// number of total soil layers. Must be at least NSOILLAYER + NLAYERS_SNOW + 1
 const int NLAYERS = 22;
 
-/// Number of soil layers for soil temperature/water calculations. Typically 15 10mm layers, making up the 150cm-deep soil column
+/// Number of soil layers for soil temperature/water calculations. Typically 15 10cm layers, making up the 150cm-deep soil column
 const int NSOILLAYER = 15;	// rootdist in .ins file must have NSOILLAYER components
 
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column

@@ -10,10 +10,6 @@ group "C3G" (
 	grass
 	pathway "c3"
 	respcoeff 1.0
-	pstemp_min -5
-	pstemp_low 10
-	pstemp_high 30
-	pstemp_max 45
 	tcmin_surv -1000	! no limit
 	tcmin_est -1000 	! no limit
 	tcmax_est 1000  	! no limit
@@ -26,6 +22,21 @@ group "C3G" (
 	harv_eff 0.5
 )
 
-pft "C3G" (
+pft "C3G_perennial" (
+	
 	C3G
+	
+	lifeform "grass_perennial"
+	reprfrac  0.05
+	crownfrac 0.05
 )
+
+pft "C3G_annual" (
+	
+	C3G
+	
+	lifeform "grass_annual"
+	reprfrac  0.10
+	crownfrac 0.01
+)
+

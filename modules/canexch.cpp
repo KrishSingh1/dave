@@ -284,7 +284,7 @@ void fpar(Patch& patch) {
 				if (indiv.height>height_veg) height_veg=indiv.height;
 				plai_leafon+=indiv.lai;
 
-				if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) {
+				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 					plai_leafon_grass+=indiv.lai;
 					plai_grass += indiv.lai_today();
 				}
@@ -449,7 +449,7 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
+			if (indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) {
 
 				// Calculate minimum FPAR for growth of this grass
 
@@ -1001,7 +1001,7 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+		if (indiv.pft.is_grass() && ifdailygrass) {
 
 			indiv.nstress = ifnlim && date.year > freenyears;
 
@@ -1116,7 +1116,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double leafoptn;
 
 		// If grass with daily allocation
-		bool daily_grass = indiv.pft.lifeform == GRASS && ifdailygrass;
+		bool daily_grass = indiv.pft.is_grass() && ifdailygrass;
 
 		// Calculate optimal leaf nitrogen content and demand
 		if ((!negligible(indiv.phen) && !daily_grass) || (!negligible(indiv.cmass_leaf_today()) && daily_grass)) {
@@ -1308,7 +1308,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Should be done on FPC basis, but is not as it does not matter mathematically
 		// Needs to be calculated for each individual due to possible water stress
 
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+		if (indiv.pft.is_grass() && ifdailygrass) {
 			indiv.nactive = max(0.0, indiv.get_nmass_leaf() - N0 * indiv.get_cmass_leaf());
 		}
 		else {
@@ -2040,11 +2040,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover != CROPLAND && !(ifdailygrass && ppft.pft.lifeform == GRASS)){
+			if (patch.stand.landcover != CROPLAND && !(ifdailygrass && ppft.pft.is_grass())){
 				ppft.wsupply_leafon = pft.emax * wr;
 				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
 			}
-			else if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+			else if (ifdailygrass && ppft.pft.is_grass()) {
 				ppft.wsupply_leafon = pft.emax * wr;
 				ppft.wsupply = ppft.wsupply_leafon;
 			}
@@ -2068,7 +2068,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));
 
-		if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+		if (ifdailygrass && ppft.pft.is_grass()) {
 			ppft.wstress = ppft.wsupply < patch.wdemand;
 		}
 
@@ -2446,7 +2446,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		resp = resp_sap + resp_root + resp_growth;
 	}
-	else if (lifeform == GRASS || lifeform == MOSS) {
+	else if (lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL || lifeform == MOSS) {
 
 		if (ifdavegrowth) {
 
@@ -2459,7 +2459,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// Growth respiration
-			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
+			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
 			resp_growth = (assim /*- resp_sap     DH: need to confirm with Juergen if this can be removed*/
 			               - resp_root) * (growth_demand * Rg_max);
 
@@ -2779,7 +2779,7 @@ void vcmax_from_N(Vegetation& vegetation) {
         // leaf N of green leaves per leaf area (kgN m-2 leaf)
 		// take green leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
-		if (indiv.pft.lifeform == GRASS) {
+		if (indiv.pft.is_grass()) {
 			nmass_leaf = (!negligible(indiv.nmass_leafs[0])) ? 
 						indiv.nmass_leafs[0] / (indiv.cmass_leafs[0] * indiv.sla()) : 0.0;
 		} else {
@@ -2870,7 +2870,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// is par and leaf in this layer, but no fpar.
 						// For grasses, this can happen if PAR is below the threshold
 						// required for grass growth.
-						// if (pft.lifeform != GRASS && pft.lifeform != MOSS) {
+						// if (!pft.is_grass() && pft.lifeform != MOSS) {
 						// 	fail("Lai (%.2f) and par (%.2f) are both nonzero but fpar is 0 in layer %d day %d year %d patch %d",
 						// 	lai_layer, par, i, date.day, date.year, patch.id);
 						// }
@@ -2903,7 +2903,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					if (is_zero(apar_layer)) {
 						// Night
 						An = -Rd;
-						gsc = g0;
+						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
 					} else {
 
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -3351,11 +3351,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 // - bvoc function not implemented (could be added later)
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	// TODO: find out what gtemp is.
 	// Note: climate.gtemp will be uninitialised here when running in diurnal
 	// (ie subdaily) mode, and climate.gtemps will be uninitialised when running
 	// in non-diurnal mode.
-	double gtemp;
+	double gtemp; // Response of respiration rate to temperature
 	if (date.diurnal()) {
 		gtemp = mean(&climate.gtemps.front(), date.subdaily);
 	} else {

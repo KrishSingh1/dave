@@ -2605,6 +2605,7 @@ double cstorage_capacity(Individual& indiv) {
 double nstorage_capacity(Individual& indiv) {
 
 	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
 
 }
 
@@ -2868,10 +2869,14 @@ void ndemand(Vegetation& vegetation) {
 				indiv.cmass_crown, indiv.nmass_crown,
 				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
 				indiv.cgrow_crown);
+			double cton_repr = constrain_cton(
+				indiv.cmass_repr, indiv.nmass_repr,
+				indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
+				indiv.cgrow_repr);
 			ngrow_demand_leaf  = indiv.cgrow_leaf / cton_leaf;
 			ngrow_demand_root  = indiv.cgrow_root / cton_root;
 			ngrow_demand_crown = indiv.cgrow_crown / cton_crown;
-			ngrow_demand_repr  = indiv.cgrow_repr / cton_leaf;  // C:N repr = C:N leaf for now.
+			ngrow_demand_repr  = indiv.cgrow_repr / cton_repr;
 		} else {
 			ngrow_demand_leaf  = 0.0;
 			ngrow_demand_root  = 0.0;
@@ -2880,14 +2885,16 @@ void ndemand(Vegetation& vegetation) {
 		}
 
 		// N demand of existing biomass (will also be applied to new biomass)
-		double nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
-		double nupdate_demand_root = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
+		double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
+		double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
+		double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
+		double nupdate_demand_repr  = max(0.0, indiv.cmass_repr / indiv.pft.cton_repr_min - indiv.nmass_repr) * frac_nchange;
 
 		// Total biomass N demand of individual
 		indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf;
 		indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root;
-		indiv.crownndemand = ngrow_demand_crown;
-		indiv.reprndemand  = ngrow_demand_repr;
+		indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown;
+		indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr;
 		indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand;
 
 		assert(positive(indiv.ndemand));
@@ -3076,17 +3083,17 @@ void update_pools(Vegetation& vegetation) {
 			}
 
 			// Reproductive tissue
-			if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_leaf_max)) {
+			if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_repr_max)) {
 
 				// Maximum possible reproductive growth given N constraints. Put rest of C back into storage (Creturn)
-				double growth_max_repr = navail_repr * indiv.pft.cton_leaf_max;
+				double growth_max_repr = navail_repr * indiv.pft.cton_repr_max;
 				creturn += indiv.cgrow_repr - growth_max_repr;
 				indiv.cgrow_repr = growth_max_repr;
-			} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_leaf_min)) {
+			} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_repr_min)) {
 				// N:C ratio in new reproductive biomass exceeds max N:C ratio.
 				// Limit N in new reproductive biomass to the max N:C ratio and
 				// put the rest into nreturn.
-				double max_ngrow_repr = indiv.cgrow_repr / indiv.pft.cton_leaf_min;
+				double max_ngrow_repr = indiv.cgrow_repr / indiv.pft.cton_repr_min;
 				nreturn += navail_repr - max_ngrow_repr;
 				navail_repr = max_ngrow_repr;
 			}
@@ -3266,7 +3273,7 @@ void seed_dispersal(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		double ext_seed_n = ext_seed / ppft.pft.cton_leaf_avr;
+		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
 		ppft.cmass_litter_repr += ext_seed;
 		ppft.nmass_litter_repr += ext_seed_n;
@@ -3568,6 +3575,7 @@ void annual_accounting(Vegetation& vegetation) {
 		} // Last day of year
 	}
 }
+
 
 void growth_daily_grass_dave(Patch& patch) {
 

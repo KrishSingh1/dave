@@ -2815,7 +2815,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 	// there's nothing more to do.
 	double cton = cmass / nmass;
 
-	if (cton > cton_max || cton < cton_min) {
+	if (greater_than_or_equal(cton, cton_max) || less_than_or_equal(cton, cton_min)) {
 		// Current C:N ratio is outside the allowed C:N ratio. We need to
 		// up- or down-regulate the N demand in order to move towards the
 		// nearest C:N ratio bounds.

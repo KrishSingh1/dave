@@ -1987,15 +1987,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
 
-			if (ifdavegrowth) {
-				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
-				if (!itemparsed("cton_leaf_max")) badins("cton_leaf_max");
-				if (!itemparsed("cton_root_min")) badins("cton_root_min");
-				if (!itemparsed("cton_root_max")) badins("cton_root_max");
-				if (!itemparsed("cton_sap_min")) badins("cton_sap_min");
-				if (!itemparsed("cton_sap_max")) badins("cton_sap_max");
-			}
-
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");
 				if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");

@@ -2740,16 +2740,6 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 			continue;
 		}
 
-		// Leaf nitrogen status
-		// TODO: better calculate nscal as navail/ndemand
-		if (!negligible(indiv.get_cmass_leaf())) {
-			if (!ifnlim || date.year < freenyears) {
-				indiv.nscal_5.add(1.0);
-			} else {
-				indiv.nscal_5.add(min(1.0, indiv.pft.cton_leaf_avr / indiv.cton_leaf()));
-			}
-		}
-		
 		double calloc_leaf  = 0.0;
 		double calloc_root  = 0.0;
 		double calloc_crown = 0.0;
@@ -3014,12 +3004,18 @@ void update_pools(Vegetation& vegetation) {
 		if (!negligible(indiv.ndemand)) {
 			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
+		
+		// calculate N stress factor 
+		if (!ifnlim || date.year < freenyears) {
+			indiv.nscal_5.add(1.0);
+		} else {
+			indiv.nscal_5.add(fnavail);
+		}
 
 		double navail_leaf  = indiv.leafndemand * fnavail;
 		double navail_root  = indiv.rootndemand * fnavail;
 		double navail_crown = indiv.crownndemand * fnavail;	
 		double navail_repr  = indiv.reprndemand * fnavail; 
-
 
 		// Check with fnavail, not fnuptake. There are cases where fnuptake can
 		// be 1 but fnavail < 1. This can happen when n storage is low, because

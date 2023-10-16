@@ -233,17 +233,30 @@ void som_dynamics_lpj(Patch& patch, double tillage_fact) {
 
 		// For this PFT ...
 
-		decomp_litter+=(patch.pft[p].cmass_litter_leaf+
-			patch.pft[p].cmass_litter_root+
-			patch.pft[p].cmass_litter_sap+
-			patch.pft[p].cmass_litter_heart+
-			patch.pft[p].cmass_litter_repr)*(1.0-fr_litter);
+		if (ifdavegrowth) {
+			// No decomposition of reproductive tissue in DAVE (cmass_litter_repr gets converted to cmass_litter_root first!)
+			decomp_litter+=(patch.pft[p].cmass_litter_leaf+
+				patch.pft[p].cmass_litter_root+
+				patch.pft[p].cmass_litter_sap+
+				patch.pft[p].cmass_litter_heart)*(1.0-fr_litter);
 
-		patch.pft[p].cmass_litter_leaf*=fr_litter;
-		patch.pft[p].cmass_litter_root*=fr_litter;
-		patch.pft[p].cmass_litter_sap*=fr_litter;
-		patch.pft[p].cmass_litter_heart*=fr_litter;
-		patch.pft[p].cmass_litter_repr*=fr_litter;
+			patch.pft[p].cmass_litter_leaf*=fr_litter;
+			patch.pft[p].cmass_litter_root*=fr_litter;
+			patch.pft[p].cmass_litter_sap*=fr_litter;
+			patch.pft[p].cmass_litter_heart*=fr_litter;
+		} else {
+			decomp_litter+=(patch.pft[p].cmass_litter_leaf+
+				patch.pft[p].cmass_litter_root+
+				patch.pft[p].cmass_litter_sap+
+				patch.pft[p].cmass_litter_heart+
+				patch.pft[p].cmass_litter_repr)*(1.0-fr_litter);
+
+			patch.pft[p].cmass_litter_leaf*=fr_litter;
+			patch.pft[p].cmass_litter_root*=fr_litter;
+			patch.pft[p].cmass_litter_sap*=fr_litter;
+			patch.pft[p].cmass_litter_heart*=fr_litter;
+			patch.pft[p].cmass_litter_repr*=fr_litter;
+		}
 	}
 
 	if (date.year>=soil.soiltype.solvesom_begin)

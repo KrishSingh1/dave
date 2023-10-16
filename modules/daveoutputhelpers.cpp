@@ -332,7 +332,7 @@ double get_nmass_litter(const Patch &patch) {
 	double nmass_litter = 0;
 	for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		const Patchpft &ppft = patch.pft[pftlist.getobj().id];
-		nmass_litter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart;
+		nmass_litter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart + ppft.nmass_litter_repr;
 	}
 	return nmass_litter;
 }

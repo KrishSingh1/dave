@@ -2033,7 +2033,9 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	flush_litter_repr(patch);
+	if (!ifdavegrowth) {
+		flush_litter_repr(patch);
+	}
 }
 
 /// GROWTH DAILY GRASS
@@ -2142,7 +2144,9 @@ void growth_daily_grass(Patch& patch) {
 			if (cmass_repr > 0.0) {
 				stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
 				ppft.cmass_litter_repr += cmass_repr;
-				flush_litter_repr(patch);
+				if (!ifdavegrowth) {
+					flush_litter_repr(patch);
+				}
 			}
 
 			// Check C budget
@@ -3022,17 +3026,17 @@ void update_pools(Vegetation& vegetation) {
 		// fnuptake in this case, we would incorrectly assume that we are able
 		// to meet the N demands today, and potentially allocate too much C,
 		// causing the C:N ratio to exceed its max.
-		if (negligible(fnavail - 1.0)) {
+		//if (negligible(fnavail - 1.0)) {
 			
 			// N supply >= N demand
 
-			indiv.cmass_leafs[green] += indiv.cgrow_leaf;
-			indiv.cmass_root += indiv.cgrow_root;
-			indiv.cmass_crown += indiv.cgrow_crown;
-			indiv.cmass_repr += indiv.cgrow_repr;
+		//	indiv.cmass_leafs[green] += indiv.cgrow_leaf;
+		//	indiv.cmass_root += indiv.cgrow_root;
+		//	indiv.cmass_crown += indiv.cgrow_crown;
+		//	indiv.cmass_repr += indiv.cgrow_repr;
 			
-		}
-		else {
+		//}
+		//else {
 
 			// N supply < N demand
 			double nreturn = 0;
@@ -3116,13 +3120,14 @@ void update_pools(Vegetation& vegetation) {
 			// save cmass_storage over the past 10 days
 			indiv.cmass_storage_10.add(indiv.cmass_storage);
 
+
 			indiv.cmass_leafs[green] += indiv.cgrow_leaf;
 			indiv.cmass_root  += indiv.cgrow_root;
 			indiv.cmass_crown += indiv.cgrow_crown;
 			indiv.cmass_repr  += indiv.cgrow_repr;
 
 			assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
-		}
+		//}
 
 		// Always take up available N
 		indiv.nmass_leafs[green] += navail_leaf;

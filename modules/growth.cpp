@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.0;
+const double frac_culm = 0.4;
 
 // Maximum size of C storage pool as a fraction of total biomass
 const double frac_cstorage_max = 0.4;
@@ -220,7 +220,7 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.1;
+	double qgrowth = 1.1; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
@@ -1542,6 +1542,10 @@ void growth(Stand& stand, Patch& patch) {
 	double dval = 0.0;
 	int p;
 
+	if (ifdavegrowth) {
+		return;
+	}
+
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
 	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
@@ -2033,9 +2037,7 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	if (!ifdavegrowth) {
-		flush_litter_repr(patch);
-	}
+	flush_litter_repr(patch);
 }
 
 /// GROWTH DAILY GRASS
@@ -2144,9 +2146,7 @@ void growth_daily_grass(Patch& patch) {
 			if (cmass_repr > 0.0) {
 				stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
 				ppft.cmass_litter_repr += cmass_repr;
-				if (!ifdavegrowth) {
-					flush_litter_repr(patch);
-				}
+				flush_litter_repr(patch);
 			}
 
 			// Check C budget
@@ -2770,7 +2770,7 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 
 			// 3) Shoots (Leaves + culms)
 			// express ltor_max as maximum fractional allocation to shoots (leaves + culms)
-			double calloc_leaf_max = 1.0 - 1.0/(1.0 + indiv.pft.ltor_max);
+			double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 			// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
 			calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
@@ -2818,8 +2818,9 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 
 	// Get C:N ratio of existing biomass. If it's within the allowed bounds then
 	// there's nothing more to do.
-	double cton = cmass / nmass;
 
+	double cton = cmass / nmass;
+	/*
 	if (greater_than_or_equal(cton, cton_max) || less_than_or_equal(cton, cton_min)) {
 		// Current C:N ratio is outside the allowed C:N ratio. We need to
 		// up- or down-regulate the N demand in order to move towards the
@@ -2838,6 +2839,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 		// C:N ratio.
 		cton = cgrow / ngrow;
 	}
+	*/
 	assert(positive(cton));
 	return cton;
 }
@@ -3010,7 +3012,6 @@ void update_pools(Vegetation& vegetation) {
 		
 		double fnavail = 0.0;
 		if (!negligible(indiv.ndemand)) {
-			// fnavail = max(0.0,min(1.0,(indiv.nmass_storage - indiv.cmass_storage / indiv.pft.cton_leaf_max) / indiv.ndemand));
 			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
 
@@ -3038,96 +3039,95 @@ void update_pools(Vegetation& vegetation) {
 		//}
 		//else {
 
-			// N supply < N demand
-			double nreturn = 0;
+		// N supply < N demand
+		double nreturn = 0;
 			
-			// Leaves
-			if ( navail_leaf < (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) {
+		// Leaves
+		if ( navail_leaf < (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) {
 				
-				// Maximum possible leaf growth given N constraints. Put rest of C back into storage (Creturn)
-				double growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
-				creturn += indiv.cgrow_leaf - growth_max_leaf;
-				indiv.cgrow_leaf = growth_max_leaf;
-			} else if ( navail_leaf > (indiv.cgrow_leaf / indiv.pft.cton_leaf_min) ) {
-				// N:C ratio in new leaf exceeds max N:C ratio. Limit N in new
-				// leaf to the max N:C ratio and put the rest into nreturn.
-				double max_ngrow_leaf = indiv.cgrow_leaf / indiv.pft.cton_leaf_min;
-				nreturn += navail_leaf - max_ngrow_leaf;
-				navail_leaf = max_ngrow_leaf;
-			}
+			// Maximum possible leaf growth given N constraints. Put rest of C back into storage (Creturn)
+			double growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
+			creturn += indiv.cgrow_leaf - growth_max_leaf;
+			indiv.cgrow_leaf = growth_max_leaf;
+		} else if ( navail_leaf > (indiv.cgrow_leaf / indiv.pft.cton_leaf_min) ) {
+			// N:C ratio in new leaf exceeds max N:C ratio. Limit N in new
+			// leaf to the max N:C ratio and put the rest into nreturn.
+			double max_ngrow_leaf = indiv.cgrow_leaf / indiv.pft.cton_leaf_min;
+			nreturn += navail_leaf - max_ngrow_leaf;
+			navail_leaf = max_ngrow_leaf;
+		}
 
-			// Roots
-			if ( navail_root < (indiv.cgrow_root / indiv.pft.cton_root_max)) {
-				
-				// Maximum possible root growth given N constraints. Put rest of C back into storage (Creturn)
-				double growth_max_root = navail_root * indiv.pft.cton_root_max;
-				creturn += indiv.cgrow_root - growth_max_root;
-				indiv.cgrow_root = growth_max_root;
-			} else if (navail_root > (indiv.cgrow_root / indiv.pft.cton_root_min)) {
-				// N:C ratio in new root exceeds max N:C ratio. Limit N in new
-				// root to the max N:C ratio and put the rest into nreturn.
-				double max_ngrow_root = indiv.cgrow_root / indiv.pft.cton_root_min;
-				nreturn += navail_root - max_ngrow_root;
-				navail_root = max_ngrow_root;
-			}
+		// Roots
+		if ( navail_root < (indiv.cgrow_root / indiv.pft.cton_root_max)) {
+			
+			// Maximum possible root growth given N constraints. Put rest of C back into storage (Creturn)
+			double growth_max_root = navail_root * indiv.pft.cton_root_max;
+			creturn += indiv.cgrow_root - growth_max_root;
+			indiv.cgrow_root = growth_max_root;
+		} else if (navail_root > (indiv.cgrow_root / indiv.pft.cton_root_min)) {
+			// N:C ratio in new root exceeds max N:C ratio. Limit N in new
+			// root to the max N:C ratio and put the rest into nreturn.
+			double max_ngrow_root = indiv.cgrow_root / indiv.pft.cton_root_min;
+			nreturn += navail_root - max_ngrow_root;
+			navail_root = max_ngrow_root;
+		}
 
-			// Crowns
-			if ( navail_crown < (indiv.cgrow_crown / indiv.pft.cton_root_max)) {
-				
-				// Maximum possible crown growth given N constraints. Put rest of C back into storage (Creturn)
-				double growth_max_crown = navail_crown * indiv.pft.cton_root_max;
-				creturn += indiv.cgrow_crown - growth_max_crown;
-				indiv.cgrow_crown = growth_max_crown;
-			} else if ( navail_crown > (indiv.cgrow_crown / indiv.pft.cton_root_min) ) {
-				// N:C ratio in new crown biomass exceeds max N:C ratio. Limit N in new
-				// crown tissue to the max N:C ratio and put the rest into nreturn.
-				double max_ngrow_crown = indiv.cgrow_crown / indiv.pft.cton_root_min;
-				nreturn += navail_crown - max_ngrow_crown;
-				navail_crown = max_ngrow_crown;
-			}
+		// Crowns
+		if ( navail_crown < (indiv.cgrow_crown / indiv.pft.cton_root_max)) {
+			
+			// Maximum possible crown growth given N constraints. Put rest of C back into storage (Creturn)
+			double growth_max_crown = navail_crown * indiv.pft.cton_root_max;
+			creturn += indiv.cgrow_crown - growth_max_crown;
+			indiv.cgrow_crown = growth_max_crown;
+		} else if ( navail_crown > (indiv.cgrow_crown / indiv.pft.cton_root_min) ) {
+			// N:C ratio in new crown biomass exceeds max N:C ratio. Limit N in new
+			// crown tissue to the max N:C ratio and put the rest into nreturn.
+			double max_ngrow_crown = indiv.cgrow_crown / indiv.pft.cton_root_min;
+			nreturn += navail_crown - max_ngrow_crown;
+			navail_crown = max_ngrow_crown;
+		}
 
-			// Reproductive tissue
-			if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_repr_max)) {
+		// Reproductive tissue
+		if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_repr_max)) {
 
-				// Maximum possible reproductive growth given N constraints. Put rest of C back into storage (Creturn)
-				double growth_max_repr = navail_repr * indiv.pft.cton_repr_max;
-				creturn += indiv.cgrow_repr - growth_max_repr;
-				indiv.cgrow_repr = growth_max_repr;
-			} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_repr_min)) {
-				// N:C ratio in new reproductive biomass exceeds max N:C ratio.
-				// Limit N in new reproductive biomass to the max N:C ratio and
-				// put the rest into nreturn.
-				double max_ngrow_repr = indiv.cgrow_repr / indiv.pft.cton_repr_min;
-				nreturn += navail_repr - max_ngrow_repr;
-				navail_repr = max_ngrow_repr;
-			}
+			// Maximum possible reproductive growth given N constraints. Put rest of C back into storage (Creturn)
+			double growth_max_repr = navail_repr * indiv.pft.cton_repr_max;
+			creturn += indiv.cgrow_repr - growth_max_repr;
+			indiv.cgrow_repr = growth_max_repr;
+		} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_repr_min)) {
+			// N:C ratio in new reproductive biomass exceeds max N:C ratio.
+			// Limit N in new reproductive biomass to the max N:C ratio and
+			// put the rest into nreturn.
+			double max_ngrow_repr = indiv.cgrow_repr / indiv.pft.cton_repr_min;
+			nreturn += navail_repr - max_ngrow_repr;
+			navail_repr = max_ngrow_repr;
+		}
 
-			// Make sure storage does not overflow.
-			// Maximum C storage pool size
-			if (indiv.cmass_storage + creturn > indiv.cstorage_max) {
-				cexcess = indiv.cmass_storage + creturn - indiv.cstorage_max;
-				indiv.cexcess += cexcess;
-				creturn = indiv.cstorage_max - indiv.cmass_storage;
-			}
-			indiv.cmass_storage += creturn;
+		// Make sure storage does not overflow.
+		// Maximum C storage pool size
+		if (indiv.cmass_storage + creturn > indiv.cstorage_max) {
+			cexcess = indiv.cmass_storage + creturn - indiv.cstorage_max;
+			indiv.cexcess += cexcess;
+			creturn = indiv.cstorage_max - indiv.cmass_storage;
+		}
+		indiv.cmass_storage += creturn;
 
-			// nreturn doesn't need to go back into the storage pool, because we
-			// haven't actually taken anything out of the storage pool yet, and
-			// the amount which is taken out is navail_{leaf,root,repr}, which
-			// have already been reduced by nreturn. The only reason we have an
-			// nreturn variable is for the mass balance checks.
+		// nreturn doesn't need to go back into the storage pool, because we
+		// haven't actually taken anything out of the storage pool yet, and
+		// the amount which is taken out is navail_{leaf,root,repr}, which
+		// have already been reduced by nreturn. The only reason we have an
+		// nreturn variable is for the mass balance checks.
 
-			// save cmass_storage over the past 10 days
-			indiv.cmass_storage_10.add(indiv.cmass_storage);
+		// save cmass_storage over the past 10 days
+		indiv.cmass_storage_10.add(indiv.cmass_storage);
 
 
-			indiv.cmass_leafs[green] += indiv.cgrow_leaf;
-			indiv.cmass_root  += indiv.cgrow_root;
-			indiv.cmass_crown += indiv.cgrow_crown;
-			indiv.cmass_repr  += indiv.cgrow_repr;
+		indiv.cmass_leafs[green] += indiv.cgrow_leaf;
+		indiv.cmass_root  += indiv.cgrow_root;
+		indiv.cmass_crown += indiv.cgrow_crown;
+		indiv.cmass_repr  += indiv.cgrow_repr;
 
-			assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
-		//}
+		assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
 
 		// Always take up available N
 		indiv.nmass_leafs[green] += navail_leaf;

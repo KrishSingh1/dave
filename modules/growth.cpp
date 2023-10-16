@@ -58,8 +58,9 @@ const double ext_seed = 1.0e-5;
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
 const double frac_culm = 0.4;
 
-// Maximum size of C storage pool as a fraction of total biomass
-const double frac_cstorage_max = 0.4;
+// Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
+const double cstorage_max_temp = 0.2;  // leaves and roots
+const double cstorage_max_perm = 0.5;  // crowns
 
 // Fraction of C storage not available for growth.
 const double frac_cstorage_res = 0.08;
@@ -1133,7 +1134,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// cmass_init = cshoot + croot + cstorage
 			// croot = cshoot / ltor
 			// cstorage = frac_cstorage_max * cmass_init
-			double cmass_leaf = (cmass_init - frac_cstorage_max * cmass_init) * (ltor / (ltor + 1.0));
+			double cmass_leaf = (cmass_init - cstorage_max_temp * cmass_init) * (ltor / (ltor + 1.0));
 			double cmass_root = cmass_leaf / ltor;
 			double cmass_storage = cmass_init - cmass_leaf - cmass_root;
 			indiv.cmass_leafs[green] += cmass_leaf;
@@ -2599,7 +2600,7 @@ double growth_demand(Individual& indiv) {
 // Capacity of C storage (kg C m-2)
 double cstorage_capacity(Individual& indiv) {
 
-	return frac_cstorage_max * (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_crown);
+	return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
 
 }
 

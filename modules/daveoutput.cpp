@@ -55,6 +55,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_aheight"             , ANNUAL, [](const Individual &i) { return i.height; }, "Annual plant height (m)", mean, false, true);
 	add_indiv_output("file_dave_aaet"                , ANNUAL, [](const Individual &i) { return i.aaet; }, "Annual actual evapotranspiration (mm)", sum, true);
 	add_indiv_output("file_dave_adensity"            , ANNUAL, [](const Individual &i) { return i.densindiv; }, "Annual density of individuals over patch (/m2)", sum, true);
+	add_indiv_output("file_dave_altor"            	 , ANNUAL, [](const Individual &i) { return i.ltor; }, "Annual leaf to root ratio (unitless)", mean, true);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)");
@@ -99,6 +100,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_vm"                  , DAILY, [](const Individual &i) { return i.photosynthesis.vm; }, "RuBisCO capacity (gC/m2/day)", sum, true);
 	add_indiv_output("file_dave_fphen_activity"      , DAILY, [](const Individual &i) { return i.fphen_activity; }, "Dormancy downregulation (0-1)", mean, false, true);
 	add_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
+	add_indiv_output("file_dave_ltor"            	 , DAILY, [](const Individual &i) { return i.ltor; }, "Daily leaf to root ratio (unitless)", mean, true);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, get_fpar_layer, "Daily layered fpar [0-1]");

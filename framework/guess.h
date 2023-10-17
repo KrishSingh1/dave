@@ -2986,6 +2986,8 @@ public:
 	double cgrow_leaf;
 	/// daily root growth rate (kgC/m2/d)
 	double cgrow_root;
+	/// daily sapwood growth rate (kgC/m2/d)
+	double cgrow_sap;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
 	/// daily growth demand [0-1]
@@ -4482,6 +4484,8 @@ public:
 	Historic<double, 5> wscal_5;
 	/// ten day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
+	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 30> wscal_30;
 	/// ten day mean of air temperature. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> airtemp_10;
 	/// running sum (converted to annual mean) for wscal

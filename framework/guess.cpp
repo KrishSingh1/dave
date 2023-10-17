@@ -338,6 +338,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wscal_mean
 		& wscal_5
 		& wscal_10
+		& wscal_30
 		& airtemp_10
 		& anetps_ff_est
 		& anetps_ff_est_initial
@@ -1687,6 +1688,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
+	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
 	phen              = 0.0;
@@ -1856,6 +1858,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow
 		& cgrow_leaf
 		& cgrow_root
+		& cgrow_sap
 		& cgrow_repr
 		& growth_demand
 		& phen

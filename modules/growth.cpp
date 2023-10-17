@@ -2789,13 +2789,16 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 }
 
 void carbon_allocation_grass(Individual& indiv) {
+// input: 
+// output: indiv.cgrow_root,  indiv.cgrow_leaf, indiv.cgrow_repr
+
 		Vegetation& vegetation = indiv.vegetation;
 		Patch& patch = vegetation.patch;
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-	// Leaf nitrogen status (stress): 1 - not stressed; 0 - stressed
+	// Moving average of Leaf nitrogen status (stress): 1 - not stressed; 0 - stressed
 	if (!negligible(indiv.get_cmass_leaf())) {
 		if (!ifnlim || date.year < freenyears) {
 			indiv.nscal_5.add(1.0);
@@ -2839,8 +2842,212 @@ void carbon_allocation_grass(Individual& indiv) {
 	indiv.cgrow_repr = calloc_repr * indiv.cgrow;
 }
 
-void carbon_allocation_tree(Individual& indiv) {
+void ltor_calc(Individual& indiv) {
+	double nscal = 1;
 
+	// Save leaf annual average C:N ratio
+	if (!negligible(indiv.nday_leafon))
+		indiv.cton_leaf_aavr /= indiv.nday_leafon;
+	else
+		indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
+
+	// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
+	double cton_leaf_aopt = max(indiv.cton_leaf(), indiv.pft.cton_leaf_avr);
+
+	if (ifnlim)
+		nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
+
+	// Set leaf:root mass ratio based on water stress parameter
+	// or nitrogen stress scalar
+	indiv.ltor = min(indiv.patchpft().wscal_30.mean(), nscal) * indiv.pft.ltor_max;
+
+	if (indiv.ltor < 1e-10) {
+		fail("ltor close to 0. FIXME");
+	} 
+
+}
+
+// calculate cmass_leaf_inc using the bisection method (see text in allocation() funtion).
+// Also calculates cmass_sap_inc and cmass_root_inc. 
+// 
+double calc_cmass_leaf_inc (Individual& indiv) {
+
+	// leaf C biomass for last time period on individual basis (kgC)
+	double cmass_leaf = indiv.get_cmass_leaf() / indiv.densindiv;
+	// root C biomass for last time period on individual basis (kgC)
+	double cmass_root = indiv.cmass_root / indiv.densindiv;
+	// sapwood C biomass for last time period on individual basis (kgC)
+	double cmass_sap = indiv.cmass_sap / indiv.densindiv;
+	// C debt for last time period on individual basis (kgC)
+	double cmass_debt = indiv.cmass_debt / indiv.densindiv;
+	// heartwood C biomass for last time period on individual basis (kgC)
+	double cmass_heart = indiv.cmass_heart / indiv.densindiv;
+	// individual height (m)
+	double height = indiv.height;
+	// specific leaf area (PFT-specific constant) (m2/kgC)
+	double sla = indiv.sla();
+	// wood density (PFT-specific constant) (kgC/m3)
+	double wooddens = indiv.pft.wooddens;
+	// life form class (TREE or GRASS)
+	lifeformtype lifeform = indiv.pft.lifeform;
+	// ratio of leaf area to sapwood cross-sectional area (PFT-specific constant)          
+	double k_latosa = indiv.pft.k_latosa;
+	// constant in allometry equations
+	double k_allom2 = indiv.pft.k_allom2;
+	// constant in allometry equations
+	double k_allom3 = indiv.pft.k_allom3;
+
+
+	const int NSEG=20; // number of segments (parameter in numerical methods)
+	const int JMAX=40; // maximum number of iterations (in numerical methods)
+	const double XACC=0.0001; // threshold x-axis precision of allocation solution
+	const double YACC=1.0e-10; // threshold y-axis precision of allocation solution
+	const double CDEBT_MAXLOAN_DEFICIT=0.8; // maximum loan as a fraction of deficit
+	const double CDEBT_MAXLOAN_MASS=0.2; // maximum loan as a fraction of (sapwood-cdebt)
+
+	double cmass_leaf_inc_min = 0;
+	double cmass_root_inc_min = 0;
+	double xmid,fx1,fmid,rtbis,sign;
+	int j;
+	double cmass_deficit,cmass_loan;
+
+	// initialise
+	double litter_leaf_inc = 0.0;
+	double litter_root_inc = 0.0;
+	double exceeds_cmass   = 0.0;
+	double cmass_leaf_inc  = 0.0;
+	double cmass_root_inc  = 0.0;
+	double cmass_sap_inc   = 0.0;
+	double cmass_heart_inc = 0.0;
+	double cmass_debt_inc = 0.0;
+
+	// Calculate minimum leaf and root increment to maintain current sapwood biomass
+	// Given Eqn (2) and (3)
+	if (height > 0.0) {
+		cmass_leaf_inc_min = k_latosa * cmass_sap / (wooddens * height * sla) - cmass_leaf;
+		cmass_root_inc_min = k_latosa * cmass_sap / (wooddens * height * sla * indiv.ltor) - cmass_root;
+	}
+
+
+	if (cmass_root_inc_min < 0.0) { 
+		// some roots would have to be killed
+		cmass_leaf_inc_min = cmass_root * indiv.ltor - cmass_leaf;
+		cmass_root_inc_min = 0.0;
+	}
+
+	// Normal allocation (positive increment to all living C compartments)
+
+	// Calculation of leaf mass increment (lminc_ind) satisfying Eqn (13)
+	// using bisection method (Press et al 1986)
+
+	// Set values for global variables for reuse by function f
+
+	k1 = pow(k_allom2, 2.0 / k_allom3) * 4.0 / PI / wooddens;
+	k2 = 1.0 + 2 / k_allom3;
+	k3 = k_latosa / wooddens / sla;
+	b = cmass_sap + indiv.cgrow - cmass_leaf / indiv.ltor + cmass_root;
+	ltor_g = indiv.ltor;
+	cmass_leaf_g = cmass_leaf;
+	cmass_heart_g = cmass_heart;
+
+	double x1 = 0.0;
+	double x2 = (indiv.cgrow - (cmass_leaf / indiv.ltor - cmass_root)); // removed this:  / (1.0 + 1.0 / indiv.ltor)
+	double dx = (x2 - x1) / (double)NSEG;
+
+	if (cmass_leaf < 1.0e-10) {
+		// to avoid division by zero
+		x1 += dx; 
+	}
+
+	// Evaluate f(x1), i.e. Eqn (13) at cmass_leaf_inc = x1
+	fx1 = f(x1);
+
+	// Find approximate location of leftmost root on the interval
+	// (x1,x2).  Subdivide (x1,x2) into nseg equal segments seeking
+	// change in sign of f(xmid) relative to f(x1).
+	// fmid = f(x1); // <-- commented out by ASSAF. not neccesary
+	fmid = fx1;
+	xmid = x1;
+
+	while (fmid * fx1 > 0.0 && xmid < x2) {
+
+		xmid += dx;
+		fmid = f(xmid);
+	}
+
+	x1 = xmid - dx;
+	x2 = xmid;
+
+	// Apply bisection to find root on new interval (x1,x2)
+
+	if (f(x1) >= 0.0) sign = -1.0;
+	else sign = 1.0;
+
+	rtbis = x1;
+	dx = x2 - x1;
+
+	// Bisection loop
+	// Search iterates on value of xmid until xmid lies within
+	// xacc of the root, i.e. until |xmid-x|<xacc where f(x)=0
+	fmid = 1.0; // dummy value to guarantee entry into loop
+	j = 0; // number of iterations so far
+	while (dx >= XACC && fabs(fmid) > YACC && j <= JMAX) {
+
+		dx *= 0.5;
+		xmid = rtbis + dx;
+
+		fmid = f(xmid);
+
+		if (fmid * sign <= 0.0) rtbis = xmid;
+		j++;
+	}
+
+	// Now rtbis contains numerical solution for cmass_leaf_inc given Eqn (13)
+	cmass_leaf_inc = rtbis;
+
+	return cmass_leaf_inc;
+
+}
+
+
+// trying to convert the old allocation() function to operate daily.
+void carbon_allocation_tree(Individual& indiv) {
+// // input: indiv.cgrow
+// output: indiv.cgrow_root,  indiv.cgrow_leaf, 
+//         indiv.cgrow_repr, indiv.cgrow_sap
+
+	// calculating TREE ltor
+	ltor_calc(indiv);
+
+	double cmass_leaf_inc = calc_cmass_leaf_inc(indiv);
+
+	// TODO: add age-dependent allocation to seeds
+	double cmass_repr_inc = 0.1 * indiv.cgrow;
+
+	// Calculate increments in other compartments
+	double cmass_root_inc = (cmass_leaf_inc + indiv.get_cmass_leaf()) / indiv.ltor - indiv.cmass_root; // Eqn (3)
+	double cmass_sap_inc = indiv.cgrow - cmass_leaf_inc - cmass_root_inc; // Eqn (1)
+	// NEW (ASSAF). the cmass values are a demand.
+	cmass_sap_inc = max(cmass_sap_inc, 0.0);
+
+	// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
+	if ((cmass_root_inc > 50 || cmass_root_inc < -50) && indiv.ltor < 0.0001) {
+		fail("ASSAF if ((cmass_root_inc > 50 || cmass_root_inc < -50) && indiv.ltor < 0.0001)");
+		// cmass_leaf_inc = 0.0;
+		// cmass_root_inc = indiv.cgrow;
+		// cmass_sap_inc = -cmass_sap;
+		// cmass_heart_inc = -cmass_sap_inc;
+	}
+
+	// total carbon to be allocated
+	double cmass_total_inc = cmass_repr_inc + cmass_sap_inc + cmass_leaf_inc + cmass_root_inc;
+
+	// C fraction for each pool (kgC/m^2/day)
+	indiv.cgrow_leaf = (cmass_leaf_inc / cmass_total_inc) * indiv.cgrow;
+	indiv.cgrow_root = (cmass_root_inc / cmass_total_inc) * indiv.cgrow;
+	indiv.cgrow_sap = (cmass_sap_inc / cmass_total_inc) * indiv.cgrow;
+	indiv.cgrow_repr = (cmass_repr_inc / cmass_total_inc) * indiv.cgrow;
+	
 }
 
 // Determine C allocation fractions to roots, leaves, and reproductive tissue in grasses.

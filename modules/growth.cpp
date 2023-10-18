@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.4;
+const double frac_culm = 0.;
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
@@ -261,31 +261,22 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double tscal_crit = temp_growth(temp_dormancy);
 			double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
-			double wscal_actual = max(pft.wscal_min, wscal_growth(wscal_mean));
-			double tscal_actual = max(tscal_crit, temp_growth(ppft.airtemp_10.mean()));
+			double wscal_actual = wscal_growth(wscal_mean);
+			double tscal_actual = temp_growth(ppft.airtemp_10.mean());
 
 			// Changes in physiological activity due to changes in dormancy status
-			double tscal = (tscal_actual - tscal_crit) / (1.0 - tscal_crit);
-			double wscal = (wscal_actual - pft.wscal_min) / (1.0 - pft.wscal_min);
-			assert(tscal >= 0);
-			assert(wscal >= 0);
+			double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
+			double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
+
+			double tscal = (tscal_actual - tscal_crit) / denom_tscal;
+			double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
+			
+			assert(tscal >= -1.0 && tscal <= 1.0);
+			assert(wscal >= -1.0 && wscal <= 1.0);
 
 			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
-
-			// Determine if grasses enter dormancy
-			//if ( (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min) || 
-			//	 (ppft.airtemp_10.size() > 0 && ppft.airtemp_10.mean() < temp_dormancy) ) { 
-				
-			//	// physiological downregulation factor due to dormancy (fphen_activity_min = full dormancy, 1 = no dormancy)
-			//	indiv.fphen_activity = max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity));
-			//}
-			//else {
-
-				// gradually release dormancy if conditions allow
-			//	indiv.fphen_activity = min(1.0,indiv.fphen_activity * (1.0 + dphen_activity));
-			//}	
 
 		} 
 		else {

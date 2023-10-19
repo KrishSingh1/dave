@@ -527,10 +527,12 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// inundated area spans the grid cell
 	if (soiltype.slope_sigma > 1.0e-6) {
 		double d = 0.0;
+
+		//ERRRRROOOOOORRRRRRRR not same as standard equation // DW_COMMENT
 		for (int i = 0; i < 4; i++) {
 			double fd = 0.5 * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) - soiltype.wmass_stand_frac_thresh;
 			double dfdd = exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2))) / (soiltype.slope_sigma * sqrt(2.0 * PI));
-			d = d - fd / dfdd;
+			d -= fd / dfdd;
 		}
 		soiltype.wmass_stand_thresh = 0.5 * d * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) +
 			soiltype.slope_sigma / sqrt(2.0 * PI) * exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2)));
@@ -619,7 +621,7 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 
 	soiltype.awc_min = data[soilcode][1];
 	soiltype.wp_min = data[soilcode][5];
-	soiltype.wsats_min =  data[soilcode][6];
+	soiltype.wsats_min = data[soilcode][6];
 
 	// Store the soilcode and new soil properties
 	soiltype.soilcode = soilcode;

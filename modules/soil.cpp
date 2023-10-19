@@ -1373,6 +1373,34 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	k_soilfast_mean = 0.0;
 	k_soilslow_mean = 0.0;
 
+	// CENTURY SOM pools
+	for (int p = 0; p < NSOMPOOL; p++) {
+		sompool[p].cmass = 0.0;
+		sompool[p].nmass = 0.0;
+		sompool[p].ligcfrac = 0.0;
+		sompool[p].delta_cmass = 0.0;
+		sompool[p].delta_nmass = 0.0;
+		sompool[p].fracremain = 0.0;
+		sompool[p].litterme = 0.0;
+		sompool[p].fireresist = 0.0;
+		sompool[p].ntoc = 0.0;
+		sompool[p].cdec = 0.0;
+		sompool[p].cinc = 0.0;
+		sompool[p].ndec = 0.0;
+		sompool[p].ninc = 0.0;
+		sompool[p].respsum = 0.0;
+		sompool[p].respsum_surf = 0.0;
+		sompool[p].cmass_init = 0.0;
+		sompool[p].multi = 0.0;
+		sompool[p].sign_trend = 0.0;
+		sompool[p].same_trend = 0.0;
+		sompool[p].changed_trend = 0.0;
+
+		for (int m = 0; m < 12; m++) {
+			sompool[p].mfracremain_mean[m] = 0.0;
+		}
+	}
+
 	// Initial CENTURY pool N:C ratios
 	// Parton et al 1993, Fig 4
 
@@ -3364,35 +3392,41 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	wflux_surf -= wflux_stand_evap;
 	wflux_soil_in -= wflux_soil_evap;
 
-	// Determine maximum infiltration rate
+	// Determine the maximum infiltration rate
 
 	// Maximum infiltration capacity (mm) (Eqn 2; Wood et al. 1992)
 	wmass_infil_max = (1.0 + b_infilt) * wsats_infilt;
 
-	// Average soil moisture in infiltation layers (mm) (Eqn 1; Wood et al. 1992)
+	// Average soil moisture in infiltration layers (mm) (Eqn 1; Wood et al. 1992)
 	wmass_infil = wmass_infil_max * (1.0 - pow(1.0 - fsat, 1.0 / b_infilt));
 
-	// More water than maximum can infiltrate (eqn 3a; Wood et al. 1992)
-	if (wmass_infil + wflux_soil_in * dtsub > wmass_infil_max) {
-		wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt)) / dtsub;
+	// No water to infiltrate
+	if (wflux_soil_in == 0.0) {
+		wflux_infilt_max = 0.0;
 	}
 	else {
-		// Less water than maximum can infiltrate (eqn 3b; Wood et al. 1992)
-		double basis = 1.0 - (wmass_infil + wflux_soil_in * dtsub) / wsats_infilt;
-		wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt) +
-			wsats_infilt * pow(basis, 1.0 + b_infilt)) / dtsub;
+		if (wmass_infil + wflux_soil_in * dtsub > wmass_infil_max) {
+			// More water than maximum can infiltrate (eqn 3a; Wood et al. 1992)
+			wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt)) / dtsub;
+		}
+		else {
+			// Less water than maximum can infiltrate (eqn 3b; Wood et al. 1992)
+			double basis = 1.0 - (wmass_infil + wflux_soil_in * dtsub) / wsats_infilt;
+			wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt) +
+				wsats_infilt * pow(basis, 1.0 + b_infilt)) / dtsub;
+		}
+		wflux_runoff_tmp = min(wflux_soil_in, wflux_runoff_tmp);
+
+		// Maximum soil infiltration capacity (mm s-1)
+		wflux_infilt_max = (1.0 - fsat) * imp_ice * (wflux_soil_in - wflux_runoff_tmp);
+
+		// Excess water that can't infiltrate (mm s-1)
+		wflux_soil_in_excess = max(wflux_soil_in - (1.0 - wmass_stand_frac) * wflux_infilt_max, 0.0);
+
+		// Soil infiltration and surface water run-on
+		wflux_surf += wflux_soil_in_excess;
+		wflux_soil_in -= wflux_soil_in_excess;
 	}
-	wflux_runoff_tmp = min(wflux_soil_in, wflux_runoff_tmp);
-
-	// Maximum soil infiltration capacity (mm s-1)
-	wflux_infilt_max = (1.0 - fsat) * imp_ice * (wflux_soil_in - wflux_runoff_tmp);
-
-	// Excess water that can't infiltrate (mm s-1)
-	wflux_soil_in_excess = max(wflux_soil_in - (1.0 - wmass_stand_frac) * wflux_infilt_max, 0.0);
-
-	// Soil infiltration and surface water run-on
-	wflux_surf += wflux_soil_in_excess;
-	wflux_soil_in -= wflux_soil_in_excess;
 
 	// Temporary storage prior to calculating bottom drainage from surface water
 	double wmass_stand_tmp = wmass_stand + wflux_surf * dtsub;
@@ -3724,7 +3758,7 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 
 		// D-
 		if (lyr == 0) {
-			dminus = di[lyr];
+			dminus = di[lyr]; // DW_COMMENT
 		}
 		else {
 			dminus = ((ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1])) / ci[lyr];
@@ -5562,7 +5596,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 				soillayers[lyr - 1].wmass += wmass_excess;
 			}
 			else {
-				soillayer.runoff_drain += wmass_excess;
+				wmass_stand += wmass_excess;
 			}
 			soillayer.wmass -= wmass_excess;
 		}
@@ -5573,8 +5607,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 		Soillayer& soillayer = soillayers[lyr];
 
-		if (soillayer.wmass + soillayer.imass > soillayer.fc()) {
-			double wmass_excees = soillayer.wmass + soillayer.imass - soillayer.fc();
+		if (soillayer.wmass + soillayer.imass > 0.9 * soillayer.wsats) {
+			double wmass_excees = soillayer.wmass + soillayer.imass - 0.9 * soillayer.wsats;
 			if (wmass_excees > soillayer.wmass) {
 				wmass_excees = soillayer.wmass;
 			}

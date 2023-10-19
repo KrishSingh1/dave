@@ -577,7 +577,7 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
 	double graminoid_dphen = 0.0;
 	double graminoid_anpp_red = 0.0;
 	double root_mass = 0.0;
-	double rootfrac[NSOILLAYERS_MAX];
+	double rootfrac[NSOILLAYERS_MAX] = { 0.0 };
 
 	// Loop through this patch object's vegetation and pick out graminoids
 

@@ -46,6 +46,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_afuel"               , ANNUAL, fuel_columns, "Annual blaze fuel availability (gC/m2)");
 	add_patch_output("file_dave_acoarse_woody_debris", ANNUAL, coarse_woody_debris_columns, "Annual coarse woody debris (gC/m2)");
 	add_patch_output("file_dave_amet_year"           , ANNUAL, met_year_columns, "Current year of met data being used");
+	add_patch_output("file_dave_aminleach"           , ANNUAL, "aminleach", [](const Patch &patch) { return patch.soil.aminleach;         }, "Leaching of soil mineral N (kgN/m2/yr)");
 
 	// Annual per-patch individual-level outputs.
 	add_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);
@@ -80,6 +81,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
 	add_indiv_output("file_dave_sla"                 , DAILY, [](const Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)", mean, false, true);
 	add_indiv_output("file_dave_cmass_leaf"          , DAILY, [](const Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)", sum, true);
+	add_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.cmass_leafs[1]; }, "Leaf brown C mass (kgC/m2)", sum, true);
 	add_indiv_output("file_dave_nmass_leaf"          , DAILY, [](const Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)", sum, true);
 	add_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", mean, false, true);
 	add_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", mean, false, true);

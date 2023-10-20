@@ -274,6 +274,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			assert(tscal >= -1.0 && tscal <= 1.0);
 			assert(wscal >= -1.0 && wscal <= 1.0);
 
+			// TODO: should tscal and wscal interact? Multiplication?
 			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
@@ -3329,7 +3330,7 @@ void turnover_grass(Vegetation& vegetation) {
 		// Assumed daily rates here (fraction d-1)!
 		
 		// crown turnover relative to shoot turnover.
-		double scal_crown_turnover = 0.1;
+		double scal_crown_turnover = 0.3;
 
 		// TODO: turnover rates should be moisture and temperature dependent
 		double frac_turnover_leaf = indiv.pft.turnover_leaf / date.year_length();

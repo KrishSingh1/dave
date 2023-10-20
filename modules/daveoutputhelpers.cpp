@@ -638,4 +638,58 @@ std::vector<ColumnDefinition> met_year_columns() {
 	return columns;
 }
 
+/*
+Sum a quantity across all SOM pools.
+*/
+double sum_sompool(const Patch &patch, double (*read_pool)(const Sompool &pool)) {
+	double total = 0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		total += read_pool(patch.soil.sompool[i]);
+	}
+	return total;
+}
+
+std::vector<ColumnDefinition> sompool_cmass_columns() {
+	std::vector<ColumnDefinition> columns;
+	columns.push_back(ColumnDefinition("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].cmass; }));
+	columns.push_back(ColumnDefinition("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].cmass; }));
+	columns.push_back(ColumnDefinition("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].cmass; }));
+	columns.push_back(ColumnDefinition("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].cmass; }));
+	columns.push_back(ColumnDefinition("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].cmass; }));
+	columns.push_back(ColumnDefinition("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].cmass; }));
+	columns.push_back(ColumnDefinition("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].cmass; }));
+	columns.push_back(ColumnDefinition("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].cmass; }));
+	columns.push_back(ColumnDefinition("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].cmass; }));
+	columns.push_back(ColumnDefinition("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].cmass; }));
+	columns.push_back(ColumnDefinition("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].cmass; }));
+	columns.push_back(ColumnDefinition("total", [](const Patch &p) { return sum_sompool(p, [](const Sompool &pool) { return pool.cmass; }); }));
+	return columns;
+}
+
+std::vector<ColumnDefinition> sompool_nmass_columns() {
+	std::vector<ColumnDefinition> columns;
+	columns.push_back(ColumnDefinition("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].nmass; }));
+	columns.push_back(ColumnDefinition("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].nmass; }));
+	columns.push_back(ColumnDefinition("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].nmass; }));
+	columns.push_back(ColumnDefinition("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].nmass; }));
+	columns.push_back(ColumnDefinition("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].nmass; }));
+	columns.push_back(ColumnDefinition("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].nmass; }));
+	columns.push_back(ColumnDefinition("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].nmass; }));
+	columns.push_back(ColumnDefinition("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].nmass; }));
+	columns.push_back(ColumnDefinition("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].nmass; }));
+	columns.push_back(ColumnDefinition("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].nmass; }));
+	columns.push_back(ColumnDefinition("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].nmass; }));
+	columns.push_back(ColumnDefinition("total", [](const Patch &p) { return sum_sompool(p, [](const Sompool &pool) { return pool.cmass; }); }));
+	return columns;
+}
+
+std::vector<ColumnDefinition> ninput_columns() {
+	std::vector<ColumnDefinition> columns;
+	columns.push_back(ColumnDefinition("dNO3dep", [](const Patch &p) { return get_gridcell(p).dNO3dep; }));
+	columns.push_back(ColumnDefinition("dNH4dep", [](const Patch &p) { return get_gridcell(p).dNH4dep; }));
+	columns.push_back(ColumnDefinition("nfert", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::NFERT, date.day); }));
+	columns.push_back(ColumnDefinition("total", [](const Patch &p) { return get_gridcell(p).dNO3dep + get_gridcell(p).dNH4dep; }));
+	return columns;
+}
+
 } // namespace GuessOutput

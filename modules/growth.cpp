@@ -156,8 +156,8 @@ DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
 }
 
 void DaveMassBalance::IndivState::check_cton(double cton, double cton_min, double cton_max) const {
-	assert(cton > cton_min);
-	assert(cton < cton_max);
+	assert(greater_than_or_equal(cton, cton_min));
+	assert(less_than_or_equal(cton, cton_max));
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
@@ -2821,8 +2821,8 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 	// there's nothing more to do.
 	double cton = cmass / nmass;
 
-	if (cton > cton_max || cton < cton_min) {
-		// Current C:N ratio is outside the allowed C:N ratio. We need to
+	if (cton > cton_max) {
+		// Current C:N ratio is above the maximum C:N ratio. We need to
 		// up- or down-regulate the N demand in order to move towards the
 		// nearest C:N ratio bounds.
 		double target_cton = cton > cton_max ? cton_max : cton_min;
@@ -2838,6 +2838,11 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 		// Calculate the C:N ratio of new growth which will put us at the target
 		// C:N ratio.
 		cton = cgrow / ngrow;
+	} else if (cton < cton_min) {
+		// Current C:N ratio is below the minimum C:N ratio. In this case, we
+		// simply request N at the minimum C:N ratio. This will move us toward
+		// the minimum C:N ratio, though it won't get us all the way there.
+		cton = cton_min;
 	}
 	assert(positive(cton));
 	return cton;

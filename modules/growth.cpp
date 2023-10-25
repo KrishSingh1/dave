@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.;
+const double frac_culm = 0.3;
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
@@ -2832,6 +2832,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 	
 void ndemand(Vegetation& vegetation) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
+	const double max_update_growth = 0.1;
 
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
@@ -2873,20 +2874,28 @@ void ndemand(Vegetation& vegetation) {
 			ngrow_demand_repr  = 0.0;
 		}
 
-		// N demand of existing biomass (will also be applied to new biomass)
+		// N demand of existing biomass (weight by current activity (growth) of the tissue?)
+		// TODO: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
 		double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
 		double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
-		double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
+		double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_crown) * frac_nchange;
 		double nupdate_demand_repr  = max(0.0, indiv.cmass_repr / indiv.pft.cton_repr_min - indiv.nmass_repr) * frac_nchange;
 
+		// Make sure that nupdate_demands do not exceed N demands for growth (i.e. prioritise growth over existing biomass)
+		// Alternatively, one could ask for the min C:N for new growth and not update existing biomass.
+		double ngrow_demand_growth_total = ngrow_demand_leaf + ngrow_demand_root + ngrow_demand_crown + ngrow_demand_repr;
+		double ngrow_demand_update_total = max(0.0, nupdate_demand_leaf + nupdate_demand_root + nupdate_demand_crown + nupdate_demand_repr);
+		double growth_update_ratio = min(max_update_growth, ngrow_demand_growth_total / ngrow_demand_update_total);
+
 		// Total biomass N demand of individual
-		indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf;
-		indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root;
-		indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown;
-		indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr;
+		indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf * growth_update_ratio;
+		indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root * growth_update_ratio;
+		indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown * growth_update_ratio;
+		indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr * growth_update_ratio;
 		indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand;
 
 		assert(positive(indiv.ndemand));
+
 	}
 }
 
@@ -2907,9 +2916,9 @@ void nuptake(Vegetation& vegetation) {
 		// Calculate whole-plant N:C status 
 		// TODO: revisit this calculation and check where cton_status is used.
 		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_crown) / (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_crown);
-		double ntoc_min = 1.0 / indiv.pft.cton_leaf_min;
+		double ntoc_max = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
-		indiv.cton_status = max(0.0, (ntoc - ntoc_min) / (ntoc_avr - ntoc_min));
+		indiv.cton_status = max(0.0, (ntoc - ntoc_max) / (ntoc_avr - ntoc_max));  // C:N relative to average. Input to nitrogen_uptake_strength()
 		NCompetingIndividual competing_individual;
 		competing_individual.ndemand = indiv.ndemand;
 		competing_individual.fnuptake = 1;

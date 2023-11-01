@@ -3083,6 +3083,8 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
+	/// root projective cover (RPC); used for grasses only
+	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
 	/// layer-wise fpar (see fpar description)
@@ -4755,6 +4757,8 @@ public:
 	int nday_growingseason;
 	/// total patch FPC
 	double fpc_total;
+	/// total patch RPC (root projective cover)
+	double rpc_total;
 	/// whether patch was disturbed last year
 	bool disturbed;
 	/// patch age (years since last disturbance)

@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.3;
+const double frac_culm = 0.4;
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
@@ -1344,6 +1344,7 @@ bool allometry(Individual& indiv) {
 			// Increment deltafpc
 			indiv.deltafpc += fpc_new - indiv.fpc;
 			indiv.fpc = fpc_new;
+			indiv.rpc = indiv.fpc;  // TODO Assaf: decide if rpc is needed for trees. RPC is used in Nuptake function.
 		}
 		else {
 			indiv.lai_indiv = 0.0;
@@ -1373,6 +1374,12 @@ bool allometry(Individual& indiv) {
 				
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+				// Root projective cover (RPC) introduced to capture feedback between 
+				// belowground C investment and available N. The following is equal to 
+				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai * min(10.0,(0.5 * indiv.cmass_root / indiv.cmass_leafs[0])));
+				// TODO: Does this work with competition??
+
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
@@ -2927,7 +2934,7 @@ void nuptake(Vegetation& vegetation) {
 	}
 
 	// Calculate N competition.
-	double nmass_avail = soil.nmass_avail() * min(1.0, patch.fpc_total);
+	double nmass_avail = soil.nmass_avail() * min(1.0, patch.rpc_total);
 	ncompete(competing_individuals, nmass_avail);  // TODO: check if OK/efficient to call ncompete even if ndemand < nsupply. 
 												   // --> if (nmass_avail < patch_total_ndemand) {
 
@@ -3625,17 +3632,16 @@ void growth_daily_grass_dave(Patch& patch) {
 	storage_dynamics(vegetation);
 	mass_balance.check(vegetation);
 
-	// Management
-	// grazing()
-	//grazing_daily(indiv);
-
 	// Allometry (Updates LAI and FPC)
 	grass_allometry(vegetation);
 	mass_balance.check(vegetation);
 
-	// C balance checks
+	// Management
+	// Grazing
+	//grazing_daily(indiv)
 
-	// yearly reporting
+	// yearly reporting. 
+	// TODO: Shouldn't be here. Check if needed at all.
 	annual_accounting(vegetation);
 
 	// Ensure that daily mass balance is closed.

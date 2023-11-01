@@ -3508,6 +3508,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate respiration and NPP on a daily basis
 		npp_dave(patch, climate, vegetation);
 
+		// needed here?
 		leaf_senescence(vegetation);
 
 	}

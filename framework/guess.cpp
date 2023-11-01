@@ -475,6 +475,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& par_grass_mean
 		& nday_growingseason
 		& fpc_total
+		& rpc_total
 		& disturbed
 		& managed
 		& has_been_cut
@@ -1674,6 +1675,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
+	rpc               = 0.0;
 	densindiv         = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
@@ -1857,6 +1859,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& last_turnover_day
 		& fpc
 		& fpc_daily
+		& rpc
 		& fpar
 		& densindiv
 		& cgrow

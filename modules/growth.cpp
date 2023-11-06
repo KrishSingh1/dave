@@ -283,35 +283,31 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
+				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0){
 					indiv.growth_stage = reproductive;
+					indiv.growth_stage_days = 0;
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
+					indiv.growth_stage_days = 0;
 				}
 			} 
 			else if (indiv.growth_stage == reproductive) {
-				if (equal(indiv.fphen_activity, fphen_activity_min)) {
+				if (equal(indiv.fphen_activity, fphen_activity_min) || indiv.growth_stage_days > 280) {
 					
-					indiv.growth_stage = dormant;
+					indiv.growth_stage = indiv.growth_stage_days > 280 ? vegetative : dormant;
+					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
 					if (indiv.cmass_repr > 0.0) {
 						indiv.flush_repr_litter_DAVE();
 					}
 				}
-				if ((indiv.cmass_storage_15.periodictrend(10) < 0.0 && indiv.lai_15.periodictrend(10) > 0.0)) {
-					
-					indiv.growth_stage == vegetative;
-
-					// flush reproductive tissue to seedbank.
-					if (indiv.cmass_repr > 0.0) {
-						indiv.flush_repr_litter_DAVE();
-					}
-				}
-			}		
+			}
+			indiv.growth_stage_days += 1;		
 		} 
 		else {
 			indiv.fphen_activity = 1.0;
@@ -1389,7 +1385,6 @@ bool allometry(Individual& indiv) {
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
-		indiv.lai_15.add(indiv.lai);
 	}
 	else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
@@ -1417,7 +1412,6 @@ bool allometry(Individual& indiv) {
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
-				indiv.lai_15.add(indiv.lai);
 			}
 			else {
 				indiv.lai_indiv = 0.0;
@@ -2599,7 +2593,7 @@ double growth_demand(Individual& indiv) {
 		ftemp_growth = temp_growth(grass_temp);
 		
 		ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
-		ag_cmass = ag_cmass > 0.0 ? ag_cmass : 0.0001; 
+		ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
 		//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
 		fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
 
@@ -3222,6 +3216,10 @@ void senescence(Vegetation& vegetation) {
 
 		// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
 		double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+
+		if (indiv.growth_stage == vegetative && negligible(indiv.fphen_activity - 1.0)){
+			senesc_base = 0.1 * senesc_base;
+		}
 		
 		// Stress factors increase senescence 
 		// Soil moisture
@@ -3240,7 +3238,7 @@ void senescence(Vegetation& vegetation) {
 		double senesc_fdorm = 0;
 		if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 
-			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 2.5;
+			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 5;
 
 		}
 

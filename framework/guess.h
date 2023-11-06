@@ -3036,8 +3036,10 @@ public:
 	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
-	/// growth stage (vegetative=0, reproductive=1)
+	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	double growth_stage;
+	/// number of days in current growth stage
+	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
@@ -3174,8 +3176,6 @@ public:
 	double boleht;
 	/// patch-level lai for this individual or cohort (function fpar)
 	double lai;
-	/// lai saved for the last 15 days
-	Historic<double, 15> lai_15;
 	/// patch-level lai for cohort in current vertical layer (function fpar)
 	double lai_layer;
 	/// individual leaf area index (individual and cohort modes only)

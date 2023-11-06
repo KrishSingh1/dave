@@ -278,7 +278,40 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
+						
+			
+			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
+		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
+				indiv.growth_stage = vegetative;
+			}
+			else if (indiv.growth_stage == vegetative) {
+				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0){
+					indiv.growth_stage = reproductive;
+				}
+				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
+					indiv.growth_stage = dormant;
+				}
+			} 
+			else if (indiv.growth_stage == reproductive) {
+				if (equal(indiv.fphen_activity, fphen_activity_min)) {
+					
+					indiv.growth_stage = dormant;
+					
+					// flush reproductive tissue to seedbank.
+					if (indiv.cmass_repr > 0.0) {
+						indiv.flush_repr_litter_DAVE();
+					}
+				}
+				if ((indiv.cmass_storage_15.periodictrend(10) < 0.0 && indiv.lai_15.periodictrend(10) > 0.0)) {
+					
+					indiv.growth_stage == vegetative;
 
+					// flush reproductive tissue to seedbank.
+					if (indiv.cmass_repr > 0.0) {
+						indiv.flush_repr_litter_DAVE();
+					}
+				}
+			}		
 		} 
 		else {
 			indiv.fphen_activity = 1.0;
@@ -1356,6 +1389,7 @@ bool allometry(Individual& indiv) {
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
+		indiv.lai_15.add(indiv.lai);
 	}
 	else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
@@ -1383,6 +1417,7 @@ bool allometry(Individual& indiv) {
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
+				indiv.lai_15.add(indiv.lai);
 			}
 			else {
 				indiv.lai_indiv = 0.0;
@@ -2747,9 +2782,8 @@ void carbon_allocation_grass(Vegetation& vegetation) {
 
 		if (!negligible(indiv.cgrow)) {
 			// 1) Reproduction
-			// Some of the NPP goes to reproduction if there is a positive trend in C storage
-			// or if storage is full.
-			if ((indiv.cmass_storage_10.size() > 5 && indiv.cmass_storage_10.trend() > 0.0) || indiv.cmass_storage > 0.95 * indiv.cstorage_max){
+			// Some of the NPP goes to reproduction if the plant is in the reproductive growth stage
+			if (indiv.growth_stage == reproductive) {
 				calloc_repr = indiv.pft.reprfrac;
 			} else {
 				calloc_repr = 0.0;
@@ -3123,10 +3157,6 @@ void update_pools(Vegetation& vegetation) {
 		// have already been reduced by nreturn. The only reason we have an
 		// nreturn variable is for the mass balance checks.
 
-		// save cmass_storage over the past 10 days
-		indiv.cmass_storage_10.add(indiv.cmass_storage);
-
-
 		indiv.cmass_leafs[green] += indiv.cgrow_leaf;
 		indiv.cmass_root  += indiv.cgrow_root;
 		indiv.cmass_crown += indiv.cgrow_crown;
@@ -3435,14 +3465,6 @@ void turnover_grass(Vegetation& vegetation) {
 
 			assert(equal(nturnover_root, nstore + ntolitter));
 		}
-
-		// At the beginning of dormancy, move repr N and C (seeds) to litter
-		if (equal(indiv.fphen_activity, fphen_activity_min) || indiv.cmass_repr > (0.5 * indiv.get_cmass_leaf())) {
-			if (indiv.cmass_repr > 0.0) {
-				indiv.flush_repr_litter_DAVE();
-				// TODO: flush seeds even if grasses don't go dormant (do that for perennials at the same time annuals die (?))
-			}
-		}
 	}
 
 	turnover_seed(vegetation);
@@ -3494,8 +3516,11 @@ void storage_dynamics(Vegetation& vegetation) {
 		if (!indiv.pft.is_grass()) {
 			continue;
 		}
-	
-		// Handle excessive C 
+
+		// keep track of changes in C storage.
+		indiv.cmass_storage_15.add(indiv.cmass_storage);
+
+		// Handle excessive C. 
 		if (indiv.cexcess > 0.0){
 			cstorage_overflow(indiv);
 		}

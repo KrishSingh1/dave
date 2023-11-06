@@ -1694,6 +1694,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_crown       = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
+	growth_stage      = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
@@ -1867,6 +1868,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow_root
 		& cgrow_repr
 		& growth_demand
+		& growth_stage
 		& phen
 		& aphen
 		& aphen_raingreen
@@ -1879,7 +1881,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
-		& cmass_storage_10
+		& cmass_storage_15
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max

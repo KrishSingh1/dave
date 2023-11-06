@@ -3036,6 +3036,8 @@ public:
 	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
+	/// growth stage (vegetative=0, reproductive=1)
+	double growth_stage;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
@@ -3135,8 +3137,8 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 10-day record of carbon storage pool (kgC/m2)
-	Historic<double, 10> cmass_storage_10;
+	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
+	Historic<double, 15> cmass_storage_15;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3172,6 +3174,8 @@ public:
 	double boleht;
 	/// patch-level lai for this individual or cohort (function fpar)
 	double lai;
+	/// lai saved for the last 15 days
+	Historic<double, 15> lai_15;
 	/// patch-level lai for cohort in current vertical layer (function fpar)
 	double lai_layer;
 	/// individual leaf area index (individual and cohort modes only)

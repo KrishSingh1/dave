@@ -193,6 +193,11 @@ inline double divide(double x, double y) {
 	return x / y;
 }
 
+/// Calculates modulus
+inline size_t modulo(int a, int b) {
+	return ((a % b) + b) % b;
+}
+
 /// Calculates variation coefficient of values in an array
 inline double variation_coefficient(double* data, int n) {
 	// 0 and 1 will give division with zero.
@@ -368,6 +373,27 @@ public:
 
 		return result;
 	}
+
+	/// Periodic sum of differences 
+    T periodictrend(size_t nsteps) const {
+        size_t current_size = size();
+        if (current_size == 0) {
+            return 0;
+        }
+ 
+        nsteps = std::min(nsteps, current_size - 1);
+ 
+        T trend = 0.0;
+        for (size_t n = 0; n < nsteps; n++) {
+            size_t index = modulo(current_index - (n + 1), current_size);
+            size_t index_prior = modulo(current_index - (n + 2), current_size);
+            // todo: use modulus here (much faster but need to test it first)
+            T current = values[index];
+            T previous = values[index_prior];
+            trend += (current - previous);
+        }
+        return trend;
+    }
 
 	/// Trend/Slope of a linear regression of values
 	T trend() const {

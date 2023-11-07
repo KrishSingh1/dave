@@ -244,6 +244,10 @@ inline void regress(double* x, double* y, int n, double& a, double& b) {
 	b = ((double)n*sxy-sx*sy)/delta;
 }
 
+inline size_t modulo(int a, int b) {
+    return ((a % b) + b) % b;
+}
+
 // Forward declarations needed for the friendship between Historic and operator&
 
 template<typename T, size_t capacity>
@@ -354,6 +358,26 @@ public:
 		}
 	}
 
+    T periodictrend(size_t nsteps) const {
+        size_t current_size = size();
+        if (current_size == 0) {
+            return 0;
+        }
+ 
+        nsteps = std::min(nsteps, current_size - 1);
+ 
+        T trend = 0.0;
+        for (size_t n = 0; n < nsteps; n++) {
+            size_t index = modulo(current_index - (n + 1), current_size);
+            size_t index_prior = modulo(current_index - (n + 2), current_size);
+            // todo: use modulus here (much faster but need to test it first)
+            T current = values[index];
+            T previous = values[index_prior];
+            trend += (current - previous);
+        }
+        return trend;
+    }
+ 
 	/// Sum of stored values for a period from current position and backwards nsteps
 	T periodicsum(const size_t nsteps) const {
 		T result = 0.0;

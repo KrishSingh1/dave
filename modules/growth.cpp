@@ -103,7 +103,7 @@ private:
 		double n_start;
 		double c_start;
 		int id;
-		void check_cton(double cton, double cton_min, double cton_max) const;
+		void check_cton(double cmass, double nmass, double cton_min, double cton_max) const;
 	};
 	std::vector<const IndivState*> indivs;
 	void clear_indivs();
@@ -156,7 +156,11 @@ DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
 	id = indiv.id;
 }
 
-void DaveMassBalance::IndivState::check_cton(double cton, double cton_min, double cton_max) const {
+void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double cton_min, double cton_max) const {
+	if (is_zero(cmass) || is_zero(nmass)) {
+		return;
+	}
+	double cton = cmass / nmass;
 	assert(cton > cton_min);
 	assert(cton < cton_max);
 }
@@ -170,15 +174,11 @@ void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 	double n_end = get_nmass(indiv);
 	assert(equal(n_end, n_start + n_flux));
 
-	double cton_leaf = indiv.get_cmass_leaf() / indiv.get_nmass_leaf();
-	check_cton(cton_leaf, indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max);
-
-	double cton_root = indiv.cmass_root / indiv.nmass_root;
-	check_cton(cton_root, indiv.pft.cton_root_min, indiv.pft.cton_root_max);
+	check_cton(indiv.get_cmass_leaf(), indiv.get_nmass_leaf(), indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max);
+	check_cton(indiv.cmass_root, indiv.nmass_root, indiv.pft.cton_root_min, indiv.pft.cton_root_max);
 
 	if (!indiv.pft.is_grass()) {
-		double cton_sap = indiv.cmass_sap / indiv.nmass_sap;
-		check_cton(cton_sap, indiv.pft.cton_sap_min, indiv.pft.cton_sap_max);
+		check_cton(indiv.cmass_sap, indiv.nmass_sap, indiv.pft.cton_sap_min, indiv.pft.cton_sap_max);
 	}
 }
 
@@ -1177,6 +1177,10 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.nmass_crown += 0.0;
 
 			assert(equal(nmass_init, nmass_leaf + nmass_root + nmass_storage));
+
+			// Capacity of C and N storage
+			indiv.cstorage_max = cstorage_capacity(indiv);
+			indiv.nstorage_max = nstorage_capacity(indiv);
 
 		} else {
 			indiv.cmass_storage += cmass_init;
@@ -2669,22 +2673,19 @@ void storage_growth_partitioning(Vegetation& vegetation) {
 		double cstorage_res = 0.0;
 		double Gpot = 0.0;
 
-		// Capacity of C and N storage
-		indiv.cstorage_max = cstorage_capacity(indiv);
-		indiv.nstorage_max = nstorage_capacity(indiv);
-
-		// C storage not available for growth
+		// C storage not available for growth.
 		cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
 		// Potential growth rate
 		Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
-		// Determine growth demand based on growth stage
+		// Determine growth demand based on growth stage.
 		indiv.growth_demand = growth_demand(indiv);
 
-		// Set indiv.cgrow and indiv.cexcess to 0
+		// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
 		indiv.cgrow = 0.0;
 		indiv.cexcess = 0.0;
+		indiv.nexcess = 0.0;
 		indiv.nmass_missing = 0.0;
 
 		if (indiv.dnpp >= 0.0) {
@@ -3194,11 +3195,14 @@ void update_pools(Vegetation& vegetation) {
 void senescence(Vegetation& vegetation) {
 	
 	// Parameters
-	const double crelocfrac_c3 = 0.1;  // TODO: move to constants?
-	const double crelocfrac_c4 = 0.05; 
+	const double crelocfrac = 0.1;  // TODO: move to constants?
 	const double nrelocfrac = 0.5;
+	const double fsenesc_veg = 0.1;         // Factor controling baseline senscence rate in the reproductive phase
+	const double fsenesc_repr = 0.1;         // Factor controling baseline senscence rate in the reproductive phase
 	//const double k = 10.0;            // Shape parameter in senescence function (steepness)
 	const double qwater_senesc = 0.5;
+	// TODO: lower retranslocation for annuals in the reproductive phase?
+	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -3217,11 +3221,24 @@ void senescence(Vegetation& vegetation) {
 		// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
 		double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
 
-		if (indiv.growth_stage == vegetative && negligible(indiv.fphen_activity - 1.0)){
-			senesc_base = 0.1 * senesc_base;
+		if (indiv.growth_stage == vegetative){
+			
+			// low rate of senescence in the vegetative phase
+			senesc_base = fsenesc_veg * senesc_base;
+
+		} else if (indiv.growth_stage == reproductive) {
+
+			// in the reproductive phase, senescence is proportional to fraction of C already invested in reproduction.
+			senesc_base = fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[0] + indiv.cmass_root);
+
+			// in the reproductive phase also re-invest C and N storage to reproductive pools
+			// TODO: do that here or somewhere else?
+			//double nstore = senesc_base * indiv.nmass_storage;
+			//double cstore = nstore * pft.cton_repr_min;
+			//indiv.cmass_storage 
 		}
 		
-		// Stress factors increase senescence 
+		// Stress factors increase senescence
 		// Soil moisture
 		double senesc_fwater = senesc_base * pow((1 - ppft.wscal),qwater_senesc) * 2.0;
 		
@@ -3238,12 +3255,12 @@ void senescence(Vegetation& vegetation) {
 		double senesc_fdorm = 0;
 		if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 
-			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 5;
+			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 5.0;
 
 		}
 
 		// Total senescence rate
-		double senesc = senesc_base + senesc_fwater + senesc_ftemp + senesc_fdorm;
+		double senesc = min(1.0, senesc_base + senesc_fwater + senesc_ftemp + senesc_fdorm);
 
 		// Total senescence rate
 		//senesc = senesc_max / (1 + exp( -k * (min(1.0,indiv.growth_stage - growth_stage0)) ));
@@ -3251,44 +3268,64 @@ void senescence(Vegetation& vegetation) {
 		// Retranslocation and pool updates
 		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 		// TODO: calculate retranslocation coefficients based on current C:N ratios?
-
+		if (date.year > 1 && date.day == 24) {
+			printf("stop");
+		}
 
 		// TODO: move fractions to parameters??
-		double crelocfrac = indiv.pft.pathway == C3 ? crelocfrac_c3 : crelocfrac_c4;
 
 		// Carbon
 		double csenesc  = indiv.cmass_leafs[green] * senesc;
 		double cstore   = csenesc * crelocfrac;
 		double ctobrown = csenesc * (1.0 - crelocfrac);
 
-		// If C storage pool overflows, re-adjust cstore and ctobrown
-		if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
-			cstore = indiv.cstorage_max - indiv.cmass_storage;
-			ctobrown = csenesc - cstore;
-		}
+		indiv.cmass_leafs[green] -= csenesc;   // C to green leaf pool
+		
+		if (pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+			indiv.cmass_repr += cstore;            // C to reproduction
+			indiv.cmass_leafs[brown] += ctobrown;  // C to brown leaf pool
+		} else {
 
-		indiv.cmass_leafs[green] -= csenesc;   // green leaf pool
-		indiv.cmass_leafs[brown] += ctobrown;  // brown leaf pool
-		indiv.cmass_storage  += cstore;    // C storage
+			// If C storage pool overflows, re-adjust cstore and ctobrown
+			if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
+				cstore = indiv.cstorage_max - indiv.cmass_storage;
+				ctobrown = csenesc - cstore;
+			}
+			
+			indiv.cmass_storage += cstore;         // C to storage
+			indiv.cmass_leafs[brown] += ctobrown;  // C to brown leaf pool
+
+		}
+		
+		
+			
 
 		// Nitrogen
 		double nsenesc  = indiv.nmass_leafs[green] * senesc;
 		double nstore   = nsenesc * nrelocfrac;
 		double ntobrown = nsenesc * (1.0 - nrelocfrac);
 
-		// If N storage pool overflows, re-adjust nstore and ntobrown
-		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-			nstore = indiv.nstorage_max - indiv.nmass_storage;
-			ntobrown = nsenesc - nstore;
-		}
+		indiv.nmass_leafs[green] -= nsenesc;   // N to green leaf pool
+		
+		if (pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+			indiv.nmass_repr += nstore;            // N to reproduction
+			indiv.nmass_leafs[brown] += ntobrown;  // N to brown leaf pool
+		} else {
+			
+			// If N storage pool overflows, re-adjust nstore and ntobrown
+			if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
+				nstore = indiv.nstorage_max - indiv.nmass_storage;
+				ntobrown = nsenesc - nstore;
+			}
+
+			indiv.nmass_storage += nstore;  // N to storage
+			indiv.nmass_leafs[brown] += ntobrown;  // N to brown leaf pool
 
 		// TODO: make sure N:C ratio in storage does not fall outside its ranges
 		//       understand what the N:C in storage looks like (values). How flexible is N:C in storage?
 		//		 sufficient to only account for Nstorage_max as done here?
 
-		indiv.nmass_leafs[green] -= nsenesc;   // green leaf pool
-		indiv.nmass_leafs[brown] += ntobrown;  // brown leaf pool
-		indiv.nmass_storage  += nstore;        // N storage
+		}
 
 		assert(positive(indiv.cmass_leafs[green]));
 		assert(positive(indiv.nmass_leafs[green]));
@@ -3463,28 +3500,75 @@ void turnover_grass(Vegetation& vegetation) {
 
 			assert(equal(nturnover_root, nstore + ntolitter));
 		}
+
 	}
 
 	turnover_seed(vegetation);
+
 }
 
 
 // Determine what to do with excess C when storage exceeds its capacity.
-void cstorage_overflow(Individual& indiv) {
+void storage_overflow(Individual& indiv) {
 
-	// TODO: decide what to do with excess C.
-	// Option 1: respire
-	indiv.report_flux(Fluxes::RA, indiv.cexcess);
+	Pft& pft = indiv.pft;
+	Patchpft& ppft = indiv.patchpft();
 
-	// Option 2; root exudates
-	// TODO: yet to be implemented
+	if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
+		// TODO: check if we need to keep track of indiv.cexcess or if we could just
+		//       check overflow at the end of the day. 
 
-	// Option 3?
+		double crepro = 0.0;
+		double nrepro = 0.0;
 
-	// Reset cexcess to 0.0
-	// Now done at the beginning of the day in storage_growth_partitioning() so that mass balance checks work.
-	// indiv.cexcess = 0.0;
+		if (indiv.nexcess > 0) {
+			crepro = indiv.nexcess * pft.cton_repr_min;
+			nrepro = indiv.nexcess;
+		}
 
+		if (indiv.cexcess > 0) {
+			crepro = max(crepro, indiv.cexcess);
+			nrepro = max(nrepro, crepro / pft.cton_repr_max);
+		}
+
+		double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
+		if (crepro > ((indiv.cmass_storage - cstorage_res) + indiv.cexcess)) {
+			crepro = (indiv.cmass_storage - cstorage_res);
+			nrepro = crepro / pft.cton_repr_min;
+		}
+
+		if (nrepro > (indiv.nmass_storage + indiv.nexcess)) {
+			nrepro = indiv.nmass_storage;
+			crepro = nrepro * pft.cton_repr_min;
+		}
+
+		indiv.cmass_repr += crepro;
+		indiv.nmass_repr += nrepro;
+		indiv.cexcess -= crepro;
+		indiv.nexcess -= nrepro;
+
+	}
+
+	if (indiv.cexcess > 0.0) {
+		// TODO: decide what to do with excess C if you are not in the reproductive phase
+		// Option 1: respire
+		indiv.report_flux(Fluxes::RA, indiv.cexcess);
+
+		// Option 2; root exudates
+		// TODO: yet to be implemented
+
+		// Option 3?
+
+		// Reset cexcess to 0.0
+		// Now done at the beginning of the day in storage_growth_partitioning() so that mass balance checks work.
+		// indiv.cexcess = 0.0;
+	}
+
+	if (indiv.nexcess > 0.0) {
+		// flush to litter
+		indiv.nmass_litter_root += indiv.nexcess;
+		ppft.nmass_litter_root += indiv.nexcess;
+	}
 }
 
 
@@ -3515,16 +3599,28 @@ void storage_dynamics(Vegetation& vegetation) {
 			continue;
 		}
 
-		// keep track of changes in C storage.
-		indiv.cmass_storage_15.add(indiv.cmass_storage);
+		// Update capacity of C and N storage
+		indiv.cstorage_max = cstorage_capacity(indiv);
+		indiv.nstorage_max = nstorage_capacity(indiv);
 
-		// Handle excessive C. 
-		if (indiv.cexcess > 0.0){
-			cstorage_overflow(indiv);
+		if (indiv.cstorage_max < indiv.cmass_storage) {
+			indiv.cexcess += indiv.cmass_storage - indiv.cstorage_max;  // TODO: check if cexcess here comes only from decreasing plant size.
+		}
+		if (indiv.nstorage_max < indiv.nmass_storage) {
+			indiv.nexcess += indiv.nmass_storage - indiv.nstorage_max;
 		}
 
 		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.
 		sink_source_feedback(indiv);
+
+		// Handle excess C and N. 
+		if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0){
+			storage_overflow(indiv);
+		}
+
+		// keep track of changes in C storage.
+		indiv.cmass_storage_15.add(indiv.cmass_storage);
+
 	}
 }
 

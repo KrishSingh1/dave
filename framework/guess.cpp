@@ -1700,6 +1700,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
 	cexcess           = 0.0;
+	nexcess           = 0.0;
 	nmass_missing     = 0.0;
 	deltafpc          = 0.0;
 	lai_ymax					= 0.0;

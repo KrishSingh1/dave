@@ -26,21 +26,21 @@ group "C4G" (
 	harv_eff 0.5
 )
 
-pft "C4G_perennial" (
-
-	C4G
-
-	lifeform "grass_perennial"
-	reprfrac  0.05
-	crownfrac 0.2
-)
-
-
-!pft "C4G_annual" (
+!pft "C4G_perennial" (
 
 !	C4G
-	
-!	lifeform "grass_annual"
-!	reprfrac  0.10
-!	crownfrac 0.01
+
+!	lifeform "grass_perennial"
+!	reprfrac  0.05
+!	crownfrac 0.2
 !)
+
+
+pft "C4G_annual" (
+
+	C4G
+	
+	lifeform "grass_annual"
+	reprfrac  0.20
+	crownfrac 0.01
+)

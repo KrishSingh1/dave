@@ -3042,6 +3042,8 @@ public:
 	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
+	/// N exceeding storage capacity (kgN/m2/d)
+	double nexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
 	double ps_sink_lim;
 	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).

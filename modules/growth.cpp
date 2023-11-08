@@ -176,6 +176,7 @@ void DaveMassBalance::IndivState::check(const Individual &indiv) const {
 
 	check_cton(indiv.get_cmass_leaf(), indiv.get_nmass_leaf(), indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max);
 	check_cton(indiv.cmass_root, indiv.nmass_root, indiv.pft.cton_root_min, indiv.pft.cton_root_max);
+	check_cton(indiv.cmass_repr, indiv.nmass_repr, indiv.pft.cton_repr_min, indiv.pft.cton_repr_max);
 
 	if (!indiv.pft.is_grass()) {
 		check_cton(indiv.cmass_sap, indiv.nmass_sap, indiv.pft.cton_sap_min, indiv.pft.cton_sap_max);
@@ -1129,6 +1130,21 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	double EPS = 1.0e-12;
 
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+}
+
+// Capacity of C storage (kg C m-2)
+double cstorage_capacity(Individual& indiv) {
+
+	return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
+
+}
+
+// Capacity of N storage (kg N m-2)
+double nstorage_capacity(Individual& indiv) {
+
+	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
+
 }
 
 
@@ -2629,23 +2645,6 @@ double growth_demand(Individual& indiv) {
 }
 
 
-// Capacity of C storage (kg C m-2)
-double cstorage_capacity(Individual& indiv) {
-
-	return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
-
-}
-
-
-
-// Capacity of N storage (kg N m-2)
-double nstorage_capacity(Individual& indiv) {
-
-	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
-														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
-
-}
-
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Function calculates cgrow (daily growth), cstore (change in cmass_storage) 
@@ -3012,6 +3011,10 @@ void update_pools(Vegetation& vegetation) {
 		double cexcess = 0.0, nexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;
 
+		if (date.year == 2 && date.day == 2) {
+			printf("stop");
+		}
+
 		// Always fill up N storage during freenyears
 		if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.nstorage_max ) {
 			// We need to reduce nmass_missing by the uptake amount, otherwise
@@ -3279,53 +3282,35 @@ void senescence(Vegetation& vegetation) {
 		double cstore   = csenesc * crelocfrac;
 		double ctobrown = csenesc * (1.0 - crelocfrac);
 
-		indiv.cmass_leafs[green] -= csenesc;   // C to green leaf pool
-		
-		if (pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
-			indiv.cmass_repr += cstore;            // C to reproduction
-			indiv.cmass_leafs[brown] += ctobrown;  // C to brown leaf pool
-		} else {
-
-			// If C storage pool overflows, re-adjust cstore and ctobrown
-			if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
-				cstore = indiv.cstorage_max - indiv.cmass_storage;
-				ctobrown = csenesc - cstore;
-			}
-			
-			indiv.cmass_storage += cstore;         // C to storage
-			indiv.cmass_leafs[brown] += ctobrown;  // C to brown leaf pool
-
+		// If C storage pool overflows, re-adjust cstore and ctobrown
+		if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
+			cstore = indiv.cstorage_max - indiv.cmass_storage;
+			ctobrown = csenesc - cstore;
 		}
 		
+		indiv.cmass_leafs[green] -= csenesc;   // C from green leaf pool
+		indiv.cmass_leafs[brown] += ctobrown;  // C to brown leaf pool
+		indiv.cmass_storage      += cstore;    // C to storage
 		
-			
 
 		// Nitrogen
 		double nsenesc  = indiv.nmass_leafs[green] * senesc;
 		double nstore   = nsenesc * nrelocfrac;
 		double ntobrown = nsenesc * (1.0 - nrelocfrac);
 
-		indiv.nmass_leafs[green] -= nsenesc;   // N to green leaf pool
-		
-		if (pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
-			indiv.nmass_repr += nstore;            // N to reproduction
-			indiv.nmass_leafs[brown] += ntobrown;  // N to brown leaf pool
-		} else {
+		// If N storage pool overflows, re-adjust nstore and ntobrown
+		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
+			nstore = indiv.nstorage_max - indiv.nmass_storage;
+			ntobrown = nsenesc - nstore;
+		}
+
+		indiv.nmass_leafs[green] -= nsenesc;   // N from green leaf pool
+		indiv.nmass_leafs[brown] += ntobrown;  // N to brown leaf pool
+		indiv.nmass_storage      += nstore;    // N to storage
 			
-			// If N storage pool overflows, re-adjust nstore and ntobrown
-			if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-				nstore = indiv.nstorage_max - indiv.nmass_storage;
-				ntobrown = nsenesc - nstore;
-			}
-
-			indiv.nmass_storage += nstore;  // N to storage
-			indiv.nmass_leafs[brown] += ntobrown;  // N to brown leaf pool
-
 		// TODO: make sure N:C ratio in storage does not fall outside its ranges
 		//       understand what the N:C in storage looks like (values). How flexible is N:C in storage?
 		//		 sufficient to only account for Nstorage_max as done here?
-
-		}
 
 		assert(positive(indiv.cmass_leafs[green]));
 		assert(positive(indiv.nmass_leafs[green]));
@@ -3544,8 +3529,25 @@ void storage_overflow(Individual& indiv) {
 
 		indiv.cmass_repr += crepro;
 		indiv.nmass_repr += nrepro;
-		indiv.cexcess -= crepro;
-		indiv.nexcess -= nrepro;
+
+		// TODO: verify floating point accuracy. Perhaps create an else-if branch.
+		if (indiv.cexcess <= crepro) {
+			// cannot be fulfillled by cexcess
+			indiv.cmass_storage -= (crepro - indiv.cexcess);
+			indiv.cexcess = 0.0;
+		} else {
+			// can be fulfilled by cexcess
+			indiv.cexcess -= crepro;
+		}
+
+		if (indiv.nexcess <= nrepro) {
+			// cannot be fulfillled by nexcess
+			indiv.nmass_storage -= (nrepro - indiv.nexcess);
+			indiv.nexcess = 0.0;
+		} else {
+			// can be fulfilled by nexcess
+			indiv.nexcess -= nrepro;
+		}
 
 	}
 
@@ -3599,15 +3601,21 @@ void storage_dynamics(Vegetation& vegetation) {
 			continue;
 		}
 
+		if (date.day == 19 && date.year == 1) {
+			printf("stop");
+		}
+
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);
 		indiv.nstorage_max = nstorage_capacity(indiv);
 
 		if (indiv.cstorage_max < indiv.cmass_storage) {
 			indiv.cexcess += indiv.cmass_storage - indiv.cstorage_max;  // TODO: check if cexcess here comes only from decreasing plant size.
+			indiv.cmass_storage = indiv.cstorage_max;
 		}
 		if (indiv.nstorage_max < indiv.nmass_storage) {
 			indiv.nexcess += indiv.nmass_storage - indiv.nstorage_max;
+			indiv.nmass_storage = indiv.nstorage_max;
 		}
 
 		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.

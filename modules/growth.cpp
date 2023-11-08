@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.4;
+const double frac_culm = 0.1;
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
@@ -161,8 +161,8 @@ void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double 
 		return;
 	}
 	double cton = cmass / nmass;
-	assert(cton > cton_min);
-	assert(cton < cton_max);
+	assert(greater_than_or_equal(cton, cton_min));
+	assert(less_than_or_equal(cton, cton_max));
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
@@ -287,7 +287,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0){
+				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0 && indiv.growth_stage_days > 30){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -1197,6 +1197,9 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// Capacity of C and N storage
 			indiv.cstorage_max = cstorage_capacity(indiv);
 			indiv.nstorage_max = nstorage_capacity(indiv);
+
+			// Growth stage is vegetative after establishment.
+			indiv.growth_stage = vegetative;
 
 		} else {
 			indiv.cmass_storage += cmass_init;
@@ -3011,10 +3014,6 @@ void update_pools(Vegetation& vegetation) {
 		double cexcess = 0.0, nexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;
 
-		if (date.year == 2 && date.day == 2) {
-			printf("stop");
-		}
-
 		// Always fill up N storage during freenyears
 		if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.nstorage_max ) {
 			// We need to reduce nmass_missing by the uptake amount, otherwise
@@ -3200,7 +3199,7 @@ void senescence(Vegetation& vegetation) {
 	// Parameters
 	const double crelocfrac = 0.1;  // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double fsenesc_veg = 0.1;         // Factor controling baseline senscence rate in the reproductive phase
+	const double fsenesc_veg = 0.05;         // Factor controling baseline senscence rate in the reproductive phase
 	const double fsenesc_repr = 0.1;         // Factor controling baseline senscence rate in the reproductive phase
 	//const double k = 10.0;            // Shape parameter in senescence function (steepness)
 	const double qwater_senesc = 0.5;
@@ -3271,9 +3270,6 @@ void senescence(Vegetation& vegetation) {
 		// Retranslocation and pool updates
 		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 		// TODO: calculate retranslocation coefficients based on current C:N ratios?
-		if (date.year > 1 && date.day == 24) {
-			printf("stop");
-		}
 
 		// TODO: move fractions to parameters??
 
@@ -3516,9 +3512,8 @@ void storage_overflow(Individual& indiv) {
 			nrepro = max(nrepro, crepro / pft.cton_repr_max);
 		}
 
-		double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
-		if (crepro > ((indiv.cmass_storage - cstorage_res) + indiv.cexcess)) {
-			crepro = (indiv.cmass_storage - cstorage_res);
+		if (crepro > (indiv.cmass_storage + indiv.cexcess)) {
+			crepro = indiv.cmass_storage;
 			nrepro = crepro / pft.cton_repr_min;
 		}
 
@@ -3601,9 +3596,7 @@ void storage_dynamics(Vegetation& vegetation) {
 			continue;
 		}
 
-		if (date.day == 19 && date.year == 1) {
-			printf("stop");
-		}
+		// TODO: make sla age-dependent or make frac_culm dynamic
 
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);

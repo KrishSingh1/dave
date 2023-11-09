@@ -91,7 +91,10 @@
 		"format": "cpp",
 		"charconv": "cpp",
 		"forward_list": "cpp",
-		"span": "cpp"
+		"span": "cpp",
+		"complex": "cpp",
+		"__nullptr": "cpp",
+		"__string": "cpp"
 	},
 	"C_Cpp.default.includePath": [
 		"${workspaceRoot}/modules",

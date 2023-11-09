@@ -3050,7 +3050,8 @@ void carbon_allocation_tree(Individual& indiv) {
 	
 }
 
-// Determine C allocation fractions to roots, leaves, and reproductive tissue in grasses.
+// Determine C allocation fractions to roots, leaves, and reproductive tissue in grasses,
+// and for sapwood in trees.
 // Note: 'leaf' includes shoot and leaves and 'root' includes coarse and fine roots.
 void carbon_allocation_dave(Vegetation& vegetation) {
 
@@ -3118,8 +3119,9 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 
 
 // Calculate N demand based on growth and N status of the plant
-	
 void ndemand(Vegetation& vegetation) {
+	// outputs indiv.ndemand (indiv.ndemand (=indiv.leafndemand+indiv.rootndemand+indiv.reprndemand+indiv.sapndemand)
+	
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
 
 	// Loop through individuals
@@ -3130,6 +3132,7 @@ void ndemand(Vegetation& vegetation) {
 		double ngrow_demand_repr = 0;
 		double ngrow_demand_leaf = 0;
 		double ngrow_demand_root = 0;
+		double ngrow_demand_sap = 0; // ASSAF added
 
 		// double cton_root_min = 2.0 * indiv.pft.cton_root_avr - indiv.pft.cton_root_max;
 		// cton_root = max(cton_root, cton_root_min);
@@ -3141,34 +3144,68 @@ void ndemand(Vegetation& vegetation) {
 				indiv.get_cmass_leaf(), indiv.get_nmass_leaf(),
 				indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
 				indiv.cgrow_leaf);
+			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
+
 			double cton_root = constrain_cton(
 				indiv.cmass_root, indiv.nmass_root,
 				0, indiv.pft.cton_root_max,
 				indiv.cgrow_root);
-			ngrow_demand_leaf = indiv.cgrow_leaf / cton_leaf;
 			ngrow_demand_root = indiv.cgrow_root / cton_root;
-			ngrow_demand_repr = indiv.cgrow_repr / cton_leaf;  // C:N repr = C:N leaf for now.
-		} else {
-			ngrow_demand_leaf = 0.0;
-			ngrow_demand_root = 0.0;
-			ngrow_demand_repr = 0.0;
+			
+			if (indiv.pft.lifeform == TREE) {
+				// Assaf: assuming min = 2 x average - max
+				double cton_sap_min = indiv.pft.cton_sap_avr * 2 - indiv.pft.cton_sap_max;
+				double cton_sap = constrain_cton(
+					indiv.cmass_sap, indiv.nmass_sap,
+					cton_sap_min, indiv.pft.cton_sap_max,
+					indiv.cgrow_sap);
+				ngrow_demand_repr = indiv.cgrow_repr / cton_sap;  // C:N repr = C:N leaf for now.
+			} // if TREE
+
+		// } else { // ASSAF : REMOVED. SEEMS UNECESSARY GIVEN THESE ARE DEFINED AS 0 ABOVE.
+		// 	ngrow_demand_leaf = 0.0;
+		//	ngrow_demand_root = 0.0;
+		//	ngrow_demand_repr = 0.0;
 		}
 
-		// N demand of existing biomass (will also be applied to new biomass)
-		double nupdate_demand_leaf = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
-		double nupdate_demand_root = max(0.0, indiv.cmass_root / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr)
-									    - indiv.nmass_root) * frac_nchange;
-
-		// Total biomass N demand of individual
+		// N demand of existing biomass (will also be applied to new biomass): 
+		// N demand = how far the nmass from the maximum potential nmass (ie when cton=cton_leaf_min) * 0.01
+		//          = (nmass in case very high n availibility) minus (current nmass) * 0.01
+		//          = (Cpool/min_cton_pool)-(current_nmass_pool) * 0.01
+		// will be > 0 when current nmass is lower than nmass in case very high n availibility (maximum nmass). 
+		// ... which will move the ndemand to aspire to get to maximum nmass
+		double distance_from_nmass_max_leaf = (indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min) - indiv.get_nmass_leaf();
+		double nupdate_demand_leaf = max(0.0, distance_from_nmass_max_leaf) * frac_nchange;
+		// leaf N demand of individual
 		indiv.leafndemand = ngrow_demand_leaf + nupdate_demand_leaf;
+
+		double distance_from_nmass_max_root = (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr /indiv.pft.cton_leaf_avr) - indiv.nmass_root;
+		double nupdate_demand_root = max(0.0, indiv.cmass_root / distance_from_nmass_max_root) * frac_nchange;
+		// root N demand of individual
 		indiv.rootndemand = ngrow_demand_root + nupdate_demand_root;
+
+		// reproduction N demand of individual
 		indiv.reprndemand = ngrow_demand_repr;
-		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.reprndemand;
+
+		if (indiv.pft.lifeform == TREE) {
+			// Assaf: assuming min = 2 x average - max
+			double distance_from_nmass_max_sap = indiv.cmass_sap / (indiv.pft.cton_sap_avr * 2 - indiv.pft.cton_sap_max) - indiv.nmass_sap;
+			double nupdate_demand_sap  = max(0.0, distance_from_nmass_max_sap) * frac_nchange;
+			// sapwood N demand for individual
+			indiv.sapndemand = ngrow_demand_sap + nupdate_demand_sap;
+
+			// Total N demand of an individual (with sapwood)
+			indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.reprndemand + indiv.sapndemand;
+		}
+		else {
+
+			// Total N demand of an individual (without sapwood)
+			indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.reprndemand;
+		}
 
 		assert(positive(indiv.ndemand));
 	}
 }
-
 
 
 // Calculate N uptake which is limited by competition between individuals and
@@ -3184,7 +3221,8 @@ void nuptake(Vegetation& vegetation) {
 		Individual& indiv = vegetation[i];
 
 		// Calculate whole-plant N:C status 
-		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.get_cmass_leaf() + indiv.cmass_root);
+		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_sap) / 
+			(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_sap);
 		double ntoc_min = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
 		indiv.cton_status = max(0.0, (ntoc - ntoc_min) / (ntoc_avr - ntoc_min));
@@ -3218,9 +3256,7 @@ void nuptake(Vegetation& vegetation) {
 	}
 }
 
-
-
-// Update C and N pools of vegetation  
+// Update C and N pools of vegetation
 void update_pools(Vegetation& vegetation) { 
 	
 	Patch& patch = vegetation.patch;
@@ -3232,17 +3268,12 @@ void update_pools(Vegetation& vegetation) {
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
-		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (pft.lifeform != GRASS) {
-			continue;
-		}
-
 		double creturn = 0.0; // kgC m-2 d-1
 		double cexcess = 0.0, nexcess = 0.0;
-		double cgrow_unlim = indiv.cgrow;
+		double cgrow_unlim = indiv.cgrow; // cgrow if unlimited by nitrogen
 
 		// Always fill up N storage during freenyears
 		if ((!ifnlim || date.year < freenyears) && indiv.nmass_storage < indiv.nstorage_max ) {
@@ -3270,15 +3301,18 @@ void update_pools(Vegetation& vegetation) {
 		// TODO: Check if there is enough N in storage. At the moment Nstorage needs to be > 0.
 		// Alternatively, one could implement a N:C storage > N:C leaf min constraint.
 		
-		double fnavail = 0.0;
+		// fraction of the demand that can be met by storage
+		double fnavail = 0.0; 
 		if (!negligible(indiv.ndemand)) {
 			// fnavail = max(0.0,min(1.0,(indiv.nmass_storage - indiv.cmass_storage / indiv.pft.cton_leaf_max) / indiv.ndemand));
 			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 		}
 
-		double navail_leaf = indiv.leafndemand * fnavail;
-		double navail_root = indiv.rootndemand * fnavail;	
-		double navail_repr = indiv.reprndemand * fnavail; 
+		// Nitrogen availibility from storage according to the demand
+		double navail_leaf = indiv.leafndemand * fnavail; // KgN/m^2
+		double navail_root = indiv.rootndemand * fnavail;
+		double navail_repr = indiv.reprndemand * fnavail;
+		double navail_sap = indiv.sapndemand * fnavail;
 
 		// Check with fnavail, not fnuptake. There are cases where fnuptake can
 		// be 1 but fnavail < 1. This can happen when n storage is low, because

@@ -18,10 +18,10 @@
  *  an individual in order to do the distribution of N.
  */
 struct NCompetingIndividual {
-	/// This individual's N demand
+	/// This individual's N demand (input)
 	double ndemand;
 
-	/// A meassure of this individual's uptake strength
+	/// A meassure of this individual's uptake strength (input)
 	double strength;
 
 	/// Output from ncompete - fraction of the demand satisfied by the distribution

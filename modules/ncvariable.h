@@ -140,6 +140,11 @@ private:
 	xtring get_dimension_name(int dim_id) const;
 
 	/*
+	Get the ID of the specified dimension.
+	*/
+	int get_dimension_id(xtring dim_name) const;
+
+	/*
 	Check if the currently cached data is valid for a particular day of the
 	specified grid point.
 

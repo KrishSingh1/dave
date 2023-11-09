@@ -1,11 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file soil.cpp
 /// \brief LPJ-GUESS Soil class and related definitions
+///
 /// Implementation of member functions of class Soil.
 /// The class Soil and its member functions and variables are declared in guess.h
 ///
 /// \author Paul Miller
 /// $Date: 2015-12-22 15:22:04 +0100 (Tue, 22 Dec 2015) $
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -532,6 +537,11 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	wcont_twolayer[1] = get_soil_water_lower();
 	double twolayerwcont_evap = get_layer_soil_water_evap();
 
+	// Prepare for water balance tests
+	double initial_water_in_column = wcont_twolayer[0] * soiltype.gawc[0]
+		+ wcont_twolayer[1] * soiltype.gawc[1]; // mm
+
+
 	// Evaporation from soil surface
 
 	// guess2008 - changed to wcont_evap**2, as in LPJ-mL
@@ -546,8 +556,10 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// BLARP: water content can become negative, though apparently only very slightly
 	//    - quick fix implemented here, should be done better later
 
+	double negligible_water = 0.0; // mm
 	wcont_twolayer[0] += (rain_melt - aet_twolayer[0] - evap) / soiltype.gawc[0];
 	if (wcont_twolayer[0] != 0.0 && wcont_twolayer[0] < 0.0001) { // guess2008 - bugfix
+		negligible_water = wcont_twolayer[0] * soiltype.gawc[0]; // mm
 		wcont_twolayer[0] = 0.0;
 	}
 
@@ -557,6 +569,10 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		runoff_surf = (wcont_twolayer[0] - 1.0) * soiltype.gawc[0];
 		wcont_twolayer[0] = 1.0;
 	}
+
+	// To maintain the water balance we add any water "removed" when 
+	// wcont is very small to the surface runoff. 
+	runoff_surf += negligible_water;
 
 	// Update water content in evaporation layer for tomorrow
 
@@ -701,6 +717,22 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 
 	// Finally, update wcont_evap, Frac_water etc. in this patch.soil object
 	update_soil_water();
+
+	// Water balance check
+	wcont_twolayer[0] = get_soil_water_upper();
+	wcont_twolayer[1] = get_soil_water_lower();
+
+	double final_water_in_column = wcont_twolayer[0] * soiltype.gawc[0]
+		+ wcont_twolayer[1] * soiltype.gawc[1]; // mm
+
+	// Is water in + initial storage = water out + final storage?
+	double water_in_storage_in = initial_water_in_column + rain_melt;
+	double water_out_storage_out = final_water_in_column + evap + aet_total + runoff;
+
+	if (fabs(water_in_storage_in - water_out_storage_out) > 0.0001) {
+		dprintf("Soil::hydrology_lpjf_twolayer - error in the patch water balance!\n");
+		return;
+	}
 
 }
 
@@ -3546,8 +3578,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 	const double ERROR_TEMP = 80.0; // degrees C
 
-
-	// soil_temp_multilayer is called after cloning, in Stand::set_management(). 
+	// soil_temp_multilayer is called after cloning, in Stand::init_stand_lu. 
 	// This if statement prevents a double call to this method for the cloned stand on Jan 1
 	// since firstTempCalc is set to false after the first call. 
 	if (!firstTempCalc && date.day == 0 && patch.stand.clone_year == date.year)

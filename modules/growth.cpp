@@ -11,6 +11,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -56,6 +60,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
+
 
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
@@ -2637,6 +2642,7 @@ double growth_demand(Individual& indiv) {
 
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
+// Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Function calculates cgrow (daily growth), cstore (change in cmass_storage) 
 // and updates indiv.cmass_storage. 
 // Note: cgrow and cstore are fluxes (kgC/m2/d), cmass_storage is a pool (kg/m2).
@@ -2846,6 +2852,11 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 		// Calculate the C:N ratio of new growth which will put us at the target
 		// C:N ratio.
 		cton = cgrow / ngrow;
+	} else if (cton < cton_min) {
+		// Current C:N ratio is below the minimum C:N ratio. In this case, we
+		// simply request N at the minimum C:N ratio. This will move us toward
+		// the minimum C:N ratio, though it won't get us all the way there.
+		cton = cton_min;
 	}
 	*/
 	assert(positive(cton));
@@ -3043,6 +3054,7 @@ void update_pools(Vegetation& vegetation) {
 		double navail_root  = indiv.rootndemand * fnavail;
 		double navail_crown = indiv.crownndemand * fnavail;	
 		double navail_repr  = indiv.reprndemand * fnavail; 
+
 
 		// Check with fnavail, not fnuptake. There are cases where fnuptake can
 		// be 1 but fnavail < 1. This can happen when n storage is low, because
@@ -3244,7 +3256,7 @@ void senescence(Vegetation& vegetation) {
 		double senesc_fdorm = 0;
 		if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 
-			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 5.0;
+			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 2.5;
 
 		}
 

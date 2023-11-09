@@ -3456,6 +3456,9 @@ public:
 	 */
 	double cton_root(bool use_phen = true) const;
 
+	/// Current crown C:N ratio (DAVE grasses only)
+	double cton_crown() const;
+
 	/// Current sap C:N ratio
 	double cton_sap() const;
 

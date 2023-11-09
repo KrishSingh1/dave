@@ -2322,9 +2322,9 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 // Internal function (do not call directly from framework)
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root,
-	double cmass_sap, double cmass_root_today, double growth_demand, double fphen_activity,
-	double assim, double& resp) {
+	double respcoeff, double cton_sap, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double growth_demand,
+	double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2361,6 +2361,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
 	double resp_root = 0;   // root respiration (kg/m2/day)
+	double resp_crown = 0;  // crown respiration (kg/m2/day)
 	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
@@ -2455,9 +2456,12 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Root respiration
 			// Reduction factor of resp_root during dormancy
+			// Note: crown respiration added to resp_root for now
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
-			// TODO: add crown respiration. What about storage?
+			// TODO: Does C storage respire?
+			// TODO: replace respiration functions here!
+			resp_crown = (0.7 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// Growth respiration
 			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
@@ -2478,7 +2482,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_growth;
+		resp = resp_root + resp_crown + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
 }
@@ -2588,8 +2592,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, assim, resp);
+			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -3390,26 +3394,39 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		else
 			cmass_root = indiv.cmass_root_today();
 
+		double cmass_crown = 0.0;
+		if (ifdavegrowth && indiv.pft.is_grass()) {
+			cmass_crown = indiv.cmass_crown;
+		} else {
+			cmass_crown = 0.0;
+		}
+
 		// Static root and sap wood C:N ratio if no N limitation
 		// to not let N affect respiration for C only version of model
 		// Also not allow lower C:N ratios than minimum which
 		// would affect respiration severely (happens for deciduous trees
 		// in the beginning of the season)
 
-		double cton_sap, cton_root;
+		double cton_sap   = 0.0;
+		double cton_root  = 0.0;
+		double cton_crown = 0.0;
 		if (ifnlim) {
-			cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
-			cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+			//cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
+			//cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+			cton_sap   = indiv.cton_sap();
+			cton_root  = indiv.cton_root();
+			cton_crown = indiv.cton_crown();
 		}
 		else {
 			cton_sap = pft.cton_sap_avr;
 			cton_root = pft.cton_root_avr;
+			cton_crown = pft.cton_root_avr;
 		}
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root, indiv.cmass_sap, 
-			cmass_root, indiv.growth_demand, indiv.fphen_activity, assim, resp);
+			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
+			cmass_root, cmass_crown, indiv.growth_demand, indiv.fphen_activity, assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

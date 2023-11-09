@@ -2235,16 +2235,20 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
 	if (!negligible(cmass_root) && !negligible(nmass_root)) {
-		if (use_phen) {
-			if (!negligible(cmass_root_today())) {
-				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
+		if (ifdavegrowth) {
+			return (cmass_root / nmass_root);  // stoichiometry checked in growth
+		} else {
+			if (use_phen) {
+				if (!negligible(cmass_root_today())) {
+					return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
+				}
+				else {
+					return pft.cton_root_avr;
+				}
 			}
 			else {
-				return pft.cton_root_avr;
+				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
 			}
-		}
-		else {
-			return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
 		}
 	}
 	else {
@@ -2252,13 +2256,35 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 	}
 }
 
+double Individual::cton_crown() const {
+	if (pft.is_grass() && ifdailygrass && ifdavegrowth) {
+		if (!negligible(cmass_crown) && !negligible(nmass_crown)) {
+			return (cmass_crown / nmass_crown);
+		} 
+		else {
+			return pft.cton_root_max;
+		}
+	} 
+	else {
+		return 1.0;
+	}
+}
+
+
+
 double Individual::cton_sap() const {
 
 	if (pft.lifeform == TREE) {
-		if (!negligible(cmass_sap) && !negligible(nmass_sap))
-			return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
-		else
+		if (!negligible(cmass_sap) && !negligible(nmass_sap)) {
+			if (ifdavegrowth) {
+				return (cmass_sap / nmass_sap); // stoichiometry should be checked in growth
+			} else {
+				return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
+			}
+		}
+		else {
 			return pft.cton_sap_max;
+		}
 	}
 	else {
 		return 1.0;

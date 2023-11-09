@@ -56,7 +56,7 @@ const double ext_seed = 1.0e-5;
 // Grass parameters
 // ---------------------------------
 // fraction of shoot allocated to culms (=culm / (culm + leaves))
-const double frac_culm = 0.1;
+
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
@@ -1421,7 +1421,7 @@ bool allometry(Individual& indiv) {
 				// Grass "individual" LAI (Eqn 11). Green LAI only!
 				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 				if (ifdavegrowth) {
-					indiv.lai_indiv *= (1.0 - frac_culm);
+					indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
 				}
 				
 				// FPC (Eqn 10)
@@ -1430,7 +1430,7 @@ bool allometry(Individual& indiv) {
 				// belowground C investment and available N. The following is equal to 
 				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
 				indiv.rpc = 1.0 - lambertbeer(indiv.lai * min(10.0,(0.5 * indiv.cmass_root / indiv.cmass_leafs[0])));
-				// TODO: Does this work with competition??
+				// TODO: Replace with better solution. Does this work with competition??
 
 
 				// Stand-level LAI
@@ -2624,19 +2624,6 @@ double growth_demand(Individual& indiv) {
 		// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
 		growth_demand = min(1.0,growth_rate_pot * fdev_growth * ftemp_growth * fwater_growth);
 
-		// TODO: make reproduction flux dependent on fdev_growth
-
-	} else {
-
-		// simpler alternative:
-		// assumes that growth follows the same environmental responses than NPP
-		//if (negligible(indiv.cgrow_leaf)) {
-			//growth_rate = min(0.1,growth_rate_pot * (indiv.fphen_activity - fphen_activity_max) * (1.0/(1.0 - fphen_activity_max)));	
-		// } else {
-       		//growth_rate = max(0.0,indiv.dnpp) / pow((indiv.get_cmass_leaf() + indiv.cmass_repr),1.5);
-			//growth_demand = min(1.0, growth_rate / growth_rate_pot);
-		//}
-		// TODO: does storage itself also respires?
 	}
 
 	if (indiv.fphen_activity < 1.0){
@@ -3525,7 +3512,7 @@ void storage_overflow(Individual& indiv) {
 		indiv.cmass_repr += crepro;
 		indiv.nmass_repr += nrepro;
 
-		// TODO: verify floating point accuracy. Perhaps create an else-if branch.
+		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
 		if (indiv.cexcess <= crepro) {
 			// cannot be fulfillled by cexcess
 			indiv.cmass_storage -= (crepro - indiv.cexcess);
@@ -3596,7 +3583,7 @@ void storage_dynamics(Vegetation& vegetation) {
 			continue;
 		}
 
-		// TODO: make sla age-dependent or make frac_culm dynamic
+		// TODO: make sla age-dependent or make culmfrac dynamic
 
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);

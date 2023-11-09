@@ -2457,6 +2457,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// Reduction factor of resp_root during dormancy
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
+			// TODO: add crown respiration. What about storage?
+
 			// Growth respiration
 			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
 			resp_growth = (assim - resp_root) * (growth_demand * Rg_max);

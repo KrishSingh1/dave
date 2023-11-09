@@ -2073,6 +2073,8 @@ public:
 	double reprfrac;
 	/// fraction of NPP allocated to crowns
 	double crownfrac;
+	// fraction of shoot allocated to culms (=culm / (culm + leaves))
+	double culmfrac;
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass

@@ -472,8 +472,9 @@ void add_columns(ColumnDescriptors &cols, std::vector<std::string> names, int wi
 
 ColumnDescriptors create_column_descriptors() {
 	ColumnDescriptors columns;
+	columns += ColumnDescriptor(COLNAME_STAND, COLUMN_WIDTH, 0);
 	if (!write_stats()) {
-		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
+		columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 	return columns;
 }
@@ -481,23 +482,6 @@ ColumnDescriptors create_column_descriptors() {
 // #############################################################################
 // StandLevelOutput implementation.
 // #############################################################################
-
-/*
-class StandLevelOutput : public OutputFile {
-	public:
-		~StandLevelOutput();
-		StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string desc, bool sum, bool mean);
-		StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> columns, std::string desc, bool sum, bool mean);
-		virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
-		virtual ColumnDescriptors get_cols();
-	private:
-		std::vector<double> write_stand(Stand &stand);
-		std::vector<ColumnDefinition<Stand>> (*get_column_definitions)();
-		std::vector<ColumnDefinition<Stand>> columns;
-		bool write_sum;
-		bool write_mean;
-};
-*/
 
 DaveOutput::StandLevelOutput::~StandLevelOutput() { }
 
@@ -678,6 +662,10 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 	while (gc_itr != gridcell.end()) {
 
 		Stand &stand = *gc_itr;
+
+		// Write stand ID.
+		write_output(rows, stand.id);
+
 		stand.firstobj();
 
 		std::vector<std::vector<double>> data;
@@ -844,15 +832,9 @@ DaveOutput::PftOutput::PftOutput(
 }
 
 ColumnDescriptors DaveOutput::PftOutput::get_columns() {
-	ColumnDescriptors columns;
-
+	ColumnDescriptors columns = create_column_descriptors();
 	std::vector<std::string> pfts = get_pfts(true);
-
-	if (!write_stats()) {
-		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
-	}
 	add_columns(columns, pfts, COLUMN_WIDTH, NUMERIC_PRECISION);
-
 	return columns;
 }
 
@@ -897,11 +879,7 @@ std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch
 ColumnDescriptors DaveOutput::CustomPatchLevelOutput::get_columns() {
 	this->columns = this->get_column_definitions();
 
-	ColumnDescriptors columns;
-
-	if (!write_stats()) {
-		columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
-	}
+	ColumnDescriptors columns = create_column_descriptors();
 
 	for (const ColumnDefinition<Patch> &column : this->columns) {
 		std::string name = column.get_name();

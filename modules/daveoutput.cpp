@@ -61,6 +61,9 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_agpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Total individual-level Annual GPP (kgC/m2/year)");
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
 
+	// Annual stand-level outputs.
+	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.anpp; }, "Fraction of the gridcell occupied by each stand", true);
+
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
 	add_patch_output("file_dave_soil_nmass_avail"    , DAILY, "nmass", [](const Patch &p) { return p.soil.get_nmass_avail() * min(1.0, p.fpc_total); }, "Available Soil N for plant uptake");
@@ -214,12 +217,37 @@ void DaveOutput::add_patch_output(
 void DaveOutput::add_patch_output(
 		std::string name,
 		timestep_t timestep,
-		std::vector<ColumnDefinition> (*get_columns)(),
+		std::vector<ColumnDefinition<Patch>> (*get_columns)(),
 		std::string description,
 		bool sum,
 		bool mean) {
 	CustomPatchLevelOutput *output = new CustomPatchLevelOutput(name, get_columns, description, sum, mean);
 	register_output(output, timestep);
+}
+
+void DaveOutput::add_stand_output(
+		std::string name,
+		timestep_t timestep,
+		std::string colname,
+		double (*read_output)(const Stand &),
+		std::string description,
+		bool sum,
+		bool mean) {
+	ColumnDefinition<Stand> column(colname, read_output);
+	std::vector<ColumnDefinition<Stand>> columns;
+	columns.push_back(column);
+	StandLevelOutput *output = new StandLevelOutput(name, columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_stand_output(
+	std::string name,
+	timestep_t timestep,
+	std::vector<ColumnDefinition<Stand>> (*get_columns)(),
+	std::string description,
+	bool sum,
+	bool mean) {
+	StandLevelOutput *output = new StandLevelOutput(name, get_columns, description, sum, mean);
 }
 
 void DaveOutput::add_patch_array_output(
@@ -414,6 +442,220 @@ bool DaveOutput::OutputFile::enabled() {
 }
 
 // #############################################################################
+// A few helper functions.
+// #############################################################################
+
+void add_column_with_suffix(ColumnDescriptors &cols, const char *colname, const char *sfx, int width, int precision) {
+	std::stringstream ss;
+	ss << colname << "_" << sfx;
+	std::string sname = ss.str();
+	const char *name = sname.c_str();
+	width = max((size_t)width, sname.length() + 1);
+	cols += ColumnDescriptor(name, width, precision);
+}
+
+void add_column(ColumnDescriptors &cols, const char *colname, int width, int precision) {
+	if (write_stats()) {
+		add_column_with_suffix(cols, colname, "mean", width, precision);
+		add_column_with_suffix(cols, colname, "median", width, precision);
+		add_column_with_suffix(cols, colname, "sd", width, precision);
+	} else {
+		cols += ColumnDescriptor(colname, width, precision);
+	}
+}
+
+void add_columns(ColumnDescriptors &cols, std::vector<std::string> names, int width, int precision) {
+	for (std::string name : names) {
+		add_column(cols, name.c_str(), width, precision);
+	}
+}
+
+ColumnDescriptors create_column_descriptors() {
+	ColumnDescriptors columns;
+	if (!write_stats()) {
+		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
+	}
+	return columns;
+}
+
+// #############################################################################
+// StandLevelOutput implementation.
+// #############################################################################
+
+/*
+class StandLevelOutput : public OutputFile {
+	public:
+		~StandLevelOutput();
+		StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string desc, bool sum, bool mean);
+		StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> columns, std::string desc, bool sum, bool mean);
+		virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+		virtual ColumnDescriptors get_cols();
+	private:
+		std::vector<double> write_stand(Stand &stand);
+		std::vector<ColumnDefinition<Stand>> (*get_column_definitions)();
+		std::vector<ColumnDefinition<Stand>> columns;
+		bool write_sum;
+		bool write_mean;
+};
+*/
+
+DaveOutput::StandLevelOutput::~StandLevelOutput() { }
+
+DaveOutput::StandLevelOutput::StandLevelOutput(
+		std::string param,
+		std::vector<ColumnDefinition<Stand>> (*get_columns)(),
+		std::string desc,
+		bool sum,
+		bool mean) : OutputFile(param, desc) {
+	get_column_definitions = get_columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
+DaveOutput::StandLevelOutput::StandLevelOutput(
+		std::string param,
+		std::vector<ColumnDefinition<Stand>> columns,
+		std::string desc,
+		bool sum,
+		bool mean) : OutputFile(param, desc) {
+	get_column_definitions = NULL;
+	this->columns = columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
+void DaveOutput::StandLevelOutput::write_rows(
+		OutputChannel &channel,
+		Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+	OutputRows rows(&channel, lon, lat, year, day);
+
+	// Each vector of this vector represents a single stand. Each element in the
+	// sub-vectors represents a value which will be written for column i of that
+	// particular stand. This is only really required for write_stats mode.
+	std::vector<std::vector<double>> data;
+
+	for (auto gc_itr = gridcell.begin(); gc_itr != gridcell.end(); gc_itr++) {
+		Stand &stand = *gc_itr;
+		std::vector<double> stand_data = write_stand(stand);
+		if (write_stats()) {
+			data.push_back(stand_data);
+		} else {
+			// The code would be cleaner if we were to use the 2d data array in
+			// both cases, but I suspect that performance will be better with
+			// this shortcut when the number of stands is high.
+
+			// Write stand ID.
+			// todo: would it be better to write the stand name instead?
+			write_output(rows, stand.id);
+
+			// Write stand data.
+			double total = 0;
+			for (double x : stand_data) {
+				write_output(rows, x);
+				total += x;
+			}
+			if (write_sum) {
+				write_output(rows, total);
+			}
+			if (write_mean) {
+				write_output(rows, total / stand_data.size());
+			}
+			finish_row(channel, lon, lat, year, day);
+		}
+	}
+
+	if (write_stats() && data.size()) {
+		// Each element of data contains all columns for each stand. We want
+		// to write one column at a time.
+
+		// First, get the number of columns.
+		int ncol = data[0].size();
+
+		// Now iterate over the columns that we want to write.
+		for (size_t j = 0; j < ncol; j++) {
+			// Get this column's value for each stand.
+			std::vector<double> column_data;
+			double total = 0;
+			for (size_t i = 0; i < data.size(); i++) {
+				column_data.push_back(data[i][j]);
+			}
+			// Compute summary statistics for this column.
+			double mean = 0, sd = 0, median = 0;
+			compute_stats(column_data, &mean, &sd, &median);
+			write_output(rows, mean);
+			write_output(rows, median);
+			write_output(rows, sd);
+		}
+		if (write_sum || write_mean) {
+			// Calculate the total for each stand.
+			std::vector<double> totals;
+			for (size_t i = 0; i < data.size(); i++) {
+				// Calculate the total for the i-th stand.
+				double total = 0;
+				for (size_t j = 0; j < data[i].size(); i++) {
+					total += data[i][j];
+				}
+				totals.push_back(total);
+			}
+			double mean = 0, sd = 0, median = 0;
+			compute_stats(totals, &mean, &sd, &median);
+			if (write_sum) {
+				write_output(rows, mean);
+				write_output(rows, median);
+				write_output(rows, sd);
+			}
+			if (write_mean) {
+				write_output(rows, mean / ncol);
+				write_output(rows, median / ncol);
+				write_output(rows, sd / ncol);
+			}
+		}
+		finish_row(channel, lon, lat, year, day);
+	}
+}
+
+ColumnDescriptors DaveOutput::StandLevelOutput::get_cols() {
+	ColumnDescriptors descriptors;
+	if (!write_stats()) {
+		add_column(descriptors, COLNAME_STAND, COLUMN_WIDTH, 0);
+	}
+
+	// Only invoke get_column_definitions if necessary.
+	if (get_column_definitions) {
+		columns = get_column_definitions();
+	}
+
+	for (const ColumnDefinition<Stand> &column : columns) {
+		std::string name = column.get_name();
+		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
+		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+	}
+
+	if (write_sum) {
+		add_column(descriptors, COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+	if (write_mean) {
+		add_column(descriptors, COLNAME_MEAN, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+
+	return descriptors;
+}
+
+std::vector<double> DaveOutput::StandLevelOutput::write_stand(
+		const Stand &stand) {
+	std::vector<double> data;
+	for (ColumnDefinition<Stand> &column : columns) {
+		double value = column.read_value(stand);
+		data.push_back(value);
+	}
+	return data;
+}
+
+// #############################################################################
 // PatchLevelOutput implementation.
 // #############################################################################
 
@@ -529,39 +771,6 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 	}
 }
 
-void add_column_with_suffix(ColumnDescriptors &cols, const char *colname, const char *sfx, int width, int precision) {
-	std::stringstream ss;
-	ss << colname << "_" << sfx;
-	std::string sname = ss.str();
-	const char *name = sname.c_str();
-	width = max((size_t)width, sname.length() + 1);
-	cols += ColumnDescriptor(name, width, precision);
-}
-
-void add_column(ColumnDescriptors &cols, const char *colname, int width, int precision) {
-	if (write_stats()) {
-		add_column_with_suffix(cols, colname, "mean", width, precision);
-		add_column_with_suffix(cols, colname, "median", width, precision);
-		add_column_with_suffix(cols, colname, "sd", width, precision);
-	} else {
-		cols += ColumnDescriptor(colname, width, precision);
-	}
-}
-
-void add_columns(ColumnDescriptors &cols, std::vector<std::string> names, int width, int precision) {
-	for (std::string name : names) {
-		add_column(cols, name.c_str(), width, precision);
-	}
-}
-
-ColumnDescriptors create_column_descriptors() {
-	ColumnDescriptors columns;
-	if (!write_stats()) {
-		add_column(columns, COLNAME_PATCH, COLUMN_WIDTH, 0);
-	}
-	return columns;
-}
-
 ColumnDescriptors DaveOutput::PatchLevelOutput::get_cols() {
 	ColumnDescriptors columns = get_columns();
 	if (write_sum) {
@@ -668,7 +877,7 @@ DaveOutput::PftOutput::~PftOutput() { }
 
 DaveOutput::CustomPatchLevelOutput::CustomPatchLevelOutput(
 	std::string param_name,
-	std::vector<ColumnDefinition> (*get_columns)(),
+	std::vector<ColumnDefinition<Patch>> (*get_columns)(),
 	std::string description,
 	bool sum,
 	bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
@@ -678,7 +887,7 @@ DaveOutput::CustomPatchLevelOutput::CustomPatchLevelOutput(
 std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch, OutputRows &out) {
 	std::vector<double> result;
 
-	for (const ColumnDefinition &col : columns) {
+	for (const ColumnDefinition<Patch> &col : columns) {
 		result.push_back(col.read_value(patch));
 	}
 
@@ -694,7 +903,7 @@ ColumnDescriptors DaveOutput::CustomPatchLevelOutput::get_columns() {
 		columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 
-	for (const ColumnDefinition &column : this->columns) {
+	for (const ColumnDefinition<Patch> &column : this->columns) {
 		std::string name = column.get_name();
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
 		add_column(columns, name.c_str(), width, NUMERIC_PRECISION);
@@ -918,23 +1127,6 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_cols() {
 	return columns;
 }
 
-// #############################################################################
-// ColumnDefinition implementation.
-// #############################################################################
-
-ColumnDefinition::ColumnDefinition(std::string name, double (*get_output)(const Patch &)) {
-	this->name = name;
-	read_output = get_output;
-}
-
-std::string ColumnDefinition::get_name() const {
-	return name;
-}
-
-double ColumnDefinition::read_value(const Patch &patch) const {
-	return read_output(patch);
-}
-
 bool spinup_output;
 bool patch_output_stats;
 
@@ -943,6 +1135,7 @@ const int NUMERIC_PRECISION = 8;
 const char *COLNAME_TOTAL = "total";
 const char *COLNAME_MEAN = "mean";
 const char *COLNAME_PATCH = "patch";
+const char *COLNAME_STAND = "stand";
 const char *COLNAME_TIMESTEP = "timestep";
 
 } // namespace GuessOutput

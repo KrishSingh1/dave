@@ -92,67 +92,67 @@ double mean(double *array, int n);
 /*
 Get the columns used in the patch-level runoff output file.
 */
-std::vector<ColumnDefinition> runoff_columns();
+std::vector<ColumnDefinition<Patch>> runoff_columns();
 
 /*
 Get the columns used in the patch-level cpool file.
 */
-std::vector<ColumnDefinition> cpool_columns();
+std::vector<ColumnDefinition<Patch>> cpool_columns();
 
 /*
 Get the columns used in the patch-level cflux file.
 */
-std::vector<ColumnDefinition> cflux_columns();
+std::vector<ColumnDefinition<Patch>> cflux_columns();
 
 /*
 Get the columns used in the patch-level npool file.
 */
-std::vector<ColumnDefinition> npool_columns();
+std::vector<ColumnDefinition<Patch>> npool_columns();
 
 /*
 Get the columns used in the patch-level nflux file.
 */
-std::vector<ColumnDefinition> nflux_columns();
+std::vector<ColumnDefinition<Patch>> nflux_columns();
 
 /*
 Get the columns used in the patch-level globfirm output file.
 */
-std::vector<ColumnDefinition> globfirm_columns();
+std::vector<ColumnDefinition<Patch>> globfirm_columns();
 
 /*
 Get the columns used in the patch-level mwcont_upper output file.
 */
-std::vector<ColumnDefinition> mwcont_upper_columns();
+std::vector<ColumnDefinition<Patch>> mwcont_upper_columns();
 
 /*
 Get the columns used in the patch-level mwcont_lower output file.
 */
-std::vector<ColumnDefinition> mwcont_lower_columns();
+std::vector<ColumnDefinition<Patch>> mwcont_lower_columns();
 
 /*
 Get the columns used in the patch-level PET output file.
 */
-std::vector<ColumnDefinition> pet_columns();
+std::vector<ColumnDefinition<Patch>> pet_columns();
 
 /*
 Get the columns used in the patch-level simfire output file.
 */
-std::vector<ColumnDefinition> simfire_columns();
+std::vector<ColumnDefinition<Patch>> simfire_columns();
 
 /*
 Get the columns used in the patch-level fire fuel output file.
 */
-std::vector<ColumnDefinition> fuel_columns();
+std::vector<ColumnDefinition<Patch>> fuel_columns();
 
 /*
 Get the columns used in the patch-level coarse woody debris output file.
 */
-std::vector<ColumnDefinition> coarse_woody_debris_columns();
+std::vector<ColumnDefinition<Patch>> coarse_woody_debris_columns();
 
 /*
 Get the columns used in the met year output file.
 */
-std::vector<ColumnDefinition> met_year_columns();
+std::vector<ColumnDefinition<Patch>> met_year_columns();
 
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).

@@ -199,7 +199,7 @@ LandcoverInput::LandcoverInput()
 	declare_parameter("input_precision_force", &input_precision_force, 3, 15, "Precision of landcover area fraction input files");
 }
 
-void LandcoverInput::init() {
+void LandcoverInput::init(xtring file_gridlist) {
 
 	if(!run_landcover)
 		return;
@@ -207,7 +207,7 @@ void LandcoverInput::init() {
 	int input_precision_parsed = 0;
 	int input_precision_use = 0;
 	ListArray_id<Coord> gridlist;
-	read_gridlist(gridlist, param["file_gridlist"].str);
+	read_gridlist(gridlist, file_gridlist);
 
 	all_fracs_const = true;	/* If any of the opened files have yearly data, all_fracs_const will be set to false and
 							 * landcover_dynamics will call get_landcover() each year

@@ -211,7 +211,7 @@ void DemoInput::init() {
 	ndep=param["ndep"].num;
 
 	// Open landcover files
-	landcover_input.init();
+	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
 	management_input.init();
 	// Open additional files

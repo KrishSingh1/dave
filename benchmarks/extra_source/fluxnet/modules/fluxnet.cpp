@@ -122,7 +122,7 @@ void FluxnetInput::init() {
 	co2.load_file(param["file_co2"].str);
 
 	// Open landcover files
-	landcover_input.init();
+	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
 	management_input.init();
 	// Open additional files

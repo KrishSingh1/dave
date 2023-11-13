@@ -38,6 +38,9 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_agpp                  "dave_agpp.out"                 ! Total individual-level Annual GPP (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
 
+! Annual stand-level outputs.
+file_dave_stand_frac             "dave_stand_frac"               ! Fraction of the gridcell occupied by each stand.
+
 ! Daily indiv-level per-patch outputs.
 file_dave_lai                   "dave_lai.out"                  ! LAI by individual (m2/m2)
 !file_dave_sla                   "dave_sla.out"                  ! SLA by individual (m2/kgC)
@@ -70,6 +73,7 @@ file_dave_rd_g                  "dave_rd_g.out"                 ! Daily leaf res
 file_dave_fphen_activity        "dave_fphen_activity.out"         ! Phenological activity (0-1)
 file_dave_growth_demand         "dave_growth_demand.out"        ! Growth Demand (0-1)
 file_dave_nscal                 "dave_nscal.out"                ! Nitrogen stress scalar (0-1)
+file_dave_et                    "dave_et.out"                  ! Daily indiv-level evapotranspiration (mm/day)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar        "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]
@@ -105,7 +109,6 @@ file_dave_resp                  "dave_resp.out"                 ! Daily patch-le
 !file_dave_gpp                   "dave_gpp.out"                  ! Daily patch-level GPP (gC/m2/day)
 !file_dave_npp                   "dave_npp.out"                  ! Daily patch-level NPP (gC/m2/day)
 file_dave_nee                   "dave_nee.out"                  ! Daily NEE (gC/m2/day)
-!file_dave_et                    "dave_et.out"                   ! Daily patch-level ET (mm/day).
 !file_dave_cmass_repr            "dave_cmass_repr.out"           ! Daily pft-level cmass_repr
 file_dave_daylength             "dave_daylength.out"            ! Daily patch-level day-length (h)
 !file_dave_dsimfire              "dave_dsimfire.out"             ! Daily simfire analysis

@@ -132,7 +132,7 @@ void CRUInput::init() {
 	co2.load_file(param["file_co2"].str);
 
 	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
-	landcover_input.init();
+	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
 	management_input.init();
 	// Open additional files

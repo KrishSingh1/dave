@@ -145,6 +145,9 @@ void NCInput::init(void) {
 		// Open misc input file.
 		misc_input.init(file_gridlist);
 
+		// Open landcover input file.
+		landcover_input.init(file_gridlist);
+
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";
 		std::vector<xtring> insol_units(1);

@@ -22,8 +22,10 @@ extern const int NUMERIC_PRECISION;
 extern const char *COLNAME_TOTAL;
 extern const char *COLNAME_MEAN;
 extern const char *COLNAME_PATCH;
+extern const char *COLNAME_STAND;
 extern const char *COLNAME_TIMESTEP;
 
+template<class T>
 class ColumnDefinition {
 	public:
 		/*
@@ -33,18 +35,24 @@ class ColumnDefinition {
 		@param get_output: Pointer to a function which returns the value to
 							be written to the rows of this column.
 		*/
-		ColumnDefinition(std::string name, double (*get_output)(const Patch &));
+		ColumnDefinition(std::string name, double (*get_output)(const T&)) {
+			this->name = name;
+			read_output = get_output;
+		}
 
 		/*
 		Get the name of the column.
 		*/
-		std::string get_name() const;
+		std::string get_name() const {
+			return name;
+		}
 
 		/*
-		Read the current value of the column based on the current state of
-		the patch.
+		Read the current value of the column.
 		*/
-		double read_value(const Patch &patch) const;
+		double read_value(const T &t) const {
+			return read_output(t);
+		}
 
 	private:
 		std::string name;
@@ -56,7 +64,7 @@ class ColumnDefinition {
 		@param patch: The patch.
 		@return: The value which appears in each column of the output table.
 		*/
-		double (*read_output)(const Patch &patch);
+		double (*read_output)(const T &t);
 };
 
 // Output module for DAVE outputs, including per-patch outputs.
@@ -238,6 +246,93 @@ private:
 			Assert that the output table is open. Terminate the simulation if not.
 			*/
 			void assert_table_open();
+	};
+
+	/*
+	Base class for patch-level outputs.
+	*/
+	class StandLevelOutput : public OutputFile {
+		public:
+			/*
+			Destructor.
+			*/
+			~StandLevelOutput();
+
+			/*
+			Create a new StandLevelOutput instance.
+
+			@param param: Name of the paramter in the instruction file which determines the output file name.
+			@param get_columns: A function which defines column definitions.
+			@param desc: Description of the output file (please include units).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string desc, bool sum, bool mean);
+
+			/*
+			Create a new StandLevelOutput instance.
+
+			@param param: Name of the paramter in the instruction file which determines the output file name.
+			@param columns: The columns in this output file.
+			@param desc: Description of the output file (please include units).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			StandLevelOutput(std::string param, std::vector<ColumnDefinition<Stand>> columns, std::string desc, bool sum, bool mean);
+
+			/*
+			Write all rows of output to the output file for the current
+			timestep. No default implementation is provided, because the
+			implementation depends on the output - e.g. annual, daily, daily
+			per-patch, etc.
+
+			@param OutputRows: The output channel used to write output.
+			@param gridcell: The current gridcell.
+			*/
+			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+
+			/*
+			Function which gets columns used by this output file.
+			*/
+			virtual ColumnDescriptors get_cols();
+
+		private:
+
+			/*
+			Write all required row for the specified patch.
+
+			@param patch: The patch for which outputs should be written.
+			@param out: Output rows instance to which outputs will be written.
+			*/
+			std::vector<double> write_stand(const Stand &stand);
+
+			/*
+			Pointer to a function which generates column definitions to be used
+			for this output file.
+
+			@param patch: The patch.
+			@param pft: The PFT.
+			@return: The value which appears in each column of the output table.
+			*/
+			std::vector<ColumnDefinition<Stand>> (*get_column_definitions)();
+
+			/*
+			The column definitions. This will be empty until get_columns() is
+			called, when the output file is opened.
+			*/
+			std::vector<ColumnDefinition<Stand>> columns;
+
+			/*
+			Iff true, a column containing the sum of all other columns will be
+			written to the output file.
+			*/
+			bool write_sum;
+
+			/*
+			Iff true, a column containing the mean of all other columns will be
+			written to the output file.
+			*/
+			bool write_mean;
 	};
 
 	/*
@@ -564,7 +659,7 @@ private:
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			CustomPatchLevelOutput(std::string param_name, std::vector<ColumnDefinition> (*get_columns)(), std::string description, bool sum, bool mean);
+			CustomPatchLevelOutput(std::string param_name, std::vector<ColumnDefinition<Patch>> (*get_columns)(), std::string description, bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -595,13 +690,13 @@ private:
 			@param pft: The PFT.
 			@return: The value which appears in each column of the output table.
 			*/
-			std::vector<ColumnDefinition> (*get_column_definitions)();
+			std::vector<ColumnDefinition<Patch>> (*get_column_definitions)();
 
 			/*
 			The column definitions. This will be empty until get_columns() is
 			called, when the output file is opened.
 			*/
-			std::vector<ColumnDefinition> columns;
+			std::vector<ColumnDefinition<Patch>> columns;
 	};
 
 	class StandPftOutput : public PatchLevelOutput {
@@ -719,7 +814,31 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+	void add_patch_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Patch>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a stand-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param read_output: A function which returns an output value for a given stand.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_stand_output(std::string name, timestep_t timestep, std::string colname, double (*read_output)(const Stand &), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a stand-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param get_columns: Pointer to a function which returns the columns used in this output file.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_stand_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a patch-level array output.

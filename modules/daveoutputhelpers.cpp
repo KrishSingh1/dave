@@ -224,13 +224,13 @@ double get_patch_nee(const Patch &patch) {
 	flux_seed + flux_charvest + lc.acflux_landuse_change + lc.acflux_harvest_slow;
 }
 
-std::vector<ColumnDefinition> runoff_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> runoff_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("Surf", [](const Patch &p) { return p.asurfrunoff; }));
-	columns.push_back(ColumnDefinition("Drain", [](const Patch &p) { return p.adrainrunoff; }));
-	columns.push_back(ColumnDefinition("Base", [](const Patch &p) { return p.abaserunoff; }));
-	columns.push_back(ColumnDefinition("Total", [](const Patch &p) { return p.asurfrunoff + p.adrainrunoff + p.abaserunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("Surf", [](const Patch &p) { return p.asurfrunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("Drain", [](const Patch &p) { return p.adrainrunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("Base", [](const Patch &p) { return p.abaserunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("Total", [](const Patch &p) { return p.asurfrunoff + p.adrainrunoff + p.abaserunoff; }));
 
 	return columns;
 }
@@ -475,166 +475,166 @@ double get_coarse_woody_som(const Patch &patch) {
 	return som * G_PER_KG;
 }
 
-std::vector<ColumnDefinition> cpool_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> cpool_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("VegC", get_cmass_patch));
+	columns.push_back(ColumnDefinition<Patch>("VegC", get_cmass_patch));
 
 	if (!ifcentury) {
-		columns.push_back(ColumnDefinition("LittC", get_litter_c));
-		columns.push_back(ColumnDefinition("SoilfC", [](const Patch &p) { return p.soil.cpool_fast; }));
-		columns.push_back(ColumnDefinition("SoilsC", [](const Patch &p) { return p.soil.cpool_slow; }));
+		columns.push_back(ColumnDefinition<Patch>("LittC", get_litter_c));
+		columns.push_back(ColumnDefinition<Patch>("SoilfC", [](const Patch &p) { return p.soil.cpool_fast; }));
+		columns.push_back(ColumnDefinition<Patch>("SoilsC", [](const Patch &p) { return p.soil.cpool_slow; }));
 	} else {
-		columns.push_back(ColumnDefinition("LitterC", get_litter_c));
-		columns.push_back(ColumnDefinition("SoilC", get_cmass_century));
+		columns.push_back(ColumnDefinition<Patch>("LitterC", get_litter_c));
+		columns.push_back(ColumnDefinition<Patch>("SoilC", get_cmass_century));
 	}
 	if (run_landcover && ifslowharvestpool) {
-		columns.push_back(ColumnDefinition("HarvSlowC", get_cmass_harv_slowc));
+		columns.push_back(ColumnDefinition<Patch>("HarvSlowC", get_cmass_harv_slowc));
 	}
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> cflux_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> cflux_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("Veg", [](const Patch &p) { return -p.fluxes.get_annual_flux(Fluxes::NPP); }));
-	columns.push_back(ColumnDefinition("Repr", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::REPRC); }));
-	columns.push_back(ColumnDefinition("Soil", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::SOILC) + p.soil.aorgCleach; }));
-	columns.push_back(ColumnDefinition("Fire", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::FIREC); }));
-	columns.push_back(ColumnDefinition("Est", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::ESTC); }));
+	columns.push_back(ColumnDefinition<Patch>("Veg", [](const Patch &p) { return -p.fluxes.get_annual_flux(Fluxes::NPP); }));
+	columns.push_back(ColumnDefinition<Patch>("Repr", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::REPRC); }));
+	columns.push_back(ColumnDefinition<Patch>("Soil", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::SOILC) + p.soil.aorgCleach; }));
+	columns.push_back(ColumnDefinition<Patch>("Fire", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::FIREC); }));
+	columns.push_back(ColumnDefinition<Patch>("Est", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::ESTC); }));
 	if (run_landcover) {
-		columns.push_back(ColumnDefinition("Seed", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::SEEDC); }));
-		columns.push_back(ColumnDefinition("Harvest", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::HARVESTC); }));
-		columns.push_back(ColumnDefinition("LU_ch", [](const Patch &p) { return p.get_climate().gridcell.landcover.acflux_landuse_change; }));
-		columns.push_back(ColumnDefinition("Slow_h", [](const Patch &p) { return p.get_climate().gridcell.landcover.acflux_harvest_slow; }));
+		columns.push_back(ColumnDefinition<Patch>("Seed", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::SEEDC); }));
+		columns.push_back(ColumnDefinition<Patch>("Harvest", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::HARVESTC); }));
+		columns.push_back(ColumnDefinition<Patch>("LU_ch", [](const Patch &p) { return p.get_climate().gridcell.landcover.acflux_landuse_change; }));
+		columns.push_back(ColumnDefinition<Patch>("Slow_h", [](const Patch &p) { return p.get_climate().gridcell.landcover.acflux_harvest_slow; }));
 	}
-	columns.push_back(ColumnDefinition("NEE", get_patch_nee));
+	columns.push_back(ColumnDefinition<Patch>("NEE", get_patch_nee));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> globfirm_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> globfirm_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("fireprob", [](const Patch &p) { return p.fireprob; }));
+	columns.push_back(ColumnDefinition<Patch>("fireprob", [](const Patch &p) { return p.fireprob; }));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> npool_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> npool_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("VegN", get_nmass_patch));
+	columns.push_back(ColumnDefinition<Patch>("VegN", get_nmass_patch));
 
-	columns.push_back(ColumnDefinition("LitterN", get_littern));
-	columns.push_back(ColumnDefinition("SoilN", get_centuryn));
+	columns.push_back(ColumnDefinition<Patch>("LitterN", get_littern));
+	columns.push_back(ColumnDefinition<Patch>("SoilN", get_centuryn));
 
 	if (run_landcover && ifslowharvestpool) {
-		columns.push_back(ColumnDefinition("HarvSlowN", get_nmass_harv_slowc));
+		columns.push_back(ColumnDefinition<Patch>("HarvSlowN", get_nmass_harv_slowc));
 	}
 	// tbi: total
 
 	return columns;
 }
-std::vector<ColumnDefinition> mwcont_upper_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> mwcont_upper_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("Jan", [](const Patch &p) { return p.soil.mwcont[0][0]; }));
-	columns.push_back(ColumnDefinition("Feb", [](const Patch &p) { return p.soil.mwcont[1][0]; }));
-	columns.push_back(ColumnDefinition("Mar", [](const Patch &p) { return p.soil.mwcont[2][0]; }));
-	columns.push_back(ColumnDefinition("Apr", [](const Patch &p) { return p.soil.mwcont[3][0]; }));
-	columns.push_back(ColumnDefinition("May", [](const Patch &p) { return p.soil.mwcont[4][0]; }));
-	columns.push_back(ColumnDefinition("Jun", [](const Patch &p) { return p.soil.mwcont[5][0]; }));
-	columns.push_back(ColumnDefinition("Jul", [](const Patch &p) { return p.soil.mwcont[6][0]; }));
-	columns.push_back(ColumnDefinition("Aug", [](const Patch &p) { return p.soil.mwcont[7][0]; }));
-	columns.push_back(ColumnDefinition("Sep", [](const Patch &p) { return p.soil.mwcont[8][0]; }));
-	columns.push_back(ColumnDefinition("Oct", [](const Patch &p) { return p.soil.mwcont[9][0]; }));
-	columns.push_back(ColumnDefinition("Nov", [](const Patch &p) { return p.soil.mwcont[10][0]; }));
-	columns.push_back(ColumnDefinition("Dec", [](const Patch &p) { return p.soil.mwcont[11][0]; }));
-
-	return columns;
-}
-
-std::vector<ColumnDefinition> mwcont_lower_columns() {
-	std::vector<ColumnDefinition> columns;
-
-	columns.push_back(ColumnDefinition("Jan", [](const Patch &p) { return p.soil.mwcont[0][1]; }));
-	columns.push_back(ColumnDefinition("Feb", [](const Patch &p) { return p.soil.mwcont[1][1]; }));
-	columns.push_back(ColumnDefinition("Mar", [](const Patch &p) { return p.soil.mwcont[2][1]; }));
-	columns.push_back(ColumnDefinition("Apr", [](const Patch &p) { return p.soil.mwcont[3][1]; }));
-	columns.push_back(ColumnDefinition("May", [](const Patch &p) { return p.soil.mwcont[4][1]; }));
-	columns.push_back(ColumnDefinition("Jun", [](const Patch &p) { return p.soil.mwcont[5][1]; }));
-	columns.push_back(ColumnDefinition("Jul", [](const Patch &p) { return p.soil.mwcont[6][1]; }));
-	columns.push_back(ColumnDefinition("Aug", [](const Patch &p) { return p.soil.mwcont[7][1]; }));
-	columns.push_back(ColumnDefinition("Sep", [](const Patch &p) { return p.soil.mwcont[8][1]; }));
-	columns.push_back(ColumnDefinition("Oct", [](const Patch &p) { return p.soil.mwcont[9][1]; }));
-	columns.push_back(ColumnDefinition("Nov", [](const Patch &p) { return p.soil.mwcont[10][1]; }));
-	columns.push_back(ColumnDefinition("Dec", [](const Patch &p) { return p.soil.mwcont[11][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.mwcont[0][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.mwcont[1][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.mwcont[2][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.mwcont[3][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.mwcont[4][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.mwcont[5][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.mwcont[6][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.mwcont[7][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.mwcont[8][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.mwcont[9][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.mwcont[10][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.mwcont[11][0]; }));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> pet_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> mwcont_lower_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("pet", [](const Patch &p) { return p.apet; }));
-
-	return columns;
-}
-
-std::vector<ColumnDefinition> simfire_columns() {
-	std::vector<ColumnDefinition> columns;
-
-	columns.push_back(ColumnDefinition("Biome", [](const Patch &p) { return (double)get_gridcell(p).simfire_biome; }));
-	columns.push_back(ColumnDefinition("MxNest", [](const Patch &p) { return get_gridcell(p).nesterov_max; }));
-	columns.push_back(ColumnDefinition("CurrentNesterov", [](const Patch &p) { return get_gridcell(p).nesterov_cur; }));
-	columns.push_back(ColumnDefinition("PopDens", [](const Patch &p) { return get_gridcell(p).pop_density; }));
-	columns.push_back(ColumnDefinition("AMxFApar", [](const Patch &p) { return get_gridcell(p).fapar_annual_max; }));
-	columns.push_back(ColumnDefinition("FireProb", [](const Patch &p) { return get_gridcell(p).simfire_annual_burned_area; }));
-	columns.push_back(ColumnDefinition("Region", [](const Patch &p) { return (double)get_gridcell(p).simfire_region; }));
-
-	columns.push_back(ColumnDefinition("PBiome", [](const Patch &p) { return get_p_biome(get_gridcell(p)); }));
-	columns.push_back(ColumnDefinition("PFpar", [](const Patch &p) { return get_p_fpar(get_gridcell(p)); }));
-	columns.push_back(ColumnDefinition("PMxNest", [](const Patch &p) { return get_p_nesterov(get_gridcell(p)); }));
-	columns.push_back(ColumnDefinition("PPopDens", [](const Patch &p) { return get_p_popdens(get_gridcell(p)); }));
-
-	columns.push_back(ColumnDefinition("MFireChance", [](const Patch &p) { return get_gridcell(p).monthly_fire_risk[date.month]; }));
-	columns.push_back(ColumnDefinition("DFireChance", [](const Patch &p) { return get_gridcell(p).monthly_fire_risk[date.month] / (double)date.ndaymonth[date.month]; }));
-
-	columns.push_back(ColumnDefinition("avail_fuel", [](const Patch &p) { return p.avail_fuel; }));
-
-	columns.push_back(ColumnDefinition("SimfireBurntArea", [](const Patch &p) { return get_gridcell(p).simfire_annual_burned_area; }));
-	columns.push_back(ColumnDefinition("ABurntArea", [](const Patch &p) { return get_gridcell(p).annual_burned_area; }));
+	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.mwcont[0][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.mwcont[1][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.mwcont[2][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.mwcont[3][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.mwcont[4][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.mwcont[5][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.mwcont[6][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.mwcont[7][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.mwcont[8][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.mwcont[9][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.mwcont[10][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.mwcont[11][1]; }));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> fuel_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> pet_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("FineLitter", get_fine_litter));
-	columns.push_back(ColumnDefinition("FineWood", get_fine_woody_debris));
-	columns.push_back(ColumnDefinition("CoarseWood", get_coarse_woody_debris));
-	columns.push_back(ColumnDefinition("GrassCMass", get_half_cmass_grass));
-	columns.push_back(ColumnDefinition("avail_fuel", [](const Patch &p) { return p.avail_fuel; }));
+	columns.push_back(ColumnDefinition<Patch>("pet", [](const Patch &p) { return p.apet; }));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> coarse_woody_debris_columns() {
-	std::vector<ColumnDefinition> columns;
+std::vector<ColumnDefinition<Patch>> simfire_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition("LitterHeart", get_heartwood_litter));
-	columns.push_back(ColumnDefinition("som", get_coarse_woody_som));
-	columns.push_back(ColumnDefinition("k_tun_litter", [](const Patch &p) { return get_gridcell(p).k_tun_litter; }));
+	columns.push_back(ColumnDefinition<Patch>("Biome", [](const Patch &p) { return (double)get_gridcell(p).simfire_biome; }));
+	columns.push_back(ColumnDefinition<Patch>("MxNest", [](const Patch &p) { return get_gridcell(p).nesterov_max; }));
+	columns.push_back(ColumnDefinition<Patch>("CurrentNesterov", [](const Patch &p) { return get_gridcell(p).nesterov_cur; }));
+	columns.push_back(ColumnDefinition<Patch>("PopDens", [](const Patch &p) { return get_gridcell(p).pop_density; }));
+	columns.push_back(ColumnDefinition<Patch>("AMxFApar", [](const Patch &p) { return get_gridcell(p).fapar_annual_max; }));
+	columns.push_back(ColumnDefinition<Patch>("FireProb", [](const Patch &p) { return get_gridcell(p).simfire_annual_burned_area; }));
+	columns.push_back(ColumnDefinition<Patch>("Region", [](const Patch &p) { return (double)get_gridcell(p).simfire_region; }));
+
+	columns.push_back(ColumnDefinition<Patch>("PBiome", [](const Patch &p) { return get_p_biome(get_gridcell(p)); }));
+	columns.push_back(ColumnDefinition<Patch>("PFpar", [](const Patch &p) { return get_p_fpar(get_gridcell(p)); }));
+	columns.push_back(ColumnDefinition<Patch>("PMxNest", [](const Patch &p) { return get_p_nesterov(get_gridcell(p)); }));
+	columns.push_back(ColumnDefinition<Patch>("PPopDens", [](const Patch &p) { return get_p_popdens(get_gridcell(p)); }));
+
+	columns.push_back(ColumnDefinition<Patch>("MFireChance", [](const Patch &p) { return get_gridcell(p).monthly_fire_risk[date.month]; }));
+	columns.push_back(ColumnDefinition<Patch>("DFireChance", [](const Patch &p) { return get_gridcell(p).monthly_fire_risk[date.month] / (double)date.ndaymonth[date.month]; }));
+
+	columns.push_back(ColumnDefinition<Patch>("avail_fuel", [](const Patch &p) { return p.avail_fuel; }));
+
+	columns.push_back(ColumnDefinition<Patch>("SimfireBurntArea", [](const Patch &p) { return get_gridcell(p).simfire_annual_burned_area; }));
+	columns.push_back(ColumnDefinition<Patch>("ABurntArea", [](const Patch &p) { return get_gridcell(p).annual_burned_area; }));
 
 	return columns;
 }
 
-std::vector<ColumnDefinition> met_year_columns() {
-	std::vector<ColumnDefinition> columns;
-	columns.push_back(ColumnDefinition("met_year", [](const Patch &p) { return (double)p.get_climate().met_year; }));
+std::vector<ColumnDefinition<Patch>> fuel_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("FineLitter", get_fine_litter));
+	columns.push_back(ColumnDefinition<Patch>("FineWood", get_fine_woody_debris));
+	columns.push_back(ColumnDefinition<Patch>("CoarseWood", get_coarse_woody_debris));
+	columns.push_back(ColumnDefinition<Patch>("GrassCMass", get_half_cmass_grass));
+	columns.push_back(ColumnDefinition<Patch>("avail_fuel", [](const Patch &p) { return p.avail_fuel; }));
+
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> coarse_woody_debris_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("LitterHeart", get_heartwood_litter));
+	columns.push_back(ColumnDefinition<Patch>("som", get_coarse_woody_som));
+	columns.push_back(ColumnDefinition<Patch>("k_tun_litter", [](const Patch &p) { return get_gridcell(p).k_tun_litter; }));
+
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> met_year_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("met_year", [](const Patch &p) { return (double)p.get_climate().met_year; }));
 	return columns;
 }
 

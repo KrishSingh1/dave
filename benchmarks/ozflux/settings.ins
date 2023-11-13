@@ -221,7 +221,12 @@ state_path "./state/"            ! Directory to put state files in
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0            ! Whether to use (and change) landcover fractions (1) or not (0)
+! All landcover-related settings are in landcover.ins (in the ozflux directory,
+! NOT the one in the data directory!!!).
+!
+! In the committed version of the file, run_landcover is set to 0, so this
+! should have no effect by default.
+import "landcover.ins"
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PFT parameters

@@ -3042,6 +3042,8 @@ public:
 	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
+	/// development factor used for calculating growth demand.
+	double fdev_growth;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	double growth_stage;
 	/// number of days in current growth stage

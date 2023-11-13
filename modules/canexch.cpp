@@ -2465,7 +2465,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// TODO: Does C storage respire?
 			// TODO: replace respiration functions here!
-			resp_crown = (0.7 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.5 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// Growth respiration
 			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value

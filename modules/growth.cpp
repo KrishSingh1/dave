@@ -2604,7 +2604,6 @@ double growth_demand(Individual& indiv) {
 	double growth_demand = 0.0;
 	double fwater_growth = 0.0;
 	double ftemp_growth = 0.0;
-	double fdev_growth = 0.0;
 	double qgrowth = 1.1;
 	double ag_cmass = 0.0;
 	bool simple_formulation = false;
@@ -2623,11 +2622,11 @@ double growth_demand(Individual& indiv) {
 		ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
 		ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
 		//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
-		fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
+		indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
 
-        // growth demand (=sink activity) as a fraction of existing biomass
+        // growth demand (=sink activity) as a fraction of existing biomass.
 		// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
-		growth_demand = min(1.0,growth_rate_pot * fdev_growth * ftemp_growth * fwater_growth);
+		growth_demand = min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth);
 
 	}
 
@@ -3196,13 +3195,16 @@ void update_pools(Vegetation& vegetation) {
 void senescence(Vegetation& vegetation) {
 	
 	// Parameters
-	const double crelocfrac = 0.1;  // TODO: move to constants?
+	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double fsenesc_veg = 0.05;         // Factor controling baseline senscence rate in the reproductive phase
-	const double fsenesc_repr = 0.1;         // Factor controling baseline senscence rate in the reproductive phase
-	//const double k = 10.0;            // Shape parameter in senescence function (steepness)
-	const double qwater_senesc = 0.5;
-	// TODO: lower retranslocation for annuals in the reproductive phase?
+	const double senesc_base = 0.005;              // Baseline senescence rate in the vegetative phase (d-1)
+	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
+	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
+	const double senesc_scal_water = 4.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 6.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+
+	const double qwater_senesc = 0.7;
+	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	// Air temperature or bottom snow layer if snow present
@@ -3220,57 +3222,49 @@ void senescence(Vegetation& vegetation) {
 		}
 
 		// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
-		double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+		// double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
+		// Note: leaflong not used anymore for senescence as it is conceptually difficult
 
-		if (indiv.growth_stage == vegetative){
-			
-			// low rate of senescence in the vegetative phase
-			senesc_base = fsenesc_veg * senesc_base;
+		double senesc = senesc_base;
 
-		} else if (indiv.growth_stage == reproductive) {
+		if (indiv.growth_stage == reproductive) {
 
+			double fsenesc_repr = indiv.pft.lifeform == GRASS_ANNUAL ? fsenesc_repr_annual : fsenesc_repr_perennial;
 			// in the reproductive phase, senescence is proportional to fraction of C already invested in reproduction.
-			senesc_base = fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[0] + indiv.cmass_root);
+			senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[0] + indiv.cmass_root);
 
-			// in the reproductive phase also re-invest C and N storage to reproductive pools
-			// TODO: do that here or somewhere else?
-			//double nstore = senesc_base * indiv.nmass_storage;
-			//double cstore = nstore * pft.cton_repr_min;
-			//indiv.cmass_storage 
 		}
+		
 		
 		// Stress factors increase senescence
 		// Soil moisture
-		double senesc_fwater = senesc_base * pow((1 - ppft.wscal),qwater_senesc) * 2.0;
+		double senesc_fwater = senesc_scal_water * pow((1 - ppft.wscal),qwater_senesc);
 		
 		// High and low temperatures
-		double senesc_ftemp  = 0.0;  // TODO: replace Temp response
-		if (grass_temp < 10.0) {
-			senesc_ftemp = senesc_base * (10.0 - grass_temp) / 10.0;
-		}
-		else if (grass_temp > 35.0) {
-			senesc_ftemp = senesc_base * (35.0 + grass_temp) / 10.0;
+		// linear increase as in Johnson & Thornley 1983.
+		// TODO: improve formulation.
+		double senesc_ftemp = 0.0;
+		if (grass_temp < 0.0) {
+			senesc_ftemp = temp_senesc * (0.0 - grass_temp);
+		} else if (grass_temp > 35.0) {
+			senesc_ftemp = temp_senesc * (grass_temp - 35.0);
 		}
 
 		// Dormancy-induced (drought dormancy only at the moment)
-		double senesc_fdorm = 0;
+		double senesc_fdorm = 0.0;
 		if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 
-			senesc_fdorm = senesc_base * (1.0 - indiv.fphen_activity) * 2.5;
+			senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 
 		}
 
 		// Total senescence rate
-		double senesc = min(1.0, senesc_base + senesc_fwater + senesc_ftemp + senesc_fdorm);
+		senesc *= ((1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
+		senesc = min(1.0, senesc);
 
-		// Total senescence rate
-		//senesc = senesc_max / (1 + exp( -k * (min(1.0,indiv.growth_stage - growth_stage0)) ));
-		
 		// Retranslocation and pool updates
 		// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 		// TODO: calculate retranslocation coefficients based on current C:N ratios?
-
-		// TODO: move fractions to parameters??
 
 		// Carbon
 		double csenesc  = indiv.cmass_leafs[green] * senesc;

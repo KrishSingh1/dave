@@ -87,7 +87,7 @@ void GetclimInput::init() {
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 
 	xtring driver_file_path = param["getclim_driver_file"].str;
 

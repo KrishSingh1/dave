@@ -126,7 +126,7 @@ void FluxnetInput::init() {
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 	// Read in soil data
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 

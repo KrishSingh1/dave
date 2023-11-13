@@ -479,6 +479,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& par_grass_mean
 		& nday_growingseason
 		& fpc_total
+		& rpc_total
 		& disturbed
 		& managed
 		& has_been_cut
@@ -1678,6 +1679,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
+	rpc               = 0.0;
 	densindiv         = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
@@ -1696,10 +1698,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_crown       = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
+	growth_stage      = 0.0;
+	fdev_growth       = 0.0;
+	growth_stage_days = 0;
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
 	cexcess           = 0.0;
+	nexcess           = 0.0;
 	nmass_missing     = 0.0;
 	deltafpc          = 0.0;
 	lai_ymax					= 0.0;
@@ -1861,6 +1867,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& last_turnover_day
 		& fpc
 		& fpc_daily
+		& rpc
 		& fpar
 		& densindiv
 		& cgrow
@@ -1868,6 +1875,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow_root
 		& cgrow_repr
 		& growth_demand
+		& growth_stage
 		& phen
 		& aphen
 		& aphen_raingreen
@@ -1880,7 +1888,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
-		& cmass_storage_10
+		& cmass_storage_15
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -2232,16 +2240,20 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
 	if (!negligible(cmass_root) && !negligible(nmass_root)) {
-		if (use_phen) {
-			if (!negligible(cmass_root_today())) {
-				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
+		if (ifdavegrowth) {
+			return (cmass_root / nmass_root);  // stoichiometry checked in growth
+		} else {
+			if (use_phen) {
+				if (!negligible(cmass_root_today())) {
+					return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
+				}
+				else {
+					return pft.cton_root_avr;
+				}
 			}
 			else {
-				return pft.cton_root_avr;
+				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
 			}
-		}
-		else {
-			return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
 		}
 	}
 	else {
@@ -2249,13 +2261,35 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 	}
 }
 
+double Individual::cton_crown() const {
+	if (pft.is_grass() && ifdailygrass && ifdavegrowth) {
+		if (!negligible(cmass_crown) && !negligible(nmass_crown)) {
+			return (cmass_crown / nmass_crown);
+		} 
+		else {
+			return pft.cton_root_max;
+		}
+	} 
+	else {
+		return 1.0;
+	}
+}
+
+
+
 double Individual::cton_sap() const {
 
 	if (pft.lifeform == TREE) {
-		if (!negligible(cmass_sap) && !negligible(nmass_sap))
-			return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
-		else
+		if (!negligible(cmass_sap) && !negligible(nmass_sap)) {
+			if (ifdavegrowth) {
+				return (cmass_sap / nmass_sap); // stoichiometry should be checked in growth
+			} else {
+				return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
+			}
+		}
+		else {
 			return pft.cton_sap_max;
+		}
 	}
 	else {
 		return 1.0;
@@ -2286,6 +2320,7 @@ double Individual::sla() const {
 			//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
 			//current_sla *= pow(max(0.01,growth_demand_sla),sla_beta);
 			current_sla *= 1.0; 
+			//current_sla *= fdev_growth * 0.8;
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 		}

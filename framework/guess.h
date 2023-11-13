@@ -2048,6 +2048,10 @@ public:
 	double cton_root_avr;
 	/// maximum fine root C:N mass ratio (used when mass is negligible)
 	double cton_root_max;
+	/// minimum reproductive C:N mass ratio (connected to cton_root_avr and cton_root_max)
+	double cton_repr_min;
+	/// maximum reproductive C:N mass ratio (used when mass is negligible)
+	double cton_repr_max;
 	/// minimum sapwood C:N mass ratio (used when mass is negligible)
 	double cton_sap_min;
 	/// average sapwood C:N mass ratio (connected cton_leaf_avr)
@@ -2073,6 +2077,8 @@ public:
 	double reprfrac;
 	/// fraction of NPP allocated to crowns
 	double crownfrac;
+	// fraction of shoot allocated to culms (=culm / (culm + leaves))
+	double culmfrac;
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
@@ -2485,13 +2491,17 @@ public:
 
 		if (ifdavegrowth) {
 			// TODO: revisit C:N avg!
-			// Maximum fine root C:N ratio
-			cton_root_max = cton_leaf_max * frac_leaftoroot;
+			// Bounds for fine root C:N ratio
 			cton_root_min = cton_leaf_min * frac_leaftoroot;
+			cton_root_max = cton_leaf_max * frac_leaftoroot;
 
-			// Maximum sap C:N ratio
-			cton_sap_max = cton_leaf_max * frac_leaftosap;
+			// Bounds for sap C:N ratio
 			cton_sap_min = cton_leaf_min * frac_leaftosap;
+			cton_sap_max = cton_leaf_max * frac_leaftosap;
+
+			// Bounds for repr C:N ratio
+			cton_repr_min = greater_than_or_equal(cton_root_min, cton_leaf_min) ? cton_root_min : cton_leaf_min;
+			cton_repr_max = less_than_or_equal(cton_root_max, cton_leaf_max) ? cton_root_max : cton_leaf_max;
 		} else {
 			// Tighter C:N ratio range for roots and sapwood: picked out thin air
 			double frac_maxtomin = .9;
@@ -3032,8 +3042,16 @@ public:
 	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
+	/// development factor used for calculating growth demand.
+	double fdev_growth;
+	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
+	double growth_stage;
+	/// number of days in current growth stage
+	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
+	/// N exceeding storage capacity (kgN/m2/d)
+	double nexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
 	double ps_sink_lim;
 	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
@@ -3079,6 +3097,8 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
+	/// root projective cover (RPC); used for grasses only
+	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
 	/// layer-wise fpar (see fpar description)
@@ -3129,8 +3149,8 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 10-day record of carbon storage pool (kgC/m2)
-	Historic<double, 10> cmass_storage_10;
+	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
+	Historic<double, 15> cmass_storage_15;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3441,6 +3461,9 @@ public:
 	 *                  when calculating C:N ratio
 	 */
 	double cton_root(bool use_phen = true) const;
+
+	/// Current crown C:N ratio (DAVE grasses only)
+	double cton_crown() const;
 
 	/// Current sap C:N ratio
 	double cton_sap() const;
@@ -4751,6 +4774,8 @@ public:
 	int nday_growingseason;
 	/// total patch FPC
 	double fpc_total;
+	/// total patch RPC (root projective cover)
+	double rpc_total;
 	/// whether patch was disturbed last year
 	bool disturbed;
 	/// patch age (years since last disturbance)

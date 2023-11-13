@@ -103,10 +103,6 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		check_bounds = sensibility_checks;
 		limits = b;
 
-		cache_prev.year = -1;
-		cache_prev.day = -1;
-		cache_prev.timestep = -1;
-
 		ndim = get_num_dimensions(id_var);
 
 		// Get dimensions of this variable.

@@ -193,6 +193,11 @@ inline double divide(double x, double y) {
 	return x / y;
 }
 
+/// Calculates modulus
+inline size_t modulo(int a, int b) {
+	return ((a % b) + b) % b;
+}
+
 /// Calculates variation coefficient of values in an array
 inline double variation_coefficient(double* data, int n) {
 	// 0 and 1 will give division with zero.
@@ -242,10 +247,6 @@ inline void regress(double* x, double* y, int n, double& a, double& b) {
 	delta = (double)n*sxx - sx*sx;
 	a = (sxx*sy - sx*sxy)/delta;
 	b = ((double)n*sxy-sx*sy)/delta;
-}
-
-inline size_t modulo(int a, int b) {
-    return ((a % b) + b) % b;
 }
 
 // Forward declarations needed for the friendship between Historic and operator&
@@ -358,6 +359,22 @@ public:
 		}
 	}
 
+	/// Sum of stored values for a period from current position and backwards nsteps
+	T periodicsum(const size_t nsteps) const {
+		T result = 0.0;
+
+		if (nsteps >= size()){
+			return sum();
+		} else {
+			for (size_t i = size()-1; i >=size()-nsteps; --i) {
+				result += (*this)[i];
+			}
+		}
+
+		return result;
+	}
+
+	/// Periodic sum of differences 
     T periodictrend(size_t nsteps) const {
         size_t current_size = size();
         if (current_size == 0) {
@@ -377,21 +394,6 @@ public:
         }
         return trend;
     }
- 
-	/// Sum of stored values for a period from current position and backwards nsteps
-	T periodicsum(const size_t nsteps) const {
-		T result = 0.0;
-
-		if (nsteps >= size()){
-			return sum();
-		} else {
-			for (size_t i = size()-1; i >=size()-nsteps; --i) {
-				result += (*this)[i];
-			}
-		}
-
-		return result;
-	}
 
 	/// Trend/Slope of a linear regression of values
 	T trend() const {

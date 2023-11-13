@@ -399,7 +399,9 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	// wcont as fraction of available water holding capacity.
 	double wcont = patch.soil.get_layer_soil_water(0);
 	double tsoil = patch.soil.T_soil[7];  // TODO: check with DW that this is the right layer
-	double frac_germ = 0.2 * wcont;
+	double fwater = wcont > 0.9 ? 0.2 * wcont : 0.0;  
+	double ftemp = 1.0;
+	double frac_germ = min(fwater,ftemp);
 
 	return frac_germ;
 }

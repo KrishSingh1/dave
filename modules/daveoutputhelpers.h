@@ -62,6 +62,14 @@ Get the patch-level daily evapotranspiration (mm/day).
 double get_et(const Patch &patch, int i);
 
 /*
+Get the individual in the patch with the specified name, or NULL if not found.
+
+@param vegetation: The vegetation in the patch.
+@param name: Name of a PFT.
+*/
+std::vector<Individual *> get_indivs(const Vegetation &vegetation, const char *name);
+
+/*
 Get the name of all known PFTs.
 
 @param remove_whitespace: True to remove whitespace. False otherwise.
@@ -150,6 +158,21 @@ Get the columns used in the patch-level coarse woody debris output file.
 std::vector<ColumnDefinition<Patch>> coarse_woody_debris_columns();
 
 /*
+Get the columns used in the patch-level SOM pool cmass output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_cmass_columns();
+
+/*
+Get the columns used in the patch-level SOM pool nmass output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_nmass_columns();
+
+/*
+Get the columns used in the patch-level nitrogen input output file.
+*/
+std::vector<ColumnDefinition<Patch>> ninput_columns();
+
+/*
 Get the columns used in the met year output file.
 */
 std::vector<ColumnDefinition<Patch>> met_year_columns();
@@ -173,22 +196,6 @@ specified patch.
 @param patch: A patch object.
 */
 int get_nlayer_fpar(const Patch &patch);
-
-/*
-Get the fpar value for a given individual in the specified canopy layer.
-
-@param indiv: The individual.
-@param i: The layer index - ie the i-th layer above the ground.
-*/
-double get_fpar_layer(const Individual &indiv, int i);
-
-/*
-Get the lai value for a given individual in the specified canopy layer.
-
-@param indiv: The individual.
-@param i: The layer index - ie the i-th layer above the ground.
-*/
-double get_lai_layer(const Individual &indiv, int i);
 
 /*
 Get the number of canopy layers used for light interception today in the

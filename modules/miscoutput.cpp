@@ -1164,8 +1164,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_cmass_est += patchpft.cmass_est;
 				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap
 					+ patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
-				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
-					+ patchpft.nmass_litter_heart;
+				if (ifdavegrowth) {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+						+ patchpft.nmass_litter_heart + patchpft.nmass_litter_repr;
+				} else {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+						+ patchpft.nmass_litter_heart;
+				}
+
 
 				vegetation.firstobj();
 				while (vegetation.isobj) {

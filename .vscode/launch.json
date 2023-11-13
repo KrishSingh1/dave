@@ -39,7 +39,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "prepare-run",
+            "preLaunchTask": "build",
         },
         {
             "name": "Adelaide River",
@@ -1244,17 +1244,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "Yarramundi",
+            "name": "YarramundiDegraded",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "Yarramundi.ins"
+                "YarramundiDegraded.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yarramundi",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarramundiDegraded",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1325,7 +1325,7 @@
                     "Whroo",
                     "WombatStateForest",
                     "Yanco",
-                    "Yarramundi"
+                    "YarramundiDegraded"
                 ],
             }
         }

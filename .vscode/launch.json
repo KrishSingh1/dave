@@ -39,7 +39,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "prepare-run",
+            "preLaunchTask": "build",
         },
         {
             "name": "Adelaide River",

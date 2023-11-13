@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -551,7 +555,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 			while (pftlist.isobj) {
 				Pft& pft = pftlist.getobj();
 				if (pft.lifeform == TREE) npft_tree++;
-				else if (pft.lifeform == GRASS) npft_grass++;
+				else if (pft.is_grass()) npft_grass++;
 				pftlist.nextobj();
 			}
 			npft_total = npft_tree + npft_grass;
@@ -573,7 +577,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 				Pft& pft = pftlist.getobj();
-				if (pft.lifeform == GRASS) {
+				if (pft.is_grass()) {
 					sprintf(pftname, "%s", (char*)(pft.name.left(15)));
 					fwrite(pftname, sizeof(char), 16, plot3d_getfilehandle());
 					fwrite(&rgb, sizeof(double), 3, plot3d_getfilehandle());
@@ -600,7 +604,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 						fwrite(&indiv.height, sizeof(double), 1, plot3d_getfilehandle());
 						fwrite(&indiv.crownarea, sizeof(double), 1, plot3d_getfilehandle());
 					}
-					else if (indiv.pft.lifeform == GRASS) grasslai += indiv.lai;
+					else if (indiv.pft.is_grass()) grasslai += indiv.lai;
 					vegetation.nextobj();
 				}
 				ival = -9999;
@@ -1011,7 +1015,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
 				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap + patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
-				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
+				if (ifdavegrowth) {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart + patchpft.nmass_litter_repr;
+				} else {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
+				}
 
 					vegetation.firstobj();
 					while (vegetation.isobj) {
@@ -1021,7 +1029,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								if(!ifdailygrass || indiv.pft.lifeform != GRASS || indiv.istruecrop_or_intercropgrass()) {
+								if(!ifdailygrass || !indiv.pft.is_grass() || indiv.istruecrop_or_intercropgrass()) {
 									indiv.lai_ymax = indiv.lai;
 									indiv.fpc_ymax = indiv.fpc;
 									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
@@ -1964,7 +1972,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								if(ifdailygrass && indiv.alive && indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()){
+								if(ifdailygrass && indiv.alive && indiv.pft.is_grass() && !indiv.istruecrop_or_intercropgrass()){
 									standpft_lai += indiv.lai;
 
 									if (pft.name == "C3G") {

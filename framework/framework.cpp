@@ -5,6 +5,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -121,6 +125,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Daily C allocation
 			growth_daily(patch);
+
+			// Daily vegetation dynamics 
+			vegetation_dynamics_daily(patch);
 
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch, gridcell.climate);

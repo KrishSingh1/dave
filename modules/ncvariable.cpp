@@ -11,6 +11,16 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 
+int NCVariable::get_dimension_id(xtring dim_name) const {
+	int dim_id;
+	int status = nc_inq_dimid(id_file, (const char *)dim_name, &dim_id);
+
+	// Handle an error (if an error occurred).
+	handle_nc_error(status, "Failed to get ID of dimension '%s'", (const char *)dim_name);
+
+	return dim_id;
+}
+
 int NCVariable::get_variable_id(xtring var_name) const {
 	int var_id;
 	int status = nc_inq_varid(id_file, (const char *)var_name, &var_id);
@@ -93,10 +103,6 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		check_bounds = sensibility_checks;
 		limits = b;
 
-		cache_prev.year = -1;
-		cache_prev.day = -1;
-		cache_prev.timestep = -1;
-
 		ndim = get_num_dimensions(id_var);
 
 		// Get dimensions of this variable.
@@ -106,18 +112,21 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 
 		// Get longitude variable ID.
 		id_lon = get_variable_id(lon_name);
+		int id_lon_dim = get_dimension_id(lon_name);
 		check_num_dims(id_lon, 1);
 
 		// Get latitude variable ID.
 		id_lat = get_variable_id(lat_name);
+		int id_lat_dim = get_dimension_id(lat_name);
 		check_num_dims(id_lat, 1);
 
 		// Get time variable ID.
 		id_time = get_variable_id(time_name);
+		int id_time_dim = get_dimension_id(time_name);
 		check_num_dims(id_time, 1);
 
 		// Check total number of timesteps. This will be useful later.
-		ntime = get_dimension_length(id_time);
+		ntime = get_dimension_length(id_time_dim);
 
 		// Determine and validate the calendar type used by this NetCDF file.
 		calendar_type = get_calendar_type();
@@ -139,11 +148,11 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 
 		// Get the ordering of the dimensions for this variable.
 		for (int i = 0; i < ndim; i++) {
-			if (dimensions[i] == id_lon) {
+			if (dimensions[i] == id_lon_dim) {
 				dim_lon = i;
-			} else if (dimensions[i] == id_lat) {
+			} else if (dimensions[i] == id_lat_dim) {
 				dim_lat = i;
-			} else if (dimensions[i] == id_time) {
+			} else if (dimensions[i] == id_time_dim) {
 				dim_time = i;
 			}
 			// Technically, there could be other dimensions as well. A common

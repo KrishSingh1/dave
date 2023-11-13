@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date: 2015-04-09 18:40:34 +0200 (Thu, 09 Apr 2015) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -1160,8 +1164,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				standpft_cmass_est += patchpft.cmass_est;
 				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap
 					+ patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
-				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
-					+ patchpft.nmass_litter_heart;
+				if (ifdavegrowth) {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+						+ patchpft.nmass_litter_heart + patchpft.nmass_litter_repr;
+				} else {
+					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+						+ patchpft.nmass_litter_heart;
+				}
+
 
 				vegetation.firstobj();
 				while (vegetation.isobj) {

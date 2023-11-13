@@ -59,7 +59,7 @@ file_nflux "nflux.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
+file_mlai "mlai.out"
 !file_mrh "mrh.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
@@ -89,6 +89,11 @@ file_nflux "nflux.out"
 
 !file_mburned_area_out "monthly_burned_area.out"
 
+! Daily outputs
+file_dlai "dlai.out"
+file_dflux "dflux.out"
+file_dcmass_grass "dcmass_grass.out"
+
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +111,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-npatch 15			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -128,7 +133,8 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
-
+ifdailygrass 1			! whether to use daily carbon allocation for grasses.
+ifdailyoutput 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN

@@ -14,6 +14,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LPJ_GUESS_GUESS_H
@@ -52,7 +56,7 @@
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
 /// Life form class for PFTs (trees, grasses, mosses)
-typedef enum {NOLIFEFORM, TREE, GRASS, MOSS} lifeformtype;
+typedef enum {NOLIFEFORM, TREE, GRASS_PERENNIAL, GRASS_ANNUAL, MOSS} lifeformtype;
 
 /// Phenology class for PFTs
 typedef enum {NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, CROPGREEN, ANY} phenologytype;
@@ -2034,14 +2038,22 @@ public:
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
-	/// maximum leaf C:N mass ratio	allowed when nitrogen demand is determined
-	double cton_leaf_max;
 	/// average leaf C:N mass ratio (between min and max)
 	double cton_leaf_avr;
+	/// maximum leaf C:N mass ratio	allowed when nitrogen demand is determined
+	double cton_leaf_max;
+	/// minimum fine root C:N mass ratio (connected to cton_root_avr and cton_root_max)
+	double cton_root_min;
 	/// average fine root C:N mass ratio (connected cton_leaf_avr)
 	double cton_root_avr;
 	/// maximum fine root C:N mass ratio (used when mass is negligible)
 	double cton_root_max;
+	/// minimum reproductive C:N mass ratio (connected to cton_root_avr and cton_root_max)
+	double cton_repr_min;
+	/// maximum reproductive C:N mass ratio (used when mass is negligible)
+	double cton_repr_max;
+	/// minimum sapwood C:N mass ratio (used when mass is negligible)
+	double cton_sap_min;
 	/// average sapwood C:N mass ratio (connected cton_leaf_avr)
 	double cton_sap_avr;
 	/// maximum sapwood C:N mass ratio (used when mass is negligible)
@@ -2063,10 +2075,16 @@ public:
 
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
+	/// fraction of NPP allocated to crowns
+	double crownfrac;
+	// fraction of shoot allocated to culms (=culm / (culm + leaves))
+	double culmfrac;
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
 	double turnover_root;
+	/// annual seed turnover as a proportion of reproductive C biomass (patch-basis)
+	double turnover_repr;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
 	/// sapwood and heartwood density (kgC/m3)
@@ -2332,6 +2350,10 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
+    bool is_grass() const {
+		return lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL;
+	}
+
 	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
 
@@ -2467,29 +2489,42 @@ public:
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
 
+		if (ifdavegrowth) {
+			// TODO: revisit C:N avg!
+			// Bounds for fine root C:N ratio
+			cton_root_min = cton_leaf_min * frac_leaftoroot;
+			cton_root_max = cton_leaf_max * frac_leaftoroot;
+
+			// Bounds for sap C:N ratio
+			cton_sap_min = cton_leaf_min * frac_leaftosap;
+			cton_sap_max = cton_leaf_max * frac_leaftosap;
+
+			// Bounds for repr C:N ratio
+			cton_repr_min = greater_than_or_equal(cton_root_min, cton_leaf_min) ? cton_root_min : cton_leaf_min;
+			cton_repr_max = less_than_or_equal(cton_root_max, cton_leaf_max) ? cton_root_max : cton_leaf_max;
+		} else {
+			// Tighter C:N ratio range for roots and sapwood: picked out thin air
+			double frac_maxtomin = .9;
+
+			// Maximum fine root C:N ratio
+			cton_root_max = cton_leaf_max * frac_leaftoroot;
+			cton_root_min = cton_root_max * frac_maxtomin;
+
+			// Maximum sap C:N ratio
+			cton_sap_max  = cton_leaf_max * frac_leaftosap;
+			cton_sap_min = cton_sap_max * frac_maxtomin;
+		}
+
 		// Average leaf C:N ratio
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
-
-		// Tighter C:N ratio range for roots and sapwood: picked out thin air
-		double frac_maxtomin = .9;
-
-		// Maximum fine root C:N ratio
-		cton_root_max = cton_leaf_max * frac_leaftoroot;
-
-		double cton_root_min = cton_root_max * frac_maxtomin;
 
 		// Average fine root C:N ratio
 		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
 
-		// Maximum sap C:N ratio
-		cton_sap_max  = cton_leaf_max * frac_leaftosap;
-
-		double cton_sap_min = cton_sap_max * frac_maxtomin;
-
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (lifeform == GRASS || lifeform == MOSS) {
+		if (is_grass() || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
 		} 
 		else {
@@ -2498,6 +2533,19 @@ public:
 		}
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
+	/*
+		printf("%s: cton_leaf_min = %.2f\n", (const char *)name, cton_leaf_min);
+		printf("%s: cton_leaf_avr = %.2f\n", (const char *)name, cton_leaf_avr);
+		printf("%s: cton_leaf_max = %.2f\n", (const char *)name, cton_leaf_max);
+
+		printf("%s: cton_root_min = %.2f\n", (const char *)name, cton_root_min);
+		printf("%s: cton_root_avr = %.2f\n", (const char *)name, cton_root_avr);
+		printf("%s: cton_root_max = %.2f\n", (const char *)name, cton_root_max);
+
+		printf("%s: cton_sap_min = %.2f\n", (const char *)name, cton_sap_min);
+		printf("%s: cton_sap_avr = %.2f\n", (const char *)name, cton_sap_avr);
+		printf("%s: cton_sap_max = %.2f\n", (const char *)name, cton_sap_max);
+	*/
 	}
 
 	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
@@ -2548,7 +2596,7 @@ public:
 
 			regen.cmass_heart = SAPLINGHW * regen.cmass_sap;
 		}
-		else if (lifeform == GRASS || lifeform==MOSS) {
+		else if (is_grass() || lifeform==MOSS) {
 
 			// Grass regeneration characteristics
 
@@ -2567,7 +2615,7 @@ public:
 
 			transferconst = 0.0;
 		}
-		else if (lifeform == GRASS) {
+		else if (is_grass()) {
 
 			// Used for daily grass growth. Results in correct leaf longevity under 0.75 * perfect conditions
 
@@ -2611,7 +2659,7 @@ public:
 
 	bool isgrass() const {
 
-		if (lifeform == GRASS)
+		if (is_grass())
 			return true;
 		else
 			return false;
@@ -2964,6 +3012,8 @@ public:
 	double cmass_leaf;
 	/// fine root C biomass on modelled area basis (kgC/m2)
 	double cmass_root;
+	/// crown C biomass (kgC/m2)
+	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
@@ -2986,23 +3036,34 @@ public:
 	double cgrow_leaf;
 	/// daily root growth rate (kgC/m2/d)
 	double cgrow_root;
+	/// daily crown growth rate (kgC/m2/d)
+	double cgrow_crown;
 	/// daily sapwood growth rate (kgC/m2/d)
 	double cgrow_sap;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
 	/// daily growth demand [0-1]
 	double growth_demand;
+	/// development factor used for calculating growth demand.
+	double fdev_growth;
+	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
+	double growth_stage;
+	/// number of days in current growth stage
+	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
+	/// N exceeding storage capacity (kgN/m2/d)
+	double nexcess;
 	/// photosynthetic limitation due to sink activity [0-1]
 	double ps_sink_lim;
 	/// Daily N mass added to the indiv during the free n years (kgN/m2/d).
 	double nmass_missing;
-
-	/// leaf N biomass on modelled area basis (kgN/m2)
+	/// leaf N mass on modelled area basis (kgN/m2)
 	double nmass_leaf;
 	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
+	/// crown N mass (kgN/m2)
+	double nmass_crown;
 	/// reproductive tissue biomass (kgN/m2)
 	double nmass_repr;
 	/// sap N biomass on modelled area basis (kgN/m2)
@@ -3038,6 +3099,8 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
+	/// root projective cover (RPC); used for grasses only
+	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
 	/// layer-wise fpar (see fpar description)
@@ -3086,8 +3149,10 @@ public:
 	double cmass_root_ymax;
 	/// yearly maximum nmass_root for daily allocation
 	double nmass_root_ymax;
-	/// Carbon storage for leaf daily allocation
+	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
+	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
+	Historic<double, 15> cmass_storage_15;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3104,8 +3169,6 @@ public:
 	double nmass_storage;
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
-	/// running mean of cdeficit for last 5 days for each individual.
-	Historic<double, 5> cdeficit_5;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -3217,10 +3280,12 @@ public:
 	bool n_opt_isabovelim;
 	/// whether individual subject to nitrogen stress
 	bool nstress;
-	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
+	/// daily leaf nitrogen demand. Calculated from Vmax in orig. LPJ-GUESS (kgN/m2)
 	double leafndemand;
 	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
+	/// daily crown nitrogen demand in grasses (kgN/m2)
+	double crownndemand;
 	/// daily reproductive tissue nitrogen demand
 	double reprndemand;
 	/// daily sap wood nitrogen demand based on leafndemand
@@ -3325,6 +3390,9 @@ public:
 		return (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || cropindiv->isintercropgrass));
 	}
 
+	// Flush reproductive pool to litter
+	void flush_repr_litter_DAVE();
+
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;
 
@@ -3395,6 +3463,9 @@ public:
 	 *                  when calculating C:N ratio
 	 */
 	double cton_root(bool use_phen = true) const;
+
+	/// Current crown C:N ratio (DAVE grasses only)
+	double cton_crown() const;
 
 	/// Current sap C:N ratio
 	double cton_sap() const;
@@ -4521,8 +4592,6 @@ public:
 	double cmass_litter_heart;
 	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
-	/// N litter derived from allocation to reproduction for PFT on modelled area basis (kgN/m2).
-	double nmass_litter_repr;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4554,6 +4623,8 @@ public:
 	double nmass_litter_sap;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
+	/// N content of reproductive litter pool (seedbank) (kgN/m2)
+	double nmass_litter_repr;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -4707,6 +4778,8 @@ public:
 	int nday_growingseason;
 	/// total patch FPC
 	double fpc_total;
+	/// total patch RPC (root projective cover)
+	double rpc_total;
 	/// whether patch was disturbed last year
 	bool disturbed;
 	/// patch age (years since last disturbance)

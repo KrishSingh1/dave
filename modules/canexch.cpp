@@ -8,6 +8,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -284,7 +288,7 @@ void fpar(Patch& patch) {
 				if (indiv.height>height_veg) height_veg=indiv.height;
 				plai_leafon+=indiv.lai;
 
-				if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) {
+				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 					plai_leafon_grass+=indiv.lai;
 					plai_grass += indiv.lai_today();
 				}
@@ -449,7 +453,7 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
+			if (indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) {
 
 				// Calculate minimum FPAR for growth of this grass
 
@@ -471,8 +475,7 @@ void fpar(Patch& patch) {
 						fpar_min=1.0;
 
 					t2 = max(t2, fpar_min);
-				}
-				else {
+				} else {
 					fpar_min = 1.0;
 				}
 				indiv.fpar=max(0.0,fpar_grass*flai-t2);
@@ -1001,7 +1004,7 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+		if (indiv.pft.is_grass() && ifdailygrass) {
 
 			indiv.nstress = ifnlim && date.year > freenyears;
 
@@ -1116,7 +1119,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double leafoptn;
 
 		// If grass with daily allocation
-		bool daily_grass = indiv.pft.lifeform == GRASS && ifdailygrass;
+		bool daily_grass = indiv.pft.is_grass() && ifdailygrass;
 
 		// Calculate optimal leaf nitrogen content and demand
 		if ((!negligible(indiv.phen) && !daily_grass) || (!negligible(indiv.cmass_leaf_today()) && daily_grass)) {
@@ -1308,7 +1311,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Should be done on FPC basis, but is not as it does not matter mathematically
 		// Needs to be calculated for each individual due to possible water stress
 
-		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+		if (indiv.pft.is_grass() && ifdailygrass) {
 			indiv.nactive = max(0.0, indiv.get_nmass_leaf() - N0 * indiv.get_cmass_leaf());
 		}
 		else {
@@ -2040,11 +2043,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover != CROPLAND && !(ifdailygrass && ppft.pft.lifeform == GRASS)){
+			if (patch.stand.landcover != CROPLAND && !(ifdailygrass && ppft.pft.is_grass())){
 				ppft.wsupply_leafon = pft.emax * wr;
 				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
 			}
-			else if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+			else if (ifdailygrass && ppft.pft.is_grass()) {
 				ppft.wsupply_leafon = pft.emax * wr;
 				ppft.wsupply = ppft.wsupply_leafon;
 			}
@@ -2068,7 +2071,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));
 
-		if (ifdailygrass && ppft.pft.lifeform == GRASS) {
+		if (ifdailygrass && ppft.pft.is_grass()) {
 			ppft.wstress = ppft.wsupply < patch.wdemand;
 		}
 
@@ -2323,9 +2326,9 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 // Internal function (do not call directly from framework)
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root,
-	double cmass_sap, double cmass_root_today, double growth_demand, double fphen_activity,
-	double assim, double& resp) {
+	double respcoeff, double cton_sap, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double growth_demand,
+	double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2360,9 +2363,10 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations
 	// See the comment after Eqn (4) below.
 
-	double resp_sap;    // sapwood respiration (kg/m2/day)
-	double resp_root;   // root respiration (kg/m2/day)
-	double resp_growth; // growth respiration (kg/m2/day)
+	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
+	double resp_root = 0;   // root respiration (kg/m2/day)
+	double resp_crown = 0;  // crown respiration (kg/m2/day)
+	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -2446,7 +2450,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		resp = resp_sap + resp_root + resp_growth;
 	}
-	else if (lifeform == GRASS || lifeform == MOSS) {
+	else if (lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL || lifeform == MOSS) {
 
 		if (ifdavegrowth) {
 
@@ -2456,12 +2460,16 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Root respiration
 			// Reduction factor of resp_root during dormancy
+			// Note: crown respiration added to resp_root for now
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
+			// TODO: Does C storage respire?
+			// TODO: replace respiration functions here!
+			resp_crown = (0.5 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+
 			// Growth respiration
-			const double Rg_max = 0.4;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim /*- resp_sap     DH: need to confirm with Juergen if this can be removed*/
-			               - resp_root) * (growth_demand * Rg_max);
+			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
+			resp_growth = (assim - resp_root) * (growth_demand * Rg_max);
 
 		} else {
 			
@@ -2478,7 +2486,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_growth;
+		resp = resp_root + resp_crown + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
 }
@@ -2588,8 +2596,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, assim, resp);
+			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -2779,7 +2787,7 @@ void vcmax_from_N(Vegetation& vegetation) {
         // leaf N of green leaves per leaf area (kgN m-2 leaf)
 		// take green leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
-		if (indiv.pft.lifeform == GRASS) {
+		if (indiv.pft.is_grass()) {
 			nmass_leaf = (!negligible(indiv.nmass_leafs[0])) ? 
 						indiv.nmass_leafs[0] / (indiv.cmass_leafs[0] * indiv.sla()) : 0.0;
 		} else {
@@ -2870,7 +2878,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// is par and leaf in this layer, but no fpar.
 						// For grasses, this can happen if PAR is below the threshold
 						// required for grass growth.
-						// if (pft.lifeform != GRASS && pft.lifeform != MOSS) {
+						// if (!pft.is_grass() && pft.lifeform != MOSS) {
 						// 	fail("Lai (%.2f) and par (%.2f) are both nonzero but fpar is 0 in layer %d day %d year %d patch %d",
 						// 	lai_layer, par, i, date.day, date.year, patch.id);
 						// }
@@ -2903,7 +2911,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					if (is_zero(apar_layer)) {
 						// Night
 						An = -Rd;
-						gsc = g0;
+						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
 					} else {
 
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -3353,11 +3361,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 // - bvoc function not implemented (could be added later)
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	// TODO: find out what gtemp is.
 	// Note: climate.gtemp will be uninitialised here when running in diurnal
 	// (ie subdaily) mode, and climate.gtemps will be uninitialised when running
 	// in non-diurnal mode.
-	double gtemp;
+	double gtemp; // Response of respiration rate to temperature
 	if (date.diurnal()) {
 		gtemp = mean(&climate.gtemps.front(), date.subdaily);
 	} else {
@@ -3393,26 +3400,39 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		else
 			cmass_root = indiv.cmass_root_today();
 
+		double cmass_crown = 0.0;
+		if (ifdavegrowth && indiv.pft.is_grass()) {
+			cmass_crown = indiv.cmass_crown;
+		} else {
+			cmass_crown = 0.0;
+		}
+
 		// Static root and sap wood C:N ratio if no N limitation
 		// to not let N affect respiration for C only version of model
 		// Also not allow lower C:N ratios than minimum which
 		// would affect respiration severely (happens for deciduous trees
 		// in the beginning of the season)
 
-		double cton_sap, cton_root;
+		double cton_sap   = 0.0;
+		double cton_root  = 0.0;
+		double cton_crown = 0.0;
 		if (ifnlim) {
-			cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
-			cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+			//cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
+			//cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+			cton_sap   = indiv.cton_sap();
+			cton_root  = indiv.cton_root();
+			cton_crown = indiv.cton_crown();
 		}
 		else {
 			cton_sap = pft.cton_sap_avr;
 			cton_root = pft.cton_root_avr;
+			cton_crown = pft.cton_root_avr;
 		}
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root, indiv.cmass_sap, 
-			cmass_root, indiv.growth_demand, indiv.fphen_activity, assim, resp);
+			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
+			cmass_root, cmass_crown, indiv.growth_demand, indiv.fphen_activity, assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.
@@ -3513,6 +3533,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate respiration and NPP on a daily basis
 		npp_dave(patch, climate, vegetation);
 
+		// needed here?
 		leaf_senescence(vegetation);
 
 	}

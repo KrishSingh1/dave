@@ -5,6 +5,10 @@
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 17:03:10 +0100 (Tue, 24 Jan 2017) $
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -208,7 +212,7 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
-		if (indiv.pft.lifeform == GRASS) {
+		if (indiv.pft.is_grass()) {
 			available_fuel += 0.5 * indiv.cmass_leaf_today() ;
 		}
 		vegetation.nextobj();
@@ -609,7 +613,7 @@ bool blaze(Patch& patch, Climate& climate) {
 			// For this individual ...
 			killed=false;
 
-			if (indiv.pft.lifeform==GRASS) {
+			if (indiv.pft.is_grass()) {
 				// Reduce individual live biomass and freshly created litter
 				indiv.reduce_biomass(MAX_GRASS_BURN,MAX_GRASS_BURN);
 				
@@ -828,7 +832,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	// Leaves
 	double cleaf2atm, cleaf2met, cleaf2str, nleaf2atm, nleaf2met, nleaf2str;
-	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && pft.is_grass())) {
 		cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
 		cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
 		cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
@@ -912,7 +916,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Update pools
 	
 	// Live carbon
-	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && pft.is_grass())) {
 		cmass_leaf  -= (cleaf2atm + cleaf2met + cleaf2str);
 		cmass_sap   -= (csapw2atm + csapw2str + csapw2fwd);
 		cmass_heart -= (chrtw2atm + chrtw2str + chrtw2cwd);
@@ -955,7 +959,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 
 	// Live nitrogen
-	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && pft.is_grass())) {
 		nmass_leaf  -= (nleaf2atm + nleaf2met + nleaf2str);
 		nmass_sap   -= (nsapw2atm + nsapw2str + nsapw2fwd);
 		nmass_heart -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
@@ -999,7 +1003,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;
 
 	// Deal with accumulated NPP 
-	if (!(ifdailygrass && pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && pft.is_grass())) {
 		double loss_anpp = anpp * (1. - frac_survive);
 		double loss_tot = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met +
 			cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
@@ -1038,7 +1042,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		patch.soil.sompool[SOILSTRUCT].cmass += anpp2sstr;
 	}
 
-	if (pft.lifeform != GRASS) {
+	if (!pft.is_grass()) {
 		densindiv *= frac_survive;
 
 		if ( negligible(densindiv) && cmass_debt > 0.) {

@@ -1,11 +1,16 @@
-﻿///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file fluxnet.cpp
 /// \brief Input and output modules for the fluxnet benchmarks
+///
 /// \this module is most of all a copy of CRUInput and do use CRU data for its climate.
 /// \The CRU climate is then biascorrected with monthly fluxnet climate.
 ///
 /// \author Niklas Boke Olén and Adrian Gustafson
 /// $Date: 2015-11-13 16:25:45 +0100 (Fri, 13 Nov 2015) $
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -117,11 +122,11 @@ void FluxnetInput::init() {
 	co2.load_file(param["file_co2"].str);
 
 	// Open landcover files
-	landcover_input.init();
+	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
 	management_input.init();
 	// Open additional files
-	misc_input.init();
+	misc_input.init(param["file_gridlist"].str);
 	// Read in soil data
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 

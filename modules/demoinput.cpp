@@ -2,9 +2,12 @@
 /// \file demoinput.cpp
 /// \brief LPJ-GUESS input module for a toy data set (for demonstration purposes)
 ///
-///
 /// \author Ben Smith
 /// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -208,7 +211,7 @@ void DemoInput::init() {
 	ndep=param["ndep"].num;
 
 	// Open landcover files
-	landcover_input.init();
+	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
 	management_input.init();
 	// Open additional files

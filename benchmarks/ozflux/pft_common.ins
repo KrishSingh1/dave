@@ -1,22 +1,5 @@
 
 !///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR STAND TYPES
-!///////////////////////////////////////////////////////////////////////////////////////
-
-group "common_stand" (
-
-	intercrop "nointercrop"
-)
-
-st "Natural" (
-
-	common_stand
-	stinclude 1
-	landcover "natural"
-	naturalveg "all"
-)
-
-!///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -28,6 +11,7 @@ group "common" (
 	lambda_max 0.8
 	emax 5
 	reprfrac 0.1
+	crownfrac 0.0
 	wscal_min 0.35
 	drought_tolerance 0.0001	! default value - ensures that this has little effect even if
 					! ifdroughtlimitedestab is turned on
@@ -64,6 +48,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
+	turnover_repr 0.25
 	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	k_allom2 60
@@ -131,7 +116,6 @@ group "grass" (
 	! Parameters common to all grasses
 
 	common
-	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 2.0
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
@@ -140,9 +124,10 @@ group "grass" (
 	phenology "any"
 	phengdd5ramp 100
 	phengdd5mat 2000.0
-	leaflong 0.5		! Leaf longevity (years)
-	turnover_leaf 1
+	leaflong 0.15		! Leaf longevity (years)
+	turnover_leaf 1.0
 	turnover_root 0.7
+	turnover_repr 0.25
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
@@ -153,7 +138,7 @@ group "grass" (
 	fireresist 0.5
 	intc 0.01
 	ga 0.030
-	wscal_min 0.20
+	wscal_min 0.30
 
 	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
 				! 1-year turnover time for GRASS

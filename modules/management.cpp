@@ -1,9 +1,15 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file management.cpp
 /// \brief Management functions for cropland, managed forest and pasture
+///
 /// \author Mats Lindeskog
 /// $Date:  $
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "landcover.h"
 #include "management.h"
@@ -12,7 +18,7 @@
 /// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
 void grazing_daily(Individual& indiv) { // DW_COMMENT
 
-	if (!(ifdailygrass && indiv.pft.lifeform == GRASS)) {
+	if (!(ifdailygrass && indiv.pft.is_grass())) {
 		return;
 	}
 
@@ -226,7 +232,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 					double res_outtake_coarse_root) {
 
 	// only harvest trees
-	if (pft.lifeform == GRASS)
+	if (pft.is_grass())
 		return;
 
 	double stem_harvest = 0.0;
@@ -864,15 +870,18 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 		ManagementType& mt = stand.get_current_management();
 		const bool stem_cmass_only = false;						// The two options will give small differences with different  
 																// harvest_slow_frac (caused by rounding errors)
-		const bool relax_target_cutting_after_pft_gone = false; // Default value false will prioritise pft selection over 
-																// stand age (all other trees may be cut when one pft dies)
-		const bool no_target_cutting_before_man_start = true;	// No target-cutting before management starts
+		const bool relax_target_cutting_after_pft_gone = true;	// Default value true will prioritise stand age before pft selection
+																// (otherwise, all other trees may be cut when one pft dies)
+		bool no_target_cutting_before_man_start = true;			// No target-cutting before management starts
 
 		bool management_started = stand[0].managed;				// patch.managed is the same for all patches in a stand
 
-		int first_targetyear = nyear_spinup; // Simulation year when target cutting starts; default is directly after spinup.
-		if(mt.firsttargetyear < FAR_FUTURE_YEAR)	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
+		int first_targetyear = 0;	// Simulation year when target cutting starts; default is first simulation year
+									// (unless no_target_cutting_before_man_start is true).
+		if (mt.firsttargetyear < FAR_FUTURE_YEAR) {	// Initialised to FAR_FUTURE_YEAR; other values set in instruction file.
 			first_targetyear = mt.firsttargetyear - date.first_calendar_year;
+			no_target_cutting_before_man_start = false;	// Overridden by firsttargetyear set in instruction file.
+		}
 		if(mt.planting_system != "SELECTION" || (mt.targetfrac == "" && !readtargetcutting)
 			|| (readtargetcutting && mt.targetfrac_input_mode == 2)
 			|| date.get_calendar_year() > mt.lasttargetyear || date.year < first_targetyear
@@ -972,8 +981,8 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 			double remove_cmass_stand = 0.0; 
 			if(target_stand[i] - 1.0) {
 				if((cmass_pft_stand[i] / cmass_total_stand) > 0.99 && target_stand[i] <= 0.99 && relax_target_cutting_after_pft_gone) {
-					dprintf("Target cutting suspended year %d: cmass_pft_stand[i] / cmass_total_stand = %f\n\n",
-						date.get_calendar_year(), cmass_pft_stand[i] / cmass_total_stand);
+					dprintf("Target cutting suspended year %d: cmass_pft_stand[%d] / cmass_total_stand = %f\n\n",
+						date.get_calendar_year(), i, cmass_pft_stand[i] / cmass_total_stand);
 				}
 				else {
 					remove_cmass_stand = max(0.0, (target_stand[i] * cmass_total_stand - cmass_pft_stand[i]) / (target_stand[i] - 1.0));
@@ -1752,7 +1761,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	// Whether to kill grass at clear-cut.
 	bool killgrass = mt.killgrass_at_cc && patch.man_strength == 1.00;
 
-	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.lifeform == GRASS) {
+	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.is_grass()) {
 
 		// Default forestry harvest parameters: pft values
 		double harv_eff_wood_harvest = pft.harv_eff;				// Default pft value for trees in global/europe.ins: 0.9
@@ -1790,7 +1799,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 
 		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
 		// Kill grass at clear-cut and send biomass to litter if mt.killgrass_at_cc == true
-		if(pft.lifeform == GRASS)
+		if(pft.is_grass())
 			indiv.kill();
 
 		indiv.densindiv *= (1.0 - man_strength);
@@ -2595,7 +2604,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 			indiv.cropindiv->cmass_ho *= scale;
 		}
 
-		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+		if (ifdailygrass && indiv.pft.is_grass()) {
 			indiv.cmass_leafs[0] *= scale;
 			indiv.cmass_leafs[1] *= scale;
 			indiv.cmass_leafs[2] *= scale;
@@ -2617,7 +2626,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
 	}
 
-	if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+	if (ifdailygrass && indiv.pft.is_grass()) {
 		indiv.nmass_leafs[0] = indiv.nmass_leafs[0] - indiv.nmass_leafs_luc[0] * (1.0 - scale);
 		indiv.nmass_leafs[1] = indiv.nmass_leafs[1] - indiv.nmass_leafs_luc[1] * (1.0 - scale);
 		indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);

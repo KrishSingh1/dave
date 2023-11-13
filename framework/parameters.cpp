@@ -9,6 +9,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -117,6 +121,7 @@ int nyear_spinup;
 bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
+bool map_text_file = true;
 
 xtring state_path;
 bool restart;
@@ -590,6 +595,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
+		declareitem("map_text_file", &map_text_file, 1, CB_NONE, "Whether to map text input file data in index file");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -723,10 +729,16 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
+		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,
+			"Fraction of NPP allocated to crowns");
+		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
+			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
 			"Fine root turnover (fraction/year)");
+		declareitem("turnover_repr",&ppft->turnover_repr,0.0,1.0,1,CB_NONE,
+			"Seed turnover (fraction/year)");	
 		declareitem("turnover_sap",&ppft->turnover_sap,0.0,1.0,1,CB_NONE,
 			"Sapwood turnover (fraction/year)");
 		declareitem("wooddens",&ppft->wooddens,10.0,1000.0,1,CB_NONE,
@@ -749,6 +761,16 @@ void plib_declarations(int id,xtring setname) {
 			"Specific leaf area (m2/kgC)");
 		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
 			"Minimum leaf C:N mass ratio");
+		declareitem("cton_leaf_max",&ppft->cton_leaf_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum leaf C:N mass ratio");
+		declareitem("cton_root_min",&ppft->cton_root_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum root C:N mass ratio");
+		declareitem("cton_root_max",&ppft->cton_root_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum root C:N mass ratio");
+		declareitem("cton_sap_min",&ppft->cton_sap_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum sapwood C:N mass ratio");
+		declareitem("cton_sap_max",&ppft->cton_sap_max,1.0,1.0e4,1,CB_NONE,
+			"Maximum sapwood C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
@@ -1315,11 +1337,12 @@ void plib_callback(int callback) {
 			break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
-		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
+		else if (strparam.upper() == "GRASS_PERENNIAL") ppft->lifeform = GRASS_PERENNIAL;
+		else if (strparam.upper() == "GRASS_ANNUAL") ppft->lifeform = GRASS_ANNUAL;
 		else if (strparam.upper() == "MOSS") ppft->lifeform = MOSS;
 		else {
 			sendmessage("Error",
-				"Unknown lifeform type (valid types: \"TREE\", \"GRASS\", \"MOSS\")");
+				"Unknown lifeform type (valid types: \"TREE\", \"GRASS_PERENNIAL\", \"GRASS_ANNUAL\", \"MOSS\")");
 			plibabort();
 		}
 		break;
@@ -1716,9 +1739,9 @@ void plib_callback(int callback) {
 			bool include = includepft_map[pft.name];
 
 			if(pft.landcover == NATURAL) {
-				if(!include_natural_grass_pfts && pft.lifeform == GRASS)
+				if(!include_natural_grass_pfts && pft.is_grass())
 					include = false;
-				else if(!include_natural_pfts && pft.lifeform != GRASS)
+				else if(!include_natural_pfts && !pft.is_grass())
 					include = false;
 			}
 			else {
@@ -1934,10 +1957,12 @@ void plib_callback(int callback) {
 				if (!itemparsed("wscal_min")) badins("wscal_min");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
-			if (!itemparsed("pstemp_min")) badins("pstemp_min");
-			if (!itemparsed("pstemp_low")) badins("pstemp_low");
-			if (!itemparsed("pstemp_high")) badins("pstemp_high");
-			if (!itemparsed("pstemp_max")) badins("pstemp_max");
+			if (!ifdavegrowth) {
+				if (!itemparsed("pstemp_min")) badins("pstemp_min");
+				if (!itemparsed("pstemp_low")) badins("pstemp_low");
+				if (!itemparsed("pstemp_high")) badins("pstemp_high");
+				if (!itemparsed("pstemp_max")) badins("pstemp_max");
+			}
 			if (!itemparsed("lambda_max")) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");
@@ -1961,8 +1986,11 @@ void plib_callback(int callback) {
 			if (!itemparsed("fnstorage")) badins("fnstorage");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
+			if (!itemparsed("crownfrac")) badins("crownfrac");
+			if (!itemparsed("culmfrac")) badins("culmfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
+			if (!itemparsed("turnover_repr")) badins("turnover_repr");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");

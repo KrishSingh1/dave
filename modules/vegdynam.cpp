@@ -5,6 +5,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -236,7 +240,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					// individual
 
 					Individual& indiv=vegetation.createobj(pft,vegetation);
-					if (pft.lifeform == GRASS || pft.lifeform == MOSS) {
+					if (pft.is_grass() || pft.lifeform == MOSS) {
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
@@ -269,7 +273,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			if (establish(patch, stand.get_climate(), indiv.pft)) ntree_est++;
 			fpc_tree+=indiv.fpc;
 		}
-		else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			fpc_grass+=indiv.fpc;
 			if (establish(patch, stand.get_climate(), indiv.pft)) ngrass_est++;
 		}
@@ -333,7 +337,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
 					indiv.pft.regen.cmass_sap +	indiv.pft.regen.cmass_heart) * est_pft);
 		}
-		else if (((indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
+		else if (((indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
 			establish(patch, stand.get_climate(), indiv.pft)) {
 
 			// ESTABLISHMENT OF GRASSES AND MOSSES
@@ -369,11 +373,83 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 	}
 }
 
-// call every day if there is no living individual of the grass PFT in the patch
-void establishment_grass() {
+
+Individual* get_beneficiary(Patch& patch, Pft& pft) {
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		// Check if this individual is of the correct pft.
+		if (indiv.pft.id == pft.id) {
+			if (pft.lifeform == TREE && indiv.age > 0) {
+				// This indiv is the correct PFT, but it's a tree with age > 1 year.
+				// This tree will therefore not be the beneficiary of the new biomass.
+				continue;
+			}
+			// Return a pointer to this indiv.
+			return &indiv;
+		}
+	}
+	// No indiv found of this pft.
+	return NULL;
+}
+
+// Calculates the fraction of the seedbank that is germinating today.
+double germination_fraction(Patchpft& ppft, Patch& patch) {
+
+	// Water content and temperature of the first soil layer (0-10cm).
+	// wcont as fraction of available water holding capacity.
+	double wcont = patch.soil.get_layer_soil_water(0);
+	double tsoil = patch.soil.T_soil[7];  // TODO: check with DW that this is the right layer
+	double fwater = wcont > 0.9 ? 0.2 * wcont : 0.0;  
+	double ftemp = 1.0;
+	double frac_germ = min(fwater,ftemp);
+
+	return frac_germ;
+}
+
+
+// call every day
+void establishment_daily(Patch& patch) {
 	// check conditions if germination is likely to occur 
 	// if yes, invest some of the seedbank into initial biomass
 	// if there is no seedbank, maybe don't try every day.
+	Vegetation &vegetation = patch.vegetation;
+	
+	if (ifdailygrass && ifdavegrowth) {
+		for (int i = 0; i < pftlist.nobj; i++) {
+			Pft &pft = pftlist[i];
+			Patchpft &ppft = vegetation.patch.pft[pft.id];
+			// check conditions for germination (germination fraction)
+			double frac_germ = germination_fraction(ppft, patch);
+			double cmass_seed = ppft.cmass_litter_repr * frac_germ;
+			double nmass_seed = ppft.nmass_litter_repr * frac_germ;
+			if (cmass_seed > 0.0) {
+				Individual *indiv = get_beneficiary(patch, pft);
+				if (indiv == NULL) {
+					// Establish new individual.
+					Individual& individual = vegetation.createobj(pft, vegetation);
+					indiv = &individual; // & gets address of the variable (* is the opposite)
+					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
+					indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
+					indiv->densindiv=1.0;
+					indiv->fpc=1.0;  // TODO: is that right?
+					indiv->nscal_5.add(1.0);
+				}
+				double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
+				double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
+				
+				// Take germinated biomass out of the seedbank
+				ppft.cmass_litter_repr -= cmass_seed;
+				ppft.nmass_litter_repr -= nmass_seed;
+				// Add some new biomass into this individual.
+				establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
+
+				double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
+				double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
+				assert(equal(cmass_before, cmass_after));
+				assert(equal(nmass_before, nmass_after));
+			}
+		}
+	}
 }
 
 void establishment_guess(Stand& stand,Patch& patch) {
@@ -445,6 +521,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	int newindiv = 0; // number of new Individual objects to add to vegetation for this PFT
 	double kest_bg = 0.0;
 	int i = 0;
+
+	// Establishment happens daily for DAVE version
+	if (ifdavegrowth) {
+		return;
+	}
 
 	// Obtain reference to Vegetation object
 
@@ -533,7 +614,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
 
-				if (pft.lifeform==GRASS || pft.lifeform==MOSS) {
+				if (pft.is_grass() || pft.lifeform==MOSS) {
 
 					// ESTABLISHMENT OF GRASSES AND MOSSES
 
@@ -592,7 +673,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
 						}
-						else if (!(indiv.pft.lifeform == GRASS && ifdailygrass)){
+						else if (!(indiv.pft.is_grass() && ifdailygrass)){
 							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
@@ -859,7 +940,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			deltafpc_tree_total+=indiv.deltafpc;
 
 		}
-		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) fpc_grass+=indiv.fpc;
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) fpc_grass+=indiv.fpc;
 
 		vegetation.nextobj(); // ... on to next individual
 	}
@@ -943,7 +1024,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			// to account for loss of killed individuals
 			indiv.reduce_biomass(mort, mort_fire);
 		}
-		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) {
+		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
 			// GRASS AND MOSS MORTALITY
 
@@ -1080,7 +1161,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			// For this individual ...
 			if (indiv.pft.lifeform == MOSS)
 				fpc_moss += indiv.fpc;
-			else if (indiv.pft.lifeform == GRASS)
+			else if (indiv.pft.is_grass())
 				fpc_grass += indiv.fpc;
 			else
 				fpc_other += indiv.fpc;
@@ -1112,7 +1193,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				mort_fire=1.0-indiv.pft.fireresist;
 
-				if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
+				if (indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) {
 
 					// GRASS AND MOSS PFTs
 
@@ -1378,6 +1459,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	}
 }
 
+void mortality_daily(Patch& patch){
+	// TODO Assaf :)
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FIRE DISTURBANCE
@@ -1722,6 +1806,12 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	}
 }
 
+void vegetation_dynamics_daily(Patch& patch) {
+	if (ifdavegrowth){
+		establishment_daily(patch);
+		mortality_daily(patch); // TODO Assaf
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

@@ -75,7 +75,7 @@ public:
 	LandcoverInput();
 
 	/// Opens land cover input files.
-	void init();
+	void init(xtring file_gridlist);
 
 	/// Loads land cover and stand type area fractions from input files
 	bool loadlandcover(double lon, double lat);

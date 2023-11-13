@@ -20,6 +20,9 @@ ifdailyoutput 1
 !file_dave_afuel                 "dave_afuel.out"                ! Annual blaze fuel availability (gC/m2)
 !file_dave_acoarse_woody_debris  "dave_acoarse_woody_debris.out" ! Annual coarse woody debris (gC/m2)
 !file_dave_amet_year             "dave_amet_year.out"            ! Current year of met data being used
+!file_dave_aminleach             "dave_aminleach.out"            ! Annual leaching rate (kgN/m2/yr)
+!file_dave_sompool_acmass        "dave_sompool_acmass.out"       ! Daily SOM pool C mass (kgC/m2)
+!file_dave_sompool_anmass        "dave_sompool_anmass.out"       ! Daily SOM pool N mass (kgN/m2)
 
 ! Annual indiv-level per-patch outputs.
 file_dave_alai                  "dave_alai.out"                 ! Annual LAI(m2/m2)
@@ -36,21 +39,31 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_agpp                  "dave_agpp.out"                 ! Total individual-level Annual GPP (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
 
+! Annual stand-level outputs.
+file_dave_stand_frac             "dave_stand_frac"               ! Fraction of the gridcell occupied by each stand.
+
 ! Daily indiv-level per-patch outputs.
 file_dave_lai                   "dave_lai.out"                  ! LAI by individual (m2/m2)
 !file_dave_sla                   "dave_sla.out"                  ! SLA by individual (m2/kgC)
+!file_dave_cmass_crown           "dave_cmass_crown.out"          ! Crown C mass (kgC/m2)
 !file_dave_cmass_leaf            "dave_cmass_leaf.out"           ! Leaf C mass (kgC/m2)
+!file_dave_cmass_leaf_brown      "dave_cmass_leaf_brown.out"     ! Brown Leaf C mass (kgC/m2)
 !file_dave_nmass_leaf            "dave_nmass_leaf.out"           ! Leaf N mass (kgN/m2)
-!file_dave_cmass_root            "dave_cmass_root.out"           ! Leaf C root (kgC/m2)
+!file_dave_cmass_root            "dave_cmass_root.out"           ! Root C mass (kgC/m2)
+!file_dave_cmass_repr            "dave_cmass_repr.out"           ! Reproductive C mass (kgC/m2)
+!file_dave_nmass_repr            "dave_nmass_repr.out"           ! Reproductive N mass (kgN/m2)
 !file_dave_cmass                 "dave_cmass.out"                ! Total C biomass per individual per patch (kgC/m2)
 !file_dave_nmass                 "dave_nmass.out"                ! Total N biomass per individual per patch (kgN/m2)
 !file_dave_cmass_storage         "dave_cmass_storage.out"        ! C storage per individual (kgC/m2)
+!file_dave_cmass_storage_max     "dave_cmass_storage_max.out"    ! C storage capacity per individual (kgC/m2)
+!file_dave_nmass_storage         "dave_nmass_storage.out"        ! N storage per individual (kgN/m2)
+!file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capacity per individual (kgN/m2)
 !file_dave_height                "dave_height.out"               ! Plant height (m)
 !file_dave_diameter              "dave_diameter.out"             ! Stem diameter (m)
 !file_dave_density               "dave_density.out"              ! Density of individuals over patch (/m2)
 !file_dave_fpar                  "dave_fpar.out"                 ! Daily fpar [0-1]
 !file_dave_indiv_gpp             "dave_indiv_assim.out"          ! Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day))
-!file_dave_indiv_resp            "dave_indiv_resp.out"           ! Daily growth respiration (kgC/m2/day)
+!file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
 !file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily NPP (kgC/m2/day)
 !file_dave_fpc                   "dave_fpc.out"                  ! Daily FPC ()
 !file_dave_crownarea             "dave_crownarea.out"            ! Daily Crown Area (m2)
@@ -58,9 +71,10 @@ file_dave_lai                   "dave_lai.out"                  ! LAI by individ
 !file_dave_rd_g                  "dave_rd_g.out"                 ! Daily leaf respiration (gC/m2/day)
 !file_dave_je                    "dave_je.out"                   ! Daily PAR-limited photosynthesis rate (gC/m2/h)
 !file_dave_vm                    "dave_vm.out"                   ! RuBisCO capacity (gC/m2/day)
-!file_dave_fphen_activity        "dave_fphen_activity"           ! Dormancy downregulation (0-1)
-!file_dave_growth_stage          "dave_growth_stage.out"         ! Growth Stage (0-1)
+!file_dave_fphen_activity        "dave_fphen_activity.out"       ! Phenological activity (0-1)
 !file_dave_growth_demand         "dave_growth_demand.out"        ! Growth Demand (0-1)
+!file_dave_nscal                 "dave_nscal.out"                ! Nitrogen stress scalar (0-1)
+!file_dave_et                    "dave_et.out"                   ! Daily indiv-level evapotranspiration (mm/day)
 !file_dave_ltor                  "dave_ltor.out"                 ! Daily leaf to root ration (unitless)
 
 ! Daily indiv-level per-patch array outputs.
@@ -86,17 +100,17 @@ file_dave_lai                   "dave_lai.out"                  ! LAI by individ
 !file_dave_met_subdaily_precip   "dave_met_subdaily_precip.out"  ! Subdaily precipitation (mm)
 !file_dave_met_subdaily_pressure "dave_met_subdaily_pressure.out"! Subdaily air pressure (Pa)
 !file_dave_met_subdaily_co2      "dave_met_subdaily_co2.out"     ! Subdaily atmospheric co2 concentration (ppm)
+!file_dave_daylength             "dave_daylength.out"            ! Daylength (hours)
 
 ! Daily patch-level outputs.
 !file_dave_soil_nmass_avail      "dave_soil_nmass_avail.out"     ! Soil N available for plant uptake (kgN/m2)
 !file_dave_sw                    "dave_sw.out"                   ! Soil water content as fraction of available water holding capacity
-!file_dave_swmm                	 "dave_swmm.out"                 ! Soil water content (mm)
+!file_dave_swmm                  "dave_swmm.out"                 ! Soil water content (mm)
 !file_dave_swvol                 "dave_swvol.out"                ! Volumetric soil water content (m3/m3)
 !file_dave_resp                  "dave_resp.out"                 ! Daily patch-level ecosystem respiration (gC/m2/day)
 !file_dave_gpp                   "dave_gpp.out"                  ! Daily patch-level GPP (gC/m2/day)
 !file_dave_npp                   "dave_npp.out"                  ! Daily patch-level NPP (gC/m2/day)
 !file_dave_nee                   "dave_nee.out"                  ! Daily NEE (gC/m2/day)
-!file_dave_et                    "dave_et.out"                   ! Daily patch-level ET (mm/day).
 !file_dave_cmass_repr            "dave_cmass_repr.out"           ! Daily pft-level cmass_repr
 !file_dave_daylength             "dave_daylength.out"            ! Daily patch-level day-length (h)
 !file_dave_dsimfire              "dave_dsimfire.out"             ! Daily simfire analysis
@@ -109,6 +123,9 @@ file_dave_lai                   "dave_lai.out"                  ! LAI by individ
 !file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
 !file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
 !file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pressure (Pa)
+!file_dave_sompool_cmass         "dave_sompool_cmass.out"        ! Daily SOM pool C mass (kgC/m2)
+!file_dave_sompool_nmass         "dave_sompool_nmass.out"        ! Daily SOM pool N mass (kgN/m2)
+!file_dave_ninput                "dave_ninput.out"               ! Daily nitrogen deposition (kgN/m2)
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.

@@ -160,17 +160,17 @@ std::vector<ColumnDefinition<Patch>> coarse_woody_debris_columns();
 /*
 Get the columns used in the patch-level SOM pool cmass output file.
 */
-std::vector<ColumnDefinition> sompool_cmass_columns();
+std::vector<ColumnDefinition<Patch>> sompool_cmass_columns();
 
 /*
 Get the columns used in the patch-level SOM pool nmass output file.
 */
-std::vector<ColumnDefinition> sompool_nmass_columns();
+std::vector<ColumnDefinition<Patch>> sompool_nmass_columns();
 
 /*
 Get the columns used in the patch-level nitrogen input output file.
 */
-std::vector<ColumnDefinition> ninput_columns();
+std::vector<ColumnDefinition<Patch>> ninput_columns();
 
 /*
 Get the columns used in the met year output file.

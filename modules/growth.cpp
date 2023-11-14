@@ -1143,8 +1143,13 @@ double cstorage_capacity(Individual& indiv) {
 	if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
 	} else {
-		// TODO: Assaf
-		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_sap;
+		const int nyear_turnover = 3;
+		double turnover_sap = indiv.cmass_sap * indiv.pft.turnover_sap;
+		double turnover_leaf = indiv.cmass_leaf * indiv.pft.turnover_leaf;
+		double turnover_root = indiv.cmass_root * indiv.pft.turnover_root;
+		double cstorage_opt = nyear_turnover * (turnover_sap + turnover_leaf + turnover_root);
+		return max(cstorage_opt, indiv.cstorage_max);
+		// return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_sap;
 	}
 
 }
@@ -2725,6 +2730,10 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	indiv.cmass_storage += cstore;
 }
 
+void adjust_cpool_optimum(Individual &indiv) {
+
+}
+
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Equivalent to calc_fc_growth() in the grote code
 void storage_growth_partitioning_tree(Individual &indiv) {
@@ -2732,6 +2741,57 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// Outputs: indiv.cmass_storage, indiv.cgrow (potential growth in kgC/m2)
 	// Optional outputs which the grass code use which we may also set:
 	// indiv.growth_demand, indiv.cexcess, indiv.nexcess, indiv.nmass_missing
+
+	if (indiv.dnpp < 0) {
+		indiv.cgrow = 0;
+		return;
+	}
+	double bminc = indiv.dnpp;
+
+	// Length (in days) of leaf flushout period.
+	// TODO: this is a PFT parameter in grote. Perhaps it should be in dave too.
+	const int flushout_ndays = 45;
+
+	// Are we in the leaf flushout period?
+	// TODO: implement this.
+	bool leaf_flushout = false;
+
+	// Fraction of storage capacity unavailable for growth.
+	double cstorage_reserve = 0.1;
+
+	// Maximum daily mobilisation rate of storage as a fraction of storage
+	// capacity.
+	double max_mobil_rate = 0.05;
+
+	if (leaf_flushout) {
+		assert(flushout_ndays > 0);
+		double leaf_turnover = indiv.cmass_leaf_limit * indiv.pft.turnover_leaf;
+		double root_turnover = indiv.cmass_root_limit * indiv.pft.turnover_root;
+		double fc_growth_suggested = (leaf_turnover + root_turnover) / flushout_ndays;
+		fc_growth_suggested = max(0.0, fc_growth_suggested);
+
+		if (fc_growth_suggested > indiv.dnpp) {
+			// We want to grow more than can be sustained by today's NPP.
+			// Therefore we draw from stroage.
+			double from_storage = fc_growth_suggested - indiv.dnpp;
+			if (from_storage > indiv.cmass_storage) {
+				// We can't meet fc_growth_suggested with NPP + storage.
+
+			} else {
+				// We can meet fc_growth_suggested with NPP + storage.
+				indiv.cmass_storage -= from_storage;
+				bminc = fc_growth_suggested;
+			}
+		} else {
+			// Today's NPP is greater than our potential growth. Therefore we
+			// send some to storage.
+			double cstore = indiv.dnpp - fc_growth_suggested;
+			indiv.cmass_storage += cstore;
+			bminc = fc_growth_suggested;
+		}
+	}
+
+	indiv.cgrow = bminc;
 }
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.

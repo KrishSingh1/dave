@@ -232,6 +232,7 @@ double wscal_growth(double wscal) {
 }
 
 // Temperature stress scalar used for growth and dormancy
+// TODO: this should somehow acclimate or differ between PFTs!
 double temp_growth(double temp) {
 	return Arrhenius_temp_response(1.78,temp,76.8,285.0,933)/2.23;  // TODO: parameterise properly (now: Parent et al. 2010)
 }
@@ -262,9 +263,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		if (pft.is_grass()) { 
 
 			// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
-			double temp_dormancy = indiv.pft.pathway == C3 ? temp_dormancy_C3 : temp_dormancy_C4;
 			double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-			double tscal_crit = temp_growth(temp_dormancy);
+			double tscal_crit = temp_growth(indiv.pft.temp_dormancy);
 			double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
 			double wscal_actual = wscal_growth(wscal_mean);
@@ -2609,7 +2609,6 @@ double growth_demand(Individual& indiv) {
 	double growth_demand = 0.0;
 	double fwater_growth = 0.0;
 	double ftemp_growth = 0.0;
-	double qgrowth = 1.1;
 	double ag_cmass = 0.0;
 	bool simple_formulation = false;
 

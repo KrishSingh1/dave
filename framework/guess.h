@@ -2073,6 +2073,8 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
+    /// temperature below which plants fall dormant
+	double temp_dormancy;
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
 	/// fraction of NPP allocated to crowns

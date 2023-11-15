@@ -2463,13 +2463,12 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// Note: crown respiration added to resp_root for now
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
-			// TODO: Does C storage respire?
-			// TODO: replace respiration functions here!
-			resp_crown = (0.5 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			// TODO: at some point, replace respiration functions here!
+			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// Growth respiration
-			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim - resp_root) * (growth_demand * Rg_max);
+			const double Rg_max = 0.5;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
+			resp_growth = (assim - resp_root - resp_crown) * (growth_demand * Rg_max);
 
 		} else {
 			

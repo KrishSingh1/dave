@@ -727,6 +727,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 
+		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
+			"Temperature below which plants fall dormant");
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
 		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,

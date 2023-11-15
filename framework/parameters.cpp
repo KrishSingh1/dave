@@ -1987,7 +1987,7 @@ void plib_callback(int callback) {
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 			if (!itemparsed("crownfrac")) badins("crownfrac");
-			if (!itemparsed("culmfrac")) badins("culmfrac");
+			if (!itemparsed("culmfrac") && ppft->is_grass()) badins("culmfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("turnover_repr")) badins("turnover_repr");

@@ -1274,11 +1274,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	}
 }
 
-/// Recalculation of photosynthesis under vmax nitrogen stress
-/** If nitrogen supply is not able to meet demand it will lead
- *  to down-regulation of vmax resulting in lower photosynthesis
- */
-void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation) {
+void nitrogen_uptake(Vegetation &vegetation) {
+	Patch &patch = vegetation.patch;
 
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
@@ -1295,6 +1292,15 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	// Resolve nitrogen stress with longterm stored nitrogen
 	nstore_usage(vegetation);
+}
+
+/// Recalculation of photosynthesis under vmax nitrogen stress
+/** If nitrogen supply is not able to meet demand it will lead
+ *  to down-regulation of vmax resulting in lower photosynthesis
+ */
+void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+	nitrogen_uptake(vegetation);
 
 	// Calculate leaf nitrogen associated with photosynthesis, nitrogen limited photosynthesis,
 	// and annual otimal leaf nitrogen content and nitrogen limitation on vmax
@@ -3534,6 +3540,18 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// needed here?
 		leaf_senescence(vegetation);
 
+		if (!ifdavegrowth) {
+			// Nitrogen demand
+			ndemand(patch, vegetation);
+
+			// Nitrogen competition and ~uptake~. Well, actually one could argue
+			// that this isn't the uptake, because the nitrogen is removed from
+			// the soil later (in somdynam::vegetation_n_uptake()). But this
+			// function certainly calculates how much each indiv will uptake,
+			// taking into account factors such as competition, availability,
+			// stress, etc.
+			nitrogen_uptake(vegetation);
+		}
 	}
 	else {
 		// Calculates no-stress daily values of photosynthesis and gpterm

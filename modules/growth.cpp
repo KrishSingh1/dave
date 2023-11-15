@@ -1218,6 +1218,11 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 
 		indiv.alive = true;
 		indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+
+		double cmass_after = indiv.ccont();
+		double nmass_after = indiv.ncont();
+		assert(equal(cmass_before + cmass_init, cmass_after));
+		assert(equal(nmass_before + nmass_init, nmass_after));
 	}
 	else {
 
@@ -1254,14 +1259,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
 	}
-
-	double cmass_after = indiv.ccont();
-	double nmass_after = indiv.ncont();
-	assert(equal(cmass_before + cmass_init, cmass_after));
-    assert(equal(nmass_before + nmass_init, nmass_after));
-
 }
-
 
 void allocation_init(double bminit, double ltor, Individual& indiv) {
 

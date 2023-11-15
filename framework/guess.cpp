@@ -1698,7 +1698,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_crown       = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = 0.0;
-	growth_stage      = 0.0;
+	growth_stage      = 0;
 	fdev_growth       = 0.0;
 	growth_stage_days = 0;
 	phen              = 0.0;

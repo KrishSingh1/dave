@@ -392,15 +392,14 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 	return NULL;
 }
 
-// germination rate relative to maximum possible rate
+// Temperature response of germination rate.
 // see e.g. Motsa et al. 2015, South African Journal of Botany
 double germination_temp_response(double temp, double tmin, double topt, double tmax) {
-	double rgerm = 0.0;
 	
 	if (temp <= topt) {
-		return rgerm = max(0.0, 1.0/(topt - tmin) * (temp - tmin));
+		return max(0.0, 1.0/(topt - tmin) * (temp - tmin));
 	} else {
-		return rgerm = max(0.0,-1.0/(topt - tmax) * (tmax - temp));
+		return max(0.0,-1.0/(topt - tmax) * (tmax - temp));
 	} 
 }
 
@@ -417,8 +416,8 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double wcont = patch.soil.get_layer_soil_water(0);
 	double tsoil = patch.soil.T_soil[7];        // TODO: check with DW that this is the right layer
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
-	double ftemp = fgerm_max25 * germination_temp_response(tsoil,tdorm,tdorm+20.0,tdorm+30.0);
-	double frac_germ = ftemp * fwater;   
+	double ftemp = germination_temp_response(tsoil,tdorm,tdorm+20.0,tdorm+30.0);
+	double frac_germ = fgerm_max25 * ftemp * fwater;   
 
 	return frac_germ;
 }
@@ -450,6 +449,7 @@ void establishment_daily(Patch& patch) {
 					indiv->densindiv=1.0;
 					indiv->fpc=1.0;  // TODO: is that right?
 					indiv->nscal_5.add(1.0);
+					indiv->growth_stage = 1;
 				}
 				double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
 				double nmass_before = ppft.nmass_litter_repr + indiv->ncont();

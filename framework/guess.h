@@ -2073,7 +2073,7 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
-    /// temperature below which plants fall dormant
+    /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
@@ -3047,7 +3047,7 @@ public:
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
-	double growth_stage;
+	int growth_stage;
 	/// number of days in current growth stage
 	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)

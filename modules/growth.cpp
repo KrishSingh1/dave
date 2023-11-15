@@ -73,12 +73,6 @@ const double frac_cstorage_res = 0.08;
 // Maximum mobilisation rate of C in storage
 const double max_mobil_cstorage = 0.15;
 
-// Dormancy temperature threshold C3 grasses (degC)
-const double temp_dormancy_C3 = 5.0;
-
-// Dormancy temperature threshold C4 grasses (degC)
-const double temp_dormancy_C4 = 15.0;
-
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
 
@@ -284,7 +278,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
-						
 			
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
@@ -1209,7 +1202,8 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.nstorage_max = nstorage_capacity(indiv);
 
 			// Growth stage is vegetative after establishment.
-			indiv.growth_stage = vegetative;
+			// note: don't set growth_stage here as it could change the status of an already established plant.
+			// indiv.growth_stage = vegetative;
 
 		} else {
 			indiv.cmass_storage += cmass_init;
@@ -3224,7 +3218,7 @@ void senescence_grass(Individual &indiv) {
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
 	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
 	const double senesc_scal_water = 4.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 6.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm  = 2.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 0.7;
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3268,7 +3262,8 @@ void senescence_grass(Individual &indiv) {
 
 	// Dormancy-induced (drought dormancy only at the moment)
 	double senesc_fdorm = 0.0;
-	if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
+	//if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
+	if (indiv.fphen_activity < 1.0 ) {
 
 		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 
@@ -3666,6 +3661,7 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 
 		// keep track of changes in C storage.
 		indiv.cmass_storage_15.add(indiv.cmass_storage);
+
 	}
 }
 

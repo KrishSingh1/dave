@@ -90,10 +90,9 @@ fi
 # option below, but your jobs might then be disturbed by other jobs 
 # sharing your nodes.
 CORES_PER_NODE=48
-if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
-    echo "Please set NPROCESS to a multiple of 48 on Cosmos!" >&2
-#    exit 1
-fi
+#if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
+#    echo "Please set NPROCESS to a multiple of 48 on Cosmos!" >&2
+#fi
 
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.

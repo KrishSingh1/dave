@@ -19,7 +19,6 @@
 
 #include "guess.h"
 
-typedef enum {green, brown} leafpool;
 typedef enum {dormant, vegetative, reproductive} growthstage;
 
 double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);

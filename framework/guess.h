@@ -70,6 +70,9 @@ typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
 /// The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
 typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 
+/// Names of leaf pools in DAVE version
+typedef enum {green, brown} leafpool;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -3159,7 +3162,7 @@ public:
 	double nstorage_max;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
-	/// leaf N biomass on modelled area basis (kgC/m2)
+	/// leaf N biomass on modelled area basis (kgN/m2)
 	std::vector<double> nmass_leafs;
 	/// sum of growth of leaves
 	double cmass_leaf_ygrowth;

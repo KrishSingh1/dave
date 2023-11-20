@@ -1693,6 +1693,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf_post_turnover      = 0.0;
 	cmass_root_post_turnover      = 0.0;
 	cmass_tot_luc     = 0.0;
+	cmass_leaf_limit  = 0.0;
+	cmass_root_limit  = 0.0;
+	cmass_sap_limit	  = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
@@ -1866,6 +1869,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_litter_root
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
+		& cmass_leaf_limit
+		& cmass_root_limit
+		& cmass_sap_limit
 		& last_turnover_day
 		& fpc
 		& fpc_daily

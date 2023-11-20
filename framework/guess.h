@@ -1105,6 +1105,9 @@ public:
 	/// daily eet for the last 31 days (deg C)
 	Historic<double, 31> deet_31;
 
+	/// from Grote. indicates we are in the winter to summer transition, determined from daylength increases between days
+	bool winter_to_summer;
+
 	/// minimum monthly temperatures for the last 20 years (deg C)
 	double mtemp_min_20[20];
 
@@ -1268,6 +1271,8 @@ public:
 		aprec_lastyear = 0.0;
 		met_year = 0;
 
+		winter_to_summer = true;
+
 		for(int m=0;m<12;m++) {
 
 			mtemp20[m] = 0.0;
@@ -1333,6 +1338,8 @@ public:
 		std::fill_n(doneday, Date::MAX_YEAR_LENGTH, false);
 		sinelat = sin(lat * DEGTORAD);
 		cosinelat = cos(lat * DEGTORAD);
+
+		winter_to_summer = (lat > 0);
 
 		// Set crop-specific members
 		if (latitude >= 0) {
@@ -1980,6 +1987,31 @@ class StandTypelist : public ListArray_id<StandType> {
 /// The one and only linked list of StandType objects
 extern StandTypelist stlist;
 
+/// TODO : Assaf copied and pasted this section as is from Grote branch (20/11/2023).
+/// senescence helper to be able to have a within year senescene of leaves and roots
+// is senescence pft specific oder individual specific?
+// the senescence period should be maybe pft specicif, but the onset and end of senescecne
+// would be indiv specific, e.g. TrBr indiv might start senescence based on their own wstress at some point
+
+/// Bit coded senescence type:
+// !bit: 0(1)=background allyear,1(2)=aphen<aphen_max,2(4)=daylen<39300s,
+//       4(8)=TrBr drought (phen drop) w/ switch to background,5(16)=day==(coldestday-senlen)
+//       6(32)=sense chill event; 7(64)=cmass excess handling for (TrBR, will modify background handling)
+//       8(128=0x80)=SEN_TRBR_WSCAL_B
+//       9(256=0x100)=SEN_APHEN_LO_MAX
+//       10(512=0x200)=SEN_APHEN_MAX_GILL (currently not implemented)
+//       11(1024=0x400)=SEN_WSCALMIN
+//			 12(????=0x800)=SEN_DELPIERRE (not implemented)
+enum sen_type_ { SEN_BACKGROUND, SEN_APHEN_MAX, SEN_DAYLENGTH, SEN_TRBR_WSCAL, SEN_COLDESTDAY, SEN_CHILLSENSE, SEN_CMASSEXCESS, SEN_TRBR_WSCAL_B, SEN_APHEN_LO_MAX, SEN_APHEN_MAX_GILL, SEN_WSCALMIN, NSEN_TYPE};
+typedef std::bitset<NSEN_TYPE> sen_type;
+//inline enum sen_type operator|(enum sen_type a, enum sen_type b)
+//{
+//    return static_cast<enum sen_type>(static_cast<int>(a) | static_cast<int>(b));
+//}
+//inline enum sen_type operator&(enum sen_type a, enum sen_type b)
+//{
+//    return static_cast<enum sen_type>(static_cast<int>(a) & static_cast<int>(b));
+//}
 
 /// Holds static functional parameters for a plant functional type (PFT).
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object
@@ -3028,6 +3060,12 @@ public:
 	double cmass_leaf_post_turnover;
 	/// root C mass after turnover
 	double cmass_root_post_turnover;
+	/// optimum leaf C mass (kgC/m2) 
+	double cmass_leaf_limit;
+	/// optimum root C mass (kgC/m2) 
+	double cmass_root_limit;
+	/// optimum sapwood C mass (kgC/m2)
+	double cmass_sap_limit;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -4559,6 +4597,9 @@ public:
 	Historic<double, 30> wscal_30;
 	/// ten day mean of air temperature. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> airtemp_10;
+
+	// Assaf: ???? Probably reason for senescence
+	sen_type senescence_reason;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)
@@ -4723,6 +4764,8 @@ public:
 		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
+
+		senescence_reason.reset();
 	}
 
 	~Patchpft() {

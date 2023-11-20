@@ -323,7 +323,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 	}
 }
 
-
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	double& phen) {
 
@@ -340,10 +339,41 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	// OUTPUT PARAMETER
 	// phen = fraction of full leaf cover for any individual of this PFT
 
+	// Assaf: changed for as imple solution for phen for evergreens.
+	
+	double aphen_max = APHEN_MAX;
+
 	bool raingreen = pft.phenology == RAINGREEN || pft.phenology == ANY;
 	bool summergreen = pft.phenology == SUMMERGREEN || pft.phenology == ANY;
 
 	phen = 1.0;
+	
+	// TODO: Cuurently copied as-is from the Grote model. Consider changing 
+	// evergreen phenology altogether.
+	if (pft.phenology == EVERGREEN) {
+		phen = 1.0;
+		
+		// handle others here as well e.g. evergreen (=needleleaf?) if it has a phengdd5ramp
+		// not tropical with year round leaf senescence (SEN_BACKGROUND)
+		// CHECK: this can be enabled for annual allocation, but it messes up the C:N in the early offseason in the year
+		//        on 1st Jan, N seems to be allocated based on cmass_leaf (max) in the year, not based on phen*cmass_leaf (might just not be written out right)
+		if (pft.lifeform == TREE && pft.phengdd5ramp > 0.0) {
+			
+			if (pft.gdd0[climate.chilldays] < 0.0) {
+				pft.gdd0[climate.chilldays] = pft.k_chilla +
+					pft.k_chillb * exp(-pft.k_chillk * (double)climate.chilldays);
+			}
+			// either based on aphen<(210+30) or aphen_leafout<210
+			if (climate.gdd5 > pft.gdd0[climate.chilldays] && (aphen < aphen_max)) {
+				phen = min(1.0, (1.0-pft.turnover_leaf) + pft.turnover_leaf * 
+				     (climate.gdd5 - pft.gdd0[climate.chilldays]) / pft.phengdd5ramp);
+			} else {
+				// evergreen start phen with (1-turnover_leaf), e.g. BNE 1-0.33=0.67
+				phen = (1.0-pft.turnover_leaf);
+				
+			}
+		}
+	}
 
 	if (summergreen) {
 
@@ -2731,6 +2761,42 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 }
 
 void adjust_cpool_optimum(Individual &indiv) {
+	// calculate leaf limit (optimum)
+	const double MAX_HEIGHT = 150;
+	const double MIN_HEIGHT = 0.5;
+	// limit height to below max and above min (to avoid FNS > 1)(from David's 
+	// code). 
+	// TODO: what about seedlings????
+	double height = min(max(MIN_HEIGHT, indiv.height), MAX_HEIGHT);
+	double fns = indiv.pft.k_latosa / (indiv.pft.sla * indiv.pft.wooddens * height); 
+	indiv.cmass_leaf_limit = indiv.cmass_sap * fns;
+
+	// calculate sapwood limit
+	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + indiv.pft.turnover_sap)
+
+}
+
+// returns how much available storage there is (kgC/m2)
+double available_storage(Individual &indiv) {
+
+	// Fraction of storage capacity unavailable for growth.
+	const double cstorage_reserve = 0.1;
+
+	// Maximum daily mobilisation rate of storage as a fraction of storage
+	// capacity.
+	const double max_mobil_rate = 0.05;
+
+	// maximum amount of storage that can be extracted today
+	double max_mobil = max_mobil_rate * indiv.cstorage_max;
+	// the amount of storage that has to be held in the reserve
+	double reserve = cstorage_reserve * indiv.cstorage_max;
+	// in case there is enough storage to spare today, take the maximum that you can
+	if ((indiv.cmass_storage - max_mobil) > reserve) {
+		return max_mobil;
+	}
+	// in case there isn't enough storage to spare today, take the maximum possible 
+	// without overdawing.
+	return max(0.0, indiv.cmass_storage - reserve);
 
 }
 
@@ -2741,8 +2807,10 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// Outputs: indiv.cmass_storage, indiv.cgrow (potential growth in kgC/m2)
 	// Optional outputs which the grass code use which we may also set:
 	// indiv.growth_demand, indiv.cexcess, indiv.nexcess, indiv.nmass_missing
-
+	
+	// TODO: allow growth from storage when NPP < 0
 	if (indiv.dnpp < 0) {
+		// no growth if NPP < 0
 		indiv.cgrow = 0;
 		return;
 	}
@@ -2756,15 +2824,9 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// TODO: implement this.
 	bool leaf_flushout = false;
 
-	// Fraction of storage capacity unavailable for growth.
-	double cstorage_reserve = 0.1;
-
-	// Maximum daily mobilisation rate of storage as a fraction of storage
-	// capacity.
-	double max_mobil_rate = 0.05;
-
 	if (leaf_flushout) {
 		assert(flushout_ndays > 0);
+		// TODO: create function to set cmass optimum for pools.
 		double leaf_turnover = indiv.cmass_leaf_limit * indiv.pft.turnover_leaf;
 		double root_turnover = indiv.cmass_root_limit * indiv.pft.turnover_root;
 		double fc_growth_suggested = (leaf_turnover + root_turnover) / flushout_ndays;
@@ -2773,18 +2835,24 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 		if (fc_growth_suggested > indiv.dnpp) {
 			// We want to grow more than can be sustained by today's NPP.
 			// Therefore we draw from stroage.
-			double from_storage = fc_growth_suggested - indiv.dnpp;
-			if (from_storage > indiv.cmass_storage) {
-				// We can't meet fc_growth_suggested with NPP + storage.
-
+	
+			double from_storage = available_storage(indiv);
+			if ((indiv.dnpp + from_storage) > fc_growth_suggested) {
+				// demand limited: we can meet growth demand by drawing from 
+				// storage
+				from_storage = fc_growth_suggested - indiv.dnpp;
 			} else {
-				// We can meet fc_growth_suggested with NPP + storage.
-				indiv.cmass_storage -= from_storage;
-				bminc = fc_growth_suggested;
+				// supply limited: we can not meet growth demand by drawing 
+				// from storage.
+				fc_growth_suggested = from_storage + indiv.dnpp;
 			}
+			// take from storage
+			indiv.cmass_storage -= from_storage;
 		} else {
 			// Today's NPP is greater than our potential growth. Therefore we
 			// send some to storage.
+			// TODO: according to the lpj-grote code, allocation to storage 
+			// depends on phenology (ie after summer solstice).  
 			double cstore = indiv.dnpp - fc_growth_suggested;
 			indiv.cmass_storage += cstore;
 			bminc = fc_growth_suggested;
@@ -3571,11 +3639,17 @@ void turnover_dave_grass(Individual &indiv) {
 // remove the senescence function altogether.
 void turnover_tree(Individual &indiv) {
 	// Inputs:  indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap
-	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
+	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap,
+	//          indiv.pft.leaflong
 	//
 	// Outputs: indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
 	//          ppft.cmass_litter_leaf, ppft.cmass_litter_root, indiv.cmass_heart
+
+
+
+
+
 }
 
 // Transfer of crown pool, brown shoot pool, and fine root pool to leaf and root litter.

@@ -264,7 +264,7 @@ EOF
 #SBATCH -o "slurm-%j.log"
 $SBATCH_COMPUTEACCOUNT
 module purge >/dev/null
-module load foss/2022a Ghostscript/9.56.1 Python/2.7.18
+module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
 $(cat $common_script)
 EOF
     fi

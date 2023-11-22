@@ -278,7 +278,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
-			
+
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
@@ -2604,30 +2604,29 @@ double growth_demand(Individual& indiv) {
 	double fwater_growth = 0.0;
 	double ftemp_growth = 0.0;
 	double ag_cmass = 0.0;
-	bool simple_formulation = false;
 
 	// Test: do we need to account for growth_rate_pot to get different behaviour of annuals vs perennials
 	//       or can we get that with SLA alone?
 
-	if (!simple_formulation) {
-		// Air temperature or bottom snow layer if snow present
-		double grass_temp = veg.patch.soil.T_soil[6];
+	// Air temperature or bottom snow layer if snow present
+	double grass_temp = veg.patch.soil.T_soil[6];
 
-		// Factors determining growth demand
-		fwater_growth = wscal_growth(ppft.wscal);
-		ftemp_growth = temp_growth(grass_temp);
+	// Factors determining growth demand
+	fwater_growth = wscal_growth(ppft.wscal);
+	ftemp_growth = temp_growth(grass_temp);
 		
-		ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
-		ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
-		//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
-		indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
+	ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
+	ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
+	//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
+	//indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
+	indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
+	// TODO: revise this formulation. cmass_repr should be linked to cmass_leaf * culm_frac!!
 
-        // growth demand (=sink activity) as a fraction of existing biomass.
-		// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
-		growth_demand = min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth);
+    // growth demand (=sink activity) as a fraction of existing biomass.
+	// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
+	growth_demand = min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth);
 
-	}
-
+	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
 		growth_demand *= (indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min);
 	}
@@ -3241,7 +3240,7 @@ void senescence_grass(Individual &indiv) {
 
 		double fsenesc_repr = indiv.pft.lifeform == GRASS_ANNUAL ? fsenesc_repr_annual : fsenesc_repr_perennial;
 		// in the reproductive phase, senescence is proportional to fraction of C already invested in reproduction.
-		senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[0] + indiv.cmass_root);
+		senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[green] + indiv.cmass_root);
 
 	}
 	
@@ -3359,12 +3358,20 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
+		// "free seed years"  
+		double ext_seed_c = 0.0;
+		if (date.year < freenyears) {
+			ext_seed_c = ext_seed * 100.0;
+		} else {
+			ext_seed_c = ext_seed;
+		}
 
-		ppft.cmass_litter_repr += ext_seed;
+		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
+
+		ppft.cmass_litter_repr += ext_seed_c;
 		ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
 		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }
@@ -3534,60 +3541,84 @@ void turnover_dave(Vegetation& vegetation) {
 
 
 // Determine what to do with excess C when storage exceeds its capacity.
+// This routine is also used to actively redistribute C storage to 
+// reproduction in some cases. Strictly, this should be done somewhere else,
+// but it's more practical to deal with this in one place.
 void storage_overflow(Individual& indiv) {
 
 	Pft& pft = indiv.pft;
 	Patchpft& ppft = indiv.patchpft();
 
-	if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
-		// TODO: check if we need to keep track of indiv.cexcess or if we could just
-		//       check overflow at the end of the day. 
-
-		double crepro = 0.0;
-		double nrepro = 0.0;
-
-		if (indiv.nexcess > 0) {
-			crepro = indiv.nexcess * pft.cton_repr_min;
-			nrepro = indiv.nexcess;
+	// for annual grasses in late reproductive phase, redistribute C storage to reproduction.
+	// If LAI is very low, move all storage to reproduction to kill the annual.
+	// If this is not done, there is a risk that the plant will continue living with a very
+	// low storage for a very long time. 
+	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
+	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.cmass_leafs[green]); 
+		if (indiv.lai < 0.001) {
+			frac = 1.0;
 		}
 
-		if (indiv.cexcess > 0) {
-			crepro = max(crepro, indiv.cexcess);
-			nrepro = max(nrepro, crepro / pft.cton_repr_max);
+		indiv.cexcess += frac * indiv.cmass_storage; 
+		indiv.nexcess += frac * indiv.nmass_storage;
+
+		indiv.cmass_storage -= frac * indiv.cmass_storage;
+		indiv.nmass_storage -= frac * indiv.nmass_storage;
+	}
+
+	if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0) {
+
+		if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
+			// TODO: check if we need to keep track of indiv.cexcess or if we could just
+			//       check overflow at the end of the day. 
+
+			double crepro = 0.0;
+			double nrepro = 0.0;
+
+			if (indiv.nexcess > 0) {
+				crepro = indiv.nexcess * pft.cton_repr_min;
+				nrepro = indiv.nexcess;
+			}
+
+			if (indiv.cexcess > 0) {
+				crepro = max(crepro, indiv.cexcess);
+				nrepro = max(nrepro, crepro / pft.cton_repr_max);
+			}
+
+			if (crepro > (indiv.cmass_storage + indiv.cexcess)) {
+				crepro = indiv.cmass_storage;
+				nrepro = crepro / pft.cton_repr_min;
+			}
+
+			if (nrepro > (indiv.nmass_storage + indiv.nexcess)) {
+				nrepro = indiv.nmass_storage;
+				crepro = nrepro * pft.cton_repr_min;
+			}
+
+			indiv.cmass_repr += crepro;
+			indiv.nmass_repr += nrepro;
+
+			// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
+			if (indiv.cexcess <= crepro) {
+				// cannot be fulfillled by cexcess
+				indiv.cmass_storage -= (crepro - indiv.cexcess);
+				indiv.cexcess = 0.0;
+			} else {
+				// can be fulfilled by cexcess
+				indiv.cexcess -= crepro;
+			}
+
+			if (indiv.nexcess <= nrepro) {
+				// cannot be fulfillled by nexcess
+				indiv.nmass_storage -= (nrepro - indiv.nexcess);
+				indiv.nexcess = 0.0;
+			} else {
+				// can be fulfilled by nexcess
+				indiv.nexcess -= nrepro;
+			}
+
 		}
-
-		if (crepro > (indiv.cmass_storage + indiv.cexcess)) {
-			crepro = indiv.cmass_storage;
-			nrepro = crepro / pft.cton_repr_min;
-		}
-
-		if (nrepro > (indiv.nmass_storage + indiv.nexcess)) {
-			nrepro = indiv.nmass_storage;
-			crepro = nrepro * pft.cton_repr_min;
-		}
-
-		indiv.cmass_repr += crepro;
-		indiv.nmass_repr += nrepro;
-
-		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
-		if (indiv.cexcess <= crepro) {
-			// cannot be fulfillled by cexcess
-			indiv.cmass_storage -= (crepro - indiv.cexcess);
-			indiv.cexcess = 0.0;
-		} else {
-			// can be fulfilled by cexcess
-			indiv.cexcess -= crepro;
-		}
-
-		if (indiv.nexcess <= nrepro) {
-			// cannot be fulfillled by nexcess
-			indiv.nmass_storage -= (nrepro - indiv.nexcess);
-			indiv.nexcess = 0.0;
-		} else {
-			// can be fulfilled by nexcess
-			indiv.nexcess -= nrepro;
-		}
-
 	}
 
 	if (indiv.cexcess > 0.0) {
@@ -3654,10 +3685,8 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.
 		sink_source_feedback(indiv);
 
-		// Handle excess C and N. 
-		if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0){
-			storage_overflow(indiv);
-		}
+		// Handle excess C and N.
+		storage_overflow(indiv);
 
 		// keep track of changes in C storage.
 		indiv.cmass_storage_15.add(indiv.cmass_storage);

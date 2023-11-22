@@ -3645,8 +3645,136 @@ void turnover_tree(Individual &indiv) {
 	// Outputs: indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
 	//          ppft.cmass_litter_leaf, ppft.cmass_litter_root, indiv.cmass_heart
+	
+	// fraction of senesced N that goes to storage (-)
+	const double nrelocfrac = 0.5;
+	// maximum relative change in leaf and root senescence as a result of  
+	// water stress 
+	const double senesc_scal_water = 4; // made up
+	// slope of curve of the change in leaf and root senescence as a result of 
+	// water stress 
+	const double qwater_senesc = 0.7; // made up
+	// turnover of leaves initialisation
+	double turnover_leaf = 0;
+	// turnover of roots initialisation
+	double turnover_root = 0;
+	// turnover of sapwood initialisation
+	double turnover_sap = 0;
 
 
+	Patchpft& ppft = indiv.patchpft();
+	
+	// fraction of change in leaf and root turnover as a result of water stress.
+	// leaf (root) turnover will increase (decrease) by the same fraction 
+	// in high soil water stress conditions. 
+	double fwater = 1 + (senesc_scal_water * pow(( 1- ppft.wscal_30.mean()), qwater_senesc));
+
+	if (indiv.cmass_leaf > 0) {
+		// fraction of leaf biomass that is turned over today
+		turnover_leaf = indiv.pft.turnover_leaf * fwater / Date::MAX_YEAR_LENGTH;
+
+		// Leaf C amount to turnover (kgC/m^2)
+		double cturnover_leaf = turnover_leaf * indiv.cmass_leaf; 
+		// Leaf N amount to turnover (kgN/m^2)
+		double nturnover_leaf = turnover_leaf * indiv.nmass_leaf;
+		// Lean N that goes to litter (kgN/m^2)
+		double n2litter_leaf = nturnover_leaf * (1.0 - nrelocfrac);
+		// Leaf N amount to storage (kgC/m^2)
+		double n2storage_leaf = nturnover_leaf * nrelocfrac;
+		// prevent overflow of N storage:
+		if ((indiv.nmass_storage + n2storage_leaf) > indiv.nstorage_max) {
+			// only fill up storage to capacity
+			n2storage_leaf = indiv.nstorage_max - indiv.nmass_storage;
+			// update N that goes to litter (when there is N overflow above capacity)
+			n2litter_leaf = nturnover_leaf - n2storage_leaf;
+		}
+
+		// updete pools
+		ppft.cmass_litter_leaf += cturnover_leaf;
+		indiv.cmass_litter_leaf += cturnover_leaf;
+		indiv.cmass_leaf -= cturnover_leaf;
+		ppft.nmass_litter_leaf += n2litter_leaf;
+		indiv.nmass_litter_leaf += n2litter_leaf;
+		indiv.nmass_leaf -= nturnover_leaf;
+		// Update N storage (kgN/m^2)
+		indiv.nmass_storage += n2storage_leaf;
+	}
+		
+	if (indiv.cmass_root > 0) {
+		// fraction of root biomass that is turned over today. 
+		turnover_root = indiv.pft.turnover_root / fwater / Date::MAX_YEAR_LENGTH;
+
+		// root C amount to turnover (kgC/m^2)
+		double cturnover_root = turnover_root * indiv.cmass_root; 
+		// root N amount to turnover (kgN/m^2)
+		double nturnover_root = turnover_root * indiv.nmass_root;
+		// Lean N that goes to litter (kgN/m^2)
+		double n2litter_root = nturnover_root * (1.0 - nrelocfrac);
+		// root N amount to storage (kgC/m^2)
+		double n2storage_root = nturnover_root * nrelocfrac;
+		// prevent overflow of N storage:
+		if ((indiv.nmass_storage + n2storage_root) > indiv.nstorage_max) {
+			// only fill up storage to capacity
+			n2storage_root = indiv.nstorage_max - indiv.nmass_storage;
+			// update N that goes to litter (when there is N overflow above capacity)
+			n2litter_root = nturnover_root - n2storage_root;
+		}
+
+		// updete pools
+		ppft.cmass_litter_root += cturnover_root;
+		indiv.cmass_litter_root += cturnover_root;
+		indiv.cmass_root -= cturnover_root;
+		ppft.nmass_litter_root += n2litter_root;
+		indiv.nmass_litter_root += n2litter_root;
+		indiv.nmass_root -= nturnover_root;
+		// Update N storage (kgN/m^2)
+		indiv.nmass_storage += n2storage_root;
+		
+	}
+
+	if (indiv.cmass_sap > 0) {
+		// if there isn't any leaf turnover today, then there shouldn't be sapwood 
+		// turnover becasue current sapwood (cmass_sap) is needed to maintain the 
+		// current leaves.
+		// TODO: check if plausible (?)
+		if (turnover_leaf > 0) {
+			// turnover of sapwood will be calculated from the turnover of leaf
+			// in order to maintain k_latosa (derivation in notebook 22/11/2023)
+			double leaf2sapwood_ratio = indiv.cmass_leaf/indiv.cmass_sap;
+			double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens)/indiv.pft.k_latosa;
+			// sapwood turnover 
+			double turnover_sap = leaf2sapwood_ratio * lambda * turnover_leaf;
+		} else {
+			// no turnover sap today
+			double turnover_sap = 0;
+		}
+
+		// sapwood C amount to turnover (kgC/m^2)
+		double cturnover_sap = turnover_sap * indiv.cmass_sap; 
+		// sapwood N amount to turnover (kgN/m^2)
+		double nturnover_sap = turnover_sap * indiv.nmass_sap;
+		// Lean N that goes to heartwood (kgN/m^2)
+		double n2heart_sap = nturnover_sap * (1.0 - nrelocfrac);
+		// sapwood N amount to storage (kgC/m^2)
+		double n2storage_sap = nturnover_sap * nrelocfrac;
+		// prevent overflow of N storage:
+		if ((indiv.nmass_storage + n2storage_sap) > indiv.nstorage_max) {
+			// only fill up storage to capacity
+			n2storage_sap = indiv.nstorage_max - indiv.nmass_storage;
+			// update N that goes to heartwood (when there is N overflow above capacity)
+			n2heart_sap = nturnover_sap - n2storage_sap;
+		}
+
+		// updete pools
+		indiv.cmass_heart += cturnover_sap;
+		indiv.cmass_sap -= cturnover_sap;
+		indiv.nmass_heart += n2heart_sap;
+		indiv.nmass_sap -= nturnover_sap;
+		// Update N storage (kgN/m^2)
+		indiv.nmass_storage += n2storage_sap;
+		
+
+	}
 
 
 

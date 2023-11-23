@@ -3795,10 +3795,16 @@ void MassBalance::check_day(Gridcell &gridcell) {
 
 	ifdavediagnostics = _ifdavediagnostics;
 
-	// check_day_c(gridcell);
+	if (ifdavegrowth) {
+		// Sub-annual mass balance is not preserved in the annual allocation
+		// scheme (ie trunk allocation). I'm not going to attempt to fix that
+		// here.
 
-	if (ifcentury) {
-		check_day_n(gridcell);
+		// check_day_c(gridcell);
+
+		if (ifcentury) {
+			check_day_n(gridcell);
+		}
 	}
 
 	check_day_water(gridcell);

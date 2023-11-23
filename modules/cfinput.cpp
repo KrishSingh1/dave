@@ -494,7 +494,10 @@ void CFInput::init() {
 		else {
 			if (iss >> lon >> lat) {
 				getline(iss, descrip);
-				cf_temp->get_index_for_coords(lon, lat, rlon, rlat);
+				int lon_center, lat_center;
+				lon_center = (int)std::round(2.0 * (lon + 0.25) / 2.0 + 0.25);	// If lon (or lat) is exactly on the integer (e.g. 60.00) or exactly
+				lat_center = (int)std::round(2.0 * (lat + 0.25) / 2.0 + 0.25);	// halfway (e.g. 60.50), the expression will always round upwards.
+				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);
 				c.lat = lat;
 				c.lon = lon;
 				c.rlon = rlon;

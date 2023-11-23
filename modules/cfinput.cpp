@@ -189,8 +189,11 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 		}
 	}
 	else {
-		if (cf_var->get_units() != "W m-2" && 
-			cf_var->get_units() != "w m-2") {
+		if (cf_var->get_units() != "W m-2" &&
+			cf_var->get_units() != "w m-2" &&
+			cf_var->get_units() != "W/m2" &&
+			cf_var->get_units() != "W/m^2" &&
+			cf_var->get_units() != "W m^-2") {
 			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
 		}
 	}

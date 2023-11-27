@@ -411,6 +411,81 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	}
 }
 
+// decides on phenological status of the tree individual for any given phen value. 
+// Follows the graph in the grote document (except for evergreen)
+// input: phen, winter_to_summer, leaf turnover
+// output: indiv.leaf_out, indiv.leaf_senesced, indiv.leaf_full_switch_summer ,
+// indiv.leaf_growth
+void tree_phenology_grote(Individual& indiv) {
+	// taken from Grote code.
+	Climate climate = indiv.vegetation.patch.get_climate();
+
+	// handle daily phen leaf state
+	bool leaf_out = false;
+	bool leaf_senesced = false;
+	bool leaf_full_on = false;
+	bool leaf_full_switch_summer = false;
+	bool leaf_growth = false;
+	switch (indiv.pft.phenology) {
+		// they are all quite similar, but need to handle RAINGREEN better
+		// FIXME: are tropical evergreens with a general background turnover handled in here correctly?
+		case SUMMERGREEN:
+			if (indiv.phen > 0.0 && indiv.phen < indiv.leaf_out_phen_maxlimit) {
+				leaf_out = true;
+			}
+			leaf_senesced = negligible(indiv.phen) && !indiv.senescence_active;
+			leaf_full_on = negligible(indiv.phen - 1.0);
+			leaf_full_switch_summer = leaf_full_on && !climate.winter_to_summer;
+			leaf_growth = !negligible(indiv.phen) && !leaf_full_on;
+			break;
+		case EVERGREEN:
+			// true in case phen is between its minimum value (1 - turnover_leaf) and 0.9, else, false
+			if ((indiv.phen  - (1.0-indiv.pft.turnover_leaf)) > 0.0 && indiv.phen < indiv.leaf_out_phen_maxlimit) {
+				leaf_out = true;
+			}
+			// true in case phen is at its minimum value and senescence is active, 
+			// else false
+			leaf_senesced = negligible(indiv.phen - (1.0 - indiv.pft.turnover_leaf)) && !indiv.senescence_active;
+			// true in case phen is at its maximum value (=1), else false
+			leaf_full_on = negligible(indiv.phen - 1.0);
+			// true in case phen = 1 and it's after the summer solstice (days 
+			// shortening), else false
+			leaf_full_switch_summer = leaf_full_on && !climate.winter_to_summer;
+			// true in case phen is not at its minimum value and not when it is 
+			// at its maximum value, else false
+			leaf_growth = !negligible(indiv.phen  - (1.0 - indiv.pft.turnover_leaf)) && !leaf_full_on;
+			break;
+		case RAINGREEN:
+			// FIXME: raingreen is tricky, it can have multiple drought events and
+			//        we should handle RAINGREEN differently: having the drop of leaves based on drought strength, not drop all leaves
+			if ((indiv.phen  - (1.0-indiv.pft.turnover_leaf)) > 0.0 && indiv.phen < indiv.leaf_out_phen_maxlimit) {
+				leaf_out = true;
+			}
+			leaf_senesced = false; // it is a whole year growth PFT // negligible(indiv.phen) && !indiv.senescence.active;
+			leaf_full_on = negligible(indiv.phen - 1.0);
+			leaf_full_switch_summer = leaf_full_on && !climate.winter_to_summer;
+			leaf_growth = true; // it is a whole year growth PFT
+			break;
+		default:
+			fail("%s: missing implementation of phen leaf state handling for phenology type %d\n", indiv.pft.phenology);
+	}
+	
+	indiv.leaf_out = leaf_out;
+	indiv.leaf_senesced = leaf_senesced;
+	indiv.leaf_full_switch_summer = leaf_full_switch_summer;
+	indiv.leaf_growth = leaf_growth;
+#if VERBOSE > 1
+	if (date.get_calendar_year() >= 1901)
+		dprintf("%d leave: lo %d lg %d lfsw %d sd %d sen %d\n",
+						date.day,
+						(int) indiv.leaf_out,
+						(int) indiv.leaf_growth,
+						(int) indiv.leaf_full_switch_summer,
+						(int) indiv.leaf_senesced,
+						(int) indiv.senescence.active);
+#endif
+
+}
 
 void leaf_phenology(Patch& patch, Climate& climate) {
 
@@ -477,6 +552,10 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
+		if (indiv.pft.lifeform == TREE) {
+			// decide on phenological state (from Grote)
+			tree_phenology_grote(indiv);
+		}
 		// ... on to next individual
 		vegetation.nextobj();
 	}
@@ -2772,7 +2851,7 @@ void adjust_cpool_optimum(Individual &indiv) {
 	indiv.cmass_leaf_limit = indiv.cmass_sap * fns;
 
 	// calculate sapwood limit
-	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + indiv.pft.turnover_sap)
+	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + indiv.pft.turnover_sap);
 
 }
 
@@ -2800,35 +2879,68 @@ double available_storage(Individual &indiv) {
 
 }
 
-// Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
-// Equivalent to calc_fc_growth() in the grote code
+// Determine how much of the available C (NPP + C fraction from storage) goes to
+// growth vs. storage. Equivalent to calc_fc_growth() in the grote code
 void storage_growth_partitioning_tree(Individual &indiv) {
 	// Inputs: indiv.dnpp
 	// Outputs: indiv.cmass_storage, indiv.cgrow (potential growth in kgC/m2)
 	// Optional outputs which the grass code use which we may also set:
 	// indiv.growth_demand, indiv.cexcess, indiv.nexcess, indiv.nmass_missing
 	
-	// TODO: allow growth from storage when NPP < 0
 	if (indiv.dnpp < 0) {
-		// no growth if NPP < 0
-		indiv.cgrow = 0;
-		return;
+
+		if ((indiv.cmass_storage + indiv.dnpp) > 0) {
+			// deficit can be satisfied by the storage
+			indiv.cmass_storage += indiv.dnpp; // it's a + becuase npp is negative
+			// so that growth will be entirely from storage (see below).
+			indiv.dnpp = 0;
+		} else {
+			// Not enough C in storage to fulfill respiration demands --> kill individual
+			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
+			indiv.cmass_storage = 0.0;
+
+			// The respiration and NPP fluxes reported in canexch are
+			// now incorrect, so we need to fix them. Note that the RA
+			// flux is not used for mass balance checks (it's only used
+			// for outputs). The NPP flux is used in mass balance checks
+			// however, so it's important to correct it here.
+			indiv.report_flux(Fluxes::RA, -cmass_deficit);
+				// (npp has opposite sign to respiration)
+			indiv.report_flux(Fluxes::NPP, cmass_deficit);
+
+			indiv.kill();  // flushes all pools to litter
+			indiv.vegetation.killobj();  // removes individual object
+								
+			//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+			// Don't think we need to call nextobj() here, as we've just
+			// removed an element from the list; when this happens, the
+			// "current" pointer internal to the list object points to
+			// the element that was previously the "next" element.
+			return;
+		}
+
+	
 	}
+	// bminc is set to today's npp.
 	double bminc = indiv.dnpp;
 
 	// Length (in days) of leaf flushout period.
-	// TODO: this is a PFT parameter in grote. Perhaps it should be in dave too.
+	// TODO: this is a PFT parameter in Grote. Perhaps it should be in dave too.
 	const int flushout_ndays = 45;
 
 	// Are we in the leaf flushout period?
-	// TODO: implement this.
-	bool leaf_flushout = false;
+	// TODO: decide on phenology
+	bool leaf_flushout = indiv.phen > 0;
 
 	if (leaf_flushout) {
 		assert(flushout_ndays > 0);
 		// TODO: create function to set cmass optimum for pools.
 		double leaf_turnover = indiv.cmass_leaf_limit * indiv.pft.turnover_leaf;
 		double root_turnover = indiv.cmass_root_limit * indiv.pft.turnover_root;
+		// TODO: currently the maximum supply is the daily turnover of leaves 
+		// and roots. Possibly add some more from the storage (if available) with 
+		// a maximum daily fraction that the tree can get from storage. In Juergen's 
+		// grass it is 5% of storage per day.
 		double fc_growth_suggested = (leaf_turnover + root_turnover) / flushout_ndays;
 		fc_growth_suggested = max(0.0, fc_growth_suggested);
 
@@ -2939,6 +3051,15 @@ void carbon_allocation_grass(Individual &indiv) {
 void carbon_allocation_tree(Individual &indiv) {
 	// Inputs: Phenology, growing conditions maybe?
 	// Outputs: indiv.cgrow_leaf, indiv.cgrow_root, indiv.cgrow_sap, indiv.cgrow_repr
+
+	// Steps: 
+	// 1) calculate the optimal growth (a-la Grote) for each pool.
+	// 2) calculate the alpha factor (decide_on_allocation) using sink strength 
+	//    (ie the difference between the actual pool size and optimal growth)
+	// 3) calculate the carbongrowth increments (using the alpha)
+
+
+
 }
 
 // Determine C allocation fractions to shoots, crowns, roots, and reproductive tissue in grasses.
@@ -3646,7 +3767,9 @@ void turnover_tree(Individual &indiv) {
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
 	//          ppft.cmass_litter_leaf, ppft.cmass_litter_root, indiv.cmass_heart
 	
-	// fraction of senesced N that goes to storage (-)
+	// fraction of senesced N that goes to storage (-). 
+	// TODO: also in turnover_dave() function. Further, check for literature 
+	// evidence.
 	const double nrelocfrac = 0.5;
 	// maximum relative change in leaf and root senescence as a result of  
 	// water stress 
@@ -3736,14 +3859,15 @@ void turnover_tree(Individual &indiv) {
 		// if there isn't any leaf turnover today, then there shouldn't be sapwood 
 		// turnover becasue current sapwood (cmass_sap) is needed to maintain the 
 		// current leaves.
-		// TODO: check if plausible (?)
-		if (turnover_leaf > 0) {
+		// TODO: check if plausible (?). indiv.pft.k_latosa > 0 is only checked 
+		// to prevent dividing by 0 (which would happen if k_latosa is a variable)
+		if ((turnover_leaf > 0) && (indiv.pft.k_latosa > 0)) {
 			// turnover of sapwood will be calculated from the turnover of leaf
 			// in order to maintain k_latosa (derivation in notebook 22/11/2023)
-			double leaf2sapwood_ratio = indiv.cmass_leaf/indiv.cmass_sap;
+			
 			double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens)/indiv.pft.k_latosa;
 			// sapwood turnover 
-			double turnover_sap = leaf2sapwood_ratio * lambda * turnover_leaf;
+			double turnover_sap =  lambda * turnover_leaf;
 		} else {
 			// no turnover sap today
 			double turnover_sap = 0;
@@ -3773,10 +3897,7 @@ void turnover_tree(Individual &indiv) {
 		// Update N storage (kgN/m^2)
 		indiv.nmass_storage += n2storage_sap;
 		
-
 	}
-
-
 
 }
 

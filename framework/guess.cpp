@@ -1728,6 +1728,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cton_leaf_opt				= 0.0; 
 
 	initialn = 0.0;
+	leaf_out = false;
+	leaf_senesced = false;
+	leaf_full_switch_summer = false;
+	leaf_growth = false;
+	senescence_active = false;
+	leaf_out_phen_maxlimit = 0.9;
 
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
@@ -1950,7 +1956,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cton_status
 		& cmass_veg
 		& nmass_veg
-
+		& leaf_full_switch_summer
+		& senescence_active
+		& leaf_senesced
+		& leaf_growth
+		& leaf_out
+		& leaf_out_phen_maxlimit
 		& photosynthesis
 		& nstress
 		& leafndemand

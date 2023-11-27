@@ -3162,6 +3162,18 @@ public:
 	int aphen_raingreen;
 	/// physiological downregulation due to dormancy 
 	double fphen_activity;
+	// grote_dave - summer. after leaf out
+	bool leaf_full_switch_summer;
+	// grote_dave - autumn. scenescence after summer
+	bool senescence_active;
+	// grote_dave - winter. leaf senesced period
+	bool leaf_senesced;
+	// grote_dave - spring. leaf flushout period
+	bool leaf_growth;
+	// grote_dave - spring to summer. leaf out period 
+	bool leaf_out;
+	// grote_dave - phen value in which leaf_flushout ends and leaf_out begins
+	double leaf_out_phen_maxlimit;
 
     /// Photosynthesis variables for subdaily calculations
 	PhotosynthesisSubdaily ps_subdaily;

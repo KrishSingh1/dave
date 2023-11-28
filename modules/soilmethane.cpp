@@ -1042,7 +1042,7 @@ bool Soil::methane(bool generatemethane) {
 
 		double dailyO2diffusion = 0.0;
 		double molesO2IntoSoil = 0.0; 
-		if (allow_o2diffusion && dsnowdepth < 50.0) // no O2 diffusion until snow depth < 50mm 
+		if (allow_o2diffusion && snowdepth() < 50.0) // no O2 diffusion until snow depth < 50mm 
 			molesO2IntoSoil = diffuse_gas(O2, D_O2, O2gas, Ceq_O2, k_O2, Dz_metre, dailyO2diffusion);
 		O2_diff_today = dailyO2diffusion; // mol O2 into the soil (and then diffused downwards) 
 		// Should be negative, i.e. O2 diffuses INTO the soil
@@ -1069,7 +1069,7 @@ bool Soil::methane(bool generatemethane) {
 
 		double dailyCH4diffusion = 0.0;
 		double gramCH4IntoSoil = 0.0; 
-		if (allow_ch4diffusion && dsnowdepth < 50.0) // no CH4 diffusion until snow depth < 50mm 
+		if (allow_ch4diffusion && snowdepth() < 50.0) // no CH4 diffusion until snow depth < 50mm 
 			gramCH4IntoSoil = diffuse_gas(CH4, D_CH4, CH4gas, Ceq_CH4, k_CH4, Dz_metre, dailyCH4diffusion);
 		CH4_diff_today = -dailyCH4diffusion; // SHOULD BE 0 - gC m-2 d-1
 		// Should be positive, i.e. upward flux

@@ -1756,7 +1756,7 @@ void plib_callback(int callback) {
 				xtring pftname = st.rotation.nmanagements > 1 ? st.get_management(i).pftname : st.management.pftname;
 				if(pftname != "" && pftlist.getpftid(pftname) < 0) {
 					include = false;
-					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
+					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*) pftname);
 				}
 			}
 

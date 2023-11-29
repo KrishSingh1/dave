@@ -22,20 +22,20 @@ param "watch_dir"     (str "/data/benchmark_data/2013_02_12/watch_subset")
 !// Net CDF forcings
 !//////////////////////////
 
-param "file_temp"     (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_temp_1901_2015.latflip.nc")
-param "variable_temp" (str "Temperature")
+param "file_temp"     (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmp.1901-2020.365d.noc.daymean.nc")
+param "variable_temp" (str "tmp")
 
-param "file_prec"     (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_prec_1901_2015.latflip.nc")
-param "variable_prec" (str "Total_Precipitation")
+param "file_prec"     (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.pre.1901-2020.365d.noc.daysum.nc")
+param "variable_prec" (str "pre")
 
-param "file_insol"      (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_swdown_1901_2015.latflip.nc")
-param "variable_insol"  (str "Incoming_Short_Wave_Radiation")
+param "file_insol"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tswrf.1901-2020.365d.noc.daymean.nc")
+param "variable_insol"  (str "tswrf")
 
-param "file_wind" (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_wind_1901_2015.latflip.nc")
-param "variable_wind"  (str "scalarwind_daymean")
+param "file_wind" (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.wind.1901-2020.365d.noc.daymean.nc")
+param "variable_wind"  (str "wind")
 
-param "file_relhum" (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_relhum_1901-2015.nc")
-param "variable_relhum"	(str "relative_humidity")
+param "file_relhum" (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.rhum.1901-2020.365d.noc.daymean.nc")
+param "variable_relhum"	(str "rhum")
 
 ! Needed if relative humidity is not supplied
 param "file_pres"     (str "")
@@ -46,13 +46,13 @@ param "file_specifichum" (str "")
 param "variable_specifichum" (str "")
 
 ! Wet days can only be used with monthly precipitation
-param "file_wetdays"     (str "/scratch/johan/data/cruncep7karibu/cruncepv7_monthly_wet_1901_2015.nc")
-param "variable_wetdays" (str "precipitation_days_index_per_time_period")
+param "file_wetdays"     (str "")
+param "variable_wetdays" (str "")
 
 ! Min/max temp is required for BVOC,
 ! if BVOC is switched off these can be set to ""
-param "file_min_temp"      (str "/scratch/johan/data/cruncep7karibu/min_temp.nc")
-param "variable_min_temp"  (str "min_temp")
+param "file_min_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmin.1901-2020.365d.noc.daymin.nc")
+param "variable_min_temp"  (str "tmin")
 
-param "file_max_temp"      (str "/scratch/johan/data/cruncep7karibu/max_temp.nc")
-param "variable_max_temp"  (str "max_temp")
+param "file_max_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmax.1901-2020.365d.noc.daymax.nc")
+param "variable_max_temp"  (str "tmax")

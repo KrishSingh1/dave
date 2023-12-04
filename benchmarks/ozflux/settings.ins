@@ -102,7 +102,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                1
+spinup_output                0
 
 ! Iff enabled, patch-level outputs will be written as mean/median/standard
 ! deviation instead.
@@ -128,7 +128,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -236,5 +236,5 @@ import "pft_common.ins"
 
 !import "trees.ins"
 !import "shrubberies.ins"
-!import "c3g.ins"
-import "c4g.ins"
+import "c3g.ins"
+!import "c4g.ins"

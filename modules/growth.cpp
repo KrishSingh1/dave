@@ -59,19 +59,15 @@ const double ext_seed = 1.0e-5;
 // ---------------------------------
 // Grass parameters
 // ---------------------------------
-// fraction of shoot allocated to culms (=culm / (culm + leaves))
-
-
-
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.2;  // leaves and roots
 const double cstorage_max_perm = 0.5;  // crowns
 
 // Fraction of C storage not available for growth.
-const double frac_cstorage_res = 0.08;
+const double frac_cstorage_res = 0.15;
 
 // Maximum mobilisation rate of C in storage
-const double max_mobil_cstorage = 0.15;
+const double max_mobil_cstorage = 0.25;
 
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
@@ -161,7 +157,7 @@ void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double 
 	}
 	double cton = cmass / nmass;
 	assert(greater_than_or_equal(cton, cton_min));
-	assert(less_than_or_equal(cton, cton_max));
+ 	assert(less_than_or_equal(cton, cton_max));
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
@@ -236,12 +232,13 @@ double temp_growth(double temp) {
 void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 	// Calculates phenological cycle of grasses. 
-	// Returns phenological state of grasses as factor fphen [0-1].
+	// Returns phenological activity factor fphen_activity [0-1].
 	// Implemented for grasses only. 
     for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		Pft &pft = pftlist.getobj();
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
 		ppft.airtemp_10.add(climate.temp);
+		ppft.daylength_10.add(climate.daylength);
 	}
 	
 	
@@ -295,9 +292,12 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				}
 			} 
 			else if (indiv.growth_stage == reproductive) {
-				if (equal(indiv.fphen_activity, fphen_activity_min) || indiv.growth_stage_days > 280) {
+				// stop reproductive phase either 
+				// a) at the onset of dormancy
+				// b) when photoperiod gets longer again (TODO: use daylength instead of DOY? But would do the same thing)
+				if (equal(indiv.fphen_activity, fphen_activity_min) || date.day == 172) {
 					
-					indiv.growth_stage = indiv.growth_stage_days > 280 ? vegetative : dormant;
+					indiv.growth_stage = date.day == 172 ? vegetative : dormant;
 					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
@@ -1433,7 +1433,7 @@ bool allometry(Individual& indiv) {
 				// Root projective cover (RPC) introduced to capture feedback between 
 				// belowground C investment and available N. The following is equal to 
 				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai * min(10.0,(0.5 * indiv.cmass_root / indiv.cmass_leafs[0])));
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai * min(10.0,(0.5 * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 
 
@@ -2619,7 +2619,7 @@ double growth_demand(Individual& indiv) {
 	ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
 	//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
 	//indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
-	indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
+    indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
 	// TODO: revise this formulation. cmass_repr should be linked to cmass_leaf * culm_frac!!
 
     // growth demand (=sink activity) as a fraction of existing biomass.
@@ -3215,11 +3215,11 @@ void senescence_grass(Individual &indiv) {
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.005;              // Baseline senescence rate in the vegetative phase (d-1)
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
-	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
+	const double fsenesc_repr_perennial = 0.0125;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
 	const double senesc_scal_water = 4.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 2.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 0.7;
+	const double qwater_senesc = 0.5;  // higher values --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3240,14 +3240,14 @@ void senescence_grass(Individual &indiv) {
 
 		double fsenesc_repr = indiv.pft.lifeform == GRASS_ANNUAL ? fsenesc_repr_annual : fsenesc_repr_perennial;
 		// in the reproductive phase, senescence is proportional to fraction of C already invested in reproduction.
-		senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_crown + indiv.cmass_leafs[green] + indiv.cmass_root);
+		senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_leafs[green] + indiv.cmass_root);
 
 	}
 	
 	
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = senesc_scal_water * pow((1 - ppft.wscal),qwater_senesc);
+	double senesc_fwater = senesc_scal_water * (1.0 - pow(ppft.wscal,qwater_senesc));
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
@@ -3259,7 +3259,7 @@ void senescence_grass(Individual &indiv) {
 		senesc_ftemp = temp_senesc * (grass_temp - 35.0);
 	}
 
-	// Dormancy-induced (drought dormancy only at the moment)
+	// Dormancy-induced
 	double senesc_fdorm = 0.0;
 	//if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 	if (indiv.fphen_activity < 1.0 ) {
@@ -3656,7 +3656,6 @@ void sink_source_feedback(Individual& indiv) {
 	else {
 		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * 1.1); 
 	}
-
 } 
 
 

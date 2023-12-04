@@ -4554,12 +4554,14 @@ public:
 	double anetps_ff;
 	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
-	/// five day mean of wscal. Used in daily grass growth
+	/// five day record of wscal. Used in daily grass growth
 	Historic<double, 5> wscal_5;
-	/// ten day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
+	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
-	/// ten day mean of air temperature. Used in DAVE daily grass growth for determination of dormancy.
+	/// ten day record of air temperature. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> airtemp_10;
+	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
+	Historic<double, 10> daylength_10;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)

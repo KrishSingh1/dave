@@ -3154,8 +3154,10 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
-	Historic<double, 15> cmass_storage_15;
+	/// 20-day record of NSC pool (kgC/m2/d)
+	Historic<double, 20> cmass_storage_20;
+	/// 10-day record of daily reproduction pool (kgC/m2/d)
+	Historic<double, 10> cmass_repr_10;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)

@@ -1888,7 +1888,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
-		& cmass_storage_15
+		& cmass_storage_20
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -2489,7 +2489,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
 
-			if (ifdailygrass && pft.is_grass())
+			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].nmass_leafs[brown] = %.8f\n", (const char *)pft.name, nmass_leafs[1] * scale_indiv);
@@ -2503,6 +2503,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 					}
 					ncont += nmass_leafs[3] * scale_indiv;
 				}
+			}
 		}
 
 		if (pft.landcover == CROPLAND) {

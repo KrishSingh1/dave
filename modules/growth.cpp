@@ -227,6 +227,11 @@ double temp_growth(double temp) {
 	return Arrhenius_temp_response(1.78,temp,76.8,285.0,933)/2.23;  // TODO: parameterise properly (now: Parent et al. 2010)
 }
 
+// Photoperiod affecting development and thus growth demand
+double photo_growth(double daylength_diff) {
+	return daylength_diff;
+}
+
 		
 
 void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
@@ -277,12 +282,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
+			double repr_trend = 0.0;  // relative trend in repr. tissue
+			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0 && indiv.growth_stage_days > 30){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 90){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -291,13 +298,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 					indiv.growth_stage_days = 0;
 				}
 			} 
-			else if (indiv.growth_stage == reproductive) {
+			else if (indiv.growth_stage == reproductive && indiv.pft.lifeform == GRASS_PERENNIAL) {
 				// stop reproductive phase either 
 				// a) at the onset of dormancy
-				// b) when photoperiod gets longer again (TODO: use daylength instead of DOY? But would do the same thing)
-				if (equal(indiv.fphen_activity, fphen_activity_min) || date.day == 172) {
+				// b) repr pool does not increase any longer
+				repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
+				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 1.0e-4 ) {
 					
-					indiv.growth_stage = date.day == 172 ? vegetative : dormant;
+					indiv.growth_stage = repr_trend < 1.0e-4 ? vegetative : dormant;
 					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
@@ -2600,9 +2608,11 @@ double growth_demand(Individual& indiv) {
 
 	double growth_rate = 0.0;
 	double growth_rate_pot = 0.2;  // TODO: parameterise from data. Different between annuals and perennials
+								   //    --> better growth rate emerging from the runs
 	double growth_demand = 0.0;
 	double fwater_growth = 0.0;
 	double ftemp_growth = 0.0;
+	double fphoto_growth = 0.0;
 	double ag_cmass = 0.0;
 
 	// Test: do we need to account for growth_rate_pot to get different behaviour of annuals vs perennials
@@ -2613,8 +2623,10 @@ double growth_demand(Individual& indiv) {
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
-	ftemp_growth = temp_growth(grass_temp);
-		
+	ftemp_growth  = temp_growth(grass_temp);
+	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1)); 
+
+
 	ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
 	ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
 	//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
@@ -2624,8 +2636,12 @@ double growth_demand(Individual& indiv) {
 
     // growth demand (=sink activity) as a fraction of existing biomass.
 	// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
-	growth_demand = min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth);
-
+	// TODO: figure out photoperiod effect across latitudes and growth conditions
+	if (indiv.pft.pathway == C4) {
+		fphoto_growth = 0.0;
+	}
+	growth_demand = max(0.0,min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth + 5.0 * fphoto_growth));
+ 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
 		growth_demand *= (indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min);
@@ -3213,13 +3229,13 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.005;              // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.007;              // Baseline senescence rate in the vegetative phase (d-1)
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
-	const double fsenesc_repr_perennial = 0.0125;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
-	const double senesc_scal_water = 4.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 2.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
+	const double senesc_scal_water = 3.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 3.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 0.5;  // higher values --> higher sensitivity to water stress
+	const double qwater_senesc = 0.3;  // higher values --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3687,8 +3703,9 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		// Handle excess C and N.
 		storage_overflow(indiv);
 
-		// keep track of changes in C storage.
-		indiv.cmass_storage_15.add(indiv.cmass_storage);
+		// keep track of changes in C storage and reproduction.
+		indiv.cmass_storage_20.add(indiv.cmass_storage);
+		indiv.cmass_repr_10.add(indiv.cmass_repr);
 
 	}
 }

@@ -1273,10 +1273,6 @@ double nstorage_capacity(Individual& indiv) {
 
 
 void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init) {
-	
-	if (is_zero(nmass_init)) {  // not provided as input
-		nmass_init = cmass_init / indiv.pft.cton_leaf_avr;
-	}
 
 	double dval;
 	double cmass_leaf_ind;
@@ -1332,29 +1328,60 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 
 		indiv.alive = true;
 		indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+
+		double cmass_after = indiv.ccont();
+		double nmass_after = indiv.ncont();
+		assert(equal(cmass_before + cmass_init, cmass_after));
+		assert(equal(nmass_before + nmass_init, nmass_after));
 	}
 	else {
 
 		// TODO: make sure tree establishment uses the C:N ratio of the seeds
 		allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
 
-		indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
-		indiv.cmass_root = cmass_root_ind * indiv.densindiv;
-
-		if (ifdavephotosyn){
-			// we need initial values for nmass_leaf when calling ifdavephotosyn
-			indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
-			assert(indiv.nmass_leaf >= 0);
-			indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_avr;
-		}
-		else {
-			indiv.nmass_leaf = 0.0;
-			indiv.nmass_root = 0.0;
-		}
-
+		indiv.cmass_leaf += cmass_leaf_ind * indiv.densindiv;
+		indiv.cmass_root += cmass_root_ind * indiv.densindiv;
 		if (indiv.pft.lifeform == TREE) {
-			indiv.cmass_sap = cmass_sap_ind * indiv.densindiv;
-			indiv.nmass_sap = indiv.cmass_sap / indiv.pft.cton_sap_avr;
+			indiv.cmass_sap += cmass_sap_ind * indiv.densindiv;
+		}
+
+		double nmass_remaining = nmass_init;
+
+		if (nmass_init > 0) {
+			if (ifdavephotosyn) {
+				// we need initial values for nmass_leaf when calling ifdavephotosyn
+				double leafndemand = indiv.cmass_leaf / indiv.pft.cton_leaf_avr;
+				double rootndemand = indiv.cmass_root / indiv.pft.cton_root_avr;
+				double sapndemand = indiv.cmass_sap / indiv.pft.cton_sap_avr;
+				if (leafndemand + rootndemand + sapndemand > nmass_init) {
+					leafndemand = indiv.cmass_leaf / indiv.pft.cton_leaf_max;
+					rootndemand = indiv.cmass_root / indiv.pft.cton_root_max;
+					sapndemand = indiv.cmass_sap / indiv.pft.cton_sap_max;
+				}
+
+				// Remember, the destination pools may be nonzero already if
+				// this "establishment" event is contributing biomass towards an
+				// existing individual.
+
+				double nalloc_leaf = min(nmass_remaining, leafndemand);
+				indiv.nmass_leaf += nalloc_leaf;
+				nmass_remaining -= nalloc_leaf;
+				assert(indiv.nmass_leaf >= 0);
+
+				double nalloc_root = min(nmass_remaining, rootndemand);
+				indiv.nmass_root += nalloc_root;
+				nmass_remaining -= nalloc_root;
+				assert(indiv.nmass_root >= 0);
+
+				if (indiv.pft.lifeform == TREE && nmass_remaining > 0) {
+					double nalloc_sap = min(nmass_remaining, sapndemand);
+					indiv.nmass_sap += nalloc_sap;
+					nmass_remaining -= nalloc_sap;
+					assert(indiv.nmass_sap >= 0);
+				}
+			}
+			indiv.nmass_storage += nmass_remaining;
+			assert(indiv.nmass_storage >= 0);
 		}
 
 		// We need to report the establishment C and N quantities as fluxes for
@@ -1368,14 +1395,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
 	}
-
-	double cmass_after = indiv.ccont();
-	double nmass_after = indiv.ncont();
-	assert(equal(cmass_before + cmass_init, cmass_after));
-    assert(equal(nmass_before + nmass_init, nmass_after));
-
 }
-
 
 void allocation_init(double bminit, double ltor, Individual& indiv) {
 
@@ -1903,32 +1923,6 @@ void growth(Stand& stand, Patch& patch) {
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
 
-						if (ifdavephotosyn) {
-							// Set annual N demand when running in newphotosyn mode.
-							// fixme: this is just a placeholder, we need a way to run trees on
-							// an annual timestep. For now, just request enough N to meet the
-							// expected turnover this year.
-							indiv.andemand_leaf = indiv.get_nmass_leaf() * indiv.pft.turnover_leaf;
-							indiv.andemand_root = indiv.nmass_root * indiv.pft.turnover_root;
-							indiv.andemand_sap = indiv.nmass_sap * indiv.pft.turnover_sap;
-							indiv.andemand = indiv.andemand_leaf + indiv.andemand_root + indiv.andemand_sap;
-							indiv.ndemand = indiv.andemand / 365; // fixme!! (Assaf)
-							total_ndemand += indiv.ndemand;
-
-							indiv.leaffndemand = divide(indiv.andemand_leaf, indiv.andemand);
-							indiv.rootfndemand = divide(indiv.andemand_root, indiv.andemand);
-							indiv.sapfndemand = divide(indiv.andemand_sap, indiv.andemand);
-
-							assert(indiv.leaffndemand >= 0);
-							assert(indiv.rootfndemand >= 0);
-							assert(indiv.sapfndemand >= 0);
-
-							indiv.leafndemand = indiv.ndemand * indiv.leafndemand;
-							indiv.rootndemand = indiv.ndemand * indiv.rootfndemand;
-							indiv.sapndemand = indiv.ndemand * indiv.sapfndemand;
-							indiv.storendemand = 0;
-						}
-
 						indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);
 
 						// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
@@ -2198,17 +2192,6 @@ void growth(Stand& stand, Patch& patch) {
 			if (!killed) {
 				vegetation.nextobj();
 			}
-		}
-	}
-
-	if (ifdavephotosyn) {
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual &indiv = vegetation.getobj();
-			if (indiv.pft.lifeform == TREE) {
-				indiv.fnuptake = indiv.ndemand / total_ndemand;
-			}
-			vegetation.nextobj();
 		}
 	}
 

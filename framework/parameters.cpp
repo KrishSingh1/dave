@@ -76,7 +76,8 @@ bool ifbvoc;
 bool ifdailygrass;
 bool ifdavephotosyn;
 bool ifdavegrowth;
-bool ifdavediagnostics;
+bool ifdavediagnostics = false;
+bool _ifdavediagnostics;
 bool ifapproximate_C4;
 bool ifusegdd;
 int nlayer_canopy = 0;
@@ -613,7 +614,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
-		declareitem("ifdavediagnostics", &ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
+		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
@@ -1988,7 +1989,7 @@ void plib_callback(int callback) {
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 			if (!itemparsed("crownfrac")) badins("crownfrac");
-			if (!itemparsed("culmfrac")) badins("culmfrac");
+			if (!itemparsed("culmfrac") && ppft->is_grass()) badins("culmfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("turnover_repr")) badins("turnover_repr");

@@ -2510,7 +2510,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
 
-			if (ifdailygrass && pft.is_grass())
+			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
 					if (ifdavediagnostics) {
 						printf("indivs[\"%s\"].nmass_leafs[brown] = %.8f\n", (const char *)pft.name, nmass_leafs[1] * scale_indiv);
@@ -2524,6 +2524,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 					}
 					ncont += nmass_leafs[3] * scale_indiv;
 				}
+			}
 		}
 
 		if (pft.landcover == CROPLAND) {
@@ -3813,13 +3814,23 @@ void MassBalance::check_day(Gridcell &gridcell) {
 		return;
 	}
 
-	// check_day_c(gridcell);
+	ifdavediagnostics = _ifdavediagnostics;
 
-	if (ifcentury) {
-		// check_day_n(gridcell);
+	if (ifdavegrowth) {
+		// Sub-annual mass balance is not preserved in the annual allocation
+		// scheme (ie trunk allocation). I'm not going to attempt to fix that
+		// here.
+
+		// check_day_c(gridcell);
+
+		if (ifcentury) {
+			check_day_n(gridcell);
+		}
 	}
 
 	check_day_water(gridcell);
+
+	ifdavediagnostics = false;
 }
 
 bool is_first_day() {
@@ -3980,6 +3991,8 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		return;
 	}
 
+	ifdavediagnostics = _ifdavediagnostics;
+
 	if (ifdavediagnostics) {
 		printf("----------------------------------------------------------------\n");
 		printf("DAVE annual mass balance diagnostics year %d (%04d-%02d-%02d)\n", date.year, date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
@@ -3996,6 +4009,8 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		printf("End of DAVE annual mass balance diagnostics year %d (%04d-%02d-%02d)\n", date.year, date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
 		printf("----------------------------------------------------------------\n");
 	}
+
+	ifdavediagnostics = false;
 }
 
 void MassBalance::check_period(Gridcell& gridcell) {

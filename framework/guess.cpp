@@ -1803,6 +1803,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age               = 0.0;
 	height            = 0.0;
 	diam              = 0.0;
+	crownarea		  = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
 	intercep          = 0.0;

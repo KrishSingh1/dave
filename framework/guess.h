@@ -2076,8 +2076,16 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
+	/// Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
+    /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
+	double Ha_growth;
+	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)
+	double T0_growth;
+	/// Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012)
+	double A_growth;
+
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
 	/// fraction of NPP allocated to crowns

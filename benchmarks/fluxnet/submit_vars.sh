@@ -1,2 +1,0 @@
-NPROCESS=5
-INPUT_MODULE=fluxnet

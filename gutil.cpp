@@ -175,7 +175,7 @@ xtring::operator const char*() const {
 
 	// Conversion function (cast operator) to const char*
 
-	return ptext;
+	return (const char*)ptext;
 }
 
 void xtring::reserve(unsigned long n) {
@@ -682,7 +682,8 @@ bool xtring::operator<(char* s2) const {
 
 bool xtring::operator<(const char* s2) const {
 
-	if (strcmp(ptext,s2)<0) return true;
+	// ecev3 - casted
+	if (strcmp((const char*)ptext,s2)<0) return true;
 	return false;
 }
 

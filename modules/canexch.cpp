@@ -2327,7 +2327,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double growth_demand,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double growth,
 	double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
@@ -2467,10 +2467,14 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// TODO: add reproductive respiration here
+			
 			// Growth respiration
-			// TODO: link better to growth!
-			const double Rg_max = 0.1;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim - resp_root - resp_crown) * (growth_demand * G_PER_KG * Rg_max);
+			// Note that we take growth of previous day to estimate this,
+			// assumption being that C is not necessarily used for growth on
+			// the same day it's fixed. A time lag is considered physiologicallly 
+			// more meaningful than a flat rate that is completely independent of growth.
+			// Data from Ryan 1991.
+			resp_growth = growth * 0.2;
 
 		} else {
 			
@@ -3442,7 +3446,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
-			cmass_root, cmass_crown, indiv.growth_demand, indiv.fphen_activity, assim, resp);
+			cmass_root, cmass_crown, indiv.cgrow, indiv.fphen_activity, assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

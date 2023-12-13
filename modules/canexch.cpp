@@ -2466,9 +2466,11 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// TODO: at some point, replace respiration functions here!
 			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
+			// TODO: add reproductive respiration here
 			// Growth respiration
-			const double Rg_max = 0.5;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim - resp_root - resp_crown) * (growth_demand * Rg_max);
+			// TODO: link better to growth!
+			const double Rg_max = 0.1;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
+			resp_growth = (assim - resp_root - resp_crown) * (growth_demand * G_PER_KG * Rg_max);
 
 		} else {
 			

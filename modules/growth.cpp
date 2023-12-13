@@ -254,24 +254,23 @@ double photo_growth(double daylength_diff) {
 
 // Relative growth rate derived from data presented in Poorter & Pothmann 1992
 // TODO: could this be simplified?
-double mass_growth(double cmass_total, double cmass_leaf, double cmass_repr, double lai) {
-	cmass_leaf = max(0.001,cmass_leaf) * 1000.0;  // gC m-2
+//double mass_growth(double cmass_total, double cmass_leaf, double cmass_repr, double lai) {
+//	cmass_leaf = max(0.001,cmass_leaf) * 1000.0;  // gC m-2
 	
-	double repr_frac = min(1.0, cmass_repr / cmass_leaf);
-	double mass_lai = cmass_leaf / (lai);  // depends on sla and culmfrac.
+//	double repr_frac = min(1.0, cmass_repr / cmass_leaf);
+//	double mass_lai = cmass_leaf / (lai);  // depends on sla and culmfrac.
 	//return (1.0 - repr_frac) * cmass_total * (14.645 * pow(mass_lai,-1.158));    // kgC m-2 d-1
-	return (1.0 - repr_frac) * cmass_leaf/1000.0 * (14.645 * pow(mass_lai,-1.158)); 
-}
-
-//double mass_growth(double cmass_total, double cmass_leaf, double cmass_repr, double cmass_storage, double lai) {
-//	double gd = 0.0;
-//	if (cmass_total < 0.001) {
-//		gd = max_mobil_cstorage * cmass_storage;
-//	} else {
-//		gd = 0.2 * cmass_total;
-//	}
-//	return gd;  // kgC m-2 d-1
+//	return (1.0 - repr_frac) * cmass_leaf/1000.0 * (14.645 * pow(mass_lai,-1.158)); 
 //}
+
+// Relative growth rate as a function of active surface area.
+// Data fitted from Poorter & Porthmann 1992. 
+// Fitted intercept not statistically significant.
+double area_growth(double sla, double culmfrac, double cmass_total, double cmass_leaf, double cmass_repr) {
+	double cmassleaf = max(0.001,cmass_leaf);
+	double crepr_frac = min(1.0,cmass_repr/cmassleaf);
+	return max(0.0, -0.01 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - crepr_frac)) * cmass_total;     // kgC m-2 d-1
+}
 
 
 		
@@ -2653,20 +2652,17 @@ double growth_demand(Individual& indiv) {
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
-	// AG biomass 
-	// TODO: include non-structural biomass?
-	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() + indiv.cmass_repr;
+	// Total biomass 
+	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() +
+						 indiv.cmass_repr + indiv.cmass_storage;
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	cmass_growth  = mass_growth(cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr,indiv.lai);
+	cmass_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
     //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
 	
-	//double ag_cmass = max(indiv.get_cmass_leaf() + indiv.cmass_repr,0.001);
-    //cmass_growth = 0.0015 * divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
-
 	growth_demand = cmass_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
@@ -3258,7 +3254,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.005;              // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.007;              // Baseline senescence rate in the vegetative phase (d-1)
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
 	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
 	const double senesc_scal_water = 3.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
@@ -3464,8 +3460,8 @@ void turnover_dave_grass(Individual &indiv) {
 	// crown turnover relative to shoot turnover.
 	double scal_crown_turnover = 0.3;
 
-	// TODO: turnover rates should be moisture and temperature dependent
-	double frac_turnover_leaf = indiv.pft.turnover_leaf / date.year_length();
+	// TODO: turnover rates should be moisture and temperature dependent. They also need to be higher than the annual rates.
+	double frac_turnover_leaf = 2.0 * indiv.pft.turnover_leaf / date.year_length();
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_leaf;
 	//double frac_turnover_root = (pow((1 - ppft.wscal),0.4) * 4.0) * indiv.pft.turnover_root / date.year_length();
 	double frac_turnover_root = 3.0 * indiv.pft.turnover_root / date.year_length();

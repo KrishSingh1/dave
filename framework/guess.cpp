@@ -2316,11 +2316,10 @@ double Individual::sla() const {
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.is_grass() && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
-			//const double sla_beta = -0.12;
-			//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
-			//current_sla *= pow(max(0.01,growth_demand_sla),sla_beta);
-			//current_sla *= 1.0; 
-			current_sla *= max(1.0,min(1.2,fdev_growth));
+			//const double sla_beta = -0.07;
+			const double sla_beta = -0.06;
+			double rescal = pow(0.2,sla_beta);  // rescale so that default sla reached at 0.2Ckg rather than 1kgC
+			current_sla *= (pow(get_cmass_leaf(),sla_beta) / rescal);
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 		}

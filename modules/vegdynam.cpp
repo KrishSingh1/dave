@@ -417,6 +417,9 @@ void establishment_daily(Patch& patch) {
 	if (ifdailygrass && ifdavegrowth) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
+			if (!pft.is_grass()) {
+				continue;
+			}
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
 			// check conditions for germination (germination fraction)
 			double frac_germ = germination_fraction(ppft, patch);

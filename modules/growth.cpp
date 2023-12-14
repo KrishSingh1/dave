@@ -2996,6 +2996,7 @@ void nuptake_dave(Vegetation& vegetation) {
 		// This happens right after growth in simulate_day.
 
 	}
+	nstore_usage(vegetation);
 
 }
 

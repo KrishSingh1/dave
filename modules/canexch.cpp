@@ -1006,6 +1006,11 @@ void nstore_usage(Vegetation& vegetation) {
 
 		if (indiv.pft.is_grass() && ifdailygrass) {
 
+			if (ifdavegrowth) {
+				vegetation.nextobj();
+				continue;
+			}
+
 			indiv.nstress = ifnlim && date.year > freenyears;
 
 			// Check if current tissue N mass matches optimal level otherwise N limitation on photosynthesis
@@ -1105,6 +1110,11 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+
+		if (ifdavegrowth && indiv.pft.is_grass()) {
+			vegetation.nextobj();
+			continue;
+		}
 
 		// Rescaler of nitrogen uptake
 		indiv.fnuptake = 1.0;
@@ -1220,7 +1230,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
 		// Annual growth
-		if (!daily_grass) {
+		if (!(daily_grass && indiv.pft.is_grass())) {
 
 			// Root and leaf demand from storage pools
 			indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);
@@ -3540,10 +3550,13 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// needed here?
 		leaf_senescence(vegetation);
 
-		if (!ifdavegrowth) {
-			// Nitrogen demand
-			ndemand(patch, vegetation);
+		// Nitrogen demand
+		// This will only affect PFTs:
+		// - Grasses if using trunk allocation
+		// - Trees always
+		ndemand(patch, vegetation);
 
+		if (!ifdavegrowth) {
 			// Nitrogen competition and ~uptake~. Well, actually one could argue
 			// that this isn't the uptake, because the nitrogen is removed from
 			// the soil later (in somdynam::vegetation_n_uptake()). But this

@@ -525,11 +525,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	double kest_bg = 0.0;
 	int i = 0;
 
-	// Establishment happens daily for DAVE version
-	if (ifdavegrowth) {
-		return;
-	}
-
 	// Obtain reference to Vegetation object
 
 	Vegetation& vegetation=patch.vegetation;
@@ -575,6 +570,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
+
+		if (ifdavegrowth && pft.is_grass()) {
+			pftlist.nextobj();
+			continue;
+		}
+
 		Standpft& standpft=stand.pft[pft.id];
 
 		// For this PFT ...

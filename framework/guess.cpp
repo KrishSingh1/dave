@@ -2355,12 +2355,13 @@ double Individual::sla() const {
  *
  *  \param scale_indiv  		scaling factor for living C
  *  \param luc 					down-scales living C (used in C balance tests)
+ *  \param ignore_alive			if true, ignore whether individual is alive or not
  */
-double Individual::ccont(double scale_indiv, bool luc) const {
+double Individual::ccont(double scale_indiv, bool luc, bool ignore_alive) const {
 
 	double ccont = 0.0;
 
-	if (alive || istruecrop_or_intercropgrass()) {
+	if (ignore_alive || alive || istruecrop_or_intercropgrass()) {
 
 		if (has_daily_turnover()) {	// Not taking into account future daily wood allocation/turnover
 
@@ -2445,6 +2446,11 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 						printf("indivs[\"%s\"].cmass_leafs[3] = %.8f\n", (const char *)pft.name, cmass_leafs[3]);
 					}
 				}
+			} else if (ifdavegrowth && pft.lifeform==TREE) {
+				ccont += (cmass_storage + cmass_repr) * scale_indiv;
+				if (ifdavediagnostics) {
+					printf("indivs[\"%s\"].cmass_storage = %.8f\n", (const char *)pft.name, cmass_storage);
+				}
 			}
 
 			if (pft.landcover == CROPLAND) {
@@ -2466,12 +2472,13 @@ double Individual::ccont(double scale_indiv, bool luc) const {
  *
  *  \param scale_indiv  		scaling factor for living N
  *  \param luc 					down-scales living N (used in C balance tests)
+ *  \param ignore_alive			if true, ignore whether individual is alive or not
  */
-double Individual::ncont(double scale_indiv, bool luc) const {
+double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const {
 
 	double ncont = 0.0;
 
-	if (alive) {
+	if (ignore_alive || alive) {
 
 		if (luc) {
 

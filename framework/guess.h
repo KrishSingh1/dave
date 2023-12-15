@@ -3487,9 +3487,9 @@ public:
 	}
 
 	/// Total carbon biomass
-	double ccont(double scale_indiv = 1.0, bool luc = false) const;
+	double ccont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
 	/// Total nitrogen biomass
-	double ncont(double scale_indiv = 1.0, bool luc = false) const;
+	double ncont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
 
 	/// Whether grass growth is uninterrupted by crop growth.
 	bool continous_grass() const;

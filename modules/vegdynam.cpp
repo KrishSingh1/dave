@@ -406,6 +406,19 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	return frac_germ;
 }
 
+double nseedlings(double cmass_seed, Pft &pft) {
+	// seedling mass (kgC/m^2)
+	// TODO: set as PFT parameter
+	double cmass_seedling = 0.005;
+	
+	// grass and moss pft has only 1 individual
+	if (pft.is_grass() || pft.lifeform == MOSS) {
+		return 1;
+	}
+
+	return max(1.0, floor(cmass_seed / cmass_seedling));
+
+}
 
 // call every day
 void establishment_daily(Patch& patch) {
@@ -428,14 +441,18 @@ void establishment_daily(Patch& patch) {
 					// Establish new individual.
 					Individual& individual = vegetation.createobj(pft, vegetation);
 					indiv = &individual; // & gets address of the variable (* is the opposite)
-					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
-					indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
-					indiv->densindiv=1.0;
+					if (pft.lifeform == TREE) {
+						indiv->height = 0.05;
+					}
+					// indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
+					indiv->crownarea = 1.0; // (value not used). this is the same as (*indiv).crownarea
+					// calculate the number of seedlings (1 for grass)
+					indiv->densindiv = nseedlings(cmass_seed, pft); 
 					indiv->fpc=1.0;  // TODO: is that right?
 					indiv->nscal_5.add(1.0);
 				}
-				double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
-				double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
+				double cmass_before = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true);
+				double nmass_before = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true);
 				
 				// Take germinated biomass out of the seedbank
 				ppft.cmass_litter_repr -= cmass_seed;
@@ -443,8 +460,8 @@ void establishment_daily(Patch& patch) {
 				// Add some new biomass into this individual.
 				establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
 
-				double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
-				double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
+				double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true);
+				double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true);
 				assert(equal(cmass_before, cmass_after));
 				assert(equal(nmass_before, nmass_after));
 			}

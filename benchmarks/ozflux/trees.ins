@@ -2,81 +2,6 @@
 ! Tree PFTs
 !///////////////////////////////////////////////////////////////////////////////
 
-pft "BNE" (
-
-	! Boreal needleleaved evergreen tree
-
-	include 1
-	tree
-	needleleaved
-	shade_tolerant
-	evergreen
-	boreal
-	leaflong 3
-	turnover_leaf 0.33
-	tcmin_surv -31
-	tcmin_est -30
-	tcmax_est -1
-	twmin_est 5
-	gdd5min_est 500
-	longevity 500
-	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 0
-	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-)
-
-pft "BINE" (
-
-	! Boreal needleleaved evergreen tree
-
-	include 1
-	tree
-	needleleaved
-	shade_intolerant
-	evergreen
-	boreal
-	leaflong 3
-	turnover_leaf 0.33
-	tcmin_surv -31
-	tcmin_est -30
-	tcmax_est -1
-	twmin_est 5
-	gdd5min_est 500
-	longevity 500
-	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 0
-	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-)
-
-pft "BNS" (
-
-	! Boreal needleleaved summergreen tree
-
-	include 1
-	tree
-	needleleaved
-	shade_intolerant
-	summergreen
-	boreal
-	tcmin_surv -1000	! no limit
-	tcmin_est -1000		! no limit
-	tcmax_est -2
-	twmin_est -1000		! no limit
-	twminusc 43		! AA from TH 03-11 added this
-	gdd5min_est 350		! Changed 2013-04-30 from value 500
-	phengdd5ramp 100	! Changed 2013-04-30 from value 200
-	longevity 300
-	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 1
-	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-)
-
 pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
@@ -100,54 +25,6 @@ pft "TeNE" (
 	seas_iso 0		! Values set to be the same as those for BNE and BINE
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Values set to be the same as those for BNE and BINE
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Values set to be the same as those for BNE and BINE
-)
-
-pft "TeBS" (
-
-	! Shade-tolerant temperate broadleaved summergreen tree
-
-	include 1
-	tree
-	broadleaved
-	shade_tolerant
-	summergreen
-	temperate
-	tcmin_surv -14
-	tcmin_est -13
-	tcmax_est 6
-	twmin_est 5
-	gdd5min_est 1100
-	longevity 400
-	fireresist 0.1
-	eps_iso 45.0
-	seas_iso 1
-	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-)
-
-pft "IBS" (
-
-	! Shade-intolerant broadleaved summergreen tree
-
-	include 1
-	tree
-	broadleaved
-	shade_intolerant
-	summergreen
-	boreal
-	tcmin_surv -30
-	tcmin_est -30
-	tcmax_est 7
-	twmin_est -1000  !no limit
-	gdd5min_est 350 !from TH 2010-03-10 AA
-	longevity 300 !from TH 2010-04-07 was 300 AA
-	fireresist 0.1
-	eps_iso 45.0
-	seas_iso 1
-	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
-
-	greff_min 0.135 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
 )
 
 pft "TeBE" (
@@ -214,25 +91,4 @@ pft "TrIBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
-)
-
-pft "TrBR" (
-
-	! Tropical broadleaved raingreen tree
-
-	include 1
-	tree
-	broadleaved
-	shade_intolerant
-	tropical
-	phenology "raingreen"
-	fnstorage 0.15
-	leaflong 0.5
-	turnover_leaf 1
-	longevity 400    	! from Thomas h 2010-03-30
-	fireresist 0.3
-	eps_iso 45.0
-	seas_iso 0
-	eps_mon 0.95 0.26 0.22 0.18 0.18 0.13 0.12 0.22 0.14
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )

@@ -440,7 +440,7 @@ void tree_phenology_grote(Individual& indiv) {
 			break;
 		case EVERGREEN:
 			// true in case phen is between its minimum value (1 - turnover_leaf) and 0.9, else, false
-			if ((indiv.phen  - (1.0-indiv.pft.turnover_leaf)) > 0.0 && indiv.phen < indiv.leaf_out_phen_maxlimit) {
+			if ((indiv.phen  - (1.0 - indiv.pft.turnover_leaf)) > 0.0 && indiv.phen < indiv.leaf_out_phen_maxlimit) {
 				leaf_out = true;
 			}
 			// true in case phen is at its minimum value and senescence is active, 
@@ -1274,13 +1274,13 @@ double nstorage_capacity(Individual& indiv) {
 
 void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init) {
 
-	double dval;
-	double cmass_leaf_ind;
-	double cmass_root_ind;
-	double cmass_sap_ind;
+	double dval = 0;
+	double cmass_leaf_ind = 0;
+	double cmass_root_ind = 0;
+	double cmass_sap_ind = 0;
 
-	double cmass_before = indiv.ccont();
-	double nmass_before = indiv.ncont();
+	double cmass_before = indiv.ccont(1.0, false, true);
+	double nmass_before = indiv.ncont(1.0, false, true);
 	
 	if (indiv.pft.is_grass() && ifdailygrass) {
 
@@ -1335,14 +1335,39 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		assert(equal(nmass_before + nmass_init, nmass_after));
 	}
 	else {
+		if (ifdavegrowth) {
+			// proportion of the initial biomass that goes to storage
+			const double fract_stor = 0.5;
+			indiv.cmass_storage += cmass_init * fract_stor;
+			double cmass_total = cmass_init * (1 - fract_stor);
+			Pft &pft = indiv.pft;
+			// constant
+			double x = (1 / indiv.pft.ltor_max) + 
+			((pft.sla * indiv.height * pft.wooddens) / pft.k_latosa) + 1;
+			cmass_leaf_ind = cmass_total / x;
+			cmass_root_ind = cmass_leaf_ind / pft.ltor_max;
+			cmass_sap_ind = cmass_total - (cmass_leaf_ind + cmass_root_ind);
 
-		// TODO: make sure tree establishment uses the C:N ratio of the seeds
-		allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
-
+		} else {
+			// TODO: make sure tree establishment uses the C:N ratio of the seeds
+			allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, 
+			cmass_sap_ind, dval, dval, dval, dval, dval);
+		}
+		
 		indiv.cmass_leaf += cmass_leaf_ind * indiv.densindiv;
 		indiv.cmass_root += cmass_root_ind * indiv.densindiv;
-		if (indiv.pft.lifeform == TREE) {
-			indiv.cmass_sap += cmass_sap_ind * indiv.densindiv;
+		indiv.cmass_sap += cmass_sap_ind * indiv.densindiv;
+		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		// Capacity of C and N storage on establishment
+		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
+			indiv.cstorage_max = cstorage_capacity(indiv);
+			indiv.nstorage_max = nstorage_capacity(indiv);
+		}
+		// initialise limits
+		if (is_zero(indiv.cmass_sap_limit)) {
+			indiv.cmass_sap_limit = indiv.cmass_sap;
+			indiv.cmass_leaf_limit = indiv.cmass_leaf;
+			indiv.cmass_root_limit = indiv.cmass_root;
 		}
 
 		double nmass_remaining = nmass_init;
@@ -2826,7 +2851,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 void adjust_cpool_optimum(Individual &indiv) {
 	// calculate leaf limit (optimum)
 	const double MAX_HEIGHT = 150;
-	const double MIN_HEIGHT = 0.5;
+	const double MIN_HEIGHT = 0.05;
 	// limit height to below max and above min (to avoid FNS > 1)(from David's 
 	// code). 
 	// TODO: what about seedlings????
@@ -2922,24 +2947,30 @@ void decide_on_allocation(Individual &indiv) {
 	// Outputs: alpha_<pool>
 
 	// unless in the senescence period (autumn), calculate delta for leaf (Grote)
-	double d_leaf = !negligible(indiv.cmass_leaf_limit) &&
-	!indiv.senescence_active?max(0.0, (indiv.cmass_leaf_limit - indiv.cmass_leaf)
-	/ indiv.cmass_leaf_limit): 0.0;
-	
+	double d_leaf = 0;
+	if (indiv.cmass_leaf_limit > 0 && !indiv.senescence_active) {
+		d_leaf = max(0.0, (indiv.cmass_leaf_limit - indiv.cmass_leaf) / indiv.cmass_leaf_limit);
+	}
 	// unless in the senescence period (autumn), calculate delta for root (Grote)
-	double d_root = !negligible(indiv.cmass_root_limit) &&
-	!indiv.senescence_active?max(0.0, (indiv.cmass_root_limit - indiv.cmass_root)
-	/ indiv.cmass_root_limit): 0.0;
-	
+	double d_root = 0;
+	if (indiv.cmass_root_limit > 0 && !indiv.senescence_active) {
+		d_root = max(0.0, (indiv.cmass_root_limit - indiv.cmass_root) / indiv.cmass_root_limit);
+	}
 	// calculate delta for sapwood (Grote)
-	double d_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
-
+	double d_sap = 0.0;
+	if (indiv.cmass_sap_limit > 0) {
+		d_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
+	}
 	// calculate delta for storage pool (Grote)	
-	double d_reserve = divide(indiv.cmass_storage_limit - indiv.cmass_storage , indiv.cmass_storage_limit);
-
+	double d_reserve = 0;
+	if (indiv.cmass_storage_limit > 0) {
+	 	d_reserve = divide(indiv.cmass_storage_limit - indiv.cmass_storage , indiv.cmass_storage_limit);
+	}
 	// calculate delta for reproduction
-	double d_repr = divide(indiv.cmass_repr_limit - indiv.cmass_repr ,indiv.cmass_repr_limit);
-	
+	double d_repr = 0;
+	if (indiv.cmass_repr_limit > 0) {
+		d_repr = divide(indiv.cmass_repr_limit - indiv.cmass_repr ,indiv.cmass_repr_limit);
+	}
 	// TODO: decide how to include reproduction in this scheme.
 	d_repr = 0.0; 
 

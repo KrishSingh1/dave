@@ -129,7 +129,7 @@ void DaveMassBalance::clear_indivs() {
 }
 
 bool DaveMassBalance::should_check(const Individual &indiv) {
-	return indiv.pft.is_grass();
+	return indiv.pft.dave_allocation();
 }
 
 double get_nmass(const Individual &indiv) {

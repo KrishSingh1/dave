@@ -2912,7 +2912,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 	// there's nothing more to do.
 
 	double cton = cmass / nmass;
-	/*
+
 	if (greater_than_or_equal(cton, cton_max) || less_than_or_equal(cton, cton_min)) {
 		// Current C:N ratio is outside the allowed C:N ratio. We need to
 		// up- or down-regulate the N demand in order to move towards the
@@ -2936,7 +2936,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 		// the minimum C:N ratio, though it won't get us all the way there.
 		cton = cton_min;
 	}
-	*/
+
 	assert(positive(cton));
 	return cton;
 }

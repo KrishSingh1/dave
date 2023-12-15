@@ -2790,13 +2790,25 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 			vegetation.nextobj();
 			continue;
 		}
+		size_t nobj = vegetation.nobj;
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			storage_growth_partitioning_grass(indiv);
 		} else {
 			storage_growth_partitioning_tree(indiv);
 		}
 
-		vegetation.nextobj();
+		// If this individual was killed, vegetation.nobj will go down by one.
+		// In this case, getobj() will return the individual which was
+		// previously after the individual which was killed and removed from the
+		// vegetation, and so we don't want to call nextobj() if that happened
+		// (if we do, we'd be skipping the next individual).
+		//
+		// This is really janky, so in the long term we should think about
+		// restructuring this, especially if we later decide that other
+		// functions should be able to kill an individual.
+		if (vegetation.nobj == nobj) {
+			vegetation.nextobj();
+		}
 	}
 }
 

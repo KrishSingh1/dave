@@ -1114,7 +1114,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		if (ifdavegrowth && indiv.pft.is_grass()) {
+		if (indiv.pft.dave_allocation()) {
 			vegetation.nextobj();
 			continue;
 		}
@@ -1264,8 +1264,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				if (indiv.storendemand >= 0.0) {
 					indiv.leaffndemand = indiv.leafndemand / indiv.ndemand;
 					indiv.rootfndemand = indiv.rootndemand / indiv.ndemand;
-					indiv.sapfndemand = indiv.sapndemand / indiv.ndemand;
-					indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
+					indiv.storefndemand = indiv.storendemand / indiv.ndemand;
+					indiv.sapfndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
 				}
 				else {
 					indiv.leaffndemand = indiv.leafndemand / (indiv.leafndemand + indiv.rootndemand);

@@ -1624,10 +1624,6 @@ void growth(Stand& stand, Patch& patch) {
 	double dval = 0.0;
 	int p;
 
-	if (ifdavegrowth) {
-		return;
-	}
-
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
 	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
@@ -1644,6 +1640,14 @@ void growth(Stand& stand, Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 		Patchpft& patchpft = patch.pft[indiv.pft.id];
+
+		if (indiv.pft.dave_allocation()) {
+			// This individual is using dave allocation.
+			// TODO: need to skip if it's a grass, and davegrowth is false but
+			// ifdailygrass is true (ie the DW version).
+			vegetation.nextobj();
+			continue;
+		}
 
 		bool killed = false;
 

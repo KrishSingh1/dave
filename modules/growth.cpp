@@ -1157,6 +1157,42 @@ double nstorage_capacity(Individual& indiv) {
 
 }
 
+/*
+Given a potential C and N growth/increment amounts for a particular pool,
+constrain them such that their ratio doesn't exceed the bounds defined by
+cton_min and cton_max. Any excess C or N which can't be allocated will be added
+into the creturn and nreturn variables, and cgrow or ngrow will be reduced by
+the same amount.
+
+Notice that cgrow, ngrow, creturn, and nreturn are all passed by reference (ie
+they are in/out parameters).
+
+@param cgrow: The potential C growth for this pool.
+@param ngrow: The potential N growth for this pool.
+@param cton_min: Minimum C:N ratio of this pool.
+@param cton_max: Maximum C:N ratio of this pool.
+@param creturn: Any C in cgrow which can't be allocated to this pool (ie any C
+which, if allocated, would cause the C:N ratio to exceed cton_max) will be added
+into this variable. This must be initialised before calling this function.
+@param nreturn: Any N in ngrow which can't be allocated to this pool (ie any N
+which, if allocated, would cause the C:N ratio to fall below cton_min) will be
+added into this variable. This must be initialised before calling this function.
+*/
+void constrain_growth(double &cgrow, double &ngrow, double cton_min, double cton_max, double &creturn, double &nreturn) {
+	if ( ngrow < (cgrow / cton_max)) {
+		// C:N ratio in new growth exceeds max C:N ratio.Limit C in new growth
+		// to the max C:N ratio and put the rest into creturn.
+		double cgrow_max = ngrow * cton_max;
+		creturn += cgrow - cgrow_max;
+		cgrow = cgrow_max;
+	} else if ( ngrow > (cgrow / cton_min) ) {
+		// N:C ratio in new growth exceeds max N:C ratio. Limit N in new growth
+		// to the max N:C ratio and put the rest into nreturn.
+		double ngrow_max = cgrow / cton_min;
+		nreturn += ngrow - ngrow_max;
+		ngrow = ngrow_max;
+	}
+}
 
 void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init) {
 
@@ -1173,6 +1209,8 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		if (ifdavephotosyn){
 			// allocate initial cmass and nmass to plant pools
 
+			double init_cton = cmass_init / nmass_init;
+
 			// following equations solved for cshoot:
 			// cmass_init = cshoot + croot + cstorage
 			// croot = cshoot / ltor
@@ -1180,6 +1218,21 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			double cmass_leaf = (cmass_init - cstorage_max_temp * cmass_init) * (ltor / (ltor + 1.0));
 			double cmass_root = cmass_leaf / ltor;
 			double cmass_storage = cmass_init - cmass_leaf - cmass_root;
+
+			double nmass_leaf = cmass_leaf / init_cton;
+			double nmass_root = cmass_root / init_cton;
+			double nmass_storage = cmass_storage / init_cton;
+
+			constrain_growth(
+				cmass_leaf, nmass_leaf,
+				indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
+				cmass_storage, nmass_storage);
+
+			constrain_growth(
+				cmass_root, nmass_root,
+				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
+				cmass_storage, nmass_storage);
+
 			indiv.cmass_leafs[green] += cmass_leaf;
 			indiv.cmass_root    += cmass_root;
 			indiv.cmass_storage += cmass_storage;
@@ -1187,12 +1240,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 
 			assert(equal(cmass_init, cmass_leaf + cmass_root + cmass_storage));
 			
-			double init_cton = cmass_init / nmass_init;
-
 			// Initial N mass
-			double nmass_leaf = cmass_leaf / init_cton;
-			double nmass_root = cmass_root / init_cton;
-			double nmass_storage = cmass_storage / init_cton;
 			indiv.nmass_leafs[green] += nmass_leaf;
 			indiv.nmass_root += nmass_root;
 			indiv.nmass_storage += nmass_storage;
@@ -3128,65 +3176,32 @@ void update_pools_dave(Vegetation& vegetation) {
 		double nreturn = 0;
 			
 		// Leaves
-		if ( navail_leaf < (indiv.cgrow_leaf / indiv.pft.cton_leaf_max)) {
-				
-			// Maximum possible leaf growth given N constraints. Put rest of C back into storage (Creturn)
-			double growth_max_leaf = navail_leaf * indiv.pft.cton_leaf_max;
-			creturn += indiv.cgrow_leaf - growth_max_leaf;
-			indiv.cgrow_leaf = growth_max_leaf;
-		} else if ( navail_leaf > (indiv.cgrow_leaf / indiv.pft.cton_leaf_min) ) {
-			// N:C ratio in new leaf exceeds max N:C ratio. Limit N in new
-			// leaf to the max N:C ratio and put the rest into nreturn.
-			double max_ngrow_leaf = indiv.cgrow_leaf / indiv.pft.cton_leaf_min;
-			nreturn += navail_leaf - max_ngrow_leaf;
-			navail_leaf = max_ngrow_leaf;
-		}
+		constrain_growth(
+			indiv.cgrow_leaf, navail_leaf,
+			indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
+			creturn, nreturn);
 
 		// Roots
-		if ( navail_root < (indiv.cgrow_root / indiv.pft.cton_root_max)) {
-			
-			// Maximum possible root growth given N constraints. Put rest of C back into storage (Creturn)
-			double growth_max_root = navail_root * indiv.pft.cton_root_max;
-			creturn += indiv.cgrow_root - growth_max_root;
-			indiv.cgrow_root = growth_max_root;
-		} else if (navail_root > (indiv.cgrow_root / indiv.pft.cton_root_min)) {
-			// N:C ratio in new root exceeds max N:C ratio. Limit N in new
-			// root to the max N:C ratio and put the rest into nreturn.
-			double max_ngrow_root = indiv.cgrow_root / indiv.pft.cton_root_min;
-			nreturn += navail_root - max_ngrow_root;
-			navail_root = max_ngrow_root;
+		constrain_growth(
+			indiv.cgrow_root, navail_root,
+			indiv.pft.cton_root_min, indiv.pft.cton_root_max,
+			creturn, nreturn);
+
+		// Crowns (for grasses and mosses only).
+		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
+			constrain_growth(
+				indiv.cgrow_crown, navail_crown,
+				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
+				creturn, nreturn);
 		}
 
-		// Crowns
-		if ( navail_crown < (indiv.cgrow_crown / indiv.pft.cton_root_max)) {
-			
-			// Maximum possible crown growth given N constraints. Put rest of C back into storage (Creturn)
-			double growth_max_crown = navail_crown * indiv.pft.cton_root_max;
-			creturn += indiv.cgrow_crown - growth_max_crown;
-			indiv.cgrow_crown = growth_max_crown;
-		} else if ( navail_crown > (indiv.cgrow_crown / indiv.pft.cton_root_min) ) {
-			// N:C ratio in new crown biomass exceeds max N:C ratio. Limit N in new
-			// crown tissue to the max N:C ratio and put the rest into nreturn.
-			double max_ngrow_crown = indiv.cgrow_crown / indiv.pft.cton_root_min;
-			nreturn += navail_crown - max_ngrow_crown;
-			navail_crown = max_ngrow_crown;
-		}
+		// TODO: sapwood (Assaf).
 
 		// Reproductive tissue
-		if (navail_repr < (indiv.cgrow_repr / indiv.pft.cton_repr_max)) {
-
-			// Maximum possible reproductive growth given N constraints. Put rest of C back into storage (Creturn)
-			double growth_max_repr = navail_repr * indiv.pft.cton_repr_max;
-			creturn += indiv.cgrow_repr - growth_max_repr;
-			indiv.cgrow_repr = growth_max_repr;
-		} else if (navail_repr > (indiv.cgrow_repr / indiv.pft.cton_repr_min)) {
-			// N:C ratio in new reproductive biomass exceeds max N:C ratio.
-			// Limit N in new reproductive biomass to the max N:C ratio and
-			// put the rest into nreturn.
-			double max_ngrow_repr = indiv.cgrow_repr / indiv.pft.cton_repr_min;
-			nreturn += navail_repr - max_ngrow_repr;
-			navail_repr = max_ngrow_repr;
-		}
+		constrain_growth(
+			indiv.cgrow_repr, navail_repr,
+			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
+			creturn, nreturn);
 
 		// Make sure storage does not overflow.
 		// Maximum C storage pool size

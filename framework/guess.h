@@ -3053,7 +3053,9 @@ public:
 	double cgrow_crown;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
-	/// daily growth demand [0-1]
+	/// temporary object keeping track of farea of growth demand
+	double farea_growth;
+	/// daily growth demand / sink strength (kgC/m2/d)
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;

@@ -392,17 +392,6 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 	return NULL;
 }
 
-// Temperature response of germination rate.
-// see e.g. Motsa et al. 2015, South African Journal of Botany
-double germination_temp_response(double temp, double tmin, double topt, double tmax) {
-	
-	if (temp <= topt) {
-		return max(0.0, 1.0/(topt - tmin) * (temp - tmin));
-	} else {
-		return max(0.0,-1.0/(topt - tmax) * (tmax - temp));
-	} 
-}
-
 
 // Calculates the fraction of the seedbank that is germinating today.
 double germination_fraction(Patchpft& ppft, Patch& patch) {
@@ -416,7 +405,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double wcont = patch.soil.get_layer_soil_water(0);
 	double tsoil = patch.soil.T_soil[7];        // TODO: check with DW that this is the right layer
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
-	double ftemp = germination_temp_response(tsoil,tdorm,tdorm+20.0,tdorm+30.0);
+	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth);
 	double frac_germ = fgerm_max25 * ftemp * fwater;   
 
 	return frac_germ;

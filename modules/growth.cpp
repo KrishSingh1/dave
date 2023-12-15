@@ -228,7 +228,6 @@ double wscal_growth(double wscal) {
 // 		C4s: sorghum (similar to millet, maize)
 // TODO: low temperatures are not fit well by the equation --> adjust those values once below temp_dormancy?
 //        e.g. reduce linearly once below temp_dormancy? Would be closer to the data as well.
-// TODO: use this one for germination as well (with the same adjustment for cold temperatures)
 double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth) {
 	
 	double alpha   = 3.5;                   // unitless
@@ -269,7 +268,9 @@ double photo_growth(double daylength_diff) {
 double area_growth(double sla, double culmfrac, double cmass_total, double cmass_leaf, double cmass_repr) {
 	double cmassleaf = max(0.001,cmass_leaf);
 	double crepr_frac = min(1.0,cmass_repr/cmassleaf);
-	return max(0.0, -0.01 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - crepr_frac)) * cmass_total;     // kgC m-2 d-1
+	return max(0.0, -0.035 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - pow(crepr_frac,2.0))) * cmass_total;     // kgC m-2 d-1
+	// C4s: -0.01 + 0.0035
+	// linear fit: -0.029 + 0.0031*x
 }
 
 
@@ -344,9 +345,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				// a) at the onset of dormancy
 				// b) repr pool does not increase any longer
 				repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
-				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 1.0e-4 ) {
+				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 1.0e-2 ) {
 					
-					indiv.growth_stage = repr_trend < 1.0e-4 ? vegetative : dormant;
+					indiv.growth_stage = repr_trend < 1.0e-2 ? vegetative : dormant;
 					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
@@ -2646,7 +2647,7 @@ double growth_demand(Individual& indiv) {
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
-	double cmass_growth  = 0.0;
+	double farea_growth  = 0.0;
 	double growth_demand = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
@@ -2660,10 +2661,13 @@ double growth_demand(Individual& indiv) {
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	cmass_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
+	farea_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
     //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
-	
-	growth_demand = cmass_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	// the following line is relevant for repr. --> vegetative switch in perennials
+	indiv.farea_growth = (is_zero(indiv.farea_growth) && indiv.growth_stage == vegetative) ? 0.0005 * cmass_total : max(0.0,min(farea_growth,1.1 * indiv.farea_growth));
+	//indiv.farea_growth = farea_growth;
+
+	growth_demand = indiv.farea_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -2684,8 +2688,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 
 	// C source: Potential growth rate (kgC m-2 d-1)
 	double Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
-
-	// TODO: check unit of NPP!!! Should be kgC m-2 d-1
 
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);
@@ -3254,13 +3256,13 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.007;              // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.004;              // Baseline senescence rate in the vegetative phase (d-1)
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
-	const double fsenesc_repr_perennial = 0.02;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
+	const double fsenesc_repr_perennial = 0.015;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
 	const double senesc_scal_water = 3.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 3.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm  = 4.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 0.3;  // higher values --> higher sensitivity to water stress
+	const double qwater_senesc = 0.4;  // higher values --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3399,20 +3401,12 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		// "free seed years"  
-		double ext_seed_c = 0.0;
-		if (date.year < freenyears) {
-			ext_seed_c = ext_seed * 100.0;
-		} else {
-			ext_seed_c = ext_seed;
-		}
+		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
-		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
-
-		ppft.cmass_litter_repr += ext_seed_c;
+		ppft.cmass_litter_repr += ext_seed;
 		ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
 		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }

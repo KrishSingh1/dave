@@ -226,19 +226,29 @@ double wscal_growth(double wscal) {
 // representative species:
 // 		C3s: wheat (similar to barley, A. thaliana, canola)
 // 		C4s: sorghum (similar to millet, maize)
-// TODO: low temperatures are not fit well by the equation --> adjust those values once below temp_dormancy?
-//        e.g. reduce linearly once below temp_dormancy? Would be closer to the data as well.
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth) {
+// Function includes a modified response at temperatures lower than dormancy temperature.
+// from Fatichi et al. 2014 (New Phytologist): 
+// "a 5–6°C threshold has often been identified to limit growth in cold adapted
+// species, irrespective of photosynthetic activity which typically
+// ceases only at freezing point (Koerner, 2008)"
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm) {
 	
 	double alpha   = 3.5;                   // unitless
 	double Ha      = Ha_growth * J_PER_KJ;  // J mol-1
 	double T0      = T0_growth + K2degC;    // K
 	double Tleaf   = temp + K2degC;         // K   
+	double Tdorm   = temp_dorm + K2degC;    // K
 
     // Note: A_growth was rescaled so that temp_growth ranges from 0-1
 	double ftemp;
 	ftemp = A_growth * (Tleaf * exp(-Ha / (R_gas * Tleaf))) / 
 			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
+
+	// low temperature adjustment to avoid simulating unrealistic growth demand
+    // at very low or even negative temperatures (see also comment above).
+    double Tdef = Tdorm - Tleaf;
+    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
+
 	return max(0.0,min(1.0,ftemp));
 }
 
@@ -302,11 +312,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
 			double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-			double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth);
+			double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 			double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
 			double wscal_actual = wscal_growth(wscal_mean);
-			double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth);
+			double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 			// Changes in physiological activity due to changes in dormancy status
 			double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
@@ -2659,7 +2669,7 @@ double growth_demand(Individual& indiv) {
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
-	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth);
+	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	farea_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
     //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));

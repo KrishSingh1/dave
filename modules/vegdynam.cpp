@@ -405,7 +405,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double wcont = patch.soil.get_layer_soil_water(0);
 	double tsoil = patch.soil.T_soil[7];        // TODO: check with DW that this is the right layer
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
-	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth);
+	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
 	double frac_germ = fgerm_max25 * ftemp * fwater;   
 
 	return frac_germ;

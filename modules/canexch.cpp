@@ -1004,12 +1004,15 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		if (indiv.pft.is_grass() && ifdailygrass) {
+		if (indiv.pft.dave_allocation()) {
+			// This is an individual using the dave allocation. nstress and
+			// nstore_labile are not used for this individual, therefore we can
+			// take a shortcut here.
+			vegetation.nextobj();
+			continue;
+		}
 
-			if (ifdavegrowth) {
-				vegetation.nextobj();
-				continue;
-			}
+		if (indiv.pft.is_grass() && ifdailygrass) {
 
 			indiv.nstress = ifnlim && date.year > freenyears;
 

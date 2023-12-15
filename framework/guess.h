@@ -2354,6 +2354,9 @@ public:
 		return lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL;
 	}
 
+	/// Check whether DAVE allocation is enabled for this PFT.
+	bool dave_allocation() const;
+
 	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
 

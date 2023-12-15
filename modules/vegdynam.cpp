@@ -417,9 +417,13 @@ void establishment_daily(Patch& patch) {
 	if (ifdailygrass && ifdavegrowth) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
-			if (!pft.is_grass()) {
+
+			if (!pft.dave_allocation()) {
+				// This pft is not using the dave allocation. This could happen,
+				// for example, if it's a tree and ifdailytree is false.
 				continue;
 			}
+
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
 			// check conditions for germination (germination fraction)
 			double frac_germ = germination_fraction(ppft, patch);
@@ -571,7 +575,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (ifdavegrowth && pft.is_grass()) {
+		if (pft.dave_allocation()) {
+			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
 			continue;
 		}

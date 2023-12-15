@@ -74,6 +74,7 @@ bool ifrainonwetdaysonly;
 bool ifbvoc;
 
 bool ifdailygrass;
+bool ifdailytree;
 bool ifdavephotosyn;
 bool ifdavegrowth;
 bool ifdavediagnostics = false;
@@ -611,6 +612,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+		declareitem("ifdailytree",&ifdailytree,1,CB_NONE,	"Whether daily carbon allocation for trees is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
@@ -1545,6 +1547,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
+		if (!itemparsed("ifdailytree")) badins("ifdailytree");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

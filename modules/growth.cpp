@@ -2732,6 +2732,12 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
+			vegetation.nextobj();
+			continue;
+		}
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			storage_growth_partitioning_grass(indiv);
 		} else {
@@ -2803,6 +2809,12 @@ void carbon_allocation_dave(Vegetation& vegetation) {
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
+
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
+			continue;
+		}
 
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			carbon_allocation_grass(indiv);
@@ -2940,6 +2952,11 @@ void ndemand_dave(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
+			continue;
+		}
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			ndemand_grass(indiv);
 		} else {
@@ -2996,8 +3013,21 @@ void nuptake_dave(Vegetation& vegetation) {
 		// This happens right after growth in simulate_day.
 
 	}
-	nstore_usage(vegetation);
 
+	// If daily tree or grass allocation is disabled, we should probably call
+	// nstore_usage. This will have no effect on individuals for whom the dave
+	// daily allocation is enabled.
+	//
+	// This function sets indiv.nstress, and moves N from the nstore_labile into
+	// the other pools if today's N demand exceeds the supply. This is not
+	// required if using dave allocation.
+	//
+	// In the trunk version of the model, this function is called from canopy
+	// exchange, but when dave growth is enabled we call it from growth, because
+	// that's where our N demand and uptake occurs.
+	if (!ifdailytree || !ifdailygrass) {
+		nstore_usage(vegetation);
+	}
 }
 
 
@@ -3017,6 +3047,12 @@ void update_pools_dave(Vegetation& vegetation) {
 		Patch& patch = vegetation.patch;
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		if (!pft.dave_allocation()) {
+			// Dave allocation is not enabled for this individual. This would
+			// occur, for example, if it's a grass and ifdailygrass is false.
+			continue;
+		}
 
 		double creturn = 0.0; // kgC m-2 d-1
 		double cexcess = 0.0, nexcess = 0.0;
@@ -3325,6 +3361,11 @@ void senescence_dave(Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
+		if (!pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
+			continue;
+		}
 		if (pft.is_grass() || pft.lifeform == MOSS) {
 			senescence_grass(indiv);
 		} else {
@@ -3349,6 +3390,13 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
+		if (!ppft.pft.dave_allocation()) {
+			// This pft is not using dave allocation, and is therefore not using
+			// the daily establishment. This means the seedbank and seed
+			// dispersal will have no effect on this pft.
+			continue;
+		}
+
 		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
 		ppft.cmass_litter_repr += ext_seed;
@@ -3366,6 +3414,12 @@ void turnover_seed(Vegetation& vegetation) {
 	Patch& patch = vegetation.patch;
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
+
+		if (!ppft.pft.dave_allocation()) {
+			// This PFT is not using the dave allocation, and therefore the
+			// seedbank is handled separately.
+			continue;
+		}
 
 		// Seed turnover
 		// Base turnover rate
@@ -3512,6 +3566,12 @@ void turnover_dave(Vegetation& vegetation) {
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
+
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
+			continue;
+		}
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			turnover_dave_grass(indiv);
 		} else {
@@ -3626,6 +3686,12 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
+		if (!indiv.pft.dave_allocation()) {
+			// This PFT is not using the dave daily allocation scheme. Therefore
+			// we should skip it; the storage dynamics are handled in growth().
+			continue;
+		}
+
 		// TODO: make sla age-dependent or make culmfrac dynamic
 
 		// Update capacity of C and N storage
@@ -3663,13 +3729,21 @@ void allometry_dave(Vegetation& vegetation) {
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
-		if (!indiv.pft.is_grass()) {
+
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
 			continue;
 		}
-		allometry(indiv);
+
+		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
+			// Call trunk allometry.
+			allometry(indiv);
+		} else {
+			// TODO: Assaf
+		}
 	}
 }
-
 
 // Aggregate fluxes for annual output.
 void annual_accounting_dave(Vegetation& vegetation) {
@@ -3678,7 +3752,9 @@ void annual_accounting_dave(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-		if (!indiv.pft.is_grass()) {
+		if (!indiv.pft.dave_allocation()) {
+			// This pft is not using dave allocation. This could happen, for
+			// example, if it's a tree and ifdailytree is false.
 			continue;
 		}
 
@@ -3813,17 +3889,17 @@ void growth_daily(Patch& patch) {
 		lai_crop(patch);
 	}
 
-	if (ifdailygrass) {
-		
-		// daily C allocation (grass only)
-		if (ifdavegrowth) {
-			growth_daily_grass_dave(patch);
-		} else {
-			growth_daily_grass(patch);
-		}
-		// necessary updates after daily change to fpc in daily grass
-		update_patch_fpc(patch);
+	// Daily C allocation.
+	if (ifdavegrowth) {
+		// Dave daily allocation.
+		growth_daily_grass_dave(patch);
+	} else if (ifdailygrass) {
+		// David Warlind daily allocation.
+		growth_daily_grass(patch);
 	}
+
+	// necessary updates after daily change to fpc in daily grass
+	update_patch_fpc(patch);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

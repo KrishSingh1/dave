@@ -2567,6 +2567,27 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	return storendemand;
 }
 
+bool Pft::dave_allocation() const {
+	if (!ifdavegrowth) {
+		// Dave growth is disabled. This may be a DW daily grass but either way,
+		// it's certainly not using dave allocation.
+		return false;
+	}
+
+	if (is_grass() && ifdailygrass) {
+		// This is a dave daily grass.
+		return true;
+	}
+
+	if (lifeform == TREE && ifdailytree) {
+		// This is a dave daily tree.
+		return true;
+	}
+
+	// TODO: mosses??
+	return false;
+}
+
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 

@@ -37,6 +37,7 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
+#include <bitset>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

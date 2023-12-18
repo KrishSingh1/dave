@@ -37,8 +37,21 @@ void dprintf(xtring format,...) {
 	formatf(output,format,v);
 
 	current_shell->log_message(output);
+
+	va_end(v);
 }
 
+void lprintf(xtring format, ...) {
+	va_list v;
+	va_start(v, format);
+
+	xtring output;
+	formatf(output, format, v);
+
+	current_shell->write_log(output);
+
+	va_end(v);
+}
 
 void fail(xtring format,...) {
 	// printf-style function accessible throughout the model code.
@@ -123,9 +136,13 @@ void CommandLineShell::fail(const char* message) {
 
 void CommandLineShell::log_message(const char* message) {
 	fprintf(stdout,"%s", message);
-	fprintf(logfile,"%s", message);
-	fflush(logfile);
 	fflush(stdout);
+	write_log(message);
+}
+
+void CommandLineShell::write_log(const char *message) {
+	fprintf(logfile, "%s", message);
+	fflush(logfile);
 }
 
 void CommandLineShell::plot(const char* window_name, 

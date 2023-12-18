@@ -20,6 +20,9 @@
  */
 void dprintf(xtring format,...);
 
+/// A printf-style function for sending messages from LPJ-GUESS to the log file
+/// (but not to TTY).
+void lprintf(xtring format, ...);
 
 /// A printf-style function that sends the user a message and then terminates.
 void fail(xtring format,...);
@@ -101,6 +104,9 @@ public:
 	/// Sends a message to the user somehow
 	virtual void log_message(const char* message) = 0;
 
+	/// Write a message to the log file.
+	virtual void write_log(const char *message) = 0;
+
 	/// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
 	virtual void plot(const char* window_name, 
 	                  const char* series_name, 
@@ -149,6 +155,8 @@ public:
 	void fail(const char* message);
 
 	void log_message(const char* message);
+
+	void write_log(const char *message);
 
 	void plot(const char* window_name, 
 	          const char* series_name, 

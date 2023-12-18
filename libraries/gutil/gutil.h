@@ -397,9 +397,13 @@ public:
 		  pfirstitem=NULL;
 		  plastitem=NULL;
 		  pthisitem=NULL;
+		  
 		  isobj=false;
 		  nobj=0;
 		  nseg=0;
+
+		  // ecev3
+		  thisobj=0;
 	 }
 
 	 /// Clears the entire list array, releasing dynamic memory.
@@ -454,7 +458,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -624,6 +628,9 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
+
+		  // ecev3
+		  thisobj=0;
 	 }
 
 	 /// Clears the entire list array, releasing dynamic memory.
@@ -686,7 +693,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -829,7 +836,10 @@ template<class tdata,class tref> class ListArray_idin1 {
 		  Item* pprev;
 		  tdata object;
 
-		  Item(unsigned int id,tref& ref) : object(id,ref) {}
+		  Item(unsigned int id,tref& ref) : object(id,ref) {
+			  pnext = NULL;
+			  pprev = NULL;
+		  }
 	 };
 
 
@@ -862,6 +872,10 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
+
+		  // ecev3
+		  array = NULL;
+		  thisobj = 0;
 	 }
 
 	 /// Clears the entire list array, releases dynamic memory.
@@ -898,7 +912,10 @@ public:
 	  */
 	 tdata& createobj(tref& ref) {
 		  Item* pitem=new Item(id++,ref);
-		  if (!pitem) fail();
+		  if (!pitem) {
+			  //dprintf("Failed to create object number %d \n", id);
+			  fail();
+		  }
 		  pitem->pprev=plastitem;
 		  pitem->pnext=NULL;
 		  if (plastitem) plastitem->pnext=pitem;
@@ -908,7 +925,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -916,6 +933,7 @@ public:
 						  newarray[i]=array[i];
 					 delete[] array;
 				}
+				
 				array=newarray;
 		  }
 		  array[nobj-1]=pitem;
@@ -958,7 +976,7 @@ public:
 	  *  object pointer. Do not call this function unless the pointer is
 	  *  pointing to a valid object (isobj=true).
 	  */
-	 tdata& getobj() {
+	 tdata& getobj() const {
 		  return pthisitem->object;
 	 }
 
@@ -968,7 +986,7 @@ public:
 	  *  internal object pointer is pointing to a valid object. Note that this
 	  *  function does NOT affect the value of the internal pointer.
 	  */
-	 tdata& operator[](unsigned int i) {
+	 tdata& operator[](unsigned int i) const {
 		  return array[i]->object;
 	 }
 
@@ -1057,7 +1075,10 @@ template<class tdata,class tref1,class tref2> class ListArray_idin2 {
 		  tdata object;
 
 		  Item(unsigned int id,tref1& ref1,tref2& ref2) :
-					 object(id,ref1,ref2) {}
+					 object(id,ref1,ref2) {
+			  pnext = NULL;
+			  pprev = NULL;
+		  }
 	 };
 
 
@@ -1090,6 +1111,9 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
+
+		  // ecev3
+		  thisobj = 0;
 	 }
 
 	 /// Clears the entire list array, releases dynamic memory.
@@ -1136,7 +1160,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -1185,7 +1209,7 @@ public:
 	  *  object pointer. Do not call this function unless the pointer is
 	  *  pointing to a valid object (isobj=true).
 	  */
-	 tdata& getobj() {
+	 tdata& getobj() const {
 		  return pthisitem->object;
 	 }
 
@@ -1195,7 +1219,7 @@ public:
 	  *  internal object pointer is pointing to a valid object. Note that this
 	  *  function does NOT affect the value of the internal pointer.
 	  */
-	 tdata& operator[](unsigned int i) {
+	 tdata& operator[](unsigned int i) const {
 		  return array[i]->object;
 	 }
 
@@ -1413,7 +1437,7 @@ public:
 	  *  object pointer. Do not call this function unless the pointer is
 	  *  pointing to a valid object (isobj=true).
 	  */
-	 tdata& getobj() {
+	 tdata& getobj() const {
 		  return pthisitem->object;
 	 }
 
@@ -1423,7 +1447,7 @@ public:
 	  *  internal object pointer is pointing to a valid object. Note that this
 	  *  function does NOT affect the value of the internal pointer.
 	  */
-	 tdata& operator[](unsigned int i) {
+	 tdata& operator[](unsigned int i) const {
 		  return array[i]->object;
 	 }
 

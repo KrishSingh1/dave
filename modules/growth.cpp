@@ -221,11 +221,68 @@ double wscal_growth(double wscal) {
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
-// Temperature stress scalar used for growth and dormancy
-// TODO: this should somehow acclimate or differ between PFTs!
-double temp_growth(double temp) {
-	return Arrhenius_temp_response(1.78,temp,76.8,285.0,933)/2.23;  // TODO: parameterise properly (now: Parent et al. 2010)
+// Temperature scalar used for growth and dormancy
+// Relationship and parameters from Parent & Tardieu 2012, New Phytologist
+// representative species:
+// 		C3s: wheat (similar to barley, A. thaliana, canola)
+// 		C4s: sorghum (similar to millet, maize)
+// Function includes a modified response at temperatures lower than dormancy temperature.
+// from Fatichi et al. 2014 (New Phytologist): 
+// "a 5–6°C threshold has often been identified to limit growth in cold adapted
+// species, irrespective of photosynthetic activity which typically
+// ceases only at freezing point (Koerner, 2008)"
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm) {
+	
+	double alpha   = 3.5;                   // unitless
+	double Ha      = Ha_growth * J_PER_KJ;  // J mol-1
+	double T0      = T0_growth + K2degC;    // K
+	double Tleaf   = temp + K2degC;         // K   
+	double Tdorm   = temp_dorm + K2degC;    // K
+
+    // Note: A_growth was rescaled so that temp_growth ranges from 0-1
+	double ftemp;
+	ftemp = A_growth * (Tleaf * exp(-Ha / (R_gas * Tleaf))) / 
+			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
+
+	// low temperature adjustment to avoid simulating unrealistic growth demand
+    // at very low or even negative temperatures (see also comment above).
+    double Tdef = Tdorm - Tleaf;
+    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
+
+	return max(0.0,min(1.0,ftemp));
 }
+
+// Photoperiod affecting development and thus growth demand
+// Effects likely limited to high latitude areas.
+// A formulation would also need to account for a lag (effects of photoperiod
+// on growth demand are not proportional with daylength_diff)
+double photo_growth(double daylength_diff) {
+	return 1.0;
+}
+
+
+// Relative growth rate derived from data presented in Poorter & Pothmann 1992
+// TODO: could this be simplified?
+//double mass_growth(double cmass_total, double cmass_leaf, double cmass_repr, double lai) {
+//	cmass_leaf = max(0.001,cmass_leaf) * 1000.0;  // gC m-2
+	
+//	double repr_frac = min(1.0, cmass_repr / cmass_leaf);
+//	double mass_lai = cmass_leaf / (lai);  // depends on sla and culmfrac.
+	//return (1.0 - repr_frac) * cmass_total * (14.645 * pow(mass_lai,-1.158));    // kgC m-2 d-1
+//	return (1.0 - repr_frac) * cmass_leaf/1000.0 * (14.645 * pow(mass_lai,-1.158)); 
+//}
+
+// Relative growth rate as a function of active surface area.
+// Data fitted from Poorter & Porthmann 1992. 
+// Fitted intercept not statistically significant.
+double area_growth(double sla, double culmfrac, double cmass_total, double cmass_leaf, double cmass_repr) {
+	double cmassleaf = max(0.001,cmass_leaf);
+	double crepr_frac = min(1.0,cmass_repr/cmassleaf);
+	return max(0.0, -0.035 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - pow(crepr_frac,2.0))) * cmass_total;     // kgC m-2 d-1
+	// C4s: -0.01 + 0.0035
+	// linear fit: -0.029 + 0.0031*x
+}
+
 
 		
 
@@ -255,11 +312,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
 			double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-			double tscal_crit = temp_growth(indiv.pft.temp_dormancy);
+			double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 			double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
 			double wscal_actual = wscal_growth(wscal_mean);
-			double tscal_actual = temp_growth(ppft.airtemp_10.mean());
+			double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 			// Changes in physiological activity due to changes in dormancy status
 			double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
@@ -277,12 +334,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
+			double repr_trend = 0.0;  // relative trend in repr. tissue
+			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_15.size() > 5 && indiv.cmass_storage_15.periodictrend(10) > 0.0 && indiv.growth_stage_days > 30){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 90){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -291,13 +350,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 					indiv.growth_stage_days = 0;
 				}
 			} 
-			else if (indiv.growth_stage == reproductive) {
+			else if (indiv.growth_stage == reproductive && indiv.pft.lifeform == GRASS_PERENNIAL) {
 				// stop reproductive phase either 
 				// a) at the onset of dormancy
-				// b) when photoperiod gets longer again (TODO: use daylength instead of DOY? But would do the same thing)
-				if (equal(indiv.fphen_activity, fphen_activity_min) || date.day == 172) {
+				// b) repr pool does not increase any longer
+				repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
+				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 1.0e-2 ) {
 					
-					indiv.growth_stage = date.day == 172 ? vegetative : dormant;
+					indiv.growth_stage = repr_trend < 1.0e-2 ? vegetative : dormant;
 					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
@@ -2587,44 +2647,37 @@ void growth_daily_grass(Patch& patch) {
 // New DAVE functions
 // --------------------------------------
 
-// Determine growth demand (aka 'sink strength') 
-// Returns fraction of available C used for growth vs. storage.
-// Put fraction into growth and 1-fraction into storage.
-// --> 1.0: put all available C of the day into growth.
-// --> 0.0: put all available C of the day into storage.
+// Determine growth demand (aka 'sink strength') in kgC m-2 d-1
 double growth_demand(Individual& indiv) {
 
 	Vegetation& veg = indiv.vegetation;
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
-	double growth_rate = 0.0;
-	double growth_rate_pot = 0.2;  // TODO: parameterise from data. Different between annuals and perennials
-	double growth_demand = 0.0;
 	double fwater_growth = 0.0;
-	double ftemp_growth = 0.0;
-	double ag_cmass = 0.0;
-
-	// Test: do we need to account for growth_rate_pot to get different behaviour of annuals vs perennials
-	//       or can we get that with SLA alone?
+	double ftemp_growth  = 0.0;
+	double fphoto_growth = 0.0;
+	double farea_growth  = 0.0;
+	double growth_demand = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
+	// Total biomass 
+	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() +
+						 indiv.cmass_repr + indiv.cmass_storage;
+
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
-	ftemp_growth = temp_growth(grass_temp);
-		
-	ag_cmass = (indiv.get_cmass_leaf() + indiv.cmass_repr);
-	ag_cmass = ag_cmass > 0.0001 ? ag_cmass : 0.0001; 
-	//fdev_growth = ag_cmass/pow(ag_cmass,1.5);
-	//indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass);
-    indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
-	// TODO: revise this formulation. cmass_repr should be linked to cmass_leaf * culm_frac!!
+	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
+	farea_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
+    //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
+	// the following line is relevant for repr. --> vegetative switch in perennials
+	indiv.farea_growth = (is_zero(indiv.farea_growth) && indiv.growth_stage == vegetative) ? 0.0005 * cmass_total : max(0.0,min(farea_growth,1.1 * indiv.farea_growth));
+	//indiv.farea_growth = farea_growth;
 
-    // growth demand (=sink activity) as a fraction of existing biomass.
-	// if greater than one, plant is sink limited and growth demand is set to 1 so that growth = NPP + max_mob_rate * storage
-	growth_demand = min(1.0,growth_rate_pot * indiv.fdev_growth * ftemp_growth * fwater_growth);
+	growth_demand = indiv.farea_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -2643,10 +2696,10 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
-	// Potential growth rate
+	// C source: Potential growth rate (kgC m-2 d-1)
 	double Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
-	// Determine growth demand based on growth stage.
+	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);
 
 	// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
@@ -2659,12 +2712,11 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		
 		// Positive NPP
 
-		// TODO: make clear this only works for daily time steps (NPP in gC m-2 d-1)	
-		indiv.cgrow = indiv.growth_demand * Gpot;
+		// TODO: make clear this only works for daily time steps (NPP in kgC m-2 d-1)	
+		//indiv.cgrow = indiv.growth_demand * Gpot;
+		indiv.cgrow = min(indiv.growth_demand,Gpot);
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
-
-		// would it help to have an absolute growth demand instead of a relative growth_demand?
 		
 		// If C storage exceed its capacity take track of the excess C and reduce cstore
 		if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
@@ -2680,7 +2732,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			indiv.cgrow = indiv.growth_demand * Gpot;
+			//indiv.cgrow = indiv.growth_demand * Gpot;
+			indiv.cgrow = min(indiv.growth_demand,Gpot);
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
@@ -3213,13 +3266,13 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.005;              // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.004;              // Baseline senescence rate in the vegetative phase (d-1)
 	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
-	const double fsenesc_repr_perennial = 0.0125;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
-	const double senesc_scal_water = 4.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 2.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double fsenesc_repr_perennial = 0.015;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
+	const double senesc_scal_water = 3.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 4.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 0.5;  // higher values --> higher sensitivity to water stress
+	const double qwater_senesc = 0.4;  // higher values --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3358,20 +3411,12 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		// "free seed years"  
-		double ext_seed_c = 0.0;
-		if (date.year < freenyears) {
-			ext_seed_c = ext_seed * 100.0;
-		} else {
-			ext_seed_c = ext_seed;
-		}
+		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
-		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
-
-		ppft.cmass_litter_repr += ext_seed_c;
+		ppft.cmass_litter_repr += ext_seed;
 		ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
 		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }
@@ -3419,8 +3464,8 @@ void turnover_dave_grass(Individual &indiv) {
 	// crown turnover relative to shoot turnover.
 	double scal_crown_turnover = 0.3;
 
-	// TODO: turnover rates should be moisture and temperature dependent
-	double frac_turnover_leaf = indiv.pft.turnover_leaf / date.year_length();
+	// TODO: turnover rates should be moisture and temperature dependent. They also need to be higher than the annual rates.
+	double frac_turnover_leaf = 2.0 * indiv.pft.turnover_leaf / date.year_length();
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_leaf;
 	//double frac_turnover_root = (pow((1 - ppft.wscal),0.4) * 4.0) * indiv.pft.turnover_root / date.year_length();
 	double frac_turnover_root = 3.0 * indiv.pft.turnover_root / date.year_length();
@@ -3687,8 +3732,9 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		// Handle excess C and N.
 		storage_overflow(indiv);
 
-		// keep track of changes in C storage.
-		indiv.cmass_storage_15.add(indiv.cmass_storage);
+		// keep track of changes in C storage and reproduction.
+		indiv.cmass_storage_20.add(indiv.cmass_storage);
+		indiv.cmass_repr_10.add(indiv.cmass_repr);
 
 	}
 }

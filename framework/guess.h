@@ -2076,8 +2076,16 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
+	/// Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
+    /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
+	double Ha_growth;
+	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)
+	double T0_growth;
+	/// Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012)
+	double A_growth;
+
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
 	/// fraction of NPP allocated to crowns
@@ -3045,7 +3053,9 @@ public:
 	double cgrow_crown;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
-	/// daily growth demand [0-1]
+	/// temporary object keeping track of farea of growth demand
+	double farea_growth;
+	/// daily growth demand / sink strength (kgC/m2/d)
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
@@ -3154,8 +3164,10 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
-	Historic<double, 15> cmass_storage_15;
+	/// 20-day record of NSC pool (kgC/m2/d)
+	Historic<double, 20> cmass_storage_20;
+	/// 10-day record of daily reproduction pool (kgC/m2/d)
+	Historic<double, 10> cmass_repr_10;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)

@@ -729,6 +729,12 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
+		declareitem("Ha_growth",&ppft->Ha_growth,0.0,200.0,1,CB_NONE,
+			"Activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)");	
+		declareitem("T0_growth",&ppft->T0_growth,0.0,50.0,1,CB_NONE,
+			"Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012) ");	
+		declareitem("A_growth",&ppft->A_growth,1.0e5,1.0e10,1,CB_NONE,
+			"Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012) ");	
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
 		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,

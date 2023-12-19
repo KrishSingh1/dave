@@ -29,6 +29,7 @@ void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
 void growth_daily_grass(Patch& patch);
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm); 
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,

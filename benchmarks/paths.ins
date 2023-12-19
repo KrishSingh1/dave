@@ -1,11 +1,12 @@
 ! This file contains paths to forcing data used by the benchmarks
 
-param "file_co2"      (str "/data/benchmark_data/2019_04_29/co2/co2_1901_2018.txt")
+! Annemaries iffy CO2:
+param "file_co2"      (str "/lunarc/nobackup/projects/snic2020-6-23/jnord/benchmarks/benchmarks_crujra_cf/co2_1901_2018std_2019-2022annemarie.txt")
 
 ! N deposition (blank string to use constant pre-industrial level of 2 kgN/ha/year)
 param "file_ndep"     (str "/data/benchmark_data/2015_12_14/ndep/GlobalNitrogenDeposition.bin")
 
-! SIMFIRE related files  
+! SIMFIRE related files
 param "file_simfire"  (str "/data/benchmark_data/2019-04-29/fire/SimfireInput.bin")
 
 ! Soil map
@@ -22,28 +23,29 @@ param "watch_dir"     (str "/data/benchmark_data/2013_02_12/watch_subset")
 !// Net CDF forcings
 !//////////////////////////
 
-param "file_temp"     (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmp.1901-2020.365d.noc.daymean.nc")
+param "file_temp"     (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.tmp.1901-2022.365d.noc.daymean.transposed.nc")
 param "variable_temp" (str "tmp")
 
-param "file_prec"     (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.pre.1901-2020.365d.noc.daysum.nc")
+param "file_prec"     (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.pre.1901-2022.365d.noc.daysum.transposed.nc")
 param "variable_prec" (str "pre")
 
-param "file_insol"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tswrf.1901-2020.365d.noc.daymean.nc")
+param "file_insol"      (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.tswrf.1901-2022.365d.noc.daymean.transposed.nc")
 param "variable_insol"  (str "tswrf")
 
-param "file_wind" (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.wind.1901-2020.365d.noc.daymean.nc")
+param "file_wind" (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.wind.1901-2022.365d.noc.daymean.transposed.nc")
 param "variable_wind"  (str "wind")
 
-param "file_relhum" (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.rhum.1901-2020.365d.noc.daymean.nc")
-param "variable_relhum"	(str "rhum")
+!param "file_relhum" (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.rhum.1901-2022.365d.noc.daymean.transposed.nc")
+param "file_relhum" (str "")
+param "variable_relhum" (str "rhum")
 
 ! Needed if relative humidity is not supplied
-param "file_pres"     (str "")
-param "variable_pres" (str "")
+param "file_pres"     (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.pres.1901-2022.365d.noc.daymean.transposed.nc")
+param "variable_pres" (str "pres")
 
 ! Needed if relative humidity is not supplied
-param "file_specifichum" (str "")
-param "variable_specifichum" (str "")
+param "file_specifichum" (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.spfh.1901-2022.365d.noc.daymean.transposed.nc")
+param "variable_specifichum" (str "spfh")
 
 ! Wet days can only be used with monthly precipitation
 param "file_wetdays"     (str "")
@@ -51,8 +53,8 @@ param "variable_wetdays" (str "")
 
 ! Min/max temp is required for BVOC,
 ! if BVOC is switched off these can be set to ""
-param "file_min_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmin.1901-2020.365d.noc.daymin.nc")
+param "file_min_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.tmin.1901-2022.365d.noc.daymin.transposed.nc")
 param "variable_min_temp"  (str "tmin")
 
-param "file_max_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra/crujra.v2.2.5d.tmax.1901-2020.365d.noc.daymax.nc")
+param "file_max_temp"      (str "/data/benchmark_data/2023_11_29/cru_jra_2.4.5d/crujra.v2.4.5d.tmax.1901-2022.365d.noc.daymax.transposed.nc")
 param "variable_max_temp"  (str "tmax")

@@ -371,8 +371,14 @@ extern bool ifdavephotosyn;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
-/// Whether DAVE mass balance diagnostics are enabled.
+/// Whether DAVE mass balance diagnostics are enabled. This value is checked set
+/// to false at all times except during mass balance checks. This is the value
+/// which is checked in ccont(), ncont(), etc.
 extern bool ifdavediagnostics;
+
+/// Whether DAVE mass balance diagnostics are enabled. This parameter is bound
+/// to the instruction file parameter.
+extern bool _ifdavediagnostics;
 
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;

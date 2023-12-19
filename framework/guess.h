@@ -3061,12 +3061,16 @@ public:
 	double cmass_leaf_post_turnover;
 	/// root C mass after turnover
 	double cmass_root_post_turnover;
-	/// optimum leaf C mass (kgC/m2) 
+	/// target leaf C mass (kgC/m2) 
 	double cmass_leaf_limit;
-	/// optimum root C mass (kgC/m2) 
+	/// target root C mass (kgC/m2) 
 	double cmass_root_limit;
-	/// optimum sapwood C mass (kgC/m2)
+	/// target sapwood C mass (kgC/m2)
 	double cmass_sap_limit;
+	/// target storage C mass (kgC/m2)
+	double cmass_storage_limit;
+	/// target reproduction C mass (kgC/m^2) 
+	double cmass_repr_limit;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3484,9 +3488,9 @@ public:
 	}
 
 	/// Total carbon biomass
-	double ccont(double scale_indiv = 1.0, bool luc = false) const;
+	double ccont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
 	/// Total nitrogen biomass
-	double ncont(double scale_indiv = 1.0, bool luc = false) const;
+	double ncont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
 
 	/// Whether grass growth is uninterrupted by crop growth.
 	bool continous_grass() const;

@@ -1754,7 +1754,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			}
 		}
 
-		if (irrigate_soil && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
+		if (irrigate_soil && patch.soil.snowdepth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
 			if (!patch.soil.ice_in_top_layer()) {

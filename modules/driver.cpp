@@ -1090,7 +1090,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 
 	double mdays = (double)date.ndaymonth[date.month];
-	soil.msnowdepth[date.month] += soil.dsnowdepth / mdays;
+	soil.msnowdepth[date.month] += soil.snowdepth() / mdays;
 	soil.mthaw[date.month] += soil.thaw / mdays;
 
 	// needed for fire

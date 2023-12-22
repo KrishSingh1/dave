@@ -3299,8 +3299,8 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("N pool change: %.5f\n", ncont - ncont_zero);
 	}
 
-	double water_content = gridcell.ncont();
-	double water_flux = gridcell.nflux();
+	double water_content = gridcell.water_content();
+	double water_flux = gridcell.water_flux();
 
 	if (!negligible(water_content - water_cont_zero + water_flux, -4)) {
 		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, water_content - water_cont_zero + water_flux);

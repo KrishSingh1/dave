@@ -399,14 +399,18 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
 	double tdorm = ppft.pft.temp_dormancy;
-	double fgerm_max25 = 0.2; // maximum daily germination rate at temperature optimum (fraction) 
+	double fgerm_max25 = 0.3; // maximum daily germination rate at temperature optimum (fraction) 
 
-	// TODO: look at mean over the last ~3 days, not just current one.
-	double wcont = patch.soil.get_layer_soil_water(0);
-	double tsoil = patch.soil.T_soil[7];        // TODO: check with DW that this is the right layer
+	// get average conditions over the last 3-5 days.
+	ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
+	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);   // TODO: check with DW that this is the right layer
+	double wcont = ppft.wcont_germ_4.mean();
+	double tsoil = ppft.tsoil_germ_4.mean();
+	
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
 	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
 	double frac_germ = fgerm_max25 * ftemp * fwater;   
+	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
 	return frac_germ;
 }

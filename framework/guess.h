@@ -4574,6 +4574,10 @@ public:
 	Historic<double, 10> airtemp_10;
 	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
 	Historic<double, 10> daylength_10;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
+	Historic<double, 4> wcont_germ_4;
+	// Temperature of upper soil layer over the last 3 days
+	Historic<double, 4> tsoil_germ_4;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)

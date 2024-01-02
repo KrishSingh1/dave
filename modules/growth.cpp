@@ -312,31 +312,39 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 		if (pft.is_grass()) { 
 
-			// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
-			double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-			double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-			double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-			double wscal_actual = wscal_growth(wscal_mean);
-			double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
+				double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
+				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
-			// Changes in physiological activity due to changes in dormancy status
-			double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
-			double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
+				double wscal_actual = wscal_growth(wscal_mean);
+				double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
-			double tscal = (tscal_actual - tscal_crit) / denom_tscal;
-			double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
+				// Changes in physiological activity due to changes in dormancy status
+				double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
+				double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
+
+				double tscal = (tscal_actual - tscal_crit) / denom_tscal;
+				double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
 			
-			assert(tscal >= -1.0 && tscal <= 1.0);
-			assert(wscal >= -1.0 && wscal <= 1.0);
+				assert(tscal >= -1.0 && tscal <= 1.0);
+				assert(wscal >= -1.0 && wscal <= 1.0);
 
-			// TODO: should tscal and wscal interact? Multiplication?
-			double dphen_activity = min(tscal,wscal)*dphen_activity_max;
+				// TODO: should tscal and wscal interact? Multiplication?
+				double dphen_activity = min(tscal,wscal)*dphen_activity_max;
 
-			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
+				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
+
+			} else {
+			    // no dormancy in annuals
+				indiv.fphen_activity = 1.0;
+			}
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
+			
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;

@@ -247,7 +247,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	// low temperature adjustment to avoid simulating unrealistic growth demand
     // at very low or even negative temperatures (see also comment above).
     double Tdef = Tdorm - Tleaf;
-    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
+    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
 
 	return max(0.0,min(1.0,ftemp));
 }
@@ -278,9 +278,11 @@ double photo_growth(double daylength_diff) {
 double area_growth(double sla, double culmfrac, double cmass_total, double cmass_leaf, double cmass_repr) {
 	double cmassleaf = max(0.001,cmass_leaf);
 	double crepr_frac = min(1.0,cmass_repr/cmassleaf);
-	return max(0.0, -0.035 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - pow(crepr_frac,2.0))) * cmass_total;     // kgC m-2 d-1
+	return max(0.0, 0.01 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - pow(crepr_frac,2.0))) * cmass_total;     // kgC m-2 d-1
 	// C4s: -0.01 + 0.0035
+	// default: -0.035 + 0.0035 * sla
 	// linear fit: -0.029 + 0.0031*x
+	// annuals: 0.0 + 0.0035
 }
 
 

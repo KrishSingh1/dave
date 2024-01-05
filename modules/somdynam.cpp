@@ -2110,7 +2110,7 @@ void equilsom(Patch& patch) {
 					// Save C pools in historical arrays					
 					hist_slow[lyr].add(soillayer.sompool[SLOWSOM].cmass);
 					hist_passive[lyr].add(soillayer.sompool[PASSIVESOM].cmass);
-					hist_ccont[lyr].add(soillayer.ccont(true));
+					hist_ccont[lyr].add(soillayer.ccont(GSOM));
 
 					// Calculate historical mean
 					double hslow_mean = hist_slow[lyr].mean();

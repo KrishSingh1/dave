@@ -97,6 +97,9 @@ typedef enum {
 typedef enum { SURFMETA, SURFSTRUCT, SURFFWD, SURFCWD, SURFMICRO, SURFHUMUS, 
 SOILMETA, SOILSTRUCT, SOILFWD, SOILCWD, SOILMICRO, SLOWSOM, PASSIVESOM, NSOMPOOL } pooltype;
 
+/// CENTURY SOM pool group names
+typedef enum { GALL, GSURFL, GHUMUS, GSOM, GHUMUSSOM} grouppooltype;
+
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} waterusetype;
 /// Intercrop type for PFTs
@@ -3939,11 +3942,11 @@ public:
 	/// Set soil layer properties
 	void set_properties(double& wmass_move, double& imass_move, bool must_set = false);
 	/// C content of soil layer
-	double ccont(bool exclude_litter = false);
+	double ccont(grouppooltype group = GALL);
 	/// N content of soil layer
-	double ncont(bool exclude_litter = false);
+	double ncont(grouppooltype group = GALL);
 	/// Calculate organic matter density
-	void calc_organic_density();
+	double calc_organic_density(grouppooltype pools = GALL);
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change
@@ -4548,9 +4551,9 @@ public:
 	/// Returns surface litter N content
 	double get_surflitternmass();
 	/// C content of soil column
-	double ccont(bool exclude_litter = false);
+	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
-	double ncont(bool exclude_litter = false);
+	double ncont(grouppooltype group = GALL);
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
@@ -4582,9 +4585,9 @@ public:
 	/// Returns the value of some vector within a certain depth interval with a scalar
 	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
 	/// Returns the value of soil C within a certain depth interval
-	double var_depth_ccont(double depth_start, double depth_end, bool surf = false);
+	double var_depth_ccont(double depth_start, double depth_end, grouppooltype group = GALL);
 	/// Returns the value of soil N within a certain depth interval
-	double var_depth_ncont(double depth_start, double depth_end, bool surf = false);
+	double var_depth_ncont(double depth_start, double depth_end, grouppooltype group = GALL);
 	/// Calculate surface evaporation, infiltration and runoff
 	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
 		double imass_infilt, double wsats_infilt, double imp_ice, double fevap, double& qflx_evap, 

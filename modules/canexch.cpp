@@ -2474,7 +2474,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// the same day it's fixed. A time lag is considered physiologicallly 
 			// more meaningful than a flat rate that is completely independent of growth.
 			// Data from Ryan 1991.
-			resp_growth = growth * 0.2;
+			//resp_growth = growth * 0.2;
+			resp_growth = (assim - resp_root) * 0.25; // switched back to old formulation for now.
 
 		} else {
 			

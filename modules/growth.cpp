@@ -67,7 +67,7 @@ const double cstorage_max_perm = 0.5;  // crowns
 const double frac_cstorage_res = 0.15;
 
 // Maximum mobilisation rate of C in storage
-const double max_mobil_cstorage = 0.25;
+const double max_mobil_cstorage = 0.2;
 
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
@@ -261,33 +261,6 @@ double photo_growth(double daylength_diff) {
 }
 
 
-// Relative growth rate derived from data presented in Poorter & Pothmann 1992
-// TODO: could this be simplified?
-//double mass_growth(double cmass_total, double cmass_leaf, double cmass_repr, double lai) {
-//	cmass_leaf = max(0.001,cmass_leaf) * 1000.0;  // gC m-2
-	
-//	double repr_frac = min(1.0, cmass_repr / cmass_leaf);
-//	double mass_lai = cmass_leaf / (lai);  // depends on sla and culmfrac.
-	//return (1.0 - repr_frac) * cmass_total * (14.645 * pow(mass_lai,-1.158));    // kgC m-2 d-1
-//	return (1.0 - repr_frac) * cmass_leaf/1000.0 * (14.645 * pow(mass_lai,-1.158)); 
-//}
-
-// Relative growth rate as a function of active surface area.
-// Data fitted from Poorter & Porthmann 1992. 
-// Fitted intercept not statistically significant.
-double area_growth(double sla, double culmfrac, double cmass_total, double cmass_leaf, double cmass_repr) {
-	double cmassleaf = max(0.001,cmass_leaf);
-	double crepr_frac = min(1.0,cmass_repr/cmassleaf);
-	return max(0.0, 0.01 + (0.0035 * sla * (1.0 - culmfrac)) * (1.0 - pow(crepr_frac,2.0))) * cmass_total;     // kgC m-2 d-1
-	// C4s: -0.01 + 0.0035
-	// default: -0.035 + 0.0035 * sla
-	// linear fit: -0.029 + 0.0031*x
-	// annuals: 0.0 + 0.0035
-}
-
-
-		
-
 void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 	// Calculates phenological cycle of grasses. 
@@ -344,14 +317,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
-			
+
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 90){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 60){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -1503,9 +1476,8 @@ bool allometry(Individual& indiv) {
 				// Root projective cover (RPC) introduced to capture feedback between 
 				// belowground C investment and available N. The following is equal to 
 				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai * min(10.0,(0.5 * indiv.cmass_root / indiv.cmass_leafs[green])));
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(1.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
-
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
@@ -2664,10 +2636,12 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
+    double RGR_max = 0.2;
+	double RGR = 0.0;
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
-	double farea_growth  = 0.0;
+	double fdev_growth   = 0.0;
 	double growth_demand = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
@@ -2681,13 +2655,29 @@ double growth_demand(Individual& indiv) {
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	farea_growth  = area_growth(indiv.sla(),indiv.pft.culmfrac,cmass_total,indiv.get_cmass_leaf(),indiv.cmass_repr);
+
+	double cmassleaf = max(0.001,indiv.get_cmass_leaf());
+	double crepr_frac = min(1.0,indiv.cmass_repr/cmassleaf);
+	//fdev_growth = crepr_frac > 0.0 ? 0.5 * pow(1.0 - crepr_frac,3.0) : 1.0; 
+	//indiv.fdev_growth = crepr_frac > 0.0 ? 0.5 : 1.0; 
     //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
 	// the following line is relevant for repr. --> vegetative switch in perennials
-	indiv.farea_growth = (is_zero(indiv.farea_growth) && indiv.growth_stage == vegetative) ? 0.0005 * cmass_total : max(0.0,min(farea_growth,1.1 * indiv.farea_growth));
+	//indiv.farea_growth = (is_zero(indiv.farea_growth) && indiv.growth_stage == vegetative) ? 0.0005 * cmass_total : max(0.0,min(farea_growth,1.1 * indiv.farea_growth));
 	//indiv.farea_growth = farea_growth;
 
-	growth_demand = indiv.farea_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	if (indiv.growth_stage == reproductive) {
+		RGR = 0.4 * RGR_max;
+		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.05);
+	} else {
+		RGR = RGR_max;
+		indiv.fdev_growth = 1.0;
+	}
+
+	growth_demand = RGR * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+
+	// reduce growth demand under low storage (sink-source feedback)
+	// TODO: this feedback seems to be too strong --> reduce
+	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -2996,6 +2986,7 @@ void ndemand_grass(Individual &indiv) {
 	indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown * growth_update_ratio;
 	indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr * growth_update_ratio;
 	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand;
+
 }
 
 // Calculate Nitrogen demand for a tree.
@@ -3276,11 +3267,9 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.004;              // Baseline senescence rate in the vegetative phase (d-1)
-	const double fsenesc_repr_annual = 0.1;        // Factor controling baseline senescence rate in the reproductive phase (annuals)
-	const double fsenesc_repr_perennial = 0.015;    // Factor controling baseline senescence rate in the reproductive phase (perennials)
-	const double senesc_scal_water = 3.0;  // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 4.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.005;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 3.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 8.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 0.4;  // higher values --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3299,15 +3288,23 @@ void senescence_grass(Individual &indiv) {
 
 	double senesc = senesc_base;
 
-	if (indiv.growth_stage == reproductive) {
+	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double fsenesc_repr = indiv.pft.lifeform == GRASS_ANNUAL ? fsenesc_repr_annual : fsenesc_repr_perennial;
-		// in the reproductive phase, senescence is proportional to fraction of C already invested in reproduction.
-		senesc += fsenesc_repr * indiv.cmass_repr / (indiv.cmass_leafs[green] + indiv.cmass_root);
+		if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
+			indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + 0.04);
+
+		} else if (indiv.pft.lifeform == GRASS_ANNUAL) {
+
+			// stronger increase of senescence in annuals
+			indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * 1.1);
+
+		}
+		
+	} else {
+		indiv.fdev_senesc = 0.0;
 	}
-	
-	
+
 	// Stress factors increase senescence
 	// Soil moisture
 	double senesc_fwater = senesc_scal_water * (1.0 - pow(ppft.wscal,qwater_senesc));
@@ -3332,7 +3329,7 @@ void senescence_grass(Individual &indiv) {
 	}
 
 	// Total senescence rate
-	senesc *= ((1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
+	senesc *= (indiv.fdev_senesc * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
 	senesc = min(1.0, senesc);
 
 	// Retranslocation and pool updates

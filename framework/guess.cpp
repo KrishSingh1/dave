@@ -2317,9 +2317,10 @@ double Individual::sla() const {
 	if (ifdailygrass && pft.is_grass() && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
 			//const double sla_beta = -0.07;
-			const double sla_beta = -0.06;
-			double rescal = pow(0.2,sla_beta);  // rescale so that default sla reached at 0.2Ckg rather than 1kgC
-			current_sla *= (pow(get_cmass_leaf(),sla_beta) / rescal);
+			//const double sla_beta = -0.06;
+			//double rescal = pow(0.2,sla_beta);  // rescale so that default sla reached at 0.2Ckg rather than 1kgC
+			//current_sla *= (pow(get_cmass_leaf(),sla_beta) / rescal);
+			current_sla *= 1.0;
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 		}

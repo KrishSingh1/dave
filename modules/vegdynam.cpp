@@ -401,7 +401,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double tdorm = ppft.pft.temp_dormancy;
 	double fgerm_max25 = 0.3; // maximum daily germination rate at temperature optimum (fraction) 
 
-	// get average conditions over the last 3-5 days.
+	// get average conditions over the last 3-5 (currently 4) days.
 	ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
 	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);   // TODO: check with DW that this is the right layer
 	double wcont = ppft.wcont_germ_4.mean();
@@ -409,7 +409,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
 	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
-	double frac_germ = fgerm_max25 * ftemp * fwater;   
+	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
 	return frac_germ;
@@ -427,36 +427,61 @@ void establishment_daily(Patch& patch) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
-			// check conditions for germination (germination fraction)
-			double frac_germ = germination_fraction(ppft, patch);
-			double cmass_seed = ppft.cmass_litter_repr * frac_germ;
-			double nmass_seed = ppft.nmass_litter_repr * frac_germ;
-			if (cmass_seed > 0.0) {
-				Individual *indiv = get_beneficiary(patch, pft);
-				if (indiv == NULL) {
-					// Establish new individual.
-					Individual& individual = vegetation.createobj(pft, vegetation);
-					indiv = &individual; // & gets address of the variable (* is the opposite)
-					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
-					indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
-					indiv->densindiv=1.0;
-					indiv->fpc=1.0;  // TODO: is that right?
-					indiv->nscal_5.add(1.0);
-					indiv->growth_stage = 1;
-				}
-				double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
-				double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
+			
+			// Is there an existing seedbank?
+			if (ppft.cmass_litter_repr > 0.0) {
 				
-				// Take germinated biomass out of the seedbank
-				ppft.cmass_litter_repr -= cmass_seed;
-				ppft.nmass_litter_repr -= nmass_seed;
-				// Add some new biomass into this individual.
-				establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
+				// Check conditions for germination (germination fraction)
+				double frac_germ = germination_fraction(ppft, patch);
 
-				double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
-				double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
-				assert(equal(cmass_before, cmass_after));
-				assert(equal(nmass_before, nmass_after));
+				// Do conditions allow for germination?
+				if (frac_germ > 0.0) {
+					Individual *indiv = get_beneficiary(patch, pft);
+					if (indiv == NULL) {
+						// Establish new individual.
+						Individual& individual = vegetation.createobj(pft, vegetation);
+						indiv = &individual; // & gets address of the variable (* is the opposite)
+						//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
+						indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
+						indiv->densindiv=1.0;
+						indiv->fpc=1.0;  // TODO: is that right?
+						indiv->nscal_5.add(1.0);
+						indiv->growth_stage = vegetative;
+					} else {
+						// If there is already an individual, then:
+						// 1) reduce germination rate by fpc in the vegetative phase. I.e. do not grow new plants in space
+						//    that is already occupied.
+						// 2) avoid germination when main individual is in the reproductive phase,
+						// 	  assuming that seeds are dormant in that time period, avoiding unfavourable growth conditions.
+						//    E.g. no germination in a wet and warm autumn.
+						//    TODO: implement seed dormancy to account for this when there is no existing individual?
+						if (indiv->growth_stage == vegetative || indiv->growth_stage == dormant) {
+							frac_germ *= (1.0 - indiv->fpc);
+						} else if (indiv->growth_stage == reproductive) {
+							frac_germ = 0.0;
+						}
+					}
+
+					if (frac_germ > 0.0) {
+						double cmass_seed = ppft.cmass_litter_repr * frac_germ;
+						double nmass_seed = ppft.nmass_litter_repr * frac_germ;
+
+						double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
+						double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
+				
+						// Take germinated biomass out of the seedbank
+						ppft.cmass_litter_repr -= cmass_seed;
+						ppft.nmass_litter_repr -= nmass_seed;
+					
+						// Add some new biomass into this individual.
+						establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
+
+						double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
+						double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
+						assert(equal(cmass_before, cmass_after));
+						assert(equal(nmass_before, nmass_after));
+					}
+				}
 			}
 		}
 	}

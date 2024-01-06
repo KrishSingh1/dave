@@ -260,6 +260,18 @@ double photo_growth(double daylength_diff) {
 	return 1.0;
 }
 
+// Development effects on relative growth rate.
+// Reduction of growth demand in reproductive phase.
+void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
+	
+	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
+		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
+		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.05);
+	} else {
+		indiv.fdev_growth = 1.0;
+	}
+}
+
 
 void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
@@ -2636,12 +2648,12 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
-    double RGR_max = 0.2;
-	double RGR = 0.0;
+	// Reduction of RGR in reproductive phase
+	const double fRGR_repr = 0.4;
+
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
-	double fdev_growth   = 0.0;
 	double growth_demand = 0.0;
 
 	// Air temperature or bottom snow layer if snow present
@@ -2655,25 +2667,10 @@ double growth_demand(Individual& indiv) {
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
+	dev_growth(indiv, ftemp_growth, fRGR_repr);
+	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
-	double cmassleaf = max(0.001,indiv.get_cmass_leaf());
-	double crepr_frac = min(1.0,indiv.cmass_repr/cmassleaf);
-	//fdev_growth = crepr_frac > 0.0 ? 0.5 * pow(1.0 - crepr_frac,3.0) : 1.0; 
-	//indiv.fdev_growth = crepr_frac > 0.0 ? 0.5 : 1.0; 
-    //indiv.fdev_growth = divide(pow(ag_cmass,0.75),ag_cmass) * (1.0 - divide(indiv.cmass_repr,ag_cmass));
-	// the following line is relevant for repr. --> vegetative switch in perennials
-	//indiv.farea_growth = (is_zero(indiv.farea_growth) && indiv.growth_stage == vegetative) ? 0.0005 * cmass_total : max(0.0,min(farea_growth,1.1 * indiv.farea_growth));
-	//indiv.farea_growth = farea_growth;
-
-	if (indiv.growth_stage == reproductive) {
-		RGR = 0.4 * RGR_max;
-		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.05);
-	} else {
-		RGR = RGR_max;
-		indiv.fdev_growth = 1.0;
-	}
-
-	growth_demand = RGR * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// reduce growth demand under low storage (sink-source feedback)
 	// TODO: this feedback seems to be too strong --> reduce

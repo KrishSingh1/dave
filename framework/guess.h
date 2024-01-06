@@ -2076,9 +2076,11 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
-	/// Growth parameters
+	/// Development and Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
+	/// Potential relative growth rate in vegetative phase (d-1)
+	double RGR_pot;
     /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
 	double Ha_growth;
 	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)

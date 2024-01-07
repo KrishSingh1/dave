@@ -3138,16 +3138,29 @@ void Individual::kill(bool harvest /* = false */) {
 }
 
 // Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
-// Happens every year at the onset of dormancy
-// TODO: deal with case of no dormancy
+// Happens every year at the end of the reproductive period.
 void Individual::flush_repr_litter_DAVE() {
 
+	// TODO: where to define this??
+	double frac_seed = 0.7; 
+
+	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
+	// the rest (e.g. panicles, husks) goes to the litter pool.
+	double cflux_seed = frac_seed * cmass_repr;
+	double nflux_seed = frac_seed * nmass_repr;
+
+	double cflux_litter = cmass_repr - cflux_seed;
+	double nflux_litter = nmass_repr - nflux_seed; 
+
 	// added for mass balance checks at the individual level
-	cmass_litter_repr += cmass_repr;
-	nmass_litter_leaf += nmass_repr;	
-				
-	patchpft().cmass_litter_repr += cmass_repr;
-	patchpft().nmass_litter_repr += nmass_repr;
+	cmass_litter_repr += cflux_seed;
+	nmass_litter_leaf += nflux_seed;	// TODO: should this be nmass_litter_repr?
+	
+	cmass_litter_leaf += cflux_litter;
+	nmass_litter_leaf += nflux_litter;			
+
+	patchpft().cmass_litter_repr += cflux_seed;
+	patchpft().nmass_litter_repr += nflux_seed;
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
 }

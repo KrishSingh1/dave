@@ -72,11 +72,11 @@ const double max_mobil_cstorage = 0.2;
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
 
-// Maximum physiological up/down-regulation in and out of dormancy (fraction)
+// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
-// Fraction of reproductive pool available for reproduction
-const double fracseed = 0.5;
+// Fraction of reproductive pool available for reproduction (i.e. seed fraction)
+const double frac_seed = 0.5;
 
 // Error tolerance (expressed as number of significant figures) used in mass balance checks.
 const double EPS = -12;
@@ -329,6 +329,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
+			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
@@ -336,7 +337,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 60){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -350,9 +351,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				// a) at the onset of dormancy
 				// b) repr pool does not increase any longer
 				repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
-				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 1.0e-2 ) {
+				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 0.5e-2 ) {
 					
-					indiv.growth_stage = repr_trend < 1.0e-2 ? vegetative : dormant;
+					indiv.growth_stage = repr_trend < 0.5e-2 ? vegetative : dormant;
 					indiv.growth_stage_days = 0;
 					
 					// flush reproductive tissue to seedbank.
@@ -3287,17 +3288,10 @@ void senescence_grass(Individual &indiv) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		if (indiv.pft.lifeform == GRASS_PERENNIAL) {
+		// stronger increase of senescence in annuals
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.018 : 1.1;
+		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
-			indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + 0.04);
-
-		} else if (indiv.pft.lifeform == GRASS_ANNUAL) {
-
-			// stronger increase of senescence in annuals
-			indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * 1.1);
-
-		}
-		
 	} else {
 		indiv.fdev_senesc = 0.0;
 	}

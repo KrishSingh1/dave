@@ -456,7 +456,10 @@ void establishment_daily(Patch& patch) {
 						//    E.g. no germination in a wet and warm autumn.
 						//    TODO: implement seed dormancy to account for this when there is no existing individual?
 						if (indiv->growth_stage == vegetative || indiv->growth_stage == dormant) {
-							frac_germ *= (1.0 - indiv->fpc);
+							// reduced by fpc_ymax * 2.0 to account for green and brown leaves and rpc.
+							// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
+							//       and create new variable.
+							frac_germ *= (1.0 - indiv->fpc_ymax * 2.0);
 						} else if (indiv->growth_stage == reproductive) {
 							frac_germ = 0.0;
 						}

@@ -4,7 +4,8 @@
 		"${workspaceRoot}/framework",
 		"${workspaceRoot}/libraries/gutil",
 		"${workspaceRoot}/libraries/guessnc",
-		"${workspaceRoot}/cru/guessio"
+		"${workspaceRoot}/cru/guessio",
+		"${workspaceRoot}/libraries/plib"
 	],
 	"C_Cpp.default.defines": [
 		"HAVE_NETCDF"

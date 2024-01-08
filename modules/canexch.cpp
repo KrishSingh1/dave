@@ -2807,8 +2807,8 @@ void vcmax_from_N(Vegetation& vegetation) {
 		// take green leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
 		if (indiv.pft.is_grass()) {
-			nmass_leaf = (!negligible(indiv.nmass_leafs[0])) ? 
-						indiv.nmass_leafs[0] / (indiv.cmass_leafs[0] * indiv.sla()) : 0.0;
+			nmass_leaf = (!negligible(indiv.get_nmass_leaf())) ?
+						indiv.get_nmass_leaf() / (indiv.get_cmass_leaf() * indiv.sla()) : 0.0;
 		} else {
 			nmass_leaf = indiv.nmass_leaf;
 		}

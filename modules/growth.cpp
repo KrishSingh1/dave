@@ -75,6 +75,9 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
+// Minimum growth demand after reproductive phase
+const double fdev_growth_min = 0.008;
+
 // Fraction of reproductive pool available for reproduction (i.e. seed fraction)
 const double frac_seed = 0.5;
 
@@ -264,11 +267,17 @@ double photo_growth(double daylength_diff) {
 // Reduction of growth demand in reproductive phase.
 void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
 	
+	Patchpft &ppft = indiv.patchpft();
+
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
-		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.05);
+		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.03);
 	} else {
-		indiv.fdev_growth = 1.0;
+		//if (ppft.daylength_10.periodictrend(10) > 0.0) {
+        	indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
+		//} //else {
+		//	indiv.fdev_growth = fdev_growth_min + 0.00;
+		//}
 	}
 }
 
@@ -297,6 +306,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 		if (pft.is_grass()) { 
 
+			// Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
 				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
@@ -332,6 +342,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
+			// TODO: maybe increase dormancy switch threshold to 0.5 or similar?
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.growth_stage_days = 0;
@@ -349,17 +360,26 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			else if (indiv.growth_stage == reproductive && indiv.pft.lifeform == GRASS_PERENNIAL) {
 				// stop reproductive phase either 
 				// a) at the onset of dormancy
-				// b) repr pool does not increase any longer
-				repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
-				if (equal(indiv.fphen_activity, fphen_activity_min) || repr_trend < 0.5e-2 ) {
-					
-					indiv.growth_stage = repr_trend < 0.5e-2 ? vegetative : dormant;
-					indiv.growth_stage_days = 0;
-					
-					// flush reproductive tissue to seedbank.
-					if (indiv.cmass_repr > 0.0) {
-						indiv.flush_repr_litter_DAVE();
-					}
+                // b) repr pool does not increase any longer
+                repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
+
+                // dormancy
+                if (equal(indiv.fphen_activity, fphen_activity_min)) {
+                          indiv.growth_stage = dormant;
+                          indiv.growth_stage_days = 0;
+                }
+
+                // no further increases in repr. 
+                // Note: does not go in there during freenyears.
+                if (repr_trend < 0.5e-2) {
+                   indiv.growth_stage = vegetative;
+                   indiv.growth_stage_days = 0;
+                   indiv.fdev_growth = fdev_growth_min;
+                }
+ 
+                // flush reproductive tissue to seedbank.
+                if (indiv.growth_stage != reproductive && indiv.cmass_repr > 0.0) {
+                    indiv.flush_repr_litter_DAVE();
 				}
 			}
 			indiv.growth_stage_days += 1;		
@@ -2663,6 +2683,7 @@ double growth_demand(Individual& indiv) {
 	// Total biomass 
 	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() +
 						 indiv.cmass_repr + indiv.cmass_storage;
+	//double cmass_total = indiv.cmass_root + indiv.cmass_crown*0.2 + indiv.get_cmass_leaf();
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
@@ -2676,6 +2697,7 @@ double growth_demand(Individual& indiv) {
 	// reduce growth demand under low storage (sink-source feedback)
 	// TODO: this feedback seems to be too strong --> reduce
 	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+	//growth_demand *= indiv.nscal_5.mean();
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -3289,7 +3311,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.018 : 1.1;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.005 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {

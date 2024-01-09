@@ -3311,7 +3311,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.005 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.008 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {

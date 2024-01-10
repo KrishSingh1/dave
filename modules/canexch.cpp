@@ -3414,7 +3414,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cmass_root = indiv.cmass_root_today();
 
 		double cmass_crown = 0.0;
-		if (ifdavegrowth && indiv.pft.is_grass()) {
+		if (ifdavegrowth && ifdailygrass && indiv.pft.is_grass()) {
 			cmass_crown = indiv.cmass_crown;
 		} else {
 			cmass_crown = 0.0;

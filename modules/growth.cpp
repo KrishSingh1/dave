@@ -2807,6 +2807,7 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 		// restructuring this, especially if we later decide that other
 		// functions should be able to kill an individual.
 		if (vegetation.nobj == nobj) {
+			// indiv was not killed
 			vegetation.nextobj();
 		}
 	}

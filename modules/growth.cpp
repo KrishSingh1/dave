@@ -3676,6 +3676,7 @@ void storage_overflow(Individual& indiv) {
 		// TODO: decide what to do with excess C if you are not in the reproductive phase
 		// Option 1: respire
 		indiv.report_flux(Fluxes::RA, indiv.cexcess);
+		indiv.report_flux(Fluxes::NPP, -indiv.cexcess);
 
 		// Option 2; root exudates
 		// TODO: yet to be implemented

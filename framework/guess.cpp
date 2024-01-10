@@ -1724,7 +1724,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nstorage_max				= 0.0;
 	cmass_leaf_ygrowth			= 0.0;
 	cmass_root_ygrowth			= 0.0;
-	cton_leaf_opt				= 0.0; 
+	cton_leaf_opt				= 0.0;
+	nday_leafon					= 0.0;
 
 	initialn = 0.0;
 
@@ -1763,6 +1764,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	reprndemand					= 0.0;
 	sapndemand					= 0.0;
 	storendemand				= 0.0;
+	hondemand                   = 0.0;
+	avmaxnlim                   = 0.0;
 	leaffndemand				= 0.0;
 	rootfndemand				= 0.0;
 	sapfndemand					= 0.0;

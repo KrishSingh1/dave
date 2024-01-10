@@ -1676,8 +1676,8 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	if (ifdavediagnostics) {
-		lprintf("[%04d/%02d] Establishing %s\n", date.year, date.day, (const char *)pft.name);
+	if (date.year >= nyear_spinup && _ifdavediagnostics) {
+		dprintf("%04d-%02d-%02d (year %d) Establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 	}
 
 	anpp              = 0.0;
@@ -2951,10 +2951,8 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 
 void Individual::kill(bool harvest /* = false */) {
 
-	if (date.year > nyear_spinup && ifdavediagnostics) {
-		lprintf("%04d-%02d-%02d (year %d) killing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-	} else if (ifdavediagnostics) {
-		lprintf("[%04d/%04d] killing %s\n", date.year, date.day, (const char *)pft.name);
+	if (date.year > nyear_spinup && _ifdavediagnostics) {
+		dprintf("%04d-%02d-%02d (year %d) killing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 	}
 
 	Patchpft& ppft = patchpft();

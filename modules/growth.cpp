@@ -1920,6 +1920,9 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
+							if (date.year >= nyear_spinup && _ifdavediagnostics) {
+								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
+							}
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2011,6 +2014,9 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
+							if (date.year >= nyear_spinup && _ifdavediagnostics) {
+								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
+							}
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2060,6 +2066,9 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (!allometry(indiv)) {
 
+					if (date.year >= nyear_spinup && _ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
+					}
 					indiv.kill();
 
 					vegetation.killobj();
@@ -2113,6 +2122,9 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.flush_repr_litter_DAVE();
 					}
 
+					if (date.year >= nyear_spinup && _ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
+					}
 					indiv.kill();
 
 					vegetation.killobj();

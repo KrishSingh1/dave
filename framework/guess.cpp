@@ -2244,7 +2244,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
 	if (!negligible(cmass_root) && !negligible(nmass_root)) {
-		if (ifdavegrowth) {
+		if (pft.dave_allocation()) {
 			return (cmass_root / nmass_root);  // stoichiometry checked in growth
 		} else {
 			if (use_phen) {

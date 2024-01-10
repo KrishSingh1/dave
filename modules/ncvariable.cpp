@@ -162,6 +162,10 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		// Unit checking.
 		check_units(units, force_legal_units);
 
+		// Initialise cache.
+		cache_prev.year = -1;
+		cache_prev.day = -1;
+		cache_prev.timestep = -1;
 	} catch (...) {
 		// Rethrow the exception with some extra context added to the message.
 		throw_xtring_nested("Failed to initialise variable %s", (const char *)name);

@@ -2800,18 +2800,12 @@ void vcmax_from_N(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-        double nmass_leaf = 0;
 		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
 		
         // leaf N of green leaves per leaf area (kgN m-2 leaf)
 		// take green leaves only and calculate leaf N per unit leaf area
 		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
-		if (indiv.pft.is_grass()) {
-			nmass_leaf = (!negligible(indiv.get_nmass_leaf())) ?
-						indiv.get_nmass_leaf() / (indiv.get_cmass_leaf() * indiv.sla()) : 0.0;
-		} else {
-			nmass_leaf = indiv.nmass_leaf;
-		}
+		double nmass_leaf = indiv.get_nmass_leaf() / (indiv.get_cmass_leaf() * indiv.sla());
 
 		assert(positive(nmass_leaf));
 

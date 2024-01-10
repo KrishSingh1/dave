@@ -104,8 +104,11 @@ public:
 	/// Sends a message to the user somehow
 	virtual void log_message(const char* message) = 0;
 
-	/// Write a message to the log file.
-	virtual void write_log(const char *message) = 0;
+	/// Write a formatted message to the log file.
+	virtual void write_log(const char *fmt, ...) = 0;
+
+	/// Write a formatted message to the log file.
+	virtual void vwrite_log(const char *fmt, va_list args) = 0;
 
 	/// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
 	virtual void plot(const char* window_name, 
@@ -156,7 +159,8 @@ public:
 
 	void log_message(const char* message);
 
-	void write_log(const char *message);
+	void write_log(const char *fmt, ...);
+	void vwrite_log(const char *fmt, va_list args);
 
 	void plot(const char* window_name, 
 	          const char* series_name, 

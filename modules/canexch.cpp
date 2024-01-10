@@ -2919,11 +2919,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-					double phen = indiv.phen;
-					if (indiv.pft.dave_allocation()) {
-						phen = indiv.fphen_activity;
-					}
-					Rd = phen * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+
+					// Note: fphen_activity is always 1 for trees.
+					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
 					if (is_zero(apar_layer)) {
 						// Night
@@ -2937,7 +2935,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						double gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						pslim = phen * indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
 						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
 						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 

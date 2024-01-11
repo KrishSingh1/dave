@@ -788,7 +788,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	const double BASEFLOW_FRAC = 0.5;
 
 	const double MIN_WATER_PERC = 0.0000001;	// mm - Minimum water amount for percolation to occur
-	const double maxerr = 0.0001;			// mm - max error allowed
 
 	// Reset annuals
 	if (date.day == 0) {
@@ -930,7 +929,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 
 		// Check balance
-		if (potential_layer[ly] < -1.0 * maxerr) {
+		if (potential_layer[ly] < -1.0 * EPS_WATER) {
 			// fail("Soil::hydrology_lpjf - error in a soil layer's water balance!\n");	
 			dprintf("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - error in a soil layer's water balance! potential_layer[%d] = %f\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, potential_layer[ly]);
 		}
@@ -1260,7 +1259,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		double water_in_storage_in = initial_water_in_column + rain_melt;
 		double water_out_storage_out = final_water_in_column + evap + aet_total + runoff;
 
-		if (fabs(water_in_storage_in - water_out_storage_out) > maxerr) {
+		if (fabs(water_in_storage_in - water_out_storage_out) > EPS_WATER) {
 			dprintf("Soil::hydrology_lpjf - error in the TOTAL water balance!\n");
 			return;
 		}

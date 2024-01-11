@@ -3935,11 +3935,9 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 		double wflux_today = water_flux_yesterday - wflux;
 		double expected_wcont = water_cont_yesterday + wflux_today;
 
-		const double epsilon = 1e-9;
-
 		// Ensure wcont matches yesterday's value + today's water flux.
 		double err = wcont - expected_wcont;
-		if (fabs(err) > epsilon) {
+		if (fabs(err) > EPS_WATER) {
 			dprintf("\n(%.2f, %.2f): Water balance year %d day %d: %.10f\n"
 				, gridcell.get_lon(), gridcell.get_lat(),
 				date.year, date.day, err);

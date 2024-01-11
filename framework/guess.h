@@ -263,6 +263,13 @@ const int FAR_FUTURE_YEAR = 100000;
 /// Default year in the past never expected to be covered during the simulation
 const int FAR_PREHISTORIC_YEAR = -100000;
 
+// Max error allowed in water balance (mm). A value of 1e-9 is too strict, and
+// results in mass balance errors, likely due to the many additions and
+// subtractions of small floating point numbers when we aggregate across the
+// layers of the soil. A value of 1e-4 was used in the trunk version, so if this
+// value turns out to be too strict, we should relax it back to 1e-4.
+const double EPS_WATER = 1e-6;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some

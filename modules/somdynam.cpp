@@ -1336,6 +1336,13 @@ void vegetation_n_uptake(Patch& patch) {
 				indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
 			else
 				indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+
+			// If leaffndemand, rootfndemand, sapfndemand and storefndemand
+			// don't add to 1, we will have subtracted more N from the soil than
+			// we added to the plant.
+			if (nuptake_day > 0) {
+				assert(equal(1.0, indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand + indiv.storefndemand));
+			}
 		}
 
 

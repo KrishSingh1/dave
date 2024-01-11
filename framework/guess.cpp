@@ -3816,7 +3816,7 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
-		if ((ncont_year - ncont + nflux_year) > epsilon_biomass) {
+		if (fabs(ncont_year - ncont + nflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ncont_year - ncont + nflux_year);
 			dprintf("N pool change: %.9f\n", ncont_year - ncont);
@@ -3966,7 +3966,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
-		if ((ccont_year - ccont + cflux_year) > epsilon_biomass) {
+		if (fabs(ccont_year - ccont + cflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);

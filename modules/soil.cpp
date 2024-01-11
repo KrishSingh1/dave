@@ -901,12 +901,12 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		// Shouldn't happen
 		if (aet_layer[ly] > Faw_layer[ly]) {
-			dprintf("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - aet in layer %d of %.8f exceeds Faw in this layer (%.8f)\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, aet_layer[ly], Faw_layer[ly]);
+			fail("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - aet in layer %d of %.8f exceeds Faw in this layer (%.8f)\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, aet_layer[ly], Faw_layer[ly]);
 		}
 
 		// AW
 		// Now remove AET as it's already accounted for
-		Faw_layer[ly] -= min(aet_layer[ly], Faw_layer[ly]);
+		Faw_layer[ly] -= aet_layer[ly];
 		// Update layer water after subtracting AET
 		layerwater = Faw_layer[ly] + ice_layer[ly]; // mm
 

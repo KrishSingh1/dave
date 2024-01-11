@@ -734,6 +734,7 @@ double Patch::nflux() {
 		lprintf("-soil.anfix = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -soil.anfix);
 		lprintf("soil.aminleach = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.aminleach);
 		lprintf("soil.aorgNleach = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, soil.aorgNleach);
+		lprintf("-fluxes.get_annual_flux(Fluxes::NFERT) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, -fluxes.get_annual_flux(Fluxes::NFERT));
 		lprintf("fluxes.get_annual_flux(Fluxes::HARVESTN) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::HARVESTN));
 		lprintf("fluxes.get_annual_flux(Fluxes::SEEDN) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::SEEDN));
 		lprintf("fluxes.get_annual_flux(Fluxes::NH3_FIRE) = %.*f\n", DAVE_DIAGNOSTIC_PRECISION, fluxes.get_annual_flux(Fluxes::NH3_FIRE));
@@ -752,6 +753,7 @@ double Patch::nflux() {
 	nflux += -soil.anfix;
 	nflux += soil.aminleach;
 	nflux += soil.aorgNleach;
+	nflux += -fluxes.get_annual_flux(Fluxes::NFERT);
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);

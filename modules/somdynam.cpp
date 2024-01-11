@@ -847,8 +847,15 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 	// available nitrogen to its saturation level.
 	if (date.year <= freenyears) {
 		if(ifntransform) {
-			soil.NH4_mass = NMASS_SAT / 2.0;
-			soil.NO3_mass = NMASS_SAT / 2.0;
+			double nh4_sat = NMASS_SAT / 2.0;
+			double no3_sat = NMASS_SAT / 2.0;
+			double nh4_delta = nh4_sat - soil.NH4_mass;
+			double no3_delta = no3_sat - soil.NO3_mass;
+
+			soil.NH4_mass = nh4_sat;
+			soil.NO3_mass = no3_sat;
+
+			patch.fluxes.report_flux(Fluxes::NFERT, no3_delta + nh4_delta);
 		} 
 		else {
 			soil.NH4_mass = NMASS_SAT;

@@ -2433,6 +2433,15 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 						lprintf("indivs[\"%s\"].cmass_leafs[3] = %.8f\n", (const char *)pft.name, cmass_leafs[3]);
 					}
 				}
+			} else if (ifdavegrowth && !pft.dave_allocation() && !(date.islastday && date.islastmonth)) {
+				// This individual's carbon is allocated annually, so in order
+				// to maintain the carbon balance throughout the year, we must
+				// allow for the carbon which has been assimilated but not yet
+				// allocated (ie anpp).
+				//
+				// This is a hack mainly added for debugging purposes and should
+				// probably be removed in the fullness of time.
+				ccont += anpp * scale_indiv;
 			}
 
 			if (pft.landcover == CROPLAND) {

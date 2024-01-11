@@ -1265,7 +1265,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 					indiv.leaffndemand = indiv.leafndemand / indiv.ndemand;
 					indiv.rootfndemand = indiv.rootndemand / indiv.ndemand;
 					indiv.storefndemand = indiv.storendemand / indiv.ndemand;
-					indiv.sapfndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
+					indiv.sapfndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.storefndemand));
 				}
 				else {
 					indiv.leaffndemand = indiv.leafndemand / (indiv.leafndemand + indiv.rootndemand);

@@ -3828,18 +3828,18 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 }
 
 void MassBalance::check_day(Gridcell &gridcell) {
-	if (date.year < start_year) {
-		return;
-	}
 
 	ifdavediagnostics = _ifdavediagnostics;
 
 	if (ifdavegrowth) {
 		// Sub-annual mass balance is not preserved in the annual allocation
-		// scheme (ie trunk allocation). I'm not going to attempt to fix that
-		// here.
+		// scheme (ie trunk allocation). This is because carbon is assimilated
+		// (and that amount reported as NPP flux) on a daily basis, but the
+		// carbon is not allocated until the end of the year. My workaround is
+		// to count indiv.anpp inside indiv.ccont(), but this is a hack and
+		// should ultimately be removed.
 
-		// check_day_c(gridcell);
+		check_day_c(gridcell);
 
 		if (ifcentury) {
 			check_day_n(gridcell);
@@ -3861,19 +3861,21 @@ bool is_first_day() {
 	return false;
 }
 
+bool check_mass_balance_today(const Gridcell &gridcell) {
+	int solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
+	bool solve_somcent_today = date.islastday && date.islastmonth && date.year == solvesomcent_endyr;
+	return ifdavephotosyn && !solve_somcent_today && !is_first_day();
+}
+
 void MassBalance::check_day_c(Gridcell &gridcell) {
 	double ccont = gridcell.ccont();
 	double cflux = gridcell.cflux();
+
 	if (date.day == 0) {
 		cflux_yesterday = 0;
 	}
 
-	int solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
-	bool check = ifdavephotosyn && \
-		!(date.year == solvesomcent_endyr && date.islastmonth && date.islastday);
-	 	/* || date.year >= nyear_spinup */;
-
-	if (!is_first_day() && check) {
+	if (check_mass_balance_today(gridcell)) {
 		double cflux_today = cflux_yesterday - cflux;
 		double expected_ccont = ccont_yesterday + cflux_today;
 
@@ -3901,7 +3903,7 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 		nflux_yesterday = 0;
 	}
 
-	if (!is_first_day()) {
+	if (check_mass_balance_today(gridcell)) {
 		double nflux_today = nflux_yesterday - nflux;
 		double expected_ncont = ncont_yesterday + nflux_today;
 

@@ -123,6 +123,18 @@ void interception(Patch& patch,Climate& climate) {
 		vegetation.nextobj();
 	}
 
+	// This should never happen with sensible LAI.
+	if (patch.intercep > climate.prec) {
+		// Reduce interception of all individuals by the proportion by which the
+		// precipitation is exceeded by total interception of all individuals.
+		double prec_frac = climate.prec / patch.intercep;
+		for (int i = 0; i < vegetation.nobj; i++) {
+			Individual &indiv = vegetation[i];
+			indiv.intercep *= prec_frac;
+		}
+		patch.intercep = climate.prec;
+	}
+
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
 
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);

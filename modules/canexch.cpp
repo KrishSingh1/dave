@@ -3279,10 +3279,12 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 	// TODO: include Ga --> Penman-Monteith (?)
 
 	double wsupply = 0;
-	double wcont_local[NSOILLAYER];
+
+	// Available water, by layer, in mm.
+	double wcont[NSOILLAYER];
 	for (int i = 0; i < NSOILLAYER; i++) {
-		wcont_local[i] = patch.soil.get_layer_soil_water(i);
-		wsupply += wcont_local[i];
+		wcont[i] = patch.soil.get_layer_soil_water(i) * patch.soil.soiltype.awc[i];
+		wsupply += wcont[i];
 	}
 
 	// Loop through cohorts (=individuals)
@@ -3317,16 +3319,17 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		transp /= date.subdaily;
 
 		// daily transpiration rate in mm d-1
-		indiv.aet = min(wsupply, transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY); // assuming 1kg m-2 = 1l m-2 == 1mm
-        
-		// add to annual transpiration
-		indiv.aaet += indiv.aet;
+		// Limiting transpiration to the actual supply is handled later.
+		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
+
+		// Note: aet may be further limited by the water supply (see below).
+		// This also means that we can't update aaet here (also see below).
 
 		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
 		// which is incorrect as soil evaporation is calculated separately.
 
 		// Limit water uptake.
-		double wr;
+		double wr = 0;
 
 		Standpft& spft = patch.stand.pft[indiv.pft.id];
 
@@ -3335,6 +3338,8 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 			wr = irrigated_water_uptake(patch, pft, day);
 		}
 		else {
+			// Available water in each layer, as a fraction of water holding
+			// capacity.
 			double wcont_local[NSOILLAYER];
 			for (int i = 0; i<NSOILLAYER; i++) {
 				wcont_local[i] = patch.soil.get_layer_soil_water(i);
@@ -3353,31 +3358,29 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 	} // end cohort loop
 
 	// Ensure water uptake doesn't exceed availability in any layer.
-	double uptake[NSOILLAYER];
-	double total_uptake = 0;
-
 	for (int i = 0; i < NSOILLAYER; i++) {
-		uptake[i] = 0;
+		double uptake = 0;
 		for (int j = 0; j < vegetation.nobj; j++) {
 			const Individual &indiv = vegetation[j];
 			const Patchpft &ppft = indiv.patchpft();
-			uptake[i] += indiv.aet * ppft.fwuptake[i];
+			uptake += indiv.aet * ppft.fwuptake[i];
 		}
-		total_uptake += uptake[i];
-	}
-
-	for (int i = 0; i < NSOILLAYER; i++) {
-		if (uptake[i] > wcont_local[i]) {
+		if (uptake > wcont[i]) {
 			// Demand in this layer exceeds supply.
-			double fwavail = wcont_local[i] / uptake[i];
+			double fwavail = 0.999 * wcont[i] / uptake;
 			for (int j = 0; j < vegetation.nobj; j++) {
-				vegetation[j].patchpft().fwuptake[i] *= fwavail;
+				Individual &indiv = vegetation[j];
+				indiv.aet *= fwavail;
 			}
 		}
 	}
+
+	// aaet updated here to allow for reduction in aet due to source limitation.
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		indiv.aaet += indiv.aet;
+	}
 }
-
-
 
 // This is a modification of the original npp routine of standard LPJ-GUESS.
 // Modifications include:

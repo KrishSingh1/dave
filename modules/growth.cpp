@@ -220,7 +220,7 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.1; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	double qgrowth = 1.2; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
@@ -272,12 +272,10 @@ void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
 		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.03);
-	} else {
-		//if (ppft.daylength_10.periodictrend(10) > 0.0) {
-        	indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
-		//} //else {
-		//	indiv.fdev_growth = fdev_growth_min + 0.00;
-		//}
+	} else if (indiv.growth_stage == vegetative) {
+		
+       	indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
+
 	}
 }
 
@@ -370,7 +368,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 }
 
                 // no further increases in repr. 
-                // Note: does not go in there during freenyears.
+                // Note: does not go in there during freenyears. Is that a problem?
                 if (repr_trend < 0.5e-2) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
@@ -3287,7 +3285,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.005;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.002;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 3.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 8.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -3315,7 +3313,7 @@ void senescence_grass(Individual &indiv) {
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {
-		indiv.fdev_senesc = 0.0;
+		indiv.fdev_senesc = 1.0;
 	}
 
 	// Stress factors increase senescence

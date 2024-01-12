@@ -258,6 +258,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 // on growth demand are not proportional with daylength_diff)
 double photo_growth(double daylength_diff) {
 	return 1.0;
+	//return 1.0 + daylength_diff;
 }
 
 // Development effects on relative growth rate.
@@ -268,7 +269,7 @@ void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
-		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.03);
+		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.04);
 	
 	} else if (indiv.growth_stage == vegetative) {
 		
@@ -3324,7 +3325,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0015;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.002;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 8.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -3348,7 +3349,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.01 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.03 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {

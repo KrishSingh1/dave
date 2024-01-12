@@ -3061,6 +3061,8 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
+	/// temperature factor used to determine onset of growth. 
+    double fdev_temp;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)

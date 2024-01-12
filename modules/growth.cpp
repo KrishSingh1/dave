@@ -272,10 +272,48 @@ void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
 		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.03);
+	
 	} else if (indiv.growth_stage == vegetative) {
 		
-       	indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
+		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
+        if (is_zero(indiv.fdev_growth - fdev_growth_min)){  // 'passive' vegetative
+        // check if there is enough water to resume vegetative growth
+        	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+        	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
+            
+        	double wscal = wscal_growth(wscal_mean);
 
+            // only resume active vegetative growth if conditions are save to do so.
+            // This is the case if 
+            //  1) the plant is not partially dormant
+            //  2) there is enough soil water and soil water is not in decline
+            //  3) temperature  
+            // if you are not about to fall dormant, check 
+            // if there is not enough water or water content is declining, maintain a low growth rate.
+            // If water is not an issue, check if temperature conditions are favourable for growth. 
+        	if (is_zero(indiv.fphen_activity - 1.0)) {  
+            	if (wscal > 0.75 && wscal_trend >= 0.0) {
+                	// water is OK, do I worry about temperature?
+                	if ((ppft.airtemp_10.mean() - indiv.pft.temp_dormancy) > 5.0){
+                    	// do not worry about temp if it's really warm
+                    	indiv.fdev_growth *= 1.2;
+                	} else {
+                    	// not really warm, but check if that could improve in the near future
+                    	if (ppft.airtemp_10.periodictrend(1) > 0.0){
+                        	double grass_temp = indiv.vegetation.patch.soil.T_soil[6];
+                        	indiv.fdev_temp += temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+                        	if (indiv.fdev_temp > 1.0) {
+                            	indiv.fdev_growth *= 1.2;
+                        	}
+                    	}
+               	 	}
+            	}
+        	}
+        	// conditions not good enough to resume vegetative growth.
+        	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
+    	} else {
+       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
+		}
 	}
 }
 
@@ -346,7 +384,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60 && indiv.fdev_growth > 0.2){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -373,6 +411,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
+				   indiv.fdev_temp = 0.0;
                 }
  
                 // flush reproductive tissue to seedbank.

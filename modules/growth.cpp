@@ -75,9 +75,6 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
-// Minimum growth demand after reproductive phase
-const double fdev_growth_min = 0.008;
-
 // Fraction of reproductive pool available for reproduction (i.e. seed fraction)
 const double frac_seed = 0.5;
 
@@ -291,28 +288,28 @@ void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
             // if you are not about to fall dormant, check 
             // if there is not enough water or water content is declining, maintain a low growth rate.
             // If water is not an issue, check if temperature conditions are favourable for growth. 
-        	if (is_zero(indiv.fphen_activity - 1.0)) {  
-            	if (wscal > 0.75 && wscal_trend >= 0.0) {
-                	// water is OK, do I worry about temperature?
-                	if ((ppft.airtemp_10.mean() - indiv.pft.temp_dormancy) > 5.0){
-                    	// do not worry about temp if it's really warm
-                    	indiv.fdev_growth *= 1.2;
-                	} else {
-                    	// not really warm, but check if that could improve in the near future
-                    	if (ppft.airtemp_10.periodictrend(1) > 0.0){
-                        	double grass_temp = indiv.vegetation.patch.soil.T_soil[6];
-                        	indiv.fdev_temp += temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-                        	if (indiv.fdev_temp > 1.0) {
-                            	indiv.fdev_growth *= 1.2;
-                        	}
-                    	}
-               	 	}
-            	}
-        	}
+        	//if (is_zero(indiv.fphen_activity - 1.0)) {   // bad thing is that this interferes with dormancy effects on growth demand. Double counting? 
+            // do not double count with fphen_activity!!	
+			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.85)) {
+                // water is OK, do I worry about temperature?
+                // not really warm, but check if that could improve in the near future
+                //if (ppft.daylength_10.periodictrend(1) > 0.0){
+                //	double grass_temp = indiv.vegetation.patch.soil.T_soil[6];
+                //    indiv.fdev_temp += temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+                //    if (indiv.fdev_temp > 2.0) {
+				if (indiv.fphen_activity < 1.0){  // do not double count with fphen_activity!!
+					indiv.fdev_growth *= 1.5;
+				} else {
+					indiv.fdev_growth *= 1.2;  // according to conditions
+				}
+			}
+                    //    }
+               	 	//}
+            //	}
         	// conditions not good enough to resume vegetative growth.
         	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
     	} else {
-       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.05);
+       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
 		}
 	}
 }
@@ -381,6 +378,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// TODO: maybe increase dormancy switch threshold to 0.5 or similar?
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
+				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
@@ -407,7 +405,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 0.5e-2) {
+                if (repr_trend < 2.5e-2) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -2734,7 +2732,9 @@ double growth_demand(Individual& indiv) {
 	// reduce growth demand under low storage (sink-source feedback)
 	// TODO: this feedback seems to be too strong --> reduce
 	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-	//growth_demand *= indiv.nscal_5.mean();
+	
+	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
+	growth_demand *= nscal_demand;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -3324,11 +3324,11 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.002;       // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 3.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_base = 0.0015;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 8.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 0.4;  // higher values --> higher sensitivity to water stress
+	const double qwater_senesc = 1.0;  // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3348,7 +3348,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.008 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.01 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {

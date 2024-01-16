@@ -460,7 +460,8 @@ void establishment_daily(Patch& patch) {
 							// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
 							//       and create new variable.
 							frac_germ *= (1.0 - indiv->fpc_ymax * 2.0);
-						} else if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min)) {
+						} 
+						if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min)) {
 							frac_germ = 0.0;
 						}
 					}

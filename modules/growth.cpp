@@ -282,34 +282,15 @@ void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
         	double wscal = wscal_growth(wscal_mean);
 
             // only resume active vegetative growth if conditions are save to do so.
-            // This is the case if 
-            //  1) the plant is not partially dormant
-            //  2) there is enough soil water and soil water is not in decline
-            //  3) temperature  
-            // if you are not about to fall dormant, check 
-            // if there is not enough water or water content is declining, maintain a low growth rate.
-            // If water is not an issue, check if temperature conditions are favourable for growth. 
-        	//if (is_zero(indiv.fphen_activity - 1.0)) {   // bad thing is that this interferes with dormancy effects on growth demand. Double counting? 
-            // do not double count with fphen_activity!!	
-			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.85)) {
-                // water is OK, do I worry about temperature?
-                // not really warm, but check if that could improve in the near future
-                //if (ppft.daylength_10.periodictrend(1) > 0.0){
-                //	double grass_temp = indiv.vegetation.patch.soil.T_soil[6];
-                //    indiv.fdev_temp += temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-                //    if (indiv.fdev_temp > 2.0) {
-				if (indiv.fphen_activity < 1.0){  // do not double count with fphen_activity!!
-					indiv.fdev_growth *= 1.5;
-				} else {
-					indiv.fdev_growth *= 1.2;  // according to conditions
-				}
+            // TODO: check for temperature conditions if meaningful
+			// TODO: make sure there is no double-counting with fphen_activity!
+			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
+					indiv.fdev_growth *= 1.01;
 			}
-                    //    }
-               	 	//}
-            //	}
         	// conditions not good enough to resume vegetative growth.
         	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
     	} else {
+			// TODO: increase according to conditions
        		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
 		}
 	}
@@ -2706,7 +2687,7 @@ double growth_demand(Individual& indiv) {
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
 	// Reduction of RGR in reproductive phase
-	const double fRGR_repr = 0.4;
+	const double fRGR_repr = 0.75;
 
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
@@ -3325,9 +3306,9 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.002;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.001;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 8.0;  // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm  = 8.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;  // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3349,7 +3330,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.03 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.01 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {
@@ -3751,13 +3732,15 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	// Do not let ps_sink_lim vary by more than 10% d-1
+	// Do not let ps_sink_lim vary by more than 5% d-1
+	double const dmax_pslim = 0.05;
+
 	// TODO: revisit cexcess / dgpp
 	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0) {
-		indiv.ps_sink_lim = max(0.9 * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
+		indiv.ps_sink_lim = max((1.0 - dmax_pslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
 	} 
 	else {
-		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * 1.1); 
+		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dmax_pslim)); 
 	}
 } 
 

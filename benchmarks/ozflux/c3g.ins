@@ -12,11 +12,15 @@ group "C3G" (
 	g0 0.005
 	g1 4.5
 	respcoeff 1.0
+	Ha_growth 63.3
+	T0_growth 30.6
+	A_growth 4.64411906e8
 	tcmin_surv -1000	! no limit
 	tcmin_est -1000 	! no limit
 	tcmax_est 1000  	! no limit
 	twmin_est -1000 	! no limit
 	gdd5min_est 0   	! no limit
+	temp_dormancy 5.0
 	eps_iso 16.0
 	seas_iso 1
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19
@@ -33,8 +37,9 @@ pft "C3G_perennial" (
 	C3G
 	
 	lifeform "grass_perennial"
+	RGR_pot   0.2
 	reprfrac  0.05
-	crownfrac 0.05
+	crownfrac 0.2
 	culmfrac  0.4
 )
 
@@ -43,7 +48,8 @@ pft "C3G_perennial" (
 !	C3G
 	
 !	lifeform "grass_annual"
-!	reprfrac  0.10
+!   RGR_pot   0.3
+!	reprfrac  0.4
 !	crownfrac 0.01
 !	culmfrac  0.2
 !)

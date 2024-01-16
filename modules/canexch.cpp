@@ -2358,7 +2358,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double growth_demand,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double growth,
 	double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
@@ -2494,13 +2494,19 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// Note: crown respiration added to resp_root for now
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
-			// TODO: Does C storage respire?
-			// TODO: replace respiration functions here!
-			resp_crown = (0.5 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			// TODO: at some point, replace respiration functions here!
+			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
+			// TODO: add reproductive respiration here
+			
 			// Growth respiration
-			const double Rg_max = 0.6;  // maximum Rg as fraction of GPP - Rm. TODO: adjust value
-			resp_growth = (assim - resp_root) * (growth_demand * Rg_max);
+			// Note that we take growth of previous day to estimate this,
+			// assumption being that C is not necessarily used for growth on
+			// the same day it's fixed. A time lag is considered physiologicallly 
+			// more meaningful than a flat rate that is completely independent of growth.
+			// Data from Ryan 1991.
+			//resp_growth = growth * 0.2;
+			resp_growth = (assim - resp_root) * 0.25; // switched back to old formulation for now.
 
 		} else {
 			
@@ -2806,29 +2812,50 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 }
 
 
-// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022
+// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8).
 void vcmax_from_N(Vegetation& vegetation) {
 
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-		double leaf_NtoP = 22.9; // from EucFACE -> TODO: move to constants
+        double nmass_leaf = 0.0;
+		double nlai_top  = 1.0;
+		double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants
 		
-        // leaf N of green leaves per leaf area (kgN m-2 leaf)
-		// take green leaves only and calculate leaf N per unit leaf area
-		// (not total plant LAI) to not double-account for canopy gradients in leaf N.
-		double nmass_leaf = indiv.get_nmass_leaf() / (indiv.get_cmass_leaf() * indiv.sla());
+		// Avoid log(0)
+		if (!is_zero(indiv.get_nmass_leaf())) {
+        	// leaf N of green leaves per leaf area (kgN m-2 leaf area) 
+			// take green leaves only and calculate leaf N per unit leaf area
+			// (not total plant LAI) at the top of the canopy 
+			// to not double-account for canopy gradients in leaf N.
+			//nmass_leaf = indiv.nmass_leafs[green] / (indiv.cmass_leafs[green] * indiv.sla());
+			
+			// nlai_top is a factor describing how much higher leaf N at the top of canopy 
+			// is compared to the middle of the canopy (lai/2). 
+			// TODO: check if that is correct for multiple layers.
+			nlai_top = 1.0 / exp(-kn * (indiv.lai / 2.0));
+			nmass_leaf = (indiv.get_nmass_leaf() / indiv.lai) * nlai_top;
 
-		assert(positive(nmass_leaf));
+			assert(positive(nmass_leaf));
 
-		// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
-		double pmass_leaf = nmass_leaf / leaf_NtoP;         
+			// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
+			// pmass_leaf is in kgP m-2 leaf area
+			// nmass_leaf is in kgN m-2 leaf area 
+			double pmass_leaf = nmass_leaf / leaf_NtoP;  
 
-		if (!is_zero(pmass_leaf)) {
 			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
 											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
 			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
-											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+										   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+
+		}
+		else {
+			// This may happen on first day after establishment when using the
+			// annual (trunk) allocation, because individuals are given no N at
+			// establishment. Nitrogen uptake happens daily though, so on the
+			// next day, nmass_leaf should be nonzero.
+			indiv.ps_subdaily.vcmax25 = 0.0;
+			indiv.ps_subdaily.jmax25 = 0.0;
 		}
 	}
 }
@@ -2914,6 +2941,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
 				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
 				double apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
+				// TODO: this needs to be replaced with fapar!!! Make sure it's consistent with fapar calculation.
 
 				// determine N scalar of the layer
 				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
@@ -3460,7 +3488,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
-			cmass_root, cmass_crown, indiv.growth_demand, indiv.fphen_activity, assim, resp);
+			cmass_root, cmass_crown, indiv.cgrow, indiv.fphen_activity, assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

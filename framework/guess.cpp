@@ -1703,9 +1703,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_root 		  = 0.0;
 	cgrow_crown       = 0.0;
 	cgrow_repr        = 0.0;
-	growth_demand     = pft.is_grass() ? 0.0 : 1.0;;
+	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
-	fdev_growth       = 0.0;
+	fdev_growth       = 1.0;
+	fdev_temp         = 0.0;
+	fdev_senesc       = 0.0;
 	growth_stage_days = 0;
 	phen              = 0.0;
 	aphen             = 0.0;
@@ -1897,7 +1899,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
-		& cmass_storage_15
+		& cmass_storage_20
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -2325,11 +2327,11 @@ double Individual::sla() const {
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.is_grass() && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
-			//const double sla_beta = -0.12;
-			//double growth_demand_sla = negligible(growth_demand) ? 1.0 : growth_demand;
-			//current_sla *= pow(max(0.01,growth_demand_sla),sla_beta);
-			current_sla *= 1.0; 
-			//current_sla *= fdev_growth * 0.8;
+			//const double sla_beta = -0.07;
+			//const double sla_beta = -0.06;
+			//double rescal = pow(0.2,sla_beta);  // rescale so that default sla reached at 0.2Ckg rather than 1kgC
+			//current_sla *= (pow(get_cmass_leaf(),sla_beta) / rescal);
+			current_sla *= 1.0;
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
 		}
@@ -3177,16 +3179,29 @@ void Individual::kill(bool harvest /* = false */) {
 }
 
 // Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
-// Happens every year at the onset of dormancy
-// TODO: deal with case of no dormancy
+// Happens every year at the end of the reproductive period.
 void Individual::flush_repr_litter_DAVE() {
 
+	// TODO: where to define this??
+	double frac_seed = 0.7; 
+
+	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
+	// the rest (e.g. panicles, husks) goes to the litter pool.
+	double cflux_seed = frac_seed * cmass_repr;
+	double nflux_seed = frac_seed * nmass_repr;
+
+	double cflux_litter = cmass_repr - cflux_seed;
+	double nflux_litter = nmass_repr - nflux_seed; 
+
 	// added for mass balance checks at the individual level
-	cmass_litter_repr += cmass_repr;
-	nmass_litter_leaf += nmass_repr;	
-				
-	patchpft().cmass_litter_repr += cmass_repr;
-	patchpft().nmass_litter_repr += nmass_repr;
+	cmass_litter_repr += cflux_seed;
+	nmass_litter_leaf += nflux_seed;	// TODO: should this be nmass_litter_repr?
+	
+	cmass_litter_leaf += cflux_litter;
+	nmass_litter_leaf += nflux_litter;			
+
+	patchpft().cmass_litter_repr += cflux_seed;
+	patchpft().nmass_litter_repr += nflux_seed;
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
 }

@@ -70,6 +70,9 @@ typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
 /// The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
 typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 
+/// Names of leaf pools in DAVE version
+typedef enum {green, brown} leafpool;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -2080,6 +2083,18 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
+	/// Development and Growth parameters
+    /// temperature below which plants fall dormant (degC)
+	double temp_dormancy;
+	/// Potential relative growth rate in vegetative phase (d-1)
+	double RGR_pot;
+    /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
+	double Ha_growth;
+	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)
+	double T0_growth;
+	/// Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012)
+	double A_growth;
+
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
 	/// fraction of NPP allocated to crowns
@@ -3050,12 +3065,18 @@ public:
 	double cgrow_crown;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
-	/// daily growth demand [0-1]
+	/// temporary object keeping track of farea of growth demand
+	double farea_growth;
+	/// daily growth demand / sink strength (kgC/m2/d)
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
+	/// temperature factor used to determine onset of growth. 
+    double fdev_temp;
+	/// development factor used for calculating senescence.
+	double fdev_senesc;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
-	double growth_stage;
+	int growth_stage;
 	/// number of days in current growth stage
 	int growth_stage_days;
 	/// C exceeding storage capacity (kgC/m2/d)
@@ -3159,15 +3180,17 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 10-day record of daily changes in carbon storage pool (kgC/m2/d)
-	Historic<double, 15> cmass_storage_15;
+	/// 20-day record of NSC pool (kgC/m2/d)
+	Historic<double, 20> cmass_storage_20;
+	/// 10-day record of daily reproduction pool (kgC/m2/d)
+	Historic<double, 10> cmass_repr_10;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
 	double nstorage_max;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
-	/// leaf N biomass on modelled area basis (kgC/m2)
+	/// leaf N biomass on modelled area basis (kgN/m2)
 	std::vector<double> nmass_leafs;
 	/// sum of growth of leaves
 	double cmass_leaf_ygrowth;
@@ -4559,12 +4582,18 @@ public:
 	double anetps_ff;
 	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
-	/// five day mean of wscal. Used in daily grass growth
+	/// five day record of wscal. Used in daily grass growth
 	Historic<double, 5> wscal_5;
-	/// ten day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
+	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
-	/// ten day mean of air temperature. Used in DAVE daily grass growth for determination of dormancy.
+	/// ten day record of air temperature. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> airtemp_10;
+	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
+	Historic<double, 10> daylength_10;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
+	Historic<double, 4> wcont_germ_4;
+	// Temperature of upper soil layer over the last 3 days
+	Historic<double, 4> tsoil_germ_4;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)

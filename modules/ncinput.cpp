@@ -97,6 +97,10 @@ NCInput::NCInput() {
 	, "Name of the max temperature variable in the NetCDF file");
 	declare_parameter("variable_tmin", &variable_tmin, NC_MAX_NAME
 	, "Name of the min temperature variable in the NetCDF file");
+	declare_parameter("variable_ndep_nhx", &variable_ndep_nhx, NC_MAX_NAME
+	, "Optional name of the nhx nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
+	declare_parameter("variable_ndep_noy", &variable_ndep_noy, NC_MAX_NAME
+	, "Optional name of the noy nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
@@ -119,6 +123,11 @@ NCInput::NCInput() {
 	// Are these too generous?
 	bounds_ps.max = 150000;
 	bounds_ps.min = 50000;
+
+	bounds_ndep.max = 1000;
+	bounds_ndep.min = 0;
+
+	use_lamarque = true;
 
 	simulation_start_year = -1;
 
@@ -166,6 +175,9 @@ void NCInput::init(void) {
 		std::vector<xtring> vpd_units(1);
 		vpd_units[0] = "kPa";
 
+		std::vector<xtring> ndep_units(1);
+		ndep_units[0] = "mgN/m2/day";
+
 		if (nsteps_day >= SIZE_MAX) {
 			throw_xtring("nsteps_day is too large: %d", nsteps_day);
 		}
@@ -187,6 +199,18 @@ void NCInput::init(void) {
 		}
 		if (variable_tmin != "") {
 			tmin = create_variable(variable_tmin, bounds_temp, temp_units, true);
+		}
+		if (variable_ndep_nhx == "") {
+			use_lamarque = true;
+		} else {
+			use_lamarque = false;
+			ndep_nhx = create_variable(variable_ndep_nhx, bounds_ndep, ndep_units, true);
+		}
+		if (variable_ndep_noy == "") {
+			use_lamarque = true;
+		} else {
+			use_lamarque = false;
+			ndep_noy = create_variable(variable_ndep_noy, bounds_ndep, ndep_units, true);
 		}
 
 		// Ensure that input timestep is an integer multiple of simulation
@@ -276,8 +300,10 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		soil_input.get_soil(lon, lat, gridcell);
 
 		// Read N deposition data for this grid cell.
-		ndep_input.getndep(file_ndep, lon, lat
-		, Lamarque::parse_timeseries((const char *)ndep_scenario));
+		if (use_lamarque) {
+			ndep_input.getndep(file_ndep, lon, lat
+			, Lamarque::parse_timeseries((const char *)ndep_scenario));
+		}
 
 		if(readdisturbance || readdisturbance_st || readelevation_st) {
 			// Not all gridcells have to be included in input file.
@@ -556,27 +582,45 @@ std::vector<NCInput::Coord> NCInput::parse_gridlist(xtring filename) const {
 }
 
 void NCInput::update_ndep(double lon, double lat, int year) {
-	// Read monthly N deposition values from input file.
-	double nhx_dry[12];
-	double noy_dry[12];
-	double nhx_wet[12];
-	double noy_wet[12];
-	ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
+	if (use_lamarque) {
+		// Read monthly N deposition values from input file.
+		double nhx_dry[12];
+		double noy_dry[12];
+		double nhx_wet[12];
+		double noy_wet[12];
+		ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
 
-	// Converting N deposition data to daily values requires daily
-	// precipitation data.
+		// Converting N deposition data to daily values requires daily
+		// precipitation data.
 
-	// Read precipitation data for entire year.
-	int n = Date::MAX_YEAR_LENGTH;
-	std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
+		// Read precipitation data for entire year.
+		int n = Date::MAX_YEAR_LENGTH;
+		std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
 
-	// Aggregate to daily values. Note that precip is currently only allowed to
-	// be in mm, so we can sum the subdaily values to get a daily one.
-	std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
+		// Aggregate to daily values. Note that precip is currently only allowed to
+		// be in mm, so we can sum the subdaily values to get a daily one.
+		std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
 
-	// Distribute N deposition
-	distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
-					&(daily_prec.front()), nh4_dep, no3_dep);
+		// Distribute N deposition
+		distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
+						&(daily_prec.front()), nh4_dep, no3_dep);
+	} else {
+		// todo: leap years.
+		int year_len = Date::MAX_YEAR_LENGTH;
+
+		// Read n deposition data from NetCDF input.
+		std::vector<double> nhx_subdaily = ndep_nhx->read(lon, lat, year, 0, year_len);
+		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
+
+		// Aggregate to daily timestep (sum of subdaily values).
+		std::vector<double> nhx = aggregate(nhx, year_len, sum);
+		std::vector<double> noy = aggregate(noy, year_len, sum);
+
+		// Copy data into the nh4_dep and no3_dep arrays.
+		// nhx = nh4, noy = no3a
+		memcpy(nh4_dep, &nhx.front(), year_len);
+		memcpy(no3_dep, &noy.front(), year_len);
+	}
 }
 
 int NCInput::get_nyear_data() const {

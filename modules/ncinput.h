@@ -205,6 +205,11 @@ private:
 	Lamarque::NDepData ndep_input;
 
 	/*
+	True iff the Lamarque N deposition data source should be used.
+	*/
+	bool use_lamarque;
+
+	/*
 	Grid cells to be simulated.
 	*/
 	std::vector<Coord> gridlist;
@@ -337,6 +342,16 @@ private:
 	xtring variable_ps;
 
 	/*
+	Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
+	*/
+	xtring variable_ndep_nhx;
+
+	/*
+	Name of the noy nitrogen deposition variable in the NetCDF file (optional).
+	*/
+	xtring variable_ndep_noy;
+
+	/*
 	Constant to be added to daily temperature (°C). Set in instruction file.
 	*/
 	double temperature_delta;
@@ -391,6 +406,18 @@ private:
 	Atmospheric pressure variable in the NetCDF file (Pa).
 	*/
 	std::unique_ptr<NCVariable> ps;
+
+	/*
+	Optional nhx nitrogen deposition variable in the NetCDF file. If not set,
+	ndep_input will be used.
+	*/
+	std::unique_ptr<NCVariable> ndep_nhx;
+
+	/*
+	Optional noy nitrogen deposition variable in the NetCDF file. If not set,
+	ndep_input will be used.
+	*/
+	std::unique_ptr<NCVariable> ndep_noy;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.
@@ -452,6 +479,11 @@ private:
 	Upper and lower bounds for atmospheric pressure.
 	*/
 	bounds bounds_ps;
+
+	/*
+	Upper and lower bounds for nitrogen deposition data.
+	*/
+	bounds bounds_ndep;
 
 	/*
 	The year of data currently being sampled in the spinup. This will have a

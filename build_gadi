@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Get path to the directory containing this script.
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P)"
+
+# Unload any modules before loading the prerequisites, just to be on the safe
+# side. Note: this script is running in env, so this won't affect the parent
+# shell.
+module purge
+module load openmpi gcc cmake netcdf
+
+# Help cmake find the netcdf module.
+export CMAKE_PREFIX_PATH="${NETCDF}"
+
+# Output path.
+BUILD="${DIR}/build"
+
+cmake \
+-DCMAKE_BUILD_TYPE=Debug \
+-DCMAKE_CXX_STANDARD=14 \
+-DCMAKE_CXX_STANDARD_REQUIRED=ON \
+-DCMAKE_CXX_EXTENSIONS=ON \
+-B \
+"${BUILD}"
+
+cmake --build "${BUILD}"
+

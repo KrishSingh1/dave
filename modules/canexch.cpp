@@ -3544,7 +3544,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	// Canopy exchange processes
 	fpar(patch);
 
-
     if (ifdavephotosyn) {
 
 		// Supply function for nitrogen and determination of nitrogen stress leading

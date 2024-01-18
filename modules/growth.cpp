@@ -128,9 +128,7 @@ double get_nmass(const Individual &indiv) {
 		   indiv.nmass_leafs[green] +
 		   indiv.nmass_leafs[brown] +
 		   indiv.nmass_root +
-		   indiv.nmass_repr +
-		   indiv.nmass_litter_leaf +
-		   indiv.nmass_litter_root;
+		   indiv.nmass_repr;
 }
 
 double get_cmass(const Individual &indiv) {
@@ -139,10 +137,15 @@ double get_cmass(const Individual &indiv) {
 		   indiv.cmass_leafs[green] +
 		   indiv.cmass_leafs[brown] +
 		   indiv.cmass_root +
-		   indiv.cmass_repr +
-		   indiv.cmass_litter_leaf +
-		   indiv.cmass_litter_repr +
-		   indiv.cmass_litter_root;
+		   indiv.cmass_repr;
+}
+
+double get_cflux(const Individual &indiv) {
+	return indiv.dnpp - indiv.ctolitter;
+}
+
+double get_nflux(const Individual &indiv) {
+	return indiv.nmass_missing - indiv.ntolitter;
 }
 
 DaveMassBalance::IndivState::IndivState(const Individual &indiv) {
@@ -161,11 +164,11 @@ void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double 
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {
-	double c_flux = indiv.dnpp;
+	double c_flux = get_cflux(indiv);
 	double c_end = get_cmass(indiv) + indiv.cexcess;
 	assert(equal(c_end, c_start + c_flux));
 
-	double n_flux = indiv.nmass_missing;
+	double n_flux = get_nflux(indiv);
 	double n_end = get_nmass(indiv);
 	assert(equal(n_end, n_start + n_flux));
 
@@ -1668,16 +1671,13 @@ void flush_litter_repr(Patch& patch) {
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
-		Patchpft& pft = patch.pft.getobj();
+		Patchpft& ppft = patch.pft.getobj();
 
 		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::REPRC, pft.cmass_litter_repr);
-		pft.cmass_litter_repr = 0.0;
+		patch.fluxes.report_flux(Fluxes::REPRC, ppft.cmass_litter_repr);
+		ppft.cmass_litter_repr = 0.0;
 
 		patch.pft.nextobj();
-	}
-	for (int i = 0; i < patch.vegetation.nobj; i++) {
-		patch.vegetation[i].cmass_litter_repr = 0;
 	}
 }
 
@@ -2793,6 +2793,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	indiv.cexcess = 0.0;
 	indiv.nexcess = 0.0;
 	indiv.nmass_missing = 0.0;
+	indiv.ctolitter = 0;
+	indiv.ntolitter = 0;
 
 	if (indiv.dnpp >= 0.0) {
 		
@@ -2915,7 +2917,7 @@ void carbon_allocation_grass(Individual &indiv) {
 	double calloc_crown = 0.0;
 	double calloc_repr  = 0.0;
 
-	Patchpft &ppft = indiv.patchpft();;
+	Patchpft &ppft = indiv.patchpft();
 
 	if (!negligible(indiv.cgrow)) {
 		// 1) Reproduction
@@ -3217,7 +3219,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		}
 
 		double creturn = 0.0; // kgC m-2 d-1
-		double cexcess = 0.0, nexcess = 0.0;
+		double cexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;
 
 		// Always fill up N storage during freenyears
@@ -3237,8 +3239,8 @@ void update_pools_dave(Vegetation& vegetation) {
 		// when nstorage_max decreases as the plant 'shrinks' (extreme stress)
 		// Flush to root litter for now, but better alternatives could exist
 		if (indiv.nmass_storage > indiv.nstorage_max) {
-			nexcess = indiv.nmass_storage - indiv.nstorage_max;
-			indiv.nmass_litter_root += nexcess;
+			double nexcess = indiv.nmass_storage - indiv.nstorage_max;
+			indiv.ntolitter += nexcess;
 			ppft.nmass_litter_root += nexcess;
 			indiv.nmass_storage = indiv.nstorage_max;
 		}
@@ -3598,16 +3600,17 @@ void turnover_dave_grass(Individual &indiv) {
 		double cturnover_leaf = indiv.cmass_leafs[brown] * frac_turnover_leaf;
 
 		indiv.cmass_leafs[brown]  -= cturnover_leaf;
-		indiv.cmass_litter_leaf   += cturnover_leaf;
 		ppft.cmass_litter_leaf    += cturnover_leaf;
+		indiv.ctolitter           += cturnover_leaf;
+
 
 
 		// Nitrogen
 		double nturnover_leaf = indiv.nmass_leafs[brown] * frac_turnover_leaf;
 		
 		indiv.nmass_leafs[brown]   -= nturnover_leaf;
-		indiv.nmass_litter_leaf    += nturnover_leaf;
 		ppft.nmass_litter_leaf     += nturnover_leaf;
+		indiv.ntolitter            += nturnover_leaf;
 
 	}
 
@@ -3619,8 +3622,8 @@ void turnover_dave_grass(Individual &indiv) {
 		double cturnover_crown = indiv.cmass_crown * frac_turnover_crown;
 
 		indiv.cmass_crown        -= cturnover_crown;
-		indiv.cmass_litter_root  += cturnover_crown;
 		ppft.cmass_litter_root   += cturnover_crown;
+		indiv.ctolitter          += cturnover_crown;
 
 		// Nitrogen (including retranslocation)
 		double nturnover_crown = indiv.nmass_crown * frac_turnover_crown;
@@ -3633,9 +3636,9 @@ void turnover_dave_grass(Individual &indiv) {
 		}
 
 		indiv.nmass_crown        -= nturnover_crown;
-		indiv.nmass_litter_root  += ntolitter;
 		ppft.nmass_litter_root   += ntolitter;
 		indiv.nmass_storage      += nstore;
+		indiv.ntolitter          += ntolitter;
 
 		assert(equal(nturnover_crown, nstore + ntolitter));
 	}
@@ -3650,8 +3653,8 @@ void turnover_dave_grass(Individual &indiv) {
 		double cturnover_root = indiv.cmass_root * frac_turnover_root;
 		
 		indiv.cmass_root        -= cturnover_root;
-		indiv.cmass_litter_root += cturnover_root;
 		ppft.cmass_litter_root  += cturnover_root;
+		indiv.ctolitter         += cturnover_root;
 
 
 		// Nitrogen (including retranslocation)
@@ -3665,10 +3668,10 @@ void turnover_dave_grass(Individual &indiv) {
 		}
 
 		indiv.nmass_root        -= nturnover_root;
-		indiv.nmass_litter_root += ntolitter;
 		ppft.nmass_litter_root  += ntolitter;
+		indiv.ntolitter         += ntolitter;
 
-		indiv.nmass_storage    += nstore;
+		indiv.nmass_storage     += nstore;
 
 		assert(equal(nturnover_root, nstore + ntolitter));
 	}
@@ -3811,8 +3814,8 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.nexcess > 0.0) {
 		// flush to litter
-		indiv.nmass_litter_root += indiv.nexcess;
 		ppft.nmass_litter_root += indiv.nexcess;
+		indiv.ntolitter += indiv.nexcess;
 	}
 }
 
@@ -3964,7 +3967,6 @@ void annual_accounting_dave(Vegetation& vegetation) {
 		} // Last day of year
 	}
 }
-
 
 void growth_daily_grass_dave(Patch& patch) {
 

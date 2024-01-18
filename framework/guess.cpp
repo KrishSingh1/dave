@@ -1746,11 +1746,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
 	nmass_tot_luc     = 0.0;
-	cmass_litter_leaf = 0.0;
-	cmass_litter_root = 0.0;
-	cmass_litter_repr = 0.0;
-	nmass_litter_leaf = 0.0;
-	nmass_litter_root = 0.0;
+	ctolitter         = 0.0;
+	ntolitter         = 0.0;
 
 	nactive						= 0.0;
 	nextin						= 1.0;
@@ -1868,11 +1865,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap
 		& cmass_heart
 		& cmass_debt
-		& cmass_litter_leaf
-		& cmass_litter_root
-		& cmass_litter_repr
-		& nmass_litter_leaf
-		& nmass_litter_root
+		& ctolitter
+		& ntolitter
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
 		& last_turnover_day
@@ -3183,7 +3177,8 @@ void Individual::kill(bool harvest /* = false */) {
 void Individual::flush_repr_litter_DAVE() {
 
 	// TODO: where to define this??
-	double frac_seed = 0.7; 
+	const double frac_seed = 0.7;
+	Patchpft &ppft = patchpft();
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.
@@ -3193,15 +3188,15 @@ void Individual::flush_repr_litter_DAVE() {
 	double cflux_litter = cmass_repr - cflux_seed;
 	double nflux_litter = nmass_repr - nflux_seed; 
 
-	// added for mass balance checks at the individual level
-	cmass_litter_repr += cflux_seed;
-	nmass_litter_leaf += nflux_seed;	// TODO: should this be nmass_litter_repr?
+	ppft.cmass_litter_repr += cflux_seed;
+	ppft.nmass_litter_repr += nflux_seed;
 	
-	cmass_litter_leaf += cflux_litter;
-	nmass_litter_leaf += nflux_litter;			
+	ppft.cmass_litter_leaf += cflux_litter;
+	ppft.nmass_litter_leaf += nflux_litter;			
 
-	patchpft().cmass_litter_repr += cflux_seed;
-	patchpft().nmass_litter_repr += nflux_seed;
+	assert(equal(cmass_repr, cflux_seed + cflux_litter));
+	assert(equal(nmass_repr, nflux_seed, nflux_litter));
+
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
 }

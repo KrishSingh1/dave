@@ -3102,16 +3102,10 @@ public:
 	/// Last year's cmass_wood value for calculation of period annual increment post mortality
 	double cmass_wood_old;
 
-	/// Leaf C litter content on modelled area basis (kgC/m2).
-	double cmass_litter_leaf;
-	/// Root C litter content on modelled area basis (kgC/m2).
-	double cmass_litter_root;
-	/// Repr C litter content on modelled area basis (kgC/m2).
-	double cmass_litter_repr;
-	/// Leaf N litter content on modelled area basis (kgN/m2).
-	double nmass_litter_leaf;
-	/// Root N litter content on modelled area basis (kgN/m2).
-	double nmass_litter_root;
+	/// Daily C sent to litter (kgC/m2). This is used for accounting purposes.
+	double ctolitter;
+	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
+	double ntolitter;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;

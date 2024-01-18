@@ -71,6 +71,9 @@ NCInput::NCInput() {
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
 
+	declare_parameter("simulation_start_year", &simulation_start_year, 0, 4000
+	, "The first year after the spinup period. During spinup, all met data before this year is cycled. If not set, all available data will be cycled during the spinup.");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -116,6 +119,8 @@ NCInput::NCInput() {
 	// Are these too generous?
 	bounds_ps.max = 150000;
 	bounds_ps.min = 50000;
+
+	simulation_start_year = -1;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -202,7 +207,17 @@ void NCInput::init(void) {
 		// Record length of input data.
 		first_timestep = temp->get_first_date();
 		final_timestep = temp->get_last_date();
-		date.set_first_calendar_year(first_timestep.year - nyear_spinup);
+		int first_year = first_timestep.year;
+		if (simulation_start_year != -1 && simulation_start_year != first_year) {
+			if (simulation_start_year < first_year) {
+				fail("simulation_start_year (%d) must be greater than first year of met data (%d)", simulation_start_year, first_year);
+			}
+			if (simulation_start_year > final_timestep.year) {
+				fail("simulation_start_year (%d) must be less than the final year of met data (%d)", simulation_start_year, final_timestep.year);
+			}
+			first_year = simulation_start_year;
+		}
+		date.set_first_calendar_year(first_year - nyear_spinup);
 
 		// Initialise PRNG.
 		srand(met_sampling_seed);
@@ -343,8 +358,14 @@ try {
 			if (!is_start_of_year(first_timestep, temp->get_day_length())) {
 				first_year++;
 			}
+			int nyear_data = get_nyear_data();
+			if (simulation_start_year != -1 && simulation_start_year != first_year) {
+				// Validity of simulation_start_year verified in getgridcell().
+				nyear_data = simulation_start_year - first_year;
+			}
 			//spinup_year = rand() % get_nyear_data() + first_year;
-			spinup_year = date.year % get_nyear_data() + first_year;
+			int offset = nyear_data - modulo(nyear_spinup, nyear_data);
+			spinup_year = (date.year + offset) % nyear_data + first_year;
 		}
 		year = spinup_year;
 	} else {

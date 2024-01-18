@@ -275,6 +275,13 @@ private:
 	int met_sampling_seed;
 
 	/*
+	The first year after the spinup period, specified by the user in the
+	instruction file. During spinup, all met data before this year is cycled. If
+	not set, all available data will be cycled during the spinup.
+	*/
+	int simulation_start_year;
+
+	/*
 	Name of the longitude variable in the NetCDF file.
 	*/
 	xtring variable_lon;

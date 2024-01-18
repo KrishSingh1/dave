@@ -69,7 +69,7 @@ useClosestNdep               1   ! Use closest available N Deposition data if no
 ! 1 if met forcing data contains leap days
 has_leap_years                0
 
-! Names of variabels in met input file.
+! Names of variables in met input file.
 variable_lon                 "longitude"
 variable_lat                 "latitude"
 variable_time                "time"
@@ -81,6 +81,14 @@ variable_vpd                 "vpd"
 variable_ps                  "ps"  ! Atmospheric Pressure (Pa)
 variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
 variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
+
+! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
+! If not set, file_ndep must be set.
+variable_ndep_nhx            ""
+
+! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
+! If not set, file_ndep must be set.
+variable_ndep_noy            ""
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0

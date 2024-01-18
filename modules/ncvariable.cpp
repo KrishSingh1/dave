@@ -47,8 +47,10 @@ void NCVariable::check_num_dims(int var_id, int ndim_expected) const {
 
 	// Throw error if not correct.
 	if (ndims != ndim_expected) {
+		char name[NC_MAX_NAME];
+		nc_inq_varname(id_file, var_id, name);
 		const char *fmt = "Invalid number of dimensions in variable %s; expected %d but was %d";
-		throw_xtring(fmt, (const char *)var_name, ndim_expected, ndims);
+		throw_xtring(fmt, (const char *)name, ndim_expected, ndims);
 	}
 }
 
@@ -112,13 +114,13 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 
 		// Get longitude variable ID.
 		id_lon = get_variable_id(lon_name);
-		int id_lon_dim = get_dimension_id(lon_name);
 		check_num_dims(id_lon, 1);
+		int id_lon_dim = get_dimension_id(lon_name);
 
 		// Get latitude variable ID.
 		id_lat = get_variable_id(lat_name);
-		int id_lat_dim = get_dimension_id(lat_name);
 		check_num_dims(id_lat, 1);
+		int id_lat_dim = get_dimension_id(lat_name);
 
 		// Get time variable ID.
 		id_time = get_variable_id(time_name);

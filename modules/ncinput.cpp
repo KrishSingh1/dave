@@ -164,8 +164,9 @@ void NCInput::init(void) {
 
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";
-		std::vector<xtring> insol_units(1);
+		std::vector<xtring> insol_units(2);
 		insol_units[0] = "W/m2";
+		insol_units[1] = "W m-2";
 		// Should provide units for other insol types as well...
 		std::vector<xtring> precip_units(3);
 		precip_units[0] = "mm";

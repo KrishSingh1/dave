@@ -167,8 +167,10 @@ void NCInput::init(void) {
 		std::vector<xtring> insol_units(1);
 		insol_units[0] = "W/m2";
 		// Should provide units for other insol types as well...
-		std::vector<xtring> precip_units(1);
+		std::vector<xtring> precip_units(3);
 		precip_units[0] = "mm";
+		precip_units[1] = "kg m-2";
+		precip_units[2] = "kg/m2";
 		std::vector<xtring> co2_units(1);
 		co2_units[0] = "ppm";
 

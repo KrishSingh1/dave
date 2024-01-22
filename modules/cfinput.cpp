@@ -863,10 +863,11 @@ void CFInput::populate_daily_prec_array(long& seed) {
 	}
 }
 
+// Extract daily values for all days in this year, either from
+// spinup dataset or historical dataset
 void CFInput::populate_daily_arrays(Gridcell& gridcell) {
-	// Extract daily values for all days in this year, either from
-	// spinup dataset or historical dataset
 
+	// If monthly input and GWGEN
 	if ( !is_daily(cf_temp) && weathergenerator == GWGEN ) {
 
 		int instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
@@ -978,7 +979,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			
 		}
 	}
-	else {
+	else {	// Only for daily input or when not GWGEN
 		
 		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 		populate_daily_prec_array(gridcell.seed);
@@ -1009,12 +1010,16 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			populate_daily_array(drelhum, spinup_relhum, cf_relhum, historic_timestep_relhum, 0);
 		}
 
-			if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
-				// compute relative humidity for BLAZE
+		// Convert to units the model expects. This part only for daily input or when not GWGEN. More converts continues further below.
+		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
+			// compute relative humidity for BLAZE
 			for (int i = 0; i < date.year_length(); ++i) {
 						drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
 			}
-			}
+		}
+		else if (firemodel == BLAZE && !cf_relhum) {
+			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n");
+		}
 	}
 	
 	// Convert to units the model expects

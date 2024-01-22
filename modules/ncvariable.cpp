@@ -72,23 +72,22 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 		cpy = cpy.lower();
 		if (cpy == actual) {
 			return;
-		} else {
-			xtring msg;
-			msg.printf("Variable %s has incorrect units. Expected %s but was %s"
-			, (const char *)var_name, (const char *)expected[0]
-			, (const char *)actual);
-
-			// todo: automatic unit conversion (where feasible).
-			dprintf("TBI: Automatic unit conversion\n");
-			fatal = true; // fixme
-
-			if (fatal) {
-				throw std::runtime_error((const char *)msg);
-			} else {
-				dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
-				, (const char *)msg, (const char *)actual);
-			}
 		}
+	}
+	xtring msg;
+	msg.printf("Variable %s has incorrect units. Expected %s but was %s"
+	, (const char *)var_name, (const char *)expected[0]
+	, (const char *)actual);
+
+	// todo: automatic unit conversion (where feasible).
+	dprintf("TBI: Automatic unit conversion\n");
+	fatal = true; // fixme
+
+	if (fatal) {
+		throw std::runtime_error((const char *)msg);
+	} else {
+		dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
+		, (const char *)msg, (const char *)actual);
 	}
 }
 
@@ -136,14 +135,14 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		// Determine and validate time units.
 		time_spec = get_time_spec();
 
-		// Get the first time step.
-		data_start = get_first_date();
-
 		// Calculate and store the number of timesteps per day.
 		day_length = calculate_day_length();
 		if (day_length == -1) {
 			throw std::runtime_error("File contains only a single day of data");
 		}
+
+		// Get the first time step.
+		data_start = get_first_date();
 
 		// Get pointer to end of the dimensions array.
 		int *dims_end = &(dimensions.front()) + ndim * sizeof(int);
@@ -450,6 +449,14 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 				+ date.get_second() / SECONDS_PER_HOUR;
 	double timestep_width = 1.0 * HOURS_PER_DAY / day_length;
 	result.timestep = round_to_nearest_multiple(hour, timestep_width);
+	if (result.timestep >= day_length) {
+		result.timestep = 0;
+		result.day++;
+		if (result.day >= get_year_len(result.year, has_leap_years)) {
+			result.day = 0;
+			result.year++;
+		}
+	}
 
 	return result;
 }

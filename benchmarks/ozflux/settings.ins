@@ -97,7 +97,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            30
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -250,5 +250,5 @@ import "pft_common.ins"
 
 !import "trees.ins"
 !import "shrubberies.ins"
-import "c3g.ins"
-!import "c4g.ins"
+!import "c3g.ins"
+import "c4g.ins"

@@ -322,7 +322,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	// press pressure in Pa
 	// rh    relative humidity in frac.
 	if ( pressure > 109000 || pressure < 10000 ) {
-		fail("Unit for pressure must be [Pa]: calc_relative_humidity() in cfinput.cpp");
+		fail("calc_relative_humidity() in cfinput.cpp: Unit for pressure must be [Pa], and its value <109000. The value is %g", pressure);
 	} 
 	if ( temp  > 80. ) {
 		fail("Unit for temperature must be [deg C]: calc_relative_humidity() in cfinput.cpp");
@@ -947,7 +947,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		else if ( cf_pres && cf_specifichum ) {
 			// compute rel. humidity if it can't be read from file
 			for ( int i=0; i<12; i++) {
-				xmrhum[i] = calc_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+				xmrhum[i] = calc_relative_humidity(xmtemp[i],mspecifichum[i],mpres[i]);
 			}
 		}
 
@@ -964,13 +964,18 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 				accumday += date.ndaymonth[mon];
 				mon++;
 			}
-			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i];
+            //CLN !! QUICKFIX for Stefan by LN --(
+            dtemp[i] += K2degC;
+            //CLN !! QUICKFIX for Stefan by LN --)
+
+            dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i];
 			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i];
 			// correct dmin and dmax against t_mean if available
 			if ( cf_min_temp && cf_max_temp ) {
 				dmin_temp[i] += shift[mon];
 				dmax_temp[i] += shift[mon];
 			}
+            
 		}
 	}
 	else {
@@ -1003,35 +1008,35 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		if (cf_relhum) {
 			populate_daily_array(drelhum, spinup_relhum, cf_relhum, historic_timestep_relhum, 0);
 		}
+
+	        if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
+        	    // compute relative humidity for BLAZE
+			for (int i = 0; i < date.year_length(); ++i) {
+	            		drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
+			}
+        	}
 	}
+	
 	// Convert to units the model expects
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
-	for (int i = 0; i < date.year_length(); ++i) {
-		
-		dtemp[i] -= K2degC;
-		if (cf_min_temp) {
-			dmin_temp[i] -= K2degC;
-		}
-		
-		if (cf_max_temp) {
-			dmax_temp[i] -= K2degC;
-		}
-		
-		if (cloud_fraction_to_sunshine) {
-			// Invert from cloudiness to sunshine,
-			// and convert fraction (0-1) to percent (0-100)
-			dinsol[i] = (1-dinsol[i]) * 100.0;
-		}
-		
-		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
-			// compute relative humidity for BLAZE
-			drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
-		}
-		else if ( firemodel == BLAZE && !cf_relhum ) {
-			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );
-		}
-	}
-
+    for (int i = 0; i < date.year_length(); ++i) {
+        
+        dtemp[i] -= K2degC;
+        if (cf_min_temp) {
+            dmin_temp[i] -= K2degC;
+        }
+        
+        if (cf_max_temp) {
+            dmax_temp[i] -= K2degC;
+        }
+        
+        if (cloud_fraction_to_sunshine) {
+            // Invert from cloudiness to sunshine,
+            // and convert fraction (0-1) to percent (0-100)
+            dinsol[i] = (1-dinsol[i]) * 100.0;
+        }
+    }
+    
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();
@@ -1117,6 +1122,26 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	gridcell.dNH4dep = dNH4dep[date.day];
 	gridcell.dNO3dep = dNO3dep[date.day];
 
+    // Check whether all needed input is available
+    // BLAZE
+    if ( firemodel == BLAZE ) {
+        bool blaze_fail = false;
+        if ( !cf_relhum && !( cf_pres && cf_specifichum)) {
+            dprintf("BLAZE needs either specific humidity and pressure or relative humidity! \n" );
+            blaze_fail = true;
+        }
+        if ( !(cf_min_temp && cf_max_temp) ) {
+            dprintf("BLAZE needs Tmin and Tmax! \n" );
+            blaze_fail = true;
+        }
+        if ( !cf_wind ) {
+            dprintf("BLAZE needs 10m horizontal wind speed!\n" );
+            blaze_fail = true;
+        }
+        if ( blaze_fail ) {
+            fail("Forcing data missing for BLAZE! See above. \n" );
+        }
+    }
 	// bvoc
 	if(ifbvoc){
 		if (cf_min_temp && cf_max_temp) {

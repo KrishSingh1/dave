@@ -25,6 +25,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "soilinput.h"
+#include "globalco2file.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -180,6 +181,17 @@ private:
 	double get_progress(bool since_restart);
 
 	/*
+	Get an atmospheric co2 concentration for the specified location on the
+	specified date.
+
+	@param lon: Longitude of the gridcell.
+	@param lat: Latitude of the gridcell.
+	@param year: Year of data to be retrieved.
+	@param day: Day of year (0-364) of data to be retrieved.
+	*/
+	double get_co2(double lon, double lat, int year, int day);
+
+	/*
 	Land cover input module.
 	*/
 	LandcoverInput landcover_input;
@@ -242,6 +254,12 @@ private:
 	instruction file.
 	*/
 	xtring file_soildata;
+
+	/*
+	Optional path to text file containing co2 concentration by year. If not set,
+	variable_co2 must be set, allowing co2 data to be read from the netcdf file.
+	*/
+	xtring file_co2;
 
 	/*
 	Path to the nitrogen deposition fastarchive file. This is a
@@ -418,6 +436,11 @@ private:
 	ndep_input will be used.
 	*/
 	std::unique_ptr<NCVariable> ndep_noy;
+
+	/*
+	Optional co2 text file reader.
+	*/
+	std::unique_ptr<GlobalCO2File> co2_file;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.

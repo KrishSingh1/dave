@@ -160,7 +160,9 @@ void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double 
 	}
 	double cton = cmass / nmass;
 	assert(greater_than_or_equal(cton, cton_min));
+	// assert(cton >= cton_min);
  	assert(less_than_or_equal(cton, cton_max));
+	// assert(cton <= cton_max);
 }
 
 void DaveMassBalance::IndivState::check(const Individual &indiv) const {

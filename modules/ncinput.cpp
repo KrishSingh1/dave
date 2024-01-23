@@ -48,6 +48,8 @@ NCInput::NCInput() {
 	, "Path to soil input file");
 	declare_parameter("file_ndep", &file_ndep, PATH_MAX
 	, "Path to nitrogen deposition fastarchive input file");
+	declare_parameter("file_co2", &file_co2, PATH_MAX
+	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
 
 	declare_parameter("cache_strategy", &cache_strategy, 0, 2
 	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
@@ -88,7 +90,7 @@ NCInput::NCInput() {
 	declare_parameter("variable_precip", &variable_precip, NC_MAX_NAME
 	, "Name of the precipitation variable in the NetCDF file");
 	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
-	, "Name of the co2 variable in the NetCDF file");
+	, "Name of the co2 variable in the NetCDF file. Optional if file_co2 is provided instead.");
 	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
 	, "Name of the VPD variable in the NetCDF file");
 	declare_parameter("variable_ps", &variable_ps, NC_MAX_NAME
@@ -164,11 +166,14 @@ void NCInput::init(void) {
 
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";
-		std::vector<xtring> insol_units(1);
+		std::vector<xtring> insol_units(2);
 		insol_units[0] = "W/m2";
+		insol_units[1] = "W m-2";
 		// Should provide units for other insol types as well...
-		std::vector<xtring> precip_units(1);
+		std::vector<xtring> precip_units(3);
 		precip_units[0] = "mm";
+		precip_units[1] = "kg m-2";
+		precip_units[2] = "kg/m2";
 		std::vector<xtring> co2_units(1);
 		co2_units[0] = "ppm";
 
@@ -190,10 +195,18 @@ void NCInput::init(void) {
 		temp = create_variable(variable_temp, bounds_temp, temp_units, true);
 		insol = create_variable(variable_insol, bounds_insol, insol_units, true);
 		precip = create_variable(variable_precip, bounds_prec, precip_units, true);
-		co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
 		vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
 		ps = create_variable(variable_ps, bounds_ps, ps_units, true);
 
+		if (variable_co2 == "") {
+			if (file_co2 == "") {
+				fail("Must set either file_co2 or variable_co2 in ins file");
+			}
+			co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
+			co2_file->load_file((const char *)file_co2);
+		} else {
+			co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
+		}
 		if (variable_tmax != "") {
 			tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
 		}
@@ -361,6 +374,9 @@ try {
 	int year = date.get_calendar_year();
 
 	// First, check if we have enough data to simulate another day.
+	if (year > final_timestep.year) {
+		return false;
+	}
 	if (date.day == 0 && year == final_timestep.year) {
 		if (final_timestep.day < Date::MAX_YEAR_LENGTH - 1) {
 			// We are in the final year, which is missing some days of data.
@@ -405,7 +421,7 @@ try {
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
 
-		if (use_mean_annual_co2) {
+		if (use_mean_annual_co2 && co2) {
 			int year_len = get_year_len(year, has_leap_years);
 			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
 			mean_annual_co2 = mean(co2_annual);
@@ -459,9 +475,7 @@ try {
 	climate.pressure = pressure;
 	date.subdaily = nsteps_day;
 
-	climate.co2 = use_mean_annual_co2
-					? mean_annual_co2
-					: mean(co2->read(lon, lat, year, date.day, 1));
+	climate.co2 = get_co2(lon, lat, year, date.day);
 
 	if (tmax && tmin) {
 		// It only really makes sense to provide separate variables for tmin and
@@ -613,8 +627,8 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
 
 		// Aggregate to daily timestep (sum of subdaily values).
-		std::vector<double> nhx = aggregate(nhx, year_len, sum);
-		std::vector<double> noy = aggregate(noy, year_len, sum);
+		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, sum);
+		std::vector<double> noy = aggregate(noy_subdaily, year_len, sum);
 
 		// Copy data into the nh4_dep and no3_dep arrays.
 		// nhx = nh4, noy = no3a
@@ -661,6 +675,16 @@ double NCInput::get_progress(bool since_restart) {
 
 		double progress = 1.0 * years_simulated / total_years;
 		return progress;
+}
+
+double NCInput::get_co2(double lon, double lat, int year, int day) {
+	if (co2) {
+		return use_mean_annual_co2
+			? mean_annual_co2
+			: mean(co2->read(lon, lat, year, date.day, 1));
+	} else {
+		return (*co2_file)[date.year];
+	}
 }
 
 #endif // HAVE_NETCDF

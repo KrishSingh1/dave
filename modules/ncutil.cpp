@@ -47,19 +47,16 @@ bool floats_equal(double x, double y) {
 }
 
 double round_to_nearest_multiple(double x, double y) {
+	// 9, 24 => 0
+	// 9, 3  => 3
+	// 10, 3 => 3
+	// 11, 3 => 4
 	if (floats_equal(x, 0) || floats_equal(y, 0)) {
 		return 0;
 	}
 
-	double ratio = y / x;
-	double upper = y * ceil(ratio);
-	double lower = y * floor(ratio);
-	double midpoint = (upper + lower) / 2;
-
-	if (x >= midpoint) {
-		return upper;
-	}
-	return lower;
+	double z = x / y;
+	return (int)(z < 0 ? z - 0.5 : z + 0.5);
 }
 
 bool is_start_of_year(timepoint date, int day_length) {

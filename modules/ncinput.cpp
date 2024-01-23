@@ -627,8 +627,8 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
 
 		// Aggregate to daily timestep (sum of subdaily values).
-		std::vector<double> nhx = aggregate(nhx, year_len, sum);
-		std::vector<double> noy = aggregate(noy, year_len, sum);
+		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, sum);
+		std::vector<double> noy = aggregate(noy_subdaily, year_len, sum);
 
 		// Copy data into the nh4_dep and no3_dep arrays.
 		// nhx = nh4, noy = no3a

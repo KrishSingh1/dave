@@ -1,0 +1,23 @@
+!///////////////////////////////////////////////////////////////////////////////////////
+! Parameters for simulations using the crujra dataset.
+!///////////////////////////////////////////////////////////////////////////////////////
+
+! Names of variables in met input file.
+variable_lon                 "lon"
+variable_lat                 "lat"
+variable_time                "time"
+variable_temp                "tav"
+variable_insol               "tswrf"
+variable_precip              "pre"
+variable_co2                 ""
+variable_vpd                 "vpd"
+variable_ps                  "pres"  ! Atmospheric Pressure (Pa)
+variable_tmax                "tmax" ! Empty string means it will be calculated from subdaily temperature
+variable_tmin                "tmin" ! Empty string means it will be calculated from subdaily temperature
+
+file_co2                     "../forcing/co2_1901_2018.txt"
+!file_co2                     "../forcing/co2_historical_1951_2005.dat"
+!file_co2                     "../forcing/co2_rcp45_1765_2500.dat"
+!file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
+
+nsteps_day                   1

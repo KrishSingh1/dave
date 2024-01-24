@@ -443,6 +443,7 @@ void establishment_daily(Patch& patch) {
 					indiv = &individual; // & gets address of the variable (* is the opposite)
 					if (pft.lifeform == TREE) {
 						indiv->height = 0.05;
+						indiv->diam = pow((indiv->height / pft.k_allom2), (1 / pft.k_allom3));
 					}
 					// indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
 					indiv->crownarea = 1.0; // (value not used). this is the same as (*indiv).crownarea

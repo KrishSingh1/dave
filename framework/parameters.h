@@ -365,6 +365,9 @@ extern bool ifbvoc;
 /// whether daily carbon allocation for grasses is turned on
 extern bool ifdailygrass;
 
+/// whether daily carbon allocation for trees is turned on.
+extern bool ifdailytree;
+
 /// whether DAVE (empirical) photosynthesis scheme is turned on
 extern bool ifdavephotosyn;
 

@@ -227,6 +227,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "ClimGrass",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "ClimGrass.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/ClimGrass",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
             "name": "Collie",
             "type": "cppdbg",
             "request": "launch",
@@ -597,6 +634,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "Henry Bayly",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "HenryBayly.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/HenryBayly",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
             "name": "Howard Springs",
             "type": "cppdbg",
             "request": "launch",
@@ -663,6 +737,80 @@
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Mt. Alex",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "MtAlex.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtAlex",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Mt. Majura",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "MtMajura.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtMajura",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1059,6 +1207,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "UNE",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "UNE.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/UNE",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
             "name": "Wallaby Creek",
             "type": "cppdbg",
             "request": "launch",
@@ -1297,6 +1482,7 @@
                     "Boyagin",
                     "Calperum",
                     "CapeTribulation",
+                    "ClimGrass",
                     "Collie",
                     "CowBay",
                     "CumberlandPlain",
@@ -1307,9 +1493,12 @@
                     "FoggDam",
                     "Gingin",
                     "GreatWesternWoodlands",
+                    "HenryBayly",
                     "HowardSprings",
                     "Litchfield",
                     "Longreach",
+                    "MtAlex",
+                    "MtMajura",
                     "Otway",
                     "RedDirtMelonFarm",
                     "Ridgefield",
@@ -1320,6 +1509,7 @@
                     "SturtPlains",
                     "TiTreeEast",
                     "Tumbarumba",
+                    "UNE",
                     "WallabyCreek",
                     "Warra",
                     "Whroo",

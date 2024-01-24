@@ -53,6 +53,9 @@ double alphaa(const Pft& pft);
  */
 double nitrogen_uptake_strength(const Individual& indiv);
 
+/// Use nitrogen storage to limit stress
+void nstore_usage(Vegetation& vegetation);
+
 // Constants for photosynthesis calculations
 
 // atmospheric pressure (Pa)

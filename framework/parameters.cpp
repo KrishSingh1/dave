@@ -74,6 +74,7 @@ bool ifrainonwetdaysonly;
 bool ifbvoc;
 
 bool ifdailygrass;
+bool ifdailytree;
 bool ifdavephotosyn;
 bool ifdavegrowth;
 bool ifdavediagnostics = false;
@@ -611,6 +612,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+		declareitem("ifdailytree",&ifdailytree,1,CB_NONE,	"Whether daily carbon allocation for trees is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
@@ -729,6 +731,16 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 
+		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
+			"Temperature below which plants fall dormant (degC)");
+		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
+			"Potential relative growth rate in vegetative phase (d-1)");
+		declareitem("Ha_growth",&ppft->Ha_growth,0.0,200.0,1,CB_NONE,
+			"Activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)");	
+		declareitem("T0_growth",&ppft->T0_growth,0.0,50.0,1,CB_NONE,
+			"Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012) ");	
+		declareitem("A_growth",&ppft->A_growth,1.0e5,1.0e10,1,CB_NONE,
+			"Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012) ");	
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
 		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,
@@ -1546,6 +1558,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
+		if (!itemparsed("ifdailytree")) badins("ifdailytree");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

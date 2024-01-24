@@ -847,8 +847,15 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 	// available nitrogen to its saturation level.
 	if (date.year <= freenyears) {
 		if(ifntransform) {
-			soil.NH4_mass = NMASS_SAT / 2.0;
-			soil.NO3_mass = NMASS_SAT / 2.0;
+			double nh4_sat = NMASS_SAT / 2.0;
+			double no3_sat = NMASS_SAT / 2.0;
+			double nh4_delta = nh4_sat - soil.NH4_mass;
+			double no3_delta = no3_sat - soil.NO3_mass;
+
+			soil.NH4_mass = nh4_sat;
+			soil.NO3_mass = no3_sat;
+
+			patch.fluxes.report_flux(Fluxes::NFERT, no3_delta + nh4_delta);
 		} 
 		else {
 			soil.NH4_mass = NMASS_SAT;
@@ -1314,7 +1321,7 @@ void vegetation_n_uptake(Patch& patch) {
 		nuptake_day = max(0.0, min(soil.nmass_avail(), indiv.ndemand * indiv.fnuptake));
 
 		// Add nitrogen uptake to daily growth indiv
-		if (indiv.pft.is_grass() && ifdailygrass) {
+		if (indiv.pft.dave_allocation() || (indiv.pft.is_grass() && ifdailygrass)) {
 
 			// N uptake added to storage
 			indiv.nmass_storage += nuptake_day;
@@ -1329,6 +1336,13 @@ void vegetation_n_uptake(Patch& patch) {
 				indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
 			else
 				indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+
+			// If leaffndemand, rootfndemand, sapfndemand and storefndemand
+			// don't add to 1, we will have subtracted more N from the soil than
+			// we added to the plant.
+			if (nuptake_day > 0) {
+				assert(equal(1.0, indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand + indiv.storefndemand));
+			}
 		}
 
 

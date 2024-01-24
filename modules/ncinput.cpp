@@ -48,6 +48,8 @@ NCInput::NCInput() {
 	, "Path to soil input file");
 	declare_parameter("file_ndep", &file_ndep, PATH_MAX
 	, "Path to nitrogen deposition fastarchive input file");
+	declare_parameter("file_co2", &file_co2, PATH_MAX
+	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
 
 	declare_parameter("cache_strategy", &cache_strategy, 0, 2
 	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
@@ -71,6 +73,9 @@ NCInput::NCInput() {
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
 
+	declare_parameter("simulation_start_year", &simulation_start_year, 0, 4000
+	, "The first year after the spinup period. During spinup, all met data before this year is cycled. If not set, all available data will be cycled during the spinup.");
+
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
 	, "Name of the longitude variable in the NetCDF file");
@@ -85,7 +90,7 @@ NCInput::NCInput() {
 	declare_parameter("variable_precip", &variable_precip, NC_MAX_NAME
 	, "Name of the precipitation variable in the NetCDF file");
 	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
-	, "Name of the co2 variable in the NetCDF file");
+	, "Name of the co2 variable in the NetCDF file. Optional if file_co2 is provided instead.");
 	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
 	, "Name of the VPD variable in the NetCDF file");
 	declare_parameter("variable_ps", &variable_ps, NC_MAX_NAME
@@ -94,6 +99,10 @@ NCInput::NCInput() {
 	, "Name of the max temperature variable in the NetCDF file");
 	declare_parameter("variable_tmin", &variable_tmin, NC_MAX_NAME
 	, "Name of the min temperature variable in the NetCDF file");
+	declare_parameter("variable_ndep_nhx", &variable_ndep_nhx, NC_MAX_NAME
+	, "Optional name of the nhx nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
+	declare_parameter("variable_ndep_noy", &variable_ndep_noy, NC_MAX_NAME
+	, "Optional name of the noy nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
@@ -116,6 +125,13 @@ NCInput::NCInput() {
 	// Are these too generous?
 	bounds_ps.max = 150000;
 	bounds_ps.min = 50000;
+
+	bounds_ndep.max = 1000;
+	bounds_ndep.min = 0;
+
+	use_lamarque = true;
+
+	simulation_start_year = -1;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -150,16 +166,22 @@ void NCInput::init(void) {
 
 		std::vector<xtring> temp_units(1);
 		temp_units[0] = "degC";
-		std::vector<xtring> insol_units(1);
+		std::vector<xtring> insol_units(2);
 		insol_units[0] = "W/m2";
+		insol_units[1] = "W m-2";
 		// Should provide units for other insol types as well...
-		std::vector<xtring> precip_units(1);
+		std::vector<xtring> precip_units(3);
 		precip_units[0] = "mm";
+		precip_units[1] = "kg m-2";
+		precip_units[2] = "kg/m2";
 		std::vector<xtring> co2_units(1);
 		co2_units[0] = "ppm";
 
 		std::vector<xtring> vpd_units(1);
 		vpd_units[0] = "kPa";
+
+		std::vector<xtring> ndep_units(1);
+		ndep_units[0] = "mgN/m2/day";
 
 		if (nsteps_day >= SIZE_MAX) {
 			throw_xtring("nsteps_day is too large: %d", nsteps_day);
@@ -173,15 +195,35 @@ void NCInput::init(void) {
 		temp = create_variable(variable_temp, bounds_temp, temp_units, true);
 		insol = create_variable(variable_insol, bounds_insol, insol_units, true);
 		precip = create_variable(variable_precip, bounds_prec, precip_units, true);
-		co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
 		vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
 		ps = create_variable(variable_ps, bounds_ps, ps_units, true);
 
+		if (variable_co2 == "") {
+			if (file_co2 == "") {
+				fail("Must set either file_co2 or variable_co2 in ins file");
+			}
+			co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
+			co2_file->load_file((const char *)file_co2);
+		} else {
+			co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
+		}
 		if (variable_tmax != "") {
 			tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
 		}
 		if (variable_tmin != "") {
 			tmin = create_variable(variable_tmin, bounds_temp, temp_units, true);
+		}
+		if (variable_ndep_nhx == "") {
+			use_lamarque = true;
+		} else {
+			use_lamarque = false;
+			ndep_nhx = create_variable(variable_ndep_nhx, bounds_ndep, ndep_units, true);
+		}
+		if (variable_ndep_noy == "") {
+			use_lamarque = true;
+		} else {
+			use_lamarque = false;
+			ndep_noy = create_variable(variable_ndep_noy, bounds_ndep, ndep_units, true);
 		}
 
 		// Ensure that input timestep is an integer multiple of simulation
@@ -202,7 +244,17 @@ void NCInput::init(void) {
 		// Record length of input data.
 		first_timestep = temp->get_first_date();
 		final_timestep = temp->get_last_date();
-		date.set_first_calendar_year(first_timestep.year - nyear_spinup);
+		int first_year = first_timestep.year;
+		if (simulation_start_year != -1 && simulation_start_year != first_year) {
+			if (simulation_start_year < first_year) {
+				fail("simulation_start_year (%d) must be greater than first year of met data (%d)", simulation_start_year, first_year);
+			}
+			if (simulation_start_year > final_timestep.year) {
+				fail("simulation_start_year (%d) must be less than the final year of met data (%d)", simulation_start_year, final_timestep.year);
+			}
+			first_year = simulation_start_year;
+		}
+		date.set_first_calendar_year(first_year - nyear_spinup);
 
 		// Initialise PRNG.
 		srand(met_sampling_seed);
@@ -261,8 +313,10 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 		soil_input.get_soil(lon, lat, gridcell);
 
 		// Read N deposition data for this grid cell.
-		ndep_input.getndep(file_ndep, lon, lat
-		, Lamarque::parse_timeseries((const char *)ndep_scenario));
+		if (use_lamarque) {
+			ndep_input.getndep(file_ndep, lon, lat
+			, Lamarque::parse_timeseries((const char *)ndep_scenario));
+		}
 
 		if(readdisturbance || readdisturbance_st || readelevation_st) {
 			// Not all gridcells have to be included in input file.
@@ -320,6 +374,9 @@ try {
 	int year = date.get_calendar_year();
 
 	// First, check if we have enough data to simulate another day.
+	if (year > final_timestep.year) {
+		return false;
+	}
 	if (date.day == 0 && year == final_timestep.year) {
 		if (final_timestep.day < Date::MAX_YEAR_LENGTH - 1) {
 			// We are in the final year, which is missing some days of data.
@@ -343,8 +400,14 @@ try {
 			if (!is_start_of_year(first_timestep, temp->get_day_length())) {
 				first_year++;
 			}
+			int nyear_data = get_nyear_data();
+			if (simulation_start_year != -1 && simulation_start_year != first_year) {
+				// Validity of simulation_start_year verified in getgridcell().
+				nyear_data = simulation_start_year - first_year;
+			}
 			//spinup_year = rand() % get_nyear_data() + first_year;
-			spinup_year = date.year % get_nyear_data() + first_year;
+			int offset = nyear_data - modulo(nyear_spinup, nyear_data);
+			spinup_year = (date.year + offset) % nyear_data + first_year;
 		}
 		year = spinup_year;
 	} else {
@@ -358,7 +421,7 @@ try {
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
 
-		if (use_mean_annual_co2) {
+		if (use_mean_annual_co2 && co2) {
 			int year_len = get_year_len(year, has_leap_years);
 			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
 			mean_annual_co2 = mean(co2_annual);
@@ -412,9 +475,7 @@ try {
 	climate.pressure = pressure;
 	date.subdaily = nsteps_day;
 
-	climate.co2 = use_mean_annual_co2
-					? mean_annual_co2
-					: mean(co2->read(lon, lat, year, date.day, 1));
+	climate.co2 = get_co2(lon, lat, year, date.day);
 
 	if (tmax && tmin) {
 		// It only really makes sense to provide separate variables for tmin and
@@ -535,27 +596,45 @@ std::vector<NCInput::Coord> NCInput::parse_gridlist(xtring filename) const {
 }
 
 void NCInput::update_ndep(double lon, double lat, int year) {
-	// Read monthly N deposition values from input file.
-	double nhx_dry[12];
-	double noy_dry[12];
-	double nhx_wet[12];
-	double noy_wet[12];
-	ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
+	if (use_lamarque) {
+		// Read monthly N deposition values from input file.
+		double nhx_dry[12];
+		double noy_dry[12];
+		double nhx_wet[12];
+		double noy_wet[12];
+		ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
 
-	// Converting N deposition data to daily values requires daily
-	// precipitation data.
+		// Converting N deposition data to daily values requires daily
+		// precipitation data.
 
-	// Read precipitation data for entire year.
-	int n = Date::MAX_YEAR_LENGTH;
-	std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
+		// Read precipitation data for entire year.
+		int n = Date::MAX_YEAR_LENGTH;
+		std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
 
-	// Aggregate to daily values. Note that precip is currently only allowed to
-	// be in mm, so we can sum the subdaily values to get a daily one.
-	std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
+		// Aggregate to daily values. Note that precip is currently only allowed to
+		// be in mm, so we can sum the subdaily values to get a daily one.
+		std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
 
-	// Distribute N deposition
-	distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
-					&(daily_prec.front()), nh4_dep, no3_dep);
+		// Distribute N deposition
+		distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
+						&(daily_prec.front()), nh4_dep, no3_dep);
+	} else {
+		// todo: leap years.
+		int year_len = Date::MAX_YEAR_LENGTH;
+
+		// Read n deposition data from NetCDF input.
+		std::vector<double> nhx_subdaily = ndep_nhx->read(lon, lat, year, 0, year_len);
+		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
+
+		// Aggregate to daily timestep (sum of subdaily values).
+		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, sum);
+		std::vector<double> noy = aggregate(noy_subdaily, year_len, sum);
+
+		// Copy data into the nh4_dep and no3_dep arrays.
+		// nhx = nh4, noy = no3a
+		memcpy(nh4_dep, &nhx.front(), year_len);
+		memcpy(no3_dep, &noy.front(), year_len);
+	}
 }
 
 int NCInput::get_nyear_data() const {
@@ -596,6 +675,16 @@ double NCInput::get_progress(bool since_restart) {
 
 		double progress = 1.0 * years_simulated / total_years;
 		return progress;
+}
+
+double NCInput::get_co2(double lon, double lat, int year, int day) {
+	if (co2) {
+		return use_mean_annual_co2
+			? mean_annual_co2
+			: mean(co2->read(lon, lat, year, date.day, 1));
+	} else {
+		return (*co2_file)[date.year];
+	}
 }
 
 #endif // HAVE_NETCDF

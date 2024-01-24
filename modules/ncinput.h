@@ -25,6 +25,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "soilinput.h"
+#include "globalco2file.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -180,6 +181,17 @@ private:
 	double get_progress(bool since_restart);
 
 	/*
+	Get an atmospheric co2 concentration for the specified location on the
+	specified date.
+
+	@param lon: Longitude of the gridcell.
+	@param lat: Latitude of the gridcell.
+	@param year: Year of data to be retrieved.
+	@param day: Day of year (0-364) of data to be retrieved.
+	*/
+	double get_co2(double lon, double lat, int year, int day);
+
+	/*
 	Land cover input module.
 	*/
 	LandcoverInput landcover_input;
@@ -203,6 +215,11 @@ private:
 	Nitrogen deposition input module.
 	*/
 	Lamarque::NDepData ndep_input;
+
+	/*
+	True iff the Lamarque N deposition data source should be used.
+	*/
+	bool use_lamarque;
 
 	/*
 	Grid cells to be simulated.
@@ -239,6 +256,12 @@ private:
 	xtring file_soildata;
 
 	/*
+	Optional path to text file containing co2 concentration by year. If not set,
+	variable_co2 must be set, allowing co2 data to be read from the netcdf file.
+	*/
+	xtring file_co2;
+
+	/*
 	Path to the nitrogen deposition fastarchive file. This is a
 	user-configurable setting in the instruction file.
 	*/
@@ -273,6 +296,13 @@ private:
 	Seed used for random sampling of met data during spinup period.
 	*/
 	int met_sampling_seed;
+
+	/*
+	The first year after the spinup period, specified by the user in the
+	instruction file. During spinup, all met data before this year is cycled. If
+	not set, all available data will be cycled during the spinup.
+	*/
+	int simulation_start_year;
 
 	/*
 	Name of the longitude variable in the NetCDF file.
@@ -330,6 +360,16 @@ private:
 	xtring variable_ps;
 
 	/*
+	Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
+	*/
+	xtring variable_ndep_nhx;
+
+	/*
+	Name of the noy nitrogen deposition variable in the NetCDF file (optional).
+	*/
+	xtring variable_ndep_noy;
+
+	/*
 	Constant to be added to daily temperature (°C). Set in instruction file.
 	*/
 	double temperature_delta;
@@ -384,6 +424,23 @@ private:
 	Atmospheric pressure variable in the NetCDF file (Pa).
 	*/
 	std::unique_ptr<NCVariable> ps;
+
+	/*
+	Optional nhx nitrogen deposition variable in the NetCDF file. If not set,
+	ndep_input will be used.
+	*/
+	std::unique_ptr<NCVariable> ndep_nhx;
+
+	/*
+	Optional noy nitrogen deposition variable in the NetCDF file. If not set,
+	ndep_input will be used.
+	*/
+	std::unique_ptr<NCVariable> ndep_noy;
+
+	/*
+	Optional co2 text file reader.
+	*/
+	std::unique_ptr<GlobalCO2File> co2_file;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.
@@ -445,6 +502,11 @@ private:
 	Upper and lower bounds for atmospheric pressure.
 	*/
 	bounds bounds_ps;
+
+	/*
+	Upper and lower bounds for nitrogen deposition data.
+	*/
+	bounds bounds_ndep;
 
 	/*
 	The year of data currently being sampled in the spinup. This will have a

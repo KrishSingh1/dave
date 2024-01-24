@@ -20,7 +20,8 @@ const bool DELAYED_SEEDCARBON = false;
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
 
-	if(patch.stand.landcover != CROPLAND && !ifdailygrass) {
+	if(patch.stand.landcover != CROPLAND && (!ifdailygrass || !ifdailytree)) {
+		// Non-cropland landcover and no daily allocation is occurring.
 		return;
 	}
 

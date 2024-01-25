@@ -25,6 +25,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "soilinput.h"
+#include "globalco2file.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -37,9 +38,10 @@ Requirements:
   - Mean Temperature (°C)
   - Solar Insolation (W.m^-2)
   - Precipitation (mm)
-  - CO2 (ppm)
-  - Maximum temperature (°C)
-  - Minimum temperature (°C)
+  - CO2 (ppm) (optional if file_co2 is provided instead)
+  - Maximum temperature (°C) (optional if temperature data is subdaily or if not using blaze)
+  - Minimum temperature (°C) (optional if temperature data is subdaily or if not using blaze)
+  - Nitrogen Deposition (MgN.m^-2)
 
 Input data can be daily or subdaily. The following options must be specified in
 the instruction file (run guess -help for descriptions, otherwise consult the
@@ -169,8 +171,12 @@ private:
 
 	/*
 	Get the number of complete years of data which exist in the input file.
+
+	@param start: Start of time range.
+	@param end: End of time range.
+	@param day_length: Number of timesteps per day in the specified time range.
 	*/
-	int get_nyear_data() const;
+	int get_nyear_data(timepoint start, timepoint end, int day_length) const;
 
 	/*
 	Get the progress of the current simulation in range [0, 1].
@@ -178,6 +184,58 @@ private:
 	@param since_spinup: If true, only consider progress since the restart.
 	*/
 	double get_progress(bool since_restart);
+
+	/*
+	Get an atmospheric co2 concentration for the specified location on the
+	specified date.
+
+	@param lon: Longitude of the gridcell.
+	@param lat: Latitude of the gridcell.
+	@param year: Year of data to be retrieved.
+	@param day: Day of year (0-364) of data to be retrieved.
+	*/
+	double get_co2(double lon, double lat, int year, int day);
+
+	/*
+	Set the insoltype in the gridcell to that specified by the insolation
+	variable in the currently-open NetCDF file.
+	*/
+	void set_insoltype(Gridcell &gridcell) const;
+
+	/*
+	Open a netcdf file.
+
+	This will modify class properties such as the variable pointers.
+
+	@param netcdf_file: The file to be opened.
+	*/
+	void open_netcdf(xtring netcdf_file);
+
+	/*
+	Ensure that this timestep is a valid timestep. For that to be true, this
+	timestep must match the timestep specified by the parameter "nsteps_day",
+	or it must be an integer multiple of nsteps_day.
+	*/
+	void verify_timestep(int timestep) const;
+
+	/*
+	Verify that the specified time range covers at least one complete year.
+
+	@param start: Start of time range.
+	@param end: End of time range.
+	@param timestep: Timestep of time range.
+	*/
+	void verify_data_length(timepoint start, timepoint end, int timestep) const;
+
+	/*
+	Resize the climate arrays in the gridcell to match the specified value.
+	*/
+	void resize_climate_arrays(Gridcell &gridcell, size_t size) const;
+
+	/*
+	Check if a variable exists with the specified name.
+	*/
+	bool variable_exists(xtring name) const;
 
 	/*
 	Land cover input module.
@@ -232,6 +290,12 @@ private:
 	xtring file_met_forcing;
 
 	/*
+	Path to the NetCDF file used for the spinup. This is a user-configurable
+	setting in the instruction file.
+	*/
+	xtring file_met_spinup;
+
+	/*
 	Path to gridlist file. This is a user-configurable setting in the
 	instruction file.
 	*/
@@ -242,6 +306,12 @@ private:
 	instruction file.
 	*/
 	xtring file_soildata;
+
+	/*
+	Optional path to text file containing co2 concentration by year. If not set,
+	variable_co2 must be set, allowing co2 data to be read from the netcdf file.
+	*/
+	xtring file_co2;
 
 	/*
 	Path to the nitrogen deposition fastarchive file. This is a
@@ -420,6 +490,11 @@ private:
 	std::unique_ptr<NCVariable> ndep_noy;
 
 	/*
+	Optional co2 text file reader.
+	*/
+	std::unique_ptr<GlobalCO2File> co2_file;
+
+	/*
 	Number of seconds per day. Leap seconds are a myth.
 	*/
 	const int SECONDS_PER_DAY = 60 * 60 * 24;
@@ -430,13 +505,13 @@ private:
 	int nc_file;
 
 	/*
-	The first timestep in the input data.
+	The first timestep in the input data of the main simulation.
 	*/
 	timepoint first_timestep;
 
 	/*
-	The last timestep in the input data. This is used to terminate the
-	simulation when we reach the end date.
+	The last timestep in the input data of the main simulation. This is used to
+	terminate the simulation when we reach the end date.
 	*/
 	timepoint final_timestep;
 

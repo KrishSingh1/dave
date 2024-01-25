@@ -72,23 +72,22 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 		cpy = cpy.lower();
 		if (cpy == actual) {
 			return;
-		} else {
-			xtring msg;
-			msg.printf("Variable %s has incorrect units. Expected %s but was %s"
-			, (const char *)var_name, (const char *)expected[0]
-			, (const char *)actual);
-
-			// todo: automatic unit conversion (where feasible).
-			dprintf("TBI: Automatic unit conversion\n");
-			fatal = true; // fixme
-
-			if (fatal) {
-				throw std::runtime_error((const char *)msg);
-			} else {
-				dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
-				, (const char *)msg, (const char *)actual);
-			}
 		}
+	}
+	xtring msg;
+	msg.printf("Variable %s has incorrect units. Expected %s but was %s"
+	, (const char *)var_name, (const char *)expected[0]
+	, (const char *)actual);
+
+	// todo: automatic unit conversion (where feasible).
+	dprintf("TBI: Automatic unit conversion\n");
+	fatal = true; // fixme
+
+	if (fatal) {
+		throw std::runtime_error((const char *)msg);
+	} else {
+		dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
+		, (const char *)msg, (const char *)actual);
 	}
 }
 
@@ -136,14 +135,14 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		// Determine and validate time units.
 		time_spec = get_time_spec();
 
-		// Get the first time step.
-		data_start = get_first_date();
-
 		// Calculate and store the number of timesteps per day.
 		day_length = calculate_day_length();
 		if (day_length == -1) {
 			throw std::runtime_error("File contains only a single day of data");
 		}
+
+		// Get the first time step.
+		data_start = get_first_date();
 
 		// Get pointer to end of the dimensions array.
 		int *dims_end = &(dimensions.front()) + ndim * sizeof(int);
@@ -408,17 +407,31 @@ int NCVariable::index_of(double x, int var_id) const {
 	// Get the length of the dimension.
 	size_t length = get_dimension_length(id_dim);
 
-	// Read all data from this variable along its only dimension.
-	std::vector<double> data(length);
-	status = nc_get_var_double(id_file, var_id, &(data.front()));
-	handle_nc_error(status, "Failed to read data for %s"
+	nc_type var_type;
+	status = nc_inq_vartype(id_file, var_id, &var_type);
+	handle_nc_error(status, "Failed to get type of variable %s"
 	, GuessNC::get_variable_name(id_file, var_id).c_str());
 
-	// Finally we can search the data for the specified input value (x).
-	for (int i = 0; i < length; i++) {
-		if (floats_equal(x, data[i])) {
-			return i;
-		}
+	if (var_type == NC_DOUBLE) {
+		// Read all data from this variable along its only dimension.
+		std::vector<double> data(length);
+		status = nc_get_var_double(id_file, var_id, &(data.front()));
+		handle_nc_error(status, "Failed to read data for %s"
+		, GuessNC::get_variable_name(id_file, var_id).c_str());
+
+		// Finally we can search the data for the specified input value (x).
+		return index_of_double(x, &(data.front()), data.size());
+	}
+
+	if (var_type == NC_FLOAT) {
+		// Read all data from this variable along its only dimension.
+		std::vector<float> data(length);
+		status = nc_get_var_float(id_file, var_id, &(data.front()));
+		handle_nc_error(status, "Failed to read data for %s"
+		, GuessNC::get_variable_name(id_file, var_id).c_str());
+
+		// Finally we can search the data for the specified input value (x).
+		return index_of_float(x, &(data.front()), data.size());
 	}
 
 	// Not found.
@@ -450,6 +463,14 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 				+ date.get_second() / SECONDS_PER_HOUR;
 	double timestep_width = 1.0 * HOURS_PER_DAY / day_length;
 	result.timestep = round_to_nearest_multiple(hour, timestep_width);
+	if (result.timestep >= day_length) {
+		result.timestep = 0;
+		result.day++;
+		if (result.day >= get_year_len(result.year, has_leap_years)) {
+			result.day = 0;
+			result.year++;
+		}
+	}
 
 	return result;
 }

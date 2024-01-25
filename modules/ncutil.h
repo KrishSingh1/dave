@@ -210,6 +210,24 @@ specified aggregator function.
 std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
 	, double (*aggregator)(const double *, size_t));
 
+/*
+Find the index of the specified element in an array. Return -1 if not found.
+
+@param needle: The element to search for.
+@param haystack: The array to be searched.
+@param n: Size of the array.
+*/
+size_t index_of_double(double needle, double *haystack, size_t n);
+
+/*
+Find the index of the specified element in an array. Return -1 if not found.
+
+@param needle: The element to search for.
+@param haystack: The array to be searched.
+@param n: Size of the array.
+*/
+size_t index_of_float(float needle, float *haystack, size_t n);
+
 #endif // HAVE_NETCDF
 
 #endif // LPJ_GUESS_NCUTIL_H

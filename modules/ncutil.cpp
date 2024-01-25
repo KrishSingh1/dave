@@ -46,20 +46,33 @@ bool floats_equal(double x, double y) {
 	return negligible(abs(x - y));
 }
 
+size_t index_of_double(double needle, double *haystack, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (equal(needle, haystack[i])) {
+			return i;
+		}
+	}
+}
+
+size_t index_of_float(float needle, float *haystack, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (fequal(needle, haystack[i])) {
+			return i;
+		}
+	}
+}
+
 double round_to_nearest_multiple(double x, double y) {
+	// 9, 24 => 0
+	// 9, 3  => 3
+	// 10, 3 => 3
+	// 11, 3 => 4
 	if (floats_equal(x, 0) || floats_equal(y, 0)) {
 		return 0;
 	}
 
-	double ratio = y / x;
-	double upper = y * ceil(ratio);
-	double lower = y * floor(ratio);
-	double midpoint = (upper + lower) / 2;
-
-	if (x >= midpoint) {
-		return upper;
-	}
-	return lower;
+	double z = x / y;
+	return (int)(z < 0 ? z - 0.5 : z + 0.5);
 }
 
 bool is_start_of_year(timepoint date, int day_length) {

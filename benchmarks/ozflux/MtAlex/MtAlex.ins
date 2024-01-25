@@ -1,0 +1,19 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! MtAlex master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess crujra-2022 gridcell: MtAlex"
+
+file_met_forcing        "../forcing/met/MtAlex.nc"
+file_met_spinup         "../forcing/cru/MtAlex.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+import                  "../cru.ins"

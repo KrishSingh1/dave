@@ -1695,6 +1695,10 @@ public:
 	bool fallow;
 	/// Grazing intensity (daily grazing fraction)
 	double grazeintens;
+	/// Mowing date (julian day)
+	int mowdate;
+	/// Mowing intensity (fraction of biomass removed on mowing date)
+	double mowintens;
 
 	ManagementType() {
 
@@ -1771,6 +1775,8 @@ public:
 		tillage_fact = 1.0;
 		fallow = false;
 		grazeintens = 0.0;
+		mowdate = 0;
+		mowintens = 0.0;
 	}
 
 	bool is_managed() {

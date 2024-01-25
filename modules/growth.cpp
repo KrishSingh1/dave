@@ -4018,7 +4018,7 @@ void growth_daily_grass_dave(Patch& patch) {
 	mass_balance.check(vegetation);
 
 	// Management
-	// Grazing
+	// Grazing and mowing
 	grazing_daily_dave(vegetation);
 
 	// yearly reporting. 

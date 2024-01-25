@@ -23,11 +23,69 @@ void grazing_daily_dave(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		// what do we do? grazing or mowing?
+		if (!(ifdailygrass && indiv.pft.is_grass())) {
+			return;
+		}
 
-		// then call second part of grazing_daily as a fucntion with return fractions as input
-		//grazing_daily(indiv);
+		Patch& patch = indiv.vegetation.patch;
+		Stand& stand = patch.stand;
+
+		if (stand.landcover != PASTURE) {
+			return;
+		}
+
+		// Rate of grazing each day for landcover pasture functionality, fraction
+		double grazing_rate = stlist[stand.stid].get_management().grazeintens;
+		double mowing_date = stlist[stand.stid].get_management().mowdate;
+		double mowing_rate = stlist[stand.stid].get_management().mowintens;
+
+		double frac_creturn = 0.5;
+		double frac_nreturn = 0.75;
+
+		// grazing
+		if (grazing_rate > 0.0) {
+			remove_grass(indiv,grazing_rate,frac_creturn,frac_nreturn);
+		}
+
+		// mowing
+		if (date.day == mowing_date) {
+			frac_creturn = 0.0;
+			frac_nreturn = 0.0;
+			remove_grass(indiv,mowing_rate,frac_creturn,frac_nreturn);
+		}
+
 	}
+
+}
+
+// Basic DAVE function for grazing and mowing (removes fraction of grass and returns part of it as litter)
+void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn) {
+
+		Patch& patch = indiv.vegetation.patch;
+
+	    if (indiv.lai < 0.05) {
+			return;
+		}
+
+		// Carbon
+		double cmass_harvest = indiv.get_cmass_leaf() * frac_remove;
+		indiv.cmass_leafs[green] -= cmass_harvest;
+
+		// Nitrogen
+		double nmass_harvest = indiv.get_nmass_leaf() * frac_remove;
+		indiv.nmass_leafs[green] -= nmass_harvest;
+
+		// Depending on the management type, part of C and N returns as litter (e.g. manure)
+		double cmass_return = cmass_harvest * frac_creturn;
+		double nmass_return = nmass_harvest * frac_nreturn;
+
+		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest - cmass_return);
+		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest - nmass_return);
+
+		patch.soil.sompool[SURFMETA].cmass += cmass_return * 0.25;
+		patch.soil.sompool[SURFSTRUCT].cmass += cmass_return * 0.75;
+		patch.soil.sompool[SURFMETA].nmass += nmass_return * 0.5;
+		patch.soil.sompool[SURFSTRUCT].nmass += nmass_return * 0.5;
 }
 
 

@@ -613,9 +613,11 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 		std::vector<double> nhx_subdaily = ndep_nhx->read(lon, lat, year, 0, year_len);
 		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
 
-		// Aggregate to daily timestep (sum of subdaily values).
-		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, sum);
-		std::vector<double> noy = aggregate(noy_subdaily, year_len, sum);
+		// Aggregate to daily timestep. Input units are mgN/m2/day, so we take
+		// the mean rate over the course of a day, and that will give us the
+		// amount of N/m2 deposited in a day.
+		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, mean);
+		std::vector<double> noy = aggregate(noy_subdaily, year_len, mean);
 
 		// Copy data into the nh4_dep and no3_dep arrays.
 		// nhx = nh4, noy = no3a

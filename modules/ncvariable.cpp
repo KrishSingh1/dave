@@ -407,17 +407,31 @@ int NCVariable::index_of(double x, int var_id) const {
 	// Get the length of the dimension.
 	size_t length = get_dimension_length(id_dim);
 
-	// Read all data from this variable along its only dimension.
-	std::vector<double> data(length);
-	status = nc_get_var_double(id_file, var_id, &(data.front()));
-	handle_nc_error(status, "Failed to read data for %s"
+	nc_type var_type;
+	status = nc_inq_vartype(id_file, var_id, &var_type);
+	handle_nc_error(status, "Failed to get type of variable %s"
 	, GuessNC::get_variable_name(id_file, var_id).c_str());
 
-	// Finally we can search the data for the specified input value (x).
-	for (int i = 0; i < length; i++) {
-		if (floats_equal(x, data[i])) {
-			return i;
-		}
+	if (var_type == NC_DOUBLE) {
+		// Read all data from this variable along its only dimension.
+		std::vector<double> data(length);
+		status = nc_get_var_double(id_file, var_id, &(data.front()));
+		handle_nc_error(status, "Failed to read data for %s"
+		, GuessNC::get_variable_name(id_file, var_id).c_str());
+
+		// Finally we can search the data for the specified input value (x).
+		return index_of_double(x, &(data.front()), data.size());
+	}
+
+	if (var_type == NC_FLOAT) {
+		// Read all data from this variable along its only dimension.
+		std::vector<float> data(length);
+		status = nc_get_var_float(id_file, var_id, &(data.front()));
+		handle_nc_error(status, "Failed to read data for %s"
+		, GuessNC::get_variable_name(id_file, var_id).c_str());
+
+		// Finally we can search the data for the specified input value (x).
+		return index_of_float(x, &(data.front()), data.size());
 	}
 
 	// Not found.

@@ -15,6 +15,22 @@
 #include "management.h"
 #include "driver.h"
 
+
+// Grazing and mowing routines for DAVE
+void grazing_daily_dave(Vegetation& vegetation) {
+
+	// Loop through individuals
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+
+		// what do we do? grazing or mowing?
+
+		// then call second part of grazing_daily as a fucntion with return fractions as input
+		//grazing_daily(indiv);
+	}
+}
+
+
 /// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
 void grazing_daily(Individual& indiv) { // DW_COMMENT
 

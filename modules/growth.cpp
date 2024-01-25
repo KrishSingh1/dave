@@ -3372,7 +3372,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.002;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.0018;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 8.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -4019,7 +4019,7 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	// Management
 	// Grazing
-	//grazing_daily(indiv)
+	grazing_daily_dave(vegetation);
 
 	// yearly reporting. 
 	// TODO: Shouldn't be here. Check if needed at all.

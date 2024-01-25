@@ -66,6 +66,9 @@ void crop_rotation(Stand& stand);
 /// Grazing function for pasture
 void grazing_daily(Individual& indiv);
 
+/// Grazing and mowing for DAVE
+void grazing_daily_dave(Vegetation& vegetation);
+
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
 

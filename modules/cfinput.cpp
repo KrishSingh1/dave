@@ -1014,7 +1014,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
 			// compute relative humidity for BLAZE
 			for (int i = 0; i < date.year_length(); ++i) {
-						drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
+						drelhum[i] = calc_relative_humidity(dtemp[i]-K2degC, dspecifichum[i], dpres[i]);
 			}
 		}
 		else if (firemodel == BLAZE && !cf_relhum) {

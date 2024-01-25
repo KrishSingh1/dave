@@ -703,7 +703,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	vpd_units[0] = "kPa";
 
 	std::vector<xtring> ndep_units(1);
-	ndep_units[0] = "mgN/m2/day";
+	ndep_units[0] = "kgN/m2/day";
 
 	if (nsteps_day >= SIZE_MAX) {
 		throw_xtring("nsteps_day is too large: %d", nsteps_day);

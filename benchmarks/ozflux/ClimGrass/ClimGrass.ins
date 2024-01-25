@@ -7,7 +7,6 @@
 title "LPJ-Guess ozflux site: CapeTribulation"
 
 file_met_forcing        "../forcing/met/CG_C0T0D0_met.nc"
-file_met_spinup         "../forcing/cru/CG_C0T0D0_met.nc"
 
 ! Gridlist
 file_gridlist    	    "gridlist.txt"
@@ -32,8 +31,8 @@ variable_tmin                "" ! "tmin" ! Empty string means it will be calcula
 
 ! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
 ! If not set, file_ndep must be set.
-variable_ndep_nhx            ""
+variable_ndep_nhx            "Ndep_nhx"
 
 ! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
 ! If not set, file_ndep must be set.
-variable_ndep_noy            ""
+variable_ndep_noy            "Ndep_noy"

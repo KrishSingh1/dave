@@ -65,7 +65,8 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
 
 	// Annual stand-level outputs.
-	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.anpp; }, "Fraction of the gridcell occupied by each stand", true);
+	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
+	add_stand_output("file_dave_stand_type"          , ANNUAL, "type", [](const Stand &s) { return (double)s.landcover; }, "Stand landcover types");
 
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");

@@ -597,8 +597,8 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
-	seasonality_columns += ColumnDescriptor("insolation", 10, 7);	//JN
-	seasonality_columns += ColumnDescriptor("radiation",  12, 4);	//JN
+	seasonality_columns += ColumnDescriptor("insolation", 12, 4);	//JN
+	seasonality_columns += ColumnDescriptor("radiation",  14, 2);	//JN
 
 	// SPECIESHEIGHTS
 	ColumnDescriptors speciesheights_columns;

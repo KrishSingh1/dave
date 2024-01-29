@@ -929,6 +929,12 @@ public:
 	 */
 	insoltype instype;
 
+	/// annual insolation counter
+	double ainsol;		//JN
+
+	/// annual insolation counter
+	double arad;		//JN
+
 	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
 

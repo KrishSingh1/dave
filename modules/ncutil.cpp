@@ -52,6 +52,7 @@ size_t index_of_double(double needle, double *haystack, size_t n) {
 			return i;
 		}
 	}
+	return -1;
 }
 
 size_t index_of_float(float needle, float *haystack, size_t n) {
@@ -60,6 +61,7 @@ size_t index_of_float(float needle, float *haystack, size_t n) {
 			return i;
 		}
 	}
+	return -1;
 }
 
 double round_to_nearest_multiple(double x, double y) {

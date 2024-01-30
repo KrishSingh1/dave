@@ -572,7 +572,7 @@ void CommonOutput::define_output_tables() {
 		wflux_columns += ColumnDescriptor("Added", 8, 1);
 	}
 	wflux_columns += ColumnDescriptor("Intcep", 8, 1);
-	wflux_columns += ColumnDescriptor("AET", 8, 1);
+	wflux_columns += ColumnDescriptor("Trans", 8, 1);
 	wflux_columns += ColumnDescriptor("Evap", 8, 1);
 	wflux_columns += ColumnDescriptor("Rsurf", 8, 1);
 	wflux_columns += ColumnDescriptor("Rdrain", 8, 1);

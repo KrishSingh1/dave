@@ -106,6 +106,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_snow_c", &file_daily_snow_c, 300, "Daily snow heat capacity output.");
 
 	declare_parameter("file_daily_temp", &file_daily_temp, 300, "Daily air, snow and soil temperature output.");
+	declare_parameter("file_daily_wcont", &file_daily_wcont, 300, "Daily wcont output.");
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
 
@@ -332,6 +333,13 @@ void MiscOutput::define_output_tables() {
 		}
 	}
 
+	// Create snow and soil layer columns
+	ColumnDescriptors soillyr_columns;
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+		sprintf(lyr_nr, "soil%d", lyr);
+		soillyr_columns += ColumnDescriptor(lyr_nr, 8, 4);
+	}
+
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
 
@@ -427,6 +435,8 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_snow_c,               file_daily_snow_c,              daily_snow_c_columns);
 
 	create_output_table(out_daily_temp,                 file_daily_temp,                snowsoillyr_columns);
+
+	create_output_table(out_daily_wcont,                file_daily_wcont,               soillyr_columns);
 
 	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
 
@@ -1190,13 +1200,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
+	if (date.year < nyear_spinup) {
+		return;
+	}
+
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), CTDAY, date.day + 1);
-
-	if (date.year > nyear_spinup) {
-		return;
-	}
 
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
@@ -1210,6 +1220,9 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double snow_k[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_c[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_frac[NSNOWLAYERS_MAX] = { 0.0 };
+
+	double wmass[NSOILLAYERS_MAX] = { 0.0 };
+	double wsats[NSOILLAYERS_MAX] = { 0.0 };
 
 	double soil_temp[NSOILLAYERS_MAX+NPADLAYERS] = { 0.0 };
 
@@ -1251,6 +1264,18 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				}
 			}
 
+			for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+
+				if (lyr < soilcolumn.nsoillayers) {
+					wmass[lyr] += soilcolumn.soillayers[lyr].wmass * to_gridcell_average;
+					wsats[lyr] += soilcolumn.soillayers[lyr].wsats * to_gridcell_average;
+				}
+				else {
+					wmass[lyr] = -999.9 * to_gridcell_average;
+					wsats[lyr] = -999.9 * to_gridcell_average;
+				}
+			}
+
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
@@ -1286,8 +1311,16 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	}
 
 	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX+NPADLAYERS; lyr++) {
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
+	}
+
+	// Soil water
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+		if (wmass[lyr] > 0.0)
+			outlimit_misc(out, out_daily_wcont, wmass[lyr] / wsats[lyr]);
+		else
+			outlimit_misc(out, out_daily_wcont, 0.0);
 	}
 }
 

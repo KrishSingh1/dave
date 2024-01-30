@@ -57,7 +57,7 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
 	// Snowfall, precipitation or snowmelt 
-	soilcolumn.snow.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
+	soilcolumn.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
 
 	// Update snow density after mechanical compaction
 	soilcolumn.snow.compaction(soilcolumn.patch, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);

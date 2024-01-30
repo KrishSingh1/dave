@@ -146,7 +146,7 @@ typedef enum {NO, NH4, NO3} n_pref_type;
 
 /// Soil property types
 typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT,
-WSATS, AWC, WP, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
+WSATS, AWC, WP, KW_MAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, AFLITTERINPUT, ACLITTERINPUT,
 VOL_ORG, VOL_MIN, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
@@ -4107,14 +4107,15 @@ public:
 	/// Update snow water holding capacity
 	void update_whc();
 
+	// Update snow depths
+	void update_depths();
+
 	/// Reduce snowpack to its maximum depth, excess goes to runoff
 	void reduce_snowpack(Patch& patch, double depth_reduction);
 
 	/// Redistribute snow when a non-overfull layer increases/decreases due to melt or compaction
-	void redist_layers(double snowpack_depth, double snowfall_depth = 0.0, double snowfall_imass = 0.0, double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
-
-	/// Snow or rainfall, and melt if simple snow scheme is used
-	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
+	void redist_layers(double snowpack_depth, double& wmass_stand, double& imass_stand, double temp_stand, double snowfall_depth = 0.0, double snowfall_imass = 0.0,
+		double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
 
 	/// Snow accumulation
 	void snowfall(double airT, double& prec, double u10);
@@ -4126,7 +4127,10 @@ public:
 	void phase_change(bool& updated);
 
 	/// Soak snowpack with water
-	void soak_snowpack(double& wmass_stand);
+	void soak_snowpack(double& wmass_stand, double& imass_stand, double temp_stand);
+
+	/// Snow water over water holding capacity
+	double wmass_excess();
 
 	/// Snow compaction
 	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);
@@ -4554,6 +4558,8 @@ public:
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
 	double ncont(grouppooltype group = GALL);
+	/// Water content of standing water
+	double wcont_stand();
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
@@ -4588,9 +4594,13 @@ public:
 	double var_depth_ccont(double depth_start, double depth_end, grouppooltype group = GALL);
 	/// Returns the value of soil N within a certain depth interval
 	double var_depth_ncont(double depth_start, double depth_end, grouppooltype group = GALL);
+	/// Determine snow or rainfall, and melt if simple snow scheme is used
+	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
+	/// Add snowfall
+	void snowfall(double airT, double& prec, double u10);
 	/// Calculate surface evaporation, infiltration and runoff
 	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
-		double imass_infilt, double wsats_infilt, double imp_ice, double fevap, double& qflx_evap, 
+		double imass_infilt, double wsats_infilt, double imp_ice, double Kw_max, double fevap, double& qflx_evap, 
 		double& qflx_surf_runoff, double& qflx_in_surf, double& qflx_infilt, double& qflx_stand_drain); // DW_COMMENT
 	/// Update matric potential
 	void update_matric_potential();
@@ -4669,7 +4679,7 @@ public:
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
 	/// Calculate standing water and ice
-	void phase_change_stand(bool& updated);
+	void phase_change_stand();
 	/// Calculate water and ice for each layer
 	void phase_change();
 	/// Calculate thaw depth

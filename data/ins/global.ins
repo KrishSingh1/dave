@@ -155,6 +155,7 @@ file_mburned_area_out "monthly_burned_area.out"
 !file_daily_snow_d "dsnow_d.out"
 !file_daily_snow_c "dsnow_c.out"
 !file_daily_temp "dtemp.out"
+!file_daily_wcont "dwcont.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! RUN PARAMETERS AND OPTIONS
@@ -213,7 +214,7 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-depth_soil 10000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)

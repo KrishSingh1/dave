@@ -1162,7 +1162,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double irrigation_gridcell = 0.0;
 	double intercept_gridcell = 0.0;
 	double evap_gridcell = 0.0;
-	double aet_gridcell = 0.0;
+	double tran_gridcell = 0.0;
 	double dens_gridcell = 0.0;
 	double firert_gridcell = 0.0;
 	double burned_area_gridcell = 0.0;
@@ -1735,7 +1735,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI) * to_gridcell_average;
 			intercept_gridcell += fluxes.get_annual_flux(Fluxes::WINTERCEP) * to_gridcell_average;
 			evap_gridcell += fluxes.get_annual_flux(Fluxes::WEVAP) * to_gridcell_average;
-			aet_gridcell += fluxes.get_annual_flux(Fluxes::WAET) * to_gridcell_average;
+			tran_gridcell += fluxes.get_annual_flux(Fluxes::WTRAN) * to_gridcell_average;
 
 			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
 			imass_snow_gridcell += snow.imass() * to_gridcell_average;
@@ -2001,7 +2001,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			for (m=0;m<12;m++) {
 
 				mpet[m] += fluxes.get_monthly_flux(Fluxes::WPET, m) * to_gridcell_average;
-				maet[m] += fluxes.get_monthly_flux(Fluxes::WAET, m) * to_gridcell_average;
+				maet[m] += fluxes.get_monthly_flux(Fluxes::WTRAN, m) * to_gridcell_average;
 				mevap[m] += fluxes.get_monthly_flux(Fluxes::WEVAP, m) * to_gridcell_average;
 				mintercep[m] += fluxes.get_monthly_flux(Fluxes::WINTERCEP, m) * to_gridcell_average;
 				mrunoff[m] += (fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
@@ -2225,18 +2225,18 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out, out_wflux, -wetland_wmass_added_gridcell);
 	}
 	outlimit(out, out_wflux, intercept_gridcell);
-	outlimit(out, out_wflux, aet_gridcell);
+	outlimit(out, out_wflux, tran_gridcell);
 	outlimit(out, out_wflux, evap_gridcell);
 	outlimit(out, out_wflux, surfrunoff_gridcell);
 	outlimit(out, out_wflux, drainrunoff_gridcell);
 	outlimit(out, out_wflux, baserunoff_gridcell);
 	if (run_landcover) {
-		outlimit(out, out_wflux, intercept_gridcell + aet_gridcell + evap_gridcell + 
+		outlimit(out, out_wflux, intercept_gridcell + tran_gridcell + evap_gridcell + 
 			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - 
 			(gridcell.climate.aprec + irrigation_gridcell + wetland_wmass_added_gridcell));
 	}
 	else {
-		outlimit(out, out_wflux, intercept_gridcell + aet_gridcell + evap_gridcell +
+		outlimit(out, out_wflux, intercept_gridcell + tran_gridcell + evap_gridcell +
 			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - gridcell.climate.aprec);
 	}
 

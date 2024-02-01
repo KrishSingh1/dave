@@ -1327,8 +1327,8 @@ public:
 		WEVAP,
 		/// Potential evapotranspiration
 		WPET,
-		/// Actual evapotranspiration
-		WAET,
+		/// Transpiration
+		WTRAN,
 		/// Interception
 		WINTERCEP,
 		/// Irrigation water
@@ -4059,7 +4059,7 @@ struct Snowlayer : public Serializable {
 	void update_whc();
 
 	/// Phase change
-	void phase_change(bool& updated, bool toplayer = false);
+	void phase_change(bool toplayer = false);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -4107,24 +4107,18 @@ public:
 	/// Update snow water holding capacity
 	void update_whc();
 
-	// Update snow depths
-	void update_depths();
-
 	/// Reduce snowpack to its maximum depth, excess goes to runoff
 	void reduce_snowpack(Patch& patch, double depth_reduction);
 
 	/// Redistribute snow when a non-overfull layer increases/decreases due to melt or compaction
-	void redist_layers(double snowpack_depth, double& wmass_stand, double& imass_stand, double temp_stand, double snowfall_depth = 0.0, double snowfall_imass = 0.0,
-		double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
-
-	/// Snow accumulation
-	void snowfall(double airT, double& prec, double u10);
+	void redist_layers(double snowpack_depth, double snowfall_depth = 0.0, 
+		double snowfall_imass = 0.0, double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
 
 	/// Rain melts snowpack
 	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
 
 	/// Update snow fractions
-	void phase_change(bool& updated);
+	void phase_change();
 
 	/// Soak snowpack with water
 	void soak_snowpack(double& wmass_stand, double& imass_stand, double temp_stand);

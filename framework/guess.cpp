@@ -736,7 +736,7 @@ double Patch::wflux() {
 
 	// Outflux
 	wflux += fluxes.get_annual_flux(Fluxes::WINTERCEP);
-	wflux += fluxes.get_annual_flux(Fluxes::WAET);
+	wflux += fluxes.get_annual_flux(Fluxes::WTRAN);
 	wflux += fluxes.get_annual_flux(Fluxes::WEVAP);
 	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF);
 	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN);

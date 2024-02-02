@@ -734,7 +734,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	if (variable_tmax != "" && variable_exists(variable_tmax)) {
 		tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
 	} else if (day_length < 2) {
-		fail("Variable '%s' does not exist in %s and timestep is daily", variable_tmax, netcdf_file);
+		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
 	} else {
 		tmax.release();
 		tmax = NULL;
@@ -742,7 +742,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	if (variable_tmin != "" && variable_exists(variable_tmin)) {
 		tmin = create_variable(variable_tmin, bounds_temp, temp_units, true);
 	} else if (day_length < 2) {
-		fail("Variable '%s' does not exist in %s and timestep is daily", variable_tmax, netcdf_file);
+		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
 	} else {
 		tmin.release();
 		tmin = NULL;

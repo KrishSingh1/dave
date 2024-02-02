@@ -809,6 +809,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	climate.aprec += climate.prec;
+	climate.ainsol += climate.insol;	//JN
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
@@ -901,9 +902,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
 	
-		// Convert the sums of insolation and radiation into averages
-		climate.ainsol /= date.year_length();	//JN
-		climate.arad /= date.year_length();		//JN
 	}
 
 	// Calculate climate seasonality
@@ -1280,9 +1278,6 @@ void daylengthinsoleet(Climate& climate) {
 			net_coeff = 1 - BETA; 			// albedo correction
 		}
 		climate.rad = climate.insol * net_coeff * averaging_period;
-
-		climate.ainsol += climate.insol;	//JN
-		climate.arad += climate.rad;
 
 		// If using diurnal data with SWRAD or SWRAD_TS insolation type move
 		// the following if-clause outside and below this if-else clause.

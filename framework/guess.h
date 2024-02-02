@@ -73,6 +73,9 @@ typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 /// Names of leaf pools in DAVE version
 typedef enum {green, brown} leafpool;
 
+/// Array size of mowdates
+const int num_mowdates = 5;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -1696,7 +1699,7 @@ public:
 	/// Grazing intensity (daily grazing fraction)
 	double grazeintens;
 	/// Mowing date (julian day)
-	int mowdate;
+	int mowdates[num_mowdates];
 	/// Mowing intensity (fraction of biomass removed on mowing date)
 	double mowintens;
 
@@ -1775,7 +1778,10 @@ public:
 		tillage_fact = 1.0;
 		fallow = false;
 		grazeintens = 0.0;
-		mowdate = 0;
+		for (int n=0;n<num_mowdates;n++) {
+			mowdates[n] = 0;
+		}
+
 		mowintens = 0.0;
 	}
 

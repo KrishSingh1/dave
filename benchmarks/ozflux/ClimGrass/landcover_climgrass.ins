@@ -16,36 +16,10 @@ param "file_Nfert_st" (str "")
 param "file_cutinterval_st" (str "")
 param "file_firstmanageyear_st" (str "")
 
-!///////////////////////////////////////////////////////////////////////////////////////
-! Landcover Diagnostics/Outputs
-!///////////////////////////////////////////////////////////////////////////////////////
-
-printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
-
-!print_anpp_stand 0
-!print_lai_stand 1
-!print_cmass_stand 1
-!print_cmass_mort_stand 0
-!print_cmass_wood_stand 0
-!print_cmass_wood_harv_stand 0
-!print_height_stand 0
-!print_diam_stand 0
-!print_dens_stand 0
-!print_agestruct_stand 0
-!print_diamstruct_stand 0
-!print_diamstruct_cmass_stand 0
-
-printstandtypes 0
-!print_cmass_pft_st 1
-!print_diamstruct_cmass_st 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////////////
-
-npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
-reduce_all_stands 0			! Whether to reduce equal percentage of all stands of a stand type at land cover change
-age_limit_reduce 15			! Minimum age of stands to reduce at land cover change
 
 run_landcover 1				! Whether to use (and change) landcover fractions (1) or not (0)
 
@@ -57,163 +31,14 @@ run_natural 1				! Whether to simulate natural vegetation (1) or not (0)
 run_peatland 0				! Whether to simulate peatland (1) or not (0)
 run_barren 0				! Whether to simulate barren land (1) or not (0)
 
-ifslowharvestpool 1			! If a slow harvested product pool is included in patchpft.
-ifprimary_lc_transfer 0			! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
-ifprimary_to_secondary_transfer 0	! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
-					! transfer input file (1). or not (0)
-harvest_secondary_to_new_stand 1  	! Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality) (1). or not (0)
-transfer_level 2			! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
-iftransfer_to_new_stand 0		! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
-suppress_disturbance_in_forestry_stands 0 ! Whether to suppress disturbance and fire in forestry stands created as NATURAL stands in transfer_to_new_stand_from_stand() 
-					  ! or transfer_to_new_stand_from_st_lc() (eg. LUH2 input)
-
-harvest_burn_thin_trees 0
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR MANAGEMENT TYPES
-!///////////////////////////////////////////////////////////////////////////////////////
-
-group "crop_management" (
-
-	planting_system "monoculture"
-)
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR STAND TYPES
-!///////////////////////////////////////////////////////////////////////////////////////
-
-group "common_stand" (
-
-	intercrop "nointercrop"
-)
-
-group "crop_stand" (
-
-	landcover "cropland"
-	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
-	planting_system "monoculture"
-	hydrology "rainfed"
-	tillage_fact 2.0
-)
-
-st "Natural" (
-
-	common_stand
-	stinclude 1
-	landcover "natural"
-	naturalveg "all"
-)
-
-st "Urban" (
-
-	common_stand
-	stinclude 1
-	landcover "urban"
-)
-
-st "Peatland" (
-
-	common_stand
-	stinclude 1
-	landcover "peatland"
-)
-
 st "Pasture" (
 
 	common_stand
 	stinclude 1
 	landcover "pasture"
 	grazeintens 0.0
-	mowdates 200 -1 -1 -1 -1
-	mowintens 0.8
+	mowdates 200 250 200 200 200
+	mowintens 0.5
 
 )
 
-st "Barren" (
-
-	common_stand
-	stinclude 1
-	landcover "barren"
-)
-
-st "Forest" (
-
-	common_stand
-	stinclude 1
-	landcover "forest"
-	naturalveg "all"		! Use natural pft:s
-	harvest_system "continuous"
-	suppress_fire 1
-	suppress_disturbance 1
-	res_outtake_twig_thin 0.4
-	res_outtake_coarse_root_thin 0
-)
-
-! This is an example of a stand in which only TeBE and TrBE are allowed to
-! establish.
-!group "monoculture" (
-!	! "Standard" forest parameters - in reality, it would be better to make
-!	! "Forest" a group and inherit these parameters.
-!	common_stand
-!	stinclude 1
-!	landcover "forest"
-!	naturalveg "all"		! Use natural pft:s
-!	harvest_system "continuous"
-!	suppress_fire 1
-!	suppress_disturbance 1
-!	res_outtake_twig_thin 0.4
-!	res_outtake_coarse_root_thin 0
-!
-!	reestab "none"
-!
-!	! Ignore bioclimatic limits for establishment
-!	relaxed_establishment 1
-!
-!	! Only specified PFTs (below) may establish here
-!	planting_system "selection"
-!
-!	! No stochastic mortality
-!	stochmort 0
-!
-!	! No stochastic establishment
-!	stochestab 0
-!
-!	! Force disturbance and then establishment of the specified PFTs this year.
-!	firstmanageyear 1950
-!
-!	! Kill grass at clear cut
-!	killgrass_at_cc 1
-!
-!	! Fertilisation?
-!	nfert 0.02
-!)
-!
-!st "BroadleafForest" (
-!	monoculture
-!	stinclude 1
-!	harvest_system "none"
-!	set_planting_density 1
-!	plantdensity "1000 1000"
-!
-!	! Only TeBE and TrBE are allowed to establish in this stand.
-!	selection "TeBE TrBE"
-!)
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR PFTS
-!// Run GUESS with -help option for list of keywords and their meanings
-!///////////////////////////////////////////////////////////////////////////////////////
-
-!pft "C3G_pas" (
-!	C3G
-!	landcover "pasture"
-!	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
-!	res_outtake 0.0			! not used by crop grass
-!)
-!
-!pft "C4G_pas" (
-!	C4G
-!	landcover "pasture"
-!	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
-!	res_outtake 0.0			! not used by crop grass
-!)

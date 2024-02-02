@@ -1779,9 +1779,8 @@ public:
 		fallow = false;
 		grazeintens = 0.0;
 		for (int n=0;n<num_mowdates;n++) {
-			mowdates[n] = 0;
+			mowdates[n] = -1;
 		}
-
 		mowintens = 0.0;
 	}
 

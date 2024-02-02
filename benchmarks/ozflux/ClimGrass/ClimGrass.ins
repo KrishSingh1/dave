@@ -31,23 +31,31 @@ variable_tmin                "" ! "tmin" ! Empty string means it will be calcula
 
 ! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
 ! If not set, file_ndep must be set.
-!variable_ndep_nhx            "Ndep_nhx"
-variable_ndep_nhx            ""
+variable_ndep_nhx            "Ndep_nhx"
+!variable_ndep_nhx            ""
 
 ! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
 ! If not set, file_ndep must be set.
-!variable_ndep_noy            "Ndep_noy"
-variable_ndep_noy            ""
+variable_ndep_noy            "Ndep_noy"
+!variable_ndep_noy            ""
 
 has_leap_years 1
 
 ! Number of timesteps per day.
 nsteps_day            			48
 
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
+
 ! The first year after the spinup period. During spinup, all met data before
 ! this year is cycled. If not set, all available data will be cycled during the
 ! spinup.
 simulation_start_year       2014
+
+! ////////////////////////////////
+! Landcover information
+! ////////////////////////////////
+
+import "landcover_climgrass.ins"
 
 
 !///////////////////////////////////////////////////////////////////////////////

@@ -1258,7 +1258,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("mt1_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,
 					"When to start management 1 (if reverting from another mt (calendar year))");
 				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
-				declareitem("mowdates",pst->management.mowdates,0,364,num_mowdates,CB_NONE,"Mowing date (julian day)");
+				declareitem("mowdates",pst->management.mowdates,-1,364,num_mowdates,CB_NONE,"Mowing date (julian day)");
 				declareitem("mowintens",&pst->management.mowintens,0,1.0,1,CB_NONE,
 					"Mowing intensity (fraction of biomass removed on mowing date)");
 			}

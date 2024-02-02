@@ -54,6 +54,7 @@ void grazing_daily_dave(Vegetation& vegetation) {
 				frac_creturn = 0.0;
 				frac_nreturn = 0.0;
 				remove_grass(indiv,mowing_rate,frac_creturn,frac_nreturn);
+				break;
 			}
 		}
 
@@ -84,13 +85,28 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		double cmass_return = cmass_harvest * frac_creturn;
 		double nmass_return = nmass_harvest * frac_nreturn;
 
-		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest - cmass_return);
-		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest - nmass_return);
+		double cmass_lost = cmass_harvest - cmass_return;
+		double nmass_lost = nmass_harvest - nmass_return;
 
-		patch.soil.sompool[SURFMETA].cmass += cmass_return * 0.25;
-		patch.soil.sompool[SURFSTRUCT].cmass += cmass_return * 0.75;
-		patch.soil.sompool[SURFMETA].nmass += nmass_return * 0.5;
-		patch.soil.sompool[SURFSTRUCT].nmass += nmass_return * 0.5;
+		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_lost);
+		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_lost);
+
+		// indiv.ctolitter and indiv.ntolitter are only used for DAVE mass balance checks
+		indiv.ctolitter += cmass_harvest;
+		indiv.ntolitter += nmass_harvest;
+
+		double creturn_meta   = cmass_return * 0.25;
+		double creturn_struct = cmass_return * 0.75;
+		double nreturn_meta   = nmass_return * 0.5;
+		double nreturn_struct = nmass_return * 0.5;
+
+		patch.soil.sompool[SURFMETA].cmass += creturn_meta;
+		patch.soil.sompool[SURFSTRUCT].cmass += creturn_struct;
+		patch.soil.sompool[SURFMETA].nmass += nreturn_meta;
+		patch.soil.sompool[SURFSTRUCT].nmass += nreturn_struct;
+
+		assert(equal(cmass_harvest,cmass_return + cmass_lost));
+		assert(equal(nmass_harvest,nmass_return + nmass_lost));
 }
 
 

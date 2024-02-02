@@ -1270,16 +1270,22 @@ which, if allocated, would cause the C:N ratio to fall below cton_min) will be
 added into this variable. This must be initialised before calling this function.
 */
 void constrain_growth(double &cgrow, double &ngrow, double cton_min, double cton_max, double &creturn, double &nreturn) {
+	// When the upper/lower C:N limits are reached, only allow new growth to
+	// move the C:N ratio to within this fraction of the limits. If we don't
+	// have this limits, growth will move the C:N ratio exactly onto the limits,
+	// and rounding errors can then push the C:N ratio beyond the limits.
+	const double FGROWTH_MAX = 0.999;
+
 	if ( ngrow < (cgrow / cton_max)) {
 		// C:N ratio in new growth exceeds max C:N ratio.Limit C in new growth
 		// to the max C:N ratio and put the rest into creturn.
-		double cgrow_max = ngrow * cton_max;
+		double cgrow_max = ngrow * cton_max * FGROWTH_MAX;
 		creturn += cgrow - cgrow_max;
 		cgrow = cgrow_max;
 	} else if ( ngrow > (cgrow / cton_min) ) {
 		// N:C ratio in new growth exceeds max N:C ratio. Limit N in new growth
 		// to the max N:C ratio and put the rest into nreturn.
-		double ngrow_max = cgrow / cton_min;
+		double ngrow_max = FGROWTH_MAX * cgrow / cton_min;
 		nreturn += ngrow - ngrow_max;
 		ngrow = ngrow_max;
 	}

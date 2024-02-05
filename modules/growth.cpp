@@ -222,7 +222,7 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.2; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	double qgrowth = 1.25; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
@@ -3380,12 +3380,12 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.001;       // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 8.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.002;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 5.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 12.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
-	const double qwater_senesc = 1.0;  // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.01;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
+	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3417,11 +3417,10 @@ void senescence_grass(Individual &indiv) {
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
-	// TODO: improve formulation.
 	double senesc_ftemp = 0.0;
-	if (grass_temp < 0.0) {
+	if (grass_temp < indiv.pft.temp_dormancy) {
 		senesc_ftemp = temp_senesc * (0.0 - grass_temp);
-	} else if (grass_temp > 0.0) {
+	} else if (grass_temp > indiv.pft.temp_dormancy) {
 		senesc_ftemp = temp_senesc * (grass_temp - 25.0);
 	}
 

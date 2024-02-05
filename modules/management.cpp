@@ -36,7 +36,7 @@ void grazing_daily_dave(Vegetation& vegetation) {
 
 		// Rate of grazing each day for landcover pasture functionality, fraction
 		double grazing_rate = stlist[stand.stid].get_management().grazeintens;
-		double mowing_rate = stlist[stand.stid].get_management().mowintens;
+		double mowing_intensity = stlist[stand.stid].get_management().mowintens;
 
 		double frac_creturn = 0.5;
 		double frac_nreturn = 0.75;
@@ -50,10 +50,10 @@ void grazing_daily_dave(Vegetation& vegetation) {
 		for (int i=0; i<num_mowdates;i++) {
 			int mowing_date = stlist[stand.stid].get_management().mowdates[i];
 
-			if (date.day == mowing_date) {
+			if (date.day == mowing_date && mowing_intensity > 0.0) {
 				frac_creturn = 0.0;
 				frac_nreturn = 0.0;
-				remove_grass(indiv,mowing_rate,frac_creturn,frac_nreturn);
+				remove_grass(indiv,mowing_intensity,frac_creturn,frac_nreturn);
 				break;
 			}
 		}

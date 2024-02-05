@@ -120,6 +120,9 @@ const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
 // Deactivation energy for Vcmax, Jmax (kJ mol-1)
 const double HD = 200.0;
 
+// Exponents in soil water stress function (wscal^q)
+const double qs = 0.5;   // stomatal conductance
+const double qb = 1.0;   // biochemistry, including Rd
 
 /// -----------------------------------------------
 /// C4 photosynthesis parameters

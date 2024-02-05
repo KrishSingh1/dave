@@ -3385,7 +3385,7 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_dorm  = 8.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;  // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc = 0.01;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3421,8 +3421,8 @@ void senescence_grass(Individual &indiv) {
 	double senesc_ftemp = 0.0;
 	if (grass_temp < 0.0) {
 		senesc_ftemp = temp_senesc * (0.0 - grass_temp);
-	} else if (grass_temp > 35.0) {
-		senesc_ftemp = temp_senesc * (grass_temp - 35.0);
+	} else if (grass_temp > 0.0) {
+		senesc_ftemp = temp_senesc * (grass_temp - 25.0);
 	}
 
 	// Dormancy-induced

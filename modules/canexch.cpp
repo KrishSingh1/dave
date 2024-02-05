@@ -2907,7 +2907,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// Stomatal term (Medlyn et al. 2011)
 			// X needs to represent gs for CO2, hence no 1.6 factor
-    		double X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
+    		double X = divide(divide(1.0 + pow(ppft.wscal,qs) * g1, sqrt(max(vpd,0.1))), ca); 
 
 			// initialise cumulative LAI
 			double lai_cum_bottom = 0.0;
@@ -2961,7 +2961,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 
 					// Note: fphen_activity is always 1 for trees.
-					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
 					if (is_zero(apar_layer)) {
 						// Night
@@ -2975,7 +2975,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						double gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
 						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
 						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
@@ -3012,7 +3012,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
@@ -3028,7 +3028,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						// TODO: different temp dependency in C3 and C4 plants??
 						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
 						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
 						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 						jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.

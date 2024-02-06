@@ -141,8 +141,8 @@ DaveOutput::DaveOutput() {
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
-	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i]; }, "Soil water content (mm)", true, false);
-	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.wsats[i] / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
+	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
+	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
 	// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
 	// add_daily_patch_level_array_output("file_dave_cfluxes_pft", get_pft_flux_names(), (int)Fluxes::NPERPFTFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPFTFluxType)i, date.day) * G_PER_KG; }, "Daily PFT-level fluxes (g/m2/day)");
 	add_patch_array_output("file_dave_resp"          , DAILY, "resp", 1, get_er, "Daily patch-level ecosystem respiration (gC/m2/day)", true);

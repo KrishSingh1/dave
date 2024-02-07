@@ -329,26 +329,24 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
-				double grass_temp = indiv.vegetation.patch.soil.T_soil[7]; // Temperature of first soil layer
-				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
+				double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
 				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 				double wscal_actual = wscal_growth(wscal_mean);
 				double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 				// Changes in physiological activity due to changes in dormancy status
-				double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
 				double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
 
-				double tscal = (tscal_actual - tscal_crit) / denom_tscal;
+				double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
 				double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
-			
+
 				assert(tscal >= -1.0 && tscal <= 1.0);
 				assert(wscal >= -1.0 && wscal <= 1.0);
 
-				// TODO: should tscal and wscal interact? Multiplication?
-				double dphen_activity = min(tscal,wscal)*dphen_activity_max;
+				double dphen_activity = min(tscal,wscal) * dphen_activity_max;
 
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
 
@@ -2753,8 +2751,8 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass 
-	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() +
-						 indiv.cmass_repr + indiv.cmass_storage;
+	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf(); //+
+						 //indiv.cmass_repr + indiv.cmass_storage;
 	//double cmass_total = indiv.cmass_root + indiv.cmass_crown*0.2 + indiv.get_cmass_leaf();
 
 	// Factors determining growth demand
@@ -3380,12 +3378,12 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0045;        // Baseline senescence rate in the vegetative phase (d-1)
+	double senesc_base = 0.002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 5.0;     // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 12.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.03;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3835,7 +3833,7 @@ void sink_source_feedback(Individual& indiv) {
 	double const dmax_pslim = 0.02;
 
 	// TODO: revisit cexcess / dgpp
-	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0) {
+	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {
 		indiv.ps_sink_lim = max((1.0 - dmax_pslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
 	} 
 	else {

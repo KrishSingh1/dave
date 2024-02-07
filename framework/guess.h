@@ -4591,8 +4591,8 @@ public:
 	Historic<double, 5> wscal_5;
 	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
-	/// ten day record of air temperature. Used in DAVE daily grass growth for determination of dormancy.
-	Historic<double, 10> airtemp_10;
+	/// ten day record of temperature of upper soil layer. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 10> soiltemp_10;
 	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
 	Historic<double, 10> daylength_10;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days

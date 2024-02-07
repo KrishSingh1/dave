@@ -310,7 +310,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
     for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		Pft &pft = pftlist.getobj();
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
-		ppft.airtemp_10.add(climate.temp);
+		ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
 		ppft.daylength_10.add(climate.daylength);
 	}
 	
@@ -330,12 +330,12 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
 				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
-				double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
+				double grass_temp = indiv.vegetation.patch.soil.T_soil[7]; // Temperature of first soil layer
 				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
 				double wscal_actual = wscal_growth(wscal_mean);
-				double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 				// Changes in physiological activity due to changes in dormancy status
 				double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
@@ -3380,12 +3380,12 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 5.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 12.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.0045;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 5.0;     // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 12.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc = 0.03;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3427,7 +3427,7 @@ void senescence_grass(Individual &indiv) {
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
 	//if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
-	if (indiv.fphen_activity < 1.0 ) {
+	if (indiv.fphen_activity < 1.0 && indiv.growth_stage != vegetative) {
 
 		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 

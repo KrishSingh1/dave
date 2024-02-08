@@ -916,7 +916,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		double xmdtr[12];
 		double shift[12];
 		for ( int i=0; i<12; i++) {
-			xmdtr[i] = 0.5 * (mtmax[i] - mtmin[i]);
+			xmdtr[i] = mtmax[i] - mtmin[i];
 			shift[i] = 0.5 * (mtmax[i] + mtmin[i]) - mtemp[i];
 		}
 

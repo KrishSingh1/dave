@@ -95,6 +95,8 @@ compute cpool1961to1990.txt -i 'SumLitSoil=LitterC+SoilC' -o cpool1961to1990.sum
 gmap cpool1961to1990.sumLitSoil.txt -t 'Global Terrestrial Litter and Soil C pools sum, 1961-1990. Units: kg C/m2' -lon 1 -lat 2 -i "SumLitSoil" -legend common/legend_cmass_global.txt -portrait -o cpool_sumlitsoil.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
 describe_image cpool_sumlitsoil.jpg "Global Terrestrial Carbon: Sum of Litter and Soil Pools (1961-90 average)"
 
+# Cumulative period uptake
+
 compute cpool.out -n -o cpool_total.out -i Lon Lat Year Total
 compute cflux.out -n -o cflux_nee.out -i Lon Lat Year NEE
 balance -pool cpool_total.out -flux cflux_nee.out -start 1901 -end 2006 -matter C

@@ -268,35 +268,48 @@ double photo_growth(double daylength_diff) {
 
 // Development effects on relative growth rate.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
+void dev_growth(Individual &indiv, double frepr_storage) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
-		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
-		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.04);
+
+		indiv.fdev_growth *= (1.0 - (5.0 * frepr_storage * (1.0 - 4.0 * indiv.pft.reprfrac)));
 	
 	} else if (indiv.growth_stage == vegetative) {
 		
 		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
-        if (is_zero(indiv.fdev_growth - fdev_growth_min)){  // 'passive' vegetative
-        // check if there is enough water to resume vegetative growth
-        	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-        	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
+		if (!indiv.active_vegetative) {  // 'passive' vegetative
+        	if (is_zero(indiv.fdev_growth - fdev_growth_min)) {  
+        		// check if there is enough water to resume vegetative growth
+        		double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+        		double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
             
-        	double wscal = wscal_growth(wscal_mean);
+        		double wscal = wscal_growth(wscal_mean);
 
-            // only resume active vegetative growth if conditions are save to do so.
-            // TODO: check for temperature conditions if meaningful
-			// TODO: make sure there is no double-counting with fphen_activity!
-			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
+            	// only resume active vegetative growth if conditions are save to do so.
+            	// TODO: check for temperature conditions if meaningful
+				// TODO: make sure there is no double-counting with fphen_activity!
+				if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
 					indiv.fdev_growth *= 1.01;
+				}
+        		// conditions not good enough to resume vegetative growth.
+        		// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
+    		} else {
+				// TODO: increase according to conditions
+       			indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
+				if (is_zero(indiv.fdev_growth - 1.0)) {
+					indiv.active_vegetative = true;
+				}
 			}
-        	// conditions not good enough to resume vegetative growth.
-        	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
-    	} else {
-			// TODO: increase according to conditions
-       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
+		} else {   // 'active' vegetative
+
+			if (is_zero(1.0 - indiv.fphen_activity) && indiv.cgap_20.periodictrend(10) < 0.0) {
+
+				// TODO: adjust the tuning factor in a meaningful way
+				indiv.fdev_growth *= (1.0 - 12.0 * min(0.03,-indiv.cgap_20.periodictrend(10))); 
+
+			}
 		}
 	}
 }
@@ -367,7 +380,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60 && indiv.fdev_growth > 0.2){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -395,6 +408,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
 				   indiv.fdev_temp = 0.0;
+				   indiv.active_vegetative = false;
                 }
  
                 // flush reproductive tissue to seedbank.
@@ -2739,9 +2753,6 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
-	// Reduction of RGR in reproductive phase
-	const double fRGR_repr = 0.75;
-
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
@@ -2753,21 +2764,26 @@ double growth_demand(Individual& indiv) {
 	// Total biomass 
 	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf(); //+
 						 //indiv.cmass_repr + indiv.cmass_storage;
+	//double cmass_total = indiv.cmass_storage;
 	//double cmass_total = indiv.cmass_root + indiv.cmass_crown*0.2 + indiv.get_cmass_leaf();
+	
+	// Ratio of reproductive tissue to storage
+	// TODO: maybe better use cumulative one
+	double frepr_storage = indiv.cmass_repr_10.periodictrend(1) / max(indiv.cmass_storage,1.0e-9);
+
+	// Ratio of NPP to Storage gap
+	double tmp = equal(indiv.cstorage_max,indiv.cmass_storage) ? 1.0 : (indiv.cstorage_max - indiv.cmass_storage);
+	indiv.cgap_20.add(indiv.dnpp / tmp);
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, ftemp_growth, fRGR_repr);
+	dev_growth(indiv, frepr_storage);
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
-	// reduce growth demand under low storage (sink-source feedback)
-	// TODO: this feedback seems to be too strong --> reduce
-	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-	
 	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
 	growth_demand *= nscal_demand;
 
@@ -3378,7 +3394,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	double senesc_base = 0.002;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.003;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 5.0;     // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 12.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -3402,7 +3418,7 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.01 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.001 : 1.08;
 		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 
 	} else {

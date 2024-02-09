@@ -3082,6 +3082,8 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
+	/// fraction of reproductive tissue to carbon storage.
+	double frepr_storage;
 	/// boolean determining if vegetation is actively growing in the veg. phase
 	bool active_vegetative;
 	/// temperature factor used to determine onset of growth. 

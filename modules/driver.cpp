@@ -5,6 +5,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -1086,7 +1090,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 
 	double mdays = (double)date.ndaymonth[date.month];
-	soil.msnowdepth[date.month] += soil.dsnowdepth / mdays;
+	soil.msnowdepth[date.month] += soil.snowdepth() / mdays;
 	soil.mthaw[date.month] += soil.thaw / mdays;
 
 	// needed for fire

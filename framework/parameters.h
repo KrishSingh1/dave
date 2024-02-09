@@ -188,6 +188,8 @@ extern double f_denitri_max;
 /// Maximum fraction of NO2 converted to gaseus N
 extern double f_denitri_gas_max;
 
+// Mapping of text input file data in index file.
+extern bool map_text_file;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings

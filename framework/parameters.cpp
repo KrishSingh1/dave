@@ -9,6 +9,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -107,6 +111,7 @@ int nyear_spinup;
 bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
+bool map_text_file = true;
 
 xtring state_path;
 bool restart;
@@ -578,6 +583,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
+		declareitem("map_text_file", &map_text_file, 1, CB_NONE, "Whether to map text input file data in index file");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -1753,7 +1759,7 @@ void plib_callback(int callback) {
 				xtring pftname = st.rotation.nmanagements > 1 ? st.get_management(i).pftname : st.management.pftname;
 				if(pftname != "" && pftlist.getpftid(pftname) < 0) {
 					include = false;
-					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
+					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*) pftname);
 				}
 			}
 

@@ -3084,8 +3084,6 @@ public:
 	double fdev_growth;
 	/// fraction of reproductive tissue to carbon storage.
 	double frepr_storage;
-	/// boolean determining if vegetation is actively growing in the veg. phase
-	bool active_vegetative;
 	/// temperature factor used to determine onset of growth. 
     double fdev_temp;
 	/// development factor used for calculating senescence.
@@ -3193,8 +3191,6 @@ public:
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
-	/// 20-day record of NPP relative to 'storage gap' (kgC/m2/d)
-	Historic<double, 20> cgap_20;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)

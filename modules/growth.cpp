@@ -222,7 +222,7 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.25; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	double qgrowth = 1.15; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
@@ -274,43 +274,31 @@ void dev_growth(Individual &indiv, double frepr_storage) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		//indiv.fdev_growth *= (1.0 - (5.0 * frepr_storage * (1.0 - 4.0 * indiv.pft.reprfrac)));
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.05 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
+		// Alternatives: decrease slope and/or intercept with reprfrac!
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.2 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
 		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.05 * (1.0-indiv.pft.reprfrac) * frepr_storage)));
 	
 	} else if (indiv.growth_stage == vegetative) {
 		
 		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
-		if (!indiv.active_vegetative) {  // 'passive' vegetative
-        	if (is_zero(indiv.fdev_growth - fdev_growth_min)) {  
-        		// check if there is enough water to resume vegetative growth
-        		double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-        		double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
+        if (is_zero(indiv.fdev_growth - fdev_growth_min)) {  
+        	// check if there is enough water to resume vegetative growth
+        	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+        	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
             
-        		double wscal = wscal_growth(wscal_mean);
+        	double wscal = wscal_growth(wscal_mean);
 
-            	// only resume active vegetative growth if conditions are save to do so.
-            	// TODO: check for temperature conditions if meaningful
-				// TODO: make sure there is no double-counting with fphen_activity!
-				if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
-					indiv.fdev_growth *= 1.01;
-				}
-        		// conditions not good enough to resume vegetative growth.
-        		// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
-    		} else {
+            // only resume active vegetative growth if conditions are save to do so.
+            // TODO: check for temperature conditions if meaningful
+			// TODO: make sure there is no double-counting with fphen_activity!
+			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
+				indiv.fdev_growth *= 1.01;
+			}
+        	// conditions not good enough to resume vegetative growth.
+        	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
+ 			else {
 				// TODO: increase according to conditions
        			indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
-				if (is_zero(indiv.fdev_growth - 1.0)) {
-					indiv.active_vegetative = true;
-				}
-			}
-		} else {   // 'active' vegetative
-
-			if (is_zero(1.0 - indiv.fphen_activity) && indiv.cgap_20.periodictrend(10) < 0.0 && date.year > freenyears) {
-
-				// TODO: adjust the tuning factor in a meaningful way (higher number --> riskier lifestyle)
-				//indiv.fdev_growth *= (1.0 - 2.5 * min(0.03,-indiv.cgap_20.periodictrend(10))); 
-
 			}
 		}
 	}
@@ -382,7 +370,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && indiv.growth_stage_days > 60 && indiv.fdev_growth > 0.5){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -410,7 +398,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
 				   indiv.fdev_temp = 0.0;
-				   indiv.active_vegetative = false;
                 }
  
                 // flush reproductive tissue to seedbank.
@@ -2764,18 +2751,11 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass 
-	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf(); //+
-						 //indiv.cmass_repr + indiv.cmass_storage;
-	//double cmass_total = indiv.cmass_storage;
-	//double cmass_total = indiv.cmass_root + indiv.cmass_crown*0.2 + indiv.get_cmass_leaf();
+	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf();
 	
 	// Ratio of reproductive tissue to storage
 	// TODO: maybe better use cumulative one
 	indiv.frepr_storage = indiv.cmass_repr / max(indiv.cmass_storage,1.0e-9);
-
-	// Ratio of NPP to Storage gap
-	double tmp = equal(indiv.cstorage_max,indiv.cmass_storage) ? 1.0 : (indiv.cstorage_max - indiv.cmass_storage);
-	indiv.cgap_20.add(indiv.dnpp / tmp);
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
@@ -2787,10 +2767,11 @@ double growth_demand(Individual& indiv) {
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// feedback with storage
-
+	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+	
 
 	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
-	//growth_demand *= nscal_demand;
+	growth_demand *= nscal_demand;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -3399,12 +3380,12 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 5.0;     // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 12.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.0003;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 12.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 75.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.0;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3423,9 +3404,9 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.001 : 1.08;
+		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.01 * indiv.frepr_storage - 0.1 * indiv.pft.reprfrac)));
+		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.15 * indiv.frepr_storage - 0.1 * indiv.pft.reprfrac)));
 
 	} else {
 		indiv.fdev_senesc = 1.0;
@@ -3456,10 +3437,6 @@ void senescence_grass(Individual &indiv) {
 	// Total senescence rate
 	senesc *= (indiv.fdev_senesc * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
 	senesc = min(1.0, senesc);
-
-		if (date.year > 201) {
-			printf("hi");
-		}
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!

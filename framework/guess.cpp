@@ -1706,7 +1706,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
 	fdev_growth       = 1.0;
-	active_vegetative = true;
 	fdev_temp         = 0.0;
 	fdev_senesc       = 0.0;
 	growth_stage_days = 0;

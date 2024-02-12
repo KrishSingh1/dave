@@ -1077,6 +1077,9 @@ public:
 	/// highest mean monthly temperature for the last 12 months (deg C)
 	double mtemp_max;
 
+	/// maximum par at a gridcell
+	double par_max;
+
 	/// accumulated growing degree day sum on 5 degree base
 	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
@@ -1284,6 +1287,8 @@ public:
 
 		winter_to_summer = true;
 
+		par_max	= 0.0;
+		
 		for(int m=0;m<12;m++) {
 
 			mtemp20[m] = 0.0;
@@ -4649,8 +4654,12 @@ public:
 	Historic<double, 10> daylength_10;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
 	Historic<double, 4> wcont_germ_4;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
+	Historic<double, 14> wcont_germ_14;
 	// Temperature of upper soil layer over the last 3 days
 	Historic<double, 4> tsoil_germ_4;
+	// Temperature of upper soil layer over the last 14 days
+	Historic<double, 14> tsoil_germ_14;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)

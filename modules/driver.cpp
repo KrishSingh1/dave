@@ -1318,6 +1318,8 @@ void daylengthinsoleet(Climate& climate) {
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
 
+	climate.par_max = max(climate.par, climate.par_max);
+
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)
 	//	Refs: Jarvis & McNaughton 1986, Prentice et al 1993

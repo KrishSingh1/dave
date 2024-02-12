@@ -393,8 +393,7 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 }
 
 
-// Calculates the fraction of the seedbank that is germinating today.
-double germination_fraction(Patchpft& ppft, Patch& patch) {
+double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
@@ -413,6 +412,60 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
 	return frac_germ;
+}
+
+// fraction of seeds that will germinate today
+double germination_fraction_tree(Patchpft& ppft, Patch& patch) {
+
+	double frac_germ = .3;
+	if (date.year == 0) {
+		return 0.0;
+	}
+	double max_frac = 1.0;
+	double peaktemp = 20.0;
+	double tempbreadth = 0.2;
+	double midpoint_sm = .8; 
+	double shape = .03;
+	// And to Climate object
+	const Climate& climate = patch.get_climate();
+	// find the maximum PAR from the input 
+	// TODO: Is there an analytical way of calculating that (using latitude and DOY)?
+	// the amount of today's par that reaches the forest floor, relative to the 
+	// maximum potential par:
+	// TODO: find what is par_max (ie: maximum PAR in the peak of summer at this latitude)!!!
+	double relative_par_ff = min((patch.fpar_ff * climate.par) / climate.par_max, 1.0);
+	// inflection (mid) point of the par_ff (shade tolerance)
+	const double x0 = .5; // TODO: should be PFT paramter related to shade tolerance
+	// shape of the sigmoid curve
+	const double b = .08; // TODO: should be PFT paramter related to shade tolerance
+	double f_par =  1 / (1 + exp( -( (relative_par_ff - x0) / b) ) );
+
+	// get average conditions over the last 14 days.
+	ppft.wcont_germ_14.add(patch.soil.get_layer_soil_water(0)); 
+	ppft.tsoil_germ_14.add(patch.soil.T_soil[7]);   // TODO: check with DW that this is the right layer
+	double wcont = ppft.wcont_germ_14.mean();
+	double tsoil = ppft.tsoil_germ_14.mean();
+	// calculate f_temp
+	// TODO: Use Juergen's function
+	double exponent = pow((log(tsoil / peaktemp) / 0.5), 2);
+	double f_temp = max_frac * exp(-1.0*(exponent));
+	// calculate f_water
+	double f_water =  1 / (1 + exp(-(wcont - midpoint_sm) / shape));
+
+	// return frac_germ
+	return frac_germ * f_par * f_temp * f_water;
+
+}
+
+// Calculates the fraction of the seedbank that is germinating today.
+double germination_fraction(Patchpft& ppft, Patch& patch) {
+
+	if (ppft.pft.is_grass()) {
+		return germination_fraction_grass(ppft, patch);
+	} else {
+		return germination_fraction_tree(ppft, patch);
+	}
+
 }
 
 double nseedlings(double cmass_seed, Pft &pft) {
@@ -489,26 +542,44 @@ void establishment_daily(Patch& patch) {
 			if (ppft.cmass_litter_repr > 0.0) {
 				
 				// Check conditions for germination (germination fraction)
+				// TODO: Add germination fraction calculation for TREES.
 				double frac_germ = germination_fraction(ppft, patch);
-
+				// TODO: temporary - set frac_germ to zero to prevent establishing daily
+				frac_germ = 0.0;
 				// Do conditions allow for germination?
 				if (frac_germ > 0.0) {
 					Individual *indiv = get_beneficiary(patch, pft);
 					if (indiv == NULL) {
+						// number of seedling (ntrees/m^2)
 						int nseedlings = 0;
+						// in case of TREES, calcualt the number of seedlings
+						// by dividing the total cmass_litter_repr by the average
+						// mass of a seedling 
 						if (pft.lifeform == TREE) {
+							// start calculating avrage mass of seedling:
 							double height = init_height;
-							double diam = pow((indiv->height / pft.k_allom2), (1 / pft.k_allom3));
-							// calculate cmass_sap (assuming seedling stems are all sapwood).
-							double seedling_cmass_sap = indiv->height * pow(indiv->diam / 2, 2) * PI * pft.wooddens;
+							// calcualte tree diameter (m) using the allometric relationships
+							double diam = pow((height / pft.k_allom2), (1 / pft.k_allom3));
+							// calculate cmass_sap (kgC/m^2; assuming seedling stems are all sapwood)
+							// by multiplying the setm volume and wood density.
+							double seedling_cmass_sap = height * pow(diam / 2, 2) * PI * pft.wooddens;
+							// use sapwood mass (kgC/m^2) and k_latosa to calculate 
+							// cmass_leaf of the new seedling
 							double seedling_cmass_leaf = (pft.k_latosa * seedling_cmass_sap) / 
-									(pft.sla * indiv->height * pft.wooddens);
+									(pft.sla * height * pft.wooddens);
+							// use ltor_max to calculate the cmass_root (kgC/m^2)
+							// of the new seedling
 							double seedling_cmass_root = seedling_cmass_leaf / pft.ltor_max;
+							// total seedling mass (kgC/m^2)
 							double seedling_cmass = seedling_cmass_sap + seedling_cmass_root 
 									+ seedling_cmass_leaf;
+							// number of seeds = int(total seedling mass / mass of one seedling).
+							// TODO: make new function to calculate frac_germ that 
+							// will fit TREES.
 							nseedlings = (frac_germ * ppft.cmass_litter_repr) / seedling_cmass;
+							// check if there is not enough mass for establishing even one tree
 							if (nseedlings < 1) {
-								// not enough mass for establishing even one tree
+								// go to next pft
 								continue;
 							}
 						}
@@ -519,10 +590,14 @@ void establishment_daily(Patch& patch) {
 						indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
 						indiv->densindiv=1.0;
 						if (pft.lifeform == TREE) {
+							// in case of trees, set the new individual's height, 
+							// diameter, canopy area and seeding density (calculated
+							// above)
 							indiv->height = init_height;
 							indiv->diam = pow((indiv->height / pft.k_allom2), (1 / pft.k_allom3));
 							indiv->crownarea = pft.k_allom1 * pow(indiv->diam, pft.k_rp); // (value not used). this is the same as (*indiv).crownarea
 							indiv->densindiv = nseedlings;
+							indiv->age = 1.0 / 365.0;
 						}
 
 						indiv->fpc=1.0;  // TODO: is that right?
@@ -561,8 +636,8 @@ void establishment_daily(Patch& patch) {
 						// Add some new biomass into this individual.
 						establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
 
-						double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
-						double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
+						double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true);
+						double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true);
 						assert(equal(cmass_before, cmass_after));
 						assert(equal(nmass_before, nmass_after));
 					}
@@ -688,7 +763,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (pft.dave_allocation()) {
+		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
 			continue;
@@ -713,7 +788,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
-
+		// TODO: is the value for anetps_ff okay? Currently it is set as a constant 
+		// in case of ifdavephotosyn becasue Juergan's physiology in canopy_exchange 
+		// does not calculate anetps_ff at all.
 		if (ifdavephotosyn) {
 			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
 			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;

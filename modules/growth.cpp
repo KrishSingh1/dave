@@ -275,7 +275,7 @@ void dev_growth(Individual &indiv, double frepr_storage) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// Alternatives: decrease slope and/or intercept with reprfrac!
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.2 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.5 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
 		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.05 * (1.0-indiv.pft.reprfrac) * frepr_storage)));
 	
 	} else if (indiv.growth_stage == vegetative) {
@@ -2747,6 +2747,9 @@ double growth_demand(Individual& indiv) {
 	double fphoto_growth = 0.0;
 	double growth_demand = 0.0;
 
+    // ------------------------------
+	// Calculate ancillary metrics
+	// ------------------------------
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
@@ -2754,9 +2757,18 @@ double growth_demand(Individual& indiv) {
 	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf();
 	
 	// Ratio of reproductive tissue to storage
-	// TODO: maybe better use cumulative one
 	indiv.frepr_storage = indiv.cmass_repr / max(indiv.cmass_storage,1.0e-9);
 
+	// fill status of storage
+    double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+
+	// N scalar
+	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
+
+
+    // ------------------------------
+	// Calculate growth demand
+	// ------------------------------
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
@@ -2767,10 +2779,11 @@ double growth_demand(Individual& indiv) {
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// feedback with storage
-	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+	// TODO: declare parameter
+	growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
 	
-
-	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
+	// feedback with N scalar
+	//growth_demand *= (1.0 - exp(-20.0 * nscal_demand));
 	growth_demand *= nscal_demand;
 
 	// reduced growth under dormancy (total cessation in full dormancy)
@@ -3380,8 +3393,8 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0003;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 12.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 15.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 75.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
@@ -3406,7 +3419,7 @@ void senescence_grass(Individual &indiv) {
 		// stronger increase of senescence in annuals
 		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.15 * indiv.frepr_storage - 0.1 * indiv.pft.reprfrac)));
+		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.1 * indiv.frepr_storage - 0.05 * indiv.pft.reprfrac)));
 
 	} else {
 		indiv.fdev_senesc = 1.0;
@@ -3593,7 +3606,7 @@ void turnover_dave_grass(Individual &indiv) {
 	// Assumed daily rates here (fraction d-1)!
 	
 	// crown turnover relative to shoot turnover.
-	double scal_crown_turnover = 0.3;
+	double scal_crown_turnover = 0.25;
 
 	// TODO: turnover rates should be moisture and temperature dependent. They also need to be higher than the annual rates.
 	double frac_turnover_leaf = 2.0 * indiv.pft.turnover_leaf / date.year_length();
@@ -3832,8 +3845,8 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	// Do not let ps_sink_lim vary by more than 2% d-1
-	double const dmax_pslim = 0.02;
+	// Do not let ps_sink_lim vary by more than X% d-1
+	double const dmax_pslim = 0.01;
 
 	// TODO: revisit cexcess / dgpp
 	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {

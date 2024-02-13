@@ -563,7 +563,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_s
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
 	double surf_wd_scalar = 0.4; // DW_COMMENT
-	double som_scalar = 1.8; // DW_COMMENT
+	double som_scalar = 2.5; // DW_COMMENT
 
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;

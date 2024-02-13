@@ -6095,36 +6095,19 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 
 void Soilcolumn::update_wtp() {
 
-	// Locate water table from bottom up starting at bottom of soil column
+	wtp = -depth;
 
-	bool saturated = true;
-	int slyr = nsoillayers - 1;
-	wtp = depth;
-	double sat_lev_frac = 0.95;
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-	while (saturated && slyr >= 0) {
+		Soillayer& soillayer = soillayers[lyr];
 
-		Soillayer& soillayer = soillayers[slyr];
+		// Fraction of maximum water capacity
+		double frac = min(1.0, max(0.0, (soillayer.wmass + soillayer.imass) / soillayer.wmass_max()));
 
-		// Maximum water capacity of soil layer
-		double wmass_max_lyr = soillayer.wmass_max();
-
-		if ((soillayer.wmass + soillayer.imass) / wmass_max_lyr > sat_lev) {
-			saturated = true;
-			wtp -= soillayer.depth;
-			slyr--;
-		}
-		else if ((soillayer.wmass + soillayer.imass) / wmass_max_lyr >
-			sat_lev * sat_lev_frac) {
-			double frac = ((soillayer.wmass + soillayer.imass) / wmass_max_lyr -
-				sat_lev * sat_lev_frac) / (sat_lev * (1.0 - sat_lev_frac));
-			wtp -= frac * soillayer.depth;
-			saturated = false;
-		}
-		else {
-			saturated = false;
-		}
+		wtp += pow(frac, 4) * soillayer.depth;
 	}
+
+	wtd = -wtp;
 }
 
 

@@ -2039,9 +2039,19 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
 				mwmass_stand[m] += patch.soilcolumn.mwmass_stand[m] * to_gridcell_average;
-				mald[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m]) * M_PER_MM) * to_gridcell_average;
+				
+				double ald_mth = patch.soilcolumn.depth * M_PER_MM;
+				if (hydrology != GERTEN) {
+					if (patch.soilcolumn.pad[4].mtemp[m] < 0.0) {
+						ald_mth = patch.soilcolumn.mthaw[m] * M_PER_MM;
+					}
+					else {
+						ald_mth = patch.soilcolumn.depth * M_PER_MM;
+					}
+				}
+				mald[m] += ald_mth * to_gridcell_average;
 				if (stand.landcover == PEATLAND) {
-					mald_peat[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mthaw[m]) * M_PER_MM) * to_gridcell_average;
+					mald_peat[m] += ald_mth * to_gridcell_average;
 				}
 				
 				mwtp[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m]) * M_PER_MM) * to_gridcell_average;

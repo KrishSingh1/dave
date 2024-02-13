@@ -19,9 +19,10 @@ First we need to load make sure that certain software is available to us:
 These will likely be available as modules on the HPC.  But they might simply need to be installed on some machines.
  
 
-**Aurora**:
+**Cosmos (Lunarc)**:
 ```
-> module load GCC/10.3.0  OpenMPI/4.1.1  R/4.1.0  Pandoc
+> module purge
+> module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc
 ```
 
 **Simba**: 
@@ -103,10 +104,10 @@ In some cases it might even be necessary to install certain packages and librari
 
 ### Run the Tellme/Tellus benchmark
 
-Now we can go ahead and try to run the benchmark.  Checkout the relevent branch and change `benchmarks` directory.
+Now we can go ahead and try to run the benchmark.  Checkout the relevant branch and cd to `benchmarks` directory.
 
 ```
-./benchmarks -i "tellus" -e "tellme <MyRunNameTag>  <ReferenceRunNameTag> <Path/to/reference-run/output> <Path/to/where/I/want/MyRun/to/be/outputted>
+./benchmarks -i "tellus" -e "tellme <MyRunNameTag>  <ReferenceRunNameTag> <Path/to/reference-run/output>" <Path/to/where/I/want/MyRun/to/be/outputted>
 ```
 Note that you have free choice when it comes to `<MyRunNameTag>` and `<ReferenceRunNameTag>`.
 

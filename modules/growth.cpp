@@ -344,6 +344,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
 
 				double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
+				tscal = tscal > 0.0 ? pow(tscal,0.5) : tscal;
 				double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
 
 				assert(tscal >= -1.0 && tscal <= 1.0);
@@ -393,7 +394,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 2.5e-2) {
+                if (repr_trend < 0.5e-2) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -3393,7 +3394,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.1;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.00017;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 15.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 75.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -3419,7 +3420,7 @@ void senescence_grass(Individual &indiv) {
 		// stronger increase of senescence in annuals
 		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.1 * indiv.frepr_storage - 0.05 * indiv.pft.reprfrac)));
+		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.2 * indiv.frepr_storage - 0.05 * indiv.pft.reprfrac)));
 
 	} else {
 		indiv.fdev_senesc = 1.0;
@@ -3450,6 +3451,8 @@ void senescence_grass(Individual &indiv) {
 	// Total senescence rate
 	senesc *= (indiv.fdev_senesc * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
 	senesc = min(1.0, senesc);
+	//indiv.senesc_root = senesc / (indiv.fdev_senesc * (1.0 + senesc_fdorm));
+	indiv.senesc_root = senesc_base;
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
@@ -3549,12 +3552,19 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
+		double ext_seed_c = 0.0;
+		if (date.year < freenyears) {
+			ext_seed_c = ext_seed * 100.0;
+		} else {
+			ext_seed_c = ext_seed;
+		}
 
-		ppft.cmass_litter_repr += ext_seed;
+		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
+
+		ppft.cmass_litter_repr += ext_seed_c;
 		ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
 		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }
@@ -3602,17 +3612,25 @@ void turnover_dave_grass(Individual &indiv) {
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = patch.pft[indiv.pft.id];
 
+	// Parameters
+	double kleaf = 0.05;
+
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
-	
-	// crown turnover relative to shoot turnover.
-	double scal_crown_turnover = 0.25;
+	// Air temperature or bottom snow layer if snow present
+	double grass_temp = vegetation.patch.soil.T_soil[6];
 
-	// TODO: turnover rates should be moisture and temperature dependent. They also need to be higher than the annual rates.
-	double frac_turnover_leaf = 2.0 * indiv.pft.turnover_leaf / date.year_length();
-	double frac_turnover_crown = scal_crown_turnover * frac_turnover_leaf;
-	//double frac_turnover_root = (pow((1 - ppft.wscal),0.4) * 4.0) * indiv.pft.turnover_root / date.year_length();
-	double frac_turnover_root = 3.0 * indiv.pft.turnover_root / date.year_length();
+	// crown turnover relative to root turnover.
+	double scal_crown_turnover = 0.2;
+
+	// Turnover of living tissues (root and crown)
+	double frac_turnover_root = indiv.senesc_root * 30.0;	
+	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
+
+	// Turnover of brown leaves
+	// TODO: refine temp. and moisture responses
+	double frac_turnover_leaf = Arrhenius_temp_response(kleaf,grass_temp,HA_KC,0.0,0.0) * ppft.wscal;
+
 
 	// Dead shoot turnover (brown shoot --> leaf litter)
 	if (indiv.cmass_leafs[brown] > 0.0) {

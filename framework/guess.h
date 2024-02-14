@@ -3088,6 +3088,8 @@ public:
     double fdev_temp;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
+	/// senescence rate of roots (d-1)
+    double senesc_root;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
 	/// number of days in current growth stage

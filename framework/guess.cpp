@@ -1708,6 +1708,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fdev_growth       = 1.0;
 	fdev_temp         = 0.0;
 	fdev_senesc       = 0.0;
+	senesc_root       = 0.0;
 	growth_stage_days = 0;
 	phen              = 0.0;
 	aphen             = 0.0;

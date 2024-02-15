@@ -659,7 +659,9 @@ double NCInput::get_co2(double lon, double lat, int year, int day) {
 			? mean_annual_co2
 			: mean(co2->read(lon, lat, year, date.day, 1));
 	} else {
-		return (*co2_file)[date.year];
+		// Note: using calendar year, rather than met year to avoid cycling co2
+		// concentration during the spinup period.
+		return (*co2_file)[date.get_calendar_year()];
 	}
 }
 

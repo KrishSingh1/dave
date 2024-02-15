@@ -276,12 +276,11 @@ void dev_growth(Individual &indiv, double frepr_storage) {
 
 		// Alternatives: decrease slope and/or intercept with reprfrac!
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.5 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
-		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.05 * (1.0-indiv.pft.reprfrac) * frepr_storage)));
 	
 	} else if (indiv.growth_stage == vegetative) {
 		
 		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
-        if (is_zero(indiv.fdev_growth - fdev_growth_min)) {  
+        if (indiv.fdev_growth <= fdev_growth_min) {  
         	// check if there is enough water to resume vegetative growth
         	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
         	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
@@ -292,14 +291,15 @@ void dev_growth(Individual &indiv, double frepr_storage) {
             // TODO: check for temperature conditions if meaningful
 			// TODO: make sure there is no double-counting with fphen_activity!
 			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
-				indiv.fdev_growth *= 1.01;
+				indiv.fdev_growth = 1.01 * fdev_growth_min;
+			} else {
+				indiv.fdev_growth *= 0.95;
 			}
         	// conditions not good enough to resume vegetative growth.
         	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
- 			else {
-				// TODO: increase according to conditions
-       			indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
-			}
+ 		} else {
+			// TODO: increase according to conditions
+       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
 		}
 	}
 }
@@ -394,7 +394,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 0.5e-2) {
+                if (repr_trend < 1.5e-2) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -3395,11 +3395,11 @@ void update_pools_dave(Vegetation& vegetation) {
 void senescence_grass(Individual &indiv) {
 
 	// Parameters
-	const double crelocfrac = 0.1;      // TODO: move to constants?
+	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.00017;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 15.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_water = 12.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 70.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3425,7 +3425,7 @@ void senescence_grass(Individual &indiv) {
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
 		//indiv.fdev_senesc = 1.0 + (1.0 - indiv.fdev_growth) / (0.2 * pow(indiv.fdev_growth,1.25));
-		indiv.fdev_senesc  = pow(indiv.fdev_growth, -0.2);
+		indiv.fdev_senesc  = min(100.0, pow(indiv.fdev_growth, -0.2));
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
 
 	} else {
@@ -3870,14 +3870,14 @@ void storage_overflow(Individual& indiv) {
 void sink_source_feedback(Individual& indiv) {
 	
 	// Do not let ps_sink_lim vary by more than X% d-1
-	double const dmax_pslim = 0.01;
+	double const dmax_pslim = 0.02 * (1.0 - indiv.fdev_growth);
 
 	// TODO: revisit cexcess / dgpp
 	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {
 		indiv.ps_sink_lim = max((1.0 - dmax_pslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
 	} 
 	else {
-		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dmax_pslim)); 
+		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dmax_pslim / (1.0 - indiv.fdev_growth))); 
 	}
 } 
 

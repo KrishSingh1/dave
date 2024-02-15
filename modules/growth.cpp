@@ -2942,23 +2942,24 @@ void carbon_allocation_grass(Individual &indiv) {
 	Patchpft &ppft = indiv.patchpft();
 
 	if (!negligible(indiv.cgrow)) {
-		// 1) Reproduction
-		// Some of the NPP goes to reproduction if the plant is in the reproductive growth stage
+		
+		// 1) Crowns
+		calloc_crown = indiv.pft.crownfrac;
+		
+		// 2) Reproduction
 		if (indiv.growth_stage == reproductive) {
-			calloc_repr = indiv.pft.reprfrac;
+			calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
 		} else {
 			calloc_repr = 0.0;
 		}
-
-		// 2) Crowns
-		calloc_crown = indiv.pft.crownfrac;
 
 		// 3) Shoots (Leaves + culms)
 		// express ltor_max as maximum fractional allocation to shoots (leaves + culms)
 		double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
-		calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
+		// additional reduction to leaf allocation with decreasing growth demand in repr. phase
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.3) * indiv.fdev_growth;
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
@@ -3115,12 +3116,16 @@ void ndemand_grass(Individual &indiv) {
 	double ngrow_demand_update_total = max(0.0, nupdate_demand_leaf + nupdate_demand_root + nupdate_demand_crown + nupdate_demand_repr);
 	double growth_update_ratio = min(max_update_growth, ngrow_demand_growth_total / ngrow_demand_update_total);
 
+	// Take N demand of storage into account
+	// TODO: find out why nmass_storage can be higher than capacity at establishment.
+	indiv.storendemand = max(0.0, indiv.nstorage_max - indiv.nmass_storage);
+
 	// Total biomass N demand of individual
 	indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf * growth_update_ratio;
 	indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root * growth_update_ratio;
 	indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown * growth_update_ratio;
 	indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr * growth_update_ratio;
-	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand;
+	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand + indiv.storendemand;
 
 }
 
@@ -3180,6 +3185,7 @@ void nuptake_dave(Vegetation& vegetation) {
 
 	// Calculate N competition.
 	double nmass_avail = soil.nmass_avail() * min(1.0, patch.rpc_total);
+
 	ncompete(competing_individuals, nmass_avail);  // TODO: check if OK/efficient to call ncompete even if ndemand < nsupply. 
 												   // --> if (nmass_avail < patch_total_ndemand) {
 
@@ -3272,7 +3278,8 @@ void update_pools_dave(Vegetation& vegetation) {
 		
 		double fnavail = 0.0;
 		if (!negligible(indiv.ndemand)) {
-			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
+			//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
+			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
 		}
 		
 		// calculate N stress factor 
@@ -3357,7 +3364,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_crown += indiv.cgrow_crown;
 		indiv.cmass_repr  += indiv.cgrow_repr;
 
-		assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
+		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
 
 		// Always take up available N
 		indiv.nmass_leafs[green] += navail_leaf;
@@ -3396,7 +3403,7 @@ void senescence_grass(Individual &indiv) {
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.00017;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 15.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 75.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3418,9 +3425,12 @@ void senescence_grass(Individual &indiv) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
+		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.2 * indiv.frepr_storage - 0.05 * indiv.pft.reprfrac)));
+		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
+		//indiv.fdev_senesc = 1.0 + (1.0 - indiv.fdev_growth) / (0.2 * pow(indiv.fdev_growth,1.25));
+		indiv.fdev_senesc  = pow(indiv.fdev_growth, -0.2);
+		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
 
 	} else {
 		indiv.fdev_senesc = 1.0;
@@ -3553,7 +3563,7 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 		}
 
 		double ext_seed_c = 0.0;
-		if (date.year < freenyears) {
+		if (date.year < 200) {
 			ext_seed_c = ext_seed * 100.0;
 		} else {
 			ext_seed_c = ext_seed;

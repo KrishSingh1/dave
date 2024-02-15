@@ -1017,6 +1017,20 @@ void dailyaccounting_patch(Patch& patch) {
 	soil.mwcontupper += soil.dwcontupper[date.day];
 	soil.mwcontlower += soil.dwcontlower[date.day];
 
+	// Recalculate total FPC and RPC for daily version
+	if (ifdavegrowth) {
+		patch.fpc_total = 0;
+		patch.rpc_total = 0;
+		Vegetation& vegetation = patch.vegetation;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			vegetation.nextobj();
+		}
+	}
+
+
 	// On last day of month, calculate mean content of upper and lower soil layers
 
 	if (date.islastday) {

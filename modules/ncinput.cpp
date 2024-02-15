@@ -476,13 +476,21 @@ try {
 
 	if (temp->get_day_length() > 1) {
 		climate.dtr = maxt - mint;
+		climate.tmax = maxt;
+		climate.tmin = mint;
 	} else if (tmax && tmin) {
 		// It only really makes sense to provide separate variables for tmin and
 		// tmax if input data is daily. Therefore these arrays will usually be
 		// of length 1.
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
 		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
-		climate.dtr = mean(tmaxs) - mean(tmins);
+
+		double mean_tmax = mean(tmaxs);
+		double mean_tmin = mean(tmins);
+
+		climate.dtr = mean_tmax - mean_tmin;
+		climate.tmax = mean_tmax;
+		climate.tmin = mean_tmin;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}

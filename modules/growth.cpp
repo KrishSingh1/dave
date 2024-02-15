@@ -2760,11 +2760,9 @@ double growth_demand(Individual& indiv) {
 	// Ratio of reproductive tissue to storage
 	indiv.frepr_storage = indiv.cmass_repr / max(indiv.cmass_storage,1.0e-9);
 
-	// fill status of storage
+	// fill status of C and N storage
     double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-
-	// N scalar
-	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
+    double nstorage_fill = max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
 
 
     // ------------------------------
@@ -2779,13 +2777,11 @@ double growth_demand(Individual& indiv) {
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
-	// feedback with storage
+	// feedbacks with C storage and N storage
+	// i.e. reduce growth demand when C or N are scarce.
 	// TODO: declare parameter
 	growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
-	
-	// feedback with N scalar
-	//growth_demand *= (1.0 - exp(-20.0 * nscal_demand));
-	growth_demand *= nscal_demand;
+	growth_demand *= (1.0 - exp(-20.0 * nstorage_fill));
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -2959,7 +2955,7 @@ void carbon_allocation_grass(Individual &indiv) {
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
 		// additional reduction to leaf allocation with decreasing growth demand in repr. phase
-		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.3) * indiv.fdev_growth;
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5) * indiv.fdev_growth;
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots

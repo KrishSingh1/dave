@@ -91,6 +91,8 @@ NCInput::NCInput() {
 	, "Name of the insolation variable in the NetCDF file");
 	declare_parameter("variable_precip", &variable_precip, NC_MAX_NAME
 	, "Name of the precipitation variable in the NetCDF file");
+	declare_parameter("variable_wind", &variable_wind, NC_MAX_NAME
+	, "Optional name of the wind speed variable in the NetCDF file");
 	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
 	, "Name of the co2 variable in the NetCDF file. Optional if file_co2 is provided instead.");
 	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
@@ -108,6 +110,9 @@ NCInput::NCInput() {
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
+
+	bounds_wind.max = 100;
+	bounds_wind.min = 0;
 
 	bounds_insol.max = 1e6;
 	bounds_insol.min = 0;
@@ -453,6 +458,11 @@ try {
 		// precs = aggregate(precs, date.subdaily, sum);
 	}
 
+	if (wind) {
+		std::vector<double> winds = wind->read(lon, lat, year, date.day, 1);
+		climate.u10 = mean(winds);
+	}
+
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.vpds = vpds;
@@ -696,6 +706,12 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	precip_units[0] = "mm";
 	precip_units[1] = "kg m-2";
 	precip_units[2] = "kg/m2";
+
+	std::vector<xtring> wind_units(3);
+	wind_units[0] = "m/s";
+	wind_units[1] = "m s-1";
+	wind_units[2] = "m s^-1";
+
 	std::vector<xtring> co2_units(1);
 	co2_units[0] = "ppm";
 
@@ -719,6 +735,13 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	precip = create_variable(variable_precip, bounds_prec, precip_units, true);
 	vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
 	ps = create_variable(variable_ps, bounds_ps, ps_units, true);
+
+
+	if (variable_wind != "") {
+		wind = create_variable(variable_wind, bounds_wind, wind_units, true);
+	} else if (firemodel == BLAZE) {
+		fail("When using BLAZE, wind speed is not optional. Please specify variable_wind in the instruction file.");
+	}
 
 	int day_length = temp->get_day_length();
 

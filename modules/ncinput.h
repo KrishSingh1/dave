@@ -387,6 +387,11 @@ private:
 	xtring variable_precip;
 
 	/*
+	Name of the wind speed variable in the NetCDF file.
+	*/
+	xtring variable_wind;
+
+	/*
 	Name of the co2 variable in the NetCDF file.
 	*/
 	xtring variable_co2;
@@ -451,6 +456,11 @@ private:
 	Precipitation variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> precip;
+
+	/*
+	Wind speed variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> wind;
 
 	/*
 	CO2 variable in the NetCDF file.
@@ -529,6 +539,11 @@ private:
 	Upper and lower bounds for prec.
 	*/
 	bounds bounds_prec;
+
+	/*
+	Upper and lower bounds for wind speed (m/s).
+	*/
+	bounds bounds_wind;
 
 	/*
 	Upper and lower bounds for temp.

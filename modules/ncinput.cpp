@@ -62,6 +62,8 @@ NCInput::NCInput() {
 	declare_parameter("has_leap_years", &has_leap_years
 	, "1 iff input data contains leap years.");
 
+	declare_parameter("spinup_met_cycle_length", &spinup_met_cycle_length, 0, 1000000, "User input from the instruction file. The number of years of data to recycle during the freenyears. If 0, all data will be recycled during freenyears.");
+
 	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
 
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
@@ -74,9 +76,6 @@ NCInput::NCInput() {
 
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
-
-	declare_parameter("simulation_start_year", &simulation_start_year, 0, 4000
-	, "The first year after the spinup period. During spinup, all met data before this year is cycled. If not set, all available data will be cycled during the spinup.");
 
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
@@ -137,8 +136,6 @@ NCInput::NCInput() {
 	bounds_ndep.min = 0;
 
 	use_lamarque = true;
-
-	simulation_start_year = -1;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -232,20 +229,6 @@ void NCInput::init(void) {
 		// Now we must determine the first calendar year of the simulation (not
 		// the spinup).
 		int first_year = first_timestep.year;
-
-		// Implementation of the simulation_start_year parameter. When using a
-		// single NetCDF file for both spinup and simulation, this allows the
-		// spinup to recycle only a subset of the NetCDF file, and for the
-		// simulation to start partway through the timeseries.
-		if (simulation_start_year != -1 && file_met_spinup == "" && simulation_start_year != first_year) {
-			if (simulation_start_year < first_year) {
-				fail("simulation_start_year (%d) must be greater than first year of met data (%d)", simulation_start_year, first_year);
-			}
-			if (simulation_start_year > final_timestep.year) {
-				fail("simulation_start_year (%d) must be less than the final year of met data (%d)", simulation_start_year, final_timestep.year);
-			}
-			first_year = simulation_start_year;
-		}
 
 		// Set the calendar year at start of spinup.
 		date.set_first_calendar_year(first_year - nyear_spinup);
@@ -378,20 +361,7 @@ try {
 		// Shuffle years of met data during spinup. Whenever we move to a new
 		// year, select another year at random.
 		if (date.day == 0) {
-			timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
-			timepoint spinup_end = file_met_spinup == "" ? final_timestep : temp->get_last_date();
-			int first_year = spinup_start.year;
-			if (!is_start_of_year(spinup_start, temp->get_day_length())) {
-				first_year++;
-			}
-			int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length());
-			if (simulation_start_year != -1 && simulation_start_year != first_year) {
-				// Validity of simulation_start_year verified in getgridcell().
-				nyear_data = simulation_start_year - first_year;
-			}
-			//spinup_year = rand() % get_nyear_data() + first_year;
-			int offset = nyear_data - modulo(nyear_spinup, nyear_data);
-			spinup_year = (date.year + offset) % nyear_data + first_year;
+			spinup_year = get_spinup_year();
 		}
 		year = spinup_year;
 	} else {
@@ -850,6 +820,41 @@ bool NCInput::variable_exists(xtring name) const {
 
 	// Execution will never reach here.
 	return false;
+}
+
+int NCInput::get_spinup_year() const {
+	timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
+	timepoint spinup_end = file_met_spinup == "" ? final_timestep : temp->get_last_date();
+
+	int calendar_year = date.get_calendar_year();
+	if (calendar_year >= spinup_start.year) {
+		// We are past the start of the data. Therefore use data for the current
+		// calendar year.
+		return calendar_year;
+	}
+
+	// Skip the first year if the first timestep lies partway through the year.
+	int first_year = spinup_start.year;
+	if (!is_start_of_year(spinup_start, temp->get_day_length())) {
+		first_year++;
+	}
+
+	// Get the number of years of data we have for the spinup.
+	int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length());
+
+	// User wants to limit the spinup to using only the first N years of data.
+	if (spinup_met_cycle_length > 0) {
+		nyear_data = min(nyear_data, spinup_met_cycle_length);
+	}
+
+	// The offset from the start of the met data to be used in the first year.
+	int cycle_length = nyear_spinup - (first_timestep.year - spinup_start.year);
+	int offset = nyear_data - modulo(cycle_length, nyear_data);
+
+	// Add offset to current year, ensure it lies within range (0..nyear_data],
+	// and add this to the first year of data. This gives us the (calendar) year
+	// of data to be used this year.
+	return (date.year + offset) % nyear_data + first_year;
 }
 
 #endif // HAVE_NETCDF

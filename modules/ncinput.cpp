@@ -829,10 +829,13 @@ int NCInput::get_spinup_year() const {
 	timepoint spinup_end = file_met_spinup == "" ? final_timestep : temp->get_last_date();
 
 	int calendar_year = date.get_calendar_year();
-	if (calendar_year >= spinup_start.year) {
+	if (calendar_year >= first_timestep.year ||
+		(calendar_year >= spinup_start.year && calendar_year <= spinup_end.year) ) {
 		// We are past the start of the data. Therefore use data for the current
 		// calendar year.
 		return calendar_year;
+	} else if (calendar_year > spinup_end.year && calendar_year < first_timestep.year) {
+		return spinup_end.year;
 	}
 
 	// Skip the first year if the first timestep lies partway through the year.

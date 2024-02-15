@@ -4,9 +4,9 @@
 #   $1:	Name-tag for the new output
 #   $2:	Name-tag for the comparison reference benchmark
 #   $3:	Path to the comparison reference benchmark output
-# The call to the Rscript tellme.Rmd here should have the folllowing syntax (email from Matt 2023-03-13)
+# The call to the Rscript tellme_global.Rmd here should have the folllowing syntax (email from Matt 2023-03-13)
 # (3 of the 6 arguments are generated within this script).
-#   tellme.Rmd <path to new benchmarking runs> <new name> <path to old run benchmarking runs> <old name> 
+#   tellme_global.Rmd <path to new benchmarking runs> <new name> <path to old run benchmarking runs> <old name> 
 #   <path to evaluation data> <path to land use data>
 
 # These paths are compute center specific. Update them to fit the center where you run your model.
@@ -14,7 +14,7 @@ EVALDATA_PATH=/data/evaluation_data
 LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
 
-RSCRIPT="tellme.Rmd"	# Do not change, unless you change also further down in this script where tellme.Rmd is hardcoded.
+RSCRIPT="tellme_global.Rmd"	# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
 DEBUG_LOG_NAME="exoprocess.debug.log"
 
 NAMETAG_NEW="$1"
@@ -55,6 +55,6 @@ module load  GCC/10.3.0  OpenMPI/4.1.1  R/4.1.0  Pandoc
 
 set -x		# Debug. Remove later.
 
-# Here the call to the R-script tellme.Rmd
+# Here the call to the R-script tellme_global.Rmd
 cp $RSCRIPT_PATHFILE .
-Rscript -e "rmarkdown::render('tellme.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
+Rscript -e "rmarkdown::render('tellme_global.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"

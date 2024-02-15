@@ -219,6 +219,11 @@ private:
 	void verify_timestep(int timestep) const;
 
 	/*
+	Get the year of data to be used for the current year of the spinup.
+	*/
+	int get_spinup_year() const;
+
+	/*
 	Verify that the specified time range covers at least one complete year.
 
 	@param start: Start of time range.
@@ -350,11 +355,10 @@ private:
 	int met_sampling_seed;
 
 	/*
-	The first year after the spinup period, specified by the user in the
-	instruction file. During spinup, all met data before this year is cycled. If
-	not set, all available data will be cycled during the spinup.
+	User input from the instruction file. The number of years of data to recycle
+	during the spinup. If <= 0, all data will be recycled during freenyears.
 	*/
-	int simulation_start_year;
+	int spinup_met_cycle_length;
 
 	/*
 	Name of the longitude variable in the NetCDF file.
@@ -385,6 +389,11 @@ private:
 	Name of the precipitation variable in the NetCDF file.
 	*/
 	xtring variable_precip;
+
+	/*
+	Name of the wind speed variable in the NetCDF file.
+	*/
+	xtring variable_wind;
 
 	/*
 	Name of the co2 variable in the NetCDF file.
@@ -451,6 +460,11 @@ private:
 	Precipitation variable in the NetCDF file.
 	*/
 	std::unique_ptr<NCVariable> precip;
+
+	/*
+	Wind speed variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> wind;
 
 	/*
 	CO2 variable in the NetCDF file.
@@ -529,6 +543,11 @@ private:
 	Upper and lower bounds for prec.
 	*/
 	bounds bounds_prec;
+
+	/*
+	Upper and lower bounds for wind speed (m/s).
+	*/
+	bounds bounds_wind;
 
 	/*
 	Upper and lower bounds for temp.

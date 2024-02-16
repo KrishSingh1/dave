@@ -380,13 +380,16 @@ try {
 
 	climate.met_year = year;
 
+	timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
+	int co2_year = date.get_calendar_year() < spinup_start.year ? spinup_start.year : date.get_calendar_year();
+
 	// Generate daily N deposition values on first day of year.
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
 
 		if (use_mean_annual_co2 && co2) {
 			int year_len = get_year_len(year, has_leap_years);
-			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
+			std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
 			mean_annual_co2 = mean(co2_annual);
 		}
 	}
@@ -442,7 +445,7 @@ try {
 	climate.vpds = vpds;
 	climate.pressure = pressure;
 
-	climate.co2 = get_co2(lon, lat, year, date.day);
+	climate.co2 = get_co2(lon, lat, co2_year, date.day);
 
 	if (temp->get_day_length() > 1) {
 		climate.dtr = maxt - mint;

@@ -1681,9 +1681,11 @@ void flush_litter_repr(Patch& patch) {
 	while (patch.pft.isobj) {
 		Patchpft& ppft = patch.pft.getobj();
 
-		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::REPRC, ppft.cmass_litter_repr);
-		ppft.cmass_litter_repr = 0.0;
+		if (!ppft.pft.dave_allocation()) {
+			// Updated soil fluxes
+			patch.fluxes.report_flux(Fluxes::REPRC, ppft.cmass_litter_repr);
+			ppft.cmass_litter_repr = 0.0;
+		}
 
 		patch.pft.nextobj();
 	}

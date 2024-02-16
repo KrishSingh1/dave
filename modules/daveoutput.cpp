@@ -131,6 +131,8 @@ DaveOutput::DaveOutput() {
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
+	add_pft_output("file_dave_cmass_litter_repr"     , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Seedbank cmass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_litter_repr"     , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Seedbank nmass (kgN/m2)",  true);
 
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file

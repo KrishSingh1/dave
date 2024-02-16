@@ -3560,19 +3560,12 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		double ext_seed_c = 0.0;
-		if (date.year < 200) {
-			ext_seed_c = ext_seed * 100.0;
-		} else {
-			ext_seed_c = ext_seed;
-		}
+		double ext_seed_n = ext_seed / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
-		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
-
-		ppft.cmass_litter_repr += ext_seed_c;
+		ppft.cmass_litter_repr += ext_seed;
 		ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
+        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed);
 		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }

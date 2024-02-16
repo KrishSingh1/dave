@@ -173,6 +173,11 @@ Get the columns used in the patch-level nitrogen input output file.
 std::vector<ColumnDefinition<Patch>> ninput_columns();
 
 /*
+Get the columns used in the annual patch-level nitrogen input output file.
+*/
+std::vector<ColumnDefinition<Patch>> aninput_columns();
+
+/*
 Get the columns used in the met year output file.
 */
 std::vector<ColumnDefinition<Patch>> met_year_columns();

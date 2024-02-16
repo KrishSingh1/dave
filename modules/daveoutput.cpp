@@ -50,6 +50,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_aminleach"           , ANNUAL, "aminleach", [](const Patch &patch) { return patch.soil.aminleach; }, "Leaching of soil mineral N (kgN/m2/yr)");
 	add_patch_output("file_dave_sompool_acmass"      , ANNUAL, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)");
 	add_patch_output("file_dave_sompool_anmass"      , ANNUAL, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
+	add_patch_output("file_dave_andep"               , ANNUAL, aninput_columns, "Annual nitrogen deposition (kgN/m2)");
 
 	// Annual per-patch individual-level outputs.
 	add_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);

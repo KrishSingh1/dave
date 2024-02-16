@@ -3399,7 +3399,7 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.00017;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 12.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 70.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 
@@ -3431,7 +3431,9 @@ void senescence_grass(Individual &indiv) {
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
 
 	} else {
+
 		indiv.fdev_senesc = 1.0;
+
 	}
 
 	// Stress factors increase senescence
@@ -3442,14 +3444,13 @@ void senescence_grass(Individual &indiv) {
 	// linear increase as in Johnson & Thornley 1983.
 	double senesc_ftemp = 0.0;
 	if (grass_temp < indiv.pft.temp_dormancy) {
-		senesc_ftemp = temp_senesc * (0.0 - grass_temp);
-	} else if (grass_temp > indiv.pft.temp_dormancy) {
+		senesc_ftemp = indiv.pft.temp_dormancy - grass_temp;
+	} else if (grass_temp >= indiv.pft.temp_dormancy) {
 		senesc_ftemp = temp_senesc * (grass_temp - 25.0);
 	}
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
-	//if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
 	if (indiv.fphen_activity < 1.0 && indiv.growth_stage != vegetative) {
 
 		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);

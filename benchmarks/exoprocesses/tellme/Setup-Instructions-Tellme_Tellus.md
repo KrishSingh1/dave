@@ -1,15 +1,15 @@
 ﻿# Setup Instructions for Tellme/Tellus on an HPC
-# Matt Forrest 2024-02-07.
+# Matt Forrest 2024-02-07. 
 
 In order to run the Tellme benchmarking within the benchmarking framework of LPJ-GUESS it is neccesary to install some packages R and make sure that some additional software is available, this is usually done by loading 'modules' with `module` commands, but this may depend on the HPC in question.
 
-This guide will outline the general principles, but also the specific commands for certain machines, initially Simba and Aurora.
+This guide will outline the general principles, but also the specific commands for certain machines, initially Simba and Lunarc's Cosmos.
 
 
 ## Load system modules/extrenal software
 
 
-First we need to load make sure that certain software is available to us: 
+First we need to make sure that certain software is available to us: 
  * R
  * the GCC compiler
  * Pandoc
@@ -22,7 +22,7 @@ These will likely be available as modules on the HPC.  But they might simply nee
 **Cosmos (Lunarc)**:
 ```
 > module purge
-> module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc
+> module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
 ```
 
 **Simba**: 
@@ -51,6 +51,8 @@ First, start up R and install devtools:
 > R
 > install.packages("devtools") # just in case not already installed
 ```
+On cosmos (lunarc) we have installed R in the common directory
+/lunarc/nobackup/projects/snic2020-6-23/lpjguess/R/4.1/
 
 ##### DGVMTools and DGVMBenchmarks
 
@@ -63,7 +65,7 @@ Now install DGVMTools and DGVMBencharks.
 # this is for DGVMTools
 > devtools::install_github("MagicForrest/DGVMTools", ref = "master", dependencies = c("Depends", "Imports"), build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE, force=T)
 # This is for DGVMBenchmarks:
-> devtools::install_github("MagicForrest/DGVMBenchmarks", ref = "master", dependencies = c("Depends", "Imports"), build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE, force=T)
+> devtools::install_github("MagicForrest/DGVMBenchmarks", ref = "main", dependencies = c("Depends", "Imports"), build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE, force=T)
 ```
 
 The commands above will ask about which dependencies to update.   I recommend installing updated versions of all the packages when asked, but be warned this might take a while.  Also there might be issues, see **Troubleshooting** later.
@@ -71,7 +73,7 @@ The commands above will ask about which dependencies to update.   I recommend in
 
 ##### Dependencies for the tellus.rmd markdown script
 
-For making the benckmake script we also need to install the following packages (still inside R):
+For making the benchmark script work, we also need to install the following packages (still inside R):
 
 ```
 > install.packages("kableExtra")
@@ -107,7 +109,7 @@ In some cases it might even be necessary to install certain packages and librari
 Now we can go ahead and try to run the benchmark.  Checkout the relevant branch and cd to `benchmarks` directory.
 
 ```
-./benchmarks -i "tellus" -e "tellme <MyRunNameTag>  <ReferenceRunNameTag> <Path/to/reference-run/output>" <Path/to/where/I/want/MyRun/to/be/outputted>
+./benchmarks -i "tellus" -e "tellme <MyRunNameTag> <ReferenceRunNameTag> <Path/to/reference-run/output>" <Path/to/where/I/want/MyRun/to/be/outputted>
 ```
 Note that you have free choice when it comes to `<MyRunNameTag>` and `<ReferenceRunNameTag>`.
 

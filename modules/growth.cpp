@@ -215,16 +215,11 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// LEAF PHENOLOGY
+// LEAF PHENOLOGY AND GROWTH
 // Call function leaf_phenology each simulation day prior to calculation of FPAR, to
 // calculate fractional leaf-out for each PFT and individual.
 // Function leaf_phenology_pft is not intended to be called directly by the framework,
 
-// Water stress scalar used for growth and dormancy
-double wscal_growth(double wscal) {
-	double qgrowth = 1.15; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	return min(1.0,max(0.0,pow(wscal,qgrowth)));
-}
 
 // Temperature scalar used for growth and dormancy
 // Relationship and parameters from Parent & Tardieu 2012, New Phytologist
@@ -257,6 +252,12 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	return max(0.0,min(1.0,ftemp));
 }
 
+// Water stress scalar used for growth and dormancy
+double wscal_growth(double wscal) {
+	double qgrowth = 1.15; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	return min(1.0,max(0.0,pow(wscal,qgrowth)));
+}
+
 // Photoperiod affecting development and thus growth demand
 // Effects likely limited to high latitude areas.
 // A formulation would also need to account for a lag (effects of photoperiod
@@ -265,6 +266,38 @@ double photo_growth(double daylength_diff) {
 	return 1.0;
 	//return 1.0 + daylength_diff;
 }
+
+
+// Calculates dphen_activity, which is used for calculation of:
+// 1) the rate at which grasses enter or release dormancy.
+// 2) the rate at which grasses resume growth after completion of reproductive cycle.
+double dphen_activity(Individual &indiv) {
+
+	Pft& pft = indiv.pft;
+	Patchpft &ppft = indiv.patchpft();
+	
+	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
+	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+
+	double wscal_actual = wscal_growth(wscal_mean);
+	double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+
+	// Changes in physiological activity due to changes in dormancy status
+	double denom_wscal = wscal_actual >= pft.wscal_min ? pow((1.0 - pft.wscal_min), 1.5) : pft.wscal_min;
+	double num_wscal   = wscal_actual >= pft.wscal_min ? pow((wscal_actual - pft.wscal_min), 1.5) : (wscal_actual - pft.wscal_min);
+
+	double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
+	tscal = tscal > 0.0 ? pow(tscal, 0.5) : tscal;
+	double wscal = num_wscal / denom_wscal;
+
+	assert(tscal >= -1.0 && tscal <= 1.0);
+	assert(wscal >= -1.0 && wscal <= 1.0);
+
+	return min(tscal,wscal) * dphen_activity_max;
+}
+
 
 // Development effects on relative growth rate.
 // Reduction of growth demand in reproductive phase.
@@ -277,30 +310,16 @@ void dev_growth(Individual &indiv, double frepr_storage) {
 		// Alternatives: decrease slope and/or intercept with reprfrac!
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.5 * frepr_storage - 0.1 * indiv.pft.reprfrac)));
 	
-	} else if (indiv.growth_stage == vegetative) {
-		
-		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
-        if (indiv.fdev_growth <= fdev_growth_min) {  
-        	// check if there is enough water to resume vegetative growth
-        	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-        	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
-            
-        	double wscal = wscal_growth(wscal_mean);
+	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
-            // only resume active vegetative growth if conditions are save to do so.
-            // TODO: check for temperature conditions if meaningful
-			// TODO: make sure there is no double-counting with fphen_activity!
-			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
-				indiv.fdev_growth = 1.01 * fdev_growth_min;
-			} else {
-				indiv.fdev_growth *= 0.95;
-			}
-        	// conditions not good enough to resume vegetative growth.
-        	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
- 		} else {
-			// TODO: increase according to conditions
-       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
-		}
+		// Phase after switching from reproductive period back to vegetative period.
+        // check if conditions are suitable to resume vegetative growth.
+		// If not, maintain reduced growth rate.
+
+		double dphen_growth = dphen_activity(indiv);
+		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
+
+        // TODO: check for temperature conditions if meaningful
 	}
 }
 
@@ -332,31 +351,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
-				double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-
-				double wscal_actual = wscal_growth(wscal_mean);
-				double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-
-				// Changes in physiological activity due to changes in dormancy status
-				double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
-
-				double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
-				tscal = tscal > 0.0 ? pow(tscal,0.5) : tscal;
-				double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
-
-				assert(tscal >= -1.0 && tscal <= 1.0);
-				assert(wscal >= -1.0 && wscal <= 1.0);
-
-				double dphen_activity = min(tscal,wscal) * dphen_activity_max;
-
-				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
+				double dphen_dormancy = dphen_activity(indiv);
+				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 
 			} else {
+
 			    // no dormancy in annuals
 				indiv.fphen_activity = 1.0;
+
 			}
 
 			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
@@ -398,7 +400,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
-				   indiv.fdev_temp = 0.0;
                 }
  
                 // flush reproductive tissue to seedbank.
@@ -2957,7 +2958,8 @@ void carbon_allocation_grass(Individual &indiv) {
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
 		// additional reduction to leaf allocation with decreasing growth demand in repr. phase
-		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5) * indiv.fdev_growth;
+		double rleaf_repr = indiv.growth_stage == reproductive ? indiv.fdev_growth : 1.0;
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5) * rleaf_repr;
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
@@ -3400,8 +3402,9 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 12.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 70.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_repr  = 25.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3425,10 +3428,8 @@ void senescence_grass(Individual &indiv) {
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
-		//indiv.fdev_senesc = 1.0 + (1.0 - indiv.fdev_growth) / (0.2 * pow(indiv.fdev_growth,1.25));
-		indiv.fdev_senesc  = min(100.0, pow(indiv.fdev_growth, -0.2));
-		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc + max(0.0, (0.4 * indiv.frepr_storage - 0.5 * indiv.pft.reprfrac)));
+		indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
+		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
 
 	} else {
 
@@ -3451,7 +3452,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
-	if (indiv.fphen_activity < 1.0 && indiv.growth_stage != vegetative) {
+	if (indiv.fphen_activity < 1.0) {
 
 		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 
@@ -3462,6 +3463,10 @@ void senescence_grass(Individual &indiv) {
 	senesc = min(1.0, senesc);
 	//indiv.senesc_root = senesc / (indiv.fdev_senesc * (1.0 + senesc_fdorm));
 	indiv.senesc_root = senesc_base;
+
+	if (indiv.age > 0) {
+		printf("hi");
+	}
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!

@@ -3084,8 +3084,6 @@ public:
 	double fdev_growth;
 	/// fraction of reproductive tissue to carbon storage.
 	double frepr_storage;
-	/// temperature factor used to determine onset of growth. 
-    double fdev_temp;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)

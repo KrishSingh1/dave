@@ -6097,14 +6097,24 @@ void Soilcolumn::update_wtp() {
 
 	wtp = -depth;
 
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+	bool thres = true;
 
-		Soillayer& soillayer = soillayers[lyr];
+	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
 
-		// Fraction of maximum water capacity
-		double frac = min(1.0, max(0.0, (soillayer.wmass + soillayer.imass) / soillayer.wmass_max()));
+		if (thres) {
 
-		wtp += pow(frac, 4) * soillayer.depth;
+			Soillayer& soillayer = soillayers[lyr];
+
+			// Fraction of maximum water capacity
+			double frac = min(1.0, max(0.0, (soillayer.wmass + soillayer.imass) / soillayer.wmass_max()));
+
+			if (frac < (soillayer.wp + soillayer.awc / 2.0) / soillayer.wmass_max()) {
+				thres = false;
+			}
+			else {
+				wtp += pow(frac, 4) * soillayer.depth;
+			}			
+		}
 	}
 
 	wtd = -wtp;

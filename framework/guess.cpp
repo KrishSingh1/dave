@@ -1705,6 +1705,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_repr        = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
+	frepr_crown       = 0.0;
 	fdev_growth       = 1.0;
 	fdev_senesc       = 1.0;
 	senesc_root       = 0.0;

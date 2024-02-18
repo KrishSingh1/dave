@@ -3082,8 +3082,8 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// fraction of reproductive tissue to carbon storage.
-	double frepr_storage;
+	/// fraction of reproductive biomass to crown biomass.
+	double frepr_crown;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)

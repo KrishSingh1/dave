@@ -458,12 +458,9 @@ try {
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
 		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
 
-		double mean_tmax = mean(tmaxs);
-		double mean_tmin = mean(tmins);
-
-		climate.dtr = mean_tmax - mean_tmin;
-		climate.tmax = mean_tmax;
-		climate.tmin = mean_tmin;
+		climate.tmax = mean(tmaxs);
+		climate.tmin = mean(tmins);
+		climate.dtr = climate.tmax - climate.tmin;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}

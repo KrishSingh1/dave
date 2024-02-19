@@ -308,7 +308,7 @@ void dev_growth(Individual &indiv, double frepr_crown) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// Alternatives: decrease slope and/or intercept with reprfrac!
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (0.5 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (3.0 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
 	
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -396,7 +396,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 1.5e-2) {
+                if (repr_trend < 0.0) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -3631,7 +3631,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double scal_crown_turnover = 0.2;
 
 	// Turnover of living tissues (root and crown)
-	double frac_turnover_root = indiv.senesc_root * 30.0;	
+	double frac_turnover_root = 30.0 * indiv.senesc_root;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
 	// Turnover of brown leaves
@@ -3761,6 +3761,66 @@ void turnover_dave(Vegetation& vegetation) {
 }
 
 
+// Allocate excess C and N to target pool.
+void allocate_excess(Individual &indiv, bool tocrown, double cexcess, double nexcess,
+					   double cton_min, double cton_max) {
+
+	if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
+
+		double cdest = 0.0;
+		double ndest = 0.0;
+
+		if (indiv.nexcess > 0) {
+			cdest = indiv.nexcess * cton_min;
+			ndest = indiv.nexcess;
+		}
+
+		if (indiv.cexcess > 0) {
+			cdest = max(cdest, indiv.cexcess);
+			ndest = max(ndest, cdest / cton_max);
+		}
+
+		if (cdest > (indiv.cmass_storage + indiv.cexcess)) {
+			cdest = indiv.cmass_storage;
+			ndest = cdest / cton_min;
+		}
+
+		if (ndest > (indiv.nmass_storage + indiv.nexcess)) {
+			ndest = indiv.nmass_storage;
+			cdest = ndest * cton_min;
+		}
+
+		if (tocrown) {
+			indiv.cmass_crown += cdest;
+			indiv.nmass_crown += ndest;
+		} else {
+			indiv.cmass_repr += cdest;
+			indiv.nmass_repr += ndest;
+		} 
+
+		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
+		if (indiv.cexcess <= cdest) {
+			// cannot be fulfillled by cexcess
+			indiv.cmass_storage -= (cdest - indiv.cexcess);
+			indiv.cexcess = 0.0;
+		} else {
+			// can be fulfilled by cexcess
+			indiv.cexcess -= cdest;
+		}
+
+		if (indiv.nexcess <= ndest) {
+			// cannot be fulfillled by nexcess
+			indiv.nmass_storage -= (ndest - indiv.nexcess);
+			indiv.nexcess = 0.0;
+		} else {
+			// can be fulfilled by nexcess
+			indiv.nexcess -= ndest;
+		}
+
+	}
+}
+
+
 // Determine what to do with excess C when storage exceeds its capacity.
 // This routine is also used to actively redistribute C storage to 
 // reproduction in some cases. Strictly, this should be done somewhere else,
@@ -3790,58 +3850,22 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0) {
 
-		if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
-			// TODO: check if we need to keep track of indiv.cexcess or if we could just
-			//       check overflow at the end of the day. 
+		// decide where to put excess C (or excess N).
 
-			double crepro = 0.0;
-			double nrepro = 0.0;
+		// if there is still 'space' for reproductive biomass, put it in there.
+		// Otherwise, put it into the crown.
+		double fexcess_crown = (indiv.frepr_crown - indiv.pft.reprfrac) / 
+								(0.25 * indiv.pft.reprfrac + (indiv.frepr_crown - indiv.pft.reprfrac));
+		fexcess_crown = max(0.0, min(1.0, fexcess_crown));
 
-			if (indiv.nexcess > 0) {
-				crepro = indiv.nexcess * pft.cton_repr_min;
-				nrepro = indiv.nexcess;
-			}
-
-			if (indiv.cexcess > 0) {
-				crepro = max(crepro, indiv.cexcess);
-				nrepro = max(nrepro, crepro / pft.cton_repr_max);
-			}
-
-			if (crepro > (indiv.cmass_storage + indiv.cexcess)) {
-				crepro = indiv.cmass_storage;
-				nrepro = crepro / pft.cton_repr_min;
-			}
-
-			if (nrepro > (indiv.nmass_storage + indiv.nexcess)) {
-				nrepro = indiv.nmass_storage;
-				crepro = nrepro * pft.cton_repr_min;
-			}
-
-			indiv.cmass_repr += crepro;
-			indiv.nmass_repr += nrepro;
-
-			// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
-			if (indiv.cexcess <= crepro) {
-				// cannot be fulfillled by cexcess
-				indiv.cmass_storage -= (crepro - indiv.cexcess);
-				indiv.cexcess = 0.0;
-			} else {
-				// can be fulfilled by cexcess
-				indiv.cexcess -= crepro;
-			}
-
-			if (indiv.nexcess <= nrepro) {
-				// cannot be fulfillled by nexcess
-				indiv.nmass_storage -= (nrepro - indiv.nexcess);
-				indiv.nexcess = 0.0;
-			} else {
-				// can be fulfilled by nexcess
-				indiv.nexcess -= nrepro;
-			}
-
-		}
+		// allocation to crown
+		double cexcess = indiv.cexcess * fexcess_crown;
+		double nexcess = indiv.nexcess * fexcess_crown;
+		allocate_excess(indiv, true, cexcess, nexcess, pft.cton_root_min, pft.cton_root_max);
+		allocate_excess(indiv, false, indiv.cexcess, indiv.nexcess, pft.cton_repr_min, pft.cton_repr_max);
 	}
 
+	// Now deal with excess C and N that cannot be allocated because of stoichiometry.
 	if (indiv.cexcess > 0.0) {
 		// TODO: decide what to do with excess C if you are not in the reproductive phase
 		// Option 1: respire
@@ -3849,7 +3873,7 @@ void storage_overflow(Individual& indiv) {
 		indiv.report_flux(Fluxes::NPP, -indiv.cexcess);
 
 		// Option 2; root exudates
-		// TODO: yet to be implemented
+		// TODO: yet to be implemented. Alternatively just allocate to roots.
 
 		// Option 3?
 

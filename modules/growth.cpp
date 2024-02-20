@@ -373,7 +373,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 && indiv.growth_stage_days > 60 && indiv.fdev_growth > 0.5){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 && indiv.growth_stage_days > 30 && indiv.fdev_growth > 0.5){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -396,7 +396,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 0.0) {
+                if (repr_trend <= 0.0) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -2758,12 +2758,12 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass 
-	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf();
+	double cmass_total = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
 	
 	// Ratio of reproductive biomass to crown biomass
 	indiv.frepr_crown = indiv.cmass_repr / max(indiv.cmass_crown,1.0e-9);
 
-	// fill status of C and N storage
+	// Fill status of C and N storage
     double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
     double nstorage_fill = max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
 
@@ -3852,17 +3852,13 @@ void storage_overflow(Individual& indiv) {
 
 		// decide where to put excess C (or excess N).
 
-		// if there is still 'space' for reproductive biomass, put it in there.
+		// if there is still capacity for reproductive biomass, put it in there.
 		// Otherwise, put it into the crown.
-		double fexcess_crown = (indiv.frepr_crown - indiv.pft.reprfrac) / 
-								(0.25 * indiv.pft.reprfrac + (indiv.frepr_crown - indiv.pft.reprfrac));
-		fexcess_crown = max(0.0, min(1.0, fexcess_crown));
-
-		// allocation to crown
-		double cexcess = indiv.cexcess * fexcess_crown;
-		double nexcess = indiv.nexcess * fexcess_crown;
-		allocate_excess(indiv, true, cexcess, nexcess, pft.cton_root_min, pft.cton_root_max);
-		allocate_excess(indiv, false, indiv.cexcess, indiv.nexcess, pft.cton_repr_min, pft.cton_repr_max);
+		if (indiv.frepr_crown < 2.0 * indiv.pft.reprfrac) {   // to reproduction
+			allocate_excess(indiv, false, indiv.cexcess, indiv.nexcess, pft.cton_repr_min, pft.cton_repr_max);	
+		} else {  // to crown
+			allocate_excess(indiv, true, indiv.cexcess, indiv.nexcess, pft.cton_root_min, pft.cton_root_max);
+		}
 	}
 
 	// Now deal with excess C and N that cannot be allocated because of stoichiometry.

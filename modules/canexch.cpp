@@ -2500,7 +2500,14 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// TODO: add reproductive respiration here
 			
 			// Growth respiration
-			resp_growth = (assim - resp_root) * 0.25;
+			// Note that we take growth of previous day to estimate this,
+            // assumption being that C is not necessarily used for growth on
+            // the same day it's fixed. A time lag is considered physiologicallly 
+            // more meaningful than a flat rate that is independent of growth, which
+			// could be problematic under conditions of high growth demand.
+            // Data from Ryan 1991.
+			resp_growth = growth * 0.2;
+			//resp_growth = (assim - resp_root) * 0.25;
 
 		} else {
 			
@@ -2509,6 +2516,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			
 			// Growth respiration (see above)
 			resp_growth = (assim - resp_root) * 0.25;
+
 		}
 
 		// guess2008 - disallow negative growth respiration

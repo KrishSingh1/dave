@@ -717,10 +717,13 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	ps = create_variable(variable_ps, bounds_ps, ps_units, true);
 
 
-	if (variable_wind != "") {
+	if (variable_wind != "" && variable_exists(variable_wind)) {
 		wind = create_variable(variable_wind, bounds_wind, wind_units, true);
-	} else if (firemodel == BLAZE) {
-		fail("When using BLAZE, wind speed is not optional. Please specify variable_wind in the instruction file.");
+	} else {
+		wind = NULL;
+		if (firemodel == BLAZE) {
+			fail("When using BLAZE, wind speed is not optional. Please specify variable_wind in the instruction file.");
+		}
 	}
 
 	int day_length = temp->get_day_length();

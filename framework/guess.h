@@ -1046,6 +1046,9 @@ public:
 	/// day length today (h)
 	double daylength;
 
+	/// maximum daylength in a year
+	double daylength_max;
+
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
 
@@ -4597,6 +4600,8 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
 	Historic<double, 10> daylength_10;
+	// Daylength relative to maximum daylength in a year.
+	double reldaylength;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
 	Historic<double, 4> wcont_germ_4;
 	// Temperature of upper soil layer over the last 3 days

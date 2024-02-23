@@ -84,6 +84,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec
 		& aprec_lastyear
 		& daylength
+		& daylength_max
 		& co2
 		& lat
 		& insol
@@ -343,6 +344,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wscal_5
 		& wscal_10
 		& soiltemp_10
+		& daylength_10
+		& reldaylength
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est

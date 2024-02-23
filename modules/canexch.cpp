@@ -2495,7 +2495,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// TODO: at some point, replace respiration functions here!
-			resp_crown = (0.5 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// TODO: add reproductive respiration here
 			

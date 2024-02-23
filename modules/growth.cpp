@@ -295,6 +295,12 @@ double dphen_activity(Individual &indiv) {
 	assert(tscal >= -1.0 && tscal <= 1.0);
 	assert(wscal >= -1.0 && wscal <= 1.0);
 
+	// Check daylength additionally if water is not limiting.
+	// This is to avoid greenup at the end of the growing season.
+	if (ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.75 && (wscal > tscal)) {
+		tscal = -0.25;
+	}
+
 	return min(tscal,wscal) * dphen_activity_max;
 }
 
@@ -334,6 +340,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
 		ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
 		ppft.daylength_10.add(climate.daylength);
+		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
 	
 	
@@ -3406,8 +3413,8 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	const double senesc_scal_repr  = 25.0;    // senescence scalar for reproductive phase
 
-	const double qwater_senesc = 1.0;      // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double qwater_senesc = 1.0;    // higher value --> higher sensitivity to water stress
+	const double temp_senesc = 0.05;     // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;

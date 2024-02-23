@@ -1264,6 +1264,11 @@ void daylengthinsoleet(Climate& climate) {
 	}
 	climate.daylength = climate.daylength_save[date.day];
 
+	// maximum daylength in a year
+	if (date.year == 0) {
+		climate.daylength_max = max(climate.daylength, climate.daylength_max);
+	}
+
 	if (climate.instype == SUNSHINE) {		// insolation is percentage sunshine
 
 		w = (C+D * climate.insol / 100.0) * (1.0 - BETA) * climate.qo[date.day]; // Eqn 13

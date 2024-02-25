@@ -609,8 +609,8 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 
 		// Copy data into the nh4_dep and no3_dep arrays.
 		// nhx = nh4, noy = no3a
-		memcpy(nh4_dep, &nhx.front(), year_len);
-		memcpy(no3_dep, &noy.front(), year_len);
+		memcpy(nh4_dep, &nhx.front(), year_len * sizeof(double));
+		memcpy(no3_dep, &noy.front(), year_len * sizeof(double));
 	}
 }
 

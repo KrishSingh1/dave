@@ -1615,7 +1615,7 @@ bool allometry(Individual& indiv) {
 				// Root projective cover (RPC) introduced to capture feedback between 
 				// belowground C investment and available N. The following is equal to 
 				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(1.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(2.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
@@ -3111,13 +3111,13 @@ void ndemand_grass(Individual &indiv) {
 	}
 
 	// N demand of existing biomass (weight by current activity (growth) of the tissue?)
-	// TODO: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
 	double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
 	double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
 	double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_crown) * frac_nchange;
 	double nupdate_demand_repr  = max(0.0, indiv.cmass_repr / indiv.pft.cton_repr_min - indiv.nmass_repr) * frac_nchange;
 
 	// Make sure that nupdate_demands do not exceed N demands for growth (i.e. prioritise growth over existing biomass)
+	// Otherwise plants could not grow if C:N of the existing biomass is high.
 	// Alternatively, one could ask for the min C:N for new growth and not update existing biomass.
 	double ngrow_demand_growth_total = ngrow_demand_leaf + ngrow_demand_root + ngrow_demand_crown + ngrow_demand_repr;
 	double ngrow_demand_update_total = max(0.0, nupdate_demand_leaf + nupdate_demand_root + nupdate_demand_crown + nupdate_demand_repr);
@@ -3170,6 +3170,7 @@ void ndemand_dave(Vegetation& vegetation) {
 void nuptake_dave(Vegetation& vegetation) {
 	Patch& patch = vegetation.patch;
 	Soil& soil = patch.soil;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 
 	// Create vector of CompetingIndividual objects, which will be passed into
 	// ncompete(). These are populated from the Individuals in the patch.
@@ -3199,10 +3200,27 @@ void nuptake_dave(Vegetation& vegetation) {
 	// Copy results back into Individual objects in the patch, and calculate
 	// total patch N demand.
 	patch.ndemand = 0;
+
+	// Calculate N limitation uptake due to limited N availability in soil
+	// soil available mineral nitrogen (kgN/m2)
+	const double nmin_avail = soil.nmass_avail();
+
+	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+	double kNmin = 0.05;
+
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-		indiv.fnuptake = competing_individuals[i].fnuptake;
+		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		double nmin_scale = kNmin + nmin_avail / (nmin_avail + gridcell.pft[indiv.pft.id].Km);
+        
+		// Nitrogen availability based on root projective cover
+		double max_indiv_avail = min(1.0, indiv.rpc);
+
+		// Nitrogen available for uptake
+		double favail_nuptake = min(nmin_scale, max_indiv_avail);
+
+		indiv.fnuptake = competing_individuals[i].fnuptake * favail_nuptake;
 		indiv.ndemand = competing_individuals[i].ndemand;
 
 		patch.ndemand += indiv.ndemand;

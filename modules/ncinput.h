@@ -530,6 +530,18 @@ private:
 	timepoint final_timestep;
 
 	/*
+	The first timestep in the input data used for the spinup. This will be the
+	same as first_timestep unless using a separate .nc file for the spinup.
+	*/
+	timepoint spinup_start;
+
+	/*
+	The last timestep in the input data used for the spinup. This will be the
+	same as final_timestep unless using a separate .nc file for spinup.
+	*/
+	timepoint spinup_end;
+
+	/*
 	Daily NH4 deposition data for the current year.
 	*/
 	double nh4_dep[Date::MAX_YEAR_LENGTH];

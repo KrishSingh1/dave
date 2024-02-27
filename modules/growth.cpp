@@ -1499,9 +1499,10 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.cmass_storage += cmass_init * fract_stor;
 			double cmass_total = cmass_init * (1 - fract_stor);
 			Pft &pft = indiv.pft;
+			double height = max(0.5, indiv.height);
 			// constant
 			double x = (1 / indiv.pft.ltor_max) + 
-			((pft.sla * indiv.height * pft.wooddens) / pft.k_latosa) + 1;
+			((pft.sla * height * pft.wooddens) / pft.k_latosa) + 1;
 			cmass_leaf_ind = cmass_total / x;
 			cmass_root_ind = cmass_leaf_ind / pft.ltor_max;
 			cmass_sap_ind = cmass_total - (cmass_leaf_ind + cmass_root_ind);
@@ -1601,7 +1602,13 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	// Note: indiv.densindiv (density of individuals across patch or modelled area)
 	//       should be set to a meaningful value before this function is called
 
-	establishment_biomass(bminit, ltor, indiv);
+	double nmass_init = 0;
+	if (indiv.pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
+		// assume initial nitrogen that goes into the saplings
+		nmass_init = bminit / min( indiv.pft.cton_leaf_min, indiv.pft.cton_root_min);
+	}
+
+	establishment_biomass(bminit, ltor, indiv, nmass_init);
 
 	if (indiv.pft.is_grass() && ifdailygrass) {
 

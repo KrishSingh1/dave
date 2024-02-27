@@ -245,7 +245,6 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
-						indiv.nscal_5.add(1.0);
 					}
 				}
 			}
@@ -530,7 +529,7 @@ void establishment_daily(Patch& patch) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
 
-			if (!pft.dave_allocation()) {
+			if (!pft.dave_allocation() || pft.lifeform == TREE) {
 				// This pft is not using the dave allocation. This could happen,
 				// for example, if it's a tree and ifdailytree is false.
 				continue;

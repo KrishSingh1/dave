@@ -1867,6 +1867,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	man_strength = 0.0;
+	nscal_5.add(1.0);
 }
 
 void Individual::serialize(ArchiveStream& arch) {

@@ -271,7 +271,7 @@ double photo_growth(double daylength_diff) {
 // Calculates dphen_activity, which is used for calculation of:
 // 1) the rate at which grasses enter or release dormancy.
 // 2) the rate at which grasses resume growth after completion of reproductive cycle.
-double dphen_activity(Individual &indiv) {
+double dphen_activity(Individual &indiv, double wscal_min) {
 
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
@@ -285,8 +285,8 @@ double dphen_activity(Individual &indiv) {
 	double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	// Changes in physiological activity due to changes in dormancy status
-	double denom_wscal = wscal_actual >= pft.wscal_min ? pow((1.0 - pft.wscal_min), 1.5) : pft.wscal_min;
-	double num_wscal   = wscal_actual >= pft.wscal_min ? pow((wscal_actual - pft.wscal_min), 1.5) : (wscal_actual - pft.wscal_min);
+	double denom_wscal = wscal_actual >= wscal_min ? pow((1.0 - wscal_min), 1.5) : wscal_min;
+	double num_wscal   = wscal_actual >= wscal_min ? pow((wscal_actual - wscal_min), 1.5) : (wscal_actual - wscal_min);
 
 	double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
 	tscal = tscal > 0.0 ? pow(tscal, 0.5) : tscal;
@@ -320,9 +320,14 @@ void dev_growth(Individual &indiv, double frepr_crown) {
 
 		// Phase after switching from reproductive period back to vegetative period.
         // check if conditions are suitable to resume vegetative growth.
-		// If not, maintain reduced growth rate.
+		// If not, maintain reduced growth rate or enter dormancy.
 
-		double dphen_growth = dphen_activity(indiv);
+		double dphen_growth = dphen_activity(indiv, 0.6);
+
+		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
+		if (ppft.wscal_5.mean() < 0.6) { 
+			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
+		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
 
         // TODO: check for temperature conditions if meaningful
@@ -358,7 +363,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				double dphen_dormancy = dphen_activity(indiv);
+				double dphen_dormancy = dphen_activity(indiv, pft.wscal_min);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 
 			} else {
@@ -2791,7 +2796,7 @@ double growth_demand(Individual& indiv) {
 	// i.e. reduce growth demand when C or N are scarce.
 	// TODO: declare parameter
 	growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
-	growth_demand *= (1.0 - exp(-10.0 * nstorage_fill));
+	growth_demand *= (1.0 - exp(-20.0 * nstorage_fill));
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -3072,7 +3077,17 @@ void ndemand_grass(Individual &indiv) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
 	const double max_update_growth = 0.05;
 
+	// update growth depending on N stress of plant
+	// TODO: double check cases where nmass_storage > nstorage_max!!
+	// TODO: constrain cton ratio ;) 
+	double nstorage_fill = min(0.999999, max(0.000001, (indiv.nmass_storage / indiv.nstorage_max)));
+
 	// Local	
+	double cton_demand_leaf = 0.0;
+	double cton_demand_root = 0.0;
+	double cton_demand_crown = 0.0;
+	double cton_demand_repr = 0.0;
+
 	double ngrow_demand_leaf  = 0.0;
 	double ngrow_demand_root  = 0.0;
 	double ngrow_demand_repr  = 0.0;
@@ -3097,10 +3112,16 @@ void ndemand_grass(Individual &indiv) {
 			indiv.cmass_repr, indiv.nmass_repr,
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
 			indiv.cgrow_repr);
-		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_leaf;
-		ngrow_demand_root  = indiv.cgrow_root / cton_root;
-		ngrow_demand_crown = indiv.cgrow_crown / cton_crown;
-		ngrow_demand_repr  = indiv.cgrow_repr / cton_repr;
+		
+		cton_demand_leaf = (1.0 - nstorage_fill) * (indiv.pft.cton_leaf_max - indiv.pft.cton_leaf_min) + indiv.pft.cton_leaf_min;
+		cton_demand_root = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+		cton_demand_crown = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+		cton_demand_repr = (1.0 - nstorage_fill) * (indiv.pft.cton_repr_max - indiv.pft.cton_repr_min) + indiv.pft.cton_repr_min;
+
+		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_demand_leaf;
+		ngrow_demand_root  = indiv.cgrow_root / cton_demand_root;
+		ngrow_demand_crown = indiv.cgrow_crown / cton_demand_crown;
+		ngrow_demand_repr  = indiv.cgrow_repr / cton_demand_repr;
 	} else {
 		ngrow_demand_leaf  = 0.0;
 		ngrow_demand_root  = 0.0;

@@ -254,7 +254,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.15; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	double qgrowth = 1.3; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
@@ -3075,7 +3075,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 
 void ndemand_grass(Individual &indiv) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
-	const double max_update_growth = 0.05;
+	const double max_update_growth = 0.1;
 
 	// update growth depending on N stress of plant
 	// TODO: double check cases where nmass_storage > nstorage_max!!
@@ -3445,9 +3445,9 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_water = 25.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 25.0;    // senescence scalar for reproductive phase
+	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;    // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;     // increase in senescence rate per 1degC (Johnson & Thornley 1983)

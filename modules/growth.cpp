@@ -1615,7 +1615,7 @@ bool allometry(Individual& indiv) {
 				// Root projective cover (RPC) introduced to capture feedback between 
 				// belowground C investment and available N. The following is equal to 
 				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(2.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(4.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
@@ -2791,7 +2791,7 @@ double growth_demand(Individual& indiv) {
 	// i.e. reduce growth demand when C or N are scarce.
 	// TODO: declare parameter
 	growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
-	growth_demand *= (1.0 - exp(-20.0 * nstorage_fill));
+	growth_demand *= (1.0 - exp(-10.0 * nstorage_fill));
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -2829,7 +2829,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Positive NPP
 
 		// TODO: make clear this only works for daily time steps (NPP in kgC m-2 d-1)	
-		//indiv.cgrow = indiv.growth_demand * Gpot;
 		indiv.cgrow = min(indiv.growth_demand,Gpot);
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
@@ -2848,7 +2847,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			//indiv.cgrow = indiv.growth_demand * Gpot;
 			indiv.cgrow = min(indiv.growth_demand,Gpot);
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
@@ -3072,7 +3070,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 
 void ndemand_grass(Individual &indiv) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
-	const double max_update_growth = 0.1;
+	const double max_update_growth = 0.05;
 
 	// Local	
 	double ngrow_demand_leaf  = 0.0;
@@ -3124,7 +3122,6 @@ void ndemand_grass(Individual &indiv) {
 	double growth_update_ratio = min(max_update_growth, ngrow_demand_growth_total / ngrow_demand_update_total);
 
 	// Take N demand of storage into account
-	// TODO: find out why nmass_storage can be higher than capacity at establishment.
 	indiv.storendemand = max(0.0, indiv.nstorage_max - indiv.nmass_storage);
 
 	// Total biomass N demand of individual
@@ -3489,10 +3486,6 @@ void senescence_grass(Individual &indiv) {
 	//indiv.senesc_root = senesc / (indiv.fdev_senesc * (1.0 + senesc_fdorm));
 	indiv.senesc_root = senesc_base;
 
-	if (indiv.age > 0) {
-		printf("hi");
-	}
-
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
 	// TODO: calculate retranslocation coefficients based on current C:N ratios?
@@ -3656,7 +3649,8 @@ void turnover_dave_grass(Individual &indiv) {
 	double scal_crown_turnover = 0.2;
 
 	// Turnover of living tissues (root and crown)
-	double frac_turnover_root = 30.0 * indiv.senesc_root;	
+	// senesc_root equals the baseline senescence rate of leaves.
+	double frac_turnover_root = 20.0 * indiv.senesc_root;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
 	// Turnover of brown leaves
@@ -3822,6 +3816,9 @@ void allocate_excess(Individual &indiv, bool tocrown, double cexcess, double nex
 			indiv.cmass_repr += cdest;
 			indiv.nmass_repr += ndest;
 		} 
+
+		// add allocated cexcess to indiv.cgrow for use in respiration routine
+		indiv.cgrow += cdest; 
 
 		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
 		if (indiv.cexcess <= cdest) {

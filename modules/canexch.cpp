@@ -2358,8 +2358,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double growth,
-	double fphen_activity, double assim, double& resp) {
+	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double growth, double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2397,6 +2397,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
 	double resp_root = 0;   // root respiration (kg/m2/day)
 	double resp_crown = 0;  // crown respiration (kg/m2/day)
+	double resp_repr = 0;   // reproductive respiration (kg/m2/day)
 	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
@@ -2490,14 +2491,15 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// -> account for growth_demand in Rgrowth
 
 			// Root respiration
-			// Reduction factor of resp_root during dormancy
-			// Note: crown respiration added to resp_root for now
+			// Reduction factor of resp_root during dormancy (fphen_activity)
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// TODO: at some point, replace respiration functions here!
-			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.8 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
-			// TODO: add reproductive respiration here
+			// TODO: reduce resp_repr with senescence.
+			// TODO: replace cton_root with cton_repr if necessary. 
+			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
 			// Growth respiration
 			// Note that we take growth of previous day to estimate this,
@@ -2525,7 +2527,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_crown + resp_growth;
+		resp = resp_root + resp_crown + resp_growth + resp_repr;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
 }
@@ -2636,7 +2638,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, assim, resp);
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -3459,10 +3461,13 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cmass_root = indiv.cmass_root_today();
 
 		double cmass_crown = 0.0;
+		double cmass_repr = 0.0;
 		if (ifdavegrowth && ifdailygrass && indiv.pft.is_grass()) {
 			cmass_crown = indiv.cmass_crown;
+			cmass_repr = indiv.cmass_repr;
 		} else {
 			cmass_crown = 0.0;
+			cmass_repr = 0.0;
 		}
 
 		// Static root and sap wood C:N ratio if no N limitation
@@ -3490,7 +3495,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
-			cmass_root, cmass_crown, indiv.cgrow, indiv.fphen_activity, assim, resp);
+			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
+			assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

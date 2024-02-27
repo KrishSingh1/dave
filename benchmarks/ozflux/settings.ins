@@ -30,6 +30,8 @@ file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! 
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
 
 ! N Deposition Data
+! This is optional if variable_ndep_nhx and variable_ndep_noy are set, in which
+! case N deposition data will be read from the NetCDF file.
 param "file_ndep"             (str "../forcing/ndep/GlobalNitrogenDeposition.bin")    ! Relative to the main .ins file, not this one
 
 ! Disturbance Data (optional)
@@ -59,7 +61,7 @@ nc_check_inputs                0
 ! 0 = cache entire file (fastest, most memory intensive)
 ! 1 = cache one year at a time (slower, but uses less memory)
 ! 2 = no caching (slowest, not recommended)
-cache_strategy                1
+cache_strategy                0
 
 ! Scenario to be used for nitrogen deposition data.
 ! HISTORIC, RCP26, RCP45, RCP60, RCP85
@@ -69,26 +71,55 @@ useClosestNdep               1   ! Use closest available N Deposition data if no
 ! 1 if met forcing data contains leap days
 has_leap_years                0
 
+! User input from the instruction file. The number of years of data to recycle
+! during the spinup. If 0, all data will be recycled during freenyears.
+spinup_met_cycle_length      30
+
 ! Names of variables in met input file.
-variable_lon                 "longitude"
-variable_lat                 "latitude"
-variable_time                "time"
-variable_temp                "tav"
-variable_insol               "insol"
-variable_precip              "prec"
-variable_co2                 "co2"
-variable_vpd                 "vpd"
-variable_ps                  "ps"  ! Atmospheric Pressure (Pa)
-variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
-variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
+variable_lon                 "longitude" ! Longitude
+variable_lat                 "latitude"  ! Latitude
+variable_time                "time"      ! Time
+variable_temp                "tav"       ! Air Temperature (°C)
+variable_insol               "insol"     ! Shortwave Radiation (W m^-2)
+variable_precip              "prec"      ! Precipitation (mm)
+variable_vpd                 "vpd"       ! Vapour Pressure Deficit (kPa)
+variable_ps                  "ps"        ! Atmospheric Pressure (Pa)
+variable_wind                "wind"      ! Wind speed (m/2) (optional if not using blaze)
+
+! Empty string means it will be calculated from subdaily temperature. If this
+! variable doesn't exist, it will be calculated from subdaily temperature. If
+! this variable doesn't exist, and input timestep is daily, an error will occur.
+variable_tmax                "tmax" ! Maximum Daily Air Temperature (°C)
+
+! Empty string means it will be calculated from subdaily temperature. If this
+! variable doesn't exist, it will be calculated from subdaily temperature. If
+! this variable doesn't exist, and input timestep is daily, an error will occur.
+variable_tmin                "tmin" ! Minimum Daily Air Temperature (°C)
 
 ! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set.
-variable_ndep_nhx            ""
+! If not set, file_ndep must be set. The quantities in this variable are assumed
+! to be rates of N deposition, so aggregation will occur by taking the mean of
+! these rates over a time period.
+variable_ndep_nhx            ""     ! Daily NHX N deposition (mgN/m2/day)
 
 ! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set.
-variable_ndep_noy            ""
+! If not set, file_ndep must be set. The quantities in this variable are assumed
+! to be rates of N deposition, so aggregation will occur by taking the mean of
+! these rates over a time period.
+variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
+
+! This is the optional name of a variable in the NetCDF file which contains CO2
+! concentrations. Either this or file_co2 must be provided. If both are set,
+! file_co2 will be used.
+!variable_co2                 "co2"  ! CO2 Concentration (ppm)
+
+! Input file containing atmospheric co2 concentration by year. This is optional
+! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
+file_co2                      "../forcing/global_co2_ann_1700_2022.txt"
+!file_co2                     "../forcing/co2_1901_2018.txt"
+!file_co2                     "../forcing/co2_historical_1951_2005.dat"
+!file_co2                     "../forcing/co2_rcp45_1765_2500.dat"
+!file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0

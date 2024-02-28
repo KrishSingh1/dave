@@ -1807,6 +1807,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		nmass_leafs[i] = 0.0;
 	}
 
+	alpha_leaf        = 0.0;
+	alpha_root        = 0.0;
+	alpha_sap         = 0.0;
+	cmass_leaf_limit  = 0.0;
+	cmass_root_limit  = 0.0;
+	cmass_sap_limit   = 0.0;
+	cmass_repr_limit  = 0.0;
+
 	// additional initialisation
 	age               = 0.0;
 	height            = 0.0;

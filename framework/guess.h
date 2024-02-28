@@ -3448,6 +3448,10 @@ public:
 	// not considered "alive" until 1 year after establishment.
 	double initialn;
 
+	double alpha_leaf;
+	double alpha_root;
+	double alpha_sap;
+
 	// MEMBER FUNCTIONS
 
 public:

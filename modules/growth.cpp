@@ -3552,15 +3552,15 @@ void carbon_allocation_tree(Individual &indiv) {
 									realtive_alpha_sap + relative_alpha_repr;
 	
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
-	double alpha_leaf = divide(realtive_alpha_leaf, sum_relative_alphas);
-	double alpha_root = divide(realtive_alpha_root, sum_relative_alphas);
-	double alpha_sap = divide(realtive_alpha_sap, sum_relative_alphas);
+	indiv.alpha_leaf = divide(realtive_alpha_leaf, sum_relative_alphas);
+	indiv.alpha_root = divide(realtive_alpha_root, sum_relative_alphas);
+	indiv.alpha_sap = divide(realtive_alpha_sap, sum_relative_alphas);
 	double alpha_repr = divide(relative_alpha_repr, sum_relative_alphas);
 
 	// outputs:
-	indiv.cgrow_leaf = indiv.cgrow * alpha_leaf;
-	indiv.cgrow_root = indiv.cgrow * alpha_root;
-	indiv.cgrow_sap = indiv.cgrow * alpha_sap;
+	indiv.cgrow_leaf = indiv.cgrow * indiv.alpha_leaf;
+	indiv.cgrow_root = indiv.cgrow * indiv.alpha_root;
+	indiv.cgrow_sap = indiv.cgrow * indiv.alpha_sap;
 	// not necessary when using Juergen's update pools
 	// // indiv.cgrow_reserve = indiv.cgrow * (d_reserve / d_summed); 
 	indiv.cgrow_repr = indiv.cgrow * alpha_repr;

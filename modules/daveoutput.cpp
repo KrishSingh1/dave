@@ -127,6 +127,13 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);
 	add_indiv_output("file_dave_ltor"            	 , DAILY, [](const Individual &i) { return i.ltor; }, "Daily leaf to root ratio (unitless)", mean, true);
 	add_indiv_output("file_dave_cue"                 , DAILY, [](const Individual &i) { return i.dnpp / i.dgpp; }, "carbon use efficiency ()", mean, false, true);
+	add_indiv_output("file_dave_alpha_leaf"          , DAILY, [](const Individual &i) { return i.alpha_leaf; }, "Daily leaf sink strength (0-1)", mean, false, false);
+	add_indiv_output("file_dave_alpha_root"          , DAILY, [](const Individual &i) { return i.alpha_root; }, "Daily root sink strength (0-1)", mean, false, false);
+	add_indiv_output("file_dave_alpha_sap"           , DAILY, [](const Individual &i) { return i.alpha_sap; }, "Daily sap sink strength (0-1)", mean, false, false);
+	add_indiv_output("file_dave_cmass_leaf_limit"    , DAILY, [](const Individual &i) { return i.cmass_leaf_limit; }, "Daily optimum leaf pool size for trees (kgC/m2)", mean, false, false);
+	add_indiv_output("file_dave_cmass_root_limit"    , DAILY, [](const Individual &i) { return i.cmass_root_limit; }, "Daily optimum root pool size for trees (kgC/m2)", mean, false, false);
+	add_indiv_output("file_dave_cmass_sap_limit"     , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Daily optimum sap pool size for trees (kgC/m2)", mean, false, false);
+	add_indiv_output("file_dave_cmass_repr_limit"    , DAILY, [](const Individual &i) { return i.cmass_repr_limit; }, "Daily optimum reproductive pool size for trees (kgC/m2)", mean, false, false);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");

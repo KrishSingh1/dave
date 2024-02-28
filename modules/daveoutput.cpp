@@ -827,11 +827,13 @@ std::vector<double> DaveOutput::IndividualOutput::write_patch(Patch &patch, Outp
 		std::vector<Individual *> indivs = get_indivs(vegetation, pfts[i].c_str());
 
 		double result = 0;
+		std::vector<double> values;
 		if (indivs.size() > 0) {
 			for (Individual *indiv : indivs) {
-				result += indiv ? read_output->read(*indiv) : 0;
+				double result = indiv ? read_output->read(*indiv) : 0;
+				values.push_back(result);
 			}
-			// result /= indivs.size();
+			result = aggregator(&values.front(), values.size());
 		}
 		results.push_back(result);
 	}

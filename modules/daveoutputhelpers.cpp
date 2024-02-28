@@ -701,4 +701,16 @@ std::vector<ColumnDefinition<Patch>> aninput_columns() {
 	return columns;
 }
 
+double get_nindiv(const Patch &patch, const Pft &pft) {
+	double n = 0;
+	const Vegetation &vegetation = patch.vegetation;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		const Individual &indiv = vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			n += 1;
+		}
+	}
+	return n;
+}
+
 } // namespace GuessOutput

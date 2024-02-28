@@ -55,6 +55,20 @@ void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
+/*
+Get the number of established cohorts of this pft in this patch.
+*/
+int get_nindiv(const Patch &patch, const Pft &pft) {
+	int n = 0;
+	const Vegetation &vegetation = patch.vegetation;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		const Individual &indiv = vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			n++;
+		}
+	}
+	return n;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDPOISSON
@@ -134,6 +148,13 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		if ((climate.lat >= 0.0 && ((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0) < pft.min_snow) ||
 			(climate.lat < 0.0 && ((patch.soil.msnowdepth[5] + patch.soil.msnowdepth[6] + patch.soil.msnowdepth[7]) / 3.0) < pft.min_snow) ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
+	}
+
+	if (pft.lifeform == TREE && nindiv_max > 0) {
+		int nindiv = get_nindiv(patch, pft);
+		if (nindiv >= nindiv_max) {
+			return false;
+		}
 	}
 
 	/* Bypass all environmental limits except temperature for selected tree species after clearcut

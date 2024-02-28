@@ -49,7 +49,7 @@ echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 
 
 # Load the required software
-module purge
+module purge &>/dev/null
 module load foss/2022a netCDF/4.9.0 CMake/3.23.1 Ghostscript/9.56.1
 module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
 
@@ -58,3 +58,5 @@ set -x		# Debug. Remove later.
 # Here the call to the R-script tellme_global.Rmd
 cp $RSCRIPT_PATHFILE .
 Rscript -e "rmarkdown::render('tellme_global.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
+# Rename the report to something unique
+mv tellme_global.html tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.html

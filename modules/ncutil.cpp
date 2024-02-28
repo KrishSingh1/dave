@@ -46,6 +46,24 @@ bool floats_equal(double x, double y) {
 	return negligible(abs(x - y));
 }
 
+size_t index_of_double(double needle, double *haystack, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (equal(needle, haystack[i])) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+size_t index_of_float(float needle, float *haystack, size_t n) {
+	for (size_t i = 0; i < n; i++) {
+		if (fequal(needle, haystack[i])) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 double round_to_nearest_multiple(double x, double y) {
 	// 9, 24 => 0
 	// 9, 3  => 3

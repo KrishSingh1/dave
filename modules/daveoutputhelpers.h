@@ -173,6 +173,11 @@ Get the columns used in the patch-level nitrogen input output file.
 std::vector<ColumnDefinition<Patch>> ninput_columns();
 
 /*
+Get the columns used in the annual patch-level nitrogen input output file.
+*/
+std::vector<ColumnDefinition<Patch>> aninput_columns();
+
+/*
 Get the columns used in the met year output file.
 */
 std::vector<ColumnDefinition<Patch>> met_year_columns();
@@ -219,6 +224,11 @@ Compute summary statistics for the given row of data.
 @param median: (out parameter): The median of the data.
 */
 void compute_stats(std::vector<double> data, double *mean, double *sd, double *median);
+
+/*
+Get the number of cohorts of this PFT currently established in this patch.
+*/
+double get_nindiv(const Patch &patch, const Pft &pft);
 
 } // namespace GuessOutput
 

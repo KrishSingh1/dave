@@ -136,6 +136,46 @@ inline bool equal(double x, double y, double eps = DBL_EPSILON) {
 }
 
 /*
+Returns true if x is sufficiently close to y.
+
+The tolerance increases with the magnitude of the operands, to allow for the
+loss in precision in floating-point numbers distant from 0.
+
+@param x: Any real number.
+@param y: Any real number.
+@param eps: Maximum difference between x and y at which they may be
+            considered equal. If the absolute or relative difference is less
+			than this number, this function will return true.
+*/
+inline bool fequal(float x, float y, float eps = FLT_EPSILON) {
+	float diff = fabs(x - y);
+
+	// This absolute check is important when the numbers are close to 0.
+	if (diff <= eps) {
+		return true;
+	}
+
+	// If the numbers are distant from zero, a relative difference is useful.
+	x = abs(x);
+	y = abs(y);
+	float magnitude = (x > y) ? x : y;
+
+	// BLARP! It's best for the tolerance to be a multiple of DBL_EPSILON, but
+	// the question is, what multiple? Increasing this scalar will increase the
+	// tolerance of the checks. If you're reading this and are tempted to
+	// increase SCALAR, it may be better to restructure your calculations in
+	// such a way as to reduce your roundoff error.
+	const float SCALAR = 8;
+
+	if (diff <= magnitude * eps * SCALAR) {
+		return true;
+	}
+
+	// The numbers appear to be distant from each other.
+	return false;
+}
+
+/*
 Return true iff x is greater than or equal to y, within certain tolerance.
 
 @param x: Any real number.

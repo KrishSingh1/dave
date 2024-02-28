@@ -4064,12 +4064,27 @@ void update_pools_dave(Vegetation& vegetation) {
 		assert(positive(indiv.nmass_storage));
 		assert(less_than_or_equal(indiv.nmass_storage, indiv.nstorage_max));
 		assert(equal(cgrow_unlim, indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr + creturn + cexcess));
+
+		// Checking C:N ratios
+
+		// Leaf
 		assert(less_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_max * 1.001));
 		assert(greater_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_min * 0.999));
+
+		// Root
 		assert(less_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_max * 1.001));
 		assert(greater_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_min * 0.999));
-		assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
-		assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
+
+		// Sapwood (trees only!).
+		if (indiv.pft.lifeform == TREE) {
+			assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
+			assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
+		}
+
+		if (indiv.pft.is_grass()) {
+			assert(less_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_max * 1.001));
+			assert(greater_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_min * 0.999));
+		}
 	}
 }
 

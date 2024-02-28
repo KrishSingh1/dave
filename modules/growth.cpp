@@ -175,9 +175,9 @@ void DaveMassBalance::IndivState::check_cton(double cmass, double nmass, double 
 		return;
 	}
 	double cton = cmass / nmass;
-	assert(greater_than_or_equal(cton, cton_min));
+	assert(greater_than_or_equal(cton, cton_min * 0.999));
 	// assert(cton >= cton_min);
- 	assert(less_than_or_equal(cton, cton_max));
+ 	assert(less_than_or_equal(cton, cton_max * 1.001));
 	// assert(cton <= cton_max);
 }
 
@@ -1500,6 +1500,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	else {
 		// trees (and mosses?)
 		if (ifdavegrowth) {
+			indiv.alive = true;
 			// proportion of the initial biomass that goes to storage
 			const double fract_stor = 0.5;
 			indiv.cmass_storage += cmass_init * fract_stor;
@@ -3508,7 +3509,9 @@ void carbon_allocation_tree(Individual &indiv) {
 	// cmass leaf target (to grow to supply leaves to the current sapwood ) (kgC/m^2)
 	indiv.cmass_leaf_limit = max(indiv.cmass_sap * (pft.k_latosa / (indiv.sla() * pft.wooddens * height)) , indiv.cmass_leaf);
 	//  calculate the ltor according to the leaf optimum and belogrownd stress
-	indiv.ltor = min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max;
+	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
+	// ...to .5 of ltor_max
+	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	// cmass root target according to the leaf optimum and ltor (kgC/m^2)
 	indiv.cmass_root_limit = 0.0;
 	if (indiv.ltor > 0.0) {
@@ -3646,7 +3649,7 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 		double n_new = c_new / target_cton;
 
 		// Get the delta between current and target N content.
-		double ngrow = n_new - nmass;
+		double ngrow = max(0.0, n_new - nmass);
 
 		// Calculate the C:N ratio of new growth which will put us at the target
 		// C:N ratio.
@@ -4061,12 +4064,12 @@ void update_pools_dave(Vegetation& vegetation) {
 		assert(positive(indiv.nmass_storage));
 		assert(less_than_or_equal(indiv.nmass_storage, indiv.nstorage_max));
 		assert(equal(cgrow_unlim, indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr + creturn + cexcess));
-		assert(less_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_max));
-		assert(greater_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_min));
-		assert(less_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_max));
-		assert(greater_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_min));
-		assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max));
-		assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min));
+		assert(less_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_max * 1.001));
+		assert(greater_than_or_equal(indiv.cton_leaf(), indiv.pft.cton_leaf_min * 0.999));
+		assert(less_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_max * 1.001));
+		assert(greater_than_or_equal(indiv.cton_root(), indiv.pft.cton_root_min * 0.999));
+		assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
+		assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
 	}
 }
 

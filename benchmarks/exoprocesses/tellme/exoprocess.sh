@@ -51,7 +51,7 @@ echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 # Load the required software
 module purge
 module load foss/2022a netCDF/4.9.0 CMake/3.23.1 Ghostscript/9.56.1
-module load  GCC/10.3.0  OpenMPI/4.1.1  R/4.1.0  Pandoc
+module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
 
 set -x		# Debug. Remove later.
 

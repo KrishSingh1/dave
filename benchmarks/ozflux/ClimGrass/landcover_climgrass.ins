@@ -21,7 +21,7 @@ param "file_firstmanageyear_st" (str "")
 !// LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0				! Whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 1				! Whether to use (and change) landcover fractions (1) or not (0)
 
 run_urban 0				! Whether to simulate barren land (1) or not (0)
 run_crop 0				! Whether to simulate crop vegetation (1) or not (0)
@@ -37,8 +37,8 @@ st "Pasture" (
 	stinclude 1
 	landcover "pasture"
 	grazeintens 0.0
-	mowdates 200 250 200 200 200
-	mowintens 0.5
+	mowdates 152 213 274 152 152
+	mowintens 0.8
 
 )
 

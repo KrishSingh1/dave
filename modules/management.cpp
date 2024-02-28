@@ -73,13 +73,36 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 			return;
 		}
 
-		// Carbon
-		double cmass_harvest = indiv.get_cmass_leaf() * frac_remove;
-		indiv.cmass_leafs[green] -= cmass_harvest;
+		// Determine how much biomass to remove
+		// Note: frac_remove is interpreted as sum of leaf + reproductive biomass.
+		// Note: factor 0.25 is subjective + should be lower for grazing than for mowing.
+		//       (or solved via differences across patches)
 
-		// Nitrogen
-		double nmass_harvest = indiv.get_nmass_leaf() * frac_remove;
-		indiv.nmass_leafs[green] -= nmass_harvest;
+		// Carbon harvest
+		double cmass_harvest      = frac_remove * (indiv.get_cmass_leaf() + indiv.cmass_repr);
+		double cmass_repr_harvest = min(indiv.cmass_repr, max(0.5 * cmass_harvest, cmass_harvest - indiv.get_cmass_leaf()));
+		double cmass_leaf_harvest = cmass_harvest - cmass_repr_harvest;
+		
+		// Nitrogen harvest
+		double nmass_repr_harvest = !is_zero(cmass_repr_harvest) ? 
+									cmass_repr_harvest / (indiv.cmass_repr / indiv.nmass_repr) : 0.0; 
+		double nmass_leaf_harvest = cmass_leaf_harvest / indiv.cton_leaf();
+		double nmass_harvest      = nmass_repr_harvest + nmass_leaf_harvest;
+
+		// Update C and N pools
+		indiv.cmass_leafs[green] -= cmass_leaf_harvest;
+		indiv.cmass_repr         -= cmass_repr_harvest;
+
+		indiv.nmass_leafs[green] -= nmass_leaf_harvest;
+		indiv.nmass_repr         -= nmass_repr_harvest;
+
+		// Set back grasses back to vegetative state if repr fraction is 0.
+		if (is_zero(indiv.cmass_repr) && indiv.growth_stage == reproductive) {
+			indiv.growth_stage = vegetative;
+			// avoid switching back to repr phase the next day:
+			// TODO: better erase all values in indiv.cmass_storage_20
+			indiv.cmass_storage_20.add(-20.0);  
+		}
 
 		// Depending on the management type, part of C and N returns as litter (e.g. manure)
 		double cmass_return = cmass_harvest * frac_creturn;
@@ -105,6 +128,10 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		patch.soil.sompool[SURFMETA].nmass += nreturn_meta;
 		patch.soil.sompool[SURFSTRUCT].nmass += nreturn_struct;
 
+		assert(positive(indiv.cmass_leafs[green]));
+		assert(positive(indiv.nmass_leafs[green]));
+		assert(greater_than_or_equal(indiv.cmass_repr, 0.0));
+		assert(greater_than_or_equal(indiv.nmass_repr, 0.0));
 		assert(equal(cmass_harvest,cmass_return + cmass_lost));
 		assert(equal(nmass_harvest,nmass_return + nmass_lost));
 }

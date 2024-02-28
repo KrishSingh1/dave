@@ -564,8 +564,6 @@ void establishment_daily(Patch& patch) {
 				// Check conditions for germination (germination fraction)
 				// TODO: Add germination fraction calculation for TREES.
 				double frac_germ = germination_fraction(ppft, patch);
-				// TODO: temporary - set frac_germ to zero to prevent establishing daily
-				frac_germ = 0.0;
 				// Do conditions allow for germination?
 				if (frac_germ > 0.0) {
 					Individual *indiv = get_beneficiary(patch, pft);

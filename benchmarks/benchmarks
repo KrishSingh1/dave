@@ -253,7 +253,7 @@ function setup_workspace {
 }
 
 
-# This function submits the super-report processing job.
+# This function submits a super-report processing job.
 # Parameters: the argument list (string) for this postpp tool call,
 #   item 0 in the list is the tool name.
 function submit_postppjob {
@@ -268,10 +268,10 @@ function submit_postppjob {
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
 	else
-	    dependency="--dependency=afterok:$pp_jobids"
+		dependency="--dependency=afterok:$pp_jobids"
 	fi
     else
-	dependency=""
+		dependency=""
     fi
 
     # Determine what super-report to run, and the argument to it

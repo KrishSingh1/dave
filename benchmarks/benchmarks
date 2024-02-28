@@ -49,8 +49,6 @@ function print_usage_and_exit {
     error "     Several -e options can be stacked in one call."
     error "-s   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests."
-    error "-C   No compile. Run the tests without recompiling." 
-	error "     Use only when you already called benchmarks before and want to resubmit witout compiling again."
     error "-p   Post processing only."
     error "-P   Exo-report processing only: no model jobs, no postprocessing jobs."
     error "-r   Generate printer friendly report (does nothing else and is run as a regular process,"
@@ -88,7 +86,6 @@ function includes {
 
 single_machine=0
 compile_only=0
-no_compile=0
 pp_only=0
 printer_friendly=0
 superreport_flag=0
@@ -96,7 +93,7 @@ superreport_only=0
 superreport_arglist=()
 
 # Handle the -s, -c, -i, -x, ... options
-while getopts ":scCpPre:i:x:" opt; do
+while getopts ":scpPre:i:x:" opt; do
 
     case $opt in
 	i  ) inclusive=$OPTARG
@@ -105,7 +102,6 @@ while getopts ":scCpPre:i:x:" opt; do
 	     exclusive_flag=1;;
 	s  ) single_machine=1;;
 	c  ) compile_only=1;;
-	C  ) no_compile=1;;
 	p  ) pp_only=1;;
 	P  ) superreport_only=1;;
 	e  ) superreport_arglist+=( "$OPTARG " )
@@ -143,8 +139,8 @@ else
 	cmake_command="$cmake_command -D SYSTEM=multicore"
 fi
 
-if (( $compile_only == 1 && ( $pp_only == 1 || $superreport_only == 1 || $no_compile == 1) )); then
-    error "-c can't be combined with -p or -P or -C!"
+if (( $compile_only == 1 && ( $pp_only == 1 || $superreport_only == 1) )); then
+    error "-c can't be combined with -p or -P!"
     exit 1
 fi
 
@@ -493,7 +489,6 @@ function run_benchmark {
 
     echo $test_name"..."
 
-	if [ $no_compile == 0 ]; then
     if [ -f $test_name/extra_source.txt ]; then
 	build_path=$work_dir/${test_name}_build
 	echo "Building $test_name model..."
@@ -502,7 +497,6 @@ function run_benchmark {
 	    return
 	fi
     fi
-	fi
 
     if (( $compile_only == 1 )); then
 	return
@@ -605,7 +599,7 @@ fi
 # Build the model which will be used by benchmarks that don't have their own
 # special code. No need to build it if we're only doing post processing
 # however.
-if (( $pp_only == 0 && $superreport_only == 0 && $no_compile )); then
+if (( $pp_only == 0 && $superreport_only == 0 )); then
     echo "Building standard model..."
     if ! build $work_dir/standard_build; then
 	echo "Not running any benchmarks!"

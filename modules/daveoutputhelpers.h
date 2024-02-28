@@ -225,6 +225,11 @@ Compute summary statistics for the given row of data.
 */
 void compute_stats(std::vector<double> data, double *mean, double *sd, double *median);
 
+/*
+Get the number of cohorts of this PFT currently established in this patch.
+*/
+double get_nindiv(const Patch &patch, const Pft &pft);
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

@@ -268,7 +268,6 @@ double photo_growth(double reldaylength, double daylength_diff) {
 	} else {
 		return 1.0;
 	}
-	//return 1.0 + daylength_diff;
 }
 
 
@@ -389,7 +388,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 && indiv.growth_stage_days > 30 && indiv.fdev_growth > 0.5){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 && indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -1262,7 +1261,7 @@ double cstorage_capacity(Individual& indiv) {
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
-	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
+	return indiv.cstorage_max / indiv.pft.cton_root_min;  // TODO: Rethink upper limit for storage.
 														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
 
 }
@@ -2796,10 +2795,6 @@ double growth_demand(Individual& indiv) {
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
-	if (date.get_calendar_year() == 2018 && date.month == 8){
-		printf("hi");
-	}
-
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
 	// TODO: declare parameter
@@ -3328,16 +3323,19 @@ void update_pools_dave(Vegetation& vegetation) {
 		// Alternatively, one could implement a N:C storage > N:C leaf min constraint.
 		
 		double fnavail = 0.0;
+		double nstress = 0.0;
 		if (!negligible(indiv.ndemand)) {
 			//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
-			fnavail = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
+			// TODO: define max_mobil_nstorage based on Yang et al. 2023, Journal of Ecology.
+			fnavail = max(0.0,min(1.0,((max_mobil_cstorage * indiv.nmass_storage) / (indiv.ndemand - indiv.storendemand))));
+			nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
 		}
 		
 		// calculate N stress factor 
 		if (!ifnlim || date.year < freenyears) {
 			indiv.nscal_5.add(1.0);
 		} else {
-			indiv.nscal_5.add(fnavail);
+			indiv.nscal_5.add(nstress);
 		}
 
 		double navail_leaf  = indiv.leafndemand * fnavail;

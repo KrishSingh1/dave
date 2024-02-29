@@ -99,9 +99,11 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		// Set back grasses back to vegetative state if repr fraction is 0.
 		if (is_zero(indiv.cmass_repr) && indiv.growth_stage == reproductive) {
 			indiv.growth_stage = vegetative;
+			indiv.fdev_growth = 1.0;
 			// avoid switching back to repr phase the next day:
 			// TODO: better erase all values in indiv.cmass_storage_20
-			indiv.cmass_storage_20.add(-20.0);  
+			//indiv.cmass_storage_20.add(-20.0);  
+			indiv.growth_stage_days = 0;
 		}
 
 		// Depending on the management type, part of C and N returns as litter (e.g. manure)

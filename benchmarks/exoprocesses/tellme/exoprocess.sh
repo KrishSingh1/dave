@@ -14,14 +14,12 @@ EVALDATA_PATH=/data/evaluation_data
 LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
 
-RSCRIPT="tellme_global.Rmd"	# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
 DEBUG_LOG_NAME="exoprocess.debug.log"
 
 NAMETAG_NEW="$1"
 NAMETAG_REF="$2"
 NEW_OUTPUT_PATH="$(dirname $(pwd))"
 REF_OUTPUT_PATH="$3"
-RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 
 
 if [ $# -ne 3 ]; then
@@ -55,8 +53,11 @@ module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
 
 set -x		# Debug. Remove later.
 
-# Here the call to the R-script tellme_global.Rmd
-cp $RSCRIPT_PATHFILE .
-Rscript -e "rmarkdown::render('tellme_global.Rmd',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
-# Rename the report to something unique
-mv tellme_global.html tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.html
+# Here the call to the R-script tellme.Rmd
+RSCRIPT="tellme_global.Rmd"			# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
+RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
+RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
+cp $RSCRIPT_PATHFILE ./$RSCRIPT_HTML
+RSCRIPT_HTML="\'$RSCRIPT_HTML\'"
+Rscript -e "rmarkdown::render($RSCRIPT_HTML,params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_d$
+

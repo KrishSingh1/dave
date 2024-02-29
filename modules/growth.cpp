@@ -262,8 +262,12 @@ double wscal_growth(double wscal) {
 // Effects likely limited to high latitude areas.
 // A formulation would also need to account for a lag (effects of photoperiod
 // on growth demand are not proportional with daylength_diff)
-double photo_growth(double daylength_diff) {
-	return 1.0;
+double photo_growth(double reldaylength, double daylength_diff) {
+	if (reldaylength < 0.9 && daylength_diff < 0.0){
+		return pow(reldaylength, 4.0);
+	} else {
+		return 1.0;
+	}
 	//return 1.0 + daylength_diff;
 }
 
@@ -2786,11 +2790,15 @@ double growth_demand(Individual& indiv) {
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
-	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
+	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	dev_growth(indiv, indiv.frepr_crown);
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+
+	if (date.get_calendar_year() == 2018 && date.month == 8){
+		printf("hi");
+	}
 
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.

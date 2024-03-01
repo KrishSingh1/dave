@@ -31,7 +31,8 @@ if [ $# -ne 3 ]; then
 fi
 
 {
-echo "Tellme tool" | tee $DEBUG_LOG_NAME
+date | tee -a $DEBUG_LOG_NAME
+echo "Tellme tool" | tee -a $DEBUG_LOG_NAME
 echo "./benchmarks arguments = $@"   | tee -a $DEBUG_LOG_NAME
 echo "Arguments to the tellus R-script:" | tee -a $DEBUG_LOG_NAME
 echo "<path to new benchmarking runs> <new name> <path to old run benchmarking runs> <old name> <path to evaluation data> <path to land use data>" | tee -a $DEBUG_LOG_NAME
@@ -43,6 +44,7 @@ echo "Argument 5 = $EVALDATA_PATH"       | tee -a $DEBUG_LOG_NAME
 echo "Argument 6 = $LUDATA_PATH"     | tee -a $DEBUG_LOG_NAME
 echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
 echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
+echo | tee -a $DEBUG_LOG_NAME
 } >/dev/null	# Don't output debug info to the console / slurm.log.
 
 
@@ -58,6 +60,5 @@ RSCRIPT="tellme_global.Rmd"			# Do not change, unless you change also further do
 RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
 cp $RSCRIPT_PATHFILE ./$RSCRIPT_HTML
-RSCRIPT_HTML="\'$RSCRIPT_HTML\'"
-Rscript -e "rmarkdown::render($RSCRIPT_HTML,params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_d$
+Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
 

@@ -280,8 +280,8 @@ function submit_postppjob {
 
     # Create the exoprocessing job
     workspace=$work_dir/${supertool}
-    rm -rf $workspace
-    mkdir $workspace
+    #rm -rf $workspace
+    mkdir -p $workspace
     pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM

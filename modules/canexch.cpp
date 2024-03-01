@@ -3450,10 +3450,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		// get daily net assimilation
 		double assim = indiv.photosynthesis.net_assimilation();
 
-		if (date.get_calendar_year() == 2017 && date.month == 4){
-			printf("hi");
-		}
-
 		// Calculate autotrophic respiration
 		double cmass_root;
 		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)

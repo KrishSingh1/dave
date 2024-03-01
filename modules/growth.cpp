@@ -263,8 +263,8 @@ double wscal_growth(double wscal) {
 // A formulation would also need to account for a lag (effects of photoperiod
 // on growth demand are not proportional with daylength_diff)
 double photo_growth(double reldaylength, double daylength_diff) {
-	if (reldaylength < 0.9 && daylength_diff < 0.0){
-		return pow(reldaylength, 4.0);
+	if (reldaylength < 0.95 && daylength_diff < 0.0){
+		return pow(reldaylength, 5.0);
 	} else {
 		return 1.0;
 	}
@@ -2813,7 +2813,6 @@ double growth_demand(Individual& indiv) {
 void storage_growth_partitioning_grass(Individual &indiv) {
 	// Local:
 	double cstore = 0.0;
-	double cexcess = 0.0;
 
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
@@ -2840,13 +2839,19 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		indiv.cgrow = min(indiv.growth_demand,Gpot);
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
-		
-		// If C storage exceed its capacity take track of the excess C and reduce cstore
-		if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
-			cexcess += indiv.cmass_storage + cstore - indiv.cstorage_max;
-			indiv.cexcess += cexcess;
-			cstore = indiv.cstorage_max - indiv.cmass_storage;
+
+		// limit allocation to C storage if it is almost at capacity
+		double crefill_max = max(0.0, (indiv.cstorage_max - indiv.cmass_storage) * max_mobil_cstorage);
+		if (cstore > crefill_max) {
+			indiv.cexcess += cstore - crefill_max;
+			cstore = crefill_max; 
 		}
+
+		// If C storage exceed its capacity take track of the excess C and reduce cstore
+		//if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
+	    //	indiv.cexcess += indiv.cmass_storage + cstore - indiv.cstorage_max;
+		//	cstore = indiv.cstorage_max - indiv.cmass_storage;
+		//}
 
 	} else {
 
@@ -2886,7 +2891,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	}
 
 	assert(positive(indiv.cmass_storage));
-	assert(equal(indiv.dnpp, indiv.cgrow + cstore + cexcess));
+	assert(equal(indiv.dnpp, indiv.cgrow + cstore + indiv.cexcess));
 
 	// update cmass_storage
 	indiv.cmass_storage += cstore;
@@ -3451,7 +3456,7 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 25.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_water = 40.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
@@ -3808,65 +3813,73 @@ void turnover_dave(Vegetation& vegetation) {
 
 
 // Allocate excess C and N to target pool.
-void allocate_excess(Individual &indiv, bool tocrown, double cexcess, double nexcess,
-					   double cton_min, double cton_max) {
+void allocate_excess(double &cexcess, double &nexcess, double &cpool_dest, double &npool_dest,
+					 double &cmass_storage, double &nmass_storage, double cton_min, double cton_max,
+					 double calloc_max) {
 
-	if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
+	if ((nmass_storage + nexcess) > 0.0) {
 
 		double cdest = 0.0;
 		double ndest = 0.0;
 
-		if (indiv.nexcess > 0) {
-			cdest = indiv.nexcess * cton_min;
-			ndest = indiv.nexcess;
+		// if there is excess N, try to allocate all of it to the destination pool
+		if (nexcess > 0) {
+			cdest = nexcess * cton_min;
+			ndest = nexcess;
 		}
 
-		if (indiv.cexcess > 0) {
-			cdest = max(cdest, indiv.cexcess);
+		// allocate as much of cexcess as we can (given N excess and C:N ratios)
+		if (cexcess > 0) {
+			cdest = max(cdest, cexcess);
 			ndest = max(ndest, cdest / cton_max);
 		}
 
-		if (cdest > (indiv.cmass_storage + indiv.cexcess)) {
-			cdest = indiv.cmass_storage;
+		// case where cdest exceeds available C storage and C excess (could happen under large N excess)
+		// Note: half of max_mobil_cstorage is taken as cdest is allocated to two pools.
+		if (cdest > (cmass_storage * 0.5 * max_mobil_cstorage + cexcess)) {
+			cdest = (cmass_storage * 0.5 * max_mobil_cstorage + cexcess);
 			ndest = cdest / cton_min;
 		}
 
-		if (ndest > (indiv.nmass_storage + indiv.nexcess)) {
-			ndest = indiv.nmass_storage;
+		// case where ndest exceeds available N storage and N excess (could happen under large C excess)
+		if (ndest > (nmass_storage * 0.5 * max_mobil_cstorage + nexcess)) {
+			ndest = (nmass_storage * 0.5 * max_mobil_cstorage + nexcess);
 			cdest = ndest * cton_min;
 		}
 
-		if (tocrown) {
-			indiv.cmass_crown += cdest;
-			indiv.nmass_crown += ndest;
-		} else {
-			indiv.cmass_repr += cdest;
-			indiv.nmass_repr += ndest;
-		} 
+		if (cdest > calloc_max) {
+			cdest = calloc_max;
+			ndest = calloc_max / cton_max;
+		}
 
 		// add allocated cexcess to indiv.cgrow for use in respiration routine
-		indiv.cgrow += cdest; 
+		// TODO: is this needed?
+		// indiv.cgrow += cdest; 
 
 		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
-		if (indiv.cexcess <= cdest) {
-			// cannot be fulfillled by cexcess
-			indiv.cmass_storage -= (cdest - indiv.cexcess);
-			indiv.cexcess = 0.0;
+		if (cexcess <= cdest) {
+			// cannot be fulfillled by cexcess (could happen under high N excess)
+			cmass_storage -= (cdest - cexcess);
+			cexcess = 0.0;
 		} else {
 			// can be fulfilled by cexcess
-			indiv.cexcess -= cdest;
+			cexcess -= cdest;
 		}
 
-		if (indiv.nexcess <= ndest) {
-			// cannot be fulfillled by nexcess
-			indiv.nmass_storage -= (ndest - indiv.nexcess);
-			indiv.nexcess = 0.0;
+		if (nexcess <= ndest) {
+			// cannot be fulfillled by nexcess (could happen under high C excess)
+			nmass_storage -= (ndest - nexcess);
+			nexcess = 0.0;
 		} else {
 			// can be fulfilled by nexcess
-			indiv.nexcess -= ndest;
+			nexcess -= ndest;
 		}
 
+		cpool_dest += cdest;
+		npool_dest += ndest;
+
 	}
+
 }
 
 
@@ -3885,6 +3898,7 @@ void storage_overflow(Individual& indiv) {
 	// low storage for a very long time. 
 	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+		// TODO: limit allocation to repr for annuals to avoid unrealistic growth rates?
 		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.cmass_leafs[green]); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;
@@ -3899,18 +3913,33 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0) {
 
-		// decide where to put excess C (or excess N).
-
-		// if there is still capacity for reproductive biomass, put it in there.
-		// Otherwise, put it into the crown.
-		if (indiv.frepr_crown < 2.0 * indiv.pft.reprfrac) {   // to reproduction
-			allocate_excess(indiv, false, indiv.cexcess, indiv.nexcess, pft.cton_repr_min, pft.cton_repr_max);	
-		} else {  // to crown
-			allocate_excess(indiv, true, indiv.cexcess, indiv.nexcess, pft.cton_root_min, pft.cton_root_max);
+		if (date.year == 0 && date.month == 3 && date.dayofmonth == 21) {
+			printf("hi");
 		}
+		// decide where to put excess C (or excess N).
+		// If the plant is in the reproductive phase, put excess into repr
+		if (indiv.growth_stage == reproductive) {
+			
+			double cexcess_repr = min(indiv.cexcess, indiv.cgrow_repr);
+
+			// determine amount of C excess allocated to reproductive pool
+			// Note: allocate as much as possible of the C and N excess, but it needs to be 
+			//       constrained by stoichiometry. Crepr is the amount of C that was actually
+			//		 allocated to the reproductive pool. Function will draw down storage if 
+			//		 there is a strong imbalance between cexcess and nexcess.
+			allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_repr, indiv.nmass_repr, indiv.cmass_storage, 
+							indiv.nmass_storage, pft.cton_repr_min, pft.cton_repr_max, cexcess_repr);	
+		}
+
+		// Put as much of possible of the rest of C excess into the crown.
+		double cexcess_crown = min(indiv.cexcess, indiv.cgrow_crown);
+		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
+						indiv.nmass_storage, pft.cton_root_min, pft.cton_root_max, cexcess_crown);
+
 	}
 
-	// Now deal with excess C and N that cannot be allocated because of stoichiometry.
+	// Now deal with excess C and N that cannot be allocated because of stoichiometry or
+	// because they would lead to excessive growth.
 	if (indiv.cexcess > 0.0) {
 		// TODO: decide what to do with excess C if you are not in the reproductive phase
 		// Option 1: respire

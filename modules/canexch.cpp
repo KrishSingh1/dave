@@ -2495,21 +2495,17 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// TODO: at some point, replace respiration functions here!
-			resp_crown = (0.8 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// TODO: reduce resp_repr with senescence.
 			// TODO: replace cton_root with cton_repr if necessary. 
 			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
+			// TODO: add culm respiration.
+
 			// Growth respiration
-			// Note that we take growth of previous day to estimate this,
-            // assumption being that C is not necessarily used for growth on
-            // the same day it's fixed. A time lag is considered physiologicallly 
-            // more meaningful than a flat rate that is independent of growth, which
-			// could be problematic under conditions of high growth demand.
-            // Data from Ryan 1991.
-			resp_growth = growth * 0.2;
-			//resp_growth = (assim - resp_root) * 0.25;
+			//resp_growth = growth * 0.2;
+			resp_growth = (assim - resp_root - resp_crown - resp_repr) * 0.25;
 
 		} else {
 			
@@ -2527,7 +2523,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_crown + resp_growth + resp_repr;
+		resp = resp_root + resp_crown + resp_repr + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
 }
@@ -2824,8 +2820,9 @@ void vcmax_from_N(Vegetation& vegetation) {
 
         double nmass_leaf = 0.0;
 		double nlai_top  = 1.0;
-		double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants
-		
+		//double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants as a PFT parameter!!
+		double leaf_NtoP = 10.7;
+
 		// Avoid log(0)
 		if (!is_zero(indiv.get_nmass_leaf())) {
         	// leaf N of green leaves per leaf area (kgN m-2 leaf area) 
@@ -3452,6 +3449,10 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// get daily net assimilation
 		double assim = indiv.photosynthesis.net_assimilation();
+
+		if (date.get_calendar_year() == 2017 && date.month == 4){
+			printf("hi");
+		}
 
 		// Calculate autotrophic respiration
 		double cmass_root;

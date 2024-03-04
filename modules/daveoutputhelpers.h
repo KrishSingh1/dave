@@ -230,6 +230,21 @@ Get the number of cohorts of this PFT currently established in this patch.
 */
 double get_nindiv(const Patch &patch, const Pft &pft);
 
+/*
+Get the columns used in the vegetation C pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_cpool_columns();
+
+/*
+Get the columns used in the vegetation N pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_npool_columns();
+
+/*
+Aggregate a value across all individuals in a patch.
+*/
+double aggregate_indivs(const Patch &patch, const Pft &pft, double (*read_value)(const Individual &), double (*aggregate)(double *, int));
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

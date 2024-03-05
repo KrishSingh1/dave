@@ -1043,8 +1043,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry
-
-						allometry(indiv);
+						
+						if (ifdavegrowth && ifdailytree) {
+							allometry_dave_tree(indiv);
+						} else {
+							allometry(indiv);
+						}
 
 						// Calculate storage pool size
 						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;

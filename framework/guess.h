@@ -3403,6 +3403,17 @@ public:
 	/// The daily N lossed from roots due to senescense, only crops.
 	double daily_nmass_rootloss;
 
+	/// daily leaf turnover flux (kgC/m^2/day) (DAVE)
+	double cturnover_leaf;
+	/// daily root turnover flux (kgC/m^2/day) (DAVE)
+	double cturnover_root;
+	/// daily sapwood turnover flux (kgC/m^2/day) (DAVE)
+	double cturnover_sap;
+	/// daily repr turnover flux (kgC/m^2/day) (DAVE)
+	double cturnover_repr;
+	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
+	double cturnover_crown;
+
 	/// Number of days with non-negligible phenology this month
 	int nday_leafon;
 	// Whether this individual is truly alive.
@@ -3451,7 +3462,7 @@ public:
 	double alpha_leaf;
 	double alpha_root;
 	double alpha_sap;
-
+	double alpha_repr;
 	// MEMBER FUNCTIONS
 
 public:

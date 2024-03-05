@@ -498,8 +498,8 @@ void CFInput::init() {
 			if (iss >> lon >> lat) {
 				getline(iss, descrip);
 				double lon_center, lat_center;
-				lon_center = ((double)std::floor(lon * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
-				lat_center = ((double)std::floor(lat * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
+                               lon_center = (double)std::round(lon * 4) / 4;
+                               lat_center = (double)std::round(lat * 4) / 4;
 				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);																				
 				c.lat = lat_center;
 				c.lon = lon_center;

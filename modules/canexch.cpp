@@ -8,6 +8,10 @@
 /// \author Ben Smith
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
@@ -986,7 +990,8 @@ void nstore_usage(Vegetation& vegetation) {
 				indiv.nmass_root    += root_ndemand;
 				indiv.nstore_labile -= root_ndemand;
 
-				indiv.nstress = false;
+				// nitrogen stressed photosynthesis is allowed only if optimal leaf nitrogen is above allowed level 
+				indiv.nstress = indiv.n_opt_isabovelim;
 			}
 			else {
 
@@ -1011,13 +1016,13 @@ void nstore_usage(Vegetation& vegetation) {
 				}
 
 				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-				indiv.nstress = ifnlim;
+				indiv.nstress = ifnlim && date.year > freenyears;
 				
 			}
 		}
 		else
-			// photosynthesis will not be nitrogen stresses
-			indiv.nstress = false;
+			// photosynthesis will not be nitrogen stresses unless optimal leaf N is above maximum limit
+			indiv.nstress = indiv.n_opt_isabovelim;
 
 		vegetation.nextobj();
 	}
@@ -1053,6 +1058,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Rescaler of nitrogen uptake
 		indiv.fnuptake = 1.0;
 
+		// Assume that optimal leaf nitrogen isn't above allowed limit
+		indiv.n_opt_isabovelim = false;
+
 		// Starts with no nitrogen stress
 		indiv.nstress = false;
 
@@ -1079,6 +1087,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf_today() / leafoptn < indiv.pft.cton_leaf_min) {
 				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_min;
+
+				// Optimal leaf N above limit -> always N limitation on Vmax
+				indiv.n_opt_isabovelim = ifnlim && date.year > freenyears;
 			}
 			// Can not have lower nitrogen concentration than maximum leaf C:N ratio
 			else if (indiv.cmass_leaf_today() / leafoptn > indiv.pft.cton_leaf_max) {
@@ -1743,7 +1754,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			}
 		}
 
-		if (irrigate_soil && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
+		if (irrigate_soil && patch.soil.snowdepth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
 			if (!patch.soil.ice_in_top_layer()) {
@@ -1912,15 +1923,15 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (day.isstart || spft.irrigated && pft.id == patch.stand.pftid) {
+		if (day.isstart || patch.stand.isirrigated) {
 
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
 			// (this then represents the average amount of water available over an
 			// individual's FPC, assuming individuals are equal in competition for water)
 			double wr;
-
-			if (spft.irrigated && pft.id == patch.stand.pftid) {
+ 
+			if (patch.stand.isirrigated) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
@@ -1948,11 +1959,23 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			if (patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
+			if (patch.stand.landcover != CROPLAND ){
 				ppft.wsupply_leafon = pft.emax * wr;
-			else
-				ppft.wsupply_leafon = 0.0;
-			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
+			}
+			else {  // crop specific water supply
+				// Temporarily removed the scaling with fpc due to 
+				// too high water stress for young crops. (r10394)
+				// TODO: Make the water supply dependant on root allocation
+				if (ppft.cropphen->growingseason) {
+					ppft.wsupply_leafon = pft.emax * wr;
+					ppft.wsupply = ppft.wsupply_leafon;
+				}
+				else {
+					ppft.wsupply_leafon = 0.0;
+					ppft.wsupply = 0.0;
+				}
+			}
 		}
 
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));
@@ -2152,7 +2175,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
-	double xmid;
+	double xmid = 0.0;
 
 	// Implement numerical solution
 
@@ -2494,12 +2517,13 @@ void leaf_senescence(Vegetation& vegetation) {
 
 		double r = 0.0;
 
-		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
+		// N dependent C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
 		if (indiv.cmass_leaf_today() > 0.0) {
 			double Ln = indiv.lai_nitrogen_today();
 			double Lnld = indiv.lai_today();
 			r = (Lnld - min(Lnld, Ln))/indiv.pft.sla/10.0;
 		}
+
 		// No senescence during the initial growing period
 		if (indiv.patchpft().cropphen->fphu < 0.05) {
 			indiv.daily_cmass_leafloss = 0.0;

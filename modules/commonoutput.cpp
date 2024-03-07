@@ -5,6 +5,10 @@
 /// \author Joe Siltberg
 /// $Date$
 ///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
@@ -54,7 +58,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_ngases", &file_ngases, 300, "Annual nitrogen gases output file");
 	declare_parameter("file_soil_npool", &file_soil_npool, 300, "Annual soil N pools output file");
 	declare_parameter("file_soil_nflux", &file_soil_nflux, 300, "Annual soil N fluxes output file");
-
+	declare_parameter("file_speciesdiam", &file_speciesdiam, 300, "Mean species diameter (cm)");
 	declare_parameter("file_speciesheights", &file_speciesheights, 300, "Mean species heights");
 
 	// Monthly output variables
@@ -224,7 +228,7 @@ void CommonOutput::define_output_tables() {
 		 cflux_columns += ColumnDescriptor("Seed",         8, 3);
 		 cflux_columns += ColumnDescriptor("Harvest",      9, 3);
 		 cflux_columns += ColumnDescriptor("LU_ch",        9, 3);
-		 cflux_columns += ColumnDescriptor("Slow_h",       9, 3);
+		 cflux_columns += ColumnDescriptor("Slow_h",       9, 4);
 	}
 	cflux_columns += ColumnDescriptor("NEE",              10 + bm_extra_prec, 5 + bm_extra_prec);
 
@@ -412,6 +416,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_runoff,			file_runoff,         runoff_columns);
 	create_output_table(out_wetland_water_added, file_wetland_water_added, wetland_water_added_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
+	create_output_table(out_speciesdiam,	file_speciesdiam,	 speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
 	create_output_table(out_amon,           file_amon,           amon_columns);
 	create_output_table(out_amon_mt1,       file_amon_mt1,       amon_columns);
@@ -784,6 +789,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_lai=0.0;
 	double mean_standpft_densindiv_total=0.0;
 	double mean_standpft_heightindiv_total=0.0;
+	double mean_standpft_diamindiv_total=0.0;
 	double mean_standpft_aiso=0.0;
 	double mean_standpft_amon=0.0;
 	double mean_standpft_amon_mt1=0.0;
@@ -845,6 +851,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_lai=0.0;
 	double standpft_densindiv_total=0.0;
 	double standpft_heightindiv_total = 0.0;
+	double standpft_diamindiv_total = 0.0;
 	double standpft_aiso=0.0;
 	double standpft_amon=0.0;
 	double standpft_amon_mt1=0.0;
@@ -881,8 +888,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_amon_mt2=0.0;
 		mean_standpft_nuptake=0.0;
 		mean_standpft_vmaxnlim=0.0;
-
 		mean_standpft_heightindiv_total = 0.0;
+		mean_standpft_diamindiv_total = 0.0;
 
 		// Determine area fraction of stands where this pft is active:
 		double active_fraction = 0.0;
@@ -906,7 +913,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 
 			Standpft& standpft=stand.pft[pft.id];
-			if(standpft.active) {
+
 			// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 			standpft_cmass=0.0;
 			standpft_nmass=0.0;
@@ -923,6 +930,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_lai=0.0;
 			standpft_densindiv_total = 0.0;
 			standpft_heightindiv_total = 0.0;
+			standpft_diamindiv_total = 0.0;
 			standpft_aiso=0.0;
 			standpft_amon=0.0;
 			standpft_amon_mt1=0.0;
@@ -960,7 +968,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
-				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
+				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap + patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
 					vegetation.firstobj();
@@ -979,8 +987,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
-								if (pft.lifeform==TREE) {	
+								if (pft.lifeform==TREE) {
 									standpft_densindiv_total += indiv.densindiv;
+									standpft_diamindiv_total += indiv.diam * indiv.densindiv;
 									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
@@ -1022,13 +1031,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_aaet/=(double)stand.npatch();
 				standpft_lai/=(double)stand.npatch();
 				standpft_densindiv_total/=(double)stand.npatch();
-				standpft_aiso/=(double)stand.npatch(); // missing above!
-				standpft_amon/=(double)stand.npatch(); // missing above!
+				standpft_aiso/=(double)stand.npatch();
+				standpft_amon/=(double)stand.npatch();
 				standpft_amon_mt1/=(double)stand.npatch();
 				standpft_amon_mt2/=(double)stand.npatch();
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
 				standpft_heightindiv_total/=(double)stand.npatch();
+				standpft_diamindiv_total/=(double)stand.npatch();
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;
@@ -1074,6 +1084,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_heightindiv_total += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_diamindiv_total += standpft_diamindiv_total * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
@@ -1081,10 +1092,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_nuptake += standpft_nuptake * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
 				}
-
-				//Update stand totals
-				stand.anpp += standpft_anpp;
-				stand.cmass += standpft_cmass;
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
@@ -1124,8 +1131,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						plot("leaf C:N [kgC/kg N]",pft.name,date.year,mean_standpft_cmass_leaf/mean_standpft_nmass_leaf);
 					}
 				}
-
-			}//if(active)
 			++gc_itr;
 		}//End of loop through stands
 
@@ -1153,10 +1158,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// print species heights
 		double height = 0.0;
-		if (mean_standpft_densindiv_total > 0.0)
+		double diam = 0.0;
+		if (mean_standpft_densindiv_total > 0.0) {
 			height = mean_standpft_heightindiv_total / mean_standpft_densindiv_total;
+			diam = mean_standpft_diamindiv_total / mean_standpft_densindiv_total;
+		}
 
-		outlimit(out,out_speciesheights, height);
+		outlimit(out, out_speciesheights, height);
+		outlimit(out, out_speciesdiam, diam * 100.0);	//diameter output in cm
 
 		pftlist.nextobj();
 
@@ -1256,8 +1265,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			if(run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft=patch.pft[q];
-					c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
-					n_harv_slow+=patchpft.harvested_products_slow_nmass*to_gridcell_average;
+					c_harv_slow+=patchpft.cmass_harvested_products_slow*to_gridcell_average;
+					n_harv_slow+=patchpft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 
@@ -1541,12 +1550,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		if(gridcell.nbr_stands() > 0)	//Fixed bug here if no stands were present.
 		{
 			Stand& stand = gridcell[0];
+			Landcover& lc = gridcell.landcover;
+
 			plot("C flux [kgC/m2/yr]","veg",  date.year, flux_veg);
 			plot("C flux [kgC/m2/yr]","repr", date.year, flux_repr);
 			plot("C flux [kgC/m2/yr]","soil", date.year, flux_soil);
 			plot("C flux [kgC/m2/yr]","fire", date.year, flux_fire);
 			plot("C flux [kgC/m2/yr]","est",  date.year, flux_est);
-			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
+			if(run_landcover) {
+				plot("C flux [kg C/m2/yr]", "Harvest", date.get_calendar_year(), flux_charvest);
+				plot("C flux [kg C/m2/yr]", "LUC", date.get_calendar_year(), lc.acflux_wood_harvest + lc.acflux_clearing
+					+ lc.acflux_landuse_change);
+			}
+			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est 
+				+ lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change);
 
 			if (!ifcentury) {
 				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soil.cpool_slow);
@@ -1559,8 +1576,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				plot("N flux [kgN/ha/yr]","leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * M2_PER_HA);
 				plot("N flux [kgN/ha/yr]","emissions",  date.year, flux_ntot * M2_PER_HA);
 
-				plot("N flux [kgN/ha/yr]","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell -
-					(anfix_gridcell + aNH4dep_gridcell + aNO3dep_gridcell + anfert_gridcell)) * M2_PER_HA);
+				plot("N flux [kgN/ha/yr]","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell 
+					+ lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change
+					- (anfix_gridcell + aNH4dep_gridcell + aNO3dep_gridcell + anfert_gridcell)) * M2_PER_HA);
 
 				plot("N mineralization [kgN/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * M2_PER_HA);
 
@@ -1595,11 +1613,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (run_landcover) {
 			outlimit(out,out_cflux, flux_seed);
 			outlimit(out,out_cflux, flux_charvest);
-			outlimit(out,out_cflux, lc.acflux_landuse_change);
+			outlimit(out,out_cflux, lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change);
 			outlimit(out,out_cflux, lc.acflux_harvest_slow);
 	}
 	outlimit(out,out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + c_org_leach_gridcell +
-			flux_seed + flux_charvest + lc.acflux_landuse_change + lc.acflux_harvest_slow);
+				flux_seed + flux_charvest + lc.acflux_wood_harvest + lc.acflux_clearing + lc.acflux_landuse_change + lc.acflux_harvest_slow);
 
 	outlimit(out,out_doc, (c_org_leach_gridcell) * M2_PER_HA);
 
@@ -1611,7 +1629,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-
 	outlimit(out,out_nflux, -aNH4dep_gridcell * M2_PER_HA);
 	outlimit(out,out_nflux, -aNO3dep_gridcell * M2_PER_HA);
 	outlimit(out,out_nflux, -anfix_gridcell * M2_PER_HA);
@@ -1622,10 +1639,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (run_landcover) {
 			outlimit(out,out_nflux, flux_nseed * M2_PER_HA);
 			outlimit(out,out_nflux, flux_nharvest * M2_PER_HA);
-			outlimit(out,out_nflux, lc.anflux_landuse_change * M2_PER_HA);
+			outlimit(out,out_nflux, (lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change) * M2_PER_HA);
 			outlimit(out,out_nflux, lc.anflux_harvest_slow * M2_PER_HA);
 	}
-	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_landuse_change +
+	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_wood_harvest + lc.anflux_clearing + lc.anflux_landuse_change +
 				lc.anflux_harvest_slow + flux_nseed + flux_ntot +
 				n_min_leach_gridcell + n_org_leach_gridcell -
 					 (aNH4dep_gridcell + aNO3dep_gridcell + anfix_gridcell + anfert_gridcell)) * M2_PER_HA);
@@ -1717,7 +1734,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		if (!(date.year%PLOT_UPDATE_INTERVAL)) {
 
-			double* densindiv=NULL;
+			double* densindiv = NULL;
 			int nageclass;
 			get_stand_age_structure(gridcell, densindiv, nageclass, false);
 

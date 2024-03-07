@@ -2,9 +2,12 @@
 /// \file demoinput.cpp
 /// \brief LPJ-GUESS input module for a toy data set (for demonstration purposes)
 ///
-///
 /// \author Ben Smith
 /// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -211,6 +214,8 @@ void DemoInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Open additional files
+	misc_input.init();
 
 	// Retrieve input file names as read from ins file
 
@@ -254,6 +259,12 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
+
+			if(readdisturbance || readdisturbance_st || readelevation_st) {
+				// Not all gridcells have to be included in input file
+				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+				misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
+			}
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {

@@ -389,6 +389,8 @@ extern bool ifapproximate_C4;
 /// whether to use growing degree days for grass development
 extern bool ifusegdd;
 
+/// whether to compress output files
+extern bool gzip_output;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs

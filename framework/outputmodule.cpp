@@ -66,8 +66,13 @@ void OutputModuleContainer::init() {
 	mkdir_p(outputdirectory.c_str());
 
 	// Create the output channel
-	output_channel = new FileOutputChannel(outputdirectory.c_str(),
-	                                       coordinates_precision);
+	if (gzip_output) {
+		output_channel = new GZFileOutputChannel(outputdirectory.c_str(),
+											coordinates_precision);
+	} else {
+		output_channel = new FileOutputChannel(outputdirectory.c_str(),
+											coordinates_precision);
+	}
 
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->init();

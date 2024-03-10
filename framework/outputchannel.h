@@ -13,6 +13,16 @@
 #include <string>
 #include <vector>
 
+#ifdef COMPRESS_OUTPUT
+
+// Order of includes important to work on Windows.
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <zlib.h>
+
+#endif // COMPRESS_OUTPUT
+
 namespace GuessOutput {
 
 /// Describes one column in an output table
@@ -181,7 +191,7 @@ public:
 	 void finish_row(const Table& table, double lon, double lat,
 	                 int year, int day);
 
-private:
+protected:
 	 /// Help function to the two variants of finish_row above
 	 void finish_row(const Table& table, double lon, double lat,
 	                 int year, int day, bool print_day);
@@ -202,6 +212,50 @@ private:
 	 /// Whether the header has been printed for each file
 	 std::vector<bool> printed_header;
 };
+
+#ifdef COMPRESS_OUTPUT
+
+/// An output channel for compressed text files with fixed width columns
+/** This output channel creates one text file for each output table.
+ */
+class GZFileOutputChannel : public FileOutputChannel {
+public:
+	/// Creates a GZFileOutputChannel
+	/** \param out_dir All output files are placed in this directory.
+	 *  \param coords_precision Precision to use then printing coordinates
+	 */
+	GZFileOutputChannel(const char* out_dir, int coords_precision)
+		: FileOutputChannel(out_dir, coords_precision) {};
+
+	/// Destructor - closes all opened files
+	~GZFileOutputChannel();
+
+	/// Creates an output file
+	/** \see OutputChannel::create_table */
+	Table create_table(const TableDescriptor& descriptor);
+
+	void close_table(Table& table);
+
+	/// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year);
+
+	 /// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year, int day);
+
+private:
+	 /// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year, int day, bool print_day);
+
+	std::vector<gzFile> gzfiles;
+};
+
+#endif // COMPRESS_OUTPUT
 
 /// A convenience class for managing the output of one row to multiple tables.
 /** At the end of the life time of an object of this class, finish_row is

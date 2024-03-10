@@ -3246,6 +3246,7 @@ public:
 	/// Slope gradient [m m-1]
 	double slope_grade_tan;
 	double slope_grade_sin;
+	double slope_grade_cos;
 	/// icrotopography distribution (mm) (Ekcic et al. 2019; eqn 2)
 	double slope_sigma;
 	// Fraction of the area that is inundated threshold below which no 
@@ -4599,7 +4600,7 @@ public:
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity
-	void update_hydraulic_properties();
+	void update_hydraulic_properties(int nsoillayers_sim);
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp(double temp_infilt);
 	/// Update standing water temperatures due to water fluxes
@@ -4625,16 +4626,17 @@ public:
 	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double psi[NSOILLAYERS_MAX], 
 		double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
 		double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
-		double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX]);
+		double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], int nsoillayers_sim);
 	void compute_RHS_moisture_form(double qflx_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
-		double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX]);
+		double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX], 
+		int nsoillayers_sim);
 	void compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], 
 		double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX], double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], 
-		double cmx[NSOILLAYERS_MAX]);
+		double cmx[NSOILLAYERS_MAX], int nsoillayers_sim);
 	void TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_MAX], double c[NSOILLAYERS_MAX], 
-		double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX]);
+		double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX], int nsoillayers_sim);
 	void check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
-		double qout[NSOILLAYERS_MAX], double qflx_root[NSOILLAYERS_MAX], double dtmin, double xTolerUpper, double& dtsub, 
+		double qout[NSOILLAYERS_MAX], double qflx_root[NSOILLAYERS_MAX], int nsoillayers_sim, double dtmin, double xTolerUpper, double& dtsub,
 		double& errorMax, bool& calcsub);
 	void update_wtp();
 	/// initial percolation

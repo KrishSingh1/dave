@@ -938,7 +938,7 @@ void outlimit(OutputRows& out, const Table& table, double d) {
   */
 void CommonOutput::outannual(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup-100)
+	if (date.year < nyear_spinup)
 		return;
 
 	const double NOT_A_VALUE_SMALL = -9.999;

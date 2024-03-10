@@ -505,7 +505,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	}
 
 	// Slope [degree] limits
-	slope = min(90.0, max(0.01, slope));
+	slope = min(90.0, max(0.0, slope));
 
 	// Slope in radians
 	double slope_rad = slope * PI / 180.0;
@@ -513,6 +513,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Slope gradient [m m-1]
 	soiltype.slope_grade_tan = tan(slope_rad);
 	soiltype.slope_grade_sin = sin(slope_rad);
+	soiltype.slope_grade_cos = cos(slope_rad);
 
 	// Beta_0 as a function of maximum topographical distribution (Ekcic et al. 2019; eqn 3)
 	double beta_0 = 1.357209;

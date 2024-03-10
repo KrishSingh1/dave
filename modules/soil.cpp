@@ -3419,22 +3419,8 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	double totwcont_infilt = min(1.0, (wmass_infilt + imass_infilt) / wsats_infilt);
 
 	// Fractional area with water table at surface (Wood et al. 1992)
-	if (1.0 - totwcont_infilt > 1.0e-6) {
-		fsat = min(fsat_max, 1.0 - pow(1.0 - totwcont_infilt, b_infilt / (1.0 + b_infilt)));
-	}
-	else {
-		fsat = fsat_max;
-	}
+	fsat = 1.0 - pow(1.0 - totwcont_infilt, b_infilt / (1.0 + b_infilt));
 
-	// Fast runoff directly to streams
-	if (wflux_rain_melt > 0.0) {
-
-		// Surface runoff (mm s-1)
-		wflux_in_runoff = fsat * wflux_rain_melt;
-
-		// Water entering the soil (mm s-1)
-		wflux_in = wflux_rain_melt - wflux_in_runoff;
-	}
 
 	// Water at surface
 	double wmass_surf = wmass_stand;
@@ -3474,10 +3460,31 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 		}
 	}
 	else {
-		// Very small amount of surface water -> all lost through runoff
+		// Very small amount of surface water -> all lost through surface runoff
 		wmass_stand_con = 0.0;
 		wmass_stand_frac = 0.0;
 		wflux_stand_runoff = wmass_surf / dtsub;
+	}
+
+
+	// Fast runoff directly to streams
+	if (wflux_rain_melt > 0.0) {
+
+		double fsat_surf = min(fsat_max, fsat);
+
+		// Fractional area with water table at surface is assumed to be under standing water
+		if (fsat_surf > wmass_stand_frac) {
+
+			// Surface runoff (mm s-1)
+			wflux_in_runoff = (fsat_surf - wmass_stand_frac) * wflux_rain_melt;
+
+			// Water staying at surface / soil (mm s-1)
+			wflux_in = wflux_rain_melt - wflux_in_runoff;
+		}
+		else {
+			// No water to runoff, all water staying at surface / soil (mm s-1)
+			wflux_in = wflux_rain_melt;
+		}
 	}
 
 	// Partition surface inputs between soil and standing water
@@ -3573,7 +3580,8 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 		}
 	}
 	else {
-		wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max;
+		// Update Kw_max due to slope (Morbidelli et al. 2018)
+		wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max * soiltype.slope_grade_cos;
 	}
 
 	// Excess water that can't infiltrate (mm s-1)
@@ -3612,7 +3620,8 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	double wbudget = wflux_evap + wflux_infilt + wflux_stand_drain + wflux_runoff_surf + wflux_surf - wflux_rain_melt;
 
 	if (fabs(wbudget) > EPS) {
-		dprintf("Year %d Day %d ERROR: Infiltration water budget off: %g\n", wbudget);
+		dprintf("Year %d Day %d ERROR: Infiltration water budget off: %g\n", 
+			date.year, date.day, wbudget);
 	}
 }
 
@@ -3630,15 +3639,15 @@ void Soilcolumn::update_matric_potential() {
   * Relate the hydraulic conductivity to the soil water 
   * content following Campbell (1974)
   */
-void Soilcolumn::update_hydraulic_properties() {
+void Soilcolumn::update_hydraulic_properties(int nsoillayers_sim) {
 
 	bool full = false;
-	int full_lyr = nsoillayers - 1;
+	int full_lyr = nsoillayers_sim - 1;
 
-	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+	for (int lyr = nsoillayers_sim - 1; lyr >= 0; lyr--) {
 
 		// Layer below
-		int nlyr = lyr + 1 < nsoillayers - 1 ? lyr + 1 : lyr;
+		int nlyr = lyr + 1 < nsoillayers_sim - 1 ? lyr + 1 : lyr;
 
 		Soillayer& soillayer = soillayers[lyr];
 		Soillayer& soillayer_below = soillayers[nlyr];
@@ -3823,8 +3832,8 @@ void solve_tridiagonal(CNpara& para) {
 }
 
 /// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
-void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_MAX + 1], double dz[NLAYERS_MAX + 1], 
-	double di[NLAYERS_MAX + 1],	double ki[NLAYERS_MAX + 1], double ci[NLAYERS_MAX + 1]) {
+void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_MAX + 1], 
+	double dz[NLAYERS_MAX + 1], double ki[NLAYERS_MAX + 1], double ci[NLAYERS_MAX + 1]) {
 
 	// DESCRIPTION
 	//     Crank-Nicholson timestepper for temperature diffusion equation.
@@ -3913,7 +3922,7 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 
 		// D-
 		if (lyr == 0) {
-			dminus = di[lyr]; // DW_COMMENT
+			dminus = ki[lyr] / ci[lyr];
 		}
 		else {
 			dminus = ((ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1])) / ci[lyr];
@@ -5590,11 +5599,14 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// Initialize the number of substeps
 	int nsubstep = 0;
 
+	// Fixed duration of rain event (6 hours)
+	const double dtrain = 6.0 * SECS_PER_HOUR;
+
 	// Substep completed
 	double dtdone = 0.0;
 
 	// Estimate length of the substep (seconds)
-	if (wflux_rain_melt > 0.0) {
+	if (wflux_rain_melt > 0.0 || wmass_stand > 0.0) {
 		dtsub = SECS_PER_DAY / nsubdays_prec;
 	}
 	else {
@@ -5631,54 +5643,109 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		// Calculate sudstep
 		bool calcsub = true;
 
+		// Layers to account during calculation
+		// Layers below wtd + one layer don't need to be updated
+		bool saturated = true;
+		int sat_lyr = -1;
+		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+			Soillayer& soillayer = soillayers[lyr];
+			if (saturated && (soillayer.wmass + soillayer.imass) >= soillayer.wsats * 0.98) {
+				sat_lyr++;
+			}
+			else {
+				saturated = false;
+			}
+			dwat[lyr] = 0.0;
+		}
+		int nsoillayers_sim = max(1, nsoillayers - max(0, sat_lyr));
+
 		while (calcsub) {
 
-			// keep track of the number of trials
+			// Keep track of the number of trials
 			nsubstep++;
+
+			// If only one layer to simulate, do the rest of this timestep in one go
+			if (nsoillayers_sim == 1) {
+				dtsub = min(SECS_PER_DAY / nsubdays_noprec, dtime - dtdone);
+			}
 
 			// Calculate infiltration and surface runoff
 			compute_evap_infilt_and_runoff(dtsub, wflux_rain_melt, depth_infilt, imass_infilt, 
 				wsats_infilt, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt, wflux_stand_drain);
 
-			// Calculate matrix potential
-			update_matric_potential();
+			// If only one layer to simulate, then solve directly
+			if (nsoillayers_sim == 1) {
 
-			// Calculate hydraulic conductivity and diffusivity
-			update_hydraulic_properties();
+				// Extract transpiration 
+				for (int lyr = 0; lyr < nsoillayers; lyr++) {
+					soillayers[lyr].wmass -= aet_layer[lyr] * dtsub / SECS_PER_DAY;
+				}
 
-			// calculate commonly used variables
-			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				// Influx of water
+				double wmass_influx = (wflux_infilt + wflux_stand_drain) * dtsub;
 
-				Soillayer& soillayer = soillayers[lyr];
+				// Add water to top two layers
+				for (int lyr = 0; lyr < 2; lyr++) {
+					double wmass_add = min(wmass_influx, soillayers[lyr].wsats - (soillayers[lyr].wmass + soillayers[lyr].imass));
+					dwat[lyr] = wmass_add / soillayers[lyr].depth;
+					wmass_influx -= wmass_add;
+				}
 
-				// saturated volumetric water content
-				vws_liq[lyr] = soillayer.wsats / soillayer.depth;
-				// time per mm
-				dt_dz[lyr] = dtsub / soillayer.depth;
-				Kw[lyr] = soillayer.Kw;
-				psi[lyr] = soillayer.psi;
-				dKwdw[lyr] = soillayer.dKwdw;
-				dpsidw[lyr] = soillayer.dpsidw;
-				dz[lyr] = soillayer.depth;
-				wflux_root[lyr] = aet_layer[lyr] / SECS_PER_DAY;
+				// Reset lower layers influx
+				for (int lyr = 2; lyr < nsoillayers; lyr++) {
+					dwat[lyr] = 0.0;
+				}
+
+				// Excees influx water added to standing water
+				wflux_surf += wmass_influx / dtsub;
+
+				// No error in mass balance
+				errorMax = 0.0;
+
+				// No need to recalculate sub timestep
+				calcsub = false;
 			}
+			else {
+				// Calculate matrix potential
+				update_matric_potential();
 
-			// Soil moisture fluxes and their derivatives
-			compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_stand_drain, Kw, psi, dKwdw, dpsidw, qin, qout,
-				dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz);
+				// Calculate hydraulic conductivity and diffusivity
+				update_hydraulic_properties(nsoillayers_sim);
 
-			// RHS of system of equations
-			compute_RHS_moisture_form(wflux_root, qin, qout, dt_dz, rmx);
+				// calculate commonly used variables
+				for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
 
-			// LHS of system of equations
-			compute_LHS_moisture_form(dt_dz, dqidw0, dqidw1, dqodw1, dqodw2,
-				amx, bmx, cmx);
+					Soillayer& soillayer = soillayers[lyr];
 
-			// solve tridiagonal matrix A.X = B
-			TridiagonalCol(amx, bmx, cmx, rmx, dwat);
+					// saturated volumetric water content
+					vws_liq[lyr] = soillayer.wsats / soillayer.depth;
+					// time per mm
+					dt_dz[lyr] = dtsub / soillayer.depth;
+					Kw[lyr] = soillayer.Kw;
+					psi[lyr] = soillayer.psi;
+					dKwdw[lyr] = soillayer.dKwdw;
+					dpsidw[lyr] = soillayer.dpsidw;
+					dz[lyr] = soillayer.depth;
+					wflux_root[lyr] = aet_layer[lyr] / SECS_PER_DAY;
+				}
 
-			// check if substep can be accepted
-			check_error(dwat, dz, dt_dz, qin, qout, wflux_root, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
+				// Soil moisture fluxes and their derivatives
+				compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_stand_drain, Kw, psi, dKwdw, dpsidw, qin, qout,
+					dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz, nsoillayers_sim);
+
+				// RHS of system of equations
+				compute_RHS_moisture_form(wflux_root, qin, qout, dt_dz, rmx, nsoillayers_sim);
+
+				// LHS of system of equations
+				compute_LHS_moisture_form(dt_dz, dqidw0, dqidw1, dqodw1, dqodw2,
+					amx, bmx, cmx, nsoillayers_sim);
+
+				// solve tridiagonal matrix A.X = B
+				TridiagonalCol(amx, bmx, cmx, rmx, dwat, nsoillayers_sim);
+
+				// check if substep can be accepted
+				check_error(dwat, dz, dt_dz, qin, qout, wflux_root, nsoillayers_sim, dtmin, xTolerUpper, dtsub, errorMax, calcsub);
+			}
 		}
 
 		// Water added to standing water
@@ -5707,7 +5774,14 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 		// Update the mass of liquid water
 		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-			soillayers[lyr].wmass += dwat[lyr] * dz[lyr];
+			soillayers[lyr].wmass += dwat[lyr] * soillayers[lyr].depth;
+		}
+
+		// Extract root uptake from soil layer not accounted for
+		if (nsoillayers_sim != 1 && nsoillayers_sim != nsoillayers) {
+			for (int lyr = nsoillayers_sim; lyr < nsoillayers; lyr++) {
+				soillayers[lyr].wmass -= aet_layer[lyr] * dtsub / SECS_PER_DAY;;
+			}
 		}
 
 		// drainage from the bottom of the soil column
@@ -5723,6 +5797,45 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 		// increment substep and check for completion of the substep
 		dtdone += dtsub;
+
+		// The excess water greater than soil moisture capacity (wsats) 
+		// is recharged to the unsaturated layers above the current layer
+		// (Seok et al. 2011)
+		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
+			if (soillayer.wmass + soillayer.imass > soillayer.wsats) {
+
+				double wmass_excess = max(0.0, min(soillayer.wmass, soillayer.wmass - (soillayer.wsats - soillayer.imass)));
+
+				if (lyr > 0) {
+					soillayers[lyr - 1].wmass += wmass_excess;
+				}
+				else {
+					wmass_stand += wmass_excess;
+				}
+				soillayer.wmass -= wmass_excess;
+			}
+		}
+
+		// Lateral drainage
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
+			if (soillayer.wmass + soillayer.imass > soillayer.fc()) {
+				double wmass_excees = soillayer.wmass + soillayer.imass - soillayer.fc();
+				if (wmass_excees > soillayer.wmass) {
+					wmass_excees = soillayer.wmass;
+				}
+
+				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
+				double drained_wmass = wmass_excees * min(0.5, soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_tan * dtsub);
+				soillayer.runoff_drain += drained_wmass;
+				soillayer.wmass -= drained_wmass;
+			}
+		}
 
 		if (abs(dtime - dtdone) < verySmall) {
 			// time step completed so exit the loop
@@ -5741,45 +5854,6 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 			}
 		}
 	}  // substep loop
-
-	// The excess water greater than soil moisture capacity (wsats) 
-	// is recharged to the unsaturated layers above the current layer
-	// (Seok et al. 2011)
-	for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-
-		Soillayer& soillayer = soillayers[lyr];
-
-		if (soillayer.wmass + soillayer.imass > soillayer.wsats) {
-
-			double wmass_excess = max(0.0, min(soillayer.wmass, soillayer.wmass - (soillayer.wsats - soillayer.imass)));
-
-			if (lyr > 0) {
-				soillayers[lyr - 1].wmass += wmass_excess;
-			}
-			else {
-				wmass_stand += wmass_excess;
-			}
-			soillayer.wmass -= wmass_excess;
-		}
-	}
-
-	// Lateral drainage
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-		Soillayer& soillayer = soillayers[lyr];
-
-		if (soillayer.wmass + soillayer.imass > 0.9 * soillayer.wsats) {
-			double wmass_excees = soillayer.wmass + soillayer.imass - 0.9 * soillayer.wsats;
-			if (wmass_excees > soillayer.wmass) {
-				wmass_excees = soillayer.wmass;
-			}
-
-			// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
-			double drained_wmass = wmass_excees * min(0.5, soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_tan * dtime);
-			soillayer.runoff_drain += drained_wmass;
-			soillayer.wmass -= drained_wmass;
-		}
-	}
 
 	// Resolve todays water movements
 	wfluxes[0] = wmass_infilt_tot;
@@ -5839,7 +5913,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw[NSOILLAYERS_MAX], 
 	double psi[NSOILLAYERS_MAX], double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
 	double qout[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], 
-	double dqodw2[NSOILLAYERS_MAX], double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX]) {
+	double dqodw2[NSOILLAYERS_MAX], double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], 
+	int nsoillayers_sim) {
 
 	// Calculate fluxes at the boundary of each layerand derivatives w.r.t.
 	// relevant state variables
@@ -5882,7 +5957,7 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 	// Interior nodes
 
-	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
+	for (int lyr = 1; lyr < nsoillayers_sim - 1; lyr++) {
 
 		// get the flux from above
 		qin[lyr] = qout[lyr - 1];
@@ -5911,7 +5986,7 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 	// bottom layer
 
-	int blyr = nsoillayers - 1;
+	int blyr = nsoillayers_sim - 1;
 
 	// get the flux from above
 	qin[blyr] = qout[blyr - 1];
@@ -5942,7 +6017,7 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 }
 
 void Soilcolumn::compute_RHS_moisture_form(double wflux_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX],
-	double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX]) {
+	double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX], int nsoillayers_sim) {
 
 
 	// Calculate RHS of moisture - based form of Richards equation
@@ -5950,7 +6025,7 @@ void Soilcolumn::compute_RHS_moisture_form(double wflux_root[NSOILLAYERS_MAX], d
 	// wflux_root - vertically distributed transpiration sink (mm H2O / s) (+= to atm)
 
 	// Compute RHS of moisture - based form of Richards equation
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+	for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
 
 		double fluxNet = qin[lyr] - qout[lyr] - wflux_root[lyr];
 		rmx[lyr] = -fluxNet * dt_dz[lyr];
@@ -5959,7 +6034,7 @@ void Soilcolumn::compute_RHS_moisture_form(double wflux_root[NSOILLAYERS_MAX], d
 
 void Soilcolumn::compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], 
 	double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
-	double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], double cmx[NSOILLAYERS_MAX]) {
+	double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], double cmx[NSOILLAYERS_MAX], int nsoillayers_sim) {
 
 	// Calculate LHS of moisture - based form of Richards equation
 	// LHS is a tridiagonal matrix
@@ -5978,20 +6053,20 @@ void Soilcolumn::compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double
 	cmx[tlyr] = -dqodw2[tlyr] * dt_dz[tlyr];
 
 	// Interior soil layers
-	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
+	for (int lyr = 1; lyr < nsoillayers_sim - 1; lyr++) {
 		amx[lyr] = dqidw0[lyr] * dt_dz[lyr];
 		bmx[lyr] = -1.0 - (-dqidw1[lyr] + dqodw1[lyr]) * dt_dz[lyr];
 		cmx[lyr] = -dqodw2[lyr] * dt_dz[lyr];
 	}
 
-	int blyr = nsoillayers - 1;
+	int blyr = nsoillayers_sim - 1;
 	amx[blyr] = dqidw0[blyr] * dt_dz[blyr];
 	bmx[blyr] = -1.0 - (-dqidw1[blyr] + dqodw1[blyr]) * dt_dz[blyr];
 	cmx[blyr] = 0.0;
 }
 
 void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_MAX], double c[NSOILLAYERS_MAX], 
-	double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX]) {
+	double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX], int nsoillayers_sim) {
 
 	// Tridiagonal matrix solution
 
@@ -6008,7 +6083,7 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_
 	double bet = b[tlyr];
 	double gam[NSOILLAYERS_MAX];
 
-	for (int lyr = tlyr; lyr < nsoillayers; lyr++) {
+	for (int lyr = tlyr; lyr < nsoillayers_sim; lyr++) {
 		if (lyr == tlyr) {
 			u[lyr] = r[lyr] / bet;
 		}
@@ -6019,14 +6094,14 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_
 		}
 	}
 
-	for (int lyr = nsoillayers - 2; lyr >= tlyr; lyr--) {
+	for (int lyr = nsoillayers_sim - 2; lyr >= tlyr; lyr--) {
 		u[lyr] = u[lyr] - gam[lyr + 1] * u[lyr + 1];
 	}
 }
 
 void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], 
-	double qin[NSOILLAYERS_MAX],	double qout[NSOILLAYERS_MAX], double wflux_root[NSOILLAYERS_MAX], double dtmin, 
-	double xTolerUpper,	double& dtsub, double& errorMax, bool& calcsub) {
+	double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX], double wflux_root[NSOILLAYERS_MAX], int nsoillayers_sim,
+	double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub) {
 
 	calcsub = false;
 
@@ -6034,7 +6109,7 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 	double fluxNet1[NSOILLAYERS_MAX];
 
 	// Estimate errors for each layer
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+	for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
 
 		// Convert iteration increment to a net flux (mm s-1)
 		fluxNet0[lyr] = dwat[lyr] / dt_dz[lyr];
@@ -6068,7 +6143,7 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 		errorMax = 0.0;
 
 		// Compute absolute errors
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
 			if (fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5 > errorMax)
 				errorMax = fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5;
 		}
@@ -6578,7 +6653,6 @@ void Soilcolumn::calc_temp() {
 
 	double temp[NLAYERS_MAX + 1], 
 		dz[NLAYERS_MAX + 1],
-		di[NLAYERS_MAX + 1],
 		ki[NLAYERS_MAX + 1],
 		ci[NLAYERS_MAX + 1];
 
@@ -6626,7 +6700,6 @@ void Soilcolumn::calc_temp() {
 		dz[0] = AIR_THICKNESS;
 		ci[0] = Cp_air * M3_PER_MM3;
 		ki[0] = Kair * SECS_PER_DAY / MM_PER_M;
-		di[0] = ki[0] / ci[0];
 		temp[0] = airT;
 
 		// Additional layers
@@ -6641,7 +6714,6 @@ void Soilcolumn::calc_temp() {
 					dz[lyr] = snowlayer.depth;
 					ci[lyr] = snowlayer.Ch / MM3_PER_M3; // m-3 to mm-3
 					ki[lyr] = snowlayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-					di[lyr] = ki[lyr] / ci[lyr];
 					temp[lyr] = snowlayer.temp;
 					
 					slyr--;
@@ -6655,7 +6727,6 @@ void Soilcolumn::calc_temp() {
 				dz[lyr] = wcont_stand();
 				ci[lyr] = Ch_stand / MM3_PER_M3; // m-3 to mm-3
 				ki[lyr] = Kh_stand * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				di[lyr] = Kh_stand / Ch_stand;
 				temp[lyr] = temp_stand;
 			}
 		}
@@ -6689,7 +6760,6 @@ void Soilcolumn::calc_temp() {
 				dz[lyr] = (soillayer.depth + depth_surf);
 				ci[lyr] = (soillayer.Ch * soillayer.depth + Ch_surf * depth_surf) / dz[lyr] / MM3_PER_M3; // m-3 to mm-3
 				ki[lyr] = (soillayer.Kh * soillayer.depth + Kh_surf * depth_surf) / dz[lyr] * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				di[lyr] = ki[lyr] / ci[lyr];
 				temp[lyr] = (soillayer.temp * soillayer.depth * soillayer.Ch + temp_surf * depth_surf * Ch_surf) / 
 					(soillayer.depth * soillayer.Ch + depth_surf * Ch_surf);
 			}
@@ -6697,7 +6767,6 @@ void Soilcolumn::calc_temp() {
 				dz[lyr] = soillayer.depth;
 				ci[lyr] = soillayer.Ch / MM3_PER_M3; // m-3 to mm-3
 				ki[lyr] = soillayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				di[lyr] = ki[lyr] / ci[lyr];
 				temp[lyr] = soillayer.temp;
 			}
 		}
@@ -6711,11 +6780,10 @@ void Soilcolumn::calc_temp() {
 			dz[lyr] = pad_lyr.depth;
 			ci[lyr] = pad_lyr.Ch / MM3_PER_M3; // m-3 to mm-3
 			ki[lyr] = pad_lyr.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-			di[lyr] = ki[lyr] / ci[lyr];
 			temp[lyr] = pad_lyr.temp;
 		}
 
-		cnstep_full(airT, 1.0 / ttimesteps, nairsurfsoilpadlayers, temp, dz, di, ki, ci);
+		cnstep_full(airT, 1.0 / ttimesteps, nairsurfsoilpadlayers, temp, dz, ki, ci);
 
 		// Update temperatures
 

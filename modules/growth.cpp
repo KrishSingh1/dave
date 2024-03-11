@@ -4596,6 +4596,9 @@ void turnover_tree(Individual &indiv) {
 			// in order to maintain k_latosa (derivation in notebook 22/11/2023)
 			
 			double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens)/indiv.pft.k_latosa;
+			lambda = min(lambda, 1.0);
+			lambda = max(lambda, 0.0);
+
 			// sapwood turnover 
 			turnover_sap =  lambda * turnover_leaf;
 		} else {

@@ -3295,6 +3295,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	indiv.cgrow = calculate_cgrow_tree(indiv);
 
 	assert(indiv.cgrow < indiv.cmass_storage);
+	assert(positive(indiv.cgrow));
 	
 	// remove cgrow from storage
 	indiv.cmass_storage -= indiv.cgrow;
@@ -3605,6 +3606,12 @@ void carbon_allocation_tree(Individual &indiv) {
 	// not necessary when using Juergen's update pools
 	// // indiv.cgrow_reserve = indiv.cgrow * (d_reserve / d_summed); 
 	indiv.cgrow_repr = indiv.cgrow * indiv.alpha_repr;
+
+	assert(positive(indiv.alpha_leaf));
+	assert(positive(indiv.alpha_root));
+	assert(positive(indiv.alpha_sap));
+	assert(positive(indiv.alpha_repr));
+	assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
 }
 
 
@@ -4119,11 +4126,13 @@ void update_pools_dave(Vegetation& vegetation) {
 		if (indiv.pft.lifeform == TREE) {
 			assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
 			assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
+			assert(positive(indiv.cmass_sap));
 		}
 
 		if (indiv.pft.is_grass()) {
 			assert(less_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_max * 1.001));
 			assert(greater_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_min * 0.999));
+			assert(positive(indiv.cmass_crown));
 		}
 	}
 }

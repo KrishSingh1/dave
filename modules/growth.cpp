@@ -1605,6 +1605,10 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		// separately. Therefore, we need to record the establishment N content
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+
+		if (indiv.pft.dave_allocation()) {
+			indiv.initialn += indiv.nmass_storage;
+		}
 	}
 }
 
@@ -1629,9 +1633,9 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 
 	establishment_biomass(bminit, ltor, indiv, nmass_init);
 
-	if (indiv.pft.is_grass() && ifdailygrass) {
+	if ( (indiv.pft.is_grass() && ifdailygrass) || indiv.pft.dave_allocation()) {
 
-		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown));
+		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown + indiv.cmass_sap));
 		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 	}
 }

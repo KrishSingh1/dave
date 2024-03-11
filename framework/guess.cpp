@@ -2558,6 +2558,13 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 					ncont += nmass_leafs[3] * scale_indiv;
 				}
 			}
+
+			if (ifdailytree && pft.lifeform == TREE && ifdavegrowth) {
+				if (ifdavediagnostics) {
+					lprintf("indivs[\"%s\"].nmass_repr = %.*f\n", (const char *)pft.name, DAVE_DIAGNOSTIC_PRECISION, nmass_repr * scale_indiv);
+					ncont += nmass_repr * scale_indiv;
+				}
+			}
 		}
 
 		if (pft.landcover == CROPLAND) {

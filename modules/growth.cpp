@@ -3524,13 +3524,28 @@ void carbon_allocation_tree(Individual &indiv) {
 	}
 	// Calculate the alpha factor (what proportion to allocate for each pool) according
 	// to the distance of actual C to it's target.
-	double realtive_alpha_leaf = divide(indiv.cmass_leaf_limit - indiv.cmass_leaf, indiv.cmass_leaf_limit);
-	double realtive_alpha_root = divide(indiv.cmass_root_limit - indiv.cmass_root, indiv.cmass_root_limit);
-	double realtive_alpha_sap =  divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
+	double relative_alpha_leaf = 0;
+	if (!is_zero(indiv.cmass_leaf_limit)) {
+		// relative_alpha_leaf = (indiv.cmass_leaf_limit - indiv.cmass_leaf) / indiv.cmass_leaf_limit;
+		relative_alpha_leaf = max(0.05, indiv.fpar);
+	}
+
+	double relative_alpha_root = 0;
+	if (!is_zero(indiv.cmass_root_limit)) {
+		relative_alpha_root = 1 - min(ppft.wscal, indiv.nscal_5.mean());
+		// relative_alpha_root = (indiv.cmass_root_limit - indiv.cmass_root) / indiv.cmass_root_limit;
+	}
+
+	double relative_alpha_sap  = 0;
+	if (!is_zero( indiv.cmass_sap_limit)) {
+		// relative_alpha_sap = (indiv.cmass_sap_limit - indiv.cmass_sap) / indiv.cmass_sap_limit;
+		relative_alpha_sap = 1 - indiv.fpar;
+	}
+
 	// To prevent allocation to reproduction if the tree is stressed (lower priority.),
 	// 1. calculate the mean of the alphas or leaf, root and sapwood, that will 
 	// be used ased as a threshold for allocating to reproduction. 
-	double mean_relative_alphas = (realtive_alpha_leaf + realtive_alpha_root + realtive_alpha_sap) / 3.0;
+	double mean_relative_alphas = (relative_alpha_leaf + relative_alpha_root + relative_alpha_sap) / 3.0;
 
 	// logistic function of the relative strength of  allocation to reproduction
 	// depending on how far the other pools are from their target.
@@ -3548,14 +3563,24 @@ void carbon_allocation_tree(Individual &indiv) {
 	}
 	
 
-	double sum_relative_alphas = realtive_alpha_leaf + realtive_alpha_root + 
-									realtive_alpha_sap + relative_alpha_repr;
-	
+	double sum_relative_alphas = relative_alpha_leaf + relative_alpha_root + 
+									relative_alpha_sap + relative_alpha_repr;
+
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
-	indiv.alpha_leaf = divide(realtive_alpha_leaf, sum_relative_alphas);
-	indiv.alpha_root = divide(realtive_alpha_root, sum_relative_alphas);
-	indiv.alpha_sap = divide(realtive_alpha_sap, sum_relative_alphas);
-	double alpha_repr = divide(relative_alpha_repr, sum_relative_alphas);
+	if (is_zero(sum_relative_alphas)) {
+		indiv.alpha_leaf = 0;
+		indiv.alpha_root = 0;
+		indiv.alpha_sap  = 0;
+		indiv.alpha_repr = 0;
+	} else {
+		// No need for protected divde here. If we refactor out the above check
+		// for a zero value in the denominator, we should reinstate the use of a
+		// protected division here.
+		indiv.alpha_leaf = relative_alpha_leaf / sum_relative_alphas;
+		indiv.alpha_root = relative_alpha_root / sum_relative_alphas;
+		indiv.alpha_sap = relative_alpha_sap / sum_relative_alphas;
+		indiv.alpha_repr = relative_alpha_repr / sum_relative_alphas;
+	}
 
 	// outputs:
 	indiv.cgrow_leaf = indiv.cgrow * indiv.alpha_leaf;
@@ -3563,8 +3588,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	indiv.cgrow_sap = indiv.cgrow * indiv.alpha_sap;
 	// not necessary when using Juergen's update pools
 	// // indiv.cgrow_reserve = indiv.cgrow * (d_reserve / d_summed); 
-	indiv.cgrow_repr = indiv.cgrow * alpha_repr;
-
+	indiv.cgrow_repr = indiv.cgrow * indiv.alpha_repr;
 }
 
 

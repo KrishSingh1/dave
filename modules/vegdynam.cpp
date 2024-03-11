@@ -1044,7 +1044,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Calculate initial allometry
 
-						allometry(indiv);
+						if (pft.dave_allocation()) {
+							allometry_dave_tree(indiv);
+						} else {
+							allometry(indiv);
+						}
 
 						// Calculate storage pool size
 						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;

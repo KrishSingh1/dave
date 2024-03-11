@@ -1506,7 +1506,11 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.cmass_storage += cmass_init * fract_stor;
 			double cmass_total = cmass_init * (1 - fract_stor);
 			Pft &pft = indiv.pft;
-			double height = max(0.5, indiv.height);
+
+			// Initial height of saplings in m.
+			const double INIT_HEIGHT = 0.5;
+			double height = max(INIT_HEIGHT, indiv.height);
+
 			// constant
 			double x = (1 / indiv.pft.ltor_max) + 
 			((pft.sla * height * pft.wooddens) / pft.k_latosa) + 1;
@@ -1514,6 +1518,14 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			cmass_root_ind = cmass_leaf_ind / pft.ltor_max;
 			cmass_sap_ind = cmass_total - (cmass_leaf_ind + cmass_root_ind);
 
+			if (is_zero(indiv.height)) {
+				indiv.height = height;
+				// height = k_allom2 * diam ** k_allom3
+				// diam = (height / k2) ^ (1 / k3)
+				indiv.diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
+				indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp)
+			    , indiv.pft.crownarea_max);
+			}
 		} else {
 			// TODO: make sure tree establishment uses the C:N ratio of the seeds
 			allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, 

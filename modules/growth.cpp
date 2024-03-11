@@ -4919,6 +4919,7 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.lai = 0.0;
 		indiv.fpc = 0.0;
 	}
+	indiv.rpc = indiv.fpc;
 
 	assert(indiv.cmass_sap >= 0.0);
 

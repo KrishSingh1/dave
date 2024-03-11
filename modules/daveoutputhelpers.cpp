@@ -206,7 +206,7 @@ double sum(double *array, int n) {
 }
 
 double mean(double *array, int n) {
-	return divide(sum(array, n), n);
+	return n ? sum(array, n) / n : 0;
 }
 
 double get_patch_nee(const Patch &patch) {
@@ -699,6 +699,45 @@ std::vector<ColumnDefinition<Patch>> aninput_columns() {
 	columns.push_back(ColumnDefinition<Patch>("nfert", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NFERT); }));
 	columns.push_back(ColumnDefinition<Patch>("total", [](const Patch &p) { return get_gridcell(p).aNO3dep + get_gridcell(p).aNH4dep; }));
 	return columns;
+}
+std::vector<ColumnDefinition<Individual>> indiv_cpool_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("cmass_leaf", [](const Individual &i) { return i.cmass_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_root", [](const Individual &i) { return i.cmass_root; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_crown", [](const Individual &i) { return i.cmass_crown; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_sap", [](const Individual &i) { return i.cmass_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_heart", [](const Individual &i) { return i.cmass_heart; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_repr", [](const Individual &i) { return i.cmass_repr; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_storage", [](const Individual &i) { return i.cmass_storage; }));
+
+	return columns;
+}
+
+std::vector<ColumnDefinition<Individual>> indiv_npool_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("nmass_leaf", [](const Individual &i) { return i.nmass_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_root", [](const Individual &i) { return i.nmass_root; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_crown", [](const Individual &i) { return i.nmass_crown; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_sap", [](const Individual &i) { return i.nmass_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_heart", [](const Individual &i) { return i.nmass_heart; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_repr", [](const Individual &i) { return i.nmass_repr; }));
+	columns.push_back(ColumnDefinition<Individual>("nmass_storage", [](const Individual &i) { return i.nmass_storage; }));
+
+	return columns;
+}
+
+double get_nindiv(const Patch &patch, const Pft &pft) {
+	double n = 0;
+	const Vegetation &vegetation = patch.vegetation;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		const Individual &indiv = vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			n += 1;
+		}
+	}
+	return n;
 }
 
 } // namespace GuessOutput

@@ -1810,7 +1810,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_leaf        = 0.0;
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
-	alpha_repr         = 0.0;
+	alpha_repr        = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit   = 0.0;
@@ -2568,8 +2568,8 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			if (ifdailytree && pft.lifeform == TREE && ifdavegrowth) {
 				if (ifdavediagnostics) {
 					lprintf("indivs[\"%s\"].nmass_repr = %.*f\n", (const char *)pft.name, DAVE_DIAGNOSTIC_PRECISION, nmass_repr * scale_indiv);
-					ncont += nmass_repr * scale_indiv;
 				}
+				ncont += nmass_repr * scale_indiv;
 			}
 		}
 

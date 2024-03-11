@@ -3267,7 +3267,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// if this causes storage to be negitive - kill tree and return.
 	if (indiv.cmass_storage < 0) {
 		// Not enough C in storage to fulfill respiration demands --> kill individual
-		double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
+		double cmass_deficit = -indiv.cmass_storage;
 		indiv.cmass_storage = 0.0;
 
 		// The respiration and NPP fluxes reported in canexch are

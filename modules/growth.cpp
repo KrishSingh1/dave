@@ -4978,7 +4978,7 @@ void annual_accounting_dave(Vegetation& vegetation) {
 
 		// increase age in one day
 		if (indiv.pft.lifeform == TREE) {
-			indiv.age += 1.0 / 365;
+			indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
 		}
 		
 		// Initiate yearly maximum

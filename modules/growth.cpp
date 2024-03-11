@@ -3232,7 +3232,7 @@ double available_storage(Individual &indiv) {
 
 // calculate allowance (cgrow) depending on cmass_storage
 double calculate_cgrow_tree(Individual &indiv) {
-	// maximum mobilisation rate of c in the storage
+	// maximum daily mobilisation rate of c in the storage. 
 	const double max_mobil_cstorage_tree = 0.1;
 	// fraction of cmass_storage that is not available to growth
 	const double frac_cstorage_res_tree = 0.15;
@@ -3528,6 +3528,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	//  calculate the ltor according to the leaf optimum and belogrownd stress
 	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
 	// ...to .5 of ltor_max
+
 	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	// cmass root target according to the leaf optimum and ltor (kgC/m^2)
 	indiv.cmass_root_limit = 0.0;
@@ -3539,6 +3540,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	if (indiv.age > min_age_for_repr) {
 		indiv.cmass_repr_limit = repr_prop * indiv.cgrow + indiv.cmass_repr;
 	}
+
 	// Calculate the alpha factor (what proportion to allocate for each pool) according
 	// to the distance of actual C to it's target.
 	double relative_alpha_leaf = 0;
@@ -3569,8 +3571,12 @@ void carbon_allocation_tree(Individual &indiv) {
 	// TODO: Unsupported assumption: logistic function assumed and it's parameters 
 	// guestimated.  Change that.
 	
-	double alpha_repr_factor = (max_alpha_repr_factor / 
-								(1 + exp(20 * (mean_relative_alphas - .25))));
+	// TODO: older version
+	// double alpha_repr_factor = (max_alpha_repr_factor / 
+	// 							(1 + exp(20 * (mean_relative_alphas - .25))));
+
+	double alpha_repr_factor = 1 - (max_alpha_repr_factor / 
+                       (1 + exp(20 * (mean_relative_alphas - .6))));
 	// calculate alpha reproduction "tunned down" by the factor that depends on
 	// the conditions of the other pools.
 	double relative_alpha_repr = 0.0;
@@ -4124,6 +4130,7 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// Sapwood (trees only!).
 		if (indiv.pft.lifeform == TREE) {
+			assert(indiv.cmass_sap >= 0.0);
 			assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
 			assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
 			assert(positive(indiv.cmass_sap));
@@ -4482,6 +4489,12 @@ void turnover_tree(Individual &indiv) {
 	// shape of function of fage (age-based modifier to scenescence) as a function of age
 	// shp_fage = 1 gives a linear increase from 0 to age = leaflong
 	const double shp_fage = 1.0;
+	// turnover of leaves initialisation
+	double turnover_leaf = 0;
+	// turnover of root initialisation
+	double turnover_root = 0;
+	// turnover of leaves initialisation
+	double turnover_sap = 0;
 
 	Patchpft& ppft = indiv.patchpft();
 	
@@ -4492,8 +4505,8 @@ void turnover_tree(Individual &indiv) {
 	double fwater = max( 1.0, senesc_scal_water * ( 1 - pow(ppft.wscal_30.mean(), qwater_senesc) ) );
 	// double fwater = 1 + (senesc_scal_water * pow(( 1- ppft.wscal_30.mean()), qwater_senesc)); // OLD
 
-	// turnover of leaves initialisation
-	double turnover_leaf = 0;
+	//
+	double cturnover_leaf = 0.0;
 
 	// scenescence of leaves (also depending on water stress (fwater)). 
 	// TODO: 1. no regards to what this would do to actual k_latosa tomorrow; 
@@ -4519,7 +4532,7 @@ void turnover_tree(Individual &indiv) {
 		turnover_leaf = indiv.pft.turnover_leaf * fwater * fage / Date::MAX_YEAR_LENGTH;
 
 		// Leaf C amount to turnover (kgC/m^2)
-		double cturnover_leaf = turnover_leaf * indiv.cmass_leaf; 
+		cturnover_leaf = turnover_leaf * indiv.cmass_leaf; 
 		// Leaf N amount to turnover (kgN/m^2)
 		double nturnover_leaf = turnover_leaf * indiv.nmass_leaf;
 		// Leaf N that goes to litter (kgN/m^2)
@@ -4533,7 +4546,7 @@ void turnover_tree(Individual &indiv) {
 			// update N that goes to litter (when there is N overflow above capacity)
 			n2litter_leaf = nturnover_leaf - n2storage_leaf;
 		}
-		
+
 		// updete pools
 		ppft.cmass_litter_leaf += cturnover_leaf;
 		indiv.ctolitter += cturnover_leaf;
@@ -4547,10 +4560,12 @@ void turnover_tree(Individual &indiv) {
 
 		assert(equal(nturnover_leaf, n2storage_leaf + n2litter_leaf));
 	}
+	// save daily leaf turnover flux (kgC/m^2/day)
+	indiv.cturnover_leaf = turnover_leaf;
 
 	if (indiv.cmass_root > 0) {
 		// fraction of root biomass that is turned over today. 
-		double turnover_root = indiv.pft.turnover_root / fwater / Date::MAX_YEAR_LENGTH;
+		turnover_root = indiv.pft.turnover_root / fwater / Date::MAX_YEAR_LENGTH;
 
 		// root C amount to turnover (kgC/m^2)
 		double cturnover_root = turnover_root * indiv.cmass_root; 
@@ -4581,6 +4596,8 @@ void turnover_tree(Individual &indiv) {
 
 		assert(equal(nturnover_root, n2litter_root + n2storage_root));
 	}
+	// save daily root turnover flux (kgC/m^2/day)
+	indiv.cturnover_root = turnover_root;
 
 	if (indiv.cmass_sap > 0) {
 		// if there isn't any leaf turnover today, then there shouldn't be sapwood 
@@ -4589,8 +4606,6 @@ void turnover_tree(Individual &indiv) {
 		// TODO: check if plausible (?). indiv.pft.k_latosa > 0 is only checked 
 		// to prevent dividing by 0 (which would happen if k_latosa is a variable)
 		
-		// turnover of sapwood initialisation
-		double turnover_sap = 0;
 		if ((turnover_leaf > 0) && (indiv.pft.k_latosa > 0)) {
 			// turnover of sapwood will be calculated from the turnover of leaf
 			// in order to maintain k_latosa (derivation in notebook 22/11/2023)
@@ -4601,6 +4616,12 @@ void turnover_tree(Individual &indiv) {
 
 			// sapwood turnover 
 			turnover_sap =  lambda * turnover_leaf;
+			// double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens) / indiv.pft.k_latosa;
+			// // sapwood turnover 
+			// turnover_sap =  lambda * turnover_leaf; // oldish
+			// turnover_sap =  indiv.pft.turnover_sap/365; // trunk
+			// turnover_sap =  min( lambda * turnover_leaf, lambda * turnover_leaf );
+
 		} else {
 			// no turnover sap today
 			turnover_sap = 0;
@@ -4632,6 +4653,14 @@ void turnover_tree(Individual &indiv) {
 		indiv.nmass_storage += n2storage_sap;
 		assert(equal(nturnover_sap, n2storage_sap + n2heart_sap));
 	}
+	// save daily sapwood turnover flux (kgC/m^2/day)
+	indiv.cturnover_sap = turnover_sap;
+
+	assert(indiv.cmass_leaf >= 0);
+	assert(indiv.cmass_root >= 0);
+	assert(indiv.cmass_sap >= 0);
+	assert(indiv.cmass_heart >= 0);
+	assert(indiv.cmass_storage >= 0);
 
 }
 
@@ -4877,6 +4906,9 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double dWcyl = indiv.cgrow_sap / indiv.densindiv;
 	dr = dWcyl / (Fr + Fh * Fallom);
 	dh = Fallom * dr;
+
+	assert(dr >= 0);
+	assert(dh >= 0);
 
 }
 

@@ -39,5 +39,5 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	bool alive);
 // Minimum growth demand after reproductive phase
 const double fdev_growth_min = 0.008;
-
+void allometry_dave_tree(Individual& indiv);
 #endif // LPJ_GUESS_GROWTH_H

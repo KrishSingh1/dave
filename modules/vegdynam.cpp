@@ -1043,7 +1043,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry
-
 						if (pft.dave_allocation()) {
 							allometry_dave_tree(indiv);
 						} else {

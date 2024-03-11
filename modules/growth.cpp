@@ -1506,7 +1506,11 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.cmass_storage += cmass_init * fract_stor;
 			double cmass_total = cmass_init * (1 - fract_stor);
 			Pft &pft = indiv.pft;
-			double height = max(0.5, indiv.height);
+
+			// Initial height of saplings in m.
+			const double INIT_HEIGHT = 0.5;
+			double height = max(INIT_HEIGHT, indiv.height);
+
 			// constant
 			double x = (1 / indiv.pft.ltor_max) + 
 			((pft.sla * height * pft.wooddens) / pft.k_latosa) + 1;
@@ -1514,6 +1518,14 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			cmass_root_ind = cmass_leaf_ind / pft.ltor_max;
 			cmass_sap_ind = cmass_total - (cmass_leaf_ind + cmass_root_ind);
 
+			if (is_zero(indiv.height)) {
+				indiv.height = height;
+				// height = k_allom2 * diam ** k_allom3
+				// diam = (height / k2) ^ (1 / k3)
+				indiv.diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
+				indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp)
+			    , indiv.pft.crownarea_max);
+			}
 		} else {
 			// TODO: make sure tree establishment uses the C:N ratio of the seeds
 			allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, 
@@ -1593,6 +1605,10 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		// separately. Therefore, we need to record the establishment N content
 		// now, in order to report it as an establishment flux later.
 		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+
+		if (indiv.pft.dave_allocation()) {
+			indiv.initialn += indiv.nmass_storage;
+		}
 	}
 }
 
@@ -1664,10 +1680,9 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	}
 
 
-	if (indiv.pft.dave_allocation()) {
+	if ( (indiv.pft.is_grass() && ifdailygrass) || indiv.pft.dave_allocation()) {
 
-		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage 
-			+ indiv.cmass_sap + indiv.cmass_crown));
+		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown + indiv.cmass_sap));
 		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
 	}
 }
@@ -3316,7 +3331,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// if this causes storage to be negitive - kill tree and return.
 	if (indiv.cmass_storage < 0) {
 		// Not enough C in storage to fulfill respiration demands --> kill individual
-		double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
+		double cmass_deficit = -indiv.cmass_storage;
 		indiv.cmass_storage = 0.0;
 
 		// The respiration and NPP fluxes reported in canexch are
@@ -3345,6 +3360,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	indiv.cgrow = calculate_cgrow_tree(indiv);
 
 	assert(indiv.cgrow < indiv.cmass_storage);
+	assert(positive(indiv.cgrow));
 	
 	// remove cgrow from storage
 	indiv.cmass_storage -= indiv.cgrow;
@@ -3589,15 +3605,16 @@ void carbon_allocation_tree(Individual &indiv) {
 	if (indiv.age > min_age_for_repr) {
 		indiv.cmass_repr_limit = repr_prop * indiv.cgrow + indiv.cmass_repr;
 	}
+
 	// Calculate the alpha factor (what proportion to allocate for each pool) according
 	// to the distance of actual C to it's target.
-	double relative_alpha_leaf = 0.0;
+	double relative_alpha_leaf = 0;
 	if (!is_zero(indiv.cmass_leaf_limit)) {
 		relative_alpha_leaf = divide(indiv.cmass_leaf_limit - indiv.cmass_leaf, indiv.cmass_leaf_limit);
 		// relative_alpha_leaf = max(0.05, indiv.fpar);
 	}
-	
-	double relative_alpha_root = 0.0;
+
+	double relative_alpha_root = 0;
 	if (!is_zero(indiv.cmass_root_limit)) {
 		relative_alpha_root = divide(indiv.cmass_root_limit - indiv.cmass_root, indiv.cmass_root_limit);
 		// relative_alpha_root = max(0.05, 1 - min(ppft.wscal_5.mean(), indiv.nscal_5.mean()));
@@ -3634,11 +3651,20 @@ void carbon_allocation_tree(Individual &indiv) {
 						relative_alpha_sap + relative_alpha_repr;								
 
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
-	indiv.alpha_leaf = divide(relative_alpha_leaf, sum_relative_alphas);
-	indiv.alpha_root = divide(relative_alpha_root, sum_relative_alphas);
-	indiv.alpha_sap = divide(relative_alpha_sap, sum_relative_alphas);
-	// double alpha_repr = divide(relative_alpha_repr, sum_relative_alphas);
-	indiv.alpha_repr = divide(relative_alpha_repr, sum_relative_alphas);
+	if (is_zero(sum_relative_alphas)) {
+		indiv.alpha_leaf = 0;
+		indiv.alpha_root = 0;
+		indiv.alpha_sap  = 0;
+		indiv.alpha_repr = 0;
+	} else {
+		// No need for protected divde here. If we refactor out the above check
+		// for a zero value in the denominator, we should reinstate the use of a
+		// protected division here.
+		indiv.alpha_leaf = relative_alpha_leaf / sum_relative_alphas;
+		indiv.alpha_root = relative_alpha_root / sum_relative_alphas;
+		indiv.alpha_sap = relative_alpha_sap / sum_relative_alphas;
+		indiv.alpha_repr = relative_alpha_repr / sum_relative_alphas;
+	}
 
 	// outputs:
 	indiv.cgrow_leaf = indiv.cgrow * indiv.alpha_leaf;
@@ -3648,10 +3674,11 @@ void carbon_allocation_tree(Individual &indiv) {
 	// // indiv.cgrow_reserve = indiv.cgrow * (d_reserve / d_summed); 
 	indiv.cgrow_repr = indiv.cgrow * indiv.alpha_repr;
 
-	// check whether the alphas are outrageous
-	double alpha_sums = indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr;
-	assert(equal(1.0, alpha_sums));
-
+	assert(positive(indiv.alpha_leaf));
+	assert(positive(indiv.alpha_root));
+	assert(positive(indiv.alpha_sap));
+	assert(positive(indiv.alpha_repr));
+	assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
 }
 
 
@@ -4167,11 +4194,13 @@ void update_pools_dave(Vegetation& vegetation) {
 			assert(indiv.cmass_sap >= 0.0);
 			assert(less_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_max * 1.001));
 			assert(greater_than_or_equal(indiv.cton_sap(), indiv.pft.cton_sap_min * 0.999));
+			assert(positive(indiv.cmass_sap));
 		}
 
 		if (indiv.pft.is_grass()) {
 			assert(less_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_max * 1.001));
 			assert(greater_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_min * 0.999));
+			assert(positive(indiv.cmass_crown));
 		}
 	}
 }
@@ -4643,10 +4672,16 @@ void turnover_tree(Individual &indiv) {
 			// turnover of sapwood will be calculated from the turnover of leaf
 			// in order to maintain k_latosa (derivation in notebook 22/11/2023)
 			
+			double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens)/indiv.pft.k_latosa;
+			lambda = min(lambda, 1.0);
+			lambda = max(lambda, 0.0);
+
+			// sapwood turnover 
+			turnover_sap =  lambda * turnover_leaf;
 			// double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens) / indiv.pft.k_latosa;
 			// // sapwood turnover 
 			// turnover_sap =  lambda * turnover_leaf; // oldish
-			turnover_sap =  indiv.pft.turnover_sap/365; // trunk
+			// turnover_sap =  indiv.pft.turnover_sap/365; // trunk
 			// turnover_sap =  min( lambda * turnover_leaf, lambda * turnover_leaf );
 
 		} else {
@@ -4990,6 +5025,7 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.lai = 0.0;
 		indiv.fpc = 0.0;
 	}
+	indiv.rpc = indiv.fpc;
 
 	assert(indiv.cmass_sap >= 0.0);
 
@@ -5036,7 +5072,7 @@ void annual_accounting_dave(Vegetation& vegetation) {
 
 		// increase age in one day
 		if (indiv.pft.lifeform == TREE) {
-			indiv.age += 1.0 / 365;
+			indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
 		}
 		
 		// Initiate yearly maximum

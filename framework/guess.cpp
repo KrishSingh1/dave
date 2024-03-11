@@ -2564,6 +2564,13 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 					ncont += nmass_leafs[3] * scale_indiv;
 				}
 			}
+
+			if (ifdailytree && pft.lifeform == TREE && ifdavegrowth) {
+				if (ifdavediagnostics) {
+					lprintf("indivs[\"%s\"].nmass_repr = %.*f\n", (const char *)pft.name, DAVE_DIAGNOSTIC_PRECISION, nmass_repr * scale_indiv);
+					ncont += nmass_repr * scale_indiv;
+				}
+			}
 		}
 
 		if (pft.landcover == CROPLAND) {
@@ -3041,6 +3048,10 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 	}
 
+	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
+		ppft.cmass_litter_root += cmass_storage;
+	}
+
 	// C doesn't return to litter/harvest if the Individual isn't alive
 	if (alive || istruecrop_or_intercropgrass()) {
 
@@ -3186,6 +3197,11 @@ void Individual::kill(bool harvest /* = false */) {
 		} else {
 			ppft.nmass_litter_leaf += nmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
+	}
+
+	// Account for N storage in dave trees.
+	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
+		ppft.nmass_litter_root += nmass_storage;
 	}
 
 	// Leaf: remove residue outtake and send the rest to litter

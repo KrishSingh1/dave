@@ -3951,10 +3951,10 @@ void MassBalance::check_day(Gridcell &gridcell) {
 		// to count indiv.anpp inside indiv.ccont(), but this is a hack and
 		// should ultimately be removed.
 
-		// check_day_c(gridcell);
+		check_day_c(gridcell);
 
 		if (ifcentury) {
-			// check_day_n(gridcell);
+			check_day_n(gridcell);
 		}
 	}
 

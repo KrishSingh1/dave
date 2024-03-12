@@ -31,6 +31,7 @@
 #include "commonoutput.h"
 #include "soilmethane.h"
 #include "util.h"
+#include "hydraulics.h" 
 
 #include <memory>
 

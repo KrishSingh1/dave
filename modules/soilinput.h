@@ -60,7 +60,7 @@ private:
 	struct SoilProperties {
 
 		// empirical parameter in percolation equation (k1) (mm/day)
-		double b;
+		double K;
 		// volumetric water holding capacity at field capacity minus vol water
 		// holding capacity at wilting point (Hmax), as fraction of soil layer
 		// depth
@@ -91,7 +91,11 @@ private:
 		// carbon content (kg C/m2)
  		double soilC;
  		// Porosity
-        	double porosity;
+        double porosity;
+		// saturated pressure head in cm (Cosby 1984)
+		double Psi_s;
+		// slope of soil water retention curve (Cosby 1984)
+		double b;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);

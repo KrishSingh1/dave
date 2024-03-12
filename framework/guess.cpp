@@ -493,6 +493,8 @@ void Patch::serialize(ArchiveStream& arch) {
 		& aaet
 		& aaet_5
 		& aevap
+		& evap
+		& transp
 		& aintercep
 		& arunoff
 		& awetland_water_added
@@ -1776,8 +1778,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	ps_sink_lim                 = 1.0;
 
-	n_opt_isabovelim      = false;
+	n_opt_isabovelim  = false;
 	nstress           = false;
+	stomata_open	  = true;
+
+	weighted_psi = 0;
+	predawn_lwp = 0.0;
+	lwp_previous = 0.0;
+	lwp.resize(date.subdaily);
+
+	for (Day day; day.period != date.subdaily; day.next()) {
+		lwp[day.period] = 0;
+	}
 
 	size_t nleafpools;
 	if (pft.phenology == CROPGREEN) {

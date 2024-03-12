@@ -42,6 +42,7 @@
 #include "ncompete.h"
 #include "somdynam.h"
 #include <assert.h>
+#include "hydraulics.h"
 
 
 // Anonymous namespace for variables with file scope
@@ -2860,7 +2861,6 @@ void vcmax_from_N(Vegetation& vegetation) {
 	}
 }
 
-
 // Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
@@ -2874,9 +2874,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
+		indiv.weighted_psi = calc_weighted_psi(patch.soil, pft);
+
 		// get PFT-specfic parameters
 		double g0 = pft.g0;  // mol m-2 s-1
 		double g1 = pft.g1;  // kPa^0.5
+
+		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
+		double g1x = pft.g1x;
+		double b1z = pft.b1z;
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -2905,9 +2911,19 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double temp  = climate.temps[day.period];   // degC
 			double vpd   = climate.vpds[day.period];    // kPa	
 
-			// Stomatal term (Medlyn et al. 2011)
-			// X needs to represent gs for CO2, hence no 1.6 factor
-    		double X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
+			double X = 0.0;
+			
+			if (!ifdavehydraulics){
+				// Stomatal term (Medlyn et al. 2011)
+				// X needs to represent gs for CO2, hence no 1.6 factor
+    			X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
+			}
+			else{
+				// Stomatal term (Medlyn et al. 2011), with g1 defined by pre-dawn soil water potential (Zhou et al. 2014)
+				// X needs to represent gs for CO2, hence no 1.6 factor
+				ppft.g1 = g1x * exp(b1z*(indiv.predawn_lwp + 0.3));
+    			X = divide(divide(1.0 + ppft.g1, sqrt(max(vpd,0.1))), ca); 
+			}
 
 			// initialise cumulative LAI
 			double lai_cum_bottom = 0.0;
@@ -2963,10 +2979,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Note: fphen_activity is always 1 for trees.
 					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
-					if (is_zero(apar_layer)) {
+					if (is_zero(par)) {
 						// Night
 						An = -Rd;
 						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
+
+						if (!indiv.stomata_open){
+							gsc = 0;
+						}
+
 					} else {
 
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -3002,10 +3023,17 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						if (An < 0) {
 							gsc = g0;
 						}
+						if (!indiv.stomata_open){
+							gsc = 0;
+						}
 					}
 
 					// Re-calculate intercellular CO2 concentration (mol mol-1)
-					ci = ca - divide(An, gsc);
+					if (gsc > 0) {
+						ci = ca - divide(An, gsc);
+					} else {
+						ci = ca;
+					}
 
 				}
 				else {  // C4 photosynthesis (von Caemmerer 2000)
@@ -3021,7 +3049,12 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// No photosynthesis at night.
 						An = -Rd;
 						gsc = g0;
-						ci = ca - divide(An, gsc);
+						ci = ca - divide(An, gsc); // check - what should we do here when gsc = 0 (drought stress)???
+
+						if (!indiv.stomata_open){
+							gsc = 0;
+						}
+
 					} else {
 						// C4/day time
 
@@ -3095,11 +3128,20 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							gsc = g0 + An * X;
 
 							if (An < 0) {
-								gsc = g0;
+								gsc = g0; 
+							}
+
+							if (!indiv.stomata_open){
+								gsc = 0;
 							}
 
 							// Intercellular CO2 concentration (mol mol-1)
-							ci_new = ca - divide(An, gsc);
+							if (gsc > 0) {
+								ci_new = ca - divide(An, gsc);
+							} else {
+								ci = ca;
+								break;
+							}
 
 							ci_diff = ci - ci_new;
 							if (nit != nit_max - 1) {
@@ -3125,6 +3167,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += Anc * lai_layer;
 				Anj_canopy += Anj * lai_layer;
 				gsw_canopy += (gsc * DWDC) * lai_layer;
+				if (gsw_canopy == 0){
+					gsw_canopy += pft.gcutic * lai_layer;
+				}
 				ci_canopy  += ci * lai_layer;
 				vcmax_canopy += vcmax * lai_layer;
 				jmax_canopy  += jmax * lai_layer;
@@ -3150,6 +3195,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.photosynthesis.agd_g += Ag_canopy;
 			indiv.photosynthesis.rd_g  += Rd_canopy;
 			indiv.photosynthesis.je    += indiv.ps_subdaily.Anj[day.period];
+
+			// run hydraulics module and check for stomatal closure in next timestep
+
+			hydraulics(day, climate, patch.soil, indiv);
 
 		} // end subdaily loop
 
@@ -3382,6 +3431,16 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			}
+			
+			if (ifdavehydraulics && !indiv.stomata_open){
+				for (int i = 0; i<NSOILLAYER; i++) {
+					ppft.fwuptake[i] = 0; // if the stomata are closed, we assume roots are hydraulically isolated from the soil
+				}
+			}
+
+			if (date.day==282){
+				printf(" ");
+			}
 		}
 	} // end cohort loop
 
@@ -3394,6 +3453,10 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 			uptake += indiv.aet * ppft.fwuptake[i];
 		}
 		if (uptake > wcont[i]) {
+			if (ifdavehydraulics){
+				printf("Transpiration exceeds soil water content, this shouldn't happen\n");
+	//			fail("%d %d Transpiration exceeds soil water content, this shouldn't happen",date.year,date.day);
+			}
 			// Demand in this layer exceeds supply.
 			double fwavail = 0.999 * wcont[i] / uptake;
 			for (int j = 0; j < vegetation.nobj; j++) {
@@ -3578,6 +3641,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 		// Calculate water stress factor
 		water_stress(patch);
+
+		// Calculate soil water potential
+		calc_soil_water_potenial_dave(patch.soil);
 
 		// Calculate subdaily photosynthesis and stomatal conductance 
 		photosynthesis_gs(patch, climate, vegetation);

@@ -77,6 +77,7 @@ bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
 bool ifdavegrowth;
+bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 bool ifapproximate_C4;
@@ -616,6 +617,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
@@ -718,6 +720,24 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
+		// Subdaily photosynthesis parameters, Zhou model
+		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
+			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
+		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
+			"Parameter for Zhou et al. (2014) stomatal model");
+		// Hydraulic parameters
+		declareitem("p10",&ppft->p10,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at 10% loss of xylem conductance (MPa)");
+		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at 50% loss of xylem conductance (MPa)");
+		declareitem("p88",&ppft->p88,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at 50% loss of xylem conductance (MPa)");
+		declareitem("kmax",&ppft->kmax,0.0,10.0,1,CB_NONE, 
+			"Maximum hyraulic conductance (mmol/m2/s/MPa)");
+		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
+			"water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
+		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
+			"cuticular conductance (mol/m2/s)");
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
@@ -1943,6 +1963,9 @@ void plib_callback(int callback) {
 
 			// Calculate transfer constant of leaf material between compartments
 			ppft->init_transferconst();
+
+			// Calculate hydraulic vulnerability curve parameters from P50 and P88
+			ppft->init_hydraulic_vulnerability_curves();
 
 			pftlist.nextobj();
 		}

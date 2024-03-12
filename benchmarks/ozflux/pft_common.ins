@@ -21,6 +21,14 @@ group "common" (
 	g0 0.005
 	g1 3.4
 	temp_dormancy 5.0
+	kmax 1 ! maximum hydraulic conductance (mmol/m2/s/MPa)
+	p10 -3   ! water potential at 10% loss of xylem conductance (MPa)
+	p50 -4   ! water potential at 50% loss of xylem conductance (MPa)
+	p88 -6   ! water potential at 88% loss of xylem conductance (MPa)
+	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
+	g1x 1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
+	b1z 0.8  ! Parameter for Zhou et al. (2014) stomatal model
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -72,7 +80,7 @@ group "tree" (
 
 	harv_eff 0.9		! Value for forestry
 	res_outtake 0.4		! Value for forestry
-	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood):
 				! 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
 	stem_frac 0.65
@@ -107,7 +115,7 @@ group "shrub" (
 
 	harv_eff 0.9		! Value for forestry
 	res_outtake 0.4		! Value for forestry
-	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood):
 				! 1-year turnover time
 	harvest_slow_frac 0
 )
@@ -118,15 +126,15 @@ group "grass" (
 
 	common
 	leafphysiognomy "broadleaf"
-	ltor_max 2.0
+	ltor_max 0.5
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	!root_beta 0.9555
-	root_beta 0.958
+	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100
 	phengdd5mat 2000.0
-	leaflong 0.15		! Leaf longevity (years)
+	leaflong 1		! Leaf longevity (years)
 	turnover_leaf 1.0
 	turnover_root 0.7
 	turnover_repr 0.2
@@ -142,7 +150,7 @@ group "grass" (
 	ga 0.030
 	wscal_min 0.35
 
-	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood):
 				! 1-year turnover time for GRASS
 	harvest_slow_frac 0
 )

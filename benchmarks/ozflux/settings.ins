@@ -14,10 +14,11 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 
 ! Main switches
-ifdailygrass             1   ! daily allocation for grasses and crops 
+ifdailygrass             0   ! daily allocation for grasses and crops 
 ifdailytree              0   ! daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
-ifdavegrowth             1   ! DAVE growth scheme (grasses only at the moment)
+ifdavegrowth             0   ! DAVE growth scheme (grasses only at the moment)
+ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn)
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
@@ -122,7 +123,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            5
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -136,7 +137,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output                1
 
 ! Iff enabled, patch-level outputs will be written as mean/median/standard
 ! deviation instead.
@@ -167,7 +168,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -273,7 +274,7 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-!import "trees.ins"
-!import "shrubberies.ins"
-import "c3g.ins"
+import "trees.ins"
+import "shrubberies.ins"
+!import "c3g.ins"
 !import "c4g.ins"

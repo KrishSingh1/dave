@@ -374,6 +374,9 @@ extern bool ifdavephotosyn;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
+/// whether DAVE hydraulics scheme is turned on
+extern bool ifdavehydraulics;
+
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value
 /// which is checked in ccont(), ncont(), etc.

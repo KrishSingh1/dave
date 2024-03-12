@@ -178,6 +178,11 @@ Get the columns used in the met year output file.
 std::vector<ColumnDefinition<Patch>> met_year_columns();
 
 /*
+Get the columns used in the aet output file.
+*/
+std::vector<ColumnDefinition<Patch>> aet_columns();
+
+/*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft);

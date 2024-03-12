@@ -310,7 +310,6 @@ const double PEATLAND_WETLAND_LATITUDE_LIMIT = 40.0;
 // Critical soil moisture content (fraction of AWC) below which plant stress occurs
 const double wcont_crit = 0.7; 
 
-
 // INLINE FUNCTIONS
 
 inline void tridiag(int n, long double a[], long double b[], long double c[], long double r[], long double u[]) {

@@ -233,9 +233,10 @@ void Soil::init_states() {
 	}
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
-		wcont[sl] = 0.0;
+		wcont[sl] = 0.1;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
+		psi_layer[sl] = 0.0;
 	}
 
 	awcont_upper = 0.0;
@@ -660,6 +661,8 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	patch.arunoff += runoff;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
+	patch.transp = aet_total;
+	patch.evap = evap;
 
 	patch.maet[date.month] += aet_total;
 	patch.mevap[date.month] += evap;
@@ -1232,6 +1235,8 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	patch.awetland_water_added += patch.wetland_water_added_today;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
+	patch.evap = evap;
+	patch.transp = aet_total;
 
 	patch.maet[date.month] += aet_total;
 	patch.mevap[date.month] += evap;
@@ -4042,6 +4047,8 @@ void Soil::nmass_multiplic_inc(double inc, int pref) {
 		NO3_mass *= inc;
 	}
 }
+
+
 
 // serialize new soil variables, when finalised
 void Soil::serialize(ArchiveStream& arch) {

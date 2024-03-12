@@ -638,6 +638,13 @@ std::vector<ColumnDefinition<Patch>> met_year_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Patch>> aet_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
+	return columns;
+}
+
 /*
 Sum a quantity across all SOM pools.
 */

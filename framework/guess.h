@@ -2039,12 +2039,32 @@ public:
 	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
+	/// Cuticular conductance (mol m-2 s-1)
+	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
+	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
+    double g1x;
+    /// Parameter for Zhou et al. (2014) stomatal model (hydraulics version)
+    double b1z;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// water potential at 10% loss of hydraulic conductance
+	double p10;
+	/// water potential at 50% loss of hydraulic conductance
+	double p50;
+	/// water potential at 88% loss of hydraulic conductance
+	double p88;
+	/// shape of the vulnerability curve (unitless)
+	double s2;
+	/// sensitivity of the vulnerability curve (MPa)
+	double s1;
+	/// maximum hydraulic conductance (mmol/m2/s/MPa)
+	double kmax;
+	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
+	double nx;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2463,6 +2483,20 @@ public:
 		c3=0.0;
 		d3=0.0;
 
+		g0=0.0;
+		g1=0.0;
+		gcutic=0.0;
+
+		p10=0.0;
+		p50=0.0;
+		p88=0.0;
+		kmax=0.0;
+		g1x=0.0;
+		b1z=0.0;
+
+		
+
+
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 	}
@@ -2484,6 +2518,13 @@ public:
 			}
 		}
 	}
+
+	////
+	void init_hydraulic_vulnerability_curves() {
+		s2 = log(log(1.0-50.0/100.0)/log(1.0-88.0/100.0))/(log(abs(p50))-log(abs(p88)));
+		s1 = abs(p50)/(pow(-log(1-50.0/100),(1/s2)));
+	}
+	
 
 	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
@@ -3380,6 +3421,17 @@ public:
 	double wscal_sen;
 	double tscal_sen;
 
+	bool stomata_open; // flag on whether stomata are open (at all) - if false, stomata are fully closed
+
+	double weighted_psi; // soil water potential weighted by root fraction in each layer
+
+	// predawn leaf water potential calculated using hydraulics module
+	double predawn_lwp;
+	// leaf water potential at subdaily timescale
+	std::vector<double> lwp;
+	// leaf water potential from previous timestep (for plant water storage)
+	double lwp_previous;
+
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
 	// later, because individuals experiencing allocation on an annual basis are
@@ -3672,6 +3724,12 @@ public:
 	// Run on [mm/day]
 	// Currently only used for wetlands, but could be used for irrigation too
 	double runon;
+	// saturated pressure head in cm (Cosby 1984)
+	double Psi_s;
+	// slope of soil water retention curve (Cosby 1984)
+	double b;
+	// percolation coefficient from Haxeltine 1996a (UNITS)
+	double K;	
 	
 
 	// PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
@@ -3972,6 +4030,8 @@ public:
 	double Ci[NLAYERS];
 	/// thermal conductivities of the soil layers [J day-1 mm-1 K-1]
 	double Ki[NLAYERS];
+	/// soil water potential in each layer
+	double psi_layer[NSOILLAYER];
 
 	bool snow_active; // active snow layer(s)?
 	int snow_active_layers; // <= NLAYERS_SNOW
@@ -4682,6 +4742,9 @@ public:
 	/// yearly sum of water deficit
 	double water_deficit_y;
 
+	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
+	double g1;
+
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
 
@@ -4723,6 +4786,7 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 		water_deficit_y = 0.0;
+		g1 = 0.0;
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
@@ -4898,6 +4962,10 @@ public:
 	Historic<double, NYEARAAET> aaet_5;
 	/// annual sum of soil evaporation (mm/year)
 	double aevap;
+	/// daily evaporation (mm)
+	double evap;
+	/// daily transpiration (mm)
+	double transp;
 	/// annual sum of interception (mm/year)
 	double aintercep;
 	/// annual sum of runoff (mm/year)

@@ -3257,6 +3257,14 @@ void Individual::kill(bool harvest /* = false */) {
 		nharvest_flux          += cropindiv->nmass_dead_leaf * res_outtake;
 	}
 
+	if (pft.dave_allocation()) {
+		ppft.cmass_litter_repr += cmass_repr;
+		cmass_repr = 0;
+
+		ppft.nmass_litter_repr += nmass_repr;
+		nmass_repr = 0;
+	}
+
 	// Report harvest fluxes
 	report_flux(Fluxes::HARVESTC, charvest_flux);
 	report_flux(Fluxes::HARVESTN, nharvest_flux);

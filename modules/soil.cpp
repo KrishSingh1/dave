@@ -5640,8 +5640,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		// Save initial wmass
 		wmass_org[lyr] = soillayer.wmass;
 
-		// Determine layer from bottom that are icy and not included in 
-		// hydrological calculations
+		// Determine layers without ice starting from the top. These are the layers 
+		// to be included in the hydrological calculations
 		if (!icy && soillayer.imass / soillayer.wsats < 0.5) {
 			icefree_lyr++;
 		}
@@ -5688,7 +5688,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 				wsats_infilt, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt, wflux_stand_drain);
 
 			// If only one layer to simulate, then solve directly
-			if (nsoillayers_sim == 1) {
+			if (nsoillayers_sim <= 1) {
 
 				// Extract transpiration 
 				for (int lyr = 0; lyr < nsoillayers; lyr++) {

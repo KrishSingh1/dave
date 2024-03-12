@@ -1612,6 +1612,54 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 }
 
+void establishment_sapling_dave(Individual& indiv, double ltor) {
+
+	indiv.alive = true;
+	// initial height (m)
+	const double INIT_HEIGHT = 1;
+	// initial storage fraction of capacity
+	const double INIT_STORAGE_FRACTION = 1;
+
+	indiv.height = INIT_HEIGHT;
+
+	indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1 / indiv.pft.k_allom3);
+	
+	// C for new sapling
+	indiv.cmass_sap = indiv.height * indiv.diam * indiv.diam / 4 * PI * indiv.pft.wooddens;
+
+	double fns = indiv.pft.k_latosa / (indiv.pft.sla * indiv.pft.wooddens * indiv.height);
+
+	indiv.cmass_leaf = indiv.cmass_sap * fns;
+
+	indiv.cmass_root = indiv.cmass_leaf / ltor;
+
+	indiv.cstorage_max = cstorage_capacity(indiv);
+
+	indiv.cmass_storage = INIT_STORAGE_FRACTION * indiv.cstorage_max;
+
+	// N of new sapling
+	
+	indiv.nmass_sap = indiv.cmass_sap / indiv.pft.cton_sap_min;
+
+	indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_min;
+
+	indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_min;
+
+	indiv.nstorage_max = nstorage_capacity(indiv);
+
+	indiv.nmass_storage = INIT_STORAGE_FRACTION * indiv.nstorage_max;
+
+	indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp), 
+			indiv.pft.crownarea_max);
+	// calculate allometry ( current state of the individual should be 0, including
+	// cgrow_sap)
+	allometry_dave_tree(indiv);
+
+	// for nitrogen balance mass balance checks
+	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
+
+}
+
 void allocation_init(double bminit, double ltor, Individual& indiv) {
 
 	// DESCRIPTION
@@ -1625,13 +1673,12 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	// Note: indiv.densindiv (density of individuals across patch or modelled area)
 	//       should be set to a meaningful value before this function is called
 
-	double nmass_init = 0;
-	if (indiv.pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
-		// assume initial nitrogen that goes into the saplings
-		nmass_init = bminit / min( indiv.pft.cton_leaf_min, indiv.pft.cton_root_min);
+	if (ifdavegrowth && ifdailytree && indiv.pft.lifeform == TREE) {
+		establishment_sapling_dave(indiv, ltor);
+	} else {
+		establishment_biomass(bminit, ltor, indiv);
 	}
 
-	establishment_biomass(bminit, ltor, indiv, nmass_init);
 
 	if ( (indiv.pft.is_grass() && ifdailygrass) || indiv.pft.dave_allocation()) {
 
@@ -3232,6 +3279,11 @@ double available_storage(Individual &indiv) {
 
 // calculate allowance (cgrow) depending on cmass_storage
 double calculate_cgrow_tree(Individual &indiv) {
+	// parameters of "saver" responce
+	// TODO: calibrate to express differences between "saver" and "spender" responces
+	double const shape_pie = 16.0;
+	double const inflection_pie_saver = 0.7; // Saver
+	double const inflection_pie_spender = 0.2; // Spender
 	// maximum daily mobilisation rate of c in the storage. 
 	const double max_mobil_cstorage_tree = 0.1;
 	// fraction of cmass_storage that is not available to growth
@@ -3240,8 +3292,20 @@ double calculate_cgrow_tree(Individual &indiv) {
 	double cstorage_res = frac_cstorage_res_tree * indiv.cstorage_max;
 	// amount of c available for growth today (kgC/m^2)
 	double cmass_avail = max(0.0, (indiv.cmass_storage - cstorage_res));
+	
+	double store_state = 0;
+	// sigmoid function that will change depending on the saver-spender spectrum of the pft.
+	double piesize_coeff = 0;
+	if (indiv.cstorage_max > 0) {
+		
+		store_state = (indiv.cmass_storage / indiv.cstorage_max);
+		
+		piesize_coeff = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_spender)))));
+	}
+	
+
 	// actual allowance of c for growth today (kgC/m^2)
-	return max_mobil_cstorage_tree * cmass_avail;
+	return piesize_coeff * max_mobil_cstorage_tree * cmass_avail;
 
 }
 
@@ -3291,7 +3355,8 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	}
 
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
-	// maximumvalue (eg, 10% of storage)
+	// maximumvalue (eg, 10% of storage).
+	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
 	indiv.cgrow = calculate_cgrow_tree(indiv);
 
 	assert(indiv.cgrow < indiv.cmass_storage);
@@ -3545,38 +3610,34 @@ void carbon_allocation_tree(Individual &indiv) {
 	// to the distance of actual C to it's target.
 	double relative_alpha_leaf = 0;
 	if (!is_zero(indiv.cmass_leaf_limit)) {
-		// relative_alpha_leaf = (indiv.cmass_leaf_limit - indiv.cmass_leaf) / indiv.cmass_leaf_limit;
-		relative_alpha_leaf = max(0.05, indiv.fpar);
+		relative_alpha_leaf = divide(indiv.cmass_leaf_limit - indiv.cmass_leaf, indiv.cmass_leaf_limit);
+		// relative_alpha_leaf = max(0.05, indiv.fpar);
 	}
 
 	double relative_alpha_root = 0;
 	if (!is_zero(indiv.cmass_root_limit)) {
-		relative_alpha_root = 1 - min(ppft.wscal, indiv.nscal_5.mean());
-		// relative_alpha_root = (indiv.cmass_root_limit - indiv.cmass_root) / indiv.cmass_root_limit;
+		relative_alpha_root = divide(indiv.cmass_root_limit - indiv.cmass_root, indiv.cmass_root_limit);
+		// relative_alpha_root = max(0.05, 1 - min(ppft.wscal_5.mean(), indiv.nscal_5.mean()));
 	}
-
-	double relative_alpha_sap  = 0;
-	if (!is_zero( indiv.cmass_sap_limit)) {
-		// relative_alpha_sap = (indiv.cmass_sap_limit - indiv.cmass_sap) / indiv.cmass_sap_limit;
-		relative_alpha_sap = 1 - indiv.fpar;
+	
+	double relative_alpha_sap =  0.0;
+	if (!is_zero(indiv.cmass_sap_limit)) {
+		relative_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
+		// relative_alpha_sap = max(0.05, 1 - indiv.fpar);
 	}
 
 	// To prevent allocation to reproduction if the tree is stressed (lower priority.),
 	// 1. calculate the mean of the alphas or leaf, root and sapwood, that will 
 	// be used ased as a threshold for allocating to reproduction. 
+	// double mean_relative_alphas = (relative_alpha_leaf + relative_alpha_root + relative_alpha_sap + relative_alpha_storage) / 4.0;
 	double mean_relative_alphas = (relative_alpha_leaf + relative_alpha_root + relative_alpha_sap) / 3.0;
-
 	// logistic function of the relative strength of  allocation to reproduction
 	// depending on how far the other pools are from their target.
 	// TODO: Unsupported assumption: logistic function assumed and it's parameters 
 	// guestimated.  Change that.
-	
-	// TODO: older version
-	// double alpha_repr_factor = (max_alpha_repr_factor / 
-	// 							(1 + exp(20 * (mean_relative_alphas - .25))));
 
-	double alpha_repr_factor = 1 - (max_alpha_repr_factor / 
-                       (1 + exp(20 * (mean_relative_alphas - .6))));
+	double alpha_repr_factor = (max_alpha_repr_factor / 
+                       (1 + exp(20 * (mean_relative_alphas - .25))));
 	// calculate alpha reproduction "tunned down" by the factor that depends on
 	// the conditions of the other pools.
 	double relative_alpha_repr = 0.0;
@@ -3585,9 +3646,9 @@ void carbon_allocation_tree(Individual &indiv) {
 			divide(indiv.cmass_repr_limit - indiv.cmass_repr, indiv.cmass_repr_limit);
 	}
 	
-
+	//  sum of all the relative alphas so it will be used to calculate the alphas
 	double sum_relative_alphas = relative_alpha_leaf + relative_alpha_root + 
-									relative_alpha_sap + relative_alpha_repr;
+						relative_alpha_sap + relative_alpha_repr;								
 
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
 	if (is_zero(sum_relative_alphas)) {
@@ -4528,6 +4589,7 @@ void turnover_tree(Individual &indiv) {
 		fage = pow(((indiv.age) / indiv.pft.leaflong), shp_fage);
 		// limit fage
 		fage = min(fage, 1.0);
+		fage = 1;
 		// fraction of leaf biomass that is turned over today
 		turnover_leaf = indiv.pft.turnover_leaf * fwater * fage / Date::MAX_YEAR_LENGTH;
 
@@ -4913,11 +4975,11 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 }
 
 void allometry_dave_tree(Individual& indiv) {
-	
+		
 	Vegetation& vegetation = indiv.vegetation;
 
 	
-	// Height (Eqn 4)
+	// calculate change in height and radius
 	if (!negligible(indiv.cgrow_sap)) {
 		
 		double dh;
@@ -4936,7 +4998,7 @@ void allometry_dave_tree(Individual& indiv) {
 			    , indiv.pft.crownarea_max);
 		} 
 	}
-	
+
 	if (!is_zero(indiv.cmass_leaf)) {
 
 		if (!is_zero(indiv.crownarea)) {
@@ -4956,7 +5018,7 @@ void allometry_dave_tree(Individual& indiv) {
 			indiv.lai_indiv = 0.0;
 			indiv.fpc = 0.0;
 		}
-		// Stand-level LAI
+		// Patch-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 	} else {
 		indiv.lai_indiv = 0.0;

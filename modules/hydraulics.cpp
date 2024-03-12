@@ -104,7 +104,7 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
             } else {
                 psi1 = psi2;
             }
-            if (x == 10000000){
+            if (x == 9999999){
                 printf("loop to estimate E failed/n");
             }
         }

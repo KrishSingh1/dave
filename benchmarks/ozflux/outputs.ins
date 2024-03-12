@@ -20,10 +20,12 @@ ifdailyoutput 1
 !file_dave_afuel                 "dave_afuel.out"                ! Annual blaze fuel availability (gC/m2)
 !file_dave_acoarse_woody_debris  "dave_acoarse_woody_debris.out" ! Annual coarse woody debris (gC/m2)
 !file_dave_amet_year             "dave_amet_year.out"            ! Current year of met data being used
+!file_dave_aco2                  "dave_aco2.out"                 ! Annual atmospheric co2 concentration (ppm)
 !file_dave_aminleach             "dave_aminleach.out"            ! Annual leaching rate (kgN/m2/yr)
 !file_dave_sompool_acmass        "dave_sompool_acmass.out"       ! Daily SOM pool C mass (kgC/m2)
 !file_dave_sompool_anmass        "dave_sompool_anmass.out"       ! Daily SOM pool N mass (kgN/m2)
 !file_dave_fpar_ff               "dave_fpar_ff.out"              ! Daily forest floor fpar (0-1)
+!file_dave_andep                 "dave_andep.out"                ! Annual nitrogen deposition (kgN/m2)
 
 ! Annual indiv-level per-patch outputs.
 file_dave_alai                  "dave_alai.out"                 ! Annual LAI(m2/m2)
@@ -37,7 +39,9 @@ file_dave_adensity              "dave_adensity.out"             ! Annual density
 ! Annual pft-level per-patch outputs.
 !file_dave_anpp                  "dave_anpp.out"                 ! Total individual-level Annual NPP (kgC/m2/year)
 !file_dave_agpp                  "dave_agpp.out"                 ! Total individual-level Annual GPP (kgC/m2/year)
+!file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Leaf Respiration (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
+!file_dave_ancohort              "dave_ancohort.out"             ! Number of cohorts currently established per pft (unitless)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac             "dave_stand_frac"               ! Fraction of the gridcell occupied by each stand.
@@ -77,6 +81,10 @@ file_dave_lai                   "dave_lai.out"                  ! LAI by individ
 !file_dave_nscal                 "dave_nscal.out"                ! Nitrogen stress scalar (0-1)
 file_dave_weighted_psi           "dave_weighted_psi.out"         ! Soil water potential weighted by root fraction in each layer (MPa)
 !file_dave_et                    "dave_et.out"                   ! Daily indiv-level transpiration (mm/day)
+!file_dave_et                    "dave_et.out"                   ! Daily indiv-level evapotranspiration (mm/day)
+!file_dave_cue                   "dave_cue.out"                  ! Daily carbon use efficiency
+!file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
+!file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar        "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]

@@ -82,6 +82,8 @@ bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 bool ifapproximate_C4;
 bool ifusegdd;
+bool gzip_output;
+int nindiv_max;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -277,6 +279,8 @@ void initsettings() {
 	disturb_pasture = false;
 	grassforcrop = false;
 	useClosestNdep = false;
+	gzip_output = false;
+	nindiv_max = 0;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -618,9 +622,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
+		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
+		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 

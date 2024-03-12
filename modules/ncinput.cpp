@@ -62,6 +62,8 @@ NCInput::NCInput() {
 	declare_parameter("has_leap_years", &has_leap_years
 	, "1 iff input data contains leap years.");
 
+	declare_parameter("spinup_met_cycle_length", &spinup_met_cycle_length, 0, 1000000, "User input from the instruction file. The number of years of data to recycle during the freenyears. If 0, all data will be recycled during freenyears.");
+
 	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
 
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
@@ -74,9 +76,6 @@ NCInput::NCInput() {
 
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
-
-	declare_parameter("simulation_start_year", &simulation_start_year, 0, 4000
-	, "The first year after the spinup period. During spinup, all met data before this year is cycled. If not set, all available data will be cycled during the spinup.");
 
 	// Names of variables in the NetCDF file.
 	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
@@ -91,6 +90,8 @@ NCInput::NCInput() {
 	, "Name of the insolation variable in the NetCDF file");
 	declare_parameter("variable_precip", &variable_precip, NC_MAX_NAME
 	, "Name of the precipitation variable in the NetCDF file");
+	declare_parameter("variable_wind", &variable_wind, NC_MAX_NAME
+	, "Optional name of the wind speed variable in the NetCDF file");
 	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
 	, "Name of the co2 variable in the NetCDF file. Optional if file_co2 is provided instead.");
 	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
@@ -108,6 +109,9 @@ NCInput::NCInput() {
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
+
+	bounds_wind.max = 100;
+	bounds_wind.min = 0;
 
 	bounds_insol.max = 1e6;
 	bounds_insol.min = 0;
@@ -132,8 +136,6 @@ NCInput::NCInput() {
 	bounds_ndep.min = 0;
 
 	use_lamarque = true;
-
-	simulation_start_year = -1;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -176,8 +178,8 @@ void NCInput::init(void) {
 		int input_timestep = temp->get_day_length();
 		date.subdaily = separate_spinup ? input_timestep : nsteps_day;
 
-		first_timestep = temp->get_first_date();
-		final_timestep = temp->get_last_date();
+		spinup_start = first_timestep = temp->get_first_date();
+		spinup_end = final_timestep = temp->get_last_date();
 
 		// Ensure that there is at least one year of data for the spinup.
 		verify_data_length(first_timestep, final_timestep, input_timestep);
@@ -227,20 +229,6 @@ void NCInput::init(void) {
 		// Now we must determine the first calendar year of the simulation (not
 		// the spinup).
 		int first_year = first_timestep.year;
-
-		// Implementation of the simulation_start_year parameter. When using a
-		// single NetCDF file for both spinup and simulation, this allows the
-		// spinup to recycle only a subset of the NetCDF file, and for the
-		// simulation to start partway through the timeseries.
-		if (simulation_start_year != -1 && file_met_spinup == "" && simulation_start_year != first_year) {
-			if (simulation_start_year < first_year) {
-				fail("simulation_start_year (%d) must be greater than first year of met data (%d)", simulation_start_year, first_year);
-			}
-			if (simulation_start_year > final_timestep.year) {
-				fail("simulation_start_year (%d) must be less than the final year of met data (%d)", simulation_start_year, final_timestep.year);
-			}
-			first_year = simulation_start_year;
-		}
 
 		// Set the calendar year at start of spinup.
 		date.set_first_calendar_year(first_year - nyear_spinup);
@@ -373,20 +361,7 @@ try {
 		// Shuffle years of met data during spinup. Whenever we move to a new
 		// year, select another year at random.
 		if (date.day == 0) {
-			timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
-			timepoint spinup_end = file_met_spinup == "" ? final_timestep : temp->get_last_date();
-			int first_year = spinup_start.year;
-			if (!is_start_of_year(spinup_start, temp->get_day_length())) {
-				first_year++;
-			}
-			int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length());
-			if (simulation_start_year != -1 && simulation_start_year != first_year) {
-				// Validity of simulation_start_year verified in getgridcell().
-				nyear_data = simulation_start_year - first_year;
-			}
-			//spinup_year = rand() % get_nyear_data() + first_year;
-			int offset = nyear_data - modulo(nyear_spinup, nyear_data);
-			spinup_year = (date.year + offset) % nyear_data + first_year;
+			spinup_year = get_spinup_year();
 		}
 		year = spinup_year;
 	} else {
@@ -405,13 +380,15 @@ try {
 
 	climate.met_year = year;
 
+	int co2_year = date.get_calendar_year() < spinup_start.year ? spinup_start.year : date.get_calendar_year();
+
 	// Generate daily N deposition values on first day of year.
 	if (date.day == 0) {
 		update_ndep(lon, lat, year);
 
 		if (use_mean_annual_co2 && co2) {
 			int year_len = get_year_len(year, has_leap_years);
-			std::vector<double> co2_annual = co2->read(lon, lat, year, 0, year_len);
+			std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
 			mean_annual_co2 = mean(co2_annual);
 		}
 	}
@@ -449,8 +426,14 @@ try {
 		insols = aggregate(insols, date.subdaily, mean);
 		vpds = aggregate(vpds, date.subdaily, mean);
 		pressure = aggregate(pressure, date.subdaily, mean);
+		precs = aggregate(precs, date.subdaily, mean);
 		// If required, we can aggregate using other functions as well. E.g.
 		// precs = aggregate(precs, date.subdaily, sum);
+	}
+
+	if (wind) {
+		std::vector<double> winds = wind->read(lon, lat, year, date.day, 1);
+		climate.u10 = mean(winds);
 	}
 
 	climate.temps = temps;
@@ -462,17 +445,22 @@ try {
 	climate.vpds = vpds;
 	climate.pressure = pressure;
 
-	climate.co2 = get_co2(lon, lat, year, date.day);
+	climate.co2 = get_co2(lon, lat, co2_year, date.day);
 
 	if (temp->get_day_length() > 1) {
 		climate.dtr = maxt - mint;
+		climate.tmax = maxt;
+		climate.tmin = mint;
 	} else if (tmax && tmin) {
 		// It only really makes sense to provide separate variables for tmin and
 		// tmax if input data is daily. Therefore these arrays will usually be
 		// of length 1.
 		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
 		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
-		climate.dtr = mean(tmaxs) - mean(tmins);
+
+		climate.tmax = mean(tmaxs);
+		climate.tmin = mean(tmins);
+		climate.dtr = climate.tmax - climate.tmin;
 	} else {
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}
@@ -621,8 +609,8 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 
 		// Copy data into the nh4_dep and no3_dep arrays.
 		// nhx = nh4, noy = no3a
-		memcpy(nh4_dep, &nhx.front(), year_len);
-		memcpy(no3_dep, &noy.front(), year_len);
+		memcpy(nh4_dep, &nhx.front(), year_len * sizeof(double));
+		memcpy(no3_dep, &noy.front(), year_len * sizeof(double));
 	}
 }
 
@@ -671,7 +659,9 @@ double NCInput::get_co2(double lon, double lat, int year, int day) {
 			? mean_annual_co2
 			: mean(co2->read(lon, lat, year, date.day, 1));
 	} else {
-		return (*co2_file)[date.year];
+		// Note: using calendar year, rather than met year to avoid cycling co2
+		// concentration during the spinup period.
+		return (*co2_file)[date.get_calendar_year()];
 	}
 }
 
@@ -696,6 +686,12 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	precip_units[0] = "mm";
 	precip_units[1] = "kg m-2";
 	precip_units[2] = "kg/m2";
+
+	std::vector<xtring> wind_units(3);
+	wind_units[0] = "m/s";
+	wind_units[1] = "m s-1";
+	wind_units[2] = "m s^-1";
+
 	std::vector<xtring> co2_units(1);
 	co2_units[0] = "ppm";
 
@@ -719,6 +715,16 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	precip = create_variable(variable_precip, bounds_prec, precip_units, true);
 	vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
 	ps = create_variable(variable_ps, bounds_ps, ps_units, true);
+
+
+	if (variable_wind != "" && variable_exists(variable_wind)) {
+		wind = create_variable(variable_wind, bounds_wind, wind_units, true);
+	} else {
+		wind = NULL;
+		if (firemodel == BLAZE) {
+			fail("When using BLAZE, wind speed is not optional. Please specify variable_wind in the instruction file.");
+		}
+	}
 
 	int day_length = temp->get_day_length();
 
@@ -820,6 +826,42 @@ bool NCInput::variable_exists(xtring name) const {
 
 	// Execution will never reach here.
 	return false;
+}
+
+int NCInput::get_spinup_year() const {
+
+	int calendar_year = date.get_calendar_year();
+	if (calendar_year >= first_timestep.year ||
+		(calendar_year >= spinup_start.year && calendar_year <= spinup_end.year) ) {
+		// We are past the start of the data. Therefore use data for the current
+		// calendar year.
+		return calendar_year;
+	} else if (calendar_year > spinup_end.year && calendar_year < first_timestep.year) {
+		return spinup_end.year;
+	}
+
+	// Skip the first year if the first timestep lies partway through the year.
+	int first_year = spinup_start.year;
+	if (!is_start_of_year(spinup_start, temp->get_day_length())) {
+		first_year++;
+	}
+
+	// Get the number of years of data we have for the spinup.
+	int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length());
+
+	// User wants to limit the spinup to using only the first N years of data.
+	if (spinup_met_cycle_length > 0) {
+		nyear_data = min(nyear_data, spinup_met_cycle_length);
+	}
+
+	// The offset from the start of the met data to be used in the first year.
+	int cycle_length = nyear_spinup - (first_timestep.year - spinup_start.year);
+	int offset = nyear_data - modulo(cycle_length, nyear_data);
+
+	// Add offset to current year, ensure it lies within range (0..nyear_data],
+	// and add this to the first year of data. This gives us the (calendar) year
+	// of data to be used this year.
+	return (date.year + offset) % nyear_data + first_year;
 }
 
 #endif // HAVE_NETCDF

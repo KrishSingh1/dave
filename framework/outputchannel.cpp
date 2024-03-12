@@ -20,10 +20,12 @@ namespace GuessOutput {
 
 ColumnDescriptor::ColumnDescriptor(const char* title, 
                                    int width, 
-                                   int precision) 
+                                   int precision,
+								   column_type_t type)
 		  : t(title),
 			 w(width),
-			 p(precision) {
+			 p(precision),
+			 column_type(type) {
 }
 
 const std::string& ColumnDescriptor::title() const {
@@ -36,6 +38,10 @@ int ColumnDescriptor::width() const {
 
 int ColumnDescriptor::precision() const {
 	 return p;
+}
+
+column_type_t ColumnDescriptor::get_type() const {
+	return column_type;
 }
 
 ColumnDescriptors::ColumnDescriptors(const std::vector<std::string>& titles,
@@ -99,6 +105,7 @@ Table OutputChannel::create_table(const TableDescriptor& descriptor) {
 
 	 table_descriptors.push_back(descriptor);
 	 values.resize(table_descriptors.size());
+	 text_values.resize(table_descriptors.size());
 	 return table;
 }
 
@@ -115,7 +122,37 @@ void OutputChannel::add_value(const Table& table, double d) {
 		       td.name().c_str());
 	 }
 
+	const ColumnDescriptor &column = td.columns()[values[table.id()].size()];
+	if ( (column.get_type() & NUMERIC) != NUMERIC) {
+		fail("Attempted to output a numeric value in a non-numeric column");
+	}
+
 	 values[table.id()].push_back(d);
+	 text_values[table.id()].push_back(NULL);
+}
+
+void OutputChannel::add_value(const Table &table, const char *text) {
+	// Do nothing for unused tables.
+	if (table.invalid()) {
+		return;
+	}
+
+	// Ensure this row isn't already full.
+	const TableDescriptor &descriptor = table_descriptors[table.id()];
+	if (text_values[table.id()].size() == descriptor.columns().size()) {
+		fail("Added too many values to a row in table %s!",
+			descriptor.name().c_str());
+	}
+
+	ColumnDescriptor column = descriptor.columns()[values[table.id()].size()];
+	if (column.get_type() != TEXT) {
+		fail("Attempted to output a text value in a non-text column");
+	}
+
+	values[table.id()].push_back(-1);
+	// fixme: this relies on the pointer still being valid at write time.
+	// We should maybe do a memcpy or similar here.
+	text_values[table.id()].push_back(text);
 }
 
 const TableDescriptor& 
@@ -128,9 +165,16 @@ OutputChannel::get_current_row(const Table& table) const {
 	 return values[table.id()];
 }
 
+const std::vector<const char *>
+OutputChannel::get_current_row_text(const Table& table) const {
+	 return text_values[table.id()];
+}
+
 void OutputChannel::clear_current_row(const Table& table) {
 	 values[table.id()].clear();
 	 std::vector<double>().swap(values[table.id()]); // clear array memory
+	 text_values[table.id()].clear();
+	 std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
 }
 
 FileOutputChannel::FileOutputChannel(const char* out_dir,
@@ -225,13 +269,16 @@ void FileOutputChannel::finish_row(const Table& table,
 
 	 // make sure all columns have been added
 	 const std::vector<double>& row = get_current_row(table);
+	 const std::vector<const char *> &row_text = get_current_row_text(table);
+
 	 const TableDescriptor& td = get_table_descriptor(table);
+	 const ColumnDescriptors &columns = td.columns();
 
 	if (row.size() == 0) {
 		return;
 	}
 
-	 if (row.size() < td.columns().size()) {
+	 if (row.size() < columns.size()) {
 		  fail("Too few values in a row in table %s", td.name().c_str());
 	 }
 
@@ -265,7 +312,18 @@ void FileOutputChannel::finish_row(const Table& table,
 
 	 // print out the values
 	 for (size_t i = 0; i < row.size(); i++) {
-		  fprintf(file, format(table, (int)i), row[i]);
+		  const ColumnDescriptor &column = columns[i];
+		  column_type_t type = column.get_type();
+
+		  if (type == NUMERIC) {
+		  	fprintf(file, format(table, (int)i), row[i]);
+		  } else if (type == TEXT) {
+			char fmt[16];
+			sprintf(fmt, "%%%ds", column.width());
+			fprintf(file, fmt, row_text[i]);
+		  } else {
+			fail("Unknown column type: %d", type);
+		  }
 	 }
 	 fprintf(file, "\n");
 	 fflush(file);
@@ -354,5 +412,202 @@ void OutputRows::add_value(const Table& table,double d) {
 	 // send the value to the output channel
 	 out->add_value(table, d);
 }
+
+void OutputRows::add_value(const Table &table, const char *t) {
+	// Do nothing for unused tables.
+	if (table.invalid()) {
+		return;
+	}
+
+	int id = table.id();
+
+	if (id >= static_cast<int>(used_tables.size())) {
+		used_tables.resize(id + 1);
+	}
+	used_tables[id] = true;
+
+	// Send the value to the output channel.
+	out->add_value(table, t);
+}
+
+#ifdef COMPRESS_OUTPUT
+
+GZFileOutputChannel::~GZFileOutputChannel() {
+    for (size_t i = 0; i < gzfiles.size(); i++) {
+        if ( gzfiles[i] != NULL ) {
+            gzclose(gzfiles[i]);
+        } else {
+            if (!printed_header[i]) {
+                const TableDescriptor& descriptor = get_table_descriptor(i);
+                dprintf("warning! no output created for table %s\n"
+                    , descriptor.name().c_str());
+            }
+        }
+    }
+}
+
+Table GZFileOutputChannel::create_table(const TableDescriptor& descriptor) {
+    Table table;
+
+    if (descriptor.name() != "") {
+        table = OutputChannel::create_table(descriptor);
+        // file will be created when first line is written
+        gzfiles.push_back(NULL);
+        printed_header.push_back(false);
+    }
+
+    return table;
+}
+
+void GZFileOutputChannel::close_table(Table& table) {
+
+    // do nothing for unused tables
+    if (table.invalid()) {
+        return;
+    }
+
+    // untested - destructor always used
+    gzFile gzfile = gzfiles[table.id()];
+    if ( gzfile != NULL ) {
+                gzclose(gzfile);
+        gzfiles[table.id()] = NULL;
+    }
+    else {
+        if (!printed_header[table.id()]) {
+            const TableDescriptor& descriptor = get_table_descriptor(table);
+            dprintf("warning! no output created for table %s\n", descriptor.name().c_str());
+        }
+    }
+}
+
+void GZFileOutputChannel::finish_row(const Table& table,
+                                    double lon,
+                                    double lat,
+                                    int year) {
+
+    finish_row(table, lon, lat, year, Date::MAX_YEAR_LENGTH - 1, false);
+}
+
+void GZFileOutputChannel::finish_row(const Table& table,
+                                   double lon,
+                                   double lat,
+                                   int year,
+                                   int day) {
+    finish_row(table, lon, lat, year, day, true);
+}
+void GZFileOutputChannel::finish_row(const Table& table,
+                                   double lon,
+                                   double lat,
+                                   int year,
+                                   int day,
+                                   bool print_day) {
+    // do nothing for unused tables
+    if (table.invalid()) {
+        return;
+    }
+
+    gzFile gzfile = gzfiles[table.id()];
+
+    // make sure all columns have been added
+    const std::vector<double>& row = get_current_row(table);
+    const std::vector<const char *> &row_text = get_current_row_text(table);
+    const TableDescriptor& td = get_table_descriptor(table);
+    const ColumnDescriptors &columns = td.columns();
+
+    if (row.size() == 0) {
+        return;
+    }
+
+    if (row.size() < td.columns().size()) {
+        fail("Too few values in a row in table %s", td.name().c_str());
+    }
+
+    // print the header and open .gz file if this is the first output for this table
+    if (!printed_header[table.id()]) {
+            FILE* file = NULL;
+        std::string full_path = output_directory + td.name() + ".hdr";
+        file = fopen(full_path.c_str(), "w");
+        if (file == NULL) {
+            fail("Could not open %s for output\n"\
+                    "Close the file if it is open in another application",
+                    full_path.c_str());
+        }
+        // print title for coordinates and time columns
+        fprintf(file, coords_title_format.c_str(), "Lon");
+        fprintf(file, coords_title_format.c_str(), "Lat");
+        fprintf(file, "%6s", "Year");
+
+        if (print_day) {
+            fprintf(file, "%5s", "Day");
+        }
+
+        // print each column title
+        int nbr_cols = (int) get_table_descriptor(table).columns().size();
+        for (int i = 0; i < nbr_cols; i++) {
+            fputs(format_header(table, i), file);
+        }
+        fprintf(file, "\n");
+
+        printed_header[table.id()] = true;
+        fclose(file);
+
+        // create .gz file
+        full_path = output_directory + td.name() + ".gz";
+        gzfile = gzopen(full_path.c_str(), "wb");
+        if (gzfile == NULL) {
+                fail("Could not open %s for output\n"		\
+                "Close the file if it is open in another application",
+                full_path.c_str());
+        }
+        else {
+                gzfiles[table.id()] = gzfile;
+        }
+    }
+
+    // use buffer to write only once to gzfile
+//     xtring line(1024);
+//     xtring buffer(1024);
+     // char line[1024];
+     // char buffer[1024];
+
+    // write line to file
+    if ( gzfile == NULL ) {
+    fail("Problem with output file for table %s\n", td.name().c_str());
+    }
+
+    // print out coordinates and time
+    gzprintf(gzfile, coords_format.c_str(), lon);
+    gzprintf(gzfile, coords_format.c_str(), lat);
+    gzprintf(gzfile, "%6d", year);
+    if (print_day) {
+        gzprintf(gzfile, "%5d", day);
+    }
+
+    // print out the values
+    for (size_t i = 0; i < row.size(); i++) {
+        gzprintf(gzfile, format(table, (int)i), row[i]);
+        const ColumnDescriptor &column = columns[i];
+        column_type_t type = column.get_type();
+
+        if (type == NUMERIC) {
+            gzprintf(gzfile, format(table, (int)i), row[i]);
+        } else if (type == TEXT) {
+            char fmt[16];
+            sprintf(fmt, "%%%ds", column.width());
+            gzprintf(gzfile, fmt, row_text[i]);
+        } else {
+            fail("Unknown column type: %d", type);
+        }
+    }
+    gzprintf(gzfile, "\n");
+
+     //     gzputs(gzfile, line);
+    //gzfile->flush(); // don't flush every line since this degrades performance
+
+    // start on a new row
+    clear_current_row(table);
+}
+
+#endif // COMPRESS_OUTPUT
 
 }

@@ -58,10 +58,6 @@ void print_logfile_heading() {
  */
 void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
-	// // TEMPORARY ADD N TO SOIL TO DISABLE N LIMITAITON (DAVE)
-	// gridcell.dNO3dep *=1000;
-	// gridcell.dNH4dep *=1000;
-
 	// Update daily climate drivers etc
 	dailyaccounting_gridcell(gridcell);
 

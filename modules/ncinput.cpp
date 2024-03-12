@@ -426,7 +426,7 @@ try {
 		insols = aggregate(insols, date.subdaily, mean);
 		vpds = aggregate(vpds, date.subdaily, mean);
 		pressure = aggregate(pressure, date.subdaily, mean);
-		precs = aggregate(precs, date.subdaily, mean);
+		precs = aggregate(precs, date.subdaily, sum);
 		// If required, we can aggregate using other functions as well. E.g.
 		// precs = aggregate(precs, date.subdaily, sum);
 	}

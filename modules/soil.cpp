@@ -5626,6 +5626,10 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// hydraulic conductivity at saturation for infiltation depth (top layer)
 	double Kw_max = var_depth(0.0, depth_infilt, KW_MAX, DEPTH);
 
+	// Checking for icy bottom soil layers
+	bool icy = true;
+	int icefree_lyr = 0;
+
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -5635,6 +5639,15 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 		// Save initial wmass
 		wmass_org[lyr] = soillayer.wmass;
+
+		// Determine layer from bottom that are icy and not included in 
+		// hydrological calculations
+		if (!icy && soillayer.imass / soillayer.wsats < 0.5) {
+			icefree_lyr++;
+		}
+		else {
+			icy = true;
+		}
 	}
 
 	// Adaptive substep loop
@@ -5657,7 +5670,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 			}
 			dwat[lyr] = 0.0;
 		}
-		int nsoillayers_sim = max(1, nsoillayers - max(0, sat_lyr));
+
+		int nsoillayers_sim = max(1, min(icefree_lyr, nsoillayers - max(0, sat_lyr)));
 
 		while (calcsub) {
 

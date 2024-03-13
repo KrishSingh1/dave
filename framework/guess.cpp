@@ -1810,7 +1810,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_leaf        = 0.0;
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
-	alpha_repr         = 0.0;
+	alpha_repr        = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit   = 0.0;
@@ -2129,10 +2129,19 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 			if (ifdavegrowth) {
 				cmass_leaf_litter += mortality * cmass_leafs[1];
+				cmass_root_litter += mortality * cmass_crown;
 			} else {
 				cmass_leaf_litter += mortality * cmass_leafs[3];
 			}
 			cmass_root_litter += mortality * cmass_storage;
+		}
+
+		if (pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
+			cmass_root_litter += mortality * cmass_storage;
+		}
+
+		if (pft.dave_allocation()) {
+			cmass_root_litter += mortality * cmass_repr;
 		}
 
 		if (pft.landcover==CROPLAND) {
@@ -2170,10 +2179,19 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 			if (ifdavegrowth) {
 				nmass_leaf_litter += mortality * nmass_leafs[1];
+				nmass_root_litter += mortality * nmass_crown;
 			} else {
 				nmass_leaf_litter += mortality * nmass_leafs[3];
 			}
 			nmass_root_litter += mortality * nmass_storage;
+		}
+
+		if (pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
+			nmass_root_litter += mortality * nmass_storage;
+		}
+
+		if (pft.dave_allocation()) {
+			nmass_root_litter += mortality * nmass_repr;
 		}
 
 		if (pft.landcover==CROPLAND) {
@@ -2251,6 +2269,20 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			// Roots
 			cmass_storage *= remaining;
 			nmass_storage *= remaining;
+		}
+
+		if (pft.dave_allocation()) {
+			cmass_repr *= remaining;
+			nmass_repr *= remaining;
+
+			// Storage pool for grasses was handled above.
+			if (pft.lifeform == TREE) {
+				cmass_storage *= remaining;
+				nmass_storage *= remaining;
+			} else {
+				cmass_crown   *= remaining;
+				nmass_crown   *= remaining;
+			}
 		}
 	}
 }
@@ -2570,8 +2602,8 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			if (ifdailytree && pft.lifeform == TREE && ifdavegrowth) {
 				if (ifdavediagnostics) {
 					lprintf("indivs[\"%s\"].nmass_repr = %.*f\n", (const char *)pft.name, DAVE_DIAGNOSTIC_PRECISION, nmass_repr * scale_indiv);
-					ncont += nmass_repr * scale_indiv;
 				}
+				ncont += nmass_repr * scale_indiv;
 			}
 		}
 
@@ -3225,6 +3257,14 @@ void Individual::kill(bool harvest /* = false */) {
 		nharvest_flux += cropindiv->nmass_agpool * res_outtake;
 		ppft.nmass_litter_leaf += cropindiv->nmass_dead_leaf * (1 - res_outtake);
 		nharvest_flux          += cropindiv->nmass_dead_leaf * res_outtake;
+	}
+
+	if (pft.dave_allocation()) {
+		ppft.cmass_litter_repr += cmass_repr;
+		cmass_repr = 0;
+
+		ppft.nmass_litter_repr += nmass_repr;
+		nmass_repr = 0;
 	}
 
 	// Report harvest fluxes
@@ -3916,10 +3956,10 @@ void MassBalance::check_day(Gridcell &gridcell) {
 		// to count indiv.anpp inside indiv.ccont(), but this is a hack and
 		// should ultimately be removed.
 
-		// check_day_c(gridcell);
+		check_day_c(gridcell);
 
 		if (ifcentury) {
-			// check_day_n(gridcell);
+			check_day_n(gridcell);
 		}
 	}
 

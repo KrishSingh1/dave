@@ -3587,7 +3587,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	const double max_alpha_repr_factor = 0.2;
 
 	// cmass sapwood target (to grow at least the turnover of today) (kgC/m^2)
-	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + (pft.turnover_sap / 365));
+	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + (pft.turnover_sap));
 	// cmass leaf target (to grow to supply leaves to the current sapwood ) (kgC/m^2)
 	indiv.cmass_leaf_limit = max(indiv.cmass_sap * (pft.k_latosa / (indiv.sla() * pft.wooddens * height)) , indiv.cmass_leaf);
 	//  calculate the ltor according to the leaf optimum and belogrownd stress
@@ -3645,7 +3645,10 @@ void carbon_allocation_tree(Individual &indiv) {
 		relative_alpha_repr = alpha_repr_factor * 
 			divide(indiv.cmass_repr_limit - indiv.cmass_repr, indiv.cmass_repr_limit);
 	}
-	
+	// caps the relative_alpha_repr to 0.1 to avoid over reprentation of cgrow_repr
+	// over the rest of the pools
+	// TODO: Fix this (0.1???)
+	relative_alpha_repr = min(relative_alpha_repr, 0.1);
 	//  sum of all the relative alphas so it will be used to calculate the alphas
 	double sum_relative_alphas = relative_alpha_leaf + relative_alpha_root + 
 						relative_alpha_sap + relative_alpha_repr;								
@@ -4568,7 +4571,8 @@ void turnover_tree(Individual &indiv) {
 
 	//
 	double cturnover_leaf = 0.0;
-
+	double cturnover_root = 0.0;
+	double cturnover_sap = 0.0;
 	// scenescence of leaves (also depending on water stress (fwater)). 
 	// TODO: 1. no regards to what this would do to actual k_latosa tomorrow; 
 	// 2. Should the base turnover (pft.turnover_leaf) be more related to leaf longevity?; 
@@ -4589,8 +4593,8 @@ void turnover_tree(Individual &indiv) {
 		fage = pow(((indiv.age) / indiv.pft.leaflong), shp_fage);
 		// limit fage
 		fage = min(fage, 1.0);
-		fage = 1;
-		// fraction of leaf biomass that is turned over today
+		fage = 1; // temporary disabled age effect
+		// fraction of leaf C that is turned over today
 		turnover_leaf = indiv.pft.turnover_leaf * fwater * fage / Date::MAX_YEAR_LENGTH;
 
 		// Leaf C amount to turnover (kgC/m^2)
@@ -4630,7 +4634,7 @@ void turnover_tree(Individual &indiv) {
 		turnover_root = indiv.pft.turnover_root / fwater / Date::MAX_YEAR_LENGTH;
 
 		// root C amount to turnover (kgC/m^2)
-		double cturnover_root = turnover_root * indiv.cmass_root; 
+		cturnover_root = turnover_root * indiv.cmass_root; 
 		// root N amount to turnover (kgN/m^2)
 		double nturnover_root = turnover_root * indiv.nmass_root;
 		// Lean N that goes to litter (kgN/m^2)
@@ -4659,7 +4663,7 @@ void turnover_tree(Individual &indiv) {
 		assert(equal(nturnover_root, n2litter_root + n2storage_root));
 	}
 	// save daily root turnover flux (kgC/m^2/day)
-	indiv.cturnover_root = turnover_root;
+	indiv.cturnover_root = cturnover_root;
 
 	if (indiv.cmass_sap > 0) {
 		// if there isn't any leaf turnover today, then there shouldn't be sapwood 
@@ -4681,7 +4685,7 @@ void turnover_tree(Individual &indiv) {
 			// double lambda = (indiv.height * indiv.sla() * indiv.pft.wooddens) / indiv.pft.k_latosa;
 			// // sapwood turnover 
 			// turnover_sap =  lambda * turnover_leaf; // oldish
-			// turnover_sap =  indiv.pft.turnover_sap/365; // trunk
+			// turnover_sap =  indiv.pft.turnover_sap / 365; // trunk
 			// turnover_sap =  min( lambda * turnover_leaf, lambda * turnover_leaf );
 
 		} else {
@@ -4690,7 +4694,7 @@ void turnover_tree(Individual &indiv) {
 		}
 
 		// sapwood C amount to turnover (kgC/m^2)
-		double cturnover_sap = turnover_sap * indiv.cmass_sap; 
+		cturnover_sap = turnover_sap * indiv.cmass_sap; 
 		// sapwood N amount to turnover (kgN/m^2)
 		double nturnover_sap = turnover_sap * indiv.nmass_sap;
 		// Lean N that goes to heartwood (kgN/m^2)
@@ -4716,7 +4720,15 @@ void turnover_tree(Individual &indiv) {
 		assert(equal(nturnover_sap, n2storage_sap + n2heart_sap));
 	}
 	// save daily sapwood turnover flux (kgC/m^2/day)
-	indiv.cturnover_sap = turnover_sap;
+	indiv.cturnover_sap = cturnover_sap;
+
+	// // drop reproductive pool when trends goes down
+	// // TODO: we need a better solution here to account for flushing of the 
+	// // reproductiove pool into the litter. possible do a trend rather than all 
+	// // at once.
+	// if (indiv.cgrow_repr_20.periodictrend(20) < 0) {
+	// 	indiv.flush_repr_litter_DAVE();
+	// }
 
 	assert(indiv.cmass_leaf >= 0);
 	assert(indiv.cmass_root >= 0);
@@ -4913,6 +4925,8 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		indiv.cmass_storage_20.add(indiv.cmass_storage);
 		indiv.cmass_repr_10.add(indiv.cmass_repr);
 
+		indiv.cgrow_repr_20.add(indiv.cgrow_repr);
+
 	}
 }
 
@@ -4960,11 +4974,14 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double k_allom2 = indiv.pft.k_allom2;
 	double k_allom3 = indiv.pft.k_allom3;
 	
-	double Fr = PI * wooddens * 2 * R * h;
+	double Fr = PI * wooddens * 2.0 * R * h;
 	double Fh = PI * wooddens * R * R;
-	double Fallom = k_allom2 * pow(2.0,k_allom3) * k_allom3 * pow(R,k_allom3-1.0);
+	double Fallom = k_allom2 * pow(2.0, k_allom3) * k_allom3 * pow(R, k_allom3 - 1.0);
 	// should calc once: k_allom2 * pow(2.0,k_allom3) * k_allom3
 	// we need to calc change for individual trees in cohort
+	if (indiv.cgrow_sap < 0) {
+		printf("asd");
+	}
 	double dWcyl = indiv.cgrow_sap / indiv.densindiv;
 	dr = dWcyl / (Fr + Fh * Fallom);
 	dh = Fallom * dr;
@@ -5020,11 +5037,32 @@ void allometry_dave_tree(Individual& indiv) {
 		}
 		// Patch-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+
+		// calculate leaf to sapwood area (unitless vatrible)
+		if (!is_zero(indiv.height)) {
+			double const LATOSA_MAX = 8000.0;
+			// sapwood area (m^2)
+			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.wooddens);
+			if (!is_zero(indiv.sa)) {
+				// leaf to sapwood area (unitelss)
+				indiv.latosa = min(LATOSA_MAX, indiv.lai / indiv.sa);
+			} else {
+				indiv.latosa = LATOSA_MAX;
+			}
+			
+		} else {
+			indiv.sa = 0.0;
+			indiv.latosa = 0.0;
+		}
 	} else {
 		indiv.lai_indiv = 0.0;
 		indiv.lai = 0.0;
 		indiv.fpc = 0.0;
+		indiv.sa = 0.0;
+		indiv.latosa = 0.0;
 	}
+	// TODO: to change when we decide that the allocation prority to rots that affects 
+	// rpc to be pft-specific.
 	indiv.rpc = indiv.fpc;
 
 	assert(indiv.cmass_sap >= 0.0);

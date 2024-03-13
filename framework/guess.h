@@ -3240,6 +3240,8 @@ public:
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
+	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
+	Historic<double, 20> cgrow_repr_20;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3268,6 +3270,10 @@ public:
 	double diam;
 	/// plant crown area (m2)
 	double crownarea;
+	/// sapwood area (m2 sapwood/m2 ground)
+	double sa;
+	/// dynamic leaf to sapwood area (unitless)
+	double latosa;
 	/// increment in fpc since last simulation year
 	double deltafpc;
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)

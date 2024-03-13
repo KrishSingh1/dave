@@ -66,6 +66,7 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_anpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
 	add_pft_output("file_dave_agpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Total individual-level Annual GPP (kgC/m2/year)", true);
 	add_pft_output("file_dave_aresp"                 , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total individual-level Annual Leaf Respiration (kgC/m2/year)", true);
+	add_pft_output("file_dave_acmass_mort"           , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
 	add_pft_output("file_dave_ancohort"              , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 
@@ -112,9 +113,12 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_cmass_heart"         , DAILY, [](const Individual &i) { return i.cmass_heart; }, "Heartwood C mass (kgC/m2)", sum, true);
 	add_indiv_output("file_dave_nmass_heart"         , DAILY, [](const Individual &i) { return i.nmass_heart; }, "Heartwood N mass (kgN/m2)", sum, true);
 	add_indiv_output("file_dave_nmass_repr"          , DAILY, [](const Individual &i) { return i.nmass_repr; }, "Reproductive N mass (kgN/m2)", mean, false, true);
+	add_indiv_output("file_dave_ndemand"             , DAILY, [](const Individual &i) { return i.ndemand; }, "N demand mass (kgN/m2)", mean, false, true);
 	add_indiv_output("file_dave_height"              , DAILY, [](const Individual &i) { return i.height; }, "Plant height (m)", mean, false, true);
 	add_indiv_output("file_dave_diameter"            , DAILY, [](const Individual &i) { return i.diam; }, "Stem diameter (m)", mean, false, true);
 	add_indiv_output("file_dave_density"             , DAILY, [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)", sum, true);
+	add_indiv_output("file_dave_sapwood_area"        , DAILY, [](const Individual &i) { return i.sa; }, "sapwood area sum of individuals (m2/m2)", sum, true);
+	add_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa; }, "leaf area to sapwood area ratio (unitless)", mean, true);
 	add_indiv_output("file_dave_fpar"                , DAILY, [](const Individual &i) { return i.fpar; }, "Daily fpar [0-1]", sum, true);
 	add_indiv_output("file_dave_indiv_gpp"           , DAILY, [](const Individual &i) { return i.dgpp * G_PER_KG; }, "Daily GPP (gC/m2/day)", sum, true);
 	add_indiv_output("file_dave_indiv_resp_auto"     , DAILY, [](const Individual &i) { return (i.dgpp - i.dnpp) * G_PER_KG; }, "Daily autotrophic respiration (gC/m2/day)", sum, true);

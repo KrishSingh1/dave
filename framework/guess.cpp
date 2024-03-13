@@ -1826,6 +1826,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	height            = 0.0;
 	diam              = 0.0;
 	crownarea		  = 0.0;
+	latosa 			  = 0.0;
+	sa 				  = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
 	intercep          = 0.0;
@@ -3258,6 +3260,9 @@ void Individual::flush_repr_litter_DAVE() {
 
 	assert(equal(cmass_repr, cflux_seed + cflux_litter));
 	assert(equal(nmass_repr, nflux_seed, nflux_litter));
+
+	ctolitter += cmass_repr;
+	ntolitter += nmass_repr;
 
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;

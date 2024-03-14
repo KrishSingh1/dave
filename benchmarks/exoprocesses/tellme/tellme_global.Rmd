@@ -1,6 +1,7 @@
 ---
 title: "Tellme Benchmark Report for LPJ-GUESS"
-author: "Matthew Forrest (current lead and contact person)"
+report analysis template: "Matthew Forrest (current lead and contact person)"
+model run: "%%USER%%"
 date: '`r strftime(Sys.time(), format = "%B %d, %Y")`'
 output: 
  html_document:

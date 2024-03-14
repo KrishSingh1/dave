@@ -56,9 +56,11 @@ module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
 set -x		# Debug. Remove later.
 
 # Here the call to the R-script tellme.Rmd
+# Before call, the script is renamed to reflect what is being compared, and the users full name (Gecos) is inserted.
 RSCRIPT="tellme_global.Rmd"			# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
 RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
-cp $RSCRIPT_PATHFILE ./$RSCRIPT_HTML
+FULL_USERNAME=$(pinky -lb $(whoami) | cut -d: -f3 | tr -s " " | head -1 | sed -e 's/^[[:space:]]*//')
+cat $RSCRIPT_PATHFILE | sed "s/%%USER%%/$FULL_USERNAME/" >./$RSCRIPT_HTML
 Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
 

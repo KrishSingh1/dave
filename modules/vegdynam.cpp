@@ -415,7 +415,8 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	// seed dormancy
 	// assumed to be the same mechanism that reduces growth demand.
     double photo_status = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));
-	if (photo_status < 1.0) {
+	// CLIMGRASS: also don't allow dormancy in winter
+	if (photo_status < 1.0 || date.month < 2 || date.month > 10) {
 		frac_germ = 0.0;
 	}
 	
@@ -459,6 +460,7 @@ void establishment_daily(Patch& patch) {
 						indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
 						indiv->densindiv=1.0;
 						indiv->fpc=1.0;  // TODO: is that right?
+						indiv->age=0.0;
 						indiv->nscal_5.add(1.0);
 						indiv->growth_stage = vegetative;
 					} else {

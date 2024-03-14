@@ -262,6 +262,7 @@ double wscal_growth(double wscal) {
 // Effects likely limited to high latitude areas.
 // A formulation would also need to account for a lag (effects of photoperiod
 // on growth demand are not proportional with daylength_diff)
+// TODO: replace with general equation. This one is specific for CLIMGRASS.
 double photo_growth(double reldaylength, double daylength_diff) {
 	if (reldaylength < 0.95 && daylength_diff < 0.0){
 		return pow(reldaylength, 5.0);
@@ -350,7 +351,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		ppft.daylength_10.add(climate.daylength);
 		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
-	
+
 	
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
@@ -388,7 +389,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage_days = 0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 && indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && (indiv.age >= 1.0 || indiv.pft.lifeform == GRASS_ANNUAL)){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -2962,7 +2964,7 @@ void carbon_allocation_grass(Individual &indiv) {
 		
 		// 1) Crowns
 		calloc_crown = indiv.pft.crownfrac;
-		
+
 		// 2) Reproduction
 		if (indiv.growth_stage == reproductive) {
 			calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
@@ -3456,7 +3458,7 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 40.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_water = 30.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
@@ -3678,7 +3680,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// crown turnover relative to root turnover.
-	double scal_crown_turnover = 0.2;
+	double scal_crown_turnover = 0.25;
 
 	// Turnover of living tissues (root and crown)
 	// senesc_root equals the baseline senescence rate of leaves.
@@ -3913,9 +3915,6 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0) {
 
-		if (date.year == 0 && date.month == 3 && date.dayofmonth == 21) {
-			printf("hi");
-		}
 		// decide where to put excess C (or excess N).
 		// If the plant is in the reproductive phase, put excess into repr
 		if (indiv.growth_stage == reproductive) {
@@ -4059,6 +4058,9 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			// example, if it's a tree and ifdailytree is false.
 			continue;
 		}
+
+		// Increase age by one day
+		indiv.age += 1.0 / 365;
 
 		// Initiate yearly maximum
 		if (date.day == 0) {

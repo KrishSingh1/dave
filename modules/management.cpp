@@ -34,6 +34,11 @@ void grazing_daily_dave(Vegetation& vegetation) {
 			return;
 		}
 
+		// CLIMGRASS: do not harvest grass before treatment starts
+		if (date.get_calendar_year() < 2007 || (date.get_calendar_year() == 2007 && date.month <= 5)) {
+			return;
+		}
+
 		// Rate of grazing each day for landcover pasture functionality, fraction
 		double grazing_rate = stlist[stand.stid].get_management().grazeintens;
 		double mowing_intensity = stlist[stand.stid].get_management().mowintens;

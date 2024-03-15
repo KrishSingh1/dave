@@ -254,18 +254,17 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
-	double qgrowth = 1.3; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	return min(1.0,max(0.0,pow(wscal,qgrowth)));
+	double qgrowth = 1.5;    // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	double wscal_min = 0.3;  // no growth under severe water stress
+	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),qgrowth)));
 }
 
 // Photoperiod affecting development and thus growth demand
 // Effects likely limited to high latitude areas.
-// A formulation would also need to account for a lag (effects of photoperiod
-// on growth demand are not proportional with daylength_diff)
-// TODO: replace with general equation. This one is specific for CLIMGRASS.
 double photo_growth(double reldaylength, double daylength_diff) {
 	if (reldaylength < 0.95 && daylength_diff < 0.0){
 		return pow(reldaylength, 5.0);
+		//return 1.0;
 	} else {
 		return 1.0;
 	}
@@ -285,7 +284,8 @@ double dphen_activity(Individual &indiv, double wscal_min) {
 	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
-	double wscal_actual = wscal_growth(wscal_mean);
+	//double wscal_actual = wscal_growth(wscal_mean);
+	double wscal_actual = wscal_mean;
 	double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	// Changes in physiological activity due to changes in dormancy status
@@ -352,7 +352,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
 
-	
+
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -407,8 +407,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // dormancy
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
-                          indiv.growth_stage = dormant;
-                          indiv.growth_stage_days = 0;
+                    indiv.growth_stage = dormant;
+                    indiv.growth_stage_days = 0;
                 }
 
                 // no further increases in repr. 
@@ -3457,10 +3457,10 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 30.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 50.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
+	const double senesc_base = 0.0002;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_repr  = 30.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;    // higher value --> higher sensitivity to water stress
 	const double temp_senesc = 0.05;     // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3680,7 +3680,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// crown turnover relative to root turnover.
-	double scal_crown_turnover = 0.25;
+	double scal_crown_turnover = 0.3;
 
 	// Turnover of living tissues (root and crown)
 	// senesc_root equals the baseline senescence rate of leaves.

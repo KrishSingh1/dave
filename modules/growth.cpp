@@ -263,8 +263,8 @@ double wscal_growth(double wscal) {
 // Effects likely limited to high latitude areas.
 double photo_growth(double reldaylength, double daylength_diff) {
 	if (reldaylength < 0.95 && daylength_diff < 0.0){
-		return pow(reldaylength, 5.0);
-		//return 1.0;
+		//return pow(reldaylength, 5.0);
+		return 1.0;
 	} else {
 		return 1.0;
 	}
@@ -3680,7 +3680,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// crown turnover relative to root turnover.
-	double scal_crown_turnover = 0.3;
+	double scal_crown_turnover = 0.35;
 
 	// Turnover of living tissues (root and crown)
 	// senesc_root equals the baseline senescence rate of leaves.
@@ -3931,7 +3931,7 @@ void storage_overflow(Individual& indiv) {
 		}
 
 		// Put as much of possible of the rest of C excess into the crown.
-		double cexcess_crown = min(indiv.cexcess, indiv.cgrow_crown);
+		double cexcess_crown = min(indiv.cexcess, indiv.cgrow);
 		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
 						indiv.nmass_storage, pft.cton_root_min, pft.cton_root_max, cexcess_crown);
 

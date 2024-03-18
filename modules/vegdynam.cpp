@@ -412,6 +412,14 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
+	// seed dormancy
+	// assumed to be the same mechanism that reduces growth demand.
+    double photo_status = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));
+	// CLIMGRASS: also don't allow dormancy in winter
+	if (photo_status < 1.0 || date.month < 2 || date.month > 9) {
+		frac_germ = 0.0;
+	}
+	
 	return frac_germ;
 }
 
@@ -452,6 +460,7 @@ void establishment_daily(Patch& patch) {
 						indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
 						indiv->densindiv=1.0;
 						indiv->fpc=1.0;  // TODO: is that right?
+						indiv->age=0.0;
 						indiv->nscal_5.add(1.0);
 						indiv->growth_stage = vegetative;
 					} else {
@@ -462,13 +471,13 @@ void establishment_daily(Patch& patch) {
 						// 	  assuming that seeds are dormant in that time period, avoiding unfavourable growth conditions.
 						//    E.g. no germination in a wet and warm autumn.
 						//    TODO: implement seed dormancy to account for this when there is no existing individual?
-						if (indiv->growth_stage == vegetative || indiv->growth_stage == dormant) {
+						if (indiv->growth_stage == vegetative) {
 							// reduced by fpc_ymax * 2.0 to account for green and brown leaves and rpc.
 							// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
 							//       and create new variable.
 							frac_germ *= (1.0 - indiv->fpc_ymax * 2.0);
 						} 
-						if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min)) {
+						if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min) || indiv->growth_stage == dormant) {
 							frac_germ = 0.0;
 						}
 					}

@@ -1429,17 +1429,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarramundiDegraded",
+            "name": "YarCon",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarramundiDegraded.ins"
+                "YarCon.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarramundiDegraded",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarCon",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1466,17 +1466,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarramundiIrrigated",
+            "name": "YarIrr",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarramundiIrrigated.ins"
+                "YarIrr.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarramundiIrrigated",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarIrr",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1552,8 +1552,8 @@
                     "Whroo",
                     "WombatStateForest",
                     "Yanco",
-                    "YarramundiDegraded",
-                    "YarramundiIrrigated"
+                    "YarCon",
+                    "YarIrr"
                 ],
             }
         }

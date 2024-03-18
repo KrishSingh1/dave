@@ -66,6 +66,12 @@ void crop_rotation(Stand& stand);
 /// Grazing function for pasture
 void grazing_daily(Individual& indiv);
 
+/// Grazing and mowing for DAVE
+void grazing_daily_dave(Vegetation& vegetation);
+
+// Remove herbaceous biomass and return parts of it as litter/manure
+void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn);
+
 /// Updates forestry rotation status
 void forest_rotation(Stand& stand);
 

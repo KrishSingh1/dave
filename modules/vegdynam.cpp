@@ -412,13 +412,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
-	// seed dormancy
-	// assumed to be the same mechanism that reduces growth demand.
-    double photo_status = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));
-	// CLIMGRASS: also don't allow dormancy in winter
-	if (photo_status < 1.0 || date.month < 2 || date.month > 9) {
-		frac_germ = 0.0;
-	}
+	// TODO: seed dormancy
 	
 	return frac_germ;
 }

@@ -301,9 +301,9 @@ double dphen_activity(Individual &indiv, double wscal_min) {
 
 	// Check daylength additionally if water is not limiting.
 	// This is to avoid greenup at the end of the growing season.
-	if (ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.75 && (wscal > tscal)) {
-		tscal = -0.25;
-	}
+	//if (ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.75 && (wscal > tscal)) {
+	//	tscal = -0.25;
+	//}
 
 	return min(tscal,wscal) * dphen_activity_max;
 }

@@ -73,6 +73,9 @@ typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 /// Names of leaf pools in DAVE version
 typedef enum {green, brown} leafpool;
 
+/// Array size of mowdates
+const int num_mowdates = 5;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -1043,6 +1046,9 @@ public:
 	/// day length today (h)
 	double daylength;
 
+	/// maximum daylength in a year
+	double daylength_max;
+
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
 
@@ -1695,6 +1701,10 @@ public:
 	bool fallow;
 	/// Grazing intensity (daily grazing fraction)
 	double grazeintens;
+	/// Mowing date (julian day)
+	int mowdates[num_mowdates];
+	/// Mowing intensity (fraction of biomass removed on mowing date)
+	double mowintens;
 
 	ManagementType() {
 
@@ -1771,6 +1781,10 @@ public:
 		tillage_fact = 1.0;
 		fallow = false;
 		grazeintens = 0.0;
+		for (int n=0;n<num_mowdates;n++) {
+			mowdates[n] = -1;
+		}
+		mowintens = 0.0;
 	}
 
 	bool is_managed() {
@@ -3071,10 +3085,12 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// temperature factor used to determine onset of growth. 
-    double fdev_temp;
+	/// fraction of reproductive biomass to crown biomass.
+	double frepr_crown;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
+	/// senescence rate of roots (d-1)
+    double senesc_root;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
 	/// number of days in current growth stage
@@ -4580,10 +4596,12 @@ public:
 	Historic<double, 5> wscal_5;
 	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
-	/// ten day record of air temperature. Used in DAVE daily grass growth for determination of dormancy.
-	Historic<double, 10> airtemp_10;
+	/// ten day record of temperature of upper soil layer. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 10> soiltemp_10;
 	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
 	Historic<double, 10> daylength_10;
+	// Daylength relative to maximum daylength in a year.
+	double reldaylength;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
 	Historic<double, 4> wcont_germ_4;
 	// Temperature of upper soil layer over the last 3 days

@@ -2358,8 +2358,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double growth,
-	double fphen_activity, double assim, double& resp) {
+	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double growth, double fphen_activity, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2397,6 +2397,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
 	double resp_root = 0;   // root respiration (kg/m2/day)
 	double resp_crown = 0;  // crown respiration (kg/m2/day)
+	double resp_repr = 0;   // reproductive respiration (kg/m2/day)
 	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
@@ -2490,23 +2491,21 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// -> account for growth_demand in Rgrowth
 
 			// Root respiration
-			// Reduction factor of resp_root during dormancy
-			// Note: crown respiration added to resp_root for now
+			// Reduction factor of resp_root during dormancy (fphen_activity)
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// TODO: at some point, replace respiration functions here!
 			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
-			// TODO: add reproductive respiration here
+			// TODO: reduce resp_repr with senescence.
+			// TODO: replace cton_root with cton_repr if necessary. 
+			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
+			// TODO: add culm respiration.
+
 			// Growth respiration
-			// Note that we take growth of previous day to estimate this,
-			// assumption being that C is not necessarily used for growth on
-			// the same day it's fixed. A time lag is considered physiologicallly 
-			// more meaningful than a flat rate that is completely independent of growth.
-			// Data from Ryan 1991.
 			//resp_growth = growth * 0.2;
-			resp_growth = (assim - resp_root) * 0.25; // switched back to old formulation for now.
+			resp_growth = (assim - resp_root - resp_crown - resp_repr) * 0.25;
 
 		} else {
 			
@@ -2515,6 +2514,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			
 			// Growth respiration (see above)
 			resp_growth = (assim - resp_root) * 0.25;
+
 		}
 
 		// guess2008 - disallow negative growth respiration
@@ -2523,7 +2523,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_crown + resp_growth;
+		resp = resp_root + resp_crown + resp_repr + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
 }
@@ -2634,7 +2634,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, assim, resp);
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -2820,8 +2820,9 @@ void vcmax_from_N(Vegetation& vegetation) {
 
         double nmass_leaf = 0.0;
 		double nlai_top  = 1.0;
-		double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants
-		
+		//double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants as a PFT parameter!!
+		double leaf_NtoP = 10.7;
+
 		// Avoid log(0)
 		if (!is_zero(indiv.get_nmass_leaf())) {
         	// leaf N of green leaves per leaf area (kgN m-2 leaf area) 
@@ -2907,7 +2908,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// Stomatal term (Medlyn et al. 2011)
 			// X needs to represent gs for CO2, hence no 1.6 factor
-    		double X = divide(divide(1.0 + ppft.wscal * g1, sqrt(max(vpd,0.1))), ca); 
+    		double X = divide(divide(1.0 + pow(ppft.wscal,qs) * g1, sqrt(max(vpd,0.1))), ca); 
 
 			// initialise cumulative LAI
 			double lai_cum_bottom = 0.0;
@@ -2961,7 +2962,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 
 					// Note: fphen_activity is always 1 for trees.
-					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
 					if (is_zero(apar_layer)) {
 						// Night
@@ -2975,7 +2976,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						double gamstar = Arrhenius_temp_response(GAMSTAR25,temp,HA_GS,0.0,0.0);
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
 						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
 						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
@@ -3012,7 +3013,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = indiv.fphen_activity * Nscal * ppft.wscal * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
@@ -3028,7 +3029,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						// TODO: different temp dependency in C3 and C4 plants??
 						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
-						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * ppft.wscal;
+						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
 						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
 						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
 						jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
@@ -3457,10 +3458,13 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cmass_root = indiv.cmass_root_today();
 
 		double cmass_crown = 0.0;
+		double cmass_repr = 0.0;
 		if (ifdavegrowth && ifdailygrass && indiv.pft.is_grass()) {
 			cmass_crown = indiv.cmass_crown;
+			cmass_repr = indiv.cmass_repr;
 		} else {
 			cmass_crown = 0.0;
+			cmass_repr = 0.0;
 		}
 
 		// Static root and sap wood C:N ratio if no N limitation
@@ -3488,7 +3492,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
-			cmass_root, cmass_crown, indiv.cgrow, indiv.fphen_activity, assim, resp);
+			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
+			assim, resp);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

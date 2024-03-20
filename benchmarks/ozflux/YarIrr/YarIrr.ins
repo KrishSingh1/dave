@@ -1,13 +1,38 @@
 !///////////////////////////////////////////////////////////////////////
 !
+<<<<<<< HEAD
 ! Yarramundi Irrigated master instruction file
 !
 !///////////////////////////////////////////////////////////////////////
 
+<<<<<<<< HEAD:benchmarks/ozflux/YarIrr/YarIrr.ins
 title "LPJ-Guess ozflux site: YarIrr (Yarramundi Irrigated)"
 
 file_met_forcing        "../forcing/met/YarIrr.nc"
 file_met_spinup         "../forcing/cru/Yarramundi.nc"
+========
+title "LPJ-Guess ozflux site: YarCon"
+
+file_met_forcing        "../forcing/met/YarCon.nc"
+file_met_spinup        "../forcing/met/YarCon.nc"
+!file_met_spinup         "../forcing/cru/Yarramundi.nc"
+>>>>>>>> 8ca45755f39ed76d640b356a8ebc6e9d4551ddd9:benchmarks/ozflux/YarCon/YarCon.ins
+=======
+! Yarramundi Degraded master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+<<<<<<<< HEAD:benchmarks/ozflux/YarCon/YarCon.ins
+title "LPJ-Guess ozflux site: YarCon (Yarramundi Degraded)"
+
+file_met_forcing        "../forcing/met/YarCon.nc"
+========
+title "LPJ-Guess ozflux site: YarIrr"
+
+file_met_forcing        "../forcing/met/YarIrr.nc"
+>>>>>>>> 8ca45755f39ed76d640b356a8ebc6e9d4551ddd9:benchmarks/ozflux/YarIrr/YarIrr.ins
+file_met_spinup         "../forcing/cru/Yarramundi.nc"
+>>>>>>> 8ca45755f39ed76d640b356a8ebc6e9d4551ddd9
 
 ! Gridlist
 file_gridlist    	    "gridlist.txt"

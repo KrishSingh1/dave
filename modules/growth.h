@@ -29,7 +29,8 @@ void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
 void growth_daily_grass(Patch& patch);
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm); 
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm);
+double photo_growth(double reldaylength, double daylength_diff);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
@@ -38,6 +39,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& longterm_nstore, double &max_n_storage,
 	bool alive);
 // Minimum growth demand after reproductive phase
-const double fdev_growth_min = 0.008;
+const double fdev_growth_min = 0.005;
 
 #endif // LPJ_GUESS_GROWTH_H

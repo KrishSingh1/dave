@@ -84,6 +84,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec
 		& aprec_lastyear
 		& daylength
+		& daylength_max
 		& co2
 		& lat
 		& insol
@@ -342,7 +343,9 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wscal_mean
 		& wscal_5
 		& wscal_10
-		& airtemp_10
+		& soiltemp_10
+		& daylength_10
+		& reldaylength
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est
@@ -1705,9 +1708,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_repr        = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
+	frepr_crown       = 0.0;
 	fdev_growth       = 1.0;
-	fdev_temp         = 0.0;
-	fdev_senesc       = 0.0;
+	fdev_senesc       = 1.0;
+	senesc_root       = 0.0;
 	growth_stage_days = 0;
 	phen              = 0.0;
 	aphen             = 0.0;

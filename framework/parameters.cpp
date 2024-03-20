@@ -719,12 +719,13 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
+		
+		///Dave Parameters
 		// Subdaily photosynthesis parameters
 		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
-
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
@@ -2018,6 +2019,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (ifdavegrowth && ifdailytree && ppft->lifeform == TREE) {
+				ppft->k_growth = calc_k_growth(ppft);
+				if (!itemparsed("A_growth")) {
+					ppft->A_growth = calc_a_growth(ppft);
+				}
+			} else {
+				ppft->k_growth = 0;
+			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

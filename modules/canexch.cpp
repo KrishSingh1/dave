@@ -3274,9 +3274,9 @@ void water_stress(Patch &patch) {
 			ppft.cropphen->growingdays_y = 0;
 		}
 
-		if (patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
-			|| ppft.pft.phenology==ANY &&
-			ppft.pft.id==patch.stand.pftid) {
+		if (patch.stand.landcover!=CROPLAND //natural, urban, pasture, forest and peatland stands
+			|| ppft.pft.phenology==ANY 
+			&& ppft.pft.id==patch.stand.pftid) {
 			// Normal grass growth.
 			ppft.wscal_mean += ppft.wscal;
 
@@ -3297,6 +3297,8 @@ void water_stress(Patch &patch) {
 
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
+		ppft.wscal_30.add(ppft.wscal);
+
 	}
 }
 

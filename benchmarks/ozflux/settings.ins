@@ -15,7 +15,7 @@
 
 ! Main switches
 ifdailygrass             1   ! daily allocation for grasses and crops 
-ifdailytree              0   ! daily allocation for trees and shrubs
+ifdailytree              1   ! daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             1   ! DAVE growth scheme (grasses only at the moment)
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
@@ -122,7 +122,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -131,7 +131,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            30
+progress_interval            0
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -145,7 +145,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output                1
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -285,7 +285,7 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-!import "trees.ins"
+import "trees.ins"
 !import "shrubberies.ins"
 !import "c3g.ins"
 !import "c4g.ins"

@@ -346,6 +346,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& soiltemp_10
 		& daylength_10
 		& reldaylength
+		& ftemp_cum
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est

@@ -412,7 +412,26 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
-	// TODO: seed dormancy
+	// Seed dormancy
+    // Do not germinate in autumn or winter under temperature-limited conditions
+    // In particular, if germination occurs because of increased water availability, do not 
+    // check for temperature (or daylength) as in most cases this won't matter.
+    // If there is always enough water, determine if it's the right season to germinate
+    // by checking daylength and temperature.
+
+    // add up temperature factor after winter solstice
+    ppft.ftemp_cum += ftemp;
+    if (is_zero(ppft.daylength_10.periodictrend(1)) && ppft.daylength_10.periodictrend(2) < 0) {
+        ppft.ftemp_cum = 0.0;
+    }
+
+    // do not germinate if seeds are dormant (see criteria above)
+    if (ppft.wcont_germ_30.size() > 10 && ppft.wcont_germ_30.mean() > 0.7) {
+        if ((ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.9) ||
+            (ppft.daylength_10.periodictrend(1) > 0.0 && ppft.ftemp_cum < 5.0)) {
+                frac_germ = 0.0;
+        }
+    }
 	
 	return frac_germ;
 }

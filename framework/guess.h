@@ -4602,8 +4602,12 @@ public:
 	Historic<double, 10> daylength_10;
 	// Daylength relative to maximum daylength in a year.
 	double reldaylength;
-	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
+	/// cumulative temperature factor for growth.
+	double ftemp_cum;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 4 days
 	Historic<double, 4> wcont_germ_4;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 30 days
+	Historic<double, 30> wcont_germ_30;
 	// Temperature of upper soil layer over the last 3 days
 	Historic<double, 4> tsoil_germ_4;
 	/// running sum (converted to annual mean) for wscal

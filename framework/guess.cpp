@@ -14,6 +14,7 @@
 #include <sstream>
 #include "config.h"
 #include "guess.h"
+#include "growth.h"
 #include "landcover.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1825,6 +1826,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age               = 0.0;
 	height            = 0.0;
 	diam              = 0.0;
+	d_height		  = 0.0;
+	d_diam		      = 0.0;
 	crownarea		  = 0.0;
 	latosa 			  = 0.0;
 	sa 				  = 0.0;
@@ -4224,6 +4227,46 @@ bool ManagementType::pftinselection(const char* name) {
 		return false;
 
 	return issubstring(selection, name);
+}
+
+inline double calc_temp_growth(double a, const Pft *pft) {
+	return temp_growth(a, pft->Ha_growth, pft->T0_growth, 1.0, pft->temp_dormancy, pft->k_growth);
+}
+
+double calc_k_growth(const Pft *pft) {
+	double ydorm = temp_growth(pft->temp_dormancy, pft->Ha_growth, pft->T0_growth, 1.0, pft->temp_dormancy, 0.0);
+	return -ydorm;
+}
+
+double calc_a_growth(const Pft *pft) {
+	double xmin = 0;
+	double xmax = 50;
+	const size_t NSTEP_MAX = 100;
+	const double xres = 0.001;
+	double ymin = calc_temp_growth(xmin, pft);
+	double ymax = calc_temp_growth(xmax, pft);
+	double y;
+
+	size_t i;
+	for (i = 0; i < NSTEP_MAX; i++) {
+		double x = (xmin + xmax) / 2.0;
+		y = calc_temp_growth(x, pft);
+		if (fabs(x - xmin) < xres) {
+			break;
+		}
+		double ynext = calc_temp_growth(x + 0.01, pft);
+		if (ynext > y) {
+			xmin = x;
+		} else {
+			xmax = x;
+		}
+	}
+	if (i >= NSTEP_MAX - 1) {
+		// Failed to find a solution - perhaps some of the parameters were not
+		// supplied in the instruction file.
+		fail("Failed to optimise temp_growth curve - check pft parameters Ha_growth, T0_growth, temp_dormancy!!!");
+	}
+	return 1.0 / y;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

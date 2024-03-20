@@ -252,7 +252,7 @@ double wscal_growth(double wscal) {
 // "a 5–6°C threshold has often been identified to limit growth in cold adapted
 // species, irrespective of photosynthetic activity which typically
 // ceases only at freezing point (Koerner, 2008)"
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm) {
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm, double k) {
 	
 	double alpha   = 3.5;                   // unitless
 	double Ha      = Ha_growth * J_PER_KJ;  // J mol-1
@@ -262,11 +262,16 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 
     // Note: A_growth was rescaled so that temp_growth ranges from 0-1
 	double ftemp;
+
 	ftemp = A_growth * (Tleaf * exp(-Ha / (R_gas * Tleaf))) / 
-			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
+			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) ) + k;
 
 	// low temperature adjustment to avoid simulating unrealistic growth demand
     // at very low or even negative temperatures (see also comment above).
+	// When above tdorm, ftemp = ftemp
+	// When below tdorm, ftemp *= 1 - tdef * 0.5
+	// So, when 2 degrees below tdorm, ftemp = 0
+	//     when 0 degrees below tdorm, ftemp = ftemp
     double Tdef = Tdorm - Tleaf;
     ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
 
@@ -347,11 +352,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
 				double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
 				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
 
 				double wscal_actual = wscal_growth(wscal_mean);
-				double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+				double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
 
 				// Changes in physiological activity due to changes in dormancy status
 				double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
@@ -1816,7 +1821,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.0;
+		indiv.boleht = 0.5;
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
@@ -2997,7 +3002,7 @@ double growth_demand(Individual& indiv) {
 
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
-	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
 	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	dev_growth(indiv, ftemp_growth, fRGR_repr);
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
@@ -3279,10 +3284,18 @@ double available_storage(Individual &indiv) {
 
 // calculate allowance (cgrow) depending on cmass_storage
 double calculate_cgrow_tree(Individual &indiv) {
+
+	Climate climate = indiv.vegetation.patch.get_climate();
+
+
 	// parameters of "saver" responce
-	// TODO: calibrate to express differences between "saver" and "spender" responces
+	// TODO: calibrate to express differences between "saver" and "spender" responces.
+	// On top of this (otr instead), add temperature and soil moisture limitation to NSC vs growth
+	// (Fatichi et al, 2014), which limits growth in certain conditions (whilst saving NSCs),
+	// such as in low temperature and low soil moisture (low soil water potential)
 	double const shape_pie = 16.0;
 	double const inflection_pie_saver = 0.7; // Saver
+	double const inflection_pie_int = 0.5; // intermediate
 	double const inflection_pie_spender = 0.2; // Spender
 	// maximum daily mobilisation rate of c in the storage. 
 	const double max_mobil_cstorage_tree = 0.1;
@@ -3300,10 +3313,24 @@ double calculate_cgrow_tree(Individual &indiv) {
 		
 		store_state = (indiv.cmass_storage / indiv.cstorage_max);
 		
-		piesize_coeff = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_spender)))));
+		piesize_coeff = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_int)))));
 	}
 	
+	double cgrow = piesize_coeff * max_mobil_cstorage_tree * cmass_avail;
+	
+	// temperature scalar for decoupling potosynthesis from growth (see Figure 9 in  Korner's 2-20 book)
+	double ftemp = temp_growth(indiv.patchpft().airtemp_10.mean(), 
+			indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth, 
+			indiv.pft.temp_dormancy, indiv.pft.k_growth);
+	assert(ftemp <= 1);
+	assert(ftemp >= 0);
+	// water scalar for decoupling potosynthesis from growth (Fatichi et al 2014)
+	double fwater = 1;
+	// daylength scalar (currently off)
+	double fphoto = 1;
 
+	// rescale cgrow aacording to environmental conditions (temperature, soil water and light)
+	cgrow *= ftemp * fwater * fphoto;
 	// actual allowance of c for growth today (kgC/m^2)
 	return piesize_coeff * max_mobil_cstorage_tree * cmass_avail;
 
@@ -3696,8 +3723,6 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// 1) calculate the optimal growth (a-la Grote) for each pool.
 	// 2) calculate the alpha factor (decide_on_allocation) using sink strength 
 	//    (ie the difference between the actual pool size and optimal growth)
-
-	Climate climate = indiv.vegetation.patch.get_climate();
 	
 	// 1) calculate the optimal growth (a-la Grote) for each pool.
 	adjust_cpool_optimum(indiv);
@@ -4995,6 +5020,9 @@ void allometry_dave_tree(Individual& indiv) {
 		
 	Vegetation& vegetation = indiv.vegetation;
 
+	// maximum tree height 
+	// TODO: make pft parameter.
+	double const MAX_HEIGHT = 100.0; 
 	
 	// calculate change in height and radius
 	if (!negligible(indiv.cgrow_sap)) {
@@ -5003,8 +5031,11 @@ void allometry_dave_tree(Individual& indiv) {
 		double dr;
 		calc_tree_height_radius_increment(indiv, dh, dr);
 
-		indiv.height += dh;
-		indiv.diam += 2.0 * dr;
+		indiv.d_height = dh;
+		indiv.d_diam = 2.0 * dr;
+
+		indiv.height += indiv.d_height;
+		indiv.diam += indiv.d_diam;
 		
 		// Stem volume
 		// double vol = indiv.height * 3.1415 * indiv.diam * indiv.diam * 0.25;

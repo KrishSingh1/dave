@@ -2014,6 +2014,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
 
+			if (ifdavegrowth && ifdailytree && ppft->lifeform == TREE) {
+				ppft->k_growth = calc_k_growth(ppft);
+				if (!itemparsed("A_growth")) {
+					ppft->A_growth = calc_a_growth(ppft);
+				}
+			} else {
+				ppft->k_growth = 0;
+			}
+
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");
 				if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");

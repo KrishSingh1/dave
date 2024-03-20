@@ -427,7 +427,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
 	double fwater = wcont > 0.9 ? wcont : 0.0;  
-	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
+	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy, ppft.pft.k_growth);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 

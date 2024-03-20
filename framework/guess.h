@@ -2132,6 +2132,8 @@ public:
 	double T0_growth;
 	/// Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012)
 	double A_growth;
+	/// Parameter 'K' in growth temperature relationship (-) (Inbar, 2024??)
+	double k_growth;
 
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
@@ -2467,7 +2469,7 @@ public:
 		frootstart = 0.0;
 		frootend = 0.0;
 		forceautumnsowing = 0;
-
+		k_growth = 0;
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;
 		fertdates[0] = 0;
@@ -3268,6 +3270,10 @@ public:
 	double height;
 	// stem diameter (m)
 	double diam;
+	/// plant height increment
+	double d_height;
+	/// plant diameter increment
+	double d_diam;
 	/// plant crown area (m2)
 	double crownarea;
 	/// sapwood area (m2 sapwood/m2 ground)
@@ -5880,6 +5886,18 @@ private:
 	double lat;
 
 };
+
+/*
+Calculate a value for A_growth such that the temperature response equation
+described in <...> has a maximum value of 1.
+*/
+double calc_a_growth(const Pft *pft);
+
+/*
+Calculate a value for k_growth such that the temperature response equation
+described in <...> has a maximum value of 1.
+*/
+double calc_k_growth(const Pft *pft);
 
 
 #endif // LPJ_GUESS_GUESS_H

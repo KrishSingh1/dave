@@ -119,7 +119,7 @@ file_dave_cmass_leaf_limit      "dave_cmass_leaf_limit.out"     ! Daily optimum 
 file_dave_cmass_root_limit      "dave_cmass_root_limit.out"     ! Daily optimum root pool size for trees (kgC/m2)
 file_dave_cmass_sap_limit       "dave_cmass_sap_limit.out"      ! Daily optimum sap pool size for trees (kgC/m2)
 file_dave_cmass_repr_limit      "dave_cmass_repr_limit.out"     ! Daily optimum reproductive pool size for trees (kgC/m2)
-file_dave_cmass_storage_limit   "dave_cmass_storage_limit.out"  ! Daily optimum storage pool size (kgC/m2)
+! file_dave_cmass_storage_limit   "dave_cmass_storage_limit.out"  ! Daily optimum storage pool size (kgC/m2)
 file_dave_cgrow_leaf            "dave_cgrow_leaf.out"           ! Daily leaf growth (kgC/m2)
 file_dave_cgrow_root            "dave_cgrow_root.out"           ! Daily root growth (kgC/m2)
 file_dave_cgrow_sap             "dave_cgrow_sap.out"            ! Daily sap growth (kgC/m2)
@@ -129,6 +129,8 @@ file_dave_cmass_sap             "dave_cmass_sap.out"            ! Sapwood C mass
 file_dave_nmass_sap             "dave_nmass_sap.out"            ! Sapwood N mass (kgN/m2)
 file_dave_cmass_heart           "dave_cmass_heart.out"          ! Heartwood C mass (kgC/m2)
 file_dave_nmass_heart           "dave_nmass_heart.out"          ! Heartwood N mass (kgN/m2)
+file_dave_diameter_inc          "dave_diameter_inc.out"         ! Daily diameter growth (m/day)
+file_dave_height_inc            "dave_height_inc.out"           ! Daily height growth (m/day)
 
 ! Daily individual-level fluxes.
 file_dave_dturnover_leaf        "dave_dturnover_leaf.out"       ! daily leaf C turnover flux (kgC/m2/day)
@@ -149,11 +151,11 @@ file_dave_cmass_repr            "dave_cmass_repr.out"           ! Daily pft-leve
 !file_dave_dsimfire              "dave_dsimfire.out"             ! Daily simfire analysis
 !file_dave_dfuel                 "dave_dfuel.out"                ! Daily blaze fuel availability (kgC/m2)
 !file_dave_dcoarse_woody_debris  "dave_dcoarse_woody_debris.out" ! Daily coarse woody debris (gC/m2)
-!file_dave_met_temp              "dave_met_temp.out"             ! Daily air temperature (°C)
-!file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
+file_dave_met_temp              "dave_met_temp.out"             ! Daily air temperature (°C)
+file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
 !file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
-!file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
-!file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
+file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
+file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
 !file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
 !file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pressure (Pa)
 !file_dave_sompool_cmass         "dave_sompool_cmass.out"        ! Daily SOM pool C mass (kgC/m2)

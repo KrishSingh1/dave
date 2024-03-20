@@ -1695,6 +1695,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root        = 0.0;
 	cmass_crown       = 0.0;
 	cmass_repr        = 0.0;
+	cmass_struct      = 0.0;
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
@@ -1709,7 +1710,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_repr        = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
-	frepr_crown       = 0.0;
+	frepr_cstruct     = 0.0;
 	fdev_growth       = 1.0;
 	fdev_senesc       = 1.0;
 	senesc_root       = 0.0;

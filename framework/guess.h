@@ -3055,6 +3055,8 @@ public:
 	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
+	/// peak aboveground leaf biomass (kgC/m2)
+	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
@@ -3085,8 +3087,8 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// fraction of reproductive biomass to crown biomass.
-	double frepr_crown;
+	/// fraction of reproductive biomass to structural biomass.
+	double frepr_cstruct;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)

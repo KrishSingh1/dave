@@ -311,15 +311,19 @@ double dphen_activity(Individual &indiv, double wscal_min) {
 
 // Development effects on relative growth rate.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, double frepr_crown) {
+void dev_growth(Individual &indiv, double frepr_cstruct) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
+		double acap = 1.0;  // higher value: stronger and longer growth in mid/late growing season 
+		double a1 = 0.15;    // higher value: stronger growth at beginning of repr period
 		// Alternatives: decrease slope and/or intercept with reprfrac!
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (3.0 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
-	
+		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (3.0 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
+		double repr_capacity = acap * indiv.pft.reprfrac;
+		indiv.fdev_growth = min(1.0, max(0.0, 1.0 - (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity)));
+
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
 		// Phase after switching from reproductive period back to vegetative period.
@@ -409,6 +413,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
+					indiv.cmass_struct = 0.0;
                 }
 
                 // no further increases in repr. 
@@ -417,6 +422,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
+				   indiv.cmass_struct = 0.0;
                 }
  
                 // flush reproductive tissue to seedbank.
@@ -2774,11 +2780,13 @@ double growth_demand(Individual& indiv) {
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
-	// Total biomass 
-	double cmass_total = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	// Total biomass and peak aboveground shoot biomass
+	double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
 	
-	// Ratio of reproductive biomass to crown biomass
-	indiv.frepr_crown = indiv.cmass_repr / max(indiv.cmass_crown,1.0e-9);
+	// Ratio of reproductive biomass to structural biomass
+	indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
+
 
 	// Fill status of C and N storage
     double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
@@ -2792,7 +2800,7 @@ double growth_demand(Individual& indiv) {
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, indiv.frepr_crown);
+	dev_growth(indiv, indiv.frepr_cstruct);
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;

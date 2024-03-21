@@ -317,12 +317,20 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double acap = 1.0;  // higher value: stronger and longer growth in mid/late growing season 
-		double a1 = 0.15;    // higher value: stronger growth at beginning of repr period
+		// Phase 1: slow down growth demand according to frepr_cstruct
+		double min_growth = 0.025;
+		double acap = 1.0;        // higher value: stronger and longer growth in mid/late growing season 
+		double a1 = 0.15;         // higher value: stronger growth at beginning of repr period
 		// Alternatives: decrease slope and/or intercept with reprfrac!
 		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (3.0 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
 		double repr_capacity = acap * indiv.pft.reprfrac;
-		indiv.fdev_growth = min(1.0, max(0.0, 1.0 - (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity)));
+		indiv.fdev_growth = min(1.0, max(min_growth, 1.0 - (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity)));
+
+		// Phase 2: slow down with time 
+		// TODO: refine this phase
+		if (indiv.fdev_growth <= min_growth){
+			indiv.fdev_growth *= 0.75;
+		}
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 

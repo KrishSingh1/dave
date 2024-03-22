@@ -402,6 +402,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double fgerm_max25 = 0.3; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
+	ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy
 	ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
 	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);   // TODO: check with DW that this is the right layer
 	double wcont = ppft.wcont_germ_4.mean();

@@ -317,20 +317,14 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		// Phase 1: slow down growth demand according to frepr_cstruct
-		double min_growth = 0.025;
-		double acap = 1.0;        // higher value: stronger and longer growth in mid/late growing season 
-		double a1 = 0.15;         // higher value: stronger growth at beginning of repr period
-		// Alternatives: decrease slope and/or intercept with reprfrac!
-		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (3.0 * frepr_crown - 0.5 * indiv.pft.reprfrac)));
+		// higher value: stronger growth at beginning of repr period
+		double a1 = indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL ? 0.2 : 0.3;            
+		double acap = 2.0;          // higher value: stronger and longer growth in mid/late reproductive stage 
+		double qdev_growth = 5.0;   // higher q --> earlier reduction in growth demand and earlier peak biomass
+		
 		double repr_capacity = acap * indiv.pft.reprfrac;
-		indiv.fdev_growth = min(1.0, max(min_growth, 1.0 - (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity)));
-
-		// Phase 2: slow down with time 
-		// TODO: refine this phase
-		if (indiv.fdev_growth <= min_growth){
-			indiv.fdev_growth *= 0.75;
-		}
+		double fac = (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity);
+		indiv.fdev_growth = pow(min(1.0, max(0.0, 1.0 - fac)),qdev_growth);  
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -402,7 +396,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && (indiv.age >= 1.0 || indiv.pft.lifeform == GRASS_ANNUAL)){
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 				}
@@ -2979,11 +2973,19 @@ void carbon_allocation_grass(Individual &indiv) {
 	if (!negligible(indiv.cgrow)) {
 		
 		// 1) Crowns
-		calloc_crown = indiv.pft.crownfrac;
-
+		if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
+			calloc_crown = 2.0 * indiv.pft.crownfrac;
+		} else {
+			calloc_crown = indiv.pft.crownfrac;
+		}
+		
 		// 2) Reproduction
 		if (indiv.growth_stage == reproductive) {
-			calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
+			if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
+				calloc_repr = min(0.2 * indiv.pft.reprfrac,(1.0 - calloc_crown));
+			} else {
+				calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
+			}
 		} else {
 			calloc_repr = 0.0;
 		}
@@ -3476,10 +3478,11 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 30.0;    // senescence scalar for reproductive phase
+	const double senesc_scal_repr  = 25.0;    // senescence scalar for reproductive phase
 
-	const double qwater_senesc = 1.0;    // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.05;     // increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
+	const double qdev_senesc   = 15.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -3500,12 +3503,13 @@ void senescence_grass(Individual &indiv) {
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
-		indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
+		//indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
 		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
+		indiv.fdev_senesc = senesc_scal_repr * pow((1.0 - indiv.fdev_growth),qdev_senesc);
 
 	} else {
 
-		indiv.fdev_senesc = 1.0;
+		indiv.fdev_senesc = 0.0;
 
 	}
 
@@ -3531,9 +3535,8 @@ void senescence_grass(Individual &indiv) {
 	}
 
 	// Total senescence rate
-	senesc *= (indiv.fdev_senesc * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
+	senesc *= ((1.0 + indiv.fdev_senesc) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
 	senesc = min(1.0, senesc);
-	//indiv.senesc_root = senesc / (indiv.fdev_senesc * (1.0 + senesc_fdorm));
 	indiv.senesc_root = senesc_base;
 
 	// Retranslocation and pool updates
@@ -4031,9 +4034,11 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		indiv.cmass_storage_20.add(indiv.cmass_storage);
-		indiv.cmass_repr_10.add(indiv.cmass_repr);
-
+		// do not count early days in annuals or perennials
+		if (indiv.age > 1.0 || indiv.cmass_storage < 0.7 * indiv.cstorage_max) {
+			indiv.cmass_storage_20.add(indiv.cmass_storage);
+			indiv.cmass_repr_10.add(indiv.cmass_repr);
+		}
 	}
 }
 

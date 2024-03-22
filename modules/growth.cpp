@@ -2783,7 +2783,8 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass and peak aboveground shoot biomass
-	double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 	indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
 	
 	// Ratio of reproductive biomass to structural biomass

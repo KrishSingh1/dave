@@ -267,13 +267,16 @@ double photo_growth(double reldaylength, double daylength_diff) {
 
 
 // Calculates dphen_activity, which is used for calculation of:
-// 1) the rate at which grasses enter or release dormancy.
-// 2) the rate at which grasses resume growth after completion of reproductive cycle.
-double dphen_activity(Individual &indiv, double wscal_min) {
+// 1) the rate at which grasses enter or release dormancy (dormancy = true).
+// 2) the rate at which grasses resume growth after completion of reproductive cycle (dormancy = false).
+double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 	
+	// different water stress thresholds for dormancy and vegetative regrowth.
+	double wscal_min = dormancy ? pft.wscal_min : 0.6;
+
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
 	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
@@ -294,7 +297,25 @@ double dphen_activity(Individual &indiv, double wscal_min) {
 	assert(tscal >= -1.0 && tscal <= 1.0);
 	assert(wscal >= -1.0 && wscal <= 1.0);
 
-	return min(tscal,wscal) * dphen_activity_max;
+	// avoid greening just before winter in temperature-limited ecosystems.
+	// TODO: interactions with tscal and pscal?
+	double pscal = 1.0;
+
+	if (date.get_calendar_year() == 1942 && date.month >= 8){
+		printf("hi");
+	}
+
+	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
+	    ppft.daylength_10.periodictrend(1) < 0.0) {
+			
+			double daylength_crit = dormancy ? 0.8 : 0.9;
+			double daylength_min  = dormancy ? 0.4 : 0.5;
+
+			pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
+				    				      (daylength_crit - daylength_min))) - 1.0;
+	}
+
+	return min(min(tscal,pscal),wscal) * dphen_activity_max;
 }
 
 
@@ -327,7 +348,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		// If not, maintain reduced growth rate or enter dormancy.
 
 		// TODO: deal with dphen_activity called twice.
-		double dphen_growth = dphen_activity(indiv, 0.6);
+		double dphen_growth = dphen_activity(indiv, climate, false);
 
 		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
 		if (ppft.wscal_5.mean() < 0.6) { 
@@ -335,10 +356,6 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
 
-        // TODO: check for temperature conditions if meaningful
-		//if (climate.mtemp_min20 < 0.0) {
-		//
-		//}
 	}
 }
 
@@ -371,7 +388,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				double dphen_dormancy = dphen_activity(indiv, pft.wscal_min);
+				double dphen_dormancy = dphen_activity(indiv, climate, true);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 
 			} else {
@@ -384,7 +401,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// 2) Development factor for growth (returns indiv.fdev_growth, which is used in
 			//    growth_demand() function returning growth demand).
-			
+
 			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
 			indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
 			indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
@@ -3483,13 +3500,13 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0002;       // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 20.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = 50.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 

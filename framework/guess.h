@@ -3087,6 +3087,8 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
+	/// LAI at flowering (vegetative - reproductive switch).
+	double lai_flowering;
 	/// fraction of reproductive biomass to structural biomass.
 	double frepr_cstruct;
 	/// development factor used for calculating senescence.

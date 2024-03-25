@@ -255,7 +255,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 // Water stress scalar used for growth and dormancy
 double wscal_growth(double wscal) {
 	double qgrowth = 1.5;    // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	double wscal_min = 0.3;  // no growth under severe water stress
+	double wscal_min = 0.4;  // no growth under severe water stress
 	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),qgrowth)));
 }
 
@@ -318,13 +318,16 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// higher value: stronger growth at beginning of repr period
-		double a1 = indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL ? 0.2 : 0.3;            
-		double acap = 2.0;          // higher value: stronger and longer growth in mid/late reproductive stage 
-		double qdev_growth = 5.0;   // higher q --> earlier reduction in growth demand and earlier peak biomass
+		//double a1 = indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL ? 0.2 : 0.0;            
+		//double acap = 2.0;          // higher value: stronger and longer growth in mid/late reproductive stage 
+		//double qdev_growth = 1.0;   // higher q --> earlier reduction in growth demand and earlier peak biomass
 		
-		double repr_capacity = acap * indiv.pft.reprfrac;
-		double fac = (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity);
-		indiv.fdev_growth = pow(min(1.0, max(0.0, 1.0 - fac)),qdev_growth);  
+		//double repr_capacity = acap * indiv.pft.reprfrac;
+		//double fac = (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity);
+		//indiv.fdev_growth = pow(min(1.0, max(0.0, 1.0 - fac)),qdev_growth);
+
+		double a1 = indiv.lai_flowering;  // parameter should depend on the size of the plant at flowering time.
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - 1.0 * indiv.pft.reprfrac)));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -332,6 +335,7 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
         // check if conditions are suitable to resume vegetative growth.
 		// If not, maintain reduced growth rate or enter dormancy.
 
+		// TODO: deal with dphen_activity called twice.
 		double dphen_growth = dphen_activity(indiv, 0.6);
 
 		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
@@ -393,12 +397,14 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.growth_stage = vegetative;
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
+				indiv.cmass_struct = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
 				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
+					indiv.lai_flowering = indiv.lai;
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
@@ -415,12 +421,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
-					indiv.cmass_struct = 0.0;
                 }
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend <= 0.0) {
+                if (repr_trend <= 0.001) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
@@ -2786,7 +2791,7 @@ double growth_demand(Individual& indiv) {
 	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
 	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 	indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-	
+
 	// Ratio of reproductive biomass to structural biomass
 	indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
 
@@ -3480,10 +3485,10 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;       // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 25.0;    // senescence scalar for reproductive phase
+	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 15.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = 20.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3940,7 +3945,7 @@ void storage_overflow(Individual& indiv) {
 		// If the plant is in the reproductive phase, put excess into repr
 		if (indiv.growth_stage == reproductive) {
 			
-			double cexcess_repr = min(indiv.cexcess, indiv.cgrow_repr);
+			double cexcess_repr = min(indiv.cexcess, 0.05 * indiv.cgrow);
 
 			// determine amount of C excess allocated to reproductive pool
 			// Note: allocate as much as possible of the C and N excess, but it needs to be 
@@ -3952,7 +3957,7 @@ void storage_overflow(Individual& indiv) {
 		}
 
 		// Put as much of possible of the rest of C excess into the crown.
-		double cexcess_crown = min(indiv.cexcess, indiv.cgrow);
+		double cexcess_crown = min(indiv.cexcess, 0.5 * indiv.cgrow);
 		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
 						indiv.nmass_storage, pft.cton_root_min, pft.cton_root_max, cexcess_crown);
 

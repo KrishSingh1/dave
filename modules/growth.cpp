@@ -3002,9 +3002,7 @@ void carbon_allocation_grass(Individual &indiv) {
 		double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
-		// additional reduction to leaf allocation with decreasing growth demand in repr. phase
-		double rleaf_repr = indiv.growth_stage == reproductive ? indiv.fdev_growth : 1.0;
-		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5) * rleaf_repr;
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5);
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
@@ -3505,7 +3503,7 @@ void senescence_grass(Individual &indiv) {
 
 	double senesc = senesc_base;
 
-	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
+	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant || indiv.fdev_growth < 1.0) {
 
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;

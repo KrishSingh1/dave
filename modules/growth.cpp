@@ -3000,6 +3000,9 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
+	// Reduction of RGR in reproductive phase
+	const double fRGR_repr = 0.75;
+
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
@@ -3027,15 +3030,10 @@ double growth_demand(Individual& indiv) {
 	// ------------------------------
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(ppft.wscal);
-<<<<<<< HEAD
-	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy, pft.k_growth);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, indiv.frepr_crown);
-=======
-	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
-	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, ftemp_growth, fRGR_repr);
->>>>>>> d7f18c8941265bea4c24d3d8fb295d9ffc2a7384
+	double frepr = pft.is_grass() ? indiv.frepr_crown : fRGR_repr;
+
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
@@ -4151,14 +4149,10 @@ void update_pools_dave(Vegetation& vegetation) {
 		double fnavail = 0.0;
 		double nstress = 0.0;
 		if (!negligible(indiv.ndemand)) {
-<<<<<<< HEAD
 			//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 			// TODO: define max_mobil_nstorage based on Yang et al. 2023, Journal of Ecology.
 			fnavail = max(0.0,min(1.0,((max_mobil_cstorage * indiv.nmass_storage) / (indiv.ndemand - indiv.storendemand))));
 			nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
-=======
-			fnavail = max(0.0, min(1.0,(indiv.nmass_storage / indiv.ndemand)));
->>>>>>> d7f18c8941265bea4c24d3d8fb295d9ffc2a7384
 		}
 		
 		// calculate N stress factor 
@@ -4256,11 +4250,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_sap += indiv.cgrow_sap;
 		indiv.cmass_repr  += indiv.cgrow_repr;
 
-<<<<<<< HEAD
-		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_repr + nreturn));
-=======
-		assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
->>>>>>> d7f18c8941265bea4c24d3d8fb295d9ffc2a7384
+		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
 
 		// Always take up available N
 		if (pft.is_grass() || pft.lifeform == MOSS) {
@@ -5282,17 +5272,9 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-<<<<<<< HEAD
 		// Increase age by one day
-		indiv.age += 1.0 / 365;
+		indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
 
-=======
-		// increase age in one day
-		if (indiv.pft.lifeform == TREE) {
-			indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
-		}
-		
->>>>>>> d7f18c8941265bea4c24d3d8fb295d9ffc2a7384
 		// Initiate yearly maximum
 		if (date.day == 0) {
 			indiv.cmass_leaf_ygrowth = 0.0;

@@ -262,12 +262,7 @@ double wscal_growth(double wscal) {
 // Photoperiod affecting development and thus growth demand
 // Effects likely limited to high latitude areas.
 double photo_growth(double reldaylength, double daylength_diff) {
-	if (reldaylength < 0.95 && daylength_diff < 0.0){
-		//return pow(reldaylength, 5.0);
-		return 1.0;
-	} else {
-		return 1.0;
-	}
+	return 1.0;
 }
 
 
@@ -299,19 +294,13 @@ double dphen_activity(Individual &indiv, double wscal_min) {
 	assert(tscal >= -1.0 && tscal <= 1.0);
 	assert(wscal >= -1.0 && wscal <= 1.0);
 
-	// Check daylength additionally if water is not limiting.
-	// This is to avoid greenup at the end of the growing season.
-	//if (ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.75 && (wscal > tscal)) {
-	//	tscal = -0.25;
-	//}
-
 	return min(tscal,wscal) * dphen_activity_max;
 }
 
 
 // Development effects on relative growth rate.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, double frepr_cstruct) {
+void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
@@ -347,6 +336,9 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
 
         // TODO: check for temperature conditions if meaningful
+		//if (climate.mtemp_min20 < 0.0) {
+		//
+		//}
 	}
 }
 
@@ -376,7 +368,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 		if (pft.is_grass()) { 
 
-			// Dormancy
+			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
 				double dphen_dormancy = dphen_activity(indiv, pft.wscal_min);
@@ -389,7 +381,21 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			}
 
-			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
+
+			// 2) Development factor for growth (returns indiv.fdev_growth, which is used in
+			//    growth_demand() function returning growth demand).
+			
+			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
+			indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
+			indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
+
+			dev_growth(indiv, climate, indiv.frepr_cstruct);
+			
+
+			// 3) Switches between growth stages (indiv.growth_stage):
+			// 		0: dormant stage
+			// 		1: vegetative stage
+			// 		2: reproductive stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
@@ -439,7 +445,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                     indiv.flush_repr_litter_DAVE();
 				}
 			}
-			indiv.growth_stage_days += 1;		
+			indiv.growth_stage_days += 1;
 		} 
 		else {
 			indiv.fphen_activity = 1.0;
@@ -2789,14 +2795,9 @@ double growth_demand(Individual& indiv) {
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
-	// Total biomass and peak aboveground shoot biomass
+	// Total biomass used for estimation of potential growth demand.
 	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
 	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
-	indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-
-	// Ratio of reproductive biomass to structural biomass
-	indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
-
 
 	// Fill status of C and N storage
     double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
@@ -2810,7 +2811,7 @@ double growth_demand(Individual& indiv) {
 	fwater_growth = wscal_growth(ppft.wscal);
 	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, indiv.frepr_cstruct);
+	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;

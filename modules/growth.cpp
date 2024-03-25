@@ -3993,15 +3993,17 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	// Do not let ps_sink_lim vary by more than X% d-1
-	double const dmax_pslim = 0.02 * (1.0 - indiv.fdev_growth);
+	double dmax_pslim = 0.015; 
+	// Do not let ps_sink_lim vary by more than max_pslim % d-1
+	double const dpslim = dmax_pslim * (1.0 - indiv.fdev_growth);
 
 	// TODO: revisit cexcess / dgpp
 	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {
-		indiv.ps_sink_lim = max((1.0 - dmax_pslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
+		indiv.ps_sink_lim = max((1.0 - dpslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
 	} 
 	else {
-		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dmax_pslim / (1.0 - indiv.fdev_growth))); 
+		// assuming faster recovery than decline
+		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dpslim * 2.0)); 
 	}
 } 
 

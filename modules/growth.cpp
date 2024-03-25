@@ -326,7 +326,9 @@ void dev_growth(Individual &indiv, double frepr_cstruct) {
 		//double fac = (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity);
 		//indiv.fdev_growth = pow(min(1.0, max(0.0, 1.0 - fac)),qdev_growth);
 
-		double a1 = indiv.lai_flowering;  // parameter should depend on the size of the plant at flowering time.
+		// TODO: better (and more interpretable) characterisation of a1 parameter.
+		// parameter should depend on the size of the plant at flowering time.
+		double a1 = indiv.lai_flowering;  
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - 1.0 * indiv.pft.reprfrac)));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {

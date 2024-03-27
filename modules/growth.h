@@ -39,6 +39,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& longterm_nstore, double &max_n_storage,
 	bool alive);
 // Minimum growth demand after reproductive phase
-const double fdev_growth_min = 0.004;
+const double fdev_growth_min = 0.002;
 
 #endif // LPJ_GUESS_GROWTH_H

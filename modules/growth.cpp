@@ -301,15 +301,11 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 	// TODO: interactions with tscal and pscal?
 	double pscal = 1.0;
 
-	if (date.get_calendar_year() == 1942 && date.month >= 8){
-		printf("hi");
-	}
-
 	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
-	    ppft.daylength_10.periodictrend(1) < 0.0) {
+	    ppft.daylength_10.periodictrend(1) < 0.0 && !dormancy) {
 			
-			double daylength_crit = dormancy ? 0.8 : 0.9;
-			double daylength_min  = dormancy ? 0.4 : 0.6;
+			double daylength_crit = 0.9;
+			double daylength_min  = 0.6;
 
 			pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
 				    				      (daylength_crit - daylength_min))) - 1.0;
@@ -425,7 +421,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 					indiv.lai_flowering = indiv.lai;
-					indiv.fac = 1.0;
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
@@ -3499,10 +3494,10 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
+	const double senesc_scal_repr  = 15.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 20.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = 40.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 

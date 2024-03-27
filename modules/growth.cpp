@@ -309,7 +309,7 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 	    ppft.daylength_10.periodictrend(1) < 0.0) {
 			
 			double daylength_crit = dormancy ? 0.8 : 0.9;
-			double daylength_min  = dormancy ? 0.4 : 0.5;
+			double daylength_min  = dormancy ? 0.4 : 0.6;
 
 			pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
 				    				      (daylength_crit - daylength_min))) - 1.0;
@@ -327,19 +327,14 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		// higher value: stronger growth at beginning of repr period
-		//double a1 = indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL ? 0.2 : 0.0;            
-		//double acap = 2.0;          // higher value: stronger and longer growth in mid/late reproductive stage 
-		//double qdev_growth = 1.0;   // higher q --> earlier reduction in growth demand and earlier peak biomass
-		
-		//double repr_capacity = acap * indiv.pft.reprfrac;
-		//double fac = (frepr_cstruct - a1 * repr_capacity) / (repr_capacity - a1 * repr_capacity);
-		//indiv.fdev_growth = pow(min(1.0, max(0.0, 1.0 - fac)),qdev_growth);
-
 		// TODO: better (and more interpretable) characterisation of a1 parameter.
+		// TODO: seeding too early when reprfrac is high. 
+		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
 		// parameter should depend on the size of the plant at flowering time.
-		double a1 = indiv.lai_flowering;  
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - 1.0 * indiv.pft.reprfrac)));
+		double a1 = indiv.lai_flowering;
+		double a2 = 1.0;
+		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -430,6 +425,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 					indiv.lai_flowering = indiv.lai;
+					indiv.fac = 1.0;
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
@@ -3506,7 +3502,7 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_repr  = 20.0;    // senescence scalar for reproductive phase
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 50.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = 20.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -3560,7 +3556,7 @@ void senescence_grass(Individual &indiv) {
 	}
 
 	// Total senescence rate
-	senesc *= ((1.0 + indiv.fdev_senesc) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
+	senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = senesc_base;
 
@@ -4061,11 +4057,8 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		// do not count early days in annuals or perennials
-		if (indiv.age > 1.0 || indiv.cmass_storage < 0.7 * indiv.cstorage_max) {
-			indiv.cmass_storage_20.add(indiv.cmass_storage);
-			indiv.cmass_repr_10.add(indiv.cmass_repr);
-		}
+		indiv.cmass_storage_20.add(indiv.cmass_storage);
+		indiv.cmass_repr_10.add(indiv.cmass_repr);
 	}
 }
 

@@ -3494,10 +3494,12 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	const double senesc_scal_repr  = 15.0;    // senescence scalar for reproductive phase
+	// senescence scalar for reproductive phase
+	const double senesc_scal_repr  = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 40;    
+	
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 40.0;     // higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = 40.0;    // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 

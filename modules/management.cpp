@@ -16,61 +16,10 @@
 #include "driver.h"
 
 
-// Grazing and mowing routines for DAVE
-void grazing_daily_dave(Vegetation& vegetation) {
-
-	// Loop through individuals
-	for (int i = 0; i < vegetation.nobj; i++) {
-		Individual &indiv = vegetation[i];
-
-		if (!(ifdailygrass && indiv.pft.is_grass())) {
-			return;
-		}
-
-		Patch& patch = indiv.vegetation.patch;
-		Stand& stand = patch.stand;
-
-		if (stand.landcover != PASTURE) {
-			return;
-		}
-
-		// CLIMGRASS: do not harvest grass before treatment starts
-		if (date.get_calendar_year() < 2007 || (date.get_calendar_year() == 2007 && date.month <= 5)) {
-			return;
-		}
-
-		// Rate of grazing each day for landcover pasture functionality, fraction
-		double grazing_rate = stlist[stand.stid].get_management().grazeintens;
-		double mowing_intensity = stlist[stand.stid].get_management().mowintens;
-
-		double frac_creturn = 0.5;
-		double frac_nreturn = 0.75;
-
-		// grazing
-		if (grazing_rate > 0.0) {
-			remove_grass(indiv,grazing_rate,frac_creturn,frac_nreturn);
-		}
-
-		// mowing
-		for (int i=0; i<num_mowdates;i++) {
-			int mowing_date = stlist[stand.stid].get_management().mowdates[i];
-
-			if (date.day == mowing_date && mowing_intensity > 0.0) {
-				frac_creturn = 0.0;
-				frac_nreturn = 0.0;
-				remove_grass(indiv,mowing_intensity,frac_creturn,frac_nreturn);
-				break;
-			}
-		}
-
-
-
-	}
-
-}
 
 // Basic DAVE function for grazing and mowing (removes fraction of grass and returns part of it as litter)
-void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn) {
+void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn,
+				  double frepr_leaf) {
 
 		Patch& patch = indiv.vegetation.patch;
 
@@ -78,14 +27,15 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 			return;
 		}
 
-		// Determine how much biomass to remove
-		// Note: frac_remove is interpreted as sum of leaf + reproductive biomass.
-		// Note: factor 0.25 is subjective + should be lower for grazing than for mowing.
-		//       (or solved via differences across patches)
-
+		// Determine how much biomass to remove and from what pools.
+		// frac_remove is interpreted as sum of leaf + reproductive biomass.
+		// It is then assumed that cmass_repr is a) eaten first and b) eaten with a higher probability
+		// than cmass_leaf due to their elevated position on the plants. This is accounted for by the
+		// frepr_leaf factor. This factor should be lower for grazing (ca. 1.0 - 2.0) than for mowing (> 3.0).
+		
 		// Carbon harvest
 		double cmass_harvest      = frac_remove * (indiv.get_cmass_leaf() + indiv.cmass_repr);
-		double cmass_repr_harvest = min(indiv.cmass_repr, max(0.5 * cmass_harvest, cmass_harvest - indiv.get_cmass_leaf()));
+		double cmass_repr_harvest = min(indiv.cmass_repr, max(min(1.0,frepr_leaf * frac_remove) * indiv.cmass_repr, cmass_harvest - indiv.get_cmass_leaf()));
 		double cmass_leaf_harvest = cmass_harvest - cmass_repr_harvest;
 		
 		// Nitrogen harvest
@@ -143,6 +93,61 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		assert(equal(nmass_harvest,nmass_return + nmass_lost));
 }
 
+// Grazing and mowing routines for DAVE
+void grazing_daily_dave(Vegetation& vegetation) {
+
+	// Loop through individuals
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+
+		if (!(ifdailygrass && indiv.pft.is_grass())) {
+			return;
+		}
+
+		Patch& patch = indiv.vegetation.patch;
+		Stand& stand = patch.stand;
+
+		if (stand.landcover != PASTURE) {
+			return;
+		}
+
+		// CLIMGRASS: do not harvest grass before treatment starts
+		if (date.get_calendar_year() < 2007 || (date.get_calendar_year() == 2007 && date.month <= 5)) {
+			return;
+		}
+
+		// Rate of grazing each day for landcover pasture functionality, fraction
+		double grazing_rate = stlist[stand.stid].get_management().grazeintens;
+		double mowing_intensity = stlist[stand.stid].get_management().mowintens;
+
+		double frac_creturn = 0.5;
+		double frac_nreturn = 0.75;
+		double frepr_leaf = 1.0; // fraction of cmass_repr removed relative to fraction of 
+								 // total biomass (cmass_repr + cmass_leaf) removed.
+
+		// grazing
+		if (grazing_rate > 0.0) {
+			remove_grass(indiv,grazing_rate,frac_creturn,frac_nreturn,frepr_leaf);
+		}
+
+		// mowing
+		for (int i=0; i<num_mowdates;i++) {
+			int mowing_date = stlist[stand.stid].get_management().mowdates[i];
+
+			if (date.day == mowing_date && mowing_intensity > 0.0) {
+				frac_creturn = 0.0;
+				frac_nreturn = 0.0;
+				frepr_leaf   = 5.0;
+				remove_grass(indiv,mowing_intensity,frac_creturn,frac_nreturn,frepr_leaf);
+				break;
+			}
+		}
+
+
+
+	}
+
+}
 
 /// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
 void grazing_daily(Individual& indiv) { // DW_COMMENT

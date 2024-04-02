@@ -329,8 +329,9 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
 		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
 		// a1 parameter should depend on the size of the plant at flowering time.
-		double a1 = max(0.5,indiv.lai_flowering);
-		double a2 = 1.0;
+		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 1.0;
+		double a1 = max(0.5,indiv.lai_flowering) * a1m;
+		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 1.0 : 1.0;
 		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
 
@@ -419,7 +420,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5){
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.02){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 					indiv.lai_flowering = indiv.lai;
@@ -3497,11 +3498,11 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr  = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 40;    
-	
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 80.0;
+	// higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc      = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 3.0;    
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double qdev_senesc   = 40.0;    // higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 

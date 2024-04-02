@@ -422,14 +422,14 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 
     // add up temperature factor after winter solstice
     ppft.ftemp_cum += ftemp;
-    if (is_zero(ppft.daylength_10.periodictrend(1)) && ppft.daylength_10.periodictrend(2) < 0) {
+    if (ppft.daylength_10.periodictrend(1) >= 0.0 && ppft.daylength_10.periodictrend(2) <= 0.0) {
         ppft.ftemp_cum = 0.0;
     }
 
     // do not germinate if seeds are dormant (see criteria above)
     if (ppft.wcont_germ_30.size() > 10 && ppft.wcont_germ_30.mean() > 0.7) {
         if ((ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.9) ||
-            (ppft.daylength_10.periodictrend(1) > 0.0 && ppft.ftemp_cum < 5.0)) {
+            (ppft.daylength_10.periodictrend(1) > 0.0 && ppft.ftemp_cum < 10.0)) {
                 frac_germ = 0.0;
         }
     }

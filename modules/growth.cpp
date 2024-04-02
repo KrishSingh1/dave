@@ -3498,9 +3498,9 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 80.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 200.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc      = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 3.0;    
+	const double qdev_senesc      = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
 
 	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
 	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -3685,7 +3685,8 @@ void turnover_seed(Vegetation& vegetation) {
 		// Seed turnover
 		// Base turnover rate
 		double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
-			
+		// TODO: make turnover rate dependent on conditions.
+
 		// Carbon
 		double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
 		ppft.cmass_litter_repr -= cturnover_repr;

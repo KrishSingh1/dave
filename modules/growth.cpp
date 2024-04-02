@@ -397,8 +397,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			//    growth_demand() function returning growth demand).
 
 			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
-			indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-			indiv.frepr_cstruct = indiv.cmass_repr / max(indiv.cmass_struct,1.0e-9);
+			//indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
+			indiv.cmass_struct = max(1.e-9,indiv.get_cmass_leaf());
+			indiv.frepr_cstruct = indiv.cmass_repr / indiv.cmass_struct;
 
 			dev_growth(indiv, climate, indiv.frepr_cstruct);
 			
@@ -3498,7 +3499,7 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 200.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 100.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double qdev_senesc      = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
 

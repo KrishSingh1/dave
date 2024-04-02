@@ -3099,6 +3099,8 @@ public:
 	int growth_stage;
 	/// number of days in current growth stage
 	int growth_stage_days;
+	/// fraction of seedbank that is germinating each day
+	double frac_germ;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// N exceeding storage capacity (kgN/m2/d)

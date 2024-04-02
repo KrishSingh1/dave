@@ -489,16 +489,16 @@ void establishment_daily(Patch& patch) {
 							// reduced by fpc_ymax * 2.0 to account for green and brown leaves and rpc.
 							// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
 							//       and create new variable.
-							frac_germ *= (1.0 - indiv->fpc_ymax * 2.0);
+							indiv->frac_germ = frac_germ * (1.0 - indiv->fpc_ymax * 2.0);
 						} 
 						if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min) || indiv->growth_stage == dormant) {
-							frac_germ = 0.0;
+							indiv->frac_germ = 0.0;
 						}
 					}
 
-					if (frac_germ > 0.0) {
-						double cmass_seed = ppft.cmass_litter_repr * frac_germ;
-						double nmass_seed = ppft.nmass_litter_repr * frac_germ;
+					if (indiv->frac_germ > 0.0) {
+						double cmass_seed = ppft.cmass_litter_repr * indiv->frac_germ;
+						double nmass_seed = ppft.nmass_litter_repr * indiv->frac_germ;
 
 						double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
 						double nmass_before = ppft.nmass_litter_repr + indiv->ncont();

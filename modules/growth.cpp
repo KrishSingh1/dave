@@ -324,10 +324,12 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
 		// TODO: better (and more interpretable) characterisation of a1 parameter.
-		// TODO: seeding too early when reprfrac is high. 
+		// TODO: check if a2 parameter is needed.
+		// TODO: seeding too early when reprfrac is high.
+		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
 		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
-		// parameter should depend on the size of the plant at flowering time.
-		double a1 = indiv.lai_flowering;
+		// a1 parameter should depend on the size of the plant at flowering time.
+		double a1 = max(0.5,indiv.lai_flowering);
 		double a2 = 1.0;
 		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
@@ -4024,7 +4026,9 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
+		
 		Individual& indiv = vegetation[i];
+		Patchpft& ppft = indiv.patchpft();
 
 		if (!indiv.pft.dave_allocation()) {
 			// This PFT is not using the dave daily allocation scheme. Therefore
@@ -4054,8 +4058,17 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		indiv.cmass_storage_20.add(indiv.cmass_storage);
+		if ((indiv.age < 1.0 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
+			// do not 'count' days with germination in annuals and newly established perennials.
+			// Otherwise repr switch will happen too early.
+			// Note: right now it checks germination of the previous day, which is OK in this context.
+			indiv.cmass_storage_20.add(1.0);
+		} else {
+			indiv.cmass_storage_20.add(indiv.cmass_storage);
+		}
 		indiv.cmass_repr_10.add(indiv.cmass_repr);
+		indiv.frac_germ = 0.0;  // reset in vegdynam.cpp if > 0.0
+
 	}
 }
 

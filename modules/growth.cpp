@@ -75,9 +75,6 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
-// Fraction of reproductive pool available for reproduction (i.e. seed fraction)
-const double frac_seed = 0.5;
-
 // Error tolerance (expressed as number of significant figures) used in mass balance checks.
 const double EPS = -12;
 
@@ -3690,9 +3687,15 @@ void turnover_seed(Vegetation& vegetation) {
 		}
 
 		// Seed turnover
-		// Base turnover rate
-		double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
-		// TODO: make turnover rate dependent on conditions.
+		
+		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
+		double surf_temp = vegetation.patch.soil.T_soil[6];
+		double surf_water = patch.soil.get_layer_soil_water(0);
+		double HA_seed = 50.0;  // activation energy. TODO: obtain from data
+		
+		// Base turnover rate modified by temperature and water availability
+		double base_turnover_seed = ppft.pft.turnover_repr / date.year_length();
+		double frac_turnover_seed = Arrhenius_temp_response(base_turnover_seed,surf_temp,HA_seed,0.0,0.0) * surf_water;
 
 		// Carbon
 		double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
@@ -3724,8 +3727,9 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
-	// Air temperature or bottom snow layer if snow present
-	double grass_temp = vegetation.patch.soil.T_soil[6];
+	// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
+	double surf_temp = vegetation.patch.soil.T_soil[6];
+	double surf_water = patch.soil.get_layer_soil_water(0);
 
 	// crown turnover relative to root turnover.
 	double scal_crown_turnover = 0.35;
@@ -3737,7 +3741,7 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Turnover of brown leaves
 	// TODO: refine temp. and moisture responses
-	double frac_turnover_leaf = Arrhenius_temp_response(kleaf,grass_temp,HA_KC,0.0,0.0) * ppft.wscal;
+	double frac_turnover_leaf = Arrhenius_temp_response(kleaf,surf_temp,HA_KC,0.0,0.0) * surf_water;
 
 
 	// Dead shoot turnover (brown shoot --> leaf litter)
@@ -3948,7 +3952,8 @@ void storage_overflow(Individual& indiv) {
 	// low storage for a very long time. 
 	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
-		// TODO: limit allocation to repr for annuals to avoid unrealistic growth rates?
+		// TODO: limit allocation to repr for annuals to avoid unrealistic growth rates? 
+		// TODO: refine frac to be more consistent with the rest of the code!
 		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;

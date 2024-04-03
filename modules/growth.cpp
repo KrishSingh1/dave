@@ -54,7 +54,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 1.0e-5;
+const double ext_seed = 5.0e-6;
 
 // ---------------------------------
 // Grass parameters
@@ -1653,9 +1653,11 @@ bool allometry(Individual& indiv) {
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 				// Root projective cover (RPC) introduced to capture feedback between 
-				// belowground C investment and available N. The following is equal to 
-				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(4.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
+				// belowground C investment and available N. eff_rpc represents the efficiency of 
+				// roots to cover volume, related to specfic root length (SRL in m g-1). SRL is ca. 4 times 
+				// higher in annuals than perennials (Roumet et al. 2006, New Phytologist).
+				double eff_rpc = indiv.pft.lifeform == GRASS_PERENNIAL ? 4.0 : 16.0; 
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(eff_rpc * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
@@ -3498,9 +3500,9 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
 	const double senesc_scal_dorm = 20.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 100;
+	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 60.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 80.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 30.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
     // higher value --> lower sensitivity to water stress at high wscal
@@ -4022,7 +4024,7 @@ void storage_overflow(Individual& indiv) {
 void sink_source_feedback(Individual& indiv) {
 	
 	double dmax_pslim = 0.015; 
-	// Do not let ps_sink_lim vary by more than max_pslim % d-1
+	// Do not let ps_sink_lim vary by more than dmax_pslim d-1
 	double const dpslim = dmax_pslim * (1.0 - indiv.fdev_growth);
 
 	// TODO: revisit cexcess / dgpp

@@ -433,7 +433,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
                 frac_germ = 0.0;
         }
     }
-	
+
 	return frac_germ;
 }
 

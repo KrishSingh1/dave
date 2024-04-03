@@ -398,8 +398,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
 			//indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-			indiv.cmass_struct = max(1.e-9,indiv.get_cmass_leaf());
-			indiv.frepr_cstruct = indiv.cmass_repr / indiv.cmass_struct;
+			indiv.cmass_struct = max(1.0e-9,indiv.get_cmass_leaf());
+			indiv.frepr_cstruct = min(1.0e3,indiv.cmass_repr / indiv.cmass_struct);
 
 			dev_growth(indiv, climate, indiv.frepr_cstruct);
 			
@@ -3496,15 +3496,18 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 20.0;    // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm = 20.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 100;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 100.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 80.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc      = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
+    // higher value --> lower sensitivity to water stress at high wscal
+	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
+	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc   = 0.05;    
 
-	const double qwater_senesc = 1.0;     // higher value --> higher sensitivity to water stress
-	const double temp_senesc   = 0.05;    // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;

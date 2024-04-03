@@ -77,9 +77,9 @@ bool first_month_of_year(GuessNC::CF::DateTime dt) {
 void check_allowed_units(const std::string varname, const std::string& unit, const std::vector<std::string>& allowed_units) {
 	if (std::find(allowed_units.begin(), allowed_units.end(), unit) == allowed_units.end()) {
 		// Compile error message
-		std::string error_message("Unrecognised unit for " + varname + ". Allowed units are: ");
-		for (int i=0; allowed_units.size(); i++) {
-			error_message.append(allowed_units[i] + ", ");
+		std::string error_message("Unrecognised unit (" + unit + ") for " + varname + ". Allowed units are: ");
+		for (int i=0; i<allowed_units.size(); i++) {
+			error_message.append("\"" + allowed_units[i] + "\", ");
 		}
 
 		fail(error_message.c_str());
@@ -162,7 +162,7 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
 		fail("Temperature variable doesn't seem to contain air temperature data");
 	}
-	static const std::vector<std::string> ALLOWED_TEMP_UNITS {"K", "k"};  // Extend as necessary
+	static const std::vector<std::string> ALLOWED_TEMP_UNITS{"K", "k"};  // Extend as necessary
 	check_allowed_units(cf_var->get_standard_name(), cf_var->get_units(), ALLOWED_TEMP_UNITS);
 }
 
@@ -497,7 +497,7 @@ void CFInput::init() {
 				c.rlat = rlat;
 			}
 			else {
-				fail("The gridlist for netCDF input is given by gridlist_cf which must be in X,Y coordinates. If you have a regular gridlist, please use the standard gridlist param instead.\n");
+				fail("The gridlist for netCDF input is given by file_gridlist_cf which must be in X,Y coordinates. If you have a lat/lon gridlist, please use the file_gridlist instead.\n");
 			}
 		}
 		else {
@@ -696,6 +696,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat){
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
 
+	dprintf("\nSuccessfully loaded climate data for gridcell at (%g,%g) with indices (%d,%d)", lon, lat, rlon, rlat);
 	return true;
 }
 

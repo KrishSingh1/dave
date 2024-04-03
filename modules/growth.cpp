@@ -2997,6 +2997,8 @@ void carbon_allocation_grass(Individual &indiv) {
 		// 1) Crowns
 		if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
 			calloc_crown = 2.0 * indiv.pft.crownfrac;
+		} else if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+			calloc_crown = 0.0;
 		} else {
 			calloc_crown = indiv.pft.crownfrac;
 		}
@@ -3022,6 +3024,7 @@ void carbon_allocation_grass(Individual &indiv) {
 		
 		// 4) Roots
 		calloc_root = 1.0 - calloc_leaf - calloc_crown - calloc_repr;
+
 	}
 	else {
 		calloc_leaf  = 0.0;
@@ -3946,7 +3949,7 @@ void storage_overflow(Individual& indiv) {
 	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
 		// TODO: limit allocation to repr for annuals to avoid unrealistic growth rates?
-		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.cmass_leafs[green]); 
+		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;
 		}
@@ -3964,7 +3967,7 @@ void storage_overflow(Individual& indiv) {
 		// If the plant is in the reproductive phase, put excess into repr
 		if (indiv.growth_stage == reproductive) {
 			
-			double cexcess_repr = min(indiv.cexcess, 0.05 * indiv.cgrow);
+			double cexcess_repr = min(indiv.cexcess, indiv.cgrow_repr);
 
 			// determine amount of C excess allocated to reproductive pool
 			// Note: allocate as much as possible of the C and N excess, but it needs to be 
@@ -3975,8 +3978,9 @@ void storage_overflow(Individual& indiv) {
 							indiv.nmass_storage, pft.cton_repr_min, pft.cton_repr_max, cexcess_repr);	
 		}
 
-		// Put as much of possible of the rest of C excess into the crown.
-		double cexcess_crown = min(indiv.cexcess, 0.5 * indiv.cgrow);
+		// Put as much of possible of the rest of C excess into the crown (perennials only).
+		double clim_crown = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.5 : 0.0;
+		double cexcess_crown = min(indiv.cexcess, clim_crown * indiv.cgrow);
 		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
 						indiv.nmass_storage, pft.cton_root_min, pft.cton_root_max, cexcess_crown);
 

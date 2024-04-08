@@ -2939,9 +2939,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 
 				// determine LAI and cumulative LAI of the layer
-				lai_cum_bottom += lai_layer;                 	// cumulative LAI at the bottom of current layer
-				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  	// cumulative LAI at the middle of current layer
-				double apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), TODO: check for double counting of absorption
+				lai_cum_bottom += lai_layer;                 	    // cumulative LAI at the bottom of current layer
+				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
+				double apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), 
+				// TODO: check for double counting of absorption
 				// TODO: this needs to be replaced with fapar!!! Make sure it's consistent with fapar calculation.
 
 				// determine N scalar of the layer

@@ -408,7 +408,11 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double wcont = ppft.wcont_germ_4.mean();
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
-	double fwater = wcont > 0.9 ? wcont : 0.0;  
+	// TODO: parameterise this relationship
+	double wcont_min = 0.6;    // relative water content below which germination cannot occur
+	double wcont_max = 0.9;    // relative water content above which germination is at its maximum
+	double fwater = min(1.0,max(0.0,((wcont - wcont_min) / (wcont_max - wcont_min))));
+	
 	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates

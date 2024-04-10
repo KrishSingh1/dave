@@ -102,8 +102,8 @@
             "problemMatcher": [],
             "dependsOn": [
                 "build",
-                "update-output-path",
-                "copy-ins-files"
+                // "update-output-path",
+                // "copy-ins-files"
             ],
             "dependsOrder": "sequence"
         }

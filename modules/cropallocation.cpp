@@ -27,6 +27,7 @@ void update_patch_fpc(Patch& patch) {
 
 	Vegetation& vegetation = patch.vegetation;
 	patch.fpc_total = 0.0;
+	patch.rpc_total = 0.0;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -34,6 +35,7 @@ void update_patch_fpc(Patch& patch) {
 
 		if(indiv.growingseason()) {
 			patch.fpc_total += indiv.fpc;
+			patch.rpc_total += indiv.rpc;
 		}
 		vegetation.nextobj();
 	}

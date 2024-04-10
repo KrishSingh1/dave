@@ -178,8 +178,8 @@ void NCInput::init(void) {
 		int input_timestep = temp->get_day_length();
 		date.subdaily = separate_spinup ? input_timestep : nsteps_day;
 
-		first_timestep = temp->get_first_date();
-		final_timestep = temp->get_last_date();
+		spinup_start = first_timestep = temp->get_first_date();
+		spinup_end = final_timestep = temp->get_last_date();
 
 		// Ensure that there is at least one year of data for the spinup.
 		verify_data_length(first_timestep, final_timestep, input_timestep);
@@ -380,7 +380,6 @@ try {
 
 	climate.met_year = year;
 
-	timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
 	int co2_year = date.get_calendar_year() < spinup_start.year ? spinup_start.year : date.get_calendar_year();
 
 	// Generate daily N deposition values on first day of year.
@@ -427,6 +426,7 @@ try {
 		insols = aggregate(insols, date.subdaily, mean);
 		vpds = aggregate(vpds, date.subdaily, mean);
 		pressure = aggregate(pressure, date.subdaily, mean);
+		precs = aggregate(precs, date.subdaily, sum);
 		// If required, we can aggregate using other functions as well. E.g.
 		// precs = aggregate(precs, date.subdaily, sum);
 	}
@@ -828,8 +828,6 @@ bool NCInput::variable_exists(xtring name) const {
 }
 
 int NCInput::get_spinup_year() const {
-	timepoint spinup_start = file_met_spinup == "" ? first_timestep : temp->get_first_date();
-	timepoint spinup_end = file_met_spinup == "" ? final_timestep : temp->get_last_date();
 
 	int calendar_year = date.get_calendar_year();
 	if (calendar_year >= first_timestep.year ||

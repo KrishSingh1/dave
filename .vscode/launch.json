@@ -39,7 +39,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "build",
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Adelaide River",
@@ -76,7 +76,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "build",
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Alice Springs Mulga",

@@ -81,6 +81,8 @@ bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 bool ifapproximate_C4;
 bool ifusegdd;
+bool gzip_output;
+int nindiv_max;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -276,6 +278,8 @@ void initsettings() {
 	disturb_pasture = false;
 	grassforcrop = false;
 	useClosestNdep = false;
+	gzip_output = false;
+	nindiv_max = 0;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -616,9 +620,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
+		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 
@@ -713,12 +719,13 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
+		
+		///Dave Parameters
 		// Subdaily photosynthesis parameters
 		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
-
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
@@ -2012,6 +2019,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (ifdavegrowth) {
+				if (!itemparsed("A_growth")) {
+					ppft->A_growth = calc_a_growth(ppft);
+				}
+			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

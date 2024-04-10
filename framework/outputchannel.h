@@ -13,7 +13,20 @@
 #include <string>
 #include <vector>
 
+#ifdef COMPRESS_OUTPUT
+
+// Order of includes important to work on Windows.
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <zlib.h>
+
+#endif // COMPRESS_OUTPUT
+
 namespace GuessOutput {
+
+// An enum describes the type of an output.
+typedef enum { TEXT, NUMERIC } column_type_t;
 
 /// Describes one column in an output table
 class ColumnDescriptor {
@@ -23,7 +36,7 @@ public:
 	  *  \param width Width of column for output formats of fixed width
 	  *  \param precision Number of digits after the decimal point
 	  */
-	 ColumnDescriptor(const char* title, int width, int precision);
+	 ColumnDescriptor(const char* title, int width, int precision, column_type_t type = NUMERIC);
 
 	 /// Get the column title
 	 const std::string& title() const;
@@ -34,10 +47,15 @@ public:
 	 /// Get the column precision
 	 int precision() const;
 
+	 // Get the column type.
+	 column_type_t get_type() const;
 private:
 	 std::string t;
 	 int w;
 	 int p;
+
+	 // Type type of data outputted in this column.
+	 column_type_t column_type;
 };
 
 /// A list of column descriptors
@@ -125,6 +143,9 @@ public:
 	 /** If the table is invalid, no action is taken. */
 	 virtual void add_value(const Table& table, double d);
 
+	 /// Adds a text value to the next row of the output for a given table.
+	 virtual void add_value(const Table &table, const char *text);
+
 	 /// Finalizes the output of one row, annual output
 	 virtual void finish_row(const Table& table, double lon, double lat,
 	                         int year) = 0;
@@ -142,6 +163,9 @@ protected:
 	 /// Get the added values for the current row
 	 const std::vector<double> get_current_row(const Table& table) const;
 
+	 /// Get the added text values for the current row.
+	 const std::vector<const char *> get_current_row_text(const Table &table) const;
+
 	 /// Should be called at the end of finish_row
 	 /** Removes all values stores in memory for the current row */
 	 void clear_current_row(const Table& table);
@@ -149,6 +173,7 @@ protected:
 private:
 	 std::vector<TableDescriptor> table_descriptors;
 	 std::vector<std::vector<double> > values;
+	 std::vector<std::vector<const char *>> text_values;
 };
 
 /// An output channel for regular text files with fixed width columns
@@ -181,7 +206,7 @@ public:
 	 void finish_row(const Table& table, double lon, double lat,
 	                 int year, int day);
 
-private:
+protected:
 	 /// Help function to the two variants of finish_row above
 	 void finish_row(const Table& table, double lon, double lat,
 	                 int year, int day, bool print_day);
@@ -203,6 +228,50 @@ private:
 	 std::vector<bool> printed_header;
 };
 
+#ifdef COMPRESS_OUTPUT
+
+/// An output channel for compressed text files with fixed width columns
+/** This output channel creates one text file for each output table.
+ */
+class GZFileOutputChannel : public FileOutputChannel {
+public:
+	/// Creates a GZFileOutputChannel
+	/** \param out_dir All output files are placed in this directory.
+	 *  \param coords_precision Precision to use then printing coordinates
+	 */
+	GZFileOutputChannel(const char* out_dir, int coords_precision)
+		: FileOutputChannel(out_dir, coords_precision) {};
+
+	/// Destructor - closes all opened files
+	~GZFileOutputChannel();
+
+	/// Creates an output file
+	/** \see OutputChannel::create_table */
+	Table create_table(const TableDescriptor& descriptor);
+
+	void close_table(Table& table);
+
+	/// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year);
+
+	 /// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year, int day);
+
+private:
+	 /// Prints the values of the current row to the file
+	 /** \see OutputChannel::finish_row */
+	 void finish_row(const Table& table, double lon, double lat,
+	                 int year, int day, bool print_day);
+
+	std::vector<gzFile> gzfiles;
+};
+
+#endif // COMPRESS_OUTPUT
+
 /// A convenience class for managing the output of one row to multiple tables.
 /** At the end of the life time of an object of this class, finish_row is
  *  called for all tables that have gotten values.
@@ -222,6 +291,9 @@ public:
 	 /** \see OutputChannel::add_value */
 	 void add_value(const Table& table, double d);
 
+	 /// Adds a value to one of the tables
+	 /** \see OutputChannel::add_value */
+	 void add_value(const Table &table, const char *t);
 private:
 	 OutputChannel* out;
 	 double lon;

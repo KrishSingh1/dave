@@ -408,7 +408,7 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double wcont = ppft.wcont_germ_4.mean();
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
-	// TODO: parameterise this relationship
+	// TODO: parameterise this relationship from data
 	double wcont_min = 0.6;    // relative water content below which germination cannot occur
 	double wcont_max = 0.9;    // relative water content above which germination is at its maximum
 	double fwater = min(1.0,max(0.0,((wcont - wcont_min) / (wcont_max - wcont_min))));

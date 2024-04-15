@@ -54,7 +54,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 5.0e-6;
+const double ext_seed = 2.0e-6;
 
 // ---------------------------------
 // Grass parameters

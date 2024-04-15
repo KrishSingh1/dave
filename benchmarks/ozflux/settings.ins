@@ -131,7 +131,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            10
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -145,7 +145,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                1
+spinup_output                0
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -170,9 +170,9 @@ patch_output_stats           0
 
 vegmode "cohort"        ! "cohort", "individual" or "population"
 nyear_spinup 500        ! Number of years to spin up the simulation for
-ifcalcsla 1            ! Whether to calculate SLA from leaf longevity
+ifcalcsla 0            ! Whether to calculate SLA from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
-ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
+ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
@@ -285,7 +285,7 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-import "trees.ins"
+!import "trees.ins"
 !import "shrubberies.ins"
-import "c3g.ins"
-!import "c4g.ins"
+!import "c3g.ins"
+import "c4g.ins"

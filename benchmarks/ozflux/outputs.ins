@@ -68,9 +68,9 @@ file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capa
 !file_dave_diameter              "dave_diameter.out"             ! Stem diameter (m)
 !file_dave_density               "dave_density.out"              ! Density of individuals over patch (/m2)
 !file_dave_fpar                  "dave_fpar.out"                 ! Daily fpar [0-1]
-!file_dave_indiv_gpp             "dave_indiv_assim.out"          ! Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day))
-!file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
-!file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily NPP (kgC/m2/day)
+file_dave_indiv_gpp             "dave_indiv_assim.out"          ! Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day))
+file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
+file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily NPP (kgC/m2/day)
 !file_dave_fpc                   "dave_fpc.out"                  ! Daily FPC ()
 !file_dave_crownarea             "dave_crownarea.out"            ! Daily Crown Area (m2)
 !file_dave_agd_g                 "dave_agd_g.out"                ! Daily gross photosynthesis (gC/m2/day)
@@ -93,8 +93,8 @@ file_dave_et                    "dave_et.out"                   ! Daily indiv-le
 !file_dave_layerwise_lai         "dave_layerwise_lai.out"        ! Daily layered LAI (m2/m2)
 
 ! Daily pft-level per-patch outputs.
-!file_dave_wscal                 "dave_wscal.out"                ! Water scalar [0-1], 1 = min stress
-!file_dave_cmass_litter_repr     "dave_cmass_litter_repr.out"    ! Seedbank cmass (kgC/m2)
+file_dave_wscal                 "dave_wscal.out"                ! Water scalar [0-1], 1 = min stress
+file_dave_cmass_litter_repr     "dave_cmass_litter_repr.out"    ! Seedbank cmass (kgC/m2)
 !file_dave_nmass_litter_repr     "dave_nmass_litter_repr.out"    ! Seedbank nmass (kgN/m2)
 
 ! Subdaily indiv-level per-patch outputs.
@@ -116,11 +116,11 @@ file_dave_et                    "dave_et.out"                   ! Daily indiv-le
 !file_dave_daylength             "dave_daylength.out"            ! Daylength (hours)
 
 ! Daily patch-level outputs.
-!file_dave_soil_nmass_avail      "dave_soil_nmass_avail.out"     ! Soil N available for plant uptake (kgN/m2)
+file_dave_soil_nmass_avail      "dave_soil_nmass_avail.out"     ! Soil N available for plant uptake (kgN/m2)
 !file_dave_sw                    "dave_sw.out"                   ! Soil water content as fraction of available water holding capacity
 !file_dave_swmm                  "dave_swmm.out"                 ! Soil water content (mm)
 !file_dave_swvol                 "dave_swvol.out"                ! Volumetric soil water content (m3/m3)
-!file_dave_resp                  "dave_resp.out"                 ! Daily patch-level ecosystem respiration (gC/m2/day)
+file_dave_resp                  "dave_resp.out"                 ! Daily patch-level ecosystem respiration (gC/m2/day)
 
 !file_dave_daylength             "dave_daylength.out"            ! Daylength (hours)
 !file_dave_alpha_leaf            "dave_dalpha_leaf.out"          ! Daily leaf sink strength (0-1)
@@ -158,7 +158,7 @@ file_dave_et                    "dave_et.out"                   ! Daily indiv-le
 
 !file_dave_gpp                   "dave_gpp.out"                  ! Daily patch-level GPP (gC/m2/day)
 !file_dave_npp                   "dave_npp.out"                  ! Daily patch-level NPP (gC/m2/day)
-!file_dave_nee                   "dave_nee.out"                  ! Daily NEE (gC/m2/day)
+file_dave_nee                   "dave_nee.out"                  ! Daily NEE (gC/m2/day)
 !file_dave_cmass_repr            "dave_cmass_repr.out"           ! Daily pft-level cmass_repr
 !file_dave_daylength             "dave_daylength.out"            ! Daily patch-level day-length (h)
 !file_dave_dsimfire              "dave_dsimfire.out"             ! Daily simfire analysis

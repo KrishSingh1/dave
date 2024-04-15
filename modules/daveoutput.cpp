@@ -156,6 +156,9 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_dturnover_leaf"      , DAILY, [](const Individual &i) { return i.cturnover_leaf; }, "daily leaf C turnover flux (kgC/m2/day)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dturnover_root"      , DAILY, [](const Individual &i) { return i.cturnover_root; }, "daily root C turnover flux (kgC/m2/day)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dturnover_sap"       , DAILY, [](const Individual &i) { return i.cturnover_sap; }, "daily sapwood C turnover flux (kgC/m2/day)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_anc_frac"            , DAILY, [](const Individual &i) { return i.anc_frac; }, "Daily anc as fraction of total daily photosynthesis (0-1)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_anj_frac"            , DAILY, [](const Individual &i) { return i.anj_frac; }, "Daily anj as fraction of total daily photosynthesis (0-1)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_anp_frac"            , DAILY, [](const Individual &i) { return i.anp_frac; }, "Daily anp as fraction of total daily photosynthesis (0-1)", mean, false, false);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.

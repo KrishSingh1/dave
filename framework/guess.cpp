@@ -1746,6 +1746,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cton_leaf_opt				= 0.0;
 	nday_leafon					= 0.0;
 
+	anc_frac                    = 0.0;
+	anj_frac                    = 0.0;
+	anp_frac                    = 0.0;
+
 	initialn = 0.0;
 	leaf_out = false;
 	leaf_senesced = false;

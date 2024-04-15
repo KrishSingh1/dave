@@ -731,7 +731,7 @@ public:
 			Rd.push_back(0.0);
 			An.push_back(0.0);
 			Anc.push_back(0.0);
-			Anj.push_back(0.0);     
+			Anj.push_back(0.0);
 			gsw.push_back(0.0);   
 			ci.push_back(0.0);
 		}
@@ -3238,6 +3238,11 @@ public:
 
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
+
+	// Fraction of total photosynthesis limited by Anc and Anj, respectively.
+	double anc_frac;
+	double anj_frac;
+	double anp_frac;
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */

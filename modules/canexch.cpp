@@ -2887,6 +2887,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.rd_g = 0.0;
 		indiv.photosynthesis.je = 0.0;
 
+		double an_total = 0;
+		indiv.anc_frac = 0;
+		indiv.anj_frac = 0;
+		indiv.anp_frac = 0;
+
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
 
@@ -2896,6 +2901,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double Ag_canopy = 0.0;
 			double Anc_canopy = 0.0;
 			double Anj_canopy = 0.0;
+			double Anp_canopy = 0.0;
 			double gsw_canopy = 0.0;
 			double ci_canopy = 0.0;
 			double vcmax_canopy = 0.0;
@@ -3120,17 +3126,38 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				}  // end photosynthetic pathway switch
 
+				// TODO drew: multiply by LAI only once, after canopy loop.
+
 				// sum variables over canopy layers
 				Rd_canopy  += Rd * lai_layer;
 				An_canopy  += An * lai_layer;
 				Ag_canopy  += (An + Rd) * lai_layer;
 				Anc_canopy += Anc * lai_layer;
 				Anj_canopy += Anj * lai_layer;
+				Anp_canopy += Anp * lai_layer;
 				gsw_canopy += (gsc * DWDC) * lai_layer;
 				ci_canopy  += ci * lai_layer;
 				vcmax_canopy += vcmax * lai_layer;
 				jmax_canopy  += jmax * lai_layer;
-				
+
+				if (Anc < Anj && Anc < Anp) {
+					// Anc-limited
+					Anc = max(0.0, Anc);
+					double anc_layer = Anc * lai_layer;
+					indiv.anc_frac += anc_layer;
+					an_total += anc_layer;
+				} else if (Anj < Anc && Anj < Anp) {
+					// anj-limited
+					Anj = max(0.0, Anj);
+					double anj_layer = Anj * lai_layer;
+					indiv.anj_frac += anj_layer;
+					an_total += anj_layer;
+				} else if (Anp < Anc && Anp < Anj) {
+					Anp = max(0.0, Anp);
+					double anp_layer = Anp * lai_layer;
+					indiv.anp_frac += anp_layer;
+					an_total += anp_layer;
+				}
 			} // end canopy layer loop
 
 			// calculate mean for some variables
@@ -3154,6 +3181,23 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.photosynthesis.je    += indiv.ps_subdaily.Anj[day.period];
 
 		} // end subdaily loop
+
+		if (an_total > 0) {
+			indiv.anc_frac /= an_total;
+			indiv.anj_frac /= an_total;
+			indiv.anp_frac /= an_total;
+		}
+
+		assert(indiv.anc_frac <= 1.0);
+		assert(indiv.anj_frac <= 1.0);
+		assert(indiv.anp_frac <= 1.0);
+		assert(indiv.anc_frac >= 0.0);
+		assert(indiv.anj_frac >= 0.0);
+		assert(indiv.anp_frac >= 0.0);
+
+		if (an_total > 0) {
+			assert(equal(indiv.anc_frac + indiv.anj_frac + indiv.anp_frac, 1.0));
+		}
 
 		// Calculate daily means for the PhotosynthesisResult Structure that goes to output
 		indiv.photosynthesis.agd_g /= date.subdaily;

@@ -3259,7 +3259,7 @@ double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, doub
 
 
 // Calculate electron transport rate from PAR
-// e.g. von Caemmerer 2013
+// e.g. von Caemmerer 2013 (Plant, Cell and Environment)
 double electron_transport_rate(double PAR,double Jmax) {
 
 	/// Inputs
@@ -3267,9 +3267,10 @@ double electron_transport_rate(double PAR,double Jmax) {
     // Jmax = max. electron transport rate (mol m-2 s-1)
 
 	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
-	double alpha = 0.3; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
-						// value from Medlyn et al. 2002
-						// von Caemmerer 2013: ~0.36
+	double alpha = 0.36125; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
+						    // value from von Caemmerer 2013 (Plant, Cell and Environment) 
+						    // Medlyn et al. 2002 (Plant, Cell and Environment): 0.3
+							// Note that alpha accounts for leaf light absorptance.
 	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
 				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  
 

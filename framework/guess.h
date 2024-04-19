@@ -3196,9 +3196,8 @@ public:
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-	/// layer-wise fpar (see fpar description)
-	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	std::vector<double> fpar_layerwise;
+	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
+	std::vector<double> fipar_layerwise;
 
 	/// layer-wise lai (see lai description).
 	/// I've opted not to serialise this, as it's reinitialised each day.

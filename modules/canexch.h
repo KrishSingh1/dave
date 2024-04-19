@@ -222,9 +222,15 @@ const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
-inline double lambertbeer(double lai) {
-	return exp(-.5 * lai);
+inline double lambertbeer(double lai, double k=0.5) {
+	return exp(-k * lai);
 }
+
+// Leaf transmission coefficient (Sands, 1995)
+const double m_trans = 0.0;
+
+// Light extinction coefficient used for grasses in ifdavephotosyn
+const double k_beer_grass = 0.5;
 
 /// Alternative parameterisations of the convective boundary layer
 /**

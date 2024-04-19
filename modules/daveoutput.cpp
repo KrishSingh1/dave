@@ -166,7 +166,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
 
 	// Daily individual-level array outputs.
-	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");
+	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise[i]; }, "Daily layered fpar [0-1]");
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");
 
 	// Daily pft-level per-patch outputs.

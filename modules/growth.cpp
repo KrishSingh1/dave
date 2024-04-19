@@ -705,7 +705,12 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		Individual& indiv = vegetation.getobj();
 
 		// For this individual ...
-		indiv.phen = patch.pft[indiv.pft.id].phen;
+		if (!(indiv.pft.is_grass() && ifdavegrowth && ifdailygrass)) {
+			indiv.phen = patch.pft[indiv.pft.id].phen;
+		} else {
+			// Dave daily grass - phenology accounted for elsewhere.
+			indiv.phen = 1.0;
+		}
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day == 0) indiv.aphen_raingreen = 0;
@@ -1536,6 +1541,9 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// note: don't set growth_stage here as it could change the status of an already established plant.
 			// indiv.growth_stage = vegetative;
 
+			// Need nonzero LAI for fapar calculation.
+			indiv.alive = true;
+			allometry(indiv);
 		} else {
 			indiv.cmass_storage += cmass_init;
 		 	indiv.nmass_storage += nmass_init;

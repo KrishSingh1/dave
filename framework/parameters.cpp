@@ -79,6 +79,7 @@ bool ifdavephotosyn;
 bool ifdavegrowth;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
+bool ifevenlaidist;
 bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
@@ -620,6 +621,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses.");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");

@@ -627,6 +627,7 @@ void establishment_daily(Patch& patch) {
 								continue;
 							}
 						}
+
 						// Establish new individual.
 						Individual& individual = vegetation.createobj(pft, vegetation);
 						indiv = &individual; // & gets address of the variable (* is the opposite)
@@ -648,6 +649,7 @@ void establishment_daily(Patch& patch) {
 						indiv->age=0.0;
 						indiv->nscal_5.add(1.0);
 						indiv->growth_stage = vegetative;
+						indiv->frac_germ = frac_germ;
 					} else {
 						// If there is already an individual, then:
 						// 1) reduce germination rate by fpc in the vegetative phase. I.e. do not grow new plants in space

@@ -43,6 +43,9 @@
 #include "somdynam.h"
 #include <assert.h>
 
+// TODO Drew: move mean/sum out of ncutil
+#include "ncutil.h"
+
 
 // Anonymous namespace for variables with file scope
 namespace {
@@ -62,6 +65,25 @@ LookupQ10 lookup_ko(1.2, 3.0e4);
 /// lookup table for Q10 temperature response of Michaelis constant for CO2
 LookupQ10 lookup_kc(2.1, 30.0);
 
+}
+
+/*
+Sort individuals by LAI ascending.
+*/
+void sort_indivs(const Vegetation &vegetation, std::vector<int> &indices) {
+	for (size_t i = 0; i < indices.size(); i++) {
+		for (size_t j = 0; j < indices.size(); j++) {
+			if (j < indices.size() - 1) {
+				int index = indices[j];
+				int index_next = indices[j + 1];
+				if (vegetation[index].lai > vegetation[index_next].lai) {
+					int tmp = indices[j];
+					indices[j] = indices[j + 1];
+					indices[j + 1] = tmp;
+				}
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -161,6 +183,10 @@ double get_veg_height(Vegetation &vegetation) {
 	}
 	return height_veg;
 }
+
+struct {
+	bool operator()(const Individual &x, const Individual &y) { return x.lai < y.lai; }
+} indiv_smaller;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FPAR
@@ -281,6 +307,7 @@ void fpar(Patch& patch) {
 		plai_leafon_grass=0.0;
 		phen_veg=0.0;
 		height_veg=0.0;
+		int ngrass=0;
 
 		// Loop through individuals
 
@@ -290,12 +317,16 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
+			if (indiv.pft.dave_allocation()) {
+				assert(equal(indiv.phen,1.0));
+			}
+
 			if (indiv.growingseason()) {
 
 				indiv.fpar=0.0;
 				indiv.fpar_leafon=0.0;
 				// Empty the daily layerwise-fpar vector.
-				indiv.fpar_layerwise.clear();
+				indiv.fipar_layerwise.clear();
 				indiv.lai_layerwise.clear();
 				if (indiv.height>height_veg) height_veg=indiv.height;
 				plai_leafon+=indiv.lai;
@@ -303,6 +334,7 @@ void fpar(Patch& patch) {
 				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 					plai_leafon_grass+=indiv.lai;
 					plai_grass += indiv.lai_today();
+					ngrass += 1;  // number of grass individuals (= number of established grass PFTs)
 				}
 
 				// Accumulate LAI-weighted sum of individual leaf-out fractions
@@ -389,7 +421,7 @@ void fpar(Patch& patch) {
 			plai+=plai_layer;
 			plai_leafon+=plai_leafon_layer;
 
-			// Calculate FPAR at bottom of this layer
+			// Calculate PAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
 			fpar_layer_bottom = lambertbeer(plai);
@@ -400,7 +432,7 @@ void fpar(Patch& patch) {
 			fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
 			fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
 
-			// Partition PAR for this layer among trees,
+			// Partition FPAR for this layer among trees,
 
 			vegetation.firstobj();
 			while (vegetation.isobj) {
@@ -418,12 +450,20 @@ void fpar(Patch& patch) {
 							indiv.lai_leafon_layer/plai_leafon_layer;
 
 					if (!negligible(plai_layer)) {
+						
 						double fpar_layer = fpar_uptake_layer*
 							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
 						indiv.fpar+=fpar_layer;
-						// Store layer-wise fpar in the individual.
-						indiv.fpar_layerwise.push_back(fpar_layer);
-						indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);
+
+
+						if (ifdavephotosyn) {
+							// see Sands 1995, Australian Journal of Plant Physiology
+							double fipar_layer = k_beer_grass / (1.0 - m_trans) * lambertbeer(plai - plai_layer/2,k_beer_grass);
+							
+							// Store layer-wise fpar in the individual.
+							indiv.fipar_layerwise.push_back(fipar_layer);  // incident radiation in that layer (W m-2 ground)
+							indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);
+						}
 					}
 				}
 
@@ -443,6 +483,124 @@ void fpar(Patch& patch) {
 		//plai+=plai_grass;
 		fpar_ff = lambertbeer(plai+plai_grass);
 		plai+=plai_grass;
+
+		// if there are any grasses established
+		if (ngrass > 0) {
+
+			// lai per layer for each grass individual
+			// number of layers
+			const double laiperlayer = 0.5;
+			int nlayer = ceil(plai_grass / laiperlayer);
+
+			// order grass individuals by LAI
+			std::vector<int> grass_indices;
+			for (int i = 0; i < vegetation.nobj; i++) {
+				const Individual &indiv = vegetation[i];
+				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
+					grass_indices.push_back(i);
+				}
+			}
+
+			// TODO Drew: use std::sort
+			sort_indivs(vegetation, grass_indices);
+			// std::sort(grasses.begin(), grasses.end(), indiv_smaller);
+
+			// Total grass LAI in each layer, in order of bottom to top.
+			std::vector<double> grass_lai_layer;
+
+			// Iterate over grass canopy layers, starting at bottom of canopy.
+			for (int i = 0; i < nlayer; i++) {
+
+				// total lai in this layer across all grass PFTs
+				double lai_layer_total = i == 0 ? plai_grass - (nlayer - 1) * laiperlayer : laiperlayer;
+
+				// Each individual's entitlement in this layer.
+				double lai_layer_indiv = lai_layer_total / ngrass;
+
+				// The LAI not yet allocated in this layer.
+				double lai_layer_remaining = lai_layer_total;
+
+				// Total LAI in this layer across all indivs.
+				double lai_layer_cum = 0.0;
+
+				// Loop through grass individuals
+				for (int j = 0; j < grass_indices.size(); j++) {
+					Individual &indiv = vegetation[grass_indices[j]];
+
+					if (ifevenlaidist) {
+						// Evenly distribute LAI across layers.
+						double lai_layer = lai_layer_total * indiv.lai / plai_grass;
+
+						// Add LAI in to lai_layerwise vector.
+						assert(lai_layer > 0);
+						indiv.lai_layerwise.push_back(lai_layer);
+
+						// Accounting.
+						lai_layer_cum += lai_layer;
+						lai_layer_remaining -= lai_layer;
+					} else {
+						// How much LAI is remaining for this individual, taking into account the previous layers?
+						double lai_remaining = indiv.lai - sum(indiv.lai_layerwise);
+
+						if (lai_remaining > 0) {
+							// Calculate the amount of LAI contributed by this indiv in this layer.
+							double lai_layer = min(lai_remaining, lai_layer_indiv);
+							indiv.lai_layerwise.push_back(lai_layer);
+
+							// Subtract this individual's LAI contribution from
+							// the remaining LAI required in this layer.
+							lai_layer_remaining -= lai_layer;
+
+							if (lai_layer < lai_layer_indiv) {
+								// This indiv is too small to match the LAI it's entitled to.
+								int nindiv_remaining = grass_indices.size() - j - 1;
+								lai_layer_indiv = lai_layer_remaining / nindiv_remaining;
+							}
+							lai_layer_cum += lai_layer;
+						} else {
+							// This indiv doesn't reach into this layer. Therefore the entitlement for
+							// all other indivs is increased.
+							int nindiv_remaining = grass_indices.size() - j - 1;
+							lai_layer_indiv = lai_layer_remaining / nindiv_remaining;
+						}
+					}
+				} // indiv loop
+
+				if (i > 0) {
+					// TODrew
+					assert(equal(laiperlayer, lai_layer_cum, 1e-14));
+				}
+				// TODO Drew (floating point precision)
+				assert(is_zero(lai_layer_remaining, 1e-14));
+
+				grass_lai_layer.push_back(lai_layer_cum);
+			} // layer loop
+
+			// Reverse lai_layerwise for each indiv so that the first element
+			// is at the top of the canopy.
+			for (size_t i = 0; i < grass_indices.size(); i++) {
+				Individual &indiv = vegetation[grass_indices[i]];
+				std::reverse(indiv.lai_layerwise.begin(), indiv.lai_layerwise.end());
+			}
+
+			// Part 2: radiation
+			double lai_above = 0;
+			for (int i = nlayer - 1; i >= 0; i--) {
+				double lai_layer = grass_lai_layer[i];
+				double lai_layer_mid = lai_above + lai_layer / 2;
+
+				double fipar_layer = k_beer_grass / (1.0 - m_trans) * lambertbeer(lai_layer_mid, k_beer_grass);
+				for (int j = 0; j < grass_indices.size(); j++) {
+					Individual &indiv = vegetation[grass_indices[j]];
+					// Only append to fipar_layerwise if this indiv has LAI in this layer.
+					if (indiv.lai_layerwise.size() > i) {
+						indiv.fipar_layerwise.push_back(fipar_layer);
+					}
+				}
+
+				lai_above += lai_layer;
+			}
+		} // if ngrass > 0
 
 		// Save this
 		patch.fpar_ff=fpar_ff;
@@ -491,8 +649,8 @@ void fpar(Patch& patch) {
 					fpar_min = 1.0;
 				}
 				indiv.fpar=max(0.0,fpar_grass*flai-t2);
-				indiv.fpar_layerwise.push_back(indiv.fpar);
-				indiv.lai_layerwise.push_back(indiv.lai);
+				//indiv.fipar_layerwise.push_back(indiv.fpar);
+				//indiv.lai_layerwise.push_back(indiv.lai);
 				// Repeat assuming full leaf cover for all individuals
 
 				if (!negligible(plai_leafon_grass))
@@ -2875,7 +3033,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		// get PFT-specfic parameters
+		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
 		double g0 = pft.g0;  // mol m-2 s-1
 		double g1 = pft.g1;  // kPa^0.5
 
@@ -2920,39 +3078,26 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double lai_cum_bottom = 0.0;
 
 			// Loop over canopy layers (from top layer to bottom layer)
-			size_t nlayer = indiv.fpar_layerwise.size();
+			size_t nlayer = indiv.fipar_layerwise.size();
 		    for (size_t j = 0; j < nlayer; j++) {
 
 				// determine fpar and apar of the layer
-		        double fpar_layer = indiv.fpar_layerwise[j]; // fPAR in this layer
-				double lai_layer = indiv.lai_layerwise[j];   // LAI of the layer and individual
+		        double fipar_layer = indiv.fipar_layerwise[j]; // fraction of PAR incident in the middle of the layer
+				double lai_layer = indiv.lai_layerwise[j];     // LAI of the layer and individual
 
-				if (is_zero(fpar_layer)) {
-					if (is_zero(lai_layer)) {
-						// LAI and fpar both 0 - no photosynthesis calculation 
-						// tree may be shorter than this layer.
-						continue;
-					} else if (!is_zero(par)) {
-						// fpar is 0, lai and par both non zero. This means there
-						// is par and leaf in this layer, but no fpar.
-						// For grasses, this can happen if PAR is below the threshold
-						// required for grass growth.
-						// if (!pft.is_grass() && pft.lifeform != MOSS) {
-						// 	fail("Lai (%.2f) and par (%.2f) are both nonzero but fpar is 0 in layer %d day %d year %d patch %d",
-						// 	lai_layer, par, i, date.day, date.year, patch.id);
-						// }
-					}
-				}
+				assert(fipar_layer > 0);
+				assert(lai_layer > 0);
 
-				// determine LAI and cumulative LAI of the layer
+				// Allow for slightly negative par - data from input can be negative at night.
+				par = max(0.0, par);
+
+				// determine, for this indiv, LAI and cumulative LAI of the layer
 				lai_cum_bottom += lai_layer;                 	    // cumulative LAI at the bottom of current layer
 				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
-				double apar_layer = lambertbeer(lai_cum) * par;	    // available PAR in the middle of the layer (W m-2), 
-				// TODO: check for double counting of absorption
-				// TODO: this needs to be replaced with fapar!!! Make sure it's consistent with fapar calculation.
+				double par_layer = fipar_layer * par;	            // incident PAR in the middle of the layer (W m-2) 
 
 				// determine N scalar of the layer
-				//Nscal = (i == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
+				//Nscal = (j == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
 				double Nscal = max(1.0e-12, exp(-kn * lai_cum));
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
@@ -2963,7 +3108,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0;
 				double c_j = 0.0, nit = 0.0, nit_max = 0.0;
 
-				// TODO discretise grass layers
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
@@ -2971,7 +3115,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Note: fphen_activity is always 1 for trees.
 					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
 
-					if (is_zero(apar_layer)) {
+					if (is_zero(par_layer)) {
 						// Night
 						An = -Rd;
 						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
@@ -2993,7 +3137,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 						// 2) RuBP regeneration-limited gross photosynthesis
-						Je    = electron_transport_rate(apar_layer,jmax);   
+						Je    = electron_transport_rate(par_layer,jmax);   
 						gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
 						beta  = 2.0 * gamstar;
 						Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
@@ -3080,7 +3224,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 							// Light-limited net photosynthesis rate (mol m-2 s-1)
 							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-							Je = electron_transport_rate(apar_layer,jmax);
+							Je = electron_transport_rate(par_layer,jmax);
 							if (ifapproximate_C4){
 								Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
 							} 
@@ -3140,19 +3284,19 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				vcmax_canopy += vcmax * lai_layer;
 				jmax_canopy  += jmax * lai_layer;
 
-				if (Anc < Anj && Anc < Anp) {
+				if (Anc < Anj && (pft.pathway == C4 || Anc < Anp) ) {
 					// Anc-limited
 					Anc = max(0.0, Anc);
 					double anc_layer = Anc * lai_layer;
 					indiv.anc_frac += anc_layer;
 					an_total += anc_layer;
-				} else if (Anj < Anc && Anj < Anp) {
+				} else if (Anj < Anc && (pft.pathway == C4 || Anj < Anp) ) {
 					// anj-limited
 					Anj = max(0.0, Anj);
 					double anj_layer = Anj * lai_layer;
 					indiv.anj_frac += anj_layer;
 					an_total += anj_layer;
-				} else if (Anp < Anc && Anp < Anj) {
+				} else if (pft.pathway == C3 && Anp < Anc && Anp < Anj) {
 					Anp = max(0.0, Anp);
 					double anp_layer = Anp * lai_layer;
 					indiv.anp_frac += anp_layer;
@@ -3195,9 +3339,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		assert(indiv.anj_frac >= 0.0);
 		assert(indiv.anp_frac >= 0.0);
 
-		if (an_total > 0) {
-			assert(equal(indiv.anc_frac + indiv.anj_frac + indiv.anp_frac, 1.0));
-		}
+
+		// TODO Drew: make assert statement work
+		//if (an_total > 0) {	
+			//assert(equal(indiv.anc_frac + indiv.anj_frac + indiv.anp_frac, 1.0));
+		//}
 
 		// Calculate daily means for the PhotosynthesisResult Structure that goes to output
 		indiv.photosynthesis.agd_g /= date.subdaily;

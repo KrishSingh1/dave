@@ -496,7 +496,7 @@ void fpar(Patch& patch) {
 			std::vector<int> grass_indices;
 			for (int i = 0; i < vegetation.nobj; i++) {
 				const Individual &indiv = vegetation[i];
-				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
+				if ( (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) && indiv.lai > 0) {
 					grass_indices.push_back(i);
 				}
 			}
@@ -532,7 +532,6 @@ void fpar(Patch& patch) {
 						double lai_layer = lai_layer_total * indiv.lai / plai_grass;
 
 						// Add LAI in to lai_layerwise vector.
-						assert(lai_layer > 0);
 						indiv.lai_layerwise.push_back(lai_layer);
 
 						// Accounting.

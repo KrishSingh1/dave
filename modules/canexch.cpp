@@ -307,7 +307,6 @@ void fpar(Patch& patch) {
 		plai_leafon_grass=0.0;
 		phen_veg=0.0;
 		height_veg=0.0;
-		int ngrass=0;
 
 		// Loop through individuals
 
@@ -334,7 +333,6 @@ void fpar(Patch& patch) {
 				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 					plai_leafon_grass+=indiv.lai;
 					plai_grass += indiv.lai_today();
-					ngrass += 1;  // number of grass individuals (= number of established grass PFTs)
 				}
 
 				// Accumulate LAI-weighted sum of individual leaf-out fractions
@@ -484,6 +482,19 @@ void fpar(Patch& patch) {
 		fpar_ff = lambertbeer(plai+plai_grass);
 		plai+=plai_grass;
 
+		// order grass individuals by LAI
+		std::vector<int> grass_indices;
+		for (int i = 0; i < vegetation.nobj; i++) {
+			const Individual &indiv = vegetation[i];
+			if ( (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) && indiv.lai > 0) {
+				grass_indices.push_back(i);
+			}
+		}
+
+		// Number of grass individuals (number of established grass PFTs) with
+		// non-zero LAI.
+		int ngrass = grass_indices.size();
+
 		// if there are any grasses established
 		if (ngrass > 0) {
 
@@ -491,15 +502,6 @@ void fpar(Patch& patch) {
 			// number of layers
 			const double laiperlayer = 0.5;
 			int nlayer = ceil(plai_grass / laiperlayer);
-
-			// order grass individuals by LAI
-			std::vector<int> grass_indices;
-			for (int i = 0; i < vegetation.nobj; i++) {
-				const Individual &indiv = vegetation[i];
-				if ( (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) && indiv.lai > 0) {
-					grass_indices.push_back(i);
-				}
-			}
 
 			// TODO Drew: use std::sort
 			sort_indivs(vegetation, grass_indices);

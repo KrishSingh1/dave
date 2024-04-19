@@ -1697,6 +1697,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
 	cmass_crown       = 0.0;
+	aet               = 0.0;
 	cmass_repr        = 0.0;
 	cmass_struct      = 0.0;
 	cmass_sap         = 0.0;

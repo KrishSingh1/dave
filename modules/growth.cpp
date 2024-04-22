@@ -60,8 +60,8 @@ const double ext_seed = 2.0e-6;
 // Grass parameters
 // ---------------------------------
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
-const double cstorage_max_temp = 0.2;  // leaves and roots
-const double cstorage_max_perm = 0.5;  // crowns
+const double cstorage_max_temp = 0.3;   // leaves and roots
+const double cstorage_max_perm = 0.75;  // crowns
 
 // Fraction of C storage not available for growth.
 const double frac_cstorage_res = 0.15;
@@ -4599,7 +4599,7 @@ void turnover_dave_grass(Individual &indiv) {
 	Patchpft &ppft = patch.pft[indiv.pft.id];
 
 	// Parameters
-	double kleaf = 0.05;
+	double kleaf = 0.02;
 
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!

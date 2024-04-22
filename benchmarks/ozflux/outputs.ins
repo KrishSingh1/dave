@@ -36,6 +36,7 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_aaet                  "dave_aaet.out"                 ! Annual actual evapotranspiration (mm)
 !file_dave_adensity              "dave_adensity.out"             ! Annual density of individuals over patch (/m2)
 !file_dave_altor                 "dave_altor.out"                ! Annual leaf to root ration (unitless)
+!file_dave_anuptake              "dave_anuptake.out"             ! Total annual nitrogen uptake (kgN/m2/year)
 
 ! Annual pft-level per-patch outputs.
 !file_dave_anpp                  "dave_anpp.out"                 ! Total individual-level Annual NPP (kgC/m2/year)
@@ -69,7 +70,9 @@ file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capa
 !file_dave_density               "dave_density.out"              ! Density of individuals over patch (/m2)
 !file_dave_fpar                  "dave_fpar.out"                 ! Daily fpar [0-1]
 !file_dave_indiv_gpp             "dave_indiv_assim.out"          ! Daily net C assimilation (gross photosynthesis minus leaf respiration (kgC/m2/day))
-!file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
+!file_dave_resp_autotrophic      "dave_resp_auto.out"            ! Daily autotrophic respiration (gC/m2/day)  (Note: this does NOT include leaf respiration, as this is already accounted for in gpp!)
+!file_dave_resp_maintenance      "dave_resp_maintenance.out"     ! Daily maintenance respiration (gC/m2/day)
+!file_dave_resp_growth           "dave_resp_growth.out"          ! Daily growth respiration (gC/m2/day)
 !file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily NPP (kgC/m2/day)
 !file_dave_fpc                   "dave_fpc.out"                  ! Daily FPC ()
 !file_dave_crownarea             "dave_crownarea.out"            ! Daily Crown Area (m2)
@@ -147,6 +150,7 @@ file_dave_et                    "dave_et.out"                   ! Daily indiv-le
 !file_dave_anc_frac              "dave_anc_frac.out"             ! Daily anc as fraction of total daily photosynthesis (0-1)
 !file_dave_anj_frac              "dave_anj_frac.out"             ! Daily anj as fraction of total daily photosynthesis (0-1)
 !file_dave_anp_frac              "dave_anp_frac.out"             ! Daily anp as fraction of total daily photosynthesis (0-1)
+!file_dave_dnuptake              "dave_dnuptake.out"             ! Total daily nitrogen uptake (kgN/m2/day)
 
 ! Daily individual-level fluxes.
 !file_dave_dturnover_leaf        "dave_dturnover_leaf.out"       ! daily leaf C turnover flux (kgC/m2/day)

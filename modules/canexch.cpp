@@ -2359,7 +2359,8 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
 	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
-	double growth, double fphen_activity, double assim, double& resp) {
+	double growth, double fphen_activity, double assim, double resp_leaf,
+	double& resp, double &resp_maintenance, double &resp_growth) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2384,10 +2385,14 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2)
 	// cmass_root = fine root C biomass on grid cell area basis (kgC/m2)
 	// assim      = net assimilation on grid cell area basis (kgC/m2/day)
+	// resp_leaf  = leaf respiration today (kgC/m2)
 
 	// OUTPUT PARAMETER
-	// resp       = sum of maintenance and growth respiration on grid cell area basis
+	// resp       = sum of maintenance and growth respiration on grid cell area
+	//              basis (kgC/m2/day)
+	// resp_maintenance = sum of maintenance respiration on grid cell area basis
 	//              (kgC/m2/day)
+	// resp_growth= growth respiration (kg/m2)
 
 	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed:
 	// const double K=0.0548; // OLD value
@@ -2398,7 +2403,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double resp_root = 0;   // root respiration (kg/m2/day)
 	double resp_crown = 0;  // crown respiration (kg/m2/day)
 	double resp_repr = 0;   // reproductive respiration (kg/m2/day)
-	double resp_growth = 0; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -2477,10 +2481,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		// guess2008 - disallow negative growth respiration
 		// (following a comment (060823) from Annett Wolf)
 		if(resp_growth < 0.0) resp_growth = 0.0;
-
-		// Total respiration is sum of maintenance and growth respiration
-
-		resp = resp_sap + resp_root + resp_growth;
 	}
 	else if (lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL || lifeform == MOSS) {
 
@@ -2523,9 +2523,17 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Total respiration (see above)
 
-		resp = resp_root + resp_crown + resp_repr + resp_growth;
 	}
 	else fail ("Canopy exchange function respiration: unknown life form");
+
+	// Maintenance respiration the same for all pfts.
+	// resp_sap will be 0 for grasses.
+	// resp_crown will be 0 for trees.
+	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
+	
+	// Total respiration is sum of maintenance and growth respiration.
+	// TODO: should leaf respiration be included in autotrophic respiration?
+	resp = resp_root + resp_crown + resp_repr + resp_sap + resp_growth;
 }
 
 /// Net Primary Productivity
@@ -2634,7 +2642,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0, assim, resp);
+			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
+			indiv.photosynthesis.rd_g, assim, resp, indiv.resp_maintenance,
+			indiv.resp_growth);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -3540,7 +3550,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
-			assim, resp);
+			indiv.photosynthesis.rd_g, assim, resp, indiv.resp_maintenance,
+			indiv.resp_growth);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

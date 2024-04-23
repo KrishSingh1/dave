@@ -757,6 +757,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		// (negative value = immobilisation)
 		if (tot_net_min + nmin_mass + EPS >= 0.0) {
 
+			soil.net_mineralisation = tot_net_min;
 			net_mineralization = true;
 		}
 		else if (!ifnlim) {
@@ -814,6 +815,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		// Sum annual organic nitrogen leaching
 
 		soil.aorgNleach += leachsum_nmass;
+		soil.dorgNleach =  leachsum_nmass;
 
 		// Sum annual organic carbon leaching
 
@@ -1217,6 +1219,7 @@ void leaching(Soil& soil) {
 
 		soil.nmass_subtract(leaching,NO3);
 		soil.aminleach += leaching;
+		soil.dminleach =  leaching;
 	}
 
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {

@@ -39,6 +39,12 @@ void Soil::init_states() {
 	snowpack = 0.0;
 	orgleachfrac = 0.0;
 
+	net_mineralisation = 0.0;
+	dminleach          = 0.0;
+	dorgNleach         = 0.0;
+	nvol               = 0.0;
+	nloss_gas          = 0.0;
+
 	// Extra initialisation
 	aorgCleach = 0.0;
 	aorgNleach = 0.0;
@@ -1232,6 +1238,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	patch.awetland_water_added += patch.wetland_water_added_today;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
+	patch.evap = evap;
 
 	patch.maet[date.month] += aet_total;
 	patch.mevap[date.month] += evap;

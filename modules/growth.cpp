@@ -3107,14 +3107,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);
 
-	// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
-	indiv.cgrow = 0.0;
-	indiv.cexcess = 0.0;
-	indiv.nexcess = 0.0;
-	indiv.nmass_missing = 0.0;
-	indiv.ctolitter = 0;
-	indiv.ntolitter = 0;
-
 	if (indiv.dnpp >= 0.0) {
 		
 		// Positive NPP
@@ -4629,6 +4621,7 @@ void turnover_dave_grass(Individual &indiv) {
 		indiv.cmass_leafs[brown]  -= cturnover_leaf;
 		ppft.cmass_litter_leaf    += cturnover_leaf;
 		indiv.ctolitter           += cturnover_leaf;
+		indiv.ctolitter_leaf      =  cturnover_leaf; // Diagnostic output
 
 
 
@@ -4638,7 +4631,7 @@ void turnover_dave_grass(Individual &indiv) {
 		indiv.nmass_leafs[brown]   -= nturnover_leaf;
 		ppft.nmass_litter_leaf     += nturnover_leaf;
 		indiv.ntolitter            += nturnover_leaf;
-
+		indiv.ntolitter_leaf       =  nturnover_leaf; // Diagnostic output
 	}
 
 	// Crown turnover
@@ -4651,6 +4644,7 @@ void turnover_dave_grass(Individual &indiv) {
 		indiv.cmass_crown        -= cturnover_crown;
 		ppft.cmass_litter_root   += cturnover_crown;
 		indiv.ctolitter          += cturnover_crown;
+		indiv.ctolitter_crown    =  cturnover_crown; // Diagnostic output
 
 		// Nitrogen (including retranslocation)
 		double nturnover_crown = indiv.nmass_crown * frac_turnover_crown;
@@ -4666,6 +4660,7 @@ void turnover_dave_grass(Individual &indiv) {
 		ppft.nmass_litter_root   += ntolitter;
 		indiv.nmass_storage      += nstore;
 		indiv.ntolitter          += ntolitter;
+		indiv.ntolitter_crown    = ntolitter; // Diagnostic output
 
 		assert(equal(nturnover_crown, nstore + ntolitter));
 	}
@@ -4682,7 +4677,7 @@ void turnover_dave_grass(Individual &indiv) {
 		indiv.cmass_root        -= cturnover_root;
 		ppft.cmass_litter_root  += cturnover_root;
 		indiv.ctolitter         += cturnover_root;
-
+		indiv.ctolitter_root    =  cturnover_root; // Diagnostic output
 
 		// Nitrogen (including retranslocation)
 		double nturnover_root = indiv.nmass_root * frac_turnover_root;
@@ -4697,6 +4692,7 @@ void turnover_dave_grass(Individual &indiv) {
 		indiv.nmass_root        -= nturnover_root;
 		ppft.nmass_litter_root  += ntolitter;
 		indiv.ntolitter         += ntolitter;
+		indiv.ntolitter_root    =  ntolitter; // Diagnostic output
 
 		indiv.nmass_storage     += nstore;
 
@@ -5405,6 +5401,28 @@ void annual_accounting_dave(Vegetation& vegetation) {
 	}
 }
 
+void growth_daily_accounting_dave(Vegetation &vegetation) {
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+
+		// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
+		indiv.cgrow           = 0.0;
+		indiv.cexcess         = 0.0;
+		indiv.nexcess         = 0.0;
+		indiv.nmass_missing   = 0.0;
+		indiv.ctolitter       = 0.0;
+		indiv.ntolitter       = 0.0;
+		indiv.ctolitter_leaf  = 0.0;
+		indiv.ntolitter_leaf  = 0.0;
+		indiv.ctolitter_root  = 0.0;
+		indiv.ntolitter_root  = 0.0;
+		indiv.ctolitter_repr  = 0.0;
+		indiv.ntolitter_repr  = 0.0;
+		indiv.ctolitter_crown = 0.0;
+		indiv.ntolitter_crown = 0.0;
+	}
+}
+
 void growth_daily_grass_dave(Patch& patch) {
 
 
@@ -5415,6 +5433,8 @@ void growth_daily_grass_dave(Patch& patch) {
 	// Record mass balance at start of day.
 	DaveMassBalance mass_balance;
 	mass_balance.init(vegetation);
+
+	growth_daily_accounting_dave(vegetation);
 
 		if (date.day == 0) {
 			flush_cmass_repr(patch);

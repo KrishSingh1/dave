@@ -51,6 +51,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_acmass"      , ANNUAL, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)");
 	add_patch_output("file_dave_sompool_anmass"      , ANNUAL, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
 	add_patch_output("file_dave_andep"               , ANNUAL, aninput_columns, "Annual nitrogen deposition (kgN/m2)");
+	add_patch_output("file_dave_anfixation"          , ANNUAL, "nfixation", [](const Patch &p) { return p.soil.anfix; }, "Total annual biological N fixation (kgN/m2)");
 
 	// Annual per-patch individual-level outputs.
 	add_aggregated_indiv_output("file_dave_alai"     , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);
@@ -93,6 +94,15 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_nmass"       , DAILY, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
 	add_patch_output("file_dave_ninput"              , DAILY, ninput_columns, "Daily nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_fpar_ff"             , DAILY, "fpar_ff", [](const Patch &p) { return p.fpar_ff; }, "Forest floor fpar (0-1)");
+	add_patch_output("file_dave_resp_heterotrophic"  , DAILY, "resp_heterotrophic", [](const Patch &p) { return p.soil.dcflux_soil * G_PER_KG; }, "Daily carbon flux to atmosphere from soil respiration (gC/m2/day)");
+	add_patch_output("file_dave_resp"                , DAILY, "resp", get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
+	add_patch_output("file_dave_gpp"                 , DAILY, "gpp", get_gpp, "Daily patch-level GPP (gC/m2/day)");
+	add_patch_output("file_dave_npp"                 , DAILY, "npp", get_npp, "Daily patch-level NPP (gC/m2/day)");
+	add_patch_output("file_dave_nee"                 , DAILY, "nee", get_nee, "Daily patch-level NEE (gC/m2/day)");
+	add_patch_output("file_dave_evaporation"         , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)");
+	add_patch_output("file_dave_soilc"               , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
+	add_patch_output("file_dave_soiln"               , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
+	add_patch_output("file_dave_soil_nflux"          , DAILY, soil_nflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
@@ -137,7 +147,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_fdev_growth"         , DAILY, [](const Individual &i) { return i.fdev_growth; }, "Development factor for growth demand (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_frepr_cstruct"       , DAILY, [](const Individual &i) { return i.frepr_cstruct; }, "Ratio of reproductive to aboveground structural biomass", mean, false, true);
 	add_aggregated_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
-	add_aggregated_indiv_output("file_dave_et"                  , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level evapotranspiration (mm/day)", sum, true, true);
+	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level transpiration (mm/day)", sum, true, true);
 	add_aggregated_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_nscal_mean"          , DAILY, [](const Individual &i) { return i.nscal_5.mean(); }, "N stress scalar 5 day running mean (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_ltor"            	, DAILY, [](const Individual &i) { return i.ltor; }, "Daily leaf to root ratio (unitless)", mean, true);
@@ -164,6 +174,15 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anj_frac"            , DAILY, [](const Individual &i) { return i.anj_frac; }, "Daily anj as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_anp_frac"            , DAILY, [](const Individual &i) { return i.anp_frac; }, "Daily anp as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dnuptake"            , DAILY, [](const Individual &i) { return i.dnuptake; }, "Total daily nitrogen uptake (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ctolitter_leaf"      , DAILY, [](const Individual &i) { return i.ctolitter_leaf; }, "Total daily C sent from the leaf pool to litter (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ntolitter_leaf"      , DAILY, [](const Individual &i) { return i.ntolitter_leaf; }, "Total daily N sent from the leaf pool to litter (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ctolitter_root"      , DAILY, [](const Individual &i) { return i.ctolitter_root; }, "Total daily C sent from the root pool to litter (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ntolitter_root"      , DAILY, [](const Individual &i) { return i.ntolitter_root; }, "Total daily N sent from the root pool to litter (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ctolitter_repr"      , DAILY, [](const Individual &i) { return i.ctolitter_repr; }, "Total daily C sent from the repr pool to litter (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ntolitter_repr"      , DAILY, [](const Individual &i) { return i.ntolitter_repr; }, "Total daily N sent from the repr pool to litter (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ctolitter_crown"     , DAILY, [](const Individual &i) { return i.ctolitter_crown; }, "Total daily C sent from the crown pool to litter (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ntolitter_crown"     , DAILY, [](const Individual &i) { return i.ntolitter_crown; }, "Total daily N sent from the crown pool to litter (kgN/m2/day)", sum, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
@@ -197,10 +216,6 @@ DaveOutput::DaveOutput() {
 	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
 	// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
 	// add_daily_patch_level_array_output("file_dave_cfluxes_pft", get_pft_flux_names(), (int)Fluxes::NPERPFTFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPFTFluxType)i, date.day) * G_PER_KG; }, "Daily PFT-level fluxes (g/m2/day)");
-	add_patch_array_output("file_dave_resp"          , DAILY, "resp", 1, get_er, "Daily patch-level ecosystem respiration (gC/m2/day)", true);
-	add_patch_array_output("file_dave_gpp"           , DAILY, "gpp", 1, get_gpp, "Daily patch-level GPP (gC/m2/day)", true);
-	add_patch_array_output("file_dave_npp"           , DAILY, "npp", 1, get_npp, "Daily patch-level NPP (gC/m2/day)", true);
-	add_patch_array_output("file_dave_nee"           , DAILY, "nee", 1, get_nee, "Daily patch-level NEE (gC/m2/day)", true);
 
 	// Subdaily patch-level outputs.
 	//                                               column name              function which gets number of array elems     function which returns the i-th output value

@@ -828,6 +828,11 @@ struct PhotosynthesisResult : public Serializable {
 		return (agd_g - rd_g) * KG_PER_G;
     }
 
+	/// Gross daily C assimilation (kgC/m2/day)
+	double gross_assimilation() const {
+		return agd_g * KG_PER_G;
+	}
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3177,6 +3182,30 @@ public:
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
 
+	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_leaf;
+
+	/// Daily N sent from leaf to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_leaf;
+
+	/// Daily C sent from root to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_root;
+
+	/// Daily N sent from root to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_root;
+
+	/// Daily C sent from the reproductive biomass to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_repr;
+
+	/// Daily N sent from the reproductive biomass to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_repr;
+
+	/// Daily C sent from crown to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_crown;
+
+	/// Daily N sent from crown to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_crown;
+
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
 	/// root N biomass on modelled area basis on first day of land use change year
@@ -3455,11 +3484,18 @@ public:
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
-	/// GPP and NPP this day
+
+	/// GPP today (kgC/m2/day)
+	/// Note: in the trunk version, this is gross photosynthesis minus leaf respiration.
+	/// In the dave version, this is gross photosynthesis only.
 	double dgpp;
+
+	/// NPP this day (kgC/m2/day)
 	double dnpp;
+
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
+
 	// Maintenance respiration today (kgC/m2)
 	double resp_maintenance;
 	// Growth respiration today (kgC/m2)
@@ -4302,6 +4338,21 @@ public:
 	/// annual leaching of organics from carbon pool
 	double aorgCleach;	
 
+	// Daily net mineralisation (kgN/m2/day)
+	double net_mineralisation;
+
+	// Daily mineral N leaching (kgN/m2/day)
+	double dminleach;
+
+	// Daily leaching of organics from active nitrogen pool (kgN/m2/day)
+	double dorgNleach;
+
+	// Daily N volatilisation (kgN/m2/day).
+	double nvol;
+
+	// Daily nitrogen flux to atmosphere (kgN/m2/day).
+	double nloss_gas;
+
 	// Variables for fast spinup of SOM pools
 
 	/// monthly fraction of available mineral nitrogen taken up
@@ -5035,6 +5086,8 @@ public:
 	Historic<double, NYEARAAET> aaet_5;
 	/// annual sum of soil evaporation (mm/year)
 	double aevap;
+	/// Daily soil evaporation (mm/day)
+	double evap;
 	/// annual sum of interception (mm/year)
 	double aintercep;
 	/// annual sum of runoff (mm/year)

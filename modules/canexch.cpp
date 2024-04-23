@@ -2476,7 +2476,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
-		resp_growth = (assim - resp_sap - resp_root) * 0.25;
+		resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
 
 		// guess2008 - disallow negative growth respiration
 		// (following a comment (060823) from Annett Wolf)
@@ -2505,7 +2505,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Growth respiration
 			//resp_growth = growth * 0.2;
-			resp_growth = (assim - resp_root - resp_crown - resp_repr) * 0.25;
+			resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
 
 		} else {
 			
@@ -2513,7 +2513,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 			
 			// Growth respiration (see above)
-			resp_growth = (assim - resp_root) * 0.25;
+			resp_growth = (assim - resp_leaf - resp_root) * 0.25;
 
 		}
 
@@ -2532,8 +2532,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
 	
 	// Total respiration is sum of maintenance and growth respiration.
-	// TODO: should leaf respiration be included in autotrophic respiration?
-	resp = resp_root + resp_crown + resp_repr + resp_sap + resp_growth;
+	resp = resp_maintenance + resp_growth;
 }
 
 /// Net Primary Productivity
@@ -3505,7 +3504,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 
 		// get daily net assimilation
-		double assim = indiv.photosynthesis.net_assimilation();
+		double assim = indiv.photosynthesis.gross_assimilation();
 
 		// Calculate autotrophic respiration
 		double cmass_root;
@@ -3569,9 +3568,9 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		if (indiv.lai_today() > indiv.mlai_max[date.month])
 			indiv.mlai_max[date.month] = indiv.lai_today();
 
-		//if (day.isend) {
+		// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
+		// TODO Assaf: should trees or mosses use phen here?
 		indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
-		//}
 
 		vegetation.nextobj();
 	}

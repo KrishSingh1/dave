@@ -828,6 +828,11 @@ struct PhotosynthesisResult : public Serializable {
 		return (agd_g - rd_g) * KG_PER_G;
     }
 
+	/// Gross daily C assimilation (kgC/m2/day)
+	double gross_assimilation() const {
+		return agd_g * KG_PER_G;
+	}
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3456,11 +3461,18 @@ public:
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
-	/// GPP and NPP this day
+
+	/// GPP today (kgC/m2/day)
+	/// Note: in the trunk version, this is gross photosynthesis minus leaf respiration.
+	/// In the dave version, this is gross photosynthesis only.
 	double dgpp;
+
+	/// NPP this day (kgC/m2/day)
 	double dnpp;
+
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
+
 	// Maintenance respiration today (kgC/m2)
 	double resp_maintenance;
 	// Growth respiration today (kgC/m2)

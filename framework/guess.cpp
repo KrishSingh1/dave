@@ -1782,6 +1782,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	ndemand						= 0.0;
 	fnuptake					= 1.0;
 	anuptake					= 0.0;
+	dnuptake                    = 0.0;
 	max_n_storage				= 0.0;
 	scale_n_storage				= 0.0;
 
@@ -1875,6 +1876,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	dgpp              = 0.0;
 	dnpp              = 0.0;
+	resp_maintenance  = 0.0;
+	resp_growth       = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -1988,6 +1991,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ndemand
 		& fnuptake
 		& anuptake
+		& dnuptake
 		& max_n_storage
 		& scale_n_storage
 		& avmaxnlim

@@ -3378,8 +3378,10 @@ public:
 	double andemand;
 	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
-	/// annual nitrogen uptake
+	/// annual nitrogen uptake (kgN/m2)
 	double anuptake;
+	/// daily nitrogen uptake (kgN/m2)
+	double dnuptake;
 	/// maximum size of nitrogen storage
 	double max_n_storage;
 	/// scales annual npp to maximum nitrogen storage
@@ -3459,6 +3461,10 @@ public:
 	double dnpp;
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
+	// Maintenance respiration today (kgC/m2)
+	double resp_maintenance;
+	// Growth respiration today (kgC/m2)
+	double resp_growth;
 
 	// bvoc
 

@@ -3503,7 +3503,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			continue;
 		}
 
-		// get daily net assimilation
+		// get daily net assimilation (kgC/m2)
 		double assim = indiv.photosynthesis.gross_assimilation();
 
 		// Calculate autotrophic respiration

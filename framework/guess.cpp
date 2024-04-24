@@ -440,8 +440,9 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	fpar_grass = 0.0;
 	growingseasondays = 0;
 
-	aevap = 0.0;
-	evap  = 0.0;
+	aevap  = 0.0;
+	evap   = 0.0;
+	transp = 0.0;
 
 	burned = false;
 	fire_line_intensity = 0.0;
@@ -504,6 +505,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& aaet_5
 		& aevap
 		& evap
+		& transp
 		& aintercep
 		& arunoff
 		& awetland_water_added

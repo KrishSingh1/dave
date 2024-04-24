@@ -5082,6 +5082,8 @@ public:
 	double intercep;
 	/// annual sum of AET (mm/year)
 	double aaet;
+	/// Daily transpiration (mm/day).
+	double transp;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
 	/// annual sum of soil evaporation (mm/year)

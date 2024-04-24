@@ -1239,6 +1239,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	patch.aaet += aet_total;
 	patch.aevap += evap;
 	patch.evap = evap;
+	patch.transp = aet_total;
 
 	patch.maet[date.month] += aet_total;
 	patch.mevap[date.month] += evap;

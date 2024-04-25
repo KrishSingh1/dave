@@ -2551,7 +2551,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	//              basis (kgC/m2/day)
 	// resp_maintenance = sum of maintenance respiration on grid cell area basis
 	//              (kgC/m2/day)
-	// resp_growth= growth respiration (kg/m2)
+	// resp_growth= growth respiration (kg/m2/day)
 
 	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed:
 	// const double K=0.0548; // OLD value
@@ -3651,7 +3651,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			continue;
 		}
 
-		// get daily net assimilation (kgC/m2)
+		// get daily gross assimilation (kgC/m2)
 		double assim = indiv.photosynthesis.gross_assimilation();
 
 		// Calculate autotrophic respiration

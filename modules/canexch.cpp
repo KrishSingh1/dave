@@ -2801,7 +2801,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
 			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
-			indiv.photosynthesis.rd_g, assim, resp, indiv.resp_maintenance,
+			assim, indiv.photosynthesis.rd_g * KG_PER_G, resp, indiv.resp_maintenance,
 			indiv.resp_growth);
 
 		// Convert to averages for this period for accounting purposes
@@ -3697,7 +3697,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
-			indiv.photosynthesis.rd_g, assim, resp, indiv.resp_maintenance,
+			assim, indiv.photosynthesis.rd_g * KG_PER_G, resp, indiv.resp_maintenance,
 			indiv.resp_growth);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux

@@ -63,7 +63,7 @@ const double ext_seed = 2.0e-6;
 const double cstorage_max_temp = 0.3;   // leaves and roots
 const double cstorage_max_perm = 0.75;  // crowns
 
-// Fraction of C storage not available for growth.
+// Fraction of maximum C storage not available for growth.
 const double frac_cstorage_res = 0.15;
 
 // Maximum mobilisation rate of C in storage
@@ -261,11 +261,11 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	// low temperature adjustment to avoid simulating unrealistic growth demand
     // at very low or even negative temperatures (see also comment above).
 	// When above tdorm, ftemp = ftemp
-	// When below tdorm, ftemp *= 1 - tdef * 0.5
+	// When below tdorm, ftemp *= 1 - tdef * 0.25
 	// So, when 2 degrees below tdorm, ftemp = 0
 	//     when 0 degrees below tdorm, ftemp = ftemp
     double Tdef = Tdorm - Tleaf;
-    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
+    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.25)));	// 0.25 for 0 growth 4degC below Tdorm.	
 
 	return max(0.0,min(1.0,ftemp));
 }
@@ -347,11 +347,13 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
 		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
 		// a1 parameter should depend on the size of the plant at flowering time.
-		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 1.0;
+		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 0.03;  
 		double a1 = max(0.5,indiv.lai_flowering) * a1m;
-		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 1.0 : 1.0;
+		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 1.0 : 0.25;
 		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
+		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - a1 * (frepr_cstruct / indiv.pft.reprfrac - a2)));
+
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -4355,8 +4357,8 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0002;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_dorm = 20.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.0003;        // Baseline senescence rate in the vegetative phase (d-1)
+	const double senesc_scal_dorm = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 60.0;
 	// senescence scalar for reproductive phase

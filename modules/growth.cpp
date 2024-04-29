@@ -4358,7 +4358,7 @@ void senescence_grass(Individual &indiv) {
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.0003;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_dorm = 30.0;    // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_scal_dorm = 40.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 60.0;
 	// senescence scalar for reproductive phase
@@ -4368,7 +4368,8 @@ void senescence_grass(Individual &indiv) {
     // higher value --> lower sensitivity to water stress at high wscal
 	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
-	const double temp_senesc   = 0.05;    
+	const double temp_senesc1 = 0.5;    // for temperatures below 0 degC
+	const double temp_senesc2 = 0.04;   // for temperatures above 0 degC  
 
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -4407,10 +4408,14 @@ void senescence_grass(Individual &indiv) {
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
 	double senesc_ftemp = 0.0;
-	if (grass_temp < indiv.pft.temp_dormancy) {
-		senesc_ftemp = indiv.pft.temp_dormancy - grass_temp;
-	} else if (grass_temp >= indiv.pft.temp_dormancy) {
-		senesc_ftemp = temp_senesc * (grass_temp - 25.0);
+	if (grass_temp < 0.0){
+		senesc_ftemp = -temp_senesc1 * grass_temp;
+	} else {
+		if (grass_temp < indiv.pft.temp_dormancy) {
+			senesc_ftemp = temp_senesc2 * (indiv.pft.temp_dormancy - grass_temp);
+		} else if (grass_temp >= indiv.pft.temp_dormancy) {
+			senesc_ftemp = temp_senesc2 * (grass_temp - 25.0);
+		}
 	}
 
 	// Dormancy-induced
@@ -4593,7 +4598,7 @@ void turnover_dave_grass(Individual &indiv) {
 	Patchpft &ppft = patch.pft[indiv.pft.id];
 
 	// Parameters
-	double kleaf = 0.02;
+	double kleaf = 0.05;
 
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!

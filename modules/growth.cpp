@@ -4368,7 +4368,7 @@ void senescence_grass(Individual &indiv) {
     // higher value --> lower sensitivity to water stress at high wscal
 	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
-	const double temp_senesc1 = 0.5;    // for temperatures below 0 degC
+	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
 	const double temp_senesc2 = 0.04;   // for temperatures above 0 degC  
 
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?

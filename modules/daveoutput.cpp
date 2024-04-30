@@ -94,7 +94,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_nmass"       , DAILY, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
 	add_patch_output("file_dave_ninput"              , DAILY, ninput_columns, "Daily nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_fpar_ff"             , DAILY, "fpar_ff", [](const Patch &p) { return p.fpar_ff; }, "Forest floor fpar (0-1)");
-	add_patch_output("file_dave_resp_heterotrophic"  , DAILY, "resp_heterotrophic", [](const Patch &p) { return p.soil.dcflux_soil * G_PER_KG; }, "Daily carbon flux to atmosphere from soil respiration (gC/m2/day)");
+	add_patch_output("file_dave_resp_heterotrophic"  , DAILY, "resp_heterotrophic", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * G_PER_KG; }, "Daily carbon flux to atmosphere from soil respiration (gC/m2/day)");
 	add_patch_output("file_dave_resp"                , DAILY, "resp", get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
 	add_patch_output("file_dave_gpp"                 , DAILY, "gpp", get_gpp, "Daily patch-level GPP (gC/m2/day)");
 	add_patch_output("file_dave_npp"                 , DAILY, "npp", get_npp, "Daily patch-level NPP (gC/m2/day)");

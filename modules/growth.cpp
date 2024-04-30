@@ -261,11 +261,11 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	// low temperature adjustment to avoid simulating unrealistic growth demand
     // at very low or even negative temperatures (see also comment above).
 	// When above tdorm, ftemp = ftemp
-	// When below tdorm, ftemp *= 1 - tdef * 0.25
+	// When below tdorm, ftemp *= 1 - tdef * 0.5
 	// So, when 2 degrees below tdorm, ftemp = 0
 	//     when 0 degrees below tdorm, ftemp = ftemp
     double Tdef = Tdorm - Tleaf;
-    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.25)));	// 0.25 for 0 growth 4degC below Tdorm.	
+    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
 
 	return max(0.0,min(1.0,ftemp));
 }
@@ -3058,8 +3058,8 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass used for estimation of potential growth demand.
-	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
-	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
+	double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	//double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 
 	// Fill status of C and N storage
     double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));

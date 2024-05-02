@@ -138,7 +138,7 @@ const double DS_V4 = 472.0;   // J mol-1 K-1
 
 // Maximum electron transport rate (mol m-2 s-1)
 //const double Jmax25_C4 = 62.5E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Jmax25_C4 = 150.0E-6; // max. Jmax corresponding to 31.25 umol m-2 s-1 at 25degC. To be replaced!!
+const double Jmax25_C4 = 150.0E-6; // max. Jmax corresponding to 31.25 umol m-2 s-1 at 25degC. TODO: To be replaced!!
 
 // Activation and deactivation energy and entropy term for Jmax (Massad et al. 2007)
 const double HA_J4 = 77.90;   // kJ mol-1

@@ -271,10 +271,9 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 }
 
 // Water stress scalar used for growth and dormancy
-double wscal_growth(double wscal) {
-	double qgrowth = 1.5;    // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	double wscal_min = 0.4;  // no growth under severe water stress
-	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),qgrowth)));
+double wscal_growth(double wscal, double q) {
+	double wscal_min = 0.4;  // no growth under severe water stress (ideally consistent with pft.wscal_min)
+	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),q)));
 }
 
 // Photoperiod affecting development and thus growth demand
@@ -3045,6 +3044,9 @@ double growth_demand(Individual& indiv) {
 
 	// Reduction of RGR in reproductive phase
 	const double fRGR_repr = 0.75;
+	// Sensitivity of water stress to growth
+	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	const double qgrowth = 1.5;
 
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
@@ -3070,7 +3072,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal);
+	fwater_growth = wscal_growth(ppft.wscal, qgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
@@ -4357,14 +4359,14 @@ void senescence_grass(Individual &indiv) {
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
 	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.0003;        // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_dorm = 40.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double senesc_base = 0.00022;         // Baseline senescence rate (d-1)
+	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 60.0;
+	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 15.0 : 30.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 30.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 20.0;    
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 20.0;    
     // higher value --> lower sensitivity to water stress at high wscal
 	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
@@ -4422,12 +4424,13 @@ void senescence_grass(Individual &indiv) {
 	double senesc_fdorm = 0.0;
 	if (indiv.fphen_activity < 1.0) {
 
-		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
-
+		//senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
+        senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
 	// Total senescence rate
-	senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
+	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
+	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + (1.0 + senesc_fwater)) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = senesc_base;
 
@@ -5101,7 +5104,7 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	double dmax_pslim = 0.015; 
+	double dmax_pslim = 0.015;
 	// Do not let ps_sink_lim vary by more than dmax_pslim d-1
 	double const dpslim = dmax_pslim * (1.0 - indiv.fdev_growth);
 
@@ -5153,8 +5156,9 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		if ((indiv.age < 1.0 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
+		if ((indiv.age < 0.5 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
 			// do not 'count' days with germination in annuals and newly established perennials.
+			// Also do not include the very first day.
 			// Otherwise repr switch will happen too early.
 			// Note: right now it checks germination of the previous day, which is OK in this context.
 			indiv.cmass_storage_20.add(1.0);

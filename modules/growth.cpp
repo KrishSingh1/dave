@@ -437,7 +437,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.02){
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0){
 					indiv.growth_stage = reproductive;
 					indiv.growth_stage_days = 0;
 					indiv.lai_flowering = indiv.lai;
@@ -4364,7 +4364,7 @@ void senescence_grass(Individual &indiv) {
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 30.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 40.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
 	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 20.0;    
     // higher value --> lower sensitivity to water stress at high wscal

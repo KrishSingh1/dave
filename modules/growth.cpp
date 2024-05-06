@@ -44,6 +44,7 @@
 #include "ncompete.h"
 #include <assert.h>
 #include "somdynam.h"
+#include "driver.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -4600,9 +4601,6 @@ void turnover_dave_grass(Individual &indiv) {
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = patch.pft[indiv.pft.id];
 
-	// Parameters
-	double kleaf = 0.05;
-
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
 	// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
@@ -4617,9 +4615,16 @@ void turnover_dave_grass(Individual &indiv) {
 	double frac_turnover_root = 20.0 * indiv.senesc_root;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
-	// Turnover of brown leaves
-	// TODO: refine temp. and moisture responses
-	double frac_turnover_leaf = Arrhenius_temp_response(kleaf,surf_temp,HA_KC,0.0,0.0) * surf_water;
+	// Turnover of brown shoots
+	double ftemp = 0.0, fwater = 0.0;
+	// Temperature response
+	double kleaf = 0.01;  // base respiration rate of brown shoots at 10degC
+	respiration_temperature_response(surf_temp, ftemp);
+	// Soil moisture response (Parton et al. 2001). 
+	// Note that Parton et al. 2001 used PPT/PET instead of wcont.
+	//fwater = pow(surf_water,1.0);
+	fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
+	double frac_turnover_leaf = kleaf * ftemp * fwater;
 
 
 	// Dead shoot turnover (brown shoot --> leaf litter)

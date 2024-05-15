@@ -4807,6 +4807,10 @@ public:
 	double cmass_litter_heart;
 	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
+	/// C in hypothetical external seed bank (kgC/m2)
+	double cmass_ext_seed;
+	/// N in hypothetical external seed bank (kgN/m2)
+	double nmass_ext_seed;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4886,15 +4890,17 @@ public:
 
 		cmass_litter_leaf = 0.0;
 		cmass_litter_root = 0.0;
-		cmass_litter_sap   = 0.0;
+		cmass_litter_sap  = 0.0;
 		cmass_litter_heart = 0.0;
 		cmass_litter_repr = 0.0;
+		cmass_ext_seed = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_repr  = 0.0;
+		nmass_ext_seed     = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

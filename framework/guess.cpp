@@ -364,6 +364,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& cmass_litter_heart
 		& cmass_litter_repr
 		& nmass_litter_repr
+		& cmass_ext_seed
+		& nmass_ext_seed
 		& gcbase
 		& gcbase_day
 		& wsupply

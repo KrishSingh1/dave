@@ -61,8 +61,8 @@ const double ext_seed = 2.0e-6;
 // Grass parameters
 // ---------------------------------
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
-const double cstorage_max_temp = 0.3;   // leaves and roots
-const double cstorage_max_perm = 0.75;  // crowns
+//const double cstorage_max_temp = 0.3;   // leaves and roots
+//const double cstorage_max_perm = 0.75;  // crowns
 
 // Fraction of maximum C storage not available for growth.
 const double frac_cstorage_res = 0.15;
@@ -439,9 +439,15 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
 				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0){
-					indiv.growth_stage = reproductive;
-					indiv.growth_stage_days = 0;
-					indiv.lai_flowering = indiv.lai;
+					if (indiv.lai > lai_min) {
+						indiv.growth_stage = reproductive;
+						indiv.growth_stage_days = 0;
+						indiv.lai_flowering = indiv.lai;
+					} else {
+						indiv.kill();
+						vegetation.killobj();
+						continue;
+					}
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
@@ -4519,22 +4525,38 @@ void senescence_dave(Vegetation& vegetation) {
 	}
 }
 
+/*
+Check if this PFT is established (and out of probation) in this patch.
+*/
+bool is_established(const Pft &pft, const Vegetation &vegetation) {
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			return true;
+		}
+	}
+	return false;
+}
 
 // External seed input 
+// This should only be called if the PFT is not yet established at that location.
+// Otherwise PFTs need to rely on their local seedbank.
 void seed_dispersal_dave(Vegetation& vegetation) {
 
 	Patch& patch = vegetation.patch;
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		if (!ppft.pft.dave_allocation()) {
+		if (!ppft.pft.dave_allocation() || is_established(ppft.pft, vegetation)) {
 			// This pft is not using dave allocation, and is therefore not using
 			// the daily establishment. This means the seedbank and seed
 			// dispersal will have no effect on this pft.
 			continue;
 		}
 
-		double ext_seed_c = ext_seed;
+		// divide the external seed influx by the number of PFTs simulated
+		// to not inflate N influx with higher number of PFTs.
+		double ext_seed_c = ext_seed / patch.pft.nobj;
 
 		// test for initial 
 		if (date.year == 0 && ppft.pft.lifeform == TREE) {
@@ -4543,11 +4565,13 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 
 		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
-		ppft.cmass_litter_repr += ext_seed_c;
-		ppft.nmass_litter_repr += ext_seed_n;
+		ppft.cmass_ext_seed += ext_seed_c;
+		ppft.nmass_ext_seed += ext_seed_n;
+		//ppft.cmass_litter_repr += ext_seed_c;
+		//ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
-		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
+        //patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
+		//patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }
 
@@ -4565,8 +4589,8 @@ void turnover_seed(Vegetation& vegetation) {
 			continue;
 		}
 
-		// Seed turnover
-		
+		// Turnover rate of seeds
+
 		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
 		double surf_temp = vegetation.patch.soil.T_soil[6];
 		double surf_water = patch.soil.get_layer_soil_water(0);
@@ -4575,6 +4599,8 @@ void turnover_seed(Vegetation& vegetation) {
 		// Base turnover rate modified by temperature and water availability
 		double base_turnover_seed = ppft.pft.turnover_repr / date.year_length();
 		double frac_turnover_seed = Arrhenius_temp_response(base_turnover_seed,surf_temp,HA_seed,0.0,0.0) * surf_water;
+
+		// Turnover of the actual seedbank
 
 		// Carbon
 		double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
@@ -4585,6 +4611,22 @@ void turnover_seed(Vegetation& vegetation) {
 		double nturnover_repr = frac_turnover_seed * ppft.nmass_litter_repr;
 		ppft.nmass_litter_repr -= nturnover_repr;
 		ppft.nmass_litter_root += nturnover_repr;
+
+		
+		// Turnover of the hypothetical external seedbank that is used for establishment
+		// of new PFTs. Note that this pool does not turn over into litter but 
+		// simply ceases to exist just like it appeared out of nowhere.
+
+		// Carbon
+		double cturnover_ext_seed = frac_turnover_seed * ppft.cmass_ext_seed;
+		ppft.cmass_ext_seed -= cturnover_ext_seed;
+		//ppft.cmass_litter_root += cturnover_ext_seed;
+
+		// Nitrogen
+		double nturnover_ext_seed = frac_turnover_seed * ppft.nmass_ext_seed;
+		ppft.nmass_ext_seed -= nturnover_ext_seed;
+		//ppft.nmass_litter_root += nturnover_repr;
+
 	}
 }
 
@@ -4619,7 +4661,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double ftemp = 0.0, fwater = 0.0;
 	// Temperature response
 	double kleaf = 0.01;  // base respiration rate of brown shoots at 10degC
-	respiration_temperature_response(surf_temp, ftemp);
+	respiration_temperature_response(surf_temp, ftemp);  // Lloyd & Taylor 1994
 	// Soil moisture response (Parton et al. 2001). 
 	// Note that Parton et al. 2001 used PPT/PET instead of wcont.
 	//fwater = pow(surf_water,1.0);

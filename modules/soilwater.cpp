@@ -53,7 +53,7 @@ void snow(double prec, double temp, Soil& soil) {
 	// temp = air temperature today (deg C)
 
 	// INPUT AND OUTPUT PARAMETER
-	// snowpack = stored snow (rainfall mm equivalents)
+	// snowpack = stored snow (kg H2O m-2 or mm water)
 
 	// OUTPUT PARAMETERS
 	// rain_melt = rainfall and snow melt today (mm)
@@ -62,7 +62,7 @@ void snow(double prec, double temp, Soil& soil) {
 		// maximum temperature for precipitation as snow (deg C)
 		// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
-		// maximum size of snowpack (mm) (S. Sitch, pers. comm. 2001-11-28)
+		// maximum size of snowpack (kg H2O m-2) (S. Sitch, pers. comm. 2001-11-28)
 
 	double melt;
 
@@ -464,9 +464,6 @@ void soilwater(Patch& patch, Climate& climate) {
 	// update the daily snow depth
 	// by converting from mm water to snow depth 
 	Soil& soil = patch.soil;
-
-	// Calculate snowdepth (could use all snow layers when they have variable density)
-	soil.dsnowdepth = soil.snowpack / (soil.snowdens / rho_H2O);
 
 	// Sum vegetation phenology-weighted FPC
 	// Fraction of grid cell subject to evaporation from soil surface is

@@ -72,6 +72,20 @@ bool first_month_of_year(GuessNC::CF::DateTime dt) {
 	return dt.get_month() == 1;
 }
 
+// Check if a unit string is in a list of allowed
+// fails the program and produces error message if a valid unit is not found
+void check_allowed_units(const std::string varname, const std::string& unit, const std::vector<std::string>& allowed_units) {
+	if (std::find(allowed_units.begin(), allowed_units.end(), unit) == allowed_units.end()) {
+		// Compile error message
+		std::string error_message("Unrecognised unit (" + unit + ") for " + varname + ". Allowed units are: ");
+		for (int i=0; i<allowed_units.size(); i++) {
+			error_message.append("\"" + allowed_units[i] + "\", ");
+		}
+
+		fail(error_message.c_str());
+	}
+}
+
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on an earlier day
 bool earlier_day(const Date& date, int calendar_year,
 				 const GuessNC::CF::DateTime& date_time) {
@@ -148,24 +162,20 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
 		fail("Temperature variable doesn't seem to contain air temperature data");
 	}
-	if (cf_var->get_units() != "K" && 
-		cf_var->get_units() != "k") {
-		fail("Temperature variable doesn't seem to be in Kelvin");
-	}
+	static const std::vector<std::string> ALLOWED_TEMP_UNITS{"K", "k"};  // Extend as necessary
+	check_allowed_units(cf_var->get_standard_name(), cf_var->get_units(), ALLOWED_TEMP_UNITS);
 }
 
 // Verifies that a CF variable with precipitation data contains what we expect
 void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() == "precipitation_flux") {
-		if (cf_var->get_units() != "kg m-2 s-1") {
-			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
-		}
+		static const std::vector<std::string> ALLOWED_PREC_FLUX_UNITS{"kg m-2 s-1"}; 
+		check_allowed_units(std::string("precipitation flux"), cf_var->get_units(), ALLOWED_PREC_FLUX_UNITS);
+
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
-		if (cf_var->get_units() != "kg m-2" && 
-			cf_var->get_units() != "mm" ) {
-			fail("Precipitation is given as amount but does not have the correct unit (kg m-2 or mm)");
-		}
+		static const std::vector<std::string> ALLOWED_PREC_AMOUNT_UNITS{"kg m-2", "mm"};
+		check_allowed_units(std::string("precipitation amount"), cf_var->get_units(), ALLOWED_PREC_AMOUNT_UNITS);
 	}
 	else {
 		fail("Unrecognized precipitation type");
@@ -182,20 +192,12 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 
 	if (cf_var->get_standard_name() == "cloud_area_fraction") {
-		if (cf_var->get_units() != "1" && 
-			cf_var->get_units() != "frac" &&
-			cf_var->get_units() != "Frac") {
-			fail("Unrecognized unit for cloud cover");
-		}
+		static const std::vector<std::string> ALLOWED_CLOUD_AREA_UNITS{"1", "frac", "Frac"};
+		check_allowed_units(std::string("cloud cover"), cf_var->get_units(), ALLOWED_CLOUD_AREA_UNITS);
 	}
 	else {
-		if (cf_var->get_units() != "W m-2" &&
-			cf_var->get_units() != "w m-2" &&
-			cf_var->get_units() != "W/m2" &&
-			cf_var->get_units() != "W/m^2" &&
-			cf_var->get_units() != "W m^-2") {
-			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
-		}
+		static const std::vector<std::string> ALLOWED_SWRAD_UNITS{"W m-2", "w m-2", "W/m^2", "w/m^2", "W m^-2"};
+		check_allowed_units(std::string("insolation"), cf_var->get_units(), ALLOWED_SWRAD_UNITS);
 	}
 }
 
@@ -215,10 +217,8 @@ void check_pres_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != pres_standard_name) {
 		fail("Pressure variable should have standard name %s ",pres_standard_name);
 	}
-	if (cf_var->get_units() != "Pa" &&
-		cf_var->get_units() != "pa") {
-		fail("Pressure must be given in Pa!");
-	}
+	static const std::vector<std::string> ALLOWED_PRESSURE_UNITS{"Pa", "pa"};
+	check_allowed_units(std::string("surface pressure"), cf_var->get_units(), ALLOWED_PRESSURE_UNITS);
 }
 
 // Verifies that a CF variable with specific humidity data contains what we expect
@@ -227,11 +227,8 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("QAir variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1" && 
-		cf_var->get_units() != "frac" &&
-		cf_var->get_units() != "Frac") {
-		fail("Specific Humidity must be dimensionless (here, '1'!");
-	}
+	static const std::vector<std::string> ALLOWED_SHUM_UNITS{"1", "frac", "Frac"};
+	check_allowed_units(std::string("specific humidity"), cf_var->get_units(), ALLOWED_SHUM_UNITS);
 }
 
 // Verifies that a CF variable with relative humidity data contains what we expect
@@ -240,11 +237,8 @@ void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("Relative humidity variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1" && 
-		cf_var->get_units() != "frac" &&
-		cf_var->get_units() != "Frac") {
-		fail("Relative Humidity must be dimensionless ('1' or frac");
-	}
+	static const std::vector<std::string> ALLOWED_RHUM_UNITS{"1", "frac", "Frac"};
+	check_allowed_units(std::string("relative humidity"), cf_var->get_units(), ALLOWED_RHUM_UNITS);
 }
 
 // Verifies that a CF variable with wind-speed data contains what we expect
@@ -253,9 +247,8 @@ void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("Wind variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "m s-1") {
-		fail("Wind data must be given in m s-1 !");
-	}
+	static const std::vector<std::string> ALLOWED_WIND_UNITS{"m s-1", "m/s"};
+	check_allowed_units(std::string("wind"), cf_var->get_units(), ALLOWED_WIND_UNITS);
 }
 
 // Checks if two variables contain data for the same time period
@@ -468,8 +461,11 @@ void CFInput::init() {
 
 	// Read list of localities and store in gridlist member variable
 
+	// If a user wants to read an indexed gridlist, allow then so. 
+	// The gridlist_cf is used if it is defined, otherwise the program does not care about it
+	bool read_indexed_grid = param.isparam("file_gridlist_cf");
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
+	xtring file_gridlist= read_indexed_grid ? param["file_gridlist_cf"].str : param["file_gridlist"].str;
 
 	std::ifstream ifs(file_gridlist, std::ifstream::in);
 
@@ -494,9 +490,20 @@ void CFInput::init() {
 				c.landid = landid;
 			}
 		}
+		else if (!cf_temp->is_reduced() && read_indexed_grid) {
+			if (iss >> rlon >> rlat) {
+				getline(iss, descrip);
+				c.rlon = rlon;
+				c.rlat = rlat;
+			}
+			else {
+				fail("The gridlist for netCDF input is given by file_gridlist_cf which must be in X,Y coordinates. If you have a lat/lon gridlist, please use the file_gridlist instead.\n");
+			}
+		}
 		else {
 			if (iss >> lon >> lat) {
 				getline(iss, descrip);
+				// We check above that all variables have the same grid, thus this works.
 				double lon_center, lat_center;
 				lon_center = (double)std::round(lon * 4) / 4;
 				lat_center = (double)std::round(lat * 4) / 4;
@@ -505,9 +512,6 @@ void CFInput::init() {
 				c.lon = lon_center;
 				c.rlon = rlon;
 				c.rlat = rlat;
-			}
-			else {
-				fail("The gridlist for netCDF input must be in X,Y coordinates");
 			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();
@@ -694,6 +698,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat){
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
 
+	dprintf("\nSuccessfully loaded climate data for gridcell at (%g,%g) with indices (%d,%d)", lon, lat, rlon, rlat);
 	return true;
 }
 

@@ -4597,8 +4597,11 @@ void turnover_seed(Vegetation& vegetation) {
 		double HA_seed = 50.0;  // activation energy. TODO: obtain from data
 		
 		// Base turnover rate modified by temperature and water availability
+		double ftemp = 0.0, fwater = 0.0;
 		double base_turnover_seed = ppft.pft.turnover_repr / date.year_length();
-		double frac_turnover_seed = Arrhenius_temp_response(base_turnover_seed,surf_temp,HA_seed,0.0,0.0) * surf_water;
+		respiration_temperature_response(surf_temp, ftemp); 
+		fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
+		double frac_turnover_seed = base_turnover_seed * ftemp * fwater;
 
 		// Turnover of the actual seedbank
 
@@ -4657,10 +4660,10 @@ void turnover_dave_grass(Individual &indiv) {
 	double frac_turnover_root = 20.0 * indiv.senesc_root;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
-	// Turnover of brown shoots
+	// Turnover of brown shoots (same temperature and moisture responses as for seeds)
 	double ftemp = 0.0, fwater = 0.0;
-	// Temperature response
 	double kleaf = 0.01;  // base respiration rate of brown shoots at 10degC
+	// Temperature response
 	respiration_temperature_response(surf_temp, ftemp);  // Lloyd & Taylor 1994
 	// Soil moisture response (Parton et al. 2001). 
 	// Note that Parton et al. 2001 used PPT/PET instead of wcont.

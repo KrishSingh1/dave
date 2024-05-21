@@ -46,7 +46,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 // Grass parameters
 // ---------------------------------
 // Minimum lai below which the plant is either killed or cannot establish.
-const double lai_min = 0.05;
+const double lai_min = 0.01;
 
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.3;   // leaves and roots

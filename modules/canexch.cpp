@@ -3124,6 +3124,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					// Note: fphen_activity is always 1 for trees.
 					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+					// TODO: implement light inhibition of Rd.
 
 					if (is_zero(par_layer)) {
 						// Night

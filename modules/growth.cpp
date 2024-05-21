@@ -343,7 +343,6 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 
 		// TODO: better (and more interpretable) characterisation of a1 parameter.
 		// TODO: check if a2 parameter is needed.
-		// TODO: seeding too early when reprfrac is high.
 		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
 		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
 		// a1 parameter should depend on the size of the plant at flowering time.
@@ -429,7 +428,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
-			// TODO: maybe increase dormancy switch threshold to 0.5 or similar?
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.fdev_growth = 1.0;
@@ -1439,8 +1437,7 @@ double cstorage_capacity(Individual& indiv) {
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
-	return indiv.cstorage_max / indiv.pft.cton_root_min;  // TODO: Rethink upper limit for storage.
-														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
+	return indiv.cstorage_max / indiv.pft.cton_root_min;
 
 }
 
@@ -3122,7 +3119,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		
 		// Positive NPP
 
-		// TODO: make clear this only works for daily time steps (NPP in kgC m-2 d-1)	
 		indiv.cgrow = min(indiv.growth_demand,Gpot);
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
@@ -3898,8 +3894,8 @@ void ndemand_grass(Individual &indiv) {
 	const double max_update_growth = 0.1;
 
 	// update growth depending on N stress of plant
-	// TODO: double check cases where nmass_storage > nstorage_max!!
-	// TODO: constrain cton ratio ;) 
+	// TODO JK: double check cases where nmass_storage > nstorage_max!!
+	// TODO JK: constrain cton ratio ;) 
 	double nstorage_fill = min(0.999999, max(0.000001, (indiv.nmass_storage / indiv.nstorage_max)));
 
 	// Local	
@@ -4021,7 +4017,7 @@ void ndemand_tree(Individual &indiv) {
 	}
 
 	// N demand of existing biomass (weight by current activity (growth) of the tissue?)
-	// TODO: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
+	// TODO JK: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
 	double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
 	double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
 	double nupdate_demand_sap   = max(0.0, indiv.cmass_sap / indiv.pft.cton_sap_min - indiv.nmass_sap) * frac_nchange;
@@ -4077,7 +4073,7 @@ void nuptake_dave(Vegetation& vegetation) {
 		Individual& indiv = vegetation[i];
 
 		// Calculate whole-plant N:C status 
-		// TODO: revisit this calculation and check where cton_status is used.
+		// TODO JK: revisit this calculation and check where cton_status is used.
 		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_crown + indiv.nmass_sap) / (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_crown + indiv.cmass_sap);
 		double ntoc_max = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
@@ -4318,7 +4314,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.nmass_storage = max(0.0, indiv.nmass_storage - (navail_leaf + navail_root + navail_crown + navail_sap + navail_repr));
 
 		// Save yearly leaf and root growth. 
-		// TODO: check if crown and repr need to be added
+		// TODO JK: check if crown and repr need to be added
 		indiv.cmass_leaf_ygrowth += indiv.cgrow_leaf;
 		indiv.cmass_root_ygrowth += indiv.cgrow_root;
 
@@ -4594,7 +4590,6 @@ void turnover_seed(Vegetation& vegetation) {
 		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
 		double surf_temp = vegetation.patch.soil.T_soil[6];
 		double surf_water = patch.soil.get_layer_soil_water(0);
-		double HA_seed = 50.0;  // activation energy. TODO: obtain from data
 		
 		// Base turnover rate modified by temperature and water availability
 		double ftemp = 0.0, fwater = 0.0;
@@ -4727,10 +4722,9 @@ void turnover_dave_grass(Individual &indiv) {
 
 
 	// Root turnover (roots --> root litter)
-	// TODO: should this be in senescence as well? Dead root pool?
 	if (indiv.cmass_root > 0.0) { 
 
-		// TODO: include C resorption from roots?
+		// TODO JK: include C resorption from roots?
 		// Carbon
 		double cturnover_root = indiv.cmass_root * frac_turnover_root;
 		
@@ -5083,10 +5077,9 @@ void storage_overflow(Individual& indiv) {
 	// If LAI is very low, move all storage to reproduction to kill the annual.
 	// If this is not done, there is a risk that the plant will continue living with a very
 	// low storage for a very long time. 
-	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
-		// TODO: limit allocation to repr for annuals to avoid unrealistic growth rates? 
-		// TODO: refine frac to be more consistent with the rest of the code!
+		// TODO JK: limit allocation to repr for annuals to avoid unrealistic growth rates? 
+		// TODO JK: refine frac to be more consistent with the rest of the code!
 		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;
@@ -5133,7 +5126,7 @@ void storage_overflow(Individual& indiv) {
 		indiv.report_flux(Fluxes::NPP, -indiv.cexcess);
 
 		// Option 2; root exudates
-		// TODO: yet to be implemented. Alternatively just allocate to roots.
+		// TODO Adam: implement this.
 
 		// Option 3?
 
@@ -5184,7 +5177,7 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		// TODO: make sla age-dependent or make culmfrac dynamic
+		// TODO JK: make sla age-dependent or make culmfrac dynamic
 
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);

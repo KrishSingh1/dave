@@ -3123,7 +3123,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 
 					// Note: fphen_activity is always 1 for trees.
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 *
+					Rd = indiv.fphen_activity * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Nscal * 
 						 respiration_temp_response(temp) * light_inhibition(par_layer);
 
 					if (is_zero(par_layer)) {
@@ -3174,8 +3174,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				else {  // C4 photosynthesis (von Caemmerer 2000)
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * 
+					Rd = indiv.fphen_activity * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * Nscal * 
 					     respiration_temp_response(temp) * light_inhibition(par_layer);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
@@ -3190,7 +3189,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// C4/day time
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						// TODO: different temp dependency in C3 and C4 plants??
 						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
 						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
 						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);

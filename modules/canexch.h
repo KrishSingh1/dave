@@ -88,11 +88,11 @@ const double THETA = 0.7;
 /// 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4 plants
 const double LAMBDA_SC4 = 0.4;
 
-/// leaf respiration as fraction of maximum rubisco, C3 plants
+/// leaf respiration as fraction of maximum carboxylation rate, C3 plants
 const double BC3 = 0.015;
 
-/// leaf respiration as fraction of maximum rubisco, C4 plants
-const double BC4 = 0.02;
+/// leaf respiration as fraction of maximum carboxylation rate, C4 plants
+const double BC4 = 0.025;
 
 /// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1
 const double JTOMOL = 4.6E-6;

@@ -3123,7 +3123,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 
 					// Note: fphen_activity is always 1 for trees.
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * Arrhenius_temp_response(1.0,temp,HA_J,0.0,0.0);  // TODO: check temperature response
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * respiration_temp_response(temp);
 					// TODO: implement light inhibition of Rd.
 
 					if (is_zero(par_layer)) {
@@ -3175,7 +3175,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * Arrhenius_temp_response(1.0,temp,HA_RD_C4,0.0,0.0);
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * respiration_temp_response(temp);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
@@ -3412,6 +3412,19 @@ double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, doub
 				      (1.0 + exp((Tl * dS - Hd)/(Tl * R_gas)));
 
 	return kTl;  // process rate at leaf Temperature Tl
+}
+
+// Temperature response of leaf mitochondrial respiration.
+// Eq. 2 in Heskel et al. 2016, PNAS. Value of parameter a was 
+// calculated to give a value of 1 for Tl = 25degC.
+double respiration_temp_response(double Tl) {
+
+	// Inputs
+	// Tl  = leaf temperature (deg C)
+	double kRl = exp(-2.2175 + 0.1012 * Tl - 0.0005 * pow(Tl,2));
+
+	return kRl; // value of leaf respiration relative to its value at 25 deg C
+
 }
 
 

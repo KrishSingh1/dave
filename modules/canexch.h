@@ -32,6 +32,9 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 // Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
 double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS);
 
+// Temperature response function for leaf mitochondrial respiration (Heskel et al. 2016, PNAS)
+double respiration_temp_response(double Tl);
+
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
 double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
@@ -160,7 +163,7 @@ const double DS_VP = 250.0;  // J mol-1 K-1
 
 // PEP regeneration rate (mol m-2 s-1)
 //const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Vpr = 60.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+const double Vpr = 60.0E-6;    // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
 
 // Michaelis-Menten constants (von Caemmerer 2021 and references therein)
 const double KP25    = 82.0E-6;  // (mol mol-1) 

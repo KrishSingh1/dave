@@ -699,9 +699,6 @@ bool CFInput::load_data_from_files(double& lon, double& lat){
 	if (param.isparam("file_gridlist_cf")) {
 		dprintf("\nSuccessfully loaded climate data for gridcell at (%g,%g) with indices (%d,%d)", lon, lat, rlon, rlat);
 	}
-	else {
-		dprintf("\nSuccessfully loaded climate data for gridcell at (%g,%g).", lon, lat);
-	}
 	
 	return true;
 }

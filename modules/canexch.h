@@ -35,6 +35,9 @@ double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, doub
 // Temperature response function for leaf mitochondrial respiration (Heskel et al. 2016, PNAS)
 double respiration_temp_response(double Tl);
 
+// Light inhibition of leaf mitochondrial respiration.
+double light_inhibition(double PAR);
+
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
 double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 

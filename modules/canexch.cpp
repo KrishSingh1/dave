@@ -3123,8 +3123,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 
 					// Note: fphen_activity is always 1 for trees.
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 * respiration_temp_response(temp);
-					// TODO: implement light inhibition of Rd.
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC3 * indiv.ps_subdaily.vcmax25 *
+						 respiration_temp_response(temp) * light_inhibition(par_layer);
 
 					if (is_zero(par_layer)) {
 						// Night
@@ -3175,7 +3175,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					// TODO: check BC4 (half the value in von Caemmerer 2000) and Vcmax
-					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * respiration_temp_response(temp);
+					Rd = indiv.fphen_activity * Nscal * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * 
+					     respiration_temp_response(temp) * light_inhibition(par_layer);
 					
 					Rm = 0.5 * Rd; // Rd in the mesophyll cells
 					Rs = Rd - Rm;  // Rd in the bundle-sheath cells
@@ -3424,6 +3425,18 @@ double respiration_temp_response(double Tl) {
 	double kRl = exp(-2.2175 + 0.1012 * Tl - 0.0005 * pow(Tl,2));
 
 	return kRl; // value of leaf respiration relative to its value at 25 deg C
+
+}
+
+// Light inhibition of leaf mitochondrial respiration.
+// assumes 30% reduction under light as in Huntingford et al. 2017, Nature Communications.
+double light_inhibition(double PAR) {
+	
+	/// Inputs
+	// PAR = incident photosynthetically active radiation (W m-2) 
+	double inhib = PAR > 2.0 ? 0.7 : 1.0;
+
+	return inhib; // inhibition of leaf respiration by light (0-1)
 
 }
 

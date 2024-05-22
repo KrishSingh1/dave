@@ -372,12 +372,12 @@ double get_nmass_harv_slowc(const Patch &patch) {
 Aggregate a value across all ppfts in the patch.
 */
 double aggregate_ppft(const Patch &patch, double (*read_ppft)(const Patchpft &), double (*aggregate)(const double*, int)) {
-	double elems[patch.pft.nobj];
+	std::vector<double> elems(patch.pft.nobj);
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		const Patchpft &ppft = patch.pft[i];
 		elems[i] = read_ppft(ppft);
 	}
-	return aggregate(elems, patch.pft.nobj);
+	return aggregate(&elems.front(), patch.pft.nobj);
 }
 
 /*
@@ -385,12 +385,12 @@ Aggregate a value across all individuals in the patch.
 */
 double aggregate_indiv(const Patch &patch, double (*read_indiv)(const Individual &), double (*aggregate)(const double*, int)) {
 	const Vegetation &vegetation = patch.vegetation;
-	double elems[vegetation.nobj];
+	std::vector<double> elems(vegetation.nobj);
 	for (int i = 0; i < vegetation.nobj; i++) {
 		const Individual &indiv = vegetation[i];
 		elems[i] = read_indiv(indiv);
 	}
-	return aggregate(elems, vegetation.nobj);
+	return aggregate(&elems.front(), vegetation.nobj);
 }
 
 /*

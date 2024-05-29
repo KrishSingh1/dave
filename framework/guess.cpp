@@ -70,8 +70,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& lat
 		& insol
 		& instype	
-		& ainsol	//JN
-		& arad		//JN
+		& ainsol
 		& eet
 		& mtemp
 		& mtemp_min20

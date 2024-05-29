@@ -597,8 +597,7 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
-	seasonality_columns += ColumnDescriptor("insolation", 12, 4);	//JN
-	//seasonality_columns += ColumnDescriptor("radiation",  14, 2);	//JN
+	seasonality_columns += ColumnDescriptor("insolation", 12, 4);
 
 	// SPECIESHEIGHTS
 	ColumnDescriptors speciesheights_columns;
@@ -2593,8 +2592,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);
 	outlimit_misc(out, out_seasonality,   gridcell.climate.prec_range);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.ainsol/date.year_length());	// JN
-	//outlimit_misc(out, out_seasonality,   gridcell.climate.arad/date.year_length());	// JN
+	outlimit_misc(out, out_seasonality,   gridcell.climate.ainsol/date.year_length());
 
 	if(st_pft_cmass)
 		delete[] st_pft_cmass;

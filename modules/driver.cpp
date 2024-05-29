@@ -692,7 +692,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// reset annual radiation counter
 		climate.ainsol = 0;
-		climate.arad = 0;
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
@@ -809,7 +808,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	climate.aprec += climate.prec;
-	climate.ainsol += climate.insol;	//JN
+	climate.ainsol += climate.insol;
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);

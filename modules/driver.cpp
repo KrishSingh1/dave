@@ -690,6 +690,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.aNO3dep  = 0.0;
 		climate.aprec = 0.0;
 
+		// reset annual radiation counter
+		climate.ainsol = 0;
+
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
 		gridcell.landcover.acflux_landuse_change_orig=0.0;
@@ -805,6 +808,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	climate.aprec += climate.prec;
+	climate.ainsol += climate.insol;
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
@@ -854,8 +858,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// On last day of month ...
-
 	if (date.islastday) {
+
 		// Update mean temperature for the last 12 months
 		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
 		climate.atemp_mean = climate.atemp_mean * W11DIV12 + climate.mtemp * W1DIV12;
@@ -896,7 +900,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.hmtemp_20[date.month].add(climate.dtemp_31.periodicmean(date.ndaymonth[date.month]));
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
+	
 	}
+
 	// Calculate climate seasonality
 	climate_seasonality(gridcell);
 }
@@ -1259,7 +1265,6 @@ void daylengthinsoleet(Climate& climate) {
 
 		// deal with the fact that insolation can be radiation during
 		// daylight hours or during whole time step
-
 		double averaging_period = 24 * 3600;
 
 		if (climate.instype == NETSWRAD || climate.instype == SWRAD) {

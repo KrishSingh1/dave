@@ -262,7 +262,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	SimfireInputArchive ark;
 	
 	if (!ark.open(file_simfire)) {
-		fail("Could not open %s for input \n", (char*)file_simfire);
+		fail("getsimfiredata(): Could not open %s for input \n", (char*)file_simfire);
 	}
 	
 	SimfireInput rec;
@@ -273,7 +273,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	if (!ark.getindex(rec)) {
 		ark.close();
-		fail("Grid cell not found in %s \n", (char*)file_simfire);
+		fail("getsimfiredata(): Grid cell not found in %s \n", (char*)file_simfire);
 	}
 
 	// Found the record, get the values

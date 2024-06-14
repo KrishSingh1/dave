@@ -28,7 +28,7 @@ void take_n_steps(Date& d, int n) {
 }
 
 
-TEST_CASE("date/construction", "Some basic tests of constructing dates") {
+TEST_CASE("date/construction", "[date]") {
 	 Date d;
 	 d.init(1);
 
@@ -43,7 +43,7 @@ TEST_CASE("date/construction", "Some basic tests of constructing dates") {
 }
 
 
-TEST_CASE("date/stepping", "Tests Date::next()") {
+TEST_CASE("date/stepping", "[date]") {
 	 Date d;
 	 d.init(1);
 
@@ -62,14 +62,14 @@ TEST_CASE("date/stepping", "Tests Date::next()") {
 	 }
 }
 
-TEST_CASE("date/leap", "Tests isleap") {
+TEST_CASE("date/leap", "[date][leap]") {
 	REQUIRE(!Date::is_leap(1900));
 	REQUIRE(!Date::is_leap(1975));
 	REQUIRE(Date::is_leap(1904));
 	REQUIRE(Date::is_leap(2000));
 }
 
-TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
+TEST_CASE("date/months", "[date]") {
 	 Date d;
 	 d.init(1);
 
@@ -96,7 +96,7 @@ TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 	 REQUIRE(d.prevmonth() == 11);
 }
 
-TEST_CASE("date/calendar_year", "Tests the calendar year concept") {
+TEST_CASE("date/calendar_year", "[date][year]") {
 	Date d;
 	d.init(1);
 

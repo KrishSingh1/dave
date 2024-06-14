@@ -16,7 +16,7 @@
 
 #include "guessmath.h"
 
-TEST_CASE("Historic/add", "Some basic tests of adding values to a Historic") {
+TEST_CASE("Historic/add", "[historic]") {
 	Historic<double, 3> history;
 
 	REQUIRE(history.size() == 0);
@@ -55,7 +55,7 @@ TEST_CASE("Historic/add", "Some basic tests of adding values to a Historic") {
 	REQUIRE(history.mean() == Approx(3));
 }
 
-TEST_CASE("variation_coefficient", "Tests of variation coefficient") {
+TEST_CASE("variation_coefficient", "[variation]") {
 
 	double single_value[] = { 7 };
 
@@ -69,7 +69,7 @@ TEST_CASE("variation_coefficient", "Tests of variation coefficient") {
 
 	REQUIRE(variation_coefficient(values, 8) == Approx(0.427618));
 }
-TEST_CASE("Historic/periodic", "Some basic tests of the period functions in Historic") {
+TEST_CASE("Historic/periodic", "[historic]") {
 	Historic<double, 3> history;
 
 	REQUIRE(history.size() == 0);

@@ -11,6 +11,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+// CATCH_CONFIG_NO_POSIX_SIGNALS is needed because catch.hpp uses 'SIGSTKSZ' constant which in newer compilers is no longer available.
+#define CATCH_CONFIG_NO_POSIX_SIGNALS
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
 #include "shell.h"
@@ -21,7 +23,7 @@ int main(int argc, char** argv) {
 	set_shell(new CommandLineShell("tests.log"));
 
 	// Let CATCH do the rest
-	int result = Catch::Main(argc, argv);
+	int result = Catch::Session().run(argc, argv);
 
 	return result;
 }

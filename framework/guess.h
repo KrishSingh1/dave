@@ -4364,6 +4364,8 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+    double total_litter() const;
 };
 
 

@@ -380,6 +380,10 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
+double Patchpft::total_litter() const {
+	return cmass_litter_leaf + cmass_litter_root + cmass_litter_heart + cmass_litter_sap + cmass_litter_repr;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Patch member functions
 ////////////////////////////////////////////////////////////////////////////////

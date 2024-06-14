@@ -16,7 +16,7 @@
 
 #include "guessstring.h"
 
-TEST_CASE("trim", "Tests for trim()") {
+TEST_CASE("trim", "[string]") {
 	REQUIRE(trim("") == "");
 
 	REQUIRE(trim(" ") == "");
@@ -28,7 +28,7 @@ TEST_CASE("trim", "Tests for trim()") {
 	REQUIRE(trim(" a b ") == "a b");
 }
 
-TEST_CASE("to_upper", "Tests for to_upper()") {
+TEST_CASE("to_upper", "[string]") {
 	REQUIRE(to_upper("abc") == "ABC");
 
 	REQUIRE(to_upper("a b c") == "A B C");
@@ -36,7 +36,7 @@ TEST_CASE("to_upper", "Tests for to_upper()") {
 	REQUIRE(to_upper("1") == "1");
 }
 
-TEST_CASE("to_lower", "Tests for to_lower()") {
+TEST_CASE("to_lower", "[string]") {
 	REQUIRE(to_lower("AbC") == "abc");
 
 	REQUIRE(to_lower("A B C") == "a b c");

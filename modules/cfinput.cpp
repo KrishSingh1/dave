@@ -507,7 +507,7 @@ void CFInput::init() {
 				double lon_center, lat_center;
 				lon_center = ((double)std::floor(lon * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
 				lat_center = ((double)std::floor(lat * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
-				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);																				
+				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);
 				c.lat = lat_center;
 				c.lon = lon_center;
 				c.rlon = rlon;

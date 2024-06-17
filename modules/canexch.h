@@ -114,7 +114,6 @@ const double GAMSTAR25 = 42.75E-6; // photorespiratory CO2 comp. point (Bernacch
 /// Activation energies (kJ mol-1)
 const double HA_V  = 59.70;  // Vcmax (Kumarathunge et al. 2019)
 const double HA_J  = 40.71;  // Jmax (Kumarathunge et al. 2019)
-const double HA_R  = 25.49;  // Rd (Kumarathunge et al. 2019) TODO: check!
 const double HA_KO = 36.38;  // Ko (Bernacchi et al. 2001)
 const double HA_KC = 79.43;  // Kc (Bernacchi et al. 2001)
 const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
@@ -123,7 +122,7 @@ const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
 const double DS_V = 639.43;  // Vcmax (Kumarathunge et al. 2019)
 const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
 
-// Deactivation energy for Vcmax, Jmax (kJ mol-1)
+// Deactivation energy for Vcmax, Jmax, Vpmax (C4) (kJ mol-1)
 const double HD = 200.0;
 
 // Exponents in soil water stress function (wscal^q)
@@ -133,62 +132,28 @@ const double qb = 1.0;   // biochemistry, including Rd
 /// -----------------------------------------------
 /// C4 photosynthesis parameters
 /// -----------------------------------------------
-// Maximum Rubisco carboxylation rate (mol m-2 s-1)
-const double Vcmax25_C4 = 15.0E-6;
+// Maximum Rubisco carboxylation rate at 25 degC relative to Vpmax25 (Fan et al. dataset)
+const double rVC4 = 0.56;
+// Maximum electron transport rate at 25 degC relative to Vcmax25 (von Caemmerer 2021)
+const double rJC4 = 6.2;
+// PEP regeneration rate relative to Vcmax25 (von Caemmerer 2021)
+const double rVPr = 2.0;
 
-// Activation and deactivation energy and entropy term for Vcmax (Massad et al. 2007)
-//const double HA_V4 = 67.29;   // kJ mol-1
-const double HA_V4 = 78.00;   // kJ mol-1  // Boyd 2015
-const double HD_V4 = 144.57;  // kJ mol-1
-const double DS_V4 = 472.0;   // J mol-1 K-1
+// Activation and deactivation energy and entropy term for Vpmax (NAD-ME in Sonawane et al. 2017) 
+const double HA_VP = 58.0;   // kJ mol-1
+const double DS_VP = 640.0;  // J mol-1 K-1
 
-// Maximum electron transport rate (mol m-2 s-1)
-//const double Jmax25_C4 = 62.5E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Jmax25_C4 = 150.0E-6; // max. Jmax corresponding to 31.25 umol m-2 s-1 at 25degC. TODO: To be replaced!!
+// Activation and deactivation energy and entropy term for Vcmax (NAD-ME in Sonawane et al. 2017)
+const double HA_V4 = 52.0;   // kJ mol-1 
+const double DS_V4 = 630.0;  // J mol-1 K-1
 
-// Activation and deactivation energy and entropy term for Jmax (Massad et al. 2007)
-const double HA_J4 = 77.90;   // kJ mol-1
-const double HD_J4 = 191.93;  // kJ mol-1
-const double DS_J4 = 627.0;   // J mol-1 K-1
+// Activation and deactivation energy and entropy term for Jmax (fitted to data shown in Yamori et al. 2010 (C3 plant!!))
+const double HA_J4 = 37.90;  // kJ mol-1
+const double DS_J4 = 630.4;  // J mol-1 K-1
 
-// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
-const double Vpmax25 = 75.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-
-// Activation and deactivation energy and entropy term for Vpmax (Massad et al. 2007) 
-//const double HA_VP = 70.37;  // kJ mol-1
-//const double HD_VP = 117.91; // kJ mol-1
-//const double DS_VP = 376.0;  // J mol-1 K-1
-
-// Activation and deactivation energy and entropy term for Vpmax (Boyd et al. 2015) 
-const double HA_VP = 94.8;   // kJ mol-1
-const double HD_VP = 73.3;   // kJ mol-1
-const double DS_VP = 250.0;  // J mol-1 K-1
-
-// PEP regeneration rate (mol m-2 s-1)
-//const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Vpr = 60.0E-6;    // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-
-// Michaelis-Menten constants (von Caemmerer 2021 and references therein)
-const double KP25    = 82.0E-6;  // (mol mol-1) 
-const double KC25_C4 = 1210E-6;  // (mol mol-1)
-const double KO25_C4 = 292E-3;   // (mol mol-1)
-
-// Activation energies for Michaelis-Menten constants
-const double HA_KP    = 38.3;   // activation energy for KP_C4 (kJ mol-1), DiMario & Cousins 2019
-const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
-const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
-
-// Activation energy for day respiration in C4 plants
-const double HA_RD_C4 = 66.4;   // kJ mol-1 (von Caemmerer 2021)
-
-// Half the reciprocal of Rubisco specificity
-const double lgamstar = 0.0003817;  // Boyd et al. 2015
-
-// Ratio of solubility and diffusivity of O2 to CO2
-const double a0 = 0.047;
-
-// Fraction of PSII activity in the bundle sheath
-const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
+// Michaelis-Menten constant for Kp (Sonawane et al. 2017)
+const double KP25    = 115.0E-6;  // (mol mol-1) // fitted assuming gm of 1.1 mol m-2 s-1.
+const double HA_KP   = 38.3;      // activation energy for KP25 (kJ mol-1), DiMario & Cousins 2019
 
 // Partitioning factor of electron transport in mesophyll and bundle-sheath cells
 const double xj = 0.4;
@@ -199,8 +164,24 @@ const double gbs = 0.003;  // von Caemmerer 2000
 
 
 
-// Downregulation factor of respiration during dormancy
-const double fresp_dorm = 0.1;
+// The following parameters are only used for the complex C4 photosynthesis formulation
+// Michaelis-Menten constant for CO2 and O2 (Boyd et al. 2015)
+const double KC25_C4 = 1210E-6;  // (mol mol-1)
+const double KO25_C4 = 292E-3;   // (mol mol-1)
+
+// Activation energies for Michaelis-Menten constants
+const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
+const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
+
+// Half the reciprocal of Rubisco specificity
+const double lgamstar = 0.0003817;  // Boyd et al. 2015
+
+// Ratio of solubility and diffusivity of O2 to CO2
+const double a0 = 0.047;
+
+// Fraction of PSII activity in the bundle sheath
+const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
+
 
 
 /// -----------------------------------------------

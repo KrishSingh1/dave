@@ -2980,7 +2980,8 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 }
 
 
-// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8).
+// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
+// and preliminary data from Yuzhen Fan for C4 grasses.
 void vcmax_from_N(Vegetation& vegetation) {
 
 	for (int i = 0; i < vegetation.nobj; i++) {
@@ -2988,8 +2989,6 @@ void vcmax_from_N(Vegetation& vegetation) {
 
         double nmass_leaf = 0.0;
 		double nlai_top  = 1.0;
-		//double leaf_NtoP = 22.9;  // from EucFACE -> TODO: move to constants as a PFT parameter!!
-		double leaf_NtoP = 10.7;
 
 		// Avoid log(0)
 		if (!is_zero(indiv.get_nmass_leaf())) {
@@ -3000,23 +2999,32 @@ void vcmax_from_N(Vegetation& vegetation) {
 			//nmass_leaf = indiv.nmass_leafs[green] / (indiv.cmass_leafs[green] * indiv.sla());
 			
 			// nlai_top is a factor describing how much higher leaf N at the top of canopy 
-			// is compared to the middle of the canopy (lai/2). 
-			// TODO: check if that is correct for multiple layers.
+			// is compared to the middle of the canopy (lai/2). This correction is necessary
+			// since nmass_leaf is an average throughout the canopy, whereas we need the top layer.
 			nlai_top = 1.0 / exp(-kn * (indiv.lai / 2.0));
 			nmass_leaf = (indiv.get_nmass_leaf() / indiv.lai) * nlai_top;
 
 			assert(positive(nmass_leaf));
 
-			// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
-			// pmass_leaf is in kgP m-2 leaf area
-			// nmass_leaf is in kgN m-2 leaf area 
-			double pmass_leaf = nmass_leaf / leaf_NtoP;  
+			if (indiv.pft.pathway == C3) {
 
-			indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
-											log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
-			indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
-										   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+				double leaf_NtoP = 10.7;  // average value for C3 grasses from Thum et al. 2019 (SI Table 8)
 
+				// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
+				// pmass_leaf is in kgP m-2 leaf area
+				// nmass_leaf is in kgN m-2 leaf area 
+				double pmass_leaf = nmass_leaf / leaf_NtoP;  
+
+				indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
+												log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+				indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
+											   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+			} 
+			else if (indiv.pft.pathway == C4) {
+
+				indiv.ps_subdaily.vpmax25 = (5.323 + 22.686 * (nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+
+			}
 		}
 		else {
 			// This may happen on first day after establishment when using the
@@ -3024,7 +3032,8 @@ void vcmax_from_N(Vegetation& vegetation) {
 			// establishment. Nitrogen uptake happens daily though, so on the
 			// next day, nmass_leaf should be nonzero.
 			indiv.ps_subdaily.vcmax25 = 0.0;
-			indiv.ps_subdaily.jmax25 = 0.0;
+			indiv.ps_subdaily.jmax25  = 0.0;
+			indiv.ps_subdaily.vpmax25 = 0.0;
 		}
 	}
 }
@@ -3111,12 +3120,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double Nscal = max(1.0e-12, exp(-kn * lai_cum));
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
-				double vcmax = 0.0, jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;
+				double Vcmax = 0.0, Jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;
 				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0, Anc = 0.0;
 				double Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0;
 				double ci = 0.0, ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
 				double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0;
 				double c_j = 0.0, nit = 0.0, nit_max = 0.0;
+				double Vcmax25_C4 = 0.0, Jmax25_C4 = 0.0, Vpr = 0.0;
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
@@ -3139,23 +3149,23 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
-						vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
-						jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
+						Vcmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vcmax25,temp,HA_V,HD,DS_V);
+						Jmax  = pslim * Arrhenius_temp_response(indiv.ps_subdaily.jmax25,temp,HA_J,HD,DS_J);
 
 						// 1) Rubisco-limited gross photosynthesis
-						double gamma = vcmax;
+						double gamma = Vcmax;
 						beta  = Kc * (1.0 + divide(O2atm,Ko));
 						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 						// 2) RuBP regeneration-limited gross photosynthesis
-						Je    = electron_transport_rate(par_layer,jmax);   
+						Je    = electron_transport_rate(par_layer,Jmax);   
 						gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
 						beta  = 2.0 * gamstar;
 						Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
 
 						// 3) TPU-limited gross photosynthesis
 						// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
-						Anp = 0.5 * vcmax - Rd;
+						Anp = 0.5 * Vcmax - Rd;
 
 						// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
 						An = min(Anc,min(Anj,Anp));
@@ -3173,6 +3183,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 				else {  // C4 photosynthesis (von Caemmerer 2000)
 
+					// Parameters at 25 degC 
+					Vcmax25_C4 = rVC4 * indiv.ps_subdaily.vpmax25;
+					Jmax25_C4  = rJC4 * Vcmax25_C4;
+					Vpr        = rVPr * Vcmax25_C4;
+
 					//  Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 					Rd = indiv.fphen_activity * pow(ppft.wscal,qb) * BC4 * Vcmax25_C4 * Nscal * 
 					     respiration_temp_response(temp) * light_inhibition(par_layer);
@@ -3189,14 +3204,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// C4/day time
 
 						// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-						//vcmax = Nscal * ppft.wscal * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD_V4,DS_V4);
 						pslim = indiv.fphen_activity * indiv.ps_sink_lim * Nscal * pow(ppft.wscal,qb);
-						vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,0.0,0.0);
-						//jmax  = Nscal * ppft.wscal * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD_J4,DS_J4);
-						jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));  // TODO: replace with equivalent Arrhenius equation.
+						Vcmax = pslim * Arrhenius_temp_response(Vcmax25_C4,temp,HA_V4,HD,DS_V4);
+						Jmax  = pslim * Arrhenius_temp_response(Jmax25_C4,temp,HA_J4,HD,DS_J4);
+						// Note: Jmax temperature response has been refitted to an Arrhenius equation
+						//Jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2)))); 
 
 						// Temperature dependency of Vpmax and Michaelis-Menten constants
-						Vpmax = pslim * Arrhenius_temp_response(Vpmax25,temp,HA_VP,HD_VP,DS_VP);
+						Vpmax = pslim * Arrhenius_temp_response(indiv.ps_subdaily.vpmax25,temp,HA_VP,HD,DS_VP);
 						Kp    = Arrhenius_temp_response(KP25,temp,HA_KP,0.0,0.0);
 						Kc    = Arrhenius_temp_response(KC25_C4,temp,HA_KC_C4,0.0,0.0);
 						Ko    = Arrhenius_temp_response(KO25_C4,temp,HA_KO_C4,0.0,0.0);
@@ -3218,14 +3233,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 							// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
 							if (ifapproximate_C4){
-								Anc = min((Vp + gbs * ci - Rm),(vcmax - Rd));
+								Anc = min((Vp + gbs * ci - Rm),(Vcmax - Rd));
 							} 
 							else {
 								a_c = 1.0 - alpha_PSII/a0 * Kc/Ko;
-								b_c = -((Vp - Rm + gbs * ci) + (vcmax - Rd) + gbs*Km + alpha_PSII/a0 
-								 	  * (lgamstar * vcmax + Rd * Kc/Ko));
-								c_c = (vcmax - Rd) * (Vp - Rm + gbs * ci) - 
-								  	  (vcmax * gbs * lgamstar * O2atm + Rd * gbs * Km);
+								b_c = -((Vp - Rm + gbs * ci) + (Vcmax - Rd) + gbs*Km + alpha_PSII/a0 
+								 	  * (lgamstar * Vcmax + Rd * Kc/Ko));
+								c_c = (Vcmax - Rd) * (Vp - Rm + gbs * ci) - 
+								  	  (Vcmax * gbs * lgamstar * O2atm + Rd * gbs * Km);
 
 								Anc = (-b_c - sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
 							}
@@ -3234,7 +3249,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 							// Light-limited net photosynthesis rate (mol m-2 s-1)
 							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-							Je = electron_transport_rate(par_layer,jmax);
+							Je = electron_transport_rate(par_layer,Jmax);
 							if (ifapproximate_C4){
 								Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
 							} 
@@ -3291,8 +3306,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anp_canopy += Anp * lai_layer;
 				gsw_canopy += (gsc * DWDC) * lai_layer;
 				ci_canopy  += ci * lai_layer;
-				vcmax_canopy += vcmax * lai_layer;
-				jmax_canopy  += jmax * lai_layer;
+				vcmax_canopy += Vcmax * lai_layer;
+				jmax_canopy  += Jmax * lai_layer;
 
 				if (Anc < Anj && (pft.pathway == C4 || Anc < Anp) ) {
 					// Anc-limited

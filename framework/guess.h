@@ -714,6 +714,7 @@ public:
 	void clear(){
 		vcmax25   = 0.0;
 		jmax25    = 0.0;
+		vpmax25   = 0.0;
 
 		vcmax.clear();
 		jmax.clear();
@@ -742,6 +743,9 @@ public:
 
 	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
 	double jmax25;  
+
+	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	double vpmax25;
 
 	// Maximum carboxylation rate (mol m-2 s-1)
 	std::vector<double> vcmax;

@@ -3022,7 +3022,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 			} 
 			else if (indiv.pft.pathway == C4) {
 
-				indiv.ps_subdaily.vpmax25 = (5.323 + 22.686 * (nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+				indiv.ps_subdaily.vpmax25 = (5.848 + 16.547 * (nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
 
 			}
 		}

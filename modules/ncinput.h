@@ -143,15 +143,20 @@ private:
 	/*
 	Create a new NCVariable object on the heap for the specified variable name.
 
+	@param netcdf_file: Path to the netcdf file to be used. This will be treated
+	as a printf-style format string, and can contain a single %s format
+	specifier, which will be applied to the variable name.
 	@param variable_name: Name of the variable.
+	@param ncid: (Output) File ID of the opened file will be stored here if a
+	separate file is used for this variable. Otherwise, -1 will be stored here.
 	@param limits: Upper/lower bounds of the variable.
 	@param units: Expected units of the variable.
 	@param require_valid_units: Iff true, an error will be thrown upon
 								encountering invalid units.
 	*/
-	std::unique_ptr<NCVariable> create_variable(xtring variable_name
-		, bounds limits, const std::vector<xtring>& units
-		, bool require_valid_units) const;
+	std::unique_ptr<NCVariable> create_variable(xtring netcdf_file
+		, xtring variable_name, int &ncid, bounds limits
+		, const std::vector<xtring>& units, bool require_valid_units) const;
 
 	/*
 	Parse grid list from the specified plain text file.
@@ -240,7 +245,17 @@ private:
 	/*
 	Check if a variable exists with the specified name.
 	*/
-	bool variable_exists(xtring name) const;
+	bool variable_exists(xtring netcdf_file, xtring name) const;
+
+	/*
+	Close the specified NetCDF file if it is open.
+	*/
+	void close_if_open(int &nc);
+
+	/*
+	Close all open netcdf files.
+	*/
+	void close_all();
 
 	/*
 	Land cover input module.
@@ -519,6 +534,68 @@ private:
 	int nc_file;
 
 	/*
+	The NetCDF file ID for the temp variable.
+	*/
+	int nc_temp;
+
+	/*
+	The NetCDF file ID for the insol variable.
+	*/
+	int nc_insol;
+
+	/*
+	The NetCDF file ID for the precip variable.
+	*/
+	int nc_precip;
+
+	/*
+	The NetCDF file ID for the vpd variable. This will be -1 if vpd is being
+	calculated from specific humidity.
+	*/
+	int nc_vpd;
+
+	/*
+	The NetCDF file ID for the specific humidity variable. This will be -1 if
+	vpd is being read directly from the input file.
+	*/
+	int nc_huss;
+
+	/*
+	The NetCDF file ID for the ps variable.
+	*/
+	int nc_ps;
+
+	/*
+	The NetCDF file ID for the wind variable.
+	*/
+	int nc_wind;
+
+	/*
+	The NetCDF file ID for the co2 variable.
+	*/
+	int nc_co2;
+
+	/*
+	The NetCDF file ID for the tmax variable.
+	*/
+	int nc_tmax;
+
+	/*
+	The NetCDF file ID for the tmin variable.
+	*/
+	int nc_tmin;
+
+	/*
+	The NetCDF file ID for the nhx variable.
+	*/
+	int nc_nhx;
+
+	/*
+	The NetCDF file ID for the noy variable.
+	*/
+	int nc_noy;
+
+	/*
 	The first timestep in the input data of the main simulation.
 	*/
 	timepoint first_timestep;
@@ -563,17 +640,17 @@ private:
 
 	/*
 	Upper and lower bounds for temp.
-	*/	
+	*/
 	bounds bounds_temp;
 
 	/*
 	Upper and lower bounds for insol.
-	*/	
+	*/
 	bounds bounds_insol;
 
 	/*
 	Upper and lower bounds for co2.
-	*/	
+	*/
 	bounds bounds_co2;
 
 	/*

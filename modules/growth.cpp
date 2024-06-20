@@ -76,6 +76,9 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
+// SLA of culms relative to leaves in grasses
+const double frac_sla_culm = 0.2;
+
 // Error tolerance (expressed as number of significant figures) used in mass balance checks.
 const double EPS = -12;
 
@@ -1810,6 +1813,8 @@ bool allometry(Individual& indiv) {
 	//    (11) lai_ind = cmass_leaf * sla
 
 	double fpc_new; // updated FPC
+	double lai_leaf=0.0;  // grass only
+	double lai_culm=0.0;  // grass only
 
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0;
@@ -1898,7 +1903,10 @@ bool allometry(Individual& indiv) {
 				// Grass "individual" LAI (Eqn 11). Green LAI only!
 				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 				if (ifdavegrowth) {
-					indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
+					lai_leaf = indiv.get_cmass_leaf() * (1.0 - indiv.pft.culmfrac) * indiv.sla();
+					lai_culm = indiv.get_cmass_leaf() * indiv.pft.culmfrac * (indiv.sla() * frac_sla_culm);
+					indiv.lai_indiv = lai_leaf + lai_culm;
+					// indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
 				}
 				
 				// FPC (Eqn 10)

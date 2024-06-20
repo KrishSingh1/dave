@@ -3352,6 +3352,7 @@ void water_stress(Patch &patch) {
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
+		ppft.airtemp_10.add(patch.get_climate().temp);
 
 	}
 }

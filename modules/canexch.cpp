@@ -2987,24 +2987,16 @@ void vcmax_from_N(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-        double nmass_leaf = 0.0;
-		double nlai_top  = 1.0;
+        double nmass_leaf0 = 0.0;
 
 		// Avoid log(0)
 		if (!is_zero(indiv.get_nmass_leaf())) {
-        	// leaf N of green leaves per leaf area (kgN m-2 leaf area) 
-			// take green leaves only and calculate leaf N per unit leaf area
-			// (not total plant LAI) at the top of the canopy 
-			// to not double-account for canopy gradients in leaf N.
-			//nmass_leaf = indiv.nmass_leafs[green] / (indiv.cmass_leafs[green] * indiv.sla());
-			
-			// nlai_top is a factor describing how much higher leaf N at the top of canopy 
-			// is compared to the middle of the canopy (lai/2). This correction is necessary
-			// since nmass_leaf is an average throughout the canopy, whereas we need the top layer.
-			nlai_top = 1.0 / exp(-indiv.pft.extkn * (indiv.lai / 2.0));
-			nmass_leaf = (indiv.get_nmass_leaf() / indiv.lai) * nlai_top;
 
-			assert(positive(nmass_leaf));
+			// Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area)
+			// we know Ntot is the integral of N0 * exp(-extkn * LAI) over LAI. Solving for N0 gives:
+			nmass_leaf0 = indiv.get_nmass_leaf() / ((1.0 - exp(-indiv.pft.extkn * indiv.lai)) / indiv.pft.extkn);
+
+			assert(positive(nmass_leaf0));
 
 			if (indiv.pft.pathway == C3) {
 
@@ -3013,18 +3005,16 @@ void vcmax_from_N(Vegetation& vegetation) {
 				// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
 				// pmass_leaf is in kgP m-2 leaf area
 				// nmass_leaf is in kgN m-2 leaf area 
-				double pmass_leaf = nmass_leaf / leaf_NtoP;  
+				double pmass_leaf0 = nmass_leaf0 / leaf_NtoP;  
 
-				indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 * 
-												log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
-				indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 * 
-											   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+				indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf0 * G_PER_KG) + 0.197 * 
+												log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
+				indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf0 * G_PER_KG) + 0.112 * 
+											   log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
 			} 
 			else if (indiv.pft.pathway == C4) {
 
-                indiv.ps_subdaily.vpmax25 = exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
-				// indiv.ps_subdaily.vpmax25 = (22.622 + 14.472 * log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
-                // indiv.ps_subdaily.vpmax25 = (5.848 + 16.547 * nmass_leaf * G_PER_KG) / UMOL_PER_MOL;
+                indiv.ps_subdaily.vpmax25 = exp(3.118 + 0.751 * log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
 
 			}
 		}
@@ -3118,7 +3108,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double par_layer = fipar_layer * par;	            // incident PAR in the middle of the layer (W m-2) 
 
 				// determine N scalar of the layer
-				//Nscal = (j == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
 				double Nscal = max(1.0e-12, exp(-indiv.pft.extkn * lai_cum));
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;

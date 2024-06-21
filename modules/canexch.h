@@ -187,9 +187,6 @@ const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd
 /// -----------------------------------------------
 /// Canopy-level parameters
 /// -----------------------------------------------
-// Nitrogen extinction coefficient within the canopy (Friend and Kiang 2005)
-const double kn = 0.11;
-
 
 /// leaf respiration as fraction of maximum rubisco, mosses
 // see Wania et al. (2009b)

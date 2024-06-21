@@ -3001,7 +3001,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 			// nlai_top is a factor describing how much higher leaf N at the top of canopy 
 			// is compared to the middle of the canopy (lai/2). This correction is necessary
 			// since nmass_leaf is an average throughout the canopy, whereas we need the top layer.
-			nlai_top = 1.0 / exp(-kn * (indiv.lai / 2.0));
+			nlai_top = 1.0 / exp(-indiv.pft.extkn * (indiv.lai / 2.0));
 			nmass_leaf = (indiv.get_nmass_leaf() / indiv.lai) * nlai_top;
 
 			assert(positive(nmass_leaf));
@@ -3119,7 +3119,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// determine N scalar of the layer
 				//Nscal = (j == 0) ? 1.0 : max(1.0e-12, exp(-kn * lai_cum) / exp(-kn * 0.5 * indiv.lai_layerwise[0]));
-				double Nscal = max(1.0e-12, exp(-kn * lai_cum));
+				double Nscal = max(1.0e-12, exp(-indiv.pft.extkn * lai_cum));
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
 				double Vcmax = 0.0, Jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;

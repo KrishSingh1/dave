@@ -2106,6 +2106,8 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
+	double extkn;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;

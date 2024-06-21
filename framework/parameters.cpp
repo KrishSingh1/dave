@@ -738,6 +738,8 @@ void plib_declarations(int id,xtring setname) {
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
+		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
+			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2010,6 +2012,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("nuptoroot")) badins("nuptoroot");
 			if (!itemparsed("km_volume")) badins("km_volume");
 			if (!itemparsed("fnstorage")) badins("fnstorage");
+			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 			if (!itemparsed("crownfrac")) badins("crownfrac");

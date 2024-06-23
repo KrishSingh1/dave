@@ -455,7 +455,7 @@ void fpar(Patch& patch) {
 
 
 						if (ifdavephotosyn) {
-							// see Sands 1995, Australian Journal of Plant Physiology
+							// see e.g. Sands 1995, Australian Journal of Plant Physiology
 							double fipar_layer = k_beer_grass / (1.0 - m_trans) * lambertbeer(plai - plai_layer/2,k_beer_grass);
 							
 							// Store layer-wise fpar in the individual.
@@ -2647,7 +2647,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Handle respiration differently in DAVE: 
 			// -> scale down resp_root during dormancy
-			// -> account for growth_demand in Rgrowth
 
 			// Root respiration
 			// Reduction factor of resp_root during dormancy (fphen_activity)
@@ -2660,8 +2659,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// TODO: replace cton_root with cton_repr if necessary. 
 			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
-			// TODO: add culm respiration.
-
 			// Growth respiration
 			//resp_growth = growth * 0.2;
 			resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
@@ -3045,8 +3042,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
-		double g0 = pft.g0;  // mol m-2 s-1
-		double g1 = pft.g1;  // kPa^0.5
+		double g0   = pft.g0;    // mol m-2 s-1
+		double g1   = pft.g1;    // kPa^0.5
+		double gmin = pft.gmin;  // mol m-2 s-1
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3085,6 +3083,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// X needs to represent gs for CO2, hence no 1.6 factor
     		double X = divide(divide(1.0 + pow(ppft.wscal,qs) * g1, sqrt(max(vpd,0.1))), ca); 
 
+			// Residual stomatal conductance term
+			// Note: both gmin and g0 are for H20, here conversion to conductances to CO2
+			double gdark = divide(max(gmin,g0 * pow(ppft.wscal,qs)),DWDC);  // TODO: do we need a different qs here?
+
 			// initialise cumulative LAI
 			double lai_cum_bottom = 0.0;
 
@@ -3107,17 +3109,18 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double lai_cum = lai_cum_bottom - 0.5 * lai_layer;  // cumulative LAI at the middle of current layer
 				double par_layer = fipar_layer * par;	            // incident PAR in the middle of the layer (W m-2) 
 
-				// determine N scalar of the layer
+				// account for the nitrogen gradient within the canopy
 				double Nscal = max(1.0e-12, exp(-indiv.pft.extkn * lai_cum));
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
 				double Vcmax = 0.0, Jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;
-				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0, Anc = 0.0;
-				double Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0, gsc = 0.0;
+				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0; 
+				double Anc = 0.0, Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0;
 				double ci = 0.0, ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
 				double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0;
 				double c_j = 0.0, nit = 0.0, nit_max = 0.0;
 				double Vcmax25_C4 = 0.0, Jmax25_C4 = 0.0, Vpr = 0.0;
+				double gsc = 0.0;
 
           		if (pft.pathway == C3) 	{	// C3 photosynthesis (largely Farquhar et al. 1980)
 					
@@ -3130,7 +3133,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					if (is_zero(par_layer)) {
 						// Night
 						An = -Rd;
-						gsc = g0;  // TODO: change g0 formulation following Duursma et al. 2018
+						gsc = gdark;
 					} else {
 
 						// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1)
@@ -3146,13 +3149,21 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						// 1) Rubisco-limited gross photosynthesis
 						double gamma = Vcmax;
 						beta  = Kc * (1.0 + divide(O2atm,Ko));
-						Anc   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+						Anc   = photosyn_solver(0.0,X,gamma,beta,gamstar,Rd,ca);
+						if (gdark > (Anc * X)) { 
+							// if gdark is greater than gs from the 'normal' gs model,
+							// repeat calculation with gdark only. 
+							Anc = photosyn_solver(gdark,0.0,gamma,beta,gamstar,Rd,ca);
+						}
 
 						// 2) RuBP regeneration-limited gross photosynthesis
 						Je    = electron_transport_rate(par_layer,Jmax);   
 						gamma = 0.25 * Je;    // assuming demand of 4 electrons per CO2 molecule
 						beta  = 2.0 * gamstar;
-						Anj   = photosyn_solver(g0,g1,X,gamma,beta,gamstar,Rd,ca);
+						Anj   = photosyn_solver(0.0,X,gamma,beta,gamstar,Rd,ca);
+						if (gdark > (Anj * X)) {
+							Anj = photosyn_solver(gdark,0.0,gamma,beta,gamstar,Rd,ca);
+						}
 
 						// 3) TPU-limited gross photosynthesis
 						// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
@@ -3162,10 +3173,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						An = min(Anc,min(Anj,Anp));
 
 						// Stomatal conductance to CO2 (mol m-2 s-1)
-						gsc = g0 + An * X;
-						if (An < 0) {
-							gsc = g0;
-						}
+						//gsc = g0 + An * X;
+						gsc = max(gdark,An * X);
 					}
 
 					// Re-calculate intercellular CO2 concentration (mol mol-1)
@@ -3189,7 +3198,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					if (is_zero(par)) {
 						// No photosynthesis at night.
 						An = -Rd;
-						gsc = g0;
+						gsc = gdark;
 						ci = ca - divide(An, gsc);
 					} else {
 						// C4/day time
@@ -3260,11 +3269,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							An = min(Anc,Anj);
 
 							// Stomatal conductance to CO2 (mol m-2 s-1)
-							gsc = g0 + An * X;
-
-							if (An < 0) {
-								gsc = g0;
-							}
+							// gsc = g0 + An * X;
+							gsc = max(gdark,An * X);
 
 							// Intercellular CO2 concentration (mol mol-1)
 							ci_new = ca - divide(An, gsc);
@@ -3273,6 +3279,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							if (nit != nit_max - 1) {
 								// If we can't find a solution, use initial guess
 								// on last iteration.
+								// TODO: check how often we get in here with new gs scheme/
 								ci -= ci_diff / 2.0;
 							}
 							nit += 1;
@@ -3280,7 +3287,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						if (nit == nit_max) {
 							// If we didn't find a solution, use initial guess.
 							ci = 0.5 * ca;
-							gsc = max(gsc, 0.0);
 						}
 					} // end if c4+daytime
 
@@ -3299,6 +3305,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				ci_canopy  += ci * lai_layer;
 				vcmax_canopy += Vcmax * lai_layer;
 				jmax_canopy  += Jmax * lai_layer;
+
+				assert(positive(gsc));
 
 				if (Anc < Anj && (pft.pathway == C4 || Anc < Anp) ) {
 					// Anc-limited
@@ -3380,7 +3388,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
-double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
+double photosyn_solver(double g0, double X, double gamma, double beta, 
 					   double gamstar, double Rd, double Ca) {
 	
 	double b2 = g0 + X * (gamma - Rd);

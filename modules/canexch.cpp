@@ -3013,6 +3013,8 @@ void vcmax_from_N(Vegetation& vegetation) {
 
                 indiv.ps_subdaily.vpmax25 = exp(3.118 + 0.751 * log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
 
+			} else {
+				fail("Unknown photosynthetic pathway");
 			}
 		}
 		else {
@@ -3279,7 +3281,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 							if (nit != nit_max - 1) {
 								// If we can't find a solution, use initial guess
 								// on last iteration.
-								// TODO: check how often we get in here with new gs scheme/
+								// TODO: check how often we get in here with new gs scheme?
 								ci -= ci_diff / 2.0;
 							}
 							nit += 1;

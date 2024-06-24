@@ -40,7 +40,7 @@ double light_inhibition(double PAR);
 
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
-double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
+double photosyn_solver(double g0, double X, double gamma, double beta, 
 					   double gamstar, double Rd, double Ca);
 
 // Calculate electron transport rate from PAR
@@ -157,6 +157,9 @@ const double HA_KP   = 38.3;      // activation energy for KP25 (kJ mol-1), DiMa
 
 // Partitioning factor of electron transport in mesophyll and bundle-sheath cells
 const double xj = 0.4;
+
+// Fraction of cyclic electron transport (von Caemmerer 2021)
+const double fcyc = 0.3;
 
 // Bundle-sheath conductance to CO2 (mol m-2 s-1)
 const double gbs = 0.003;  // von Caemmerer 2000

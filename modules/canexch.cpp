@@ -3114,7 +3114,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				double Rd = 0, pslim = 0, beta = 0, Ko = 0.0, Kc = 0.0;
 				double Vcmax = 0.0, Jmax = 0.0, Rm =0.0, Rs = 0.0, Je = 0.0;
-				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0; 
+				double Vpmax = 0.0, Vp = 0.0, Kp = 0.0, Km = 0.0, zj = 0.0; 
 				double Anc = 0.0, Anj = 0.0, Anp = 0.0, Ag = 0.0, An = 0.0;
 				double ci = 0.0, ci_diff = 0.0, ci_diff_max = 0.0, ci_new = 0.0;
 				double a_c = 0.0, b_c = 0.0, c_c = 0.0, a_j = 0.0, b_j = 0.0;
@@ -3245,25 +3245,25 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 								Anc = (-b_c - sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
 							}
 							// TODO: check value of alpha_PSII.
-							// TODO: check differences to von Caemmerer 2021.
 
 							// Light-limited net photosynthesis rate (mol m-2 s-1)
 							// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
 							Je = electron_transport_rate(par_layer,Jmax);
+							zj = divide((3.0 - fcyc),(4.0 * (1.0 - fcyc)));
 							if (ifapproximate_C4){
-								Anj = min(((xj * Je)/2.0 - Rm + gbs * ci),(((1.0 - xj) * Je)/3.0 - Rd));
+								Anj = min(((divide(zj,2.0) * xj * Je) - Rm + gbs * ci),
+								          ((divide(zj,3.0) * (1.0 - xj) * Je) - Rd));
 							} 
 							else {
 								a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
-								b_j = -(((xj * Je)/2.0 - Rm + gbs * ci) + (((1.0 - xj) * Je)/3.0 - Rd) 
-								  	  + gbs * ((7.0 * lgamstar * O2atm)/3.0) + 
-								  	  (alpha_PSII * lgamstar)/a0 * (((1.0 - xj) * Je)/3.0 + (7.0 * Rd)/3.0));
-								c_j = (((xj * Je)/2.0 - Rm + gbs * ci) * (((1.0 - xj) * Je)/3.0 - Rd)) - 
-								  	  gbs * lgamstar * O2atm * (((1.0 - xj) * Je)/3.0 + (7.0 * Rd)/3.0);
+								b_j = -(divide(zj,2.0) * xj * Je - Rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * Je - Rd) + 
+								  	  gbs * (divide((7.0 * lgamstar * O2atm),3.0)) + divide((alpha_PSII * lgamstar),a0) *
+								  	  (divide(zj,3.0) * (1.0 - xj) * Je + divide((7.0 * Rd),3.0));
+								c_j = ((divide(zj,2.0) * xj * Je) - Rm + gbs * ci) * (divide(zj,3.0) * (1.0 - xj) * Je - Rd) - 
+								  	  gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * Je + divide((7.0 * Rd),3.0));
 
 								Anj = (-b_j - sqrt(pow(b_j,2) - 4.0 * a_j * c_j)) / (2 * a_j);
 							}
-							// TODO: check xj vs. z in von Caemmerer 2021
 
 							// Net photosynthesis rate (mol m-2 s-1)
 							An = min(Anc,Anj);

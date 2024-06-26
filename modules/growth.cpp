@@ -55,7 +55,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 15.0e-6;
+const double ext_seed = 10.0e-6;
 
 // ---------------------------------
 // Grass parameters
@@ -1558,7 +1558,9 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		}
 
 		indiv.alive = true;
-		indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+		if (!indiv.pft.dave_allocation()) {
+			indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+		}
 
 		double cmass_after = indiv.ccont();
 		double nmass_after = indiv.ncont();
@@ -4195,6 +4197,13 @@ void update_pools_dave(Vegetation& vegetation) {
 		// Flush to root litter for now, but better alternatives could exist
 		if (indiv.nmass_storage > indiv.nstorage_max) {
 			double nexcess = indiv.nmass_storage - indiv.nstorage_max;
+			if (indiv.initialn > 0) {
+				double nvoid = min(indiv.initialn, nexcess);
+				indiv.initialn -= nvoid;
+				indiv.ntolitter += nvoid;
+				nexcess -= nvoid;
+				vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+			}
 			indiv.ntolitter += nexcess;
 			ppft.nmass_litter_root += nexcess;
 			indiv.nmass_storage = indiv.nstorage_max;
@@ -4759,12 +4768,10 @@ void turnover_dave_grass(Individual &indiv) {
 	double frac_turnover_leaf = kleaf * ftemp * fwater;
 
 	// Dead shoot turnover (brown shoot --> leaf litter)
-	double initialn = 0;
-	double initialc = 0;
 	turnover_pool(frac_turnover_leaf, 0, 0, indiv.cmass_leafs[brown],
                   indiv.nmass_leafs[brown], ppft.cmass_litter_leaf,
                   ppft.nmass_litter_leaf, indiv.ctolitter, indiv.ntolitter,
-                  initialc, initialn, indiv.cmass_storage,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
                   indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 	
 	// Crown turnover
@@ -4772,14 +4779,14 @@ void turnover_dave_grass(Individual &indiv) {
 	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
                   indiv.nmass_crown, ppft.cmass_litter_root,
                   ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
-                  initialc, initialn, indiv.cmass_storage,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
                   indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
 	// Root turnover (roots --> root litter)
 	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
                   indiv.nmass_root, ppft.cmass_litter_root,
                   ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
-                  initialc, initialn, indiv.cmass_storage,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
                   indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
 }
@@ -5160,8 +5167,16 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.nexcess > 0.0) {
 		// flush to litter
-		ppft.nmass_litter_root += indiv.nexcess;
+
+		double nvoid = min(indiv.nexcess, indiv.initialn);
+		double nexcess = indiv.nexcess - nvoid;
+
+		ppft.nmass_litter_root += nexcess;
 		indiv.ntolitter += indiv.nexcess;
+
+		// This N entered the system as a negative establishment flux.
+		indiv.vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+		indiv.initialn -= nvoid;
 	}
 }
 

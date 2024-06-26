@@ -708,6 +708,9 @@ void establishment_daily(Patch& patch) {
 					// Add some new biomass into this individual.
 					establishment_biomass(cmass_total_seed, pft.ltor_max, *indiv, nmass_total_seed); // * is a dereference (gets the value at the address)
 
+					indiv->initialc += cmass_ext_seed;
+					indiv->initialn += nmass_ext_seed;
+
 					double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true) + ppft.cmass_ext_seed;
 					double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true) + ppft.nmass_ext_seed;
 					assert(equal(cmass_before, cmass_after));

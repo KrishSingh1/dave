@@ -4369,7 +4369,6 @@ void senescence_grass(Individual &indiv) {
 
 	// Parameters
 	const double crelocfrac = 0.0;      // TODO: move to constants?
-	const double nrelocfrac = 0.5;
 	const double senesc_base = 0.00022;         // Baseline senescence rate (d-1)
 	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
@@ -4637,9 +4636,94 @@ void turnover_seed(Vegetation& vegetation) {
 }
 
 
-//double turnover_dave(double turnover_rate, double& source, double& sink, double max_sink_size){
+/*
+@param ctolitter: Cumulative C sent to litter
+@param ntolitter: Cumulative N sent to litter
+*/
+double turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
+	double &cpool, double &npool, double &cdest, double &ndest,
+	double &ctolitter, double &ntolitter, double &initialc, double &initialn,
+	double &cmass_storage, double &nmass_storage, double cstorage_max, double nstorage_max,
+	Patch &patch) {
 
-//}
+	if (cpool > 0.0) {
+
+		// Carbon
+
+		double cturnover = cpool * turnover_frac;
+
+		// Send some C to storage and some to litter.
+		double cstore = cturnover * crelocfrac;
+		double clitter = cturnover * (1.0 - crelocfrac);
+
+		if ( (cmass_storage + cstore) > cstorage_max) {
+			// Storage allocation would cause storage to exceed capacity.
+			// Reduce cstore to fill c storage and send the remainder to litter.
+			cstore = cstorage_max - cmass_storage;
+			clitter = cturnover - cstore;
+		}
+
+		// When this individual was established, some biomass appeared out of
+		// thin air (out of the void). This amount is initialc/initialn. We
+		// don't want this going into the soil, because this would result in
+		// long-term fertilisation of the system. Therefore, we reduce the
+		// biomass sent to litter until this imaginary biomass is returned to
+		// the void.
+		double cvoid = 0;
+		if (initialc > 0) {
+			cvoid = min(initialc, clitter);
+			clitter -= cvoid;
+
+			// This C entered the system as a negative establishment flux.
+			patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
+			initialc -= cvoid;
+		}
+
+		cpool      -= cturnover; // Split into clitter and cstore
+		cdest      += clitter;
+		ctolitter  += clitter; // Cumulative across pools
+		cmass_storage += cstore;
+
+		assert(equal(cturnover, cstore + clitter + cvoid));
+		ctolitter += cvoid; // temporary hack for mass balance checks
+
+
+		// Nitrogen
+
+		double nturnover = npool * turnover_frac;
+
+		// Send some N to storage and some to litter.
+		double nstore  = nturnover * nrelocfrac;
+		double nlitter = nturnover * (1.0 - nrelocfrac);
+
+		if (nmass_storage + nstore > nstorage_max) {
+			// Storage allocation would cause storage to exceed capacity.
+			// Reduce nstore to fill nstorage and send the remainder to litter.
+			nstore  = nstorage_max - nmass_storage;
+			nlitter = nturnover - nstore;
+		}
+
+		// See comment on cvoid for explanation.
+		double nvoid = 0;
+		if (initialn > 0) {
+			nvoid = min(initialn, nlitter);
+			nlitter -= nvoid;
+
+			// This N entered the system as a negative establishment flux.
+			patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+			initialn -= nvoid;
+		}
+
+		// Move nitrogen between pools.
+		npool           -= nturnover; // Split into nlitter and nstore
+		ndest           += nlitter;
+		ntolitter 		+= nlitter; // Cumulative between pools
+		nmass_storage   += nstore; // Move N to storage
+
+		assert(equal(nturnover, nstore + nlitter + nvoid));
+		ntolitter += nvoid; // temporary hack
+	}
+}
 
 // Note: cropallocation.cpp contains a function called turnover_grass(). I am
 // therefore avoiding reusing this name here.
@@ -4674,92 +4758,30 @@ void turnover_dave_grass(Individual &indiv) {
 	fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
 	double frac_turnover_leaf = kleaf * ftemp * fwater;
 
-
 	// Dead shoot turnover (brown shoot --> leaf litter)
-	if (indiv.cmass_leafs[brown] > 0.0) {
-
-		// Carbon
-		double cturnover_leaf = indiv.cmass_leafs[brown] * frac_turnover_leaf;
-
-		indiv.cmass_leafs[brown]  -= cturnover_leaf;
-		ppft.cmass_litter_leaf    += cturnover_leaf;
-		indiv.ctolitter           += cturnover_leaf;
-		indiv.ctolitter_leaf      =  cturnover_leaf; // Diagnostic output
-
-
-
-		// Nitrogen
-		double nturnover_leaf = indiv.nmass_leafs[brown] * frac_turnover_leaf;
-		
-		indiv.nmass_leafs[brown]   -= nturnover_leaf;
-		ppft.nmass_litter_leaf     += nturnover_leaf;
-		indiv.ntolitter            += nturnover_leaf;
-		indiv.ntolitter_leaf       =  nturnover_leaf; // Diagnostic output
-	}
-
+	double initialn = 0;
+	double initialc = 0;
+	turnover_pool(frac_turnover_leaf, 0, 0, indiv.cmass_leafs[brown],
+                  indiv.nmass_leafs[brown], ppft.cmass_litter_leaf,
+                  ppft.nmass_litter_leaf, indiv.ctolitter, indiv.ntolitter,
+                  initialc, initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+	
 	// Crown turnover
 	// TODO: put into function (same for roots and crowns)!	
-	if (indiv.cmass_crown > 0.0) {
-
-		// baseline turnover rate
-		double cturnover_crown = indiv.cmass_crown * frac_turnover_crown;
-
-		indiv.cmass_crown        -= cturnover_crown;
-		ppft.cmass_litter_root   += cturnover_crown;
-		indiv.ctolitter          += cturnover_crown;
-		indiv.ctolitter_crown    =  cturnover_crown; // Diagnostic output
-
-		// Nitrogen (including retranslocation)
-		double nturnover_crown = indiv.nmass_crown * frac_turnover_crown;
-		double nstore    = nturnover_crown * nrelocfrac;
-		double ntolitter = nturnover_crown * (1.0 - nrelocfrac);
-
-		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-			nstore    = indiv.nstorage_max - indiv.nmass_storage;	
-			ntolitter = nturnover_crown - nstore;
-		}
-
-		indiv.nmass_crown        -= nturnover_crown;
-		ppft.nmass_litter_root   += ntolitter;
-		indiv.nmass_storage      += nstore;
-		indiv.ntolitter          += ntolitter;
-		indiv.ntolitter_crown    = ntolitter; // Diagnostic output
-
-		assert(equal(nturnover_crown, nstore + ntolitter));
-	}
-
+	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
+                  indiv.nmass_crown, ppft.cmass_litter_root,
+                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+                  initialc, initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
 	// Root turnover (roots --> root litter)
-	if (indiv.cmass_root > 0.0) { 
+	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
+                  indiv.nmass_root, ppft.cmass_litter_root,
+                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+                  initialc, initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
-		// TODO JK: include C resorption from roots?
-		// Carbon
-		double cturnover_root = indiv.cmass_root * frac_turnover_root;
-		
-		indiv.cmass_root        -= cturnover_root;
-		ppft.cmass_litter_root  += cturnover_root;
-		indiv.ctolitter         += cturnover_root;
-		indiv.ctolitter_root    =  cturnover_root; // Diagnostic output
-
-		// Nitrogen (including retranslocation)
-		double nturnover_root = indiv.nmass_root * frac_turnover_root;
-		double nstore    = nturnover_root * nrelocfrac;
-		double ntolitter = nturnover_root * (1.0 - nrelocfrac);
-
-		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-			nstore    = indiv.nstorage_max - indiv.nmass_storage;	
-			ntolitter = nturnover_root - nstore;
-		}
-
-		indiv.nmass_root        -= nturnover_root;
-		ppft.nmass_litter_root  += ntolitter;
-		indiv.ntolitter         += ntolitter;
-		indiv.ntolitter_root    =  ntolitter; // Diagnostic output
-
-		indiv.nmass_storage     += nstore;
-
-		assert(equal(nturnover_root, nstore + ntolitter));
-	}
 }
 
 // Turnover of green pools to litter. 
@@ -4773,10 +4795,6 @@ void turnover_tree(Individual &indiv) {
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
 	//          ppft.cmass_litter_leaf, ppft.cmass_litter_root, indiv.cmass_heart
 
-	// fraction of senesced N that goes to storage (-). 
-	// TODO: also in turnover_dave() function. Further, check for literature 
-	// evidence.
-	const double nrelocfrac = 0.5;
 	// maximum relative change in leaf and root senescence as a result of  
 	// water stress (made up)
 	const double senesc_scal_water = 4; 
@@ -4977,9 +4995,6 @@ void turnover_tree(Individual &indiv) {
 // Transfer of crown pool, brown shoot pool, and fine root pool to leaf and root litter.
 // Transfer reproductive tissue to litter if end of growth cycle is reached.
 void turnover_dave(Vegetation& vegetation) {
-
-    // TODO: move to constants
-	const double nrelocfrac = 0.5;
 
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {

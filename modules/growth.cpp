@@ -55,7 +55,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 10.0e-6;
+const double ext_seed = 15.0e-6;
 
 // ---------------------------------
 // Grass parameters
@@ -4550,6 +4550,15 @@ bool is_established(const Pft &pft, const Vegetation &vegetation) {
 	return false;
 }
 
+// calculate the minimum cmass that leads to an establishment of lai >= lai_min
+double get_cmass_init_min(Patchpft& ppft) {
+
+	return lai_min / (ppft.pft.sla * (1.0 - cstorage_max_temp) * ppft.pft.ltor_max / (1.0 + ppft.pft.ltor_max));
+
+}
+
+
+
 // External seed input 
 // This should only be called if the PFT is not yet established at that location.
 // Otherwise PFTs need to rely on their local seedbank.
@@ -4559,10 +4568,17 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		if (!ppft.pft.dave_allocation() || is_established(ppft.pft, vegetation)) {
+		double cmass_init_min = get_cmass_init_min(ppft);
+
+		if (!ppft.pft.dave_allocation() || is_established(ppft.pft, vegetation) ||
+			ppft.cmass_litter_repr > cmass_init_min) {
 			// This pft is not using dave allocation, and is therefore not using
 			// the daily establishment. This means the seedbank and seed
 			// dispersal will have no effect on this pft.
+
+			// This routine is also not used (i.e. no external seeds added)
+			// if either an individual of the PFT is alive or it still 
+			// has enough seeds in the seedbank to establish a plant > lai_min.
 			continue;
 		}
 

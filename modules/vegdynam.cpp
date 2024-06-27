@@ -594,7 +594,7 @@ void establishment_daily(Patch& patch) {
 			// that would 'clutter' the simulations with very small individuals.
 			// cmass_leaf = cmass_init * (1 - cstorage_max_temp) * ltor / (ltor + 1)
 			// cmass_init = cmass_leaf / ((1 - cstorage_max_temp) * ltor / (ltor + 1))
-			double cmass_init_min = lai_min / (ppft.pft.sla * (1.0 - cstorage_max_temp) * ppft.pft.ltor_max / (1.0 + ppft.pft.ltor_max));
+			double cmass_init_min = get_cmass_init_min(ppft);
 			double cmass_init = frac_germ * (ppft.cmass_litter_repr + ppft.cmass_ext_seed);
 
 			// Do conditions allow for germination?

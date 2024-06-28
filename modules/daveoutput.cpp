@@ -774,15 +774,15 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 
 		Stand &stand = *gc_itr;
 
+		// Write stand ID.
+		write_output(rows, stand.id);
+
 		stand.firstobj();
 
 		std::vector<std::vector<double>> data;
 
 		while (stand.isobj) {
 			Patch &patch = stand.getobj();
-
-			// Write stand ID.
-			write_output(rows, stand.id);
 
 			std::vector<double> patch_data = write_patch(patch, rows);
 			if (write_stats()) {

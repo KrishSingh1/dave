@@ -3115,7 +3115,7 @@ void Individual::kill(bool harvest /* = false */) {
 		 // plant respires but does not turnover much, which
 		 // can happen in stressed plants. This will positively bias
 		 // plant respiration and should be accounted for somehow.
-		assert(ccont() >= initialc); 
+		//assert(ccont() >= initialc); // C could be lost from the system
 		assert(ncont() >= initialn);
 
 		double nflux_out = initialn;

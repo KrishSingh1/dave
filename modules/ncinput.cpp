@@ -72,6 +72,7 @@ NCInput::NCInput() {
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
 
 	declare_parameter("progress_interval", &progress_interval, -1, std::numeric_limits<int>::max(), "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+	declare_parameter("progress_newline", &progress_newline, "Force the use of newline characters to terminate progress messages. Useful for MPI runs.");
 
 	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
@@ -155,6 +156,8 @@ NCInput::NCInput() {
 	nc_tmin = -1;
 	nc_nhx = -1;
 	nc_noy = -1;
+
+	progress_newline = false;
 }
 
 NCInput::~NCInput() {
@@ -508,6 +511,9 @@ try {
 		}
 		progress_timer.setprogress(progress);
 		const char *eol = isatty(fileno(stdout)) ? "\r" : "\n";
+		if (progress_newline) {
+			eol = "\n";
+		}
 		dprintf("%3d%% complete, %s elapsed, %s remaining%s"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str, eol);

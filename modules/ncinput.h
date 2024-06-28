@@ -692,6 +692,13 @@ private:
 	int progress_interval;
 
 	/*
+	Force the use of newline characters to terminate progress messages. Useful
+	for MPI runs. If false, \r would be used if stdout is a terminal, and \n
+	would be used otherwise.
+	*/
+	bool progress_newline;
+
+	/*
 	If enabled, invalid mathematical operations (e.g. division by 0) will result
 	in a fatal error.
 	*/

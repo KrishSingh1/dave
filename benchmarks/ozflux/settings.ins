@@ -22,6 +22,7 @@ ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
+ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -131,7 +132,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            10
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -170,9 +171,9 @@ patch_output_stats           0
 
 vegmode "cohort"        ! "cohort", "individual" or "population"
 nyear_spinup 500        ! Number of years to spin up the simulation for
-ifcalcsla 1            ! Whether to calculate SLA from leaf longevity
+ifcalcsla 0            ! Whether to calculate SLA from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
-ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
+ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
@@ -285,7 +286,7 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-import "trees.ins"
+!import "trees.ins"
 !import "shrubberies.ins"
 import "c3g.ins"
-!import "c4g.ins"
+import "c4g.ins"

@@ -79,6 +79,7 @@ bool ifdavephotosyn;
 bool ifdavegrowth;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
+bool ifevenlaidist;
 bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
@@ -620,6 +621,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses.");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
@@ -736,6 +738,8 @@ void plib_declarations(int id,xtring setname) {
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
+		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
+			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2008,6 +2012,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("nuptoroot")) badins("nuptoroot");
 			if (!itemparsed("km_volume")) badins("km_volume");
 			if (!itemparsed("fnstorage")) badins("fnstorage");
+			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 			if (!itemparsed("crownfrac")) badins("crownfrac");

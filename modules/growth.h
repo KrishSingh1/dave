@@ -41,5 +41,16 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 const double fdev_growth_min = 0.002;
 void allometry_dave_tree(Individual& indiv);
 double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm);
+double get_cmass_init_min(Patchpft& ppft);
+
+// ---------------------------------
+// Grass parameters
+// ---------------------------------
+// Minimum lai below which the plant is either killed or cannot establish.
+const double lai_min = 0.01;
+
+// Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
+const double cstorage_max_temp = 0.3;   // leaves and roots
+const double cstorage_max_perm = 0.75;  // crowns
 
 #endif // LPJ_GUESS_GROWTH_H

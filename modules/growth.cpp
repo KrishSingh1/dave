@@ -4665,7 +4665,7 @@ void turnover_seed(Vegetation& vegetation) {
 @param ctolitter: Cumulative C sent to litter
 @param ntolitter: Cumulative N sent to litter
 */
-double turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
+void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 	double &cpool, double &npool, double &cdest, double &ndest,
 	double &ctolitter, double &ntolitter, double &initialc, double &initialn,
 	double &cmass_storage, double &nmass_storage, double cstorage_max, double nstorage_max,

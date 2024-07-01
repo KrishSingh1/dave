@@ -962,7 +962,7 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
 	for (const ColumnDefinition<Individual> &column : columns) {
 		std::string name = column.get_name();
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
-		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+		descriptors += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
 	}
 
 	return descriptors;

@@ -7,12 +7,16 @@
 
 cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
+set(CMAKE_CXX_STANDARD 11)
 
-# Compiler flags for building with Microsoft Visual C++
+# Compiler flags for building with Microsoft Visual C++, and for Linux and macOS, respectively.
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS /D _SCL_SECURE_NO_WARNINGS")
+else()
+  # Add a temporary flag for Linux and macOS
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 # The following are configuration variables for the build. 

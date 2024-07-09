@@ -16,29 +16,29 @@ double get_lai(const Individual &indiv) {
 	return indiv.lai;
 }
 
-double get_er(const Patch &patch, int i) {
+double get_er(const Patch &patch) {
 	double ra_kg = patch.fluxes.get_daily_flux(Fluxes::RA, date.day);
 	double rh_kg = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day);
 	return (ra_kg + rh_kg) * G_PER_KG;
 }
 
-double get_gpp(const Patch &patch, int i) {
+double get_gpp(const Patch &patch) {
 	double gpp_kg = patch.fluxes.get_daily_flux(Fluxes::GPP, date.day);
 	return gpp_kg * G_PER_KG;
 }
 
-double get_npp(const Patch &patch, int i) {
+double get_npp(const Patch &patch) {
 	double npp_kg = patch.fluxes.get_daily_flux(Fluxes::NPP, date.day);
 	return npp_kg * G_PER_KG;
 }
 
-double get_nee(const Patch &patch, int i) {
+double get_nee(const Patch &patch) {
 	double rh_kg = patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day);
 	double npp_kg = patch.fluxes.get_daily_flux(Fluxes::NPP, date.day);
 	return (rh_kg - npp_kg) * G_PER_KG;
 }
 
-double get_et(const Patch &patch, int i) {
+double get_et(const Patch &patch) {
 	const Vegetation &vegetation = patch.vegetation;
 	double transpiration = 0;
 	for (int i = 0; i < vegetation.nobj; i++)
@@ -372,12 +372,12 @@ double get_nmass_harv_slowc(const Patch &patch) {
 Aggregate a value across all ppfts in the patch.
 */
 double aggregate_ppft(const Patch &patch, double (*read_ppft)(const Patchpft &), double (*aggregate)(const double*, int)) {
-	double elems[patch.pft.nobj];
+	std::vector<double> elems(patch.pft.nobj);
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		const Patchpft &ppft = patch.pft[i];
 		elems[i] = read_ppft(ppft);
 	}
-	return aggregate(elems, patch.pft.nobj);
+	return aggregate(&elems.front(), patch.pft.nobj);
 }
 
 /*
@@ -385,12 +385,12 @@ Aggregate a value across all individuals in the patch.
 */
 double aggregate_indiv(const Patch &patch, double (*read_indiv)(const Individual &), double (*aggregate)(const double*, int)) {
 	const Vegetation &vegetation = patch.vegetation;
-	double elems[vegetation.nobj];
+	std::vector<double> elems(vegetation.nobj);
 	for (int i = 0; i < vegetation.nobj; i++) {
 		const Individual &indiv = vegetation[i];
 		elems[i] = read_indiv(indiv);
 	}
-	return aggregate(elems, vegetation.nobj);
+	return aggregate(&elems.front(), vegetation.nobj);
 }
 
 /*
@@ -717,6 +717,125 @@ std::vector<ColumnDefinition<Patch>> ninput_columns() {
 	columns.push_back(ColumnDefinition<Patch>("dNH4dep", [](const Patch &p) { return get_gridcell(p).dNH4dep; }));
 	columns.push_back(ColumnDefinition<Patch>("nfert", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::NFERT, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("total", [](const Patch &p) { return get_gridcell(p).dNO3dep + get_gridcell(p).dNH4dep; }));
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> evap_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("evaporation", [](const Patch &p) { return p.evap; }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
+	columns.push_back(ColumnDefinition<Patch>("transpiration", [](const Patch &p) { return p.transp; }));
+	return columns;
+}
+
+/*
+for (int r = 0; r < NSOMPOOL; r++) {
+
+	if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+		surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;
+		surfsoillittern += patch.soil.sompool[r].nmass * to_gridcell_average;
+	}
+	else if (r == SURFFWD || r == SURFCWD) {
+		cwdc += patch.soil.sompool[r].cmass * to_gridcell_average;
+		cwdn += patch.soil.sompool[r].nmass * to_gridcell_average;
+	}
+	else {
+		centuryc += patch.soil.sompool[r].cmass * to_gridcell_average;
+		centuryn += patch.soil.sompool[r].nmass * to_gridcell_average;
+	}
+}
+*/
+
+double get_soilc_surfsoillitterc(const Patch &patch) {
+	double cmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+			cmass += patch.soil.sompool[r].cmass;
+		}
+	}
+	return cmass;
+}
+
+double get_soilc_cwdc(const Patch &patch) {
+	double cmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if (r == SURFFWD || r == SURFCWD) {
+			cmass += patch.soil.sompool[r].cmass;
+		}
+	}
+	return cmass;
+}
+
+double get_soilc_centuryc(const Patch &patch) {
+	double cmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
+			cmass += patch.soil.sompool[r].cmass;
+		}
+	}
+	return cmass;
+}
+
+double get_soiln_surfsoillittern(const Patch &patch) {
+	double nmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+			nmass += patch.soil.sompool[r].nmass;
+		}
+	}
+	return nmass;
+}
+
+double get_soiln_cwdn(const Patch &patch) {
+	double nmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if (r == SURFFWD || r == SURFCWD) {
+			nmass += patch.soil.sompool[r].nmass;
+		}
+	}
+	return nmass;
+}
+
+double get_soiln_centuryn(const Patch &patch) {
+	double nmass = 0;
+	for (int r = 0; r < NSOMPOOL; r++) {
+		if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
+			nmass += patch.soil.sompool[r].nmass;
+		}
+	}
+	return nmass;
+}
+
+std::vector<ColumnDefinition<Patch>> soil_cmass_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("surfsoillitterc", get_soilc_surfsoillitterc));
+	columns.push_back(ColumnDefinition<Patch>("cwdc", get_soilc_cwdc));
+	columns.push_back(ColumnDefinition<Patch>("centuryc", get_soilc_centuryc));
+
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> soil_nmass_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("surfsoillittern", get_soiln_surfsoillittern));
+	columns.push_back(ColumnDefinition<Patch>("cwdn", get_soiln_cwdn));
+	columns.push_back(ColumnDefinition<Patch>("centuryn", get_soiln_centuryn));
+	columns.push_back(ColumnDefinition<Patch>("mineraln", [](const Patch &p) { return p.soil.NH4_mass + p.soil.NO3_mass; }));
+
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> soil_nflux_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("nmin_net", [](const Patch &p) { return p.soil.net_mineralisation; }));
+	columns.push_back(ColumnDefinition<Patch>("nmin_leach", [](const Patch &p) { return p.soil.dminleach; }));
+	columns.push_back(ColumnDefinition<Patch>("norg_leach", [](const Patch &p) { return p.soil.dorgNleach; }));
+	columns.push_back(ColumnDefinition<Patch>("nvolatilisation", [](const Patch &p) { return p.soil.nvol; }));
+	columns.push_back(ColumnDefinition<Patch>("nloss_gas", [](const Patch &p) { return p.soil.nloss_gas; }));
+
 	return columns;
 }
 

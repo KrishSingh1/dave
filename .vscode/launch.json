@@ -39,7 +39,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "build",
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Adelaide River",
@@ -76,7 +76,7 @@
             },
             "environment": [],
             "externalConsole": false,
-            "preLaunchTask": "build",
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Alice Springs Mulga",
@@ -1057,6 +1057,43 @@
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"
+        },
+        {
+            "name": "Sevilletagrass",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Sevilletagrass.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Sevilletagrass",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "prepare-run",
         },
         {
             "name": "Silver Plains",

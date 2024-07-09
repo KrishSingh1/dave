@@ -23,6 +23,7 @@ ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
+ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -134,6 +135,9 @@ co2_delta                    0
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
 progress_interval            5
 
+! Force the use of newline characters to terminate progress messages. Useful for MPI runs.
+progress_newline             0
+
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
 
@@ -173,7 +177,7 @@ vegmode "cohort"        ! "cohort", "individual" or "population"
 nyear_spinup 500        ! Number of years to spin up the simulation for
 ifcalcsla 0            ! Whether to calculate SLA from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
-ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
+ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 ifcalcvcmax 0            ! Whether to calculate Vcmax from leaf nutrient content
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
@@ -181,7 +185,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled

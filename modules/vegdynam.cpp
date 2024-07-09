@@ -266,7 +266,6 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
-						indiv.nscal_5.add(1.0);
 					}
 				}
 			}
@@ -414,8 +413,7 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 }
 
 
-// Calculates the fraction of the seedbank that is germinating today.
-double germination_fraction(Patchpft& ppft, Patch& patch) {
+double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
@@ -423,19 +421,147 @@ double germination_fraction(Patchpft& ppft, Patch& patch) {
 	double fgerm_max25 = 0.3; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
+	ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy
 	ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
-	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);   // TODO: check with DW that this is the right layer
+	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);
 	double wcont = ppft.wcont_germ_4.mean();
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
-	double fwater = wcont > 0.9 ? wcont : 0.0;  
+	// TODO: parameterise this relationship from data
+	double wcont_min = 0.6;    // relative water content below which germination cannot occur
+	double wcont_max = 0.9;    // relative water content above which germination is at its maximum
+	double fwater = min(1.0,max(0.0,((wcont - wcont_min) / (wcont_max - wcont_min))));
+	
 	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
+	// Seed dormancy
+    // Do not germinate in autumn or winter under temperature-limited conditions
+    // In particular, if germination occurs because of increased water availability, do not 
+    // check for temperature (or daylength) as in most cases this won't matter.
+    // If there is always enough water, determine if it's the right season to germinate
+    // by checking daylength and temperature.
+
+    // add up temperature factor after winter solstice
+    ppft.ftemp_cum += ftemp;
+    if (ppft.daylength_10.periodictrend(1) >= 0.0 && ppft.daylength_10.periodictrend(2) <= 0.0) {
+        ppft.ftemp_cum = 0.0;
+    }
+
+    // do not germinate if seeds are dormant (see criteria above)
+    if (ppft.wcont_germ_30.size() > 10 && ppft.wcont_germ_30.mean() > 0.7) {
+        if ((ppft.daylength_10.periodictrend(1) < 0.0 && ppft.reldaylength < 0.9) ||
+            (ppft.daylength_10.periodictrend(1) > 0.0 && ppft.ftemp_cum < 10.0)) {
+                frac_germ = 0.0;
+        }
+    }
+
 	return frac_germ;
 }
 
+// fraction of seeds that will germinate today
+double germination_fraction_tree(Patchpft& ppft, Patch& patch) {
+
+	double frac_germ = .3;
+	if (date.year == 0) {
+		return 0.0;
+	}
+	double max_frac = 1.0;
+	double peaktemp = 20.0;
+	double tempbreadth = 0.2;
+	double midpoint_sm = .8; 
+	double shape = .03;
+	// And to Climate object
+	const Climate& climate = patch.get_climate();
+	// find the maximum PAR from the input 
+	// TODO: Is there an analytical way of calculating that (using latitude and DOY)?
+	// the amount of today's par that reaches the forest floor, relative to the 
+	// maximum potential par:
+	// TODO: find what is par_max (ie: maximum PAR in the peak of summer at this latitude)!!!
+	double relative_par_ff = min((patch.fpar_ff * climate.par) / climate.par_max, 1.0);
+	// inflection (mid) point of the par_ff (shade tolerance)
+	const double x0 = .5; // TODO: should be PFT paramter related to shade tolerance
+	// shape of the sigmoid curve
+	const double b = .08; // TODO: should be PFT paramter related to shade tolerance
+	double f_par =  1 / (1 + exp( -( (relative_par_ff - x0) / b) ) );
+
+	// get average conditions over the last 14 days.
+	ppft.wcont_germ_14.add(patch.soil.get_layer_soil_water(0)); 
+	ppft.tsoil_germ_14.add(patch.soil.T_soil[7]);
+	double wcont = ppft.wcont_germ_14.mean();
+	double tsoil = ppft.tsoil_germ_14.mean();
+	// calculate f_temp
+	// TODO: Use Juergen's function
+	double exponent = pow((log(tsoil / peaktemp) / 0.5), 2);
+	double f_temp = max_frac * exp(-1.0*(exponent));
+	// calculate f_water
+	double f_water =  1 / (1 + exp(-(wcont - midpoint_sm) / shape));
+
+	// return frac_germ
+	return frac_germ * f_par * f_temp * f_water;
+
+}
+
+// Calculates the fraction of the seedbank that is germinating today.
+double germination_fraction(Patchpft& ppft, Patch& patch) {
+
+	if (ppft.pft.is_grass()) {
+		return germination_fraction_grass(ppft, patch);
+	} else {
+		return germination_fraction_tree(ppft, patch);
+	}
+
+}
+
+double nseedlings(double cmass_seed, Pft &pft) {
+	// seedling mass (kgC/m^2)
+	// TODO: set as PFT parameter
+	double cmass_seedling = 0.005;
+	
+	// grass and moss pft has only 1 individual
+	if (pft.is_grass() || pft.lifeform == MOSS) {
+		return 1;
+	}
+
+	return max(1.0, floor(cmass_seed / cmass_seedling));
+
+}
+
+// calculates the number of woody pfts (for establishment)
+int get_nwoody_pfts(Patch& patch) {
+	
+	int nwoodypfts_estab = 0;
+	pftlist.firstobj();
+
+	const bool cloned_or_changed_man = patch.stand.cloned || patch.stand.current_rot;
+
+	while (pftlist.isobj) {
+		Pft& pft=pftlist.getobj();
+		Standpft& standpft=patch.stand.pft[pft.id];
+		ManagementType& mt = patch.stand.get_current_management();
+
+		// Force planting if planting() not used
+		bool force_planting = 
+			patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
+		bool est_this_year = !patch.managed && !cloned_or_changed_man 
+			|| !patch.plant_this_year && standpft.reestab;
+		
+
+		if (establish(patch, patch.stand.get_climate(), pft) 
+			&& pft.lifeform == TREE 
+			&& standpft.active 
+			&& (est_this_year || force_planting)) {
+
+			nwoodypfts_estab++;
+
+		}
+
+		pftlist.nextobj();
+
+	}
+	return nwoodypfts_estab;
+}
 
 // call every day
 void establishment_daily(Patch& patch) {
@@ -443,76 +569,152 @@ void establishment_daily(Patch& patch) {
 	// if yes, invest some of the seedbank into initial biomass
 	// if there is no seedbank, maybe don't try every day.
 	Vegetation &vegetation = patch.vegetation;
-	
+	// initial height of trees (m)
+	const double init_height = 0.05; 
+
 	if (ifdailygrass && ifdavegrowth) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
 
-			if (!pft.dave_allocation()) {
+			if (!pft.dave_allocation() || pft.lifeform == TREE) {
 				// This pft is not using the dave allocation. This could happen,
 				// for example, if it's a tree and ifdailytree is false.
 				continue;
 			}
 
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
-			
-			// Is there an existing seedbank?
-			if (ppft.cmass_litter_repr > 0.0) {
 				
-				// Check conditions for germination (germination fraction)
-				double frac_germ = germination_fraction(ppft, patch);
+			// Check conditions for germination (germination fraction)
+			// TODO: Add germination fraction calculation for TREES.
+			double frac_germ = germination_fraction(ppft, patch);
 
-				// Do conditions allow for germination?
-				if (frac_germ > 0.0) {
-					Individual *indiv = get_beneficiary(patch, pft);
-					if (indiv == NULL) {
-						// Establish new individual.
-						Individual& individual = vegetation.createobj(pft, vegetation);
-						indiv = &individual; // & gets address of the variable (* is the opposite)
-						//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
-						indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
-						indiv->densindiv=1.0;
-						indiv->fpc=1.0;  // TODO: is that right?
-						indiv->nscal_5.add(1.0);
-						indiv->growth_stage = vegetative;
-					} else {
-						// If there is already an individual, then:
-						// 1) reduce germination rate by fpc in the vegetative phase. I.e. do not grow new plants in space
-						//    that is already occupied.
-						// 2) avoid germination when main individual is in the reproductive phase,
-						// 	  assuming that seeds are dormant in that time period, avoiding unfavourable growth conditions.
-						//    E.g. no germination in a wet and warm autumn.
-						//    TODO: implement seed dormancy to account for this when there is no existing individual?
-						if (indiv->growth_stage == vegetative || indiv->growth_stage == dormant) {
-							// reduced by fpc_ymax * 2.0 to account for green and brown leaves and rpc.
-							// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
-							//       and create new variable.
-							frac_germ *= (1.0 - indiv->fpc_ymax * 2.0);
-						} 
-						if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min)) {
-							frac_germ = 0.0;
+			// calculate the C that would germinate
+			// Purpose of this is to avoid very low absolute germination rates 
+			// (leading to lai < lai_min at establishment)
+			// that would 'clutter' the simulations with very small individuals.
+			// cmass_leaf = cmass_init * (1 - cstorage_max_temp) * ltor / (ltor + 1)
+			// cmass_init = cmass_leaf / ((1 - cstorage_max_temp) * ltor / (ltor + 1))
+			double cmass_init_min = get_cmass_init_min(ppft);
+			double cmass_init = frac_germ * (ppft.cmass_litter_repr + ppft.cmass_ext_seed);
+
+			// Do conditions allow for germination?
+			if (frac_germ > 0.0) {
+				Individual *indiv = get_beneficiary(patch, pft);
+				if (indiv == NULL) {
+					// only establish a new individual if it results in a 
+					// sufficiently high lai.
+					if (cmass_init < cmass_init_min) {
+						continue;
+					}
+					// number of seedling (ntrees/m^2)
+					int nseedlings = 0;
+					// in case of TREES, calcualt the number of seedlings
+					// by dividing the total cmass_litter_repr by the average
+					// mass of a seedling 
+					if (pft.lifeform == TREE) {
+						// start calculating avrage mass of seedling:
+						double height = init_height;
+						// calcualte tree diameter (m) using the allometric relationships
+						double diam = pow((height / pft.k_allom2), (1 / pft.k_allom3));
+						// calculate cmass_sap (kgC/m^2; assuming seedling stems are all sapwood)
+						// by multiplying the setm volume and wood density.
+						double seedling_cmass_sap = height * pow(diam / 2, 2) * PI * pft.wooddens;
+						// use sapwood mass (kgC/m^2) and k_latosa to calculate 
+						// cmass_leaf of the new seedling
+						double seedling_cmass_leaf = (pft.k_latosa * seedling_cmass_sap) / 
+								(pft.sla * height * pft.wooddens);
+						// use ltor_max to calculate the cmass_root (kgC/m^2)
+						// of the new seedling
+						double seedling_cmass_root = seedling_cmass_leaf / pft.ltor_max;
+						// total seedling mass (kgC/m^2)
+						double seedling_cmass = seedling_cmass_sap + seedling_cmass_root 
+								+ seedling_cmass_leaf;
+						// number of seeds = int(total seedling mass / mass of one seedling).
+						// TODO: make new function to calculate frac_germ that 
+						// will fit TREES.
+						nseedlings = (frac_germ * ppft.cmass_litter_repr) / seedling_cmass;
+						// check if there is not enough mass for establishing even one tree
+						if (nseedlings < 1) {
+							// go to next pft
+							continue;
 						}
 					}
 
-					if (frac_germ > 0.0) {
-						double cmass_seed = ppft.cmass_litter_repr * frac_germ;
-						double nmass_seed = ppft.nmass_litter_repr * frac_germ;
-
-						double cmass_before = ppft.cmass_litter_repr + indiv->ccont();
-						double nmass_before = ppft.nmass_litter_repr + indiv->ncont();
-				
-						// Take germinated biomass out of the seedbank
-						ppft.cmass_litter_repr -= cmass_seed;
-						ppft.nmass_litter_repr -= nmass_seed;
-					
-						// Add some new biomass into this individual.
-						establishment_biomass(cmass_seed, pft.ltor_max, *indiv, nmass_seed); // * is a dereference (gets the value at the address)
-
-						double cmass_after = ppft.cmass_litter_repr + indiv->ccont();
-						double nmass_after = ppft.nmass_litter_repr + indiv->ncont();
-						assert(equal(cmass_before, cmass_after));
-						assert(equal(nmass_before, nmass_after));
+					// Establish new individual.
+					Individual& individual = vegetation.createobj(pft, vegetation);
+					indiv = &individual; // & gets address of the variable (* is the opposite)
+					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
+					indiv->crownarea=1.0; // (value not used). this is the same as (*indiv).crownarea
+					indiv->densindiv=1.0;
+					if (pft.lifeform == TREE) {
+						// in case of trees, set the new individual's height, 
+						// diameter, canopy area and seeding density (calculated
+						// above)
+						indiv->height = init_height;
+						indiv->diam = pow((indiv->height / pft.k_allom2), (1 / pft.k_allom3));
+						indiv->crownarea = pft.k_allom1 * pow(indiv->diam, pft.k_rp); // (value not used). this is the same as (*indiv).crownarea
+						indiv->densindiv = nseedlings;
+						indiv->age = 1.0 / 365.0;
 					}
+
+					indiv->fpc=1.0;  // TODO: is that right?
+					indiv->age=0.0;
+					indiv->nscal_5.add(1.0);
+					indiv->growth_stage = vegetative;
+					indiv->frac_germ = frac_germ;
+				} else {
+					// If there is already an individual, then:
+					// 1) reduce germination rate by fpc in the vegetative phase. I.e. do not grow new plants in space
+					//    that is already occupied.
+					// 2) avoid germination when main individual is in the reproductive phase,
+					// 	  assuming that seeds are dormant in that time period, avoiding unfavourable growth conditions.
+					//    E.g. no germination in a wet and warm autumn.
+					//    TODO: implement seed dormancy to account for this when there is no existing individual?
+					if (indiv->growth_stage == vegetative) {
+						// reduced by fpc_ymax * 2.0 to account for green and brown leaves and rpc.
+						// TODO: account for fpc_ymax of all individuals (i.e. all pfts).
+						//       and create new variable.
+						indiv->frac_germ = frac_germ * (1.0 - indiv->fpc_ymax * 2.0);
+					} 
+					if (indiv->growth_stage == reproductive || is_zero(indiv->fdev_growth - fdev_growth_min) || indiv->growth_stage == dormant) {
+						indiv->frac_germ = 0.0;
+					}
+				}
+
+				if (indiv->frac_germ > 0.0) {
+					double cmass_ext_seed = ppft.cmass_ext_seed * indiv->frac_germ;
+					double nmass_ext_seed = ppft.nmass_ext_seed * indiv->frac_germ;
+
+					double cmass_seed = ppft.cmass_litter_repr * indiv->frac_germ;
+					double nmass_seed = ppft.nmass_litter_repr * indiv->frac_germ;
+
+					double cmass_total_seed = cmass_seed + cmass_ext_seed;
+					double nmass_total_seed = nmass_seed + nmass_ext_seed;
+
+					double cmass_before = ppft.cmass_litter_repr + indiv->ccont() + ppft.cmass_ext_seed;
+					double nmass_before = ppft.nmass_litter_repr + indiv->ncont() + ppft.nmass_ext_seed;
+			
+					// Take germinated biomass out of the seedbank
+					ppft.cmass_litter_repr -= cmass_seed;
+					ppft.nmass_litter_repr -= nmass_seed;
+
+					ppft.cmass_ext_seed -= cmass_ext_seed;
+					ppft.nmass_ext_seed -= nmass_ext_seed;
+
+					// With a germination event, the hypothetical seed bank comes into existence
+					patch.fluxes.report_flux(Fluxes::ESTC, -cmass_ext_seed);
+					patch.fluxes.report_flux(Fluxes::ESTN, -nmass_ext_seed);
+				
+					// Add some new biomass into this individual.
+					establishment_biomass(cmass_total_seed, pft.ltor_max, *indiv, nmass_total_seed); // * is a dereference (gets the value at the address)
+
+					indiv->initialc += cmass_ext_seed;
+					indiv->initialn += nmass_ext_seed;
+
+					double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true) + ppft.cmass_ext_seed;
+					double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true) + ppft.nmass_ext_seed;
+					assert(equal(cmass_before, cmass_after));
+					assert(equal(nmass_before, nmass_after));
 				}
 			}
 		}
@@ -635,7 +837,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (pft.dave_allocation()) {
+		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
 			continue;
@@ -660,7 +862,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
-
+		// TODO: is the value for anetps_ff okay? Currently it is set as a constant 
+		// in case of ifdavephotosyn becasue Juergan's physiology in canopy_exchange 
+		// does not calculate anetps_ff at all.
 		if (ifdavephotosyn) {
 			patch.pft[pft.id].anetps_ff = 2.0;  // kg C m-2 yr-1
 			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
@@ -799,6 +1003,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
 					// Otherwise, simply adding more PFTs or species would increase est
+					
 					est*=3.0/double(nwoodypfts_estab);
 
 
@@ -894,8 +1099,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry
-
-						allometry(indiv);
+						if (pft.dave_allocation()) {
+							allometry_dave_tree(indiv);
+						} else {
+							allometry(indiv);
+						}
 
 						// Calculate storage pool size
 						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;

@@ -81,6 +81,7 @@ bool ifdavegrowth;
 bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
+bool ifevenlaidist;
 bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
@@ -283,6 +284,7 @@ void initsettings() {
 	useClosestNdep = false;
 	gzip_output = false;
 	nindiv_max = 0;
+	ifevenlaidist = true;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -626,6 +628,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
+		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
@@ -725,6 +728,8 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
+		
+		///Dave Parameters
 		// Subdaily photosynthesis parameters
 		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
@@ -761,6 +766,8 @@ void plib_declarations(int id,xtring setname) {
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
+		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
+			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -1290,6 +1297,9 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("mt1_startyear",&pst->mtstartyear[i],0,10000,1,CB_NONE,
 					"When to start management 1 (if reverting from another mt (calendar year))");
 				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
+				declareitem("mowdates",pst->management.mowdates,-1,364,num_mowdates,CB_NONE,"Mowing date (julian day)");
+				declareitem("mowintens",&pst->management.mowintens,0,1.0,1,CB_NONE,
+					"Mowing intensity (fraction of biomass removed on mowing date)");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,32,CB_MANAGEMENT2,"");
@@ -2033,6 +2043,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("nuptoroot")) badins("nuptoroot");
 			if (!itemparsed("km_volume")) badins("km_volume");
 			if (!itemparsed("fnstorage")) badins("fnstorage");
+			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 			if (!itemparsed("crownfrac")) badins("crownfrac");
@@ -2044,6 +2055,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (ifdavegrowth) {
+				if (!itemparsed("A_growth")) {
+					ppft->A_growth = calc_a_growth(ppft);
+				}
+			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

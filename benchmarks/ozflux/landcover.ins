@@ -104,46 +104,48 @@ st "Natural" (
 	naturalveg "all"
 )
 
-st "Urban" (
+!st "Urban" (
+!
+!	common_stand
+!	stinclude 1
+!	landcover "urban"
+!)
 
-	common_stand
-	stinclude 1
-	landcover "urban"
-)
+!st "Peatland" (
 
-st "Peatland" (
+!	common_stand
+!	stinclude 1
+!	landcover "peatland"
+!)
 
-	common_stand
-	stinclude 1
-	landcover "peatland"
-)
+!st "Pasture" (
 
-st "Pasture" (
+!	common_stand
+!	stinclude 1
+!	landcover "pasture"
+!	grazeintens 0.0
 
-	common_stand
-	stinclude 1
-	landcover "pasture"
-)
+!)
 
-st "Barren" (
+!st "Barren" (
+!
+!	common_stand
+!	stinclude 1
+!	landcover "barren"
+!)
 
-	common_stand
-	stinclude 1
-	landcover "barren"
-)
+!st "Forest" (
 
-st "Forest" (
-
-	common_stand
-	stinclude 1
-	landcover "forest"
-	naturalveg "all"		! Use natural pft:s
-	harvest_system "continuous"
-	suppress_fire 1
-	suppress_disturbance 1
-	res_outtake_twig_thin 0.4
-	res_outtake_coarse_root_thin 0
-)
+!	common_stand
+!	stinclude 1
+!	landcover "forest"
+!	naturalveg "all"		! Use natural pft:s
+!	harvest_system "continuous"
+!	suppress_fire 1
+!	suppress_disturbance 1
+!	res_outtake_twig_thin 0.4
+!	res_outtake_coarse_root_thin 0
+!)
 
 ! This is an example of a stand in which only TeBE and TrBE are allowed to
 ! establish.

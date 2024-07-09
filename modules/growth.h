@@ -29,7 +29,7 @@ void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
 void growth_daily_grass(Patch& patch);
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm); 
+double photo_growth(double reldaylength, double daylength_diff);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
@@ -38,6 +38,19 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& longterm_nstore, double &max_n_storage,
 	bool alive, double& sapwood_turnover);
 // Minimum growth demand after reproductive phase
-const double fdev_growth_min = 0.008;
+const double fdev_growth_min = 0.002;
+void allometry_dave_tree(Individual& indiv);
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm);
+double get_cmass_init_min(Patchpft& ppft);
+
+// ---------------------------------
+// Grass parameters
+// ---------------------------------
+// Minimum lai below which the plant is either killed or cannot establish.
+const double lai_min = 0.01;
+
+// Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
+const double cstorage_max_temp = 0.3;   // leaves and roots
+const double cstorage_max_perm = 0.75;  // crowns
 
 #endif // LPJ_GUESS_GROWTH_H

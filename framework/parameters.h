@@ -379,6 +379,8 @@ extern bool ifdavegrowth;
 
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
+/// Whether LAI is distributed evenly across canopy layers for grasses.
+extern bool ifevenlaidist;
 
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value

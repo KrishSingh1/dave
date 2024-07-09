@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! TuckerPrairie master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: TuckerPrairie"
+
+file_met_forcing        "../forcing/met/TuckerPrairie.nc"
+!file_met_spinup         "../forcing/met/TuckerPrairie.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

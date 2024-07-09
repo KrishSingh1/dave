@@ -14,6 +14,7 @@
 #include <sstream>
 #include "config.h"
 #include "guess.h"
+#include "growth.h"
 #include "landcover.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -84,6 +85,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec
 		& aprec_lastyear
 		& daylength
+		& daylength_max
 		& co2
 		& lat
 		& insol
@@ -342,6 +344,11 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wscal_mean
 		& wscal_5
 		& wscal_10
+		& soiltemp_10
+		& daylength_10
+		& reldaylength
+		& ftemp_cum
+		& wscal_30
 		& airtemp_10
 		& anetps_ff_est
 		& anetps_ff_est_initial
@@ -357,6 +364,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& cmass_litter_heart
 		& cmass_litter_repr
 		& nmass_litter_repr
+		& cmass_ext_seed
+		& nmass_ext_seed
 		& gcbase
 		& gcbase_day
 		& wsupply
@@ -432,6 +441,10 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	wdemand_leafon = 0.0;
 	fpar_grass = 0.0;
 	growingseasondays = 0;
+
+	aevap  = 0.0;
+	evap   = 0.0;
+	transp = 0.0;
 
 	burned = false;
 	fire_line_intensity = 0.0;
@@ -1692,7 +1705,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
 	cmass_crown       = 0.0;
+	aet               = 0.0;
 	cmass_repr        = 0.0;
+	cmass_struct      = 0.0;
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
@@ -1705,17 +1720,24 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	kmax_drought_affected = pft.kmax;
 	max_k_loss = 0.0;
 	cmass_tot_luc     = 0.0;
+	cmass_leaf_limit  = 0.0;
+	cmass_root_limit  = 0.0;
+	cmass_sap_limit	  = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
 	cgrow_crown       = 0.0;
+	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
+	frepr_cstruct     = 0.0;
 	fdev_growth       = 1.0;
-	fdev_temp         = 0.0;
-	fdev_senesc       = 0.0;
+	lai_flowering	  = 0.0;
+	fdev_senesc       = 1.0;
+	senesc_root       = 0.0;
 	growth_stage_days = 0;
+	frac_germ         = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
@@ -1738,7 +1760,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cton_leaf_opt				= 0.0;
 	nday_leafon					= 0.0;
 
+	anc_frac                    = 0.0;
+	anj_frac                    = 0.0;
+	anp_frac                    = 0.0;
+
+	initialc = 0.0;
 	initialn = 0.0;
+	leaf_out = false;
+	leaf_senesced = false;
+	leaf_full_switch_summer = false;
+	leaf_growth = false;
+	senescence_active = false;
+	leaf_out_phen_maxlimit = 0.9;
 
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
@@ -1755,6 +1788,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_tot_luc     = 0.0;
 	ctolitter         = 0.0;
 	ntolitter         = 0.0;
+	ctolitter_leaf   = 0.0;
+	ntolitter_leaf   = 0.0;
+	ctolitter_root   = 0.0;
+	ntolitter_root   = 0.0;
+	ctolitter_repr   = 0.0;
+	ntolitter_repr   = 0.0;
+	ctolitter_crown  = 0.0;
+	ntolitter_crown  = 0.0;
 
 	nactive						= 0.0;
 	nextin						= 1.0;
@@ -1763,6 +1804,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	ndemand						= 0.0;
 	fnuptake					= 1.0;
 	anuptake					= 0.0;
+	dnuptake                    = 0.0;
 	max_n_storage				= 0.0;
 	scale_n_storage				= 0.0;
 
@@ -1817,10 +1859,29 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		nmass_leafs[i] = 0.0;
 	}
 
+	alpha_leaf        = 0.0;
+	alpha_root        = 0.0;
+	alpha_sap         = 0.0;
+	alpha_repr        = 0.0;
+	cmass_leaf_limit  = 0.0;
+	cmass_root_limit  = 0.0;
+	cmass_sap_limit   = 0.0;
+	cmass_repr_limit  = 0.0;
+	cturnover_leaf  = 0.0;
+ 	cturnover_root  = 0.0;
+	cturnover_sap  = 0.0;
+	cturnover_repr  = 0.0;
+	cturnover_crown  = 0.0;
+
 	// additional initialisation
 	age               = 0.0;
 	height            = 0.0;
 	diam              = 0.0;
+	d_height		  = 0.0;
+	d_diam		      = 0.0;
+	crownarea		  = 0.0;
+	latosa 			  = 0.0;
+	sa 				  = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
 	intercep          = 0.0;
@@ -1851,6 +1912,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	dgpp              = 0.0;
 	dnpp              = 0.0;
+	resp_maintenance  = 0.0;
+	resp_growth       = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -1876,6 +1939,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	man_strength = 0.0;
+	nscal_5.add(1.0);
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -1888,8 +1952,19 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_debt
 		& ctolitter
 		& ntolitter
+		& ctolitter_leaf
+		& ntolitter_leaf
+		& ctolitter_root
+		& ntolitter_root
+		& ctolitter_repr
+		& ntolitter_repr
+		& ctolitter_crown
+		& ntolitter_crown
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
+		& cmass_leaf_limit
+		& cmass_root_limit
+		& cmass_sap_limit
 		& last_turnover_day
 		& fpc
 		& fpc_daily
@@ -1899,6 +1974,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow
 		& cgrow_leaf
 		& cgrow_root
+		& cgrow_sap
 		& cgrow_repr
 		& growth_demand
 		& growth_stage
@@ -1959,6 +2035,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ndemand
 		& fnuptake
 		& anuptake
+		& dnuptake
 		& max_n_storage
 		& scale_n_storage
 		& avmaxnlim
@@ -1967,7 +2044,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cton_status
 		& cmass_veg
 		& nmass_veg
-
+		& leaf_full_switch_summer
+		& senescence_active
+		& leaf_senesced
+		& leaf_growth
+		& leaf_out
+		& leaf_out_phen_maxlimit
 		& photosynthesis
 		& nstress
 		& leafndemand
@@ -2112,10 +2194,19 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 			if (ifdavegrowth) {
 				cmass_leaf_litter += mortality * cmass_leafs[1];
+				cmass_root_litter += mortality * cmass_crown;
 			} else {
 				cmass_leaf_litter += mortality * cmass_leafs[3];
 			}
 			cmass_root_litter += mortality * cmass_storage;
+		}
+
+		if (pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
+			cmass_root_litter += mortality * cmass_storage;
+		}
+
+		if (pft.dave_allocation()) {
+			cmass_root_litter += mortality * cmass_repr;
 		}
 
 		if (pft.landcover==CROPLAND) {
@@ -2153,10 +2244,19 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 			if (ifdavegrowth) {
 				nmass_leaf_litter += mortality * nmass_leafs[1];
+				nmass_root_litter += mortality * nmass_crown;
 			} else {
 				nmass_leaf_litter += mortality * nmass_leafs[3];
 			}
 			nmass_root_litter += mortality * nmass_storage;
+		}
+
+		if (pft.lifeform == TREE && ifdavegrowth && ifdailytree) {
+			nmass_root_litter += mortality * nmass_storage;
+		}
+
+		if (pft.dave_allocation()) {
+			nmass_root_litter += mortality * nmass_repr;
 		}
 
 		if (pft.landcover==CROPLAND) {
@@ -2234,6 +2334,20 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			// Roots
 			cmass_storage *= remaining;
 			nmass_storage *= remaining;
+		}
+
+		if (pft.dave_allocation()) {
+			cmass_repr *= remaining;
+			nmass_repr *= remaining;
+
+			// Storage pool for grasses was handled above.
+			if (pft.lifeform == TREE) {
+				cmass_storage *= remaining;
+				nmass_storage *= remaining;
+			} else {
+				cmass_crown   *= remaining;
+				nmass_crown   *= remaining;
+			}
 		}
 	}
 }
@@ -2342,10 +2456,6 @@ double Individual::sla() const {
 	// Age dependent SLA for daily grass
 	if (ifdailygrass && pft.is_grass() && !negligible(get_cmass_leaf())) {
 		if (ifdavegrowth) {
-			//const double sla_beta = -0.07;
-			//const double sla_beta = -0.06;
-			//double rescal = pow(0.2,sla_beta);  // rescale so that default sla reached at 0.2Ckg rather than 1kgC
-			//current_sla *= (pow(get_cmass_leaf(),sla_beta) / rescal);
 			current_sla *= 1.0;
 		} else {
 			current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] / 1.1) / get_cmass_leaf();
@@ -2360,12 +2470,13 @@ double Individual::sla() const {
  *
  *  \param scale_indiv  		scaling factor for living C
  *  \param luc 					down-scales living C (used in C balance tests)
+ *  \param ignore_alive			if true, ignore whether individual is alive or not
  */
-double Individual::ccont(double scale_indiv, bool luc) const {
+double Individual::ccont(double scale_indiv, bool luc, bool ignore_alive) const {
 
 	double ccont = 0.0;
 
-	if (alive || istruecrop_or_intercropgrass()) {
+	if (ignore_alive || alive || istruecrop_or_intercropgrass()) {
 
 		if (has_daily_turnover()) {	// Not taking into account future daily wood allocation/turnover
 
@@ -2450,15 +2561,23 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 						lprintf("indivs[\"%s\"].cmass_leafs[3] = %.8f\n", (const char *)pft.name, cmass_leafs[3]);
 					}
 				}
-			} else if (ifdavegrowth && !pft.dave_allocation() && !(date.islastday && date.islastmonth)) {
-				// This individual's carbon is allocated annually, so in order
-				// to maintain the carbon balance throughout the year, we must
-				// allow for the carbon which has been assimilated but not yet
-				// allocated (ie anpp).
-				//
-				// This is a hack mainly added for debugging purposes and should
-				// probably be removed in the fullness of time.
-				ccont += anpp * scale_indiv;
+			} else if (ifdavegrowth) {
+				if (pft.dave_allocation()) {
+					ccont += (cmass_storage + cmass_repr) * scale_indiv;
+					if (ifdavediagnostics) {
+						printf("indivs[\"%s\"].cmass_storage = %.8f\n", (const char *)pft.name, cmass_storage);
+					}
+				} else if (!(date.islastday && date.islastmonth)){
+					// This individual's carbon is allocated annually, so in order
+					// to maintain the carbon balance throughout the year, we must
+					// allow for the carbon which has been assimilated but not yet
+					// allocated (ie anpp).
+					//
+					// This is a hack mainly added for debugging purposes and should
+					// probably be removed in the fullness of time.
+					ccont += anpp * scale_indiv;
+				}
+
 			}
 
 			if (pft.landcover == CROPLAND) {
@@ -2480,8 +2599,9 @@ double Individual::ccont(double scale_indiv, bool luc) const {
  *
  *  \param scale_indiv  		scaling factor for living N
  *  \param luc 					down-scales living N (used in C balance tests)
+ *  \param ignore_alive			if true, ignore whether individual is alive or not
  */
-double Individual::ncont(double scale_indiv, bool luc) const {
+double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const {
 
 	double ncont = 0.0;
 
@@ -2538,6 +2658,13 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 					}
 					ncont += nmass_leafs[3] * scale_indiv;
 				}
+			}
+
+			if (ifdailytree && pft.lifeform == TREE && ifdavegrowth) {
+				if (ifdavediagnostics) {
+					lprintf("indivs[\"%s\"].nmass_repr = %.*f\n", (const char *)pft.name, DAVE_DIAGNOSTIC_PRECISION, nmass_repr * scale_indiv);
+				}
+				ncont += nmass_repr * scale_indiv;
 			}
 		}
 
@@ -2977,6 +3104,12 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 	litter_heart = heart_left;
 }
 
+void take_biomass(double &pool, double &demand) {
+       double flux = min(pool, demand);
+       pool -= flux;
+       demand -= flux;
+}
+
 void Individual::kill(bool harvest /* = false */) {
 
 	if (date.year > nyear_spinup && _ifdavediagnostics) {
@@ -2994,6 +3127,49 @@ void Individual::kill(bool harvest /* = false */) {
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
 	
+	// Remove hypothetical seed biomass from the system to avoid fertilisation
+	// effect.
+	if (pft.dave_allocation() && initialc > 0 && initialn > 0) {
+		 // at the moment, the first assert might be hit if the 
+		 // plant respires but does not turnover much, which
+		 // can happen in stressed plants. This will positively bias
+		 // plant respiration and should be accounted for somehow.
+		//assert(ccont() >= initialc); // C could be lost from the system
+		assert(ncont() >= initialn);
+
+		double nflux_out = initialn;
+		double cflux_out = initialc;
+
+		take_biomass(nmass_storage, initialn);
+		take_biomass(nmass_root, initialn);
+		if (pft.is_grass() || pft.lifeform == MOSS) {
+				take_biomass(nmass_leafs[green], initialn);
+				take_biomass(nmass_leafs[brown], initialn);
+				take_biomass(nmass_crown, initialn);
+		} else if (pft.lifeform == TREE) {
+				take_biomass(nmass_leaf, initialn);
+				take_biomass(nmass_sap, initialn);
+		}
+		take_biomass(nmass_repr, initialn);
+
+		take_biomass(cmass_storage, initialc);
+		take_biomass(cmass_root, initialc);
+		if (pft.is_grass() || pft.lifeform == MOSS) {
+				take_biomass(cmass_leafs[green], initialc);
+				take_biomass(cmass_leafs[brown], initialc);
+				take_biomass(cmass_crown, initialc);
+		} else if (pft.lifeform == TREE) {
+				take_biomass(cmass_leaf, initialc);
+				take_biomass(cmass_sap, initialc);
+		}
+		take_biomass(cmass_repr, initialc);
+
+		// Hypothetical seed biomass enters the system as a negative flux, so
+		// it should leave the system as a positive flux.
+		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nflux_out - initialn);
+		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cflux_out - initialc);
+	}
+
 	// The function always deals with harvest, but the harvest
 	// fractions are zero when there is no harvest.
 	if (harvest) {
@@ -3014,6 +3190,10 @@ void Individual::kill(bool harvest /* = false */) {
 		} else {
 			ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
+	}
+
+	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
+		ppft.cmass_litter_root += cmass_storage;
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive
@@ -3163,6 +3343,11 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 	}
 
+	// Account for N storage in dave trees.
+	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
+		ppft.nmass_litter_root += nmass_storage;
+	}
+
 	// Leaf: remove residue outtake and send the rest to litter
 	ppft.nmass_litter_leaf += get_nmass_leaf() * (1 - res_outtake);
 	nharvest_flux          += get_nmass_leaf() * res_outtake;
@@ -3184,6 +3369,14 @@ void Individual::kill(bool harvest /* = false */) {
 		nharvest_flux          += cropindiv->nmass_dead_leaf * res_outtake;
 	}
 
+	if (pft.dave_allocation()) {
+		ppft.cmass_litter_repr += cmass_repr;
+		cmass_repr = 0;
+
+		ppft.nmass_litter_repr += nmass_repr;
+		nmass_repr = 0;
+	}
+
 	// Report harvest fluxes
 	report_flux(Fluxes::HARVESTC, charvest_flux);
 	report_flux(Fluxes::HARVESTN, nharvest_flux);
@@ -3201,6 +3394,23 @@ void Individual::flush_repr_litter_DAVE() {
 	const double frac_seed = 0.7;
 	Patchpft &ppft = patchpft();
 
+	// Time to pay our debts.
+	if (initialc > 0) {
+		double cvoid = min(cmass_repr, initialc);
+		cmass_repr -= cvoid;
+		initialc -= cvoid;
+		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
+		ctolitter += cvoid; // For mass balance checks; not an actual pool
+	}
+
+	if (initialn > 0) {
+		double nvoid = min(nmass_repr, initialn);
+		nmass_repr -= nvoid;
+		initialn -= nvoid;
+		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+		ntolitter += nvoid; // For mass balance checks; not an actual pool
+	}
+
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.
 	double cflux_seed = frac_seed * cmass_repr;
@@ -3217,6 +3427,12 @@ void Individual::flush_repr_litter_DAVE() {
 
 	assert(equal(cmass_repr, cflux_seed + cflux_litter));
 	assert(equal(nmass_repr, nflux_seed, nflux_litter));
+
+	ctolitter += cmass_repr;
+	ntolitter += nmass_repr;
+
+	ctolitter_repr = cmass_repr;
+	ntolitter_repr = nmass_repr;
 
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
@@ -4138,6 +4354,41 @@ bool ManagementType::pftinselection(const char* name) {
 		return false;
 
 	return issubstring(selection, name);
+}
+
+inline double calc_temp_growth(double a, const Pft *pft) {
+	return temp_growth(a, pft->Ha_growth, pft->T0_growth, 1.0, pft->temp_dormancy);
+}
+
+double calc_a_growth(const Pft *pft) {
+	double xmin = 0;
+	double xmax = 50;
+	const size_t NSTEP_MAX = 100;
+	const double xres = 0.001;
+	double ymin = calc_temp_growth(xmin, pft);
+	double ymax = calc_temp_growth(xmax, pft);
+	double y;
+
+	size_t i;
+	for (i = 0; i < NSTEP_MAX; i++) {
+		double x = (xmin + xmax) / 2.0;
+		y = calc_temp_growth(x, pft);
+		if (fabs(x - xmin) < xres) {
+			break;
+		}
+		double ynext = calc_temp_growth(x + 0.01, pft);
+		if (ynext > y) {
+			xmin = x;
+		} else {
+			xmax = x;
+		}
+	}
+	if (i >= NSTEP_MAX - 1) {
+		// Failed to find a solution - perhaps some of the parameters were not
+		// supplied in the instruction file.
+		fail("Failed to optimise temp_growth curve - check pft parameters Ha_growth, T0_growth, temp_dormancy!!!");
+	}
+	return 1.0 / y;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

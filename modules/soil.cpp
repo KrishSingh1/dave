@@ -39,6 +39,12 @@ void Soil::init_states() {
 	snowpack = 0.0;
 	orgleachfrac = 0.0;
 
+	net_mineralisation = 0.0;
+	dminleach          = 0.0;
+	dorgNleach         = 0.0;
+	nvol               = 0.0;
+	nloss_gas          = 0.0;
+
 	// Extra initialisation
 	aorgCleach = 0.0;
 	aorgNleach = 0.0;

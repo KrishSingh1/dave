@@ -31,6 +31,7 @@ group "common" (
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 	vcmax_25 0.00002 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
 	sla 30
+	extkn 0.15
 
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -87,6 +88,10 @@ group "tree" (
 	harvest_slow_frac 0.33	! Bondeau 0.33
 	stem_frac 0.65
 	twig_frac 0.13
+	Ha_growth 63.3
+	T0_growth 30.6
+	temp_dormancy 5.0
+
 )
 
 group "shrub" (
@@ -128,15 +133,14 @@ group "grass" (
 
 	common
 	leafphysiognomy "broadleaf"
-	ltor_max 0.5
+	ltor_max 3.0
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	!root_beta 0.9555
-	root_beta 0.9555
+	root_beta 0.957
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100
 	phengdd5mat 2000.0
-	leaflong 1		! Leaf longevity (years)
 	turnover_leaf 1.0
 	turnover_root 0.7
 	turnover_repr 0.2
@@ -150,7 +154,7 @@ group "grass" (
 	fireresist 0.5
 	intc 0.01
 	ga 0.030
-	wscal_min 0.35
+	wscal_min 0.4
 
 	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood):
 				! 1-year turnover time for GRASS

@@ -1017,6 +1017,20 @@ void dailyaccounting_patch(Patch& patch) {
 	soil.mwcontupper += soil.dwcontupper[date.day];
 	soil.mwcontlower += soil.dwcontlower[date.day];
 
+	// Recalculate total FPC and RPC for daily version
+	if (ifdavegrowth) {
+		patch.fpc_total = 0;
+		patch.rpc_total = 0;
+		Vegetation& vegetation = patch.vegetation;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			vegetation.nextobj();
+		}
+	}
+
+
 	// On last day of month, calculate mean content of upper and lower soil layers
 
 	if (date.islastday) {
@@ -1250,6 +1264,28 @@ void daylengthinsoleet(Climate& climate) {
 	}
 	climate.daylength = climate.daylength_save[date.day];
 
+	// maximum daylength in a year
+	if (date.year == 0) {
+		climate.daylength_max = max(climate.daylength, climate.daylength_max);
+	}
+
+	// Grote: (Assaf) 
+	// determine winter<->summer solstice period, see CLM5 Documentation: winter 
+	// to summer daylength changes
+	if (date.day == 0 && date.year == 0) { // very special case
+		// on year 0 and day 0 we are in summer in SH and winter in NH
+		climate.winter_to_summer = (climate.lat < 0);  
+	} else {
+		double curdayl = climate.daylength_save[date.day];
+		double lastdayl = climate.daylength_save[date.day == 0 ? (date.year_length() - 1) : (date.day - 1)];
+		if (!negligible(curdayl - lastdayl)) {
+			climate.winter_to_summer = curdayl > lastdayl; // daylength increases
+		} else {
+			// polar night and day handling
+			// nothing todo, since it was already set correctly the very first day polar night/day started
+		}
+	}
+
 	if (climate.instype == SUNSHINE) {		// insolation is percentage sunshine
 
 		w = (C+D * climate.insol / 100.0) * (1.0 - BETA) * climate.qo[date.day]; // Eqn 13
@@ -1300,6 +1336,8 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
+
+	climate.par_max = max(climate.par, climate.par_max);
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)

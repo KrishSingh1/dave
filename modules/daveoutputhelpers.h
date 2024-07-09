@@ -25,41 +25,36 @@ double get_lai(const Individual &indiv);
 Get the patch-level ecosystem ER.
 
 @param patch: The patch.
-@param i: Unused (required by API).
 */
-double get_er(const Patch &patch, int i);
+double get_er(const Patch &patch);
 
 /*
 Get the patch-level ecosystem GPP.
 
 @param patch: The patch.
-@param i: Unused (required by API).
 */
-double get_gpp(const Patch &patch, int i);
+double get_gpp(const Patch &patch);
 
 /*
 Get the patch-level ecosystem NPP.
 
 @param patch: The patch.
-@param i: Unused (required by API).
 */
-double get_npp(const Patch &patch, int i);
+double get_npp(const Patch &patch);
 
 /*
 Get the patch-level ecosystem NEE.
 
 @param patch: The patch.
-@param i: Unused (required by API).
 */
-double get_nee(const Patch &patch, int i);
+double get_nee(const Patch &patch);
 
 /*
 Get the patch-level daily evapotranspiration (mm/day).
 
 @param patch: The patch.
-@param i: Unused (required by API).
 */
-double get_et(const Patch &patch, int i);
+double get_et(const Patch &patch);
 
 /*
 Get the individual in the patch with the specified name, or NULL if not found.
@@ -171,6 +166,26 @@ std::vector<ColumnDefinition<Patch>> sompool_nmass_columns();
 Get the columns used in the patch-level nitrogen input output file.
 */
 std::vector<ColumnDefinition<Patch>> ninput_columns();
+
+/*
+Get the columns used in the patch-level evaporation output file.
+*/
+std::vector<ColumnDefinition<Patch>> evap_columns();
+
+/*
+Get the columns used in the patch-level soil C mass output file.
+*/
+std::vector<ColumnDefinition<Patch>> soil_cmass_columns();
+
+/*
+Get the columns used in the patch-level soil N mass output file.
+*/
+std::vector<ColumnDefinition<Patch>> soil_nmass_columns();
+
+/*
+Get the columns used in the patch-level soil N flux output file.
+*/
+std::vector<ColumnDefinition<Patch>> soil_nflux_columns();
 
 /*
 Get the columns used in the annual patch-level nitrogen input output file.

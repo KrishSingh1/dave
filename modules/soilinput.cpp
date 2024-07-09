@@ -336,7 +336,7 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	double Theta_s = 0.01 * (50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
 
 	double Psi_s = -pow(10.0, logPsi_s);  /// CS changed from pow(10.0, -logPsi_s), why the negative there??? 
-	double Psi_wilt = -pow(10.0, 4.2);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm
+	double Psi_wilt = -pow(10.0, 5.2);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm. Testing parameter change from 4.2 to 5.2, to allow plants/evap to extract more water, up to ~ -15MPa.
 	double Psi_whc = -pow(10.0, 1.8);    /// CS changed from pow(10.0, -2). See Hohenbrink et al (2023), output is in cm
 
 	double Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s),1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984

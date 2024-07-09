@@ -75,7 +75,7 @@ double calc_weighted_psi(Soil & soil, Pft& pft){
 
 void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv) {
 
-    if (!ifdavephotosyn) {
+    if (!ifdavephotosyn || !ifdavehydraulics) {
 		// Only apply if using DAVE photosynthesis
 		return;
 	}
@@ -96,24 +96,29 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         double E_guess = 0;   // mmol/m2/s
         double psi2 = 0;
 
-        for (int x=1; x<10000000; x++){
-            psi2 = psi1 + 0.0001;
-            E_guess = E_guess + (pft.kmax*exp(-pow(((psi1+psi2)/2.0/pft.s1),pft.s2)))*(psi2-psi1);
+        for (int x=1; x<2000; x++){
+            psi2 = psi1 + 0.01;
+            E_guess = E_guess + (indiv.kmax_drought_affected*exp(-pow(((psi1+psi2)/2.0/pft.s1),pft.s2)))*(psi2-psi1);
             if (E_guess >= transpiration){ 
                 break;
             } else {
                 psi1 = psi2;
             }
-            if (x == 9999999){
-                printf("loop to estimate E failed/n");
+            if (x == 1999){ // if hydraulic vulnerability curve doesn't allow E to be met, we account for transpiration from capacitance in next step (closed stomata loop). This happens often when ET is high and hydraulic parameters (kmax, P50 and P88) are too small, check values.
+                psi2 = -pft.stom_clos; /// set water potential to stom_clos to close stomata
+                indiv.E_not_met = true;
+                printf("%f-%f hydraulic vulnerability curve doesn't allow E to be met\n",E_guess,transpiration); 
             }
         }
 
+        // calculate loss of conductance
+        indiv.k_loss[day.period] = 1-exp(-pow(((psi2)/pft.s1),pft.s2));
+
         indiv.lwp[day.period] = -psi2;
 
-        if (indiv.lwp[day.period] < pft.p10){
+        if (indiv.lwp[day.period] <= pft.stom_clos){
             indiv.stomata_open = false;
-            printf("stomata have closed\n");
+            // printf("stomata have closed\n");
         }
 
     } else { // stomata are fully closed
@@ -121,33 +126,42 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         /// Alternative for high water stress - consuming internal storage
 
         // average cross-sectional xylem area per unit ground area (m2/m2)
-        double Ax = PI*pow(indiv.diam/2,2)*indiv.densindiv*0.15;   // calculated trunk area per m2, 0.15 is assumed xylem:trunk area
-
-        double Vmax = pft.nx*Ax*indiv.height; // see Paschalis et al. (2024), currently ignoring leaf water storage
+        double Ax = PI*pow(indiv.diam/2,2)*indiv.densindiv*(indiv.cmass_sap/(indiv.cmass_sap+indiv.cmass_heart));   // calculated trunk area per m2, xylem area = fractional sapwood area
+        double nx = 1-(pft.wooddens*2)/1200;  /// water holding capacity approximated based on wood density - but check this!
+        double Vmax = nx*Ax*indiv.height; // see Paschalis et al. (2024), currently ignoring leaf water storage
 
         double Vl_init = Vmax*(1-indiv.lwp_previous/pft.p88); // note using P88 as approximation for LWP when Vl = 0. Equation from Paschalis et al. (2024)
 
         const double MOL2MMOL = 1000.0;
         const double M3_H2O_PER_KG = 0.001;
 
+        if (indiv.E_not_met){ // if the previous day's transpiration couldn't be met, we just assume the plant starts at p12 but the previous day's transpiration is taken from the capacitance store
+            Vl_init = Vl_init - indiv.transp_previous*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
+        }
+
         double Vl = Vl_init - transpiration*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL; // m3/m2
 
         if (Vl < 0){
-            printf("plants are dead\n");
+            printf("%d-%d hydraulic failure\n",date.get_calendar_year(),date.day);
             indiv.lwp[day.period] = pft.p88;
         } else {
             indiv.lwp[day.period] =  pft.p88*(1-Vl/Vmax);
         }
 
-        if (climate.precs[day.period] > 0.0){
-            indiv.stomata_open = true;
-            printf("stomata have opened\n");
-        }
+        indiv.E_not_met = false; // only account for this once (can only be set to 'true' in the loop for open stomata)
 
+        // calculate loss of conductance
+        indiv.k_loss[day.period] = 1-exp(-pow(((indiv.lwp[day.period])/pft.s1),pft.s2));
 
     }
-
+    
+    if (climate.prec > 0.0 & day.period == date.subdaily-1 && !indiv.stomata_open){ // if there is rain this day and stomata are closed, open stomata next day
+        indiv.stomata_open = true;
+        // printf("stomata have opened\n");
+    }
+    
     indiv.lwp_previous = indiv.lwp[day.period];
+    indiv.transp_previous = transpiration;
 
     if (day.period > 0){
         double par_previous   = climate.pars[day.period-1];    // W m-2; 0.5 * climate.insols
@@ -156,6 +170,54 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         }
     }
 
+   
+}
+
+void hydraulic_failure(Patch& patch) {
+
+    Vegetation& vegetation = patch.vegetation;
+
+    vegetation.firstobj();
+
+    while(vegetation.isobj) {
+        Individual& indiv = vegetation.getobj();
+		Pft& pft = indiv.pft;
+
+        indiv.max_k_loss = 0;
+
+        for (Day day; day.period != date.subdaily; day.next()) {
+            if (indiv.lwp[day.period] <= pft.p88){
+                //printf("10% biomass removed, hydraulic failure\n");
+                indiv.reduce_biomass(0.1,0);
+                break;
+            }
+            indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
+
+        }
+
+        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax)){ // drought only has an impact if loss of conductance exceeds current state
+            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-indiv.max_k_loss*indiv.kmax_drought_affected/pft.kmax)); // kmax decreases proportionately to loss but scaled by how affected it already is   
+       // kmax2[d] <- min(kmax_init, kmax2[d-1]*(1-drought[d]/100*kmax2[d-1]/kmax_init))
     
     
+        } else {
+            //this line is designed to work with daily growth
+            //  indiv.kmax_drought_affected = std::min(pft.kmax,(indiv.kmax_drought_affected*(1-indiv.cmass_sap_turnover) + pft.kmax*indiv.cmass_sap_growth)*indiv.cmass_sap_yesterday/indiv.cmass_sap);
+            //these lines are a messy placeholder trying to mimic the above with annual growth
+            double day_turnover_sap = pft.turnover_sap/365;
+            double day_growth_sap = pft.turnover_sap/365*1.1; //assume growth is 1% faster than turnover
+            double cmass_sap_today = 1.0+1.0*day_growth_sap*date.day-1.0*day_turnover_sap*date.day; // assuming indiv.cmass_sap is always 1
+            double cmass_sap_yesterday = cmass_sap_today - day_growth_sap + day_turnover_sap;
+            indiv.kmax_drought_affected = (indiv.kmax_drought_affected*(1-day_turnover_sap) + pft.kmax*day_growth_sap)*cmass_sap_yesterday/cmass_sap_today;
+            indiv.kmax_drought_affected = std::min(indiv.kmax_drought_affected,pft.kmax);
+            // kmax2[d] <- (kmax2[d-1]*(1-turnover) + kmax_init*growth)*sapwood2[d-1]/sapwood2[d] // R code
+            assert(indiv.kmax_drought_affected >= 0.0);
+
+
+        }
+
+        vegetation.nextobj();
+        
+    }
+
 }

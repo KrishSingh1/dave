@@ -2051,8 +2051,8 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
-	/// water potential at 10% loss of hydraulic conductance
-	double p10;
+	/// water potential at 12% loss of hydraulic conductance
+	double stom_clos;
 	/// water potential at 50% loss of hydraulic conductance
 	double p50;
 	/// water potential at 88% loss of hydraulic conductance
@@ -2065,7 +2065,8 @@ public:
 	double kmax;
 	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
 	double nx;
-
+	/// maximum rate of carboxylation at 25degC (mol/m2/s)
+	double vcmax_25;
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
 	/// average leaf C:N mass ratio (between min and max)
@@ -2487,15 +2488,14 @@ public:
 		g1=0.0;
 		gcutic=0.0;
 
-		p10=0.0;
+		stom_clos=0.0;
 		p50=0.0;
 		p88=0.0;
 		kmax=0.0;
 		g1x=0.0;
 		b1z=0.0;
 
-		
-
+		vcmax_25=0.0;
 
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
@@ -3094,6 +3094,16 @@ public:
 	double cmass_leaf_post_turnover;
 	/// root C mass after turnover
 	double cmass_root_post_turnover;
+	/// total C in sapwood yesterday (kgC/m2)
+	double cmass_sap_yesterday;
+	/// amount of sapwood lost to turnover today (kgC/m2)
+	double cmass_sap_turnover;
+	/// new sapwood growth today (kgC/m2)
+	double cmass_sap_growth;
+	/// drought affected dynamic hydraulic conductance of sapwood (mmol/m2/s/MPa)
+	double kmax_drought_affected;
+	/// daily loss of maximum hydraulic conductivity due to xylem embolism
+	double max_k_loss;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3169,7 +3179,7 @@ public:
 	double fpar;
 	/// layer-wise fpar (see fpar description)
 	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	std::vector<double> fpar_layerwise;
+	std::vector<double> fipar_layerwise;
 
 	/// layer-wise lai (see lai description).
 	/// I've opted not to serialise this, as it's reinitialised each day.
@@ -3422,6 +3432,7 @@ public:
 	double tscal_sen;
 
 	bool stomata_open; // flag on whether stomata are open (at all) - if false, stomata are fully closed
+	bool E_not_met; // flag on whether water for E can be extracted from the soil - if not, taken from plant capacitance
 
 	double weighted_psi; // soil water potential weighted by root fraction in each layer
 
@@ -3431,6 +3442,10 @@ public:
 	std::vector<double> lwp;
 	// leaf water potential from previous timestep (for plant water storage)
 	double lwp_previous;
+		// transpiration from previous timestep (for plant water storage)
+	double transp_previous;
+	// loss of hydraulic conductance at subdaily timescale
+	std::vector<double> k_loss;
 
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year

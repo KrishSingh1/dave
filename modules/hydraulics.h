@@ -30,5 +30,7 @@ void calc_soil_water_potenial_dave(Soil & soil);
 
 double calc_weighted_psi(Soil & soil, Pft& pft);
 
+void hydraulic_failure(Patch& patch);
+
 #endif // LPJ_GUESS_HYDRAULICS_H
 

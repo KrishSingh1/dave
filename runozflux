@@ -99,13 +99,13 @@ GUESS="${BIN}/guess"
 enable_output() {
 	OUTPUT="${1}"
 	INS="${OZFLUX}/outputs.ins"
-	if grep "${OUTPUT}" "${INS}" >/dev/null 2>&1
-	then
-		sed -i -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
-	else
-		FILE_NAME="${OUTPUT/file_/}.out"
-		echo "${OUTPUT} \"${FILE_NAME}\"" >>"${INS}"
-	fi
+	# if grep "${OUTPUT}" "${INS}" >/dev/null 2>&1
+	# then
+	# 	sed -i '' -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
+	# else
+	# 	FILE_NAME="${OUTPUT/file_/}.out"
+	# 	echo "${OUTPUT} \"${FILE_NAME}\"" >>"${INS}"
+	# fi
 }
 
 # Print a message to stderr and exit with code indicating failure.

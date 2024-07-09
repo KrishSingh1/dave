@@ -9,7 +9,7 @@ group "common" (
 	! Parameters common to all PFTs
 
 	lambda_max 0.8
-	emax 5
+	emax 10
 	reprfrac 0.1
 	crownfrac 0.0
 	wscal_min 0.35
@@ -21,14 +21,16 @@ group "common" (
 	g0 0.005
 	g1 3.4
 	temp_dormancy 5.0
-	kmax 1 ! maximum hydraulic conductance (mmol/m2/s/MPa)
-	p10 -3   ! water potential at 10% loss of xylem conductance (MPa)
-	p50 -4   ! water potential at 50% loss of xylem conductance (MPa)
-	p88 -6   ! water potential at 88% loss of xylem conductance (MPa)
+	kmax 1.5 ! maximum hydraulic conductance (mmol/m2/s/MPa)
+	stom_clos -1.5   ! water potential at which stomata close and roots disconnect from soil (MPa)
+	p50 -3   ! water potential at 50% loss of xylem conductance (MPa)
+	p88 -4   ! water potential at 88% loss of xylem conductance (MPa)
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
-	b1z 0.8  ! Parameter for Zhou et al. (2014) stomatal model
+	g1x 2  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	b1z 2  ! Parameter for Zhou et al. (2014) stomatal model 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	vcmax_25 0.00002 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
+	sla 30
 
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -55,17 +57,17 @@ group "tree" (
 	common
 	lifeform "tree"
 	crownarea_max 50
-	ltor_max 1
-	turnover_root 0.7
+	ltor_max 1 
+	turnover_root 0.7 
 	turnover_repr 0.25
 	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
 	k_rp 1.6
-	wooddens 200
-	cton_root 29
-	cton_sap 330
+	wooddens 200   
+	cton_root 29 
+	cton_sap 330 
 	nuptoroot 0.0028
 	km_volume 0.000001477
 	pathway "c3"

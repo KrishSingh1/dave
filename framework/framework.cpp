@@ -139,6 +139,10 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
 
+			if (ifdavehydraulics){
+				hydraulic_failure(patch);
+			}
+			
 			if (date.islastday && date.islastmonth) {
 
 				// LAST DAY OF YEAR

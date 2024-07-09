@@ -40,6 +40,7 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
+bool ifcalcvcmax;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -260,6 +261,7 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
+	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
 	ifcalccton=true;
@@ -489,6 +491,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
+		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
+			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
@@ -726,14 +730,16 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
+		declareitem("vcmax_25",&ppft->vcmax_25,0.0,10.0,1,CB_NONE, 
+			"Maximum carboxylation rate at 25 degC (mol m-2 s-1)");
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
 		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
 			"Parameter for Zhou et al. (2014) stomatal model");
 		// Hydraulic parameters
-		declareitem("p10",&ppft->p10,-1000.0,0.0,1,CB_NONE, 
-			"Water potential at 10% loss of xylem conductance (MPa)");
+		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
 		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at 50% loss of xylem conductance (MPa)");
 		declareitem("p88",&ppft->p88,-1000.0,0.0,1,CB_NONE, 

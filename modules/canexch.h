@@ -219,8 +219,8 @@ const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
-inline double lambertbeer(double lai) {
-	return exp(-.5 * lai);
+inline double lambertbeer(double lai, double k=0.5) {
+	return exp(-k * lai);
 }
 
 /// Alternative parameterisations of the convective boundary layer

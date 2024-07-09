@@ -123,7 +123,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -171,16 +171,17 @@ patch_output_stats           0
 
 vegmode "cohort"        ! "cohort", "individual" or "population"
 nyear_spinup 500        ! Number of years to spin up the simulation for
-ifcalcsla 1            ! Whether to calculate SLA from leaf longevity
+ifcalcsla 0            ! Whether to calculate SLA from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 ifcalccton 1            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
+ifcalcvcmax 0            ! Whether to calculate Vcmax from leaf nutrient content
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled

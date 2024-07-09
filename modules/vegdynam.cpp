@@ -662,7 +662,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		}
 
 		if (ifdavephotosyn) {
-			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
+			patch.pft[pft.id].anetps_ff = 2.0;  // kg C m-2 yr-1
 			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
 		}
 
@@ -874,7 +874,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// assimilation for this PFT in this patch
 
 						if (ifdavephotosyn) {
-							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
+							patch.pft[pft.id].anetps_ff_est = 2.0;  // kg C m-2 yr-1
 						}
 
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {

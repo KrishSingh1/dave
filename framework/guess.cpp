@@ -1699,6 +1699,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_wood_old	  = 0.0;
 	cmass_leaf_post_turnover      = 0.0;
 	cmass_root_post_turnover      = 0.0;
+	cmass_sap_yesterday = 0.0;
+	cmass_sap_turnover = 0.0;
+	cmass_sap_growth = 0.0;
+	kmax_drought_affected = pft.kmax;
+	max_k_loss = 0.0;
 	cmass_tot_luc     = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
@@ -1781,14 +1786,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	n_opt_isabovelim  = false;
 	nstress           = false;
 	stomata_open	  = true;
+	E_not_met   	  = false;
 
 	weighted_psi = 0;
 	predawn_lwp = 0.0;
 	lwp_previous = 0.0;
+	transp_previous = 0.0;
 	lwp.resize(date.subdaily);
+	k_loss.resize(date.subdaily);
 
 	for (Day day; day.period != date.subdaily; day.next()) {
 		lwp[day.period] = 0;
+		k_loss[day.period] = 0;
 	}
 
 	size_t nleafpools;
@@ -1845,7 +1854,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
-	fpar_layerwise.clear();
+	fipar_layerwise.clear();
 	lai_layerwise.clear();
 
 	andemand_leaf     = 0.0;

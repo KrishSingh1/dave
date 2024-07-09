@@ -51,7 +51,7 @@ std::vector<Individual *> get_indivs(const Vegetation &vegetation, const char *n
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		if (indiv.pft.name == name && indiv.alive) {
+		if (indiv.pft.name == name) {
 			result.push_back(&indiv);
 		}
 	}
@@ -157,7 +157,7 @@ Individual *get_first_indiv(const Patch &patch) {
 int get_nlayer_fpar(const Patch &patch) {
 	Individual *indiv = get_first_indiv(patch);
 	if (indiv) {
-		return indiv->fpar_layerwise.size();
+		return indiv->fipar_layerwise.size();
 	}
 	// No individuals are established in this patch.
 	return 0;
@@ -642,6 +642,27 @@ std::vector<ColumnDefinition<Patch>> aet_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
 	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> fevap_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("fevap", [](const Patch &p) { 
+		
+		double fpc_phen_total = 0.0;	// phenology-weighted FPC sum for patch
+
+		const Vegetation& vegetation = p.vegetation;
+		
+		for (int i=0; i<vegetation.nobj; i++) {
+			Individual& indiv = vegetation[i];
+			fpc_phen_total += indiv.fpc_today();
+		}
+	
+		double bare_ground = std::max(1.0 - fpc_phen_total, 0.0);
+
+		return bare_ground; 
+	}));
 	return columns;
 }
 

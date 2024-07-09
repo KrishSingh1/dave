@@ -597,7 +597,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
 	double& longterm_nstore, double &max_n_storage,
-	bool alive) {
+	bool alive, double& cmass_sap_turnover) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -667,6 +667,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		turnover = turnover_sap * cmass_sap;
 		cmass_sap -= turnover;
 		cmass_heart += turnover;
+		cmass_sap_turnover = turnover;
 
 		// NB: assumes nitrogen is translocated from sapwood prior to conversion to
 		//     heartwood and that this is the same fraction that is conserved
@@ -1580,7 +1581,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.0;
+		indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
@@ -1795,6 +1796,8 @@ void growth(Stand& stand, Patch& patch) {
 
 		bool killed = false;
 
+		indiv.cmass_sap_yesterday = indiv.cmass_sap;
+
 		// Standard yearly growth functionalities
 
 		if (!(ifdailygrass && indiv.pft.is_grass()) || indiv.istruecrop_or_intercropgrass()) {
@@ -1823,7 +1826,7 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
 			// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-			double cton_leaf_aopt = max(ifdavephotosyn ? indiv.cton_leaf() : indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
+			double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 			if (ifnlim)
 				nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
@@ -1912,7 +1915,7 @@ void growth(Stand& stand, Patch& patch) {
 								patch.pft[indiv.pft.id].nmass_litter_leaf,
 								patch.pft[indiv.pft.id].nmass_litter_root,
 								indiv.nstore_longterm,indiv.max_n_storage,
-								indiv.alive);
+								indiv.alive, indiv.cmass_sap_turnover);
 					}
 					// Update stand record of reproduction by this PFT
 					stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
@@ -1953,6 +1956,7 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Sapwood
 						indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
+						indiv.cmass_sap_growth = cmass_sap_inc;
 
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;

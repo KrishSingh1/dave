@@ -1,0 +1,63 @@
+default:
+  image: stormbringer4.nateko.lu.se:5050/lpj-guess-developers/lpj-guess:0.0.1
+  tags:
+    - docker
+
+stages:
+  - check_runner
+  - compile_debug
+  - build_debug
+  - test
+  - compile_benchmarks
+
+# This rule defines when pipelines should be run. We decided they should be run on certain branches only.!reference:
+# Pipelines can always be started manually from the Gitlab UI in the browser.
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "trunk"
+      when: always
+    - if: $CI_COMMIT_BRANCH =~ /tech.*ci/
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: always
+
+check_runner:
+  stage: check_runner
+  script:
+    - echo "Just checking whether the gitlab runners are working"
+
+compile_linux_debug:
+  stage: compile_debug
+  script:
+    - cmake -DCMAKE_BUILD_TYPE=Debug -S . -B cmake-build-debug -Wno-dev
+  artifacts:
+    paths:
+      - cmake-build-debug
+
+build_linux_debug:
+  stage: build_debug
+  script:
+    - cmake --build cmake-build-debug --target guess -- -j 8
+    - cmake --build cmake-build-debug --target runtests -- -j 8
+  artifacts:
+    paths:
+      - cmake-build-debug/guess
+      - cmake-build-debug/runtests
+      - tests
+      - tests/test_outputs
+      - tests/test_insfiles
+
+run_unittests:
+  stage: test
+  script:
+    - cd cmake-build-debug
+    - ./runtests
+  artifacts:
+    paths:
+      - cmake-build-debug/tests.log
+
+compile_benchmarks_with_netcdf:
+  stage: compile_benchmarks
+  script:
+    - cd benchmarks
+    - ./benchmarks -s -c -i diurnal_pristine_sites .

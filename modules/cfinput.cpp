@@ -507,7 +507,7 @@ void CFInput::init() {
 				double lon_center, lat_center;
 				lon_center = ((double)std::floor(lon * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
 				lat_center = ((double)std::floor(lat * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
-				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);																				
+				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);
 				c.lat = lat_center;
 				c.lon = lon_center;
 				c.rlon = rlon;
@@ -553,13 +553,13 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		++current_gridcell;
 	}
 
-	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
-	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
-
 	if (current_gridcell == gridlist.end()) {
 		// simulation finished
 		return false;
 	}
+
+	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
+	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 
 	if(readdisturbance || readdisturbance_st || readelevation_st) {
 		// Not all gridcells have to be included in input file

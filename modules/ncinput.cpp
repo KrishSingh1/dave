@@ -18,6 +18,7 @@
 #include "ncinput.h"
 #include "ncutil.h"
 #include "parameters.h"
+#include "guessmath.h"
 #include "util.h" // Required by MSVC
 
 #ifdef _WIN32
@@ -71,6 +72,7 @@ NCInput::NCInput() {
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
 
 	declare_parameter("progress_interval", &progress_interval, -1, std::numeric_limits<int>::max(), "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
+	declare_parameter("progress_newline", &progress_newline, "Force the use of newline characters to terminate progress messages. Useful for MPI runs.");
 
 	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
 
@@ -142,10 +144,24 @@ NCInput::NCInput() {
 	ncinput_walltime_use = ctor_duration;
 
 	nc_file = -1;
+	nc_temp = -1;
+	nc_insol = -1;
+	nc_precip = -1;
+	nc_vpd = -1;
+	nc_huss = -1;
+	nc_ps = -1;
+	nc_wind = -1;
+	nc_co2 = -1;
+	nc_tmax = -1;
+	nc_tmin = -1;
+	nc_nhx = -1;
+	nc_noy = -1;
+
+	progress_newline = false;
 }
 
 NCInput::~NCInput() {
-	GuessNC::close_ncdf(nc_file);
+	close_all();
 
 	// The NCVariable instances are dynamically allocated, but they're wrapped
 	// in smart pointers, so we don't need to manually free them.
@@ -190,7 +206,9 @@ void NCInput::init(void) {
 			// file used for the spinup, and its start/end dates don't reflect
 			// the actual simulation start/end dates, which depend upon the
 			// NetCDF file used for the main simulation.
-			int nc = GuessNC::open_ncdf((const char *)file_met_forcing);
+			xtring fn;
+			fn.printf(file_met_forcing, (const char *)variable_temp);
+			int nc = GuessNC::open_ncdf(fn);
 
 			// Read metadata from the temperature variable.
 			// todo: verify that this is consistent across variables.
@@ -493,6 +511,9 @@ try {
 		}
 		progress_timer.setprogress(progress);
 		const char *eol = isatty(fileno(stdout)) ? "\r" : "\n";
+		if (progress_newline) {
+			eol = "\n";
+		}
 		dprintf("%3d%% complete, %s elapsed, %s remaining%s"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str, eol);
@@ -527,11 +548,34 @@ void NCInput::getmiscinput_yearly(Gridcell& gridcell) {
 	misc_input.getmiscinput_yearly(gridcell);
 }
 
-std::unique_ptr<NCVariable> NCInput::create_variable(xtring variable_name
-	, bounds limits, const std::vector<xtring>& units
+std::unique_ptr<NCVariable> NCInput::create_variable(xtring netcdf_file
+	, xtring variable_name, int &ncid, bounds limits, const std::vector<xtring>& units
 	, bool require_valid_units) const {
+
+	// nc is the ID of the file from which we will read.
+	int nc;
+
+	if (ncid != -1) {
+		// We have already opened a variable-specific file. This should probably
+		// never happen.
+		nc = ncid;
+	} else {
+		// Attempt to get a variable-specific file by treating the file name as
+		// a printf-style format string.
+		xtring filename;
+		filename.printf((const char *)netcdf_file, (const char *)variable_name);
+
+		// nc_open() can be called multiple times on the same file, and will
+		// return the same file ID each time.
+		nc = GuessNC::open_ncdf((const char *)filename);
+
+		// Store the opened file ID in ncid, but only if it's different to the
+		// 'primary' open file. If it's the same file, just store -1 in ncid.
+		ncid = nc == nc_file ? -1 : nc;
+	}
+
 	return std::unique_ptr<NCVariable>(new NCVariable(
-		nc_file,
+		nc,
 		variable_name,
 		variable_lon,
 		variable_lat,
@@ -665,16 +709,40 @@ double NCInput::get_co2(double lon, double lat, int year, int day) {
 	}
 }
 
+void NCInput::close_if_open(int &nc) {
+	if (nc != -1) {
+		GuessNC::close_ncdf(nc);
+		nc = -1;
+	}
+}
+
+void NCInput::close_all() {
+	close_if_open(nc_file);
+	close_if_open(nc_temp);
+	close_if_open(nc_insol);
+	close_if_open(nc_precip);
+	close_if_open(nc_vpd);
+	close_if_open(nc_huss);
+	close_if_open(nc_ps);
+	close_if_open(nc_wind);
+	close_if_open(nc_co2);
+	close_if_open(nc_tmax);
+	close_if_open(nc_tmin);
+	close_if_open(nc_nhx);
+	close_if_open(nc_noy);
+}
+
 void NCInput::open_netcdf(xtring netcdf_file) {
 
-	// Close the previously open file.
-	if (nc_file != -1) {
-		GuessNC::close_ncdf(nc_file);
-		nc_file = -1;
-	}
+	// Close the previously open file(s).
+	close_all();
 
 	// Open the met forcing file (in readonly mode).
-	nc_file = GuessNC::open_ncdf((const char *)netcdf_file);
+	xtring tmp;
+	tmp.printf(netcdf_file, variable_temp);
+	if (tmp == netcdf_file) {
+		nc_file = GuessNC::open_ncdf((const char *)netcdf_file);
+	}
 
 	std::vector<xtring> temp_units(1);
 	temp_units[0] = "degC";
@@ -711,15 +779,15 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 
 	// Create NCVariable objects for each variable of interest.
 	// This will also do some basic sanity checking.
-	temp = create_variable(variable_temp, bounds_temp, temp_units, true);
-	insol = create_variable(variable_insol, bounds_insol, insol_units, true);
-	precip = create_variable(variable_precip, bounds_prec, precip_units, true);
-	vpd = create_variable(variable_vpd, bounds_vpd, vpd_units, true);
-	ps = create_variable(variable_ps, bounds_ps, ps_units, true);
+	temp = create_variable(netcdf_file, variable_temp, nc_temp, bounds_temp, temp_units, true);
+	insol = create_variable(netcdf_file, variable_insol, nc_insol, bounds_insol, insol_units, true);
+	precip = create_variable(netcdf_file, variable_precip, nc_precip, bounds_prec, precip_units, true);
+	vpd = create_variable(netcdf_file, variable_vpd, nc_vpd, bounds_vpd, vpd_units, true);
+	ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
 
 
-	if (variable_wind != "" && variable_exists(variable_wind)) {
-		wind = create_variable(variable_wind, bounds_wind, wind_units, true);
+	if (variable_wind != "" && variable_exists(netcdf_file, variable_wind)) {
+		wind = create_variable(netcdf_file, variable_wind, nc_wind, bounds_wind, wind_units, true);
 	} else {
 		wind = NULL;
 		if (firemodel == BLAZE) {
@@ -736,18 +804,18 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 		co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
 		co2_file->load_file((const char *)file_co2);
 	} else {
-		co2 = create_variable(variable_co2, bounds_co2, co2_units, true);
+		co2 = create_variable(netcdf_file, variable_co2, nc_co2, bounds_co2, co2_units, true);
 	}
-	if (variable_tmax != "" && variable_exists(variable_tmax)) {
-		tmax = create_variable(variable_tmax, bounds_temp, temp_units, true);
+	if (variable_tmax != "" && variable_exists(netcdf_file, variable_tmax)) {
+		tmax = create_variable(netcdf_file, variable_tmax, nc_tmax, bounds_temp, temp_units, true);
 	} else if (day_length < 2) {
 		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
 	} else {
 		tmax.release();
 		tmax = NULL;
 	}
-	if (variable_tmin != "" && variable_exists(variable_tmin)) {
-		tmin = create_variable(variable_tmin, bounds_temp, temp_units, true);
+	if (variable_tmin != "" && variable_exists(netcdf_file, variable_tmin)) {
+		tmin = create_variable(netcdf_file, variable_tmin, nc_tmin, bounds_temp, temp_units, true);
 	} else if (day_length < 2) {
 		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
 	} else {
@@ -758,13 +826,13 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 		use_lamarque = true;
 	} else {
 		use_lamarque = false;
-		ndep_nhx = create_variable(variable_ndep_nhx, bounds_ndep, ndep_units, true);
+		ndep_nhx = create_variable(netcdf_file, variable_ndep_nhx, nc_nhx, bounds_ndep, ndep_units, true);
 	}
 	if (variable_ndep_noy == "") {
 		use_lamarque = true;
 	} else {
 		use_lamarque = false;
-		ndep_noy = create_variable(variable_ndep_noy, bounds_ndep, ndep_units, true);
+		ndep_noy = create_variable(netcdf_file, variable_ndep_noy, nc_noy, bounds_ndep, ndep_units, true);
 	}
 }
 
@@ -806,11 +874,28 @@ void NCInput::verify_data_length(timepoint start, timepoint end, int timestep) c
 	}
 }
 
-bool NCInput::variable_exists(xtring name) const {
+bool NCInput::variable_exists(xtring netcdf_file, xtring name) const {
 	// Note: the NetCDF API does accept NULL for the pointer argument, but in
 	// that case it will return 0 even if the variable doesn't exist.
+	xtring var_file_name;
+	var_file_name.printf(netcdf_file, (const char *)name);
+	int ncid = nc_file;
+	if (var_file_name != netcdf_file) {
+		// The variables are stored in separate files.
+		if (!exists(var_file_name)) {
+			// ...however no file exists for this variable.
+			return false;
+		}
+		// ... and a file exists for this variable.
+		ncid = GuessNC::open_ncdf(var_file_name);
+	}
+
 	int id;
-	int status = nc_inq_varid(nc_file, (const char *)name, &id);
+	int status = nc_inq_varid(ncid, (const char *)name, &id);
+
+	if (var_file_name != netcdf_file) {
+		GuessNC::close_ncdf(ncid);
+	}
 
 	if (status == NC_NOERR) {
 		return true;

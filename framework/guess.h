@@ -714,6 +714,7 @@ public:
 	void clear(){
 		vcmax25   = 0.0;
 		jmax25    = 0.0;
+		vpmax25   = 0.0;
 
 		vcmax.clear();
 		jmax.clear();
@@ -742,6 +743,9 @@ public:
 
 	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
 	double jmax25;  
+
+	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	double vpmax25;
 
 	// Maximum carboxylation rate (mol m-2 s-1)
 	std::vector<double> vcmax;
@@ -2102,6 +2106,8 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
+	double extkn;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -3225,9 +3231,8 @@ public:
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-	/// layer-wise fpar (see fpar description)
-	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	std::vector<double> fpar_layerwise;
+	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
+	std::vector<double> fipar_layerwise;
 
 	/// layer-wise lai (see lai description).
 	/// I've opted not to serialise this, as it's reinitialised each day.
@@ -3534,6 +3539,7 @@ public:
 	// because we need to report the initial N as an establishment flux 1 year
 	// later, because individuals experiencing allocation on an annual basis are
 	// not considered "alive" until 1 year after establishment.
+	double initialc;
 	double initialn;
 
 	double alpha_leaf;
@@ -4808,6 +4814,10 @@ public:
 	double cmass_litter_heart;
 	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
+	/// C in hypothetical external seed bank (kgC/m2)
+	double cmass_ext_seed;
+	/// N in hypothetical external seed bank (kgN/m2)
+	double nmass_ext_seed;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4887,15 +4897,17 @@ public:
 
 		cmass_litter_leaf = 0.0;
 		cmass_litter_root = 0.0;
-		cmass_litter_sap   = 0.0;
+		cmass_litter_sap  = 0.0;
 		cmass_litter_heart = 0.0;
 		cmass_litter_repr = 0.0;
+		cmass_ext_seed = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_repr  = 0.0;
+		nmass_ext_seed     = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

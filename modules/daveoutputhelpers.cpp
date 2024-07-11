@@ -157,7 +157,7 @@ Individual *get_first_indiv(const Patch &patch) {
 int get_nlayer_fpar(const Patch &patch) {
 	Individual *indiv = get_first_indiv(patch);
 	if (indiv) {
-		return indiv->fpar_layerwise.size();
+		return indiv->fipar_layerwise.size();
 	}
 	// No individuals are established in this patch.
 	return 0;

@@ -175,10 +175,12 @@ void CommonOutput::define_output_tables() {
 	// Create the month columns
 	ColumnDescriptors month_columns;
 	ColumnDescriptors month_columns_wide;
+	ColumnDescriptors month_columns_wide_prec6;
 	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 	for (int i = 0; i < 12; i++) {
 		month_columns      += ColumnDescriptor(months[i], 8,  3);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
+		month_columns_wide_prec6 += ColumnDescriptor(months[i], 10, 6);
 	}
 
 	// Create the columns for each output file
@@ -456,11 +458,13 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
     
 	// Methane
-	create_output_table(out_mch4,           file_mch4,           month_columns);
-	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
-	create_output_table(out_mch4plan,       file_mch4plan,       month_columns);
-	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns);
-    
+	// high precision output needed for case of low peatland fraction
+	create_output_table(out_mch4,           file_mch4,           month_columns_wide_prec6); // maybe: revert all later to month_columns???
+	create_output_table(out_mch4diff,       file_mch4diff,       month_columns_wide_prec6);
+	create_output_table(out_mch4plan,       file_mch4plan,       month_columns_wide_prec6);
+	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns_wide_prec6);
+
+	
 	// Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);

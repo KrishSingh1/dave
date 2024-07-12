@@ -110,6 +110,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_natural", &file_soil_nflux_natural, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_forest", &file_soil_nflux_forest, 300, "Soil N fluxes output file");
+	declare_parameter("file_soil_n2o_flux", &file_soil_n2o_flux, 300, "Soil N2O fluxes per landcover output file, includes a Total.noBar (Total without BARREN contributions)");
 
 	declare_parameter("file_agestruct_natural", &file_agestruct_natural, 300, "Age structure (tree density)");
 	declare_parameter("file_agestruct_forest", &file_agestruct_forest, 300, "Age structure (tree density)");
@@ -636,6 +637,11 @@ void MiscOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
 
+	ColumnDescriptors soil_n2o_flux_columns;
+	soil_n2o_flux_columns += ColumnDescriptors(landcovers, 13, 5);
+	soil_n2o_flux_columns += ColumnDescriptor("Total.noBar", 13, 5); // Total without BARREN contributions
+	soil_n2o_flux_columns += ColumnDescriptor("Total", 10, 5);
+
 	// ST
 	ColumnDescriptors st_columns;
 	st_columns += ColumnDescriptors(sts,            15, 3);
@@ -752,6 +758,8 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_soil_nflux_pasture,  file_soil_nflux_pasture,  soil_nflux_columns);
 	create_output_table(out_soil_nflux_natural,  file_soil_nflux_natural,  soil_nflux_columns);
 	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
+	
+	create_output_table(out_soil_n2o_flux,	file_soil_n2o_flux,   soil_n2o_flux_columns);
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
 	create_output_table(out_anpp_sts,					file_anpp_sts,					st_columns);
@@ -1607,6 +1615,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	//N-transform
 	double flux_NH3_soil[NLANDCOVERTYPES],flux_NOx_soil[NLANDCOVERTYPES],flux_N2O_soil[NLANDCOVERTYPES],flux_N2_soil[NLANDCOVERTYPES];
+	double flux_N2O_soil_total;
+
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 		flux_veg_lc[i]=0.0;
 		flux_repr_lc[i]=0.0;
@@ -1648,6 +1658,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		flux_N2_soil[i]=0.0;
 	}
 
+	flux_N2O_soil_total = 0.0;
 	// Sum C fluxes, dead C pools and runoff across patches
 
 	double forestry_frac = 0.0;
@@ -1769,6 +1780,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			flux_NOx_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
 			flux_N2O_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;;
+			
+			flux_N2O_soil_total +=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 
 			for (int r = 0; r < NSOMPOOL; r++) {
 
@@ -2312,8 +2325,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					if (date.year == nyear_spinup)
 						dprintf("Modify code to deal with landcover output!\n");
 				}
+				
+				// N2O info output per landcover
+				outlimit_misc(out, out_soil_n2o_flux, flux_N2O_soil[i] * M2_PER_HA);
+
 			}
 		}
+		// exclude BARREN, LUH2 BARREN is ice/water fraction, but BARREN produces n-fluxes on barren
+		// TODO: are there N-fluxes from water? we really need an extra landcover ice/water.
+		outlimit_misc(out, out_soil_n2o_flux, (flux_N2O_soil_total - flux_N2O_soil[BARREN]) * M2_PER_HA);
+		outlimit_misc(out, out_soil_n2o_flux, flux_N2O_soil_total * M2_PER_HA);
 	}
 
 	// Print C fluxes of forests (typically PNV, so potentially grassland) with LUC history

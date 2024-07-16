@@ -18,6 +18,8 @@ set(headers
   externalinput.h
   indata.h
   util.h
+  spline.h
+  interpolator.h
 )
 
 set(source
@@ -37,6 +39,8 @@ set(source
   externalinput.cpp
   indata.cpp
   util.cpp
+  spline.cpp
+  interpolator.cpp
 )
 
 include(add_guess_sources)

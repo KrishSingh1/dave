@@ -81,6 +81,7 @@ bool ifdavegrowth;
 bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
+double epsiresolution;
 bool ifevenlaidist;
 bool ifapproximate_C4;
 bool ifusegdd;
@@ -285,6 +286,7 @@ void initsettings() {
 	gzip_output = false;
 	nindiv_max = 0;
 	ifevenlaidist = true;
+	epsiresolution = 100;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -631,6 +633,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
+		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
@@ -1988,6 +1991,8 @@ void plib_callback(int callback) {
 
 			// Calculate hydraulic vulnerability curve parameters from P50 and P88
 			ppft->init_hydraulic_vulnerability_curves();
+
+			ppft->setup_transpiration(epsiresolution);
 
 			pftlist.nextobj();
 		}

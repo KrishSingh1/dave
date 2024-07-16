@@ -52,6 +52,7 @@
 #include "guesscontainer.h"
 #include "soil.h"
 #include "guessstring.h"
+#include "interpolator.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -2586,7 +2587,9 @@ public:
 		s2 = log(log(1.0-50.0/100.0)/log(1.0-88.0/100.0))/(log(abs(p50))-log(abs(p88)));
 		s1 = abs(p50)/(pow(-log(1-50.0/100),(1/s2)));
 	}
-	
+
+	// Set spline for proportion of conductivity.
+	void setup_transpiration(double resolution);
 
 	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
@@ -2838,6 +2841,13 @@ public:
 		// Current value of pstemp_low for tropical trees and warm (C4) grass in global.ins and europe.ins is 20; may be changed.
 		return pstemp_low > 20;
 	}
+
+	bool get_psi_from_transpiration(double transpiration, double &psi) const;
+	bool get_transpiration_from_psi(double psi, double &transpiration) const;
+private:
+	Interpolator psi_from_transpiration;
+	Interpolator transpiration_from_psi;
+	double proportion_of_conductivity(double psi) const;
 };
 
 
@@ -3162,7 +3172,7 @@ public:
 	double cmass_sap_yesterday;
 	/// amount of sapwood lost to turnover today (kgC/m2)
 	double cmass_sap_turnover;
-	/// new sapwood growth today (kgC/m2)
+	/// new sapwood growth in previous timestep (kgC/m2)
 	double cmass_sap_growth;
 	/// drought affected dynamic hydraulic conductance of sapwood (mmol/m2/s/MPa)
 	double kmax_drought_affected;

@@ -282,7 +282,7 @@ pft "WAR_ov" (
 
 	! Warra overstory, eucalyptus obliqua, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	shade_intolerant
@@ -321,7 +321,7 @@ pft "WAR_un" (
 
 	! Warra understory, mixed, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 0
+	include 1
 	tree
 	crownarea_max 10 ! from group 'shrub'
 	broadleaved
@@ -367,7 +367,7 @@ pft "Calp" (
 
 	! Calperum mallees, eucalyptus socialis and dumosa, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -389,12 +389,12 @@ pft "Calp" (
 
 	! hydraulic traits
 	wooddens 400  ! Peters et al (2021) - average of euc species
-	kmax 1 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
-	stom_clos -3.5   ! 
+	kmax 1.5 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
+	stom_clos -3.5   ! Point of stomatal closure, usually p12 or turgor loss point (MPa)
 	p50 -7.47   ! Peters et al (2021) - average of euc species, -7.47
 	p88 -10.06   ! Peters et al (2021) - average of euc species
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless), not used
-	g1x 4  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	g1x 3  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
 	b1z 1  ! not used
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 

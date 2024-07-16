@@ -2750,6 +2750,52 @@ bool Pft::dave_allocation() const {
 	return false;
 }
 
+// b is s1
+// c is s2
+
+// returns proportion of conductance taken from hydraulic vulnerability curve (unitless)
+double Pft::proportion_of_conductivity(double psi) const {
+  return exp(-pow((psi / s1), s2));
+}
+
+// set spline for proportion of conductivity
+void Pft::setup_transpiration(double resolution) {
+    // Integrate and accumulate results.
+    auto x_psi = std::vector<double>{ 0.0 };
+    auto y_cumulative_transpiration = std::vector<double>{ 0.0 };
+    double interval = (s1 * pow((log(1 / 0.01)), (1 / s2)));
+    double step = interval / resolution;
+
+    for (double psi_spline = 0.0 + step; psi_spline <= interval; psi_spline += step) {
+
+        double e_psi = step * ((proportion_of_conductivity(psi_spline - step) + proportion_of_conductivity(psi_spline)) / 2) + y_cumulative_transpiration.back();
+
+        // x values for spline.
+        x_psi.push_back(psi_spline);
+
+        // y values for spline.
+        y_cumulative_transpiration.push_back(e_psi);
+    }
+
+    // Setup the interpolator.
+    // We could do a reverse lookup if need, but it's not required.
+
+    transpiration_from_psi.init(x_psi, y_cumulative_transpiration);
+    transpiration_from_psi.set_extrapolate(false);
+
+    psi_from_transpiration.init(y_cumulative_transpiration, x_psi);
+    psi_from_transpiration.set_extrapolate(false);
+}
+
+
+bool Pft::get_psi_from_transpiration(double transpiration, double &psi) const {
+	return psi_from_transpiration.try_eval(transpiration, psi);
+}
+
+bool Pft::get_transpiration_from_psi(double psi, double &transpiration) const {
+	return transpiration_from_psi.try_eval(psi, transpiration);
+}
+
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 

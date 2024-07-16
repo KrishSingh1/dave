@@ -391,6 +391,10 @@ extern bool ifdavediagnostics;
 /// to the instruction file parameter.
 extern bool _ifdavediagnostics;
 
+/// Resolution for splines used to calculate psi from transpiration.
+/// This is the number of control points used for the integration. Default: 100.
+extern double epsiresolution;
+
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
 

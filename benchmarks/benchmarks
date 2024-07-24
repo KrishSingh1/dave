@@ -6,7 +6,7 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True"
 make_command="make -j2"
 bbox_command="bbox"
 pp_walltime=5:00:00
@@ -360,7 +360,7 @@ function run_benchmark {
 	echo "Building $test_name model..."
 	if ! build $build_path extra_source/$(cat $test_name/extra_source.txt); then
 	    echo "Not running ${test_name}..."
-	    return
+	    return 1
 	fi
     fi
 
@@ -517,12 +517,16 @@ if [ -n "$COMPUTEACCOUNT" ]; then
 fi
 
 # Call run_benchmark for each test
+all_benchmarks_ok=1
 for test_name in "${test_names[@]}"
 do
   if (( $pp_only == 1 )); then
       run_pp $test_name
   else
-      run_benchmark $test_name
+      if ! run_benchmark $test_name ; then
+	  echo "Issue when building benchmarks, see log"
+	  exit 1
+      fi
   fi
 done
 

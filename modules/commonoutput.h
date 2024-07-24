@@ -65,7 +65,7 @@ private:
 	
 	// Methane fluxes
 	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
-	
+
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_mwtp, file_mald;
 

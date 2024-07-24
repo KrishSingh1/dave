@@ -929,6 +929,9 @@ public:
 	 */
 	insoltype instype;
 
+	/// annual insolation counter
+	double ainsol;
+
 	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
 
@@ -3466,7 +3469,7 @@ public:
 	/// mean water content in upper soil layer for last month
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontupper;
-	/// stored snow as average over modelled area (mm rainfall equivalent)
+	/// stored snow as average over modelled area (kg H2O m-2 or mm water)
 	double snowpack;
 	/// total runoff today (mm/day)
 	double runoff;
@@ -3620,8 +3623,6 @@ public:
 	int snow_days;
 	/// previous days of continuous snow cover
 	int	snow_days_prev;
-	/// daily snow depth [mm] 
-	double dsnowdepth;
 	/// Monthly snow depth (average) [mm]
 	double msnowdepth[12];
 	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008) 
@@ -3909,6 +3910,9 @@ public:
 
 	/// return true if there is more than 5% ice content in any ice in the top 50cm of soil (needed for irrigation)
 	bool ice_in_top_layer();
+
+	/// return snow depth [mm] 
+	double snowdepth();
 
 	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
 	void hydrology_peat(const Climate& climate, double fevap);
@@ -4360,6 +4364,8 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+    double total_litter() const;
 };
 
 

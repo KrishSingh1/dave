@@ -35,7 +35,6 @@ if (UNIX)
   # Setup the SYSTEM variable, currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
 
-
   # Figure out what value it should have initially, based on the
   # environment variable ARCH if it's set.
   if (NOT $ENV{ARCH} STREQUAL "")
@@ -45,6 +44,12 @@ if (UNIX)
   endif()
 
   set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, lunarc or multicore)")
+  
+  # A temporary helper for Lund users lingering with $ARCH=="aurora" instead of "lunarc".
+  if (SYSTEM STREQUAL "aurora")
+    set(SYSTEM "lunarc")
+  endif()
+  
 endif (UNIX)
 
 # Where to search for cmake modules
@@ -143,10 +148,7 @@ if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "")
     set(SYSTEM "simba")
-  endif(SYSTEM STREQUAL "")
-  if (SYSTEM STREQUAL "aurora")
-    set(SYSTEM "lunarc")
-  endif()  
+  endif(SYSTEM STREQUAL "")  
   set(submit_template ${guess_SOURCE_DIR}/parallel_version/${SYSTEM}.tmpl)
 
   # A sed command which exchanges each occurrence of BINARY and DATE in

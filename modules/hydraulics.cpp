@@ -39,9 +39,20 @@
 #include "hydraulics.h"
 #include "canexch.h"
 
+// The cohort density (/m2) above which cohorts will lose MORT_FRAC biomass
+// upon hydraulic failure, and below which they will be killed outright.
+const double KILL_THRESHOLD = 0.01;
+
+// The fraction of biomass lost due to hydraulic failure.
+const double MORT_FRAC = 0.1;
+
 // Calculate soil water potential according to Campbell (1974)
 
 void calc_soil_water_potenial_dave(Soil & soil) {
+
+    if (!ifdavehydraulics) {
+        return;
+    }
 
     for (int i=0; i<NSOILLAYER; i++){
 	    double wcont = soil.get_layer_soil_water(i);
@@ -138,7 +149,7 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         double Vl = Vl_init - transpiration*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL; // m3/m2
 
         if (Vl < 0){
-            printf("%d-%d hydraulic failure\n",date.get_calendar_year(),date.day);
+            // printf("%d-%d hydraulic failure\n",date.get_calendar_year(),date.day);
             indiv.lwp[day.period] = pft.p88;
         } else {
             indiv.lwp[day.period] =  pft.p88*(1-Vl/Vmax);
@@ -169,11 +180,102 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
    
 }
 
+/*
+Reduce the biomass of the given individual by MORT_FRAC fraction.
+
+This is complicated by the fact that individuals using trunk allocation cannot
+have their removed biomass added to "actual" (e.g. litter) pools during the
+first year of their "life", as they are still considered to be "on probation" at
+this point in time, and their carbon pools are not yet considered to be part of
+the system.
+*/
+void reduce_biomass(Individual &indiv) {
+    if (indiv.pft.dave_allocation() || indiv.alive) {
+        // "Normal" allocation - either daily (dave) allocation, or this indiv
+        // has been alive for >1 year and is considered alive. In this case, we
+        // can just call the standard reduce_biomass() function, which will move
+        // biomass to the appropriate litter pools.
+        indiv.reduce_biomass(MORT_FRAC, 0);
+        return;
+    }
+
+    // trunk allocation + non-alive indiv. This is where things get hairy!
+
+    // This is really not ideal, but we can't have biomass entering the live
+    // biomass pools because a corresponding input flux has not yet been
+    // reported for this indiv (nor will such a flux be reported until it
+    // survives its first year of "life").
+    double remaining = 1.0 - MORT_FRAC;
+
+    indiv.cmass_leaf *= remaining;
+    indiv.cmass_root *= remaining;
+    indiv.cmass_sap *= remaining;
+
+    // Debt and heartwood will be zero because allocation() has not yet been
+    // called for this indiv.
+    assert(is_zero(indiv.cmass_heart));
+    assert(is_zero(indiv.cmass_debt));
+    // indiv.cmass_heart *= remaining;
+    // indiv.cmass_debt *= remaining;
+
+    // Nitrogen is more complicated because all indivs are given daily N uptake.
+    // In this case, N has already been moved from the soil to the indiv. We now
+    // need to move the N somewhere, but it's not clear where it should go. If
+    // the indiv dies while on probation, the N should probably go back into the
+    // soil (not the litter pools), because the indiv is considered as never
+    // having been alive in the first place. On the other hand, if the indiv
+    // does survive its juvenile year, an argument could be made that any N lost
+    // during that time via this hydraulic failure mechanism should have been
+    // sent to litter (as that's what happens after the first year).
+    //
+    // For now, I'm going to simply move the N back into the soil pool, and note
+    // that we may need to revisit this.
+
+    double nloss = MORT_FRAC * (indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap);
+    indiv.vegetation.patch.soil.nmass_inc(nloss);
+
+    indiv.nmass_leaf *= remaining;
+    indiv.nmass_root *= remaining;
+    indiv.nmass_sap *= remaining;
+
+    // Heartwood will be zero in first year of life, as growth() will not yet
+    // have been called.
+    assert(is_zero(indiv.nmass_heart));
+    // indiv.nmass_heart *= remaining;
+
+    // Reduce density.
+    indiv.densindiv *= remaining;
+}
+
+void kill_indiv(Individual &indiv) {
+    if (!indiv.pft.dave_allocation()) {
+        // Trunk allocation and we are midway through the year.
+        // (We are always midway through the year because this
+        // is called before growth.)
+
+        // NPP, GPP, and RA fluxes are reported daily, but the
+        // carbon doesn't actually enter/leave the system until
+        // the allocation occurs at the end of the year. If we
+        // call kill() now and then go about our lives, we will
+        // not have lost the C we claimed to have respired, and
+        // similarly will not have gained the C we have claimed
+        // to have assimilated, which will result in the mass
+        // balance checks failing at the end of the year.
+        indiv.report_flux(Fluxes::NPP, -indiv.anpp);
+        indiv.report_flux(Fluxes::GPP, -indiv.agpp);
+        indiv.report_flux(Fluxes::RA, -indiv.aresp);
+    }
+
+    indiv.kill();
+    indiv.vegetation.killobj();
+}
+
 void hydraulic_failure(Patch& patch) {
 
     Vegetation& vegetation = patch.vegetation;
 
     vegetation.firstobj();
+    size_t nobj = vegetation.nobj;
 
     while(vegetation.isobj) {
         Individual& indiv = vegetation.getobj();
@@ -183,12 +285,26 @@ void hydraulic_failure(Patch& patch) {
 
         for (Day day; day.period != date.subdaily; day.next()) {
             if (indiv.lwp[day.period] <= pft.p88){
-                //printf("10% biomass removed, hydraulic failure\n");
-                indiv.reduce_biomass(0.1,0);
+                double densindiv = indiv.densindiv;
+                if (indiv.densindiv > KILL_THRESHOLD) {
+                    reduce_biomass(indiv);
+                } else {
+                    kill_indiv(indiv);
+                }
                 break;
             }
             indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
+        }
 
+        if (nobj != vegetation.nobj) {
+            // This indiv was killed due to hydraulic failure. We cannot proceed
+            // with this iteration (how could we?), and vegetation.getobj() will
+            // now return the indiv which was previously after the indiv which
+            // was killed, so we don't want to call indiv.nextobj(). We also
+            // need to set nobj to vegetation.nobj so that this check still
+            // functions correctly for the remaining indivs in vegetation.
+            nobj = vegetation.nobj;
+            continue;
         }
 
         if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax)){ // drought only has an impact if loss of conductance exceeds current state

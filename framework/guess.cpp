@@ -1698,6 +1698,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	anpp              = 0.0;
+	agpp			  = 0.0;
+	aresp			  = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	rpc               = 0.0;
@@ -1985,6 +1987,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cexcess
 		& nmass_missing
 		& anpp
+		& agpp
+		& aresp
 		& gpp_15
 		& gpptrend_15
 		& cmass_leafs

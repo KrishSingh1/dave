@@ -904,8 +904,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						if (date.year >= nyear_spinup && _ifdavediagnostics) {
-							printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
+						//	printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 						}
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
@@ -1053,8 +1053,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					/*if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics)*/ {
+					//	printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
 					}
 					for (i=0;i<newindiv;i++) {
 
@@ -1517,7 +1517,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-						if (date.year >= nyear_spinup && _ifdavediagnostics) {
+						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
 							printf("%04d-%02d-%02d (year %d) %s killed by fire...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 						}
 						vegetation.killobj();
@@ -1551,7 +1551,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			patchpft.cmass_mort += indiv.ccont();
 
-			if (date.year >= nyear_spinup && _ifdavediagnostics) {
+			/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
 				printf("%04d-%02d-%02d (year %d) %s killed by exceedance of bioclimatic limits...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 			}
 			indiv.kill();
@@ -1685,7 +1685,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
+					/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
 						printf("%04d-%02d-%02d (year %d) %s killed by background mortality...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 					}
 					vegetation.killobj();

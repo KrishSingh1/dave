@@ -98,7 +98,7 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
 
-        double transpiration_full = transpiration_psi_soil + transpiration / indiv.kmax_drought_affected;
+        double transpiration_full = transpiration_psi_soil + transpiration / indiv.kmax_drought_affected; // normalise kmax to xylem/leaf area?? because it reduces based on xlyem loss, not leaf loss.
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met){ // if hydraulic vulnerability curve doesn't allow E to be met, we account for transpiration from capacitance in next step (closed stomata loop). This happens often when ET is high and hydraulic parameters (kmax, P50 and P88) are too small, check values.

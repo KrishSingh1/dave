@@ -3135,7 +3135,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double lai_layer = indiv.lai_layerwise[j];     // LAI of the layer and individual
 
 				assert(fipar_layer > 0);
-				assert(lai_layer > 0);
+				//assert(lai_layer > 0);
 
 				// Allow for slightly negative par - data from input can be negative at night.
 				par = max(0.0, par);

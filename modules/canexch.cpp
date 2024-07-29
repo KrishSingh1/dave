@@ -2811,6 +2811,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
+		indiv.agpp	+= assim;
+		indiv.aresp	+= resp;
 
 		// Save historical GPP for daily growth of grass
 		indiv.gpp_15.add(assim);
@@ -2950,6 +2952,8 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			Individual& indiv = vegetation.getobj();
 
 			indiv.anpp           = 0.0;
+			indiv.agpp	         = 0.0;
+			indiv.aresp	         = 0.0;
 
 			indiv.leafndemand    = 0.0;
 			indiv.rootndemand    = 0.0;
@@ -3050,7 +3054,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		indiv.weighted_psi = calc_weighted_psi(patch.soil, pft);
+		if (ifdavehydraulics) {
+			indiv.weighted_psi = calc_weighted_psi(patch.soil, pft);
+		}
 
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
 		double g0   = pft.g0;    // mol m-2 s-1
@@ -3135,7 +3141,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double lai_layer = indiv.lai_layerwise[j];     // LAI of the layer and individual
 
 				assert(fipar_layer > 0);
-				//assert(lai_layer > 0);
+
+				// We can actually have a canopy layer with 0 indiv-level LAI
+				// but non-zero fipar. This is because fipar is not a truly
+				// indiv-level property, as it is calculated using canopy-level
+				// layered LAI.
+				//
+				// Question: can we skip this layer if lai_layer is 0?
+				assert(lai_layer >= 0);
 
 				// Allow for slightly negative par - data from input can be negative at night.
 				par = max(0.0, par);
@@ -3826,6 +3839,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
+		indiv.agpp	+= assim;
+		indiv.aresp	+= resp;
 
 		// Save historical GPP for daily growth of grass
 		indiv.gpp_15.add(assim);

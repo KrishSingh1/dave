@@ -3345,6 +3345,8 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+	double agpp;
+	double aresp;
 	/// yearly lai for daily allocation
 	double lai_ymax;
 	/// yearly fpc for daily allocation

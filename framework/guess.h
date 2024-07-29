@@ -3617,6 +3617,9 @@ public:
 	// loss of hydraulic conductance at subdaily timescale
 	std::vector<double> k_loss;
 
+	// indicator of whether hydraulic failure has occurred
+	bool hydraulic_failure;
+
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
 	// later, because individuals experiencing allocation on an annual basis are

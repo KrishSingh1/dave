@@ -138,10 +138,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// BLAZE fire model
 			blaze_driver(patch,gridcell.climate);
-
-			if (ifdavehydraulics){
-				hydraulic_failure(patch);
-			}
 			
 			if (date.islastday && date.islastmonth) {
 
@@ -150,6 +146,12 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// updated allometry
 				growth(stand, patch);
 			}
+
+			if (ifdavehydraulics){
+				hydraulic_mortality(patch);
+				adjust_kmax(patch);
+			}
+			
 			stand.nextobj();
 		}// End of loop through patches
 

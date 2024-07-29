@@ -1838,6 +1838,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	transp_previous = 0.0;
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
+	hydraulic_failure = false;
 
 	for (Day day; day.period != date.subdaily; day.next()) {
 		lwp[day.period] = 0;

@@ -929,6 +929,9 @@ public:
 	 */
 	insoltype instype;
 
+	/// annual insolation counter
+	double ainsol;
+
 	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
 
@@ -4361,6 +4364,8 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+    double total_litter() const;
 };
 
 

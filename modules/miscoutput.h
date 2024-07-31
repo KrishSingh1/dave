@@ -92,6 +92,11 @@ private:
 		   file_cmass_wood_thin_sts, file_cmass_wood_clearcut_sts, file_cutinterval_sts, file_cutinterval_thisyear_sts, file_csoil_sts,
 		   file_clitter_sts, file_csink_sts, file_lai_sts, file_lai_tree_sts, file_nstand_sts;
 
+	// soil n2o flux per landcover, info needed for estimating global n2o emissions
+	// soil n2o from BARREN which is LUH2 icwtr shows up in the n2o in soil_nflux
+	// TODO: allow BARREN to get excluded from soil_nflux
+	xtring file_soil_n2o_flux;
+
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
 		   file_daily_cton, file_daily_ndemand, file_daily_cmass_leaf,
@@ -143,6 +148,8 @@ private:
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_tree_mort_sts, out_cmass_harv_killed_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts,
 		  out_cmass_wood_harv_toprod_sts, out_dens_sts, out_diam_g_sts, out_cmass_wood_thin_sts, out_cmass_wood_clearcut_sts, out_cutinterval_sts, 
 		  out_cutinterval_thisyear_sts, out_csoil_sts, out_clitter_sts, out_csink_sts, out_lai_sts, out_lai_tree_sts, out_nstand_sts, out_height_sts;
+
+	Table out_soil_n2o_flux;
 
 	// Separate output files for stand types with pft columns
 	Table* out_cmass_pft_st;

@@ -92,6 +92,7 @@ bool frac_fixed[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const = true;
 bool no_barren_frac_corr = true;
+bool no_peatland_frac_corr = true;
 bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
@@ -553,6 +554,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_barren",&run[BARREN],1,CB_NONE,"Whether barren land is to be simulated");
 		declareitem("no_barren_frac_corr",&no_barren_frac_corr,1,CB_NONE,
 			"Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum");
+		declareitem("no_peatland_frac_corr",&no_peatland_frac_corr,1,CB_NONE,
+			"Whether PEATLAND landcover excluded from area fraction correction in cases of non-unity sum");
 
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");

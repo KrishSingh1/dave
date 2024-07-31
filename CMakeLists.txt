@@ -7,12 +7,16 @@
 
 cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
+set(CMAKE_CXX_STANDARD 11)
 
-# Compiler flags for building with Microsoft Visual C++
+# Compiler flags for building with Microsoft Visual C++, and for Linux and macOS, respectively.
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS /D _SCL_SECURE_NO_WARNINGS")
+else()
+  # Add a temporary flag for Linux and macOS
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 # The following are configuration variables for the build. 
@@ -96,7 +100,9 @@ if (WIN32)
   add_subdirectory(windows_version)
 endif()
 
-if (UNIT_TESTS)
+if (BENCHMARK)
+  message("We are in benchmarks, not copying tests.")
+else()
   add_subdirectory(tests)
 endif()
 
@@ -113,7 +119,9 @@ endif()
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
 
 # Rule for building the unit test binary
-if (UNIT_TESTS)
+if(BENCHMARK)
+  message("We are in benchmarks, not creating executable for tests.")
+else()
   add_executable(runtests ${guess_sources} ${test_sources})
   target_link_libraries(runtests ${LIBS})
 endif()

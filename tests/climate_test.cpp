@@ -133,7 +133,7 @@ bool verify_interp_monthly_means_conserve(const double* mvals,
 
 }
 
-TEST_CASE("climate/prdaily", "Tests for the prdaily function") {
+TEST_CASE("climate/prdaily", "[climate][daily]") {
 	// Test no water
 	REQUIRE(verify_prdaily_single_month(0, 0));
 
@@ -146,7 +146,7 @@ TEST_CASE("climate/prdaily", "Tests for the prdaily function") {
 	REQUIRE(verify_prdaily_single_month(0.1, 30));
 }
 
-TEST_CASE("climate/interp_monthly_means_conserve", "Tests the monthly to daily interpolation") {
+TEST_CASE("climate/interp_monthly_means_conserve", "[climate][daily][interpolation]") {
 
 	double test1[] = { 0, 10, 20, 15, 15, 15, 40, 0, 40, 30, 20, 5};
 

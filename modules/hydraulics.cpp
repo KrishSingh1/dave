@@ -74,7 +74,7 @@ void calc_soil_water_potenial_dave(Soil & soil) {
 
 double calc_weighted_psi(Soil & soil, Pft& pft){
 
-    double weighted_psi;
+    double weighted_psi = 0;
 
     for (int j=0; j<NSOILLAYER; j++){
         double psi_layer = soil.psi_layer[j];

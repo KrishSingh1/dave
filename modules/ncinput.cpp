@@ -53,6 +53,8 @@ NCInput::NCInput() {
 	, "Path to nitrogen deposition fastarchive input file");
 	declare_parameter("file_co2", &file_co2, PATH_MAX
 	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
+	declare_parameter("file_lai_input", &file_lai, PATH_MAX
+	, "Optional path to text file containing lai values by year.");
 
 	declare_parameter("cache_strategy", &cache_strategy, 0, 2
 	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
@@ -372,6 +374,24 @@ try {
 			// We are in the final year, and the final day is missing some
 			// timesteps.
 			return false;
+		}
+	}
+
+	if (date.day == 0 && lai_file) {
+		// Read LAI value for this year.
+		double lai = (*lai_file)[date.get_calendar_year()];
+
+		// Set LAI for all indivs in all patches in all stands to this value.
+		for (size_t i = 0; i < gridcell.nbr_stands(); i++) {
+			Stand &stand = gridcell[i];
+			for (size_t j = 0; j < stand.nobj; j++) {
+				Patch &patch = stand[j];
+				Vegetation &vegetation = patch.vegetation;
+				for (size_t k = 0; k < vegetation.nobj; k++) {
+					Individual &indiv = vegetation[k];
+					indiv.lai = lai;
+				}
+			}
 		}
 	}
 
@@ -833,6 +853,12 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	} else {
 		use_lamarque = false;
 		ndep_noy = create_variable(netcdf_file, variable_ndep_noy, nc_noy, bounds_ndep, ndep_units, true);
+	}
+
+	if (file_lai != "") {
+		lai_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
+		lai_file->load_file((const char *)file_lai);
+		ifforcedlai = true;
 	}
 }
 

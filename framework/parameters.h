@@ -407,6 +407,9 @@ extern bool gzip_output;
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
 
+/// True if we are using forced LAI.
+extern bool ifforcedlai;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs
 

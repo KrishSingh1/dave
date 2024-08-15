@@ -3429,7 +3429,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// run hydraulics module and check for stomatal closure in next timestep
 			if (ifdavehydraulics){
-				hydraulics(day, climate, patch.soil, indiv);
+				hydraulics(day, indiv);
 			}
 
 		} // end subdaily loop

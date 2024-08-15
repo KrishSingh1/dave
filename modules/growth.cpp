@@ -1892,7 +1892,9 @@ bool allometry(Individual& indiv) {
 		indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
 
 		// Stand-level LAI
-		indiv.lai = indiv.cmass_leaf * indiv.sla();
+		if (!ifforcedlai) {
+			indiv.lai = indiv.cmass_leaf * indiv.sla();
+		}
 	}
 	else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
@@ -1923,12 +1925,16 @@ bool allometry(Individual& indiv) {
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
-				indiv.lai = indiv.lai_indiv;
+				if (!ifforcedlai) {
+					indiv.lai = indiv.lai_indiv;
+				}
 			}
 			else {
 				indiv.lai_indiv = 0.0;
 				indiv.fpc = 0.0;
-				indiv.lai = 0.0;
+				if (!ifforcedlai) {
+					indiv.lai = 0.0;
+				}
 				return false;
 			}
 		}

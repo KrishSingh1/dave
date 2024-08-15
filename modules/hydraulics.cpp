@@ -34,7 +34,6 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-
 #include "guess.h"
 #include "hydraulics.h"
 #include "canexch.h"
@@ -47,161 +46,210 @@ const double KILL_THRESHOLD = 0.01;
 const double MORT_FRAC = 0.1;
 
 // Calculate soil water potential according to Campbell (1974)
-
-void calc_soil_water_potenial_dave(Soil & soil) {
+void calc_soil_water_potenial_dave(Soil &soil) {
 
     if (!ifdavehydraulics) {
         return;
     }
 
-    for (int i=0; i<NSOILLAYER; i++){
+    for (int i = 0; i < NSOILLAYER; i++) {
 	    double wcont = soil.get_layer_soil_water(i);
-		double wilting_point_wc = soil.soiltype.wp[i]; // wilting point in mm
-		double awc = soil.soiltype.awc[i];                     // awc in mm
 
-		double tot_wcont = wcont * awc + wilting_point_wc; 
+        // Wilting point in mm.
+		double wilting_point_wc = soil.soiltype.wp[i];
 
-		double sat_wcont = soil.soiltype.wsats[i]; // wstats in mm
+        // Fixed available water holding capacity of this layer in mm.
+		double awc = soil.soiltype.awc[i];
 
-		double Psi_s = soil.soiltype.Psi_s;     // saturated pressure head in cm (Cosby 1984)
-		double b = soil.soiltype.b;     // slope of soil water retention curve (Cosby 1984)
+		double tot_wcont = wcont * awc + wilting_point_wc;
 
-		soil.psi_layer[i] = Psi_s * pow((tot_wcont / sat_wcont),-b) / 100 * 1000 * 9.81 * 1e-6; // Cosby 1984 uses Psi_s in cm, convert to MPa. 
-        // Also seems to be a mistake in this equation in Cosby 1984 as other literature (e.g. Campbell 1974 and Clap & Hornberger 1978) use '-b', no negative sign in Cosby 1984 but parameters seem to be the same.
+        // Saturation point in mm.
+		double sat_wcont = soil.soiltype.wsats[i];
 
-	} 
+        // Saturated pressure head in cm (Cosby 1984).
+		double Psi_s = soil.soiltype.Psi_s;
+
+        // Slope of soil water retention curve (Cosby 1984).
+		double b = soil.soiltype.b;
+
+        // Also seems to be a mistake in this equation in Cosby 1984 as other
+        // literature (e.g. Campbell 1974 and Clap & Hornberger 1978) use '-b',
+        // no negative sign in Cosby 1984 but parameters seem to be the same.
+
+        // Cosby 1984 uses Psi_s in cm, convert to MPa.
+		soil.psi_layer[i] = Psi_s * pow((tot_wcont / sat_wcont), -b) / 100 * 1000 * 9.81 * 1e-6;
+	}
 }
 
-double calc_weighted_psi(Soil & soil, Pft& pft){
+double calc_weighted_psi(Soil &soil, Pft &pft) {
 
-    double weighted_psi;
+    double weighted_psi = 0;
+    double rootfrac_sum = 0;
 
-    for (int j=0; j<NSOILLAYER; j++){
+    for (int j = 0; j < NSOILLAYER; j++) {
         double psi_layer = soil.psi_layer[j];
         double rootfrac_layer = pft.rootdist[j];
-        weighted_psi = weighted_psi + psi_layer * rootfrac_layer; // weight soil water potential by root fraction in each layer
+
+        // Weight soil water potential by root fraction in each layer.
+        weighted_psi = weighted_psi + psi_layer * rootfrac_layer;
+        rootfrac_sum += rootfrac_layer;
     }
-    return weighted_psi;
+
+    // Divide by sum of root distribution, in case it doesn't sum to 1.
+    return weighted_psi / rootfrac_sum;
 }
 
-void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv) {
+void hydraulics(const Day &day, Individual &indiv) {
+    const Patch &patch = indiv.vegetation.patch;
+    const Climate &climate = patch.get_climate();
+    const Soil &soil = patch.soil;
 
     if (!ifdavephotosyn || !ifdavehydraulics) {
 		// Only apply if using DAVE photosynthesis
 		return;
 	}
 
-    Pft& pft = indiv.pft;
-    Patchpft& ppft = indiv.patchpft();
+    const Pft &pft = indiv.pft;
 
     double patmos = climate.pressure[day.period];
-    double vpd = climate.vpds[day.period];  
-
+    double vpd = climate.vpds[day.period];
     double gsw = indiv.ps_subdaily.gsw[day.period];
 
-    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; // mmol/m2/s (transpiration per unit ground area)
-    double Ax = PI*pow(indiv.diam/2,2)*indiv.densindiv*(indiv.cmass_sap/(indiv.cmass_sap+indiv.cmass_heart)); // average cross-sectional xylem area per unit ground area (m2/m2)
+    // Transpiration in mmol/m2/s.
+    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
 
-    if (indiv.stomata_open){ // stomata are not fully closed
+    // Average cross-sectional xylem area per unit ground area (m2/m2).
+    double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
 
-        double psi1 = abs(indiv.weighted_psi);  /// for the purposes of this loop, we treat water potentials as positive (rather than using abs everywhere)
+    if (indiv.stomata_open) {
+        // Stomata are not fully closed.
+
+        // For the purposes of this loop, we treat water potentials as positive
+        // (rather than using abs everywhere).
+        double psi1 = abs(indiv.weighted_psi);
         double psi2 = 0;
 
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
 
-        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected*1000 * Ax / indiv.height); // kmax normalised to sapwood area per m2 ground and scaled for height
+        // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
+        // loss, not leaf loss.
+        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected * 1000 * Ax / indiv.height);
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
-        if (!e_met){ // if hydraulic vulnerability curve doesn't allow E to be met, we account for transpiration from capacitance in next step (closed stomata loop). This happens often when ET is high and hydraulic parameters (kmax, P50 and P88) are too small, check values.
-                psi2 = -pft.stom_clos; /// set water potential to stom_clos to close stomata
-        //        printf("hydraulic vulnerability curve doesn't allow E to be met\n"); 
+        if (!e_met) {
+            // If hydraulic vulnerability curve doesn't allow E to be met, we
+            // account for transpiration from capacitance in next step (closed
+            // stomata loop). This happens often when ET is high and hydraulic
+            // parameters (kmax, P50 and P88) are too small, check values.
+
+            // Set water potential to stom_clos to close stomata.
+            psi2 = -pft.stom_clos;
+            // printf("hydraulic vulnerability curve doesn't allow E to be met\n");
         }
 
-        // calculate loss of conductance
-        indiv.k_loss[day.period] = 1-exp(-pow(((psi2)/pft.s1),pft.s2));
+        // Calculate loss of conductance.
+        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
         indiv.lwp[day.period] = -psi2;
         indiv.E_not_met = !e_met;
 
-        if (indiv.lwp[day.period] <= pft.stom_clos){
+        if (indiv.lwp[day.period] <= pft.stom_clos) {
             indiv.stomata_open = false;
             // printf("stomata have closed\n");
         }
+    } else {
+        // Stomata are fully closed.
 
-    } else { // stomata are fully closed
+        // Alternative for high water stress - consuming internal storage.
 
-        /// Alternative for high water stress - consuming internal storage
+        // Average cross-sectional xylem area per unit ground area (m2/m2).
+        // Calculated trunk area per m2, xylem area = fractional sapwood area.
+        double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
 
-        double nx = 1-(pft.wooddens*2)/1200;  /// water holding capacity approximated based on wood density - but check this!
-        double Vmax = nx*Ax*indiv.height; // see Paschalis et al. (2024), currently ignoring leaf water storage
+        // Water holding capacity approximated based on wood density: check this!
+        double nx = 1 - (pft.wooddens * 2) / 1200;
 
-        double Vl_init = Vmax*(1-indiv.lwp_previous/pft.p88); // note using P88 as approximation for LWP when Vl = 0. Equation from Paschalis et al. (2024)
+        // See Paschalis et al. (2024), currently ignoring leaf water storage.
+        double Vmax = nx * Ax * indiv.height;
+
+        // Note using P88 as approximation for LWP when Vl = 0. Equation from
+        // Paschalis et al. (2024).
+        double Vl_init = Vmax*(1-indiv.lwp_previous/pft.p88);
 
         const double MOL2MMOL = 1000.0;
         const double M3_H2O_PER_KG = 0.001;
 
-        if (indiv.E_not_met){ // if the previous day's transpiration couldn't be met, we just assume the plant starts at stom_clos but the previous day's transpiration is taken from the capacitance store
-            Vl_init = Vl_init - indiv.transp_previous*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
+        if (indiv.E_not_met) {
+            // If the previous day's transpiration couldn't be met, we just
+            // assume the plant starts at p12 but the previous day's
+            // transpiration is taken from the capacitance store.
+            Vl_init = Vl_init - indiv.transp_previous * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
         }
 
-        double Vl = Vl_init - transpiration*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL; // m3/m2
+        // m3/m2
+        double Vl = Vl_init - transpiration * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
 
-        if (Vl < 0){
+        if (Vl < 0) {
             // printf("%d-%d hydraulic failure\n",date.get_calendar_year(),date.day);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
         } else {
-            indiv.lwp[day.period] =  pft.p88*(1-Vl/Vmax);
+            indiv.lwp[day.period] =  pft.p88 * (1 - Vl / Vmax);
         }
 
-        indiv.E_not_met = false; // only account for this once (can only be set to 'true' in the loop for open stomata)
+        // Only account for this once (can only be set to 'true' in the loop for
+        // open stomata).
+        indiv.E_not_met = false;
 
-        // calculate loss of conductance
-        indiv.k_loss[day.period] = 1-exp(-pow(((-indiv.lwp[day.period])/pft.s1),pft.s2));
-
+        // Calculate loss of conductance.
+        indiv.k_loss[day.period] = 1 - exp(-pow(-indiv.lwp[day.period] / pft.s1, pft.s2));
     }
-    
-    if (climate.prec > 0.0 & day.period == date.subdaily-1 && !indiv.stomata_open){ // if there is rain this day and stomata are closed, open stomata next day
+
+    if (climate.prec > 0.0 && day.period == (date.subdaily - 1) && !indiv.stomata_open) {
+        // If there is rain this day and stomata are closed, open stomata next
+        // day.
         indiv.stomata_open = true;
         // printf("stomata have opened\n");
     }
-    
+
     indiv.lwp_previous = indiv.lwp[day.period];
     indiv.transp_previous = transpiration;
 
-    if (day.period > 0){
-        double par_previous   = climate.pars[day.period-1];    // W m-2; 0.5 * climate.insols
-        if (par_previous < 200 && climate.pars[day.period] > 200){
-            indiv.predawn_lwp = indiv.lwp[day.period]; // Note Zhou model uses actual (negative) pd lwp
+    if (day.period > 0) {
+        // W m-2; 0.5 * climate.insols
+        double par_previous = climate.pars[day.period - 1];
+
+        if (par_previous < 200 && climate.pars[day.period] > 200) {
+            // Note Zhou model uses actual (negative) pd lwp.
+            indiv.predawn_lwp = indiv.lwp[day.period];
         }
     }
-
-   
 }
 
-/// hydraulic failure mortality applied at the daily timescale if allocation is daily, else at the annual timescale (can be different for different PFTs)
-void hydraulic_mortality(Patch& patch) {
+// Hydraulic failure mortality applied at the daily timescale if allocation is
+// daily, else at the annual timescale (can be different for different PFTs).
+void hydraulic_mortality(Patch &patch) {
 
-    Vegetation& vegetation = patch.vegetation;
+    Vegetation &vegetation = patch.vegetation;
 
     vegetation.firstobj();
     size_t nobj = vegetation.nobj;
 
     while(vegetation.isobj) {
-        Individual& indiv = vegetation.getobj();
-		Pft& pft = indiv.pft;
+        Individual &indiv = vegetation.getobj();
+		Pft &pft = indiv.pft;
 
-        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)) {
             vegetation.nextobj();
             continue;
         }
 
-        if (indiv.hydraulic_failure){
-            printf("\n %d-%d hydraulic failure %s\n",date.get_calendar_year(),date.day,(const char *)pft.name);
+        if (indiv.hydraulic_failure) {
+            printf("\n %d-%d hydraulic failure %s\n", date.get_calendar_year(), date.day, (const char *)pft.name);
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
-                indiv.reduce_biomass(MORT_FRAC,0);
+                indiv.reduce_biomass(MORT_FRAC, 0);
                 indiv.hydraulic_failure = false;
             } else {
                 indiv.kill();
@@ -225,25 +273,25 @@ void hydraulic_mortality(Patch& patch) {
     }
 }
 
-/// reduce kmax if drought damage has occurred today, otherwise allow kmax to recover with new growth / turnover
-void adjust_kmax(Patch& patch) {
+// Reduce kmax if drought damage has occurred today, otherwise allow kmax to
+// recover with new growth / turnover.
+void adjust_kmax(Patch &patch) {
 
-    Vegetation& vegetation = patch.vegetation;
+    Vegetation &vegetation = patch.vegetation;
 
     vegetation.firstobj();
     size_t nobj = vegetation.nobj;
 
     while(vegetation.isobj) {
-        Individual& indiv = vegetation.getobj();
-		Pft& pft = indiv.pft;
-        Patchpft &ppft = indiv.patchpft();
+        Individual &indiv = vegetation.getobj();
+		Pft &pft = indiv.pft;
 
         if (pft.dave_allocation() || date.day == 0){ // if using annual allocation (not DAVE) then kmax loss is over whole year (not every day)
             indiv.max_k_loss = 0;
         }
 
         for (Day day; day.period != date.subdaily; day.next()) {
-            indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
+            indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]);
         }
 
         if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // only done at end of year if annual allocation is used
@@ -312,7 +360,5 @@ void adjust_kmax(Patch& patch) {
     //      }
 
         vegetation.nextobj();
-        
     }
-
 }

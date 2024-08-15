@@ -87,6 +87,7 @@ bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
 int nindiv_max;
+bool ifforcedlai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -285,6 +286,7 @@ void initsettings() {
 	useClosestNdep = false;
 	gzip_output = false;
 	nindiv_max = 0;
+	ifforcedlai = false;
 	ifevenlaidist = true;
 	epsiresolution = 100;
 }

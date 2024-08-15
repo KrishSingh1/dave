@@ -50,7 +50,7 @@ file_dave_anpp                  "dave_anpp.out"                 ! Total individu
 file_dave_agpp                  "dave_agpp.out"                 ! Total individual-level Annual GPP (kgC/m2/year)
 file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Autotrophic Respiration (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"            ! Total individual-level annual carbon in leaf litter (kgC/m2/year)
-!file_dave_ancohort              "dave_ancohort.out"            ! Number of cohorts currently established per pft (unitless)
+file_dave_ancohort              "dave_ancohort.out"            ! Number of cohorts currently established per pft (unitless)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
@@ -63,7 +63,7 @@ file_dave_cmass_crown           "dave_cmass_crown.out"          ! Crown C mass (
 file_dave_cmass_leaf            "dave_cmass_leaf.out"           ! Leaf C mass (kgC/m2)
 !file_dave_cmass_leaf_brown      "dave_cmass_leaf_brown.out"     ! Brown Leaf C mass (kgC/m2)
 !file_dave_nmass_leaf            "dave_nmass_leaf.out"           ! Leaf N mass (kgN/m2)
-!file_dave_cmass_root            "dave_cmass_root.out"           ! Root C mass (kgC/m2)
+file_dave_cmass_root            "dave_cmass_root.out"           ! Root C mass (kgC/m2)
 !file_dave_nmass_root            "dave_nmass_root.out"           ! Root N mass (kgN/m2)
 !file_dave_cmass_repr            "dave_cmass_repr.out"           ! Reproductive C mass (kgC/m2)
 !file_dave_nmass_repr            "dave_nmass_repr.out"           ! Reproductive N mass (kgN/m2)
@@ -105,7 +105,7 @@ file_dave_weighted_psi           "dave_weighted_psi.out"         ! Soil water po
 !file_dave_ndemand               "dave_ndemand.out"              ! daily N demand mass (kgN/m2)
 !file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
 !file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
-file_dave_kmax_drought_affected  "dave_kmax_drought_affected.out"  ! dynamic kmax value impacted by drought, gradually recovers (mmol/m2/s/MPa)
+file_dave_kmax_drought_affected  "dave_kmax_drought_affected.out"  ! dynamic kmax value impacted by drought, gradually recovers (mol/m2/s/MPa)
 file_dave_max_k_loss             "dave_max_k_loss.out"           !Fractional reduction in kmax due to xylem embolism
 
 ! Daily indiv-level per-patch array outputs.
@@ -211,7 +211,7 @@ file_dave_met_temp              "dave_met_temp.out"             ! Daily air temp
 !file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
 file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
 !file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
-!file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
+file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
 !file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
 !file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pressure (Pa)
 !file_dave_sompool_cmass         "dave_sompool_cmass.out"        ! Daily SOM pool C mass (kgC/m2)

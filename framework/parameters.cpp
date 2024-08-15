@@ -752,8 +752,8 @@ void plib_declarations(int id,xtring setname) {
 			"Water potential at 50% loss of xylem conductance (MPa)");
 		declareitem("p88",&ppft->p88,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at 50% loss of xylem conductance (MPa)");
-		declareitem("kmax",&ppft->kmax,0.0,10.0,1,CB_NONE, 
-			"Maximum hyraulic conductance (mmol/m2/s/MPa)");
+		declareitem("kmax",&ppft->kmax,0.0,1000000.0,1,CB_NONE, 
+			"Maximum hyraulic conductance per unit xylem area (mol/m2/s/MPa)");
 		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
 			"water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,

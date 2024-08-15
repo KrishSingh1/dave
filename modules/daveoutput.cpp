@@ -164,7 +164,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_weighted_psi"               , DAILY, [](const Individual &i) { return i.weighted_psi; }, "Weighted psi (MPa)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_phen"               , DAILY, [](const Individual &i) { return i.phen; }, "Phenology multiplier", mean, false, false);
 	add_aggregated_indiv_output("file_dave_lai_today"               , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI today (m2/m2)", sum, true, false);
-	add_aggregated_indiv_output("file_dave_kmax_drought_affected"               , DAILY, [](const Individual &i) { return i.kmax_drought_affected; }, "kmax accounting for drought impacts (mmol/m2/s/MPa)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_kmax_drought_affected"               , DAILY, [](const Individual &i) { return i.kmax_drought_affected; }, "kmax accounting for drought impacts (mol/m2/s/MPa)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_max_k_loss"               , DAILY, [](const Individual &i) { return i.max_k_loss; }, "reduction in kmax due to xylem embolism", mean, false, false);
 	add_aggregated_indiv_output("file_dave_alpha_leaf"          , DAILY, [](const Individual &i) { return i.alpha_leaf; }, "Daily leaf sink strength (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_alpha_root"          , DAILY, [](const Individual &i) { return i.alpha_root; }, "Daily root sink strength (0-1)", mean, false, false);

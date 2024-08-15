@@ -2269,7 +2269,7 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Sapwood
 						indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
-						indiv.cmass_sap_growth = cmass_sap_inc;
+						indiv.cmass_sap_growth = cmass_sap_inc * indiv.densindiv;
 
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;

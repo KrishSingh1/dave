@@ -2123,7 +2123,7 @@ public:
 	double s2;
 	/// sensitivity of the vulnerability curve (MPa)
 	double s1;
-	/// maximum hydraulic conductance (mmol/m2/s/MPa)
+	/// maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa)
 	double kmax;
 	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
 	double nx;

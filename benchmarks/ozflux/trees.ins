@@ -263,13 +263,12 @@ pft "ASM" (
 
 	! hydraulic traits
 	wooddens 388  ! value for Acacia aneura from Peters (2021)
-	kmax 1.5 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
+	kmax 60 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -6.72   ! value for Acacia aneura from Peters (2021)
 	p50 -10.37   ! value for Acacia aneura from Peters (2021)
 	p88 -11.59   ! value for Acacia aneura from Peters (2021)
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
 	g1x 4  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) - using value for driest species in that paper
-	b1z 1  ! not used
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000020 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
@@ -304,13 +303,12 @@ pft "WAR_ov" (
 
 	! hydraulic traits
 	wooddens 300  ! Peters et al (2021)
-	kmax 5 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
+	kmax 200 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.03   ! Peters et al (2021)
 	p88 -3.84   ! Peters et al (2021)
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 2  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
-	b1z 1  ! not used
+	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000069 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
@@ -350,13 +348,12 @@ pft "WAR_un" (
 
 	! hydraulic traits
 	wooddens 279  ! Peters et al (2021) - weighted average of understory species
-	kmax 5 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
+	kmax 200 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.41   ! Peters et al (2021)
 	p88 -5.10   ! Peters et al (2021)
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 2  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
-	b1z 1  ! not used
+	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000044 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
@@ -389,13 +386,12 @@ pft "Calp" (
 
 	! hydraulic traits
 	wooddens 400  ! Peters et al (2021) - average of euc species
-	kmax 1.5 ! maximum hydraulic conductance (mmol/m2/s/MPa) - to be tuned
+	kmax 35 ! maximum hydraulic conductivity (mol * m [height]/m2[xylem area]/s/MPa) per unit xylem area - to be tuned. Will be divided by height to give conductance.
 	stom_clos -3.5   ! Point of stomatal closure, usually p12 or turgor loss point (MPa)
 	p50 -7.47   ! Peters et al (2021) - average of euc species, -7.47
 	p88 -10.06   ! Peters et al (2021) - average of euc species
 	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless), not used
-	g1x 3  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
-	b1z 1  ! not used
+	g1x 2  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000080 ! see ST7 (supp table 2) from Bloomfield et al. (2018)

@@ -3066,7 +3066,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.05)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 95% stomatal closure at p12 (for compatibility with hydraulic module)
+		double b1z = log(0.05)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 95% stomatal closure at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 

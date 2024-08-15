@@ -125,7 +125,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -186,7 +186,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -194,7 +194,7 @@ ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
+wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
                             ! see documentation for water_uptake()
 !rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype

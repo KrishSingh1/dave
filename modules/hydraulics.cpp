@@ -99,7 +99,8 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
 
     double gsw = indiv.ps_subdaily.gsw[day.period];
 
-    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; // mmol/m2/s 
+    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; // mmol/m2/s (transpiration per unit ground area)
+    double Ax = PI*pow(indiv.diam/2,2)*indiv.densindiv*(indiv.cmass_sap/(indiv.cmass_sap+indiv.cmass_heart)); // average cross-sectional xylem area per unit ground area (m2/m2)
 
     if (indiv.stomata_open){ // stomata are not fully closed
 
@@ -109,7 +110,7 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
 
-        double transpiration_full = transpiration_psi_soil + transpiration / indiv.kmax_drought_affected; // normalise kmax to xylem/leaf area?? because it reduces based on xlyem loss, not leaf loss.
+        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected*1000 * Ax / indiv.height); // kmax normalised to sapwood area per m2 ground and scaled for height
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met){ // if hydraulic vulnerability curve doesn't allow E to be met, we account for transpiration from capacitance in next step (closed stomata loop). This happens often when ET is high and hydraulic parameters (kmax, P50 and P88) are too small, check values.
@@ -132,8 +133,6 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
 
         /// Alternative for high water stress - consuming internal storage
 
-        // average cross-sectional xylem area per unit ground area (m2/m2)
-        double Ax = PI*pow(indiv.diam/2,2)*indiv.densindiv*(indiv.cmass_sap/(indiv.cmass_sap+indiv.cmass_heart));   // calculated trunk area per m2, xylem area = fractional sapwood area
         double nx = 1-(pft.wooddens*2)/1200;  /// water holding capacity approximated based on wood density - but check this!
         double Vmax = nx*Ax*indiv.height; // see Paschalis et al. (2024), currently ignoring leaf water storage
 
@@ -142,7 +141,7 @@ void hydraulics(Day& day, const Climate& climate, Soil& soil, Individual& indiv)
         const double MOL2MMOL = 1000.0;
         const double M3_H2O_PER_KG = 0.001;
 
-        if (indiv.E_not_met){ // if the previous day's transpiration couldn't be met, we just assume the plant starts at p12 but the previous day's transpiration is taken from the capacitance store
+        if (indiv.E_not_met){ // if the previous day's transpiration couldn't be met, we just assume the plant starts at stom_clos but the previous day's transpiration is taken from the capacitance store
             Vl_init = Vl_init - indiv.transp_previous*(SECS_PER_DAY/date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
         }
 
@@ -237,43 +236,80 @@ void adjust_kmax(Patch& patch) {
     while(vegetation.isobj) {
         Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;
+        Patchpft &ppft = indiv.patchpft();
 
-        indiv.max_k_loss = 0;
+        if (pft.dave_allocation() || date.day == 0){ // if using annual allocation (not DAVE) then kmax loss is over whole year (not every day)
+            indiv.max_k_loss = 0;
+        }
 
         for (Day day; day.period != date.subdaily; day.next()) {
             indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
         }
 
-        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax)){ // drought only has an impact if loss of conductance exceeds current state
-            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-indiv.max_k_loss*indiv.kmax_drought_affected/pft.kmax)); // kmax decreases proportionately to loss but scaled by how affected it already is   
-       // kmax2[d] <- min(kmax_init, kmax2[d-1]*(1-drought[d]/100*kmax2[d-1]/kmax_init))
-    
-    
-        } else { // kmax recovery as sapwood regrows
-            //this line is designed to work with daily growth
-            //  indiv.kmax_drought_affected = std::min(pft.kmax,(indiv.kmax_drought_affected*(1-indiv.cmass_sap_turnover) + pft.kmax*indiv.cmass_sap_growth)*indiv.cmass_sap_yesterday/indiv.cmass_sap);
-            //these lines are a messy placeholder trying to mimic the above with annual growth
-            double day_turnover_sap = pft.turnover_sap/365.0;
-            double day_growth_sap = 0;
-            if (indiv.cmass_sap_yesterday > 0.0){
-                day_growth_sap = indiv.cmass_sap_growth/indiv.cmass_sap/365.0; // growth defined as a unitless rate, as per turnover - check, is cmass_sap_growth annual?
-            } else {
-                day_growth_sap = 0;
-            }
-            double cmass_sap_today = std::max(0.0,indiv.cmass_sap+indiv.cmass_sap*day_growth_sap*(date.day+1)-indiv.cmass_sap*day_turnover_sap*(date.day+1)); // indiv.cmass_sap in kg/m2
-            double cmass_sap_yesterday = std::max(0.0,indiv.cmass_sap+indiv.cmass_sap*day_growth_sap*date.day-indiv.cmass_sap*day_turnover_sap*date.day);
-            if (cmass_sap_today > 0.0){
-                indiv.kmax_drought_affected = (indiv.kmax_drought_affected*(1-day_turnover_sap) + pft.kmax*day_growth_sap)*cmass_sap_yesterday/cmass_sap_today;
-                indiv.kmax_drought_affected = std::min(indiv.kmax_drought_affected,pft.kmax);
-            } else {
-                indiv.kmax_drought_affected = indiv.kmax_drought_affected; // if sapwood goes negative, stop changing kmax
-            }
-            // kmax2[d] <- (kmax2[d-1]*(1-turnover) + kmax_init*growth)*sapwood2[d-1]/sapwood2[d] // R code
-            if (date.year == 100){
-                printf("");
-            }
-
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // only done at end of year if annual allocation is used
+            vegetation.nextobj();
+            continue;
         }
+
+        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if loss of conductance exceeds current state and also we've crossed stom_clos
+            double xylem_loss = indiv.max_k_loss * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss but scaled by how affected it already is
+
+            double closs_leaf = indiv.get_cmass_leaf() * xylem_loss;
+            double closs_root = indiv.cmass_root * xylem_loss;
+
+            double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss;
+            double nloss_root = indiv.nmass_root * xylem_loss;
+
+            if (pft.is_grass()) {
+                fail("Grasses not supported");
+            }
+            indiv.cmass_leaf -= closs_leaf;
+            ppft.cmass_litter_leaf += closs_leaf;
+
+            indiv.cmass_root -= closs_root;
+            ppft.cmass_litter_root += closs_root;
+
+            indiv.nmass_leaf -= nloss_leaf;
+            ppft.nmass_litter_leaf += nloss_leaf;
+
+            indiv.nmass_root -= nloss_root;
+            ppft.nmass_litter_root += nloss_root;
+
+            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss));
+            printf("");    
+        }
+
+        if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
+            double old_wood = std::max(indiv.cmass_sap - indiv.cmass_sap_growth, 0.0);
+            double new_wood = std::max(std::min(indiv.cmass_sap_growth, indiv.cmass_sap),0.0);
+            if (indiv.cmass_sap_yesterday == 0.0){ // there was no sapwood before, no drought legacy
+                indiv.kmax_drought_affected = pft.kmax;
+            } else { // drought-impacted wood is lost and fresh wood (with maximum kmax) regrows
+                indiv.kmax_drought_affected = (indiv.kmax_drought_affected * old_wood + pft.kmax * new_wood) / (old_wood + new_wood);
+            }
+        } else {
+            fail("Update sapwood turnover in accordance with new allocation");
+        }
+
+        assert(indiv.kmax_drought_affected >= 0.0);
+        assert(less_than_or_equal(indiv.kmax_drought_affected,pft.kmax));
+
+
+    //     MIGHT COME BACK TO THIS FOR DAILY ALLOCATION
+
+    //     for (Day day; day.period != date.subdaily; day.next()) {
+    //         indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
+    //     }
+
+    //     if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax)){ // drought only has an impact if loss of conductance exceeds current state
+    //         indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-indiv.max_k_loss*indiv.kmax_drought_affected/pft.kmax)); // kmax decreases proportionately to loss but scaled by how affected it already is   
+    //    // kmax2[d] <- min(kmax_init, kmax2[d-1]*(1-drought[d]/100*kmax2[d-1]/kmax_init))
+    
+    
+    //     } else { // kmax recovery as sapwood regrows
+    //         //this line is designed to work with daily growth
+    //         //  indiv.kmax_drought_affected = std::min(pft.kmax,(indiv.kmax_drought_affected*(1-indiv.cmass_sap_turnover) + pft.kmax*indiv.cmass_sap_growth)*indiv.cmass_sap_yesterday/indiv.cmass_sap);
+    //      }
 
         vegetation.nextobj();
         

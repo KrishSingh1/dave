@@ -480,6 +480,7 @@ void fpar(Patch& patch) {
 
 		//plai+=plai_grass;
 		fpar_ff = lambertbeer(plai+plai_grass);
+		double lai_ff = plai + plai_grass;
 		plai+=plai_grass;
 
 		// order grass individuals by LAI
@@ -989,7 +990,7 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 /**
  * Updated daily
  */
-double get_co2(Patch& p, Climate& climate, Pft& pft) {
+double get_co2(const Patch& p, const Climate& climate, const Pft& pft) {
 
 	double pftco2 = climate.co2;
 
@@ -2976,6 +2977,45 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	patch.wdemand_day = 0;
 }
 
+/*
+Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area).
+*/
+double calc_nmass_leaf0(const Pft &pft, double lai, double nmass_leaf) {
+	// We know Ntot is the integral of N0 * exp(-extkn * LAI) over LAI. Solving
+	// for N0 gives:
+	return nmass_leaf / ((1.0 - exp(-pft.extkn * lai)) / pft.extkn);
+}
+
+/*
+Calculate maximum carboxylation rate at 25 degC (mol m-2 s-1).
+
+@param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
+@param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
+*/
+double calc_vcmax25(double nmass_leaf, double pmass_leaf) {
+	return exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 *
+							   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+}
+
+/*
+Calculate maximum electron transport rate at 25 degC (mol m-2 s-1).
+
+@param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
+@param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
+*/
+double calc_jmax25(double nmass_leaf, double pmass_leaf) {
+	return exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 *
+							   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+}
+
+/*
+Calculate maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).
+
+@param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
+*/
+double calc_vpmax25(double nmass_leaf) {
+	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+}
 
 // Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
 // and preliminary data from Yuzhen Fan for C4 grasses.
@@ -2983,6 +3023,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
+		const Pft &pft = indiv.pft;
 
         double nmass_leaf0 = 0.0;
 
@@ -2990,28 +3031,23 @@ void vcmax_from_N(Vegetation& vegetation) {
 		if (!is_zero(indiv.get_nmass_leaf())) {
 
 			// Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area)
-			// we know Ntot is the integral of N0 * exp(-extkn * LAI) over LAI. Solving for N0 gives:
-			nmass_leaf0 = indiv.get_nmass_leaf() / ((1.0 - exp(-indiv.pft.extkn * indiv.lai)) / indiv.pft.extkn);
+			nmass_leaf0 = calc_nmass_leaf0(pft, indiv.lai, indiv.get_nmass_leaf());
 
 			assert(positive(nmass_leaf0));
 
 			if (indiv.pft.pathway == C3) {
 
-				double leaf_NtoP = 10.7;  // average value for C3 grasses from Thum et al. 2019 (SI Table 8)
-
 				// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
 				// pmass_leaf is in kgP m-2 leaf area
 				// nmass_leaf is in kgN m-2 leaf area 
-				double pmass_leaf0 = nmass_leaf0 / leaf_NtoP;  
+				double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
 
-				indiv.ps_subdaily.vcmax25 = exp(4.308 + 0.298 * log(pmass_leaf0 * G_PER_KG) + 0.197 * 
-												log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
-				indiv.ps_subdaily.jmax25 = exp(5.139 + 0.325 * log(pmass_leaf0 * G_PER_KG) + 0.112 * 
-											   log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
+				indiv.ps_subdaily.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
+				indiv.ps_subdaily.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
 			} 
 			else if (indiv.pft.pathway == C4) {
 
-                indiv.ps_subdaily.vpmax25 = exp(3.118 + 0.751 * log(nmass_leaf0 * G_PER_KG)) / UMOL_PER_MOL;
+                indiv.ps_subdaily.vpmax25 = calc_vpmax25(nmass_leaf0);
 
 			} else {
 				fail("Unknown photosynthetic pathway");
@@ -3342,6 +3378,23 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	outputs.jmax = jmax;
 }
 
+/*
+Calculate stomatal term (Medlyn et al. 2011).
+X needs to represent gs for CO2, hence no 1.6 factor.
+*/
+double stomatal_conductance_term(double wscal, double g1, double vpd, double ca) {
+	return divide(divide(1.0 + pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
+}
+
+/*
+Residual stomatal conductance term.
+Note: both gmin and g0 are for H20, here conversion to conductances to CO2.
+TODO: do we need a different qs here?
+*/
+double stomatal_conductance_residual(double g0, double gmin, double wscal) {
+	return divide(max(gmin, g0 * pow(wscal, qs)), DWDC);
+}
+
 // Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
@@ -3364,7 +3417,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
- 		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
+		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
 		inputs.fphen_activity = indiv.fphen_activity;
 		inputs.ps_sink_lim = indiv.ps_sink_lim;
 		inputs.vcmax25 = indiv.ps_subdaily.vcmax25;
@@ -3411,13 +3464,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			inputs.vpd   = climate.vpds[day.period];
 
 			// Stomatal term (Medlyn et al. 2011)
-			// X needs to represent gs for CO2, hence no 1.6 factor
-    		inputs.X = divide(divide(1.0 + pow(ppft.wscal,qs) * g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+			inputs.X = stomatal_conductance_term(ppft.wscal, g1, inputs.vpd, inputs.ca);
 
 			// Residual stomatal conductance term.
-			// Note: both gmin and g0 are for H20, here conversion to conductances to CO2.
-			// TODO: do we need a different qs here?
-			inputs.gdark = divide(max(gmin,g0 * pow(ppft.wscal,qs)),DWDC);
+			inputs.gdark = stomatal_conductance_residual(g0, gmin, ppft.wscal);
 
 			// Initialise cumulative LAI.
 			double lai_cum_bottom = 0.0;
@@ -3934,6 +3984,92 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	}
 }
 
+void forest_floor_dave(Patch &patch) {
+	// These calculations are only required for pfts using the annual (trunk)
+	// allocation and establishment.
+	if (ifdavegrowth && ifdailygrass && ifdailytree) {
+		return;
+	}
+
+	Vegetation &vegetation = patch.vegetation;
+	const Climate &climate = patch.get_climate();
+
+	PhotosynthesisInputs inputs;
+
+	// Air temperature in °C.
+	inputs.temp  = climate.temp;
+
+	// VPD in kPa.
+	inputs.vpd   = mean(climate.vpds);
+	double par = mean(climate.pars);
+
+	// determine fpar and apar of the layer
+	// Fraction of PAR incident in the middle of the layer.
+	inputs.fipar = patch.fpar_ff;
+
+	// No limitation from phenology or sink activity.
+	inputs.fphen_activity = 1;
+	inputs.ps_sink_lim = 1;
+
+	// Assume LAI of 1 m2 m-2.
+	const double LAI_HYPOTHETICAL = 1.0;
+
+	// Assume leaf N content of 0.01 kgN m-2.
+	const double NMASS_LEAF_HYPOTHETICAL = 0.01;
+
+	// LAI of this individual in this layer.
+	inputs.lai = LAI_HYPOTHETICAL;
+
+	// Incident PAR in the middle of the layer (W m-2).
+	inputs.par = inputs.fipar * par;
+
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		const Pft &pft = pftlist[i];
+
+		// Only do this calculation for PFTs using annual (trunk) allocation.
+		if (pft.dave_allocation()) {
+			continue;
+		}
+
+		Patchpft &ppft = patch.pft[i];
+
+		// Atmospheric CO2 concentration in mol mol-1.
+ 		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
+
+		// Stomatal term (Medlyn et al. 2011)
+		inputs.X = stomatal_conductance_term(ppft.wscal, pft.g1, inputs.vpd, inputs.ca);
+
+		// Residual stomatal conductance term.
+		inputs.gdark = stomatal_conductance_residual(pft.g0, pft.gmin, ppft.wscal);
+		inputs.wscal = ppft.wscal;
+
+		double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
+		double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
+
+		// Account for the nitrogen gradient within the canopy.
+		// TODO: should this be patch-level or PFT-level LAI?
+		inputs.nscal = max(1.0e-12, exp(-pft.extkn * LAI_HYPOTHETICAL));
+
+		// Assume a leaf N content of 0.01 kgN/m2.
+		PhotosynthesisOutputs outputs;
+		if (pft.pathway == C3) {
+			inputs.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
+			inputs.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
+			inputs.vpmax25 = 0;
+
+			photosynthesis_dave_c3(inputs, outputs);
+		} else {
+			inputs.vcmax25 = 0;
+			inputs.jmax25 = 0;
+			inputs.vpmax25 = calc_vpmax25(nmass_leaf0);
+
+			photosynthesis_dave_c4(inputs, outputs);
+		}
+
+		ppft.anetps_ff += outputs.an;
+	}
+}
+
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations
  *  of actual evapotranspiration (AET), canopy conductance, carbon assimilation
@@ -4026,6 +4162,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 			// stress, etc.
 			nitrogen_uptake(vegetation);
 		}
+		forest_floor_dave(patch);
 	}
 	else {
 		// Calculates no-stress daily values of photosynthesis and gpterm

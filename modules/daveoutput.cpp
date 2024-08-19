@@ -64,9 +64,9 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_adensity" , ANNUAL, [](const Individual &i) { return i.densindiv; }, "Annual density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_altor"    , ANNUAL, [](const Individual &i) { return i.ltor; }, "Annual leaf to root ratio (unitless)", mean, true);
 	add_aggregated_indiv_output("file_dave_anuptake" , ANNUAL, [](const Individual &i) { return i.anuptake; }, "Total annual nitrogen uptake (kgN/m2/year)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_aboveground_cmass", ANNUAL, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_repr; }, "Annual total above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_cmass", ANNUAL, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Annual total above-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_cmass", ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_aboveground_nmass", ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_nmass", ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass", ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
 
 	// Annual per-patch pft-level outputs.
@@ -197,9 +197,9 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_ntolitter_repr"      , DAILY, [](const Individual &i) { return i.ntolitter_repr; }, "Total daily N sent from the repr pool to litter (kgN/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_crown"     , DAILY, [](const Individual &i) { return i.ctolitter_crown; }, "Total daily C sent from the crown pool to litter (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ntolitter_crown"     , DAILY, [](const Individual &i) { return i.ntolitter_crown; }, "Total daily N sent from the crown pool to litter (kgN/m2/day)", sum, true);
-	add_aggregated_indiv_output("file_dave_aboveground_cmass"   , DAILY, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_repr; }, "Daily above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_cmass"   , DAILY, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Daily above-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Daily below-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 
 	// Daily individual-level outputs.

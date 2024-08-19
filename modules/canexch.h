@@ -165,7 +165,8 @@ const double fcyc = 0.3;
 const double gbs = 0.003;  // von Caemmerer 2000
 						   // 0.00287 in Yin et al. 2016 
 
-
+// Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
+const double C3_LEAF_NTOP = 10.7;
 
 // The following parameters are only used for the complex C4 photosynthesis formulation
 // Michaelis-Menten constant for CO2 and O2 (Boyd et al. 2015)

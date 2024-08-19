@@ -862,13 +862,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
-		// TODO: is the value for anetps_ff okay? Currently it is set as a constant 
-		// in case of ifdavephotosyn becasue Juergan's physiology in canopy_exchange 
-		// does not calculate anetps_ff at all.
-		if (ifdavephotosyn) {
-			patch.pft[pft.id].anetps_ff = 2.0;  // kg C m-2 yr-1
-			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
-		}
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
@@ -1077,10 +1070,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
-
-						if (ifdavephotosyn) {
-							patch.pft[pft.id].anetps_ff_est = 2.0;  // kg C m-2 yr-1
-						}
 
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
 							bminit = PLANTSIZE; // Fixed sap size after first cutting

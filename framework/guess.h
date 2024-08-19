@@ -2131,6 +2131,8 @@ public:
 	double vcmax_25;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
+	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
+	double tlp;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2557,6 +2559,7 @@ public:
 		kmax=0.0;
 		g1x=0.0;
 		b1z=0.0;
+		tlp=0.0;
 
 		vcmax_25=0.0;
 

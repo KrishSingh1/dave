@@ -285,6 +285,7 @@ void adjust_kmax(Patch &patch) {
     while(vegetation.isobj) {
         Individual &indiv = vegetation.getobj();
 		Pft &pft = indiv.pft;
+        Patchpft &ppft = indiv.patchpft();
 
         if (pft.dave_allocation() || date.day == 0){ // if using annual allocation (not DAVE) then kmax loss is over whole year (not every day)
             indiv.max_k_loss = 0;
@@ -362,3 +363,100 @@ void adjust_kmax(Patch &patch) {
         vegetation.nextobj();
     }
 }
+
+
+
+void grass_hydraulics(const Day &day, Individual &indiv) {
+    const Patch &patch = indiv.vegetation.patch;
+    const Climate &climate = patch.get_climate();
+    const Soil &soil = patch.soil;
+
+    const Pft &pft = indiv.pft;
+    Patchpft &ppft = indiv.patchpft();
+
+    if (!ifdavephotosyn || !ifdavehydraulics) {
+		// Only apply if using DAVE photosynthesis
+		return;
+	}
+
+    if (!pft.is_grass()) {
+        fail("This routine is only for grasses");
+    }
+
+    double patmos = climate.pressure[day.period];
+    double vpd = climate.vpds[day.period];
+    double gsw = indiv.ps_subdaily.gsw[day.period];
+
+    // Transpiration in mmol/m2/s.
+    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
+
+    // Stomata are not fully closed.
+
+    // For the purposes of this loop, we treat water potentials as positive
+    // (rather than using abs everywhere).
+    double psi1 = abs(indiv.weighted_psi);
+    double psi2 = 0;
+
+    double transpiration_psi_soil = 0;
+    bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
+
+    // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
+    // loss, not leaf loss.
+    double transpiration_full = transpiration_psi_soil + transpiration / (pft.kmax * 1000 * indiv.lai / indiv.height);
+    e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+
+    if (!e_met) {
+        // If hydraulic vulnerability curve doesn't allow E to be met, we
+        // assume stomata are fully closed which means grass will fully senesce
+
+        // Set water potential to stom_clos to close stomata.
+        psi2 = -pft.stom_clos;
+        // printf("hydraulic vulnerability curve doesn't allow E to be met\n");
+    }
+
+    indiv.lwp[day.period] = -psi2;
+
+    if (day.period > 0) {
+        // W m-2; 0.5 * climate.insols
+        double par_previous = climate.pars[day.period - 1];
+
+        if (par_previous < 200 && climate.pars[day.period] > 200) {
+            // Note Zhou model uses actual (negative) pd lwp.
+            indiv.predawn_lwp = indiv.lwp[day.period];
+        }
+    }
+
+    double min_lwp_day = 0.0;
+
+    // senescence based on lowest water potential that day - runs at end of each day
+    if (day.period == date.subdaily-1){
+
+        for (Day day; day.period != date.subdaily; day.next()) {
+            min_lwp_day = std::min(min_lwp_day, indiv.lwp[day.period]);
+        }
+
+        if (min_lwp_day <= pft.tlp){ // we start to get senescence at turgor loss point, full senescense once stomata are fully closed
+
+            double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0); // fraction of lai lost to senescence increases linearly with lwp
+
+            double closs_leaf = indiv.get_cmass_leaf() * hyd_senesce;
+            double nloss_leaf = indiv.get_nmass_leaf() * hyd_senesce;
+
+            if (ifdailygrass){
+                indiv.cmass_leafs[0] -= closs_leaf; //green leaf carbon removed
+                indiv.nmass_leafs[0] -= nloss_leaf; //green leaf N removed
+                indiv.cmass_leafs[1] += closs_leaf; //added to brown leaf carbon
+                indiv.nmass_leafs[1] += nloss_leaf; //added to brown leaf N
+            } else {
+                indiv.cmass_leaf -= closs_leaf;
+                indiv.nmass_leaf -= nloss_leaf;
+                ppft.cmass_litter_leaf += closs_leaf;
+                ppft.nmass_litter_leaf += nloss_leaf;
+            }
+
+        }
+
+    }
+    
+
+} 

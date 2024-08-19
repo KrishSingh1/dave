@@ -750,6 +750,8 @@ void plib_declarations(int id,xtring setname) {
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
+		declareitem("tlp",&ppft->tlp,-1000.0,0.0,1,CB_NONE, 
+			"Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure, controls sensescence");
 		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at 50% loss of xylem conductance (MPa)");
 		declareitem("p88",&ppft->p88,-1000.0,0.0,1,CB_NONE, 

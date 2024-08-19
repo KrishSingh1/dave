@@ -16,7 +16,7 @@
 ! Main switches
 ifdailygrass             0   ! daily allocation for grasses and crops 
 ifdailytree              0   ! daily allocation for trees and shrubs
-ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
+ifdavephotosyn 		     0   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             0   ! DAVE growth scheme (grasses only at the moment)
 ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn)
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
@@ -125,9 +125,9 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               1
+nindiv_max               0
 
-ifforcedlai                  1
+ifforcedlai                  0
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0

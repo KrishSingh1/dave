@@ -334,11 +334,6 @@ private:
 	xtring file_co2;
 
 	/*
-	Optional path to text file containing lai values by year.
-	*/
-	xtring file_lai;
-
-	/*
 	Path to the nitrogen deposition fastarchive file. This is a
 	user-configurable setting in the instruction file.
 	*/
@@ -527,11 +522,6 @@ private:
 	Optional co2 text file reader.
 	*/
 	std::unique_ptr<GlobalCO2File> co2_file;
-
-	/*
-	Optional lai text file reader.
-	*/
-	std::unique_ptr<GlobalCO2File> lai_file;
 
 	/*
 	Number of seconds per day. Leap seconds are a myth.

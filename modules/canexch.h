@@ -267,4 +267,19 @@ inline double gc_monteith(double& aet, double& eet) {
 }
 #endif
 
+const double FIXED_LAI[12] = {
+	0.0, // January
+	0.5, // February
+	1.0, // March
+	1.5, // April
+	2.0, // May
+	3.5, // June
+	4.0, // July
+	4.5, // August
+	5.0, // September
+	5.5, // October
+	6.0, // November
+	6.5  // December
+};
+
 #endif // LPJ_GUESS_CANEXCH_H

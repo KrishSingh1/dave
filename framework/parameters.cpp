@@ -639,6 +639,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
+		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 

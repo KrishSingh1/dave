@@ -1609,7 +1609,11 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_leaf += cmass_leaf_ind;
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
-		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
+			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		}
 		// Capacity of C and N storage on establishment
 		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
 			indiv.cstorage_max = cstorage_capacity(indiv);
@@ -1892,7 +1896,9 @@ bool allometry(Individual& indiv) {
 		indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
 
 		// Stand-level LAI
-		if (!ifforcedlai) {
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
 			indiv.lai = indiv.cmass_leaf * indiv.sla();
 		}
 	}
@@ -1925,14 +1931,18 @@ bool allometry(Individual& indiv) {
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
-				if (!ifforcedlai) {
+				if (ifforcedlai) {
+					indiv.lai = FIXED_LAI[date.month];
+				} else {
 					indiv.lai = indiv.lai_indiv;
 				}
 			}
 			else {
 				indiv.lai_indiv = 0.0;
 				indiv.fpc = 0.0;
-				if (!ifforcedlai) {
+				if (ifforcedlai) {
+					indiv.lai = FIXED_LAI[date.month];
+				} else {
 					indiv.lai = 0.0;
 				}
 				return false;
@@ -5392,7 +5402,11 @@ void allometry_dave_tree(Individual& indiv) {
 			indiv.fpc = 0.0;
 		}
 		// Patch-level LAI
-		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
+			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		}
 
 		// calculate leaf to sapwood area (unitless vatrible)
 		if (!is_zero(indiv.height)) {

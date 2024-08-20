@@ -3995,6 +3995,13 @@ void forest_floor_dave(Patch &patch) {
 		return;
 	}
 
+	// No soil water on first day of simulation - this results wscal = 0, which
+	// results in a division by zero. We can just skip this calculation on the
+	// first day of the simulation.
+	if (date.year == 0 && date.day == 0) {
+		return;
+	}
+
 	Vegetation &vegetation = patch.vegetation;
 	const Climate &climate = patch.get_climate();
 
@@ -4166,6 +4173,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 			// stress, etc.
 			nitrogen_uptake(vegetation);
 		}
+
 		forest_floor_dave(patch);
 	}
 	else {

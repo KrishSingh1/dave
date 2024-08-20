@@ -3711,11 +3711,10 @@ void water_stress(Patch &patch) {
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
 
 	// Iterate over individuals in patch.
-	for (int i = 0; i < patch.vegetation.nobj; i++) {
-		Individual &indiv = patch.vegetation[i];
-		Patchpft &ppft = patch.pft[indiv.pft.id];
-		Pft &pft = ppft.pft; 
-		
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+		Pft &pft = pftlist[i];
+
 		double wstress_layer[NSOILLAYER];
 		double wstress = 0.0;
 		double rootdist_sum = 0.0;
@@ -3764,7 +3763,6 @@ void water_stress(Patch &patch) {
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
 		ppft.airtemp_10.add(patch.get_climate().temp);
-
 	}
 }
 

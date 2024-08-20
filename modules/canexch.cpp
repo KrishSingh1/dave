@@ -3410,6 +3410,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
+		if (is_zero(indiv.nmass_leaf)) {
+			continue;
+		}
+
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
 		double g0   = pft.g0;    // mol m-2 s-1
 		double g1   = pft.g1;    // kPa^0.5

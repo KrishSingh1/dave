@@ -3993,13 +3993,6 @@ void forest_floor_dave(Patch &patch) {
 		return;
 	}
 
-	// No soil water on first day of simulation - this results wscal = 0, which
-	// results in a division by zero. We can just skip this calculation on the
-	// first day of the simulation.
-	if (date.year == 0 && date.day == 0) {
-		return;
-	}
-
 	Vegetation &vegetation = patch.vegetation;
 	const Climate &climate = patch.get_climate();
 
@@ -4041,6 +4034,13 @@ void forest_floor_dave(Patch &patch) {
 		}
 
 		Patchpft &ppft = patch.pft[i];
+
+		// No soil water on first day of simulation - this results wscal = 0,
+		// which results in a division by zero. We can just skip this
+		// calculation on the first day of the simulation.
+		if (is_zero(ppft.wscal)) {
+			continue;
+		}
 
 		// Atmospheric CO2 concentration in mol mol-1.
  		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;

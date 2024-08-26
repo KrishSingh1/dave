@@ -739,7 +739,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 
 	// Open the met forcing file (in readonly mode).
 	xtring tmp;
-	tmp.printf(netcdf_file, (const char *)variable_temp);
+	tmp.printf(netcdf_file, variable_temp);
 	if (tmp == netcdf_file) {
 		nc_file = GuessNC::open_ncdf((const char *)netcdf_file);
 	}

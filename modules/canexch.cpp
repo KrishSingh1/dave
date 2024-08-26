@@ -76,7 +76,7 @@ void sort_indivs(const Vegetation &vegetation, std::vector<int> &indices) {
 			if (j < indices.size() - 1) {
 				int index = indices[j];
 				int index_next = indices[j + 1];
-				if (vegetation[index].lai > vegetation[index_next].lai) {
+				if (vegetation[index].lai_today() > vegetation[index_next].lai_today()) {
 					int tmp = indices[j];
 					indices[j] = indices[j + 1];
 					indices[j + 1] = tmp;
@@ -185,7 +185,7 @@ double get_veg_height(Vegetation &vegetation) {
 }
 
 struct {
-	bool operator()(const Individual &x, const Individual &y) { return x.lai < y.lai; }
+	bool operator()(const Individual &x, const Individual &y) { return x.lai_today() < y.lai_today(); }
 } indiv_smaller;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -532,7 +532,7 @@ void fpar(Patch& patch) {
 
 					if (ifevenlaidist) {
 						// Evenly distribute LAI across layers.
-						double lai_layer = lai_layer_total * indiv.lai / plai_grass;
+						double lai_layer = lai_layer_total * indiv.lai_today() / plai_grass;
 
 						// Add LAI in to lai_layerwise vector.
 						indiv.lai_layerwise.push_back(lai_layer);
@@ -542,7 +542,7 @@ void fpar(Patch& patch) {
 						lai_layer_remaining -= lai_layer;
 					} else {
 						// How much LAI is remaining for this individual, taking into account the previous layers?
-						double lai_remaining = indiv.lai - sum(indiv.lai_layerwise);
+						double lai_remaining = indiv.lai_today() - sum(indiv.lai_layerwise);
 
 						if (lai_remaining > 0) {
 							// Calculate the amount of LAI contributed by this indiv in this layer.
@@ -3485,6 +3485,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		        inputs.fipar = indiv.fipar_layerwise[j];
 
 				// LAI of this individual in this layer.
+				// Note: this takes phen into account for indivs running trunk
+				// allocation, because fpar() looks at indiv.lai_today().
 				inputs.lai = indiv.lai_layerwise[j];
 
 				assert(inputs.fipar > 0);

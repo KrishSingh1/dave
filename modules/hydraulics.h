@@ -24,7 +24,9 @@
 
 #include "guess.h"
 
-void hydraulics(const Day &day, Individual &indiv);
+void tree_hydraulics(const Day &day, Individual &indiv);
+
+void grass_hydraulics(const Day &day, Individual &indiv);
 
 void calc_soil_water_potenial_dave(Soil &soil);
 

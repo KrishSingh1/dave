@@ -99,7 +99,7 @@ double calc_weighted_psi(Soil &soil, Pft &pft) {
     return weighted_psi / rootfrac_sum;
 }
 
-void hydraulics(const Day &day, Individual &indiv) {
+void tree_hydraulics(const Day &day, Individual &indiv) {
     const Patch &patch = indiv.vegetation.patch;
     const Climate &climate = patch.get_climate();
     const Soil &soil = patch.soil;
@@ -132,9 +132,7 @@ void hydraulics(const Day &day, Individual &indiv) {
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
 
-        // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
-        // loss, not leaf loss.
-        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected * 1000 * Ax / indiv.height);
+        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected * 1000 * Ax); // convert from mol to mmol
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
@@ -198,7 +196,7 @@ void hydraulics(const Day &day, Individual &indiv) {
             indiv.lwp[day.period] =  pft.p88 * (1 - Vl / Vmax);
         }
 
-        // Only account for this once (can only be set to 'true' in the loop for
+        // Only account for the extra ET once (can only be set to 'true' in the loop for
         // open stomata).
         indiv.E_not_met = false;
 
@@ -288,32 +286,32 @@ void adjust_kmax(Patch &patch) {
         Patchpft &ppft = indiv.patchpft();
 
         if (pft.dave_allocation() || date.day == 0){ // if using annual allocation (not DAVE) then kmax loss is over whole year (not every day)
-            indiv.max_k_loss = 0;
+            indiv.max_k_loss = 0; // reset at beginning of year (annual allocation) or beginning of day (daily allocation)
         }
 
         for (Day day; day.period != date.subdaily; day.next()) {
-            indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]);
+            indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]); // take maximum k_loss for that day, will continue to maximise over all days of year if annual allocation
         }
 
-        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // only done at end of year if annual allocation is used
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // if annual allocation, only move forward to xylem loss calcs at end of year
             vegetation.nextobj();
             continue;
         }
 
-        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if loss of conductance exceeds current state and also we've crossed stom_clos
+        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if loss of conductance exceeds current state and also we've crossed P12
             double xylem_loss = indiv.max_k_loss * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss but scaled by how affected it already is
 
-            double closs_leaf = indiv.get_cmass_leaf() * xylem_loss;
+            double closs_leaf = indiv.get_cmass_leaf() * xylem_loss; 
             double closs_root = indiv.cmass_root * xylem_loss;
 
-            double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss;
+            double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss; 
             double nloss_root = indiv.nmass_root * xylem_loss;
 
             if (pft.is_grass()) {
                 fail("Grasses not supported");
             }
-            indiv.cmass_leaf -= closs_leaf;
-            ppft.cmass_litter_leaf += closs_leaf;
+            indiv.cmass_leaf -= closs_leaf; // lose leaves and roots in proportion to lost xylem
+            ppft.cmass_litter_leaf += closs_leaf; // lost leaves and roots go to litter
 
             indiv.cmass_root -= closs_root;
             ppft.cmass_litter_root += closs_root;
@@ -325,7 +323,6 @@ void adjust_kmax(Patch &patch) {
             ppft.nmass_litter_root += nloss_root;
 
             indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss));
-            printf("");    
         }
 
         if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
@@ -375,7 +372,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
     Patchpft &ppft = indiv.patchpft();
 
     if (!ifdavephotosyn || !ifdavehydraulics) {
-		// Only apply if using DAVE photosynthesis
+		// Only apply if using DAVE photosynthesis and hydraulics
 		return;
 	}
 
@@ -402,7 +399,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
     // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
     // loss, not leaf loss.
-    double transpiration_full = transpiration_psi_soil + transpiration / (pft.kmax * 1000 * indiv.lai / indiv.height);
+    double transpiration_full = transpiration_psi_soil + transpiration / (pft.kmax * 1000 * indiv.lai);
     e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
     if (!e_met) {

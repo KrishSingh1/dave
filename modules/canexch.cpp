@@ -1627,10 +1627,10 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			               pft.lambda_max, 1.0, -1, 
 			               leafon_photosynthesis);
 
-			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
+			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength);
 
 			// Increment patch sums of non-water-stressed gp by individual value
-			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
+			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm);
 			gp_leafon_patch += gp_leafon;
 		}
 
@@ -2276,10 +2276,8 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		// Fix, valid for monocultures, for faulty equation, manifesting itself in problems with crops in high scenario CO2-levels.
 		// No fix for natural vegetation yet.
-		double gmin = pft.phenology==CROPGREEN ? ppft.phen * pft.gmin : pft.gmin;
 
-		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
-					gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
+		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg), 0.0) : 0;
 
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;
@@ -2290,7 +2288,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && !largerthanzero(patch.wdemand-ppft.wsupply, -10));
 
 			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
-					patch.eet_net_veg) - gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
+					patch.eet_net_veg), 0.0) : 0;
 		}
 	}
 
@@ -3139,6 +3137,9 @@ public:
 
 	// Medlyn stomatal term.
 	double X;
+
+	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
+	bool stomata_open;
 };
 
 /*
@@ -3194,7 +3195,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		outputs.an = -rd;
 		outputs.gsc = inputs.gdark;
 
-		if (!indiv.stomata_open){
+		if (!inputs.stomata_open){
 			outputs.gsc = 0.0;
 		}
 		return;
@@ -3247,11 +3248,14 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// Re-calculate intercellular CO2 concentration (mol mol-1)
 	double ci;
 
-	if (indiv.stomata_open) {
-		ci = inputs.ca - divide(an, gsc);
-	} else {
+	if (!inputs.stomata_open) {
 		gsc = 0.0;
+	}
+
+	if (is_zero(gsc)){
 		ci = inputs.ca;
+	} else {
+		ci = inputs.ca - divide(an, gsc);
 	}
 
 	outputs.rd = rd;
@@ -3299,7 +3303,7 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		outputs.an = -rd;
 		outputs.gsc = inputs.gdark;
 		outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
-		if (!indiv.stomata_open) {
+		if (!inputs.stomata_open) {
 			outputs.gsc = 0;
 			outputs.ci = inputs.ca;
 		}
@@ -3385,11 +3389,14 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		gsc = max(inputs.gdark, an * inputs.X);
 
 		// Intercellular CO2 concentration (mol mol-1)
-		if (indiv.stomata_open) {
-			ci_new = inputs.ca - divide(an, gsc);
-		} else {
+		if (!inputs.stomata_open) {
 			gsc = 0.0;
+		}
+
+		if (is_zero(gsc)){
 			ci_new = inputs.ca;
+		} else {
+			ci_new = inputs.ca - divide(an, gsc);
 		}
 
 		ci_diff = ci - ci_new;
@@ -3427,11 +3434,11 @@ double stomatal_conductance_term(double wscal, double g1, double vpd, double ca)
 
 /*
 Residual stomatal conductance term.
-Note: both gmin and g0 are for H20, here conversion to conductances to CO2.
+Note: g0 is for H20, here conversion to conductances to CO2.
 TODO: do we need a different qs here?
 */
-double stomatal_conductance_residual(double g0, double gmin, double wscal) {
-	return divide(max(gmin, g0 * pow(wscal, qs)), DWDC);
+double stomatal_conductance_residual(double g0, double wscal) {
+	return divide(max(0.0, g0 * pow(wscal, qs)), DWDC);
 }
 
 // Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
@@ -3511,6 +3518,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// VPD in kPa.
 			inputs.vpd   = climate.vpds[day.period];
 
+			inputs.stomata_open = indiv.stomata_open;
+
 			double X = 0.0;
 			double gdark = 0.0;
 
@@ -3523,11 +3532,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// for water
 				g0 = min(g0,g0 * exp(b1z*(indiv.predawn_lwp + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
 				// for co2
-				inputs.X = divide(1.0 + (divide(ppft.g1, sqrt(max(vpd, 0.1)))), ca);
+				inputs.X = divide(1.0 + (divide(ppft.g1, sqrt(max(inputs.vpd, 0.1)))), inputs.ca);
 
 				// Residual stomatal conductance term
-				// Note: both gmin and g0 are for H20, here conversion to conductances to CO2
-				inputs.gdark = divide(max(gcutic, g0), DWDC);  // TODO: do we need a different qs here?
+				// Note: g0 is for H20, here conversion to conductances to CO2
+				inputs.gdark = divide(max(0.0, g0), DWDC);  // TODO: do we need a different qs here?
 			}
 			else{
 				// Stomatal term (Medlyn et al. 2011)
@@ -3535,8 +3544,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				inputs.X = stomatal_conductance_term(ppft.wscal, g1, inputs.vpd, inputs.ca);
 
 				// Residual stomatal conductance term
-				// Note: both gmin and g0 are for H20, here conversion to conductances to CO2
-				inputs.gdark = stomatal_conductance_residual(g0, gmin, ppft.wscal);  // TODO: do we need a different qs here?
+				// Note: g0 is for H20, here conversion to conductances to CO2
+				inputs.gdark = stomatal_conductance_residual(g0, ppft.wscal);  // TODO: do we need a different qs here?
 			}
 
 			// Initialise cumulative LAI.
@@ -3563,7 +3572,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				inputs.lai = indiv.lai_layerwise[j];
 
 				assert(inputs.fipar > 0);
-				assert(inputs.lai > 0);
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 
@@ -3635,6 +3643,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			vcmax_canopy /= indiv.lai;
 			jmax_canopy /= indiv.lai;
 
+			assert(indiv.lai < 20);
+
 			// save key variables to PhotosynthesisSubdaily Structure
 			indiv.ps_subdaily.Rd[day.period]    = Rd_canopy;
 			indiv.ps_subdaily.An[day.period]    = An_canopy;
@@ -3652,7 +3662,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// run hydraulics module and check for stomatal closure in next timestep
 			if (ifdavehydraulics){
-				hydraulics(day, indiv);
+				tree_hydraulics(day, indiv);
 			}
 
 		} // end subdaily loop
@@ -3794,10 +3804,9 @@ void water_stress(Patch &patch) {
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
 
 	// Iterate over individuals in patch.
-	for (int i = 0; i < patch.vegetation.nobj; i++) {
-		Individual &indiv = patch.vegetation[i];
-		Patchpft &ppft = patch.pft[indiv.pft.id];
-		Pft &pft = ppft.pft; 
+	for (int i = 0; i < pftlist.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+		Pft &pft = pftlist[i]; 
 		
 		double wstress_layer[NSOILLAYER];
 		double wstress = 0.0;
@@ -4124,6 +4133,7 @@ void forest_floor_dave(Patch &patch) {
 
 	for (size_t i = 0; i < pftlist.nobj; i++) {
 		const Pft &pft = pftlist[i];
+		Standpft &spft = patch.stand.pft[pft.id];
 
 		// Only do this calculation for PFTs using annual (trunk) allocation.
 		if (pft.dave_allocation()) {
@@ -4132,6 +4142,14 @@ void forest_floor_dave(Patch &patch) {
 
 		Patchpft &ppft = patch.pft[i];
 
+		if (ppft.wscal == 0){
+			continue;
+		}
+
+		if (date.day == 0){
+			ppft.anetps_ff = 0.0;
+		}
+
 		// Atmospheric CO2 concentration in mol mol-1.
  		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
 
@@ -4139,7 +4157,7 @@ void forest_floor_dave(Patch &patch) {
 		inputs.X = stomatal_conductance_term(ppft.wscal, pft.g1, inputs.vpd, inputs.ca);
 
 		// Residual stomatal conductance term.
-		inputs.gdark = stomatal_conductance_residual(pft.g0, pft.gmin, ppft.wscal);
+		inputs.gdark = stomatal_conductance_residual(pft.g0, ppft.wscal);
 		inputs.wscal = ppft.wscal;
 
 		double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
@@ -4152,11 +4170,18 @@ void forest_floor_dave(Patch &patch) {
 		// Assume a leaf N content of 0.01 kgN/m2.
 		PhotosynthesisOutputs outputs;
 		if (pft.pathway == C3) {
-			inputs.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
-			inputs.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
-			inputs.vpmax25 = 0;
+			if (ifcalcvcmax) {
+				inputs.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
+				inputs.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
+				inputs.vpmax25 = 0;
+			} else {
+				inputs.vcmax25 = pft.vcmax_25;
+				inputs.jmax25 = 1.7 * pft.vcmax_25;
+				inputs.vpmax25 = 0;
+			}
 
 			photosynthesis_dave_c3(inputs, outputs);
+
 		} else {
 			inputs.vcmax25 = 0;
 			inputs.jmax25 = 0;
@@ -4165,7 +4190,11 @@ void forest_floor_dave(Patch &patch) {
 			photosynthesis_dave_c4(inputs, outputs);
 		}
 
-		ppft.anetps_ff += outputs.an;
+		ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * SECS_PER_DAY; // convert from mol/m2/s to kgC/m2/day
+
+		if (ppft.anetps_ff > spft.anetps_ff_max) {
+			spft.anetps_ff_max = ppft.anetps_ff;
+		}
 	}
 }
 

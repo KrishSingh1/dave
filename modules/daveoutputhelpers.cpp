@@ -3,6 +3,7 @@
 #include "commonoutput.h"
 #include "simfire.h"
 #include "blaze.h"
+#include "ncutil.h"
 
 namespace GuessOutput {
 
@@ -874,6 +875,17 @@ std::vector<ColumnDefinition<Individual>> indiv_npool_columns() {
 
 	return columns;
 }
+
+std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("kmax", [](const Individual &i) { return i.kmax_drought_affected; }));
+	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
+	columns.push_back(ColumnDefinition<Individual>("minimum_lwp", [](const Individual &i) { return min(i.lwp); }));
+
+	return columns;
+}
+
 
 double get_nindiv(const Patch &patch, const Pft &pft) {
 	double n = 0;

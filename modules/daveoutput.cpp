@@ -76,6 +76,7 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_acmass_mort"           , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
 	add_pft_output("file_dave_ancohort"              , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
+	add_pft_output("file_dave_anet_ps_ff"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual potential photosynthesis at the forest floor (kgC/m2/year)", true);
 
 	// Annual stand-level outputs.
 	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
@@ -206,6 +207,7 @@ DaveOutput::DaveOutput() {
 	// These will produce one row per individual per patch per timestep.
 	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", mean, false, true);
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
+	add_indiv_output("file_dave_hydraulics"               , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", mean, false, false);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
@@ -249,6 +251,7 @@ DaveOutput::DaveOutput() {
 
 	// Standpft-level outputs.
 	//add_spft_output("file_dave_cmass_repr"           , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2/day)");
+	add_spft_output("file_dave_anet_ps_ff_max"           , ANNUAL, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum potential photosynthesis at the forest floor in any patch/year (kgC/m2/year)");
 
 	// Register instruction file parameters.
 	declare_parameters();

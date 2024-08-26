@@ -263,7 +263,7 @@ pft "ASM" (
 
 	! hydraulic traits
 	wooddens 388  ! value for Acacia aneura from Peters (2021)
-	kmax 60 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	kmax 8 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -6.72   ! value for Acacia aneura from Peters (2021)
 	p50 -10.37   ! value for Acacia aneura from Peters (2021)
 	p88 -11.59   ! value for Acacia aneura from Peters (2021)
@@ -303,7 +303,7 @@ pft "WAR_ov" (
 
 	! hydraulic traits
 	wooddens 300  ! Peters et al (2021)
-	kmax 200 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.03   ! Peters et al (2021)
 	p88 -3.84   ! Peters et al (2021)
@@ -348,7 +348,7 @@ pft "WAR_un" (
 
 	! hydraulic traits
 	wooddens 279  ! Peters et al (2021) - weighted average of understory species
-	kmax 200 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.41   ! Peters et al (2021)
 	p88 -5.10   ! Peters et al (2021)
@@ -386,7 +386,7 @@ pft "Calp" (
 
 	! hydraulic traits
 	wooddens 400  ! Peters et al (2021) - average of euc species
-	kmax 35 ! maximum hydraulic conductivity (mol * m [height]/m2[xylem area]/s/MPa) per unit xylem area - to be tuned. Will be divided by height to give conductance.
+	kmax 9 ! maximum hydraulic conductance (mol/m2[xylem area]/s/MPa) per unit xylem area - to be tuned
 	stom_clos -3.5   ! Point of stomatal closure, usually p12 or turgor loss point (MPa)
 	p50 -7.47   ! Peters et al (2021) - average of euc species, -7.47
 	p88 -10.06   ! Peters et al (2021) - average of euc species
@@ -398,4 +398,41 @@ pft "Calp" (
 	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
 
 	respcoeff 0.3 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+)
+
+pft "Wombat" (
+
+	! Wombat, eucalyptus obliqua, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! hydraulic traits
+	wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+	kmax 25  ! maximum hydraulic conductance (mmol/m2/s/MPa) per unit xylem area - tuned
+	stom_clos -1.68   ! TLP from Pritzkow (2020a) Table S1
+	p50 -3.03   ! Used E. obliqua value for Warra from Peters (2021)
+	p88 -3.84   ! Used E. obliqua value for Warra from Peters (2021)
+	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 0.000069 ! NEED A VALUE - using Warra's
+	sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
 )

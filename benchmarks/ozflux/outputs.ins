@@ -77,7 +77,7 @@ file_dave_nmass_storage         "dave_nmass_storage.out"        ! N storage per 
 !file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capacity per individual (kgN/m2)
 file_dave_height                "dave_height.out"               ! Plant height (m)
 file_dave_diameter              "dave_diameter.out"             ! Stem diameter (m)
-!file_dave_density               "dave_density.out"              ! Density of individuals over patch (/m2)
+file_dave_density               "dave_density.out"              ! Density of individuals over patch (/m2)
 !file_dave_fpar                  "dave_fpar.out"                 ! Daily fpar [0-1]
 !file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
 !file_dave_phen                   "dave_phen.out"                 ! Daily phenology multiplier
@@ -103,8 +103,7 @@ file_dave_weighted_psi           "dave_weighted_psi.out"         ! Soil water po
 !file_dave_transpiration         "dave_transpiration.out"        ! Daily indiv-level transpiration (mm/day)
 !file_dave_cue                   "dave_cue.out"                  ! Daily carbon use efficiency
 !file_dave_ndemand               "dave_ndemand.out"              ! daily N demand mass (kgN/m2)
-!file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
-!file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
+
 file_dave_kmax_drought_affected  "dave_kmax_drought_affected.out"  ! dynamic kmax value impacted by drought, gradually recovers (mol/m2/s/MPa)
 file_dave_max_k_loss             "dave_max_k_loss.out"           !Fractional reduction in kmax due to xylem embolism
 
@@ -112,11 +111,17 @@ file_dave_max_k_loss             "dave_max_k_loss.out"           !Fractional red
 file_dave_layerwise_fpar        "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]
 file_dave_layerwise_lai         "dave_layerwise_lai.out"        ! Daily layered LAI (m2/m2)
 
+! Daily cohort-level outputs
+file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
+file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
+file_dave_hydraulics            "dave_hydraulics.out"           ! Summary file with kmax, lai and daily minimum lwp for all indivs
+
 ! Daily pft-level per-patch outputs.
 !file_dave_wscal                 "dave_wscal.out"                ! Water scalar [0-1], 1 = min stress
 !file_dave_cmass_litter_repr     "dave_cmass_litter_repr.out"    ! Seedbank cmass (kgC/m2)
 !file_dave_nmass_litter_repr     "dave_nmass_litter_repr.out"    ! Seedbank nmass (kgN/m2)
 !file_dave_dresp                 "dave_dresp.out"                ! Total daily pft-level autotrophic Respiration (kgC/m2)
+file_dave_anet_ps_ff              "dave_anet_ps_ff.out"          ! Annual potential photosynthesis at the forest floor (kgC/m2/year)
 
 ! Subdaily indiv-level per-patch outputs.
 file_dave_subdaily_an           "dave_subdaily_an.out"          ! Subdaily net photosynthesis (mol/m2/s)
@@ -208,11 +213,11 @@ file_dave_gpp                   "dave_gpp.out"                  ! Daily patch-le
 !file_dave_dfuel                 "dave_dfuel.out"                ! Daily blaze fuel availability (kgC/m2)
 !file_dave_dcoarse_woody_debris  "dave_dcoarse_woody_debris.out" ! Daily coarse woody debris (gC/m2)
 file_dave_met_temp              "dave_met_temp.out"             ! Daily air temperature (°C)
-!file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
+file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
 file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
-!file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
+file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
 file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
-!file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
+file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
 !file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pressure (Pa)
 !file_dave_sompool_cmass         "dave_sompool_cmass.out"        ! Daily SOM pool C mass (kgC/m2)
 !file_dave_sompool_nmass         "dave_sompool_nmass.out"        ! Daily SOM pool N mass (kgN/m2)
@@ -228,6 +233,10 @@ file_dave_met_precip            "dave_met_precip.out"           ! Daily precipit
 !file_dave_sompool_nmass         "dave_sompool_nmass.out"        ! Daily SOM pool N mass (kgN/m2)
 
 !file_dave_ninput                "dave_ninput.out"               ! Daily nitrogen deposition (kgN/m2)
+
+! Annual stand level outputs
+file_dave_anet_ps_ff_max        "dave_anet_ps_ff_max.out"          ! Maximum potential photosynthesis at the forest floor in any patch/year (kgC/m2/year)
+
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.

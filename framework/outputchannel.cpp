@@ -171,10 +171,15 @@ OutputChannel::get_current_row_text(const Table& table) const {
 }
 
 void OutputChannel::clear_current_row(const Table& table) {
+	 // Note: swap() causes high memory churn in subsequent calls to push_back()
+	 // so I have stopped doing this. finish_row() already contains a check to
+	 // ensure that the correct number of values have been written, so this
+	 // swap() doesn't achieve anything other than slowing down the model.
+
 	 values[table.id()].clear();
-	 std::vector<double>().swap(values[table.id()]); // clear array memory
+	 // std::vector<double>().swap(values[table.id()]); // clear array memory
 	 text_values[table.id()].clear();
-	 std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
+	 // std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
 }
 
 FileOutputChannel::FileOutputChannel(const char* out_dir,

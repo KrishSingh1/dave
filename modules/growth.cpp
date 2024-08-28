@@ -44,6 +44,7 @@
 #include "ncompete.h"
 #include <assert.h>
 #include "somdynam.h"
+#include "driver.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -54,16 +55,16 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 1.0e-5;
+const double ext_seed = 15.0e-6;
 
 // ---------------------------------
 // Grass parameters
 // ---------------------------------
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
-const double cstorage_max_temp = 0.2;  // leaves and roots
-const double cstorage_max_perm = 0.5;  // crowns
+//const double cstorage_max_temp = 0.3;   // leaves and roots
+//const double cstorage_max_perm = 0.75;  // crowns
 
-// Fraction of C storage not available for growth.
+// Fraction of maximum C storage not available for growth.
 const double frac_cstorage_res = 0.15;
 
 // Maximum mobilisation rate of C in storage
@@ -75,8 +76,8 @@ const double fphen_activity_min = 0.1;
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 const double dphen_activity_max = 0.3;
 
-// Fraction of reproductive pool available for reproduction (i.e. seed fraction)
-const double frac_seed = 0.5;
+// SLA of culms relative to leaves in grasses
+const double frac_sla_culm = 0.2;
 
 // Error tolerance (expressed as number of significant figures) used in mass balance checks.
 const double EPS = -12;
@@ -231,16 +232,11 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// LEAF PHENOLOGY
+// LEAF PHENOLOGY AND GROWTH
 // Call function leaf_phenology each simulation day prior to calculation of FPAR, to
 // calculate fractional leaf-out for each PFT and individual.
 // Function leaf_phenology_pft is not intended to be called directly by the framework,
 
-// Water stress scalar used for growth and dormancy
-double wscal_growth(double wscal) {
-	double qgrowth = 1.2; // growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	return min(1.0,max(0.0,pow(wscal,qgrowth)));
-}
 
 double wscal_growth_trees(double wscal) {
 	double b = 0.1;
@@ -259,7 +255,7 @@ double wscal_growth_trees(double wscal) {
 // "a 5–6°C threshold has often been identified to limit growth in cold adapted
 // species, irrespective of photosynthetic activity which typically
 // ceases only at freezing point (Koerner, 2008)"
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm, double k) {
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm) {
 	
 	double alpha   = 3.5;                   // unitless
 	double Ha      = Ha_growth * J_PER_KJ;  // J mol-1
@@ -276,7 +272,7 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	double ftemp;
 
 	ftemp = A_growth * (Tleaf * exp(-Ha / (R_gas * Tleaf))) / 
-			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) ) + k;
+			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
 
 	// low temperature adjustment to avoid simulating unrealistic growth demand
     // at very low or even negative temperatures (see also comment above).
@@ -290,47 +286,104 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	return max(0.0,min(1.0,ftemp));
 }
 
+// Water stress scalar used for growth and dormancy
+double wscal_growth(double wscal, double q) {
+	double wscal_min = 0.4;  // no growth under severe water stress (ideally consistent with pft.wscal_min)
+	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),q)));
+}
+
 // Photoperiod affecting development and thus growth demand
 // Effects likely limited to high latitude areas.
-// A formulation would also need to account for a lag (effects of photoperiod
-// on growth demand are not proportional with daylength_diff)
-double photo_growth(double daylength_diff) {
+double photo_growth(double reldaylength, double daylength_diff) {
 	return 1.0;
-	//return 1.0 + daylength_diff;
 }
+
+
+// Calculates dphen_activity, which is used for calculation of:
+// 1) the rate at which grasses enter or release dormancy (dormancy = true).
+// 2) the rate at which grasses resume growth after completion of reproductive cycle (dormancy = false).
+double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
+
+	Pft& pft = indiv.pft;
+	Patchpft &ppft = indiv.patchpft();
+	
+	// different water stress thresholds for dormancy and vegetative regrowth.
+	double wscal_min = dormancy ? pft.wscal_min : 0.6;
+
+	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
+	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+
+	//double wscal_actual = wscal_growth(wscal_mean);
+	double wscal_actual = wscal_mean;
+	double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+
+	// Changes in physiological activity due to changes in dormancy status
+	double denom_wscal = wscal_actual >= wscal_min ? pow((1.0 - wscal_min), 1.5) : wscal_min;
+	double num_wscal   = wscal_actual >= wscal_min ? pow((wscal_actual - wscal_min), 1.5) : (wscal_actual - wscal_min);
+
+	double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
+	tscal = tscal > 0.0 ? pow(tscal, 0.5) : tscal;
+	double wscal = num_wscal / denom_wscal;
+
+	assert(tscal >= -1.0 && tscal <= 1.0);
+	assert(wscal >= -1.0 && wscal <= 1.0);
+
+	// avoid greening just before winter in temperature-limited ecosystems.
+	// TODO: interactions with tscal and pscal?
+	double pscal = 1.0;
+
+	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
+	    ppft.daylength_10.periodictrend(1) < 0.0 && !dormancy) {
+			
+			double daylength_crit = 0.9;
+			double daylength_min  = 0.6;
+
+			pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
+				    				      (daylength_crit - daylength_min))) - 1.0;
+	}
+
+	return min(min(tscal,pscal),wscal) * dphen_activity_max;
+}
+
 
 // Development effects on relative growth rate.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, double ftemp_growth, double fRGR_repr) {
+void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
-		indiv.fdev_growth *= is_zero(1.0 - indiv.fdev_growth) ? fRGR_repr : 1.0;
-		indiv.fdev_growth *= (1.0 - ftemp_growth * 0.04);
-	
-	} else if (indiv.growth_stage == vegetative) {
-		
-		// if you just switched, check conditions: (maybe better: if fdev=fdev_growth_min)
-        if (is_zero(indiv.fdev_growth - fdev_growth_min)){  // 'passive' vegetative
-        // check if there is enough water to resume vegetative growth
-        	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-        	double wscal_trend = ppft.wscal_10.size() > 0 ? ppft.wscal_10.periodictrend(10) : 1.0;
-            
-        	double wscal = wscal_growth(wscal_mean);
 
-            // only resume active vegetative growth if conditions are save to do so.
-            // TODO: check for temperature conditions if meaningful
-			// TODO: make sure there is no double-counting with fphen_activity!
-			if ((wscal > 0.6 && wscal_trend >= 0.0) || (wscal > 0.9)) {
-					indiv.fdev_growth *= 1.01;
-			}
-        	// conditions not good enough to resume vegetative growth.
-        	// Stay in a passive vegetative (not dormant) state and keep your growth rate low.
-    	} else {
-			// TODO: increase according to conditions
-       		indiv.fdev_growth = min(1.0,indiv.fdev_growth * 1.2);
+		// TODO: better (and more interpretable) characterisation of a1 parameter.
+		// TODO: check if a2 parameter is needed.
+		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
+		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
+		// a1 parameter should depend on the size of the plant at flowering time.
+		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 0.03;  
+		double a1 = max(0.5,indiv.lai_flowering) * a1m;
+		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 1.0 : 0.25;
+		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
+		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
+		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - a1 * (frepr_cstruct / indiv.pft.reprfrac - a2)));
+
+
+	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
+
+		// Phase after switching from reproductive period back to vegetative period.
+        // check if conditions are suitable to resume vegetative growth.
+		// If not, maintain reduced growth rate or enter dormancy.
+
+		// TODO: deal with dphen_activity called twice.
+		double dphen_growth = dphen_activity(indiv, climate, false);
+
+		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
+		if (ppft.wscal_5.mean() < 0.6) { 
+			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
 		}
+		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
+
 	}
 }
 
@@ -343,11 +396,12 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
     for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		Pft &pft = pftlist.getobj();
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
-		ppft.airtemp_10.add(climate.temp);
+		ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
 		ppft.daylength_10.add(climate.daylength);
+		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
-	
-	
+
+
 	// Loop through cohorts (=individuals)
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -359,52 +413,54 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 		if (pft.is_grass()) { 
 
-			// Dormancy
+			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn pathway)
-				double grass_temp = indiv.vegetation.patch.soil.T_soil[6]; // Air temperature or bottom snow layer if snow present
-				double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
-				double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
-
-				double wscal_actual = wscal_growth(wscal_mean);
-				double tscal_actual = temp_growth(ppft.airtemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
-
-				// Changes in physiological activity due to changes in dormancy status
-				double denom_tscal = tscal_actual >= tscal_crit ? (1.0 - tscal_crit) : tscal_crit;
-				double denom_wscal = wscal_actual >= pft.wscal_min ? (1.0 - pft.wscal_min) : pft.wscal_min;
-
-				double tscal = (tscal_actual - tscal_crit) / denom_tscal;
-				double wscal = (wscal_actual - pft.wscal_min) / denom_wscal;
-			
-				assert(tscal >= -1.0 && tscal <= 1.0);
-				assert(wscal >= -1.0 && wscal <= 1.0);
-
-				// TODO: should tscal and wscal interact? Multiplication?
-				double dphen_activity = min(tscal,wscal)*dphen_activity_max;
-
-				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_activity)));
-
+				double dphen_dormancy = dphen_activity(indiv, climate, true);
+				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 			} else {
 			    // no dormancy in annuals
 				indiv.fphen_activity = 1.0;
 			}
 
-			// Determine whether grass is dormant (0), in the vegetative (1) or reproductive (2) stage
+
+			// 2) Development factor for growth (returns indiv.fdev_growth, which is used in
+			//    growth_demand() function returning growth demand).
+
+			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
+			//indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
+			indiv.cmass_struct = max(1.0e-9,indiv.get_cmass_leaf());
+			indiv.frepr_cstruct = min(1.0e3,indiv.cmass_repr / indiv.cmass_struct);
+
+			dev_growth(indiv, climate, indiv.frepr_cstruct);
+			
+
+			// 3) Switches between growth stages (indiv.growth_stage):
+			// 		0: dormant stage
+			// 		1: vegetative stage
+			// 		2: reproductive stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
-			// TODO: maybe increase dormancy switch threshold to 0.5 or similar?
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
+				indiv.cmass_struct = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(10) > 0.0 && cmass_storage_level > 0.7 && indiv.growth_stage_days > 60 && indiv.fdev_growth > 0.2){
-					indiv.growth_stage = reproductive;
-					indiv.growth_stage_days = 0;
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0){
+					if (indiv.lai > lai_min) {
+						indiv.growth_stage = reproductive;
+						indiv.growth_stage_days = 0;
+						indiv.lai_flowering = indiv.lai;
+					} else {
+						indiv.kill();
+						vegetation.killobj();
+						continue;
+					}
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
@@ -419,17 +475,17 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // dormancy
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
-                          indiv.growth_stage = dormant;
-                          indiv.growth_stage_days = 0;
+                    indiv.growth_stage = dormant;
+                    indiv.growth_stage_days = 0;
                 }
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend < 2.5e-2) {
+                if (repr_trend <= 0.001) {
                    indiv.growth_stage = vegetative;
                    indiv.growth_stage_days = 0;
                    indiv.fdev_growth = fdev_growth_min;
-				   indiv.fdev_temp = 0.0;
+				   indiv.cmass_struct = 0.0;
                 }
  
                 // flush reproductive tissue to seedbank.
@@ -437,7 +493,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                     indiv.flush_repr_litter_DAVE();
 				}
 			}
-			indiv.growth_stage_days += 1;		
+			indiv.growth_stage_days += 1;
 		} 
 		else {
 			indiv.fphen_activity = 1.0;
@@ -670,7 +726,12 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		Individual& indiv = vegetation.getobj();
 
 		// For this individual ...
-		indiv.phen = patch.pft[indiv.pft.id].phen;
+		if (!(indiv.pft.is_grass() && ifdavegrowth && ifdailygrass)) {
+			indiv.phen = patch.pft[indiv.pft.id].phen;
+		} else {
+			// Dave daily grass - phenology accounted for elsewhere.
+			indiv.phen = 1.0;
+		}
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day == 0) indiv.aphen_raingreen = 0;
@@ -1398,8 +1459,7 @@ double cstorage_capacity(Individual& indiv) {
 // Capacity of N storage (kg N m-2)
 double nstorage_capacity(Individual& indiv) {
 
-	return indiv.cstorage_max / indiv.pft.cton_leaf_min;  // TODO: OK to use leaf C:N here? Different limit for storage?
-														  //		--> prevent C:N ratio in storage from becoming too crazy through N storage limit. 
+	return indiv.cstorage_max / indiv.pft.cton_root_min;
 
 }
 
@@ -1508,13 +1568,18 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// note: don't set growth_stage here as it could change the status of an already established plant.
 			// indiv.growth_stage = vegetative;
 
+			// Need nonzero LAI for fapar calculation.
+			indiv.alive = true;
+			allometry(indiv);
 		} else {
 			indiv.cmass_storage += cmass_init;
 		 	indiv.nmass_storage += nmass_init;
 		}
 
 		indiv.alive = true;
-		indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+		if (!indiv.pft.dave_allocation()) {
+			indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
+		}
 
 		double cmass_after = indiv.ccont();
 		double nmass_after = indiv.ncont();
@@ -1767,6 +1832,8 @@ bool allometry(Individual& indiv) {
 	//    (11) lai_ind = cmass_leaf * sla
 
 	double fpc_new; // updated FPC
+	double lai_leaf=0.0;  // grass only
+	double lai_culm=0.0;  // grass only
 
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0;
@@ -1869,15 +1936,20 @@ bool allometry(Individual& indiv) {
 				// Grass "individual" LAI (Eqn 11). Green LAI only!
 				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 				if (ifdavegrowth) {
-					indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
+					lai_leaf = indiv.get_cmass_leaf() * (1.0 - indiv.pft.culmfrac) * indiv.sla();
+					lai_culm = indiv.get_cmass_leaf() * indiv.pft.culmfrac * (indiv.sla() * frac_sla_culm);
+					indiv.lai_indiv = lai_leaf + lai_culm;
+					// indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
 				}
 				
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 				// Root projective cover (RPC) introduced to capture feedback between 
-				// belowground C investment and available N. The following is equal to 
-				// 1.0 - lambertbeer(min(10.0,(0.5 * indiv.cmass_root * indiv.pft.sla)
-				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(1.0 * indiv.cmass_root / indiv.cmass_leafs[green])));
+				// belowground C investment and available N. eff_rpc represents the efficiency of 
+				// roots to cover volume, related to specfic root length (SRL in m g-1). SRL is ca. 4 times 
+				// higher in annuals than perennials (Roumet et al. 2006, New Phytologist).
+				double eff_rpc = indiv.pft.lifeform == GRASS_PERENNIAL ? 4.0 : 16.0; 
+				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(eff_rpc * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
@@ -3017,35 +3089,50 @@ double growth_demand(Individual& indiv) {
 
 	// Reduction of RGR in reproductive phase
 	const double fRGR_repr = 0.75;
+	// Sensitivity of water stress to growth
+	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
+	const double qgrowth = 1.5;
 
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
 	double growth_demand = 0.0;
 
+    // ------------------------------
+	// Calculate ancillary metrics
+	// ------------------------------
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = veg.patch.soil.T_soil[6];
 
-	// Total biomass 
-	double cmass_total = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() +
-						 indiv.cmass_repr + indiv.cmass_storage;
-	//double cmass_total = indiv.cmass_root + indiv.cmass_crown*0.2 + indiv.get_cmass_leaf();
+	// Total biomass used for estimation of potential growth demand.
+	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 
+	// Fill status of C and N storage
+    double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+    double nstorage_fill = max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
+
+
+    // ------------------------------
+	// Calculate growth demand
+	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal);
-	ftemp_growth  = temp_growth(grass_temp,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy, indiv.pft.k_growth);
-	fphoto_growth = photo_growth(ppft.daylength_10.periodictrend(1));  // set to 1.0 
-	dev_growth(indiv, ftemp_growth, fRGR_repr);
+	fwater_growth = wscal_growth(ppft.wscal, qgrowth);
+	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
+	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
+	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
+	double frepr = pft.is_grass() ? indiv.frepr_cstruct : fRGR_repr; // TODO Assaf: is this needed here?
+
 	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
-	// reduce growth demand under low storage (sink-source feedback)
-	// TODO: this feedback seems to be too strong --> reduce
-	growth_demand *= max(0.0,(indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-	
-	double nscal_demand = is_zero(indiv.nscal_5.mean()) ? 1.0 : indiv.nscal_5.mean();
-	growth_demand *= nscal_demand;
+	// feedbacks with C storage and N storage
+	// i.e. reduce growth demand when C or N are scarce.
+	//growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
+	double qfeedback = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
+	growth_demand *= pow(cstorage_fill,qfeedback);
+	growth_demand *= pow(nstorage_fill,qfeedback);
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -3059,7 +3146,6 @@ double growth_demand(Individual& indiv) {
 void storage_growth_partitioning_grass(Individual &indiv) {
 	// Local:
 	double cstore = 0.0;
-	double cexcess = 0.0;
 
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
@@ -3070,30 +3156,26 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);
 
-	// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
-	indiv.cgrow = 0.0;
-	indiv.cexcess = 0.0;
-	indiv.nexcess = 0.0;
-	indiv.nmass_missing = 0.0;
-	indiv.ctolitter = 0;
-	indiv.ntolitter = 0;
-
 	if (indiv.dnpp >= 0.0) {
 		
 		// Positive NPP
 
-		// TODO: make clear this only works for daily time steps (NPP in kgC m-2 d-1)	
-		//indiv.cgrow = indiv.growth_demand * Gpot;
 		indiv.cgrow = min(indiv.growth_demand,Gpot);
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
-		
-		// If C storage exceed its capacity take track of the excess C and reduce cstore
-		if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
-			cexcess += indiv.cmass_storage + cstore - indiv.cstorage_max;
-			indiv.cexcess += cexcess;
-			cstore = indiv.cstorage_max - indiv.cmass_storage;
+
+		// limit allocation to C storage if it is almost at capacity
+		double crefill_max = max(0.0, (indiv.cstorage_max - indiv.cmass_storage) * max_mobil_cstorage);
+		if (cstore > crefill_max) {
+			indiv.cexcess += cstore - crefill_max;
+			cstore = crefill_max; 
 		}
+
+		// If C storage exceed its capacity take track of the excess C and reduce cstore
+		//if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
+	    //	indiv.cexcess += indiv.cmass_storage + cstore - indiv.cstorage_max;
+		//	cstore = indiv.cstorage_max - indiv.cmass_storage;
+		//}
 
 	} else {
 
@@ -3102,7 +3184,6 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			//indiv.cgrow = indiv.growth_demand * Gpot;
 			indiv.cgrow = min(indiv.growth_demand,Gpot);
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
@@ -3134,7 +3215,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	}
 
 	assert(positive(indiv.cmass_storage));
-	assert(equal(indiv.dnpp, indiv.cgrow + cstore + cexcess));
+	assert(equal(indiv.dnpp, indiv.cgrow + cstore + indiv.cexcess));
 
 	// update cmass_storage
 	indiv.cmass_storage += cstore;
@@ -3350,7 +3431,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// temperature scalar for decoupling potosynthesis from growth (see Figure 9 in  Korner's 2-20 book)
 	double ftemp = temp_growth(indiv.patchpft().airtemp_10.mean(), 
 			indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth, 
-			indiv.pft.temp_dormancy, indiv.pft.k_growth);
+			indiv.pft.temp_dormancy);
 	assert(ftemp <= 1);
 	assert(ftemp >= 0);
 	// water scalar for decoupling potosynthesis from growth (Fatichi et al 2014)
@@ -3608,27 +3689,38 @@ void carbon_allocation_grass(Individual &indiv) {
 	Patchpft &ppft = indiv.patchpft();
 
 	if (!negligible(indiv.cgrow)) {
-		// 1) Reproduction
-		// Some of the NPP goes to reproduction if the plant is in the reproductive growth stage
+		
+		// 1) Crowns
+		if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
+			calloc_crown = 2.0 * indiv.pft.crownfrac;
+		} else if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+			calloc_crown = 0.0;
+		} else {
+			calloc_crown = indiv.pft.crownfrac;
+		}
+		
+		// 2) Reproduction
 		if (indiv.growth_stage == reproductive) {
-			calloc_repr = indiv.pft.reprfrac;
+			if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
+				calloc_repr = min(0.2 * indiv.pft.reprfrac,(1.0 - calloc_crown));
+			} else {
+				calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
+			}
 		} else {
 			calloc_repr = 0.0;
 		}
-
-		// 2) Crowns
-		calloc_crown = indiv.pft.crownfrac;
 
 		// 3) Shoots (Leaves + culms)
 		// express ltor_max as maximum fractional allocation to shoots (leaves + culms)
 		double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
-		calloc_leaf = calloc_leaf_max * sqrt(indiv.nscal_5.mean() * ppft.wscal_5.mean());
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5);
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
 		calloc_root = 1.0 - calloc_leaf - calloc_crown - calloc_repr;
+
 	}
 	else {
 		calloc_leaf  = 0.0;
@@ -3883,7 +3975,17 @@ void ndemand_grass(Individual &indiv) {
 	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
 	const double max_update_growth = 0.1;
 
+	// update growth depending on N stress of plant
+	// TODO JK: double check cases where nmass_storage > nstorage_max!!
+	// TODO JK: constrain cton ratio ;) 
+	double nstorage_fill = min(0.999999, max(0.000001, (indiv.nmass_storage / indiv.nstorage_max)));
+
 	// Local	
+	double cton_demand_leaf = 0.0;
+	double cton_demand_root = 0.0;
+	double cton_demand_crown = 0.0;
+	double cton_demand_repr = 0.0;
+
 	double ngrow_demand_leaf  = 0.0;
 	double ngrow_demand_root  = 0.0;
 	double ngrow_demand_repr  = 0.0;
@@ -3908,10 +4010,16 @@ void ndemand_grass(Individual &indiv) {
 			indiv.cmass_repr, indiv.nmass_repr,
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
 			indiv.cgrow_repr);
-		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_leaf;
-		ngrow_demand_root  = indiv.cgrow_root / cton_root;
-		ngrow_demand_crown = indiv.cgrow_crown / cton_crown;
-		ngrow_demand_repr  = indiv.cgrow_repr / cton_repr;
+		
+		cton_demand_leaf = (1.0 - nstorage_fill) * (indiv.pft.cton_leaf_max - indiv.pft.cton_leaf_min) + indiv.pft.cton_leaf_min;
+		cton_demand_root = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+		cton_demand_crown = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+		cton_demand_repr = (1.0 - nstorage_fill) * (indiv.pft.cton_repr_max - indiv.pft.cton_repr_min) + indiv.pft.cton_repr_min;
+
+		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_demand_leaf;
+		ngrow_demand_root  = indiv.cgrow_root / cton_demand_root;
+		ngrow_demand_crown = indiv.cgrow_crown / cton_demand_crown;
+		ngrow_demand_repr  = indiv.cgrow_repr / cton_demand_repr;
 	} else {
 		ngrow_demand_leaf  = 0.0;
 		ngrow_demand_root  = 0.0;
@@ -3920,24 +4028,27 @@ void ndemand_grass(Individual &indiv) {
 	}
 
 	// N demand of existing biomass (weight by current activity (growth) of the tissue?)
-	// TODO: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
 	double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
 	double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
 	double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_crown) * frac_nchange;
 	double nupdate_demand_repr  = max(0.0, indiv.cmass_repr / indiv.pft.cton_repr_min - indiv.nmass_repr) * frac_nchange;
 
 	// Make sure that nupdate_demands do not exceed N demands for growth (i.e. prioritise growth over existing biomass)
+	// Otherwise plants could not grow if C:N of the existing biomass is high.
 	// Alternatively, one could ask for the min C:N for new growth and not update existing biomass.
 	double ngrow_demand_growth_total = ngrow_demand_leaf + ngrow_demand_root + ngrow_demand_crown + ngrow_demand_repr;
 	double ngrow_demand_update_total = max(0.0, nupdate_demand_leaf + nupdate_demand_root + nupdate_demand_crown + nupdate_demand_repr);
 	double growth_update_ratio = min(max_update_growth, ngrow_demand_growth_total / ngrow_demand_update_total);
+
+	// Take N demand of storage into account
+	indiv.storendemand = max(0.0, indiv.nstorage_max - indiv.nmass_storage);
 
 	// Total biomass N demand of individual
 	indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf * growth_update_ratio;
 	indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root * growth_update_ratio;
 	indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown * growth_update_ratio;
 	indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr * growth_update_ratio;
-	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand;
+	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand + indiv.storendemand;
 
 }
 
@@ -3988,7 +4099,7 @@ void ndemand_tree(Individual &indiv) {
 	}
 
 	// N demand of existing biomass (weight by current activity (growth) of the tissue?)
-	// TODO: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
+	// TODO JK: this implies that growth is limited if current C:N is high, which shouldn't be the case. Make growth a priority?
 	double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
 	double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
 	double nupdate_demand_sap   = max(0.0, indiv.cmass_sap / indiv.pft.cton_sap_min - indiv.nmass_sap) * frac_nchange;
@@ -4035,6 +4146,7 @@ void ndemand_dave(Vegetation& vegetation) {
 void nuptake_dave(Vegetation& vegetation) {
 	Patch& patch = vegetation.patch;
 	Soil& soil = patch.soil;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 
 	// Create vector of CompetingIndividual objects, which will be passed into
 	// ncompete(). These are populated from the Individuals in the patch.
@@ -4043,7 +4155,7 @@ void nuptake_dave(Vegetation& vegetation) {
 		Individual& indiv = vegetation[i];
 
 		// Calculate whole-plant N:C status 
-		// TODO: revisit this calculation and check where cton_status is used.
+		// TODO JK: revisit this calculation and check where cton_status is used.
 		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_crown + indiv.nmass_sap) / (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_crown + indiv.cmass_sap);
 		double ntoc_max = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
@@ -4057,16 +4169,34 @@ void nuptake_dave(Vegetation& vegetation) {
 
 	// Calculate N competition.
 	double nmass_avail = soil.nmass_avail() * min(1.0, patch.rpc_total);
+
 	ncompete(competing_individuals, nmass_avail);  // TODO: check if OK/efficient to call ncompete even if ndemand < nsupply. 
 												   // --> if (nmass_avail < patch_total_ndemand) {
 
 	// Copy results back into Individual objects in the patch, and calculate
 	// total patch N demand.
 	patch.ndemand = 0;
+
+	// Calculate N limitation uptake due to limited N availability in soil
+	// soil available mineral nitrogen (kgN/m2)
+	const double nmin_avail = soil.nmass_avail();
+
+	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+	double kNmin = 0.05;
+
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-		indiv.fnuptake = competing_individuals[i].fnuptake;
+		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		double nmin_scale = kNmin + nmin_avail / (nmin_avail + gridcell.pft[indiv.pft.id].Km);
+        
+		// Nitrogen availability based on root projective cover
+		double max_indiv_avail = min(1.0, indiv.rpc);
+
+		// Nitrogen available for uptake
+		double favail_nuptake = min(nmin_scale, max_indiv_avail);
+
+		indiv.fnuptake = competing_individuals[i].fnuptake * favail_nuptake;
 		indiv.ndemand = competing_individuals[i].ndemand;
 
 		patch.ndemand += indiv.ndemand;
@@ -4139,6 +4269,13 @@ void update_pools_dave(Vegetation& vegetation) {
 		// Flush to root litter for now, but better alternatives could exist
 		if (indiv.nmass_storage > indiv.nstorage_max) {
 			double nexcess = indiv.nmass_storage - indiv.nstorage_max;
+			if (indiv.initialn > 0) {
+				double nvoid = min(indiv.initialn, nexcess);
+				indiv.initialn -= nvoid;
+				indiv.ntolitter += nvoid;
+				nexcess -= nvoid;
+				vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+			}
 			indiv.ntolitter += nexcess;
 			ppft.nmass_litter_root += nexcess;
 			indiv.nmass_storage = indiv.nstorage_max;
@@ -4148,15 +4285,19 @@ void update_pools_dave(Vegetation& vegetation) {
 		// Alternatively, one could implement a N:C storage > N:C leaf min constraint.
 		
 		double fnavail = 0.0;
+		double nstress = 0.0;
 		if (!negligible(indiv.ndemand)) {
-			fnavail = max(0.0, min(1.0,(indiv.nmass_storage / indiv.ndemand)));
+			//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
+			// TODO: define max_mobil_nstorage based on Yang et al. 2023, Journal of Ecology.
+			fnavail = max(0.0,min(1.0,((max_mobil_cstorage * indiv.nmass_storage) / (indiv.ndemand - indiv.storendemand))));
+			nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
 		}
 		
 		// calculate N stress factor 
 		if (!ifnlim || date.year < freenyears) {
 			indiv.nscal_5.add(1.0);
 		} else {
-			indiv.nscal_5.add(fnavail);
+			indiv.nscal_5.add(nstress);
 		}
 
 		double navail_leaf  = indiv.leafndemand * fnavail;
@@ -4247,7 +4388,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_sap += indiv.cgrow_sap;
 		indiv.cmass_repr  += indiv.cgrow_repr;
 
-		assert(equal(indiv.ndemand * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
+		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
 
 		// Always take up available N
 		if (pft.is_grass() || pft.lifeform == MOSS) {
@@ -4262,7 +4403,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.nmass_storage = max(0.0, indiv.nmass_storage - (navail_leaf + navail_root + navail_crown + navail_sap + navail_repr));
 
 		// Save yearly leaf and root growth. 
-		// TODO: check if crown and repr need to be added
+		// TODO JK: check if crown and repr need to be added
 		indiv.cmass_leaf_ygrowth += indiv.cgrow_leaf;
 		indiv.cmass_root_ygrowth += indiv.cgrow_root;
 
@@ -4308,14 +4449,21 @@ void update_pools_dave(Vegetation& vegetation) {
 void senescence_grass(Individual &indiv) {
 
 	// Parameters
-	const double crelocfrac = 0.1;      // TODO: move to constants?
-	const double nrelocfrac = 0.5;
-	const double senesc_base = 0.001;       // Baseline senescence rate in the vegetative phase (d-1)
-	const double senesc_scal_water = 4.0;   // senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_dorm  = 8.0;   // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	const double crelocfrac = 0.0;      // TODO: move to constants?
+	const double senesc_base = 0.00022;         // Baseline senescence rate (d-1)
+	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
+	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
+	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
+	// senescence scalar for reproductive phase
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 40.0;
+	// higher value --> less (more) senescence at beginning (end) of reproductive phase
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 20.0;    
+    // higher value --> lower sensitivity to water stress at high wscal
+	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
+	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
+	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
+	const double temp_senesc2 = 0.04;   // for temperatures above 0 degC  
 
-	const double qwater_senesc = 1.0;  // higher value --> higher sensitivity to water stress
-	const double temp_senesc = 0.05;   // increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	Vegetation &vegetation = indiv.vegetation;
@@ -4331,14 +4479,19 @@ void senescence_grass(Individual &indiv) {
 
 	double senesc = senesc_base;
 
-	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
+	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant || indiv.fdev_growth < 1.0) {
 
 		// stronger increase of senescence in annuals
-		double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.01 : 1.08;
-		indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
+		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
+		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
+		//indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
+		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
+		indiv.fdev_senesc = senesc_scal_repr * pow((1.0 - indiv.fdev_growth),qdev_senesc);
 
 	} else {
-		indiv.fdev_senesc = 1.0;
+
+		indiv.fdev_senesc = 0.0;
+
 	}
 
 	// Stress factors increase senescence
@@ -4347,26 +4500,30 @@ void senescence_grass(Individual &indiv) {
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
-	// TODO: improve formulation.
 	double senesc_ftemp = 0.0;
-	if (grass_temp < 0.0) {
-		senesc_ftemp = temp_senesc * (0.0 - grass_temp);
-	} else if (grass_temp > 35.0) {
-		senesc_ftemp = temp_senesc * (grass_temp - 35.0);
+	if (grass_temp < 0.0){
+		senesc_ftemp = -temp_senesc1 * grass_temp;
+	} else {
+		if (grass_temp < indiv.pft.temp_dormancy) {
+			senesc_ftemp = temp_senesc2 * (indiv.pft.temp_dormancy - grass_temp);
+		} else if (grass_temp >= indiv.pft.temp_dormancy) {
+			senesc_ftemp = temp_senesc2 * (grass_temp - 25.0);
+		}
 	}
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
-	//if (indiv.fphen_activity < 1.0 && (ppft.wscal_10.size() > 0 && ppft.wscal_10.mean() < pft.wscal_min)) {
-	if (indiv.fphen_activity < 1.0 ) {
+	if (indiv.fphen_activity < 1.0) {
 
-		senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
-
+		//senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
+        senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
 	// Total senescence rate
-	senesc *= (indiv.fdev_senesc * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp) * (1.0 + senesc_fdorm));
+	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
+	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + (1.0 + senesc_fwater)) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
+	indiv.senesc_root = senesc_base;
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
@@ -4452,22 +4609,54 @@ void senescence_dave(Vegetation& vegetation) {
 	}
 }
 
+/*
+Check if this PFT is established (and out of probation) in this patch.
+*/
+bool is_established(const Pft &pft, const Vegetation &vegetation) {
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// calculate the minimum cmass that leads to an establishment of lai >= lai_min
+double get_cmass_init_min(Patchpft& ppft) {
+
+	return lai_min / (ppft.pft.sla * (1.0 - cstorage_max_temp) * ppft.pft.ltor_max / (1.0 + ppft.pft.ltor_max));
+
+}
+
+
 
 // External seed input 
+// This should only be called if the PFT is not yet established at that location.
+// Otherwise PFTs need to rely on their local seedbank.
 void seed_dispersal_dave(Vegetation& vegetation) {
 
 	Patch& patch = vegetation.patch;
 	for (int i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 
-		if (!ppft.pft.dave_allocation()) {
+		double cmass_init_min = get_cmass_init_min(ppft);
+
+		if (!ppft.pft.dave_allocation() || is_established(ppft.pft, vegetation) ||
+			ppft.cmass_litter_repr > cmass_init_min) {
 			// This pft is not using dave allocation, and is therefore not using
 			// the daily establishment. This means the seedbank and seed
 			// dispersal will have no effect on this pft.
+
+			// This routine is also not used (i.e. no external seeds added)
+			// if either an individual of the PFT is alive or it still 
+			// has enough seeds in the seedbank to establish a plant > lai_min.
 			continue;
 		}
 
-		double ext_seed_c = ext_seed;
+		// divide the external seed influx by the number of PFTs simulated
+		// to not inflate N influx with higher number of PFTs.
+		double ext_seed_c = ext_seed / patch.pft.nobj;
 
 		// test for initial 
 		if (date.year == 0 && ppft.pft.lifeform == TREE) {
@@ -4476,11 +4665,13 @@ void seed_dispersal_dave(Vegetation& vegetation) {
 
 		double ext_seed_n = ext_seed_c / ((ppft.pft.cton_leaf_avr + ppft.pft.cton_root_avr) / 2.0);
 
-		ppft.cmass_litter_repr += ext_seed_c;
-		ppft.nmass_litter_repr += ext_seed_n;
+		ppft.cmass_ext_seed += ext_seed_c;
+		ppft.nmass_ext_seed += ext_seed_n;
+		//ppft.cmass_litter_repr += ext_seed_c;
+		//ppft.nmass_litter_repr += ext_seed_n;
 
-        patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
-		patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
+        //patch.fluxes.report_flux(Fluxes::ESTC, -ext_seed_c);
+		//patch.fluxes.report_flux(Fluxes::ESTN, -ext_seed_n);
 	}
 }
 
@@ -4498,10 +4689,21 @@ void turnover_seed(Vegetation& vegetation) {
 			continue;
 		}
 
-		// Seed turnover
-		// Base turnover rate
-		double frac_turnover_seed = ppft.pft.turnover_repr / date.year_length();
-			
+		// Turnover rate of seeds
+
+		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
+		double surf_temp = vegetation.patch.soil.T_soil[6];
+		double surf_water = patch.soil.get_layer_soil_water(0);
+		
+		// Base turnover rate modified by temperature and water availability
+		double ftemp = 0.0, fwater = 0.0;
+		double base_turnover_seed = ppft.pft.turnover_repr / date.year_length();
+		respiration_temperature_response(surf_temp, ftemp); 
+		fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
+		double frac_turnover_seed = base_turnover_seed * ftemp * fwater;
+
+		// Turnover of the actual seedbank
+
 		// Carbon
 		double cturnover_repr = frac_turnover_seed * ppft.cmass_litter_repr;
 		ppft.cmass_litter_repr -= cturnover_repr;
@@ -4511,13 +4713,114 @@ void turnover_seed(Vegetation& vegetation) {
 		double nturnover_repr = frac_turnover_seed * ppft.nmass_litter_repr;
 		ppft.nmass_litter_repr -= nturnover_repr;
 		ppft.nmass_litter_root += nturnover_repr;
+
+		
+		// Turnover of the hypothetical external seedbank that is used for establishment
+		// of new PFTs. Note that this pool does not turn over into litter but 
+		// simply ceases to exist just like it appeared out of nowhere.
+
+		// Carbon
+		double cturnover_ext_seed = frac_turnover_seed * ppft.cmass_ext_seed;
+		ppft.cmass_ext_seed -= cturnover_ext_seed;
+		//ppft.cmass_litter_root += cturnover_ext_seed;
+
+		// Nitrogen
+		double nturnover_ext_seed = frac_turnover_seed * ppft.nmass_ext_seed;
+		ppft.nmass_ext_seed -= nturnover_ext_seed;
+		//ppft.nmass_litter_root += nturnover_repr;
+
 	}
 }
 
 
-//double turnover_dave(double turnover_rate, double& source, double& sink, double max_sink_size){
+/*
+@param ctolitter: Cumulative C sent to litter
+@param ntolitter: Cumulative N sent to litter
+*/
+void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
+	double &cpool, double &npool, double &cdest, double &ndest,
+	double &ctolitter, double &ntolitter, double &initialc, double &initialn,
+	double &cmass_storage, double &nmass_storage, double cstorage_max, double nstorage_max,
+	Patch &patch) {
 
-//}
+	if (cpool > 0.0) {
+
+		// Carbon
+
+		double cturnover = cpool * turnover_frac;
+
+		// Send some C to storage and some to litter.
+		double cstore = cturnover * crelocfrac;
+		double clitter = cturnover * (1.0 - crelocfrac);
+
+		if ( (cmass_storage + cstore) > cstorage_max) {
+			// Storage allocation would cause storage to exceed capacity.
+			// Reduce cstore to fill c storage and send the remainder to litter.
+			cstore = cstorage_max - cmass_storage;
+			clitter = cturnover - cstore;
+		}
+
+		// When this individual was established, some biomass appeared out of
+		// thin air (out of the void). This amount is initialc/initialn. We
+		// don't want this going into the soil, because this would result in
+		// long-term fertilisation of the system. Therefore, we reduce the
+		// biomass sent to litter until this imaginary biomass is returned to
+		// the void.
+		double cvoid = 0;
+		if (initialc > 0) {
+			cvoid = min(initialc, clitter);
+			clitter -= cvoid;
+
+			// This C entered the system as a negative establishment flux.
+			patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
+			initialc -= cvoid;
+		}
+
+		cpool      -= cturnover; // Split into clitter and cstore
+		cdest      += clitter;
+		ctolitter  += clitter; // Cumulative across pools
+		cmass_storage += cstore;
+
+		assert(equal(cturnover, cstore + clitter + cvoid));
+		ctolitter += cvoid; // temporary hack for mass balance checks
+
+
+		// Nitrogen
+
+		double nturnover = npool * turnover_frac;
+
+		// Send some N to storage and some to litter.
+		double nstore  = nturnover * nrelocfrac;
+		double nlitter = nturnover * (1.0 - nrelocfrac);
+
+		if (nmass_storage + nstore > nstorage_max) {
+			// Storage allocation would cause storage to exceed capacity.
+			// Reduce nstore to fill nstorage and send the remainder to litter.
+			nstore  = nstorage_max - nmass_storage;
+			nlitter = nturnover - nstore;
+		}
+
+		// See comment on cvoid for explanation.
+		double nvoid = 0;
+		if (initialn > 0) {
+			nvoid = min(initialn, nlitter);
+			nlitter -= nvoid;
+
+			// This N entered the system as a negative establishment flux.
+			patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+			initialn -= nvoid;
+		}
+
+		// Move nitrogen between pools.
+		npool           -= nturnover; // Split into nlitter and nstore
+		ndest           += nlitter;
+		ntolitter 		+= nlitter; // Cumulative between pools
+		nmass_storage   += nstore; // Move N to storage
+
+		assert(equal(nturnover, nstore + nlitter + nvoid));
+		ntolitter += nvoid; // temporary hack
+	}
+}
 
 // Note: cropallocation.cpp contains a function called turnover_grass(). I am
 // therefore avoiding reusing this name here.
@@ -4529,98 +4832,51 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
-	
-	// crown turnover relative to shoot turnover.
-	double scal_crown_turnover = 0.3;
+	// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
+	double surf_temp = vegetation.patch.soil.T_soil[6];
+	double surf_water = patch.soil.get_layer_soil_water(0);
 
-	// TODO: turnover rates should be moisture and temperature dependent. They also need to be higher than the annual rates.
-	double frac_turnover_leaf = 2.0 * indiv.pft.turnover_leaf / date.year_length();
-	double frac_turnover_crown = scal_crown_turnover * frac_turnover_leaf;
-	//double frac_turnover_root = (pow((1 - ppft.wscal),0.4) * 4.0) * indiv.pft.turnover_root / date.year_length();
-	double frac_turnover_root = 3.0 * indiv.pft.turnover_root / date.year_length();
+	// crown turnover relative to root turnover.
+	double scal_crown_turnover = 0.35;
+
+	// Turnover of living tissues (root and crown)
+	// senesc_root equals the baseline senescence rate of leaves.
+	double frac_turnover_root = 20.0 * indiv.senesc_root;	
+	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
+
+	// Turnover of brown shoots (same temperature and moisture responses as for seeds)
+	double ftemp = 0.0, fwater = 0.0;
+	double kleaf = 0.01;  // base respiration rate of brown shoots at 10degC
+	// Temperature response
+	respiration_temperature_response(surf_temp, ftemp);  // Lloyd & Taylor 1994
+	// Soil moisture response (Parton et al. 2001). 
+	// Note that Parton et al. 2001 used PPT/PET instead of wcont.
+	//fwater = pow(surf_water,1.0);
+	fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
+	double frac_turnover_leaf = kleaf * ftemp * fwater;
 
 	// Dead shoot turnover (brown shoot --> leaf litter)
-	if (indiv.cmass_leafs[brown] > 0.0) {
-
-		// Carbon
-		double cturnover_leaf = indiv.cmass_leafs[brown] * frac_turnover_leaf;
-
-		indiv.cmass_leafs[brown]  -= cturnover_leaf;
-		ppft.cmass_litter_leaf    += cturnover_leaf;
-		indiv.ctolitter           += cturnover_leaf;
-
-
-
-		// Nitrogen
-		double nturnover_leaf = indiv.nmass_leafs[brown] * frac_turnover_leaf;
-		
-		indiv.nmass_leafs[brown]   -= nturnover_leaf;
-		ppft.nmass_litter_leaf     += nturnover_leaf;
-		indiv.ntolitter            += nturnover_leaf;
-
-	}
-
+	turnover_pool(frac_turnover_leaf, 0, 0, indiv.cmass_leafs[brown],
+                  indiv.nmass_leafs[brown], ppft.cmass_litter_leaf,
+                  ppft.nmass_litter_leaf, indiv.ctolitter, indiv.ntolitter,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+	
 	// Crown turnover
 	// TODO: put into function (same for roots and crowns)!	
-	if (indiv.cmass_crown > 0.0) {
-
-		// baseline turnover rate
-		double cturnover_crown = indiv.cmass_crown * frac_turnover_crown;
-
-		indiv.cmass_crown        -= cturnover_crown;
-		ppft.cmass_litter_root   += cturnover_crown;
-		indiv.ctolitter          += cturnover_crown;
-
-		// Nitrogen (including retranslocation)
-		double nturnover_crown = indiv.nmass_crown * frac_turnover_crown;
-		double nstore    = nturnover_crown * nrelocfrac;
-		double ntolitter = nturnover_crown * (1.0 - nrelocfrac);
-
-		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-			nstore    = indiv.nstorage_max - indiv.nmass_storage;	
-			ntolitter = nturnover_crown - nstore;
-		}
-
-		indiv.nmass_crown        -= nturnover_crown;
-		ppft.nmass_litter_root   += ntolitter;
-		indiv.nmass_storage      += nstore;
-		indiv.ntolitter          += ntolitter;
-
-		assert(equal(nturnover_crown, nstore + ntolitter));
-	}
-
+	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
+                  indiv.nmass_crown, ppft.cmass_litter_root,
+                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
 	// Root turnover (roots --> root litter)
-	// TODO: should this be in senescence as well? Dead root pool?
-	if (indiv.cmass_root > 0.0) { 
+	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
+                  indiv.nmass_root, ppft.cmass_litter_root,
+                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
-		// TODO: include C resorption from roots?
-		// Carbon
-		double cturnover_root = indiv.cmass_root * frac_turnover_root;
-		
-		indiv.cmass_root        -= cturnover_root;
-		ppft.cmass_litter_root  += cturnover_root;
-		indiv.ctolitter         += cturnover_root;
-
-
-		// Nitrogen (including retranslocation)
-		double nturnover_root = indiv.nmass_root * frac_turnover_root;
-		double nstore    = nturnover_root * nrelocfrac;
-		double ntolitter = nturnover_root * (1.0 - nrelocfrac);
-
-		if (indiv.nmass_storage + nstore > indiv.nstorage_max) {
-			nstore    = indiv.nstorage_max - indiv.nmass_storage;	
-			ntolitter = nturnover_root - nstore;
-		}
-
-		indiv.nmass_root        -= nturnover_root;
-		ppft.nmass_litter_root  += ntolitter;
-		indiv.ntolitter         += ntolitter;
-
-		indiv.nmass_storage     += nstore;
-
-		assert(equal(nturnover_root, nstore + ntolitter));
-	}
 }
 
 // Turnover of green pools to litter. 
@@ -4634,10 +4890,6 @@ void turnover_tree(Individual &indiv) {
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap
 	//          ppft.cmass_litter_leaf, ppft.cmass_litter_root, indiv.cmass_heart
 
-	// fraction of senesced N that goes to storage (-). 
-	// TODO: also in turnover_dave() function. Further, check for literature 
-	// evidence.
-	const double nrelocfrac = 0.5;
 	// maximum relative change in leaf and root senescence as a result of  
 	// water stress (made up)
 	const double senesc_scal_water = 4; 
@@ -4839,9 +5091,6 @@ void turnover_tree(Individual &indiv) {
 // Transfer reproductive tissue to litter if end of growth cycle is reached.
 void turnover_dave(Vegetation& vegetation) {
 
-    // TODO: move to constants
-	const double nrelocfrac = 0.5;
-
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
@@ -4862,6 +5111,77 @@ void turnover_dave(Vegetation& vegetation) {
 }
 
 
+// Allocate excess C and N to target pool.
+void allocate_excess(double &cexcess, double &nexcess, double &cpool_dest, double &npool_dest,
+					 double &cmass_storage, double &nmass_storage, double cton_min, double cton_max,
+					 double calloc_max) {
+
+	if ((nmass_storage + nexcess) > 0.0) {
+
+		double cdest = 0.0;
+		double ndest = 0.0;
+
+		// if there is excess N, try to allocate all of it to the destination pool
+		if (nexcess > 0) {
+			cdest = nexcess * cton_min;
+			ndest = nexcess;
+		}
+
+		// allocate as much of cexcess as we can (given N excess and C:N ratios)
+		if (cexcess > 0) {
+			cdest = max(cdest, cexcess);
+			ndest = max(ndest, cdest / cton_max);
+		}
+
+		// case where cdest exceeds available C storage and C excess (could happen under large N excess)
+		// Note: half of max_mobil_cstorage is taken as cdest is allocated to two pools.
+		if (cdest > (cmass_storage * 0.5 * max_mobil_cstorage + cexcess)) {
+			cdest = (cmass_storage * 0.5 * max_mobil_cstorage + cexcess);
+			ndest = cdest / cton_min;
+		}
+
+		// case where ndest exceeds available N storage and N excess (could happen under large C excess)
+		if (ndest > (nmass_storage * 0.5 * max_mobil_cstorage + nexcess)) {
+			ndest = (nmass_storage * 0.5 * max_mobil_cstorage + nexcess);
+			cdest = ndest * cton_min;
+		}
+
+		if (cdest > calloc_max) {
+			cdest = calloc_max;
+			ndest = calloc_max / cton_max;
+		}
+
+		// add allocated cexcess to indiv.cgrow for use in respiration routine
+		// TODO: is this needed?
+		// indiv.cgrow += cdest; 
+
+		// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
+		if (cexcess <= cdest) {
+			// cannot be fulfillled by cexcess (could happen under high N excess)
+			cmass_storage -= (cdest - cexcess);
+			cexcess = 0.0;
+		} else {
+			// can be fulfilled by cexcess
+			cexcess -= cdest;
+		}
+
+		if (nexcess <= ndest) {
+			// cannot be fulfillled by nexcess (could happen under high C excess)
+			nmass_storage -= (ndest - nexcess);
+			nexcess = 0.0;
+		} else {
+			// can be fulfilled by nexcess
+			nexcess -= ndest;
+		}
+
+		cpool_dest += cdest;
+		npool_dest += ndest;
+
+	}
+
+}
+
+
 // Determine what to do with excess C when storage exceeds its capacity.
 // This routine is also used to actively redistribute C storage to 
 // reproduction in some cases. Strictly, this should be done somewhere else,
@@ -4875,9 +5195,10 @@ void storage_overflow(Individual& indiv) {
 	// If LAI is very low, move all storage to reproduction to kill the annual.
 	// If this is not done, there is a risk that the plant will continue living with a very
 	// low storage for a very long time. 
-	// TODO: have a look at respiration of reproductive pool. This could solve the problem as well.
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
-		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.cmass_leafs[green]); 
+		// TODO JK: limit allocation to repr for annuals to avoid unrealistic growth rates? 
+		// TODO JK: refine frac to be more consistent with the rest of the code!
+		double frac = max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;
 		}
@@ -4891,58 +5212,31 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.cexcess > 0.0 || indiv.nexcess > 0.0) {
 
-		if (indiv.growth_stage == reproductive && indiv.nmass_storage > 0.0) {
-			// TODO: check if we need to keep track of indiv.cexcess or if we could just
-			//       check overflow at the end of the day. 
+		// decide where to put excess C (or excess N).
+		// If the plant is in the reproductive phase, put excess into repr
+		if (indiv.growth_stage == reproductive) {
+			
+			double cexcess_repr = min(indiv.cexcess, indiv.cgrow_repr);
 
-			double crepro = 0.0;
-			double nrepro = 0.0;
-
-			if (indiv.nexcess > 0) {
-				crepro = indiv.nexcess * pft.cton_repr_min;
-				nrepro = indiv.nexcess;
-			}
-
-			if (indiv.cexcess > 0) {
-				crepro = max(crepro, indiv.cexcess);
-				nrepro = max(nrepro, crepro / pft.cton_repr_max);
-			}
-
-			if (crepro > (indiv.cmass_storage + indiv.cexcess)) {
-				crepro = indiv.cmass_storage;
-				nrepro = crepro / pft.cton_repr_min;
-			}
-
-			if (nrepro > (indiv.nmass_storage + indiv.nexcess)) {
-				nrepro = indiv.nmass_storage;
-				crepro = nrepro * pft.cton_repr_min;
-			}
-
-			indiv.cmass_repr += crepro;
-			indiv.nmass_repr += nrepro;
-
-			// TODO Drew: verify floating point accuracy. Perhaps create an else-if branch.
-			if (indiv.cexcess <= crepro) {
-				// cannot be fulfillled by cexcess
-				indiv.cmass_storage -= (crepro - indiv.cexcess);
-				indiv.cexcess = 0.0;
-			} else {
-				// can be fulfilled by cexcess
-				indiv.cexcess -= crepro;
-			}
-
-			if (indiv.nexcess <= nrepro) {
-				// cannot be fulfillled by nexcess
-				indiv.nmass_storage -= (nrepro - indiv.nexcess);
-				indiv.nexcess = 0.0;
-			} else {
-				// can be fulfilled by nexcess
-				indiv.nexcess -= nrepro;
-			}
-
+			// determine amount of C excess allocated to reproductive pool
+			// Note: allocate as much as possible of the C and N excess, but it needs to be 
+			//       constrained by stoichiometry. Crepr is the amount of C that was actually
+			//		 allocated to the reproductive pool. Function will draw down storage if 
+			//		 there is a strong imbalance between cexcess and nexcess.
+			allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_repr, indiv.nmass_repr, indiv.cmass_storage, 
+							indiv.nmass_storage, pft.cton_repr_min, pft.cton_repr_max, cexcess_repr);	
 		}
+
+		// Put as much of possible of the rest of C excess into the crown (perennials only).
+		double clim_crown = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.5 : 0.0;
+		double cexcess_crown = min(indiv.cexcess, clim_crown * indiv.cgrow);
+		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
+						indiv.nmass_storage, pft.cton_root_min, pft.cton_root_max, cexcess_crown);
+
 	}
 
+	// Now deal with excess C and N that cannot be allocated because of stoichiometry or
+	// because they would lead to excessive growth.
 	if (indiv.cexcess > 0.0) {
 		// TODO: decide what to do with excess C if you are not in the reproductive phase
 		// Option 1: respire
@@ -4950,7 +5244,7 @@ void storage_overflow(Individual& indiv) {
 		indiv.report_flux(Fluxes::NPP, -indiv.cexcess);
 
 		// Option 2; root exudates
-		// TODO: yet to be implemented
+		// TODO Adam: implement this.
 
 		// Option 3?
 
@@ -4961,8 +5255,16 @@ void storage_overflow(Individual& indiv) {
 
 	if (indiv.nexcess > 0.0) {
 		// flush to litter
-		ppft.nmass_litter_root += indiv.nexcess;
+
+		double nvoid = min(indiv.nexcess, indiv.initialn);
+		double nexcess = indiv.nexcess - nvoid;
+
+		ppft.nmass_litter_root += nexcess;
 		indiv.ntolitter += indiv.nexcess;
+
+		// This N entered the system as a negative establishment flux.
+		indiv.vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+		indiv.initialn -= nvoid;
 	}
 }
 
@@ -4971,15 +5273,17 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	// Do not let ps_sink_lim vary by more than 5% d-1
-	double const dmax_pslim = 0.05;
+	double dmax_pslim = 0.015;
+	// Do not let ps_sink_lim vary by more than dmax_pslim d-1
+	double const dpslim = dmax_pslim * (1.0 - indiv.fdev_growth);
 
 	// TODO: revisit cexcess / dgpp
-	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0) {
-		indiv.ps_sink_lim = max((1.0 - dmax_pslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
+	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {
+		indiv.ps_sink_lim = max((1.0 - dpslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
 	} 
 	else {
-		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dmax_pslim)); 
+		// assuming faster recovery than decline
+		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dpslim * 2.0)); 
 	}
 } 
 
@@ -4989,7 +5293,9 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
+		
 		Individual& indiv = vegetation[i];
+		Patchpft& ppft = indiv.patchpft();
 
 		if (!indiv.pft.dave_allocation()) {
 			// This PFT is not using the dave daily allocation scheme. Therefore
@@ -4997,7 +5303,7 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		// TODO: make sla age-dependent or make culmfrac dynamic
+		// TODO JK: make sla age-dependent or make culmfrac dynamic
 
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);
@@ -5019,8 +5325,17 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		indiv.cmass_storage_20.add(indiv.cmass_storage);
+		if ((indiv.age < 0.5 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
+			// do not 'count' days with germination in annuals and newly established perennials.
+			// Also do not include the very first day.
+			// Otherwise repr switch will happen too early.
+			// Note: right now it checks germination of the previous day, which is OK in this context.
+			indiv.cmass_storage_20.add(1.0);
+		} else {
+			indiv.cmass_storage_20.add(indiv.cmass_storage);
+		}
 		indiv.cmass_repr_10.add(indiv.cmass_repr);
+		indiv.frac_germ = 0.0;  // reset in vegdynam.cpp if > 0.0
 
 		indiv.cgrow_repr_20.add(indiv.cgrow_repr);
 
@@ -5211,11 +5526,9 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		// increase age in one day
-		if (indiv.pft.lifeform == TREE) {
-			indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
-		}
-		
+		// Increase age by one day
+		indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
+
 		// Initiate yearly maximum
 		if (date.day == 0) {
 			indiv.cmass_leaf_ygrowth = 0.0;
@@ -5268,6 +5581,28 @@ void annual_accounting_dave(Vegetation& vegetation) {
 	}
 }
 
+void growth_daily_accounting_dave(Vegetation &vegetation) {
+	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+
+		// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
+		indiv.cgrow           = 0.0;
+		indiv.cexcess         = 0.0;
+		indiv.nexcess         = 0.0;
+		indiv.nmass_missing   = 0.0;
+		indiv.ctolitter       = 0.0;
+		indiv.ntolitter       = 0.0;
+		indiv.ctolitter_leaf  = 0.0;
+		indiv.ntolitter_leaf  = 0.0;
+		indiv.ctolitter_root  = 0.0;
+		indiv.ntolitter_root  = 0.0;
+		indiv.ctolitter_repr  = 0.0;
+		indiv.ntolitter_repr  = 0.0;
+		indiv.ctolitter_crown = 0.0;
+		indiv.ntolitter_crown = 0.0;
+	}
+}
+
 void growth_daily_grass_dave(Patch& patch) {
 
 
@@ -5278,6 +5613,8 @@ void growth_daily_grass_dave(Patch& patch) {
 	// Record mass balance at start of day.
 	DaveMassBalance mass_balance;
 	mass_balance.init(vegetation);
+
+	growth_daily_accounting_dave(vegetation);
 
 		if (date.day == 0) {
 			flush_cmass_repr(patch);
@@ -5319,8 +5656,8 @@ void growth_daily_grass_dave(Patch& patch) {
 	mass_balance.check(vegetation);
 
 	// Management
-	// Grazing
-	//grazing_daily(indiv)
+	// Grazing and mowing
+	grazing_daily_dave(vegetation);
 
 	// yearly reporting. 
 	// TODO: Shouldn't be here. Check if needed at all.

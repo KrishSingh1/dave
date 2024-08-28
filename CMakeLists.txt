@@ -8,6 +8,19 @@
 cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
 
+set(COMPRESS_OUTPUT 0 BOOL "Compress output or not")
+find_package(ZLIB QUIET)
+if(ZLIB_FOUND)
+  set(COMPRESS_OUTPUT 1)
+  add_compile_definitions(COMPRESS_OUTPUT)
+  set(LIBS ${LIBS} z)
+
+  message(STATUS "Output compression has been enabled")
+else()
+  message(STATUS "find_package: not found: ZLIB. See LPJ-GUESS documentation." )
+  message(STATUS "Output compression disabled." )
+endif()
+
 # Compiler flags for building with Microsoft Visual C++
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of

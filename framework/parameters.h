@@ -374,6 +374,9 @@ extern bool ifdavephotosyn;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
+/// Whether LAI is distributed evenly across canopy layers for grasses.
+extern bool ifevenlaidist;
+
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value
 /// which is checked in ccont(), ncont(), etc.
@@ -388,6 +391,9 @@ extern bool ifapproximate_C4;
 
 /// whether to use growing degree days for grass development
 extern bool ifusegdd;
+
+/// whether to compress output files
+extern bool gzip_output;
 
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;

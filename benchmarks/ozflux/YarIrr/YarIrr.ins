@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Yarramundi Irrigated master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: YarIrr (Yarramundi Irrigated)"
+
+file_met_forcing        "../forcing/met/YarIrr.nc"
+file_met_spinup         "../forcing/barra2/Yarramundi.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

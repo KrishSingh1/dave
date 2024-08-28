@@ -228,6 +228,11 @@ Find the index of the specified element in an array. Return -1 if not found.
 */
 size_t index_of_float(float needle, float *haystack, size_t n);
 
+/*
+Check if the file exists.
+*/
+bool exists(const char *file);
+
 #endif // HAVE_NETCDF
 
 #endif // LPJ_GUESS_NCUTIL_H

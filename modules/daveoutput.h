@@ -18,6 +18,7 @@
 namespace GuessOutput {
 
 extern const int COLUMN_WIDTH;
+extern const int COLUMN_WIDTH_PFT;
 extern const int NUMERIC_PRECISION;
 extern const char *COLNAME_TOTAL;
 extern const char *COLNAME_MEAN;
@@ -156,10 +157,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) = 0;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) = 0;
 
 			/*
 			Check if this output file is enabled or not. It is enabled iff the
@@ -180,29 +181,37 @@ private:
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, double value);
+			void write_output(OutputChannel *channel, double value);
 
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, int value);
+			void write_output(OutputChannel *channel, int value);
+
+			/*
+			Write the text output value to the output file.
+
+			@param channel: Pointer to an output channel.
+			@param value: The value to be written.
+			*/
+			void write_output(OutputChannel *channel, const char *value);
 
 			/*
 			Finish the current row of output.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param lon: Longitude of gridcell.
 			@param lat: Latitude of gridcell.
 			@param year: Current calendar year.
 			@param day: Current day of year (0-364).
 			*/
-			void finish_row(OutputChannel &rows, double lon, double lat, int year, int day);
+			void finish_row(OutputChannel *channel, double lon, double lat, int year, int day);
 
 			/*
 			Function which gets columns used by this output file.
@@ -236,11 +245,11 @@ private:
 			Table *table;
 
 			/*
-			Check if an output should be written to the output rows object.
+			Check if an output should be written to the output channel.
 
-			@param out: The output rows object.
+			@param out: Pointer to an output channel.
 			*/
-			bool should_write(OutputRows &out);
+			bool should_write(OutputChannel *out);
 
 			/*
 			Assert that the output table is open. Terminate the simulation if not.
@@ -286,10 +295,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -301,8 +310,7 @@ private:
 			/*
 			Write all required row for the specified patch.
 
-			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param stand: The stand for which outputs should be written.
 			*/
 			std::vector<double> write_stand(const Stand &stand);
 
@@ -337,6 +345,8 @@ private:
 
 	/*
 	Base class for patch-level outputs.
+
+	This class produces one row of output for each patch in each stand.
 	*/
 	class PatchLevelOutput : public OutputFile {
 		public:
@@ -347,14 +357,13 @@ private:
 
 			/*
 			Write all rows of output to the output file for the current
-			timestep. No default implementation is provided, because the
-			implementation depends on the output - e.g. annual, daily, daily
-			per-patch, etc.
+			timestep. This will write a single row of output for each patch in
+			each stand.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -382,9 +391,9 @@ private:
 			Write all required row for the specified patch.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out) = 0;
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out) = 0;
 		private:
 			/*
 			Iff true, a column containing the sum of all other columns will be
@@ -399,19 +408,24 @@ private:
 			bool write_mean;
 	};
 
-	class IndividualOutput : public PatchLevelOutput {
+	/*
+	This class outputs non-aggregated individual-level data.
+	
+	This will produce one row of output for each individual in each patch on
+	each timestep. Use with caution.
+	*/
+	class IndividualOutput : public OutputFile {
 		public:
 			/*
 			Create a new individual output.
 
 			@param param_name: Name of the parameter in the instruction file which contains the output file name.
-			@param get_output: A function which returns the output value from an individual.
+			@param get_columns: Pointer to a function which returns the columns to be used in this output file.
 			@param description: A description of the output (including units!!).
-			@param aggregator: A function which aggregates the output value across individuals.
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			IndividualOutput(std::string param_name, OutputReader<Individual> *get_output, std::string description, double (*aggregator)(double *, int), bool sum, bool mean);
+			IndividualOutput(std::string param_name, std::vector<ColumnDefinition<Individual>> (*get_columns)(), std::string description, bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -419,35 +433,59 @@ private:
 			~IndividualOutput();
 
 			/*
-			Write a row of outputs containing one cell per individual.
+			Write all rows of output to the output file for the current
+			timestep. This will write one row per individual per patch.
 
-			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
+			@param gridcell: The current gridcell.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 		protected:
 			/*
-			Get column descriptors to be used for the output table.
+			Function which gets columns used by this output file.
 			*/
-			virtual ColumnDescriptors get_columns() override;
+			virtual ColumnDescriptors get_cols();
 
 		private:
 
 			/*
-			Pointer to a function which reads an output from a pointer to an
-			object of the template type.
+			Pointer to a function which generates column definitions to be used
+			for this output file.
 
-			@param indiv: An individual.
+			@param patch: The patch.
+			@param pft: The PFT.
 			@return: The value which appears in each column of the output table.
 			*/
-			std::unique_ptr<OutputReader<Individual>> read_output;
+			std::vector<ColumnDefinition<Individual>> (*get_column_definitions)();
 
 			/*
-			Pointer to a function which aggregates the output value across
-			individuals. Usually this would be a sum() or mean() function.
+			The column definitions. This will be empty until get_columns() is
+			called, when the output file is opened.
 			*/
-			double (*aggregator)(double *, int);
+			std::vector<ColumnDefinition<Individual>> columns;
+
+			/*
+			Iff true, a column containing the sum of all other columns will be
+			written to the output file.
+			*/
+			bool write_sum;
+
+			/*
+			Iff true, a column containing the mean of all other columns will be
+			written to the output file.
+			*/
+			bool write_mean;
+
+			/*
+			Name of the indiv ID column in individual output files.
+			*/
+			const char *COLNAME_INDIV_ID = "indiv";
+
+			/*
+			Name of the PFT column in individual output files.
+			*/
+			const char *COLNAME_PFT = "pft";
 	};
 
 	/*
@@ -478,10 +516,10 @@ private:
 			timestep. One row will be written for each array element. One column
 			will be written for each individual.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) override;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) override;
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
@@ -565,9 +603,9 @@ private:
 			Write a row of outputs containing one cell per array element.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -625,15 +663,23 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
 			*/
 			virtual ColumnDescriptors get_columns() override;
+
+			/*
+			Get the output value for a particular pft in a particular patch.
+
+			@param patch: The patch.
+			@param pft: The pft.
+			*/
+			virtual double get_value(const Patch &patch, const Pft &pft) const;
 
 		private:
 
@@ -646,6 +692,57 @@ private:
 			@return: The value which appears in each column of the output table.
 			*/
 			double (*read_output)(const Patch &patch, const Pft &pft);
+	};
+
+	/*
+	This class outputs one row per timestep and one column per pft. The output
+	value is per-indiv but for each pft is aggregated across all individuals of
+	that pft.
+	*/
+	class AggregatedIndivOutput : public PftOutput {
+		public:
+			/*
+			Create a new aggregated indiv output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param get_output: A function which returns the output value from an individual.
+			@param agg: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			AggregatedIndivOutput(std::string param_name, OutputReader<Individual> *get_output, double (*agg)(double *, int), std::string description, bool sum, bool mean);
+
+			/*
+			Destructor.
+			*/
+			~AggregatedIndivOutput() { }
+
+		protected:
+
+			/*
+			Get the output value for a particular pft in a particular patch.
+
+			@param patch: The patch.
+			@param pft: The pft.
+			*/
+			double get_value(const Patch &patch, const Pft &pft) const override;
+
+		private:
+
+			/*
+			Pointer to a function which reads an output from an individual. This
+			will then be aggregated across all individuals for each pft.
+
+			@param indiv: The individual.
+			@return: The value which appears in each column of the output table.
+			*/
+			std::unique_ptr<OutputReader<Individual>> read_output;
+
+			/*
+			Pointer to a function which aggregates the output value across individuals.
+			*/
+			double (*aggregator)(double *, int);
 	};
 
 	class CustomPatchLevelOutput : public PatchLevelOutput {
@@ -670,9 +767,9 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -721,9 +818,9 @@ private:
 			Write a row of outputs containing one cell per standpft.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -759,7 +856,8 @@ private:
 	std::vector<std::unique_ptr<OutputFile>> annual_outputs;
 
 	/*
-	Add an individual-level output.
+	Add an individual-level output which will, for each pft, be aggregated over
+	all cohorts/individuals of that pft.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param read_output: A function which returns a property of an individual to be written to each column.
@@ -768,7 +866,20 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
+	void add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
+
+	/*
+	Add an individual-level output. This will produce an output file with one
+	row per individual in the patch on each timestep.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns a property of an individual to be written to each column.
+	@param description: Description of the output (with units!!).
+	@param aggregator: Function which aggregates the output value across individuals.
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_indiv_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Individual>> (*get_columns)(), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
 
 	/*
 	Add a pft-level output.

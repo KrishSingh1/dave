@@ -32,9 +32,15 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 // Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
 double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS);
 
+// Temperature response function for leaf mitochondrial respiration (Heskel et al. 2016, PNAS)
+double respiration_temp_response(double Tl);
+
+// Light inhibition of leaf mitochondrial respiration.
+double light_inhibition(double PAR);
+
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
-double photosyn_solver(double g0, double g1, double X, double gamma, double beta, 
+double photosyn_solver(double g0, double X, double gamma, double beta, 
 					   double gamstar, double Rd, double Ca);
 
 // Calculate electron transport rate from PAR
@@ -82,11 +88,11 @@ const double THETA = 0.7;
 /// 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4 plants
 const double LAMBDA_SC4 = 0.4;
 
-/// leaf respiration as fraction of maximum rubisco, C3 plants
+/// leaf respiration as fraction of maximum carboxylation rate, C3 plants
 const double BC3 = 0.015;
 
-/// leaf respiration as fraction of maximum rubisco, C4 plants
-const double BC4 = 0.02;
+/// leaf respiration as fraction of maximum carboxylation rate, C4 plants
+const double BC4 = 0.025;
 
 /// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1
 const double JTOMOL = 4.6E-6;
@@ -108,7 +114,6 @@ const double GAMSTAR25 = 42.75E-6; // photorespiratory CO2 comp. point (Bernacch
 /// Activation energies (kJ mol-1)
 const double HA_V  = 59.70;  // Vcmax (Kumarathunge et al. 2019)
 const double HA_J  = 40.71;  // Jmax (Kumarathunge et al. 2019)
-const double HA_R  = 25.49;  // Rd (Kumarathunge et al. 2019) TODO: check!
 const double HA_KO = 36.38;  // Ko (Bernacchi et al. 2001)
 const double HA_KC = 79.43;  // Kc (Bernacchi et al. 2001)
 const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
@@ -117,60 +122,60 @@ const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
 const double DS_V = 639.43;  // Vcmax (Kumarathunge et al. 2019)
 const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
 
-// Deactivation energy for Vcmax, Jmax (kJ mol-1)
+// Deactivation energy for Vcmax, Jmax, Vpmax (C4) (kJ mol-1)
 const double HD = 200.0;
 
+// Exponents in soil water stress function (wscal^q)
+const double qs = 0.5;   // stomatal conductance
+const double qb = 1.0;   // biochemistry, including Rd
 
 /// -----------------------------------------------
 /// C4 photosynthesis parameters
 /// -----------------------------------------------
-// Maximum Rubisco carboxylation rate (mol m-2 s-1)
-const double Vcmax25_C4 = 20.0E-6;
+// Maximum Rubisco carboxylation rate at 25 degC relative to Vpmax25 (Fan et al. dataset)
+const double rVC4 = 0.56;
+// Maximum electron transport rate at 25 degC relative to Vcmax25 (von Caemmerer 2021)
+const double rJC4 = 6.2;
+// PEP regeneration rate relative to Vcmax25 (von Caemmerer 2021)
+const double rVPr = 2.0;
 
-// Activation and deactivation energy and entropy term for Vcmax (Massad et al. 2007)
-//const double HA_V4 = 67.29;   // kJ mol-1
-const double HA_V4 = 78.00;   // kJ mol-1  // Boyd 2015
-const double HD_V4 = 144.57;  // kJ mol-1
-const double DS_V4 = 472.0;   // J mol-1 K-1
+// Activation and deactivation energy and entropy term for Vpmax (NAD-ME in Sonawane et al. 2017) 
+const double HA_VP = 58.0;   // kJ mol-1
+const double DS_VP = 640.0;  // J mol-1 K-1
 
-// Maximum electron transport rate (mol m-2 s-1)
-//const double Jmax25_C4 = 62.5E-6; // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Jmax25_C4 = 200.0E-6; // max. Jmax corresponding to 31.25 umol m-2 s-1 at 25degC. To be replaced!!
+// Activation and deactivation energy and entropy term for Vcmax (NAD-ME in Sonawane et al. 2017)
+const double HA_V4 = 52.0;   // kJ mol-1 
+const double DS_V4 = 630.0;  // J mol-1 K-1
 
-// Activation and deactivation energy and entropy term for Jmax (Massad et al. 2007)
-const double HA_J4 = 77.90;   // kJ mol-1
-const double HD_J4 = 191.93;  // kJ mol-1
-const double DS_J4 = 627.0;   // J mol-1 K-1
+// Activation and deactivation energy and entropy term for Jmax (fitted to data shown in Yamori et al. 2010 (C3 plant!!))
+const double HA_J4 = 37.90;  // kJ mol-1
+const double DS_J4 = 630.4;  // J mol-1 K-1
 
-// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
-const double Vpmax25 = 100.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+// Michaelis-Menten constant for Kp (Sonawane et al. 2017)
+const double KP25    = 115.0E-6;  // (mol mol-1) // fitted assuming gm of 1.1 mol m-2 s-1.
+const double HA_KP   = 38.3;      // activation energy for KP25 (kJ mol-1), DiMario & Cousins 2019
 
-// Activation and deactivation energy and entropy term for Vpmax (Massad et al. 2007) 
-//const double HA_VP = 70.37;  // kJ mol-1
-//const double HD_VP = 117.91; // kJ mol-1
-//const double DS_VP = 376.0;  // J mol-1 K-1
+// Partitioning factor of electron transport in mesophyll and bundle-sheath cells
+const double xj = 0.4;
 
-// Activation and deactivation energy and entropy term for Vpmax (Boyd et al. 2015) 
-const double HA_VP = 94.8;   // kJ mol-1
-const double HD_VP = 73.3;   // kJ mol-1
-const double DS_VP = 250.0;  // J mol-1 K-1
+// Fraction of cyclic electron transport (von Caemmerer 2021)
+const double fcyc = 0.3;
 
-// PEP regeneration rate (mol m-2 s-1)
-//const double Vpr = 20.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
-const double Vpr = 80.0E-6;  // assumed same Vcmax:Jmax ratio as in von Caemmerer 2021
+// Bundle-sheath conductance to CO2 (mol m-2 s-1)
+const double gbs = 0.003;  // von Caemmerer 2000
+						   // 0.00287 in Yin et al. 2016 
 
-// Michaelis-Menten constants (von Caemmerer 2021 and references therein)
-const double KP25    = 82.0E-6;  // (mol mol-1) 
+// Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
+const double C3_LEAF_NTOP = 10.7;
+
+// The following parameters are only used for the complex C4 photosynthesis formulation
+// Michaelis-Menten constant for CO2 and O2 (Boyd et al. 2015)
 const double KC25_C4 = 1210E-6;  // (mol mol-1)
 const double KO25_C4 = 292E-3;   // (mol mol-1)
 
 // Activation energies for Michaelis-Menten constants
-const double HA_KP    = 38.3;   // activation energy for KP_C4 (kJ mol-1), DiMario & Cousins 2019
 const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
 const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
-
-// Activation energy for day respiration in C4 plants
-const double HA_RD_C4 = 66.4;   // kJ mol-1 (von Caemmerer 2021)
 
 // Half the reciprocal of Rubisco specificity
 const double lgamstar = 0.0003817;  // Boyd et al. 2015
@@ -181,25 +186,11 @@ const double a0 = 0.047;
 // Fraction of PSII activity in the bundle sheath
 const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
 
-// Partitioning factor of electron transport in mesophyll and bundle-sheath cells
-const double xj = 0.4;
-
-// Bundle-sheath conductance to CO2 (mol m-2 s-1)
-const double gbs = 0.003;  // von Caemmerer 2000
-						   // 0.00287 in Yin et al. 2016 
-
-
-
-// Downregulation factor of respiration during dormancy
-const double fresp_dorm = 0.1;
 
 
 /// -----------------------------------------------
 /// Canopy-level parameters
 /// -----------------------------------------------
-// Nitrogen extinction coefficient within the canopy (Friend and Kiang 2005)
-const double kn = 0.11;
-
 
 /// leaf respiration as fraction of maximum rubisco, mosses
 // see Wania et al. (2009b)
@@ -219,9 +210,15 @@ const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
-inline double lambertbeer(double lai) {
-	return exp(-.5 * lai);
+inline double lambertbeer(double lai, double k=0.5) {
+	return exp(-k * lai);
 }
+
+// Leaf transmission coefficient (Sands, 1995)
+const double m_trans = 0.0;
+
+// Light extinction coefficient used for grasses in ifdavephotosyn
+const double k_beer_grass = 0.5;
 
 /// Alternative parameterisations of the convective boundary layer
 /**

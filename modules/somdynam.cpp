@@ -757,6 +757,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		// (negative value = immobilisation)
 		if (tot_net_min + nmin_mass + EPS >= 0.0) {
 
+			soil.net_mineralisation = tot_net_min;
 			net_mineralization = true;
 		}
 		else if (!ifnlim) {
@@ -814,6 +815,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		// Sum annual organic nitrogen leaching
 
 		soil.aorgNleach += leachsum_nmass;
+		soil.dorgNleach =  leachsum_nmass;
 
 		// Sum annual organic carbon leaching
 
@@ -1217,6 +1219,7 @@ void leaching(Soil& soil) {
 
 		soil.nmass_subtract(leaching,NO3);
 		soil.aminleach += leaching;
+		soil.dminleach =  leaching;
 	}
 
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
@@ -1321,13 +1324,14 @@ void vegetation_n_uptake(Patch& patch) {
 		nuptake_day = max(0.0, min(soil.nmass_avail(), indiv.ndemand * indiv.fnuptake));
 
 		// Add nitrogen uptake to daily growth indiv
+		indiv.anuptake += nuptake_day;
+		indiv.dnuptake = nuptake_day;
 		if (indiv.pft.dave_allocation() || (indiv.pft.is_grass() && ifdailygrass)) {
 
 			// N uptake added to storage
 			indiv.nmass_storage += nuptake_day;
 		}
 		else {
-			indiv.anuptake += nuptake_day;
 			indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
 			assert(indiv.nmass_leaf >= 0);
 			indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;

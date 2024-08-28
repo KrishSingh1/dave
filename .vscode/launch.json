@@ -1059,6 +1059,43 @@
             "preLaunchTask": "build"
         },
         {
+            "name": "Sevilletagrass",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Sevilletagrass.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/Sevilletagrass",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "prepare-run",
+        },
+        {
             "name": "Silver Plains",
             "type": "cppdbg",
             "request": "launch",
@@ -1429,17 +1466,54 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarramundiIrrigated",
+            "name": "YarCon",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarramundiIrrigated.ins"
+                "YarCon.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarramundiIrrigated",
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarCon",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "YarIrr",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "YarIrr.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarIrr",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1515,8 +1589,8 @@
                     "Whroo",
                     "WombatStateForest",
                     "Yanco",
-                    "YarramundiDegraded",
-                    "YarramundiIrrigated"
+                    "YarCon",
+                    "YarIrr"
                 ],
             }
         }

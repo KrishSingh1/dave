@@ -74,6 +74,9 @@ typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 /// Names of leaf pools in DAVE version
 typedef enum {green, brown} leafpool;
 
+/// Array size of mowdates
+const int num_mowdates = 5;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -711,6 +714,7 @@ public:
 	void clear(){
 		vcmax25   = 0.0;
 		jmax25    = 0.0;
+		vpmax25   = 0.0;
 
 		vcmax.clear();
 		jmax.clear();
@@ -728,7 +732,7 @@ public:
 			Rd.push_back(0.0);
 			An.push_back(0.0);
 			Anc.push_back(0.0);
-			Anj.push_back(0.0);     
+			Anj.push_back(0.0);
 			gsw.push_back(0.0);   
 			ci.push_back(0.0);
 		}
@@ -739,6 +743,9 @@ public:
 
 	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
 	double jmax25;  
+
+	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	double vpmax25;
 
 	// Maximum carboxylation rate (mol m-2 s-1)
 	std::vector<double> vcmax;
@@ -824,6 +831,11 @@ struct PhotosynthesisResult : public Serializable {
     double net_assimilation() const {
 		return (agd_g - rd_g) * KG_PER_G;
     }
+
+	/// Gross daily C assimilation (kgC/m2/day)
+	double gross_assimilation() const {
+		return agd_g * KG_PER_G;
+	}
 
 	void serialize(ArchiveStream& arch);
 };
@@ -1043,6 +1055,9 @@ public:
 
 	/// day length today (h)
 	double daylength;
+
+	/// maximum daylength in a year
+	double daylength_max;
 
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
@@ -1708,6 +1723,10 @@ public:
 	bool fallow;
 	/// Grazing intensity (daily grazing fraction)
 	double grazeintens;
+	/// Mowing date (julian day)
+	int mowdates[num_mowdates];
+	/// Mowing intensity (fraction of biomass removed on mowing date)
+	double mowintens;
 
 	ManagementType() {
 
@@ -1784,6 +1803,10 @@ public:
 		tillage_fact = 1.0;
 		fallow = false;
 		grazeintens = 0.0;
+		for (int n=0;n<num_mowdates;n++) {
+			mowdates[n] = -1;
+		}
+		mowintens = 0.0;
 	}
 
 	bool is_managed() {
@@ -2083,6 +2106,8 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
+	double extkn;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2132,9 +2157,6 @@ public:
 	double T0_growth;
 	/// Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012)
 	double A_growth;
-	/// Parameter 'K' in growth temperature relationship (-) (Inbar, 2024??)
-	double k_growth;
-
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
 	/// fraction of NPP allocated to crowns
@@ -2469,7 +2491,6 @@ public:
 		frootstart = 0.0;
 		frootend = 0.0;
 		forceautumnsowing = 0;
-		k_growth = 0;
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;
 		fertdates[0] = 0;
@@ -3081,6 +3102,8 @@ public:
 	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
+	/// peak aboveground leaf biomass (kgC/m2)
+	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
@@ -3123,14 +3146,20 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// temperature factor used to determine onset of growth. 
-    double fdev_temp;
+	/// LAI at flowering (vegetative - reproductive switch).
+	double lai_flowering;
+	/// fraction of reproductive biomass to structural biomass.
+	double frepr_cstruct;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
+	/// senescence rate of roots (d-1)
+    double senesc_root;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
 	/// number of days in current growth stage
 	int growth_stage_days;
+	/// fraction of seedbank that is germinating each day
+	double frac_germ;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// N exceeding storage capacity (kgN/m2/d)
@@ -3159,6 +3188,30 @@ public:
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
 
+	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_leaf;
+
+	/// Daily N sent from leaf to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_leaf;
+
+	/// Daily C sent from root to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_root;
+
+	/// Daily N sent from root to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_root;
+
+	/// Daily C sent from the reproductive biomass to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_repr;
+
+	/// Daily N sent from the reproductive biomass to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_repr;
+
+	/// Daily C sent from crown to litter (kgC/m2). This is an output, not a pool.
+	double ctolitter_crown;
+
+	/// Daily N sent from crown to litter (kgN/m2). This is an output, not a pool.
+	double ntolitter_crown;
+
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
 	/// root N biomass on modelled area basis on first day of land use change year
@@ -3178,9 +3231,8 @@ public:
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-	/// layer-wise fpar (see fpar description)
-	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	std::vector<double> fpar_layerwise;
+	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
+	std::vector<double> fipar_layerwise;
 
 	/// layer-wise lai (see lai description).
 	/// I've opted not to serialise this, as it's reinitialised each day.
@@ -3220,6 +3272,11 @@ public:
 
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
+
+	// Fraction of total photosynthesis limited by Anc and Anj, respectively.
+	double anc_frac;
+	double anj_frac;
+	double anp_frac;
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
@@ -3366,8 +3423,10 @@ public:
 	double andemand;
 	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
-	/// annual nitrogen uptake
+	/// annual nitrogen uptake (kgN/m2)
 	double anuptake;
+	/// daily nitrogen uptake (kgN/m2)
+	double dnuptake;
 	/// maximum size of nitrogen storage
 	double max_n_storage;
 	/// scales annual npp to maximum nitrogen storage
@@ -3442,11 +3501,22 @@ public:
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
-	/// GPP and NPP this day
+
+	/// GPP today (kgC/m2/day)
+	/// Note: in the trunk version, this is gross photosynthesis minus leaf respiration.
+	/// In the dave version, this is gross photosynthesis only.
 	double dgpp;
+
+	/// NPP this day (kgC/m2/day)
 	double dnpp;
+
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
+
+	// Maintenance respiration today (kgC/m2)
+	double resp_maintenance;
+	// Growth respiration today (kgC/m2)
+	double resp_growth;
 
 	// bvoc
 
@@ -3480,6 +3550,7 @@ public:
 	// because we need to report the initial N as an establishment flux 1 year
 	// later, because individuals experiencing allocation on an annual basis are
 	// not considered "alive" until 1 year after establishment.
+	double initialc;
 	double initialn;
 
 	double alpha_leaf;
@@ -4285,6 +4356,21 @@ public:
 	/// annual leaching of organics from carbon pool
 	double aorgCleach;	
 
+	// Daily net mineralisation (kgN/m2/day)
+	double net_mineralisation;
+
+	// Daily mineral N leaching (kgN/m2/day)
+	double dminleach;
+
+	// Daily leaching of organics from active nitrogen pool (kgN/m2/day)
+	double dorgNleach;
+
+	// Daily N volatilisation (kgN/m2/day).
+	double nvol;
+
+	// Daily nitrogen flux to atmosphere (kgN/m2/day).
+	double nloss_gas;
+
 	// Variables for fast spinup of SOM pools
 
 	/// monthly fraction of available mineral nitrogen taken up
@@ -4680,6 +4766,8 @@ public:
 	Historic<double, 5> wscal_5;
 	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 10> wscal_10;
+	/// ten day record of temperature of upper soil layer. Used in DAVE daily grass growth for determination of dormancy.
+	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
 
@@ -4690,8 +4778,14 @@ public:
 	Historic<double, 10> airtemp_10;
 	/// ten day record of daylength. Used in DAVE daily grass growth for determination of growth stages.
 	Historic<double, 10> daylength_10;
-	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
+	// Daylength relative to maximum daylength in a year.
+	double reldaylength;
+	/// cumulative temperature factor for growth.
+	double ftemp_cum;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 4 days
 	Historic<double, 4> wcont_germ_4;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 30 days
+	Historic<double, 30> wcont_germ_30;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
 	Historic<double, 14> wcont_germ_14;
 	// Temperature of upper soil layer over the last 3 days
@@ -4731,6 +4825,10 @@ public:
 	double cmass_litter_heart;
 	/// C litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_repr;
+	/// C in hypothetical external seed bank (kgC/m2)
+	double cmass_ext_seed;
+	/// N in hypothetical external seed bank (kgN/m2)
+	double nmass_ext_seed;
 	/// carbon lost during mortality
 	double cmass_mort;
 	/// carbon lost during fire
@@ -4810,15 +4908,17 @@ public:
 
 		cmass_litter_leaf = 0.0;
 		cmass_litter_root = 0.0;
-		cmass_litter_sap   = 0.0;
+		cmass_litter_sap  = 0.0;
 		cmass_litter_heart = 0.0;
 		cmass_litter_repr = 0.0;
+		cmass_ext_seed = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_repr  = 0.0;
+		nmass_ext_seed     = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;
@@ -5006,10 +5106,14 @@ public:
 	double intercep;
 	/// annual sum of AET (mm/year)
 	double aaet;
+	/// Daily transpiration (mm/day).
+	double transp;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
 	/// annual sum of soil evaporation (mm/year)
 	double aevap;
+	/// Daily soil evaporation (mm/day)
+	double evap;
 	/// annual sum of interception (mm/year)
 	double aintercep;
 	/// annual sum of runoff (mm/year)
@@ -5903,12 +6007,6 @@ Calculate a value for A_growth such that the temperature response equation
 described in <...> has a maximum value of 1.
 */
 double calc_a_growth(const Pft *pft);
-
-/*
-Calculate a value for k_growth such that the temperature response equation
-described in <...> has a maximum value of 1.
-*/
-double calc_k_growth(const Pft *pft);
 
 
 #endif // LPJ_GUESS_GUESS_H

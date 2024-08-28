@@ -158,4 +158,12 @@ std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
 	return out;
 }
 
+bool exists(const char *filename) {
+	if (FILE *file = fopen(filename, "r")) {
+		fclose(file);
+		return true;
+	}
+	return false;
+}
+
 #endif // HAVE_NETCDF

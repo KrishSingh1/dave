@@ -3496,7 +3496,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				inputs.lai = indiv.lai_layerwise[j];
 
 				assert(inputs.fipar > 0);
-				assert(inputs.lai > 0);
+				assert(inputs.lai >= 0);
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 

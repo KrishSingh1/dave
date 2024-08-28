@@ -105,6 +105,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_cmass"               , DAILY, [](const Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)", sum, true);
 	add_indiv_output("file_dave_nmass"               , DAILY, [](const Individual &i) { return i.ncont(); }, "Total N biomass per individual per patch (kgN/m2)", sum, true);
 	add_indiv_output("file_dave_cmass_storage"       , DAILY, [](const Individual &i) { return i.cmass_storage; }, "Storage C mass (kgC/m2)", sum, true);
+	add_indiv_output("file_dave_cmass_storage_dynam" , DAILY, [](const Individual &i) { return i.cmass_storage_dynam; }, "C mass storage dynamics (> 0 if saving C) (kgC/m2)", sum, true);
 	add_indiv_output("file_dave_cmass_storage_max"   , DAILY, [](const Individual &i) { return i.cstorage_max; }, "Storage capacity for C mass (kgC/m2)", sum, true);
 	add_indiv_output("file_dave_nmass_storage"       , DAILY, [](const Individual &i) { return i.nmass_storage; }, "Storage N mass (kgN/m2)", sum, true);
 	add_indiv_output("file_dave_nmass_storage_max"   , DAILY, [](const Individual &i) { return i.nstorage_max; }, "Storage capacity for N mass (kgN/m2)", sum, true);
@@ -139,7 +140,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_alpha_leaf"          , DAILY, [](const Individual &i) { return i.alpha_leaf; }, "Daily leaf sink strength (0-1)", mean, false, false);
 	add_indiv_output("file_dave_alpha_root"          , DAILY, [](const Individual &i) { return i.alpha_root; }, "Daily root sink strength (0-1)", mean, false, false);
 	add_indiv_output("file_dave_alpha_sap"           , DAILY, [](const Individual &i) { return i.alpha_sap; }, "Daily sap sink strength (0-1)", mean, false, false);
-	add_indiv_output("file_dave_alpha_repr"           , DAILY, [](const Individual &i) { return i.alpha_repr; }, "Daily repr sink strength (0-1)", mean, false, false);
+	add_indiv_output("file_dave_alpha_repr"          , DAILY, [](const Individual &i) { return i.alpha_repr; }, "Daily repr sink strength (0-1)", mean, false, false);
 	add_indiv_output("file_dave_cmass_leaf_limit"    , DAILY, [](const Individual &i) { return i.cmass_leaf_limit; }, "Daily optimum leaf pool size for trees (kgC/m2)", mean, false, false);
 	add_indiv_output("file_dave_cmass_root_limit"    , DAILY, [](const Individual &i) { return i.cmass_root_limit; }, "Daily optimum root pool size for trees (kgC/m2)", mean, false, false);
 	add_indiv_output("file_dave_cmass_sap_limit"     , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Daily optimum sap pool size for trees (kgC/m2)", mean, false, false);
@@ -154,7 +155,11 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_dturnover_leaf"      , DAILY, [](const Individual &i) { return i.cturnover_leaf; }, "daily leaf C turnover flux (kgC/m2/day)", mean, false, false);
 	add_indiv_output("file_dave_dturnover_root"      , DAILY, [](const Individual &i) { return i.cturnover_root; }, "daily root C turnover flux (kgC/m2/day)", mean, false, false);
 	add_indiv_output("file_dave_dturnover_sap"       , DAILY, [](const Individual &i) { return i.cturnover_sap; }, "daily sapwood C turnover flux (kgC/m2/day)", mean, false, false);
-
+	add_indiv_output("file_dave_dphen"               , DAILY, [](const Individual &i) { return i.phen; }, "daily phen (-)", mean, false, false);
+	add_indiv_output("file_dave_ftemp"               , DAILY, [](const Individual &i) { return i.ftemp; }, "coefficient that scales growth demand using air temperature (0-1)", mean, false, false);
+	add_indiv_output("file_dave_fwater"              , DAILY, [](const Individual &i) { return i.fwater; }, "coefficient that scales growth demand using wscal (0-1)", mean, false, false);
+	add_indiv_output("file_dave_fstorage"            , DAILY, [](const Individual &i) { return i.fstorage; }, "coefficient that scales growth according to actualt storage state (0-1)", mean, false, false);
+	add_indiv_output("file_dave_cgrow_pot"           , DAILY, [](const Individual &i) { return i.cgrow_pot; }, "coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)", mean, false, false);
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fpar_layerwise[i]; }, "Daily layered fpar [0-1]");
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");

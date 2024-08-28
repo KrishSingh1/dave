@@ -17,7 +17,7 @@ file_dave_patch_age             "dave_patch_age.out"            ! Annual patch-l
 !file_dave_mwcont_lower          "dave_mwcont_lower.out"         ! Monthly wcont_lower output file (0-1)
 !file_dave_apet                  "dave_apet.out"                 ! Annual potential patch-level evapotranspiration (mm)
 !file_dave_asimfire              "dave_asimfire.out"             ! Annual simfire analysis
-!file_dave_afuel                 "dave_afuel.out"                ! Annual blaze fuel availability (gC/m2)
+file_dave_afuel                 "dave_afuel.out"                ! Annual blaze fuel availability (gC/m2)
 !file_dave_acoarse_woody_debris  "dave_acoarse_woody_debris.out" ! Annual coarse woody debris (gC/m2)
 !file_dave_amet_year             "dave_amet_year.out"            ! Current year of met data being used
 !file_dave_aco2                  "dave_aco2.out"                 ! Annual atmospheric co2 concentration (ppm)
@@ -41,7 +41,7 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_anpp                  "dave_anpp.out"                 ! Total individual-level Annual NPP (kgC/m2/year)
 !file_dave_agpp                  "dave_agpp.out"                 ! Total individual-level Annual GPP (kgC/m2/year)
 !file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Leaf Respiration (kgC/m2/year)
-!file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
+file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
 file_dave_ancohort              "dave_ancohort.out"             ! Number of cohorts currently established per pft (unitless)
 
 ! Annual stand-level outputs.
@@ -62,6 +62,11 @@ file_dave_cmass                 "dave_cmass.out"                ! Total C biomas
 !file_dave_nmass                 "dave_nmass.out"                ! Total N biomass per individual per patch (kgN/m2)
 file_dave_cmass_storage         "dave_cmass_storage.out"        ! C storage per individual (kgC/m2)
 file_dave_cmass_storage_max     "dave_cmass_storage_max.out"    ! C storage capacity per individual (kgC/m2)
+file_dave_cmass_storage_dynam   "dave_cmass_storage_dynam.out"  ! C mass storage dynamics (> 0 if saving C) (kgC/m2)
+file_dave_ftemp                 "dave_ftemp.out"                ! coefficient that scales growth demand using air temperature (0-1)
+file_dave_fwater                "dave_fwater.out"               ! coefficient that scales growth demand using wscal (0-1)
+file_dave_fstorage              "dave_fstorage.out"             ! coefficient that scales growth according to actualt storage state (0-1)
+file_dave_cgrow_pot             "dave_cgrow_pot.out"            ! coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)
 file_dave_nmass_storage         "dave_nmass_storage.out"        ! N storage per individual (kgN/m2)
 file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capacity per individual (kgN/m2)
 file_dave_height                "dave_height.out"               ! Plant height (m)
@@ -136,6 +141,7 @@ file_dave_height_inc            "dave_height_inc.out"           ! Daily height g
 file_dave_dturnover_leaf        "dave_dturnover_leaf.out"       ! daily leaf C turnover flux (kgC/m2/day)
 file_dave_dturnover_root        "dave_dturnover_root.out"       ! daily root C turnover flux (kgC/m2/day)
 file_dave_dturnover_sap         "dave_dturnover_sap.out"        ! daily sapwood C turnover flux (kgC/m2/day)
+file_dave_dphen                 "dave_dphen.out"                ! daily phen (-)
 
 ! Daily patch-level outputs.
 file_dave_soil_nmass_avail      "dave_soil_nmass_avail.out"     ! Soil N available for plant uptake (kgN/m2)
@@ -149,8 +155,8 @@ file_dave_nee                   "dave_nee.out"                  ! Daily NEE (gC/
 file_dave_cmass_repr            "dave_cmass_repr.out"           ! Daily pft-level cmass_repr
 !file_dave_daylength             "dave_daylength.out"            ! Daily patch-level day-length (h)
 !file_dave_dsimfire              "dave_dsimfire.out"             ! Daily simfire analysis
-!file_dave_dfuel                 "dave_dfuel.out"                ! Daily blaze fuel availability (kgC/m2)
-!file_dave_dcoarse_woody_debris  "dave_dcoarse_woody_debris.out" ! Daily coarse woody debris (gC/m2)
+file_dave_dfuel                 "dave_dfuel.out"                ! Daily blaze fuel availability (kgC/m2)
+file_dave_dcoarse_woody_debris  "dave_dcoarse_woody_debris.out" ! Daily coarse woody debris (gC/m2)
 file_dave_met_temp              "dave_met_temp.out"             ! Daily air temperature (°C)
 file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
 !file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
@@ -197,13 +203,13 @@ file_nuptake "nuptake.out"
 !file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-!file_mnpp "mnpp.out"
+file_mnpp "mnpp.out"
 file_mlai "mlai.out"
 !file_mrh "mrh.out"
-!file_mgpp "mgpp.out"
+file_mgpp "mgpp.out"
 !file_mra "mra.out"
-!file_mnee "mnee.out"
-!file_maet "maet.out"
+file_mnee "mnee.out"
+file_maet "maet.out"
 !file_mpet "mpet.out"
 !file_mevap "mevap.out"
 !file_mintercep "mintercep.out"

@@ -242,6 +242,13 @@ double wscal_growth(double wscal) {
 	return min(1.0,max(0.0,pow(wscal,qgrowth)));
 }
 
+double wscal_growth_trees(double wscal) {
+	double b = 0.1;
+	double wscal_o = 0.7;
+  return 1 / (1 + exp( (wscal_o - wscal) / b) );
+}
+
+
 // Temperature scalar used for growth and dormancy
 // Relationship and parameters from Parent & Tardieu 2012, New Phytologist
 // representative species:
@@ -259,6 +266,11 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 	double T0      = T0_growth + K2degC;    // K
 	double Tleaf   = temp + K2degC;         // K   
 	double Tdorm   = temp_dorm + K2degC;    // K
+
+	// ASSAF : TEMPORATY PARAMETERS FOR TESTING. AIM: TO GET TREES TO STORE IN WINTER BY
+	// GETTING ftemp TO BE 0.
+	T0 = 30+ K2degC;
+	Tdorm = 15 + K2degC;
 
     // Note: A_growth was rescaled so that temp_growth ranges from 0-1
 	double ftemp;
@@ -1366,11 +1378,18 @@ double cstorage_capacity(Individual& indiv) {
 	} else {
 		// TODO: what about seedlings? cstorage_max cn be much higher than the total cmass of all the pools
 		const int nyear_turnover = 3;
-		double turnover_sap = indiv.cmass_sap * indiv.pft.turnover_sap;
-		double turnover_leaf = indiv.cmass_leaf * indiv.pft.turnover_leaf;
-		double turnover_root = indiv.cmass_root * indiv.pft.turnover_root;
-		double cstorage_opt = nyear_turnover * (turnover_sap + turnover_leaf + turnover_root);
-		return max(cstorage_opt, indiv.cstorage_max);
+		// double turnover_sap = indiv.cmass_sap * indiv.pft.turnover_sap;
+		// double turnover_leaf = indiv.cmass_leaf * indiv.pft.turnover_leaf;
+		// double turnover_root = indiv.cmass_root * indiv.pft.turnover_root;
+		// double cstorage_opt = nyear_turnover * (turnover_sap + turnover_leaf + turnover_root);
+
+		// return max(cstorage_opt, indiv.cstorage_max);
+
+
+
+		double cstorage_opt = indiv.cmass_sap * 0.5 + indiv.cmass_leaf * 0.2 + indiv.cmass_root * 0.5;
+		
+		return cstorage_opt;
 		// return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_sap;
 	}
 
@@ -1692,8 +1711,6 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	}
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // ALLOMETRY
 // Should be called to update allometry, FPC and FPC increment whenever biomass values
@@ -1756,6 +1773,20 @@ bool allometry(Individual& indiv) {
 
 
 	if (indiv.pft.lifeform == TREE) {
+
+		if (indiv.pft.dave_allocation()) {
+			
+			double cgrow_sap = indiv.cgrow_sap;
+			
+			indiv.cgrow_sap = 0;
+
+			// redirect to dave tree allomtery
+			allometry_dave_tree(indiv);
+			
+			indiv.cgrow_sap = cgrow_sap;
+
+			return true;
+		}
 
 		// TREES
 
@@ -1821,7 +1852,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.5;
+		indiv.boleht = 0.5 * indiv.height;
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
@@ -3308,15 +3339,13 @@ double calculate_cgrow_tree(Individual &indiv) {
 	
 	double store_state = 0;
 	// sigmoid function that will change depending on the saver-spender spectrum of the pft.
-	double piesize_coeff = 0;
+	double fstorage = 0;
 	if (indiv.cstorage_max > 0) {
 		
-		store_state = (indiv.cmass_storage / indiv.cstorage_max);
+		store_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
 		
-		piesize_coeff = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_int)))));
+		fstorage = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_saver)))));
 	}
-	
-	double cgrow = piesize_coeff * max_mobil_cstorage_tree * cmass_avail;
 	
 	// temperature scalar for decoupling potosynthesis from growth (see Figure 9 in  Korner's 2-20 book)
 	double ftemp = temp_growth(indiv.patchpft().airtemp_10.mean(), 
@@ -3325,15 +3354,45 @@ double calculate_cgrow_tree(Individual &indiv) {
 	assert(ftemp <= 1);
 	assert(ftemp >= 0);
 	// water scalar for decoupling potosynthesis from growth (Fatichi et al 2014)
-	double fwater = 1;
+	// double fwater = 1
+	double fwater = wscal_growth_trees(indiv.patchpft().wscal_10.mean());
 	// daylength scalar (currently off)
-	double fphoto = 1;
+	double fphoto = 1.0;
+	
+	// TO DO: Currently decided that cgrow will not depnd on environmental conditions.
+	// // rescale cgrow aacording to environmental conditions (temperature, soil water and light)
+	
+	double cgrow = max_mobil_cstorage_tree * cmass_avail;
+	// double cgrow = fstorage * max_mobil_cstorage_tree * cmass_avail;
+	
+	// cgrow potential which depends on environmental conditions(unitless). the higher 
+	// the value, higher proportion of cgrow will go to growth. 0 = no growth.
+	fstorage = store_state; // TEST THIS - LINEAR FSTORAGE
+	fstorage = 1; // TEST THIS - NO EFFECT OF STORAGE (REASON: LOW STORAGE WILL
+	// NOT ENCOURAGE FILLING OF STORAGE, BUT RATHER EXCERBRATE IT!)
+	double xthreshold = 0.7;
+	// double slope = 1/(1-xthreshold);
+	// double yintercept = -slope * xthreshold; // solving for the intercept
+	// fstorage = max(slope * store_state + yintercept, 0.0);
+	
+	double cgrow_pot = min(fstorage, min(ftemp, fwater));
+	// Scale the carbon that is potentially headed for tree growth by the minimum of 
+	// temperature and a water factor, assuming that either one can be the bottelneck 
+	// for growth.
+	cgrow *= cgrow_pot;	
+	// if (store_state < xthreshold){
+	// 	cgrow = 0;
+	// } 
+	// save the coeficients (for debugging)
+	indiv.ftemp = ftemp;
+	indiv.fwater = fwater;
+	indiv.fstorage = fstorage;
+	indiv.cgrow_pot = cgrow_pot;
 
-	// rescale cgrow aacording to environmental conditions (temperature, soil water and light)
-	cgrow *= ftemp * fwater * fphoto;
+	// cgrow *= min(ftemp, fwater);
 	// actual allowance of c for growth today (kgC/m^2)
-	return piesize_coeff * max_mobil_cstorage_tree * cmass_avail;
-
+	return cgrow;
+	
 }
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to
@@ -3351,7 +3410,9 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	indiv.nmass_missing = 0.0;
 	indiv.ctolitter = 0;
 	indiv.ntolitter = 0;
-
+	
+	// save cmass_storage from time t-1
+	double cmass_storage_before = indiv.cmass_storage;
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
 	
@@ -3382,7 +3443,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	}
 
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
-	// maximumvalue (eg, 10% of storage).
+	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
 	indiv.cgrow = calculate_cgrow_tree(indiv);
 
@@ -3391,6 +3452,12 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	
 	// remove cgrow from storage
 	indiv.cmass_storage -= indiv.cgrow;
+
+	// save cmass_storage from time t
+	double cmass_storage_after = indiv.cmass_storage;
+
+	// calculate the cmass storage dynamcs (> 0 if saving C)
+	indiv.cmass_storage_dynam = cmass_storage_after - cmass_storage_before;
 }
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to
@@ -3680,12 +3747,15 @@ void carbon_allocation_tree(Individual &indiv) {
 	double sum_relative_alphas = relative_alpha_leaf + relative_alpha_root + 
 						relative_alpha_sap + relative_alpha_repr;								
 
+	double alpha_sum = 0;
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
 	if (is_zero(sum_relative_alphas)) {
 		indiv.alpha_leaf = 0;
 		indiv.alpha_root = 0;
 		indiv.alpha_sap  = 0;
 		indiv.alpha_repr = 0;
+		// to allow passing of the assert below
+		alpha_sum = 1.0;
 	} else {
 		// No need for protected divde here. If we refactor out the above check
 		// for a zero value in the denominator, we should reinstate the use of a
@@ -3694,6 +3764,8 @@ void carbon_allocation_tree(Individual &indiv) {
 		indiv.alpha_root = relative_alpha_root / sum_relative_alphas;
 		indiv.alpha_sap = relative_alpha_sap / sum_relative_alphas;
 		indiv.alpha_repr = relative_alpha_repr / sum_relative_alphas;
+		// sum of all the alphas (should be 1)
+		alpha_sum = indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr;
 	}
 
 	// outputs:
@@ -3708,7 +3780,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	assert(positive(indiv.alpha_root));
 	assert(positive(indiv.alpha_sap));
 	assert(positive(indiv.alpha_repr));
-	assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
+	assert(equal(1.0, alpha_sum));
 }
 
 

@@ -3238,6 +3238,17 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
+	/// Storage flux (>0 if spending C; > 0 if storing C) (kgC/m2)
+	double cmass_storage_dynam;
+	/// coefficient that scales growth demand using air temperature (unitless)
+	double ftemp;
+	/// coefficient that scales growth demand using wscal (unitless)
+	double fwater;
+	/// coefficient that scales growth according to actualt storage state (unitless)
+	double fstorage;
+	/// a coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (unitless)
+	double cgrow_pot;
+
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)

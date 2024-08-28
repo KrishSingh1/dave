@@ -1729,6 +1729,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_ymax				= 0.0;
 	nmass_root_ymax				= 0.0;
 	cmass_storage				= 0.0;
+	cmass_storage_dynam			= 0.0;
+	ftemp			     		= 0.0;
+	fwater			   			= 0.0;
+	fstorage					= 0.0;
+	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
 	nstorage_max				= 0.0;
@@ -1929,6 +1934,11 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
+		& cmass_storage_dynam
+		&ftemp
+		&fwater
+		&fstorage
+		&cgrow_pot
 		& cmass_storage_20
 		& cstorage_max
 		& nmass_storage

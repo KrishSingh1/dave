@@ -3416,7 +3416,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (is_zero(indiv.nmass_leaf)) {
+		if (is_zero(indiv.nmass_leaf) || is_zero(ppft.wscal)) {
 			continue;
 		}
 

@@ -4077,7 +4077,8 @@ void forest_floor_dave(Patch &patch) {
 			photosynthesis_dave_c4(inputs, outputs);
 		}
 
-		ppft.anetps_ff += outputs.an;
+		// Convert from mol/m2/s to kgC/m2/day.
+		ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * SECS_PER_DAY;
 	}
 }
 

@@ -2972,6 +2972,11 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			vegetation.nextobj();
 		}
+
+		for (size_t i = 0; i < pftlist.nobj; i++) {
+			Patchpft &ppft = patch.pft[i];
+			ppft.anetps_ff = 0;
+		}
 	}
 
 	patch.wdemand_day = 0;

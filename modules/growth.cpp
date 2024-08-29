@@ -3839,15 +3839,12 @@ void carbon_allocation_tree(Individual &indiv) {
 	double sum_relative_alphas = relative_alpha_leaf + relative_alpha_root + 
 						relative_alpha_sap + relative_alpha_repr;								
 
-	double alpha_sum = 0;
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
 	if (is_zero(sum_relative_alphas)) {
 		indiv.alpha_leaf = 0;
 		indiv.alpha_root = 0;
 		indiv.alpha_sap  = 0;
 		indiv.alpha_repr = 0;
-		// to allow passing of the assert below
-		alpha_sum = 1.0;
 	} else {
 		// No need for protected divde here. If we refactor out the above check
 		// for a zero value in the denominator, we should reinstate the use of a
@@ -3856,8 +3853,7 @@ void carbon_allocation_tree(Individual &indiv) {
 		indiv.alpha_root = relative_alpha_root / sum_relative_alphas;
 		indiv.alpha_sap = relative_alpha_sap / sum_relative_alphas;
 		indiv.alpha_repr = relative_alpha_repr / sum_relative_alphas;
-		// sum of all the alphas (should be 1)
-		alpha_sum = indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr;
+		assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
 	}
 
 	// outputs:
@@ -3872,7 +3868,6 @@ void carbon_allocation_tree(Individual &indiv) {
 	assert(positive(indiv.alpha_root));
 	assert(positive(indiv.alpha_sap));
 	assert(positive(indiv.alpha_repr));
-	assert(equal(1.0, alpha_sum));
 }
 
 

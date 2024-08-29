@@ -2972,9 +2972,20 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			vegetation.nextobj();
 		}
+
+		for (size_t i = 0; i < pftlist.nobj; i++) {
+			Patchpft &ppft = patch.pft[i];
+			ppft.anetps_ff = 0;
+		}
 	}
 
 	patch.wdemand_day = 0;
+
+	// Clear yesterday's photosynthesis values.
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		indiv.ps_subdaily.clear();
+	}
 }
 
 /*
@@ -3410,7 +3421,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (is_zero(indiv.nmass_leaf)) {
+		if (is_zero(indiv.nmass_leaf) || is_zero(ppft.wscal)) {
 			continue;
 		}
 
@@ -3490,7 +3501,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				inputs.lai = indiv.lai_layerwise[j];
 
 				assert(inputs.fipar > 0);
-				assert(inputs.lai > 0);
+				assert(inputs.lai >= 0);
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 
@@ -4077,7 +4088,8 @@ void forest_floor_dave(Patch &patch) {
 			photosynthesis_dave_c4(inputs, outputs);
 		}
 
-		ppft.anetps_ff += outputs.an;
+		// Convert from mol/m2/s to kgC/m2/day.
+		ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * SECS_PER_DAY;
 	}
 }
 

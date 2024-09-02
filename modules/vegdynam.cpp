@@ -150,13 +150,6 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 
-	if (pft.lifeform == TREE && nindiv_max > 0) {
-		int nindiv = get_nindiv(patch, pft);
-		if (nindiv >= nindiv_max) {
-			return false;
-		}
-	}
-
 	/* Bypass all environmental limits except temperature for selected tree species after clearcut
 	 * (par_grass_mean not updated yet)
 	 */
@@ -862,13 +855,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 		}
-		// TODO: is the value for anetps_ff okay? Currently it is set as a constant 
-		// in case of ifdavephotosyn becasue Juergan's physiology in canopy_exchange 
-		// does not calculate anetps_ff at all.
-		if (ifdavephotosyn) {
-			patch.pft[pft.id].anetps_ff = 4.0;  // kg C m-2 yr-1
-			stand.pft[pft.id].anetps_ff_max = patch.pft[pft.id].anetps_ff;
-		}
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
@@ -1051,6 +1037,20 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
+					if (pft.lifeform == TREE && nindiv_max > 0) {
+						int nindiv = get_nindiv(patch, pft);
+						if (nindiv >= nindiv_max) {
+							if (newindiv > 0) {
+								// Reset running totals.
+								patch.pft[pft.id].anetps_ff_est = 0;
+								patch.pft[pft.id].wscal_mean_est = 0;
+								patch.pft[pft.id].nsapling = 0;
+							}
+							pftlist.nextobj();
+							continue;
+						}
+					}
+
 					// Now create 'newindiv' new Individual objects
 
 					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
@@ -1077,10 +1077,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
-
-						if (ifdavephotosyn) {
-							patch.pft[pft.id].anetps_ff_est = 4.0;  // kg C m-2 yr-1
-						}
 
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
 							bminit = PLANTSIZE; // Fixed sap size after first cutting

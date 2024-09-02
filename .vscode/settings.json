@@ -106,6 +106,7 @@
 	],
 	"C_Cpp.default.defines": [
 		"HAVE_NETCDF",
-		"COMPRESS_OUTPUT"
+		"COMPRESS_OUTPUT",
+		"HAVE_MPI"
 	]
 }

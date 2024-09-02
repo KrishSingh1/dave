@@ -63,6 +63,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_adensity" , ANNUAL, [](const Individual &i) { return i.densindiv; }, "Annual density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_altor"    , ANNUAL, [](const Individual &i) { return i.ltor; }, "Annual leaf to root ratio (unitless)", mean, true);
 	add_aggregated_indiv_output("file_dave_anuptake" , ANNUAL, [](const Individual &i) { return i.anuptake; }, "Total annual nitrogen uptake (kgN/m2/year)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_cmass", ANNUAL, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Annual total above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_belowground_cmass", ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_nmass", ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_belowground_nmass", ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
@@ -183,6 +187,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_ntolitter_repr"      , DAILY, [](const Individual &i) { return i.ntolitter_repr; }, "Total daily N sent from the repr pool to litter (kgN/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_crown"     , DAILY, [](const Individual &i) { return i.ctolitter_crown; }, "Total daily C sent from the crown pool to litter (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ntolitter_crown"     , DAILY, [](const Individual &i) { return i.ntolitter_crown; }, "Total daily N sent from the crown pool to litter (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_cmass"   , DAILY, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Daily above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Daily below-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
@@ -190,8 +198,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
 
 	// Daily individual-level array outputs.
-	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise[i]; }, "Daily layered fpar [0-1]");
-	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise[i];  }, "Daily layered LAI (m2/m2)");
+	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
+	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)");
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
@@ -243,6 +251,7 @@ DaveOutput::~DaveOutput() {
 
 void DaveOutput::init() {
 	double t_start = get_wall_time();
+	// rows = new OutputRows(output_channel, -1, -1, -1, -1);
 	open_outfiles();
 	total_time += get_wall_time() - t_start;
 }
@@ -250,9 +259,14 @@ void DaveOutput::init() {
 void DaveOutput::write_outputs(Gridcell &gridcell, std::vector<std::unique_ptr<OutputFile>> &outputs) {
 	ensure_channel_open();
 
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	// OutputRows rows(output_channel, lon, lat, year, date.day);
+
 	for (std::unique_ptr<OutputFile> &output : outputs) {
 		if (output->enabled()) {
-			output->write_rows(*output_channel, gridcell);
+			output->write_rows(output_channel, gridcell);
 		}
 	}
 }
@@ -497,40 +511,40 @@ void DaveOutput::OutputFile::close(OutputChannel &channel) {
 	channel.close_table(*table);
 }
 
-bool DaveOutput::OutputFile::should_write(OutputRows &rows) {
+bool DaveOutput::OutputFile::should_write(OutputChannel *channel) {
 	if (!should_write_today()) {
 		return false;
 	}
 	return true;
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, double value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, double value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, value);
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, int value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, int value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, value);
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, const char *value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, const char *value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, value);
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::finish_row(OutputChannel &rows, double lon, double lat, int year, int day) {
+void DaveOutput::OutputFile::finish_row(OutputChannel *channel, double lon, double lat, int year, int day) {
 	assert_table_open();
-	rows.finish_row(*table, lon, lat, year, day);
+	channel->finish_row(*table, lon, lat, year, day);
 }
 
 void DaveOutput::OutputFile::assert_table_open() {
@@ -612,13 +626,12 @@ DaveOutput::StandLevelOutput::StandLevelOutput(
 }
 
 void DaveOutput::StandLevelOutput::write_rows(
-		OutputChannel &channel,
+		OutputChannel *channel,
 		Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	// Each vector of this vector represents a single stand. Each element in the
 	// sub-vectors represents a value which will be written for column i of that
@@ -637,21 +650,21 @@ void DaveOutput::StandLevelOutput::write_rows(
 
 			// Write stand ID.
 			// todo: would it be better to write the stand name instead?
-			write_output(rows, stand.id);
+			write_output(channel, stand.id);
 
 			// Write stand data.
 			double total = 0;
 			for (double x : stand_data) {
-				write_output(rows, x);
+				write_output(channel, x);
 				total += x;
 			}
 			if (write_sum) {
-				write_output(rows, total);
+				write_output(channel, total);
 			}
 			if (write_mean) {
-				write_output(rows, total / stand_data.size());
+				write_output(channel, total / stand_data.size());
 			}
-			finish_row(channel, lon, lat, year, day);
+			finish_row(output_channel, lon, lat, year, day);
 		}
 	}
 
@@ -660,7 +673,7 @@ void DaveOutput::StandLevelOutput::write_rows(
 		// to write one column at a time.
 
 		// First, get the number of columns.
-		int ncol = data[0].size();
+		size_t ncol = data[0].size();
 
 		// Now iterate over the columns that we want to write.
 		for (size_t j = 0; j < ncol; j++) {
@@ -673,9 +686,9 @@ void DaveOutput::StandLevelOutput::write_rows(
 			// Compute summary statistics for this column.
 			double mean = 0, sd = 0, median = 0;
 			compute_stats(column_data, &mean, &sd, &median);
-			write_output(rows, mean);
-			write_output(rows, median);
-			write_output(rows, sd);
+			write_output(channel, mean);
+			write_output(channel, median);
+			write_output(channel, sd);
 		}
 		if (write_sum || write_mean) {
 			// Calculate the total for each stand.
@@ -691,17 +704,17 @@ void DaveOutput::StandLevelOutput::write_rows(
 			double mean = 0, sd = 0, median = 0;
 			compute_stats(totals, &mean, &sd, &median);
 			if (write_sum) {
-				write_output(rows, mean);
-				write_output(rows, median);
-				write_output(rows, sd);
+				write_output(channel, mean);
+				write_output(channel, median);
+				write_output(channel, sd);
 			}
 			if (write_mean) {
-				write_output(rows, mean / ncol);
-				write_output(rows, median / ncol);
-				write_output(rows, sd / ncol);
+				write_output(channel, mean / ncol);
+				write_output(channel, median / ncol);
+				write_output(channel, sd / ncol);
 			}
 		}
-		finish_row(channel, lon, lat, year, day);
+		finish_row(output_channel, lon, lat, year, day);
 	}
 }
 
@@ -754,17 +767,19 @@ DaveOutput::PatchLevelOutput::PatchLevelOutput(std::string param, std::string de
 	write_mean = mean;
 }
 
-void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
+void DaveOutput::PatchLevelOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
 		Stand &stand = *gc_itr;
+
+		// Write stand ID.
+		write_output(channel, stand.id);
 
 		stand.firstobj();
 
@@ -773,10 +788,7 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 		while (stand.isobj) {
 			Patch &patch = stand.getobj();
 
-			// Write stand ID.
-			write_output(rows, stand.id);
-
-			std::vector<double> patch_data = write_patch(patch, rows);
+			std::vector<double> patch_data = write_patch(patch, channel);
 			if (write_stats()) {
 				data.push_back(patch_data);
 			} else {
@@ -785,19 +797,19 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				// with this shortcut when the number of patches is high.
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write patch data.
 				double total = 0;
 				for (double x : patch_data) {
-					write_output(rows, x);
+					write_output(channel, x);
 					total += x;
 				}
 				if (write_sum) {
-					write_output(rows, total);
+					write_output(channel, total);
 				}
 				if (write_mean) {
-					write_output(rows, total / patch_data.size());
+					write_output(channel, total / patch_data.size());
 				}
 			}
 
@@ -813,7 +825,7 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 			// to write one column at a time.
 
 			// First, get the number of columns.
-			int ncol = data[0].size();
+			size_t ncol = data[0].size();
 
 			// Now iterate over the columns that we want to write.
 			for (size_t j = 0; j < ncol; j++) {
@@ -826,15 +838,15 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				// Compute summary statistics for this column.
 				double mean = 0, sd = 0, median = 0;
 				compute_stats(column_data, &mean, &sd, &median);
-				write_output(rows, mean);
-				write_output(rows, median);
-				write_output(rows, sd);
+				write_output(channel, mean);
+				write_output(channel, median);
+				write_output(channel, sd);
 
 			}
 			if (write_sum || write_mean) {
 				std::vector<double> totals;
 				// Iterate over patches.
-				for (int i = 0; i < data.size(); i++) {
+				for (size_t i = 0; i < data.size(); i++) {
 					// Get the total for this patch.
 					double total = 0;
 					for (size_t j = 0; j < data[i].size(); j++) {
@@ -845,14 +857,14 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				double mean = 0, sd = 0, median = 0;
 				compute_stats(totals, &mean, &sd, &median);
 				if (write_sum) {
-					write_output(rows, mean);
-					write_output(rows, median);
-					write_output(rows, sd);
+					write_output(channel, mean);
+					write_output(channel, median);
+					write_output(channel, sd);
 				}
 				if (write_mean) {
-					write_output(rows, mean / ncol);
-					write_output(rows, median / ncol);
-					write_output(rows, sd / ncol);
+					write_output(channel, mean / ncol);
+					write_output(channel, median / ncol);
+					write_output(channel, sd / ncol);
 				}
 			}
 			finish_row(channel, lon, lat, year, day);
@@ -890,13 +902,11 @@ DaveOutput::IndividualOutput::IndividualOutput(
 
 DaveOutput::IndividualOutput::~IndividualOutput() { }
 
-void DaveOutput::IndividualOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
-
+void DaveOutput::IndividualOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -915,20 +925,20 @@ void DaveOutput::IndividualOutput::write_rows(OutputChannel &channel, Gridcell &
 				const Individual &indiv = vegetation[i];
 
 				// Write stand ID.
-				write_output(rows, stand.id);
+				write_output(channel, stand.id);
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write individual ID.
-				write_output(rows, indiv.id);
+				write_output(channel, indiv.id);
 
 				// Write PFT name.
-				write_output(rows, indiv.pft.name);
+				write_output(channel, indiv.pft.name);
 
 				// Write data.
 				for (size_t j = 0; j < columns.size(); j++) {
-					write_output(rows, columns[j].read_value(indiv));
+					write_output(channel, columns[j].read_value(indiv));
 				}
 
 				// End of this row.
@@ -954,7 +964,7 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
 	for (const ColumnDefinition<Individual> &column : columns) {
 		std::string name = column.get_name();
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
-		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+		descriptors += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
 	}
 
 	return descriptors;
@@ -973,21 +983,26 @@ DaveOutput::PftOutput::PftOutput(
 	read_output = get_output;
 }
 
+void add_pft_columns(ColumnDescriptors &columns) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		add_column(columns, (const char *)pftlist[i].name, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+}
+
 ColumnDescriptors DaveOutput::PftOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
-	std::vector<std::string> pfts = get_pfts(true);
-	add_columns(columns, pfts, COLUMN_WIDTH, NUMERIC_PRECISION);
+	add_pft_columns(columns);
 	return columns;
 }
 
-std::vector<double> DaveOutput::PftOutput::write_patch(Patch &patch, OutputRows &out) {
-	std::vector<double> results;
+std::vector<double> DaveOutput::PftOutput::write_patch(Patch &patch, OutputChannel *channel) {
+	std::vector<double> results(pftlist.nobj);
 
-	for (int i = 0; i < pftlist.nobj; i++) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
 		const Pft &pft = pftlist[i];
 
 		double result = get_value(patch, pft);
-		results.push_back(result);
+		results[i] = result;
 	}
 
 	return results;
@@ -1012,7 +1027,7 @@ DaveOutput::CustomPatchLevelOutput::CustomPatchLevelOutput(
 		get_column_definitions = get_columns;
 }
 
-std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch, OutputRows &out) {
+std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch, OutputChannel *channel) {
 	std::vector<double> result;
 
 	for (const ColumnDefinition<Patch> &col : columns) {
@@ -1053,7 +1068,7 @@ DaveOutput::StandPftOutput::StandPftOutput(
 
 DaveOutput::StandPftOutput::~StandPftOutput() { }
 
-std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, OutputRows &out) {
+std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, OutputChannel *channel) {
 	Vegetation &vegetation = patch.vegetation;
 	Stand &stand = patch.stand;
 
@@ -1064,7 +1079,7 @@ std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, Output
 	// error).
 
 	// Write one column per PFT.
-	for (int i = 0; i < pftlist.nobj; i++) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
 		Pft &pft = pftlist[i];
 		const Standpft &spft = stand.pft[pft.id];
 		double result = read_output->read(spft);
@@ -1076,7 +1091,7 @@ std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, Output
 
 ColumnDescriptors DaveOutput::StandPftOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
-	add_columns(columns, get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
+	add_pft_columns(columns);
 	return columns;
 }
 
@@ -1136,7 +1151,7 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
 
 std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
-		Patch &patch, OutputRows &out) {
+		Patch &patch, OutputChannel *channel) {
 	std::vector<double> results;
 	for (int i = 0; i < nelem; i++) {
 		double value = read_output->read(patch, i);
@@ -1185,21 +1200,18 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 	read_elem = std::unique_ptr<ArrayOutputReader<Individual>>(get_output);
 }
 
-void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
+void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
-
-	std::vector<std::string> pfts = get_pfts(false);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
 		Stand &stand = *gc_itr;
 
-		for (int j = 0; j < stand.nobj; j++) {
+		for (size_t j = 0; j < stand.nobj; j++) {
 			Patch &patch = stand[j];
 
 			int nelem = get_n(patch);
@@ -1207,16 +1219,16 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 			for (int i = 0; i < nelem; i++) {
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write array index.
-				write_output(rows, i);
+				write_output(channel, i);
 
 				vegetation.firstobj();
 				double total = 0;
 
-				for (int k = 0; k < pfts.size(); k++) {
-					std::vector<Individual *> indivs = get_indivs(vegetation, pfts[k].c_str());
+				for (size_t k = 0; k < pftlist.nobj; k++) {
+					std::vector<Individual *> indivs = get_indivs(vegetation, (const char *)pftlist[k].name);
 					double indiv_total = 0;
 					for (Individual *indiv : indivs) {
 						// Read array element for this individual.
@@ -1225,11 +1237,11 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 					total += indiv_total;
 
 					// Write current array element for this individual.
-					write_output(rows, indiv_total);
+					write_output(channel, indiv_total);
 				}
 
 				// Write total value across all individuals for this array elem.
-				write_output(rows, total);
+				write_output(channel, total);
 
 				// Finish the row, so next array element is written to next row.
 				finish_row(channel, lon, lat, year, day);
@@ -1243,7 +1255,7 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_cols() {
 	ColumnDescriptors columns;
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	columns += ColumnDescriptor(elem_name.c_str(), COLUMN_WIDTH, 0);
-	columns += ColumnDescriptors(get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
+	add_pft_columns(columns);
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 	return columns;
 }
@@ -1267,16 +1279,19 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 		const Patch &patch,
 		const Pft &pft) const {
 
-	std::vector<double> data;
 	const Vegetation &vegetation = patch.vegetation;
-	for (int i = 0; i < vegetation.nobj; i++) {
+	std::vector<double> data(vegetation.nobj);
+	size_t index = 0;
+	for (size_t i = 0; i < vegetation.nobj; i++) {
 		const Individual &indiv = vegetation[i];
 		if (indiv.pft.id == pft.id) {
 			double value = read_output->read(indiv);
-			data.push_back(value);
+			data[index++] = value;
 		}
 	}
-	return aggregator(&data.front(), data.size());
+	// index now has the number of elements in data (the size and capacity of
+	// data are the number of cohorts in the patch).
+	return aggregator(&data.front(), index);
 }
 
 bool spinup_output;

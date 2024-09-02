@@ -157,10 +157,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) = 0;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) = 0;
 
 			/*
 			Check if this output file is enabled or not. It is enabled iff the
@@ -181,37 +181,37 @@ private:
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, double value);
+			void write_output(OutputChannel *channel, double value);
 
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, int value);
+			void write_output(OutputChannel *channel, int value);
 
 			/*
 			Write the text output value to the output file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, const char *value);
+			void write_output(OutputChannel *channel, const char *value);
 
 			/*
 			Finish the current row of output.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param lon: Longitude of gridcell.
 			@param lat: Latitude of gridcell.
 			@param year: Current calendar year.
 			@param day: Current day of year (0-364).
 			*/
-			void finish_row(OutputChannel &rows, double lon, double lat, int year, int day);
+			void finish_row(OutputChannel *channel, double lon, double lat, int year, int day);
 
 			/*
 			Function which gets columns used by this output file.
@@ -245,11 +245,11 @@ private:
 			Table *table;
 
 			/*
-			Check if an output should be written to the output rows object.
+			Check if an output should be written to the output channel.
 
-			@param out: The output rows object.
+			@param out: Pointer to an output channel.
 			*/
-			bool should_write(OutputRows &out);
+			bool should_write(OutputChannel *out);
 
 			/*
 			Assert that the output table is open. Terminate the simulation if not.
@@ -295,10 +295,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -310,8 +310,7 @@ private:
 			/*
 			Write all required row for the specified patch.
 
-			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param stand: The stand for which outputs should be written.
 			*/
 			std::vector<double> write_stand(const Stand &stand);
 
@@ -361,10 +360,10 @@ private:
 			timestep. This will write a single row of output for each patch in
 			each stand.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -392,9 +391,9 @@ private:
 			Write all required row for the specified patch.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out) = 0;
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out) = 0;
 		private:
 			/*
 			Iff true, a column containing the sum of all other columns will be
@@ -437,10 +436,10 @@ private:
 			Write all rows of output to the output file for the current
 			timestep. This will write one row per individual per patch.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 		protected:
 			/*
@@ -517,10 +516,10 @@ private:
 			timestep. One row will be written for each array element. One column
 			will be written for each individual.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) override;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) override;
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
@@ -604,9 +603,9 @@ private:
 			Write a row of outputs containing one cell per array element.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -664,9 +663,9 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -768,9 +767,9 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -819,9 +818,9 @@ private:
 			Write a row of outputs containing one cell per standpft.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*

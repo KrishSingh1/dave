@@ -12,6 +12,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 #ifdef COMPRESS_OUTPUT
 
@@ -301,7 +302,16 @@ private:
 	 int y;
 	 int d;
 
-	 std::vector<bool> used_tables;
+	 /// The index of the IDs of all tables which have been written to by this
+	 /// object.
+	 ///
+	 /// In the trunk version, this is a vector of booleans, one for
+	 /// each table in the output channel. However, that approach was
+	 /// inefficient in its implementation (as shown by a profiler when writing
+	 /// daily patch-level outputs during a 500 year spinup). Therefore, I've
+	 /// reimplemented this as a set which contains only the indices of the
+	 /// modified tables.
+	 std::set<int> used_tables;
 };
 
 /// Help function to prepare C:N values for output

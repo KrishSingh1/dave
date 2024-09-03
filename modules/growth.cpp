@@ -1714,7 +1714,7 @@ void establishment_sapling_dave(Individual& indiv, double ltor) {
 	indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1 / indiv.pft.k_allom3);
 	
 	// C for new sapling
-	indiv.cmass_sap = indiv.height * indiv.diam * indiv.diam / 4 * PI * indiv.pft.wooddens;
+	indiv.cmass_sap = indiv.height * indiv.diam * indiv.diam / 4 * PI * indiv.pft.wooddens * indiv.densindiv;
 
 	double fns = indiv.pft.k_latosa / (indiv.pft.sla * indiv.pft.wooddens * indiv.height);
 

@@ -5390,9 +5390,6 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double Fallom = k_allom2 * pow(2.0, k_allom3) * k_allom3 * pow(R, k_allom3 - 1.0);
 	// should calc once: k_allom2 * pow(2.0,k_allom3) * k_allom3
 	// we need to calc change for individual trees in cohort
-	if (indiv.cgrow_sap < 0) {
-		printf("asd");
-	}
 	double dWcyl = indiv.cgrow_sap / indiv.densindiv;
 	dr = dWcyl / (Fr + Fh * Fallom);
 	dh = Fallom * dr;

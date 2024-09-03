@@ -4000,12 +4000,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 }
 
 void forest_floor_dave(Patch &patch) {
-	// These calculations are only required for pfts using the annual (trunk)
-	// allocation and establishment.
-	if (ifdavegrowth && ifdailygrass && ifdailytree) {
-		return;
-	}
-
 	Vegetation &vegetation = patch.vegetation;
 	const Climate &climate = patch.get_climate();
 
@@ -4042,7 +4036,7 @@ void forest_floor_dave(Patch &patch) {
 		const Pft &pft = pftlist[i];
 
 		// Only do this calculation for PFTs using annual (trunk) allocation.
-		if (pft.dave_allocation()) {
+		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			continue;
 		}
 
@@ -4090,6 +4084,11 @@ void forest_floor_dave(Patch &patch) {
 
 		// Convert from mol/m2/s to kgC/m2/day.
 		ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * SECS_PER_DAY;
+
+		Standpft &spft = patch.stand.pft[pft.id];
+		if (date.islastday && date.islastmonth) {
+			spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
+		}
 	}
 }
 

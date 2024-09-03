@@ -1776,6 +1776,10 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	}
 }
 
+double calc_bole_height(const Individual &indiv) {
+	return 0.5 * indiv.height;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // ALLOMETRY
 // Should be called to update allometry, FPC and FPC increment whenever biomass values
@@ -1919,7 +1923,7 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.5 * indiv.height;
+		indiv.boleht = calc_bole_height(indiv);
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();
@@ -5477,6 +5481,9 @@ void allometry_dave_tree(Individual& indiv) {
 	// TODO: to change when we decide that the allocation prority to rots that affects 
 	// rpc to be pft-specific.
 	indiv.rpc = indiv.fpc;
+
+	// Bole height (Eqn 7)
+	indiv.boleht = calc_bole_height(indiv);
 
 	assert(indiv.cmass_sap >= 0.0);
 

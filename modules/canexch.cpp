@@ -3491,6 +3491,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			size_t nlayer = indiv.fipar_layerwise.size();
 		    for (size_t j = 0; j < nlayer; j++) {
 
+				// No LAI means we can skip this layer as an optimisation. This
+				// can happen because the number of layers is the total number
+				// of canopy layers. So if this tree is shorter than the tallest
+				// tree in the patch, it may not have any LAI in this layer.
+				if (is_zero(indiv.lai_layerwise[j])) {
+					continue;
+				}
+
 				// determine fpar and apar of the layer
 				// Fraction of PAR incident in the middle of the layer.
 		        inputs.fipar = indiv.fipar_layerwise[j];

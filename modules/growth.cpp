@@ -1780,6 +1780,10 @@ double calc_bole_height(const Individual &indiv) {
 	return 0.5 * indiv.height;
 }
 
+double calc_rpc_tree(Individual &indiv) {
+	return 4.0 * indiv.fpc;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // ALLOMETRY
 // Should be called to update allometry, FPC and FPC increment whenever biomass values
@@ -1915,7 +1919,7 @@ bool allometry(Individual& indiv) {
 			// Increment deltafpc
 			indiv.deltafpc += fpc_new - indiv.fpc;
 			indiv.fpc = fpc_new;
-			indiv.rpc = indiv.fpc;  // TODO Assaf: decide if rpc is needed for trees. RPC is used in Nuptake function.
+			indiv.rpc = calc_rpc_tree(indiv);  // TODO Assaf: decide if rpc is needed for trees. RPC is used in Nuptake function.
 		}
 		else {
 			indiv.lai_indiv = 0.0;
@@ -5477,7 +5481,7 @@ void allometry_dave_tree(Individual& indiv) {
 	}
 	// TODO: to change when we decide that the allocation prority to rots that affects 
 	// rpc to be pft-specific.
-	indiv.rpc = indiv.fpc;
+	indiv.rpc = calc_rpc_tree(indiv);
 
 	// Bole height (Eqn 7)
 	indiv.boleht = calc_bole_height(indiv);

@@ -1701,13 +1701,179 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 }
 
-void establishment_sapling_dave(Individual& indiv, double ltor) {
+typedef enum { FIXEDHEIGHT, FIXEDLAI, BMINIT } est_alloc_strategy_t;
+
+// Initial height in m (for FIXEDHEIGHT strategy).
+const double INIT_HEIGHT = 1;
+
+// Initial LAI in m2/m2 (for FIXEDLAI strategy).
+const double INIT_LAI = 1;
+
+// Initial storage fraction of capacity.
+const double INIT_STORAGE_FRACTION = 1;
+
+double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double EPS = 1e-6, size_t NITER_MAX = 10000) {
+
+	// Parameters.
+	double k   = pft.k_latosa;
+	double k2  = pft.k_allom2;
+	double k3  = pft.k_allom3;
+	double rho = pft.wooddens;
+	double sla = pft.sla;
+	double ks = init_storfrac;
+
+	double lowbound = 0;
+	double highbound = bminit;
+
+	for (int i = 0; i < NITER_MAX; i++) {
+		double csap = (lowbound + highbound) / 2.0;
+		double height = pow(2.0 * csap * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
+		double diam   = pow(height / k2, 1.0 / k3);
+		// v = h * pi * r^2 = h * pi * d^2 / 4
+		double cleaf  = k * csap / (height * rho * sla);
+
+		double lai = cleaf * sla;
+		double sa  = csap / (height * rho);
+		double latosa = lai / sa;
+
+		double croot  = cleaf / ltor;
+		double cstor  = ks * (cleaf / 5.0 + csap / 2.0 + croot / 2.0);
+
+		double bmtot  = cleaf + croot + csap + cstor;
+		double cerr   = bminit - bmtot;
+
+		// If cerr is positive, we have allocated too little biomass.
+		if (cerr > 0) {
+			lowbound = csap;
+		} else {
+			// If cerr is negative, we have allocated too much biomass.
+			highbound = csap;
+		}
+
+		if (fabs(cerr) < EPS) {
+			return csap;
+		}
+	}
+	fail("Failed to find a solution for csap");
+	return -1; // Can never reach here: fail() calls exit().
+}
+
+double get_la2sa(const Individual &indiv) {
+	// double area = indiv.diam * indiv.diam * PI / 4.0;
+	// double area_heart = indiv.cmass_heart / indiv.pft.wooddens;
+	// double area_sap = area - area_heart;
+	double sa = indiv.cmass_sap / (indiv.height * indiv.pft.wooddens);
+	return indiv.lai / sa;
+}
+
+void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double ltor) {
+	// Constants.
+	const Pft &pft = indiv.pft;
+	double k   = pft.k_latosa;
+	double k2  = pft.k_allom2;
+	double k3  = pft.k_allom3;
+	double rho = pft.wooddens;
+	double sla = pft.sla;
+	double ks  = INIT_STORAGE_FRACTION;
+
+	// Maximum number of iterations to be used for solving for csap.
+	const size_t IT_MAX = 8192;
+	const double TOL = 1e-6;
+	const double EPS = TOL;
+
+	double csap = solve_csap(bminit, indiv.pft, ltor, ks);
+
+	// Eqn 12 in derivation.
+	double height = pow(4.0 * csap * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
+	double cleaf = k * csap / (height * rho * sla);
+	double croot = cleaf / ltor;
+	double cstor = ks * (cleaf / 5.0 + csap / 2.0 + croot / 2.0);
+
+	indiv.cmass_leaf    = cleaf;
+	indiv.cmass_root    = croot;
+	indiv.cmass_sap     = csap;
+	indiv.cmass_storage = cstor;
+	indiv.cstorage_max  = cstor;
+
+	indiv.nmass_leaf    = cleaf / pft.cton_leaf_min;
+	indiv.nmass_root    = croot / pft.cton_root_min;
+	indiv.nmass_sap     = csap  / pft.cton_sap_min;
+	indiv.nstorage_max  = nstorage_capacity(indiv);
+	indiv.nmass_storage = ks * indiv.nstorage_max;
+
+	// This is important for accounting purposes.
+	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
+
+	indiv.lai = indiv.cmass_leaf * pft.sla;
+	indiv.height = height;
+	indiv.diam = pow(indiv.height / k2, 1.0 / k3);
+	double latosa = get_la2sa(indiv);
+
+	assert(equal(bminit, cleaf + croot + csap + cstor, 0.1));
+	assert(equal(latosa, pft.k_latosa));
+	assert(equal(PI * indiv.diam * indiv.diam * 0.25 * indiv.height * indiv.pft.wooddens, indiv.cmass_sap));
+}
+
+void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, double ltor) {
+	// lai = cmass_leaf * sla
+	indiv.cmass_leaf = INIT_LAI / indiv.pft.sla;
+	indiv.cmass_root = indiv.cmass_leaf / ltor;
+	// leaf = sap * pft.k_latosa / (indiv.pft.sla * pft.wooddens * indiv.height)
+	// h = k2 * (4 * v / pi) ^ (1 / (1 + 2 / k3))
+	// v = sap / rho
+
+	// leaf * sla = sap / (rho * h) * klatosa
+	// h = sap * klatosa / (leaf * sla * rho)
+	/*
+    leaf = sap * klatosa / (sla * rho * k2 * (4 * sap / (rho * pi)) ^ (1 / (1 + 2 / k3)))
+	*/
+	indiv.height = 1.0;
+	// indiv.cmass_sap = solve_sap(indiv.cmass_leaf, 1e-6, 1e-6, 1e6, indiv.cmass_leaf, indiv.pft.sla, indiv.pft.wooddens, indiv.pft.k_allom2, indiv.pft.k_allom3, indiv.pft.k_latosa);
+	indiv.cmass_sap = indiv.cmass_leaf * indiv.pft.sla * indiv.pft.wooddens * indiv.height / indiv.pft.k_latosa;
+	// double volume = indiv.cmass_sap / indiv.pft.wooddens;
+	indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1 / indiv.pft.k_allom3);
+	indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+
+
+	// B = cs(1 + k / (hp.SLA) * (ks/5 + ks/2lr + 1 + 1/lr))
+
+	// Update capacity of C and N storage
+	indiv.cstorage_max = cstorage_capacity(indiv);
+	indiv.nstorage_max = nstorage_capacity(indiv);
+	indiv.cmass_storage = indiv.cstorage_max;
+
+	// Nitrogen.
+	indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_min;
+	indiv.nmass_sap = indiv.cmass_sap / indiv.pft.cton_sap_min;
+	indiv.nmass_root = indiv.cmass_root / indiv.pft.cton_root_min;
+	double nstorage_cap = nstorage_capacity(indiv);
+	indiv.nmass_storage = nstorage_cap * INIT_STORAGE_FRACTION;
+	indiv.crownarea = indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp);
+	indiv.crownarea = min(indiv.crownarea, indiv.pft.crownarea_max);
+	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
+}
+
+void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
+
+	const est_alloc_strategy_t strategy = FIXEDHEIGHT;
 
 	indiv.alive = true;
+
+	// ##### hypothetical allocation
+
+	if (strategy == BMINIT) {
+		establishment_sapling_dave_dynamic(bminit, indiv, ltor);
+		return;
+	}
+
+	if (strategy == FIXEDLAI) {
+		establishment_sapling_dave_fixedlai(bminit, indiv, ltor);
+		return;
+	}
+
+	// ##### end hypothetical allocation
+
 	// initial height (m)
-	const double INIT_HEIGHT = 1;
-	// initial storage fraction of capacity
-	const double INIT_STORAGE_FRACTION = 1;
 
 	indiv.height = INIT_HEIGHT;
 
@@ -1763,7 +1929,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	//       should be set to a meaningful value before this function is called
 
 	if (ifdavegrowth && ifdailytree && indiv.pft.lifeform == TREE) {
-		establishment_sapling_dave(indiv, ltor);
+		establishment_sapling_dave(bminit, indiv, ltor);
 	} else {
 		establishment_biomass(bminit, ltor, indiv);
 	}

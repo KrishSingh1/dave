@@ -275,9 +275,10 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 }
 
 // Water stress scalar used for growth and dormancy
-double wscal_growth(double wscal, double q) {
-	double wscal_min = 0.4;  // no growth under severe water stress (ideally consistent with pft.wscal_min)
-	return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),q)));
+double wscal_growth(double wscal, double wscal0, double b) {
+	return (1 + exp((wscal0 - 1) / b)) / (1 + exp((wscal0 - wscal) / b));
+	//double wscal_min = 0.4;  // no growth under severe water stress (ideally consistent with pft.wscal_min)
+	//return min(1.0,max(0.0,pow(((wscal - wscal_min) / (1.0 - wscal_min)),q)));
 }
 
 // Photoperiod affecting development and thus growth demand
@@ -3056,11 +3057,10 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
-	// Reduction of RGR in reproductive phase
-	const double fRGR_repr = 0.75;
 	// Sensitivity of water stress to growth
 	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	const double qgrowth = 1.5;
+	const double wscal0 = 0.75;    // inflection point
+	const double bgrowth = 0.08;   // steepness around wscal0
 
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
@@ -3074,7 +3074,7 @@ double growth_demand(Individual& indiv) {
 	double grass_temp = veg.patch.soil.T_soil[6];
 
 	// Total biomass used for estimation of potential growth demand.
-	//double cmass_total  = indiv.cmass_root + 0.2 * indiv.cmass_crown + indiv.get_cmass_leaf();
+	//double cmass_total  = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() + indiv.cmass_storage;
 	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 
 	// Fill status of C and N storage
@@ -3086,13 +3086,10 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal, qgrowth);
+	fwater_growth = wscal_growth(ppft.wscal, wscal0, bgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
-	double frepr = pft.is_grass() ? indiv.frepr_cstruct : fRGR_repr; // TODO Assaf: is this needed here?
-
-	// NOTE: alternatively, RGR_max could be found as a function of sla!
 
 	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 

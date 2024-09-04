@@ -5746,6 +5746,10 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			}
 
 			indiv.deltafpc = 0.0;
+
+			if (indiv.pft.lifeform == TREE) {
+				indiv.flush_repr_litter_DAVE();
+			}
 		} // Last day of year
 	}
 }

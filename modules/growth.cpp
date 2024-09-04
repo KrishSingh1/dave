@@ -4001,9 +4001,9 @@ void carbon_allocation_tree(Individual &indiv) {
 	// calculate alpha reproduction "tunned down" by the factor that depends on
 	// the conditions of the other pools.
 	double relative_alpha_repr = 0.0;
-	if (indiv.cmass_repr_limit > 0) {
+	if (indiv.cmass_repr_limit > indiv.cmass_repr) {
 		relative_alpha_repr = alpha_repr_factor * 
-			divide(indiv.cmass_repr_limit - indiv.cmass_repr, indiv.cmass_repr_limit);
+			(indiv.cmass_repr_limit - indiv.cmass_repr) / indiv.cmass_repr_limit;
 	}
 	// caps the relative_alpha_repr to 0.1 to avoid over reprentation of cgrow_repr
 	// over the rest of the pools

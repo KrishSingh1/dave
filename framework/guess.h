@@ -3227,7 +3227,7 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
-	/// root projective cover (RPC); used for grasses only
+	/// root projective cover (RPC)
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;

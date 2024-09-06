@@ -1037,7 +1037,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
-					if (pft.lifeform == TREE && nindiv_max > 0) {
+					if (pft.lifeform == TREE && nindiv_max > 0 && date.year > freenyears) {
 						int nindiv = get_nindiv(patch, pft);
 						if (nindiv >= nindiv_max) {
 							if (newindiv > 0) {

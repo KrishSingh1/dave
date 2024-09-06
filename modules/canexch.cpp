@@ -2559,6 +2559,10 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations
 	// See the comment after Eqn (4) below.
 
+	// minimum repiration (trees only) (kgC/day)
+	// TODO: if works - find references and set as pft parameter? (ASSAF)
+	const double base_resp = 0.000001;
+	// const double base_resp = 0.0;
 	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
 	double resp_root = 0;   // root respiration (kg/m2/day)
 	double resp_crown = 0;  // crown respiration (kg/m2/day)
@@ -2688,6 +2692,11 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// resp_crown will be 0 for trees.
 	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
 	
+	if (lifeform == TREE) {
+		// always have a minimum respiration rate. Reason: so small cohorts (with 
+		// low storage) won't survive.
+		resp_maintenance = max(base_resp, resp_maintenance);
+	}
 	// Total respiration is sum of maintenance and growth respiration.
 	resp = resp_maintenance + resp_growth;
 }
@@ -2985,6 +2994,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	for (size_t i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 		indiv.ps_subdaily.clear();
+		indiv.photosynthesis.clear();
 	}
 }
 
@@ -4164,7 +4174,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 		// Calculate water stress factor
 		water_stress(patch);
-
+		
 		// Calculate subdaily photosynthesis and stomatal conductance 
 		photosynthesis_gs(patch, climate, vegetation);
 

@@ -1704,7 +1704,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 typedef enum { FIXEDHEIGHT, FIXEDLAI, BMINIT } est_alloc_strategy_t;
 
 // Initial height in m (for FIXEDHEIGHT strategy).
-const double INIT_HEIGHT = 1;
+const double INIT_HEIGHT = 1.5;
 
 // Initial LAI in m2/m2 (for FIXEDLAI strategy).
 const double INIT_LAI = 1;
@@ -1856,6 +1856,7 @@ void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, doubl
 void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
 
 	const est_alloc_strategy_t strategy = FIXEDHEIGHT;
+	// const est_alloc_strategy_t strategy = FIXEDHEIGHT;
 
 	indiv.alive = true;
 
@@ -3586,7 +3587,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// maximum daily mobilisation rate of c in the storage. 
 	const double max_mobil_cstorage_tree = 0.1;
 	// fraction of cmass_storage that is not available to growth
-	const double frac_cstorage_res_tree = 0.15;
+	const double frac_cstorage_res_tree = 0.15; // ASSAF BLARP
 	// actual amount that is not available to growth (kgC/m^2)
 	double cstorage_res = frac_cstorage_res_tree * indiv.cstorage_max;
 	// amount of c available for growth today (kgC/m^2)
@@ -3670,7 +3671,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	double cmass_storage_before = indiv.cmass_storage;
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
-	
+
 	// if this causes storage to be negitive - kill tree and return.
 	if (indiv.cmass_storage < 0) {
 		// Not enough C in storage to fulfill respiration demands --> kill individual
@@ -4316,6 +4317,10 @@ void nuptake_dave(Vegetation& vegetation) {
 	Patch& patch = vegetation.patch;
 	Soil& soil = patch.soil;
 	Gridcell& gridcell = patch.stand.get_gridcell();
+
+	// if (date.year > freenyears && date.day > 150) {
+	// 	printf("test");
+	// }
 
 	// Create vector of CompetingIndividual objects, which will be passed into
 	// ncompete(). These are populated from the Individuals in the patch.

@@ -201,6 +201,7 @@ DaveOutput::DaveOutput() {
 	// These will produce one row per individual per patch per timestep.
 	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", mean, false, true);
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
+	add_indiv_output("file_dave_indiv_lai"                      , DAILY, indiv_lai_columns, "Indiv-level lai (m2/m2)", mean, false, true);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");

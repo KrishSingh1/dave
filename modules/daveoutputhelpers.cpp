@@ -537,6 +537,19 @@ std::vector<ColumnDefinition<Patch>> npool_columns() {
 
 	return columns;
 }
+
+std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_growth", [](const Individual &i) { return i.resp_growth; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_maintenance", [](const Individual &i) { return i.resp_maintenance; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_storage", [](const Individual &i) { return i.cmass_storage; }));
+	
+
+	return columns;
+}
+
 std::vector<ColumnDefinition<Patch>> mwcont_upper_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 

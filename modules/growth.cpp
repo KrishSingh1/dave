@@ -3050,6 +3050,17 @@ void growth_daily_grass(Patch& patch) {
 // New DAVE functions
 // --------------------------------------
 
+// Fill fraction of C storage (0-1)
+double Cstorage_fillfrac(Individual& indiv) {
+	return max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+}
+
+// Fill fraction of N storage (0-1)
+double Nstorage_fillfrac(Individual& indiv) {
+	return max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
+}
+
+
 // Determine growth demand (aka 'sink strength') in kgC m-2 d-1
 double growth_demand(Individual& indiv) {
 
@@ -3078,8 +3089,8 @@ double growth_demand(Individual& indiv) {
 	double cmass_total  = indiv.cmass_root + indiv.cmass_storage + indiv.get_cmass_leaf();
 
 	// Fill status of C and N storage
-    double cstorage_fill = max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-    double nstorage_fill = max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
+    double cstorage_fill = Cstorage_fillfrac(indiv);
+    double nstorage_fill = Nstorage_fillfrac(indiv);
 
 
     // ------------------------------
@@ -3096,9 +3107,9 @@ double growth_demand(Individual& indiv) {
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
 	//growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
-	double qfeedback = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
-	growth_demand *= pow(cstorage_fill,qfeedback);
-	growth_demand *= pow(nstorage_fill,qfeedback);
+	double qf1 = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
+	growth_demand *= pow(cstorage_fill,qf1);
+	growth_demand *= pow(nstorage_fill,qf1);
 
 	// reduced growth under dormancy (total cessation in full dormancy)
 	if (indiv.fphen_activity < 1.0){
@@ -5198,18 +5209,12 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	double dmax_pslim = 0.015;
-	// Do not let ps_sink_lim vary by more than dmax_pslim d-1
-	double const dpslim = dmax_pslim * (1.0 - indiv.fdev_growth);
+	double dpslim = 0.015;
+	double qf2 = 100.0;
+	double cstorage_fill = Cstorage_fillfrac(indiv);
 
-	// TODO: revisit cexcess / dgpp
-	if (indiv.cexcess > 0.0 && indiv.dgpp > 0.0 && is_zero(indiv.fphen_activity - 1.0)) {
-		indiv.ps_sink_lim = max((1.0 - dpslim) * indiv.ps_sink_lim, (1.0 - min(1.0, indiv.cexcess / indiv.dgpp)));
-	} 
-	else {
-		// assuming faster recovery than decline
-		indiv.ps_sink_lim = min(1.0, indiv.ps_sink_lim * (1.0 + dpslim * 2.0)); 
-	}
+	indiv.ps_sink_lim = min(1.0, (1.0 + dpslim - 2.0 * dpslim * pow(indiv.fphen_activity*cstorage_fill,qf2)) * indiv.ps_sink_lim);
+
 } 
 
 

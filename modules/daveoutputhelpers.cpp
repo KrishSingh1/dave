@@ -544,8 +544,10 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
 	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
 	columns.push_back(ColumnDefinition<Individual>("resp_growth", [](const Individual &i) { return i.resp_growth; }));
 	columns.push_back(ColumnDefinition<Individual>("resp_maintenance", [](const Individual &i) { return i.resp_maintenance; }));
-	columns.push_back(ColumnDefinition<Individual>("cmass_storage", [](const Individual &i) { return i.cmass_storage; }));
-	
+	columns.push_back(ColumnDefinition<Individual>("cstorqge_fraction", [](const Individual &i) { return i.cmass_storage/i.cstorage_max; }));
+	columns.push_back(ColumnDefinition<Individual>("rpc", [](const Individual &i) { return i.rpc; }));
+	columns.push_back(ColumnDefinition<Individual>("height", [](const Individual &i) { return i.height; }));
+
 
 	return columns;
 }

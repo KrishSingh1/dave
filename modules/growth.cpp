@@ -1704,7 +1704,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 typedef enum { FIXEDHEIGHT, FIXEDLAI, BMINIT } est_alloc_strategy_t;
 
 // Initial height in m (for FIXEDHEIGHT strategy).
-const double INIT_HEIGHT = 1.5;
+const double INIT_HEIGHT = 2;
 
 // Initial LAI in m2/m2 (for FIXEDLAI strategy).
 const double INIT_LAI = 1;
@@ -4318,10 +4318,6 @@ void nuptake_dave(Vegetation& vegetation) {
 	Soil& soil = patch.soil;
 	Gridcell& gridcell = patch.stand.get_gridcell();
 
-	// if (date.year > freenyears && date.day > 150) {
-	// 	printf("test");
-	// }
-
 	// Create vector of CompetingIndividual objects, which will be passed into
 	// ncompete(). These are populated from the Individuals in the patch.
 	std::vector<NCompetingIndividual> competing_individuals;
@@ -4361,23 +4357,18 @@ void nuptake_dave(Vegetation& vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
 
-		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
-		double nmin_scale = kNmin + nmin_avail / (nmin_avail + gridcell.pft[indiv.pft.id].Km);
-        
-		// Nitrogen availability based on root projective cover
-		double max_indiv_avail = min(1.0, indiv.rpc);
-
-		// Nitrogen available for uptake
-		double favail_nuptake = min(nmin_scale, max_indiv_avail);
-
-		indiv.fnuptake = competing_individuals[i].fnuptake * favail_nuptake;
-		indiv.ndemand = competing_individuals[i].ndemand;
-
-		patch.ndemand += indiv.ndemand;
-
-		// Taken out of soil in somdynam::vegetation_n_uptake():
-		// indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
-		// This happens right after growth in simulate_day.
+        // Nitrogen availability based on root projective cover
+        double max_avail = min(1.0, indiv.rpc) * nmin_avail;
+ 
+        double fnuptake = competing_individuals[i].fnuptake;
+        double ndemand = competing_individuals[i].ndemand;
+        double nuptake = ndemand * fnuptake;
+ 
+        // Check if N supply is limited by RPC. If so, modify fnuptake such that
+        // the total uptake equals max_avail. This can only reduce total uptake.
+        if (max_avail < nuptake) {
+            competing_individuals[i].fnuptake = max_avail / ndemand;
+        }
 
 	}
 
@@ -5650,9 +5641,14 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.sa = 0.0;
 		indiv.latosa = 0.0;
 	}
-	// TODO: to change when we decide that the allocation prority to rots that affects 
+
+	// calculate new root projected cover, but aassumes that rpc does not change 
+	// if lai decreases due to fire/drought). 
+	// TODO: in the future
+	// 1. set this to be a function of root biomass/volume to increase competativeness
+	// 2.to change when we decide that the allocation prority to roots that affects 
 	// rpc to be pft-specific.
-	indiv.rpc = calc_rpc_tree(indiv);
+	indiv.rpc = max(indiv.rpc, calc_rpc_tree(indiv));
 
 	// Bole height (Eqn 7)
 	indiv.boleht = calc_bole_height(indiv);

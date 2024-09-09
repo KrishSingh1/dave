@@ -263,7 +263,7 @@ EOF
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $SBATCH_COMPUTEACCOUNT
-if [[ $ARCH == "lunarc" || $ARCH == "aurora" ]]; then
+if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
     module purge >/dev/null
     module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
     export PATH=$PATH

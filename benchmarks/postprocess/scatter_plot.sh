@@ -1,7 +1,7 @@
 # This file contains a function for creating a scatter plot using gnuplot.
 
 # On Lunarc nodes, it is necessary to load gnuplot in this file.
-if [[ $ARCH == "lunarc" || $ARCH == "aurora" ]]; then
+if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
     module load gnuplot/5.4.4
 fi
 

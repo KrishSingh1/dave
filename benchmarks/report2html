@@ -1,4 +1,7 @@
-#!/sw/easybuild_milan/software/Python/2.7.18-GCCcore-11.3.0-bare/bin/python
+# Run with python 2.
+print("report2html")
+import sys
+print(sys.version)
 
 """Small script to convert a report in the form of an XML file,
 as generated in the post processing step of a benchmark, into HTML.

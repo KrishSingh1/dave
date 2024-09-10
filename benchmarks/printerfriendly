@@ -20,6 +20,6 @@ tests=$(find . -name report.xml | xargs -n 1 dirname | xargs -n 1 dirname | xarg
 for test in $tests; do
     pushd ${test}/report
     echo "Printer friendlifying "$test
-    ${bm_root}/report2html -p report.xml ../../info.txt > printerfriendly.html
+    python ${bm_root}/report2html -p report.xml ../../info.txt > printerfriendly.html
     popd
 done

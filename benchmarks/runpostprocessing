@@ -125,4 +125,16 @@ print_report_footer
 
 # Convert the XML file to HTML
 cd report
-$(dirname $0)/report2html report.xml ../../info.txt > index.html
+
+if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
+  module load Python/2.7.18	# Load the correct Python 2 module
+fi
+python2_path=$(which python2)	# Ensure Python 2 is used
+if [ -z "$python2_path" ]; then
+    echo "Error in runpostprocessing: Python 2 not found!"
+    exit 1
+fi
+which python	# debug
+python -V	# debug
+
+$python2_path $(dirname $0)/report2html report.xml ../../info.txt > index.html		# This script needs to be run by python2

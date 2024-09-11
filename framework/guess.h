@@ -4770,7 +4770,8 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
-
+	/// wscal for the top 5 layers (unitless)
+	Historic<double, 5> wscal_5_5l;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;

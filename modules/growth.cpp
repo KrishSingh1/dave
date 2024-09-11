@@ -241,7 +241,15 @@ void DaveMassBalance::check(const Vegetation &vegetation) {
 double wscal_growth_trees(double wscal) {
 	double b = 0.1;
 	double wscal_o = 0.7;
-  return 1 / (1 + exp( (wscal_o - wscal) / b) );
+	const double THRESHOLD = 1e-4; 
+
+  // return 1 / (1 + exp( (wscal_o - wscal) / b) ); // OLD
+  double wscal_growth ((1 + exp( (wscal_o - 1) / b) ) / (1 + exp( (wscal_o - wscal) / b) ));
+  
+  // force wscal_growth to be 0 when very small
+  if (fabs(wscal_growth) < THRESHOLD) { wscal_growth = 0; }
+
+  return wscal_growth;
 }
 
 
@@ -265,8 +273,8 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 
 	// ASSAF : TEMPORATY PARAMETERS FOR TESTING. AIM: TO GET TREES TO STORE IN WINTER BY
 	// GETTING ftemp TO BE 0.
-	T0 = 30+ K2degC;
-	Tdorm = 15 + K2degC;
+	// T0 = 30+ K2degC;
+	// Tdorm = 15 + K2degC;
 
     // Note: A_growth was rescaled so that temp_growth ranges from 0-1
 	double ftemp;
@@ -1781,10 +1789,12 @@ void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double
 	const double TOL = 1e-6;
 	const double EPS = TOL;
 
+	bminit *= indiv.densindiv; // convert to kgC/m^2
+
 	double csap = solve_csap(bminit, indiv.pft, ltor, ks);
 
 	// Eqn 12 in derivation.
-	double height = pow(4.0 * csap * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
+	double height = pow(4.0 * (csap / indiv.densindiv) * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
 	double cleaf = k * csap / (height * rho * sla);
 	double croot = cleaf / ltor;
 	double cstor = ks * (cleaf / 5.0 + csap / 2.0 + croot / 2.0);
@@ -1811,7 +1821,7 @@ void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double
 
 	assert(equal(bminit, cleaf + croot + csap + cstor, 0.1));
 	assert(equal(latosa, pft.k_latosa));
-	assert(equal(PI * indiv.diam * indiv.diam * 0.25 * indiv.height * indiv.pft.wooddens, indiv.cmass_sap));
+	assert(equal(PI * indiv.diam * indiv.diam * 0.25 * indiv.height * indiv.pft.wooddens * indiv.densindiv, indiv.cmass_sap));
 }
 
 void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, double ltor) {
@@ -1855,7 +1865,7 @@ void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, doubl
 
 void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
 
-	const est_alloc_strategy_t strategy = FIXEDHEIGHT;
+	const est_alloc_strategy_t strategy = BMINIT;
 	// const est_alloc_strategy_t strategy = FIXEDHEIGHT;
 
 	indiv.alive = true;

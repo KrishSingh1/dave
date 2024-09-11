@@ -3749,6 +3749,7 @@ void water_stress(Patch &patch) {
 		double wstress_layer[NSOILLAYER];
 		double wstress = 0.0;
 		double rootdist_sum = 0.0;
+		double wstress_5l = 0.0;
 
 		for (int j = 0; j<NSOILLAYER; j++) {
 			// get actual water content and available water content per layer
@@ -3758,12 +3759,18 @@ void water_stress(Patch &patch) {
 			wstress_layer[j] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[j];
 			wstress += wstress_layer[j];
 			rootdist_sum += pft.rootdist[j]; // rootdist should add up to 1 but summed here just in case...
+			// save water stress for the top 5 layers
+			if (j == 4) {
+				wstress_5l = wstress / rootdist_sum;
+			}
+
 		}
 		// water stress factor [0-1] in the root zone
 		wstress /= rootdist_sum;
 
 		// Mean daily water stress value.
 		ppft.wscal = wstress;
+		ppft.wscal_5_5l.add(wstress_5l);
 
 		if (date.day == 0 && (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass) ) {
 			ppft.cropphen->growingdays_y = 0;
@@ -4063,7 +4070,7 @@ void forest_floor_dave(Patch &patch) {
 		// No soil water on first day of simulation - this results wscal = 0,
 		// which results in a division by zero. We can just skip this
 		// calculation on the first day of the simulation.
-		if (is_zero(ppft.wscal)) {
+		if (is_zero(ppft.wscal_5_5l.lastadd())) {
 			continue;
 		}
 
@@ -4075,7 +4082,7 @@ void forest_floor_dave(Patch &patch) {
 
 		// Residual stomatal conductance term.
 		inputs.gdark = stomatal_conductance_residual(pft.g0, pft.gmin, ppft.wscal);
-		inputs.wscal = ppft.wscal;
+		inputs.wscal = ppft.wscal_5_5l.lastadd();
 
 		double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
 		double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;

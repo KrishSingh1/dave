@@ -1569,7 +1569,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 	else {
 		// trees (and mosses?)
-		if (ifdavegrowth) {
+		if (ifdavegrowth && ifdailytree) {
 			indiv.alive = true;
 			// proportion of the initial biomass that goes to storage
 			const double fract_stor = 0.5;

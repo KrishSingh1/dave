@@ -4385,8 +4385,8 @@ void update_pools_dave(Vegetation& vegetation) {
 void senescence_grass(Individual &indiv) {
 
 	// Parameters
-	const double crelocfrac = 0.0;      // TODO: move to constants?
-	const double senesc_base = 0.00022;         // Baseline senescence rate (d-1)
+	const double crelocfrac = 0.0;             // TODO: move to constants?
+	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
 	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
@@ -4398,7 +4398,7 @@ void senescence_grass(Individual &indiv) {
 	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
-	const double temp_senesc2 = 0.04;   // for temperatures above 0 degC  
+	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  
 
 	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
@@ -4439,13 +4439,9 @@ void senescence_grass(Individual &indiv) {
 	double senesc_ftemp = 0.0;
 	if (grass_temp < 0.0){
 		senesc_ftemp = -temp_senesc1 * grass_temp;
-	} else {
-		if (grass_temp < indiv.pft.temp_dormancy) {
-			senesc_ftemp = temp_senesc2 * (indiv.pft.temp_dormancy - grass_temp);
-		} else if (grass_temp >= indiv.pft.temp_dormancy) {
-			senesc_ftemp = temp_senesc2 * (grass_temp - 25.0);
-		}
-	}
+	} else if (grass_temp >= indiv.pft.temp_dormancy) {		
+		senesc_ftemp = temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
+	} 
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;

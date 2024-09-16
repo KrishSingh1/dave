@@ -35,7 +35,6 @@ if (UNIX)
   # Setup the SYSTEM variable, currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
 
-
   # Figure out what value it should have initially, based on the
   # environment variable ARCH if it's set.
   if (NOT $ENV{ARCH} STREQUAL "")
@@ -44,7 +43,13 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, aurora or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, lunarc or multicore)")
+  
+  # A temporary helper for Lund users lingering with $ARCH=="aurora" instead of "lunarc".
+  if (SYSTEM STREQUAL "aurora")
+    set(SYSTEM "lunarc")
+  endif()
+  
 endif (UNIX)
 
 # Where to search for cmake modules
@@ -54,9 +59,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # NetCDF - look for libraries and include files, and use them if found.
 # If this CMakeList script does not find the path to the NetCDF library on
 # your system, then consult LPJ-GUESS/reference/guessdoc.doc.
-# On easybuild systems, it may help to use the same line as for aurora here.
-# i.e.: set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
-if ("$ENV{ARCH}" STREQUAL "aurora")
+# On easybuild systems, it may help to use the same line as for lunarc here.
+# i.e. set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
+if ("$ENV{ARCH}" STREQUAL "lunarc")
   set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}")
 endif()
 find_package(NetCDF QUIET)
@@ -143,7 +148,7 @@ if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "")
     set(SYSTEM "simba")
-  endif(SYSTEM STREQUAL "")
+  endif(SYSTEM STREQUAL "")  
   set(submit_template ${guess_SOURCE_DIR}/parallel_version/${SYSTEM}.tmpl)
 
   # A sed command which exchanges each occurrence of BINARY and DATE in

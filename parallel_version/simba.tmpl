@@ -39,8 +39,13 @@ MAILTYPE='FAIL'
 #      MAILTYPE     = events that trigger emails. Possible values include
 #                     FAIL, BEGIN, END, ALL; see sbatch manual for more
 #
-#   3. The option to specify a compute account is not available in simba.tmpl.
-#      See lunarc.tmpl for that extra functionality.
+#   3. Optionally specify an compute account nmumber (i.e. a code) by
+#      exporting the following variable to the environment.
+#      On your command line or in your .bashrc, do:
+#        export COMPUTEACCOUNT=<compute account nmumber>
+#      An account number is necessary on lunarc's systems if you are
+#      member of more than one compute project.
+#      On the simba system, no account number is needed.
 #
 #   4. Run the script using the command:
 #        ./submit.sh
@@ -77,6 +82,11 @@ fi
 # Override INSFILE with the ins-file parameter, if given
 if [ -n "$ins" ]; then
     INSFILE=$ins
+fi
+
+# Read the compute account number from the environment, if available.
+if [ -n "$COMPUTEACCOUNT" ]; then
+    SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
 fi
 
 # Convert INSFILE to an absolute path since we will be starting the
@@ -142,6 +152,7 @@ cat <<EOF > guess.cmd
 #SBATCH --time=$WALLTIME
 #SBATCH --mail-type=$MAILTYPE
 #SBATCH -o "slurm-%j.log"
+$SBATCH_COMPUTEACCOUNT
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -176,6 +187,7 @@ cat <<EOF > append.cmd
 #SBATCH --time=$WALLTIME_APPEND
 #SBATCH --mail-type=$MAILTYPE
 #SBATCH -o "slurm-%j.log"
+$SBATCH_COMPUTEACCOUNT
 set -e
 
 function append_files {

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#  Python 2 code
 
 """Small script to convert a report in the form of an XML file,
 as generated in the post processing step of a benchmark, into HTML.

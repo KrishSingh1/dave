@@ -138,6 +138,7 @@ NCInput::NCInput() {
 	bounds_ndep.min = 0;
 
 	use_lamarque = true;
+	use_mean_annual_co2 = false;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -803,6 +804,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 		}
 		co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
 		co2_file->load_file((const char *)file_co2);
+		co2 = NULL;
 	} else {
 		co2 = create_variable(netcdf_file, variable_co2, nc_co2, bounds_co2, co2_units, true);
 	}

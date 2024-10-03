@@ -1971,7 +1971,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
-		& cmass_storage_20
+		& cmass_storage_15
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -3376,21 +3376,21 @@ void Individual::flush_repr_litter_DAVE() {
 	Patchpft &ppft = patchpft();
 
 	// Time to pay our debts.
-	if (initialc > 0) {
-		double cvoid = min(cmass_repr, initialc);
-		cmass_repr -= cvoid;
-		initialc -= cvoid;
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
-		ctolitter += cvoid; // For mass balance checks; not an actual pool
-	}
-
-	if (initialn > 0) {
-		double nvoid = min(nmass_repr, initialn);
-		nmass_repr -= nvoid;
-		initialn -= nvoid;
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
-		ntolitter += nvoid; // For mass balance checks; not an actual pool
-	}
+	//if (initialc > 0) {
+	//	double cvoid = min(cmass_repr, initialc);
+	//	cmass_repr -= cvoid;
+	//	initialc -= cvoid;
+	//	vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
+	//	ctolitter += cvoid; // For mass balance checks; not an actual pool
+	//}
+//
+	//if (initialn > 0) {
+	//	double nvoid = min(nmass_repr, initialn);
+	//	nmass_repr -= nvoid;
+	//	initialn -= nvoid;
+	//	vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
+	//	ntolitter += nvoid; // For mass balance checks; not an actual pool
+	//}
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.

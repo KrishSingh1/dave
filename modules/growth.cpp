@@ -55,7 +55,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 15.0e-6;
+const double ext_seed = 0.25e-5;
 
 // ---------------------------------
 // Grass parameters
@@ -425,17 +425,27 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 		1: vegetative stage
 			// 		2: reproductive stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
+			double cstorage_trend = 0.0;
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
+			bool   repr_switch = false;
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	//if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
-			if (indiv.growth_stage == dormant && indiv.fphen_activity > 0.55) {
+			if (indiv.growth_stage == dormant && indiv.fphen_activity > 0.1) {
 				indiv.growth_stage = vegetative;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
+			    // Determine if switch occurs depending on state of C storage.
+				cstorage_trend = indiv.cmass_storage_15.size() > 14 ? indiv.cmass_storage_15.periodictrend(15) / indiv.cmass_storage_15.mean() : 1.0;
+				if (indiv.pft.lifeform == GRASS_ANNUAL && cstorage_trend < 0.05) {
+					repr_switch = true;
+				} else if (indiv.pft.lifeform == GRASS_PERENNIAL && indiv.cmass_storage_15.periodictrend(15) > 0.0 ) {
+					repr_switch = true;
+				}
+
+				if (indiv.cmass_storage_15.size() > 5 && repr_switch && 
 				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0){
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
@@ -475,6 +485,10 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				   indiv.cmass_struct = 0.0;
                 }
  
+				if (date.get_calendar_year() == 2018 && date.month == 9 && date.dayofmonth > 20) {
+					printf("hi");
+				}
+
                 // flush reproductive tissue to seedbank.
                 if (indiv.growth_stage != reproductive && indiv.cmass_repr > 0.0) {
                     indiv.flush_repr_litter_DAVE();
@@ -3066,11 +3080,6 @@ double growth_demand(Individual& indiv) {
 	Pft& pft = indiv.pft;
     Patchpft &ppft = veg.patch.pft[indiv.pft.id]; 
 
-	// Sensitivity of water stress to growth
-	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	const double wscal0  = 0.75;   // inflection point
-	const double bgrowth = 0.08;   // steepness around wscal0
-
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
@@ -5249,15 +5258,15 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		storage_overflow(indiv);
 
 		// keep track of changes in C storage and reproduction.
-		if ((indiv.age < 0.5 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
+		//if ((indiv.age < 0.5 && indiv.frac_germ > 0.01) || (indiv.age < 1.0 / 365.0)) {
 			// do not 'count' days with germination in annuals and newly established perennials.
 			// Also do not include the very first day.
 			// Otherwise repr switch will happen too early.
 			// Note: right now it checks germination of the previous day, which is OK in this context.
-			indiv.cmass_storage_20.add(1.0);
-		} else {
-			indiv.cmass_storage_20.add(indiv.cmass_storage);
-		}
+		//	indiv.cmass_storage_15.add(1.0);
+		//} else {
+		indiv.cmass_storage_15.add(indiv.cmass_storage);
+		//}
 		indiv.cmass_repr_10.add(indiv.cmass_repr);
 		indiv.frac_germ = 0.0;  // reset in vegdynam.cpp if > 0.0
 

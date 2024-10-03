@@ -195,8 +195,9 @@ DaveOutput::DaveOutput() {
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
-	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", mean, false, true);
-	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
+	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
+	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", false, true);
+	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
@@ -401,10 +402,21 @@ void DaveOutput::add_indiv_output(
 		timestep_t timestep,
 		std::vector<ColumnDefinition<Individual>> (*get_columns)(),
 		std::string description,
-		double (*aggregator)(double *, int),
 		bool sum,
 		bool mean) {
 	IndividualOutput *output = new IndividualOutput(name, get_columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_indiv_output(
+		std::string name,
+		timestep_t timestep,
+		std::string colname,
+		double (*read_output)(const Individual &),
+		std::string description) {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>(colname, read_output));
+	IndividualOutput *output = new IndividualOutput(name, columns, description, false, false);
 	register_output(output, timestep);
 }
 
@@ -902,6 +914,17 @@ DaveOutput::IndividualOutput::IndividualOutput(
 	write_mean = mean;
 }
 
+DaveOutput::IndividualOutput::IndividualOutput(
+		std::string param_name,
+		std::vector<ColumnDefinition<Individual>> columns,
+		std::string description,
+		bool sum,
+		bool mean) : OutputFile(param_name, description) {
+	columns = columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
 DaveOutput::IndividualOutput::~IndividualOutput() { }
 
 void DaveOutput::IndividualOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
@@ -955,7 +978,12 @@ void DaveOutput::IndividualOutput::write_rows(OutputChannel *channel, Gridcell &
 }
 
 ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
-	columns = get_column_definitions();
+	if (get_column_definitions) {
+		columns = get_column_definitions();
+	}
+	if (columns.size() == 0) {
+		fail("No columns specified for output file");
+	}
 
 	ColumnDescriptors descriptors;
 	descriptors += ColumnDescriptor(COLNAME_STAND, COLUMN_WIDTH, 0);

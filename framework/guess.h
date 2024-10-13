@@ -3295,8 +3295,8 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// 15-day record of NSC pool (kgC/m2/d)
-	Historic<double, 15> cmass_storage_15;
+	/// 20-day record of NSC pool (kgC/m2/d)
+	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
 	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
@@ -4771,14 +4771,14 @@ public:
 	double reldaylength;
 	/// cumulative temperature factor for growth.
 	double ftemp_cum;
-	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
-	Historic<double, 3> wcont_germ_3;
+	// Water content of upper soil layer as fraction of available water holding capacity over the last 4 days
+	Historic<double, 4> wcont_germ_4;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 30 days
 	Historic<double, 30> wcont_germ_30;
 	// Water content of upper soil layer as fraction of available water holding capacity over the last 3 days
 	Historic<double, 14> wcont_germ_14;
 	// Temperature of upper soil layer over the last 3 days
-	Historic<double, 3> tsoil_germ_3;
+	Historic<double, 4> tsoil_germ_4;
 	// Temperature of upper soil layer over the last 14 days
 	Historic<double, 14> tsoil_germ_14;
 	/// running sum (converted to annual mean) for wscal

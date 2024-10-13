@@ -289,16 +289,15 @@ double photo_growth(double reldaylength, double daylength_diff) {
 
 
 // Calculates dphen_activity, which is used for calculation of:
-// 1) the rate at which grasses enter or release dormancy.
-// 2) the rate at which grasses resume growth after completion of reproductive cycle.
-double dphen_activity(Individual &indiv, Climate& climate) {
+// 1) the rate at which grasses enter or release dormancy (dormancy = true).
+// 2) the rate at which grasses resume growth after completion of reproductive cycle (dormancy = false).
+double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 	
-	// Water stress thresholds depends on developmental growth demand.
-	// --> plants are more 'cautious' outside of their main growing season.
-	double wscal_min = indiv.fphen_activity > 0.55 ? pft.wscal_min : 0.6;
+	// different water stress thresholds for dormancy and vegetative regrowth.
+	double wscal_min = dormancy ? pft.wscal_min : 0.6;
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
@@ -325,7 +324,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	double pscal = 1.0;
 
 	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
-	    ppft.daylength_10.periodictrend(1) < 0.0 && indiv.fdev_growth > 0.1) {
+	    ppft.daylength_10.periodictrend(1) < 0.0 && !dormancy) {
 			
 			double daylength_crit = 0.9;
 			double daylength_min  = 0.6;
@@ -365,8 +364,13 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
         // check if conditions are suitable to resume vegetative growth.
 		// If not, maintain reduced growth rate or enter dormancy.
 
-		double dphen_growth = dphen_activity(indiv, climate);
+		// TODO: deal with dphen_activity called twice.
+		double dphen_growth = dphen_activity(indiv, climate, false);
 
+		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
+		if (ppft.wscal_5.mean() < 0.6) { 
+			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
+		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
 
 	}
@@ -401,7 +405,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				double dphen_dormancy = dphen_activity(indiv, climate);
+				double dphen_dormancy = dphen_activity(indiv, climate, true);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 			} else {
 			    // no dormancy in annuals
@@ -428,9 +432,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
-		   	//if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
-			if (indiv.growth_stage == dormant && indiv.fphen_activity > 0.55) {
+		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
 				indiv.growth_stage = vegetative;
+				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
 			}
@@ -449,7 +453,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				}
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
-					indiv.fdev_growth = 1.0;
 					indiv.growth_stage_days = 0;
 				}
 			} 
@@ -463,7 +466,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
-					indiv.fdev_growth = 1.0;
                 }
 
                 // no further increases in repr. 
@@ -3068,7 +3070,7 @@ double growth_demand(Individual& indiv) {
 
 	// Sensitivity of water stress to growth
 	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	const double wscal0  = 0.75;   // inflection point
+	const double wscal0 = 0.75;    // inflection point
 	const double bgrowth = 0.08;   // steepness around wscal0
 
 	double fwater_growth = 0.0;

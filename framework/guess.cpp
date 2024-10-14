@@ -1759,6 +1759,15 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anj_frac                    = 0.0;
 	anp_frac                    = 0.0;
 
+	const size_t INITIAL_WSCAL_SIZE = 10;
+	wscal_dynamic.set_capacity(INITIAL_WSCAL_SIZE);
+	soiltemp_dynamic.set_capacity(INITIAL_WSCAL_SIZE);
+
+	nday_active                = 0;
+
+	// 30 years by default.
+	nday_dormant_historical.set_capacity(30);
+
 	initialc = 0.0;
 	initialn = 0.0;
 	leaf_out = false;

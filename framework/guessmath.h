@@ -516,6 +516,109 @@ private:
 	bool full;
 };
 
+
+/// New Historic class with the possibility to define 
+// length as input.
+template<typename T>
+class HistoricDynamic {
+public:
+	HistoricDynamic() {
+		capacity = 0;
+		values = NULL;
+		full = false;
+		current_index = 0;
+	}
+
+	// Set the capacity to the specified value.
+	void set_capacity(size_t capacity) {
+		// TODO Drew: double check this logic.
+		T *new_list = (T *)malloc(sizeof(T) * capacity);
+		for (size_t i = 0; i < capacity; i++) {
+			new_list[i] = 0;
+		}
+		size_t n = get_n_values();
+		if (capacity < this->capacity) {
+			size_t start = modulo(current_index - n, capacity);
+			for (size_t i = 0; i < n; i++) {
+				new_list[i] = values[start + i % this->capacity];
+			}
+		} else {
+			for (size_t i = 0; i < this->capacity; i++) {
+				new_list[i] = i < n ? values[i] : 0;
+			}
+		}
+		if (values) {
+			free(values);
+		}
+		values = new_list;
+		this->capacity = capacity;
+		// Current index should wrap around to the start of the list if
+		// necessary.
+		current_index = current_index % capacity;
+	}
+
+	/// Adds a value, overwriting the oldest if full
+	void add(double value) {
+		assert(capacity > 0);
+
+		values[current_index] = value;
+
+		current_index = (current_index + 1) % capacity;
+
+		if (current_index == 0) {
+			full = true;
+		}
+	}
+
+	/// Get the mean value stored in the vector.
+	double mean() const {
+		// Get the number of values currently stored, in case the vector is not
+		// yet full.
+		size_t n = get_n_values();
+
+		double sum = 0;
+		for (size_t i = 0; i < n; i++) {
+			sum += values[i];
+		}
+		return sum / n;
+	}
+
+	/// Get the mean value stored in the vector.
+	double weighted_mean() const {
+		// Get the number of values currently stored, in case the vector is not
+		// yet full.
+		size_t n = get_n_values();
+
+		double sum = 0;
+		double total_weight = 0;
+		for (size_t i = 0; i < n; i++) {
+			double weight = 1.0 - i / n;
+			sum += values[i] * weight;
+			total_weight += weight;
+		}
+		return sum / (n * total_weight);
+	}
+
+private:
+	/// Get the number of values currently stored.
+	size_t get_n_values() const {
+		return full ? capacity : current_index + 1;
+	}
+
+	/// The number of values this object can currently hold.
+	size_t capacity;
+
+	/// The stored values.
+	T *values;
+
+	/// The next position (in the values array) to write to.
+	size_t current_index;
+
+	/// Whether we've reached the maximum number of values.
+	bool full;
+};
+
+
 /// Serialization support for Historic
 /** We have a friend serialization operator instead of
  *  implementing Serializable, to avoid overhead of a

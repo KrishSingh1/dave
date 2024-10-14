@@ -3278,6 +3278,17 @@ public:
 	double anj_frac;
 	double anp_frac;
 
+	/// Adaptive N-day moving avegage of wscal.
+	HistoricDynamic<double> wscal_dynamic;
+	/// Adaptive N-day moving avegage of soil temperature.
+	HistoricDynamic<double> soiltemp_dynamic;
+
+	// Number of days this indiv has spent dormant this year.
+	size_t nday_active;
+	// Moving average over N years of the total number of days this cohort is
+	// dormant per year.
+	HistoricDynamic<size_t> nday_dormant_historical;
+
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
@@ -4759,7 +4770,6 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
-
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;

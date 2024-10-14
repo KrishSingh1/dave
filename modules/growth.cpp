@@ -376,6 +376,34 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	}
 }
 
+size_t get_response_window(size_t nday_active) {
+	size_t x_intercept = 1;
+	size_t y_intercept = 15;
+	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
+	return slope * nday_active + y_intercept;
+}
+
+// Adjust window length for moving averages of soil temperature and
+// water scalar.
+void adjust_response_window(Individual &indiv) {
+	// Only grasses respond dynamically to the growing conditions (for now!).
+	// TODO: Assaf
+	if (!indiv.pft.is_grass()) {
+		return;
+	}
+
+	if (indiv.growth_stage != dormant) {
+		indiv.nday_active++;
+	}
+
+	if (date.islastday && date.islastmonth) {
+		indiv.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - indiv.nday_active);
+		indiv.nday_active = 0;
+		size_t response_window = get_response_window(indiv.nday_dormant_historical.mean());
+		indiv.wscal_dynamic.set_capacity(response_window);
+		indiv.soiltemp_dynamic.set_capacity(response_window);
+	}
+}
 
 void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
@@ -487,6 +515,10 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		else {
 			indiv.fphen_activity = 1.0;
 		}
+
+		// Adjust window length for moving averages of soil temperature and
+		// water scalar.
+		adjust_response_window(indiv);
 
 		vegetation.nextobj();
 	}
@@ -674,6 +706,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 	if(ifdavegrowth) {
 		
 		phenology_grass_dave(vegetation, climate);
+
 
 	}
 

@@ -4966,9 +4966,10 @@ public:
 
 		// 30 years by default.
 		nday_dormant_historical.set_capacity(30);
-		// Initial value of 134 dormant days, which corresponds to a response
+
+		// Initial value of 105 dormant days, which corresponds to a response
 		// window size of 10 days.
-		nday_dormant_historical.add(134);
+		nday_dormant_historical.add(105);
 
 		senescence_reason.reset();
 	}

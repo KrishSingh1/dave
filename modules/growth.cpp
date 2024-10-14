@@ -396,19 +396,27 @@ void adjust_response_window(Individual &indiv) {
 
 		// Only allow the response window to change in size by 1 day per year.
 		// TODO: parameterise this?
-		const size_t change_rate = 1;
+		const size_t MAX_CHANGE_RATE = 1;
 
 		size_t response_window_new = get_response_window(ppft.nday_dormant_historical.mean());
 		size_t response_window_old = indiv.wscal_dynamic.get_capacity();
+
+		// Change in response unit, in absolute number of days.
+		size_t change = abs((int)(response_window_new - response_window_old));
+
+		// Limit change to change_rate.
+		if (change > MAX_CHANGE_RATE) {
+			change = MAX_CHANGE_RATE;
+		}
 
 		// Move toward the new response window length by at most change_rate.
 		double response_window;
 		if (response_window_new > response_window_old) {
 			// Response window length is increasing.
-			response_window = response_window_old + change_rate;
+			response_window = response_window_old + change;
 		} else if (response_window_new < response_window_old) {
 			// Response window length is decreasing.
-			response_window = response_window_old - change_rate;
+			response_window = response_window_old - change;
 		} else {
 			// No change in response window size.
 			response_window = response_window_old;

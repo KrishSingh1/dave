@@ -531,19 +531,19 @@ public:
 
 	// Set the capacity to the specified value.
 	void set_capacity(size_t capacity) {
+		if (capacity == this->capacity) {
+			return;
+		}
 		// TODO Drew: double check this logic.
 		T *new_list = (T *)malloc(sizeof(T) * capacity);
-		for (size_t i = 0; i < capacity; i++) {
-			new_list[i] = 0;
-		}
 		size_t n = size();
 		if (capacity < this->capacity) {
 			size_t start = modulo(current_index - std::min(n,capacity), this->capacity);
 			for (size_t i = 0; i < capacity; i++) {
-				new_list[i] = values[start + i % this->capacity];
+				new_list[i] = values[(start + i) % this->capacity];
 			}
 		} else {
-			for (size_t i = 0; i < this->capacity; i++) {
+			for (size_t i = 0; i < capacity; i++) {
 				new_list[i] = i < n ? values[i] : 0;
 			}
 		}
@@ -605,7 +605,7 @@ public:
 
 	/// Get the number of values currently stored.
 	size_t size() const {
-		return full ? capacity : current_index + 1;
+		return full ? capacity : current_index;
 	}
 
 private:

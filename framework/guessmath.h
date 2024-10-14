@@ -536,10 +536,10 @@ public:
 		for (size_t i = 0; i < capacity; i++) {
 			new_list[i] = 0;
 		}
-		size_t n = get_n_values();
+		size_t n = size();
 		if (capacity < this->capacity) {
-			size_t start = modulo(current_index - n, capacity);
-			for (size_t i = 0; i < n; i++) {
+			size_t start = modulo(current_index - std::min(n,capacity), this->capacity);
+			for (size_t i = 0; i < capacity; i++) {
 				new_list[i] = values[start + i % this->capacity];
 			}
 		} else {
@@ -555,6 +555,10 @@ public:
 		// Current index should wrap around to the start of the list if
 		// necessary.
 		current_index = current_index % capacity;
+	}
+
+	size_t get_capacity() const {
+		return capacity;
 	}
 
 	/// Adds a value, overwriting the oldest if full
@@ -574,7 +578,7 @@ public:
 	double mean() const {
 		// Get the number of values currently stored, in case the vector is not
 		// yet full.
-		size_t n = get_n_values();
+		size_t n = size();
 
 		double sum = 0;
 		for (size_t i = 0; i < n; i++) {
@@ -587,7 +591,7 @@ public:
 	double weighted_mean() const {
 		// Get the number of values currently stored, in case the vector is not
 		// yet full.
-		size_t n = get_n_values();
+		size_t n = size();
 
 		double sum = 0;
 		double total_weight = 0;
@@ -599,12 +603,12 @@ public:
 		return sum / (n * total_weight);
 	}
 
-private:
 	/// Get the number of values currently stored.
-	size_t get_n_values() const {
+	size_t size() const {
 		return full ? capacity : current_index + 1;
 	}
 
+private:
 	/// The number of values this object can currently hold.
 	size_t capacity;
 

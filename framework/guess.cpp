@@ -1687,6 +1687,13 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& isintercropgrass;
 }
 
+size_t get_response_window(size_t nday_dormant) {
+	size_t x_intercept = 1;
+	size_t y_intercept = 15;
+	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
+	return slope * nday_dormant + y_intercept;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Individual member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -1759,14 +1766,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anj_frac                    = 0.0;
 	anp_frac                    = 0.0;
 
-	const size_t INITIAL_WSCAL_SIZE = 10;
-	wscal_dynamic.set_capacity(INITIAL_WSCAL_SIZE);
-	soiltemp_dynamic.set_capacity(INITIAL_WSCAL_SIZE);
-
-	nday_active                = 0;
-
-	// 30 years by default.
-	nday_dormant_historical.set_capacity(30);
+	Patchpft &ppft = patchpft();
+	size_t response_window = get_response_window(ppft.nday_dormant_historical.mean());
+	wscal_dynamic.set_capacity(response_window);
+	soiltemp_dynamic.set_capacity(response_window);
 
 	initialc = 0.0;
 	initialn = 0.0;

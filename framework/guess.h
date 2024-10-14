@@ -3283,12 +3283,6 @@ public:
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
 
-	// Number of days this indiv has spent dormant this year.
-	size_t nday_active;
-	// Moving average over N years of the total number of days this cohort is
-	// dormant per year.
-	HistoricDynamic<size_t> nday_dormant_historical;
-
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
@@ -4899,6 +4893,12 @@ public:
 	/// [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
 	double inund_stress;
 
+	// Number of days this indiv has spent dormant this year.
+	size_t nday_active;
+	// Moving average over N years of the total number of days this cohort is
+	// dormant per year.
+	HistoricDynamic<size_t> nday_dormant_historical;
+
 
 	// MEMBER FUNCTIONS:
 
@@ -4961,6 +4961,14 @@ public:
 		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
+
+		nday_active                = 0;
+
+		// 30 years by default.
+		nday_dormant_historical.set_capacity(30);
+		// Initial value of 134 dormant days, which corresponds to a response
+		// window size of 10 days.
+		nday_dormant_historical.add(134);
 
 		senescence_reason.reset();
 	}
@@ -6007,6 +6015,13 @@ described in <...> has a maximum value of 1.
 */
 double calc_a_growth(const Pft *pft);
 
+/*
+Calculate the response window (in days) for phenological responses to growing
+conditions.
+
+@param nday_dormant: The number of dormant days in a year.
+*/
+size_t get_response_window(size_t nday_dormant);
 
 #endif // LPJ_GUESS_GUESS_H
 

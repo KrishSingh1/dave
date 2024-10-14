@@ -301,12 +301,12 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+	double wscal_mean = indiv.wscal_dynamic.size() > 0 ? indiv.wscal_dynamic.mean() : 1.0;
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
 	double wscal_actual = wscal_mean;
-	double tscal_actual = temp_growth(ppft.soiltemp_10.mean(),indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	double tscal_actual = temp_growth(indiv.soiltemp_dynamic.mean(), indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth, indiv.pft.temp_dormancy);
 
 	// Changes in physiological activity due to changes in dormancy status
 	double denom_wscal = wscal_actual >= wscal_min ? pow((1.0 - wscal_min), 1.5) : wscal_min;
@@ -376,13 +376,6 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	}
 }
 
-size_t get_response_window(size_t nday_active) {
-	size_t x_intercept = 1;
-	size_t y_intercept = 15;
-	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
-	return slope * nday_active + y_intercept;
-}
-
 // Adjust window length for moving averages of soil temperature and
 // water scalar.
 void adjust_response_window(Individual &indiv) {
@@ -392,14 +385,35 @@ void adjust_response_window(Individual &indiv) {
 		return;
 	}
 
+	Patchpft &ppft = indiv.patchpft();
 	if (indiv.growth_stage != dormant) {
-		indiv.nday_active++;
+		ppft.nday_active++;
 	}
 
 	if (date.islastday && date.islastmonth) {
-		indiv.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - indiv.nday_active);
-		indiv.nday_active = 0;
-		size_t response_window = get_response_window(indiv.nday_dormant_historical.mean());
+		ppft.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - ppft.nday_active);
+		ppft.nday_active = 0;
+
+		// Only allow the response window to change in size by 1 day per year.
+		// TODO: parameterise this?
+		const size_t change_rate = 1;
+
+		size_t response_window_new = get_response_window(ppft.nday_dormant_historical.mean());
+		size_t response_window_old = indiv.wscal_dynamic.get_capacity();
+
+		// Move toward the new response window length by at most change_rate.
+		double response_window;
+		if (response_window_new > response_window_old) {
+			// Response window length is increasing.
+			response_window = response_window_old + change_rate;
+		} else if (response_window_new < response_window_old) {
+			// Response window length is decreasing.
+			response_window = response_window_old - change_rate;
+		} else {
+			// No change in response window size.
+			response_window = response_window_old;
+		}
+
 		indiv.wscal_dynamic.set_capacity(response_window);
 		indiv.soiltemp_dynamic.set_capacity(response_window);
 	}
@@ -427,6 +441,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
+
+		indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);
 
 		if (pft.is_grass()) { 
 

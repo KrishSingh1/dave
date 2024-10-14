@@ -3777,6 +3777,12 @@ void water_stress(Patch &patch) {
 		ppft.wscal_30.add(ppft.wscal);
 		ppft.airtemp_10.add(patch.get_climate().temp);
 	}
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		Patchpft &ppft = indiv.patchpft();
+		indiv.wscal_dynamic.add(ppft.wscal);
+		assert(ppft.wscal <= 1.0);
+	}
 }
 
 

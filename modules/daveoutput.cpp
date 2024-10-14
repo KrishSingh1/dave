@@ -67,6 +67,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_a_belowground_cmass", ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_aboveground_nmass", ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass", ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_response_window"    , DAILY, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Annual output of response window length (days)", mean);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);

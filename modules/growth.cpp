@@ -3154,8 +3154,7 @@ double growth_demand(Individual& indiv) {
 
 	// Sensitivity of water stress to growth
 	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
-	const double wscal0 = 0.75;    // inflection point
-	const double bgrowth = 0.08;   // steepness around wscal0
+
 
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;

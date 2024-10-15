@@ -376,54 +376,85 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 	}
 }
 
+double move_toward(double current, double target, double max_change) {
+	// Change in response unit, in absolute number of days.
+	double change = fabs(target - current);
+
+	// Limit change to change_rate.
+	if (change > max_change) {
+		change = max_change;
+	}
+
+	double sign = current >= target ? -1 : 1;
+	return current + sign * change;
+}
+
 // Adjust window length for moving averages of soil temperature and
 // water scalar.
 void adjust_response_window(Individual &indiv) {
-	// Only grasses respond dynamically to the growing conditions (for now!).
-	// TODO: Assaf
+	Patchpft &ppft = indiv.patchpft();
+
+	// Only grasses respond dynamically to the growing conditions (for
+	// now!). TODO: Assaf
 	if (!indiv.pft.is_grass()) {
 		return;
 	}
 
-	Patchpft &ppft = indiv.patchpft();
-	if (indiv.growth_stage != dormant) {
-		ppft.nday_active++;
-	}
-
 	if (date.islastday && date.islastmonth) {
-		ppft.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - ppft.nday_active);
-		ppft.nday_active = 0;
+		size_t nday_dormant = ppft.nday_dormant_historical.mean();
 
 		// Only allow the response window to change in size by 1 day per year.
 		// TODO: parameterise this?
 		const size_t MAX_CHANGE_RATE = 1;
 
-		size_t response_window_new = get_response_window(ppft.nday_dormant_historical.mean());
+		size_t response_window_new = get_response_window(nday_dormant);
 		size_t response_window_old = indiv.wscal_dynamic.get_capacity();
 
-		// Change in response unit, in absolute number of days.
-		size_t change = abs((int)(response_window_new - response_window_old));
-
-		// Limit change to change_rate.
-		if (change > MAX_CHANGE_RATE) {
-			change = MAX_CHANGE_RATE;
-		}
-
 		// Move toward the new response window length by at most change_rate.
-		double response_window;
-		if (response_window_new > response_window_old) {
-			// Response window length is increasing.
-			response_window = response_window_old + change;
-		} else if (response_window_new < response_window_old) {
-			// Response window length is decreasing.
-			response_window = response_window_old - change;
-		} else {
-			// No change in response window size.
-			response_window = response_window_old;
-		}
+		double response_window = move_toward(response_window_old, response_window_new, MAX_CHANGE_RATE);
+		assert(response_window > 0);
 
 		indiv.wscal_dynamic.set_capacity(response_window);
 		indiv.soiltemp_dynamic.set_capacity(response_window);
+
+		// Adjust root beta factor (and therefore root distribution) based on
+		// number of dormant days.
+		double root_beta_new = calc_root_beta(nday_dormant);
+		const double MAX_ROOT_BETA_CHANGE = 0.0005;
+		indiv.root_beta = move_toward(indiv.root_beta, root_beta_new, MAX_ROOT_BETA_CHANGE);
+		calc_root_distribution(indiv.root_beta, indiv.rootdist);
+	}
+}
+
+void dormant_days_accounting_dave(Vegetation &vegetation) {
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		Patchpft &ppft = indiv.patchpft();
+
+		// Accumulate number of active days this year for this cohort.
+		if (indiv.growth_stage != dormant) {
+			ppft.nday_active++;
+		}
+
+	}
+
+	// Add new value to moving average of number of dormant days, for each PFT
+	// Note: this is done for all PFTs, not just those currently established.
+	if (date.islastday && date.islastmonth) {
+		for (size_t i = 0; i < pftlist.nobj; i++) {
+			Patchpft &ppft = vegetation.patch.pft[i];
+			ppft.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - ppft.nday_active);
+		}
+	}
+
+	// Now adjust dynamic parameter accordingly, based on the mean nday_dormant.
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		Patchpft &ppft = indiv.patchpft();
+
+		// Adjust window length for moving averages of soil temperature and
+		// water scalar.
+		adjust_response_window(indiv);
 	}
 }
 
@@ -540,12 +571,10 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			indiv.fphen_activity = 1.0;
 		}
 
-		// Adjust window length for moving averages of soil temperature and
-		// water scalar.
-		adjust_response_window(indiv);
-
 		vegetation.nextobj();
 	}
+
+	dormant_days_accounting_dave(vegetation);
 }
 
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
@@ -5561,6 +5590,16 @@ void annual_accounting_dave(Vegetation& vegetation) {
 
 			indiv.deltafpc = 0.0;
 		} // Last day of year
+	}
+
+	// Reset nday_active to 0 at start of year for all PFTs, regardless of
+	// whether they're currently established in this patch, to avoid nday_active
+	// from carrying over from one year to the next.
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		Patchpft &ppft = vegetation.patch.pft[i];
+		if (date.day == 0) {
+			ppft.nday_active = 0;
+		}
 	}
 }
 

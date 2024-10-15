@@ -1694,6 +1694,31 @@ size_t get_response_window(size_t nday_dormant) {
 	return slope * nday_dormant + y_intercept;
 }
 
+double calc_root_beta(size_t nday_dormant) {
+	const double ROOT_BETA_MIN = 0.94;
+	const double ROOT_BETA_MAX = 0.98;
+	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / Date::MAX_YEAR_LENGTH;
+	return slope * nday_dormant + ROOT_BETA_MIN;
+}
+
+// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
+void calc_root_distribution(double root_beta, double rootdist[NSOILLAYER]) {
+
+	double depth = Dz_soil * CM_PER_MM;
+
+	rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
+
+	double tot = rootdist[0];
+	for (int i=1; i<NSOILLAYER; i++){
+		depth += Dz_soil * CM_PER_MM;
+		rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
+		tot += rootdist[i];
+	}
+	// Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+	// Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
+	rootdist[NSOILLAYER-1] += 1.0 - tot;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Individual member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -1767,9 +1792,17 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anp_frac                    = 0.0;
 
 	Patchpft &ppft = patchpft();
-	size_t response_window = get_response_window(ppft.nday_dormant_historical.mean());
+	size_t nday_dormant = ppft.nday_dormant_historical.mean();
+	size_t response_window = get_response_window(nday_dormant);
+	assert(response_window > 0);
 	wscal_dynamic.set_capacity(response_window);
 	soiltemp_dynamic.set_capacity(response_window);
+
+	// Initialise dynamic root_beta and rootdist to the pft-level values.
+	root_beta = calc_root_beta(nday_dormant);
+	for (size_t i = 0; i < NSOILLAYER; i++) {
+		rootdist[i] = pft.rootdist[i];
+	}
 
 	initialc = 0.0;
 	initialn = 0.0;

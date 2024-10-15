@@ -2052,6 +2052,11 @@ typedef std::bitset<NSEN_TYPE> sen_type;
 //    return static_cast<enum sen_type>(static_cast<int>(a) & static_cast<int>(b));
 //}
 
+/*
+Calculate the root distribution given a root beta value.
+*/
+void calc_root_distribution(double root_beta, double rootdist[NSOILLAYER]);
+
 /// Holds static functional parameters for a plant functional type (PFT).
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object
  *  may be referenced (via the pft member of the Individual object; see below) by different
@@ -2719,20 +2724,7 @@ public:
     
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
-
-		double depth = Dz_soil * CM_PER_MM;
-
-		rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
-
-        double tot = rootdist[0];
-        for (int i=1; i<NSOILLAYER; i++){
-			depth += Dz_soil * CM_PER_MM;
-			rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
-            tot += rootdist[i];
-        }
-        // Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
-        // Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
-        rootdist[NSOILLAYER-1] += 1.0 - tot;
+		calc_root_distribution(root_beta, rootdist);
     }
     
 	bool ismoss() const {
@@ -3282,6 +3274,11 @@ public:
 	HistoricDynamic<double> wscal_dynamic;
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
+	/// Dynamic root beta value used in dave version.
+	double root_beta;
+
+	/// Dynamic root distribution used in dave version.
+	double rootdist[NSOILLAYER];
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
@@ -6023,6 +6020,12 @@ conditions.
 @param nday_dormant: The number of dormant days in a year.
 */
 size_t get_response_window(size_t nday_dormant);
+
+/*
+Calculate the root beta value corresponding to the specified number of dormant
+days in a year.
+*/
+double calc_root_beta(size_t nday_dormant);
 
 #endif // LPJ_GUESS_GUESS_H
 

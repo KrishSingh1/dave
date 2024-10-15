@@ -289,15 +289,18 @@ double photo_growth(double reldaylength, double daylength_diff) {
 
 
 // Calculates dphen_activity, which is used for calculation of:
-// 1) the rate at which grasses enter or release dormancy (dormancy = true).
-// 2) the rate at which grasses resume growth after completion of reproductive cycle (dormancy = false).
-double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
+double dphen_activity(Individual &indiv, Climate& climate) {
 
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 	
-	// different water stress thresholds for dormancy and vegetative regrowth.
-	double wscal_min = dormancy ? pft.wscal_min : 0.6;
+	// higher water stress thresholds for dormancy and vegetative regrowth
+	// compared to the vegetative phase.
+	// is_zero(1.0 - indiv.fphen_activity) && is_zero(1.0 - indiv.fdev_growth)
+	double wscal_min = 0.6;
+	if (indiv.growth_stage == vegetative && is_zero(1.0 - indiv.fdev_growth)) {
+		wscal_min = pft.wscal_min;
+	}
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
@@ -324,7 +327,7 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 	double pscal = 1.0;
 
 	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
-	    ppft.daylength_10.periodictrend(1) < 0.0 && !dormancy) {
+	    ppft.daylength_10.periodictrend(1) < 0.0 && indiv.growth_stage != dormant) {
 			
 			double daylength_crit = 0.9;
 			double daylength_min  = 0.6;
@@ -365,12 +368,8 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		// If not, maintain reduced growth rate or enter dormancy.
 
 		// TODO: deal with dphen_activity called twice.
-		double dphen_growth = dphen_activity(indiv, climate, false);
+		double dphen_growth = dphen_activity(indiv, climate);
 
-		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
-		if (ppft.wscal_5.mean() < 0.6) { 
-			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
-		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
 
 	}
@@ -488,7 +487,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				double dphen_dormancy = dphen_activity(indiv, climate, true);
+				double dphen_dormancy = dphen_activity(indiv, climate);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 			} else {
 			    // no dormancy in annuals

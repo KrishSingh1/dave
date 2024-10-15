@@ -296,9 +296,8 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	
 	// higher water stress thresholds for dormancy and vegetative regrowth
 	// compared to the vegetative phase.
-	// is_zero(1.0 - indiv.fphen_activity) && is_zero(1.0 - indiv.fdev_growth)
 	double wscal_min = 0.6;
-	if (indiv.growth_stage == vegetative && is_zero(1.0 - indiv.fdev_growth)) {
+	if (indiv.growth_stage == vegetative && is_zero(1.0 - indiv.fphen_activity) && indiv.fdev_growth > 0.1) {
 		wscal_min = pft.wscal_min;
 	}
 

@@ -2002,7 +2002,7 @@ bool allometry(Individual& indiv) {
 				// belowground C investment and available N. eff_rpc represents the efficiency of 
 				// roots to cover volume, related to specfic root length (SRL in m g-1). SRL is ca. 4 times 
 				// higher in annuals than perennials (Roumet et al. 2006, New Phytologist).
-				double eff_rpc = indiv.pft.lifeform == GRASS_PERENNIAL ? 4.0 : 16.0; 
+				double eff_rpc = indiv.pft.lifeform == GRASS_PERENNIAL ? 6.0 : 20.0; 
 				indiv.rpc = 1.0 - lambertbeer(indiv.lai_indiv * min(10.0,(eff_rpc * indiv.cmass_root / indiv.cmass_leafs[green])));
 				// TODO: Replace with better solution. Does this work with competition??
 

@@ -411,7 +411,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
 	double tdorm = ppft.pft.temp_dormancy;
-	double fgerm_max25 = 0.5; // maximum daily germination rate at temperature optimum (fraction) 
+	double fgerm_max25 = 0.6; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
 	ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy

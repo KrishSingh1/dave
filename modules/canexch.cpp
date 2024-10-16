@@ -2798,10 +2798,13 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			cton_root = pft.cton_root_avr;
 		}
 
+		// We pass in 0 for leaf respiration here because it's already accounted
+		// for implicitly in the call to net_assimilation() above. This value is
+		// only treated differently in dave photosynthesis.
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
 			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
-			assim, indiv.photosynthesis.rd_g * KG_PER_G, resp, indiv.resp_maintenance,
+			assim, 0.0, resp, indiv.resp_maintenance,
 			indiv.resp_growth);
 
 		// Convert to averages for this period for accounting purposes

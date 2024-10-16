@@ -1405,7 +1405,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
 		// Annual growth
-		if (!(daily_grass && indiv.pft.is_grass())) {
+		if (!daily_grass) {
 
 			// Root and leaf demand from storage pools
 			indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);

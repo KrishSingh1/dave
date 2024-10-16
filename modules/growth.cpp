@@ -1609,16 +1609,19 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
-		// Capacity of C and N storage on establishment
-		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
-			indiv.cstorage_max = cstorage_capacity(indiv);
-			indiv.nstorage_max = nstorage_capacity(indiv);
-		}
-		// initialise limits
-		if (is_zero(indiv.cmass_sap_limit)) {
-			indiv.cmass_sap_limit = indiv.cmass_sap;
-			indiv.cmass_leaf_limit = indiv.cmass_leaf;
-			indiv.cmass_root_limit = indiv.cmass_root;
+
+		if (indiv.pft.dave_allocation()) {
+			// Capacity of C and N storage on establishment
+			if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
+				indiv.cstorage_max = cstorage_capacity(indiv);
+				indiv.nstorage_max = nstorage_capacity(indiv);
+			}
+			// initialise limits
+			if (is_zero(indiv.cmass_sap_limit)) {
+				indiv.cmass_sap_limit = indiv.cmass_sap;
+				indiv.cmass_leaf_limit = indiv.cmass_leaf;
+				indiv.cmass_root_limit = indiv.cmass_root;
+			}
 		}
 
 		double nmass_remaining = nmass_init;

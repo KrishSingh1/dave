@@ -132,7 +132,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            4
 
 ! Force the use of newline characters to terminate progress messages. Useful for MPI runs.
 progress_newline             0
@@ -149,7 +149,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output                1
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -183,7 +183,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -191,7 +191,7 @@ ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
+wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
                             ! see documentation for water_uptake()
 !rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
@@ -289,7 +289,7 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-!import "trees.ins"
+import "trees.ins"
 !import "shrubberies.ins"
-import "c3g.ins"
-import "c4g.ins"
+!import "c3g.ins"
+!import "c4g.ins"

@@ -25,6 +25,9 @@ pft "TeNE" (
 	seas_iso 0		! Values set to be the same as those for BNE and BINE
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Values set to be the same as those for BNE and BINE
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Values set to be the same as those for BNE and BINE
+
+	sla 13.17
+	cton_leaf_min 29.01
 )
 
 pft "TeBE" (
@@ -34,11 +37,12 @@ pft "TeBE" (
 	include 1
 	tree
 	broadleaved
-	shade_tolerant
+	shade_intolerant
 	evergreen
 	temperate
 	leaflong 3
 	turnover_leaf 0.33
+	turnover_leaf 0.3180933
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
@@ -53,6 +57,12 @@ pft "TeBE" (
 
 	g0 0.034017
 	gmin 0.0005 ! gcutic (gmin used for trunk only)
+	sla 13.17
+	cton_leaf_min 29.01
+
+	k_allom2 22.7
+	k_allom3 0.54
+	wooddens 330
 )
 
 pft "TrBE" (
@@ -73,6 +83,10 @@ pft "TrBE" (
 	seas_iso 0
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	sla 13.17
+	sla 20 
+	cton_leaf_min 29.01
 )
 
 pft "TrIBE" (
@@ -94,4 +108,6 @@ pft "TrIBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	sla 13.17
+	cton_leaf_min 29.01
 )

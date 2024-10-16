@@ -1718,6 +1718,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit	  = 0.0;
+	relative_alpha_leaf 		  = 0.0;
+	relative_alpha_root 		  = 0.0;
+	relative_alpha_sap  		  = 0.0;
+	relative_alpha_repr 		  = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
@@ -1858,6 +1862,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_sap  = 0.0;
 	cturnover_repr  = 0.0;
 	cturnover_crown  = 0.0;
+	pturnover_leaf   = 0.0;
 
 	// additional initialisation
 	age               = 0.0;
@@ -1982,6 +1987,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		&fstorage
 		&cgrow_pot
 		& cmass_storage_20
+		& cstorage_dynam_14
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max

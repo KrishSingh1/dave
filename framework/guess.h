@@ -3126,6 +3126,14 @@ public:
 	double cmass_storage_limit;
 	/// target reproduction C mass (kgC/m^2) 
 	double cmass_repr_limit;
+	/// realtive leaf sink strengthy (unitless)
+	double relative_alpha_leaf;
+	/// realtive root sink strengthy (unitless)
+	double relative_alpha_root;
+	/// realtive sapwwod sink strengthy (unitless)
+	double relative_alpha_sap;
+	/// realtive reproductive sink strengthy (unitless)
+	double relative_alpha_repr;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3295,7 +3303,7 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
-	/// Storage flux (>0 if spending C; > 0 if storing C) (kgC/m2)
+	/// Storage flux (>0 saving; <0 storing) (kgC/m2)
 	double cmass_storage_dynam;
 	/// coefficient that scales growth demand using air temperature (unitless)
 	double ftemp;
@@ -3305,6 +3313,8 @@ public:
 	double fstorage;
 	/// a coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (unitless)
 	double cgrow_pot;
+	/// mean leaf age of the individual (y)
+	double meanleafage;
 
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
@@ -3312,6 +3322,8 @@ public:
 	Historic<double, 10> cmass_repr_10;
 	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
 	Historic<double, 20> cgrow_repr_20;
+	/// 14-day record of storage dynamics (kgC/m2/d)
+	Historic<double, 14> cstorage_dynam_14;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3495,6 +3507,8 @@ public:
 	double cturnover_repr;
 	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
 	double cturnover_crown;
+	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
+	double pturnover_leaf;
 
 	/// Number of days with non-negligible phenology this month
 	int nday_leafon;

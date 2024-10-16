@@ -542,13 +542,29 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
 	std::vector<ColumnDefinition<Individual>> columns;
 
 	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
+	columns.push_back(ColumnDefinition<Individual>("dnpp", [](const Individual &i) { return i.dnpp; }));
+	columns.push_back(ColumnDefinition<Individual>("dgpp", [](const Individual &i) { return i.dgpp; }));
+	columns.push_back(ColumnDefinition<Individual>("dresp", [](const Individual &i) { return i.dgpp - i.dnpp; }));
 	columns.push_back(ColumnDefinition<Individual>("resp_growth", [](const Individual &i) { return i.resp_growth; }));
 	columns.push_back(ColumnDefinition<Individual>("resp_maintenance", [](const Individual &i) { return i.resp_maintenance; }));
-	columns.push_back(ColumnDefinition<Individual>("cstorqge_fraction", [](const Individual &i) { return i.cmass_storage/i.cstorage_max; }));
+	columns.push_back(ColumnDefinition<Individual>("cstorage_fraction", [](const Individual &i) { return i.cmass_storage / i.cstorage_max; }));
 	columns.push_back(ColumnDefinition<Individual>("rpc", [](const Individual &i) { return i.rpc; }));
 	columns.push_back(ColumnDefinition<Individual>("height", [](const Individual &i) { return i.height; }));
-
-
+	columns.push_back(ColumnDefinition<Individual>("leafCbalance", [](const Individual &i) { return i.cgrow_leaf - i.cturnover_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("sapwoodCbalance", [](const Individual &i) { return i.cgrow_sap - i.cturnover_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("rootCbalance", [](const Individual &i) { return i.cgrow_root - i.cturnover_root; }));
+	columns.push_back(ColumnDefinition<Individual>("cgrowrootminusleaf", [](const Individual &i) { return i.cgrow_root - i.cgrow_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("cgrowminusleafturnover", [](const Individual &i) { return i.cgrow - i.cturnover_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("cstorage_dynam_14", [](const Individual &i) { return i.cstorage_dynam_14.sum(); }));
+	columns.push_back(ColumnDefinition<Individual>("meanleafage", [](const Individual &i) { return i.meanleafage; }));
+	columns.push_back(ColumnDefinition<Individual>("fLage", [](const Individual &i) { return i.meanleafage/3; }));
+	columns.push_back(ColumnDefinition<Individual>("leaf_growth_demand", [](const Individual &i) { return i.relative_alpha_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("root_growth_demand", [](const Individual &i) { return i.relative_alpha_root; }));
+	columns.push_back(ColumnDefinition<Individual>("sap_growth_demand", [](const Individual &i) { return i.relative_alpha_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("repr_growth_demand", [](const Individual &i) { return i.relative_alpha_repr; }));
+	columns.push_back(ColumnDefinition<Individual>("density", [](const Individual &i) { return i.densindiv; }));
+	columns.push_back(ColumnDefinition<Individual>("fpar", [](const Individual &i) { return i.fpar; }));
+	columns.push_back(ColumnDefinition<Individual>("latosa", [](const Individual &i) { return i.latosa; }));
 	return columns;
 }
 

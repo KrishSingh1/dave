@@ -1090,6 +1090,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
 
+						// set the initial ltor to the indiv object
+						indiv.ltor = ltor;
+
 						// Allocate initial biomass
 
 						allocation_init(bminit,ltor,indiv);

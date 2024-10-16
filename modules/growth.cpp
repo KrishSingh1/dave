@@ -1891,7 +1891,11 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.5;
+		if (indiv.pft.dave_allocation()) {
+			indiv.boleht = 0.5;
+		} else {
+			indiv.boleht = 0.0;
+		}
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();

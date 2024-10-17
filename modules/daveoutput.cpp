@@ -920,7 +920,7 @@ DaveOutput::IndividualOutput::IndividualOutput(
 		std::string description,
 		bool sum,
 		bool mean) : OutputFile(param_name, description) {
-	columns = columns;
+	this->columns = columns;
 	write_sum = sum;
 	write_mean = mean;
 }

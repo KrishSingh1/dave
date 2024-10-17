@@ -905,14 +905,16 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// for water balance checks
 		initial_water_in_column += layerwater;
 
-		// Shouldn't happen
-		if (aet_layer[ly] > Faw_layer[ly]) {
+		// Shouldn't happen in dave version.
+		// It seems this can happen in the trunk version, in which case, the
+		// guard clause below will save us from a negative water balance.
+		if (aet_layer[ly] > Faw_layer[ly] && ifdavephotosyn) {
 			fail("ERROR: Soil::hydrology_lpjf %04d-%02d-%02d (year %d) - aet in layer %d of %.8f exceeds Faw in this layer (%.8f)\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, ly, aet_layer[ly], Faw_layer[ly]);
 		}
 
 		// AW
 		// Now remove AET as it's already accounted for
-		Faw_layer[ly] -= aet_layer[ly];
+		Faw_layer[ly] -= min(aet_layer[ly], Faw_layer[ly]);
 		// Update layer water after subtracting AET
 		layerwater = Faw_layer[ly] + ice_layer[ly]; // mm
 

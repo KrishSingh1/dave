@@ -370,7 +370,6 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		double dphen_growth = dphen_activity(indiv, climate);
 
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
-
 	}
 }
 
@@ -5288,7 +5287,7 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	double dpslim = 0.015;
+	double dpslim = 0.01;
 	double qf2 = 100.0;
 	double cstorage_fill = Cstorage_fillfrac(indiv);
 

@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-150.763284 -33.620812 YarramundiIrrigated
-=======
 150.763284 -33.620812 YarIrr
->>>>>>> 8ca45755f39ed76d640b356a8ebc6e9d4551ddd9

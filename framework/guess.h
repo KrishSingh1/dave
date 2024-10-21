@@ -3148,6 +3148,12 @@ public:
     double senesc_root;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
+	/// season
+	double season;
+	/// feedback
+	double feedback;
+	/// inside growing season?
+	bool inside_growseas;
 	/// number of days in current growth stage
 	int growth_stage_days;
 	/// fraction of seedbank that is germinating each day

@@ -487,6 +487,15 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 				double dphen_dormancy = dphen_activity(indiv, climate);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
+				// keep track of the day when coming fully out of dormancy
+				if (indiv.growth_stage == vegetative && (indiv.fphen_activity * (1.0 + dphen_dormancy)) >= 1.0 && indiv.inside_growseas == 1){
+					indiv.season = 1.0;
+				}
+				if (indiv.growth_stage == dormant){
+					indiv.season += min(1.0,1/ppft.nday_dormant_historical.mean());
+				} else {
+					indiv.season -= max(0.0,1/(0.8 * (365.0 - ppft.nday_dormant_historical.mean())));
+				}
 			} else {
 			    // no dormancy in annuals
 				indiv.fphen_activity = 1.0;
@@ -517,6 +526,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
+				if (is_zero(1.0-indiv.season)) {
+				   indiv.inside_growseas = 0.0;
+				}
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
@@ -534,6 +546,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
 					indiv.growth_stage_days = 0;
+					indiv.season = 0.0;
 				}
 			} 
 			else if (indiv.growth_stage == reproductive && indiv.pft.lifeform == GRASS_PERENNIAL) {
@@ -546,6 +559,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
+					indiv.season = 0.0;
                 }
 
                 // no further increases in repr. 
@@ -3202,6 +3216,19 @@ double growth_demand(Individual& indiv) {
 
 }
 
+double calculate_Cmobilisation(Individual& indiv) {
+
+	double bf = 4.5;
+	double season0 = 0.5;
+	indiv.feedback = 1.0 - 1/(1 + pow(indiv.season/season0,bf));
+	if (date.get_calendar_year() == 2017 && date.month >= 4){
+		printf("hi");
+	}
+	return max_mobil_cstorage * indiv.feedback;
+
+}
+
+
 void storage_growth_partitioning_grass(Individual &indiv) {
 	// Local:
 	double cstore = 0.0;
@@ -3209,8 +3236,12 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
+	// Calculate maximum C storage mobilisation.
+	double test1 = calculate_Cmobilisation(indiv);
+	//double test = 1.0;
+
 	// C source: Potential growth rate (kgC m-2 d-1)
-	double Gpot = max(0.0, max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+	double Gpot = max(0.0, test1*max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);

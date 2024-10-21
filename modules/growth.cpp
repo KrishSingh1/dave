@@ -496,6 +496,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				} else {
 					indiv.season -= max(0.0,1/(0.8 * (365.0 - ppft.nday_dormant_historical.mean())));
 				}
+				indiv.season = max(0.0,min(1.0,indiv.season));
 			} else {
 			    // no dormancy in annuals
 				indiv.fphen_activity = 1.0;
@@ -532,7 +533,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0){
+				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0 && cmass_storage_level > 0.7){
+						// && cmass_storage_level > 0.75
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;
@@ -3168,7 +3170,6 @@ double growth_demand(Individual& indiv) {
 	// Sensitivity of water stress to growth
 	// growth is more sensitive to water stress than photosynthesis (see Fatichi et al. 2014)
 
-
 	double fwater_growth = 0.0;
 	double ftemp_growth  = 0.0;
 	double fphoto_growth = 0.0;
@@ -3198,7 +3199,11 @@ double growth_demand(Individual& indiv) {
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 
-	growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	if (ifsinksource){
+		growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	} else {
+		growth_demand = indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
+	}
 
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
@@ -3216,12 +3221,13 @@ double growth_demand(Individual& indiv) {
 
 }
 
+
 double calculate_Cmobilisation(Individual& indiv) {
 
-	double bf = 4.5;
+	double bf = 5;
 	double season0 = 0.5;
 	indiv.feedback = 1.0 - 1/(1 + pow(indiv.season/season0,bf));
-	if (date.get_calendar_year() == 2017 && date.month >= 4){
+	if (date.get_calendar_year() == 2012 && date.month >= 4){
 		printf("hi");
 	}
 	return max_mobil_cstorage * indiv.feedback;
@@ -3237,8 +3243,10 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
 	// Calculate maximum C storage mobilisation.
-	double test1 = calculate_Cmobilisation(indiv);
-	//double test = 1.0;
+	double test1 = 1.0;
+	if (date.year > 200 && indiv.lai > 0.5){
+	   test1 = calculate_Cmobilisation(indiv);
+	}
 
 	// C source: Potential growth rate (kgC m-2 d-1)
 	double Gpot = max(0.0, test1*max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
@@ -3250,7 +3258,12 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		
 		// Positive NPP
 
-		indiv.cgrow = min(indiv.growth_demand,Gpot);
+		if (ifsinksource){
+			indiv.cgrow = min(indiv.growth_demand,Gpot);
+		} else {
+			indiv.cgrow = Gpot * indiv.growth_demand;
+		}
+
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
 
@@ -3274,7 +3287,11 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			indiv.cgrow = min(indiv.growth_demand,Gpot);
+			if (ifsinksource){
+				indiv.cgrow = min(indiv.growth_demand,Gpot);
+			} else {
+				indiv.cgrow = Gpot * indiv.growth_demand;
+			}
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
@@ -5318,7 +5335,7 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	double dpslim = 0.01;
+	double dpslim = 0.00;
 	double qf2 = 100.0;
 	double cstorage_fill = Cstorage_fillfrac(indiv);
 

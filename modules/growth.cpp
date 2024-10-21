@@ -488,9 +488,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				double dphen_dormancy = dphen_activity(indiv, climate);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
 				// keep track of the day when coming fully out of dormancy
-				if (indiv.growth_stage == vegetative && (indiv.fphen_activity * (1.0 + dphen_dormancy)) >= 1.0 && indiv.inside_growseas == 1){
-					indiv.season = 1.0;
-				}
 				if (indiv.growth_stage == dormant){
 					indiv.season += min(1.0,1/ppft.nday_dormant_historical.mean());
 				} else {
@@ -527,9 +524,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
-				if (is_zero(1.0-indiv.season)) {
-				   indiv.inside_growseas = 0.0;
-				}
+				indiv.season = 1.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
@@ -3224,8 +3219,8 @@ double growth_demand(Individual& indiv) {
 
 double calculate_Cmobilisation(Individual& indiv) {
 
-	double bf = 5;
-	double season0 = 0.5;
+	double bf = 8;
+	double season0 = 0.4;
 	indiv.feedback = 1.0 - 1/(1 + pow(indiv.season/season0,bf));
 	if (date.get_calendar_year() == 2012 && date.month >= 4){
 		printf("hi");
@@ -3244,7 +3239,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 
 	// Calculate maximum C storage mobilisation.
 	double test1 = 1.0;
-	if (date.year > 200 && indiv.lai > 0.5){
+	if (date.year > 200){
 	   test1 = calculate_Cmobilisation(indiv);
 	}
 

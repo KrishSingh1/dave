@@ -1758,9 +1758,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_repr        = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
-	season            = 1.0;
-	feedback          = 0.0;
-	inside_growseas   = 1;
 	frepr_cstruct     = 0.0;
 	fdev_growth       = 1.0;
 	lai_flowering	  = 0.0;
@@ -2007,9 +2004,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow_repr
 		& growth_demand
 		& growth_stage
-		& season
-		& feedback
-		& inside_growseas
 		& phen
 		& aphen
 		& aphen_raingreen

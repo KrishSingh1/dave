@@ -55,7 +55,7 @@
 const double APHEN_MAX = 210.0;
 
 /// External seed input (kgC m-2 d-1)
-const double ext_seed = 15.0e-6;
+const double ext_seed = 10.0e-6;
 
 // ---------------------------------
 // Grass parameters
@@ -487,13 +487,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 				double dphen_dormancy = dphen_activity(indiv, climate);
 				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
-				// keep track of the day when coming fully out of dormancy
-				if (indiv.growth_stage == dormant){
-					indiv.season += min(1.0,1/ppft.nday_dormant_historical.mean());
-				} else {
-					indiv.season -= max(0.0,1/(0.8 * (365.0 - ppft.nday_dormant_historical.mean())));
-				}
-				indiv.season = max(0.0,min(1.0,indiv.season));
+
 			} else {
 			    // no dormancy in annuals
 				indiv.fphen_activity = 1.0;
@@ -524,12 +518,10 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
-				indiv.season = 1.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
 				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0 && cmass_storage_level > 0.7){
-						// && cmass_storage_level > 0.75
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;
@@ -543,7 +535,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
 					indiv.growth_stage = dormant;
 					indiv.growth_stage_days = 0;
-					indiv.season = 0.0;
 				}
 			} 
 			else if (indiv.growth_stage == reproductive && indiv.pft.lifeform == GRASS_PERENNIAL) {
@@ -556,7 +547,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
-					indiv.season = 0.0;
                 }
 
                 // no further increases in repr. 
@@ -3219,13 +3209,7 @@ double growth_demand(Individual& indiv) {
 
 double calculate_Cmobilisation(Individual& indiv) {
 
-	double bf = 8;
-	double season0 = 0.4;
-	indiv.feedback = 1.0 - 1/(1 + pow(indiv.season/season0,bf));
-	if (date.get_calendar_year() == 2012 && date.month >= 4){
-		printf("hi");
-	}
-	return max_mobil_cstorage * indiv.feedback;
+	return 1.0;
 
 }
 
@@ -3237,14 +3221,14 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
-	// Calculate maximum C storage mobilisation.
-	double test1 = 1.0;
+	// Calculate maximum C storage mobilisation (constant for now).
+	double mobile_rate = 1.0;
 	if (date.year > 200){
-	   test1 = calculate_Cmobilisation(indiv);
+	   mobile_rate = calculate_Cmobilisation(indiv);
 	}
 
 	// C source: Potential growth rate (kgC m-2 d-1)
-	double Gpot = max(0.0, test1*max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+	double Gpot = max(0.0, mobile_rate * max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);

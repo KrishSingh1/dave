@@ -2987,9 +2987,11 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	patch.wdemand_day = 0;
 
 	// Clear yesterday's photosynthesis values.
-	for (size_t i = 0; i < vegetation.nobj; i++) {
-		Individual &indiv = vegetation[i];
-		indiv.ps_subdaily.clear();
+	if (ifdavephotosyn) {
+		for (size_t i = 0; i < vegetation.nobj; i++) {
+			Individual &indiv = vegetation[i];
+			indiv.ps_subdaily.clear();
+		}
 	}
 }
 

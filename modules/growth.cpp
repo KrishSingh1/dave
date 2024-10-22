@@ -725,7 +725,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
-		if (indiv.pft.lifeform == TREE) {
+		if (indiv.pft.lifeform == TREE && ifdailytree) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}

@@ -5,6 +5,8 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 
+const int GREGORIAN_START = 1582;
+
 insoltype parse_insoltype(const std::string& standard_name) {
 	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
 	    standard_name == "surface_downwelling_shortwave_flux") {
@@ -81,12 +83,45 @@ bool is_start_of_year(timepoint date, int day_length) {
 	return date.day == 0 && date.timestep == 0;
 }
 
-int get_year_len(int year, bool consider_leaps) {
-	return consider_leaps && is_leap(year) ? 366 : 365;
+/*
+Check if this year would be a leap year according to the specified CF calendar.
+*/
+bool is_leap_year(int year, GuessNC::CF::CalendarType calendar) {
+	if (calendar == GuessNC::CF::CalendarType::NO_LEAP) {
+		// No leap years in this calendar.
+		return false;
+	}
+
+	if (calendar == GuessNC::CF::CalendarType::STANDARD && year < GREGORIAN_START) {
+		// Gregorian calendar, but this year is before the Gregorian calendar
+		// was introduced, so this year has 365 days.
+		return false;
+	}
+
+	// This is a gregorian calendar year, so we need to check if it would be
+	// considered a leap year.
+	return is_leap(year);
 }
 
-bool is_end_of_year(timepoint date, int day_length, bool has_leaps) {
-	int days_in_year = get_year_len(date.year, has_leaps);
+int get_year_len(int year, GuessNC::CF::CalendarType calendar) {
+	return is_leap_year(year, calendar) ? 366 : 365;
+}
+
+int get_month_len(int year, int month, GuessNC::CF::CalendarType calendar) {
+
+	const double days_in_month[12] =
+		{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+	if (month == 1 && is_leap_year(year, calendar)) {
+		// February.
+		return 29;
+	}
+
+	return days_in_month[month];
+}
+
+bool is_end_of_year(timepoint date, int day_length, GuessNC::CF::CalendarType calendar) {
+	int days_in_year = get_year_len(date.year, calendar);
 	// Remember, day is [0, 365) and timestep is [0, N)
 	return date.day == days_in_year - 1 && date.timestep == day_length - 1;
 }

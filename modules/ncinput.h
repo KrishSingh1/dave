@@ -52,7 +52,6 @@ description in the code below):
   - file_soildata
   - file_ndep
   - ndep_scenario
-  - has_leap_years
   - cache_strategy
   - variable_lon
   - variable_lat
@@ -180,8 +179,9 @@ private:
 	@param start: Start of time range.
 	@param end: End of time range.
 	@param day_length: Number of timesteps per day in the specified time range.
+	@param calendar: The calendar type used in the file.
 	*/
-	int get_nyear_data(timepoint start, timepoint end, int day_length) const;
+	int get_nyear_data(timepoint start, timepoint end, int day_length, GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Get the progress of the current simulation in range [0, 1].
@@ -234,8 +234,9 @@ private:
 	@param start: Start of time range.
 	@param end: End of time range.
 	@param timestep: Timestep of time range.
+	@param calendar: The CF calendar type used in this file.
 	*/
-	void verify_data_length(timepoint start, timepoint end, int timestep) const;
+	void verify_data_length(timepoint start, timepoint end, int timestep, GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Resize the climate arrays in the gridcell to match the specified value.
@@ -345,12 +346,6 @@ private:
 	HISTORIC, RCP26, RCP45, RCP60, RCP85, and RCP85.
 	*/
 	xtring ndep_scenario;
-
-	/*
-	True iff the input data contains leap days. This is a user-configurable
-	setting in the instruction file.
-	*/
-	bool has_leap_years;
 
 	/*
 	Caching strategy to be used when reading NetCDF data. This is a

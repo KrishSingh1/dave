@@ -586,7 +586,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 // indiv.leaf_growth
 void tree_phenology_grote(Individual& indiv) {
 	// taken from Grote code.
-	Climate climate = indiv.vegetation.patch.get_climate();
+	const Climate &climate = indiv.vegetation.patch.get_climate();
 
 	// handle daily phen leaf state
 	bool leaf_out = false;

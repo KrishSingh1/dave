@@ -127,7 +127,7 @@ const double HD = 200.0;
 
 // Exponents in soil water stress function (wscal^q)
 const double qs = 0.5;   // stomatal conductance
-const double qb = 1.0;   // biochemistry, including Rd
+const double qb = 1.0;   // biochemistry, including Rd - default is 1.0, CS testing change
 
 /// -----------------------------------------------
 /// C4 photosynthesis parameters

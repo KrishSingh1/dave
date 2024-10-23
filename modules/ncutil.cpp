@@ -88,7 +88,7 @@ int get_year_len(int year, bool consider_leaps) {
 bool is_end_of_year(timepoint date, int day_length, bool has_leaps) {
 	int days_in_year = get_year_len(date.year, has_leaps);
 	// Remember, day is [0, 365) and timestep is [0, N)
-	return date.day == days_in_year - 1 == date.timestep == day_length - 1;
+	return date.day == days_in_year - 1 && date.timestep == day_length - 1;
 }
 
 bool is_leap(int year) {

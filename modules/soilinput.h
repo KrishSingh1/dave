@@ -94,8 +94,16 @@ private:
         double porosity;
 		// saturated pressure head in cm (Cosby 1984)
 		double Psi_s;
+		// pressure head in cm at wilting point (Cosby 1984)
+		double Psi_wp;
+		// pressure head in cm at field capacity (Cosby 1984)
+		double Psi_whc;
 		// slope of soil water retention curve (Cosby 1984)
 		double b;
+		// Saturated water content (m3/m3)
+		double Theta_s;
+		// saturated hydraulic conductivity (m/s) calculated based on eq 10 in Saxton et al (1986)
+		double Ksat;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);

@@ -370,7 +370,6 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& gcbase_day
 		& wsupply
 		& wsupply_leafon
-		& fwuptake
 		& wstress
 		& wstress_day
 		& cmass_harvested_products_slow
@@ -1839,6 +1838,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	hydraulic_failure = false;
+
+	wscal = 0.0;
+	wscal_mean_year = 0.0;
+
+	for (int sl = 0; sl<NSOILLAYER; sl++) {
+		Rs_r[sl] = 0.0;
+		fwuptake[sl] = 0.0;
+	}
 
 	for (Day day; day.period != date.subdaily; day.next()) {
 		lwp[day.period] = 0;
@@ -3490,7 +3497,43 @@ void Individual::flush_repr_litter_DAVE() {
 }
 
 double Individual::wscal_mean() const {
-	return patchpft().wscal_mean;
+	if (ifdavehydraulics){
+		return wscal_mean_year;
+	} else {
+		return patchpft().wscal_mean;
+	}
+}
+
+double Individual::get_wscal() const {
+	if (ifdavehydraulics){
+		return wscal;
+	} else {
+		return patchpft().wscal;
+	}
+}
+
+Historic<double,5>& Individual::get_wscal_5() {
+	if (ifdavehydraulics){
+		return wscal_5;
+	} else {
+		return patchpft().wscal_5;
+	}
+}
+
+Historic<double,10>& Individual::get_wscal_10() {
+	if (ifdavehydraulics){
+		return wscal_10;
+	} else {
+		return patchpft().wscal_10;
+	}
+}
+
+Historic<double,30>& Individual::get_wscal_30() {
+	if (ifdavehydraulics){
+		return wscal_30;
+	} else {
+		return patchpft().wscal_30;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

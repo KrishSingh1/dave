@@ -111,6 +111,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_soilc"               , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"               , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
 	add_patch_output("file_dave_soil_nflux"          , DAILY, soil_nflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
+	add_patch_output("file_dave_soil_psi"               , DAILY,"soil_psi", [](const Patch &p) { return p.soil.soil_psi; }, "Soil psi (MPa)");
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
@@ -202,19 +203,21 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Daily below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_wscal"                 , DAILY, [](const Individual &i) { return i.get_wscal(); }, "Water scalar [0-1], 1 = min stress",  mean, false, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
 	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", mean, false, true);
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
 	add_indiv_output("file_dave_hydraulics"               , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", mean, false, false);
-
+	
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)");
+	add_indiv_array_output("file_dave_Rs_r" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)");
+	add_indiv_array_output("file_dave_water_uptake" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)");
 
 	// Daily pft-level per-patch outputs.
-	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
 	add_pft_output("file_dave_cmass_litter_repr"     , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Seedbank cmass (kgC/m2)", true);
 	add_pft_output("file_dave_nmass_litter_repr"     , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                 , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
@@ -236,7 +239,8 @@ DaveOutput::DaveOutput() {
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
 	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
 	add_patch_array_output("file_dave_swvol"         , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
-	// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
+	add_patch_array_output("file_dave_soil_psi_layer", DAILY, "soil_psi", NSOILLAYER, [](const Patch &p, int i) { return p.soil.psi_layer[i]; }, "Soil water potential (MPa) in each layer", false, false);
+		// add_daily_patch_level_array_output("file_dave_cfluxes_patch", get_patch_flux_names(), (int)Fluxes::NPERPATCHFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPatchFluxType)i, date.day) * G_PER_KG; }, "Daily patch-level fluxes (g/m2/day)");
 	// add_daily_patch_level_array_output("file_dave_cfluxes_pft", get_pft_flux_names(), (int)Fluxes::NPERPFTFLUXTYPES, [](Patch &p, int i) { return p.fluxes.get_daily_flux((Fluxes::PerPFTFluxType)i, date.day) * G_PER_KG; }, "Daily PFT-level fluxes (g/m2/day)");
 
 	// Subdaily patch-level outputs.
@@ -1311,7 +1315,7 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 bool spinup_output;
 bool patch_output_stats;
 
-const int COLUMN_WIDTH = 14;
+const int COLUMN_WIDTH = 24;
 const int COLUMN_WIDTH_PFT = 24;
 const int NUMERIC_PRECISION = 8;
 const char *COLNAME_TOTAL = "total";

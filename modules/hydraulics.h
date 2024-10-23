@@ -30,7 +30,7 @@ void grass_hydraulics(const Day &day, Individual &indiv);
 
 void calc_soil_water_potenial_dave(Soil &soil);
 
-double calc_weighted_psi(Soil &soil, Pft &pft);
+double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv);
 
 void hydraulic_mortality(Patch &patch);
 

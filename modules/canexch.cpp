@@ -87,6 +87,8 @@ void sort_indivs(const Vegetation &vegetation, std::vector<int> &indices) {
 	}
 }
 
+double Rs_r_default[NSOILLAYER] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // dummy value for functions that aren't used with DAVE hydraulics
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // INTERCEPTION
 
@@ -1681,7 +1683,8 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
  */
 double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
-	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance) {
+	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance,
+	double Rs_r[NSOILLAYER]) {
 	// INPUT PARAMETERS:
 	//   wcont       = water content of soil layers as fraction between wilting point
 	//                 (0) and available water holding capacity (1)
@@ -1762,6 +1765,30 @@ double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 			}
 		}
 		break;
+	case WR_ROOT_RESISTANCE:
+		{
+		
+		// uptake rate depends on hydraulic resistance of soil and roots in each layer
+		// this will give more weight to water content than root volume (since soil hydraulic conductivity is very sensitive to water content)
+
+		double adj = 0.0;							// define some variables to adjust fractional uptake
+		double Ks_r[NSOILLAYER];					// Root-soil conductance (inverse of resistivity)
+		for (int sl = 0; sl<NSOILLAYER; sl++) {
+			Ks_r[sl] = 0.0;
+		}
+
+		for (s=0; s<NSOILLAYER; s++) {
+			Ks_r[s] = 1.0 / Rs_r[s]; // Calculate root-soil conductance (inverse of resistivity)
+			adj += Ks_r[s];		  // Adjustment to convert this into a fraction
+		}
+
+		for (s=0; s<NSOILLAYER; s++) {
+			fwuptake[s] = Ks_r[s] / adj;	// Fractional uptake based on root conductivity
+			wr += fwuptake[s];
+		}
+
+		}
+		break;
 	default:
 		// Should never happen
 		fail("Unsupported wateruptake type");
@@ -1770,6 +1797,7 @@ double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	if (!negligible(wr))
 		for (s=0; s<NSOILLAYER; s++)
 			fwuptake[s] /= wr;
+
 
 	return wr;
 }
@@ -1941,7 +1969,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
  *                   but with fractional uptake from different layers according
  *                   to prescribed root distribution
  */
-double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv) {
 	Patchpft& ppft = patch.pft[pft.id];
 	
 	// Prepare for water balance tests
@@ -2167,10 +2195,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 
 	if (iftwolayersoil) 
 		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
-				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
 		return water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
-				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
+				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
 
@@ -2179,7 +2207,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 /** Soil water supply at the roots available to meet the transpirational demand
  *  Fundamentally, water stress = supply < demand
  */
-void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
+void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Individual &indiv) {
 
 	// Supply function for evapotranspiration and determination of water stress leading
 	// to down-regulation of stomatal conductance. Actual evapotranspiration determined
@@ -2209,7 +2237,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			double wr;
  
 			if (patch.stand.isirrigated) {
-				wr = irrigated_water_uptake(patch, pft, day);
+				wr = irrigated_water_uptake(patch, pft, day, indiv);
 			} 
 			else {
 				double wcont_local[NSOILLAYER];
@@ -2219,18 +2247,18 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			if (iftwolayersoil) 
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			else {
 
 				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
+							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 				else
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
+							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 
 				}
 			}
@@ -3456,10 +3484,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (ifdavehydraulics) {
-			indiv.weighted_psi = calc_weighted_psi(patch.soil, pft);
-		}
-
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
 		double g0   = pft.g0;    // mol m-2 s-1
 		double g1   = pft.g1;    // kPa^0.5
@@ -3468,7 +3492,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.05)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 95% stomatal closure at stom_clos (for compatibility with hydraulic module)
+		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% stomatal closure at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3478,7 +3502,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vcmax25 = indiv.ps_subdaily.vcmax25;
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
-		inputs.wscal = ppft.wscal;
+		inputs.wscal = indiv.get_wscal(); // returns wscal based on root resistance if using hydraulics, otherwise wscal based on wcont
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -3532,7 +3556,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// for water
 				g0 = min(g0,g0 * exp(b1z*(indiv.predawn_lwp + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
 				// for co2
-				inputs.X = divide(1.0 + (divide(ppft.g1, sqrt(max(inputs.vpd, 0.1)))), inputs.ca);
+				inputs.X = divide(divide(1.0 + ppft.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
@@ -3541,11 +3565,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			else{
 				// Stomatal term (Medlyn et al. 2011)
 				// X needs to represent gs for CO2, hence no 1.6 factor
-				inputs.X = stomatal_conductance_term(ppft.wscal, g1, inputs.vpd, inputs.ca);
+				inputs.X = stomatal_conductance_term(inputs.wscal, g1, inputs.vpd, inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
-				inputs.gdark = stomatal_conductance_residual(g0, ppft.wscal);  // TODO: do we need a different qs here?
+				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);  // TODO: do we need a different qs here?
 			}
 
 			// Initialise cumulative LAI.
@@ -3561,6 +3585,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				assert(inputs.fipar > 0);
 
+				// LAI of this individual in this layer.
+				inputs.lai = indiv.lai_layerwise[j];
+
 				// We can actually have a canopy layer with 0 indiv-level LAI
 				// but non-zero fipar. This is because fipar is not a truly
 				// indiv-level property, as it is calculated using canopy-level
@@ -3568,9 +3595,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				//
 				// Question: can we skip this layer if lai_layer is 0?
 				assert(inputs.lai >= 0);
-				// LAI of this individual in this layer.
-				inputs.lai = indiv.lai_layerwise[j];
-
+				
 				assert(inputs.fipar > 0);
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
@@ -3605,13 +3630,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
-				if (gsw_canopy == 0){
-					gsw_canopy += pft.gcutic * lai_layer;
+				if (outputs.gsc < pft.gcutic / DWDC){
+					gsw_canopy += pft.gcutic * lai_layer; // don't allow gsw to fall below cuticular conductance
+				} else {
+					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
 				}
 				ci_canopy  += outputs.ci * lai_layer;
 				vcmax_canopy += outputs.vcmax * lai_layer;
-				jmax_canopy  += outputs.jmax * lai_layer;
+				jmax_canopy  += outputs.jmax * lai_layer;	
 
 				assert(positive(outputs.gsc));
 
@@ -3654,6 +3680,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.ps_subdaily.ci[day.period]    = ci_canopy;
 			indiv.ps_subdaily.vcmax[day.period] = vcmax_canopy;
 			indiv.ps_subdaily.jmax[day.period]  = jmax_canopy;
+
+			//if (gsw_canopy < indiv.lai*indiv.pft.gcutic && date.year > nyear_spinup){
+			//	printf("oh no");
+			//}
 
 			// sum up over the day
 			indiv.photosynthesis.agd_g += Ag_canopy;
@@ -3860,6 +3890,93 @@ void water_stress(Patch &patch) {
 	}
 }
 
+/// Run water stress 
+
+void water_stress_root_resistance(Patch &patch) {
+	// Must set:
+	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
+	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
+	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
+	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
+	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
+
+	double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+	double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+
+	// Iterate over individuals in patch.
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		// Patchpft &ppft = indiv.patchpft();
+		Pft &pft = indiv.pft; 
+		
+		double wstress_layer[NSOILLAYER];
+		double wstress = 0.0;
+		double root_cond_sum = 0.0;
+	
+		for (int j = 0; j<NSOILLAYER; j++) {
+			// get actual water content and available water content per layer
+			// double wcont = patch.soil.get_layer_soil_water(j);
+
+			// calculate water stress factor per layer and weight with root conductance
+			wstress_layer[j] = max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * (1.0/indiv.Rs_r[j]);
+			wstress += wstress_layer[j];
+			root_cond_sum += 1.0/indiv.Rs_r[j]; 
+		}
+		// water stress factor [0-1] in the root zone
+		wstress /= root_cond_sum;
+
+		// Mean daily water stress value.
+		indiv.wscal = wstress;
+
+		indiv.wscal_5.add(indiv.wscal);
+		indiv.wscal_10.add(indiv.wscal);
+		indiv.wscal_30.add(indiv.wscal);
+
+		if (date.day == 0){
+			indiv.wscal_mean_year = 0.0;
+		}
+
+		indiv.wscal_mean_year += wstress;
+
+		if (date.islastmonth && date.islastday){
+			indiv.wscal_mean_year /= Date::MAX_YEAR_LENGTH;
+		}
+
+		//if (date.get_calendar_year() == 2016){
+		//	printf("a");
+		//}
+
+	}
+
+	double wstress_pft = 0.0;
+
+	for (int j = 0; j<NSOILLAYER; j++) {
+		wstress_pft += max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * patch.soil.Dz[j+7] / sum(patch.soil.Dz+7,15); // alternative wstress to be used at PFT level (since we can't use root biomass for weighting)
+	}
+
+	for (int i = 0; i < pftlist.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+		Pft &pft = pftlist[i]; 
+		
+		ppft.wscal = wstress_pft;
+		ppft.wscal_5.add(ppft.wscal);
+		ppft.wscal_10.add(ppft.wscal);
+		ppft.wscal_30.add(ppft.wscal);
+
+		ppft.airtemp_10.add(patch.get_climate().temp);
+
+		if (date.day == 0){
+			ppft.wscal_mean = 0.0;
+		}
+
+		ppft.wscal_mean += wstress_pft;
+
+		if (date.islastmonth && date.islastday){
+			ppft.wscal_mean /= Date::MAX_YEAR_LENGTH;
+		}
+
+	}
+}
 
 // Canopy transpiration
 void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
@@ -3924,7 +4041,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 		if (spft.irrigated && pft.id == patch.stand.pftid) {
 			Day day;
-			wr = irrigated_water_uptake(patch, pft, day);
+			wr = irrigated_water_uptake(patch, pft, day, indiv);
 		}
 		else {
 			// Available water in each layer, as a fraction of water holding
@@ -3936,17 +4053,17 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 			if (iftwolayersoil) {
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			} else {
 				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
+							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
 			}
 			
 			if (ifdavehydraulics && !indiv.stomata_open){
 				for (int i = 0; i<NSOILLAYER; i++) {
-					ppft.fwuptake[i] = 0; // if the stomata are closed, we assume roots are hydraulically isolated from the soil
+					indiv.fwuptake[i] = 0; // if the stomata are closed, we assume roots are hydraulically isolated from the soil
 				}
 			}
 		}
@@ -3958,7 +4075,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		for (int j = 0; j < vegetation.nobj; j++) {
 			const Individual &indiv = vegetation[j];
 			const Patchpft &ppft = indiv.patchpft();
-			uptake += indiv.aet * ppft.fwuptake[i];
+			uptake += indiv.aet * indiv.fwuptake[i]; 
 		}
 		if (uptake > wcont[i]) {
 			if (ifdavehydraulics){
@@ -4142,10 +4259,6 @@ void forest_floor_dave(Patch &patch) {
 
 		Patchpft &ppft = patch.pft[i];
 
-		if (ppft.wscal == 0){
-			continue;
-		}
-
 		if (date.day == 0){
 			ppft.anetps_ff = 0.0;
 		}
@@ -4153,12 +4266,23 @@ void forest_floor_dave(Patch &patch) {
 		// Atmospheric CO2 concentration in mol mol-1.
  		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
 
-		// Stomatal term (Medlyn et al. 2011)
-		inputs.X = stomatal_conductance_term(ppft.wscal, pft.g1, inputs.vpd, inputs.ca);
+		if (ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE){
+			double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+			double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+			inputs.wscal = max(min((patch.soil.psi_layer[0] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0);
+		} else {
+			inputs.wscal = ppft.wscal;
+		}
+
+		if (inputs.wscal == 0){
+			continue;
+		}
+
+				// Stomatal term (Medlyn et al. 2011)
+		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
 
 		// Residual stomatal conductance term.
-		inputs.gdark = stomatal_conductance_residual(pft.g0, ppft.wscal);
-		inputs.wscal = ppft.wscal;
+		inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
 
 		double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
 		double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
@@ -4221,6 +4345,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// Retrieve Vegetation and Climate objects for this patch
 	Vegetation& vegetation = patch.vegetation;
+	Individual& indiv=vegetation.getobj();
 
 	// Initial no-stress canopy exchange processes
 	init_canexch(patch, climate, vegetation);
@@ -4260,11 +4385,15 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate photosynthetic capacity from leaf N
 		vcmax_from_N(vegetation);
 
-		// Calculate water stress factor
-		water_stress(patch);
-
 		// Calculate soil water potential
 		calc_soil_water_potenial_dave(patch.soil);
+
+		if (ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE){
+			water_stress_root_resistance(patch);
+		} else {
+		// Calculate water stress factor
+			water_stress(patch);
+		}
 
 		// Calculate subdaily photosynthesis and stomatal conductance 
 		photosynthesis_gs(patch, climate, vegetation);
@@ -4309,7 +4438,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		for (Day day; day.period != date.subdaily; day.next()) {
 
 			wdemand(patch, climate, vegetation, day);
-			aet_water_stress(patch, vegetation, day);
+			aet_water_stress(patch, vegetation, day, indiv);
 			water_scalar(patch, vegetation, day);
 			npp(patch, climate, vegetation, day);
 		}

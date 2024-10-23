@@ -59,9 +59,6 @@ void print_logfile_heading() {
  */
 void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
-	if (date.year == 23 && date.day == 170){
-		printf("a");
-	}
 	// Update daily climate drivers etc
 	dailyaccounting_gridcell(gridcell);
 

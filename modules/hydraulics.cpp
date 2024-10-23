@@ -43,7 +43,60 @@
 const double KILL_THRESHOLD = 0.01;
 
 // The fraction of biomass lost due to hydraulic failure.
-const double MORT_FRAC = 0.1;
+const double MORT_FRAC = 0.1; // revisit how much dies based on level of stress over the year
+
+double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
+    
+    double weighted_psi;
+
+    weighted_psi = 0.0;
+ 
+    for (int j=0; j<NSOILLAYER; j++){
+        double psi_layer = soil.psi_layer[j];
+        double rootfrac_layer = pft.rootdist[j];
+        weighted_psi = weighted_psi + psi_layer * rootfrac_layer; // weight soil water potential by root fraction in each layer
+    }
+    return weighted_psi;
+}
+
+double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe et al (2015) recommends weighting by soil-to-root resistance
+
+    double weighted_psi = 0;
+    double Rs_inv_sum = 0;
+    
+    double rr = 0.5e-3; // fine root radius (m), from Table 2 in Williams et al (2001)
+    double froot_density = 0.31e3; // specific fine root density, kg[biomass]/m3[root], from Table 3 in Bonan et al (2014)
+    double root_resist =  25; // root resistivity in MPa*s*g/mmol, see Table 3 in Bonan et al (2014)
+
+    for (int j = 0; j < NSOILLAYER; j++) {
+        double thickness_lyr = soil.Dz[j+7] / 1000.0; // soil layer depth in m, note that we skip the 6 snow layers and layer of air in betwen (7 total)
+        
+        double rootc_layer = pft.rootdist[j] * indiv.cmass_root;    // kgC/m2
+        double root_biomass = rootc_layer * 2.0; // kg/m2     !!UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
+        
+
+        double lr = root_biomass / (PI * pow(rr, 2)) / froot_density; // length of fine roots in soil (m)
+        double rs = pow(1 / (PI * lr * thickness_lyr), 0.5); // mean distance between roots (m)
+        
+        double Ksoil = soil.K_actual[j] / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * water_density; // convert from m/s to m2/s/MPa by dividing by head of pressure in MPa/m, then convert to mmol/m/s/MPa
+
+        if (root_biomass > 0.0){
+            indiv.Rs_r[j] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass * thickness_lyr);  // soil-root resistance + root resistance, see Williams et al. (2001) + 
+        } else {
+            indiv.Rs_r[j] = pow(10.0,10.0); // conductivity is effectively zero if there are no roots
+        }
+
+        double psi_layer = soil.psi_layer[j];
+        
+        // Weight soil water potential by root fraction in each layer.
+        weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[j]);
+        Rs_inv_sum += 1.0 / indiv.Rs_r[j];
+
+    }
+
+    // Divide by sum of 1/Rs to get overall weighted average.
+    return weighted_psi / Rs_inv_sum;
+}
 
 // Calculate soil water potential according to Campbell (1974)
 void calc_soil_water_potenial_dave(Soil &soil) {
@@ -53,6 +106,10 @@ void calc_soil_water_potenial_dave(Soil &soil) {
     }
 
     for (int i = 0; i < NSOILLAYER; i++) {
+
+        //if (date.get_calendar_year() == 2019){
+        //    printf("a");
+        //}
 	    double wcont = soil.get_layer_soil_water(i);
 
         // Wilting point in mm.
@@ -72,31 +129,39 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         // Slope of soil water retention curve (Cosby 1984).
 		double b = soil.soiltype.b;
 
-        // Also seems to be a mistake in this equation in Cosby 1984 as other
+        // Same approach used in De Kauwe et al (2020)
+        
+        // Seems to be a mistake in this equation in Cosby 1984 as other
         // literature (e.g. Campbell 1974 and Clap & Hornberger 1978) use '-b',
         // no negative sign in Cosby 1984 but parameters seem to be the same.
 
         // Cosby 1984 uses Psi_s in cm, convert to MPa.
 		soil.psi_layer[i] = Psi_s * pow((tot_wcont / sat_wcont), -b) / 100 * 1000 * 9.81 * 1e-6;
-	}
-}
 
-double calc_weighted_psi(Soil &soil, Pft &pft) {
+        // double Ksoil_sat = soil.soiltype.Ksat; // saturated hydraulic conductivity in m/s
+        // double k = pow(tot_wcont / sat_wcont, 2 * b + 3); // Equation 2 from Clapp & Hornberger 1978
+        // soil.K_actual[i] = k * Ksoil_sat; // one way of converting Ksat to Kactual, but can also use method below
 
-    double weighted_psi = 0;
-    double rootfrac_sum = 0;
+        double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
+        
+        // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
+        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * soil.soiltype.sand_frac*100.0 + (-3.895 + 0.03671 * 
+                            soil.soiltype.sand_frac*100.0 - 0.1103 * soil.soiltype.clay_frac*100.0 + 8.7546e-4 * soil.soiltype.clay_frac*100.0) * 1.0/theta);
 
-    for (int j = 0; j < NSOILLAYER; j++) {
-        double psi_layer = soil.psi_layer[j];
-        double rootfrac_layer = pft.rootdist[j];
-
-        // Weight soil water potential by root fraction in each layer.
-        weighted_psi = weighted_psi + psi_layer * rootfrac_layer;
-        rootfrac_sum += rootfrac_layer;
+        
     }
 
-    // Divide by sum of root distribution, in case it doesn't sum to 1.
-    return weighted_psi / rootfrac_sum;
+    soil.soil_psi = mean(soil.psi_layer, NSOILLAYER);
+
+    for (int i = 0; i < soil.patch.vegetation.nobj; i++) {
+		Individual &indiv = soil.patch.vegetation[i];
+		Pft &pft = indiv.pft; 
+        if (wateruptake == WR_ROOT_RESISTANCE){
+		    indiv.weighted_psi = calc_weighted_psi(soil, pft, indiv);
+        } else {
+            fail("Water uptake method different to root_resistance: Growth, soil, and photosynthesis modules need to be updated for compatibility with soil water potential calculated in hydraulics module");
+        }
+	}
 }
 
 void tree_hydraulics(const Day &day, Individual &indiv) {
@@ -116,7 +181,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double gsw = indiv.ps_subdaily.gsw[day.period];
 
     // Transpiration in mmol/m2/s.
-    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
+    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; /// shouldn't be proportional to stomatal conductance - look at how transpiration compares to flux data
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
     double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
@@ -143,7 +208,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
             // Set water potential to stom_clos to close stomata.
             psi2 = -pft.stom_clos;
-            // printf("hydraulic vulnerability curve doesn't allow E to be met\n");
+            printf("hydraulic vulnerability curve doesn't allow E to be met\n");
         }
 
         // Calculate loss of conductance.
@@ -161,12 +226,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         // Alternative for high water stress - consuming internal storage.
 
-        // Average cross-sectional xylem area per unit ground area (m2/m2).
-        // Calculated trunk area per m2, xylem area = fractional sapwood area.
-        double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
-
         // Water holding capacity approximated based on wood density: check this!
-        double nx = 1 - (pft.wooddens * 2) / 1200;
+        double nx = 1 - (pft.wooddens * 2) / 1200; // find out what paper had the wood density vs water holding capacity relationship
 
         // See Paschalis et al. (2024), currently ignoring leaf water storage.
         double Vmax = nx * Ax * indiv.height;
@@ -218,11 +279,12 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];
 
-        if (par_previous < 200 && climate.pars[day.period] > 200) {
+        if (par_previous < 10 && climate.pars[day.period] > 10) {
             // Note Zhou model uses actual (negative) pd lwp.
             indiv.predawn_lwp = indiv.lwp[day.period];
         }
     }
+
 }
 
 // Hydraulic failure mortality applied at the daily timescale if allocation is
@@ -301,7 +363,7 @@ void adjust_kmax(Patch &patch) {
         if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if loss of conductance exceeds current state and also we've crossed P12
             double xylem_loss = indiv.max_k_loss * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss but scaled by how affected it already is
 
-            double closs_leaf = indiv.get_cmass_leaf() * xylem_loss; 
+            double closs_leaf = indiv.get_cmass_leaf() * xylem_loss; /// check these assumptions with Brendan et al
             double closs_root = indiv.cmass_root * xylem_loss;
 
             double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss; 

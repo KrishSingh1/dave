@@ -298,9 +298,11 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 	// different water stress thresholds for dormancy and vegetative regrowth.
 	double wscal_min = dormancy ? pft.wscal_min : 0.6;
 
+	Historic<double,10>& wscal_10 = indiv.get_wscal_10();
+
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+	double wscal_mean = wscal_10.size() > 0 ? wscal_10.mean() : 1.0;
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
@@ -367,7 +369,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		double dphen_growth = dphen_activity(indiv, climate, false);
 
 		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
-		if (ppft.wscal_5.mean() < 0.6) { 
+		if (indiv.get_wscal_5().mean() < 0.6) { 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
 		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
@@ -687,7 +689,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			if(ppft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND)
 				leaf_phenology_crop(ppft.pft, patch);
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
-				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen);
+				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen); // note wscal is different in hydraulics version when calculated at PPFT versus indiv level
 
 			// Update monthly leaf-on sum
 			ppft.mphen[date.month] += ppft.phen / date.ndaymonth[date.month];
@@ -2786,10 +2788,10 @@ void growth_daily_grass(Patch& patch) {
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
 				//indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * ltor_status;
-				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * ltor_status;
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean()) * ltor_status;
 			}
 			else {
-				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * ppft.wscal_5.mean() * ltor_status;
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * indiv.get_wscal_5().mean() * ltor_status;
 			}
 			
 			// Growth rate modifiers
@@ -2813,7 +2815,7 @@ void growth_daily_grass(Patch& patch) {
 			indiv.frost_sen = grass_temp < 0.0 ? 1.0 - max(0.5, 1.0 / (1.0 + exp(lethal_temp_50 - grass_temp))) : 0.0;
 			
 			// Water stress growth modifier 
-			indiv.wscal_fac = max(0.0, (ppft.wscal_5.mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
+			indiv.wscal_fac = max(0.0, (indiv.get_wscal_5().mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
 			
 			// Temperature growth modifier
 			double low_temp = (indiv.pft.pstemp_min + indiv.pft.pstemp_low) / 2.0;
@@ -3106,7 +3108,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal, qgrowth);
+	fwater_growth = wscal_growth(indiv.get_wscal(), qgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
@@ -3668,7 +3670,7 @@ void carbon_allocation_grass(Individual &indiv) {
 		double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
-		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5);
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * indiv.get_wscal_5().mean(), 0.5);
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
@@ -3733,7 +3735,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
 	// ...to .5 of ltor_max
 
-	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
+	indiv.ltor = max(min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	// cmass root target according to the leaf optimum and ltor (kgC/m^2)
 	indiv.cmass_root_limit = 0.0;
 	if (indiv.ltor > 0.0) {
@@ -4444,7 +4446,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = senesc_scal_water * (1.0 - pow(ppft.wscal,qwater_senesc));
+	double senesc_fwater = senesc_scal_water * (1.0 - pow(indiv.get_wscal(),qwater_senesc));
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
@@ -4863,7 +4865,7 @@ void turnover_tree(Individual &indiv) {
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
 	// TODO: function seems too extereme (too much turnover for low water stress).
-	double fwater = max( 1.0, senesc_scal_water * ( 1 - pow(ppft.wscal_30.mean(), qwater_senesc) ) );
+	double fwater = max( 1.0, senesc_scal_water * ( 1 - pow(indiv.get_wscal_30().mean(), qwater_senesc) ) );
 	// double fwater = 1 + (senesc_scal_water * pow(( 1- ppft.wscal_30.mean()), qwater_senesc)); // OLD
 
 	//

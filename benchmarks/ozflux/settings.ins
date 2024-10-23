@@ -47,7 +47,7 @@ param "file_disturbance_st"   (str "")
 param "file_elevation_st"     (str "")
 
 ! Number of timesteps per day.
-nsteps_day            			8
+nsteps_day            			24
 
 ! Search radius in soil input file
 searchradius_soil               50
@@ -125,7 +125,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ifforcedlai                  0
 
@@ -153,7 +153,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                1
+spinup_output                0
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -196,9 +196,8 @@ ifsme 0                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
-                            ! see documentation for water_uptake()
-!rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+wateruptake "root_resistance"      ! "wcont", "rootdist", "smart", "speciesspecific", "root_resistance",
+                            ! see documentation for water_uptake(). root_resistance must be used with davehydraulics.
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -207,7 +206,7 @@ ifdroughtlimitedestab 0        ! Whether establishment is limited by growing sea
                 ! guess2008 - species version has 1
 ifrainonwetdaysonly 1        ! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                         ! Whether to include BVOC calculations (1) or not (0)
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 
 !///////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES

@@ -203,7 +203,7 @@ const double SOILDEPTH_LOWER = 1000.0;
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
-const double SOILDEPTH_EVAP = 200.0;
+const double SOILDEPTH_EVAP = 500.0;	// CS testing change, default is 200 mm
 
 /// Year at which to calculate equilibrium soil carbon
 const int SOLVESOM_END=400;
@@ -3390,6 +3390,8 @@ public:
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
 	double aaet;
+	/// fractional water uptake from each soil layer
+	double fwuptake[NSOILLAYER];
 	/// leaf to root mass ratio
 	double ltor;
 	/// plant height (m)
@@ -3609,6 +3611,9 @@ public:
 
 	double weighted_psi; // soil water potential weighted by root fraction in each layer
 
+	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
+	double Rs_r[NSOILLAYER];
+
 	// predawn leaf water potential calculated using hydraulics module
 	double predawn_lwp;
 	// leaf water potential at subdaily timescale
@@ -3622,6 +3627,13 @@ public:
 
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;
+
+	// wscal calculated on an individual basis using root conductance
+	double wscal;
+	Historic<double,5> wscal_5;
+	Historic<double,10> wscal_10;
+	Historic<double,30> wscal_30;
+	double wscal_mean_year;
 
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
@@ -3676,6 +3688,13 @@ public:
 	double get_cmass_leaf() const;
 
 	double get_nmass_leaf() const;
+
+
+	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
+	double get_wscal() const;
+	Historic<double,5>& get_wscal_5();
+	Historic<double,10>& get_wscal_10();
+	Historic<double,30>& get_wscal_30();
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -3922,11 +3941,18 @@ public:
 	double runon;
 	// saturated pressure head in cm (Cosby 1984)
 	double Psi_s;
+	// pressure head in cm at wilting point (Cosby 1984)
+	double Psi_wp;
+	// pressure head in cm at field capacity (Cosby 1984)
+	double Psi_whc;
 	// slope of soil water retention curve (Cosby 1984)
 	double b;
 	// percolation coefficient from Haxeltine 1996a (UNITS)
 	double K;	
-	
+	// saturated hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
+	double Ksat;
+	// Saturated water content (m3/m3)
+	double Theta_s;
 
 	// PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
 
@@ -3963,7 +3989,10 @@ public:
 		solvesom_begin = SOLVESOM_BEGIN;
 		organic_frac = 0.02;
 		pH = -1.0;
-		
+		Psi_s = 0.0;
+		Psi_wp = 0.0;
+		Psi_whc = 0.0;
+
 		// Assume no mineral content on peatlands
 		sand_frac_peat = clay_frac_peat = silt_frac_peat = 0.0;
 		wtot_peat = 0.0;
@@ -4226,8 +4255,12 @@ public:
 	double Ci[NLAYERS];
 	/// thermal conductivities of the soil layers [J day-1 mm-1 K-1]
 	double Ki[NLAYERS];
-	/// soil water potential in each layer
+	/// soil water potential in each layer (MPa)
 	double psi_layer[NSOILLAYER];
+	/// soil water potential averaged over layers (MPa)
+	double soil_psi;
+	/// soil unsaturated hydraulic condutivity in each layer
+	double K_actual[NSOILLAYER];
 
 	bool snow_active; // active snow layer(s)?
 	int snow_active_layers; // <= NLAYERS_SNOW
@@ -4956,8 +4989,7 @@ public:
 	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
 	double wsupply_leafon;
-	/// fractional uptake of water from each soil layer today
-	double fwuptake[NSOILLAYER];
+
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -5025,9 +5057,6 @@ public:
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
-
-		for (int i = 0; i < NSOILLAYER; i++)
-			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;

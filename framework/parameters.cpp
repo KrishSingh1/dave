@@ -1364,9 +1364,10 @@ void plib_callback(int callback) {
 		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
 		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
 		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else if (strparam.upper() == "ROOT_RESISTANCE") wateruptake = WR_ROOT_RESISTANCE;
 		else {
 			sendmessage("Error",
-				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\", \"ROOT_RESISTANCE\")");
 				plibabort();
 		}
 		break;

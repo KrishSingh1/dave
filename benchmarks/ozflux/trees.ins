@@ -251,7 +251,7 @@ pft "ASM" (
 	turnover_leaf 0.5
 	tcmin_surv -1
 	tcmin_est 0
-	tcmax_est 30
+	tcmax_est 40
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 		! from TH 2010-04-07 was 350 AA
@@ -261,20 +261,21 @@ pft "ASM" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	k_latosa 1000 ! Aaranya estimated 400 - 1630 in the field
+
 	! hydraulic traits
 	wooddens 388  ! value for Acacia aneura from Peters (2021)
-	kmax 8 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	kmax 10 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -6.72   ! value for Acacia aneura from Peters (2021)
 	p50 -10.37   ! value for Acacia aneura from Peters (2021)
 	p88 -11.59   ! value for Acacia aneura from Peters (2021)
-	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 4  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) - using value for driest species in that paper
+	g1x 2.8  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) - estimated highest value of g1_leaf for ASM in Fig 1 of Bloomfield (2019)
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
-	vcmax_25 0.000020 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
+	vcmax_25 0.000100 ! need a value, Bloomfield is no good because stomata seem to be shut when measurements taken
 	sla 7.19 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
 
-	respcoeff 0.3 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
 )
 
 pft "WAR_ov" (
@@ -307,8 +308,7 @@ pft "WAR_ov" (
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.03   ! Peters et al (2021)
 	p88 -3.84   ! Peters et al (2021)
-	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019)
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000069 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
@@ -352,8 +352,7 @@ pft "WAR_un" (
 	stom_clos -1.5   ! Peters et al (2021)
 	p50 -3.41   ! Peters et al (2021)
 	p88 -5.10   ! Peters et al (2021)
-	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000044 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
@@ -370,7 +369,7 @@ pft "Calp" (
 	shade_intolerant
 	evergreen
 	temperate
-	leaflong 2.44 ! See Wright et al (2002)
+	leaflong 2.44 ! See Wright et al (2002) supp
 	turnover_leaf 0.41
 	tcmin_surv -1
 	tcmin_est 0
@@ -384,20 +383,24 @@ pft "Calp" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	rootdist 0.07 0.07 0.07 0.07 0.07 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065
+
+	k_latosa 2865 ! mean of Austraits values for socialis and dumosa is 2865
+
 	! hydraulic traits
 	wooddens 400  ! Peters et al (2021) - average of euc species
-	kmax 9 ! maximum hydraulic conductance (mol/m2[xylem area]/s/MPa) per unit xylem area - to be tuned
-	stom_clos -3.5   ! Point of stomatal closure, usually p12 or turgor loss point (MPa)
-	p50 -7.47   ! Peters et al (2021) - average of euc species, -7.47
-	p88 -10.06   ! Peters et al (2021) - average of euc species
-	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless), not used
-	g1x 2  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	kmax 3.5 ! maximum hydraulic conductance (mol/m2[xylem area]/s/MPa) per unit xylem area - to be tuned
+	stom_clos -3.25   ! Point of stomatal closure, usually p12 or turgor loss point (MPa), -3.25
+	p50 -7.47   ! Peters et al (2021) - average of euc species
+	p88 -10.06   ! Peters et al (2021) - value for euc socialis (NA reported for dumosa)
+	g1x 2.2  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Calperum in Fig 1 of Bloomfield (2019), 2.2
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
-	vcmax_25 0.000080 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
-	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+	vcmax_25 0.000098 ! see ST7 (supp table 2) from Bloomfield et al. (2018), 0.000080 overall or 0.000098 in winter (growing season)
+	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018), 5.24
 
-	respcoeff 0.3 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	respcoeff 0.2 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+
 )
 
 pft "Wombat" (
@@ -424,15 +427,64 @@ pft "Wombat" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.06 0.06 0.06 0.06 0.06 0.02 0.02 0.02 0.02 0.02
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
 	! hydraulic traits
 	wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
-	kmax 25  ! maximum hydraulic conductance (mmol/m2/s/MPa) per unit xylem area - tuned
-	stom_clos -1.68   ! TLP from Pritzkow (2020a) Table S1
-	p50 -3.03   ! Used E. obliqua value for Warra from Peters (2021)
-	p88 -3.84   ! Used E. obliqua value for Warra from Peters (2021)
-	g1x 1.5  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	stom_clos -3.5   ! Estimated based on Figure 5a in Pritzkow (2021), -2.5
+	p50 -4.0   ! Used E. obliqua value for Warra from Peters (2021), -3.03
+	p88 -4.5   ! Used E. obliqua value for Warra from Peters (2021). -3.84
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) = 4.1 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
 	vcmax_25 0.000069 ! NEED A VALUE - using Warra's
 	sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+	
+	respcoeff 0.1 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+
+)
+
+pft "Eucface" (
+
+	! Eucface, eucalyptus tereticornis, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 275  ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	stom_clos -2.21  ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	p50 -4.07   ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	p88 -5.50   ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	g1x 5.0  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), taken from Yang et al. (2020) 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 0.000091 ! taken from Yang et al. (2020) 
+	sla 10.7 ! E. tereticornis value from Austraits
+	
+	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+
 )

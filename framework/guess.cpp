@@ -1688,10 +1688,10 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 }
 
 size_t get_response_window(size_t nday_dormant) {
-	size_t x_intercept = 1;
-	size_t y_intercept = 15;
+	int x_intercept = -3;
+	int y_intercept = 15;
 	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
-	return slope * nday_dormant + y_intercept;
+	return max(1.0,slope * nday_dormant + y_intercept);
 }
 
 double calc_root_beta(size_t nday_dormant) {

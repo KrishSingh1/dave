@@ -4882,7 +4882,7 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Turnover of living tissues (root and crown)
 	// senesc_root equals the baseline senescence rate of leaves.
-	double frac_turnover_root = 20.0 * indiv.senesc_root;	
+	double frac_turnover_root = 40.0 * indiv.senesc_root * indiv.fphen_activity;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
 	// Turnover of brown shoots (same temperature and moisture responses as for seeds)

@@ -1743,7 +1743,6 @@ void plib_callback(int callback) {
 		}
 
 		// Remove st:s with monoculture pft:s that are not found in the pftlist or with mt:s that are not in the mtlist
-		dprintf("\n");
 		stlist.firstobj();
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();
@@ -1771,7 +1770,6 @@ void plib_callback(int callback) {
 				stlist.nextobj();
 			}
 		}
-		dprintf("\n");
 
 		// Set ids and npft variable after removing unused pfts	; NB: minimizecftlist or LandcoverInput::init() may remove more pfts
 		npft = 0;

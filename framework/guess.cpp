@@ -1900,6 +1900,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_repr  = 0.0;
 	cturnover_crown  = 0.0;
 
+	charvest_green = 0.0;
+	charvest_brown = 0.0;
+	charvest_repr  = 0.0;
+	nharvest_green = 0.0;
+	nharvest_brown = 0.0;
+	nharvest_repr  = 0.0;
+
 	// additional initialisation
 	age               = 0.0;
 	height            = 0.0;
@@ -2133,6 +2140,17 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	if (alive || istruecrop_or_intercropgrass()) {
 		vegetation.patch.fluxes.report_flux(flux_type, value);
 	}
+}
+
+double Individual::get_cmass_leaf_brown() const {
+	if (ifdailygrass && pft.is_grass()) {
+		if (ifdavegrowth) {
+			return cmass_leafs[brown];
+		} else {
+			return cmass_leafs[3];
+		}
+	}
+	return 0;
 }
 
 // Receive active cmass leaf 

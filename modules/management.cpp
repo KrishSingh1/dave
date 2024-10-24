@@ -15,16 +15,69 @@
 #include "management.h"
 #include "driver.h"
 
+double total_lai(const Patch &patch) {
+	double lai = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		lai += patch.vegetation[i].lai;
+	}
+	return lai;
+}
 
+std::vector<int> sort_patches(const Stand &stand) {
+	std::vector<int> indices(stand.nobj);
+	std::vector<double> lais(stand.nobj);
+	for (size_t i = 0; i < stand.nobj; i++) {
+		indices[i] = i;
+		lais[i] = total_lai(stand[i]);
+	}
+	
+	for (size_t i = 0; i < stand.nobj; i++) {
+		for (size_t j = 0; j < stand.nobj; j++) {
+			if (j < stand.nobj - 1) {
+				int index = indices[j];
+				int index_next = indices[j + 1];
+				if (lais[index] > lais[index_next]) {
+					int tmp = indices[j];
+					indices[j] = indices[j + 1];
+					indices[j + 1] = tmp;
+				}
+			}
+		}
+	}
+
+	return indices;
+}
+
+// Get the total amount of grazable cmass in this individual(kgC/m2).
+double get_grazable_cmass_indiv(const Individual &indiv) {
+	// TODO: what to do about trees?
+	return indiv.get_cmass_leaf() + indiv.get_cmass_leaf_brown() + indiv.cmass_repr;
+}
+
+// Get the total amount of grazable cmass in the patch (kgC/m2).
+double get_grazable_cmass_patch(const Patch &patch) {
+	double cmass = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		const Individual &indiv = patch.vegetation[i];
+		cmass += get_grazable_cmass_indiv(indiv);
+	}
+	return cmass;
+}
 
 // Basic DAVE function for grazing and mowing (removes fraction of grass and returns part of it as litter)
+// frepr_leaf is the ratio of repr:leaf biomass to be removed.
+// fbrown_green is the ratio of brown to green leaf biomass to be removed.
 void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn,
-				  double frepr_leaf) {
+				  double frepr_leaf, double fbrown_green) {
 
 		Patch& patch = indiv.vegetation.patch;
 
 	    if (indiv.lai < 0.05) {
 			return;
+		}
+
+		if (indiv.pft.lifeform == TREE) {
+			fail("TODO: implement trees. Need to subtract biomass from the correct pools");
 		}
 
 		// Determine how much biomass to remove and from what pools.
@@ -34,22 +87,66 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		// frepr_leaf factor. This factor should be lower for grazing (ca. 1.0 - 2.0) than for mowing (> 3.0).
 		
 		// Carbon harvest
-		double cmass_harvest      = frac_remove * (indiv.get_cmass_leaf() + indiv.cmass_repr);
-		double cmass_repr_harvest = min(indiv.cmass_repr, max(min(1.0,frepr_leaf * frac_remove) * indiv.cmass_repr, cmass_harvest - indiv.get_cmass_leaf()));
-		double cmass_leaf_harvest = cmass_harvest - cmass_repr_harvest;
+		double cmass_harvest = frac_remove * get_grazable_cmass_indiv(indiv);
+
+		double charvest_repr = cmass_harvest * (1.0 - 1.0 / (1.0 + frepr_leaf));
+		charvest_repr = min(indiv.cmass_repr, charvest_repr);
+
+		double charvest_leaf = cmass_harvest - charvest_repr;
+		// green + brown = charvest_leaf
+		// green + fbrown_green * green = charvest_leaf
+		//         ^^^^^^^ brown^^^^^^^
+		//
+		// green (1 + fbown_green) = charvest_leaf
+		// green = charvest_leaf / (1 + fbrown_green)
+		double charvest_green = charvest_leaf / (1.0 + fbrown_green);
+		charvest_green = min(indiv.get_cmass_leaf(), charvest_green);
+		double charvest_brown = charvest_leaf - charvest_green;
+
+		assert(equal(cmass_harvest, charvest_brown + charvest_green + charvest_repr));
+
+		//double cmass_harvest      = frac_remove * (indiv.get_cmass_leaf() + indiv.cmass_repr);
+		//double cmass_repr_harvest = min(indiv.cmass_repr, max(min(1.0,frepr_leaf * frac_remove) * indiv.cmass_repr, cmass_harvest - indiv.get_cmass_leaf()));
+		//double cmass_leaf_harvest = cmass_harvest - cmass_repr_harvest;
 		
 		// Nitrogen harvest
-		double nmass_repr_harvest = !is_zero(cmass_repr_harvest) ? 
-									cmass_repr_harvest / (indiv.cmass_repr / indiv.nmass_repr) : 0.0; 
-		double nmass_leaf_harvest = cmass_leaf_harvest / indiv.cton_leaf();
-		double nmass_harvest      = nmass_repr_harvest + nmass_leaf_harvest;
+		double nharvest_repr = 0;
+		if (!is_zero(indiv.cmass_repr)) {
+			double harvest_repr_frac  = charvest_repr / indiv.cmass_repr;
+			nharvest_repr             = harvest_repr_frac * indiv.nmass_repr;
+		}
+
+		double nharvest_green = 0;
+		if (!is_zero(indiv.get_cmass_leaf())) {
+			double harvest_green_frac = charvest_green / indiv.get_cmass_leaf();
+			nharvest_green            = harvest_green_frac * indiv.get_nmass_leaf();
+		}
+
+		double nharvest_brown = 0;
+		if (!is_zero(indiv.nmass_leafs[brown])) {
+			double harvest_brown_frac = charvest_brown / indiv.cmass_leafs[brown];
+			nharvest_brown            = harvest_brown_frac * indiv.nmass_leafs[brown];
+		}
+
+		double nmass_harvest          = nharvest_repr + nharvest_green + nharvest_brown;
 
 		// Update C and N pools
-		indiv.cmass_leafs[green] -= cmass_leaf_harvest;
-		indiv.cmass_repr         -= cmass_repr_harvest;
 
-		indiv.nmass_leafs[green] -= nmass_leaf_harvest;
-		indiv.nmass_repr         -= nmass_repr_harvest;
+		indiv.cmass_repr         -= charvest_repr;
+		indiv.cmass_leafs[green] -= charvest_green;
+		indiv.cmass_leafs[brown] -= charvest_brown;
+
+		indiv.nmass_repr         -= nharvest_repr;
+		indiv.nmass_leafs[green] -= nharvest_green;
+		indiv.nmass_leafs[brown] -= nharvest_brown;
+
+		indiv.charvest_green += charvest_green;
+		indiv.charvest_brown += charvest_brown;
+		indiv.charvest_repr  += charvest_repr;
+
+		indiv.nharvest_green += nharvest_green;
+		indiv.nharvest_brown += nharvest_brown;
+		indiv.nharvest_repr  += nharvest_repr;
 
 		// Set back grasses back to vegetative state if repr fraction is 0.
 		if (is_zero(indiv.cmass_repr) && indiv.growth_stage == reproductive) {
@@ -93,6 +190,60 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		assert(equal(nmass_harvest,nmass_return + nmass_lost));
 }
 
+// Decide on what patches to graze
+void distribute_grazing(Stand& stand) {
+
+	if (is_zero(stand.animal_units)){
+		return;
+	}
+
+	// fraction of patches being grazed on any given day
+	const double frac_patch_graze = 0.5;
+
+	// number of patches grazed
+	int ngrazed = max(1, (int)(frac_patch_graze * npatch));
+
+	// Amount of C consumed per animal unit per day (kgC d-1)
+	const double C_grazed_per_AU = 7.0;
+
+	// animal units per m-2
+	double animal_units_m2 = stand.animal_units * HA_PER_M2;
+
+	// Amound of C grazed per m-2 per day
+	double C_grazed_m2 = C_grazed_per_AU * animal_units_m2;
+
+	// Amount of C grazed per m-2 per day per grazed patch
+    double C_grazed_m2_patch = C_grazed_m2 / (1.0 * ngrazed / npatch);
+
+	// Maximum height of trees which can be grazed (m).
+	const double MAX_GRAZE_HEIGHT = 0.5;
+
+	std::vector<int> patches_to_graze = sort_patches(stand);
+
+	// Iterate over the N greenest patches and do grazing on each.
+	for (int index : patches_to_graze) {
+		Patch &patch = stand[index];
+		double cmass_patch = get_grazable_cmass_patch(patch);
+		double frac_remove = C_grazed_m2_patch / cmass_patch;
+
+		// Iterate over all individuals in this patch.
+		for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+			Individual &indiv = patch.vegetation[i];
+			// If this individual is a grass or shorter than 0.5m, it can be
+			// grazed.
+			if (indiv.pft.is_grass() || indiv.height < MAX_GRAZE_HEIGHT) {
+				// Remove the specified fraction of above ground biomass from
+				// this individual.
+				const double frac_creturn = 0.5;
+				const double frac_nreturn = 0.75;
+				const double frepr_leaf   = 1.0;
+				const double fbrown_green = 0.1;
+				remove_grass(indiv, frac_remove, frac_creturn, frac_nreturn, frepr_leaf, fbrown_green);
+			}
+		}
+	}
+}
+
 // Grazing and mowing routines for DAVE
 void grazing_daily_dave(Vegetation& vegetation) {
 
@@ -125,12 +276,19 @@ void grazing_daily_dave(Vegetation& vegetation) {
 		double frepr_leaf = 1.0; // fraction of cmass_repr removed relative to fraction of 
 								 // total biomass (cmass_repr + cmass_leaf) removed.
 
+		// ratio of brown to green leaves to be removed. A value of 0 means no
+		// brown leaves are removed (ie same as previous behaviour.)
+		const double fbrown_green = 0.0;
+
 		// grazing
-		if (grazing_rate > 0.0) {
-			remove_grass(indiv,grazing_rate,frac_creturn,frac_nreturn,frepr_leaf);
+		// Only do background grazing if the static grazing (defined in the
+		// grazing input file) is not in use.
+		if (grazing_rate > 0.0 && !read_grazing) {
+			remove_grass(indiv,grazing_rate,frac_creturn,frac_nreturn,frepr_leaf, fbrown_green);
 		}
 
 		// mowing
+		// Mowing can happen in conjunction with the static grazing.
 		for (int i=0; i<num_mowdates;i++) {
 			int mowing_date = stlist[stand.stid].get_management().mowdates[i];
 
@@ -138,7 +296,7 @@ void grazing_daily_dave(Vegetation& vegetation) {
 				frac_creturn = 0.0;
 				frac_nreturn = 0.0;
 				frepr_leaf   = 5.0;
-				remove_grass(indiv,mowing_intensity,frac_creturn,frac_nreturn,frepr_leaf);
+				remove_grass(indiv,mowing_intensity,frac_creturn,frac_nreturn,frepr_leaf, fbrown_green);
 				break;
 			}
 		}

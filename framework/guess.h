@@ -3317,6 +3317,25 @@ public:
 	double cmass_root_ygrowth;
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
+
+	// green leaf c mass grazed today (kgC/m2).
+	double charvest_green;
+
+	// brown leaf c mass grazed today (kgC/m2).
+	double charvest_brown;
+
+	// repr c mass grazed today (kgC/m2).
+	double charvest_repr;
+
+	// green leaf c mass grazed today (kgC/m2).
+	double nharvest_green;
+
+	// brown leaf c mass grazed today (kgC/m2).
+	double nharvest_brown;
+
+	// repr c mass grazed today (kgC/m2).
+	double nharvest_repr;
+
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
 	/// actual evapotranspiration over projected area (mm/day)
@@ -3586,6 +3605,10 @@ public:
 	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
+
+	/// Get brown leaf biomass for this individual. (kgC/m2)
+	/// This is 0 for trees, shrubs, and mosses.
+	double get_cmass_leaf_brown() const;
 
 	double get_cmass_leaf() const;
 

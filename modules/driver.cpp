@@ -1024,8 +1024,18 @@ void dailyaccounting_patch(Patch& patch) {
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			Individual &indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;		// indiv.fpc
+			patch.rpc_total += indiv.rpc;		// indiv.rpc
+
+			// Reset daily harvest amounts to zero.
+			indiv.charvest_green = 0.0;
+			indiv.charvest_brown = 0.0;
+			indiv.charvest_repr  = 0.0;
+			indiv.nharvest_green = 0.0;
+			indiv.nharvest_brown = 0.0;
+			indiv.nharvest_repr  = 0.0;
+
 			vegetation.nextobj();
 		}
 	}

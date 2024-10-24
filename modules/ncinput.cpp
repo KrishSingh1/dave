@@ -180,6 +180,9 @@ void NCInput::init(void) {
 		// Open misc input file.
 		misc_input.init(file_gridlist);
 
+		// Open management input files.
+		management_input.init(file_gridlist);
+
 		// Open landcover input file.
 		landcover_input.init(file_gridlist);
 

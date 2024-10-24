@@ -5415,6 +5415,8 @@ public:
 	int clone_year;
 	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
 	double scale_LC_change;
+	/// animal units (1 cow = 1.0) per ha
+	double animal_units;
 
 	// MEMBER FUNCTIONS
 

@@ -281,6 +281,9 @@ extern bool readharvestdates;
 /// Whether to read N fertilization from input file
 extern bool readNfert;
 
+/// Whether to read grazing dates from input file.
+extern bool read_grazing;
+
 /// Whether to read manure N fertilization from input file
 extern bool readNman;
 

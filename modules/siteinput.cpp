@@ -161,7 +161,7 @@ void SiteInput::init() {
 	// Open landcover files
 	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
-	management_input.init();
+	management_input.init(param["file_gridlist"].str);
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 

@@ -18,6 +18,7 @@ set(headers
   externalinput.h
   indata.h
   util.h
+  grazing_input.h
 )
 
 set(source
@@ -37,6 +38,7 @@ set(source
   externalinput.cpp
   indata.cpp
   util.cpp
+  grazing_input.cpp
 )
 
 include(add_guess_sources)

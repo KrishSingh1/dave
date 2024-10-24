@@ -910,6 +910,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	cmass_wood = 0.0;
 	cmass_mort = 0.0;
 	scale_LC_change = 1.0;
+	animal_units = 0.0;
 }
 
 Stand::~Stand() {

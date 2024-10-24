@@ -143,6 +143,7 @@ bool readharvestdates = false;
 bool readNfert = false;
 bool readNman = false;
 bool readNfert_st = false;
+bool read_grazing = false;
 bool readdisturbance = false;
 bool readdisturbance_st = false;
 bool readcutinterval_st = false;

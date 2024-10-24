@@ -11,6 +11,7 @@
 /// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
 extern double INPUT_RESOLUTION;
 
+#include "grazing_input.h"
 #include "indata.h"
 
 using namespace TextInput;
@@ -137,7 +138,7 @@ public:
 	/// Deconstructor
 	~ManagementInput();
 	/// Opens management data files
-	void init();
+	void init(xtring file_gridlist);
 	/// Loads fertilisation, sowing and harvest dates from input files
 	bool loadmanagement(double lon, double lat);
 	/// Gets management data for a year
@@ -150,6 +151,7 @@ private:
 	TextInput::TimeDataD hdates;
 	TextInput::TimeDataD Nfert;
 	TextInput::TimeDataD Nfert_st;
+	GrazingInput grazing;
 	TextInput::TimeDataD NfertMan;
 	TextInput::TimeDataD woodharv_frac;
 	TextInput::TimeDataD woodharv_cmass;
@@ -160,7 +162,7 @@ private:
 
 	/// Files names for management input file
 	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass,
-		file_cutinterval_st, file_firstmanageyear_st;
+		file_cutinterval_st, file_firstmanageyear_st, file_grazing;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
@@ -174,6 +176,8 @@ private:
 	void getcutinterval(Gridcell& gridcell);
 	/// Gets fistmanageyear
 	void getfirstmanageyear(Gridcell& gridcell);
+	/// Gets grazing
+	void get_grazing(Gridcell &gridcell);
 	/// Gets pft selection target fractions (per st)
 	void gettargetcutting(Gridcell& gridcell);
 };

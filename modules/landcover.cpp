@@ -2838,8 +2838,10 @@ bool check_fractions4(Gridcell& gridcell) {
 
 		if(gcst.frac_change >= 0.0) {
 			if(gcst.frac && !stands_frac_sum) {
-				dprintf("\nCheck 13a: Year %d: no stand present when fraction is > 0 for stand type %d\n", date.year, s);
-				dprintf("st frac=%.15f\n\n", gcst.frac);
+				if(gcst.frac > 1.0e-13) {
+					dprintf("\nCheck 13a: Year %d: no stand present when fraction is > 0 for stand type %d\n", date.year, s);
+					dprintf("st frac=%.15f\n\n", gcst.frac);
+				}
 			}
 			else if(fabs(gcst.frac - stands_frac_sum) > INPUT_RESOLUTION * 100.0) {
 				dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", 

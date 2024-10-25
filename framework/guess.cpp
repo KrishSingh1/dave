@@ -1556,6 +1556,7 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp              = 0.0;
+	aet               = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	densindiv         = 0.0;

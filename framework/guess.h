@@ -899,7 +899,7 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind (km/h)
+	/// 10 m wind (m/s)
 	double u10;
 
 	/// rel. humidity (fract.)

@@ -404,6 +404,10 @@ extern bool gzip_output;
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
 
+/// Number of days that animals are allowed to graze a particular set of
+/// patches (default: 1).
+extern int grazing_duration;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs
 

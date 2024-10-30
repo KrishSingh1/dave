@@ -911,6 +911,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	cmass_mort = 0.0;
 	scale_LC_change = 1.0;
 	animal_units = 0.0;
+	days_grazed = 0.0;
 }
 
 Stand::~Stand() {

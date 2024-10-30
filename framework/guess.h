@@ -5441,6 +5441,12 @@ public:
 	/// animal units (1 cow = 1.0) per ha
 	double animal_units;
 
+	/// The patches which are currently being grazed.
+	std::vector<int> patches_grazed;
+
+	/// Number of days that the currently-grazed patches have been grazed.
+	int days_grazed;
+
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Stand

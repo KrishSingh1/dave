@@ -36,7 +36,7 @@ std::vector<int> sort_patches(const Stand &stand) {
 			if (j < stand.nobj - 1) {
 				int index = indices[j];
 				int index_next = indices[j + 1];
-				if (lais[index] > lais[index_next]) {
+				if (lais[index] < lais[index_next]) {
 					int tmp = indices[j];
 					indices[j] = indices[j + 1];
 					indices[j + 1] = tmp;
@@ -193,7 +193,9 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 // Decide on what patches to graze
 void distribute_grazing(Stand& stand) {
 
-	if (is_zero(stand.animal_units)){
+	if (is_zero(stand.animal_units)) {
+		stand.patches_grazed.clear();
+		stand.days_grazed = 0;
 		return;
 	}
 
@@ -201,10 +203,10 @@ void distribute_grazing(Stand& stand) {
 	const double frac_patch_graze = 0.5;
 
 	// number of patches grazed
-	int ngrazed = max(1, (int)(frac_patch_graze * npatch));
+	int ngrazed = max(1, (int)(frac_patch_graze * stand.nobj));
 
 	// Amount of C consumed per animal unit per day (kgC d-1)
-	const double C_grazed_per_AU = 7.0;
+	const double C_grazed_per_AU = 6.0;
 
 	// animal units per m-2
 	double animal_units_m2 = stand.animal_units * HA_PER_M2;
@@ -213,15 +215,22 @@ void distribute_grazing(Stand& stand) {
 	double C_grazed_m2 = C_grazed_per_AU * animal_units_m2;
 
 	// Amount of C grazed per m-2 per day per grazed patch
-    double C_grazed_m2_patch = C_grazed_m2 / (1.0 * ngrazed / npatch);
+    double C_grazed_m2_patch = C_grazed_m2 / (1.0 * ngrazed / stand.nobj);
 
 	// Maximum height of trees which can be grazed (m).
 	const double MAX_GRAZE_HEIGHT = 0.5;
 
-	std::vector<int> patches_to_graze = sort_patches(stand);
+	if (modulo(stand.days_grazed, grazing_duration) == 0) {
+		// The currently-grazed patches have been grazed for long enough.
+		// We now move the animals to the most-productive patches.
+		stand.patches_grazed = sort_patches(stand);
+		stand.days_grazed = 0;
+	}
+	stand.days_grazed++;
 
 	// Iterate over the N greenest patches and do grazing on each.
-	for (int index : patches_to_graze) {
+	for (size_t i = 0; i < ngrazed; i++) {
+		int index = stand.patches_grazed[i];
 		Patch &patch = stand[index];
 		double cmass_patch = get_grazable_cmass_patch(patch);
 		double frac_remove = C_grazed_m2_patch / cmass_patch;

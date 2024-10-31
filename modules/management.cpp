@@ -72,6 +72,10 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 
 		Patch& patch = indiv.vegetation.patch;
 
+		assert(frac_remove >= 0 && frac_remove <= 1.0);
+		assert(frac_creturn >= 0 && frac_creturn <= 1.0);
+		assert(frac_nreturn >= 0 && frac_nreturn <= 1.0);
+
 	    if (indiv.lai < 0.05) {
 			return;
 		}
@@ -102,6 +106,13 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		double charvest_green = charvest_leaf / (1.0 + fbrown_green);
 		charvest_green = min(indiv.get_cmass_leaf(), charvest_green);
 		double charvest_brown = charvest_leaf - charvest_green;
+
+		// Indiv may not have any brown leaves.
+		if (charvest_brown > indiv.cmass_leafs[brown]) {
+			double remainder = charvest_brown - indiv.cmass_leafs[brown];
+			charvest_brown = min(charvest_brown, indiv.cmass_leafs[brown]);
+			charvest_green += remainder;
+		}
 
 		assert(equal(cmass_harvest, charvest_brown + charvest_green + charvest_repr));
 
@@ -147,6 +158,14 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		indiv.nharvest_green += nharvest_green;
 		indiv.nharvest_brown += nharvest_brown;
 		indiv.nharvest_repr  += nharvest_repr;
+
+		assert(positive(indiv.cmass_leafs[green]));
+		assert(positive(indiv.cmass_leafs[brown]));
+		assert(positive(indiv.cmass_repr));
+
+		assert(positive(indiv.nmass_leafs[green]));
+		assert(positive(indiv.nmass_leafs[brown]));
+		assert(positive(indiv.nmass_repr));
 
 		// Set back grasses back to vegetative state if repr fraction is 0.
 		if (is_zero(indiv.cmass_repr) && indiv.growth_stage == reproductive) {
@@ -234,6 +253,10 @@ void distribute_grazing(Stand& stand) {
 		Patch &patch = stand[index];
 		double cmass_patch = get_grazable_cmass_patch(patch);
 		double frac_remove = C_grazed_m2_patch / cmass_patch;
+		if (C_grazed_m2_patch > cmass_patch) {
+			dprintf("WARNING: insufficient vegetation carbon in patch to support animal grazing\n");
+			frac_remove = 1;
+		}
 
 		// Iterate over all individuals in this patch.
 		for (size_t i = 0; i < patch.vegetation.nobj; i++) {

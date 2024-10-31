@@ -4497,11 +4497,11 @@ void senescence_grass(Individual &indiv) {
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 40.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 120.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 20.0;    
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 35.0;    
     // higher value --> lower sensitivity to water stress at high wscal
-	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 2.0;     
+	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 1.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
 	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  
@@ -4819,6 +4819,7 @@ void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 		cmass_storage += cstore;
 
 		assert(equal(cturnover, cstore + clitter + cvoid));
+		assert(positive(cpool));
 		ctolitter += cvoid; // temporary hack for mass balance checks
 
 
@@ -5643,6 +5644,9 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.ntolitter_repr  = 0.0;
 		indiv.ctolitter_crown = 0.0;
 		indiv.ntolitter_crown = 0.0;
+		if (indiv.pft.is_grass()) {
+			assert(positive(indiv.cmass_leafs[brown]));
+		}
 	}
 }
 

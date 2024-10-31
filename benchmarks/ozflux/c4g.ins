@@ -33,31 +33,33 @@ group "C4G" (
 	harv_eff 0.5
 )
 
-pft "C4G_perennial" (
+!pft "C4G_perennial" (
 
-	C4G
+!	C4G
 
-	lifeform "grass_perennial"
-	sla    	      35.0
-	cton_leaf_min 17.1
-	RGR_pot       0.2
-	reprfrac      0.2
-	crownfrac     0.2
-	culmfrac      0.6
-	extkn         0.17
-)
-
-
-!pft "C4G_annual" (
-
-!   C4G
-	
-!   lifeform "grass_annual"
-!   sla  	     53.1
-!   cton_leaf_min 17.1
-!   RGR_pot       0.3
-!   reprfrac      0.6
-!   crownfrac     0.02
-!   culmfrac      0.2
-!   extkn         0.23
+!	lifeform "grass_perennial"
+!	sla    	           35.0
+!	cton_leaf_min      17.1
+!	RGR_pot            0.2
+!   max_mobil_cstorage 0.2
+!	reprfrac           0.2
+!	crownfrac          0.2
+!	culmfrac           0.6
+!	extkn              0.17
 !)
+
+
+pft "C4G_annual" (
+
+   C4G
+	
+   lifeform "grass_annual"
+   sla  	          53.1
+   cton_leaf_min      17.1
+   RGR_pot            0.3
+   max_mobil_cstorage 0.4
+   reprfrac           0.6
+   crownfrac          0.02
+   culmfrac           0.2
+   extkn              0.23
+)

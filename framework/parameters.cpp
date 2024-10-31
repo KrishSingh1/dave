@@ -753,6 +753,8 @@ void plib_declarations(int id,xtring setname) {
 			"Temperature below which plants fall dormant (degC)");
 		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
 			"Potential relative growth rate in vegetative phase (d-1)");
+		declareitem("max_mobil_cstorage",&ppft->max_mobil_cstorage,0.0,1.0,1,CB_NONE,
+			"Maximum NSC mobilisation rate from C storage (d-1)");
 		declareitem("Ha_growth",&ppft->Ha_growth,0.0,200.0,1,CB_NONE,
 			"Activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)");	
 		declareitem("T0_growth",&ppft->T0_growth,0.0,50.0,1,CB_NONE,

@@ -2156,6 +2156,8 @@ public:
 	double temp_dormancy;
 	/// Potential relative growth rate in vegetative phase (d-1)
 	double RGR_pot;
+	/// Maximum NSC mobilisation rate from C storage (d-1)
+	double max_mobil_cstorage;
     /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
 	double Ha_growth;
 	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)

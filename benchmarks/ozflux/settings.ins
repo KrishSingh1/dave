@@ -70,9 +70,6 @@ cache_strategy                0
 ndep_scenario                "rcp60"
 useClosestNdep               1   ! Use closest available N Deposition data if none found for this gridcell
 
-! 1 if met forcing data contains leap days
-has_leap_years                0
-
 ! User input from the instruction file. The number of years of data to recycle
 ! during the spinup. If 0, all data will be recycled during freenyears.
 spinup_met_cycle_length      30
@@ -124,7 +121,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               1
+nindiv_max               0
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -192,7 +189,7 @@ ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
+wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
                             ! see documentation for water_uptake()
 rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
@@ -293,3 +290,7 @@ import "pft_common.ins"
 !import "shrubberies.ins"
 !import "c3g.ins"
 import "c4g.ins"
+
+! Uncomment this (and comment out all other pft .ins files) to use the standard
+! (global) pfts. This should always be done when using trunk allocation.
+!import "pft_global.ins"

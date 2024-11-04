@@ -667,7 +667,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 // indiv.leaf_growth
 void tree_phenology_grote(Individual& indiv) {
 	// taken from Grote code.
-	Climate climate = indiv.vegetation.patch.get_climate();
+	const Climate &climate = indiv.vegetation.patch.get_climate();
 
 	// handle daily phen leaf state
 	bool leaf_out = false;
@@ -807,7 +807,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
-		if (indiv.pft.lifeform == TREE) {
+		if (indiv.pft.lifeform == TREE && ifdailytree) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}
@@ -1651,7 +1651,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 	else {
 		// trees (and mosses?)
-		if (ifdavegrowth) {
+		if (ifdavegrowth && ifdailytree) {
 			indiv.alive = true;
 			// proportion of the initial biomass that goes to storage
 			const double fract_stor = 0.5;
@@ -1691,16 +1691,19 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
-		// Capacity of C and N storage on establishment
-		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
-			indiv.cstorage_max = cstorage_capacity(indiv);
-			indiv.nstorage_max = nstorage_capacity(indiv);
-		}
-		// initialise limits
-		if (is_zero(indiv.cmass_sap_limit)) {
-			indiv.cmass_sap_limit = indiv.cmass_sap;
-			indiv.cmass_leaf_limit = indiv.cmass_leaf;
-			indiv.cmass_root_limit = indiv.cmass_root;
+
+		if (indiv.pft.dave_allocation()) {
+			// Capacity of C and N storage on establishment
+			if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
+				indiv.cstorage_max = cstorage_capacity(indiv);
+				indiv.nstorage_max = nstorage_capacity(indiv);
+			}
+			// initialise limits
+			if (is_zero(indiv.cmass_sap_limit)) {
+				indiv.cmass_sap_limit = indiv.cmass_sap;
+				indiv.cmass_leaf_limit = indiv.cmass_leaf;
+				indiv.cmass_root_limit = indiv.cmass_root;
+			}
 		}
 
 		double nmass_remaining = nmass_init;
@@ -1970,7 +1973,11 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.5;
+		if (indiv.pft.dave_allocation()) {
+			indiv.boleht = 0.5;
+		} else {
+			indiv.boleht = 0.0;
+		}
 
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.sla();

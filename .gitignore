@@ -2,3 +2,5 @@ build/
 .svn/
 *~
 .DS_Store
+*callgrind.out*
+

@@ -51,10 +51,14 @@ file_dave_aresponse_window       "dave_aresponse_window.out"     ! Annual output
 !file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Leaf Respiration (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"             ! Total individual-level Annual GPP (kgC/m2/year)
 !file_dave_ancohort              "dave_ancohort.out"             ! Number of cohorts currently established per pft (unitless)
+!file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
 !file_dave_stand_type            "dave_stand_type.out"           ! Stand landcover types
+
+! Annual stand-level pft outputs.
+!file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Daily indiv-level per-patch outputs.
 file_dave_lai                   "dave_lai.out"                  ! LAI by individual (m2/m2)
@@ -95,9 +99,12 @@ file_dave_growth_demand         "dave_growth_demand.out"        ! Growth Demand 
 file_dave_nscal                 "dave_nscal.out"                ! Nitrogen stress scalar (0-1)
 file_dave_transpiration         "dave_transpiration.out"        ! Daily indiv-level transpiration (mm/day)
 !file_dave_cue                   "dave_cue.out"                  ! Daily carbon use efficiency
-file_dave_ndemand               "dave_ndemand.out"              ! daily N demand mass (kgN/m2)
+!file_dave_ndemand               "dave_ndemand.out"              ! daily N demand mass (kgN/m2)
+
+! Daily cohort-level outputs.
 !file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
 !file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
+!file_dave_indiv_lai             "dave_indiv_lai.out"            ! Indiv-level LAI (m2/m2)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar        "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]

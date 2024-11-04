@@ -92,7 +92,7 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 }
 
 NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
-, xtring lat_name, xtring time_name, bool has_leap
+, xtring lat_name, xtring time_name
 , CacheStrategy chunk_mode, bool sensibility_checks, bounds b
 , std::vector<xtring> units, bool force_legal_units) {
 	try {
@@ -100,7 +100,6 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		var_name = name;
 		cache_strategy = chunk_mode;
 		id_var = get_variable_id(name);
-		has_leap_years = has_leap;
 		check_bounds = sensibility_checks;
 		limits = b;
 
@@ -180,6 +179,9 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 		std::vector<double> result(result_len);
 		int read = 0;
 
+		// The timestep value to start reading from.
+		int timestep = 0;
+
 		// Reading in chunks. Remember, cache size may be less than the result
 		// length.
 		while (read < result_len) {
@@ -200,7 +202,7 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 			timepoint date;
 			date.year = year;
 			date.day = day;
-			date.timestep = 0;
+			date.timestep = timestep;
 
 			int start_index = get_cache_offset(date);
 
@@ -223,6 +225,15 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 			std::copy(start, end, result_start);
 
 			read += end_index - start_index;
+
+			if (read < result_len) {
+				int cache_offset = get_timesteps_between(data_start, cache_start);
+				int cache_end = cache_offset + end_index - start_index;
+				timepoint next_timepoint = to_timepoint(get_nth_date(cache_end));
+				year = next_timepoint.year;
+				day = next_timepoint.day;
+				timestep = next_timepoint.timestep;
+			}
 		}
 
 		if (check_bounds) {
@@ -269,7 +280,7 @@ std::vector<double> NCVariable::load_year(double lon, double lat, int year) cons
 	t.year = year;
 	t.day = t.timestep = 0;
 	int start = get_timesteps_between(data_start, t);
-	int len = get_year_len(year, has_leap_years) * day_length;
+	int len = get_year_len(year, calendar_type) * day_length;
 	return load_data(lon, lat, start, len);
 }
 
@@ -320,7 +331,7 @@ int NCVariable::get_cache_offset(timepoint date) const {
 	&&	cache_prev.day + 1 == date.day)
 	// Or cache_prev is last day of year and date is 1st day of next year.
 	||	(cache_prev.year == date.year - 1
-	&&	cache_prev.day == get_year_len(cache_prev.year, has_leap_years) - 1
+	&&	cache_prev.day == get_year_len(cache_prev.year, calendar_type) - 1
 	&&	date.day == 0
 	&&  cache_strategy == All) )) {
 		return cache_prev_index + day_length;
@@ -340,7 +351,7 @@ int NCVariable::get_timesteps_between(timepoint date0, timepoint date1) const {
 
 	int offset = 0;
 	for (int i = date0.year; i < date1.year; i++) {
-		offset += get_year_len(i, has_leap_years) * day_length;
+		offset += get_year_len(i, calendar_type) * day_length;
 	}
 
 	offset += (date1.day - date0.day) * day_length + date1.timestep - date0.timestep;
@@ -442,19 +453,11 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 	timepoint result;
 	result.year = date.get_year();
 
-	const double days_in_month[12] =
-		{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-
 	// Calculate day of year. Note that get_day() returns a 1-31 number, but we
 	// want a 0-based index, so we need to subtract 1.
 	int day = date.get_day() - 1;
 	for (int i = 0; i < date.get_month() - 1; i++) {
-		int month_length = days_in_month[i];
-		if (i == 1 && is_leap(result.year)) {
-			// February.
-			month_length = 29;
-		}
-		day += days_in_month[i];
+		day += get_month_len(result.year, i, calendar_type);
 	}
 	result.day = day;
 
@@ -466,7 +469,7 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 	if (result.timestep >= day_length) {
 		result.timestep = 0;
 		result.day++;
-		if (result.day >= get_year_len(result.year, has_leap_years)) {
+		if (result.day >= get_year_len(result.year, calendar_type)) {
 			result.day = 0;
 			result.year++;
 		}
@@ -546,6 +549,10 @@ GuessNC::CF::TimeUnitSpecification NCVariable::get_time_spec() const {
 
 	// Parse units (this will throw if invalid).
 	return GuessNC::CF::TimeUnitSpecification(units.c_str());
+}
+
+GuessNC::CF::CalendarType NCVariable::get_calendar() const {
+	return calendar_type;
 }
 
 #endif

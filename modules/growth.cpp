@@ -4334,7 +4334,13 @@ void update_pools_dave(Vegetation& vegetation) {
 			//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 			// TODO: define max_mobil_nstorage based on Yang et al. 2023, Journal of Ecology.
 			fnavail = max(0.0,min(1.0,((indiv.pft.max_mobil_cstorage * indiv.nmass_storage) / (indiv.ndemand - indiv.storendemand))));
-			nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
+			// Account for negative feedback of N limitation on nstress calculation (nstress = nmass_storage / (1/Nfeedback) * ndemand)
+			// TODO: clean this up. Maybe make calculation of qf1 a separate function.
+			//nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
+			double nstorage_fill = Nstorage_fillfrac(indiv);
+            double qf1 = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
+            double N_feedback = pow(nstorage_fill,qf1);
+            nstress = max(0.0,min(1.0,(N_feedback * indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
 		}
 		
 		// calculate N stress factor 

@@ -3243,8 +3243,10 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
-	/// physiological downregulation due to dormancy 
+	/// metabolic downregulation due to dormancy 
 	double fphen_activity;
+	/// change of fphen_activity per day
+	double dphen_activity;
 	// grote_dave - summer. after leaf out
 	bool leaf_full_switch_summer;
 	// grote_dave - autumn. scenescence after summer

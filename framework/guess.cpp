@@ -1770,6 +1770,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
+	dphen_activity    = 0.0;
 	cexcess           = 0.0;
 	nexcess           = 0.0;
 	nmass_missing     = 0.0;
@@ -2017,6 +2018,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& fphen_activity
+		& dphen_activity
 		& cexcess
 		& nmass_missing
 		& anpp

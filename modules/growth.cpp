@@ -285,7 +285,7 @@ double photo_growth(double reldaylength, double daylength_diff) {
 }
 
 
-// Calculates dphen_activity, which is used for calculation of:
+// Calculates dphen_activity, the change of metabolic activity related to dormancy
 double dphen_activity(Individual &indiv, Climate& climate) {
 
 	Pft& pft = indiv.pft;
@@ -363,10 +363,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
         // check if conditions are suitable to resume vegetative growth.
 		// If not, maintain reduced growth rate or enter dormancy.
 
-		// TODO: deal with dphen_activity called twice.
-		double dphen_growth = dphen_activity(indiv, climate);
-
-		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
+		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + indiv.dphen_activity)));
 	}
 }
 
@@ -482,8 +479,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 1) Dormancy
 			if (indiv.pft.lifeform == GRASS_PERENNIAL) {
 
-				double dphen_dormancy = dphen_activity(indiv, climate);
-				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_dormancy)));
+				indiv.dphen_activity = dphen_activity(indiv, climate);
+				indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + indiv.dphen_activity)));
 
 			} else {
 			    // no dormancy in annuals
@@ -3202,9 +3199,7 @@ double growth_demand(Individual& indiv) {
 	growth_demand *= pow(nstorage_fill,qf1);
 
 	// reduced growth under dormancy (total cessation in full dormancy)
-	if (indiv.fphen_activity < 1.0){
-		growth_demand *= (indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min);
-	}
+	growth_demand *= (indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min);
 
 	return growth_demand;
 
@@ -4502,7 +4497,7 @@ void senescence_grass(Individual &indiv) {
 	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
 	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 60.0 : 60.0;
+	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
 	// senescence scalar for reproductive phase
 	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 120.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
@@ -4558,10 +4553,10 @@ void senescence_grass(Individual &indiv) {
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
-	if (indiv.fphen_activity < 1.0) {
+	if (indiv.fphen_activity < 1.0 && indiv.dphen_activity < 0.0) {
 
-		//senesc_fdorm = senesc_scal_dorm * (1.0 - indiv.fphen_activity);
-        senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
+		senesc_fdorm = senesc_scal_dorm * abs(indiv.dphen_activity/dphen_activity_max);
+        //senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
 	// Total senescence rate

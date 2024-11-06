@@ -496,12 +496,14 @@ timepoint NCVariable::get_last_date() const {
 }
 
 int NCVariable::calculate_day_length() const {
-	int first_day = get_nth_date(0).get_day();
+	GuessNC::CF::DateTime first_date = get_nth_date(0);
+	int first_day = first_date.get_day();
+	double seconds = first_date.get_seconds_after_midnight();
 
 	// Keep moving forward in time until we reach a different day.
 	for (size_t i = 1; i < ntime; i++) {
 		GuessNC::CF::DateTime timestep = get_nth_date(i);
-		if (timestep.get_day() != first_day) {
+		if (timestep.get_day() != first_day && timestep.get_seconds_after_midnight() >= seconds) {
 			return i;
 		}
 	}

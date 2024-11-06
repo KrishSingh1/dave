@@ -351,7 +351,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		// a1 parameter should depend on the size of the plant at flowering time.
 		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 0.03;  
 		double a1 = max(0.5,indiv.lai_flowering) * a1m;
-		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 1.0 : 0.25;
+		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 0.5 : 0.25;
 		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
 		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
 		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - a1 * (frepr_cstruct / indiv.pft.reprfrac - a2)));
@@ -515,7 +515,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && indiv.fdev_growth > 0.5 && indiv.lai > 0.0 && cmass_storage_level > 0.7){
+				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0 && cmass_storage_level > 0.7){
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;

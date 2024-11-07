@@ -419,15 +419,39 @@ try {
 		}
 	}
 
+	// When reading data from the input files, we specify which day of the year
+	// to read. The 29th of February is the 60th day of the year in leap years,
+	// which would correspond to date.day == 59. This model does not simulate
+	// leap years, so date.day = 59 in this model ALWAYS means the first of
+	// March. If we pass 59 into NCVariable::read(), we will get data for the
+	// 29th of Feb in a leap year (if the data contains leap years). This is
+	// actually convenient, as it makes the outputs more directly interpretable.
+	// Whatever we do, we need to skip a day of data in that year, and the
+	// current implementation means the data for 31st December will not be used.
+	// This actually corresponds better with the day of year value that is
+	// written to the output files, and makes them easier to compare with other
+	// data. Therefore, I will leave this message here as a warning.
+	int day = date.day;
+
 	// Read data from variables (not necessarily from the file - these variable
 	// objects will handle caching internally).
 	// Note that these arrays will still be on the timestep of the input data,
 	// which is not necessarily the same as that of the nsteps_day parameter.
-	std::vector<double> temps = temp->read(lon, lat, year, date.day, 1);
-	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
-	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
-	std::vector<double> vpds = vpd->read(lon, lat, year, date.day, 1);
-	std::vector<double> pressure = ps->read(lon, lat, year, date.day, 1);
+	std::vector<double> temps = temp->read(lon, lat, year, day, 1);
+	std::vector<double> precs = precip->read(lon, lat, year, day, 1);
+	std::vector<double> insols = insol->read(lon, lat, year, day, 1);
+	std::vector<double> vpds = vpd->read(lon, lat, year, day, 1);
+	std::vector<double> pressure = ps->read(lon, lat, year, day, 1);
+
+	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
+		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
+		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
+		(vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
+		(ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
+
+		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
+		return false;
+	}
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;

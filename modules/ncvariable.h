@@ -130,6 +130,16 @@ public:
 	*/
 	GuessNC::CF::CalendarType get_calendar() const;
 
+	/*
+	Get the missing value.
+	*/
+	double get_missing_value() const;
+
+	/*
+	Check if this variable has a missing value attribute.
+	*/
+	bool has_missing_value() const;
+
 private:
 	/*
 	Get the length of the specified dimension.
@@ -410,6 +420,16 @@ private:
 	The index in the cached data of cache_prev.
 	*/
 	int cache_prev_index;
+
+	/*
+	The missing value.
+	*/
+	double missing_value;
+
+	/*
+	True if a missing value is defined for this variable, false otherwise.
+	*/
+	bool has_missval;
 
 	/*
 	The starting date of the data in the input file.

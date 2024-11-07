@@ -166,6 +166,8 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		cache_prev.year = -1;
 		cache_prev.day = -1;
 		cache_prev.timestep = -1;
+
+		has_missval = GuessNC::get_attribute(id_file, id_var, "missing_value", missing_value);
 	} catch (...) {
 		// Rethrow the exception with some extra context added to the message.
 		throw_xtring_nested("Failed to initialise variable %s", (const char *)name);
@@ -549,6 +551,17 @@ GuessNC::CF::TimeUnitSpecification NCVariable::get_time_spec() const {
 
 	// Parse units (this will throw if invalid).
 	return GuessNC::CF::TimeUnitSpecification(units.c_str());
+}
+
+bool NCVariable::has_missing_value() const {
+	return has_missval;
+}
+
+double NCVariable::get_missing_value() const {
+	if (!has_missval) {
+		throw std::runtime_error("No missing value is defined for this variable. You need to check with has_missing_value() before calling this function.");
+	}
+	return missing_value;
 }
 
 GuessNC::CF::CalendarType NCVariable::get_calendar() const {

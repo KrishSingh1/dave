@@ -440,6 +440,16 @@ try {
 	std::vector<double> vpds = vpd->read(lon, lat, year, day, 1);
 	std::vector<double> pressure = ps->read(lon, lat, year, day, 1);
 
+	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
+		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
+		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
+		(vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
+		(ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
+
+		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
+		return false;
+	}
+
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;
 	// We can use the mean of the rates and the sum of the quantities. Check the

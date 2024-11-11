@@ -799,8 +799,13 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel *channel, Gridcell &
 		while (stand.isobj) {
 			Patch &patch = stand.getobj();
 
-			// Write stand ID.
-			write_output(channel, stand.id);
+			// Write stand ID; when writing "standard" outputs, we write stand
+			// ID once per patch (ie once per row of output). When writing
+			// stats, we only write one row per stand, so we cannot write stand
+			// ID from inside a patch-level loop.
+			if (!write_stats()) {
+				write_output(channel, stand.id);
+			}
 
 			std::vector<double> patch_data = write_patch(patch, channel);
 			if (write_stats()) {
@@ -840,6 +845,10 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel *channel, Gridcell &
 
 			// First, get the number of columns.
 			size_t ncol = data[0].size();
+
+			// We write one row of output per stand, so we need to first output
+			// the stand ID.
+			write_output(channel, stand.id);
 
 			// Now iterate over the columns that we want to write.
 			for (size_t j = 0; j < ncol; j++) {

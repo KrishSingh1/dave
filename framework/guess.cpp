@@ -1870,6 +1870,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	diam              = 0.0;
 	d_height		  = 0.0;
 	d_diam		      = 0.0;
+	basalarea    	  = 0.0;
+	basalarea_inc	  = 0.0;
 	crownarea		  = 0.0;
 	latosa 			  = 0.0;
 	sa 				  = 0.0;
@@ -1998,6 +2000,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ltor
 		& height
 		& diam
+		& basalarea
 		& crownarea
 		& deltafpc
 		& boleht

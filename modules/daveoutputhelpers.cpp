@@ -555,6 +555,7 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
 	columns.push_back(ColumnDefinition<Individual>("rootCbalance", [](const Individual &i) { return i.cgrow_root - i.cturnover_root; }));
 	columns.push_back(ColumnDefinition<Individual>("cgrowrootminusleaf", [](const Individual &i) { return i.cgrow_root - i.cgrow_leaf; }));
 	columns.push_back(ColumnDefinition<Individual>("cgrowminusleafturnover", [](const Individual &i) { return i.cgrow - i.cturnover_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("dnppminuscgrow", [](const Individual &i) { return i.dnpp - i.cgrow; }));
 	columns.push_back(ColumnDefinition<Individual>("cstorage_dynam_14", [](const Individual &i) { return i.cstorage_dynam_14.sum(); }));
 	columns.push_back(ColumnDefinition<Individual>("meanleafage", [](const Individual &i) { return i.meanleafage; }));
 	columns.push_back(ColumnDefinition<Individual>("fLage", [](const Individual &i) { return i.meanleafage/3; }));

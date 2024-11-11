@@ -3354,6 +3354,10 @@ public:
 	double d_height;
 	/// plant diameter increment
 	double d_diam;
+	/// basal area increment (m2/day)
+	double basalarea_inc;
+	/// tree baseal area  (m2)
+	double basalarea;
 	/// plant crown area (m2)
 	double crownarea;
 	/// sapwood area (m2 sapwood/m2 ground)

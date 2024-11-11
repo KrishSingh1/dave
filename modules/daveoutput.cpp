@@ -1294,7 +1294,11 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_cols() {
 	ColumnDescriptors columns;
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	columns += ColumnDescriptor(elem_name.c_str(), COLUMN_WIDTH, 0);
-	add_pft_columns(columns);
+	// TODO: add support for stats outputs in the indiv-level array outputs.
+	// add_pft_columns(columns);
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		columns += ColumnDescriptor((const char *)pftlist[i].name, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 	return columns;
 }

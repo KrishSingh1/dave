@@ -2025,20 +2025,35 @@ void plib_callback(int callback) {
 			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
-			if (!itemparsed("crownfrac")) badins("crownfrac");
-			if (!itemparsed("culmfrac") && ppft->is_grass()) badins("culmfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
-			if (!itemparsed("turnover_repr")) badins("turnover_repr");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
 
 			if (ifdavegrowth) {
+				// Mandatory parameters for pfts using dave daily growth.
+				if (!itemparsed("turnover_repr")) badins("turnover_repr");
+
+				// Calculate a_growth if it's not provided by the user.
 				if (!itemparsed("A_growth")) {
 					ppft->A_growth = calc_a_growth(ppft);
 				}
+
+				if (ifdailygrass && ppft->is_grass()) {
+					// Mandatory parameters for dave daily grasses.
+					if (!itemparsed("temp_dormancy")) badins("temp_dormancy");
+					if (!itemparsed("crownfrac")) badins("crownfrac");
+					if (!itemparsed("culmfrac")) badins("culmfrac");
+				}
+			}
+
+			if (ifdavephotosyn) {
+				// Mandatory parameters for dave photosynthesis.
+				if (!itemparsed("g0")) badins("g0");
+				if (!itemparsed("g1")) badins("g1");
+				if (!itemparsed("extkn")) badins("extkn");
 			}
 
 			if (run_landcover) {

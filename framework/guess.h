@@ -899,7 +899,7 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind (km/h)
+	/// 10 m wind (m/s)
 	double u10;
 
 	/// rel. humidity (fract.)
@@ -928,6 +928,9 @@ public:
 	 *  see also documentation for the insoltype enum.
 	 */
 	insoltype instype;
+
+	/// annual insolation counter
+	double ainsol;
 
 	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
@@ -4361,6 +4364,8 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+    double total_litter() const;
 };
 
 

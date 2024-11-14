@@ -6,7 +6,7 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True"
 make_command="make -j2"
 bbox_command="bbox"
 pp_walltime=5:00:00
@@ -32,6 +32,7 @@ function has_slurm {
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
     error "Usage: benchmarks [ -s ] [ -c ] [ -P ] [ -i TESTS | -x TESTS ] [ -r \"REPORTTOOL <path(s) to reference reports>\" ] <workdir>"
+    error "Pwd needs to be the directory of this benchmark script."
     error
     error "Options"
     error "======="
@@ -362,7 +363,7 @@ EOF
           dependency=""
         fi
 
-        cat <<EOF > $common_script
+        cat <<EOF &> $common_script
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
@@ -380,11 +381,17 @@ EOF
             dependency=""
         fi
 
-        cat <<EOF > $common_script
+        cat <<EOF &> $common_script
 #!/bin/sh
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
+$SBATCH_COMPUTEACCOUNT
+if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
+    module purge &>/dev/null
+    module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
+    export PATH=$PATH
+fi
 $(cat $common_script)
 EOF
         ppid=$(sbatch -n 1 --time=$pp_walltime $dependency $common_script | awk '{print $NF}')
@@ -419,9 +426,9 @@ function submit_job {
 
     pushd $workspace 1>/dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+        jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+        jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
     fi
 
     local submit_exit_status=$?
@@ -429,10 +436,10 @@ function submit_job {
     popd 1>/dev/null
 
     if (($submit_exit_status != 0)); then
-	error "Failed to submit $test_name! Try manually for more information."
+        error "Failed to submit $test_name! Try manually for more information."
     else
-#        echo "... and skipping ppjob submission."
-	submit_pp $test_name $jobid
+#       echo "... and skipping ppjob submission."
+        submit_pp $test_name $jobid
     fi
 }
 
@@ -494,7 +501,7 @@ function run_benchmark {
 	echo "Building $test_name model..."
 	if ! build $build_path extra_source/$(cat $test_name/extra_source.txt); then
 	    echo "Not running ${test_name}..."
-	    return
+	    return 1
 	fi
     fi
 
@@ -564,6 +571,10 @@ function meta_data {
 	    echo "Local WC path:" > $file2
 	    pwd -P >> $file2
 	    echo >> $file2
+            if has_slurm ; then
+                module list 2>&1 | grep -v '^[[:space:]]*$' >> $file2
+                echo >> $file2
+            fi
 	    echo "$changesdiff" >> $file2
 	fi
     else
@@ -575,15 +586,18 @@ function meta_data {
 
 # Ok, let's start!
 
-# Create the progress.txt file, overwriting if it existed
-echo "The following benchmarks are done:" > progress.txt
-
 # If necessary, create the working directory where all the benchmarks will be
 # run from.
 mkdir -p $work_dir
-
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
+
+# Create the progress.txt file, or write to the pre-existing one if available.
+touch progress.txt
+echo >> progress.txt
+echo "Benchmarks submitted $(date)" >> progress.txt
+echo "$work_dir" >> progress.txt
+echo "The following benchmarks have been submitted:" >> progress.txt
 
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir
@@ -636,14 +650,26 @@ do
   fi
 done
 
+
+# Read the compute account number from the environment, if available.
+# Only used on a SLURM system.
+if [ -n "$COMPUTEACCOUNT" ]; then
+    SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
+fi
+
+# Call run_benchmark for each test
 # Call run_benchmark for each test, unless we're doing exoprocessing only.
 if (( $superreport_only == 0 )); then
+all_benchmarks_ok=1
   for test_name in "${test_names[@]}"
   do
     if (( $pp_only == 1 )); then
       run_pp $test_name
     else
-      run_benchmark $test_name
+      if ! run_benchmark $test_name ; then
+        echo "Issue when building benchmarks, see log"
+        exit 1
+      fi
     fi
   done
 fi

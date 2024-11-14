@@ -209,6 +209,9 @@ extern bool frac_fixed[NLANDCOVERTYPES];
 /// Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum
 extern bool no_barren_frac_corr;
 
+/// Whether PEATLAND landcover excluded from area fraction correction in cases of non-unity sum
+extern bool no_peatland_frac_corr;
+
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 

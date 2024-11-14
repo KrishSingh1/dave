@@ -69,7 +69,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& co2
 		& lat
 		& insol
-		& instype
+		& instype	
+		& ainsol
 		& eet
 		& mtemp
 		& mtemp_min20
@@ -377,6 +378,10 @@ bool Patchpft::growingseason() const {
 		return cropphen->growingseason;
 	else
 		return true;
+}
+
+double Patchpft::total_litter() const {
+	return cmass_litter_leaf + cmass_litter_root + cmass_litter_heart + cmass_litter_sap + cmass_litter_repr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1551,6 +1556,7 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp              = 0.0;
+	aet               = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	densindiv         = 0.0;

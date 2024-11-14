@@ -16,7 +16,7 @@
 
 #include "guesscontainer.h"
 
-TEST_CASE("indexing", "Tests random access") {
+TEST_CASE("indexing", "[guesscontainer]") {
 	GuessContainer<int> container;
 
 	container.push_back(new int(1));
@@ -42,7 +42,7 @@ public:
 
 int InstanceCountingClass::living_instances = 0;
 
-TEST_CASE("memory", "Tests memory management in GuessContainer") {
+TEST_CASE("memory", "[guesscontainer]") {
 
 	GuessContainer<InstanceCountingClass> container;
 
@@ -61,7 +61,7 @@ TEST_CASE("memory", "Tests memory management in GuessContainer") {
 	REQUIRE(InstanceCountingClass::living_instances == 0);
 }
 
-TEST_CASE("iteration", "Tests iteration in GuessContainer") {
+TEST_CASE("iteration", "[guesscontainer]") {
 	GuessContainer<int> container;
 
 	container.push_back(new int(1));
@@ -81,7 +81,7 @@ TEST_CASE("iteration", "Tests iteration in GuessContainer") {
 	REQUIRE(++itr == container.end());
 }
 
-TEST_CASE("erase", "Tests GuessContainer<T>::erase()") {
+TEST_CASE("erase", "[guesscontainer]") {
 	GuessContainer<int> container;
 
 	container.push_back(new int(1));

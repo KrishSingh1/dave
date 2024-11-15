@@ -9,7 +9,10 @@
 resultfile="deltareports.vs-${1}.result"
 
 echo "Exo-processing: Deltareports... Arguments = $@"
-deltareports $@ | tee -a $resultfile
+echo "$0"
+echo "The exoscript's pwd -P = $(pwd -P)"
+cd ..
+deltareports $@ | tee -a delta/$resultfile
 
 
 ############## Old

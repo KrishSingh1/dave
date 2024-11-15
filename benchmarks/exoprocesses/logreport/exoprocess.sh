@@ -7,5 +7,8 @@
 resultfile="guess-log-report.txt"
 
 echo "Exo-processing: generating log report... Arguments (should be empty) = $@"
-guess-log-error-extract | tee -a $resultfile
+echo "$0"
+echo "The exoscript's pwd -P = $(pwd -P)"
+cd ..
+guess-log-error-extract | tee -a logreport/$resultfile
 

@@ -14,4 +14,7 @@
 resultfile="guess-diff.vs-${1}.result"
 
 echo "Exo-processing: Output diff: are the output identical... Arguments = $@"
+echo "$0"
+echo "The exoscript's pwd -P = $(pwd -P)"
+cd ..
 guess-diff-outfiles-tslices $@ | tee -a $resultfile

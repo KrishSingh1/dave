@@ -38,10 +38,10 @@ function print_usage_and_exit {
     error "======="
     error "-i   Include only the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
     error "-x   Exclude the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-e   Exoprocessing or extra-processing: 2' processing after all postprocesses finished,"
+    error "-e   Exoprocessing or extra-processing: 2' processing after all postprocessing jobs finished,"
     error "     e.g. for comparative report processing."
     error "     It takes several argument as one string enclosed with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
-    error "     * REPORT TOOL: delta or tellme or another script <REPORT TOOL> in benchmarks/exoprocesses/."
+    error "     * The report tool: delta or tellme or another script <REPORT TOOL> in benchmarks/exoprocesses/."
     error "     * Arguments:"
     error "       delta:  2 arguments:  a label for the comparison reference benchmark run to compare with," 
     error "                             the path to the same reference run's output."
@@ -61,11 +61,12 @@ function print_usage_and_exit {
     error "   benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
     error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
-    error "3. Run some benchmarks and then do one, and two, comparative report jobs:"
+    error "3. Run some benchmarks and then do a comparative report job (exoprocessing job):"
     error "   benchmarks -i \"fluxnet tellus\" -e \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\" /scratch/sally/current-benchmarks-output"
+    error "4. Same as above but with two comparative report jobs (exoprocessing jobs):"
     error "   benchmarks -i \"fluxnet tellus\" -e \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\"\\"
     error "     -e \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
-    error "4. Run all except some benchmarks:"
+    error "5. Run all except some benchmarks:"
     error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
 }
@@ -193,7 +194,7 @@ function build {
 
     pushd $build_path/output 1>/dev/null
 
-    cmake_output=$(mktemp)
+    cmake_output=$(mktemp) 1>/dev/null
     if ! $cmake_command .. &> $cmake_output ; then
 	error "Failed to configure build " $build_path "!"
 	cat $cmake_output
@@ -203,7 +204,7 @@ function build {
     fi
     rm $cmake_output
 
-    make_output=$(mktemp)
+    make_output=$(mktemp) 1>/dev/null
     if ! $make_command &> $make_output ; then
 	error "Failed to build " $build_path "!"
 	cat $make_output
@@ -286,11 +287,14 @@ function submit_postppjob {
     pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM
-    common_script=$(mktemp)
+    common_script=$(mktemp) 1>/dev/null
     cat <<EOF > $common_script
 cd $workspace
 if [ -f $bm_root/exoprocesses/${supertool}/exoprocess.sh ]; then
-    PATH=$PATH $bm_root/exoprocesses/${supertool}/exoprocess.sh ${thistool_arglist[@]:1}
+    PATH=$PATH bash $bm_root/exoprocesses/${supertool}/exoprocess.sh ${thistool_arglist[@]:1}
+else
+    echo "Error: Exoprocessing tool ${supertool} not found in $bm_root/exoprocesses/"
+    exit 1
 fi
 cd $bm_root
 echo '${supertool}' >> progress.txt
@@ -342,7 +346,7 @@ function submit_pp {
     pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM
-    common_script=$(mktemp)
+    common_script=$(mktemp) 1>/dev/null
     echo $common_script
     cat <<EOF > $common_script
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
@@ -657,7 +661,6 @@ if [ -n "$COMPUTEACCOUNT" ]; then
     SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
 fi
 
-# Call run_benchmark for each test
 # Call run_benchmark for each test, unless we're doing exoprocessing only.
 if (( $superreport_only == 0 )); then
 all_benchmarks_ok=1

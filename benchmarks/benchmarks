@@ -347,7 +347,6 @@ function submit_pp {
 
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp) 1>/dev/null
-    echo $common_script
     cat <<EOF > $common_script
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
     PATH=$PATH $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name

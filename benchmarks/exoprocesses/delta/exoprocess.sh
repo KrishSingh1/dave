@@ -6,7 +6,7 @@
 # The script takes 2 arguments: a label, and a path, for the folder containing the benchmarks to compare with.
 
 
-resultfile="guess-diff.vs-${1}.result"
+resultfile="deltareports.vs-${1}.result"
 
 echo "Exo-processing: Deltareports... Arguments = $@"
 deltareports $@ | tee -a $resultfile

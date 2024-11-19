@@ -1,90 +1,48 @@
 ---
 title: "Tellme Benchmark Report for LPJ-GUESS"
-report analysis template: "Matthew Forrest (current lead and contact person)"
-model run: "%%USER%%"
+author: "Matthew Forrest (script developer and maintainer)"
 date: '`r strftime(Sys.time(), format = "%B %d, %Y")`'
 output: 
  html_document:
   toc: true
 params:
-  new_directory:
-    value: "/home/mforrest/GuessRuns/Tellus_dev/output11690tls-3"
-  new_name:
-    value: "New Run"
-  old_directory:
-    value: "/home/mforrest/GuessRuns/Tellus_dev/trunk10115crg+monthly"
-  old_name:
-    value: "Old Run"
-  data_directory: 
-    value: "/data/shared/Tellus"
-  land_cover_file:
-    value: "/data/mforrest/LandUseLandCover/LUH2_GCP2019/lu_1549_2019_luh2_aggregate_sum2x2_midpoint_nourban_gcp2019_2019_10_22.txt"
+  config_file: "/home/mforrest/Tools/DGVMBenchmarks/inst/tellme_global_config.yml"
+#    value: "/home/mforrest/GuessRuns/Tellus_dev/output11690tls-3"
 ---
 
 ```{r benchmark selection and script parameters, echo=FALSE}
+suppressWarnings(
+  library(DGVMBenchmarks)
+)
+
+# read and parse the YAML file, then set the objects for later
+if(is.null(params$config_file)){
+  config_file <- file.path(system.file("tellme_global_config.yml", package = "DGVMBenchmarks")) 
+} else { 
+  config_file <- params$config_file 
+}
+
+all_settings <- parseConfigFile(config_file)
+settings <- all_settings$settings
+simulation_sources <- all_settings$simulations
+benchmarks <- all_settings$benchmarks
+
 
 #### Here select the benchmarks to do ####
-do_Global_Summary_Tables <- TRUE
-do_GCP_NBP <- TRUE
-do_Biomes <- TRUE
-do_global_GPP <- TRUE
-do_global_LAI <- TRUE
-do_global_BA <- TRUE
-do_Global_Biomass <- TRUE
-do_Pan_Biomass <- TRUE
-do_Regrowth <- TRUE
-do_FLUXNET <- FALSE
+do_Global_Summary_Tables <- FALSE
+do_global_GPP <- FALSE
+do_global_LAI <- FALSE
+do_global_BA <- FALSE
+do_Global_Biomass <- FALSE
+do_Pan_Biomass <- FALSE
+do_Regrowth <- FALSE
 
 #  **** SPECIAL SUBSETTING FOR STEFAN'S GLOBAL RETUNING  ****
 subset_1600_gridcells <- read.table(system.file("extdata", "Gridlist", "gridlist_16_random.csv", package = "DGVMBenchmarks"), header = TRUE, flush = TRUE)
 #  **** END SPECIAL SUBSETTING ****
 
 
-#### Here define the global script parameters ####
-script_settings <- list(
-  
-  # version string (for making quick read files)
-  analysis_version = "tellus_v1.3", 
-  
-  # quick read switch 
-  quick_read = TRUE,
-  
-  # do verbose reads - this makes a lot of printed output which will appear in the report, only enable for developing/debugging the reading code
-  verbose_read = FALSE,
-  
-  # do publication plots
-  doPublicationPlots = FALSE,
-  
-  # plot maps (turn off to save time if they are not needed)
-  doMapPlots = TRUE,
-  
-  # summary periods
-  summary_periods = list(c(1961, 1990),
-                         c(1990, 2000)),
-  
-  # Spatial extent - note that this only applies to some benchmarks - typically the spatially explicit global ones
-  # it will be ignored for benchmarks such as the regrowth and Pan forest biomass benchmarks
-  # spatial extent (can be a raster:: extent or a two column data.frame of gridcells), set to NULL for no subsetting
-  spatial_extent =  NULL,
-  # spatial_extent <- subset_1600_gridcells 
-  # spatial_extent <- extent(c(xmin = -10, ymin = 35, xmax = 35, ymax  = 72)) 
-  
-  # set to a string to describe the spatial subset and use "Global" if not cropping area
-  spatial_extent_id = "Global", 
-  #spatial_extent_id <- "The1600"
-  # spatial_extent_id <- "Europe" 
-  
-  # Standard plot formatting arguments
-  num_cols = 1,
-  map_overlay = "coastlines",
-  stats_lon = -130,
-  stats_lat = -20,
-  map_text_multiplier = 2.5,
-  map_annotation_text_size =7
-)
 
-
-settings <- script_settings
 ```
 
 
@@ -105,19 +63,20 @@ opts <- options(knitr.kable.NA = "")
 library(ggplot2)
 # set the ggplot theme to avoid the grey background that Stefan hates so much
 theme_set(theme_bw())
-
-library(DGVMTools)
-library(DGVMBenchmarks)
-library(terra)
-library(viridis)
-library(mapproj)
-library(pals)
-library(knitr)
-library(dplyr)
-library(kableExtra)
-library(tictoc)
-
-library(lubridate)
+suppressWarnings({
+  library(DGVMTools)
+  library(DGVMBenchmarks)
+  library(terra)
+  library(viridis)
+  library(mapproj)
+  library(pals)
+  library(knitr)
+  library(dplyr)
+  library(kableExtra)
+  library(tictoc)
+  library(lubridate)
+  library(ggrepel)
+})
 
 # for "reasons" this helps RMarkdown find the right Helvetica font when rendering from the commandline on some systems 
 library(showtext) 
@@ -127,6 +86,7 @@ showtext_auto()
 # conversion factors
 KG_TO_PG <- 1/1e+12
 KG_TO_TG <- 1/1e+9
+KG_TO_G <- 1e+3
 M2_TO_MegaM2 <- 1/1e+12
 M2_TO_Mha <- 1/1e+10
 L_TO_KM3 <- 1/1e+12
@@ -143,79 +103,23 @@ tic()
 
 # Settings {.tabset}
 
-## Click here to hide settings
+## Hide Settings
+Click the tabs above to see the settings of this Tellme script run.
 
-## Click here to show settings
-
-```{r settings, echo = TRUE}
-
-#### DEFINE LPJ-GUESS RUNS ####
-# NOTE:
-#  The paths defined in the "dir" argument only point to the overall benchmark directory.  
-#  To actually access one of the benchmark runs (ie "tellus" or "crop_global") you should copy these Source objects 
-#  and manually append the benchmark directory name to the "dir".  See the GCP code block for an example.
-
-# new
-new_simulation_Source <- defineSource(name = params$new_name,
-                                      dir = params$new_directory,
-                                      format = GUESS)
-
-# reference run
-old_simulation_Source <- defineSource(name = params$old_name,
-                                      dir = params$old_directory,
-                                      format = GUESS)
-
-# combine into a list for looping later
-script_settings$simulation_sources <- list(old_simulation_Source, new_simulation_Source)
-
-simulation_sources <- list(old_simulation_Source, new_simulation_Source)
-
-
-# 
-# # quick read switch and version label (for making quick read files)
-# settings$quick_read <- TRUE
-# settings$analysis_version <- "tellus_v1.2" 
-# 
-# # do verbose reads - this makes a lot of printed output which will appear in the report, only enable for developing/debugging the reading code
-# settings$verbose_read <- FALSE
-# 
-# # do publication plots
-# settings$doPublicationPlots <- FALSE
-# 
-# # plot maps (turn off to save time)
-# settings$doMapPlots <- TRUE
-# 
-# # Summary periods
-# settings$summary_periods <- list(c(1961, 1990),
-#                         c(1990, 2000))
-# 
-# 
-# #  **** SPECIAL SUBSETTING FOR STEFAN'S GLOBAL RETUNING  ****
-# subset_1600_gridcells <- read.table(system.file("extdata", "Gridlist", "gridlist_16_random.csv", package = "DGVMBenchmarks"), header = TRUE, flush = TRUE)
-# #  **** END SPECIAL SUBSETTING ****
-# 
-# # Spatial extent - note that this only applies to some benchmarks - typically the spatially explicit global ones
-# # it will be ignored for benchmarks such as the regrowth and Pan forest biomass benchmarks
-# 
-# # spatial extent (can be a raster:: extent of a a two cloum data.frame of gridcells), set to NULL for no subsetting
-# #spatial_extent <- subset_1600_gridcells 
-# # spatial_extent <- extent(c(xmin = -10, ymin = 35, xmax = 35, ymax  = 72)) 
-# spatial_extent <-  NULL 
-# 
-# # set to a string to describe the spatial subset and use "Global" if not cropping area
-# #spatial_extent_id <- "The1600"
-# # spatial_extent_id <- "Europe" 
-# spatial_extent_id <- "Global" 
-# 
-# # Standard plot formatting arguments
-# settings$num_cols <- 1
-# settings$map_overlay <- "coastlines"
-# settings$stats_lon <- -130
-# settings$stats_lat <- -20
-
-
+## Models runs
+```{r print sources, echo = TRUE}
+print(simulation_sources)
 ```
 
+## Settings
+```{r print settings, echo = TRUE}
+print(settings)
+```
+
+## Benchmarks
+```{r print benchmarks, echo = TRUE}
+print(benchmarks)
+```
 
 
 ``` {r silent preamble and preparation}
@@ -226,7 +130,7 @@ version_label <- paste(settings$analysis_version, settings$spatial_extent_id, se
 
 # Prepare the (empty) summary table of global numbers
 # make the columns names and types
-summary_col_names <- c("Quantity", "Unit")
+summary_col_names <- c("Quantity", "Period", "Unit")
 for(this_sim in simulation_sources) {
   summary_col_names <- append(summary_col_names, this_sim@name)
 }
@@ -257,14 +161,14 @@ Potential intro text about GCP, links to online description of the data, what to
 
 ```{r gcp, fig.height=5}
 
-
-if(do_GCP_NBP){
-  
-  overall_tables <- benchmark_GCP(simulation_sources = simulation_sources,
-                                  settings = script_settings,
-                                  params = params,
-                                  tables_list = overall_tables)
-  
+if("GCP_NBP" %in% names(benchmarks)){
+  if(benchmarks[["GCP_NBP"]]@run_benchmark){
+    
+    overall_tables <- benchmark_GCP(simulation_sources = simulation_sources,
+                                    this_benchmark = benchmarks[["GCP_NBP"]],
+                                    settings = settings,
+                                    tables_list = overall_tables)
+  }
 }
 
 ```
@@ -286,51 +190,30 @@ Any volunteers for performing such a classification?  If you do, Stefan will buy
 
 #### H&P Biomes ####
 
-if(do_Biomes){
-  
-  # Define the benchmark
-  this_benchmark <- list(
-    description = "Global biomes",
-    simulation = c("global", "tellus"),
-    guess_var = "lai"
-  )
-  
-  ### the benchmarking datasets for global biomass
-  smith_biomes = list(
-    first_year = 1960,
-    last_year = 1990,
-    dir = "biomes/HanP_PNV",
-    file_name = "Smith2014.nc",
-    id = "Smith2014",
-    name = "Haxeltine and Prentice 1992 biomes",
-    this_unit = "PgC"
-  )
-  this_dataset <- smith_biomes
+if("PNV_Biomes" %in% names(benchmarks)){
+  if(benchmarks[["PNV_Biomes"]]@run_benchmark){
+ 
+  this_benchmark <- benchmarks[["PNV_Biomes"]]
   
   ### Lists for storing the field and totals
   ###  NOTE: This gets a special name cause it is used later
   Biome_Map_Fields_list <- list()
   
   #### READ DATASET ####
-  full_file_path <- file.path(params$data_directory, this_dataset$dir, this_dataset$file_name)
+  full_file_path <- file.path(this_benchmark@datasets[["HandP_biomes"]]@dir, paste0(this_benchmark@guess_layers,".nc"))
   if(file.exists(full_file_path)) {
     
-    this_source <- defineSource(id = this_dataset$id,
-                                name = this_dataset$name,
-                                dir = file.path(params$data_directory, this_dataset$dir),
-                                format = NetCDF)
-    
     suppressWarnings(
-      Biome_Map_Fields_list[[this_dataset$name]] <- getField(source = this_source,
-                                                             quant = this_dataset$id,
-                                                             spatial.extent = settings$spatial_extent,
-                                                             spatial.extent.id = settings$spatial_extent_id,  
-                                                             first.year = this_dataset$first_year,
-                                                             last.year = this_dataset$last_year,
-                                                             year.aggregate.method = "mean",
-                                                             verbose = settings$verbose_read,
-                                                             quick.read = FALSE,
-                                                             quick.read.file = paste(this_benchmark$guess_var, version_label, sep = "_")))
+      Biome_Map_Fields_list[[this_benchmark@datasets[["HandP_biomes"]]@name]] <- getField(source = this_benchmark@datasets[["HandP_biomes"]],
+                                                                                          quant = this_benchmark@guess_layers,
+                                                                                          spatial.extent = settings$spatial_extent,
+                                                                                          spatial.extent.id = settings$spatial_extent_id,  
+                                                                                          first.year = this_benchmark@first.year,
+                                                                                          last.year = this_benchmark@last.year,
+                                                                                          year.aggregate.method = "mean",
+                                                                                          verbose = settings$verbose_read,
+                                                                                          quick.read = FALSE,
+                                                                                          quick.read.file = paste(this_benchmark@guess_var, version_label, sep = "_")))
     
   }
   else {
@@ -344,9 +227,9 @@ if(do_Biomes){
     
     # check if file is present (if not don't include this run)
     got_simulation <- FALSE
-    for(this_simulation in this_benchmark$simulation) {
+    for(this_simulation in this_benchmark@simulation) {
       this_benchmark_run_dir <- file.path(this_sim_Source@dir, this_simulation)
-      if(file.exists(file.path(this_benchmark_run_dir, paste0(this_benchmark$guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_benchmark$guess_var, ".out.gz")))) {
+      if(file.exists(file.path(this_benchmark_run_dir, paste0(this_benchmark@guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_benchmark@guess_var, ".out.gz")))) {
         got_simulation <- TRUE
         break
       }
@@ -361,11 +244,11 @@ if(do_Biomes){
                                                                  scheme = Smith2014BiomeScheme,
                                                                  spatial.extent = settings$spatial_extent,
                                                                  spatial.extent.id = settings$spatial_extent_id,  
-                                                                 first.year = this_dataset$first_year,
-                                                                 last.year = this_dataset$last_year,
-                                                                 year.aggregate.method = "mean",
+                                                                 first.year = this_benchmark@first.year,
+                                                                 last.year = this_benchmark@last.year,
+                                                                 year.aggregate.method = this_benchmark@year.aggregate.method,
                                                                  quick.read = settings$quick_read,
-                                                                 quick.read.file = paste(this_benchmark$guess_var,version_label, sep = "_"))
+                                                                 quick.read.file = paste(this_benchmark@guess_var,version_label, sep = "_"))
       )
       
     } # if file is present 
@@ -392,7 +275,7 @@ if(do_Biomes){
   }
   
   
-  
+  }
 } # if do_Global_Biomes
 ```
 
@@ -418,7 +301,7 @@ if(do_global_GPP){
   GOSIF_GPP_monthly_file.name <- "GOSIF_GPP.txt"
   GOSIF_GPP_Source <- defineSource(id = "GOSIF_GPP",
                                    name = "GOSIF GPP",
-                                   dir = file.path(params$data_directory, GOSIF_GPP_monthly_dir),
+                                   dir = file.path(settings$data_directory, GOSIF_GPP_monthly_dir),
                                    format = GUESS)
   
   full_file_path <- file.path(GOSIF_GPP_Source@dir, GOSIF_GPP_monthly_file.name)
@@ -461,7 +344,8 @@ if(do_global_GPP){
                           datasets = GPP_data_Fields,
                           first.year = first.year,
                           last.year = last.year,
-                          metrics = c("NME", "RMSE"))
+                          metrics = c("NME", "RMSE"),
+                          custom = list())
     
     
     summary_table_lines <- makeSummaryLine(this_benchmark, summary_col_names)
@@ -558,7 +442,7 @@ if(do_global_GPP){
     
     
     # do all spatial comparisons and store them in a big list'o'lists to be plotted in the next code chunks
-    all_GPP_comparisons <- fullSpatialComparison(this_benchmark, all_GPP_Maps, all_GPP_Trends, all_GPP_Seasonal, params$new_name, params$old_name)
+    all_GPP_comparisons <- fullSpatialComparison(this_benchmark, all_GPP_Maps, all_GPP_Trends, all_GPP_Seasonal, settings$new_name, settings$old_name)
     
     # save the summary table line 
     overall_tables[["totals"]] <- rbind(overall_tables[["totals"]], summary_table_lines)
@@ -799,7 +683,7 @@ if(do_global_LAI){
   MODIS_LAI_monthly_file.name <- "MODIS_LAI.txt"
   MODIS_LAI_Source <- defineSource(id = "MODIS_LAI",
                                    name = "MODIS LAI",
-                                   dir = file.path(params$data_directory, MODIS_LAI_monthly_dir),
+                                   dir = file.path(settings$data_directory, MODIS_LAI_monthly_dir),
                                    format = GUESS)
   
   full_file_path <- file.path(MODIS_LAI_Source@dir, MODIS_LAI_monthly_file.name)
@@ -842,7 +726,8 @@ if(do_global_LAI){
                           datasets = LAI_data_Fields,
                           first.year = first.year,
                           last.year = last.year,
-                          metrics = c("NME", "RMSE"))
+                          metrics = c("NME", "RMSE"),
+                          custom = list())
     
     
     makeSummaryLine <- function(benchmark, col_names) {
@@ -945,7 +830,7 @@ if(do_global_LAI){
     
     
     # do all spatial comparisons and store them in a big list'o'lists to be plotted in the next code chunks
-    all_LAI_comparisons <- fullSpatialComparison(this_benchmark, all_LAI_Maps, all_LAI_Trends, all_LAI_Seasonal, params$new_name, params$old_name)
+    all_LAI_comparisons <- fullSpatialComparison(this_benchmark, all_LAI_Maps, all_LAI_Trends, all_LAI_Seasonal, settings$new_name, settings$old_name)
     
     # save the summary table line 
     # TODO - add the data references
@@ -1188,7 +1073,7 @@ if(do_global_BA){
   GFED4_BA_monthly_file.name <- "GFED4.0_monthly_1996-2016.nc"
   GFED4_BA_Source <- defineSource(id = "GFED4_BA",
                                   name = "GFED4 BA",
-                                  dir = file.path(params$data_directory, GFED4_BA_monthly_dir),
+                                  dir = file.path(settings$data_directory, GFED4_BA_monthly_dir),
                                   format = NetCDF)
   
   full_file_path <- file.path(GFED4_BA_Source@dir, GFED4_BA_monthly_file.name)
@@ -1231,7 +1116,8 @@ if(do_global_BA){
                           datasets = BA_data_Fields,
                           first.year = first.year,
                           last.year = last.year,
-                          metrics = c("NME", "RMSE"))
+                          metrics = c("NME", "RMSE"),
+                          custom = list())
     
     
     makeSummaryLine <- function(benchmark, col_names) {
@@ -1345,7 +1231,7 @@ if(do_global_BA){
     }
     
     # do all spatial comparisons and store them in a big list'o'lists to be plotted in the next code chunks
-    all_BA_comparisons <- fullSpatialComparison(this_benchmark, all_BA_Maps, all_BA_Trends, all_BA_Seasonal, params$new_name, params$old_name)
+    all_BA_comparisons <- fullSpatialComparison(this_benchmark, all_BA_Maps, all_BA_Trends, all_BA_Seasonal, settings$new_name, settings$old_name)
     
     # save the summary table line 
     # TODO - add the data references
@@ -1762,7 +1648,8 @@ if(do_Regrowth){
                         datasets = regrowth,
                         first.year = 0,
                         last.year = 150,
-                        metrics = character(0))
+                        metrics = character(0),
+                        custom = list())
   
   # read the model output
   # loop through model runs to be processed
@@ -1837,215 +1724,278 @@ if(do_Regrowth){
 
 Maybe some description and data references etc here.
 
-```{r fluxnet, echo=FALSE, out.width = '100%'}
+```{r fluxnet, echo=FALSE, out.width = '100%', results = 'asis', tidy = FALSE}
 
-
-#### FLUXNET Data Prep ####
-if(do_FLUXNET){
-  
-  all_fluxnet_fluxes <-c("GPP", "NEE", "Reco")
-  
-  # read the FLUXNET data
-  fluxnet_src <- defineSource(id = "FLUXNET",
-                              format = FLUXNET,
-                              dir ="/data/shared/Tellus/FLUXNET_sites/")
-  all_fluxnet_temp_Fields <- list()
-  for(this_flux_name in all_fluxnet_fluxes) {
-    print(this_flux_name)
-    all_fluxnet_temp_Fields[[this_flux_name]] <- getField(fluxnet_src, quant = this_flux_name)
-    #print(all_fluxnet_temp_Fields)
-    #print(plotTemporal(all_fluxnet_temp_Fields))
-  }
-  
-  
-  # combine all requested variables into one Field
-  FLUXNET_data_field <- copy(all_fluxnet_temp_Fields[[1]])
-  if(length(names(all_fluxnet_temp_Fields)) > 1){
-    for(this_temp_flux in names(all_fluxnet_temp_Fields)[2:length(names(all_fluxnet_temp_Fields))]){
-      FLUXNET_data_field <- copyLayers(from = all_fluxnet_temp_Fields[[this_temp_flux]], to = FLUXNET_data_field, layer.names = this_temp_flux )
-      
-    }
-  }
-  
-  # define the benhmark
-  this_benchmark <- new("Benchmark",
-                        id = "FLUXNET",
-                        name = "FLUXNET",
-                        description = "FLUXNET",
-                        simulation = "fluxnet",
-                        guess_var = c("dgpp", "dnee", "dreco"),
-                        guess_layers = all_fluxnet_fluxes,
-                        unit = "kgC/m^2",
-                        agg.unit = "Not Used",
-                        datasets = list("FLUXNET" = FLUXNET_data_field),
-                        first.year = 0,
-                        last.year = 150,
-                        metrics = character(0))
-  
-  # # read the model output
-  all_FLUXNET_Fields <- list()
-  all_FLUXNET_Fields[["FLUXNET"]] <- FLUXNET_data_field
-  #  # # loop through model runs to be processed
-  
-  for(this_sim_Source in simulation_sources) {
+if("FLUXNET" %in% names(benchmarks)){
+  if(benchmarks[["FLUXNET"]]@run_benchmark){
     
-    this_sim_all_layers_list <- list()
-    for(this_fluxnet_flux in this_benchmark@guess_layers) {
+    this_benchmark <- benchmarks[["FLUXNET"]]
+    
+    # read the custom values 
+    fluxes_to_benchmark <- this_benchmark@custom$do_fluxes
+    measurement_days_reqrd <- this_benchmark@custom$measurement_days_reqrd
+    
+    for(this_flux_name in fluxes_to_benchmark) {
       
-      if(this_fluxnet_flux == "GPP") {
-        this_guess_var <- "dgpp"
-        this_guess_layer <- "Total"
-      }
-      else if(this_fluxnet_flux == "NEE") {
-        this_guess_var <- "dnee"
-        this_guess_layer <- "NEE"
-      }
-      else if(this_fluxnet_flux == "Reco") {
-        this_guess_var <- "dreco"
-        this_guess_layer <- "Reco"
-      }
+      all_FLUXNET_Fields <- list()
+      
+      FLUXNET_site_flux_Fields <- getField(this_benchmark@datasets[["FLUXNET"]], quant = this_flux_name)
+      
+      # # read the model output
+      
+      all_FLUXNET_Fields[["FLUXNET"]] <- FLUXNET_site_flux_Fields
       
       
-      # check if file is present (if not don't include this run)
-      this_benchmark_run_dir <- file.path(this_sim_Source@dir,this_benchmark@simulation)
-      if(file.exists(file.path(this_benchmark_run_dir, paste0(this_guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_guess_var, ".out.gz")))) {
+      # loop through model runs to be processed
+      for(this_sim_Source in simulation_sources) {
         
-        # make local sources pointing to the simulation subrun directory
-        this_FLUXNET_Source <- this_sim_Source
-        this_FLUXNET_Source@dir <- this_benchmark_run_dir
+        if(this_flux_name == "GPP") {
+          this_guess_var <- "dgpp"
+          this_guess_layer <- "Total"
+        }
+        else if(this_flux_name == "NEE") {
+          this_guess_var <- "dnee"
+          this_guess_layer <- "NEE"
+        }
+        else if(this_flux_name == "Reco") {
+          this_guess_var <- "dreco"
+          this_guess_layer <- "Reco"
+        }
         
-        for(this_flux_name in all_fluxnet_fluxes){
+        # check if file is present (if not don't include this run)
+        this_benchmark_run_dir <- file.path(this_sim_Source@dir,this_benchmark@simulation)
+        if(file.exists(file.path(this_benchmark_run_dir, paste0(this_guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_guess_var, ".out.gz")))) {
+          
+          # make local sources pointing to the simulation subrun directory
+          this_FLUXNET_Source <- this_sim_Source
+          this_FLUXNET_Source@dir <- this_benchmark_run_dir
           
           # read the full data and
           suppressWarnings(
-            this_simulation_FLUXNET <- getField(source = this_FLUXNET_Source,
-                                                this_guess_var,
-                                                layers = this_guess_layer,  
-                                                verbose = settings$verbose_read,
-                                                quick.read = settings$quick_read,
-                                                quick.read.file = paste(this_guess_var, version_label, sep = "_"))
+            this_sim_field <- getField(source = this_FLUXNET_Source,
+                                       this_guess_var,
+                                       layers = this_guess_layer,  
+                                       verbose = settings$verbose_read,
+                                       quick.read = settings$quick_read,
+                                       quick.read.file = paste(this_guess_var, version_label, sep = "_"))
           )
-          renameLayers(this_simulation_FLUXNET, this_fluxnet_flux)
+          renameLayers(this_sim_field, this_guess_layer, this_flux_name)
+          # convention - positive NEE means absorbed C, but this requires reversing LPJ-GUESS output
+          if(this_flux_name == "NEE") this_sim_field <- layerOp(x = this_sim_field,  operator = "mulc", layers = this_flux_name, new.layer = this_flux_name, constant = -1)
+          this_sim_field@quant <- FLUXNET_site_flux_Fields@quant
+          
+        } # if output file exists
+        
+        # some lons and lats don't match from the LPJ-GUESS fluxnet gridlist with the FLUXNET data, so manually correct them here 
+        correction_df <- data.frame(
+          site = c("CH-Lae", "DE-Gri", "DE-Hai", "DE-Tha", "FI-Sod"),
+          lons_old = c(8.3650, 13.5126, 10.4530, 13.5652, 26.6378 ),
+          lons_new = c(8.36439, 13.51253, 10.45217, 13.56515, 26.63859),   
+          lats_old = c(47.4781, 50.9500, 51.0792, 50.9624, 67.3619),
+          lats_new = c(47.47833, 50.94947, 51.07921, 50.96256, 67.36239)
+        )    
+        
+        temp_dt <- copy(this_sim_field@data)
+        prev <- sort(unique(temp_dt[["Lon"]]))
+        for(this_rowindex in 1:nrow(correction_df)){
+          #print( temp_dt[ Lon == correction_df[this_rowindex, "lons_old"] & Lat == correction_df[this_rowindex, "lats_old"], ])
+          # 
+          temp_dt[ Lon == correction_df[this_rowindex, "lons_old"] & Lat == correction_df[this_rowindex, "lats_old"],  c("Lon", "Lat") := list(correction_df[this_rowindex, "lons_new"], correction_df[this_rowindex, "lats_new"] )]
+        }
+        this_sim_field@data <- temp_dt
+        all_FLUXNET_Fields[[this_sim_Source@name]] <- this_sim_field
+        
+      } # for each simulation
+      
+      
+      # print(plotTemporal(all_FLUXNET_Fields, layers = "GPP", col.by = "Source", linetype.by = "Layer"))
+      
+      
+      # round all lons and lats in the data 4 decimal places
+      decimal_places <- 3
+      for(this_field_name in names(all_FLUXNET_Fields)) {
+        
+        # print(all_FLUXNET_Fields[["FLUXNET"]])
+        temp_data_Field <- all_FLUXNET_Fields[[this_field_name]]
+        temp_data_Field_bup <- copy(temp_data_Field)
+        temp_data_Field <- copy(temp_data_Field_bup)
+        temp_data_Field@data <- temp_data_Field@data[ , Lon := round(Lon, decimal_places)]
+        temp_data_Field@data <- temp_data_Field@data[ , Lat := round(Lat, decimal_places)]
+        if(this_field_name == "FLUXNET") temp_data_Field@spatial.extent <- temp_data_Field@spatial.extent[ , Lon := round(Lon, decimal_places)]
+        if(this_field_name == "FLUXNET") temp_data_Field@spatial.extent <- temp_data_Field@spatial.extent[ , Lat := round(Lat, decimal_places)]
+        all_FLUXNET_Fields[[this_field_name]] <- temp_data_Field
+      }
+      
+      
+      
+      # CH-Lae, DE-Gri, DE-Tha, DK-Sor, FI-Hyy, FI-Sod, FR-Fon, FR-LBr, FR-Peu, IT-Col, IT-Lav, IT-MBo, IT-Noe, IT-Ren, IT-Sro, RU-Cok, RU-Fyo, US-Blo, US-Ha1, US-Los, US-MMS, US-Me2(??), US-NR1, US-PFa, 
+      
+      # Loop across all sites and make the plots
+      
+      # list of plot for plotting later
+      all_ts_val_combi_plots <- list()
+      all_ts_diff_combi_plots <- list()
+      all_xy_combi_plots <- list()
+      site_summary_rows <- list()
+      
+      for(site_number in 1:nrow(all_FLUXNET_Fields[["FLUXNET"]]@spatial.extent)){
+        
+        
+        # read the data
+        this_site <- all_FLUXNET_Fields[["FLUXNET"]]@spatial.extent[site_number ,]
+        this_site_code <- this_site[1, Code]
+        this_site_name <- this_site[1, Name]
+        # for saving summary numbers for this site
+        this_site_summary_row <- copy(this_site)
+        
+        this_data_site <- selectGridcells(all_FLUXNET_Fields[["FLUXNET"]], c(this_site$Lon, this_site$Lat), spatial.extent.id = this_site$Name)
+        this_data_site <- selectLayers(this_data_site, this_flux_name)
+        
+        # aggregate to 5-day periods
+        daily_to_5_days <- c(((0:364) %/% 5) +1)
+        this_data_site_dt <- copy(this_data_site@data)[, Day5 := daily_to_5_days[Day]]
+        this_data_site_dt[ , Ndays := ifelse(is.na(get(this_flux_name)), 0, 1)]
+        this_data_site_5d_dt <- this_data_site_dt[,lapply(.SD, mean, na.rm  = TRUE), by=c("Day5", "Year")]
+        # clean a little by requiring  that at least 3 of the 5 days have measurements
+        this_data_site_5d_dt[ , (this_flux_name) := ifelse(Ndays >= measurement_days_reqrd/5, get(this_flux_name), NA)]
+        this_data_site_5d_dt[ , Day5 := NULL]
+        #this_data_site@data <- setKeyDGVM(this_data_site_dt)
+        this_data_site_5d <- this_data_site
+        this_data_site_5d@data <- setKeyDGVM(this_data_site_5d_dt)
+        
+        all_comps <- list()
+        for(this_name in names(all_FLUXNET_Fields)){
+          if(this_name != "FLUXNET") {
+            this_model_site <- selectGridcells(all_FLUXNET_Fields[[this_name]], c(this_site$Lon, this_site$Lat), spatial.extent.id = this_site$Name)
+            if(nrow(this_model_site@data) > 0 ) {
+              this_model_site_dt <- copy(this_model_site@data)[, Day5 := daily_to_5_days[Day]]
+              this_model_site_5d_dt <- this_model_site_dt[,lapply(.SD, mean, na.rm  = TRUE), by=c("Day5", "Year")]
+              this_model_site_5d_dt[ , Day5 := NULL]
+              #print(this_model_site_dt[["GPP"]])
+              this_model_site_5d <- this_model_site
+              this_model_site_5d@data <- setKeyDGVM(this_model_site_5d_dt)
+              
+              
+              this_comparison <- compareLayers(this_model_site_5d, this_data_site_5d, this_flux_name, area = FALSE, tolerance = 3, show.stats = FALSE)
+              all_comps[[this_name]] <- this_comparison
+              
+              # remove NA 5-day periods   
+              this_comparison_no_na <- na.omit(this_comparison@data) 
+              this_site_summary_row[ , (this_name) := mean(this_comparison_no_na[[5]])/5]
+              this_site_summary_row[ , FLUXNET := mean(this_comparison_no_na[[6]])/5]
+              # this_site_summary_row[ ,(paste(this_name, "R2")) := this_comparison@stats$r2]
+              
+              
+              
+            } # if model has output
+          } # if not the data Field
+        } # for each simulation
+        
+        
+        if(length(all_comps) > 0 ){
+          
+          # Time series of values
+          suppressWarnings(all_ts_val_combi_plots[[this_site_code]] <- plotTemporalComparison(all_comps, 
+                                                                                              type = "val", 
+                                                                                              col.by = "Source",
+                                                                                              title = this_site_name,
+                                                                                              subtitle = paste("5-day", this_flux_name, "values"),
+                                                                                              text.multiplier = settings$map_text_multiplier))
+          # Time series of differences
+          suppressWarnings(all_ts_diff_combi_plots[[this_site_code]] <- plotTemporalComparison(all_comps, 
+                                                                                               type = "diff", 
+                                                                                               col.by = "Source",
+                                                                                               title = this_site_name,
+                                                                                               subtitle = paste("5-day", this_flux_name, "difference from FLUXNET"),
+                                                                                               text.multiplier = settings$map_text_multiplier))
+          
+          # X-Y scatter of 5 day period
+          suppressWarnings(xy_plot <- plotXYComparison(all_comps,
+                                                       text.multiplier = settings$map_text_multiplier, 
+                                                       fit_line_col = "red", 
+                                                       perfect_line_col = "cyan", 
+                                                       matchLimits = TRUE,
+                                                       col.by = "Day"))
+          xy_plot <- xy_plot + labs(title = paste(this_flux_name, this_site_name), 
+                                    x = bquote(FLUXNET~.(this_flux_name)~"("*kgC~m^{"-2"}~day^{-1}*")"),
+                                    y = bquote(Simulated~.(this_flux_name)~"("*kgC~m^{"-2"}~day^{-1}*")"),
+                                    subtitle = element_blank())
+          xy_plot <- xy_plot + scale_color_gradientn(colors = pals::ocean.phase(12),
+                                                     limits = c(1,365),
+                                                     breaks = c(1, 91, 182, 273, 365),
+                                                     labels = c(1, 91, 182, 273, 365))
+          all_xy_combi_plots[[this_site_code]] <- xy_plot
+          
+          
+          # save the summary row
+          site_summary_rows[[this_site_code]] <- this_site_summary_row
           
         }
-        this_sim_all_layers_list[[this_fluxnet_flux]] <- this_simulation_FLUXNET
         
-      } # if output file exists
-      
-    } # for each LPJ-GUESS variable
-    
-    
-    
-    # combine the individual modelled Fields (for GPP, NEE and Reco) into a single Field and save it 
-    this_sim_field <- copy(this_sim_all_layers_list[[1]])
-    if(length(names(this_sim_all_layers_list)) > 1){
-      for(this_temp_flux in names(this_sim_all_layers_list)[2:length(names(this_sim_all_layers_list))]){
-        this_sim_field <- copyLayers(from = this_sim_all_layers_list[[this_temp_flux]], to = this_sim_field, layer.names = this_temp_flux )
-      }
-    }
-    
-    # some lons and lats don't match from the LPJ-GUESS fluxnet gridlist with the FLUXNET data, so manually correct them here 
-    correction_df <- data.frame(
-      site = c("CH-Lae", "DE-Gri", "DE-Hai", "DE-Tha", "FI-Sod"),
-      lons_old = c(8.3650, 13.5126, 10.4530, 13.5652, 26.6378 ),
-      lons_new = c(8.36439, 13.51253, 10.45217, 13.56515, 26.63859),   
-      lats_old = c(47.4781, 50.9500, 51.0792, 50.9624, 67.3619),
-      lats_new = c(47.47833, 50.94947, 51.07921, 50.96256, 67.36239)
-    )    
-    
-    temp_dt <- copy(this_sim_field@data)
-    print(sort(unique(temp_dt[["Lon"]])))
-    prev <- sort(unique(temp_dt[["Lon"]]))
-    for(this_rowindex in 1:nrow(correction_df)){
-      #print( temp_dt[ Lon == correction_df[this_rowindex, "lons_old"] & Lat == correction_df[this_rowindex, "lats_old"], ])
-      # 
-      temp_dt[ Lon == correction_df[this_rowindex, "lons_old"] & Lat == correction_df[this_rowindex, "lats_old"],  c("Lon", "Lat") := list(correction_df[this_rowindex, "lons_new"], correction_df[this_rowindex, "lats_new"] )]
+      } # for each site
       
       
-    }
-    print(sort(unique(temp_dt[["Lon"]])))
-    print(sort(unique(temp_dt[["Lon"]])) - prev)
-    this_sim_field@data <- temp_dt
-    
-    all_FLUXNET_Fields[[this_sim_Source@name]] <- this_sim_field
-    
-    
-    
-    
-    
-  } # for each simulation
-  
-  print(all_FLUXNET_Fields)
-  
-  # print(plotTemporal(all_FLUXNET_Fields, layers = "GPP", col.by = "Source", linetype.by = "Layer"))
-  
-  
-  # round all lons and lats in the data 4 decimal places
-  decimal_places <- 3
-  temp_data_Field <- all_FLUXNET_Fields[["FLUXNET"]]
-  temp_data_Field_bup <- copy(temp_data_Field)
-  temp_data_Field <- copy(temp_data_Field_bup)
-  temp_data_Field@data <- temp_data_Field@data[ , Lon := round(Lon, decimal_places)]
-  temp_data_Field@data <- temp_data_Field@data[ , Lat := round(Lat, decimal_places)]
-  temp_data_Field@spatial.extent <- temp_data_Field@spatial.extent[ , Lon := round(Lon, decimal_places)]
-  temp_data_Field@spatial.extent <- temp_data_Field@spatial.extent[ , Lat := round(Lat, decimal_places)]
-  all_FLUXNET_Fields[["FLUXNET"]] <- temp_data_Field
-  
-  temp_data_Field <- all_FLUXNET_Fields[["Old Run"]]
-  temp_data_Field_bup <- copy(temp_data_Field)
-  temp_data_Field <- copy(temp_data_Field_bup)
-  temp_data_Field@data <- temp_data_Field@data[ , Lon := round(Lon, decimal_places)]
-  temp_data_Field@data <- temp_data_Field@data[ , Lat := round(Lat, decimal_places)]
-  all_FLUXNET_Fields[["Old Run"]] <- temp_data_Field
-  
-  temp_data_Field <- all_FLUXNET_Fields[["New Run"]]
-  temp_data_Field_bup <- copy(temp_data_Field)
-  temp_data_Field <- copy(temp_data_Field_bup)
-  temp_data_Field@data <- temp_data_Field@data[ , Lon := round(Lon, decimal_places)]
-  temp_data_Field@data <- temp_data_Field@data[ , Lat := round(Lat, decimal_places)]
-  all_FLUXNET_Fields[["New Run"]] <- temp_data_Field
-  
-  
-  for(this_name in names(all_FLUXNET_Fields)){
-    
-    
-    # CH-Lae, DE-Gri, DE-Tha, DK-Sor, FI-Hyy, FI-Sod, FR-Fon, FR-LBr, FR-Peu, IT-Col, IT-Lav, IT-MBo, IT-Noe, IT-Ren, IT-Sro, RU-Cok, RU-Fyo, US-Blo, US-Ha1, US-Los, US-MMS, US-Me2(??), US-NR1, US-PFa, 
-    
-    # Loop across all sites
-    matched_sites <- 0
-    for(site_number in 1:nrow(all_FLUXNET_Fields[["FLUXNET"]]@spatial.extent)){
+      # combine to make big summary table
+      site_summary_dt <- rbindlist(site_summary_rows)
+      cat("\n")
+      # Make big scatter plot
+      cat("##", this_flux_name, "Summary \n")
+      cat("\n")
+      simulation_names <- names(all_FLUXNET_Fields)[-which(names(all_FLUXNET_Fields) == "FLUXNET")]
+      site_summary_melted_dt <- melt(site_summary_dt, measure.vars = simulation_names, value.name = "Simulated", variable.name = "Simulation")
+      site_summary_melted_dt[ , abs_Lat := abs(Lat)] 
       
-      this_site <- all_FLUXNET_Fields[["FLUXNET"]]@spatial.extent[site_number ,]
-      print(this_site$Code)
-      
-      matched <- 0
-      for(this_Field in all_FLUXNET_Fields){
-        tada <- selectGridcells(this_Field, c(this_site$Lon, this_site$Lat), spatial.extent.id = this_site$Name)@data
-        if(nrow(tada) > 0 ) {
-          matched <- matched +1
-        }
-      }
-      # 
-      # for(this_Field in all_FLUXNET_Fields){
-      #   print(this_Field)
-      # }
+      site_summary_melted_dt[ , FLUXNET := FLUXNET * KG_TO_G]
+      site_summary_melted_dt[ , Simulated := Simulated * KG_TO_G]
+      axis_lims <- range(with(site_summary_melted_dt, c(FLUXNET, Simulated)))
       
       
-      if(matched ==3){
-        print("   ******  Got model")
-        matched_sites <- matched_sites +1
-      }
+      all_sites_scatter_plot <- ggplot(site_summary_melted_dt, aes(x = FLUXNET, y = `Simulated`)) +  geom_abline(slope = 1) + geom_point(aes(col = abs_Lat)) + facet_wrap(~Simulation) 
+      all_sites_scatter_plot <- all_sites_scatter_plot +  geom_text_repel(aes(label=Code,
+                                                                              col = abs_Lat), 
+                                                                          size = 4,
+                                                                          max.overlaps = 50)
+      all_sites_scatter_plot <- all_sites_scatter_plot + coord_fixed(xlim = axis_lims, ylim = axis_lims) + scale_color_viridis(name = "|Lat|")
+      all_sites_scatter_plot <- all_sites_scatter_plot + theme(text = element_text(size = theme_get()$text$size * settings$map_text_multiplier * 0.7))
+      all_sites_scatter_plot <-  all_sites_scatter_plot + labs(x = bquote(FLUXNET~.(this_flux_name)~"("*gC~m^{"-2"}~day^{-1}*")"),
+                                                               y = bquote(Simulated~.(this_flux_name)~"("*gC~m^{"-2"}~day^{-1}*")"),
+                                                               title = paste("Mean daily", this_flux_name, "per site (only measurement days)"),
+                                                               subtitle = paste("Includes only 5-day periods with sufficient measurements ( >=", measurement_days_reqrd, "/5)"),
+                                                               caption = "Data do not include complete years, so numbers are not representative of annual values.")
       
       
-      # print(plotTemporal(all_FLUXNET_Fields, layers = "GPP", gridcells = c(this_site$Lon, this_site$Lat)))
+      print(all_sites_scatter_plot)
       
-    }
-    print(paste("Numbers sites with model data = ", matched_sites))
-    # now plot...
+      
+      
+      cat("\n")
+      cat("\n")
+      cat("##", this_flux_name, "by site {.tabset} \n")
+      cat("\n")
+      for(this_site_code in names(all_ts_val_combi_plots)){
+        cat("\n")
+        cat("###", this_site_code , "\n")
+        suppressWarnings(print(all_xy_combi_plots[[this_site_code]]))
+        cat("\n")
+        suppressWarnings(print(all_ts_val_combi_plots[[this_site_code]]))
+        cat("\n")
+        suppressWarnings(print(all_ts_diff_combi_plots[[this_site_code]]))
+        cat("\n")
+      }   
+      cat("\n")
+      cat("## {.unlisted .unnumbered}")
+      cat("\n")
+      
+      
+      
+      
+      
+      
+    } #  for each flux
+    
     
   }
-  
-}
+} # if FLUXNET defined
 ```
 
 
@@ -2078,7 +2028,8 @@ if(do_Global_Biomass){
                         datasets = list(),
                         first.year = 1993,
                         last.year = 2012,
-                        metrics = c("NME", "RMSE"))
+                        metrics = c("NME", "RMSE"),
+                        custom = list())
   
   
   #### READ THE LUI DATA #### 
@@ -2096,13 +2047,13 @@ if(do_Global_Biomass){
     this_unit = "kg/m2"
   )
   
-  full_file_path <- file.path(params$data_directory, liu_biomass$this_data_dir, liu_biomass$this_data_file_name)
+  full_file_path <- file.path(settings$data_directory, liu_biomass$this_data_dir, liu_biomass$this_data_file_name)
   if(file.exists(full_file_path)) {
     
     # Read th data via a GUESS formatted Source
     data_Source <- defineSource(id = liu_biomass$dataset_id,
                                 name = liu_biomass$dataset_name,
-                                dir = file.path(params$data_directory, liu_biomass$this_data_dir),
+                                dir = file.path(settings$data_directory, liu_biomass$this_data_dir),
                                 format = GUESS)
     suppressWarnings(
       this_data_Field <- getField(source = data_Source,
@@ -2140,7 +2091,7 @@ if(do_Global_Biomass){
   #### READ LPJ-GUESS BIOMASS DATA ####
   
   # read and process the land cover data required for weighting the LPJ-GUESS output
-  all_lc_dt <- fread(params$land_cover_file)
+  all_lc_dt <- fread(settings$land_cover_file)
   all_lc_dt <- all_lc_dt[Year >= liu_biomass$first_year & Year <= liu_biomass$last_year,]
   final_lc_dt <- all_lc_dt[,lapply(.SD,mean),by=.(Lon, Lat)]
   final_lc_dt[, Year := NULL]
@@ -2284,7 +2235,7 @@ if(do_Global_Biomass){
   } # for each model run
   
   # do biomass spatial comparisons and store to be plotted in the next code chunks
-  all_Biomass_comparisons <- fullSpatialComparison(this_benchmark, all_maps = all_Biomass_Maps, new_model = params$new_name, old_model = params$old_name)
+  all_Biomass_comparisons <- fullSpatialComparison(this_benchmark, all_maps = all_Biomass_Maps, new_model = settings$new_name, old_model = settings$old_name)
   
   # save the summary table line 
   # TODO - add the data references
@@ -2386,8 +2337,8 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "cflux", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  params$new_name, 
-                                        old_sim = params$old_name, 
+                                        new_sim =  settings$new_name, 
+                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2408,8 +2359,8 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "nflux", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  params$new_name, 
-                                        old_sim = params$old_name, 
+                                        new_sim =  settings$new_name, 
+                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "ha",
@@ -2429,8 +2380,8 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "cpool", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  params$new_name, 
-                                        old_sim = params$old_name, 
+                                        new_sim =  settings$new_name, 
+                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2449,8 +2400,8 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "npool", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  params$new_name, 
-                                        old_sim = params$old_name, 
+                                        new_sim =  settings$new_name, 
+                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2470,8 +2421,8 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "tot_runoff", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  params$new_name, 
-                                        old_sim = params$old_name, 
+                                        new_sim =  settings$new_name, 
+                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2483,26 +2434,23 @@ if(do_Global_Summary_Tables) {
 ```
 
 
+```   {r Soil N2O, echo=FALSE, out.width = '100%', out.height= '150%'}
 
-## Data comparisons
+### No output here, just calculating the line for the table
 
-TABLE FORMATTING: see here: [https://rmarkdown.rstudio.com/lesson-7.html](https://rmarkdown.rstudio.com/lesson-7.html)
+### Stefan suggests that the values should be put in a table here, not hardcoded.
+### Consider this when restructuring
 
-
-``` {r Global summary, echo=FALSE, out.width = '100%', out.height= '150%'}
-
-# retrieve the metrics table from the list
-summary_table <- overall_tables[["totals"]]
-
+comparison_period <- c(2000,2010)
 
 # get the global soil N2O flux for the summary table
 # for 2000-2010 to compare to the IPCC AR5 values
 this_soil_N2O_df <- modelSummaryTable(simulations = simulation_sources, 
                                       settings = settings,
                                       var = "soil_nflux", 
-                                      periods = list(c(2000,2010)), 
-                                      new_sim =  params$new_name, 
-                                      old_sim = params$old_name, 
+                                      periods = list(comparison_period), 
+                                      new_sim =  settings$new_name, 
+                                      old_sim = settings$old_name, 
                                       spatial_extent = settings$spatial_extent,
                                       spatial_extent_id = settings$spatial_extent_id,
                                       area_unit = "ha",
@@ -2514,13 +2462,22 @@ summary_N2O_line$Dataset <- "IPCC AR5"
 summary_N2O_line$Quantity <- "Soil N~2~O Emissions"
 summary_N2O_line$Unit <- "TgN y^-1^"
 summary_N2O_line$Data <- 11 # uncertainty +/- 3 could be incorporated somehow
+summary_N2O_line$Period <- paste(comparison_period[1],  comparison_period[2], sep = "-")
 for(this_sim in simulation_sources) {
   summary_N2O_line[[this_sim@name]] <- this_soil_N2O_df[which(this_soil_N2O_df$Source == this_sim@name), "N2O"]
 }
 
-names(summary_N2O_line) <- names(summary_table)
-summary_table <- rbind(summary_table, summary_N2O_line)
+names(summary_N2O_line) <- names(overall_tables[["totals"]])
+overall_tables[["totals"]] <- rbind(overall_tables[["totals"]], summary_N2O_line)
+```
 
+## Data comparisons
+
+TABLE FORMATTING: see here: [https://rmarkdown.rstudio.com/lesson-7.html](https://rmarkdown.rstudio.com/lesson-7.html)
+``` {r Global summary, echo=FALSE, out.width = '100%', out.height= '150%'}
+
+# retrieve the metrics table from the list
+summary_table <- overall_tables[["totals"]]
 
 if(nrow(summary_table) > 0) {
   colnames(summary_table) <- summary_col_names
@@ -2528,11 +2485,11 @@ if(nrow(summary_table) > 0) {
 }
 
 # save the table in each model run directory
+# this is used for automatic parameterisation procedures (for example) 
 # loop through model runs to be processed
 for(this_sim_Source in simulation_sources) {
   saveRDS(summary_table, file.path(this_sim_Source@dir, paste0("summary_totals_", version_label, ".RData")))
 }
-
 
 ```
 

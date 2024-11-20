@@ -129,6 +129,29 @@ int get_month_len(int year, int month, GuessNC::CF::CalendarType calendar) {
 	return days_in_month[month];
 }
 
+int get_month(timepoint timestamp, GuessNC::CF::CalendarType calendar) {
+	int day = 0;
+	for (int mon = 0; mon < 12; mon++) {
+		day += get_month_len(timestamp.year, mon, calendar);
+		if (day > timestamp.day) {
+			return mon;
+		}
+	}
+	fail("get_month(): Invalid timestamp: %04d-%02d", timestamp.year, timestamp.day);
+}
+
+int get_day_of_month(timepoint timestamp, GuessNC::CF::CalendarType calendar) {
+	int day = 0;
+	for (int mon = 0; mon < 12; mon++) {
+		int len = get_month_len(timestamp.year, mon, calendar);
+		if ( (day + len) > timestamp.day) {
+			return timestamp.day - day;
+		}
+		day += len;
+	}
+	fail("get_month(): Invalid timestamp: %04d-%02d", timestamp.year, timestamp.day);
+}
+
 bool is_end_of_year(timepoint date, int day_length, GuessNC::CF::CalendarType calendar) {
 	int days_in_year = get_year_len(date.year, calendar);
 	// Remember, day is [0, 365) and timestep is [0, N)

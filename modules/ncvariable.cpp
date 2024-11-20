@@ -467,15 +467,7 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 	double hour = date.get_hour() + (double)date.get_minute() / MINUTES_PER_HOUR
 				+ (double)date.get_second() / SECONDS_PER_HOUR;
 	double timestep_width = 1.0 * HOURS_PER_DAY / day_length;
-	result.timestep = round_to_nearest_multiple(hour, timestep_width);
-	if (result.timestep >= day_length) {
-		result.timestep = 0;
-		result.day++;
-		if (result.day >= get_year_len(result.year, calendar_type)) {
-			result.day = 0;
-			result.year++;
-		}
-	}
+	result.timestep = (int)(double)floor(hour / timestep_width);
 
 	return result;
 }

@@ -24,6 +24,7 @@ use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean an
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
 ifsinksource             0   ! Simulate growth as min(sink,source).
+ifadaptive_rootdist      1   ! Adaptive root distribution and response window?
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -288,8 +289,8 @@ import "pft_common.ins"
 
 !import "trees.ins"
 !import "shrubberies.ins"
-import "c3g.ins"
-!import "c4g.ins"
+!import "c3g.ins"
+import "c4g.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

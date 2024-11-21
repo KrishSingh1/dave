@@ -81,6 +81,7 @@ bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 bool ifevenlaidist;
 bool ifsinksource;
+bool ifadaptive_rootdist;
 bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
@@ -286,6 +287,7 @@ void initsettings() {
 	nindiv_max = 0;
 	ifevenlaidist = true;
 	ifsinksource = false;
+	ifadaptive_rootdist = false;
 	grazing_duration = 1;
 }
 
@@ -629,6 +631,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifsinksource", &ifsinksource, 1, CB_NONE, "Whether Growth is calculated as the minimum of a sink and a source term (default: off).");
+		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");

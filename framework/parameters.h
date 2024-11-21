@@ -383,6 +383,10 @@ extern bool ifevenlaidist;
 /// Whether growth is calculated as the minimum of a sink and source term.
 extern bool ifsinksource;
 
+/// Whether root distribution and response window are adaptive to the environment.
+/// (Number of dormant+dead days)
+extern bool ifadaptive_rootdist;
+
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value
 /// which is checked in ccont(), ncont(), etc.

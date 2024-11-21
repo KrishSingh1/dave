@@ -1802,9 +1802,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	soiltemp_dynamic.set_capacity(response_window);
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
-	root_beta = calc_root_beta(nday_dormant);
-	for (size_t i = 0; i < NSOILLAYER; i++) {
-		rootdist[i] = pft.rootdist[i];
+	if (ifadaptive_rootdist){
+		root_beta = calc_root_beta(nday_dormant);
+		calc_root_distribution(root_beta, rootdist);
+	} else { // Take PFT-level default
+		root_beta = pft.root_beta;
+		for (size_t i = 0; i < NSOILLAYER; i++) {
+			rootdist[i] = pft.rootdist[i];
+		}
 	}
 
 	initialc = 0.0;

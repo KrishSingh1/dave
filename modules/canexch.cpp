@@ -3868,12 +3868,14 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 			if (iftwolayersoil) {
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			} else {
 				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
+							// note: indiv.rootdist = pft.rootdist if ifadaptive_rootdist is false.
+							//       this is only compatible with dave photosynthesis.
 			}
 		}
 	} // end cohort loop

@@ -3706,10 +3706,7 @@ double electron_transport_rate(double PAR,double Jmax) {
     // Jmax = max. electron transport rate (mol m-2 s-1)
 
 	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
-	double alpha = 0.36125; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
-						    // value from von Caemmerer 2013 (Plant, Cell and Environment) 
-						    // Medlyn et al. 2002 (Plant, Cell and Environment): 0.3
-							// Note that alpha accounts for leaf light absorptance.
+
 	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
 				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  
 

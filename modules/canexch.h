@@ -106,6 +106,13 @@ const double MOL2G_C = 12.011;
 /// Molecular mass of Water (g mol-1)
 const double MOL2G_H2O = 18.01528;
 
+/// quantum yield of electron transport (mol (electrons) mol-1 (photon))
+/// including a leaf absorptance term.
+const double alpha = 0.3;  
+// von Caemmerer 2013, PCE: 0.36125
+// Medlyn et al. 2002, PCE: 0.3
+// Yang et al. 2019: 0.24
+
 /// Michaelis-Menten constants at 25 degC (mol mol-1)
 const double KO25      = 278.4E-3; // MM constant for O2 (Bernacchi et al. 2001)
 const double KC25      = 404.9E-6; // MM constant for CO2 (Bernacchi et al. 2001)

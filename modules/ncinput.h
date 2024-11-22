@@ -715,6 +715,36 @@ private:
 	use_mean_annual_co2 is enabled by the user.
 	*/
 	double mean_annual_co2;
+
+	/*
+	Are we using a separate input file for the spinup, and if so, should we use
+	the data for this file as part of the "main" simulation after the spinup?
+	This can only happen if the last timestep in the spinup file is at the end
+	of a year, and the next timestep is the first timestep in the "main"
+	simulation input file. In that case, the simulation will be run as:
+
+	1. Spinup (recycling first N years of data from spinup file)
+	2. Main simulation (using entire timeseries from spinup file)
+	3. Main simulation continued (using entire timeseries from "main" data file)
+
+	This parameter is not a user input, but is automatically enabled if the
+	input files are configured appropriately. In that case, a log message will
+	be written. This is provided as an optimisation, to avoid having to
+	concatenate large datasets.
+	*/
+	bool spinup_in_simulation;
+
+	/*
+	The timestep used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	int spinup_timestep;
+
+	/*
+	The calendar used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	GuessNC::CF::CalendarType spinup_calendar;
 };
 
 #endif // HAVE_NETCDF

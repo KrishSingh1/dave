@@ -193,6 +193,9 @@ void NCInput::init(void) {
 		// this case, we use the input timestep for the spinup, and then use
 		// the nsteps_day timestep for the simulation.
 		int input_timestep = temp->get_day_length();
+		spinup_timestep = input_timestep;
+		spinup_calendar = temp->get_calendar();
+		GuessNC::CF::CalendarType simulation_calendar = spinup_calendar;
 		date.subdaily = separate_spinup ? input_timestep : nsteps_day;
 
 		spinup_start = first_timestep = temp->get_first_date();
@@ -228,6 +231,7 @@ void NCInput::init(void) {
 
 			// Set input_timestep to the value from file_met_forcing.
 			input_timestep = tmp.get_day_length();
+			simulation_calendar = tmp.get_calendar();
 
 			// These three parameters all now come from file_met_forcing; last
 			// time we called this function, they came from file_met_spinup.
@@ -248,6 +252,18 @@ void NCInput::init(void) {
 		// Now we must determine the first calendar year of the simulation (not
 		// the spinup).
 		int first_year = first_timestep.year;
+
+		// If using a separate file for spinup, and this file ends in the year
+		// before the "main" file, we can include it as part of the main
+		// simulation after running the spinup.
+		spinup_in_simulation = false;
+		if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
+			first_year = spinup_start.year;
+			spinup_in_simulation = true;
+			dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
+				spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
+				final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
+		}
 
 		// Set the calendar year at start of spinup.
 		date.set_first_calendar_year(first_year - nyear_spinup);
@@ -394,7 +410,8 @@ try {
 		// We are now out of the spinup. Reset spinup_year to avoid confusion.
 		spinup_year = -1;
 
-		if (date.day == 0 && date.year == nyear_spinup && file_met_spinup != "") {
+		if (date.day == 0 && date.get_calendar_year() == first_timestep.year
+			&& file_met_spinup != "" && file_met_spinup != file_met_forcing) {
 			// Open the NetCDF file used for the main simulation.
 			open_netcdf(file_met_forcing);
 			set_insoltype(gridcell);
@@ -721,6 +738,9 @@ double NCInput::get_progress(bool since_restart) {
 
 		// Number of years to simulate per gridcell.
 		int years_to_simulate = nyear_spinup + get_nyear_data(first_timestep, final_timestep, nsteps_day, temp->get_calendar());
+		if (spinup_in_simulation) {
+			years_to_simulate += get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
+		}
 
 		int skip = since_restart && restart ? state_year : 0;
 		years_to_simulate -= skip;

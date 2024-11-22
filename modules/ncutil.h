@@ -191,6 +191,16 @@ Get the number of days in the specified month of the specified year.
 int get_month_len(int year, int month, GuessNC::CF::CalendarType calendar);
 
 /*
+Get the month for the given timestamp in range [0, 11].
+*/
+int get_month(timepoint timestamp, GuessNC::CF::CalendarType calendar);
+
+/*
+Get the day of month for the given timestamp in range [0, 30].
+*/
+int get_day_of_month(timepoint timestamp, GuessNC::CF::CalendarType calendar);
+
+/*
 Bounds check all values in the vector.
 
 @param limits: Upper/lower bounds for the data.

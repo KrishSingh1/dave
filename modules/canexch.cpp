@@ -4109,6 +4109,7 @@ void forest_floor_dave(Patch &patch) {
 			Standpft &spft = patch.stand.pft[pft.id];
 			if (date.islastday && date.islastmonth) {
 				spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
+				ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 			}
 		}
 	}

@@ -2070,6 +2070,10 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					return; // no mortality or establishment this year
 				}
 			}
+			if (date.get_calendar_year() == 1800) {
+				disturbance(patch, 1.0);
+				return; // no mortality or establishment this year
+			}
 		}
 
 		// Mortality

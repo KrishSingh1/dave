@@ -1059,6 +1059,9 @@ public:
 	/// maximum daylength in a year
 	double daylength_max;
 
+	/// minimum daylength in a year
+	double daylength_min;
+
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
 
@@ -3311,10 +3314,16 @@ public:
 	double fwater;
 	/// coefficient that scales growth according to actualt storage state (unitless)
 	double fstorage;
+	/// coefficient that scales growth according to relative day length (unitless)
+	double fphoto;
 	/// a coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (unitless)
 	double cgrow_pot;
 	/// mean leaf age of the individual (y)
 	double meanleafage;
+	/// mean sapwood age of the individual (y)
+	double meansapage;
+	/// mean root age of the individual (y)
+	double meanrootage;
 
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;

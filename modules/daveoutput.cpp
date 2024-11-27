@@ -111,6 +111,8 @@ DaveOutput::DaveOutput() {
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_meanleafage"         , DAILY, [](const Individual &i) { return i.meanleafage; }, "Mean leaf age (years)", mean, true);
+	add_aggregated_indiv_output("file_dave_meansapage"          , DAILY, [](const Individual &i) { return i.meansapage; }, "Mean sapwood age (years)", mean, true);
+	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_sla"                 , DAILY, [](const Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf"          , DAILY, [](const Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.cmass_leafs[1]; }, "Leaf brown C mass (kgC/m2)", sum, true);
@@ -135,6 +137,8 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_ndemand"             , DAILY, [](const Individual &i) { return i.ndemand; }, "N demand mass (kgN/m2)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_height"              , DAILY, [](const Individual &i) { return i.height; }, "Plant height (m)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_diameter"            , DAILY, [](const Individual &i) { return i.diam; }, "Stem diameter (m)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_basalarea"           , DAILY, [](const Individual &i) { return i.basalarea; }, "Mean Basal Area (m2/tree)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc / 10; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_density"             , DAILY, [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_sapwood_area"        , DAILY, [](const Individual &i) { return i.sa; }, "sapwood area sum of individuals (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa /1000; }, "leaf area to sapwood area ratio / 1000 (unitless)", mean, true);
@@ -204,6 +208,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_ftemp"               , DAILY, [](const Individual &i) { return i.ftemp; }, "coefficient that scales growth demand using air temperature (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_fwater"              , DAILY, [](const Individual &i) { return i.fwater; }, "coefficient that scales growth demand using wscal (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_fstorage"            , DAILY, [](const Individual &i) { return i.fstorage; }, "coefficient that scales growth according to actualt storage state (0-1)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_fphoto"              , DAILY, [](const Individual &i) { return i.fphoto; }, "coefficient that scales growth according to relative day length (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cgrow_pot"           , DAILY, [](const Individual &i) { return i.cgrow_pot; }, "coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)", mean, false, false);
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.

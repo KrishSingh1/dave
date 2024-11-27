@@ -41,9 +41,11 @@ pft "TeBE" (
 	evergreen
 	temperate
 	! leaflong 3
-	leaflong 2
+	leaflong 2 ! old
+	! leaflong 1 ! CUP
 	! turnover_leaf 0.33
-	turnover_leaf 0.5
+	turnover_leaf 0.5 ! old
+	! turnover_leaf 1 ! CUP
 	! turnover_root 0.7
 	turnover_root 0.5
 	tcmin_surv -1
@@ -51,7 +53,7 @@ pft "TeBE" (
 	tcmax_est 18.8
 	twmin_est 5
 	gdd5min_est 2000
-	longevity 300 		! from TH 2010-04-07 was 350 AA
+	longevity 500 		! from TH 2010-04-07 was 350 AA
 	fireresist 0.3
 	eps_iso 24.0
 	seas_iso 0
@@ -61,11 +63,20 @@ pft "TeBE" (
 	g0 0.034017
 	gmin 0.0005 ! gcutic (gmin used for trunk only)
 	sla 13.17
-	cton_leaf_min 29.01
+	! sla 9.2 ! CUP
 
-	k_allom2 22.7
-	k_allom3 0.54
-	wooddens 330
+	cton_leaf_min 29.01
+	! k_allom2 22.7
+	! k_allom3 0.54
+
+	k_allom2 60 ! CUP
+	k_allom3 0.67 ! CUP
+	wooddens 330 ! CUP
+
+	! k_allom2 47.48 ! WMBT
+  	! k_allom3 0.64 ! WMBT
+	! sla 8.8 ! WMBT
+	
 )
 
 pft "TrBE" (

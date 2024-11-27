@@ -1267,6 +1267,11 @@ void daylengthinsoleet(Climate& climate) {
 	// maximum daylength in a year
 	if (date.year == 0) {
 		climate.daylength_max = max(climate.daylength, climate.daylength_max);
+		if (date.day == 0) {
+			// give high value to be able to record the min
+			climate.daylength_min = 24.0;
+		}
+		climate.daylength_min = max(min(climate.daylength, climate.daylength_min), 0.0);
 	}
 
 	// Grote: (Assaf) 

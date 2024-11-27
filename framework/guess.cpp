@@ -86,6 +86,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec_lastyear
 		& daylength
 		& daylength_max
+		& daylength_min
 		& co2
 		& lat
 		& insol
@@ -1755,6 +1756,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	ftemp			     		= 0.0;
 	fwater			   			= 0.0;
 	fstorage					= 0.0;
+	fphoto						= 0.0;
 	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;

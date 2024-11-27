@@ -3692,7 +3692,9 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// the value, higher proportion of cgrow will go to growth. 0 = no growth.
 
 	double cgrow_pot = min( min(ftemp, fwater), fphoto);
-	// cgrow_pot = 1;
+	if (!iftreephen) {
+		cgrow_pot = 1.0;
+	}
 	// Scale the carbon that is potentially headed for tree growth by the minimum of 
 	// temperature and a water factor, assuming that either one can be the bottelneck 
 	// for growth.

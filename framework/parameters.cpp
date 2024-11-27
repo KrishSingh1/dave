@@ -76,6 +76,7 @@ bool ifbvoc;
 bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
+bool iftreephen;
 bool ifdavegrowth;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
@@ -621,6 +622,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdailytree",&ifdailytree,1,CB_NONE,	"Whether daily carbon allocation for trees is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
+		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");

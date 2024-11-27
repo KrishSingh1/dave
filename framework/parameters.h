@@ -371,6 +371,9 @@ extern bool ifdailytree;
 /// whether DAVE (empirical) photosynthesis scheme is turned on
 extern bool ifdavephotosyn;
 
+/// Turn on/off tree phenology (Dave)
+extern bool iftreephen;
+
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 

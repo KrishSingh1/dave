@@ -48,6 +48,7 @@ pft "TeBE" (
 	! turnover_leaf 1 ! CUP
 	! turnover_root 0.7
 	turnover_root 0.5
+	turnover_sap 0.2
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
@@ -69,14 +70,15 @@ pft "TeBE" (
 	! k_allom2 22.7
 	! k_allom3 0.54
 
-	k_allom2 60 ! CUP
-	k_allom3 0.67 ! CUP
+	! k_allom2 60 ! CUP
+	! k_allom3 0.67 ! CUP
 	wooddens 330 ! CUP
 
-	! k_allom2 47.48 ! WMBT
-  	! k_allom3 0.64 ! WMBT
-	! sla 8.8 ! WMBT
-	
+	k_allom2 47.48 ! WMBT
+  	k_allom3 0.64 ! WMBT
+	sla 8.8 ! WMBT
+	! sla 5.5 ! Belinda?
+	ltor_max 1.5 ! just testing
 )
 
 pft "TrBE" (

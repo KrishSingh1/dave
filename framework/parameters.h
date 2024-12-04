@@ -374,6 +374,9 @@ extern bool ifdavephotosyn;
 /// Turn on/off tree phenology (Dave)
 extern bool iftreephen;
 
+/// Turn on/off grote tree allocation.
+extern bool ifgrote;
+
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 

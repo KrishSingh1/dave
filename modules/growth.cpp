@@ -3652,7 +3652,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 		
 		store_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
 		
-		fstorage = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_int)))));
+		fstorage = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_saver)))));
 	}
 	// fstorage = 1.0;
 	// temperature scalar for decoupling potosynthesis from growth (see Figure 9 in  Korner's 2-20 book)
@@ -4102,7 +4102,7 @@ void carbon_allocation_tree_new(Individual &indiv) {
 
 	// proportion of cgrow that goes to reproduction. 
 	// TODO: find literature values
-	const double repr_prop = 0.1;
+	const double repr_prop = 0.01;
 	// minimum age for reproduction in years.
 	// TODO: fix to be a function of tree size and not age, and a PFT parameter.
 	// also, check that age is counted in years and not days.
@@ -4186,8 +4186,10 @@ void carbon_allocation_tree_new(Individual &indiv) {
 	// calculate alpha reproduction "tunned down" by the factor that depends on
 	// the conditions of the other pools.
 	if (indiv.cmass_repr_limit > indiv.cmass_repr) {
-		indiv.relative_alpha_repr = alpha_repr_factor * 
-			(indiv.cmass_repr_limit - indiv.cmass_repr) / indiv.cmass_repr_limit;
+		// indiv.relative_alpha_repr = alpha_repr_factor * 
+		// 	(indiv.cmass_repr_limit - indiv.cmass_repr) / indiv.cmass_repr_limit;
+			indiv.relative_alpha_repr = 0.1 * (indiv.relative_alpha_leaf + 
+				indiv.relative_alpha_root + indiv.relative_alpha_sap);
 	}
 	// caps the relative_alpha_repr to 0.1 to avoid over reprentation of cgrow_repr
 	// over the rest of the pools
@@ -4568,7 +4570,7 @@ void carbon_allocation_dave(Vegetation& vegetation) {
 				carbon_allocation_tree_sapwood(indiv);
 			} else {
 				// 2. Driven by leaf turnover
-				// carbon_allocation_tree_new(indiv);
+				carbon_allocation_tree_new(indiv);
 
 				// 3. Driven by par
 				// carbon_allocation_tree_alpha(indiv);

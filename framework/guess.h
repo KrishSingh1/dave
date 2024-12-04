@@ -3135,6 +3135,8 @@ public:
 	double relative_alpha_root;
 	/// realtive sapwwod sink strengthy (unitless)
 	double relative_alpha_sap;
+	/// relative storage sink strengh (unitless)
+	double relative_alpha_storage;
 	/// realtive reproductive sink strengthy (unitless)
 	double relative_alpha_repr;
 	/// Latest tunover day for this individual
@@ -3151,6 +3153,8 @@ public:
 	double cgrow_sap;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
+	/// daily storage growth (kgC/m2/day)
+	double cgrow_storage;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)
@@ -3583,6 +3587,7 @@ public:
 	double alpha_leaf;
 	double alpha_root;
 	double alpha_sap;
+	double alpha_storage;
 	double alpha_repr;
 	// MEMBER FUNCTIONS
 

@@ -1442,12 +1442,22 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
+double calc_creserve_opt_grote(const Individual &indiv) {
+	return indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit;
+}
+
 // Capacity of C storage (kg C m-2)
 double cstorage_capacity(Individual& indiv) {
 
 	if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
 	} else {
+
+		// TODO
+		if (ifgrote) {
+			return calc_creserve_opt_grote(indiv);
+		}
+
 		// TODO: what about seedlings? cstorage_max cn be much higher than the total cmass of all the pools
 		// const int nyear_turnover = 3;
 		// double turnover_sap = indiv.cmass_sap * indiv.pft.turnover_sap;
@@ -3879,6 +3889,52 @@ void storage_growth_partitioning_tree_grote(Individual &indiv) {
 	indiv.cgrow = bminc;
 }
 
+void storage_growth_partitioning_grote(Individual &indiv) {
+	// This function calculates the potential growth.
+	// Outputs: indiv.cgrow
+	//
+	// Anything we plan to spend must come out of storage here.
+	// However, NPP has not yet gone into storage either.
+	if (!ifgrote || !ifdailytree || !ifdavegrowth || indiv.pft.lifeform != TREE) {
+		return;
+	}
+	double bminc = indiv.dnpp;
+	if (bminc < 0) {
+		// Negative NPP.
+		if (bminc + indiv.cmass_storage >= 0) {
+			// Use NSCs to meet respiration costs, and don't grow.
+			indiv.cmass_storage += bminc;
+			bminc = 0;
+			assert(positive(indiv.cmass_storage));
+		} else {
+			// Insufficient NSCs to meet respiration costs -> kill individual.
+			indiv.cmass_storage += bminc;
+			double cmass_deficit = -indiv.cmass_storage;
+			indiv.cmass_storage = 0.0;
+
+			// The respiration and NPP fluxes reported in canexch are
+			// now incorrect, so we need to fix them. Note that the RA
+			// flux is not used for mass balance checks (it's only used
+			// for outputs). The NPP flux is used in mass balance checks
+			// however, so it's important to correct it here.
+			indiv.report_flux(Fluxes::RA, -cmass_deficit);
+				// (npp has opposite sign to respiration)
+			indiv.report_flux(Fluxes::NPP, cmass_deficit);
+
+			indiv.kill();  // flushes all pools to litter
+			indiv.vegetation.killobj();  // removes individual object
+								
+			//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+			// Don't think we need to call nextobj() here, as we've just
+			// removed an element from the list; when this happens, the
+			// "current" pointer internal to the list object points to
+			// the element that was previously the "next" element.
+			return;
+		}
+	}
+	indiv.cgrow = bminc;
+}
+
 // Determine how much of the available C (NPP + C fraction from storage) goes to growth vs. storage.
 // Function calculates cgrow (daily growth), cstore (change in cmass_storage) 
 // and updates indiv.cmass_storage. 
@@ -3904,7 +3960,11 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			storage_growth_partitioning_grass(indiv);
 		} else {
-			storage_growth_partitioning_tree(indiv);
+			if (ifgrote) {
+				storage_growth_partitioning_grote(indiv);
+			} else {
+				storage_growth_partitioning_tree(indiv);
+			}
 		}
 
 		// If this individual was killed, vegetation.nobj will go down by one.
@@ -4043,12 +4103,16 @@ void calculate_pool_age(Individual &indiv) {
 	indiv.meanrootage =  rel_daily_root_growth * (indiv.meanrootage + deltat);
 }
 
-
 void rescale_alphas(Individual &indiv) {
 
 	//  sum of all the relative alphas so it will be used to calculate the alphas
 	double sum_relative_alphas = indiv.relative_alpha_leaf + indiv.relative_alpha_root + 
-						indiv.relative_alpha_sap + indiv.relative_alpha_repr;								
+						indiv.relative_alpha_sap;
+	if (ifgrote) {
+		sum_relative_alphas += indiv.relative_alpha_storage;
+	} else {
+		sum_relative_alphas += indiv.relative_alpha_repr;
+	}
 
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
 	if (is_zero(sum_relative_alphas)) {
@@ -4056,6 +4120,7 @@ void rescale_alphas(Individual &indiv) {
 		indiv.alpha_root = 0;
 		indiv.alpha_sap  = 0;
 		indiv.alpha_repr = 0;
+		indiv.alpha_storage = 0;
 	} else {
 		// No need for protected divde here. If we refactor out the above check
 		// for a zero value in the denominator, we should reinstate the use of a
@@ -4063,10 +4128,13 @@ void rescale_alphas(Individual &indiv) {
 		indiv.alpha_leaf = indiv.relative_alpha_leaf / sum_relative_alphas;
 		indiv.alpha_root = indiv.relative_alpha_root / sum_relative_alphas;
 		indiv.alpha_sap = indiv.relative_alpha_sap / sum_relative_alphas;
-		indiv.alpha_repr = indiv.relative_alpha_repr / sum_relative_alphas;
-		assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
+		if (ifgrote) {
+			indiv.alpha_storage = indiv.relative_alpha_storage / sum_relative_alphas;
+		} else {
+			indiv.alpha_repr = indiv.relative_alpha_repr / sum_relative_alphas;
+		}
+		assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + (ifgrote ? indiv.alpha_storage : indiv.alpha_repr)));
 	}
-
 }
 
 void calc_cgrow_pools_tree(Individual &indiv){
@@ -4074,10 +4142,12 @@ void calc_cgrow_pools_tree(Individual &indiv){
 	indiv.cgrow_leaf = indiv.cgrow * indiv.alpha_leaf;
 	indiv.cgrow_root = indiv.cgrow * indiv.alpha_root;
 	indiv.cgrow_sap = indiv.cgrow * indiv.alpha_sap;
-	indiv.cgrow_repr = indiv.cgrow * indiv.alpha_repr;
-
+	if (ifgrote) {
+		indiv.cgrow_storage = indiv.cgrow * indiv.alpha_storage;
+	} else {
+		indiv.cgrow_repr = indiv.cgrow * indiv.alpha_repr;
+	}
 }
-
 
 // This variant of carbon_allocation_tree is using the Grote approach (of calulating
 // sink strength using the difference between the limit and theactual caron for each pool),
@@ -4468,8 +4538,7 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 		indiv.cmass_repr_limit = repr_prop * indiv.cgrow + indiv.cmass_repr;
 	}
 
-	// TODO
-	double cmass_storage_limit = indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit;
+	indiv.cstorage_max = calc_creserve_opt_grote(indiv);
 
 	// Calculate the alpha factor (what proportion to allocate for each pool) according
 	// to the distance of actual C to it's target.
@@ -4486,44 +4555,33 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 		indiv.relative_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
 	}
 
-	// To prevent allocation to reproduction if the tree is stressed (lower priority.),
-	// 1. calculate the mean of the alphas or leaf, root and sapwood, that will 
-	// be used ased as a threshold for allocating to reproduction. 
-	// double mean_relative_alphas = (relative_alpha_leaf + relative_alpha_root + relative_alpha_sap + relative_alpha_storage) / 4.0;
-	double mean_relative_alphas = (indiv.relative_alpha_leaf + indiv.relative_alpha_root + indiv.relative_alpha_sap) / 3.0;
-	// logistic function of the relative strength of  allocation to reproduction
-	// depending on how far the other pools are from their target.
-	// TODO: Unsupported assumption: logistic function assumed and it's parameters 
-	// guestimated.  Change that.
-
-	double alpha_repr_factor = (max_alpha_repr_factor / 
-                       (1 + exp(20 * (mean_relative_alphas - .25))));
-	// calculate alpha reproduction "tunned down" by the factor that depends on
-	// the conditions of the other pools.
-	if (indiv.cmass_repr_limit > indiv.cmass_repr) {
-		// indiv.relative_alpha_repr = alpha_repr_factor * 
-		// 	(indiv.cmass_repr_limit - indiv.cmass_repr) / indiv.cmass_repr_limit;
-		indiv.relative_alpha_repr = 0.1 * (indiv.relative_alpha_leaf + 
-				indiv.relative_alpha_root + indiv.relative_alpha_sap);
-
+	indiv.cmass_storage_limit = indiv.cstorage_max;
+	indiv.relative_alpha_storage = 0;
+	if (!is_zero(indiv.cmass_storage_limit) && indiv.cmass_storage_limit > indiv.cmass_storage) {
+		indiv.relative_alpha_storage = divide(indiv.cmass_storage_limit - indiv.cmass_storage, indiv.cmass_storage_limit);
 	}
+
 	// caps the relative_alpha_repr to 0.1 to avoid over reprentation of cgrow_repr
 	// over the rest of the pools
 	// TODO: Fix this (0.1???)
-	indiv.relative_alpha_repr = min(indiv.relative_alpha_repr, 0.05);
+	indiv.cgrow_repr = 0.0;
+	if (indiv.age >= min_age_for_repr) {
+		indiv.cgrow_repr = 0.1 * indiv.cgrow;
+		indiv.cgrow -= indiv.cgrow_repr;
+	}
 
 	// rescale the alphas according to the demand
 	rescale_alphas(indiv);
 	// calculate cgrow for each of the pools
 	calc_cgrow_pools_tree(indiv);
-
+	indiv.cgrow += indiv.cgrow_repr;
 
 	assert(positive(indiv.alpha_leaf));
 	assert(positive(indiv.alpha_root));
 	assert(positive(indiv.alpha_sap));
 	assert(positive(indiv.alpha_repr));
+	assert(positive(indiv.alpha_storage));
 }
-
 
 // Determine the sink strength of each carbon pool in the individual.
 // This probably encapsulates adjust_cpool_optimum() and decide_on_allocation()
@@ -4901,6 +4959,10 @@ void update_pools_dave(Vegetation& vegetation) {
 			continue;
 		}
 
+		if (date.year == 11 && date.day == 1) {
+			printf("\n");
+		}
+
 		double creturn = 0.0; // kgC m-2 d-1
 		double cexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;
@@ -4952,7 +5014,7 @@ void update_pools_dave(Vegetation& vegetation) {
 			// becasue oterwise, when ndemand is 0, the nscal_5 gets added a 0
 			// which can create N stress for the next day (will affect the allocation 
 			// in case there is growth the next day).
-			nstress = indiv.nscal_5[4];
+			nstress = indiv.nscal_5.lastadd();
 		}
 		
 		// calculate N stress factor 
@@ -5024,6 +5086,11 @@ void update_pools_dave(Vegetation& vegetation) {
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
 			creturn, nreturn);
 
+		if (ifgrote) {
+			// cgrow_storage goes back into storage.
+			creturn += indiv.cgrow_storage;
+		}
+
 		// Make sure storage does not overflow.
 		// Maximum C storage pool size
 		if (indiv.cmass_storage + creturn > indiv.cstorage_max) {
@@ -5071,6 +5138,9 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// update indiv.cgrow (actual growth)
 		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr;
+		if (ifgrote) {
+			indiv.cgrow += indiv.cgrow_storage;
+		}
 
 		// update mean pool age (years)
 		// indiv.meanleafage = calculate_leaf_age(indiv);

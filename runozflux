@@ -127,7 +127,7 @@ done
 
 # Maximum number of concurrently-running jobs is the minimum of number of CPUs
 # and the user-specified NPROCESS parameter.
-MAX_NUM_JOBS=$(nproc)
+MAX_NUM_JOBS=${NP}
 
 # Function to sleep until number of background jobs is less than MAX_NUM_JOBS.
 wait_for_jobs() {

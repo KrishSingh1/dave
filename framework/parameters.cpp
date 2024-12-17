@@ -2052,14 +2052,14 @@ void plib_callback(int callback) {
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 				}
 			}
-			if (ifcalcvcmax) {
+			if (!ifcalcvcmax) {
 				if (!itemparsed("vcmax_25")) badins("vcmax_25");
 				if (!itemparsed("vpmax_25")) badins("vpmax_25");
 				if (!itemparsed("jmax_25")) badins("jmax_25");
 			} else {
-				if (itemparsed("vcmax_25")) dprintf("WARNING: vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
-				if (itemparsed("vpmax_25")) dprintf("WARNING: vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
-				if (itemparsed("jmax_25")) dprintf("WARNING: jmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
+				if (itemparsed("vcmax_25")) dprintf("WARNING: %s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("vpmax_25")) dprintf("WARNING: %s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("jmax_25")) dprintf("WARNING: %s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
 			}
 
 			if (ifdavephotosyn) {
@@ -2068,8 +2068,8 @@ void plib_callback(int callback) {
 				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("extkn")) badins("extkn");
-				if (!ifdavegrowth && !ifcalcvcmax) {
-					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 1");
+				if (!ifdavegrowth && ifcalcvcmax) {
+					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 			}
 

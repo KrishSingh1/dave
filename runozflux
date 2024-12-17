@@ -101,7 +101,15 @@ enable_output() {
 	INS="${OZFLUX}/outputs.ins"
 	if grep "${OUTPUT}" "${INS}" >/dev/null 2>&1
 	then
-		sed -i -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
+		# BSD sed: MUST use -i ''
+		# GNU sed: MUST use just -i (equivalent: -i''); -i '' does NOT work
+		I="-i"
+		if ! sed --version | /usr/bin/grep -qi gnu >/dev/null 2>&1
+		then
+			# BSD sed
+			I="-i ''"
+		fi
+		sed ${I} -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
 	else
 		FILE_NAME="${OUTPUT/file_/}.out"
 		echo "${OUTPUT} \"${FILE_NAME}\"" >>"${INS}"

@@ -81,6 +81,13 @@ DaveOutput::DaveOutput() {
 	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
 	add_stand_output("file_dave_stand_type"          , ANNUAL, "type", [](const Stand &s) { return (double)s.landcover; }, "Stand landcover types");
 
+	// Annual per-patch aggregated individual-level outputs.
+	add_aggregated_indiv_output("file_dave_acalloc_leaf"	, ANNUAL, [](const Individual &i) { return i.acalloc_leaf; }, "Total annual C allocation to leaf (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_root"	, ANNUAL, [](const Individual &i) { return i.acalloc_root; }, "Total annual C allocation to root (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_repr"	, ANNUAL, [](const Individual &i) { return i.acalloc_repr; }, "Total annual C allocation to repr (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_sap"		, ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_crown"	, ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to crown (kgC/m2)", sum, true);
+
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
 	add_patch_output("file_dave_soil_nmass_avail"    , DAILY, "nmass", [](const Patch &p) { return p.soil.get_nmass_avail(); }, "Available Soil N for plant uptake");

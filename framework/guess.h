@@ -3106,6 +3106,16 @@ public:
 	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
+	/// Total annual C biomass allocated to leaf on modelled area basis (kgC/m2)
+	double acalloc_leaf;
+	/// Total annual C biomass allocated to fine root on modelled area basis (kgC/m2)
+	double acalloc_root;
+	/// Total annual C biomass allocated to sapwood on modelled area basis (kgC/m2)
+	double acalloc_sap;
+	/// Total annaul C biomass allocated to reproductive tissue on modelled area basis (kgC/m2)
+	double acalloc_repr;
+	/// Total annaul C biomass allocated to crown on modelled area basis (kgC/m2)
+	double acalloc_crown;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)

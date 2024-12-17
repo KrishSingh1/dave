@@ -2100,6 +2100,8 @@ public:
 	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
+	/// Cuticular conductance (mol m-2 s-1)
+	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
 	/// maximum evapotranspiration rate (mm/day)
@@ -2543,6 +2545,10 @@ public:
 		b3=0.0;
 		c3=0.0;
 		d3=0.0;
+
+		g0=0.0;
+		g1=0.0;
+		gcutic=0.0;
 
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;

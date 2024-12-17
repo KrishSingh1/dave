@@ -3435,7 +3435,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
 		double g0   = pft.g0;    // mol m-2 s-1
 		double g1   = pft.g1;    // kPa^0.5
-		double gmin = pft.gmin;  // mol m-2 s-1
+		double gcutic = pft.gcutic;  // mol m-2 s-1
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3489,7 +3489,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			inputs.X = stomatal_conductance_term(ppft.wscal, g1, inputs.vpd, inputs.ca);
 
 			// Residual stomatal conductance term.
-			inputs.gdark = stomatal_conductance_residual(g0, gmin, ppft.wscal);
+			inputs.gdark = stomatal_conductance_residual(g0, gcutic, ppft.wscal);
 
 			// Initialise cumulative LAI.
 			double lai_cum_bottom = 0.0;
@@ -4071,7 +4071,7 @@ void forest_floor_dave(Patch &patch) {
 			inputs.X = stomatal_conductance_term(ppft.wscal, pft.g1, inputs.vpd, inputs.ca);
 
 			// Residual stomatal conductance term.
-			inputs.gdark = stomatal_conductance_residual(pft.g0, pft.gmin, ppft.wscal);
+			inputs.gdark = stomatal_conductance_residual(pft.g0, pft.gcutic, ppft.wscal);
 			inputs.wscal = ppft.wscal;
 
 			double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);

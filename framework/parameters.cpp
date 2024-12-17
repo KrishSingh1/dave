@@ -2065,6 +2065,9 @@ void plib_callback(int callback) {
 				if (!itemparsed("g0")) badins("g0");
 				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("extkn")) badins("extkn");
+				if (!ifdavegrowth && !ifcalcvcmax) {
+					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 1");
+				}
 			}
 
 			if (run_landcover) {

@@ -186,7 +186,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anj_frac"            , DAILY, [](const Individual &i) { return i.anj_frac; }, "Daily anj as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_anp_frac"            , DAILY, [](const Individual &i) { return i.anp_frac; }, "Daily anp as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dnuptake"            , DAILY, [](const Individual &i) { return i.dnuptake; }, "Total daily nitrogen uptake (kgN/m2/day)", sum, true);
-	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_leaf"      , DAILY, [](const Individual &i) { return i.ctolitter_leaf; }, "Total daily C sent from the leaf pool to litter (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ntolitter_leaf"      , DAILY, [](const Individual &i) { return i.ntolitter_leaf; }, "Total daily N sent from the leaf pool to litter (kgN/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_root"      , DAILY, [](const Individual &i) { return i.ctolitter_root; }, "Total daily C sent from the root pool to litter (kgC/m2/day)", sum, true);

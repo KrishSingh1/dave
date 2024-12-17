@@ -4110,6 +4110,21 @@ void forest_floor_dave(Patch &patch) {
 	}
 }
 
+void vcmax_from_parameters(Vegetation &vegetation) {
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		if (indiv.pft.pathway == C3) {
+			indiv.ps_subdaily.vcmax25 = indiv.pft.vcmax_25;
+			indiv.ps_subdaily.jmax25 = indiv.pft.jmax_25;
+			indiv.ps_subdaily.vpmax25 = 0;
+		} else {
+			indiv.ps_subdaily.vcmax25 = 0;
+			indiv.ps_subdaily.jmax25 = 0;
+			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_25;
+		}
+	}
+}
+
 /// Canopy exchange
 /** Vegetation-atmosphere exchange of CO2 and water including calculations
  *  of actual evapotranspiration (AET), canopy conductance, carbon assimilation
@@ -4170,7 +4185,11 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		*/
 
 		// Calculate photosynthetic capacity from leaf N
-		vcmax_from_N(vegetation);
+		if (ifcalcvcmax) {
+			vcmax_from_N(vegetation);
+		} else {
+			vcmax_from_parameters(vegetation);
+		}
 
 		// Calculate water stress factor
 		water_stress(patch);

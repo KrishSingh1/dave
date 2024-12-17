@@ -40,6 +40,7 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
+bool ifcalcvcmax;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -262,6 +263,7 @@ void initsettings() {
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
+	ifcalcvcmax=true;
 	ifcalccton=true;
 	ifcdebt=false;
 	distinterval=1.0e10;
@@ -490,6 +492,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
+		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
+			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
@@ -741,6 +745,13 @@ void plib_declarations(int id,xtring setname) {
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
+
+		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
+			"Maximum carboxylation rate at 25 degC (mol m-2 s-1).");
+		declareitem("jmax_25",&ppft->jmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum electron transport rate at 25 degC (mol m-2 s-1).");
+		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2038,6 +2049,15 @@ void plib_callback(int callback) {
 					if (!itemparsed("crownfrac")) badins("crownfrac");
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 				}
+			}
+			if (ifcalcvcmax) {
+				if (!itemparsed("vcmax_25")) badins("vcmax_25");
+				if (!itemparsed("vpmax_25")) badins("vpmax_25");
+				if (!itemparsed("jmax_25")) badins("jmax_25");
+			} else {
+				if (itemparsed("vcmax_25")) dprintf("WARNING: vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
+				if (itemparsed("vpmax_25")) dprintf("WARNING: vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
+				if (itemparsed("jmax_25")) dprintf("WARNING: jmax_25 value provided but it's not used when ifcalcvcmax is enabled.");
 			}
 
 			if (ifdavephotosyn) {

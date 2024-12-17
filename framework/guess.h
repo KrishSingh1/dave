@@ -2203,6 +2203,22 @@ public:
 	 *  cohort modes)
 	 */
 	double alphar;
+
+	/*
+	Note: these 3 parameters are only used by dave photosynthesis, and only when
+	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
+	these values must be provided in the .ins file for each PFT (only vpmax_25
+	required for C4 grasses, only vcmax_25 and jmax_25 required for C3). When
+	ifcalcvcmax is true, values for these will be estimated daily based on leaf
+	N (and P) content, and stored in the indiv.ps_subdaily object.
+	*/
+	// (Constant) Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	double vcmax_25;
+	// (Constant) Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	double jmax_25;
+	// (Constant) Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	double vpmax_25;
+
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
 	/** constant used in calculation of sapling establishment rate when spatial
@@ -2461,6 +2477,10 @@ public:
 		harv_eff = 0.0;
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
+
+		vcmax_25 = 0;
+		vpmax_25 = 0;
+		jmax_25  = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;

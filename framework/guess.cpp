@@ -1723,12 +1723,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	relative_alpha_root 		  = 0.0;
 	relative_alpha_sap  		  = 0.0;
 	relative_alpha_repr 		  = 0.0;
+	relative_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
 	cgrow_crown       = 0.0;
 	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
+	cgrow_storage     = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
 	frepr_cstruct     = 0.0;
@@ -1854,6 +1856,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_leaf        = 0.0;
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
+	alpha_storage     = 0.0;
 	alpha_repr        = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;

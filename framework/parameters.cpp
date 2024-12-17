@@ -2010,7 +2010,7 @@ void plib_callback(int callback) {
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");
 			}
-			if (!itemparsed("gmin")) badins("gmin");
+			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
 
@@ -2064,6 +2064,7 @@ void plib_callback(int callback) {
 				// Mandatory parameters for dave photosynthesis.
 				if (!itemparsed("g0")) badins("g0");
 				if (!itemparsed("g1")) badins("g1");
+				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("extkn")) badins("extkn");
 				if (!ifdavegrowth && !ifcalcvcmax) {
 					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 1");

@@ -272,7 +272,7 @@ pft "ASM" (
 	g1x 2.8  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) - estimated highest value of g1_leaf for ASM in Fig 1 of Bloomfield (2019)
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
-	vcmax_25 0.000100 ! need a value, Bloomfield is no good because stomata seem to be shut when measurements taken
+	vcmax_25 0.0001 ! need a value, Bloomfield is no good because stomata seem to be shut when measurements taken
 	sla 7.19 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
 
 	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
@@ -363,7 +363,7 @@ pft "Calp" (
 
 	! Calperum mallees, eucalyptus socialis and dumosa, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -383,7 +383,7 @@ pft "Calp" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
-	rootdist 0.07 0.07 0.07 0.07 0.07 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065 0.065
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.03 0.03 0.03 0.03 0.03 0.01 0.01 0.01 0.01 0.01
 
 	k_latosa 2865 ! mean of Austraits values for socialis and dumosa is 2865
 
@@ -396,10 +396,10 @@ pft "Calp" (
 	g1x 2.2  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Calperum in Fig 1 of Bloomfield (2019), 2.2
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 
-	vcmax_25 0.000098 ! see ST7 (supp table 2) from Bloomfield et al. (2018), 0.000080 overall or 0.000098 in winter (growing season)
+	vcmax_25 0.000080 ! see ST7 (supp table 2) from Bloomfield et al. (2018), 0.000080 overall or 0.000098 in winter (growing season)
 	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018), 5.24
 
-	respcoeff 0.2 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	respcoeff 0.5 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
 
 )
 
@@ -413,7 +413,7 @@ pft "Wombat" (
 	shade_intolerant
 	evergreen
 	temperate
-	leaflong 2
+	leaflong 2.0 
 	turnover_leaf 0.5
 	tcmin_surv -1
 	tcmin_est 0
@@ -433,7 +433,7 @@ pft "Wombat" (
 
 	! hydraulic traits
 	wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
-	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	kmax 15  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
 	stom_clos -3.5   ! Estimated based on Figure 5a in Pritzkow (2021), -2.5
 	p50 -4.0   ! Used E. obliqua value for Warra from Peters (2021), -3.03
 	p88 -4.5   ! Used E. obliqua value for Warra from Peters (2021). -3.84
@@ -443,7 +443,7 @@ pft "Wombat" (
 	vcmax_25 0.000069 ! NEED A VALUE - using Warra's
 	sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
 	
-	respcoeff 0.1 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	respcoeff 0.8 
 
 )
 
@@ -486,5 +486,50 @@ pft "Eucface" (
 	sla 10.7 ! E. tereticornis value from Austraits
 	
 	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+
+)
+
+
+pft "CuP" (
+
+	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 1.0 
+	turnover_leaf 1.0
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 350  ! Peters (2021)
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -3.2   ! Peters (2021)
+	p50 -5.8   ! Peters (2021)
+	p88 -7.7  ! Peters (2021)
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	gcutic 0.001 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 0.000036 ! Average of two euc species from Bloomfield (2018)
+	sla 9.2 ! Average of two euc species from Bloomfield (2018)
+	
+	respcoeff 0.6
 
 )

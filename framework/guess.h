@@ -3305,6 +3305,10 @@ public:
 	/// I've opted not to serialise this, as it's reinitialised each day.
 	std::vector<double> lai_layerwise;
 
+	/// layer-wise net photosynthesis 
+	/// I've opted not to serialise this, as it's reinitialised each day.
+	std::vector<double> an_layerwise;
+
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
 	/// vegetation phenological state (fraction of potential leaf cover)

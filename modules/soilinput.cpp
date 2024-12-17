@@ -341,13 +341,31 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	// Theta_s in Cosby expressed as %
 	double Theta_s = 0.01 * (50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
 
-	double Psi_s = -pow(10.0, logPsi_s);  /// CS changed from pow(10.0, -logPsi_s), why the negative there??? 
-	double Psi_wilt = -pow(10.0, 5.4);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm. Testing parameter change from 4.2 to 5.4, to allow plants/evap to extract more water, up to ~ -25MPa.
-	double Psi_whc = -pow(10.0, 1.8);    /// CS changed from pow(10.0, -2). See Hohenbrink et al (2023), output is in cm
+	double Psi_s = 0.0;
+	double Psi_wilt = 0.0;
+	double Psi_whc = 0.0;
+	double Theta_wilt = 0.0;
+	double Theta_whc = 0.0;
 
-	double Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984
-	double Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984
+	if (ifdavehydrology){
 
+		Psi_s = -pow(10.0, logPsi_s);  /// CS changed from pow(10.0, -logPsi_s), why the negative there??? Compensates for not having '-b' in equation below but these Psi values didn't make sense (and now I'm using them elsewhere)
+		Psi_wilt = -pow(10.0, 5.3);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm. Testing parameter change from 4.2 to 5.3, to allow plants/evap to extract more water, up to ~ -20MPa.
+		Psi_whc = -pow(10.0, 1.8);    /// CS changed from pow(10.0, -2). See Hohenbrink et al (2023), output is in cm, 1.8
+
+		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984
+		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / -b); 
+
+	} else {
+
+		Psi_s = pow(10.0, -logPsi_s);  
+		Psi_wilt = pow(10.0, -4.2);   
+		Psi_whc = pow(10.0, -2.0);    
+
+		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / b);  
+		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / b); 
+
+	}
 
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established

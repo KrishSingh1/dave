@@ -1929,6 +1929,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	fipar_layerwise.clear();
 	lai_layerwise.clear();
+	an_layerwise.clear();
 
 	andemand_leaf     = 0.0;
 	andemand_root     = 0.0;

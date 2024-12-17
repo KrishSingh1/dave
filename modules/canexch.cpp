@@ -975,7 +975,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	double adt = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g;
 
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
+	ps_result.adtmm = adt / CMASS * R_gas * (temp + K2degC) / PATMOS * 1e3;
 }
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
@@ -1767,6 +1767,10 @@ double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 		break;
 	case WR_ROOT_RESISTANCE:
 		{
+
+			if (!ifdavehydraulics){
+				fail("Root resistance water uptake cannot be used without DAVE hydraulics module");
+			}
 		
 		// uptake rate depends on hydraulic resistance of soil and roots in each layer
 		// this will give more weight to water content than root volume (since soil hydraulic conductivity is very sensitive to water content)
@@ -2656,12 +2660,11 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Sapwood respiration (Eqn 7)
 
-		resp_sap = respcoeff * K * cmass_sap / 330 * gtemp_air; /// CS testing '330' instead of cton_sap because of issue with unlimited CN ratio
-
+		resp_sap = respcoeff * K * cmass_sap / cton_sap * gtemp_air;
 		// Root respiration (Eqn 7)
 		// Assumed that root phenology follows leaf phenology
 
-		resp_root = respcoeff * K * cmass_root_today / 29 * gtemp_soil; /// CS testing '29' instead of cton_root because of issue with unlimited CN ratio
+		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
 		resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
@@ -3244,11 +3247,11 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double beta  = kc * (1.0 + divide(O2atm, ko));
 	double anc   = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
 
-	if (inputs.gdark > (anc * inputs.X)) { 
+	//if (inputs.gdark > (anc * inputs.X)) { 
 		// If gdark is greater than gs from the 'normal' gs model,
 		// repeat calculation with gdark only. 
-		anc = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
-	}
+	//	anc = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
+	//}
 
 	// 2) RuBP regeneration-limited gross photosynthesis
 	double je = electron_transport_rate(inputs.par, jmax);
@@ -3258,9 +3261,9 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	beta  = 2.0 * gamstar;
 	double anj = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
-	if (inputs.gdark > (anj * inputs.X)) {
-		anj = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
-	}
+	//if (inputs.gdark > (anj * inputs.X)) {
+	//	anj = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
+	//}
 
 	// 3) TPU-limited gross photosynthesis
 	// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
@@ -3268,16 +3271,19 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Net photosynthesis as minimum of 1), 2), and 3) (mol m-2 s-1)
 	double an = min(anc, min(anj, anp));
+	//assert(an >= 0);
 
 	// Stomatal conductance to CO2 (mol m-2 s-1)
 	//gsc = g0 + An * X;
-	double gsc = max(inputs.gdark, an * inputs.X);
+	//double gsc = max(inputs.gdark, an * inputs.X);
+	double gsc = max(0.0, an * inputs.X);	// CS removed floor at gdark (since water stress can take gsc to zero)
 
 	// Re-calculate intercellular CO2 concentration (mol mol-1)
 	double ci;
 
 	if (!inputs.stomata_open) {
 		gsc = 0.0;
+		an = -rd;
 	}
 
 	if (is_zero(gsc)){
@@ -3411,10 +3417,12 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 		// Net photosynthesis rate (mol m-2 s-1)
 		an = min(anc, anj);
+		//assert(an >= 0);
 
 		// Stomatal conductance to CO2 (mol m-2 s-1)
 		// gsc = g0 + An * X;
-		gsc = max(inputs.gdark, an * inputs.X);
+		// gsc = max(inputs.gdark, an * inputs.X);
+		gsc = max(0.0, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
 
 		// Intercellular CO2 concentration (mol mol-1)
 		if (!inputs.stomata_open) {
@@ -3476,6 +3484,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	PhotosynthesisInputs inputs;
 	PhotosynthesisOutputs outputs;
 
+	// day with high incoming rad
+	//if (patch.get_climate().par > 15e6){
+	//	printf("a");
+	//}
+
 	// Loop through cohorts (=individuals)
 	for (int i = 0; i < vegetation.nobj; i++) {
 
@@ -3492,7 +3505,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% stomatal closure at stom_clos (for compatibility with hydraulic module)
+		double b1z = log(0.2)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 80% stomatal closure at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3512,6 +3525,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.anc_frac = 0;
 		indiv.anj_frac = 0;
 		indiv.anp_frac = 0;
+
+		indiv.an_layerwise.clear();
+		indiv.an_layerwise.resize(indiv.lai_layerwise.size());
+
+		for (int j = 0; j < indiv.lai_layerwise.size(); j++) {
+			indiv.an_layerwise[j] = 0;
+		}
 
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
@@ -3544,6 +3564,20 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			inputs.stomata_open = indiv.stomata_open;
 
+			// Test adjustment to gcutic with temperature - based on Cochard 2021 Eq 13 & 14, https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
+			double Q10a = 1.2; // Scaling parameter
+			double Tp = 35; // Transition temperature, degC
+			double Q10b = 4.8; // Scaling parameter
+			double gcutic_adj = 0.0;
+
+			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 20)/10); // calculate gcutic at phase change for use in equation below
+			
+			if (inputs.temp < Tp){
+				gcutic_adj = gcutic * pow(Q10a,(inputs.temp - 20)/10);
+			} else {
+				gcutic_adj = gcutic_Tp * pow(Q10b,(inputs.temp - Tp)/10);
+			}
+
 			double X = 0.0;
 			double gdark = 0.0;
 
@@ -3553,6 +3587,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// for water
 				ppft.g1 = g1x * exp(b1z*(indiv.predawn_lwp + 0.3));
+
 				// for water
 				g0 = min(g0,g0 * exp(b1z*(indiv.predawn_lwp + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
 				// for co2
@@ -3595,7 +3630,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				//
 				// Question: can we skip this layer if lai_layer is 0?
 				assert(inputs.lai >= 0);
-				
+
 				assert(inputs.fipar > 0);
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
@@ -3609,8 +3644,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Incident PAR in the middle of the layer (W m-2).
 				inputs.par = inputs.fipar * par;
 
+				//if (patch.get_climate().par > 15e6 && par > 400){
+				//	printf("a");
+				//}
+
 				// Account for the nitrogen gradient within the canopy.
 				inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
+
+				//if (date.year == 1 && date.day == 1 && day.period == 20 && j == 0) {
+				//	printf("\n");
+				//}
 
 				outputs.clear();
 				if (pft.pathway == C3) {
@@ -3624,14 +3667,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// sum variables over canopy layers
 				double lai_layer = inputs.lai;
 
+				indiv.an_layerwise[j] += outputs.an;
+
 				Rd_canopy  += outputs.rd * lai_layer;
 				An_canopy  += outputs.an * lai_layer;
 				Ag_canopy  += (outputs.an + outputs.rd) * lai_layer;
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				if (outputs.gsc < pft.gcutic / DWDC){
-					gsw_canopy += pft.gcutic * lai_layer; // don't allow gsw to fall below cuticular conductance
+				if (outputs.gsc < gcutic_adj / DWDC){
+					gsw_canopy += gcutic_adj * lai_layer; // don't allow gsw to fall below cuticular conductance
 				} else {
 					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
 				}
@@ -3809,7 +3854,8 @@ double electron_transport_rate(double PAR,double Jmax) {
     // Jmax = max. electron transport rate (mol m-2 s-1)
 
 	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
-	double alpha = 0.36125; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
+	double alpha = 0.3 * 0.825; // quantum yield of electron transport (mol (electrons) mol-1 (photon))
+							// updated value from Yang et al (2020)
 						    // value from von Caemmerer 2013 (Plant, Cell and Environment) 
 						    // Medlyn et al. 2002 (Plant, Cell and Environment): 0.3
 							// Note that alpha accounts for leaf light absorptance.
@@ -4176,6 +4222,11 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cton_crown = pft.cton_root_avr;
 		}
 
+		if (!indiv.pft.dave_allocation()){ // set CN ratios if not using DAVE allocation (since trunk allocation + DAVE photosynthesis can give unrealistic values)
+			cton_sap = 330.0;
+			cton_root = 29.0;
+		}
+
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
@@ -4222,6 +4273,7 @@ void forest_floor_dave(Patch &patch) {
 	PhotosynthesisInputs inputs;
 
 	// Air temperature in °C.
+	inputs.stomata_open = true;
 	inputs.temp  = climate.temp;
 
 	// VPD in kPa.
@@ -4315,6 +4367,7 @@ void forest_floor_dave(Patch &patch) {
 		}
 
 		ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * SECS_PER_DAY; // convert from mol/m2/s to kgC/m2/day
+		ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 
 		if (ppft.anetps_ff > spft.anetps_ff_max) {
 			spft.anetps_ff_max = ppft.anetps_ff;

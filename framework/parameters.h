@@ -377,6 +377,8 @@ extern bool ifdavephotosyn;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
+/// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
+extern bool ifdavehydrology;
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
 /// Whether LAI is distributed evenly across canopy layers for grasses.

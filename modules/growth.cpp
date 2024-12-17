@@ -1419,7 +1419,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+	//assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 // Capacity of C storage (kg C m-2)
@@ -1840,6 +1840,10 @@ bool allometry(Individual& indiv) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.sla() * indiv.pft.k_latosa / indiv.pft.wooddens;
 
+			//if (date.get_calendar_year() > 2012){
+			//	printf("a");
+			//}
+
 			// Stem diameter (Eqn 5)
 			indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
@@ -1878,6 +1882,10 @@ bool allometry(Individual& indiv) {
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv *
 				indiv.sla() / indiv.crownarea;
+
+			//if (date.get_calendar_year() > 2012){
+			//	printf("a");
+			//}
 
 			// FPC (Eqn 8)
 

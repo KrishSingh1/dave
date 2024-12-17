@@ -794,9 +794,18 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Fraction of standard percolation amount from lower soil layer that is
 	// diverted to baseflow runoff
-	const double BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
 
-	const double MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
+	double BASEFLOW_FRAC = 0.0;
+	double MIN_WATER_PERC = 0.0;
+
+	if (ifdavehydrology){
+		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
+		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
+
+	} else {
+		BASEFLOW_FRAC = 0.5;
+		MIN_WATER_PERC = 0.0000001;	
+	}
 
 	// Reset annuals
 	if (date.day == 0) {
@@ -828,9 +837,17 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	if (snowpack < 10.0) {	// evap only if snow depth < 10mm
 							// The potential evaporation:
-		evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init; // * wcont_evap_init ;
+		if (ifdavehydrology){
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init;// * wcont_evap_init ;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
+		} else {
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init * wcont_evap_init ;
+		}
 		// Below, we will limit evaporation to a value <= the available water in the evaporation layer
 	}
+
+	//if (date.get_calendar_year() > 2010 && wcont_evap_init > 0.9){
+	//	printf("a");
+	//}
 
 
 	// *** AET ***
@@ -1165,19 +1182,20 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		double perc_from_base = 0.0;
 		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC*depth_lower) {
 
-			//if (date.get_calendar_year() == 2019){
-			//	printf("a");
-			//}
+			if (ifdavehydrology){
+				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
+			} else {
+				perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
 
-			//perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
-			perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
-			perc_from_base = min(perc_from_base, Faw_perc_layer_2); // Only available water in these layers can percolate
-
-			// As in LPJ-GUESS v4.0
-			//if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf) // CS testing change
-			//	perc_from_base = rain_melt - runoff_surf;								// CS testing change
-		}
-		else {
+				// As in LPJ-GUESS v4.0
+				if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf){
+					perc_from_base = rain_melt - runoff_surf;
+				}							
+			}
+			// Only available water in these layers can percolate								
+		} else {
 			// No percolation
 			perc_from_base = 0.0;
 		}

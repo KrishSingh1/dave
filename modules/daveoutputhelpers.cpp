@@ -173,6 +173,14 @@ int get_nlayer_lai(const Patch &patch) {
 	return 0;
 }
 
+int get_nlayer_an(const Patch &patch) {
+	Individual *indiv = get_first_indiv(patch);
+	if (indiv) {
+		return indiv->an_layerwise.size();
+	}
+	return 0;
+}
+
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft) {
 	const Patchpft &patchpft = patch.pft[pft.id];
 	return patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap + patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;

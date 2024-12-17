@@ -240,6 +240,8 @@ specified patch.
 */
 int get_nlayer_lai(const Patch &patch);
 
+int get_nlayer_an(const Patch &patch);
+
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */

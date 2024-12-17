@@ -114,15 +114,17 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Interception
 			interception(patch, gridcell.climate);
+
 			initial_infiltration(patch, gridcell.climate);
 
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
 
-			// Sum total required irrigation
-			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
+
+			// Sum total required irrigation
+			irrigation(patch);
 
 			// Daily C allocation
 			growth_daily(patch);

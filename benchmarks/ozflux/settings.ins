@@ -18,7 +18,8 @@ ifdailygrass             0   ! daily allocation for grasses and crops
 ifdailytree              0   ! daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             0   ! DAVE growth scheme (grasses only at the moment)
-ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn)
+ifdavehydrology          1   ! DAVE hydrology updates
+ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
@@ -47,7 +48,7 @@ param "file_disturbance_st"   (str "")
 param "file_elevation_st"     (str "")
 
 ! Number of timesteps per day.
-nsteps_day            			24
+nsteps_day            			8
 
 ! Search radius in soil input file
 searchradius_soil               50
@@ -118,7 +119,7 @@ variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
 
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
-file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
+file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note extended to 2040 for synthetic drought/recovery at CuP - just added diff from 2022-23 every year
 !file_co2                     "../forcing/co2_1901_2018.txt"
 !file_co2                     "../forcing/co2_historical_1951_2005.dat"
 !file_co2                     "../forcing/co2_rcp45_1765_2500.dat"

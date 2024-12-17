@@ -78,6 +78,7 @@ bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
 bool ifdavegrowth;
+bool ifdavehydrology;
 bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
@@ -631,6 +632,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
@@ -2070,6 +2072,18 @@ void plib_callback(int callback) {
 			if (ifdavegrowth) {
 				if (!itemparsed("A_growth")) {
 					ppft->A_growth = calc_a_growth(ppft);
+				}
+			}
+
+			if (ifdavehydraulics){
+				if (!itemparsed("p50")) badins("p50");	
+				if (!itemparsed("p88")) badins("p88");	
+				if (!itemparsed("kmax")) badins("kmax");	
+				if (!itemparsed("stom_clos")) badins("stom_clos");	
+				if (!itemparsed("g1x")) badins("g1x");
+				if (!itemparsed("gcutic")) badins("gcutic");
+				if (ppft->is_grass()){
+					if (!itemparsed("tlp")) badins("tlp");
 				}
 			}
 

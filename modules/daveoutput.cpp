@@ -112,6 +112,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_soiln"               , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
 	add_patch_output("file_dave_soil_nflux"          , DAILY, soil_nflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
 	add_patch_output("file_dave_soil_psi"               , DAILY,"soil_psi", [](const Patch &p) { return p.soil.soil_psi; }, "Soil psi (MPa)");
+	add_patch_output("file_dave_pet"                , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
@@ -214,6 +215,7 @@ DaveOutput::DaveOutput() {
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
 	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)");
+	add_indiv_array_output("file_dave_layerwise_an" , DAILY, "layer", get_nlayer_an , [](const Individual &indiv, int i) { return indiv.an_layerwise.size() > i ? indiv.an_layerwise[i] : 0;  }, "Daily layered net photosynthesis (mol/m2/s)");
 	add_indiv_array_output("file_dave_Rs_r" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)");
 	add_indiv_array_output("file_dave_water_uptake" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)");
 

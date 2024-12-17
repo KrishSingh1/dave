@@ -515,8 +515,9 @@ private:
 			@param get_nelem: Pointer to a function which returns the number of array elements for the specified patch. The assumption is that every individual in the patch has an output array of the same length.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
+			@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description);
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(double*, int));
 
 			/*
 			Destructor.
@@ -558,6 +559,11 @@ private:
 			Read the i-th element of the output array.
 			*/
 			std::unique_ptr<ArrayOutputReader<Individual>> read_elem;
+
+			/*
+			Pointer to a function which aggregates the output value across individuals.
+			*/
+			double (*aggregator)(double *, int);
 	};
 
 	/*
@@ -924,8 +930,9 @@ private:
 	@param get_nelem: Get the number of array elements for a given patch.
 	@param read_output: A function which returns the i-th element of the output property of an individual.
 	@param description: Description of the output (with units!!).
+	@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 	*/
-	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description);
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(double *, int));
 
 	/*
 	Add a patch-level output.

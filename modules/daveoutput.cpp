@@ -207,8 +207,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 
 	// Daily individual-level array outputs.
-	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
-	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)");
+	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]", mean);
+	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)", sum);
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal"                 , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal; }, "Water scalar [0-1], 1 = min stress",  false, true);
@@ -219,14 +219,14 @@ DaveOutput::DaveOutput() {
 
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file
-	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_rd"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Rd[i];    }, "Subdaily leaf respiration (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_anc"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anc[i];   }, "Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_anj"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anj[i];   }, "Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_gsw"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.gsw[i];   }, "Subdaily stomatal conductance to water vapour (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_ci"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)");
-	add_indiv_array_output("file_dave_subdaily_vcmax", DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)");
+	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_rd"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Rd[i];    }, "Subdaily leaf respiration (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_anc"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anc[i];   }, "Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_anj"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anj[i];   }, "Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_gsw"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.gsw[i];   }, "Subdaily stomatal conductance to water vapour (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_ci"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)", mean);
+	add_indiv_array_output("file_dave_subdaily_vcmax", DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
+	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
@@ -438,9 +438,10 @@ void DaveOutput::add_indiv_array_output(
 		std::string elem_name,
 		int (*get_nelem)(const Patch &),
 		double (*read_output)(const Individual&, int),
-		std::string description) {
+		std::string description,
+		double (*aggregator)(double *, int)) {
 	ArrayOutputReader<Individual> *reader = new ArrayOutputReader<Individual>(read_output);
-	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description);
+	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, aggregator);
 	register_output(output, timestep);
 }
 
@@ -1239,11 +1240,13 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 		std::string element_name,
 		int (*get_nelem)(const Patch &),
 		ArrayOutputReader<Individual> *get_output,
-		std::string description) : OutputFile(param_name, description)
+		std::string description,
+		double (*agg)(double*, int)) : OutputFile(param_name, description)
 {
 	elem_name = element_name;
 	get_n = get_nelem;
 	read_elem = std::unique_ptr<ArrayOutputReader<Individual>>(get_output);
+	aggregator = agg;
 }
 
 void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
@@ -1275,15 +1278,16 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridc
 
 				for (size_t k = 0; k < pftlist.nobj; k++) {
 					std::vector<Individual *> indivs = get_indivs(vegetation, (const char *)pftlist[k].name);
-					double indiv_total = 0;
+					std::vector<double> values;
 					for (Individual *indiv : indivs) {
 						// Read array element for this individual.
-						indiv_total += read_elem->read(*indiv, i);
+						values.push_back(read_elem->read(*indiv, i));
 					}
-					total += indiv_total;
+					double aggregated = aggregator(&values.front(), values.size());
+					total += aggregated;
 
 					// Write current array element for this individual.
-					write_output(channel, indiv_total);
+					write_output(channel, aggregated);
 				}
 
 				// Write total value across all individuals for this array elem.

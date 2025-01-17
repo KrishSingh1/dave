@@ -1,6 +1,3 @@
-// for some reason, some people do not want to upgrade to newer C++ versions, so we need to add this check here...
-// C++ 17 provides support for filesystem actions directly, which is what we need here.
-#if __cplusplus >= 201703L
 #include "catch.hpp"
 
 #include "commandlinearguments.h"
@@ -9,9 +6,7 @@
 #include <fstream>
 #include <iterator>
 #include <iostream>
-
-
-#include <filesystem>
+#include <sstream>
 
 static const char *const CPOOL_OUTPUT_FILEPATH = "../tests/test_outputs/cpool.out";
 static const double TOLERANCE_kgC = 5.0;
@@ -50,16 +45,15 @@ TEST_CASE("Simple cf input run works for one grid cell", "[integrationtest]"){
 
 static void cleanUpOutput() {
     // remove cpool.out from test outputs, to make sure that we are really writing a cpool.out file and not checking a file that is lying around there from previous runs.
-    std::error_code error_code;
-    bool was_deleted = std::filesystem::remove(CPOOL_OUTPUT_FILEPATH, error_code);
-    if(was_deleted){
-        std::cout << "Output file " << CPOOL_OUTPUT_FILEPATH << " deleted. Ready to start the test." << std::endl;
-    } else {
-        if (error_code.value() != 0) {
+    std::ifstream file(CPOOL_OUTPUT_FILEPATH);
+    if(file.good()){
+        if(remove(CPOOL_OUTPUT_FILEPATH) == 0){
+            std::cout << "Output file " << CPOOL_OUTPUT_FILEPATH << " deleted. Ready to start the test." << std::endl;
+        } else {
             std::cout << "Output file " << CPOOL_OUTPUT_FILEPATH << " could not be deleted." << std::endl;
-        } else{
-            std::cout << "Output file " << CPOOL_OUTPUT_FILEPATH << " does not exist. This is not an error." << std::endl;
         }
+    } else {
+        std::cout << "Output file " << CPOOL_OUTPUT_FILEPATH << " does not exist. This is not an error." << std::endl;
     }
 }
 
@@ -77,5 +71,3 @@ static std::string getLastLineOfFile(const char *filepath) {
     }
     return lastLine;
 }
-
-#endif

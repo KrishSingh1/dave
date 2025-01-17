@@ -67,7 +67,11 @@ static void make_directory(const char *dir) {
 #include <sys/stat.h>
 #define change_directory chdir
 static void make_directory(const char *dir) {
+#ifdef WIN32
+	mkdir(dir);
+#else
 	mkdir(dir, 0755);
+#endif
 }
 #endif
 

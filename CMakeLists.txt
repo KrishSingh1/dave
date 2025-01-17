@@ -129,8 +129,8 @@ if(BENCHMARK)
 else()
   add_executable(runtests ${guess_sources} ${test_sources})
   target_link_libraries(runtests ${LIBS})
-  # Some unit tests require C++17
-  set_property(TARGET runtests PROPERTY CXX_STANDARD 17)
+  # Some unit tests require C++14
+  set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
 endif()
 
 # Specify libraries to link to the executable

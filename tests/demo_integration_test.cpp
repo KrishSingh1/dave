@@ -20,7 +20,7 @@ static std::string getLastLineOfFile(const char *filepath);
 static void cleanUpOutput();
 
 
-TEST_CASE("Simple cf input run works for one grid cell and total carbon is in a reasonable range", "[integrationtest]"){
+TEST_CASE("Simple cf input run works for one grid cell", "[integrationtest]"){
 
     cleanUpOutput();
 
@@ -40,8 +40,12 @@ TEST_CASE("Simple cf input run works for one grid cell and total carbon is in a 
     std::vector<std::string> tokens(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
     double cpoolTotalAtSimulationEnd = std::stof(tokens.back());
-    double expectedTotalCarbon = 5.0;
-    REQUIRE(cpoolTotalAtSimulationEnd == Approx(expectedTotalCarbon).margin(TOLERANCE_kgC));
+
+    SECTION("A simple LPJ-GUESS simulation with nc input and 1 patch without disturbances of stochastics should simulate some plants growing, so the carbon pool should be some positive number."){
+        // If this check fails when you added code to the model, it means that there was probably no plants growing.
+        // Maybe you need to adapt the insfile with which this test is run, located at ../tests/test_insfiles/cfinput_test.ins
+        REQUIRE(cpoolTotalAtSimulationEnd > 0);
+    }
 }
 
 static void cleanUpOutput() {

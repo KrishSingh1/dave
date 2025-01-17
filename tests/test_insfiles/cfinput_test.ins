@@ -1,0 +1,45 @@
+import "../../data/ins/europe_cf.ins"
+
+firemodel "NOFIRE"
+nyear_spinup 100
+npatch 1
+freenyears 0
+
+weathergenerator "GWGEN"
+
+outputdirectory "../tests/test_outputs/"
+
+param "file_gridlist_cf" (str "../tests/test_insfiles/cfinput_test_gridlist_cf.txt")
+param "file_gridlist" (str "../tests/test_insfiles/cfinput_test_gridlist_cf.txt")
+
+param "file_co2"      (str "../tests/test_insfiles/dummy_co2.txt")
+param "file_ndep"     (str "")
+
+
+param "file_temp"     (str "../tests/test_insfiles/dummy_temp.nc")
+param "file_prec"     (str "../tests/test_insfiles/dummy_pr.nc")
+param "file_insol"     (str "../tests/test_insfiles/dummy_rad.nc")
+param "variable_temp" (str "temp")
+param "variable_prec" (str "pr")
+param "variable_insol"  (str "rad")
+
+
+param "file_wind" (str "")
+param "variable_wind"  (str "")
+param "file_relhum" (str "")
+param "variable_relhum"	(str "")
+param "file_pres"     (str "")
+param "variable_pres" (str "")
+param "file_specifichum" (str "")
+param "variable_specifichum" (str "")
+param "file_wetdays"     (str "")
+param "variable_wetdays" (str "")
+param "file_min_temp"      (str "")
+param "variable_min_temp"  (str "")
+param "file_max_temp"      (str "")
+param "variable_max_temp"  (str "")
+param "file_simfire"  (str "")
+
+param "file_soildata" (str "../data/env/soils_lpj.dat")
+
+searchradius_soil 1

@@ -5,6 +5,11 @@ nyear_spinup 100
 npatch 1
 freenyears 0
 
+! turn off all stochastics to make sure tests are deterministic
+ifdisturb 0
+ifstochestab 0
+ifstochmort 0
+
 weathergenerator "GWGEN"
 
 outputdirectory "../tests/test_outputs/"

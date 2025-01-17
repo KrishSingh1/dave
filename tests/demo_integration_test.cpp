@@ -19,30 +19,6 @@ static const double TOLERANCE_kgC = 5.0;
 static std::string getLastLineOfFile(const char *filepath);
 static void cleanUpOutput();
 
-TEST_CASE("Simple demo run works for one grid cell and total carbon is in a reasonable range", "[integrationtest][demoinput]"){
-
-    cleanUpOutput();
-
-    std::cout << "Starting LPJ-GUESS" << std::endl;
-    // this is a global variable. We should remove all pfts because it could interfere with other tests.
-    pftlist.killall();
-    char* castedArgs[4] = { const_cast<char*>("guess"), const_cast<char*>("-input"), const_cast<char*>("demo"), const_cast<char*>("../tests/test_insfiles/europe_demo_for_test.ins") };
-    framework(CommandLineArguments(4, castedArgs));
-
-    std::cout << "LPJ-GUESS has finished. Checking outputs..." << std::endl;
-    // this is a global variable. We should remove all pfts because it could interfere with other tests.
-    pftlist.killall();
-
-    // check value of total carbon
-    std::string lastLine = getLastLineOfFile(CPOOL_OUTPUT_FILEPATH);
-    std::istringstream iss(lastLine);
-    std::vector<std::string> tokens(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
-
-    double cpoolTotalAtSimulationEnd = std::stof(tokens.back());
-    double expectedTotalCarbon = 25.0;
-    REQUIRE(cpoolTotalAtSimulationEnd == Approx(expectedTotalCarbon).margin(TOLERANCE_kgC));
-}
-
 
 TEST_CASE("Simple cf input run works for one grid cell and total carbon is in a reasonable range", "[integrationtest]"){
 

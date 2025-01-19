@@ -51,14 +51,14 @@ file_dave_agpp                  "dave_agpp.out"                 ! Total individu
 file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Autotrophic Respiration (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"            ! Total individual-level annual carbon in leaf litter (kgC/m2/year)
 file_dave_ancohort              "dave_ancohort.out"            ! Number of cohorts currently established per pft (unitless)
-!file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
+file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
 !file_dave_stand_type            "dave_stand_type.out"           ! Stand landcover types
 
 ! Annual stand-level pft outputs.
-!file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
+file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual per-patch aggregated individual-level outputs.
 !file_dave_acalloc_leaf          "dave_calloc_leaf.out"          ! Total annual C allocation to leaf (kgC/m2)
@@ -136,7 +136,6 @@ file_dave_hydraulics            "dave_hydraulics.out"           ! Summary file w
 !file_dave_cmass_litter_repr     "dave_cmass_litter_repr.out"    ! Seedbank cmass (kgC/m2)
 !file_dave_nmass_litter_repr     "dave_nmass_litter_repr.out"    ! Seedbank nmass (kgN/m2)
 !file_dave_dresp                 "dave_dresp.out"                ! Total daily pft-level autotrophic Respiration (kgC/m2)
-file_dave_anet_ps_ff              "dave_anet_ps_ff.out"          ! Annual potential photosynthesis at the forest floor (kgC/m2/year)
 
 ! Subdaily indiv-level per-patch outputs.
 file_dave_subdaily_an           "dave_subdaily_an.out"          ! Subdaily net photosynthesis (mol/m2/s)
@@ -249,10 +248,6 @@ file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pres
 !file_dave_sompool_nmass         "dave_sompool_nmass.out"        ! Daily SOM pool N mass (kgN/m2)
 
 !file_dave_ninput                "dave_ninput.out"               ! Daily nitrogen deposition (kgN/m2)
-
-! Annual stand level outputs
-file_dave_anet_ps_ff_max        "dave_anet_ps_ff_max.out"          ! Maximum potential photosynthesis at the forest floor in any patch/year (kgC/m2/year)
-
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.

@@ -26,6 +26,7 @@ use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean an
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
 epsiresolution           100 ! Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.
+ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -71,9 +72,6 @@ cache_strategy                0
 ! HISTORIC, RCP26, RCP45, RCP60, RCP85
 ndep_scenario                "rcp60"
 useClosestNdep               1   ! Use closest available N Deposition data if none found for this gridcell
-
-! 1 if met forcing data contains leap days
-has_leap_years                0
 
 ! User input from the instruction file. The number of years of data to recycle
 ! during the spinup. If 0, all data will be recycled during freenyears.
@@ -126,7 +124,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note e
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               1
+nindiv_max               0
 
 ifforcedlai                  0
 
@@ -298,3 +296,7 @@ import "trees.ins"
 import "shrubberies.ins"
 !import "c3g.ins"
 !import "c4g.ins"
+
+! Uncomment this (and comment out all other pft .ins files) to use the standard
+! (global) pfts. This should always be done when using trunk allocation.
+!import "pft_global.ins"

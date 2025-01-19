@@ -51,10 +51,21 @@ file_dave_agpp                  "dave_agpp.out"                 ! Total individu
 file_dave_aresp                 "dave_aresp.out"                ! Total individual-level Autotrophic Respiration (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"            ! Total individual-level annual carbon in leaf litter (kgC/m2/year)
 file_dave_ancohort              "dave_ancohort.out"            ! Number of cohorts currently established per pft (unitless)
+!file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
 !file_dave_stand_type            "dave_stand_type.out"           ! Stand landcover types
+
+! Annual stand-level pft outputs.
+!file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
+
+! Annual per-patch aggregated individual-level outputs.
+!file_dave_acalloc_leaf          "dave_calloc_leaf.out"          ! Total annual C allocation to leaf (kgC/m2)
+!file_dave_acalloc_root          "dave_calloc_root.out"          ! Total annual C allocation to root (kgC/m2)
+!file_dave_acalloc_repr          "dave_calloc_repr.out"          ! Total annual C allocation to repr (kgC/m2)
+!file_dave_acalloc_sap           "dave_calloc_sap.out"           ! Total annual C allocation to sap (kgC/m2)
+!file_dave_acalloc_crown         "dave_acalloc_crown.out"        ! Total annual C allocation to crown (kgC/m2)
 
 ! Daily indiv-level per-patch outputs.
 file_dave_lai                   "dave_lai.out"                  ! LAI by individual (m2/m2)
@@ -178,7 +189,7 @@ file_dave_cmass_sap             "dave_cmass_sap.out"            ! Sapwood C mass
 !file_dave_anj_frac              "dave_anj_frac.out"             ! Daily anj as fraction of total daily photosynthesis (0-1)
 !file_dave_anp_frac              "dave_anp_frac.out"             ! Daily anp as fraction of total daily photosynthesis (0-1)
 !file_dave_dnuptake              "dave_dnuptake.out"             ! Total daily nitrogen uptake (kgN/m2/day)
-!file_dave_cexcess               "dave_cexcess.out"              ! Total daily carbon overflow (kgN/m2/day)
+!file_dave_cexcess               "dave_cexcess.out"              ! Total daily carbon overflow (kgC/m2/day)
 !file_dave_ctolitter_leaf        "dave_ctolitter_leaf.out"       ! Total daily C sent from the leaf pool to litter (kgC/m2/day)
 !file_dave_ntolitter_leaf        "dave_ntolitter_leaf.out"       ! Total daily N sent from the leaf pool to litter (kgN/m2/day)
 !file_dave_ctolitter_root        "dave_ctolitter_root.out"       ! Total daily C sent from the root pool to litter (kgC/m2/day)

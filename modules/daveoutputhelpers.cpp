@@ -218,6 +218,16 @@ double mean(double *array, int n) {
 	return n ? sum(array, n) / n : 0;
 }
 
+double weight_by_lai(const Individual &indiv, double (*selector)(const Individual&)) {
+	double total_lai = 0;
+	for (size_t i = 0; i < indiv.vegetation.nobj; i++) {
+		if (indiv.pft.id == indiv.vegetation[i].id) {
+			total_lai += indiv.vegetation[i].lai;
+		}
+	}
+	return selector(indiv) * indiv.lai / total_lai;
+}
+
 double get_patch_nee(const Patch &patch) {
 	// out_cflux, 
 	double flux_veg = -patch.fluxes.get_annual_flux(Fluxes::NPP);
@@ -734,6 +744,7 @@ std::vector<ColumnDefinition<Patch>> evap_columns() {
 	columns.push_back(ColumnDefinition<Patch>("evaporation", [](const Patch &p) { return p.evap; }));
 	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
 	columns.push_back(ColumnDefinition<Patch>("transpiration", [](const Patch &p) { return p.transp; }));
+	columns.push_back(ColumnDefinition<Patch>("evapotranspiration", [](const Patch &p) { return p.evap + p.transp; }));
 	return columns;
 }
 

@@ -392,8 +392,8 @@ void adjust_kmax(Patch &patch) {
         }
 
         if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
-            double old_wood = std::max(indiv.cmass_sap - indiv.cmass_sap_growth, 0.0);
-            double new_wood = std::max(std::min(indiv.cmass_sap_growth, indiv.cmass_sap),0.0);
+            double old_wood = std::max(indiv.cmass_sap - indiv.acalloc_sap, 0.0);
+            double new_wood = std::max(std::min(indiv.acalloc_sap, indiv.cmass_sap),0.0);
             if (indiv.cmass_sap_yesterday == 0.0){ // there was no sapwood before, no drought legacy
                 indiv.kmax_drought_affected = pft.kmax;
             } else { // drought-impacted wood is lost and fresh wood (with maximum kmax) regrows

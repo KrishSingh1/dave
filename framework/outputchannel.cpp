@@ -171,10 +171,15 @@ OutputChannel::get_current_row_text(const Table& table) const {
 }
 
 void OutputChannel::clear_current_row(const Table& table) {
+	 // Note: swap() causes high memory churn in subsequent calls to push_back()
+	 // so I have stopped doing this. finish_row() already contains a check to
+	 // ensure that the correct number of values have been written, so this
+	 // swap() doesn't achieve anything other than slowing down the model.
+
 	 values[table.id()].clear();
-	 std::vector<double>().swap(values[table.id()]); // clear array memory
+	 // std::vector<double>().swap(values[table.id()]); // clear array memory
 	 text_values[table.id()].clear();
-	 std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
+	 // std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
 }
 
 FileOutputChannel::FileOutputChannel(const char* out_dir,
@@ -383,16 +388,15 @@ OutputRows::OutputRows(OutputChannel* output_channel,
 }
 
 OutputRows::~OutputRows() {
-	 for (size_t i = 0; i < used_tables.size(); i++) {
-		  if (used_tables[i]) {
+	 for (int i : used_tables) {
 				if (d == -1) {
 					 out->finish_row(Table((int)i), lon, lat, y);
 				}
 				else {
 					 out->finish_row(Table((int)i), lon, lat, y, d);
 				}
-		  }
 	 }
+	 // If we weren't in the destructor, we would need to clear used_tables now.
 }
 
 void OutputRows::add_value(const Table& table,double d) {
@@ -404,10 +408,7 @@ void OutputRows::add_value(const Table& table,double d) {
 	 int id = table.id();
 
 	 // remember that this table has gotten a value
-	 if (id >= static_cast<int>(used_tables.size())) {
-		  used_tables.resize(id+1);
-	 }
-	 used_tables[id] = true;
+	 used_tables.insert(id);
 	 
 	 // send the value to the output channel
 	 out->add_value(table, d);
@@ -421,10 +422,7 @@ void OutputRows::add_value(const Table &table, const char *t) {
 
 	int id = table.id();
 
-	if (id >= static_cast<int>(used_tables.size())) {
-		used_tables.resize(id + 1);
-	}
-	used_tables[id] = true;
+	used_tables.insert(id);
 
 	// Send the value to the output channel.
 	out->add_value(table, t);

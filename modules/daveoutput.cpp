@@ -76,11 +76,18 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_acmass_mort"           , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
 	add_pft_output("file_dave_aclitter"              , ANNUAL, get_pft_cmass_litter, "Total individual-level Annual GPP (kgC/m2/year)");
 	add_pft_output("file_dave_ancohort"              , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
-	add_pft_output("file_dave_anet_ps_ff"                  , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual potential photosynthesis at the forest floor (kgC/m2/year)", true);
+	add_pft_output("file_dave_anetps_ff"             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual net photosynthesis at forest floor (kgC/m2)", true);
 
 	// Annual stand-level outputs.
 	add_stand_output("file_dave_stand_frac"          , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
 	add_stand_output("file_dave_stand_type"          , ANNUAL, "type", [](const Stand &s) { return (double)s.landcover; }, "Stand landcover types");
+
+	// Annual per-patch aggregated individual-level outputs.
+	add_aggregated_indiv_output("file_dave_acalloc_leaf"	, ANNUAL, [](const Individual &i) { return i.acalloc_leaf; }, "Total annual C allocation to leaf (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_root"	, ANNUAL, [](const Individual &i) { return i.acalloc_root; }, "Total annual C allocation to root (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_repr"	, ANNUAL, [](const Individual &i) { return i.acalloc_repr; }, "Total annual C allocation to repr (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_sap"		, ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_crown"	, ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to crown (kgC/m2)", sum, true);
 
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
@@ -107,7 +114,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_gpp"                 , DAILY, "gpp", get_gpp, "Daily patch-level GPP (gC/m2/day)");
 	add_patch_output("file_dave_npp"                 , DAILY, "npp", get_npp, "Daily patch-level NPP (gC/m2/day)");
 	add_patch_output("file_dave_nee"                 , DAILY, "nee", get_nee, "Daily patch-level NEE (gC/m2/day)");
-	add_patch_output("file_dave_evaporation"         , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)", true);
+	add_patch_output("file_dave_evaporation"         , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)");
 	add_patch_output("file_dave_soilc"               , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"               , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
 	add_patch_output("file_dave_soil_nflux"          , DAILY, soil_nflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
@@ -191,7 +198,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anj_frac"            , DAILY, [](const Individual &i) { return i.anj_frac; }, "Daily anj as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_anp_frac"            , DAILY, [](const Individual &i) { return i.anp_frac; }, "Daily anp as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dnuptake"            , DAILY, [](const Individual &i) { return i.dnuptake; }, "Total daily nitrogen uptake (kgN/m2/day)", sum, true);
-	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_leaf"      , DAILY, [](const Individual &i) { return i.ctolitter_leaf; }, "Total daily C sent from the leaf pool to litter (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ntolitter_leaf"      , DAILY, [](const Individual &i) { return i.ntolitter_leaf; }, "Total daily N sent from the leaf pool to litter (kgN/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_ctolitter_root"      , DAILY, [](const Individual &i) { return i.ctolitter_root; }, "Total daily C sent from the root pool to litter (kgC/m2/day)", sum, true);
@@ -208,16 +215,17 @@ DaveOutput::DaveOutput() {
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
-	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", mean, false, true);
-	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", mean, false, true);
-	add_indiv_output("file_dave_hydraulics"               , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", mean, false, false);
-	
+	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
+	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", false, true);
+	add_indiv_output("file_dave_hydraulics"               , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", false, false);
+	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
+
 	// Daily individual-level array outputs.
-	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]");
-	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)");
-	add_indiv_array_output("file_dave_layerwise_an" , DAILY, "layer", get_nlayer_an , [](const Individual &indiv, int i) { return indiv.an_layerwise.size() > i ? indiv.an_layerwise[i] : 0;  }, "Daily layered net photosynthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_Rs_r" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)");
-	add_indiv_array_output("file_dave_water_uptake" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)");
+	add_indiv_array_output("file_dave_layerwise_fpar", DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]", mean);
+	add_indiv_array_output("file_dave_layerwise_lai" , DAILY, "layer", get_nlayer_lai , [](const Individual &indiv, int i) { return indiv.lai_layerwise.size() > i ? indiv.lai_layerwise[i] : 0;  }, "Daily layered LAI (m2/m2)", sum);
+	add_indiv_array_output("file_dave_layerwise_an" , DAILY, "layer", get_nlayer_an , [](const Individual &indiv, int i) { return indiv.an_layerwise.size() > i ? indiv.an_layerwise[i] : 0;  }, "Daily layered net photosynthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_Rs_r" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)", sum);
+	add_indiv_array_output("file_dave_water_uptake" , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)", sum);
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_cmass_litter_repr"     , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Seedbank cmass (kgC/m2)", true);
@@ -227,16 +235,16 @@ DaveOutput::DaveOutput() {
 
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file
-	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_rd"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Rd[i];    }, "Subdaily leaf respiration (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_anc"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anc[i];   }, "Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_anj"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anj[i];   }, "Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_gsw"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.gsw[i];   }, "Subdaily stomatal conductance to water vapour (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_ci"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)");
-	add_indiv_array_output("file_dave_subdaily_vcmax", DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)");
-	add_indiv_array_output("file_dave_subdaily_lwp" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)");
-	
+	add_indiv_array_output("file_dave_subdaily_an"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.An[i];    }, "Subdaily net photosynthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_rd"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Rd[i];    }, "Subdaily leaf respiration (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_anc"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anc[i];   }, "Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_anj"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.Anj[i];   }, "Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_gsw"  , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.gsw[i];   }, "Subdaily stomatal conductance to water vapour (mol/m2/s)", sum);
+	add_indiv_array_output("file_dave_subdaily_ci"   , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)", mean);
+	add_indiv_array_output("file_dave_subdaily_vcmax", DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
+	add_indiv_array_output("file_dave_subdaily_jmax" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
+	add_indiv_array_output("file_dave_subdaily_lwp" , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", mean);
+
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"            , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
 	add_patch_array_output("file_dave_swmm"          , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
@@ -257,7 +265,7 @@ DaveOutput::DaveOutput() {
 
 	// Standpft-level outputs.
 	//add_spft_output("file_dave_cmass_repr"           , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2/day)");
-	add_spft_output("file_dave_anet_ps_ff_max"           , ANNUAL, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum potential photosynthesis at the forest floor in any patch/year (kgC/m2/year)");
+	add_spft_output("file_dave_anetps_ff_max"               , DAILY, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum recorded annual net photosynthesis at forest-floor (kgC/m2)");
 
 	// Register instruction file parameters.
 	declare_parameters();
@@ -271,6 +279,7 @@ DaveOutput::~DaveOutput() {
 
 void DaveOutput::init() {
 	double t_start = get_wall_time();
+	// rows = new OutputRows(output_channel, -1, -1, -1, -1);
 	open_outfiles();
 	total_time += get_wall_time() - t_start;
 }
@@ -278,9 +287,14 @@ void DaveOutput::init() {
 void DaveOutput::write_outputs(Gridcell &gridcell, std::vector<std::unique_ptr<OutputFile>> &outputs) {
 	ensure_channel_open();
 
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	// OutputRows rows(output_channel, lon, lat, year, date.day);
+
 	for (std::unique_ptr<OutputFile> &output : outputs) {
 		if (output->enabled()) {
-			output->write_rows(*output_channel, gridcell);
+			output->write_rows(output_channel, gridcell);
 		}
 	}
 }
@@ -413,10 +427,21 @@ void DaveOutput::add_indiv_output(
 		timestep_t timestep,
 		std::vector<ColumnDefinition<Individual>> (*get_columns)(),
 		std::string description,
-		double (*aggregator)(double *, int),
 		bool sum,
 		bool mean) {
 	IndividualOutput *output = new IndividualOutput(name, get_columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_indiv_output(
+		std::string name,
+		timestep_t timestep,
+		std::string colname,
+		double (*read_output)(const Individual &),
+		std::string description) {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>(colname, read_output));
+	IndividualOutput *output = new IndividualOutput(name, columns, description, false, false);
 	register_output(output, timestep);
 }
 
@@ -431,9 +456,10 @@ void DaveOutput::add_indiv_array_output(
 		std::string elem_name,
 		int (*get_nelem)(const Patch &),
 		double (*read_output)(const Individual&, int),
-		std::string description) {
+		std::string description,
+		double (*aggregator)(double *, int)) {
 	ArrayOutputReader<Individual> *reader = new ArrayOutputReader<Individual>(read_output);
-	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description);
+	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, aggregator);
 	register_output(output, timestep);
 }
 
@@ -525,40 +551,40 @@ void DaveOutput::OutputFile::close(OutputChannel &channel) {
 	channel.close_table(*table);
 }
 
-bool DaveOutput::OutputFile::should_write(OutputRows &rows) {
+bool DaveOutput::OutputFile::should_write(OutputChannel *channel) {
 	if (!should_write_today()) {
 		return false;
 	}
 	return true;
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, double value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, double value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, min(value, 10000.0));
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, int value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, int value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, min(value, 10000));
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::write_output(OutputRows &rows, const char *value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, const char *value)
 {
 	assert_table_open();
-	if (should_write(rows)) {
-		rows.add_value(*table, value);
+	if (should_write(channel)) {
+		channel->add_value(*table, value);
 	}
 }
 
-void DaveOutput::OutputFile::finish_row(OutputChannel &rows, double lon, double lat, int year, int day) {
+void DaveOutput::OutputFile::finish_row(OutputChannel *channel, double lon, double lat, int year, int day) {
 	assert_table_open();
-	rows.finish_row(*table, lon, lat, year, day);
+	channel->finish_row(*table, lon, lat, year, day);
 }
 
 void DaveOutput::OutputFile::assert_table_open() {
@@ -640,13 +666,12 @@ DaveOutput::StandLevelOutput::StandLevelOutput(
 }
 
 void DaveOutput::StandLevelOutput::write_rows(
-		OutputChannel &channel,
+		OutputChannel *channel,
 		Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	// Each vector of this vector represents a single stand. Each element in the
 	// sub-vectors represents a value which will be written for column i of that
@@ -665,21 +690,21 @@ void DaveOutput::StandLevelOutput::write_rows(
 
 			// Write stand ID.
 			// todo: would it be better to write the stand name instead?
-			write_output(rows, stand.id);
+			write_output(channel, stand.id);
 
 			// Write stand data.
 			double total = 0;
 			for (double x : stand_data) {
-				write_output(rows, x);
+				write_output(channel, x);
 				total += x;
 			}
 			if (write_sum) {
-				write_output(rows, total);
+				write_output(channel, total);
 			}
 			if (write_mean) {
-				write_output(rows, total / stand_data.size());
+				write_output(channel, total / stand_data.size());
 			}
-			finish_row(channel, lon, lat, year, day);
+			finish_row(output_channel, lon, lat, year, day);
 		}
 	}
 
@@ -688,7 +713,7 @@ void DaveOutput::StandLevelOutput::write_rows(
 		// to write one column at a time.
 
 		// First, get the number of columns.
-		int ncol = data[0].size();
+		size_t ncol = data[0].size();
 
 		// Now iterate over the columns that we want to write.
 		for (size_t j = 0; j < ncol; j++) {
@@ -701,9 +726,9 @@ void DaveOutput::StandLevelOutput::write_rows(
 			// Compute summary statistics for this column.
 			double mean = 0, sd = 0, median = 0;
 			compute_stats(column_data, &mean, &sd, &median);
-			write_output(rows, mean);
-			write_output(rows, median);
-			write_output(rows, sd);
+			write_output(channel, mean);
+			write_output(channel, median);
+			write_output(channel, sd);
 		}
 		if (write_sum || write_mean) {
 			// Calculate the total for each stand.
@@ -719,17 +744,17 @@ void DaveOutput::StandLevelOutput::write_rows(
 			double mean = 0, sd = 0, median = 0;
 			compute_stats(totals, &mean, &sd, &median);
 			if (write_sum) {
-				write_output(rows, mean);
-				write_output(rows, median);
-				write_output(rows, sd);
+				write_output(channel, mean);
+				write_output(channel, median);
+				write_output(channel, sd);
 			}
 			if (write_mean) {
-				write_output(rows, mean / ncol);
-				write_output(rows, median / ncol);
-				write_output(rows, sd / ncol);
+				write_output(channel, mean / ncol);
+				write_output(channel, median / ncol);
+				write_output(channel, sd / ncol);
 			}
 		}
-		finish_row(channel, lon, lat, year, day);
+		finish_row(output_channel, lon, lat, year, day);
 	}
 }
 
@@ -782,20 +807,16 @@ DaveOutput::PatchLevelOutput::PatchLevelOutput(std::string param, std::string de
 	write_mean = mean;
 }
 
-void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
+void DaveOutput::PatchLevelOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
 		Stand &stand = *gc_itr;
-
-		// Write stand ID.
-		write_output(rows, stand.id);
 
 		stand.firstobj();
 
@@ -804,7 +825,15 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 		while (stand.isobj) {
 			Patch &patch = stand.getobj();
 
-			std::vector<double> patch_data = write_patch(patch, rows);
+			// Write stand ID; when writing "standard" outputs, we write stand
+			// ID once per patch (ie once per row of output). When writing
+			// stats, we only write one row per stand, so we cannot write stand
+			// ID from inside a patch-level loop.
+			if (!write_stats()) {
+				write_output(channel, stand.id);
+			}
+
+			std::vector<double> patch_data = write_patch(patch, channel);
 			if (write_stats()) {
 				data.push_back(patch_data);
 			} else {
@@ -813,19 +842,19 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				// with this shortcut when the number of patches is high.
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write patch data.
 				double total = 0;
 				for (double x : patch_data) {
-					write_output(rows, x);
+					write_output(channel, x);
 					total += x;
 				}
 				if (write_sum) {
-					write_output(rows, total);
+					write_output(channel, total);
 				}
 				if (write_mean) {
-					write_output(rows, total / patch_data.size());
+					write_output(channel, total / patch_data.size());
 				}
 			}
 
@@ -841,7 +870,11 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 			// to write one column at a time.
 
 			// First, get the number of columns.
-			int ncol = data[0].size();
+			size_t ncol = data[0].size();
+
+			// We write one row of output per stand, so we need to first output
+			// the stand ID.
+			write_output(channel, stand.id);
 
 			// Now iterate over the columns that we want to write.
 			for (size_t j = 0; j < ncol; j++) {
@@ -854,15 +887,15 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				// Compute summary statistics for this column.
 				double mean = 0, sd = 0, median = 0;
 				compute_stats(column_data, &mean, &sd, &median);
-				write_output(rows, mean);
-				write_output(rows, median);
-				write_output(rows, sd);
+				write_output(channel, mean);
+				write_output(channel, median);
+				write_output(channel, sd);
 
 			}
 			if (write_sum || write_mean) {
 				std::vector<double> totals;
 				// Iterate over patches.
-				for (int i = 0; i < data.size(); i++) {
+				for (size_t i = 0; i < data.size(); i++) {
 					// Get the total for this patch.
 					double total = 0;
 					for (size_t j = 0; j < data[i].size(); j++) {
@@ -873,14 +906,14 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel &channel, Gridcell &
 				double mean = 0, sd = 0, median = 0;
 				compute_stats(totals, &mean, &sd, &median);
 				if (write_sum) {
-					write_output(rows, mean);
-					write_output(rows, median);
-					write_output(rows, sd);
+					write_output(channel, mean);
+					write_output(channel, median);
+					write_output(channel, sd);
 				}
 				if (write_mean) {
-					write_output(rows, mean / ncol);
-					write_output(rows, median / ncol);
-					write_output(rows, sd / ncol);
+					write_output(channel, mean / ncol);
+					write_output(channel, median / ncol);
+					write_output(channel, sd / ncol);
 				}
 			}
 			finish_row(channel, lon, lat, year, day);
@@ -916,15 +949,24 @@ DaveOutput::IndividualOutput::IndividualOutput(
 	write_mean = mean;
 }
 
+DaveOutput::IndividualOutput::IndividualOutput(
+		std::string param_name,
+		std::vector<ColumnDefinition<Individual>> columns,
+		std::string description,
+		bool sum,
+		bool mean) : OutputFile(param_name, description) {
+	this->columns = columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
 DaveOutput::IndividualOutput::~IndividualOutput() { }
 
-void DaveOutput::IndividualOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
-
+void DaveOutput::IndividualOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -943,20 +985,20 @@ void DaveOutput::IndividualOutput::write_rows(OutputChannel &channel, Gridcell &
 				const Individual &indiv = vegetation[i];
 
 				// Write stand ID.
-				write_output(rows, stand.id);
+				write_output(channel, stand.id);
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write individual ID.
-				write_output(rows, indiv.id);
+				write_output(channel, indiv.id);
 
 				// Write PFT name.
-				write_output(rows, indiv.pft.name);
+				write_output(channel, indiv.pft.name);
 
 				// Write data.
 				for (size_t j = 0; j < columns.size(); j++) {
-					write_output(rows, columns[j].read_value(indiv));
+					write_output(channel, columns[j].read_value(indiv));
 				}
 
 				// End of this row.
@@ -971,7 +1013,12 @@ void DaveOutput::IndividualOutput::write_rows(OutputChannel &channel, Gridcell &
 }
 
 ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
-	columns = get_column_definitions();
+	if (get_column_definitions) {
+		columns = get_column_definitions();
+	}
+	if (columns.size() == 0) {
+		fail("No columns specified for output file");
+	}
 
 	ColumnDescriptors descriptors;
 	descriptors += ColumnDescriptor(COLNAME_STAND, COLUMN_WIDTH, 0);
@@ -1001,21 +1048,26 @@ DaveOutput::PftOutput::PftOutput(
 	read_output = get_output;
 }
 
+void add_pft_columns(ColumnDescriptors &columns) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		add_column(columns, (const char *)pftlist[i].name, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+}
+
 ColumnDescriptors DaveOutput::PftOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
-	std::vector<std::string> pfts = get_pfts(true);
-	add_columns(columns, pfts, COLUMN_WIDTH, NUMERIC_PRECISION);
+	add_pft_columns(columns);
 	return columns;
 }
 
-std::vector<double> DaveOutput::PftOutput::write_patch(Patch &patch, OutputRows &out) {
-	std::vector<double> results;
+std::vector<double> DaveOutput::PftOutput::write_patch(Patch &patch, OutputChannel *channel) {
+	std::vector<double> results(pftlist.nobj);
 
-	for (int i = 0; i < pftlist.nobj; i++) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
 		const Pft &pft = pftlist[i];
 
 		double result = get_value(patch, pft);
-		results.push_back(result);
+		results[i] = result;
 	}
 
 	return results;
@@ -1040,7 +1092,7 @@ DaveOutput::CustomPatchLevelOutput::CustomPatchLevelOutput(
 		get_column_definitions = get_columns;
 }
 
-std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch, OutputRows &out) {
+std::vector<double> DaveOutput::CustomPatchLevelOutput::write_patch(Patch &patch, OutputChannel *channel) {
 	std::vector<double> result;
 
 	for (const ColumnDefinition<Patch> &col : columns) {
@@ -1081,7 +1133,7 @@ DaveOutput::StandPftOutput::StandPftOutput(
 
 DaveOutput::StandPftOutput::~StandPftOutput() { }
 
-std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, OutputRows &out) {
+std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, OutputChannel *channel) {
 	Vegetation &vegetation = patch.vegetation;
 	Stand &stand = patch.stand;
 
@@ -1092,7 +1144,7 @@ std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, Output
 	// error).
 
 	// Write one column per PFT.
-	for (int i = 0; i < pftlist.nobj; i++) {
+	for (size_t i = 0; i < pftlist.nobj; i++) {
 		Pft &pft = pftlist[i];
 		const Standpft &spft = stand.pft[pft.id];
 		double result = read_output->read(spft);
@@ -1104,7 +1156,7 @@ std::vector<double> DaveOutput::StandPftOutput::write_patch(Patch &patch, Output
 
 ColumnDescriptors DaveOutput::StandPftOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
-	add_columns(columns, get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
+	add_pft_columns(columns);
 	return columns;
 }
 
@@ -1164,7 +1216,7 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
 
 std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
-		Patch &patch, OutputRows &out) {
+		Patch &patch, OutputChannel *channel) {
 	std::vector<double> results;
 	for (int i = 0; i < nelem; i++) {
 		double value = read_output->read(patch, i);
@@ -1206,28 +1258,27 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 		std::string element_name,
 		int (*get_nelem)(const Patch &),
 		ArrayOutputReader<Individual> *get_output,
-		std::string description) : OutputFile(param_name, description)
+		std::string description,
+		double (*agg)(double*, int)) : OutputFile(param_name, description)
 {
 	elem_name = element_name;
 	get_n = get_nelem;
 	read_elem = std::unique_ptr<ArrayOutputReader<Individual>>(get_output);
+	aggregator = agg;
 }
 
-void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridcell &gridcell) {
+void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	int year = date.get_calendar_year();
 	int day = date.day;
-	OutputRows rows(&channel, lon, lat, year, day);
-
-	std::vector<std::string> pfts = get_pfts(false);
 
 	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
 		Stand &stand = *gc_itr;
 
-		for (int j = 0; j < stand.nobj; j++) {
+		for (size_t j = 0; j < stand.nobj; j++) {
 			Patch &patch = stand[j];
 
 			int nelem = get_n(patch);
@@ -1235,36 +1286,44 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel &channel, Gridc
 			for (int i = 0; i < nelem; i++) {
 
 				// Write patch ID.
-				write_output(rows, patch.id);
+				write_output(channel, patch.id);
 
 				// Write array index.
-				write_output(rows, i);
+				write_output(channel, i);
 
 				vegetation.firstobj();
 				double total = 0;
 
-				for (int k = 0; k < pfts.size(); k++) {
-					std::vector<Individual *> indivs = get_indivs(vegetation, pfts[k].c_str());
-					double indiv_total = 0;
-					double lai_total =0;
-					
-					for (Individual *indiv : indivs) {
-						lai_total += indiv->lai;
+				for (size_t k = 0; k < pftlist.nobj; k++) {
+					std::vector<Individual *> indivs = get_indivs(vegetation, (const char *)pftlist[k].name);
+
+					double lai_total = 0;
+					if (ifdavehydraulics) {
+						for (Individual *indiv : indivs) {
+							lai_total += indiv->lai;
+						}
 					}
 
+					std::vector<double> values;
 					for (Individual *indiv : indivs) {
 						// Read array element for this individual.
-						indiv_total += read_elem->read(*indiv, i) * indiv->lai / lai_total; 
+						double value = read_elem->read(*indiv, i);
+						if (ifdavehydraulics && aggregator) {
+							// Weighted by LAI - need to double check with Clare
+							// whether this is what we actually want.
+							value *= indiv->lai / lai_total;
+						}
+						values.push_back(value);
 					}
-
-					total += indiv_total;
+					double aggregated = aggregator(&values.front(), values.size());
+					total += aggregated;
 
 					// Write current array element for this individual.
-					write_output(rows, indiv_total);
+					write_output(channel, aggregated);
 				}
 
 				// Write total value across all individuals for this array elem.
-				write_output(rows, total);
+				write_output(channel, total);
 
 				// Finish the row, so next array element is written to next row.
 				finish_row(channel, lon, lat, year, day);
@@ -1278,7 +1337,11 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_cols() {
 	ColumnDescriptors columns;
 	columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	columns += ColumnDescriptor(elem_name.c_str(), COLUMN_WIDTH, 0);
-	columns += ColumnDescriptors(get_pfts(true), COLUMN_WIDTH, NUMERIC_PRECISION);
+	// TODO: add support for stats outputs in the indiv-level array outputs.
+	// add_pft_columns(columns);
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		columns += ColumnDescriptor((const char *)pftlist[i].name, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
 	columns += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
 	return columns;
 }
@@ -1302,16 +1365,19 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 		const Patch &patch,
 		const Pft &pft) const {
 
-	std::vector<double> data;
 	const Vegetation &vegetation = patch.vegetation;
-	for (int i = 0; i < vegetation.nobj; i++) {
+	std::vector<double> data(vegetation.nobj);
+	size_t index = 0;
+	for (size_t i = 0; i < vegetation.nobj; i++) {
 		const Individual &indiv = vegetation[i];
 		if (indiv.pft.id == pft.id) {
 			double value = read_output->read(indiv);
-			data.push_back(value);
+			data[index++] = value;
 		}
 	}
-	return aggregator(&data.front(), data.size());
+	// index now has the number of elements in data (the size and capacity of
+	// data are the number of cohorts in the patch).
+	return aggregator(&data.front(), index);
 }
 
 bool spinup_output;

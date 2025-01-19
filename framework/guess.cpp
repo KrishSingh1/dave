@@ -1717,7 +1717,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_post_turnover      = 0.0;
 	cmass_sap_yesterday = 0.0;
 	cmass_sap_turnover = 0.0;
-	cmass_sap_growth = 0.0;
 	kmax_drought_affected = pft.kmax;
 	max_k_loss = 0.0;
 	cmass_tot_luc     = 0.0;
@@ -1764,6 +1763,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anc_frac                    = 0.0;
 	anj_frac                    = 0.0;
 	anp_frac                    = 0.0;
+
+	acalloc_leaf				= 0.0;
+	acalloc_root				= 0.0;
+	acalloc_repr				= 0.0;
+	acalloc_sap					= 0.0;
+	acalloc_crown				= 0.0;
 
 	initialc = 0.0;
 	initialn = 0.0;

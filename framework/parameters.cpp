@@ -268,6 +268,7 @@ void initsettings() {
 	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
+	ifcalcvcmax=true;
 	ifcalccton=true;
 	ifcdebt=false;
 	distinterval=1.0e10;
@@ -762,9 +763,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("kmax",&ppft->kmax,0.0,1000000.0,1,CB_NONE, 
 			"Maximum hyraulic conductance per unit xylem area (mol/m2/s/MPa)");
 		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
-			"water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
+			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
-			"cuticular conductance (mol/m2/s)");
+			"Cuticular conductance (mol/m2/s)");
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
@@ -778,6 +779,13 @@ void plib_declarations(int id,xtring setname) {
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
+
+		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
+			"Maximum carboxylation rate at 25 degC (mol m-2 s-1).");
+		declareitem("jmax_25",&ppft->jmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum electron transport rate at 25 degC (mol m-2 s-1).");
+		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2042,7 +2050,7 @@ void plib_callback(int callback) {
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");
 			}
-			if (!itemparsed("gmin")) badins("gmin");
+			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
 
@@ -2059,19 +2067,47 @@ void plib_callback(int callback) {
 			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
-			if (!itemparsed("crownfrac")) badins("crownfrac");
-			if (!itemparsed("culmfrac") && ppft->is_grass()) badins("culmfrac");
 			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 			if (!itemparsed("turnover_root")) badins("turnover_root");
-			if (!itemparsed("turnover_repr")) badins("turnover_repr");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 			if (!itemparsed("stem_frac")) badins("stem_frac");
 			if (!itemparsed("twig_frac")) badins("twig_frac");
 
 			if (ifdavegrowth) {
+				// Mandatory parameters for pfts using dave daily growth.
+				if (!itemparsed("turnover_repr")) badins("turnover_repr");
+
+				// Calculate a_growth if it's not provided by the user.
 				if (!itemparsed("A_growth")) {
 					ppft->A_growth = calc_a_growth(ppft);
+				}
+
+				if (ifdailygrass && ppft->is_grass()) {
+					// Mandatory parameters for dave daily grasses.
+					if (!itemparsed("temp_dormancy")) badins("temp_dormancy");
+					if (!itemparsed("crownfrac")) badins("crownfrac");
+					if (!itemparsed("culmfrac")) badins("culmfrac");
+				}
+			}
+			if (!ifcalcvcmax) {
+				if (!itemparsed("vcmax_25")) badins("vcmax_25");
+				if (!itemparsed("vpmax_25")) badins("vpmax_25");
+				if (!itemparsed("jmax_25")) badins("jmax_25");
+			} else {
+				if (itemparsed("vcmax_25")) dprintf("WARNING: %s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("vpmax_25")) dprintf("WARNING: %s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("jmax_25")) dprintf("WARNING: %s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+			}
+
+			if (ifdavephotosyn) {
+				// Mandatory parameters for dave photosynthesis.
+				if (!itemparsed("g0")) badins("g0");
+				if (!itemparsed("g1")) badins("g1");
+				if (!itemparsed("gcutic")) badins("gcutic");
+				if (!itemparsed("extkn")) badins("extkn");
+				if (!ifdavegrowth && ifcalcvcmax) {
+					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 			}
 

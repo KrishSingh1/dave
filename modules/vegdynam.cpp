@@ -150,13 +150,6 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 
-	if (pft.lifeform == TREE && nindiv_max > 0) {
-		int nindiv = get_nindiv(patch, pft);
-		if (nindiv >= nindiv_max) {
-			return false;
-		}
-	}
-
 	/* Bypass all environmental limits except temperature for selected tree species after clearcut
 	 * (par_grass_mean not updated yet)
 	 */
@@ -1042,6 +1035,20 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					}
 					else if (vegmode == INDIVIDUAL) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
+					}
+
+					if (pft.lifeform == TREE && nindiv_max > 0) {
+						int nindiv = get_nindiv(patch, pft);
+						if (nindiv >= nindiv_max) {
+							if (newindiv > 0) {
+								// Reset running totals.
+								patch.pft[pft.id].anetps_ff_est = 0;
+								patch.pft[pft.id].wscal_mean_est = 0;
+								patch.pft[pft.id].nsapling = 0;
+							}
+							pftlist.nextobj();
+							continue;
+						}
 					}
 
 					// Now create 'newindiv' new Individual objects

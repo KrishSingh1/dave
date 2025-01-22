@@ -254,7 +254,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         double Vl = Vl_init - transpiration * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
 
         if (Vl < 0) {
-            printf("%d-%d hydraulic failure\n",date.get_calendar_year(),date.day);
+            printf("%04d-%02d-%02d indiv %d (%s) hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
         } else {
@@ -310,12 +310,13 @@ void hydraulic_mortality(Patch &patch) {
         }
 
         if (indiv.hydraulic_failure) {
-            printf("\n %d-%d hydraulic failure %s\n", date.get_calendar_year(), date.day, (const char *)pft.name);
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
+                printf("%04d-%2d-%02d indiv %d (%s): biomass loss due to hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
                 indiv.reduce_biomass(MORT_FRAC, 0);
                 indiv.hydraulic_failure = false;
             } else {
+                printf("%04d-%02d-%02d indiv %d (%s): mortality due to hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
                 indiv.kill();
                 vegetation.killobj();
             }

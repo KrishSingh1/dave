@@ -1909,10 +1909,11 @@ bool allometry(Individual& indiv) {
 
 		// Bole height (Eqn 7)
 
-		// This was used in Clare's version:
-		// indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
-
-		if (indiv.pft.dave_allocation()) {
+		if (ifdavehydraulics) { // fixme - need to converge on a single approach for dave
+			// This was used in Clare's version:
+			indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
+		} else if (indiv.pft.dave_allocation()) {
+			// This was used in Assaf's version:
 			indiv.boleht = 0.5;
 		} else {
 			indiv.boleht = 0.0;

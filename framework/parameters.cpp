@@ -764,7 +764,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
 			"water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
-			"cuticular conductance (mol/m2/s)");
+			"cuticular conductance at 20 degC (mol/m2/s)");
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");

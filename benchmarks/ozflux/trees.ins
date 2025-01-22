@@ -520,12 +520,12 @@ pft "CuP" (
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	stom_clos -3.2   ! Peters (2021)
-	p50 -5.8   ! Peters (2021)
-	p88 -7.7  ! Peters (2021)
+	kmax 30  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -2.4   ! Peters (2021)
+	p50 -4.3   ! Peters (2021)
+	p88 -4.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
-	gcutic 0.001 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
 
 	vcmax_25 0.000036 ! Average of two euc species from Bloomfield (2018)
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)

@@ -3564,15 +3564,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			inputs.stomata_open = indiv.stomata_open;
 
-			// Test adjustment to gcutic with temperature - based on Cochard 2021 Eq 13 & 14, https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
+			// CS, Testing adjustment to gcutic with temperature - based on Cochard 2021 Eq 13 & 14, https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
 			double Q10a = 1.2; // Scaling parameter
-			double Tp = 35; // Transition temperature, degC
+			double Tp = 40; // Transition temperature, degC - to discuss with Erick
 			double Q10b = 4.8; // Scaling parameter
 			double gcutic_adj = 0.0;
 
-			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 20)/10); // calculate gcutic at phase change for use in equation below
+			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 20)/10); // calculate gcutic at phase change T for use in equation below
 			
-			if (inputs.temp < Tp){
+			if (inputs.temp < Tp){ // note this should all be based on leaf temperature, but using air temperature as an approximation
 				gcutic_adj = gcutic * pow(Q10a,(inputs.temp - 20)/10);
 			} else {
 				gcutic_adj = gcutic_Tp * pow(Q10b,(inputs.temp - Tp)/10);

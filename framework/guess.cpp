@@ -2782,10 +2782,16 @@ void Pft::setup_transpiration(double resolution) {
     auto x_psi = std::vector<double>{ 0.0 };
     auto y_cumulative_transpiration = std::vector<double>{ 0.0 };
     double interval = (s1 * pow((log(1 / 0.01)), (1 / s2)));
-    double step = interval / resolution;
+    double step = interval / (resolution - 1);
+	double ymax = -1e36;
 
-    for (double psi_spline = 0.0 + step; psi_spline <= interval; psi_spline += step) {
+	// TODO: repeated additions here will cause rounding errors to accumulate.
+	// Need to change to the commented version below, but this affects the
+	// results quite a bit. Need to discuss with Clare.
 
+    // for (size_t i = 1; i < resolution; i++) {
+		// double psi_spline = step * i;
+	for (double psi_spline = 0.0 + step; psi_spline <= interval; psi_spline += step) {
         double e_psi = step * ((proportion_of_conductivity(psi_spline - step) + proportion_of_conductivity(psi_spline)) / 2) + y_cumulative_transpiration.back();
 
         // x values for spline.
@@ -2793,6 +2799,7 @@ void Pft::setup_transpiration(double resolution) {
 
         // y values for spline.
         y_cumulative_transpiration.push_back(e_psi);
+		ymax = max(ymax, e_psi);
     }
 
     // Setup the interpolator.
@@ -2801,7 +2808,33 @@ void Pft::setup_transpiration(double resolution) {
     transpiration_from_psi.init(x_psi, y_cumulative_transpiration);
     transpiration_from_psi.set_extrapolate(false);
 
-    psi_from_transpiration.init(y_cumulative_transpiration, x_psi);
+	psi_from_transpiration.init(y_cumulative_transpiration, x_psi);
+	psi_from_transpiration.set_extrapolate(false);
+
+	// Note: interpolation will be significantly faster if the x-values are
+	// equidistant. Currently, x_psi is equidistant, but cum. transpiration (due
+	// to the nonlinearity of the relationship) is not. Therefore, we perform a
+	// one-time interpolation at regular intervals along the curve, and use
+	// that as the basis for future interpolations during the simulation.
+	std::vector<double> y{ 0.0 };
+	std::vector<double> x{ 0.0 };
+	for (size_t i = 1; i < resolution; i++) {
+
+		// The i-th evenly-spaced point between 0 and ymax.
+		double yi = 1.0 * i / (resolution - 1) * ymax;
+
+		// Get the psi corresponding to this y-value.
+		double xi = psi_from_transpiration.eval(yi);
+
+        // x values for spline.
+        x.push_back(xi);
+
+        // y values for spline.
+        y.push_back(yi);
+    }
+
+	// Re-initialise psi_from_transpiration.
+    psi_from_transpiration.init(y, x);
     psi_from_transpiration.set_extrapolate(false);
 }
 

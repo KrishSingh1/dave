@@ -2,10 +2,6 @@
 #include "gutil.h"
 #include "shell.h"
 
-//#include "plant/util.h"
-//#include <plant/util_post_rcpp.h> // to_rcpp_matrix
-//#include <Rcpp.h>
-
 // Build a interpolator out of the vectors 'x' and 'y'.
 void Interpolator::init(const std::vector<double>& x_,
 			            const std::vector<double>& y_) {
@@ -20,6 +16,13 @@ void Interpolator::init(const std::vector<double>& x_,
     x = x_;
     y = y_;
     initialise();
+    set_limits();
+}
+
+void Interpolator::set_limits() {
+    _size = x.size();
+    _min = _size > 0 ? x.front() :  1e36;
+    _max = _size > 0 ? x.back()  : -1e36;
 }
 
 // Compute the interpolated function from the points contained in 'x' and 'y'.
@@ -39,6 +42,8 @@ void Interpolator::initialise() {
 void Interpolator::add_point(double xi, double yi) {
     x.push_back(xi);
     y.push_back(yi);
+
+    set_limits();
 }
 
 // adds point in sorted position (slower than above)
@@ -47,6 +52,8 @@ void Interpolator::add_point_sorted(double xi, double yi) {
     x.insert(x_upper, xi); // add xi below that number
     auto y_upper = std::upper_bound(y.begin(), y.end(), yi);
     y.insert(y_upper, yi);
+
+    set_limits();
 }
 
 // Remove all the contents, being ready to be refilled.
@@ -54,11 +61,13 @@ void Interpolator::clear() {
     x.clear();
     y.clear();
     active = false;
+
+    set_limits();
 }
 
 bool Interpolator::try_eval(double u, double &y) const {
     check_active();
-    if (!extrapolate && (u < min() || u > max())) {
+    if (!extrapolate && (u < _min || u > _max)) {
         return false;
     }
     y = tk_spline(u);
@@ -68,7 +77,7 @@ bool Interpolator::try_eval(double u, double &y) const {
 // Compute the value of the interpolated function at point `x=u`
 double Interpolator::eval(double u) const {
     check_active();
-    if (!extrapolate && (u < min() || u > max())) {
+    if (!extrapolate && (u < _min || u > _max)) {
         fail("Extrapolation disabled and evaluation point outside of interpolated domain.");
     }
     return tk_spline(u);
@@ -77,22 +86,6 @@ double Interpolator::eval(double u) const {
 // faster version of above
 double Interpolator::operator()(double u) const {
     return tk_spline(u);
-}
-
-// Return the number of (x,y) pairs contained in the Interpolator.
-size_t Interpolator::size() const {
-    return x.size();
-}
-
-// These are chosen so that if a Interpolator is empty, functions
-// looking to see if they will fall outside of the covered range will
-// always find they do.    This is the same principle as R's
-// range(numeric(0)) -> c(Inf, -Inf)
-double Interpolator::min() const {
-    return size() > 0 ? x.front() : 1e36 /* +ve inf */;
-}
-double Interpolator::max() const {
-    return size() > 0 ? x.back() : -1e36 /*neg inf*/;
 }
 
 void Interpolator::set_extrapolate(bool e) {

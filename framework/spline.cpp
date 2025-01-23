@@ -1,4 +1,5 @@
 #include "spline.h"
+#include "guessmath.h"
 
 // band_matrix implementation
 // -------------------------
@@ -131,29 +132,50 @@ std::vector<double> band_matrix::lu_solve(const std::vector<double>& b,
    return x;
 }
 
+bool equidistant(const std::vector<double> &x) {
+   size_t n = x.size();
+   if (n <= 2) {
+      return true;
+   }
+   // Precision for floating point comparisons.
+   const double EPS = 8 * DBL_EPSILON;
 
-
-
+   double diff = x[1] - x[0];
+   for (size_t i = 2; i < n; i++) {
+      double dlt = x[i] - x[i - 1];
+      if (!equal(dlt, diff, EPS)) {
+         return false;
+      }
+   }
+   return true;
+}
 
 // spline implementation
 // -----------------------
 
 void spline::set_points(const std::vector<double>& x,
                           const std::vector<double>& y, bool cubic_spline) {
-   assert(x.size()==y.size());
+   assert(x.size() == y.size());
+   assert(x.size() > 0);
+
    m_x=x;
    m_y=y;
-   int   n=x.size();
+   _begin = m_x.begin();
+   _end  = m_x.end();
+   n = m_x.size();
+   _equidistant = equidistant(x);
+
    // TODO sort x and y, rather than returning an error
-   for(int i=0; i<n-1; i++) {
-      assert(m_x[i]<m_x[i+1]);
+   for(size_t i = 0; i < n - 1; i++) {
+      assert(m_x[i] < m_x[i+1]);
    }
 
-   if(cubic_spline==true) { // cubic spline interpolation
-      // setting up the matrix and right hand side of the equation system
-      // for the parameters b[]
-      band_matrix A(n,1,1);
-      std::vector<double>  rhs(n);
+   // Cubic spline interpolation.
+   if (cubic_spline) {
+      // Setting up the matrix and right hand side of the equation system
+      // for the parameters b[].
+      band_matrix A(n, 1, 1);
+      std::vector<double> rhs(n);
       for(int i=1; i<n-1; i++) {
          A(i,i-1)=1.0/3.0*(x[i]-x[i-1]);
          A(i,i)=2.0/3.0*(x[i+1]-x[i-1]);
@@ -198,24 +220,38 @@ void spline::set_points(const std::vector<double>& x,
    m_c[n-1]=3.0*m_a[n-2]*h*h+2.0*m_b[n-2]*h+m_c[n-2];   // = f'_{n-2}(x_{n-1})
 }
 
-double spline::operator() (double x) const {
-   size_t n=m_x.size();
-   // find the closest point m_x[idx] < x, idx=0 even if x<m_x[0]
-   std::vector<double>::const_iterator it;
-   it=std::lower_bound(m_x.begin(),m_x.end(),x);
-   int idx=std::max( int(it-m_x.begin())-1, 0);
+size_t spline::index_of(double x) const {
+   if (x < m_x[0]) {
+      return 0;
+   }
+   if (x > m_x[n - 1]) {
+      return n - 1;
+   }
 
-   double h=x-m_x[idx];
+   if (_equidistant) {
+      return floor((x / m_x[n - 1]) * (n - 1));
+   }
+
+   std::vector<double>::const_iterator it;
+   it = std::lower_bound(_begin, _end, x);
+   int idx = std::max(int(it - _begin) - 1, 0);
+   return idx;
+}
+
+double spline::operator() (double x) const {
+   size_t idx = index_of(x);
+
+   double h = x - m_x[idx];
    double interpol;
-   if(x<m_x[0]) {
+   if (x < m_x[0]) {
       // extrapolation to the left
-      interpol=((m_b[0])*h + m_c[0])*h + m_y[0];
-   } else if(x>m_x[n-1]) {
+      interpol = (m_b[0] * h + m_c[0]) * h + m_y[0];
+   } else if(x > m_x[n - 1]) {
       // extrapolation to the right
-      interpol=((m_b[n-1])*h + m_c[n-1])*h + m_y[n-1];
+      interpol = (m_b[n - 1] * h + m_c[n - 1]) * h + m_y[n - 1];
    } else {
       // interpolation
-      interpol=((m_a[idx]*h + m_b[idx])*h + m_c[idx])*h + m_y[idx];
+      interpol = ((m_a[idx] * h + m_b[idx]) * h + m_c[idx]) * h + m_y[idx];
    }
    return interpol;
 }

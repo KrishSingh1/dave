@@ -1319,6 +1319,8 @@ public:
 		CH4C_EBUL,
 		/// Surface runoff
 		WRUNOFF_SURF,
+		/// Surface standing water runoff
+		WRUNOFF_SSW,
 		/// Drainage runoff
 		WRUNOFF_DRAIN,
 		/// Baseflow runoff
@@ -2353,30 +2355,64 @@ public:
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
 	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers) {
 
-		// Total soil layer depth
-		double tot_depth;
-
 		if (hydrology != GERTEN) {
 
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
 
+			// Standard depth 1500 mm
+			const double depth_standard = 1500.0;
+
+			// Standard root depth
+			double depth_root = 1500.0;
+
+			// Factor to adjust root profile with additional depth
+			double depth_frac = 1.0;
+			
+			// If soil depth is deeper than standard depth, then update root depth
+			if (depth_soil > depth_standard) {
+
+				// New root depth
+				depth_root = floor((depth_standard + rootfrac_of_deep_soil * (depth_soil - depth_standard)) / 100.0) * 100.0;
+
+				// Update root profile factor
+				depth_frac = depth_standard / depth_root;
+			}
+
+			// Root depth scaled and in cm
+			double depth_root_cm = depth_root * CM_PER_MM * depth_frac;
+
+			// Total root dist
 			double tot = 0.0;
-			tot_depth = soil_lyr_depth[0] * CM_PER_MM;
+
+			// Total soil layer depth
+			double tot_depth = soil_lyr_depth[0] * CM_PER_MM * depth_frac;
+
+			// Total previous soil layer depth
+			double tot_depth_prev = 0.0;
 
 			// init first layer
-			rootdist[0] = 1.0 - pow(root_beta, tot_depth);
+			rootdist[0] = 1.0 - pow(root_beta, tot_depth); // - (1.0 - pow(root_beta, tot_depth_prev));
 			tot += rootdist[0];
 
 			for (int lyr = 1; lyr < nsoillayers; lyr++) {
-				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
-				double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth - soil_lyr_depth[lyr] * CM_PER_MM));
+
+				// Update depths
+				tot_depth_prev = tot_depth;
+				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM * depth_frac;
+
+				// Check so depth doesn't exceed scaled rooting depth
+				if (tot_depth >= depth_root_cm) {
+					tot_depth = depth_root_cm;
+				}
+
+				double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth_prev));
 
 				// Don't allow too small root fractions
 				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
 				tot += rootdist[lyr];
 			}
-
+			
 			// If a fraction of root distribution should be homogenously distributed
 			if (!negligible(homrootdistfrac)) {
 
@@ -3251,10 +3287,10 @@ public:
 	double slope_sigma;
 	// Fraction of the area that is inundated threshold below which no 
 	// single connected inundated area spans the grid cell (-)
-	double wmass_stand_frac_thresh;
+	double wmass_ssw_frac_thresh;
 	// Surface water threshold below which no single connected  
 	// inundated area spans the grid cell (mm)
-	double wmass_stand_thresh;
+	double wmass_ssw_thresh;
 
 	// MEMBER FUNCTIONS
 
@@ -3540,7 +3576,7 @@ public:
 	double perc_mass;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
-	/// soil moisture conductivity (m s-1)
+	/// soil moisture conductivity (mm s-1)
 	double Kw;
 	/// Derivative in hydraulic conductivity w.r.t relative saturation (mm s-1)
 	double dKwdw;
@@ -4122,7 +4158,7 @@ public:
 	void phase_change();
 
 	/// Soak snowpack with water
-	void soak_snowpack(double& wmass_stand, double& imass_stand, double temp_stand);
+	void soak_snowpack(double& wmass_ssw, double& imass_ssw, double temp_ssw);
 
 	/// Snow water over water holding capacity
 	double wmass_excess();
@@ -4307,19 +4343,19 @@ public:
 	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
 	/// Standing surface water [mm]
-	double wmass_stand;
+	double wmass_ssw;
 	/// Standing surface ice [mm]
-	double imass_stand;
-	/// Standing water heat capacity (J m-3 K-1)
-	double Ch_stand;
-	// Standing water thermal conductivity (J m-1 K-1 s-1)
-	double Kh_stand;
+	double imass_ssw;
+	/// Standing surface water heat capacity (J m-3 K-1)
+	double Ch_ssw;
+	// Standing surface water thermal conductivity (J m-1 K-1 s-1)
+	double Kh_ssw;
 	/// Standing surface water temperature [C]
-	double temp_stand;	
+	double temp_ssw;	
 	/// Monthly standing surface water and ice [mm]
-	double mwmass_stand[12];
-	/// Fraction of surface covered by standing water and ice
-	double wmass_stand_frac;
+	double mwmass_ssw[12];
+	/// Fraction of surface covered by surface standing water and ice
+	double wmass_ssw_frac;
 	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur
 	double sat_lev;
 
@@ -4413,11 +4449,11 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		wmass_stand = that.wmass_stand;
-		imass_stand = that.imass_stand;
-		Ch_stand = that.Ch_stand;
-		Kh_stand = that.Kh_stand;
-		temp_stand = that.temp_stand;
+		wmass_ssw = that.wmass_ssw;
+		imass_ssw = that.imass_ssw;
+		Ch_ssw = that.Ch_ssw;
+		Kh_ssw = that.Kh_ssw;
+		temp_ssw = that.temp_ssw;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4490,11 +4526,11 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		wmass_stand = that.wmass_stand;
-		imass_stand = that.imass_stand;
-		Ch_stand = that.Ch_stand;
-		Kh_stand = that.Kh_stand;
-		temp_stand = that.temp_stand;
+		wmass_ssw = that.wmass_ssw;
+		imass_ssw = that.imass_ssw;
+		Ch_ssw = that.Ch_ssw;
+		Kh_ssw = that.Kh_ssw;
+		temp_ssw = that.temp_ssw;
 		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
@@ -4545,6 +4581,8 @@ public:
 	 *  patches/stands.
 	 */
 	const Climate& get_climate() const;
+	/// Initiate soil water content
+	void init_water();
 	/// Returns surface litter C content
 	double get_surflittercmass();
 	/// Returns surface litter N content
@@ -4553,8 +4591,8 @@ public:
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
 	double ncont(grouppooltype group = GALL);
-	/// Water content of standing water
-	double wcont_stand();
+	/// Water content of surface standing water
+	double wcont_ssw();
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
@@ -4596,15 +4634,15 @@ public:
 	/// Calculate surface evaporation, infiltration and runoff
 	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
 		double imass_infilt, double wsats_infilt, double imp_ice, double Kw_max, double fevap, double& qflx_evap, 
-		double& qflx_surf_runoff, double& qflx_in_surf, double& qflx_infilt, double& qflx_stand_drain); // DW_COMMENT
+		double& qflx_surf_runoff, double& qflx_ssw_runoff, double& qflx_in_surf, double& qflx_infilt, double& qflx_ssw_drain); // DW_COMMENT
 	/// Update matric potential
 	void update_matric_potential();
 	/// Update hydraulic conductivity and diffusivity
 	void update_hydraulic_properties(int nsoillayers_sim);
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp(double temp_infilt);
-	/// Update standing water temperatures due to water fluxes
-	void update_stand_temp(double temp_add, double wmass_add);
+	/// Update surface standing water temperatures due to water fluxes
+	void update_ssw_temp(double temp_add, double wmass_add);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties();
 	/// Set padding layers depth
@@ -4664,8 +4702,8 @@ public:
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
 
-	/// Update thermal properties for standing water
-	void update_thermal_properties_for_stand();
+	/// Update thermal properties for surface standing water
+	void update_thermal_properties_for_ssw();
 	/// Update thermal properties for padding layers
 	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
@@ -4674,8 +4712,8 @@ public:
 	void calc_temp();
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
-	/// Calculate standing water and ice
-	void phase_change_stand();
+	/// Calculate surface standing water and ice
+	void phase_change_ssw();
 	/// Calculate water and ice for each layer
 	void phase_change();
 	/// Calculate thaw depth

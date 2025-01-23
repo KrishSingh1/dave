@@ -7,6 +7,10 @@
 !//
 !///////////////////////////////////////////////////////////////////////////////////////
 
+ifcalcdynamic_phu 0		! Whether to calculate dynamic potential heat units
+ifdyn_phu_limit 0		! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+nyear_dyn_phu 50		! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
+
 group "moss"(
 
 	! Parameters common to mosses

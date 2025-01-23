@@ -1603,7 +1603,8 @@ void leaching(Patch& patch) {
 
 		// Water runoff for this time step
 		if (lyr == 0) {
-			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day);
+			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) + 
+				soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SSW, date.day);
 		}
 		else {
 			runoff = soillayer.runoff_drain;

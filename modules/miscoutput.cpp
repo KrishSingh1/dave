@@ -1200,7 +1200,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup) {
+	if (date.year < nyear_spinup+90) {
 		return;
 	}
 

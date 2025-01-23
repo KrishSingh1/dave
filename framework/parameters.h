@@ -325,6 +325,9 @@ extern double slope;
 /// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
 extern double b_infilt;
 
+/// Calibration parameter for lateral drainage (-)
+extern double C_dw;
+
 /// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 extern bool ifbedrock;
 
@@ -333,6 +336,9 @@ extern int ifsupercooled;
 
 /// Fraction of fine roots to be homogenously distributed in soil column
 extern double homrootdistfrac;
+
+/// Fraction of deep soil, beyond 1500mm, that roots have access to
+extern double rootfrac_of_deep_soil;
 
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;

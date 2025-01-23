@@ -823,9 +823,9 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 			double added_wmass = snowlayer.imass + snowlayer.wmass;
 			if (!negligible(added_wmass)) {
 
-				// Add excess water to standing water
-				patch.soilcolumn.update_stand_temp(snowlayer.temp, added_wmass);
-				patch.soilcolumn.wmass_stand += added_wmass;
+				// Add excess water to surface standing water
+				patch.soilcolumn.update_ssw_temp(snowlayer.temp, added_wmass);
+				patch.soilcolumn.wmass_ssw += added_wmass;
 			}
 
 			snowlayers.erase(snowlayers.begin() + lyr);
@@ -864,8 +864,8 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 	}
 
 	// Add excess water to standing water
-	patch.soilcolumn.update_stand_temp(ts_melt_temp, ts_melt);
-	patch.soilcolumn.wmass_stand += ts_melt;
+	patch.soilcolumn.update_ssw_temp(ts_melt_temp, ts_melt);
+	patch.soilcolumn.wmass_ssw += ts_melt;
 }
 
 /// Phase change within the snow pack
@@ -894,64 +894,64 @@ void Snow::phase_change() {
 /** Soak snow pack with water
  * Water soaks snowpack from bottom up
  */
-void Snow::soak_snowpack(double& wmass_stand, double& imass_stand, double temp_stand) {
+void Snow::soak_snowpack(double& wmass_ssw, double& imass_ssw, double temp_ssw) {
 
 	// If there was water exceeding whc and couldn't be infiltrated to the soil, 
 	// then it will fill the snowpack from bottom up
 
 	int lyr = 0;
-	while (wmass_stand > 0.0 && lyr < nsnowlayers) {
+	while (wmass_ssw > 0.0 && lyr < nsnowlayers) {
 
 		Snowlayer& snowlayer = snowlayers[lyr];
 
 		// Water to add within water holding capacity
-		double add_wmass = max(0.0, min(wmass_stand, snowlayer.depth - (snowlayer.wmass + snowlayer.imass)));
+		double add_wmass = max(0.0, min(wmass_ssw, snowlayer.depth - (snowlayer.wmass + snowlayer.imass)));
 
 		// Update temperature due to added water
-		snowlayer.update_temp(temp_stand, add_wmass, Cp_water);
+		snowlayer.update_temp(temp_ssw, add_wmass, Cp_water);
 
 		// Add water to snow layer
 		snowlayer.wmass += add_wmass;
 
 		// Remove added water from standing water
-		wmass_stand -= add_wmass;
+		wmass_ssw -= add_wmass;
 
 		// Next layer
 		lyr++;
 	}
 
 	// Added excess water to the top of the snowpack
-	if (wmass_stand > 0.0) {
+	if (wmass_ssw > 0.0) {
 		Snowlayer& snowlayer = snowlayers[nsnowlayers - 1];
 
 		// Update temperature due to added water
-		snowlayer.update_temp(temp_stand, wmass_stand, Cp_water);
+		snowlayer.update_temp(temp_ssw, wmass_ssw, Cp_water);
 
 		// Add water to snow layer
-		snowlayer.wmass += wmass_stand;
+		snowlayer.wmass += wmass_ssw;
 
 		// Update snow layer depth
-		snowlayer.depth += wmass_stand;
+		snowlayer.depth += wmass_ssw;
 
 		// Set standing water to zero
-		wmass_stand = 0.0;
+		wmass_ssw = 0.0;
 	}
 
 	// Added excess ice to the bottom of the snowpack
-	if (imass_stand > 0.0) {
+	if (imass_ssw > 0.0) {
 		Snowlayer& snowlayer = snowlayers[0];
 
 		// Update temperature due to added water
-		snowlayer.update_temp(temp_stand, imass_stand, Cp_ice);
+		snowlayer.update_temp(temp_ssw, imass_ssw, Cp_ice);
 
 		// Add ice to snow layer
-		snowlayer.imass += imass_stand;
+		snowlayer.imass += imass_ssw;
 
 		// Update snow layer depth
-		snowlayer.depth += imass_stand;
+		snowlayer.depth += imass_ssw;
 
 		// Set standing ice to zero
-		imass_stand = 0.0;
+		imass_ssw = 0.0;
 	}
 }
 
@@ -963,7 +963,7 @@ void Snow::soak_snowpack(double& wmass_stand, double& imass_stand, double temp_s
 double Snow::wmass_excess() {
 
 	double wmass = 0.0;
-	for (int lyr = 0.0; lyr < nsnowlayers; lyr++) {
+	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		wmass += max(0.0, snowlayers[lyr].wmass - snowlayers[lyr].whc);
 	}
 	return wmass;
@@ -1267,9 +1267,9 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 		sompool[p].respsum_surf = 0.0;
 		sompool[p].cmass_init = 0.0;
 		sompool[p].multi = 0.0;
-		sompool[p].sign_trend = 0.0;
-		sompool[p].same_trend = 0.0;
-		sompool[p].changed_trend = 0.0;
+		sompool[p].sign_trend = 0;
+		sompool[p].same_trend = 0;
+		sompool[p].changed_trend = 0;
 
 		for (int m = 0; m < 12; m++) {
 			sompool[p].mfracremain_mean[m] = 0.0;
@@ -2302,7 +2302,7 @@ void Soillayer::update_thermal_properties() {
 	// Total log terms
 	double lKtot = lKfwater + lKfice + lKforg + lKfmin + lKfpeat + lKfcoarse_root;
 
-	// Update thermal conductivity (J m-1 K-1 s-1)
+	// Update thermal conductivity
 	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;
 }
 
@@ -2370,12 +2370,12 @@ void Soilcolumn::initdrivers() {
 	acro_co2 = 934.0;
 	wtd = 0.0;
 	wtp = 0.0;
-	wmass_stand = 0.0;
-	imass_stand = 0.0;
-	Ch_stand = 0.0;
-	Kh_stand = 0.0;
-	temp_stand = 0.0;
-	wmass_stand_frac = 0.0;
+	wmass_ssw = 0.0;
+	imass_ssw = 0.0;
+	Ch_ssw = 0.0;
+	Kh_ssw = 0.0;
+	temp_ssw = 0.0;
+	wmass_ssw_frac = 0.0;
 	sat_lev = 0.9;
 
 	for (int mth = 0; mth < 12; mth++) {
@@ -2472,6 +2472,76 @@ const Climate& Soilcolumn::get_climate() const {
 	return patch.stand.get_climate();
 }
 
+/// Initiate soil water content
+/** Initiate soil water content
+ */
+void Soilcolumn::init_water() {
+
+	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], wflux_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
+		Kw[NSOILLAYERS_MAX], dKwdw[NSOILLAYERS_MAX], psi[NSOILLAYERS_MAX], dpsidw[NSOILLAYERS_MAX],
+		qin[NSOILLAYERS_MAX], qout[NSOILLAYERS_MAX], dqidw0[NSOILLAYERS_MAX], dqidw1[NSOILLAYERS_MAX],
+		dqodw1[NSOILLAYERS_MAX], dqodw2[NSOILLAYERS_MAX], rmx[NSOILLAYERS_MAX], amx[NSOILLAYERS_MAX],
+		bmx[NSOILLAYERS_MAX], cmx[NSOILLAYERS_MAX], dwat[NSOILLAYERS_MAX];
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+		Soillayer& soillayer = soillayers[lyr];
+
+		soillayer.wmass = soillayer.wsats;
+	}
+
+	double dtsub = 3600.0;
+
+	for (int i = 0; i < 100000; i++) {
+
+		// Calculate matrix potential
+		update_matric_potential();
+
+		// Calculate hydraulic conductivity and diffusivity
+		update_hydraulic_properties(nsoillayers);
+
+		// calculate commonly used variables
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
+			// saturated volumetric water content
+			vws_liq[lyr] = soillayer.wsats / soillayer.depth;
+			// time per mm
+			dt_dz[lyr] = dtsub / soillayer.depth;
+			Kw[lyr] = soillayer.Kw;
+			psi[lyr] = soillayer.psi;
+			dKwdw[lyr] = soillayer.dKwdw;
+			dpsidw[lyr] = soillayer.dpsidw;
+			dz[lyr] = soillayer.depth;
+			wflux_root[lyr] = 0.0;
+		}
+
+		// Soil moisture fluxes and their derivatives
+		compute_moisture_fluxes_and_derivs(0.0, Kw, psi, dKwdw, dpsidw, qin, qout,
+			dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz, nsoillayers);
+
+		// RHS of system of equations
+		compute_RHS_moisture_form(wflux_root, qin, qout, dt_dz, rmx, nsoillayers);
+
+		// LHS of system of equations
+		compute_LHS_moisture_form(dt_dz, dqidw0, dqidw1, dqodw1, dqodw2,
+			amx, bmx, cmx, nsoillayers);
+
+		// solve tridiagonal matrix A.X = B
+		TridiagonalCol(amx, bmx, cmx, rmx, dwat, nsoillayers);
+
+		// Update the mass of liquid water
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			soillayers[lyr].wmass += dwat[lyr] * soillayers[lyr].depth;
+		}
+	}
+
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		soillayers[lyr].wmass = min(soillayers[lyr].wmass, soillayers[lyr].wsats);
+	}
+}
+
 /// Returns surface litter C content
 /** Returns surface litter C content
  */
@@ -2516,11 +2586,11 @@ double Soilcolumn::ncont(grouppooltype group) {
 	return ncont;
 }
 
-/// Returns standing water content
-/** Returns standing water
+/// Returns surface standing water content
+/** Returns surface standing water content
  */
-double Soilcolumn::wcont_stand() {
-	return wmass_stand + imass_stand;
+double Soilcolumn::wcont_ssw() {
+	return wmass_ssw + imass_ssw;
 }
 
 /// Returns a vector with soillayer values for a certain property
@@ -2772,7 +2842,7 @@ void Soilcolumn::calc_mwcont() {
 	double acc_awc = 0.0;
 
 	// Monthly standing water and ice
-	mwmass_stand[date.month] += (wmass_stand + imass_stand) / date.ndaymonth[date.month];
+	mwmass_ssw[date.month] += (wmass_ssw + imass_ssw) / date.ndaymonth[date.month];
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -3185,7 +3255,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 	if (prec == 0 && airT < 0.0)
 		return;
 
-	double w_begin = wcont_stand() + snow.wcontent() + prec + rain_melt;
+	double w_begin = wcont_ssw() + snow.wcontent() + prec + rain_melt;
 
 	// Multi layer snow scheme
 	if (ifmultilayersnow) {
@@ -3292,7 +3362,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 	}
 
 	// Water balance might not meet mass balance in very low productive and saturated sites 
-	double wdiff = w_begin - (wcont_stand() + snow.wcontent() + rain_melt);
+	double wdiff = w_begin - (wcont_ssw() + snow.wcontent() + rain_melt);
 	if (wdiff > 0.0) {
 		rain_melt += wdiff;
 	}
@@ -3303,11 +3373,11 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 		if (rain_melt < 0.0) {
 
 			// Extract first from standing water
-			if (wcont_stand() > 0.0) {
-				double frac = min(1.0, -rain_melt / wcont_stand());
-				rain_melt += frac * wcont_stand();
-				wmass_stand *= 1.0 - frac;
-				imass_stand *= 1.0 - frac;
+			if (wcont_ssw() > 0.0) {
+				double frac = min(1.0, -rain_melt / wcont_ssw());
+				rain_melt += frac * wcont_ssw();
+				wmass_ssw *= 1.0 - frac;
+				imass_ssw *= 1.0 - frac;
 			}
 
 			// Still missing water. Take from snow
@@ -3349,7 +3419,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 		}
 	}
 
-	double w_end = wcont_stand() + snow.wcontent() + rain_melt;
+	double w_end = wcont_ssw() + snow.wcontent() + rain_melt;
 	if (fabs(w_begin - w_end) > 1.0e-10)
 		dprintf("Year %d Day %d ERROR: Snow snow_or_rainfall diff %g\n", date.year, date.day, w_begin - w_end);
 }
@@ -3358,21 +3428,22 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 /** Routine that calculate surface evaporation, infiltration and runoff
  */
 void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_melt, double depth_infilt, 
-	double imass_infilt, double wsats_infilt, double imp_ice, double Kw_max, double fevap, double& wflux_evap, double& wflux_runoff_surf,
-	double& wflux_surf, double& wflux_infilt, double& wflux_stand_drain) {
+	double imass_infilt, double wsats_infilt, double imp_ice, double Kw_max, double fevap, double& wflux_evap, 
+	double& wflux_runoff_surf, double& wflux_runoff_ssw,
+	double& wflux_ssw, double& wflux_soil, double& wflux_ssw_drain) {
 
 	// Reset outputs
 	
 	// Total evaporation (mm s-1)
 	wflux_evap = 0.0;
 	// Total surface runoff (mm s-1)
-	wflux_runoff_surf = 0.0;
-	// Change in surface water (mm s-1)
-	wflux_surf = 0.0;
+	wflux_runoff_surf = wflux_runoff_ssw = 0.0;
+	// Change in surface standing water (mm s-1)
+	wflux_ssw = 0.0;
 	// Total soil infiltration (mm s-1)
-	wflux_infilt = 0.0;
-	// Water drained from the standing water into the soil (mm s-1) 
-	wflux_stand_drain = 0.0;
+	wflux_soil = 0.0;
+	// Water drained from the surface standing water into the soil (mm s-1) 
+	wflux_ssw_drain = 0.0;
 
 	// Constants
 
@@ -3380,37 +3451,28 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	const double EPS = 1.0e-9;
 	// Maximum saturated fraction (Wang et al. 2008)
 	const double fsat_max = 0.3;
-	// Minimum water before all is removed through runoff
-	const double wmass_stand_min = 0.01;
+	// Minimum surface standing water before all is removed through runoff
+	const double wmass_ssw_min = 0.01;
 
 	// Fractional area with water table at surface (-)
 	double fsat;
-	// Water directly going to runoff (mm s-1)
-	double wflux_in_runoff = 0.0;
+	// Water directly going to surface runoff (mm s-1)
+	double wflux_surf_runoff = 0.0;
 	// Water entering the top of the soil soil (mm s-1)
 	double wflux_in = 0.0;
-	// Runoff from surface water (mm s-1)
-	double wflux_stand_runoff = 0.0;
-	// Update the interconnected fraction of surface water (-)
-	double wmass_stand_con;
+	// Runoff from surface standing water (mm s-1)
+	double wflux_ssw_runoff = 0.0;
+	// Update the interconnected fraction of surface standing water (-)
+	double wmass_ssw_con_frac;
 	// Evaporation from the soil fraction (mm s-1)
 	double wflux_soil_evap;
-	// Evaporation from the standing water fraction (mm s-1)
-	double wflux_stand_evap;
-	// Water entering the soil soil (mm s-1)
-	double wflux_soil_in;
-	// Water that couldn't enter the soil and is added to the standing water (mm s-1)
-	double wflux_soil_in_excess;
-	// Maximum infiltration capacity (mm)
-	double wmass_infil_max;
-	// Average soil moisture in infiltation layers (mm)
-	double wmass_infil;
-	// Temporary surface runoff (mm s-1)
-	double wflux_runoff_tmp = 0.0;
+	// Evaporation from the surface standing water fraction (mm s-1)
+	double wflux_ssw_evap;
+	// Water that couldn't enter the soil and is added to the surface standing water (mm s-1)
+	double wflux_soil_excess;
 	// Maximum soil infiltration capacity (mm s-1)
 	double wflux_infilt_max;
 
-	// Surface infiltration and runoff
 
 	// Calculate water content for infiltration layers
 	double wmass_infilt = var_depth(0.0, depth_infilt, WMASS);
@@ -3421,51 +3483,48 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	// Fractional area with water table at surface (Wood et al. 1992)
 	fsat = 1.0 - pow(1.0 - totwcont_infilt, b_infilt / (1.0 + b_infilt));
 
-
-	// Water at surface
-	double wmass_surf = wmass_stand;
-
 	// Calculate surface water fraction and runoff
-	if (wmass_surf > wmass_stand_min) {
+	if (wmass_ssw > wmass_ssw_min) {
 
 		double sigma_sqrt2 = 1.0 / (soiltype.slope_sigma * sqrt(2.0));
 		double sigma_sqrt2pi = soiltype.slope_sigma / sqrt(2.0 * PI);
 		double sigma2 = 1.0 / (2.0 * pow(soiltype.slope_sigma, 2));
 
+		// Surface water level(mm)
 		double d = 0.0;
+
 		double dfdd, fd = 1.0;
 		int i = 0;
 		while (fd > 1.0e-8 && i < 10) {
-			fd = 0.5 * d * (1.0 + erf(d * sigma_sqrt2)) + sigma_sqrt2pi * exp(-pow(d, 2) * sigma2) - wmass_surf;
+			fd = 0.5 * d * (1.0 + erf(d * sigma_sqrt2)) + sigma_sqrt2pi * exp(-pow(d, 2) * sigma2) - wmass_ssw;
 			dfdd = 0.5 * (1.0 + erf(d * sigma_sqrt2));
 			d -= fd / dfdd;
 			i++;
 		}
 
 		// Update the submerged areal fraction using the new d value (Ekici et al. 2019; eqn 1)
-		wmass_stand_frac = 0.5 * (1.0 + erf(d * sigma_sqrt2));
+		wmass_ssw_frac = 0.5 * (1.0 + erf(d * sigma_sqrt2));
 
 		// Update the interconnected fraction of surface water
-		wmass_stand_con = 0.0;
-		if (wmass_stand_frac > soiltype.wmass_stand_frac_thresh) {
-			wmass_stand_con = pow(wmass_stand_frac - soiltype.wmass_stand_frac_thresh, 0.14);
+		wmass_ssw_con_frac = 0.0;
+		if (wmass_ssw_frac > soiltype.wmass_ssw_frac_thresh) {
+			wmass_ssw_con_frac = pow(wmass_ssw_frac - soiltype.wmass_ssw_frac_thresh, 0.14);
 		}
 
 		// Calculate surface water runoff
-		if (wmass_surf > soiltype.wmass_stand_thresh) {
-			wflux_stand_runoff = min(1.0 / dtsub, soiltype.slope_grade_sin * wmass_stand_con) * (wmass_surf - soiltype.wmass_stand_thresh);
+		if (wmass_ssw > soiltype.wmass_ssw_thresh) {
+			wflux_ssw_runoff = min(1.0 / dtsub, 0.0001 * soiltype.slope_grade_sin * wmass_ssw_con_frac) * (wmass_ssw - soiltype.wmass_ssw_thresh);
 		}
 		else {
-			wflux_stand_runoff = 0.0;
+			wflux_ssw_runoff = 0.0;
 		}
 	}
 	else {
 		// Very small amount of surface water -> all lost through surface runoff
-		wmass_stand_con = 0.0;
-		wmass_stand_frac = 0.0;
-		wflux_stand_runoff = wmass_surf / dtsub;
+		wmass_ssw_con_frac = 0.0;
+		wmass_ssw_frac = 0.0;
+		wflux_ssw_runoff = wmass_ssw / dtsub;
 	}
-
 
 	// Fast runoff directly to streams
 	if (wflux_rain_melt > 0.0) {
@@ -3473,13 +3532,13 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 		double fsat_surf = min(fsat_max, fsat);
 
 		// Fractional area with water table at surface is assumed to be under standing water
-		if (fsat_surf > wmass_stand_frac) {
+		if (fsat_surf > wmass_ssw_frac) {
 
 			// Surface runoff (mm s-1)
-			wflux_in_runoff = (fsat_surf - wmass_stand_frac) * wflux_rain_melt;
+			wflux_surf_runoff = (fsat_surf - wmass_ssw_frac) * wflux_rain_melt;
 
 			// Water staying at surface / soil (mm s-1)
-			wflux_in = wflux_rain_melt - wflux_in_runoff;
+			wflux_in = wflux_rain_melt - wflux_surf_runoff;
 		}
 		else {
 			// No water to runoff, all water staying at surface / soil (mm s-1)
@@ -3488,11 +3547,11 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	}
 
 	// Partition surface inputs between soil and standing water
-	wflux_surf = wmass_stand_frac * wflux_in;
-	wflux_soil_in = wflux_in - wflux_surf;
+	wflux_ssw = wmass_ssw_frac * wflux_in;
+	wflux_soil = wflux_in - wflux_ssw;
 
 	// Remove surface water runoff
-	wflux_surf -= wflux_stand_runoff;
+	wflux_ssw -= wflux_ssw_runoff;
 
 	// Evaporation
 
@@ -3505,7 +3564,7 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 		// Evaporation from peat soil surface (Wania et al 2009)
 		if (snow.depth() < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
 			wflux_soil_evap = fevap * get_climate().eet * PRIESTLEY_TAYLOR * (0.99 / (1.0 + exp(-1.0 * (-wtd + 98.7) / 22.6) + 0.02));
-			wflux_soil_evap *= (1.0 - wmass_stand_frac) / SECS_PER_DAY;
+			wflux_soil_evap *= (1.0 - wmass_ssw_frac) / SECS_PER_DAY;
 		}
 		else {
 			wflux_soil_evap = 0.0;
@@ -3525,99 +3584,63 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 			if (wflux_soil_evap < EPS) {
 				wflux_soil_evap = 0.0;
 			}
-			wflux_soil_evap *= (1.0 - wmass_stand_frac) / SECS_PER_DAY;
+			wflux_soil_evap *= (1.0 - wmass_ssw_frac) / SECS_PER_DAY;
 		}
 	}
 
 	// Evaporation for standing water part of the soil
-	double wcont_stand_evap = soillayers[0].wcont(wmass_stand);
+	double wcont_ssw_evap = soillayers[0].wcont(wmass_ssw);
 
 	// Calculate total evaporation only if snow depth < 10mm (mm day-1)
-	wflux_stand_evap = 0.0;
+	wflux_ssw_evap = 0.0;
 	if (snow.depth() < 10.0 && !negligible(fevap)) {
-		wflux_stand_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_stand_evap * wcont_stand_evap * fevap;
+		wflux_ssw_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_ssw_evap * wcont_ssw_evap * fevap;
 
-		if (wflux_stand_evap < EPS) {
-			wflux_stand_evap = 0.0;
+		if (wflux_ssw_evap < EPS) {
+			wflux_ssw_evap = 0.0;
 		}
-		wflux_stand_evap *= wmass_stand_frac / SECS_PER_DAY;
+		wflux_ssw_evap *= wmass_ssw_frac / SECS_PER_DAY;
 	}
 
 	// Remove evaporation
-	wflux_surf -= wflux_stand_evap;
-	wflux_soil_in -= wflux_soil_evap;
+	wflux_ssw -= wflux_ssw_evap;
+	wflux_soil -= wflux_soil_evap;
 
-	// Determine the maximum infiltration rate
-
-	bool if_vic = false;
-
-	if (if_vic) {
-		// Maximum infiltration capacity (mm) (Eqn 2; Wood et al. 1992)
-		wmass_infil_max = (1.0 + b_infilt) * wsats_infilt;
-
-		// Average soil moisture in infiltration layers (mm) (Eqn 1; Wood et al. 1992)
-		wmass_infil = wmass_infil_max * (1.0 - pow(1.0 - fsat, 1.0 / b_infilt));
-
-		// No water to infiltrate
-		if (wflux_soil_in == 0.0) {
-			wflux_infilt_max = 0.0;
-		}
-		else {
-			if (wmass_infil + wflux_soil_in * dtsub > wmass_infil_max) {
-				// More water than maximum can infiltrate (eqn 3a; Wood et al. 1992)
-				wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt)) / dtsub;
-			}
-			else {
-				// Less water than maximum can infiltrate (eqn 3b; Wood et al. 1992)
-				double basis = 1.0 - (wmass_infil + wflux_soil_in * dtsub) / wsats_infilt;
-				wflux_runoff_tmp = (wflux_soil_in * dtsub - wsats_infilt + (wmass_infil + imass_infilt) +
-					wsats_infilt * pow(basis, 1.0 + b_infilt)) / dtsub;
-			}
-			wflux_runoff_tmp = min(wflux_soil_in, wflux_runoff_tmp);
-
-			// Maximum soil infiltration capacity (mm s-1)
-			wflux_infilt_max = (1.0 - fsat) * imp_ice * (wflux_soil_in - wflux_runoff_tmp);
-		}
-	}
-	else {
-		// Update Kw_max due to slope (Morbidelli et al. 2018)
-		wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max * soiltype.slope_grade_cos;
-	}
+	// Determine the maximum infiltration rate (mm s-1)
+	wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max * soiltype.slope_grade_cos;
 
 	// Excess water that can't infiltrate (mm s-1)
-	wflux_soil_in_excess = max(0.0, wflux_soil_in - (1.0 - wmass_stand_frac) * wflux_infilt_max);
+	wflux_soil_excess = max(0.0, wflux_soil - (1.0 - wmass_ssw_frac) * wflux_infilt_max);
 
 	// Soil infiltration and surface water run-on
-	wflux_surf += wflux_soil_in_excess;
-	wflux_soil_in -= wflux_soil_in_excess;
+	wflux_ssw += wflux_soil_excess;
+	wflux_soil -= wflux_soil_excess;
 
 	// Temporary storage prior to calculating bottom drainage from surface water
-	double wmass_stand_tmp = wmass_surf + wflux_surf * dtsub;
+	double wmass_ssw_tmp = wmass_ssw + wflux_ssw * dtsub;
 
 	// Negative surface water -> reduce soil infiltration
-	if (wmass_stand_tmp < 0.0) {
-		wflux_soil_in += wmass_stand_tmp / dtsub;
-		wflux_surf = -wmass_surf / dtsub;
-		wflux_stand_drain = 0.0;
+	if (wmass_ssw_tmp < 0.0) {
+		wflux_soil += wmass_ssw_tmp / dtsub;
+		wflux_ssw = -wmass_ssw / dtsub;
+		wflux_ssw_drain = 0.0;
 	}
 	else {
 		// Drainage from surface water to soil column
-		wflux_stand_drain = min(wmass_stand_frac * wflux_infilt_max, wmass_stand_tmp / dtsub);
+		wflux_ssw_drain = min(wmass_ssw_frac * wflux_infilt_max, wmass_ssw_tmp / dtsub);
 	}
 
+	// Reduce surface standing water with drainage (mm s-1)
+	wflux_ssw -= wflux_ssw_drain;
+
 	// Total evaporation (mm s-1)
-	wflux_evap = wflux_soil_evap + wflux_stand_evap;
+	wflux_evap = wflux_soil_evap + wflux_ssw_evap;
 
 	// Total surface runoff this timestep (mm s-1)
-	wflux_runoff_surf = wflux_stand_runoff + wflux_in_runoff;
+	wflux_runoff_surf = wflux_surf_runoff;
+	wflux_runoff_ssw = wflux_ssw_runoff;
 
-	// Reduce surface water with drainage (mm s-1)
-	wflux_surf -= wflux_stand_drain;
-
-	// Total soil infiltration (mm s-1)
-	wflux_infilt = wflux_soil_in;
-
-	double wbudget = wflux_evap + wflux_infilt + wflux_stand_drain + wflux_runoff_surf + wflux_surf - wflux_rain_melt;
+	double wbudget = wflux_evap + wflux_soil + wflux_ssw_drain + wflux_runoff_surf + wflux_runoff_ssw + wflux_ssw - wflux_rain_melt;
 
 	if (fabs(wbudget) > EPS) {
 		dprintf("Year %d Day %d ERROR: Infiltration water budget off: %g\n", 
@@ -3664,7 +3687,7 @@ void Soilcolumn::update_hydraulic_properties(int nsoillayers_sim) {
 			imp_ice = ice_imp(theta_i);
 		}
 
-		// Hydraulic conductivity (Campbell 1974; m s-1)
+		// Hydraulic conductivity (Campbell 1974; mm s-1)
 		if (theta_w >= 1.0) {
 			soillayer.Kw = soillayer.Kw_max;
 		}
@@ -3692,8 +3715,8 @@ void Soilcolumn::update_thermal_properties() {
 	// Update heat capacity and conductivity for each snow layer
 	snow.update_thermal_properties();
 
-	// Calculate heat capacity and conductivity for standing water
-	update_thermal_properties_for_stand();
+	// Calculate heat capacity and conductivity for surface standing water
+	update_thermal_properties_for_ssw();
 
 	// Update heat capacity and conductivity for each soil layer
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -3705,30 +3728,30 @@ void Soilcolumn::update_thermal_properties() {
 }
 
 
-/// Update standing waters thermal capacity and conductivity
-/** Update standing waters thermal capacity and conductivity
+/// Update surface standing waters thermal capacity and conductivity
+/** Update surface standing waters thermal capacity and conductivity
  */
-void Soilcolumn::update_thermal_properties_for_stand() {
+void Soilcolumn::update_thermal_properties_for_ssw() {
 
-	double depth_stand = wmass_stand + imass_stand;
+	double depth_ssw = wmass_ssw + imass_ssw;
 
 	// No standing water then return
-	if (negligible(depth_stand)) {
+	if (negligible(depth_ssw)) {
 		return;
 	}
 
 	// Standing water heat capacity (J m-3 K-1)
-	Ch_stand = (wmass_stand * Cp_water + imass_stand * Cp_ice) / depth_stand;
+	Ch_ssw = (wmass_ssw * Cp_water + imass_ssw * Cp_ice) / depth_ssw;
 
 	// Update the thermal conductivity - which follows
 	// Granberg et al. 1999, who refers to Farouki, 1986
 
 	// Calculate log terms
-	double lKfwater = (wmass_stand / depth_stand) * Kwater_log;
-	double lKfice = (imass_stand / depth_stand) * Kice_log;
+	double lKfwater = (wmass_ssw / depth_ssw) * Kwater_log;
+	double lKfice = (imass_ssw / depth_ssw) * Kice_log;
 
 	// Update thermal conductivity (J m-1 K-1 s-1)
-	Kh_stand = exp_thermal_lut(lKfwater + lKfice);
+	Kh_ssw = exp_thermal_lut(lKfwater + lKfice);
 }
 
 /// Update padding layers thermal capacity and conductivity
@@ -3743,8 +3766,8 @@ void Soilcolumn::update_thermal_properties_for_pad() {
 	// Heat capacity [J m-3 K-1]
 	double Cbedrock = 2100000.0;	
 
-	// Use bottom soil layer properties for the first 3 padding layers
-	const int first_bedrock_padding_layer = 3;
+	// Use bottom soil layer properties for the first 5 padding layers
+	const int first_bedrock_padding_layer = 5;
 
 	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 
@@ -3924,6 +3947,9 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 		if (lyr == 0) {
 			dminus = ki[lyr] / ci[lyr];
 		}
+		else if (lyr == nlayers - 1) {
+			dminus = Dbedrock;
+		}
 		else {
 			dminus = ((ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1])) / ci[lyr];
 		}
@@ -4006,20 +4032,23 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 
 	// Update temperature array
 	for (int lyr = 0; lyr < nlayers; lyr++) {
+		if (verysmall(solution[lyr])) {
+			solution[lyr] = 0.0;
+		}
 		temp[lyr] = solution[lyr];
 	}
 }
 
-/// Update standing water temperatures due to water addition
-/** Update standing water temperatures due to water addition
+/// Update surface standing water temperatures due to water addition
+/** Update surface standing water temperatures due to water addition
  */
-void Soilcolumn::update_stand_temp(double temp_add, double wmass_add) {
+void Soilcolumn::update_ssw_temp(double temp_add, double wmass_add) {
 
 	// Only update standing water temperature if the added water is positive. 
 	// Negative would be removal of water and would not change temperature.
 	if (wmass_add > 1.0e-6) {
-		temp_stand = (temp_stand * (wmass_stand + imass_stand) * Ch_stand + temp_add * wmass_add * Cp_water) /
-			((wmass_stand + imass_stand) * Ch_stand + wmass_add * Cp_water);
+		temp_ssw = (temp_ssw * (wmass_ssw + imass_ssw) * Ch_ssw + temp_add * wmass_add * Cp_water) /
+			((wmass_ssw + imass_ssw) * Ch_ssw + wmass_add * Cp_water);
 	}
 }
 
@@ -4166,6 +4195,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double aet_acrotelm = 0.0;
 	// Runoff from upper soil layer (mm)
 	double runoff_surf;
+	// Runoff from standing water (mm)
+	double runoff_ssw;
 	// Runoff (drainage) from lower soil layers (mm)
 	double runoff_drain;
 	// Evaporation from soil surface (mm)
@@ -4321,6 +4352,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		else {
 			runoff_surf = 0.0;
 		}
+		runoff_ssw = 0.0;
 
 		// Water runon
 		// External run on or off - but only when there's flowing water
@@ -4339,20 +4371,20 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtot_acrotelm_init = wtot_acrotelm;
 
 		// Update acrotelm water mass
-		wtot_acrotelm += runon - runoff_surf + wmass_stand;
+		wtot_acrotelm += runon - runoff_surf + wmass_ssw;
 
 		// If negative total water, then all initial water has gone to runoff and water is set to zero
 		if (wtot_acrotelm < 0.0) {
 			wtot_acrotelm = 0.0;
 			runoff_surf = wtot_acrotelm_init;
 			runon = 0.0;
-			wmass_stand = 0.0;
+			wmass_ssw = 0.0;
 		}
 	}
 	else {
 
 		// Water fluxes after calculating the interaction with the surface (mm s-1)
-		double wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt, wflux_stand_drain;
+		double wflux_evap, wflux_runoff_surf, wflux_runoff_ssw, wflux_surf, wflux_infilt, wflux_ssw_drain;
 
 		// Timeset (sec)
 		double dtsub = SECS_PER_DAY;
@@ -4371,25 +4403,27 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		// Calculate infiltration and surface runoff
 		compute_evap_infilt_and_runoff(dtsub, wflux_rain_melt, ACROTELM_DEPTH, itot_acrotelm,
-			wsats_acrotelm, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt, wflux_stand_drain);
+			wsats_acrotelm, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_runoff_ssw,
+			wflux_surf, wflux_infilt, wflux_ssw_drain);
 
 		// Water added to standing water
-		double wmass_stand_added = wflux_surf * dtsub;
+		double wmass_ssw_added = wflux_surf * dtsub;
 
 		// Update standing water temperature
-		update_stand_temp(rain_melt_temp, wmass_stand_added);
+		update_ssw_temp(rain_melt_temp, wmass_ssw_added);
 
 		// Add water to standing water (mm)
-		wmass_stand += wmass_stand_added;
+		wmass_ssw += wmass_ssw_added;
 
 		// Accumulate evaporation
 		evap = wflux_evap * dtsub;
 
 		// Accumulate surface runoff
 		runoff_surf = wflux_runoff_surf * dtsub;
+		runoff_ssw = wflux_runoff_ssw * dtsub;
 
 		// Water fluxes to the acrotelm 
-		wtot_acrotelm += (wflux_infilt + wflux_stand_drain) * dtsub - aet_acrotelm;
+		wtot_acrotelm += (wflux_infilt + wflux_ssw_drain) * dtsub - aet_acrotelm;
 
 		// If negative total water, then take water from standing, runoff, and evap until it is zero 
 		if (wtot_acrotelm < 0.0) {
@@ -4429,10 +4463,10 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 				double wmass_added = wtp - maxh;
 
 				// Update standing water temperature // DW_COMMENT don't know where the excess water comes from???
-				//update_stand_temp(soillayers[0].temp, wmass_added);
+				//update_ssw_temp(soillayers[0].temp, wmass_added);
 
 				// Add water to standing water
-				wmass_stand += wmass_added;
+				wmass_ssw += wmass_added;
 			}
 			wtp = maxh;
 		}
@@ -4578,6 +4612,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	double wmass_moved = min(runoff_surf, waddon);
 	runoff_surf -= wmass_moved;
 	waddon -= wmass_moved;
+	wmass_moved = min(runoff_ssw, waddon);
+	runoff_ssw -= wmass_moved;
+	waddon -= wmass_moved;
 
 
 	// Report water fluxes
@@ -4596,6 +4633,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Surface runoff
 	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SSW, runoff_ssw);
 
 	// Runon
 	fluxes.report_flux(Fluxes::WADDED, runon + waddon);
@@ -4766,6 +4804,7 @@ void Soilcolumn::hydrology_wetland(const Climate& climate, double fevap) {
 	// Save fluxes
 	Fluxes& fluxes = patch.fluxes;
 	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SSW, 0.0);
 	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, 0.0);
 	fluxes.report_flux(Fluxes::WRUNOFF_BASE, 0.0);
 	fluxes.report_flux(Fluxes::WEVAP, evap);
@@ -5036,6 +5075,7 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 	// Save fluxes
 	Fluxes& fluxes = patch.fluxes;
 	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SSW, 0.0);
 	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
 	fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
 	fluxes.report_flux(Fluxes::WEVAP, evap);
@@ -5454,6 +5494,7 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 	// Save fluxes
 	Fluxes& fluxes = patch.fluxes;
 	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SSW, 0.0);
 	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, runoff_drain);
 	fluxes.report_flux(Fluxes::WRUNOFF_BASE, runoff_baseflow);
 	fluxes.report_flux(Fluxes::WEVAP, evap);
@@ -5530,6 +5571,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double evap = 0.0;
 	// Surface runoff (mm)
 	double runoff_surf = 0.0;
+	// Standing water runoff (mm)
+	double runoff_ssw = 0.0;
 	// Infiltration (mm)
 	double wmass_infilt_tot = 0.0;
 	// Infiltration water temperature
@@ -5589,12 +5632,14 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double wflux_evap;
 	// Total surface runoff (mm s-1)
 	double wflux_runoff_surf;
+	// Total surface standing water runoff (mm s-1)
+	double wflux_runoff_ssw;
 	// Total standing surface water flux (mm s-1)
-	double wflux_surf;
+	double wflux_ssw;
 	// Total soil infiltration (mm s-1)
 	double wflux_infilt;
 	// Water drained from the standing water into the soil (mm s-1) 
-	double wflux_stand_drain;
+	double wflux_ssw_drain;
 
 	// Initialize the number of substeps
 	int nsubstep = 0;
@@ -5606,7 +5651,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double dtdone = 0.0;
 
 	// Estimate length of the substep (seconds)
-	if (wflux_rain_melt > 0.0 || wmass_stand > 0.0) {
+	if (wflux_rain_melt > 0.0 || wmass_ssw > 0.0) {
 		dtsub = SECS_PER_DAY / nsubdays_prec;
 	}
 	else {
@@ -5620,14 +5665,14 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double imass_infilt = var_depth(0.0, depth_infilt, IMASS);
 	double wsats_infilt = var_depth(0.0, depth_infilt, WSATS);
 
-	// Calculate ice impedance factor
+	// Calculate ice impedance factor for infiltation depth (top layer)
 	double imp_ice = ice_imp(imass_infilt / wsats_infilt);
 
-	// hydraulic conductivity at saturation for infiltation depth (top layer)
+	// Hydraulic conductivity at saturation for infiltation depth (top layer)
 	double Kw_max = var_depth(0.0, depth_infilt, KW_MAX, DEPTH);
 
 	// Checking for icy bottom soil layers
-	bool icy = true;
+	bool icy = false;
 	int icefree_lyr = 0;
 
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
@@ -5685,10 +5730,11 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 			// Calculate infiltration and surface runoff
 			compute_evap_infilt_and_runoff(dtsub, wflux_rain_melt, depth_infilt, imass_infilt, 
-				wsats_infilt, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_surf, wflux_infilt, wflux_stand_drain);
+				wsats_infilt, imp_ice, Kw_max, fevap, wflux_evap, wflux_runoff_surf, wflux_runoff_ssw, 
+				wflux_ssw, wflux_infilt, wflux_ssw_drain);
 
 			// If only one layer to simulate, then solve directly
-			if (nsoillayers_sim <= 1) {
+			if (nsoillayers_sim == 1) {
 
 				// Extract transpiration 
 				for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -5696,7 +5742,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 				}
 
 				// Influx of water
-				double wmass_influx = (wflux_infilt + wflux_stand_drain) * dtsub;
+				double wmass_influx = (wflux_infilt + wflux_ssw_drain) * dtsub;
 
 				// Add water to top two layers
 				for (int lyr = 0; lyr < 2; lyr++) {
@@ -5710,8 +5756,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 					dwat[lyr] = 0.0;
 				}
 
-				// Excees influx water added to standing water
-				wflux_surf += wmass_influx / dtsub;
+				// Excees influx water added to surface standing water
+				wflux_ssw += wmass_influx / dtsub;
 
 				// No error in mass balance
 				errorMax = 0.0;
@@ -5744,7 +5790,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 				}
 
 				// Soil moisture fluxes and their derivatives
-				compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_stand_drain, Kw, psi, dKwdw, dpsidw, qin, qout,
+				compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_ssw_drain, Kw, psi, dKwdw, dpsidw, qin, qout,
 					dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz, nsoillayers_sim);
 
 				// RHS of system of equations
@@ -5763,38 +5809,39 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		}
 
 		// Water added to standing water
-		double wmass_stand_added = wflux_surf * dtsub;
+		double wmass_ssw_added = wflux_ssw * dtsub;
 
-		// Update standing water temperature
-		update_stand_temp(rain_melt_temp, wmass_stand_added);
+		// Update standing water temperature // Not totally correct
+		update_ssw_temp(rain_melt_temp, wmass_ssw_added);
 
-		// Add water to standing water (mm)
-		wmass_stand += wmass_stand_added;
+		// Add water to surface standing water (mm)
+		wmass_ssw += wmass_ssw_added;
 
 		// Accumulate evaporation
 		evap += wflux_evap * dtsub;
 
 		// Accumulate surface runoff
 		runoff_surf += wflux_runoff_surf * dtsub;
+		runoff_ssw += wflux_runoff_ssw * dtsub;
 
 		// Temperature infiltration
-		if (!negligible(wmass_infilt_tot + (wflux_infilt + wflux_stand_drain) * dtsub)) {
+		if (!negligible(wmass_infilt_tot + (wflux_infilt + wflux_ssw_drain) * dtsub)) {
 			temp_infilt_tot = (temp_infilt_tot * wmass_infilt_tot + rain_melt_temp * wflux_infilt * dtsub +
-				temp_stand * wflux_stand_drain * dtsub) / (wmass_infilt_tot + (wflux_infilt + wflux_stand_drain) * dtsub);
+				temp_ssw * wflux_ssw_drain * dtsub) / (wmass_infilt_tot + (wflux_infilt + wflux_ssw_drain) * dtsub);
 		}
 
 		// Accumulater infiltration
-		wmass_infilt_tot += (wflux_infilt + wflux_stand_drain) * dtsub;
+		wmass_infilt_tot += (wflux_infilt + wflux_ssw_drain) * dtsub;
 
 		// Update the mass of liquid water
-		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			soillayers[lyr].wmass += dwat[lyr] * soillayers[lyr].depth;
 		}
 
 		// Extract root uptake from soil layer not accounted for
 		if (nsoillayers_sim != 1 && nsoillayers_sim != nsoillayers) {
 			for (int lyr = nsoillayers_sim; lyr < nsoillayers; lyr++) {
-				soillayers[lyr].wmass -= aet_layer[lyr] * dtsub / SECS_PER_DAY;;
+				soillayers[lyr].wmass -= aet_layer[lyr] * dtsub / SECS_PER_DAY;
 			}
 		}
 
@@ -5827,7 +5874,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 					soillayers[lyr - 1].wmass += wmass_excess;
 				}
 				else {
-					wmass_stand += wmass_excess;
+					wmass_ssw += wmass_excess;
 				}
 				soillayer.wmass -= wmass_excess;
 			}
@@ -5839,13 +5886,10 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 			Soillayer& soillayer = soillayers[lyr];
 
 			if (soillayer.wmass + soillayer.imass > soillayer.fc()) {
-				double wmass_excees = soillayer.wmass + soillayer.imass - soillayer.fc();
-				if (wmass_excees > soillayer.wmass) {
-					wmass_excees = soillayer.wmass;
-				}
 
-				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.108)
-				double drained_wmass = wmass_excees * min(0.5, soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_tan * dtsub);
+				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.106 and 107; mm s-1)
+				// Depends on the side area of the soil layer in m -> soillayer.depth * M_PER_MM
+				double drained_wmass = min(soillayer.wmass, C_dw * soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_sin * soillayer.depth * M_PER_MM * dtsub);
 				soillayer.runoff_drain += drained_wmass;
 				soillayer.wmass -= drained_wmass;
 			}
@@ -5888,6 +5932,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// Save fluxes
 	Fluxes& fluxes = patch.fluxes;
 	fluxes.report_flux(Fluxes::WRUNOFF_SURF, runoff_surf);
+	fluxes.report_flux(Fluxes::WRUNOFF_SSW, runoff_ssw);
 	fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, get_sum(RUNOFFDRAIN));
 	fluxes.report_flux(Fluxes::WRUNOFF_BASE, get_sum(RUNOFFBASE));
 	fluxes.report_flux(Fluxes::WEVAP, evap);
@@ -6376,26 +6421,26 @@ void Soilcolumn::initial_percolation() {
 	}
 }
 
-/// Calculate phase change of standing water and ice 
-/** Calculate phase change of standing water and ice
+/// Calculate phase change of surface standing water and ice 
+/** Calculate phase change of surface standing water and ice
  */
-void Soilcolumn::phase_change_stand() {
+void Soilcolumn::phase_change_ssw() {
 
 	// Initial water and ice content
-	double wtotal_initial = wmass_stand + imass_stand;
+	double wtotal_initial = wmass_ssw + imass_ssw;
 
-	// Standing water depth
-	double depth_stand = wmass_stand + imass_stand;
+	// Surface standing water depth
+	double depth_ssw = wmass_ssw + imass_ssw;
 
-	if (negligible(depth_stand)) {
+	if (negligible(depth_ssw)) {
 		return;
 	}
 
 	// Update thermal properties for standing water
-	update_thermal_properties_for_stand();
+	update_thermal_properties_for_ssw();
 
 	// Initial energy
-	double energy_initial = Ch_stand * (temp_stand + K2degC);
+	double energy_initial = Ch_ssw * (temp_ssw + K2degC);
 
 	// Should ice thaw
 	bool ifThaw = false;
@@ -6406,9 +6451,9 @@ void Soilcolumn::phase_change_stand() {
 	// Fraction of ice which thaws
 	double Fthaw = 0.0;
 	// Fraction of water
-	double Fwmass = wmass_stand / depth_stand;
+	double Fwmass = wmass_ssw / depth_ssw;
 	// Fraction of ice
-	double Fimass = imass_stand / depth_stand;
+	double Fimass = imass_ssw / depth_ssw;
 	// Energy per volume [J m-3]
 	double energy;
 	// Temperature difference (current - previous)
@@ -6419,24 +6464,24 @@ void Soilcolumn::phase_change_stand() {
 	const double EPS = 1.0e-10;
 
 	// Should water freeze
-	if (temp_stand < 0.0 && Fwmass > 0.0) {
+	if (temp_ssw < 0.0 && Fwmass > 0.0) {
 		ifFreeze = true;
 	}
 	// Should ice thaw
-	else if (temp_stand > 0.0 && Fimass > 0.0) {
+	else if (temp_ssw > 0.0 && Fimass > 0.0) {
 		ifThaw = true;
 	}
 
 	double temp_old = 0.0;
 
 	// Temperature difference from previous phase change
-	delta_T = temp_stand - temp_old;
+	delta_T = temp_ssw - temp_old;
 
 	// Freezing temperatures and water present
 	if (ifFreeze) {
 
 		// Energy from full standing water to freeze water [J m-3]
-		energy = Ch_stand * delta_T;
+		energy = Ch_ssw * delta_T;
 
 		// Fraction ice that can be frozen [m3 m-3]
 		Ffreez = energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
@@ -6445,11 +6490,11 @@ void Soilcolumn::phase_change_stand() {
 		if (Fwmass > Ffreez) {
 
 			// Update water and ice content
-			wmass_stand = (Fwmass - Ffreez) * depth_stand;
-			imass_stand = (Fimass + Ffreez) * depth_stand;
+			wmass_ssw = (Fwmass - Ffreez) * depth_ssw;
+			imass_ssw = (Fimass + Ffreez) * depth_ssw;
 
 			// Update standing water temperature
-			temp_stand = temp_old;
+			temp_ssw = temp_old;
 
 			// Energy used for phase change [J m-3]
 			phase_change_energy = -Ffreez * Lheat;
@@ -6459,8 +6504,8 @@ void Soilcolumn::phase_change_stand() {
 			// and decrease the temperature
 
 			// Update water and ice content
-			imass_stand += wmass_stand;
-			wmass_stand = 0.0;
+			imass_ssw += wmass_ssw;
+			wmass_ssw = 0.0;
 
 			// Energy used for phase change and to keep standing water at initial temperature [J m-3]
 			double energy_loss = Fwmass * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
@@ -6469,7 +6514,7 @@ void Soilcolumn::phase_change_stand() {
 			double energy_remain = energy - energy_loss;
 
 			// Update standing water temperature
-			temp_stand = temp_old + energy_remain / Cp_ice;
+			temp_ssw = temp_old + energy_remain / Cp_ice;
 
 			// Energy used for phase change [J m-3]
 			phase_change_energy = -Fwmass * Lheat;
@@ -6480,7 +6525,7 @@ void Soilcolumn::phase_change_stand() {
 	else if (ifThaw) {
 
 		// Energy from standing water to thaw water [J m-3]
-		energy = Ch_stand * delta_T;
+		energy = Ch_ssw * delta_T;
 
 		// Fraction ice that can be thawed [m3 m-3]
 		Fthaw = -energy / ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
@@ -6489,11 +6534,11 @@ void Soilcolumn::phase_change_stand() {
 		if (Fimass > Fthaw) {
 
 			// Update water and ice content
-			wmass_stand = (Fwmass + Fthaw) * depth_stand;
-			imass_stand = (Fimass - Fthaw) * depth_stand;
+			wmass_ssw = (Fwmass + Fthaw) * depth_ssw;
+			imass_ssw = (Fimass - Fthaw) * depth_ssw;
 
 			// Standing water temperature stays at previous timesteps temperature
-			temp_stand = temp_old;
+			temp_ssw = temp_old;
 
 			// Energy used for phase change [J m-3]
 			phase_change_energy = Fthaw * Lheat;
@@ -6504,8 +6549,8 @@ void Soilcolumn::phase_change_stand() {
 			// and increase the temperature
 
 			// Update water and ice content
-			wmass_stand += imass_stand;
-			imass_stand = 0.0;
+			wmass_ssw += imass_ssw;
+			imass_ssw = 0.0;
 
 			// Energy used for phase change and to keep standing water at initial temperature [J m-3]
 			double energy_loss = -Fimass * ((Cp_ice - Cp_water) * (temp_old + K2degC) + Lheat);
@@ -6514,7 +6559,7 @@ void Soilcolumn::phase_change_stand() {
 			double energy_remain = energy - energy_loss;
 
 			// Update standing water temperature
-			temp_stand = temp_old + energy_remain / Cp_water;
+			temp_ssw = temp_old + energy_remain / Cp_water;
 
 			// Energy used for phase change [J m-3]
 			phase_change_energy = Fimass * Lheat;
@@ -6523,7 +6568,7 @@ void Soilcolumn::phase_change_stand() {
 
 
 	// Final water
-	double wtotal_final = wmass_stand + imass_stand;
+	double wtotal_final = wmass_ssw + imass_ssw;
 
 	// Water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
@@ -6532,33 +6577,33 @@ void Soilcolumn::phase_change_stand() {
 	}
 
 	// Update thermal properties for standing water
-	update_thermal_properties_for_stand();
+	update_thermal_properties_for_ssw();
 
 	// Final energy
-	double energy_final = Ch_stand * (temp_stand + K2degC) - phase_change_energy;
+	double energy_final = Ch_ssw * (temp_ssw + K2degC) - phase_change_energy;
 
 	// Energy balance checks
 	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
-		dprintf("Year %d Day %d Energy balance during freezing or thawing in Soilcolumn::phase_change_stand. Init %g, Final %g, Diff %g \n",
+		dprintf("Year %d Day %d Energy balance during freezing or thawing in Soilcolumn::phase_change_ssw. Init %g, Final %g, Diff %g \n",
 			date.year, date.day, energy_initial, energy_final, energy_initial - energy_final);
 	}
 
 	// Ice despite positive temperature
-	if (temp_stand > 0.0 && imass_stand > 0.0) {
+	if (temp_ssw > 0.0 && imass_ssw > 0.0) {
 		dprintf("ERROR: Phase Change Stand Year %d Day %d Temp %g imass %g\n",
-			date.year, date.day, temp_stand, imass_stand);
+			date.year, date.day, temp_ssw, imass_ssw);
 	}
 
 	// No negative wmass
-	if (wmass_stand < -EPS) {
-		fail("ERROR: Negative wmass at end of phase_change_stand! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
-			date.year, date.day, depth_stand, delta_T, phase_change_energy, wmass_stand, imass_stand);
+	if (wmass_ssw < -EPS) {
+		fail("ERROR: Negative wmass at end of phase_change_ssw! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
+			date.year, date.day, depth_ssw, delta_T, phase_change_energy, wmass_ssw, imass_ssw);
 	}
 
 	// No negative imass
-	if (imass_stand < -EPS) {
-		fail("ERROR: Negative imass at end of phase_change_stand! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
-			date.year, date.day, depth_stand, delta_T, phase_change_energy, wmass_stand, imass_stand);
+	if (imass_ssw < -EPS) {
+		fail("ERROR: Negative imass at end of phase_change_ssw! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
+			date.year, date.day, depth_ssw, delta_T, phase_change_energy, wmass_ssw, imass_ssw);
 	}
 }
 
@@ -6588,7 +6633,7 @@ void Soilcolumn::phase_change() {
 	snow.phase_change();
 
 	// Standing water phase change
-	phase_change_stand();
+	phase_change_ssw();
 
 	// Soil phase change
 
@@ -6672,11 +6717,11 @@ void Soilcolumn::calc_temp() {
 
 	double airT = patch.get_climate().temp;
 
-	int ttimesteps = 4;
+	int ttimesteps = 5;
 
 	// If a snowpack and standing water is present then soak snowpack
-	if (!negligible(wcont_stand()) && !negligible(snow.depth())) {
-		snow.soak_snowpack(wmass_stand, imass_stand, temp_stand);
+	if (!negligible(wcont_ssw()) && !negligible(snow.depth())) {
+		snow.soak_snowpack(wmass_ssw, imass_ssw, temp_ssw);
 	}
 
 	// Update heat capacity and thermal conductivity for snow, standing water, soil and padding layers
@@ -6688,11 +6733,11 @@ void Soilcolumn::calc_temp() {
 		bool combine_surf_soil = false;
 
 		// Layer above soil exists
-		if (snow.depth() + wcont_stand() > 0.0) {
+		if (snow.depth() + wcont_ssw() > 0.0) {
 
 			// Layer above soil is thinner that 50% of top soil layer
 			// Should be combined with top soil layer for computational stability
-			if (snow.depth() + wcont_stand() <= soillayers[0].depth * 0.5 && nsurflayers < snow.nsnowlayers) {
+			if (snow.depth() + wcont_ssw() <= soillayers[0].depth * 0.5 && nsurflayers < snow.nsnowlayers) {
 
 				// Combine additional surface layers with top soil layer
 				combine_surf_soil = true;
@@ -6738,10 +6783,10 @@ void Soilcolumn::calc_temp() {
 				// Standing water layers
 				int lyr = nairsurflayers - 1;
 
-				dz[lyr] = wcont_stand();
-				ci[lyr] = Ch_stand / MM3_PER_M3; // m-3 to mm-3
-				ki[lyr] = Kh_stand * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
-				temp[lyr] = temp_stand;
+				dz[lyr] = wcont_ssw();
+				ci[lyr] = Ch_ssw / MM3_PER_M3; // m-3 to mm-3
+				ki[lyr] = Kh_ssw * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				temp[lyr] = temp_ssw;
 			}
 		}
 
@@ -6764,10 +6809,10 @@ void Soilcolumn::calc_temp() {
 					temp_surf = snowlayer.temp;
 				}
 				else {
-					depth_surf = wcont_stand();
-					Ch_surf = Ch_stand;
-					Kh_surf = Kh_stand;
-					temp_surf = temp_stand;
+					depth_surf = wcont_ssw();
+					Ch_surf = Ch_ssw;
+					Kh_surf = Kh_ssw;
+					temp_surf = temp_ssw;
 				}
 				
 
@@ -6780,7 +6825,7 @@ void Soilcolumn::calc_temp() {
 			else {
 				dz[lyr] = soillayer.depth;
 				ci[lyr] = soillayer.Ch / MM3_PER_M3; // m-3 to mm-3
-				ki[lyr] = soillayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
+				ki[lyr] = soillayer.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1 
 				temp[lyr] = soillayer.temp;
 			}
 		}
@@ -6816,8 +6861,8 @@ void Soilcolumn::calc_temp() {
 		}
 
 		// Set new standing water temperatures
-		if (!negligible(wcont_stand())) {
-			temp_stand = temp[1];
+		if (!negligible(wcont_ssw())) {
+			temp_ssw = temp[1];
 		}
 
 		// Set new soil layer temperatures
@@ -6909,6 +6954,10 @@ void Soilcolumn::calc_msnow() {
  *
  */
 void Soilcolumn::calc_root_volume() {
+
+	if (!ifeffvolume) {
+		return;
+	}
 
 	// Calculate total coarse root volume
 	double volume_coarse_root[NSOILLAYERS_MAX] = { 0.0 };
@@ -7569,9 +7618,9 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& mald_mean
 		& awtp
 		& anfix_calc
-		& wmass_stand
-		& imass_stand
-		& temp_stand
+		& wmass_ssw
+		& imass_ssw
+		& temp_ssw
 		& pad
 		& fNH4uptake_mean
 		& fNO3uptake_mean

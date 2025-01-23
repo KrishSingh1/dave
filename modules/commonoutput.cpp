@@ -156,7 +156,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mch4ebull", &file_mch4ebull, 300, "Monthly CH4 emissions, ebullition");
 	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
 	declare_parameter("file_msnowcover", &file_msnowcover, 300, "Monthly snow cover");
-	declare_parameter("file_mwmass_stand", &file_mwmass_stand, 300, "Monthly standing water");
+	declare_parameter("file_mwmass_ssw", &file_mwmass_ssw, 300, "Monthly standing water");
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
 	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
@@ -222,12 +222,13 @@ void CommonOutput::define_output_tables() {
 	}
 
 	// Create the month columns
-	ColumnDescriptors month_columns, month_columns_wide, month_columns_large;
+	ColumnDescriptors month_columns, month_columns_small, month_columns_wide, month_columns_large;
 	xtring months[] = { "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec" };
 	for (int i = 0; i < 12; i++) {
 		month_columns += ColumnDescriptor(months[i], 8, 3);
+		month_columns_small += ColumnDescriptor(months[i], 7, 1);
 		month_columns_wide += ColumnDescriptor(months[i], 10, 3);
-		month_columns_large += ColumnDescriptor(months[i], 7, 0);
+		month_columns_large += ColumnDescriptor(months[i], 9, 1);
 	}
 
 	// Create soil depth columns
@@ -449,6 +450,7 @@ void CommonOutput::define_output_tables() {
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
+	runoff_columns += ColumnDescriptor("SSW",              8, 1);
 	runoff_columns += ColumnDescriptor("Drain",            8, 1);
 	runoff_columns += ColumnDescriptor("Base",             8, 1);
 	runoff_columns += ColumnDescriptor("Total",            9, 1);
@@ -575,6 +577,7 @@ void CommonOutput::define_output_tables() {
 	wflux_columns += ColumnDescriptor("Trans", 8, 1);
 	wflux_columns += ColumnDescriptor("Evap", 8, 1);
 	wflux_columns += ColumnDescriptor("Rsurf", 8, 1);
+	wflux_columns += ColumnDescriptor("Rssw", 8, 1);
 	wflux_columns += ColumnDescriptor("Rdrain", 8, 1);
 	wflux_columns += ColumnDescriptor("Rbase", 8, 1);
 	wflux_columns += ColumnDescriptor("NEE", 8, 1);
@@ -720,7 +723,7 @@ void CommonOutput::define_output_tables() {
 	// Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_msnowcover,     file_msnowcover,     month_columns);
-	create_output_table(out_mwmass_stand,   file_mwmass_stand,   month_columns_large);
+	create_output_table(out_mwmass_ssw,     file_mwmass_ssw,     month_columns_small);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
 	create_output_table(out_mald,           file_mald,           mald_columns);
 	create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
@@ -1034,7 +1037,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mch4_plant[12];
 	double msnowdepth[12];
 	double msnowcover[12];
-	double mwmass_stand[12];
+	double mwmass_ssw[12];
 	double mwtp[12];
 	double mald[12];
 	double mald_peat[12];
@@ -1060,7 +1063,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mnetmin[m] = mwmass[m] = mimass[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
-		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwmass_stand[m] = mwtp[m] = mald[m] = mald_peat[m] = mtemp25cm[m] = 0.0;
+		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = msnowcover[m] = mwmass_ssw[m] = mwtp[m] = mald[m] = mald_peat[m] = mtemp25cm[m] = 0.0;
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX + NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 			mtemp[lyr][m] = 0.0;
 		}
@@ -1155,6 +1158,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double aaet_gridcell = 0.0;
 	double lai_gridcell = 0.0;
 	double surfrunoff_gridcell = 0.0;
+	double sswrunoff_gridcell = 0.0;
 	double drainrunoff_gridcell = 0.0;
 	double baserunoff_gridcell = 0.0;
 	double runoff_gridcell = 0.0;
@@ -1728,9 +1732,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 
 			surfrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF)*to_gridcell_average;
+			sswrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW)*to_gridcell_average;
 			drainrunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN)*to_gridcell_average;
 			baserunoff_gridcell += fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)*to_gridcell_average;
-			runoff_gridcell += (fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
+			runoff_gridcell += (fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF) + fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW) + 
+				fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) + fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)) * to_gridcell_average;
 			wetland_wmass_added_gridcell += fluxes.get_annual_flux(Fluxes::WADDED) * to_gridcell_average;
 			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI) * to_gridcell_average;
 			intercept_gridcell += fluxes.get_annual_flux(Fluxes::WINTERCEP) * to_gridcell_average;
@@ -2038,16 +2044,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
-				mwmass_stand[m] += patch.soilcolumn.mwmass_stand[m] * to_gridcell_average;
+				mwmass_ssw[m] += patch.soilcolumn.mwmass_ssw[m] * to_gridcell_average;
 				
 				double ald_mth = patch.soilcolumn.depth * M_PER_MM;
 				if (hydrology != GERTEN) {
-					if (patch.soilcolumn.pad[4].mtemp[m] < 0.0) {
-						ald_mth = patch.soilcolumn.mthaw[m] * M_PER_MM;
-					}
-					else {
-						ald_mth = patch.soilcolumn.depth * M_PER_MM;
-					}
+					ald_mth = patch.soilcolumn.mthaw[m] * M_PER_MM;
 				}
 				mald[m] += ald_mth * to_gridcell_average;
 				if (stand.landcover == PEATLAND) {
@@ -2201,6 +2202,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_firert,				firert_gridcell);
 	outlimit(out,out_firert,				burned_area_gridcell);
 	outlimit(out,out_runoff,				surfrunoff_gridcell);
+	outlimit(out,out_runoff,				sswrunoff_gridcell);
 	outlimit(out,out_runoff,				drainrunoff_gridcell);
 	outlimit(out,out_runoff,				baserunoff_gridcell);
 	outlimit(out,out_runoff,				runoff_gridcell);
@@ -2238,16 +2240,17 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out, out_wflux, tran_gridcell);
 	outlimit(out, out_wflux, evap_gridcell);
 	outlimit(out, out_wflux, surfrunoff_gridcell);
+	outlimit(out, out_wflux, sswrunoff_gridcell);
 	outlimit(out, out_wflux, drainrunoff_gridcell);
 	outlimit(out, out_wflux, baserunoff_gridcell);
 	if (run_landcover) {
 		outlimit(out, out_wflux, intercept_gridcell + tran_gridcell + evap_gridcell + 
-			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - 
+			surfrunoff_gridcell + sswrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell -
 			(gridcell.climate.aprec + irrigation_gridcell + wetland_wmass_added_gridcell));
 	}
 	else {
 		outlimit(out, out_wflux, intercept_gridcell + tran_gridcell + evap_gridcell +
-			surfrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - gridcell.climate.aprec);
+			surfrunoff_gridcell + sswrunoff_gridcell + drainrunoff_gridcell + baserunoff_gridcell - gridcell.climate.aprec);
 	}
 
 	outlimit(out, out_wpool, wmass_snow_gridcell);
@@ -2445,7 +2448,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mch4ebull, mch4_ebull[m]);
 		outlimit(out,out_msnow, msnowdepth[m]);
 		outlimit(out,out_msnowcover, msnowcover[m]);
-		outlimit(out,out_mwmass_stand, mwmass_stand[m]);
+		outlimit(out,out_mwmass_ssw, mwmass_ssw[m]);
 		outlimit(out,out_mwtp, mwtp[m]);
 		outlimit(out,out_mald, mald[m]);
 		outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? mald_peat[m] / peat_gridcell_average : 0.0);

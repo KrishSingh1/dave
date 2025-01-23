@@ -149,7 +149,7 @@ const double Dt = 1;
 // HEAT CAPACITIES
 
 /// heat capacity of air [J m-3 K-1] - Bonan (2002)
-const double Cp_air = 1230;
+const double Cp_air = 1200;
 
 /// heat capacity of water [J m-3 K-1] - Bonan (2002)
 const double Cp_water = 4180000;
@@ -209,7 +209,17 @@ const double Kwood = 0.075;
 const double Kwood_log = log(Kmoss);
 
 /// latent heat of fusion [J m-3]
-const double Lheat = 3.0587E8;	
+const double Lheat = 3.0587E8;
+
+// Bedrock parameters from Chadburn et al. (2015)
+/// Thermal conductivity [W m-1 K-1 s-1]
+const double Kbedrock = 8.6;
+
+/// Heat capacity [J m-3 K-1]
+const double Cbedrock = 2100000.0;
+
+/// Thermal diffusivity [mm2 day-1]
+const double Dbedrock = Kbedrock / Cbedrock * SECS_PER_DAY * MM2_PER_M2;
 
 /// A FILL-IN for layers above layer0.
 const double MISSING_VALUE = -9999.0;      

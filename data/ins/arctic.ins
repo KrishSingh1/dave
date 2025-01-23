@@ -82,9 +82,9 @@ file_csom "csom.out"
 file_volume_org_depth "volume_org_depth.out"
 file_volume_min_depth "volume_min_depth.out"
 file_volume_root_depth "volume_root_depth.out"
-file_temp_mod "mod_temp.out"
-file_moist_mod "mod_moist.out"
-file_tot_mod "mod_total.out"
+!file_temp_mod "mod_temp.out"
+!file_moist_mod "mod_moist.out"
+!file_tot_mod "mod_total.out"
 file_temp_mod_depth "mod_temp_depth.out"
 file_moist_mod_depth "mod_moist_depth.out"
 file_tot_mod_depth "mod_total_depth.out"
@@ -138,7 +138,7 @@ file_mdrain_depth "mdrain_depth.out"
 
 file_msnow "msnowdepth.out"
 file_msnowcover "msnowcover.out"
-file_mwmass_stand "mwmass_stand.out"
+file_mwmass_ssw "mwmass_ssw.out"
 file_mwtp "mwtp.out"
 file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
@@ -156,6 +156,7 @@ file_mburned_area_out "monthly_burned_area.out"
 !file_daily_snow_d "dsnow_d.out"
 !file_daily_snow_c "dsnow_c.out"
 !file_daily_temp "dtemp.out"
+!file_daily_wcont "dwcont.out"
 
 !///////////////////////////////////////////////////////////////////////////////
 ! RUN PARAMETERS AND OPTIONS
@@ -214,13 +215,15 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-depth_soil 10000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
+C_dw 0.05			! Calibration parameter for lateral drainage
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al.2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
+rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500mm, that roots have access to
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
 iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)

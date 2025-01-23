@@ -74,9 +74,11 @@ bool ifbvoc;
 // Soil, arctic and wetland options
 double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
 double b_infilt;					// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
+double C_dw;						// Calibration parameter for lateral drainage
 bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
+double rootfrac_of_deep_soil;		// Fraction of deep soil, beyond 1500mm, that roots have access to
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
@@ -526,12 +528,16 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use fixed slope value (>=0 degree) or input data (<0)");
 		declareitem("b_infilt", &b_infilt, 0.0001, 0.4, 1, CB_NONE,
 			"Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)");
+		declareitem("C_dw", &C_dw, 0.00001, 1.0, 1, CB_NONE,
+			"Calibration parameter for lateral drainage");
 		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
 			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
 		declareitem("ifsupercooled", &ifsupercooled, 0, 2, 1, CB_NONE,
 			"Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020");
 		declareitem("homrootdistfrac", &homrootdistfrac, 0.0, 1.0, 1, CB_NONE,
 			"Fraction of fine roots to be homogenously distributed in soil column");
+		declareitem("rootfrac_of_deep_soil", &rootfrac_of_deep_soil, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of deep soil, beyond 1500mm, that roots have access to");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
@@ -1299,37 +1305,117 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
+
+		if (!itemparsed("wetland_runon")) badins("wetland_runon");
+		if (!itemparsed("ifmethane")) badins("ifmethane");
 		
 		if (!itemparsed("slope")) badins("slope");
 		if (!itemparsed("b_infilt")) badins("b_infilt");
+		if (!itemparsed("C_dw")) badins("C_dw");
 		if (!itemparsed("ifbedrock")) badins("ifbedrock");
-		if (hydrology != RICHARDS && ifbedrock == 1) {
-			sendmessage("Error", "Can't account for bedrock with GERTEN or MILLER hydrology!");
-			plibabort();
-		}
 		if (!itemparsed("ifsupercooled")) badins("ifsupercooled");
 		if (!itemparsed("homrootdistfrac")) badins("homrootdistfrac");
+		if (!itemparsed("rootfrac_of_deep_soil")) badins("rootfrac_of_deep_soil");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
-		if (hydrology == GERTEN && ifmultilayersnow == 1) {
-			sendmessage("Error", "Can't have multilayer snow scheme together with GERTEN hydrology!");
-			plibabort();
-		}
-		if (hydrology == RICHARDS && ifmultilayersnow == 0) {
-			sendmessage("Error", "Can't have simple snow scheme together with RICHARDS hydrology!");
-			plibabort();
-		}
-
 		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
-		if (!itemparsed("wetland_runon")) badins("wetland_runon");
-		if (!itemparsed("ifmethane")) badins("ifmethane");
 		if (!itemparsed("peat_age")) badins("peat_age");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
 		if (!itemparsed("ifeffvolume")) badins("ifeffvolume");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
 		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
+
+		if (hydrology == GERTEN) {
+			if (ifbedrock) {
+				dprintf("Bedrock: Can't account for bedrock with GERTEN hydrology! ifbedrock set to false\n");
+				ifbedrock = false;
+			}
+			if (ifmultilayersnow) {
+				dprintf("Multilayer snow scheme: Can't have multilayer snow scheme together with GERTEN hydrology! ifmultilayersnow set to false\n");
+				ifmultilayersnow = false;
+			}
+			if (ifinundationstress) {
+				dprintf("Inundation stress: Can't have inundation stress together with GERTEN hydrology! ifinundationstress set to false\n");
+				ifinundationstress = false;
+			}
+			if (wetland_runon != 0.0) {
+				dprintf("Wetland runon: Can't have wetland runon together with GERTEN hydrology! wetland_runon set to zero\n");
+				wetland_runon = 0.0;
+			}
+			if (ifmethane) {
+				dprintf("Methane: Can't have methane together with GERTEN hydrology! ifmethane set to false\n");
+				ifmethane = false;
+			}
+			if (ifcarbonfreeze) {
+				dprintf("Carbon freeze: Can't have carbon freeze together with GERTEN hydrology! ifcarbonfreeze set to false\n");
+				ifcarbonfreeze = false;
+			}
+			if (ifsupercooled) {
+				dprintf("Supercooled water: Can't have supercooled water together with GERTEN hydrology! ifsupercooled set to false\n");
+				ifsupercooled = false;
+			}
+			if (ifsoaksnow) {
+				dprintf("Soak snow: Can't have soak snow together with GERTEN hydrology! ifsoaksnow set to false\n");
+				ifsoaksnow = false;
+			}
+			if (iforganicsoilproperties) {
+				dprintf("Organic soil properties: Can't have organic soil properties together with GERTEN hydrology! iforganicsoilproperties set to false\n");
+				iforganicsoilproperties = false;
+			}
+			if (ifeffvolume) {
+				dprintf("Effective volume: Can't have effective volume together with GERTEN hydrology! ifeffvolume set to false\n");
+				ifeffvolume = false;
+			}
+			if (ifdepthdecaymod) {
+				dprintf("Depth decay mod: Can't have depth decay mod together with GERTEN hydrology! ifdepthdecaymod set to false\n");
+				ifdepthdecaymod = false;
+			}
+			if (ifthawaffectrootdist) {
+				dprintf("Thaw affect root distribution: Can't have that thaw affect root distribution together with GERTEN hydrology! ifthawaffectrootdist set to false\n");
+				ifthawaffectrootdist = false;
+			}
+			if (rootfrac_of_deep_soil) {
+				dprintf("Roots in deep soil: Can't have deep roots together with GERTEN hydrology! rootfrac_of_deep_soil set to 0\n");
+				rootfrac_of_deep_soil = 0.0;
+			}
+		}
+
+		if (hydrology == MILLER) {
+			if (ifbedrock == 1) {
+				dprintf("Bedrock: Can't account for bedrock with MILLER hydrology! ifbedrock set to false\n");
+				ifbedrock = false;
+			}
+			if (iforganicsoilproperties) {
+				dprintf("Organic soil properties: Can't have organic soil properties together with MILLER hydrology! iforganicsoilproperties set to false\n");
+				iforganicsoilproperties = false;
+			}
+			if (ifeffvolume) {
+				dprintf("Effective volume: Can't have effective volume together with MILLER hydrology! ifeffvolume set to false\n");
+				ifeffvolume = false;
+			}
+			if (ifdepthdecaymod) {
+				dprintf("Depth decay mod: Can't have depth decay mod together with MILLER hydrology! ifdepthdecaymod set to false\n");
+				ifdepthdecaymod = false;
+			}
+			if (rootfrac_of_deep_soil) {
+				dprintf("Roots in deep soil: Can't have deep roots together with MILLER hydrology! rootfrac_of_deep_soil set to 0\n");
+				rootfrac_of_deep_soil = 0.0;
+			}
+		}
+
+		if (hydrology == RICHARDS) {
+			if (!ifmultilayersnow) {
+				dprintf("Multilayer snow scheme: Can't have simple snow scheme together with RICHARDS hydrology! ifmultilayersnow set to true\n");
+				ifmultilayersnow = true;
+			}
+			if (!negligible(homrootdistfrac) && !negligible(rootfrac_of_deep_soil)) {
+				dprintf("Root distribution: Can't have homrootdistfrac and rootfrac_of_deep_soil together with RICHARDS hydrology! Both set to 0\n");
+				homrootdistfrac = 0.0;
+				rootfrac_of_deep_soil = 0.0;
+			}
+		}
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {

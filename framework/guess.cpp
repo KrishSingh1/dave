@@ -676,7 +676,7 @@ double Patch::wcontent() {
 
 	wcontent += soilcolumn.snow.wcontent();
 
-	wcontent += soilcolumn.wmass_stand + soilcolumn.imass_stand;
+	wcontent += soilcolumn.wmass_ssw + soilcolumn.imass_ssw;
 
 	return wcontent;
 }
@@ -739,6 +739,7 @@ double Patch::wflux() {
 	wflux += fluxes.get_annual_flux(Fluxes::WTRAN);
 	wflux += fluxes.get_annual_flux(Fluxes::WEVAP);
 	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF);
+	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW);
 	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN);
 	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE);
 

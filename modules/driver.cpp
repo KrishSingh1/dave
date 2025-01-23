@@ -445,20 +445,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
 
-	// On first day of the simulation ...
-	if (hydrology == GERTEN && date.day == 0 && date.year == 0) {
-		// Override some of the wetland Booleans when using the two layer soil. These have no effect in any case, as 
-		// run_peatland must be false
-		ifinundationstress = false;
-		wetland_runon = 0.0;
-		ifmethane = false;
-
-		// Fail in these cases
-		if (ifcarbonfreeze || ifmultilayersnow) {
-			fail("dailyaccounting_gridcell: ifcarbonfreeze and ifmultilayersnow must all be 0 if hydrology is set to GERTEN");
-		}
-	}
-
 	// On first day of year ...
 
 	if (date.day == 0) {
@@ -730,7 +716,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		for (int mth = 0; mth < 12; mth++) {
-			soilcolumn.mwmass_stand[mth] = 0.0;
+			soilcolumn.mwmass_ssw[mth] = 0.0;
 		}
 
 		// Snow
@@ -842,9 +828,15 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		// If water and ice exceed the capability of the soil to hold water, 
-		// then it will be lost as baseflow 
-		if (!negligible(wmass_move + imass_move))
-			patch.fluxes.report_flux(Fluxes::WRUNOFF_BASE, wmass_move + imass_move);
+		// then it will be lost as drainage 
+		if (!negligible(wmass_move + imass_move)) {
+			patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, wmass_move + imass_move);
+		}
+	}
+
+	// Initiate soil water
+	if (date.year == 0 && date.day == 0) {
+		soilcolumn.init_water();
 	}
 
 	if(run_landcover)

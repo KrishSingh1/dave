@@ -586,6 +586,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors wpool_columns;
 	wpool_columns += ColumnDescriptor("SnowWater", 10, 1);
 	wpool_columns += ColumnDescriptor("SnowIce", 8, 1);
+	wpool_columns += ColumnDescriptor("StandWater", 11, 1);
 	wpool_columns += ColumnDescriptor("SoilWater", 10, 1);
 	wpool_columns += ColumnDescriptor("SoilIce", 9, 1);
 
@@ -1197,6 +1198,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double wmass_snow_gridcell = 0.0;
 	double imass_snow_gridcell = 0.0;
+	double wmass_ssw_gridcell = 0.0;
 	double wmass_soil_gridcell = 0.0;
 	double imass_soil_gridcell = 0.0;
 
@@ -1745,6 +1747,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
 			imass_snow_gridcell += snow.imass() * to_gridcell_average;
+			wmass_ssw_gridcell += soilcolumn.wmass_ssw * to_gridcell_average;
 			wmass_soil_gridcell += soilcolumn.get_sum(WMASS) * to_gridcell_average;
 			imass_soil_gridcell += soilcolumn.get_sum(IMASS) * to_gridcell_average;
 
@@ -2255,6 +2258,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	outlimit(out, out_wpool, wmass_snow_gridcell);
 	outlimit(out, out_wpool, imass_snow_gridcell);
+	outlimit(out, out_wpool, wmass_ssw_gridcell);
 	outlimit(out, out_wpool, wmass_soil_gridcell);
 	outlimit(out, out_wpool, imass_soil_gridcell);
 	

@@ -453,22 +453,6 @@ void reduce_decay_growth_rates(double decay_reduction[NSOMPOOL], double growth_r
 		tot_ndec += ndec[p];
 		tot_ninc += ninc[p];
 	}
-
-	/*// Minimum net N mineralisation (1% of decomposed N)
-	double min_net_n_min = tot_ndec * 0.01;
-
-	// If total N mineralisation is below a minimum then adjust C:N ratio of receiver pools 
-	// to satisfy net N mineralisation
-	if (tot_net_n_min < min_net_n_min) {
-
-		// Current total C:N ratio of receiver pools
-		double cton_current = tot_cinc / tot_ninc;
-
-		// New total C:N ratio of receiver pools to satisfy a minimum net N mineralisation
-		double cton_new = tot_cinc / (tot_ninc + tot_net_n_min - min_net_n_min);
-
-		ntoc_reduction = cton_current / cton_new;
-	}*/
 }
 
 /// Set target nutrient to carbon ratios for SOM pools
@@ -1602,7 +1586,7 @@ void leaching(Patch& patch) {
 		Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 		// Water runoff for this time step
-		if (lyr == 0) {
+		if (lyr == 0 && hydrology != RICHARDS) {
 			runoff = soillayer.runoff_drain + soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) + 
 				soilcolumn.patch.fluxes.get_daily_flux(Fluxes::WRUNOFF_SSW, date.day);
 		}

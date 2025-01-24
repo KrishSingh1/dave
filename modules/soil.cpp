@@ -3511,9 +3511,9 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 			wmass_ssw_con_frac = pow(wmass_ssw_frac - soiltype.wmass_ssw_frac_thresh, 0.14);
 		}
 
-		// Calculate surface water runoff
+		// Calculate surface water lateral runoff
 		if (wmass_ssw > soiltype.wmass_ssw_thresh) {
-			wflux_ssw_runoff = min(1.0 / dtsub, 0.0001 * soiltype.slope_grade_sin * wmass_ssw_con_frac) * (wmass_ssw - soiltype.wmass_ssw_thresh);
+			wflux_ssw_runoff = C_dw * soiltype.slope_grade_sin * wmass_ssw_con_frac * (wmass_ssw - soiltype.wmass_ssw_thresh) / dtsub;
 		}
 		else {
 			wflux_ssw_runoff = 0.0;

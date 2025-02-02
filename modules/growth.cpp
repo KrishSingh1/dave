@@ -588,7 +588,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 // indiv.leaf_growth
 void tree_phenology_grote(Individual& indiv) {
 	// taken from Grote code.
-	Climate climate = indiv.vegetation.patch.get_climate();
+	const Climate &climate = indiv.vegetation.patch.get_climate();
 
 	// handle daily phen leaf state
 	bool leaf_out = false;
@@ -727,7 +727,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
-		if (indiv.pft.lifeform == TREE) {
+		if (indiv.pft.lifeform == TREE && ifdailytree) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}
@@ -1572,7 +1572,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 	else {
 		// trees (and mosses?)
-		if (ifdavegrowth) {
+		if (ifdavegrowth && ifdailytree) {
 			indiv.alive = true;
 			// proportion of the initial biomass that goes to storage
 			const double fract_stor = 0.5;
@@ -1611,21 +1611,26 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_leaf += cmass_leaf_ind;
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
+
 		if (ifforcedlai) {
 			indiv.lai = FIXED_LAI[date.month];
 		} else {
 			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 		}
-		// Capacity of C and N storage on establishment
-		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
-			indiv.cstorage_max = cstorage_capacity(indiv);
-			indiv.nstorage_max = nstorage_capacity(indiv);
-		}
-		// initialise limits
-		if (is_zero(indiv.cmass_sap_limit)) {
-			indiv.cmass_sap_limit = indiv.cmass_sap;
-			indiv.cmass_leaf_limit = indiv.cmass_leaf;
-			indiv.cmass_root_limit = indiv.cmass_root;
+
+		if (indiv.pft.dave_allocation()) {
+			// Capacity of C and N storage on establishment
+			if (is_zero(indiv.cstorage_max)) {
+				indiv.cstorage_max = cstorage_capacity(indiv);
+				indiv.nstorage_max = nstorage_capacity(indiv);
+			}
+
+			// initialise limits
+			if (is_zero(indiv.cmass_sap_limit)) {
+				indiv.cmass_sap_limit = indiv.cmass_sap;
+				indiv.cmass_leaf_limit = indiv.cmass_leaf;
+				indiv.cmass_root_limit = indiv.cmass_root;
+			}
 		}
 
 		double nmass_remaining = nmass_init;
@@ -1903,7 +1908,16 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
+
+		if (ifdavehydraulics) { // fixme - need to converge on a single approach for dave
+			// This was used in Clare's version:
+			indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
+		} else if (indiv.pft.dave_allocation()) {
+			// This was used in Assaf's version:
+			indiv.boleht = 0.5;
+		} else {
+			indiv.boleht = 0.0;
+		}
 
 		// Stand-level LAI
 		if (ifforcedlai) {
@@ -2192,6 +2206,7 @@ void growth(Stand& stand, Patch& patch) {
 				if(!indiv.istruecrop_or_intercropgrass())
 					reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
 
+				indiv.acalloc_repr = cmass_repr;
 				if(indiv.alive)
 					patchpft.cmass_repr += cmass_repr;
 
@@ -2289,13 +2304,15 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Leaves
 						indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
+						indiv.acalloc_leaf = cmass_leaf_inc * indiv.densindiv;
 
 						// Roots
 						indiv.cmass_root += cmass_root_inc * indiv.densindiv;
+						indiv.acalloc_root = cmass_root_inc * indiv.densindiv;
 
 						// Sapwood
 						indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
-						indiv.cmass_sap_growth = cmass_sap_inc * indiv.densindiv;
+						indiv.acalloc_sap = cmass_sap_inc * indiv.densindiv;
 
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
@@ -3816,6 +3833,7 @@ void carbon_allocation_tree(Individual &indiv) {
 		indiv.alpha_root = relative_alpha_root / sum_relative_alphas;
 		indiv.alpha_sap = relative_alpha_sap / sum_relative_alphas;
 		indiv.alpha_repr = relative_alpha_repr / sum_relative_alphas;
+		assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
 	}
 
 	// outputs:
@@ -3830,7 +3848,6 @@ void carbon_allocation_tree(Individual &indiv) {
 	assert(positive(indiv.alpha_root));
 	assert(positive(indiv.alpha_sap));
 	assert(positive(indiv.alpha_repr));
-	assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + indiv.alpha_repr));
 }
 
 
@@ -4345,6 +4362,12 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_crown += indiv.cgrow_crown;
 		indiv.cmass_sap += indiv.cgrow_sap;
 		indiv.cmass_repr  += indiv.cgrow_repr;
+
+		indiv.acalloc_leaf += indiv.cgrow_leaf;
+		indiv.acalloc_root += indiv.cgrow_root;
+		indiv.acalloc_sap += indiv.cgrow_sap;
+		indiv.acalloc_repr += indiv.cgrow_repr;
+		indiv.acalloc_crown += indiv.cgrow_crown;
 
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
 
@@ -5547,6 +5570,10 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
+		if (!indiv.pft.dave_allocation()) {
+			continue;
+		}
+
 		// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
 		indiv.cgrow           = 0.0;
 		indiv.cexcess         = 0.0;
@@ -5562,6 +5589,14 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.ntolitter_repr  = 0.0;
 		indiv.ctolitter_crown = 0.0;
 		indiv.ntolitter_crown = 0.0;
+
+		if (date.day == 0) {
+			indiv.acalloc_leaf = 0;
+			indiv.acalloc_root = 0;
+			indiv.acalloc_sap = 0;
+			indiv.acalloc_repr = 0;
+			indiv.acalloc_crown = 0;
+		}
 	}
 }
 

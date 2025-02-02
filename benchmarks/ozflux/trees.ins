@@ -100,6 +100,10 @@ pft "TeNE" (
 	seas_iso 0		! Values set to be the same as those for BNE and BINE
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Values set to be the same as those for BNE and BINE
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Values set to be the same as those for BNE and BINE
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 9.300558
+	cton_leaf_min 38.336164
 )
 
 pft "TeBS" (
@@ -173,6 +177,10 @@ pft "TeBE" (
 	seas_iso 0
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 13.171494
+	cton_leaf_min 29.010140
 )
 
 pft "TrBE" (
@@ -193,6 +201,10 @@ pft "TrBE" (
 	seas_iso 0
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 15.365607
+	cton_leaf_min 25.376967
 )
 
 pft "TrIBE" (
@@ -214,6 +226,9 @@ pft "TrIBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 15.365607
+	cton_leaf_min 25.376967
 )
 
 pft "TrBR" (
@@ -520,14 +535,15 @@ pft "CuP" (
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 30  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	stom_clos -2.4   ! Peters (2021)
-	p50 -4.3   ! Peters (2021)
-	p88 -4.7  ! Peters (2021)
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -3.2   ! Peters (2021)
+	p50 -5.8   ! Peters (2021)
+	p88 -7.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
 
 	vcmax_25 0.000036 ! Average of two euc species from Bloomfield (2018)
+	jmax_25 0.0000612 ! 1.7 * vcmax_25
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)
 	
 	respcoeff 0.6

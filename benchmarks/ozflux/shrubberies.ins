@@ -18,8 +18,8 @@ group "lowshrub"(
 	parff_min 1000000
 	turnover_root 0.5
 	turnover_repr 0.25
-
 )
+
 pft "BLSE" (
 
 	! Arctic low shrub, evergreen
@@ -53,8 +53,11 @@ pft "BLSE" (
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Needs checking!
 	ga 0.040
 	!sla 12.56
-)
 
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 9.300558
+	cton_leaf_min 38.336164
+)
 
 pft "BLSS" (
 	! Arctic low shrub, summergreen
@@ -89,4 +92,8 @@ pft "BLSS" (
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Needs checking!
 	ga 0.040
 	!sla 24.25
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 26.021512
+	cton_leaf_min 16.060532
 )

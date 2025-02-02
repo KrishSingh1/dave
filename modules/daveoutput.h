@@ -157,10 +157,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) = 0;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) = 0;
 
 			/*
 			Check if this output file is enabled or not. It is enabled iff the
@@ -181,37 +181,37 @@ private:
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, double value);
+			void write_output(OutputChannel *channel, double value);
 
 			/*
 			Write the next output value to the file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, int value);
+			void write_output(OutputChannel *channel, int value);
 
 			/*
 			Write the text output value to the output file.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
-			void write_output(OutputRows &rows, const char *value);
+			void write_output(OutputChannel *channel, const char *value);
 
 			/*
 			Finish the current row of output.
 
-			@param rows: Output rows manager object.
+			@param channel: Pointer to an output channel.
 			@param lon: Longitude of gridcell.
 			@param lat: Latitude of gridcell.
 			@param year: Current calendar year.
 			@param day: Current day of year (0-364).
 			*/
-			void finish_row(OutputChannel &rows, double lon, double lat, int year, int day);
+			void finish_row(OutputChannel *channel, double lon, double lat, int year, int day);
 
 			/*
 			Function which gets columns used by this output file.
@@ -245,11 +245,11 @@ private:
 			Table *table;
 
 			/*
-			Check if an output should be written to the output rows object.
+			Check if an output should be written to the output channel.
 
-			@param out: The output rows object.
+			@param out: Pointer to an output channel.
 			*/
-			bool should_write(OutputRows &out);
+			bool should_write(OutputChannel *out);
 
 			/*
 			Assert that the output table is open. Terminate the simulation if not.
@@ -295,10 +295,10 @@ private:
 			implementation depends on the output - e.g. annual, daily, daily
 			per-patch, etc.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -310,8 +310,7 @@ private:
 			/*
 			Write all required row for the specified patch.
 
-			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param stand: The stand for which outputs should be written.
 			*/
 			std::vector<double> write_stand(const Stand &stand);
 
@@ -361,10 +360,10 @@ private:
 			timestep. This will write a single row of output for each patch in
 			each stand.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 			/*
 			Function which gets columns used by this output file.
@@ -392,9 +391,9 @@ private:
 			Write all required row for the specified patch.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out) = 0;
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out) = 0;
 		private:
 			/*
 			Iff true, a column containing the sum of all other columns will be
@@ -429,6 +428,17 @@ private:
 			IndividualOutput(std::string param_name, std::vector<ColumnDefinition<Individual>> (*get_columns)(), std::string description, bool sum, bool mean);
 
 			/*
+			Create a new individual output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param columns: Columns to be used in this output file.
+			@param description: A description of the output (including units!!).
+			@param sum: Iff true, a total column will be written after all other columns.
+			@param mean: Iff true, a mean column will be written after all other columns.
+			*/
+			IndividualOutput(std::string param_name, std::vector<ColumnDefinition<Individual>> columns, std::string description, bool sum, bool mean);
+
+			/*
 			Destructor.
 			*/
 			~IndividualOutput();
@@ -437,10 +447,10 @@ private:
 			Write all rows of output to the output file for the current
 			timestep. This will write one row per individual per patch.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell);
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
 
 		protected:
 			/*
@@ -461,8 +471,9 @@ private:
 			std::vector<ColumnDefinition<Individual>> (*get_column_definitions)();
 
 			/*
-			The column definitions. This will be empty until get_columns() is
-			called, when the output file is opened.
+			The column definitions. This may be empty if get_columns() is
+			non-NULL. In that case, its value will be the output of
+			get_column_definitions() at init-time.
 			*/
 			std::vector<ColumnDefinition<Individual>> columns;
 
@@ -504,8 +515,9 @@ private:
 			@param get_nelem: Pointer to a function which returns the number of array elements for the specified patch. The assumption is that every individual in the patch has an output array of the same length.
 			@param get_output: A function which returns the output value from an individual.
 			@param description: A description of the output (including units!!).
+			@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description);
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(double*, int));
 
 			/*
 			Destructor.
@@ -517,10 +529,10 @@ private:
 			timestep. One row will be written for each array element. One column
 			will be written for each individual.
 
-			@param OutputRows: The output channel used to write output.
+			@param out: Pointer to an output channel.
 			@param gridcell: The current gridcell.
 			*/
-			virtual void write_rows(OutputChannel &channel, Gridcell &gridcell) override;
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) override;
 		protected:
 			/*
 			Get column descriptors to be used for the output table.
@@ -547,6 +559,11 @@ private:
 			Read the i-th element of the output array.
 			*/
 			std::unique_ptr<ArrayOutputReader<Individual>> read_elem;
+
+			/*
+			Pointer to a function which aggregates the output value across individuals.
+			*/
+			double (*aggregator)(double *, int);
 	};
 
 	/*
@@ -604,9 +621,9 @@ private:
 			Write a row of outputs containing one cell per array element.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -664,9 +681,9 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -768,9 +785,9 @@ private:
 			Write a row of outputs containing one cell per individual.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			virtual std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			virtual std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -819,9 +836,9 @@ private:
 			Write a row of outputs containing one cell per standpft.
 
 			@param patch: The patch for which outputs should be written.
-			@param out: Output rows instance to which outputs will be written.
+			@param out: Pointer to an output channel.
 			*/
-			std::vector<double> write_patch(Patch &patch, OutputRows &out);
+			std::vector<double> write_patch(Patch &patch, OutputChannel *out);
 
 		protected:
 			/*
@@ -874,13 +891,25 @@ private:
 	row per individual in the patch on each timestep.
 
 	@param name: Parameter in the instruction file which determines output file name.
-	@param read_output: A function which returns a property of an individual to be written to each column.
+	@param timestep: Timestep on which this output file will be written to.
+	@param get_columns: Pointer to a function which gets the columns used in this output file.
 	@param description: Description of the output (with units!!).
-	@param aggregator: Function which aggregates the output value across individuals.
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_indiv_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Individual>> (*get_columns)(), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
+	void add_indiv_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Individual>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add an individual-level output. This will produce an output file with one
+	column and one row per individual in the patch on each timestep.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param timestep: Timestep on which this output file will be written to.
+	@param colname: Name of the single data column in this output file.
+	@param read_output: A function which returns a property of an individual to be written to each column.
+	@param description: Description of the output (with units!!).
+	*/
+	void add_indiv_output(std::string name, timestep_t timestep, std::string colname, double (*read_output)(const Individual&), std::string description);
 
 	/*
 	Add a pft-level output.
@@ -901,8 +930,9 @@ private:
 	@param get_nelem: Get the number of array elements for a given patch.
 	@param read_output: A function which returns the i-th element of the output property of an individual.
 	@param description: Description of the output (with units!!).
+	@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 	*/
-	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description);
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(double *, int));
 
 	/*
 	Add a patch-level output.

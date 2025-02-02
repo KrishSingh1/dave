@@ -162,9 +162,9 @@ Check if the given timepoint represents the first timestep in the year.
 
 @param date: The date.
 @param day_length: Number of timesteps per day.
-@param has_leaps: True iff leap years should be considered.
+@param calendar: A CF convention calendar type.
 */
-bool is_end_of_year(timepoint date, int day_length, bool has_leaps);
+bool is_end_of_year(timepoint date, int day_length, GuessNC::CF::CalendarType calendar);
 
 /*
 Check if the specified year is a leap year.
@@ -177,9 +177,28 @@ bool is_leap(int year);
 Get the number of days in the specified year.
 
 @param year: The year.
-@param consider_leaps: True to consider leap years. False otherwise.
+@param calendar: The CF calendar type to be used.
 */
-int get_year_len(int year, bool consider_leaps);
+int get_year_len(int year, GuessNC::CF::CalendarType calendar);
+
+/*
+Get the number of days in the specified month of the specified year.
+
+@param year: The year.
+@param month: Month 0-11.
+@param calendar: The CF calendar type to be used.
+*/
+int get_month_len(int year, int month, GuessNC::CF::CalendarType calendar);
+
+/*
+Get the month for the given timestamp in range [0, 11].
+*/
+int get_month(timepoint timestamp, GuessNC::CF::CalendarType calendar);
+
+/*
+Get the day of month for the given timestamp in range [0, 30].
+*/
+int get_day_of_month(timepoint timestamp, GuessNC::CF::CalendarType calendar);
 
 /*
 Bounds check all values in the vector.
@@ -227,6 +246,14 @@ Find the index of the specified element in an array. Return -1 if not found.
 @param n: Size of the array.
 */
 size_t index_of_float(float needle, float *haystack, size_t n);
+
+/*
+Check if the vector contains the specified value.
+
+@param x: The needle.
+@param vec: The haystack.
+*/
+bool contains(double x, std::vector<double> vec);
 
 /*
 Check if the file exists.

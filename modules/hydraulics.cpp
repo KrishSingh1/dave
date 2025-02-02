@@ -390,6 +390,7 @@ void adjust_kmax(Patch &patch) {
             //ppft.nmass_litter_root += nloss_root;
 
             indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss));
+        }
 
         if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
             double old_wood = std::max(indiv.cmass_sap - indiv.acalloc_sap, 0.0);

@@ -75,10 +75,22 @@ public:
 // spline interpolation
 class spline {
 private:
-   std::vector<double> m_x,m_y;           // x,y coordinates of points
-   // interpolation parameters
+   // x,y coordinates of points.
+   std::vector<double> m_x, m_y;
+
+   // Interpolation parameters.
    // f(x) = a*(x-x_i)^3 + b*(x-x_i)^2 + c*(x-x_i) + y_i
-   std::vector<double> m_a,m_b,m_c,m_d;
+   std::vector<double> m_a, m_b, m_c, m_d;
+
+   // Iterators cached for faster access to begin/end of m_x.
+   std::vector<double>::const_iterator _begin, _end;
+
+   // Size of m_x and m_y.
+   size_t n;
+   bool _equidistant;
+
+   // Find the closest point m_x[idx] < x, idx=0 even if x < m_x[0].
+   size_t index_of(double x) const;
 public:
    void set_points(const std::vector<double>& x,
                    const std::vector<double>& y, bool cubic_spline=true);

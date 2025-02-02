@@ -17,10 +17,7 @@ public:
 
     double eval(double u) const;
     double operator()(double u) const;
-    size_t size() const;
 
-    double min() const;
-    double max() const;
     void set_extrapolate(bool e);
 
     std::vector<double> get_x() const;
@@ -44,6 +41,22 @@ private:
     spline tk_spline;
     bool active = false;
     bool extrapolate = true;
+
+    void set_limits();
+
+    // The number of (x,y) pairs contained in the Interpolator. This is stored
+    // as a member variable as a micro-optimisation.
+    size_t _size;
+
+    /*
+    Minimum and maximum x values.
+
+    These are chosen so that if an Interpolator is empty, functions looking to
+    see if they will fall outside of the covered range will always find they do.
+    This is the same principle as R's range(numeric(0)) -> c(Inf, -Inf)
+    */
+    double _min;
+    double _max;
 };
 
 #endif // LPJ_GUESS_INTERPOLATOR_H_

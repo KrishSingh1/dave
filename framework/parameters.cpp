@@ -81,6 +81,7 @@ double homrootdistfrac;				// Fraction of fine roots to be homogenously distribu
 double rootfrac_of_deep_soil;		// Fraction of deep soil, beyond 1500mm, that roots have access to
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
+double top_depth;					// Additional depth ontop of snowpack to account for radiation energy
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
@@ -542,6 +543,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
 			"Whether or not snowpack is soaked by melting water (0,1)");
+		declareitem("top_depth", &top_depth, 0.0, 1000.0, 1, CB_NONE,
+			"Additional depth ontop of snowpack to account for radiation energy");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
 			"Whether to reduce NPP if there's inundation (1), or not (0)");
 		declareitem("ifcarbonfreeze",&ifcarbonfreeze,1,CB_NONE,
@@ -1318,6 +1321,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("rootfrac_of_deep_soil")) badins("rootfrac_of_deep_soil");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
+		if (!itemparsed("top_depth")) badins("top_depth");
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("peat_age")) badins("peat_age");

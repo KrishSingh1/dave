@@ -116,11 +116,11 @@ void Snowlayer::update_thermal_properties() {
 void Snowlayer::update_whc() {
 
 	// Reference density [kg m-3]
-	double dens_t = 400;	
+	const double dens_t = 400;	
 	// Minimum snow water holding capacity
-	double rw_min = 0.03;
+	const double rw_min = 0.03;
 	// Maximum snow water holding capacity
-	double rw_max = 0.1;
+	const double rw_max = 0.1;
 
 	// Water holding capacity of snow layer [mm]
 	whc = max(0.0, min(depth - imass, imass * (rw_min + (rw_max - rw_min) * max(0.0, dens_t - dens) / dens_t)));
@@ -159,7 +159,6 @@ void Snowlayer::phase_change(bool toplayer) {
 	// Maximum error
 	const double EPS = 1.0e-10;
 	// Addition depth to top snow layer to accound for radiation energy
-	double top_depth = 500.0; // To be calibrated
 	double lyr_depth = toplayer ? depth + top_depth : depth;
 
 	// Water and ice fraction of full volume
@@ -442,29 +441,17 @@ double Snow::depth() {
  * from the three months with highest snow depth
  */
 double Snow::snowpack_avrmax3mth() {
-	double snow_max_mths[3];
-	snow_max_mths[0] = snow_max_mths[1] = snow_max_mths[2] = 0.0;
 
-	for (int mth = 0; mth < 12; mth++) {
+	double mdepth_sort[12];
 
-		// If current element is greater than first
-		if (mdepth[mth] > snow_max_mths[0]) {
-			snow_max_mths[2] = snow_max_mths[1];
-			snow_max_mths[1] = snow_max_mths[0];
-			snow_max_mths[0] = mdepth[mth];
-		}
-		// If mdepth[mth] is in between first and second then update second
-		else if (mdepth[mth] > snow_max_mths[1]) {
-			snow_max_mths[2] = snow_max_mths[1];
-			snow_max_mths[1] = mdepth[mth];
-		}
-		// If mdepth[mth] is larger than the third then update third
-		else if (mdepth[mth] > snow_max_mths[2])
-			snow_max_mths[2] = mdepth[mth];
-	}
+	// Copy values from mdepth to local variable mdepth_sort
+	std::copy(mdepth, mdepth + 12, mdepth_sort);
 
-	// Return avergae snow depth of the three months of highest snow depth
-	return (snow_max_mths[0] + snow_max_mths[1] + snow_max_mths[2]) / 3.0;
+	// Sort depths ascending
+	std::sort(mdepth_sort, mdepth_sort + 12);
+
+	// Return average snow depth of the three months of highest snow depth
+	return (mdepth_sort[9] + mdepth_sort[10] + mdepth_sort[11]) / 3.0;
 }
 
 /// Function updates heat capacity of each snow layer
@@ -539,9 +526,10 @@ void Snow::redist_layers(double snowpack_depth, double snowfall_depth,
 	double snowlyr_temp[NSNOWLAYERS_MAX] = { 0.0 };
 	double snowlyr_Ch[NSNOWLAYERS_MAX] = { 0.0 };
 
-	// Water in snowlayer that has no ice after phase change, hence no depth (a full layer has melted)
+	// Water in snow layer that has no ice after phase change, hence no depth (a full layer has melted)
 	double wmass_no_snowlyr = 0.0;
 
+	// Extract information from all snow layers
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 
 		Snowlayer& snowlayer = snowlayers[lyr];
@@ -596,7 +584,7 @@ void Snow::redist_layers(double snowpack_depth, double snowfall_depth,
 	int lyr_add;
 	bool diff;
 
-	// Re-calc ice & dens of layers
+	// Recalculate ice & dens of layers
 	for (lyr = 0; lyr < nsnowlayers; lyr++) {
 
 		Snowlayer& snowlayer = snowlayers[lyr];
@@ -5624,8 +5612,6 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double verySmall = 1.0e-8;
 	// Maximum error in timestep calculation
 	double errorMax;
-	// Initialize sub daily steps (seconds)
-	double dtsub = SECS_PER_DAY / nsubdays_noprec;
 	// Precipitation and snow melt (mm s-1)
 	double wflux_rain_melt = rain_melt / SECS_PER_DAY;
 	// Total evaporation (mm s-1)
@@ -5651,11 +5637,10 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	double dtdone = 0.0;
 
 	// Estimate length of the substep (seconds)
+	// If day with water influx then shorten initial length
+	double dtsub = SECS_PER_DAY / nsubdays_noprec;
 	if (wflux_rain_melt > 0.0 || wmass_ssw > 0.0) {
 		dtsub = SECS_PER_DAY / nsubdays_prec;
-	}
-	else {
-		dtsub = SECS_PER_DAY / nsubdays_noprec;
 	}
 
 	// Finished day
@@ -5885,11 +5870,13 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 			Soillayer& soillayer = soillayers[lyr];
 
-			if (soillayer.wmass + soillayer.imass > soillayer.fc()) {
+			double wmass_avail = soillayer.wmass - max(0.0, soillayer.fc() - soillayer.imass);
+
+			if (wmass_avail > 0.0) {
 
 				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.106 and 107; mm s-1)
 				// Depends on the side area of the soil layer in m -> soillayer.depth * M_PER_MM
-				double drained_wmass = min(soillayer.wmass, C_dw * soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_sin * soillayer.depth * M_PER_MM * dtsub);
+				double drained_wmass = min(wmass_avail, C_dw * soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_sin * soillayer.depth * M_PER_MM * dtsub);
 				soillayer.runoff_drain += drained_wmass;
 				soillayer.wmass -= drained_wmass;
 			}
@@ -6056,7 +6043,13 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 	// select type of boundary condition
 
-	// flux boundary condition
+	// Bedrock with no drainage
+	qout[blyr] = 0.0;
+
+	// compute the flux derivative
+	dqodw1[blyr] = 0.0;
+
+	// free drainage flux boundary condition
 	if (!ifbedrock) {
 
 		// free drainage
@@ -6064,14 +6057,6 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 		// compute the flux derivative
 		dqodw1[blyr] = dKwdw[blyr] / vws_liq[blyr];
-	}
-	else {
-
-		// no drainage
-		qout[blyr] = 0.0;
-
-		// compute the flux derivative
-		dqodw1[blyr] = 0.0;
 	}
 }
 
@@ -6143,13 +6128,13 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_
 	double gam[NSOILLAYERS_MAX];
 
 	for (int lyr = tlyr; lyr < nsoillayers_sim; lyr++) {
-		if (lyr == tlyr) {
-			u[lyr] = r[lyr] / bet;
-		}
-		else {
+		if (lyr > tlyr) {
 			gam[lyr] = c[lyr - 1] / bet;
 			bet = b[lyr] - a[lyr] * gam[lyr];
 			u[lyr] = (r[lyr] - a[lyr] * u[lyr - 1]) / bet;
+		}
+		else {
+			u[lyr] = r[lyr] / bet;
 		}
 	}
 

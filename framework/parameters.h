@@ -346,6 +346,9 @@ extern bool ifmultilayersnow;
 /// Whether to soak snowpack with melted water (1), or not (0)
 extern bool ifsoaksnow;
 
+/// Additional depth ontop of snowpack to account for radiation energy
+extern double top_depth;
+
 /// whether to reduce GPP if there's inundation (1), or not (0)
 extern bool ifinundationstress;
 

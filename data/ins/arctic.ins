@@ -175,7 +175,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 1			! Number of replicate patches to simulate
+npatch 5			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -225,6 +225,7 @@ homrootdistfrac 0		! Fraction of fine roots to be homogenously distributed in so
 rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500 mm, that roots have access to
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
+top_depth 500.0			! Additional depth ontop of snowpack to account for radiation energy
 iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
 ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier

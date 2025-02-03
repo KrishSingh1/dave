@@ -87,7 +87,9 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_dfuel"               , DAILY, fuel_columns, "Daily blaze fuel availability (kgC/m2)");
 	add_patch_output("file_dave_dcoarse_woody_debris", DAILY, coarse_woody_debris_columns, "Daily coarse woody debris (gC/m2)");
 	add_patch_output("file_dave_met_temp"            , DAILY, "temp", [](const Patch &patch) { return patch.stand.get_gridcell().climate.temp;    }, "Daily air temperature (°C)");
-	add_patch_output("file_dave_met_par"             , DAILY, "par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par;     }, "Daily PAR (J/m2/timestep)");
+	add_patch_output("file_dave_met_par"             , DAILY, "par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par/1000000;     }, "Daily PAR (MJ/m2/timestep)");
+	add_patch_output("file_dave_met_par_max"         , DAILY, "par_max", [](const Patch &patch) { return patch.stand.get_gridcell().climate.par_max/1000000;     }, "Maximum daily PAR (MJ/m2/timestep)");
+	add_patch_output("file_dave_rel_par"             , DAILY, "rel_par", [](const Patch &patch) { return patch.stand.get_gridcell().climate.rel_par;     }, "relative PAR (unitless)");
 	add_patch_output("file_dave_met_vpd"             , DAILY, "vpd", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.vpds.front(), patch.stand.get_gridcell().climate.vpds.size());     }, "Daily VPD (kPa)");
 	add_patch_output("file_dave_met_insol"           , DAILY, "insol", [](const Patch &patch) { return patch.stand.get_gridcell().climate.insol;   }, "Daily insolation (units depend on instype)");
 	add_patch_output("file_dave_met_precip"          , DAILY, "precip", [](const Patch &patch) { return patch.stand.get_gridcell().climate.prec;    }, "Daily total precipitation (mm)");

@@ -3623,10 +3623,11 @@ double temp_growth_JEF(double Temp) {
 	// TODO: make PFT parameters and possibly allow to change (acllimation).
 	// const double Topt = 28.3; // CUP measured Optimal temperature (degC)
 	// const double Omega = 8.3; // CUP measured temperature where k = e(-1)*Topt
-	// const double Topt = 17.5; // WOMBAT (for E. obliqua; Hinko-Najera et al. 2019)
-	// const double Omega = 6; // WOMBAT (Guestimated from Figure 3)
-	const double Topt = 28.3; // CUP measured (for E. obliqua; Hinko-Najera et al. 2019)
-	const double Omega = 7; // CUP measured (Guestimated from Figure 3)
+	const double Topt = 17.5; // WOMBAT (for E. obliqua; Hinko-Najera et al. 2019)
+	// const double Omega = 6.0; // WOMBAT (Guestimated from Figure 3)
+	const double Omega = 10.0; // WARRA (Guestimated)
+	// const double Topt = 28.3; // CUP measured (for E. obliqua; Hinko-Najera et al. 2019)
+	// const double Omega = 8.0; // CUP measured (Guestimated from Figure 3)
 
 	return exp ( - pow( ((Temp - Topt) / Omega ) , 2));
 	// return 1.0;
@@ -3645,9 +3646,9 @@ double calculate_cgrow_tree(Individual &indiv) {
 	double const shape_pie = 16.0;
 	double const inflection_pie_saver = 0.67; // Saver Hoch and Korner 2003 (https://doi.org/10.1046/j.0016-8025.2003.01032.x)
 	double const inflection_pie_int = 0.5; // intermediate
-	double const inflection_pie_spender = 0.25; // Spender
+	double const inflection_pie_spender = 0.35; // Spender
 	// maximum daily mobilisation rate of c in the storage. Was 0.1
-	double max_mobil_cstorage_tree = 0.1;
+	double max_mobil_cstorage_tree = 0.2;
 	// fraction of cmass_storage that is not available to growth
 	const double frac_cstorage_res_tree = 0.15; // ASSAF BLARP
 	// actual amount that is not available to growth (kgC/m^2)
@@ -3662,7 +3663,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 		
 		store_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
 		
-		fstorage = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_saver)))));
+		fstorage = 1 - ((1 / (1 + exp(shape_pie * (store_state - inflection_pie_int)))));
 	}
 	// fstorage = 1.0;
 	// temperature scalar for decoupling potosynthesis from growth (see Figure 9 in  Korner's 2-20 book)
@@ -3775,6 +3776,9 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 		return;
 	}
 
+	if (date.get_calendar_year() == 2000){
+		printf("");
+	}
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
 	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
@@ -4185,12 +4189,16 @@ void carbon_allocation_tree_new(Individual &indiv) {
 	// maximum fraction of cgrow that can go to leaves.
 	double alpha_leaf_pot_max = .3;
 	// exponent 
-	double alpha_leaf_pot_expon = -4.0;
+	double alpha_leaf_pot_expon = -4.0; // was 0.4
 	// Photosynthetic active readiation as a proportion of the maximum at this gridcell.
 	// Represents the *light conditions*.
-	double rel_par = max(0.05, climate.par / climate.par_max);
+	double rel_par = max(0.05, climate.rel_par);
+	
 	// potential potential proportion of cgrow that will go to leaves
 	double alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(alpha_leaf_pot_expon * rel_par));
+	
+	// // !!!! TRYING A NEW APPROACH. LEAF ALLLOCATION IS RELATED TO LEAF WATER POTENTIAL (HIGHER - MORE ALLOCATION)
+	// alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(-2.0 * ppft.wscal_30.mean()));
 	
 	// calculate the growth demand of leaves, depending on the *light conditions*
 	indiv.cmass_leaf_limit = indiv.cmass_leaf + alpha_leaf_pot * indiv.cgrow;
@@ -4514,7 +4522,7 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	// we need to change that.
 	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + (pft.turnover_sap / Date::MAX_YEAR_LENGTH));
 	// cmass leaf target (to grow to supply leaves to the current sapwood ) (kgC/m^2)
-	indiv.cmass_leaf_limit = max(indiv.cmass_sap * (pft.k_latosa / (indiv.sla() * pft.wooddens * height)) , indiv.cmass_leaf);
+	indiv.cmass_leaf_limit = max(indiv.cmass_sap_limit * (pft.k_latosa / (indiv.sla() * pft.wooddens * height)) , indiv.cmass_leaf);
 	//  calculate the ltor according to the leaf optimum and belogrownd stress
 	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
 	// ...to .5 of ltor_max
@@ -5703,11 +5711,11 @@ void turnover_tree(Individual &indiv) {
 	double growth_lim = min(indiv.fphoto, min(indiv.fwater, indiv.ftemp));
 
 	double fcgrow = calculate_fcgrow_tree(min_tunrover_proportion, growth_lim);
-	fcgrow = 1.0;
+	// fcgrow = 1.0;
 
-	if (growth_lim == 0.0) {
-		fcgrow = 0.0;
-	}
+	// if (growth_lim == 0.0) {
+	// 	fcgrow = 0.0;
+	// }
 	// bypass phenology
 	if (!iftreephen) {
 		fcgrow = 1.0;

@@ -1344,6 +1344,14 @@ void daylengthinsoleet(Climate& climate) {
 
 	climate.par_max = max(climate.par, climate.par_max);
 
+	if (climate.par_max > 0) {
+		// for leaf priority for leaf allocation phenology (Assaf)
+		climate.rel_par = climate.rel_par = climate.par / climate.par_max;
+	} else {
+		climate.rel_par = 0.0;
+	}
+	
+
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)
 	//	Refs: Jarvis & McNaughton 1986, Prentice et al 1993

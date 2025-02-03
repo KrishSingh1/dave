@@ -1098,6 +1098,8 @@ public:
 	/// maximum par at a gridcell
 	double par_max;
 
+	/// relative par today (par/par_max)
+	double rel_par;
 	/// accumulated growing degree day sum on 5 degree base
 	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
@@ -1306,7 +1308,8 @@ public:
 		winter_to_summer = true;
 
 		par_max	= 0.0;
-		
+		rel_par  = 0.0;
+
 		for(int m=0;m<12;m++) {
 
 			mtemp20[m] = 0.0;

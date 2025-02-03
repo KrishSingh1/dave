@@ -79,7 +79,6 @@ public:
 	@param name: Name of the variable.
 	@param dim_lon: Name of the longitude dimension.
 	@param dim_lat: Name of the latitude dimension.
-	@param has_leap: True iff the input data contains leap days.
 	@param dim_time: Name of the time dimension.
 	@param sensibility_checks: True if bounds checking should occur.
 	@param limits: Upper/lower bounds of valid data.
@@ -87,7 +86,7 @@ public:
 	@param check_units: Iff true, an error will be generated for invalid units.
 	*/
 	NCVariable(int file_id, xtring name, xtring dim_lon, xtring dim_lat
-	, xtring dim_time, bool has_leap, CacheStrategy chunk_mode
+	, xtring dim_time, CacheStrategy chunk_mode
 	, bool sensibility_checks, bounds limits, std::vector<xtring> units
 	, bool check_units);
 
@@ -125,6 +124,21 @@ public:
 	not calculate the value.
 	*/
 	int get_day_length() const;
+
+	/*
+	Get the calendar type used in this file.
+	*/
+	GuessNC::CF::CalendarType get_calendar() const;
+
+	/*
+	Get the missing value.
+	*/
+	double get_missing_value() const;
+
+	/*
+	Check if this variable has a missing value attribute.
+	*/
+	bool has_missing_value() const;
 
 private:
 	/*
@@ -372,12 +386,6 @@ private:
 	int day_length;
 
 	/*
-	True if input data contains leap years. False otherwise. We assume that the
-	input data never contains other anomalies such as leap seconds.
-	*/
-	bool has_leap_years;
-
-	/*
 	Defines how much data should be cached.
 	*/
 	CacheStrategy cache_strategy;
@@ -412,6 +420,16 @@ private:
 	The index in the cached data of cache_prev.
 	*/
 	int cache_prev_index;
+
+	/*
+	The missing value.
+	*/
+	double missing_value;
+
+	/*
+	True if a missing value is defined for this variable, false otherwise.
+	*/
+	bool has_missval;
 
 	/*
 	The starting date of the data in the input file.

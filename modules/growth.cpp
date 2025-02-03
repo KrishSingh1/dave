@@ -609,7 +609,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 // indiv.leaf_growth
 void tree_phenology_grote(Individual& indiv) {
 	// taken from Grote code.
-	Climate climate = indiv.vegetation.patch.get_climate();
+	const Climate &climate = indiv.vegetation.patch.get_climate();
 
 	// handle daily phen leaf state
 	bool leaf_out = false;
@@ -748,7 +748,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
-		if (indiv.pft.lifeform == TREE) {
+		if (indiv.pft.lifeform == TREE && ifdailytree) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}
@@ -1626,7 +1626,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 	}
 	else {
 		// trees (and mosses?)
-		if (ifdavegrowth) {
+		if (ifdavegrowth && ifdailytree) {
 			indiv.alive = true;
 			// proportion of the initial biomass that goes to storage
 			const double fract_stor = 0.5;
@@ -1666,16 +1666,19 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
-		// Capacity of C and N storage on establishment
-		if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
-			indiv.cstorage_max = cstorage_capacity(indiv);
-			indiv.nstorage_max = nstorage_capacity(indiv);
-		}
-		// initialise limits
-		if (is_zero(indiv.cmass_sap_limit)) {
-			indiv.cmass_sap_limit = indiv.cmass_sap;
-			indiv.cmass_leaf_limit = indiv.cmass_leaf;
-			indiv.cmass_root_limit = indiv.cmass_root;
+
+		if (indiv.pft.dave_allocation()) {
+			// Capacity of C and N storage on establishment
+			if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
+				indiv.cstorage_max = cstorage_capacity(indiv);
+				indiv.nstorage_max = nstorage_capacity(indiv);
+			}
+			// initialise limits
+			if (is_zero(indiv.cmass_sap_limit)) {
+				indiv.cmass_sap_limit = indiv.cmass_sap;
+				indiv.cmass_leaf_limit = indiv.cmass_leaf;
+				indiv.cmass_root_limit = indiv.cmass_root;
+			}
 		}
 
 		double nmass_remaining = nmass_init;
@@ -1987,7 +1990,11 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 }
 
 double calc_bole_height(const Individual &indiv) {
-	return 0.5 * indiv.height;
+	if (indiv.pft.dave_allocation()) {
+		return 0.5 * indiv.height;
+	} else {
+		return 0.0;
+	}
 }
 
 double calc_rpc_tree(Individual &indiv) {
@@ -2412,6 +2419,7 @@ void growth(Stand& stand, Patch& patch) {
 				if(!indiv.istruecrop_or_intercropgrass())
 					reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
 
+				indiv.acalloc_repr = cmass_repr;
 				if(indiv.alive)
 					patchpft.cmass_repr += cmass_repr;
 
@@ -2509,12 +2517,15 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Leaves
 						indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
+						indiv.acalloc_leaf = cmass_leaf_inc * indiv.densindiv;
 
 						// Roots
 						indiv.cmass_root += cmass_root_inc * indiv.densindiv;
+						indiv.acalloc_root = cmass_root_inc * indiv.densindiv;
 
 						// Sapwood
 						indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
+						indiv.acalloc_sap = cmass_sap_inc * indiv.densindiv;
 
 						// Heartwood
 						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
@@ -5127,6 +5138,12 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_sap += indiv.cgrow_sap;
 		indiv.cmass_repr  += indiv.cgrow_repr;
 
+		indiv.acalloc_leaf += indiv.cgrow_leaf;
+		indiv.acalloc_root += indiv.cgrow_root;
+		indiv.acalloc_sap += indiv.cgrow_sap;
+		indiv.acalloc_repr += indiv.cgrow_repr;
+		indiv.acalloc_crown += indiv.cgrow_crown;
+
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
 
 		// Always take up available N
@@ -6439,6 +6456,10 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
+		if (!indiv.pft.dave_allocation()) {
+			continue;
+		}
+
 		// Set indiv.cgrow, indiv.cexcess, and indiv.nexcess to 0.
 		indiv.cgrow           = 0.0;
 		indiv.cexcess         = 0.0;
@@ -6454,6 +6475,14 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.ntolitter_repr  = 0.0;
 		indiv.ctolitter_crown = 0.0;
 		indiv.ntolitter_crown = 0.0;
+
+		if (date.day == 0) {
+			indiv.acalloc_leaf = 0;
+			indiv.acalloc_root = 0;
+			indiv.acalloc_sap = 0;
+			indiv.acalloc_repr = 0;
+			indiv.acalloc_crown = 0;
+		}
 	}
 }
 

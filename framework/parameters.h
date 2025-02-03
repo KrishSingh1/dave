@@ -138,6 +138,9 @@ extern double distinterval;
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
 
+/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
+extern bool ifcalcvcmax;
+
 /// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 extern bool ifcalccton;
 

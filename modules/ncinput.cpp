@@ -60,9 +60,6 @@ NCInput::NCInput() {
 	declare_parameter("ndep_scenario", &ndep_scenario, 256
 	, "Scenario to be used for nitrogen deposition data. E.g. HISTORIC, RCP26, RCP45, RCP60, RCP85, RCP85");
 
-	declare_parameter("has_leap_years", &has_leap_years
-	, "1 iff input data contains leap years.");
-
 	declare_parameter("spinup_met_cycle_length", &spinup_met_cycle_length, 0, 1000000, "User input from the instruction file. The number of years of data to recycle during the freenyears. If 0, all data will be recycled during freenyears.");
 
 	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
@@ -138,6 +135,7 @@ NCInput::NCInput() {
 	bounds_ndep.min = 0;
 
 	use_lamarque = true;
+	use_mean_annual_co2 = false;
 
 	double ctor_end = get_wall_time();
 	double ctor_duration = (ctor_end - ctor_start) * 1000;
@@ -192,13 +190,16 @@ void NCInput::init(void) {
 		// this case, we use the input timestep for the spinup, and then use
 		// the nsteps_day timestep for the simulation.
 		int input_timestep = temp->get_day_length();
+		spinup_timestep = input_timestep;
+		spinup_calendar = temp->get_calendar();
+		GuessNC::CF::CalendarType simulation_calendar = spinup_calendar;
 		date.subdaily = separate_spinup ? input_timestep : nsteps_day;
 
 		spinup_start = first_timestep = temp->get_first_date();
 		spinup_end = final_timestep = temp->get_last_date();
 
 		// Ensure that there is at least one year of data for the spinup.
-		verify_data_length(first_timestep, final_timestep, input_timestep);
+		verify_data_length(first_timestep, final_timestep, input_timestep, temp->get_calendar());
 
 		// Record length of input data.
 		if (separate_spinup) {
@@ -218,7 +219,7 @@ void NCInput::init(void) {
 			std::vector<xtring> units(1);
 			units[0] = "degC";
 			NCVariable tmp(nc, variable_temp, variable_lon, variable_lat
-				, variable_time, has_leap_years, (CacheStrategy)cache_strategy
+				, variable_time, (CacheStrategy)cache_strategy
 				, nc_check_inputs, limits, units, false);
 
 			// Update simulation timesteps.
@@ -227,11 +228,12 @@ void NCInput::init(void) {
 
 			// Set input_timestep to the value from file_met_forcing.
 			input_timestep = tmp.get_day_length();
+			simulation_calendar = tmp.get_calendar();
 
 			// These three parameters all now come from file_met_forcing; last
 			// time we called this function, they came from file_met_spinup.
 			// Therefore we should check the main file. Better to fail early.
-			verify_data_length(first_timestep, final_timestep, input_timestep);
+			verify_data_length(first_timestep, final_timestep, input_timestep, tmp.get_calendar());
 
 			// Close file_met_forcing for now.
 			GuessNC::close_ncdf(nc);
@@ -247,6 +249,18 @@ void NCInput::init(void) {
 		// Now we must determine the first calendar year of the simulation (not
 		// the spinup).
 		int first_year = first_timestep.year;
+
+		// If using a separate file for spinup, and this file ends in the year
+		// before the "main" file, we can include it as part of the main
+		// simulation after running the spinup.
+		spinup_in_simulation = false;
+		if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
+			first_year = spinup_start.year;
+			spinup_in_simulation = true;
+			dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
+				spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
+				final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
+		}
 
 		// Set the calendar year at start of spinup.
 		date.set_first_calendar_year(first_year - nyear_spinup);
@@ -341,6 +355,13 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 
 		return true;
 	} catch (const std::exception& e) {
+		if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
+			fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
+			if (current_gridcell->description != "") {
+				fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
+			}
+			fprintf(stderr, "\n");
+		}
 		fail(get_nested_error_msg(e));
 		return false; // To eliminate a compiler warning.
 	}
@@ -386,7 +407,8 @@ try {
 		// We are now out of the spinup. Reset spinup_year to avoid confusion.
 		spinup_year = -1;
 
-		if (date.day == 0 && date.year == nyear_spinup && file_met_spinup != "") {
+		if (date.day == 0 && date.get_calendar_year() == first_timestep.year
+			&& file_met_spinup != "" && file_met_spinup != file_met_forcing) {
 			// Open the NetCDF file used for the main simulation.
 			open_netcdf(file_met_forcing);
 			set_insoltype(gridcell);
@@ -405,21 +427,45 @@ try {
 		update_ndep(lon, lat, year);
 
 		if (use_mean_annual_co2 && co2) {
-			int year_len = get_year_len(year, has_leap_years);
+			int year_len = get_year_len(year, co2->get_calendar());
 			std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
 			mean_annual_co2 = mean(co2_annual);
 		}
 	}
 
+	// When reading data from the input files, we specify which day of the year
+	// to read. The 29th of February is the 60th day of the year in leap years,
+	// which would correspond to date.day == 59. This model does not simulate
+	// leap years, so date.day = 59 in this model ALWAYS means the first of
+	// March. If we pass 59 into NCVariable::read(), we will get data for the
+	// 29th of Feb in a leap year (if the data contains leap years). This is
+	// actually convenient, as it makes the outputs more directly interpretable.
+	// Whatever we do, we need to skip a day of data in that year, and the
+	// current implementation means the data for 31st December will not be used.
+	// This actually corresponds better with the day of year value that is
+	// written to the output files, and makes them easier to compare with other
+	// data. Therefore, I will leave this message here as a warning.
+	int day = date.day;
+
 	// Read data from variables (not necessarily from the file - these variable
 	// objects will handle caching internally).
 	// Note that these arrays will still be on the timestep of the input data,
 	// which is not necessarily the same as that of the nsteps_day parameter.
-	std::vector<double> temps = temp->read(lon, lat, year, date.day, 1);
-	std::vector<double> precs = precip->read(lon, lat, year, date.day, 1);
-	std::vector<double> insols = insol->read(lon, lat, year, date.day, 1);
-	std::vector<double> vpds = vpd->read(lon, lat, year, date.day, 1);
-	std::vector<double> pressure = ps->read(lon, lat, year, date.day, 1);
+	std::vector<double> temps = temp->read(lon, lat, year, day, 1);
+	std::vector<double> precs = precip->read(lon, lat, year, day, 1);
+	std::vector<double> insols = insol->read(lon, lat, year, day, 1);
+	std::vector<double> vpds = vpd->read(lon, lat, year, day, 1);
+	std::vector<double> pressure = ps->read(lon, lat, year, day, 1);
+
+	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
+		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
+		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
+		(vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
+		(ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
+
+		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
+		return false;
+	}
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;
@@ -525,6 +571,13 @@ try {
 	// We have enough data to simulate another day.
 	return true;
 } catch (const std::exception& e) {
+	if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
+		fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
+		if (current_gridcell->description != "") {
+			fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
+		}
+		fprintf(stderr, "\n");
+	}
 	fail(get_nested_error_msg(e));
 	return false; // To eliminate a compiler warning.
 }
@@ -580,7 +633,6 @@ std::unique_ptr<NCVariable> NCInput::create_variable(xtring netcdf_file
 		variable_lon,
 		variable_lat,
 		variable_time,
-		has_leap_years,
 		(CacheStrategy)cache_strategy,
 		nc_check_inputs,
 		limits,
@@ -658,12 +710,12 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 	}
 }
 
-int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length) const {
+int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length, GuessNC::CF::CalendarType calendar) const {
 	int nyear = end.year - start.year;
 
 	// If final timestep is the last timestep in a year, then we can add that
 	// simulate that entire year (so increment nyear).
-	if (is_end_of_year(end, day_length, has_leap_years)) {
+	if (is_end_of_year(end, day_length, calendar)) {
 		nyear++;
 	}
 
@@ -682,7 +734,10 @@ double NCInput::get_progress(bool since_restart) {
 		int cells_done = distance(gridlist.begin(), current_gridcell) - 1;
 
 		// Number of years to simulate per gridcell.
-		int years_to_simulate = nyear_spinup + get_nyear_data(first_timestep, final_timestep, nsteps_day);
+		int years_to_simulate = nyear_spinup + get_nyear_data(first_timestep, final_timestep, nsteps_day, temp->get_calendar());
+		if (spinup_in_simulation) {
+			years_to_simulate += get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
+		}
 
 		int skip = since_restart && restart ? state_year : 0;
 		years_to_simulate -= skip;
@@ -803,6 +858,7 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 		}
 		co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
 		co2_file->load_file((const char *)file_co2);
+		co2 = NULL;
 	} else {
 		co2 = create_variable(netcdf_file, variable_co2, nc_co2, bounds_co2, co2_units, true);
 	}
@@ -866,9 +922,9 @@ void NCInput::resize_climate_arrays(Gridcell &gridcell, size_t size) const {
 	}
 }
 
-void NCInput::verify_data_length(timepoint start, timepoint end, int timestep) const {
+void NCInput::verify_data_length(timepoint start, timepoint end, int timestep, GuessNC::CF::CalendarType calendar) const {
 	// Ensure the simulation file contains at least 1 year of data.
-	int nyear_data = get_nyear_data(start, end, timestep);
+	int nyear_data = get_nyear_data(start, end, timestep, calendar);
 	if (nyear_data < 1) {
 		throw std::runtime_error("Insufficient met forcing data (<1 year)");
 	}
@@ -932,7 +988,7 @@ int NCInput::get_spinup_year() const {
 	}
 
 	// Get the number of years of data we have for the spinup.
-	int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length());
+	int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length(), temp->get_calendar());
 
 	// User wants to limit the spinup to using only the first N years of data.
 	if (spinup_met_cycle_length > 0) {

@@ -52,7 +52,6 @@ description in the code below):
   - file_soildata
   - file_ndep
   - ndep_scenario
-  - has_leap_years
   - cache_strategy
   - variable_lon
   - variable_lat
@@ -180,8 +179,9 @@ private:
 	@param start: Start of time range.
 	@param end: End of time range.
 	@param day_length: Number of timesteps per day in the specified time range.
+	@param calendar: The calendar type used in the file.
 	*/
-	int get_nyear_data(timepoint start, timepoint end, int day_length) const;
+	int get_nyear_data(timepoint start, timepoint end, int day_length, GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Get the progress of the current simulation in range [0, 1].
@@ -234,8 +234,9 @@ private:
 	@param start: Start of time range.
 	@param end: End of time range.
 	@param timestep: Timestep of time range.
+	@param calendar: The CF calendar type used in this file.
 	*/
-	void verify_data_length(timepoint start, timepoint end, int timestep) const;
+	void verify_data_length(timepoint start, timepoint end, int timestep, GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Resize the climate arrays in the gridcell to match the specified value.
@@ -345,12 +346,6 @@ private:
 	HISTORIC, RCP26, RCP45, RCP60, RCP85, and RCP85.
 	*/
 	xtring ndep_scenario;
-
-	/*
-	True iff the input data contains leap days. This is a user-configurable
-	setting in the instruction file.
-	*/
-	bool has_leap_years;
 
 	/*
 	Caching strategy to be used when reading NetCDF data. This is a
@@ -720,6 +715,36 @@ private:
 	use_mean_annual_co2 is enabled by the user.
 	*/
 	double mean_annual_co2;
+
+	/*
+	Are we using a separate input file for the spinup, and if so, should we use
+	the data for this file as part of the "main" simulation after the spinup?
+	This can only happen if the last timestep in the spinup file is at the end
+	of a year, and the next timestep is the first timestep in the "main"
+	simulation input file. In that case, the simulation will be run as:
+
+	1. Spinup (recycling first N years of data from spinup file)
+	2. Main simulation (using entire timeseries from spinup file)
+	3. Main simulation continued (using entire timeseries from "main" data file)
+
+	This parameter is not a user input, but is automatically enabled if the
+	input files are configured appropriately. In that case, a log message will
+	be written. This is provided as an optimisation, to avoid having to
+	concatenate large datasets.
+	*/
+	bool spinup_in_simulation;
+
+	/*
+	The timestep used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	int spinup_timestep;
+
+	/*
+	The calendar used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	GuessNC::CF::CalendarType spinup_calendar;
 };
 
 #endif // HAVE_NETCDF

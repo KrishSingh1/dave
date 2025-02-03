@@ -741,6 +741,7 @@ std::vector<ColumnDefinition<Patch>> evap_columns() {
 	columns.push_back(ColumnDefinition<Patch>("evaporation", [](const Patch &p) { return p.evap; }));
 	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
 	columns.push_back(ColumnDefinition<Patch>("transpiration", [](const Patch &p) { return p.transp; }));
+	columns.push_back(ColumnDefinition<Patch>("evapotranspiration", [](const Patch &p) { return p.evap + p.transp; }));
 	return columns;
 }
 

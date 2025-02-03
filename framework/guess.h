@@ -2106,6 +2106,8 @@ public:
 	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
+	/// Cuticular conductance (mol m-2 s-1)
+	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
 	/// maximum evapotranspiration rate (mm/day)
@@ -2209,6 +2211,22 @@ public:
 	 *  cohort modes)
 	 */
 	double alphar;
+
+	/*
+	Note: these 3 parameters are only used by dave photosynthesis, and only when
+	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
+	these values must be provided in the .ins file for each PFT (only vpmax_25
+	required for C4 grasses, only vcmax_25 and jmax_25 required for C3). When
+	ifcalcvcmax is true, values for these will be estimated daily based on leaf
+	N (and P) content, and stored in the indiv.ps_subdaily object.
+	*/
+	// (Constant) Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	double vcmax_25;
+	// (Constant) Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	double jmax_25;
+	// (Constant) Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	double vpmax_25;
+
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
 	/** constant used in calculation of sapling establishment rate when spatial
@@ -2468,6 +2486,10 @@ public:
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
+		vcmax_25 = 0;
+		vpmax_25 = 0;
+		jmax_25  = 0;
+
 		isintercropgrass = false;
 		ifsdautumn = false;
 		maxtemp_sowing = 60;
@@ -2529,6 +2551,10 @@ public:
 		b3=0.0;
 		c3=0.0;
 		d3=0.0;
+
+		g0=0.0;
+		g1=0.0;
+		gcutic=0.0;
 
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
@@ -3112,6 +3138,16 @@ public:
 	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
+	/// Total annual C biomass allocated to leaf on modelled area basis (kgC/m2)
+	double acalloc_leaf;
+	/// Total annual C biomass allocated to fine root on modelled area basis (kgC/m2)
+	double acalloc_root;
+	/// Total annual C biomass allocated to sapwood on modelled area basis (kgC/m2)
+	double acalloc_sap;
+	/// Total annaul C biomass allocated to reproductive tissue on modelled area basis (kgC/m2)
+	double acalloc_repr;
+	/// Total annaul C biomass allocated to crown on modelled area basis (kgC/m2)
+	double acalloc_crown;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)

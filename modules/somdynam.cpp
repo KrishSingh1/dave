@@ -1321,7 +1321,12 @@ void vegetation_n_uptake(Patch& patch) {
 		if (date.day == 0)
 			indiv.anuptake = 0.0;
 
-		nuptake_day = max(0.0, min(soil.nmass_avail(), indiv.ndemand * indiv.fnuptake));
+		nuptake_day = indiv.ndemand * indiv.fnuptake;
+
+		// Trunk version apparently allows negative soil N content.
+		if (indiv.pft.dave_allocation()) {
+			nuptake_day = max(0.0, min(soil.nmass_avail(), nuptake_day));
+		}
 
 		// Add nitrogen uptake to daily growth indiv
 		indiv.anuptake += nuptake_day;

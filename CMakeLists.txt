@@ -43,7 +43,7 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, lunarc or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, lunarc, levante or multicore)")
   
   # A temporary helper for Lund users lingering with $ARCH=="aurora" instead of "lunarc".
   if (SYSTEM STREQUAL "aurora")

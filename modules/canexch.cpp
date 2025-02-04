@@ -4008,10 +4008,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 void forest_floor_dave(Patch &patch) {
 	// These calculations are only required for pfts using the annual (trunk)
-	// allocation and establishment.
-	if (ifdavegrowth && ifdailygrass && ifdailytree) {
-		return;
-	}
+	// establishment.
 
 	Vegetation &vegetation = patch.vegetation;
 	const Climate &climate = patch.get_climate();

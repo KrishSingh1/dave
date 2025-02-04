@@ -13,6 +13,11 @@
 EVALDATA_PATH=/data/evaluation_data
 LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
+# for Levante at DKRZ
+if [[ "$ARCH" == "levante" ]]; then
+    EVALDATA_PATH=/home/b/b380710/work/benchmark_data/Tellus
+    LUDATA_PATH=/home/b/b380710/work/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
+fi
 
 DEBUG_LOG_NAME="exoprocess.debug.log"
 
@@ -21,6 +26,10 @@ NAMETAG_REF="$2"
 NEW_OUTPUT_PATH="$(dirname $(pwd))"
 REF_OUTPUT_PATH="$3"
 
+# make some arguments based on location in filesystem and username
+FULL_USERNAME=$(pinky -lb $(whoami) | cut -d: -f3 | tr -s " " | head -1 | sed -e 's/^[[:space:]]*//')
+YAMLSETTINGS="tellme_global_config.yml"			# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
+YAMLSETTINGS_PATHFILE="$(dirname $0)/${YAMLSETTINGS}"
 
 if [ $# -ne 3 ]; then
   echo "Error: the exoprocesses/tellme/exoprocess.sh script must be called with exctly 3 arguments." | tee $DEBUG_LOG_NAME
@@ -35,13 +44,15 @@ date | tee -a $DEBUG_LOG_NAME
 echo "Tellme tool" | tee -a $DEBUG_LOG_NAME
 echo "./benchmarks arguments = $@"   | tee -a $DEBUG_LOG_NAME
 echo "Arguments to the tellus R-script:" | tee -a $DEBUG_LOG_NAME
-echo "<path to new benchmarking runs> <new name> <path to old run benchmarking runs> <old name> <path to evaluation data> <path to land use data>" | tee -a $DEBUG_LOG_NAME
+echo "<path to new benchmarking runs> <new name> <path to old run benchmarking runs> <old name> <path to evaluation data> <path to land use data> <path to YAML file> <author>" | tee -a $DEBUG_LOG_NAME
 echo "Argument 1 = $NEW_OUTPUT_PATH" | tee -a $DEBUG_LOG_NAME
 echo "Argument 2 = $NAMETAG_NEW"     | tee -a $DEBUG_LOG_NAME
 echo "Argument 3 = $REF_OUTPUT_PATH" | tee -a $DEBUG_LOG_NAME
 echo "Argument 4 = $NAMETAG_REF"     | tee -a $DEBUG_LOG_NAME
 echo "Argument 5 = $EVALDATA_PATH"       | tee -a $DEBUG_LOG_NAME
 echo "Argument 6 = $LUDATA_PATH"     | tee -a $DEBUG_LOG_NAME
+echo "Argument 7 = $YAMLSETTINGS_PATHFILE"     | tee -a $DEBUG_LOG_NAME
+echo "Argument 8 = $FULL_USERNAME"     | tee -a $DEBUG_LOG_NAME
 echo "'$0' = $0"      | tee -a $DEBUG_LOG_NAME
 echo "pwd = $(pwd)"   | tee -a $DEBUG_LOG_NAME
 echo | tee -a $DEBUG_LOG_NAME
@@ -49,9 +60,13 @@ echo | tee -a $DEBUG_LOG_NAME
 
 
 # Load the required software
+if [[ "$ARCH" == "lunarc" ]]; then
 module purge &>/dev/null
 module load foss/2022a netCDF/4.9.0 CMake/3.23.1 Ghostscript/9.56.1
 module load GCC/11.3.0  OpenMPI/4.1.4  R/4.2.1  Pandoc/3.1.2
+elif (( "$ARCH" == "levante" )); then
+    module load r/4.1.2-gcc-11.2.0 ghostscript/9.54.0-gcc-11.2.0
+fi    
 
 set -x		# Debug. Remove later.
 
@@ -60,7 +75,7 @@ set -x		# Debug. Remove later.
 RSCRIPT="tellme_global.Rmd"			# Do not change, unless you change also further down in this script where tellme_global.Rmd is hardcoded.
 RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
-FULL_USERNAME=$(pinky -lb $(whoami) | cut -d: -f3 | tr -s " " | head -1 | sed -e 's/^[[:space:]]*//')
+# MF: I would prefer not to do this cat/sed command, see instead the last argument below
 cat $RSCRIPT_PATHFILE | sed "s/%%USER%%/$FULL_USERNAME/" >./$RSCRIPT_HTML
-Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\"))"
+Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\",config_file=\"$YAMLSETTINGS_PATHFILE\",author=\"$FULL_USERNAME\"))"
 

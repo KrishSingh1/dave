@@ -1,41 +1,79 @@
 ---
 title: "Tellme Benchmark Report for LPJ-GUESS"
-author: "Matthew Forrest (script developer and maintainer)"
+#author: "Matthew Forrest (script developer and maintainer)"
+author: "`r params$author`"
 date: '`r strftime(Sys.time(), format = "%B %d, %Y")`'
 output: 
  html_document:
   toc: true
 params:
-  config_file: "/home/mforrest/Tools/DGVMBenchmarks/inst/tellme_global_config.yml"
-#    value: "/home/mforrest/GuessRuns/Tellus_dev/output11690tls-3"
+  new_directory: NULL
+  new_name: NULL
+  old_directory: NULL
+  old_name: NULL
+  data_directory: NULL
+  land_cover_file: NULL
+  config_file: NULL
+  author: NULL
+  # "/home/b/b380710/LPJ-GUESS/source/benchmark_tellme_with_dfluxes/benchmarks/exoprocesses/tellme/tellme_global_config.yml"
+  #config_file: "/dmz/home/mforrest/Tools/DGVMBenchmarks/inst/tellme_global_config.yml"
 ---
 
 ```{r benchmark selection and script parameters, echo=FALSE}
-suppressWarnings(
+
+
+suppressWarnings({
+  library(DGVMTools)
   library(DGVMBenchmarks)
-)
+  library(terra)
+  library(viridis)
+  library(mapproj)
+  library(pals)
+  library(knitr)
+  library(dplyr)
+  library(kableExtra)
+  library(tictoc)
+  library(lubridate)
+  library(ggplot2)
+  library(ggrepel)
+  library(showtext) 
+})
+
+# for "reasons" this helps RMarkdown find the right Helvetica font when rendering from the commandline on some systems 
+showtext_auto()
+
+# set the ggplot theme to avoid the grey background that Stefan hates so much
+theme_set(theme_bw())
+
 
 # read and parse the YAML file, then set the objects for later
 if(is.null(params$config_file)){
   config_file <- file.path(system.file("tellme_global_config.yml", package = "DGVMBenchmarks")) 
 } else { 
+  # TODO warn if files missing
   config_file <- params$config_file 
 }
 
-all_settings <- parseConfigFile(config_file)
+
+
+all_settings <- parseConfigFile(config_file, cli_args = params)
 settings <- all_settings$settings
 simulation_sources <- all_settings$simulations
 benchmarks <- all_settings$benchmarks
 
+# this override can eb done after
+if(!is.null(params$land_cover_file)) settings$land_cover_file <- params$land_cover_file
+
 
 #### Here select the benchmarks to do ####
 do_Global_Summary_Tables <- FALSE
-do_global_GPP <- FALSE
-do_global_LAI <- FALSE
-do_global_BA <- FALSE
-do_Global_Biomass <- FALSE
-do_Pan_Biomass <- FALSE
-do_Regrowth <- FALSE
+do_global_GPP <- TRUE
+do_global_LAI <- TRUE
+do_global_BA <- TRUE
+do_Global_Biomass <- FALSE # requires land use
+do_Pan_Biomass <- FALSE # requires land use
+do_Regrowth <- FALSE # requires special "regrowth" simulation
+
 
 #  **** SPECIAL SUBSETTING FOR STEFAN'S GLOBAL RETUNING  ****
 subset_1600_gridcells <- read.table(system.file("extdata", "Gridlist", "gridlist_16_random.csv", package = "DGVMBenchmarks"), header = TRUE, flush = TRUE)
@@ -60,27 +98,6 @@ knitr::opts_chunk$set(echo = FALSE,
 opts <- options(knitr.kable.NA = "")
 
 
-library(ggplot2)
-# set the ggplot theme to avoid the grey background that Stefan hates so much
-theme_set(theme_bw())
-suppressWarnings({
-  library(DGVMTools)
-  library(DGVMBenchmarks)
-  library(terra)
-  library(viridis)
-  library(mapproj)
-  library(pals)
-  library(knitr)
-  library(dplyr)
-  library(kableExtra)
-  library(tictoc)
-  library(lubridate)
-  library(ggrepel)
-})
-
-# for "reasons" this helps RMarkdown find the right Helvetica font when rendering from the commandline on some systems 
-library(showtext) 
-showtext_auto()
 
 
 # conversion factors
@@ -107,17 +124,17 @@ tic()
 Click the tabs above to see the settings of this Tellme script run.
 
 ## Models runs
-```{r print sources, echo = TRUE}
+```{r print sources, echo = FALSE}
 print(simulation_sources)
 ```
 
 ## Settings
-```{r print settings, echo = TRUE}
+```{r print settings, echo = FALSE}
 print(settings)
 ```
 
 ## Benchmarks
-```{r print benchmarks, echo = TRUE}
+```{r print benchmarks, echo = FALSE}
 print(benchmarks)
 ```
 
@@ -156,7 +173,7 @@ overall_tables <- list(
 
 # Global Carbon Project Net Biome Poductivity
 
-Potential intro text about GCP, links to online description of the data, what to look for in the benchmark, etc.
+This benchmark compares the simulated net biome productivity (NBP) to estimates from the Global Carbon project (GCP, currently the 2024 budget). The data used for comparison is sum of columns `land sink + budget imbalance - land-use change`.
 
 
 ```{r gcp, fig.height=5}
@@ -167,7 +184,8 @@ if("GCP_NBP" %in% names(benchmarks)){
     overall_tables <- benchmark_GCP(simulation_sources = simulation_sources,
                                     this_benchmark = benchmarks[["GCP_NBP"]],
                                     settings = settings,
-                                    tables_list = overall_tables)
+                                    tables_list = overall_tables,
+                                    summary_col_names = summary_col_names)
   }
 }
 
@@ -192,89 +210,89 @@ Any volunteers for performing such a classification?  If you do, Stefan will buy
 
 if("PNV_Biomes" %in% names(benchmarks)){
   if(benchmarks[["PNV_Biomes"]]@run_benchmark){
- 
-  this_benchmark <- benchmarks[["PNV_Biomes"]]
-  
-  ### Lists for storing the field and totals
-  ###  NOTE: This gets a special name cause it is used later
-  Biome_Map_Fields_list <- list()
-  
-  #### READ DATASET ####
-  full_file_path <- file.path(this_benchmark@datasets[["HandP_biomes"]]@dir, paste0(this_benchmark@guess_layers,".nc"))
-  if(file.exists(full_file_path)) {
     
-    suppressWarnings(
-      Biome_Map_Fields_list[[this_benchmark@datasets[["HandP_biomes"]]@name]] <- getField(source = this_benchmark@datasets[["HandP_biomes"]],
-                                                                                          quant = this_benchmark@guess_layers,
-                                                                                          spatial.extent = settings$spatial_extent,
-                                                                                          spatial.extent.id = settings$spatial_extent_id,  
-                                                                                          first.year = this_benchmark@first.year,
-                                                                                          last.year = this_benchmark@last.year,
-                                                                                          year.aggregate.method = "mean",
-                                                                                          verbose = settings$verbose_read,
-                                                                                          quick.read = FALSE,
-                                                                                          quick.read.file = paste(this_benchmark@guess_var, version_label, sep = "_")))
+    this_benchmark <- benchmarks[["PNV_Biomes"]]
     
-  }
-  else {
-    message("Biomes dataset not found, benchmark will be skipped.")
-    do_Global_biomass <- FALSE
-  }
-  
-  #### DERIVE BIOMES FROM LPJ-GUESS DATA ####
-  # loop through model runs to be processed
-  for(this_sim_Source in simulation_sources) {
+    ### Lists for storing the field and totals
+    ###  NOTE: This gets a special name cause it is used later
+    Biome_Map_Fields_list <- list()
     
-    # check if file is present (if not don't include this run)
-    got_simulation <- FALSE
-    for(this_simulation in this_benchmark@simulation) {
-      this_benchmark_run_dir <- file.path(this_sim_Source@dir, this_simulation)
-      if(file.exists(file.path(this_benchmark_run_dir, paste0(this_benchmark@guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_benchmark@guess_var, ".out.gz")))) {
-        got_simulation <- TRUE
-        break
-      }
-    }
-    if(got_simulation){
+    #### READ DATASET ####
+    full_file_path <- file.path(this_benchmark@datasets[["HandP_biomes"]]@dir, paste0(this_benchmark@guess_layers,".nc"))
+    if(file.exists(full_file_path)) {
       
-      # read the full data and
-      temp_simulation_Source <- this_sim_Source
-      temp_simulation_Source@dir <- this_benchmark_run_dir
       suppressWarnings(
-        Biome_Map_Fields_list[[this_sim_Source@id]] <- getScheme(source = temp_simulation_Source,
-                                                                 scheme = Smith2014BiomeScheme,
-                                                                 spatial.extent = settings$spatial_extent,
-                                                                 spatial.extent.id = settings$spatial_extent_id,  
-                                                                 first.year = this_benchmark@first.year,
-                                                                 last.year = this_benchmark@last.year,
-                                                                 year.aggregate.method = this_benchmark@year.aggregate.method,
-                                                                 quick.read = settings$quick_read,
-                                                                 quick.read.file = paste(this_benchmark@guess_var,version_label, sep = "_"))
-      )
+        Biome_Map_Fields_list[[this_benchmark@datasets[["HandP_biomes"]]@name]] <- getField(source = this_benchmark@datasets[["HandP_biomes"]],
+                                                                                            quant = this_benchmark@guess_layers,
+                                                                                            spatial.extent = settings$spatial_extent,
+                                                                                            spatial.extent.id = settings$spatial_extent_id,  
+                                                                                            first.year = this_benchmark@first.year,
+                                                                                            last.year = this_benchmark@last.year,
+                                                                                            year.aggregate.method = "mean",
+                                                                                            verbose = settings$verbose_read,
+                                                                                            quick.read = FALSE,
+                                                                                            quick.read.file = paste(this_benchmark@guess_var, version_label, sep = "_")))
       
-    } # if file is present 
+    }
     else {
-      message("Modelled biomass file not found, benchmark will be skipped.")
-      do_Global_biomass <- FALSE
+      message("Biomes dataset not found, benchmark will be skipped.")
+      do_Biomes <- FALSE
     }
     
-  } # for each model run
-  
-  
-  if(settings$doMapPlots) {
-    suppressWarnings(biome_plot <- plotSpatial(Biome_Map_Fields_list, 
-                                               ncol = settings$num_cols, 
-                                               text.multiplier = settings$map_text_multiplier, 
-                                               map.overlay = settings$map_overlay, 
-                                               title = NULL))
-    biome_plot <- biome_plot + theme(legend.position = "bottom",
-                                     legend.text=element_text(size=rel(0.9)),
-                                     legend.key.size = unit(0.5, "lines"))
+    #### DERIVE BIOMES FROM LPJ-GUESS DATA ####
+    # loop through model runs to be processed
+    for(this_sim_Source in simulation_sources) {
+      
+      # check if file is present (if not don't include this run)
+      got_simulation <- FALSE
+      for(this_simulation in this_benchmark@simulation) {
+        this_benchmark_run_dir <- file.path(this_sim_Source@dir, this_simulation)
+        if(file.exists(file.path(this_benchmark_run_dir, paste0(this_benchmark@guess_var, ".out"))) || file.exists(file.path(this_benchmark_run_dir,  paste0(this_benchmark@guess_var, ".out.gz")))) {
+          got_simulation <- TRUE
+          break
+        }
+      }
+      if(got_simulation){
+        
+        # read the full data and
+        temp_simulation_Source <- this_sim_Source
+        temp_simulation_Source@dir <- this_benchmark_run_dir
+        suppressWarnings(
+          Biome_Map_Fields_list[[this_sim_Source@id]] <- getScheme(source = temp_simulation_Source,
+                                                                   scheme = Smith2014BiomeScheme,
+                                                                   spatial.extent = settings$spatial_extent,
+                                                                   spatial.extent.id = settings$spatial_extent_id,  
+                                                                   first.year = this_benchmark@first.year,
+                                                                   last.year = this_benchmark@last.year,
+                                                                   year.aggregate.method = this_benchmark@year.aggregate.method,
+                                                                   quick.read = settings$quick_read,
+                                                                   quick.read.file = paste(this_benchmark@guess_var,version_label, sep = "_"))
+        )
+        
+      } # if file is present 
+      else {
+        message("Modelled biomes file not found, benchmark will be skipped.")
+        do_Biomes <- FALSE
+      }
+      
+    } # for each model run
     
-    biome_plot <- biome_plot+ guides(fill = guide_legend(ncol = 2))
-    suppressWarnings(plot(biome_plot))
-  }
-  
-  
+    
+    if(settings$doMapPlots) {
+      suppressWarnings(biome_plot <- plotSpatial(Biome_Map_Fields_list, 
+                                                 ncol = settings$num_cols, 
+                                                 text.multiplier = settings$map_text_multiplier, 
+                                                 map.overlay = settings$map_overlay, 
+                                                 title = NULL))
+      biome_plot <- biome_plot + theme(legend.position = "bottom",
+                                       legend.text=element_text(size=rel(0.9)),
+                                       legend.key.size = unit(0.5, "lines"))
+      
+      biome_plot <- biome_plot+ guides(fill = guide_legend(ncol = 2))
+      suppressWarnings(plot(biome_plot))
+    }
+    
+    
   }
 } # if do_Global_Biomes
 ```
@@ -298,11 +316,11 @@ if(do_global_GPP){
   #### GOSIF GPP SETTINGS AND DATA ####
   
   GOSIF_GPP_monthly_dir <- "monthly_gpp/GOSIFGPP"
-  GOSIF_GPP_monthly_file.name <- "GOSIF_GPP.txt"
+  GOSIF_GPP_monthly_file.name <- "GOSIF_GPP_monthly_0.5deg_v4.0.nc"
   GOSIF_GPP_Source <- defineSource(id = "GOSIF_GPP",
                                    name = "GOSIF GPP",
                                    dir = file.path(settings$data_directory, GOSIF_GPP_monthly_dir),
-                                   format = GUESS)
+                                   format = NetCDF)
   
   full_file_path <- file.path(GOSIF_GPP_Source@dir, GOSIF_GPP_monthly_file.name)
   if(!file.exists(full_file_path)) {
@@ -315,7 +333,6 @@ if(do_global_GPP){
                                                          file.name = GOSIF_GPP_monthly_file.name,
                                                          verbose = settings$verbose_read)
   }
-  
   
   #### PREPARE GPP BENCHMARK SETTINGS AND DATA ####
   
@@ -346,11 +363,12 @@ if(do_global_GPP){
                           last.year = last.year,
                           metrics = c("NME", "RMSE"),
                           custom = list())
-    
-    
+
     summary_table_lines <- makeSummaryLine(this_benchmark, summary_col_names)
     
-    
+    # remove data Field now that they are stored in this_benchmark
+    rm(GPP_data_Fields);
+
     ### Lists for storing the appropriate Fields and summary numbers
     all_GPP_Maps <- list()
     all_GPP_Trends <- list()
@@ -386,6 +404,7 @@ if(do_global_GPP){
       summary_table_lines$Data <- signif(as.numeric(data_GPP_PgC),4)
       
     }
+    
     
     #### READ LPJ-GUESS DATA ####
     
@@ -431,7 +450,7 @@ if(do_global_GPP){
         summary_table_lines[[this_sim_Source@name]] <- signif(as.numeric(this_GPP_PgC),4)
         
         # remove to save memory
-        rm(this_simulation_GPP)
+        rm(this_simulation_GPP); gc()
         
       } # if file is present 
       else {
@@ -661,6 +680,12 @@ if(do_global_GPP & settings$doMapPlots) {
 }
 ```
 
+```{r echo=FALSE}
+if(do_global_GPP){
+rm( all_GPP_Maps, all_GPP_Trends, all_GPP_Seasonal, all_GPP_comparisons); gc()
+}
+```
+
 ## {.unlisted .unnumbered}
 
 <a href="#top">Back to top</a>
@@ -819,7 +844,7 @@ if(do_global_LAI){
         summary_table_lines[[this_sim_Source@name]] <- signif(as.numeric(this_LAI_MegaM2),4)
         
         # remove to save memory
-        rm(this_simulation_LAI)
+        rm(this_simulation_LAI); gc()
         
       } # if file is present 
       else {
@@ -1049,6 +1074,12 @@ if(do_global_LAI & settings$doMapPlots) {
 }
 ```
 
+```{r echo=FALSE}
+if(do_global_LAI){
+rm( all_LAI_Maps, all_LAI_Trends, all_LAI_Seasonal, all_LAI_comparisons); gc()
+}
+```
+
 ## {.unlisted .unnumbered}
 
 <a href="#top">Back to top</a>
@@ -1216,7 +1247,7 @@ if(do_global_BA){
         summary_table_lines[[this_sim_Source@name]] <- signif(as.numeric(this_BA_Mha),4)
         
         # remove to save memory
-        rm(this_simulation_BA)
+        rm(this_simulation_BA); gc()
         
       } # if file is present 
       else {
@@ -1549,7 +1580,7 @@ if(do_Pan_Biomass){
       all_Model_Biomass_Fields[[this_subrun_Source@name]]  <- this_simulation_Field
       
       # remove to save memory
-      rm(this_simulation_Field)
+      rm(this_simulation_Field); gc()
       
       
     } # if file is present 
@@ -2022,6 +2053,7 @@ if(do_Global_Biomass){
                         description = "Global Aboveground Biomass",
                         simulation = "tellus",
                         guess_var = "cmass",
+                        #guess_layers = c("Crop_sum", "Pasture_sum", "Natural_sum"),
                         guess_layers = c("Crop_sum", "Pasture_sum", "Natural_sum"),
                         unit = "kg m^-2^",
                         agg.unit = "PgC",
@@ -2337,8 +2369,6 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "cflux", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  settings$new_name, 
-                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2359,8 +2389,6 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "nflux", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  settings$new_name, 
-                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "ha",
@@ -2380,8 +2408,6 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "cpool", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  settings$new_name, 
-                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2400,8 +2426,6 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "npool", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  settings$new_name, 
-                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
@@ -2413,6 +2437,60 @@ if(do_Global_Summary_Tables) {
 ```
 
 
+### C Pools per PFT (Pg C)
+
+``` {r C pools per PFT, echo=FALSE, out.width = '100%', out.height= '150%'}
+if(do_Global_Summary_Tables) {
+  this_complete_df <- modelSummaryTable(simulations = simulation_sources, 
+                                        settings = settings,
+                                        var = "cmass", 
+                                        periods = settings$summary_periods, 
+                                        spatial_extent = settings$spatial_extent,
+                                        spatial_extent_id = settings$spatial_extent_id,
+                                        area_unit = "m^2",
+                                        unit_multiplier = KG_TO_PG)
+  if(nrow(this_complete_df) > 0) {
+    kable(this_complete_df) %>% kable_styling(full_width = TRUE)
+  }
+}
+```
+
+### GPP per PFT (Pg C)
+
+``` {r GPP per PFT, echo=FALSE, out.width = '100%', out.height= '150%'}
+if(do_Global_Summary_Tables) {
+  this_complete_df <- modelSummaryTable(simulations = simulation_sources, 
+                                        settings = settings,
+                                        var = "agpp", 
+                                        periods = settings$summary_periods, 
+                                        spatial_extent = settings$spatial_extent,
+                                        spatial_extent_id = settings$spatial_extent_id,
+                                        area_unit = "m^2",
+                                        unit_multiplier = KG_TO_PG)
+  if(nrow(this_complete_df) > 0) {
+    kable(this_complete_df) %>% kable_styling(full_width = TRUE)
+  }
+}
+```
+
+### Density (Pg C)
+
+``` {r Density, echo=FALSE, out.width = '100%', out.height= '150%'}
+if(do_Global_Summary_Tables) {
+  this_complete_df <- modelSummaryTable(simulations = simulation_sources, 
+                                        settings = settings,
+                                        var = "dens", 
+                                        periods = settings$summary_periods, 
+                                        spatial_extent = settings$spatial_extent,
+                                        spatial_extent_id = settings$spatial_extent_id,
+                                        area_unit = "m^2",
+                                        unit_multiplier = 1)
+  if(nrow(this_complete_df) > 0) {
+    kable(this_complete_df) %>% kable_styling(full_width = TRUE)
+  }
+}
+```
+
 ### Run-off (km^3^ H~2~O/y)
 
 ``` {r Total runoff table, echo=FALSE, out.width = '100%', out.height= '150%'}
@@ -2421,12 +2499,28 @@ if(do_Global_Summary_Tables) {
                                         settings = settings,
                                         var = "tot_runoff", 
                                         periods = settings$summary_periods, 
-                                        new_sim =  settings$new_name, 
-                                        old_sim = settings$old_name, 
                                         spatial_extent = settings$spatial_extent,
                                         spatial_extent_id = settings$spatial_extent_id,
                                         area_unit = "m^2",
-                                        unit_multiplier = KG_TO_PG)
+                                        unit_multiplier = L_TO_KM3)
+  if(nrow(this_complete_df) > 0) {
+    kable(this_complete_df) %>% kable_styling(full_width = TRUE)
+  }
+}
+```
+
+### AET (km^3^ H~2~O/y)
+
+``` {r AET, echo=FALSE, out.width = '100%', out.height= '150%'}
+if(do_Global_Summary_Tables) {
+  this_complete_df <- modelSummaryTable(simulations = simulation_sources, 
+                                        settings = settings,
+                                        var = "aaet", 
+                                        periods = settings$summary_periods, 
+                                        spatial_extent = settings$spatial_extent,
+                                        spatial_extent_id = settings$spatial_extent_id,
+                                        area_unit = "m^2",
+                                        unit_multiplier = L_TO_KM3)
   if(nrow(this_complete_df) > 0) {
     kable(this_complete_df) %>% kable_styling(full_width = TRUE)
   }
@@ -2449,8 +2543,6 @@ this_soil_N2O_df <- modelSummaryTable(simulations = simulation_sources,
                                       settings = settings,
                                       var = "soil_nflux", 
                                       periods = list(comparison_period), 
-                                      new_sim =  settings$new_name, 
-                                      old_sim = settings$old_name, 
                                       spatial_extent = settings$spatial_extent,
                                       spatial_extent_id = settings$spatial_extent_id,
                                       area_unit = "ha",

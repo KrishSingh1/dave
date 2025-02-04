@@ -4,6 +4,7 @@ Settings:
 
   new_name: "New run" # remove
   old_name: "Old run" # change to "baseline"
+  baseline: "Old run"
   data_directory: "/data/shared/Tellus"
   land_cover_file: "/data/mforrest/LandUseLandCover/LUH2_GCP2019/lu_1549_2019_luh2_aggregate_sum2x2_midpoint_nourban_gcp2019_2019_10_22.txt"
 
@@ -48,11 +49,11 @@ Simulations:
   New_run: 
     # Each of these three things *must* be defined for each model
     name: "New run" 
-    dir: "/home/mforrest/GuessRuns/Tellus_dev/output11690tls-3"
+    dir: "/home/b/b380710/benchmarks/2025-01-29_all"
     format: "GUESS"
   Old_run:
     name: "Old run"
-    dir: "/home/mforrest/GuessRuns/Tellus_dev/trunk10115crg+monthly"
+    dir: "/home/b/b380710/benchmarks/2025-01-28_first_globals"
     format: "GUESS"
 
 #### Benckmarks ####
@@ -63,7 +64,7 @@ Benchmarks:
   # Global Carbon Project benchmark
   GCP_NBP:
     # Standard required benchmark settings
-    run_benchmark: FALSE
+    run_benchmark: TRUE
     name: "GCP NBP"
     description: "Global Carbon Project Net Biome Productivity"
     simulation: "tellus"
@@ -72,6 +73,8 @@ Benchmarks:
     unit: "kg m^-2^ y^-1^"
     agg.unit: "PgC y^-1^"
     metrics: "r2"
+    first.year: 2004
+    last.year: 2014
     # NOTE: Special case here, no dataset provide as DGVMTools::Source object because the benchmark reads raw GCP Excel file 
     # Custom: For reading from the GCP Clobal Carbon Budget spreadsheet, these can/will change with a newer version
     sheet: "Global Carbon Budget"

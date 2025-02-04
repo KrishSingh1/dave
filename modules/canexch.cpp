@@ -4051,7 +4051,7 @@ void forest_floor_dave(Patch &patch) {
 			const Pft &pft = pftlist[i];
 
 			// Only do this calculation for PFTs using annual (trunk) allocation.
-			if (pft.dave_allocation()) {
+			if (pft.dave_allocation() && pft.lifeform != TREE) {
 				continue;
 			}
 

@@ -160,6 +160,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
 	declare_parameter("file_msoiltempdepth25", &file_msoiltempdepth25, 300, "Soil temperature output file (25cm depth)");
+	declare_parameter("file_mairtemp", &file_mairtemp, 300, "Monthly air temperature output file");
 
 	declare_parameter("file_mald_peat", &file_mald_peat, 300, "Monthly peat active layer depth");
 	declare_parameter("file_peat_frac", &file_peat_frac, 300, "Peat frac");
@@ -714,7 +715,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
 	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
-    
+	create_output_table(out_mairtemp,       file_mairtemp,       month_columns);
+	    
 	// Methane
 	create_output_table(out_mch4,           file_mch4,           month_columns);
 	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
@@ -2457,6 +2459,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mald, mald[m]);
 		outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? mald_peat[m] / peat_gridcell_average : 0.0);
 		outlimit(out,out_msoiltempdepth25,mtemp25cm[m]);
+		outlimit(out,out_mairtemp, gridcell.climate.hmtemp_20[m].lastadd());
 	}
 
 	outlimit(out,out_mald, maxald_gridcell); // [m]

@@ -4048,6 +4048,9 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 }
 
 void forest_floor_dave(Patch &patch) {
+	// These calculations are only required for pfts using the annual (trunk)
+	// establishment.
+
 	Vegetation &vegetation = patch.vegetation;
 	const Climate &climate = patch.get_climate();
 

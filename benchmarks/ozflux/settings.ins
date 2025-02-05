@@ -149,7 +149,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output                1
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -287,12 +287,17 @@ import "landcover.ins"
 ! PFT parameters
 !///////////////////////////////////////////////////////////////////////////////
 
-import "pft_common.ins"
+!import "pft_common.ins"
 
-import "trees.ins"
+!import "trees.ins"
 !import "shrubberies.ins"
 !import "c3g.ins"
 !import "c4g.ins"
+
+! for Warra only 
+! also, comment out pft_commons.ins
+import "pfts_jamey.ins"
+! import "c3g.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

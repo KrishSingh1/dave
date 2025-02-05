@@ -2226,6 +2226,15 @@ public:
 	double jmax_25;
 	// (Constant) Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
 	double vpmax_25;
+	// activation energy for vcmax (kJ mol-1)
+	double ha_v;
+	// activation energy for jmax (kJ mol-1)
+	double ha_j;
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
@@ -2489,6 +2498,10 @@ public:
 		vcmax_25 = 0;
 		vpmax_25 = 0;
 		jmax_25  = 0;
+		ha_v = 0;
+		ha_j = 0;
+		ds_v = 0;
+		ds_j = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;

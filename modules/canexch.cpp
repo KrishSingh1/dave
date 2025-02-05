@@ -3137,6 +3137,18 @@ public:
 	// Air temperature in °C.
 	double temp;
 
+	// activation energy for vcmax (kJ mol-1)
+	double ha_v;
+
+	// activation energy for jmax (kJ mol-1)
+	double ha_j;
+
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
 	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
 	double par;
 
@@ -3212,8 +3224,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal * pow(inputs.wscal, qb);
-	double vcmax = pslim * Arrhenius_temp_response(inputs.vcmax25, inputs.temp, HA_V, HD, DS_V);
-	double jmax  = pslim * Arrhenius_temp_response(inputs.jmax25, inputs.temp, HA_J, HD, DS_J);
+	double vcmax = pslim * Arrhenius_temp_response(inputs.vcmax25, inputs.temp, inputs.ha_v, HD, inputs.ds_v);
+	double jmax  = pslim * Arrhenius_temp_response(inputs.jmax25, inputs.temp, inputs.ha_j, HD, inputs.ds_j);
 
 	// 1) Rubisco-limited gross photosynthesis
 	double gamma = vcmax;
@@ -3455,6 +3467,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vcmax25 = indiv.ps_subdaily.vcmax25;
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
+		inputs.ha_v = indiv.pft.ha_v;
+		inputs.ha_j = indiv.pft.ha_j;
+		inputs.ds_v = indiv.pft.ds_v;
+		inputs.ds_j = indiv.pft.ds_j;
 		inputs.wscal = ppft.wscal;
 
 		indiv.photosynthesis.agd_g = 0.0;
@@ -4070,7 +4086,7 @@ void forest_floor_dave(Patch &patch) {
 			const Pft &pft = pftlist[i];
 
 			// Only do this calculation for PFTs using annual (trunk) allocation.
-			if (pft.dave_allocation()) {
+			if (pft.dave_allocation() && pft.lifeform != TREE) {
 				continue;
 			}
 
@@ -4099,6 +4115,11 @@ void forest_floor_dave(Patch &patch) {
 			// Account for the nitrogen gradient within the canopy.
 			// TODO: should this be patch-level or PFT-level LAI?
 			inputs.nscal = max(1.0e-12, exp(-pft.extkn * LAI_HYPOTHETICAL));
+
+			inputs.ha_v = pft.ha_v;
+			inputs.ha_j = pft.ha_j;
+			inputs.ds_v = pft.ds_v;
+			inputs.ds_j = pft.ds_j;
 
 			// Assume a leaf N content of 0.01 kgN/m2.
 			PhotosynthesisOutputs outputs;

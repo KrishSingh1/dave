@@ -1755,6 +1755,10 @@ const double INIT_STORAGE_FRACTION = 1;
 
 double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double EPS = 1e-6, size_t NITER_MAX = 10000) {
 
+	if (is_zero(bminit)) {
+		return 0;
+	}
+
 	// Parameters.
 	double k   = pft.k_latosa;
 	double k2  = pft.k_allom2;

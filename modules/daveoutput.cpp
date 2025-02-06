@@ -99,7 +99,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_met_vpd"             , DAILY, "vpd", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.vpds.front(), patch.stand.get_gridcell().climate.vpds.size());     }, "Daily VPD (kPa)");
 	add_patch_output("file_dave_met_insol"           , DAILY, "insol", [](const Patch &patch) { return patch.stand.get_gridcell().climate.insol;   }, "Daily insolation (units depend on instype)");
 	add_patch_output("file_dave_met_precip"          , DAILY, "precip", [](const Patch &patch) { return patch.stand.get_gridcell().climate.prec;    }, "Daily total precipitation (mm)");
-	add_patch_output("file_dave_met_pressure"        , DAILY, "pressure", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()); }, "Daily air pressure (Pa)");
+	add_patch_output("file_dave_met_pressure"        , DAILY, "pressure", [](const Patch &patch) { return 0.001 * mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()); }, "Daily air pressure (kPa)");
 	add_patch_output("file_dave_met_co2"             , DAILY, "co2", [](const Patch &patch) { return patch.stand.get_gridcell().climate.co2;         }, "Daily atmospheric co2 concentration (ppm)");
 	add_patch_output("file_dave_daylength"           , DAILY, "daylength", [](const Patch &patch) { return patch.stand.get_gridcell().climate.daylength;         }, "Daylength (h)");
 	add_patch_output("file_dave_sompool_cmass"       , DAILY, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)");
@@ -242,7 +242,7 @@ DaveOutput::DaveOutput() {
 	add_patch_array_output("file_dave_met_subdaily_vpd"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
 	add_patch_array_output("file_dave_met_subdaily_insol"   , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
 	add_patch_array_output("file_dave_met_subdaily_precip"  , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_pressure", DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i]; }, "Subdaily air pressure (Pa)", false, true);
+	add_patch_array_output("file_dave_met_subdaily_pressure", DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i] / 1000.0; }, "Subdaily air pressure (kPa)", false, true);
 	add_patch_array_output("file_dave_met_subdaily_co2"     , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
 
 	// Standpft-level outputs.

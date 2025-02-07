@@ -34,7 +34,10 @@ TEST_CASE("Management harvests one tree", "[harvest][emission][litter]") {
     tree.k_allom3 = 0.67;
     tree.stem_frac = 0.65;
     tree.twig_frac = 0.13;
+    tree.harvest_slow_frac = 0.0;
     tree.lifeform = TREE;
+    tree.wooddens = 0;
+    tree.sla = 0;
 
     Soiltype soilType = Soiltype();
     Gridcell gc = Gridcell();

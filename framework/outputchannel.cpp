@@ -23,7 +23,7 @@ ColumnDescriptor::ColumnDescriptor(const char* title,
                                    int precision,
 								   column_type_t type)
 		  : t(title),
-			 w(width),
+			 w(max(width, (int)strlen(title) + 1)),
 			 p(precision),
 			 column_type(type) {
 }

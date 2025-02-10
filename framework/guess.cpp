@@ -1718,6 +1718,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit	  = 0.0;
+	cmass_storage_limit = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
@@ -1876,6 +1877,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	wstress           = false;
 	lambda            = 0.0;
 	aaet              = 0.0;
+	ltor              = 0.0;
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;

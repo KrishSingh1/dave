@@ -127,7 +127,7 @@ const double HD = 200.0;
 
 // Exponents in soil water stress function (wscal^q)
 const double qs = 0.5;   // stomatal conductance
-const double qb = 1.0;   // biochemistry, including Rd
+const double qb = 1.0;   // biochemistry, including Rd - default is 1.0, CS testing change
 
 /// -----------------------------------------------
 /// C4 photosynthesis parameters
@@ -267,5 +267,20 @@ inline double gc_monteith(double& aet, double& eet) {
 	return (aet*GM) / (eet*ALPHAM-aet);
 }
 #endif
+
+const double FIXED_LAI[12] = {
+	0.4, // January
+	0.4, // February
+	0.5, // March
+	0.5, // April
+	0.7, // May
+	0.7, // June
+	0.6, // July
+	0.5, // August
+	0.4, // September
+	0.4, // October
+	0.4, // November
+	0.4  // December
+};
 
 #endif // LPJ_GUESS_CANEXCH_H

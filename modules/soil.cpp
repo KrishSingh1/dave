@@ -18,6 +18,7 @@
 #include "guess.h"
 #include "soil.h"
 #include "parameters.h"
+#include "guessmath.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -239,10 +240,14 @@ void Soil::init_states() {
 	}
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
-		wcont[sl] = 0.0;
+		wcont[sl] = 0.1;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
+		psi_layer[sl] = 0.0;
+		K_actual[sl] = 0.0;
 	}
+
+	soil_psi = 0.0;
 
 	awcont_upper = 0.0;
 
@@ -481,7 +486,6 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
 
-	const double SOILDEPTH_EVAP = 200.0;
 	// depth of sublayer at top of upper soil layer, from which evaporation is
 	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 	const double BASEFLOW_FRAC = 0.5;
@@ -527,7 +531,7 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int s = 0; s<NSOILLAYER; s++) {
-			aet = patch.pft[indiv.pft.id].fwuptake[s] * indiv.aet;
+			aet = indiv.fwuptake[s] * indiv.aet;
 			aet_total += aet;
 			if (s < NSOILLAYER_UPPER)
 				aet_twolayer[0] += aet;
@@ -666,6 +670,8 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	patch.arunoff += runoff;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
+	patch.transp = aet_total;
+	patch.evap = evap;
 
 	patch.maet[date.month] += aet_total;
 	patch.mevap[date.month] += evap;
@@ -786,14 +792,20 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	// dperc      = daily percolation beyond system (mm)
 	// runoff     = total daily runoff from all soil layers (mm/day)
 
-	// depth of sublayer at top of upper soil layer, from which evaporation is
-	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
-	const double SOILDEPTH_EVAP = 200.0;
 	// Fraction of standard percolation amount from lower soil layer that is
 	// diverted to baseflow runoff
-	const double BASEFLOW_FRAC = 0.5;
 
-	const double MIN_WATER_PERC = 0.0000001;	// mm - Minimum water amount for percolation to occur
+	double BASEFLOW_FRAC = 0.0;
+	double MIN_WATER_PERC = 0.0;
+
+	if (ifdavehydrology){
+		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
+		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
+
+	} else {
+		BASEFLOW_FRAC = 0.5;
+		MIN_WATER_PERC = 0.0000001;	
+	}
 
 	// Reset annuals
 	if (date.day == 0) {
@@ -810,7 +822,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		patch.mrunoff[date.month] = 0.0;
 	}
 
-
 	// *** EVAP - based on initial wcont_evap, as in v4.0 *** 
 
 	double evap_init = 0;
@@ -826,10 +837,13 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	if (snowpack < 10.0) {	// evap only if snow depth < 10mm
 							// The potential evaporation:
-		evap_init = climate.eet * PRIESTLEY_TAYLOR * wcont_evap_init * wcont_evap_init * fevap;
+		if (ifdavehydrology){
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init;// * wcont_evap_init ;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
+		} else {
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init * wcont_evap_init ;
+		}
 		// Below, we will limit evaporation to a value <= the available water in the evaporation layer
 	}
-
 
 	// *** AET ***
 
@@ -851,7 +865,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int ly = 0; ly<NSOILLAYER; ly++) {
-			aet = patch.pft[indiv.pft.id].fwuptake[ly] * indiv.aet;
+			aet = indiv.fwuptake[ly] * indiv.aet;
 			aet_layer[ly] += aet;
 			aet_total += aet;
 
@@ -886,7 +900,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	double Faw_layer2 = 0.0;
 	double potential_layer1 = 0.0;
 	double potential_layer2 = 0.0;
-
 
 	for (int ly = 0; ly < NSOILLAYER; ly++) {
 
@@ -1087,7 +1100,18 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation from top layer if there is enough water (at least MIN_WATER_PERC)
 		double perc = 0.0;
 
-		if (Faw_layer1 > MIN_WATER_PERC) {
+		double depth_upper = 0; 
+		double depth_lower = 0; 
+
+		for (int s = 0; s<NSOILLAYER; s++) {
+			if (s < NSOILLAYER_UPPER) {
+				depth_upper += Dz[s]/1000;
+			} else {
+				depth_lower += Dz[s]/1000;
+			}
+		}
+
+		if (Faw_layer1 > MIN_WATER_PERC*depth_upper) {	
 
 			// Percolation from the top  layer (limited to available liquid water)
 			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), Faw_layer1);
@@ -1153,16 +1177,22 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation 3 -> base
 
 		double perc_from_base = 0.0;
-		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC) {
+		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC*depth_lower) {
 
-			perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
-			perc_from_base = min(perc_from_base, Faw_perc_layer_2); // Only available water in these layers can percolate
+			if (ifdavehydrology){
+				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
+			} else {
+				perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
 
-			// As in LPJ-GUESS v4.0
-			if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf)
-				perc_from_base = rain_melt - runoff_surf;
-		}
-		else {
+				// As in LPJ-GUESS v4.0
+				if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf){
+					perc_from_base = rain_melt - runoff_surf;
+				}							
+			}
+			// Only available water in these layers can percolate								
+		} else {
 			// No percolation
 			perc_from_base = 0.0;
 		}
@@ -4052,6 +4082,8 @@ void Soil::nmass_multiplic_inc(double inc, int pref) {
 		NO3_mass *= inc;
 	}
 }
+
+
 
 // serialize new soil variables, when finalised
 void Soil::serialize(ArchiveStream& arch) {

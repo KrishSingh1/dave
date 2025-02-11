@@ -1374,6 +1374,9 @@ void vegetation_n_uptake(Patch& patch) {
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr && !negligible(orignmass)) {
 		soil.fnuptake_mean[date.month] += (1.0 - soil.nmass_avail() / orignmass) / date.ndaymonth[date.month];
 	}
+
+	assert(soil.NH4_mass >= -1e-16);
+	assert(soil.NO3_mass >= -1e-16);
 }
 
 /// Add litter to equilsom()
@@ -1521,23 +1524,37 @@ void equilsom(Soil& soil) {
  */
 void som_dynamics_century(Patch& patch, Climate& climate, double tillage_fact) {
 
+	const double EPS = 1e-16;
+
 	// Transfer litter to SOM pools
 	transfer_litter(patch);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Daily nitrogen addition to the soil
 	soilnadd(patch);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Daily mineral and organic nitrogen leaching
 	leaching(patch.soil);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage_fact);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Nitrogen transformation in soil
 	ntransform(patch, climate);
+	assert(patch.soil.NH4_mass > -EPS);
+	assert(patch.soil.NO3_mass > -EPS);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
 	equilsom(patch.soil);

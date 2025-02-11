@@ -273,7 +273,7 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
-	soiltype.b = data[soilcode][0];
+	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.thermal_wilting_point = data[soilcode][2];
 	soiltype.thermal_15_whc = data[soilcode][3];
@@ -284,6 +284,10 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.soil_OC = 0.05;
 	soiltype.soilC = 0.0; // default value (kgC/m2)
 	soiltype.porosity = data[soilcode][11];
+	soiltype.Psi_s = 20; // cm, just a guess
+	soiltype.b = 4; // unitless, just a guess
+	soiltype.Psi_wp = 5; // cm, just a guess
+	soiltype.Psi_whc = 15; // cm, just a guess
 	return soiltype;
 }
 
@@ -297,7 +301,7 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
-	soiltype.b = data[soilcode][0];
+	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.thermal_wilting_point = data[soilcode][2];
 	soiltype.thermal_15_whc = data[soilcode][3];
@@ -315,6 +319,10 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	coord C = find_closest_point(searchradius_soil, c);
 	SoilDataMineral& soil = mineral_map[C];
+
+	// soil.sand = 0.7; ! Testing sandier soil at Calperum, reduced soil evap but didn't change LAI much
+	// soil.clay = 0.15;
+
 	double silt = 1.0 - soil.sand - soil.clay;
 
 	// Equation 1 from Cosby 1984
@@ -333,19 +341,42 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	// Theta_s in Cosby expressed as %
 	double Theta_s = 0.01 * (50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
 
-	double Psi_s = pow(10.0, -logPsi_s);
-	double Psi_wilt = pow(10.0, -4.2);
-	double Psi_whc = pow(10.0, -2.0);
+	double Psi_s = 0.0;
+	double Psi_wilt = 0.0;
+	double Psi_whc = 0.0;
+	double Theta_wilt = 0.0;
+	double Theta_whc = 0.0;
 
-	double Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / b);
-	double Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s),1.0 / b);
+	if (ifdavehydrology){
+
+		Psi_s = -pow(10.0, logPsi_s);  /// CS changed from pow(10.0, -logPsi_s), why the negative there??? Compensates for not having '-b' in equation below but these Psi values didn't make sense (and now I'm using them elsewhere)
+		Psi_wilt = -pow(10.0, 5.3);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm. Testing parameter change from 4.2 to 5.3, to allow plants/evap to extract more water, up to ~ -20MPa.
+		Psi_whc = -pow(10.0, 1.8);    /// CS changed from pow(10.0, -2). See Hohenbrink et al (2023), output is in cm, 1.8
+
+		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984
+		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / -b); 
+
+	} else {
+
+		Psi_s = pow(10.0, -logPsi_s);  
+		Psi_wilt = pow(10.0, -4.2);   
+		Psi_whc = pow(10.0, -2.0);    
+
+		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / b);  
+		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / b); 
+
+	}
 
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established
 	// K = 5.87 - 0.29*b
 
 	SoilProperties soiltype;
-	soiltype.b = 5.87 - 0.29 * b;
+	soiltype.K = 5.87 - 0.29 * b; // note can't find where this comes from or what the units are???
+
+	// hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
+	soiltype.Ksat = 2.778e-6 * exp(12.012 - 0.0755 * soil.sand*100.0 + (-3.895 + 0.03671 * soil.sand*100.0 - 0.1103 * 
+					soil.clay*100.0 + 8.7546e-4 * soil.clay*100.0) * 1.0/Theta_s);
 
 	soiltype.sand = soil.sand;
 	soiltype.clay = soil.clay;
@@ -359,6 +390,11 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	soiltype.pH = soil.pH;
 	soiltype.soil_OC = soil.orgc;
 	soiltype.soilC = soil.soilC;
+	soiltype.Psi_s = Psi_s;
+	soiltype.b = b;
+	soiltype.Theta_s = Theta_s;
+	soiltype.Psi_wp = Psi_wilt;
+	soiltype.Psi_whc = Psi_whc;
 
 	if (iforganicsoilproperties) { // Avoid rescaling of porosity twice.
 		soiltype.porosity = (1 - soil.orgc) * Theta_s + soil.orgc * organic_porosity; // Eq. 3 Lawrence and Slater, 2008
@@ -392,8 +428,8 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.sand_frac = soilprop.sand;
 	soiltype.clay_frac = soilprop.clay;
 	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
-	soiltype.perc_base = soilprop.b;
-	soiltype.perc_base_evap = soilprop.b;
+	soiltype.perc_base = soilprop.K;
+	soiltype.perc_base_evap = soilprop.K;
 	soiltype.perc_exp = 2;
 	soiltype.gawc[0] = SOILDEPTH_UPPER * soilprop.volumetric_whc_field_capacity;
 	soiltype.gawc[1] = SOILDEPTH_LOWER * soilprop.volumetric_whc_field_capacity;
@@ -425,6 +461,13 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.water_below_wp = soilprop.wilting_point;
 	soiltype.porosity = soilprop.porosity;
 	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
+	soiltype.Psi_s = soilprop.Psi_s;
+	soiltype.Psi_wp = soilprop.Psi_wp;
+	soiltype.Psi_whc = soilprop.Psi_whc;
+	soiltype.b = soilprop.b;
+	soiltype.K = soilprop.K;
+	soiltype.Theta_s = soilprop.Theta_s;
+	soiltype.Ksat = soilprop.Ksat;
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
@@ -525,7 +568,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	double material_org_avg = 0.0; // max = 0.2
 
 	// Evap layers 
-	int num_evaplayers = 2;
+	int num_evaplayers = 2; 
 
 	for (int ii = IDX_STD; ii < NLAYERS; ii++) {
 
@@ -600,8 +643,8 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	}
 	double min_frac_lower = 1.0 - org_frac_lower;
 
-	soiltype.perc_base = org_frac_avg * soilproporganic.b + min_frac_avg * soilpropmineral.b;
-	soiltype.perc_base_evap = org_frac_avg_evap * soilproporganic.b + min_frac_avg_evap * soilpropmineral.b;
+	soiltype.perc_base = org_frac_avg * soilproporganic.K + min_frac_avg * soilpropmineral.K;
+	soiltype.perc_base_evap = org_frac_avg_evap * soilproporganic.K + min_frac_avg_evap * soilpropmineral.K;
 	soiltype.perc_exp = 2;
 
 	soiltype.gawc[0] = SOILDEPTH_UPPER * (min_frac_upper * soilpropmineral.volumetric_whc_field_capacity + 
@@ -664,6 +707,11 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
 	}
+
+	soiltype.K = soilpropmineral.K;
+	soiltype.b = soilpropmineral.b;
+	soiltype.Psi_s = soilpropmineral.Psi_s;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

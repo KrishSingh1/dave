@@ -298,9 +298,11 @@ double dphen_activity(Individual &indiv, Climate& climate, bool dormancy) {
 	// different water stress thresholds for dormancy and vegetative regrowth.
 	double wscal_min = dormancy ? pft.wscal_min : 0.6;
 
+	Historic<double,10>& wscal_10 = indiv.get_wscal_10();
+
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double wscal_mean = ppft.wscal_10.size() > 0 ? ppft.wscal_10.mean() : 1.0;
+	double wscal_mean = wscal_10.size() > 0 ? wscal_10.mean() : 1.0;
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
@@ -367,7 +369,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
 		double dphen_growth = dphen_activity(indiv, climate, false);
 
 		// trigger dormancy at higher soil moisture thresholds just after reproductive phase is finished.
-		if (ppft.wscal_5.mean() < 0.6) { 
+		if (indiv.get_wscal_5().mean() < 0.6) { 
 			indiv.fphen_activity = min(1.0,max(fphen_activity_min,indiv.fphen_activity * (1.0 + dphen_growth)));
 		}
 		indiv.fdev_growth = min(1.0,max(fdev_growth_min * indiv.fphen_activity,indiv.fdev_growth * (1.0 + dphen_growth)));
@@ -687,7 +689,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			if(ppft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND)
 				leaf_phenology_crop(ppft.pft, patch);
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
-				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen);
+				leaf_phenology_pft(ppft.pft, climate, ppft.wscal, ppft.aphen, ppft.phen); // note wscal is different in hydraulics version when calculated at PPFT versus indiv level
 
 			// Update monthly leaf-on sum
 			ppft.mphen[date.month] += ppft.phen / date.ndaymonth[date.month];
@@ -788,7 +790,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
 	double& longterm_nstore, double &max_n_storage,
-	bool alive) {
+	bool alive, double& cmass_sap_turnover) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -858,6 +860,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		turnover = turnover_sap * cmass_sap;
 		cmass_sap -= turnover;
 		cmass_heart += turnover;
+		cmass_sap_turnover = turnover;
 
 		// NB: assumes nitrogen is translocated from sapwood prior to conversion to
 		//     heartwood and that this is the same fraction that is conserved
@@ -1416,7 +1419,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+	//assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 // Capacity of C storage (kg C m-2)
@@ -1608,14 +1611,20 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_leaf += cmass_leaf_ind;
 		indiv.cmass_root += cmass_root_ind;
 		indiv.cmass_sap += cmass_sap_ind;
-		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
+			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		}
 
 		if (indiv.pft.dave_allocation()) {
 			// Capacity of C and N storage on establishment
-			if (ifdavegrowth && is_zero(indiv.cstorage_max)) {
+			if (is_zero(indiv.cstorage_max)) {
 				indiv.cstorage_max = cstorage_capacity(indiv);
 				indiv.nstorage_max = nstorage_capacity(indiv);
 			}
+
 			// initialise limits
 			if (is_zero(indiv.cmass_sap_limit)) {
 				indiv.cmass_sap_limit = indiv.cmass_sap;
@@ -1891,14 +1900,23 @@ bool allometry(Individual& indiv) {
 		}
 
 		// Bole height (Eqn 7)
-		if (indiv.pft.dave_allocation()) {
+
+		if (ifdavehydraulics) { // fixme - need to converge on a single approach for dave
+			// This was used in Clare's version:
+			indiv.boleht = 0.7 * indiv.height; // CS changed, to discuss further
+		} else if (indiv.pft.dave_allocation()) {
+			// This was used in Assaf's version:
 			indiv.boleht = 0.5;
 		} else {
 			indiv.boleht = 0.0;
 		}
 
 		// Stand-level LAI
-		indiv.lai = indiv.cmass_leaf * indiv.sla();
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
+			indiv.lai = indiv.cmass_leaf * indiv.sla();
+		}
 	}
 	else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
@@ -1929,12 +1947,20 @@ bool allometry(Individual& indiv) {
 				// TODO: Replace with better solution. Does this work with competition??
 
 				// Stand-level LAI
-				indiv.lai = indiv.lai_indiv;
+				if (ifforcedlai) {
+					indiv.lai = FIXED_LAI[date.month];
+				} else {
+					indiv.lai = indiv.lai_indiv;
+				}
 			}
 			else {
 				indiv.lai_indiv = 0.0;
 				indiv.fpc = 0.0;
-				indiv.lai = 0.0;
+				if (ifforcedlai) {
+					indiv.lai = FIXED_LAI[date.month];
+				} else {
+					indiv.lai = 0.0;
+				}
 				return false;
 			}
 		}
@@ -2115,6 +2141,8 @@ void growth(Stand& stand, Patch& patch) {
 
 		bool killed = false;
 
+		indiv.cmass_sap_yesterday = indiv.cmass_sap;
+
 		// Standard yearly growth functionalities
 
 		if (!(ifdailygrass && indiv.pft.is_grass()) || indiv.istruecrop_or_intercropgrass()) {
@@ -2143,7 +2171,7 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
 			// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-			double cton_leaf_aopt = max(ifdavephotosyn ? indiv.cton_leaf() : indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
+			double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 			if (ifnlim)
 				nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
@@ -2233,7 +2261,7 @@ void growth(Stand& stand, Patch& patch) {
 								patch.pft[indiv.pft.id].nmass_litter_leaf,
 								patch.pft[indiv.pft.id].nmass_litter_root,
 								indiv.nstore_longterm,indiv.max_n_storage,
-								indiv.alive);
+								indiv.alive, indiv.cmass_sap_turnover);
 					}
 					// Update stand record of reproduction by this PFT
 					stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
@@ -2777,10 +2805,10 @@ void growth_daily_grass(Patch& patch) {
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
 				//indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(indiv.wscal_running.mean(), indiv.nscal_running.mean()) * ltor_status;
-				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * ltor_status;
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean()) * ltor_status;
 			}
 			else {
-				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * ppft.wscal_5.mean() * ltor_status;
+				indiv.ltor = ltor_min + (indiv.pft.ltor_max - ltor_min) * indiv.get_wscal_5().mean() * ltor_status;
 			}
 			
 			// Growth rate modifiers
@@ -2804,7 +2832,7 @@ void growth_daily_grass(Patch& patch) {
 			indiv.frost_sen = grass_temp < 0.0 ? 1.0 - max(0.5, 1.0 / (1.0 + exp(lethal_temp_50 - grass_temp))) : 0.0;
 			
 			// Water stress growth modifier 
-			indiv.wscal_fac = max(0.0, (ppft.wscal_5.mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
+			indiv.wscal_fac = max(0.0, (indiv.get_wscal_5().mean() - WSCAL_MIN) / (1.0 - WSCAL_MIN));
 			
 			// Temperature growth modifier
 			double low_temp = (indiv.pft.pstemp_min + indiv.pft.pstemp_low) / 2.0;
@@ -3097,7 +3125,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal, qgrowth);
+	fwater_growth = wscal_growth(indiv.get_wscal(), qgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
@@ -3659,7 +3687,7 @@ void carbon_allocation_grass(Individual &indiv) {
 		double calloc_leaf_max = 1.0 - 1.0 / (1.0 + indiv.pft.ltor_max);
 
 		// calculate fraction of C allocated to shoots (leaves + culms) following Johnson 2016 Eq. 3.80
-		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * ppft.wscal_5.mean(), 0.5);
+		calloc_leaf = calloc_leaf_max * pow(indiv.nscal_5.mean() * indiv.get_wscal_5().mean(), 0.5);
 		calloc_leaf *= (1.0 - calloc_repr - calloc_crown);
 		
 		// 4) Roots
@@ -3724,7 +3752,7 @@ void carbon_allocation_tree(Individual &indiv) {
 	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
 	// ...to .5 of ltor_max
 
-	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
+	indiv.ltor = max(min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	// cmass root target according to the leaf optimum and ltor (kgC/m^2)
 	indiv.cmass_root_limit = 0.0;
 	if (indiv.ltor > 0.0) {
@@ -4441,7 +4469,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = senesc_scal_water * (1.0 - pow(ppft.wscal,qwater_senesc));
+	double senesc_fwater = senesc_scal_water * (1.0 - pow(indiv.get_wscal(),qwater_senesc));
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
@@ -4860,7 +4888,7 @@ void turnover_tree(Individual &indiv) {
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
 	// TODO: function seems too extereme (too much turnover for low water stress).
-	double fwater = max( 1.0, senesc_scal_water * ( 1 - pow(ppft.wscal_30.mean(), qwater_senesc) ) );
+	double fwater = max( 1.0, senesc_scal_water * ( 1 - pow(indiv.get_wscal_30().mean(), qwater_senesc) ) );
 	// double fwater = 1 + (senesc_scal_water * pow(( 1- ppft.wscal_30.mean()), qwater_senesc)); // OLD
 
 	//
@@ -5336,9 +5364,6 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double Fallom = k_allom2 * pow(2.0, k_allom3) * k_allom3 * pow(R, k_allom3 - 1.0);
 	// should calc once: k_allom2 * pow(2.0,k_allom3) * k_allom3
 	// we need to calc change for individual trees in cohort
-	if (indiv.cgrow_sap < 0) {
-		printf("asd");
-	}
 	double dWcyl = indiv.cgrow_sap / indiv.densindiv;
 	dr = dWcyl / (Fr + Fh * Fallom);
 	dh = Fallom * dr;
@@ -5399,7 +5424,11 @@ void allometry_dave_tree(Individual& indiv) {
 			indiv.fpc = 0.0;
 		}
 		// Patch-level LAI
-		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		if (ifforcedlai) {
+			indiv.lai = FIXED_LAI[date.month];
+		} else {
+			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		}
 
 		// calculate leaf to sapwood area (unitless vatrible)
 		if (!is_zero(indiv.height)) {

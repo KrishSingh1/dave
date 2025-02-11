@@ -102,6 +102,7 @@ void turnover_grass(Individual& indiv) {
 	double cmass_root_pre_turnover = cropindiv.grs_cmass_root;
 	double cton_leaf_bg = indiv.cton_leaf(false);
 	double cton_root_bg = indiv.cton_root(false);
+	double sap_turnover;
 
 	indiv.nstore_longterm += indiv.nstore_labile;
 	indiv.nstore_labile = 0.0;
@@ -116,7 +117,7 @@ void turnover_grass(Individual& indiv) {
 		patchpft.nmass_litter_root,
 		patchpft.cmass_leaf_root_turnover,
 		indiv.nstore_longterm, indiv.max_n_storage,
-		true);
+		true, sap_turnover);
 
 	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
 	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;

@@ -917,6 +917,7 @@ void NCInput::resize_climate_arrays(Gridcell &gridcell, size_t size) const {
 			for (size_t j = 0; j < vegetation.nobj; j++) {
 				Individual &indiv = vegetation[j];
 				indiv.ps_subdaily.resize(size);
+				indiv.lwp.resize(size);
 			}
 		}
 	}

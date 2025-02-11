@@ -1845,10 +1845,6 @@ bool allometry(Individual& indiv) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.sla() * indiv.pft.k_latosa / indiv.pft.wooddens;
 
-			//if (date.get_calendar_year() > 2012){
-			//	printf("a");
-			//}
-
 			// Stem diameter (Eqn 5)
 			indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
@@ -1887,10 +1883,6 @@ bool allometry(Individual& indiv) {
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv *
 				indiv.sla() / indiv.crownarea;
-
-			//if (date.get_calendar_year() > 2012){
-			//	printf("a");
-			//}
 
 			// FPC (Eqn 8)
 
@@ -5372,9 +5364,6 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double Fallom = k_allom2 * pow(2.0, k_allom3) * k_allom3 * pow(R, k_allom3 - 1.0);
 	// should calc once: k_allom2 * pow(2.0,k_allom3) * k_allom3
 	// we need to calc change for individual trees in cohort
-	if (indiv.cgrow_sap < 0) {
-		printf("asd");
-	}
 	double dWcyl = indiv.cgrow_sap / indiv.densindiv;
 	dr = dWcyl / (Fr + Fh * Fallom);
 	dh = Fallom * dr;

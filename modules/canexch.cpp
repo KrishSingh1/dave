@@ -3503,11 +3503,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	PhotosynthesisInputs inputs;
 	PhotosynthesisOutputs outputs;
 
-	// day with high incoming rad
-	//if (patch.get_climate().par > 15e6){
-	//	printf("a");
-	//}
-
 	// Loop through cohorts (=individuals)
 	for (int i = 0; i < vegetation.nobj; i++) {
 
@@ -3669,16 +3664,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Incident PAR in the middle of the layer (W m-2).
 				inputs.par = inputs.fipar * par;
 
-				//if (patch.get_climate().par > 15e6 && par > 400){
-				//	printf("a");
-				//}
-
 				// Account for the nitrogen gradient within the canopy.
 				inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
-
-				//if (date.year == 1 && date.day == 1 && day.period == 20 && j == 0) {
-				//	printf("\n");
-				//}
 
 				outputs.clear();
 				if (pft.pathway == C3) {
@@ -3750,10 +3737,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.ps_subdaily.ci[day.period]    = ci_canopy;
 			indiv.ps_subdaily.vcmax[day.period] = vcmax_canopy;
 			indiv.ps_subdaily.jmax[day.period]  = jmax_canopy;
-
-			//if (gsw_canopy < indiv.lai*indiv.pft.gcutic && date.year > nyear_spinup){
-			//	printf("oh no");
-			//}
 
 			// sum up over the day
 			indiv.photosynthesis.agd_g += Ag_canopy;
@@ -4016,11 +3999,6 @@ void water_stress_root_resistance(Patch &patch) {
 		if (date.islastmonth && date.islastday){
 			indiv.wscal_mean_year /= Date::MAX_YEAR_LENGTH;
 		}
-
-		//if (date.get_calendar_year() == 2016){
-		//	printf("a");
-		//}
-
 	}
 
 	double wstress_pft = 0.0;

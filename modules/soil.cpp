@@ -845,11 +845,6 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Below, we will limit evaporation to a value <= the available water in the evaporation layer
 	}
 
-	//if (date.get_calendar_year() > 2010 && wcont_evap_init > 0.9){
-	//	printf("a");
-	//}
-
-
 	// *** AET ***
 
 	// Reset

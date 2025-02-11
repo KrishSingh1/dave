@@ -111,9 +111,6 @@ void calc_soil_water_potenial_dave(Soil &soil) {
 
     for (int i = 0; i < NSOILLAYER; i++) {
 
-        //if (date.get_calendar_year() == 2019){
-        //    printf("a");
-        //}
 	    double wcont = soil.get_layer_soil_water(i);
 
         // Wilting point in mm.

@@ -738,13 +738,13 @@ public:
 		}
 	}
 
-	// Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vcmax25;
 
-	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1)
 	double jmax25;  
 
-	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vpmax25;
 
 	// Maximum carboxylation rate (mol m-2 s-1)
@@ -2214,11 +2214,11 @@ public:
 	ifcalcvcmax is true, values for these will be estimated daily based on leaf
 	N (and P) content, and stored in the indiv.ps_subdaily object.
 	*/
-	// (Constant) Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	// (Constant) Maximum carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vcmax_25;
-	// (Constant) Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	// (Constant) Maximum electron transport rate at 25 degC (μmol m-2 s-1).
 	double jmax_25;
-	// (Constant) Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	// (Constant) Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vpmax_25;
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)

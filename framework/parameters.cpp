@@ -749,11 +749,11 @@ void plib_declarations(int id,xtring setname) {
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
 
 		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
-			"Maximum carboxylation rate at 25 degC (mol m-2 s-1).");
+			"Maximum carboxylation rate at 25 degC (μmol m-2 s-1).");
 		declareitem("jmax_25",&ppft->jmax_25,-5000.0,5000.0,1,CB_NONE,
-			"Maximum electron transport rate at 25 degC (mol m-2 s-1).");
+			"Maximum electron transport rate at 25 degC (μmol m-2 s-1).");
 		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
-			"Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).");
+			"Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");

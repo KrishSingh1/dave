@@ -3005,34 +3005,34 @@ double calc_nmass_leaf0(const Pft &pft, double lai, double nmass_leaf) {
 }
 
 /*
-Calculate maximum carboxylation rate at 25 degC (mol m-2 s-1).
+Calculate maximum carboxylation rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
 */
 double calc_vcmax25(double nmass_leaf, double pmass_leaf) {
 	return exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 *
-							   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+							   log(nmass_leaf * G_PER_KG));
 }
 
 /*
-Calculate maximum electron transport rate at 25 degC (mol m-2 s-1).
+Calculate maximum electron transport rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
 */
 double calc_jmax25(double nmass_leaf, double pmass_leaf) {
 	return exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 *
-							   log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+							   log(nmass_leaf * G_PER_KG));
 }
 
 /*
-Calculate maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).
+Calculate maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 */
 double calc_vpmax25(double nmass_leaf) {
-	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG)) / UMOL_PER_MOL;
+	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG));
 }
 
 // Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
@@ -3109,13 +3109,13 @@ public:
 	// Photosynthetic limitation due to sink activity [0-1].
 	double ps_sink_lim;
 
-	// Maximum carboxylation rate at 25 degC (mol m-2 s-1).
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1).
 	double vcmax25;
 
-	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
 	double vpmax25;
 
-	// Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1).
 	double jmax25;
 
 	// Nitrogen scalar to account for the nitrogen gradient within the canopy.
@@ -3184,7 +3184,13 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 	// Note: fphen_activity is always 1 for trees.
-	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * inputs.vcmax25 * inputs.nscal * 
+
+	// vcmax25/jmax25 are input in umol m-2 s-1, but the equations expect them
+	// in μmol m-2 s-1.
+	double vcmax25_mol = inputs.vcmax25 / UMOL_PER_MOL;
+	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
+
+	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
 			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par);
 
 	if (is_zero(inputs.par)) {
@@ -3202,8 +3208,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal * pow(inputs.wscal, qb);
-	double vcmax = pslim * Arrhenius_temp_response(inputs.vcmax25, inputs.temp, HA_V, HD, DS_V);
-	double jmax  = pslim * Arrhenius_temp_response(inputs.jmax25, inputs.temp, HA_J, HD, DS_J);
+	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.temp, HA_V, HD, DS_V);
+	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.temp, HA_J, HD, DS_J);
 
 	// 1) Rubisco-limited gross photosynthesis
 	double gamma = vcmax;
@@ -3266,8 +3272,9 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// Maximum number of iterations used to find An, gs, and ci.
 	const double NIT_MAX = 20;
 
-	// Parameters at 25 °C.
-	double vcmax25_c4 = rVC4 * inputs.vpmax25;
+	// Parameters at 25 °C (mol m-2 s-1).
+	double vpmax_mol = inputs.vpmax25 / UMOL_PER_MOL;
+	double vcmax25_c4 = rVC4 * vpmax_mol;
 	double jmax25_c4  = rJC4 * vcmax25_c4;
 	double vpr        = rVPr * vcmax25_c4;
 
@@ -3301,7 +3308,7 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.temp, HA_J4, HD, DS_J4);
 
 	// Temperature dependency of Vpmax and Michaelis-Menten constants
-	double vpmax = pslim * Arrhenius_temp_response(inputs.vpmax25, inputs.temp, HA_VP, HD, DS_VP);
+	double vpmax = pslim * Arrhenius_temp_response(vpmax_mol, inputs.temp, HA_VP, HD, DS_VP);
 	double kp    = Arrhenius_temp_response(KP25, inputs.temp, HA_KP, 0.0, 0.0);
 	double kc    = Arrhenius_temp_response(KC25_C4, inputs.temp, HA_KC_C4, 0.0, 0.0);
 	double ko    = Arrhenius_temp_response(KO25_C4, inputs.temp, HA_KO_C4, 0.0, 0.0);
@@ -3622,7 +3629,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.agd_g *= MOL2G_C * SECS_PER_DAY;  // gC m-2 d-1
 		indiv.photosynthesis.rd_g *= MOL2G_C * SECS_PER_DAY;   // gC m-2 d-1
 		// Give values all variables even they aren't used (yet)
-		indiv.photosynthesis.vm          = indiv.ps_subdaily.vcmax25 * UMOL_PER_MOL;  // umol m-2 s-1; not used
+		indiv.photosynthesis.vm          = indiv.ps_subdaily.vcmax25;  // umol m-2 s-1; not used
 		indiv.photosynthesis.adtmm       = 0.0;    // not used
 		indiv.photosynthesis.nactive_opt = 0.0;    // not used
 		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 

@@ -39,6 +39,7 @@ const double Fluxes::NOx_FIRERATIO = 0.237;
 const double Fluxes::N2O_FIRERATIO = 0.036;
 const double Fluxes::N2_FIRERATIO  = 0.722;
 
+double SOILDEPTH_EVAP = SOILDEPTH_EVAP_TRUNK;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions

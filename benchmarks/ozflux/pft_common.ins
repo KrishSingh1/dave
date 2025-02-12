@@ -9,7 +9,7 @@ group "common" (
 	! Parameters common to all PFTs
 
 	lambda_max 0.8
-	emax 10
+	emax 5 ! Note: this was 10 on Clare's branch. Need to decide on a value
 	reprfrac 0.1
 	crownfrac 0.0
 	wscal_min 0.35
@@ -34,7 +34,9 @@ group "common" (
 	g1x 2  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
 	b1z 2  ! Parameter for Zhou et al. (2014) stomatal model 
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
-	vcmax_25 20 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
+	! Note: added by Clare. Need to figure out why.
+	!vcmax_25 20 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
+
 	sla 30
 	extkn 0.15
 	tlp -1.0 ! Turgor loss point (needed for grasses)

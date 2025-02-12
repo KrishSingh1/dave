@@ -193,11 +193,11 @@ ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 100        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
-ifsme 0                ! Whether spatial mass effect enabled
+ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "root_resistance"      ! "wcont", "rootdist", "smart", "speciesspecific", "root_resistance",
+wateruptake "rootdist"      ! "wcont", "rootdist", "smart", "speciesspecific", "root_resistance",
                             ! see documentation for water_uptake(). root_resistance must be used with davehydraulics.
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
@@ -207,7 +207,7 @@ ifdroughtlimitedestab 0        ! Whether establishment is limited by growing sea
                 ! guess2008 - species version has 1
 ifrainonwetdaysonly 1        ! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                         ! Whether to include BVOC calculations (1) or not (0)
-rootdistribution "fixed"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 
 !///////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES

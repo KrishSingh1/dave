@@ -3272,11 +3272,14 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double beta  = kc * (1.0 + divide(O2atm, ko));
 	double anc   = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
 
-	//if (inputs.gdark > (anc * inputs.X)) { 
-		// If gdark is greater than gs from the 'normal' gs model,
-		// repeat calculation with gdark only. 
-	//	anc = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
-	//}
+	if (!ifdavehydraulics) {
+		// TODO: Why has Clare disabled this in her version?
+		if (inputs.gdark > (anc * inputs.X)) {
+			// If gdark is greater than gs from the 'normal' gs model,
+			// repeat calculation with gdark only.
+			anc = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
+		}
+	}
 
 	// 2) RuBP regeneration-limited gross photosynthesis
 	double je = electron_transport_rate(inputs.par, jmax);
@@ -3286,9 +3289,12 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	beta  = 2.0 * gamstar;
 	double anj = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
-	//if (inputs.gdark > (anj * inputs.X)) {
-	//	anj = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
-	//}
+	if (!ifdavehydraulics) {
+		// TODO: Why has Clare disabled this in her version?
+		if (inputs.gdark > (anj * inputs.X)) {
+			anj = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
+		}
+	}
 
 	// 3) TPU-limited gross photosynthesis
 	// Ap = 3TPU; TPU = 0.167Vcmax => Ap = 0.5 Vcmax
@@ -3301,7 +3307,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// Stomatal conductance to CO2 (mol m-2 s-1)
 	//gsc = g0 + An * X;
 	//double gsc = max(inputs.gdark, an * inputs.X);
-	double gsc = max(0.0, an * inputs.X);	// CS removed floor at gdark (since water stress can take gsc to zero)
+	double floor = ifdavehydraulics ? 0.0 : inputs.gdark;
+	double gsc = max(floor, an * inputs.X);	// CS removed floor at gdark (since water stress can take gsc to zero)
 
 	// Re-calculate intercellular CO2 concentration (mol mol-1)
 	double ci;
@@ -3448,7 +3455,8 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		// Stomatal conductance to CO2 (mol m-2 s-1)
 		// gsc = g0 + An * X;
 		// gsc = max(inputs.gdark, an * inputs.X);
-		gsc = max(0.0, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
+		double floor = ifdavehydraulics ? 0.0 : inputs.gdark;
+		gsc = max(floor, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
 
 		// Intercellular CO2 concentration (mol mol-1)
 		if (!inputs.stomata_open) {

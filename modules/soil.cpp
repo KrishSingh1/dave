@@ -57,6 +57,12 @@ void Soil::init_states() {
 	mwcontupper = 0.0;
 	mwcontlower = 0.0;
 
+	if (ifdavehydrology) {
+		// TODO: find a better place for this. This should be fine, but
+		// conceptually it makes no sense to have it here.
+		SOILDEPTH_EVAP = SOILDEPTH_EVAP_DAVE;
+	}
+
 	for (int mth=0; mth<12; mth++) {
 		mwcont[mth][0] = 0.0;
 		mwcont[mth][1] = 0.0;
@@ -240,7 +246,7 @@ void Soil::init_states() {
 	}
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
-		wcont[sl] = 0.1;
+		wcont[sl] = ifdavehydrology ? 0.1 : 0.0;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;

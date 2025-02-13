@@ -120,11 +120,11 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
 
-			// Soil water accounting, snow pack accounting
-			soilwater(patch, gridcell.climate);
-
 			// Sum total required irrigation
 			irrigation(patch);
+
+			// Soil water accounting, snow pack accounting
+			soilwater(patch, gridcell.climate);
 
 			// Daily C allocation
 			growth_daily(patch);

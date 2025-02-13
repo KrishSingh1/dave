@@ -246,7 +246,7 @@ void Soil::init_states() {
 	}
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
-		wcont[sl] = ifdavehydrology ? 0.1 : 0.0;
+		wcont[sl] = 0.0;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;

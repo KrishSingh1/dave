@@ -3698,7 +3698,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				if (outputs.gsc < gcutic_adj / DWDC){
+				if (ifdavehydraulics && outputs.gsc < gcutic_adj / DWDC){
 					gsw_canopy += gcutic_adj * lai_layer; // don't allow gsw to fall below cuticular conductance
 				} else {
 					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;

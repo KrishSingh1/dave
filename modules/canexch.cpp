@@ -3086,11 +3086,7 @@ void vcmax_from_N(Vegetation& vegetation) {
 		Individual& indiv = vegetation[i];
 		const Pft &pft = indiv.pft;
 
-		if (!ifcalcvcmax) {
-			indiv.ps_subdaily.vcmax25 = indiv.pft.vcmax_25;
-			indiv.ps_subdaily.jmax25 = indiv.ps_subdaily.vcmax25*1.7;   // see Kumarathunge et al (2018)
-			continue;
-		}
+		assert(ifcalcvcmax);
 
         double nmass_leaf0 = 0.0;
 

@@ -1898,6 +1898,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	d_diam		      = 0.0;
 	crownarea		  = 0.0;
 	latosa 			  = 0.0;
+	boleht            = 0.0;
 	sa 				  = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;

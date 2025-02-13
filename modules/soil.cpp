@@ -4096,8 +4096,6 @@ void Soil::nmass_multiplic_inc(double inc, int pref) {
 	}
 }
 
-
-
 // serialize new soil variables, when finalised
 void Soil::serialize(ArchiveStream& arch) {
 	arch & wcont

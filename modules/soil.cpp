@@ -1106,18 +1106,25 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation from top layer if there is enough water (at least MIN_WATER_PERC)
 		double perc = 0.0;
 
-		double depth_upper = 0; 
-		double depth_lower = 0; 
+		// Minimum water required for percolation to occur.
+		double min_water_upper = MIN_WATER_PERC;
+		double min_water_lower = MIN_WATER_PERC;
 
-		for (int s = 0; s<NSOILLAYER; s++) {
-			if (s < NSOILLAYER_UPPER) {
-				depth_upper += Dz[s]/1000;
-			} else {
-				depth_lower += Dz[s]/1000;
+		if (ifdavehydrology) {
+			double depth_upper = 0;
+			double depth_lower = 0;
+			for (int s = 0; s<NSOILLAYER; s++) {
+				if (s < NSOILLAYER_UPPER) {
+					depth_upper += Dz[s] / 1000;
+				} else {
+					depth_lower += Dz[s] / 1000;
+				}
 			}
+			min_water_upper *= depth_upper;
+			min_water_lower *= depth_lower;
 		}
 
-		if (Faw_layer1 > MIN_WATER_PERC*depth_upper) {	
+		if (Faw_layer1 > min_water_upper) {
 
 			// Percolation from the top  layer (limited to available liquid water)
 			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), Faw_layer1);
@@ -1183,7 +1190,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation 3 -> base
 
 		double perc_from_base = 0.0;
-		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC*depth_lower) {
+		if (percolate && Faw_perc_layer_2 > min_water_lower) {
 
 			if (ifdavehydrology){
 				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
@@ -1195,7 +1202,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				// As in LPJ-GUESS v4.0
 				if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf){
 					perc_from_base = rain_melt - runoff_surf;
-				}							
+				}
 			}
 			// Only available water in these layers can percolate								
 		} else {

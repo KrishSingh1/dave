@@ -4478,10 +4478,10 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// Calculate soil water potential
 		calc_soil_water_potenial_dave(patch.soil);
 
+		// Calculate water stress factor
 		if (ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE){
 			water_stress_root_resistance(patch);
 		} else {
-		// Calculate water stress factor
 			water_stress(patch);
 		}
 

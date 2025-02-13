@@ -5591,7 +5591,6 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 
 void growth_daily_grass_dave(Patch& patch) {
 
-
 	// Obtain reference to Vegetation and Stand object for this patch
 	Vegetation& vegetation = patch.vegetation;
 	Stand& stand = patch.stand;
@@ -5602,9 +5601,9 @@ void growth_daily_grass_dave(Patch& patch) {
 
 	growth_daily_accounting_dave(vegetation);
 
-		if (date.day == 0) {
-			flush_cmass_repr(patch);
-		}
+	if (date.day == 0) {
+		flush_cmass_repr(patch);
+	}
 
 	// External seed input
 	seed_dispersal_dave(vegetation);
@@ -5653,7 +5652,6 @@ void growth_daily_grass_dave(Patch& patch) {
 	mass_balance.check(vegetation);
 
 } // growth_daily_grass_dave() 
-
 
 /// Handles daily crop allocation and daily lai calculation
 /** Simple allocation based on heat unit accumulation.

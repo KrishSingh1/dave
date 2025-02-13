@@ -3705,7 +3705,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 				ci_canopy  += outputs.ci * lai_layer;
 				vcmax_canopy += outputs.vcmax * lai_layer;
-				jmax_canopy  += outputs.jmax * lai_layer;	
+				jmax_canopy  += outputs.jmax * lai_layer;
 
 				assert(positive(outputs.gsc));
 

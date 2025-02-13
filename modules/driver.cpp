@@ -1442,19 +1442,19 @@ void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-				// Loop over time steps per day
+		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
 			
 			double ra = 0.0;
 			double rs = 0.0;
 
-			double zm = indiv.height + 1.0;								// height of wind measurements (m) - assume 1m above veg for now
-			double zh = indiv.height + 1.0;								// height of humidity measurements (m) - assume 1m above veg for now
-			double d = 2.0 / 3.0 * indiv.height;			// zero plane displacement height (m)
-			double zom = 0.123 * indiv.height;				// roughness length governing momentum transfer (m)
-			double zoh = 0.1 * zom; 						// roughness length governing transfer of heat and vapour (m)
+			double zm = indiv.height + 1.0;		 // height of wind measurements (m) - assume 1m above veg for now
+			double zh = indiv.height + 1.0;		 // height of humidity measurements (m) - assume 1m above veg for now
+			double d = 2.0 / 3.0 * indiv.height; // zero plane displacement height (m)
+			double zom = 0.123 * indiv.height;	 // roughness length governing momentum transfer (m)
+			double zoh = 0.1 * zom; 			 // roughness length governing transfer of heat and vapour (m)
 
-			double k = 0.41;		// von Karman's constant
+			double k = 0.41; // von Karman's constant
 
 			ra = log((zm - d) / zom) * log((zh - d)/zoh) / pow(k, 2.0) / (climate.u10 / KMH_PER_MS);
 
@@ -1478,19 +1478,8 @@ void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation
 			// slope of saturation vapour pressure temperature relationship (Pa/degC), see FAO guidelines Chapter 3
 			double D = 4098e3 * (0.6108 * exp((17.27 * climate.temps[day.period]) / (237.3 + climate.temps[day.period]))) / pow((237.3 + climate.temps[day.period]), 2.0);	
 			double psychrom_const = 0.665e-3 * climate.pressure[day.period];	// psychrometric constant (Pa/degC)
-
-
-
 		}
-	
-
-
 	}
-
-
-
-
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

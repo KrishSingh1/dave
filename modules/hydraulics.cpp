@@ -492,21 +492,22 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
     double min_lwp_day = 0.0;
 
-    // senescence based on lowest water potential that day - runs at end of each day
-    if (day.period == date.subdaily-1){
+    // Senescence based on lowest water potential that day - runs at end of each day.
+    if (day.period == date.subdaily - 1){
 
         for (Day day; day.period != date.subdaily; day.next()) {
             min_lwp_day = std::min(min_lwp_day, indiv.lwp[day.period]);
         }
 
-        if (min_lwp_day <= pft.tlp){ // we start to get senescence at turgor loss point, full senescense once stomata are fully closed
+        // We start to get senescence at turgor loss point, full senescense once stomata are fully closed.
+        if (min_lwp_day <= pft.tlp) {
 
             double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0); // fraction of lai lost to senescence increases linearly with lwp
 
             double closs_leaf = indiv.get_cmass_leaf() * hyd_senesce;
             double nloss_leaf = indiv.get_nmass_leaf() * hyd_senesce;
 
-            if (ifdailygrass){
+            if (ifdailygrass) {
                 indiv.cmass_leafs[0] -= closs_leaf; //green leaf carbon removed
                 indiv.nmass_leafs[0] -= nloss_leaf; //green leaf N removed
                 indiv.cmass_leafs[1] += closs_leaf; //added to brown leaf carbon
@@ -517,10 +518,6 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
                 ppft.cmass_litter_leaf += closs_leaf;
                 ppft.nmass_litter_leaf += nloss_leaf;
             }
-
         }
-
     }
-    
-
-} 
+}

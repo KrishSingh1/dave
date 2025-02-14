@@ -22,9 +22,13 @@ group "common" (
 	g0 0.005
 	g1 3.4
 
-	vcmax_25 91.0 ! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
-	jmax_25 154.7 ! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	vcmax_25 91.0  ! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	jmax_25 154.7  ! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
 	vpmax_25 100.0 ! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	ha_v 59.70	   ! Activation energy for vcmax (kJ mol-1)
+	ha_j 40.71	   ! Activation energy for jmax (kJ mol-1)
+	ds_v 639.43	   ! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	ds_j 642.97	   ! Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	temp_dormancy 5.0
 	kmax 100 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! water potential at which stomata close and roots disconnect from soil (MPa)
@@ -98,8 +102,9 @@ group "tree" (
 	twig_frac 0.13
 	Ha_growth 63.3
 	T0_growth 30.6
-	temp_dormancy 5.0
-
+	! Previously 5
+	!temp_dormancy 5.0
+	temp_dormancy 15.0
 )
 
 group "shrub" (

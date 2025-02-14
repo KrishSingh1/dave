@@ -1267,6 +1267,11 @@ void daylengthinsoleet(Climate& climate) {
 	// maximum daylength in a year
 	if (date.year == 0) {
 		climate.daylength_max = max(climate.daylength, climate.daylength_max);
+		if (date.day == 0) {
+			// give high value to be able to record the min
+			climate.daylength_min = 24.0;
+		}
+		climate.daylength_min = max(min(climate.daylength, climate.daylength_min), 0.0);
 	}
 
 	// Grote: (Assaf) 
@@ -1338,6 +1343,14 @@ void daylengthinsoleet(Climate& climate) {
 	climate.par = climate.rad * FRADPAR;
 
 	climate.par_max = max(climate.par, climate.par_max);
+
+	if (climate.par_max > 0) {
+		// for leaf priority for leaf allocation phenology (Assaf)
+		climate.rel_par = climate.rel_par = climate.par / climate.par_max;
+	} else {
+		climate.rel_par = 0.0;
+	}
+	
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)

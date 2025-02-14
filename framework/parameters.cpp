@@ -77,6 +77,8 @@ bool ifbvoc;
 bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
+bool iftreephen;
+bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
 bool ifdavehydraulics;
@@ -271,6 +273,7 @@ void initsettings() {
 	ifcalcvcmax=true;
 	ifcalccton=true;
 	ifcdebt=false;
+	ifgrote = false;
 	distinterval=1.0e10;
 	npatch=1;
 	vegmode=COHORT;
@@ -632,6 +635,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdailytree",&ifdailytree,1,CB_NONE,	"Whether daily carbon allocation for trees is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
+		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
+		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
@@ -786,6 +791,14 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum electron transport rate at 25 degC (μmol m-2 s-1).");
 		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
 			"Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).");
+		declareitem("ha_v",&ppft->ha_v,-5000,5000,1,CB_NONE,
+			"activation energy for vcmax (kJ mol-1).");
+		declareitem("ha_j",&ppft->ha_j,-5000,5000,1,CB_NONE,
+			"activation energy for jmax (kJ mol-1).");	
+		declareitem("ds_v",&ppft->ds_v,-5000,5000,1,CB_NONE,
+			"Entropy terms (deltaS) for vcmax (J mol-1 K-1).");
+		declareitem("ds_j",&ppft->ds_j,-5000,5000,1,CB_NONE,
+			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2106,6 +2119,10 @@ void plib_callback(int callback) {
 				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("extkn")) badins("extkn");
+				if (!itemparsed("ha_v")) badins("ha_v");
+				if (!itemparsed("ha_j")) badins("ha_j");
+				if (!itemparsed("ds_v")) badins("ds_v");
+				if (!itemparsed("ds_j")) badins("ds_j");
 				if (!ifdavegrowth && ifcalcvcmax) {
 					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}

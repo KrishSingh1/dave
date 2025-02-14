@@ -87,6 +87,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec_lastyear
 		& daylength
 		& daylength_max
+		& daylength_min
 		& co2
 		& lat
 		& insol
@@ -1725,12 +1726,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit	  = 0.0;
 	cmass_storage_limit = 0.0;
+	relative_alpha_leaf 		  = 0.0;
+	relative_alpha_root 		  = 0.0;
+	relative_alpha_sap  		  = 0.0;
+	relative_alpha_repr 		  = 0.0;
+	relative_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
 	cgrow_crown       = 0.0;
 	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
+	cgrow_storage     = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
 	frepr_cstruct     = 0.0;
@@ -1754,6 +1761,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_ymax				= 0.0;
 	nmass_root_ymax				= 0.0;
 	cmass_storage				= 0.0;
+	cmass_storage_dynam			= 0.0;
+	ftemp			     		= 0.0;
+	fwater			   			= 0.0;
+	fstorage					= 0.0;
+	fphoto						= 0.0;
+	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
 	nstorage_max				= 0.0;
@@ -1879,6 +1892,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_leaf        = 0.0;
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
+	alpha_storage     = 0.0;
 	alpha_repr        = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
@@ -1889,6 +1903,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_sap  = 0.0;
 	cturnover_repr  = 0.0;
 	cturnover_crown  = 0.0;
+	pturnover_leaf   = 0.0;
 
 	// additional initialisation
 	age               = 0.0;
@@ -1896,6 +1911,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	diam              = 0.0;
 	d_height		  = 0.0;
 	d_diam		      = 0.0;
+	basalarea    	  = 0.0;
+	basalarea_inc	  = 0.0;
 	crownarea		  = 0.0;
 	latosa 			  = 0.0;
 	boleht            = 0.0;
@@ -2012,7 +2029,13 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
+		& cmass_storage_dynam
+		&ftemp
+		&fwater
+		&fstorage
+		&cgrow_pot
 		& cmass_storage_20
+		& cstorage_dynam_14
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -2023,6 +2046,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ltor
 		& height
 		& diam
+		& basalarea
 		& crownarea
 		& deltafpc
 		& boleht

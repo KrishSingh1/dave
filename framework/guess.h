@@ -1062,6 +1062,9 @@ public:
 	/// maximum daylength in a year
 	double daylength_max;
 
+	/// minimum daylength in a year
+	double daylength_min;
+
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
 
@@ -1098,6 +1101,8 @@ public:
 	/// maximum par at a gridcell
 	double par_max;
 
+	/// relative par today (par/par_max)
+	double rel_par;
 	/// accumulated growing degree day sum on 5 degree base
 	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
@@ -1306,7 +1311,8 @@ public:
 		winter_to_summer = true;
 
 		par_max	= 0.0;
-		
+		rel_par  = 0.0;
+
 		for(int m=0;m<12;m++) {
 
 			mtemp20[m] = 0.0;
@@ -2243,6 +2249,15 @@ public:
 	double jmax_25;
 	// (Constant) Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vpmax_25;
+	// Activation energy for vcmax (kJ mol-1)
+	double ha_v;
+	// Activation energy for jmax (kJ mol-1)
+	double ha_j;
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
@@ -2506,6 +2521,10 @@ public:
 		vcmax_25 = 0;
 		vpmax_25 = 0;
 		jmax_25  = 0;
+		ha_v = 0;
+		ha_j = 0;
+		ds_v = 0;
+		ds_j = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;
@@ -3219,6 +3238,16 @@ public:
 	double cmass_storage_limit;
 	/// target reproduction C mass (kgC/m^2) 
 	double cmass_repr_limit;
+	/// realtive leaf sink strengthy (unitless)
+	double relative_alpha_leaf;
+	/// realtive root sink strengthy (unitless)
+	double relative_alpha_root;
+	/// realtive sapwwod sink strengthy (unitless)
+	double relative_alpha_sap;
+	/// relative storage sink strengh (unitless)
+	double relative_alpha_storage;
+	/// realtive reproductive sink strengthy (unitless)
+	double relative_alpha_repr;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3233,6 +3262,8 @@ public:
 	double cgrow_sap;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
+	/// daily storage growth (kgC/m2/day)
+	double cgrow_storage;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)
@@ -3320,7 +3351,7 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
-	/// root projective cover (RPC); used for grasses only
+	/// root projective cover (RPC)
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
@@ -3396,12 +3427,33 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
+	/// Storage flux (>0 saving; <0 storing) (kgC/m2)
+	double cmass_storage_dynam;
+	/// coefficient that scales growth demand using air temperature (unitless)
+	double ftemp;
+	/// coefficient that scales growth demand using wscal (unitless)
+	double fwater;
+	/// coefficient that scales growth according to actualt storage state (unitless)
+	double fstorage;
+	/// coefficient that scales growth according to relative day length (unitless)
+	double fphoto;
+	/// a coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (unitless)
+	double cgrow_pot;
+	/// mean leaf age of the individual (y)
+	double meanleafage;
+	/// mean sapwood age of the individual (y)
+	double meansapage;
+	/// mean root age of the individual (y)
+	double meanrootage;
+
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
 	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
 	Historic<double, 20> cgrow_repr_20;
+	/// 14-day record of storage dynamics (kgC/m2/d)
+	Historic<double, 14> cstorage_dynam_14;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3434,6 +3486,10 @@ public:
 	double d_height;
 	/// plant diameter increment
 	double d_diam;
+	/// basal area increment (m2/day)
+	double basalarea_inc;
+	/// tree baseal area  (m2)
+	double basalarea;
 	/// plant crown area (m2)
 	double crownarea;
 	/// sapwood area (m2 sapwood/m2 ground)
@@ -3587,6 +3643,8 @@ public:
 	double cturnover_repr;
 	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
 	double cturnover_crown;
+	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
+	double pturnover_leaf;
 
 	/// Number of days with non-negligible phenology this month
 	int nday_leafon;
@@ -3677,6 +3735,7 @@ public:
 	double alpha_leaf;
 	double alpha_root;
 	double alpha_sap;
+	double alpha_storage;
 	double alpha_repr;
 	// MEMBER FUNCTIONS
 
@@ -4920,7 +4979,8 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
-
+	/// wscal for the top 5 layers (unitless)
+	Historic<double, 5> wscal_5_5l;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;

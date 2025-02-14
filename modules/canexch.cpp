@@ -2593,6 +2593,10 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations
 	// See the comment after Eqn (4) below.
 
+	// minimum repiration (trees only) (kgC/day)
+	// TODO: if works - find references and set as pft parameter? (ASSAF)
+	const double base_resp = 0.000001;
+	// const double base_resp = 0.0;
 	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
 	double resp_root = 0;   // root respiration (kg/m2/day)
 	double resp_crown = 0;  // crown respiration (kg/m2/day)
@@ -2721,6 +2725,11 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// resp_crown will be 0 for trees.
 	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
 	
+	if (lifeform == TREE) {
+		// always have a minimum respiration rate. Reason: so small cohorts (with 
+		// low storage) won't survive.
+		resp_maintenance = max(base_resp, resp_maintenance);
+	}
 	// Total respiration is sum of maintenance and growth respiration.
 	resp = resp_maintenance + resp_growth;
 }
@@ -3034,6 +3043,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.photosynthesis.clear();
 		if (ifdavephotosyn) {
 			indiv.ps_subdaily.clear();
+			indiv.photosynthesis.clear();
 		}
 	}
 }
@@ -3172,6 +3182,18 @@ public:
 	// Air temperature in °C.
 	double temp;
 
+	// activation energy for vcmax (kJ mol-1)
+	double ha_v;
+
+	// activation energy for jmax (kJ mol-1)
+	double ha_j;
+
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
 	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
 	double par;
 
@@ -3260,8 +3282,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal * pow(inputs.wscal, qb);
-	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.temp, HA_V, HD, DS_V);
-	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.temp, HA_J, HD, DS_J);
+	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.temp, inputs.ha_v, HD, inputs.ds_v);
+	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.temp, inputs.ha_j, HD, inputs.ds_j);
 
 	// 1) Rubisco-limited gross photosynthesis
 	double gamma = vcmax;
@@ -3548,6 +3570,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
 		inputs.wscal = indiv.get_wscal(); // returns wscal based on root resistance if using hydraulics, otherwise wscal based on wcont
+		inputs.ha_v = indiv.pft.ha_v;
+		inputs.ha_j = indiv.pft.ha_j;
+		inputs.ds_v = indiv.pft.ds_v;
+		inputs.ds_j = indiv.pft.ds_j;
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -3645,6 +3671,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// Loop over canopy layers (from top layer to bottom layer)
 			size_t nlayer = indiv.fipar_layerwise.size();
 		    for (size_t j = 0; j < nlayer; j++) {
+
+				// No LAI means we can skip this layer as an optimisation. This
+				// can happen because the number of layers is the total number
+				// of canopy layers. So if this tree is shorter than the tallest
+				// tree in the patch, it may not have any LAI in this layer.
+				if (is_zero(indiv.lai_layerwise[j])) {
+					continue;
+				}
 
 				// determine fpar and apar of the layer
 				// Fraction of PAR incident in the middle of the layer.
@@ -3921,6 +3955,7 @@ void water_stress(Patch &patch) {
 		double wstress_layer[NSOILLAYER];
 		double wstress = 0.0;
 		double rootdist_sum = 0.0;
+		double wstress_5l = 0.0;
 
 		for (int j = 0; j<NSOILLAYER; j++) {
 			// get actual water content and available water content per layer
@@ -3930,12 +3965,18 @@ void water_stress(Patch &patch) {
 			wstress_layer[j] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[j];
 			wstress += wstress_layer[j];
 			rootdist_sum += pft.rootdist[j]; // rootdist should add up to 1 but summed here just in case...
+			// save water stress for the top 5 layers
+			if (j == 4) {
+				wstress_5l = wstress / rootdist_sum;
+			}
+
 		}
 		// water stress factor [0-1] in the root zone
 		wstress /= rootdist_sum;
 
 		// Mean daily water stress value.
 		ppft.wscal = wstress;
+		ppft.wscal_5_5l.add(wstress_5l);
 
 		if (date.day == 0 && (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass) ) {
 			ppft.cropphen->growingdays_y = 0;
@@ -4368,6 +4409,11 @@ void forest_floor_dave(Patch &patch) {
 			// Account for the nitrogen gradient within the canopy.
 			// TODO: should this be patch-level or PFT-level LAI?
 			inputs.nscal = max(1.0e-12, exp(-pft.extkn * LAI_HYPOTHETICAL));
+
+			inputs.ha_v = pft.ha_v;
+			inputs.ha_j = pft.ha_j;
+			inputs.ds_v = pft.ds_v;
+			inputs.ds_j = pft.ds_j;
 
 			// Assume a leaf N content of 0.01 kgN/m2.
 			PhotosynthesisOutputs outputs;

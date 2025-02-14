@@ -1037,7 +1037,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
-					if (pft.lifeform == TREE && nindiv_max > 0) {
+					if (pft.lifeform == TREE && nindiv_max > 0 && date.year > freenyears) {
 						int nindiv = get_nindiv(patch, pft);
 						if (nindiv >= nindiv_max) {
 							if (newindiv > 0) {
@@ -1089,6 +1089,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// value of water stress parameter
 
 						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
+
+						// set the initial ltor to the indiv object
+						indiv.ltor = ltor;
 
 						// Allocate initial biomass
 
@@ -1951,6 +1954,8 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 		patch.disturbed = true;
 		patch.age = 0;
+		// printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+		printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
 	}
 
 	else patch.disturbed = false;
@@ -2066,6 +2071,10 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year
 				}
+			}
+			if (date.get_calendar_year() == 1800) {
+				disturbance(patch, 1.0);
+				return; // no mortality or establishment this year
 			}
 		}
 

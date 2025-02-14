@@ -109,7 +109,7 @@ enable_output() {
 			# BSD sed
 			I="-i ''"
 		fi
-		sed ${I} -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
+		sed ${I} -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/g" "${INS}"
 	else
 		FILE_NAME="${OUTPUT/file_/}.out"
 		echo "${OUTPUT} \"${FILE_NAME}\"" >>"${INS}"

@@ -26,6 +26,8 @@ use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean an
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
 epsiresolution           100 ! Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.
+iftreephen               0   ! Turn on/off tree phenology (Dave)
+ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 
 ! Soil Data
@@ -154,7 +156,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output                1
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -188,8 +190,8 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
-distinterval 100        ! Average return time for generic patch-destroying disturbances
+ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+distinterval 500        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
 ifsme 1                ! Whether spatial mass effect enabled
@@ -291,12 +293,15 @@ import "landcover.ins"
 ! PFT parameters
 !///////////////////////////////////////////////////////////////////////////////
 
-import "pft_common.ins"
+!import "pft_common.ins"
 
 import "trees.ins"
 import "shrubberies.ins"
 !import "c3g.ins"
 !import "c4g.ins"
+
+! For Warra only. Also, comment out pft_commons.ins
+!import "pfts_jamey.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

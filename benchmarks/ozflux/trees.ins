@@ -101,9 +101,11 @@ pft "TeNE" (
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Values set to be the same as those for BNE and BINE
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Values set to be the same as those for BNE and BINE
 
+	sla 13.17
+	cton_leaf_min 29.01
 	! As calculated by ifcalcsla and ifcalccton.
-	sla 9.300558
-	cton_leaf_min 38.336164
+	! sla 9.300558
+	! cton_leaf_min 38.336164
 )
 
 pft "TeBS" (
@@ -161,26 +163,58 @@ pft "TeBE" (
 	include 1
 	tree
 	broadleaved
-	shade_tolerant
+	shade_intolerant
 	evergreen
 	temperate
-	leaflong 3
-	turnover_leaf 0.33
+	! leaflong 3
+	leaflong 2 ! old
+	! leaflong 1 ! CUP
+	! turnover_leaf 0.33
+	turnover_leaf 0.5 ! old
+	! turnover_leaf 1 ! CUP
+	! turnover_root 0.7
+	turnover_root 0.5
+	turnover_sap 0.2
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
 	twmin_est 5
-	gdd5min_est 2000
-	longevity 300 		! from TH 2010-04-07 was 350 AA
+	! gdd5min_est 2000
+	gdd5min_est 500
+	longevity 500 		! from TH 2010-04-07 was 350 AA
 	fireresist 0.3
 	eps_iso 24.0
 	seas_iso 0
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	g0 0.034017
+	gmin 0.0005 ! gcutic (gmin used for trunk only)
+	sla 13.17
+	! sla 9.2 ! CUP
+
+	cton_leaf_min 29.01
+	! k_allom2 22.7
+	! k_allom3 0.54
+
+	! k_allom2 60 ! CUP
+	! k_allom3 0.67 ! CUP
+	wooddens 330 ! CUP
+
+	k_allom2 47.48 ! WMBT
+  	k_allom3 0.64 ! WMBT
+	sla 8.8 ! WMBT
+	! sla 5.5 ! Belinda?
+	ltor_max 1.5 ! just testing
 	! As calculated by ifcalcsla and ifcalccton.
-	sla 13.171494
-	cton_leaf_min 29.010140
+	! sla 13.171494
+	! cton_leaf_min 29.010140
+	vcmax_25 0.0000585
+	jmax_25 0.000111249
+	ha_v 72.76654829
+	ds_v 639.707183
+	ha_j 32.6630188394226
+	ds_j 634.559695
 )
 
 pft "TrBE" (
@@ -202,9 +236,12 @@ pft "TrBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	sla 13.17
+	sla 20 
+	cton_leaf_min 29.01
 	! As calculated by ifcalcsla and ifcalccton.
-	sla 15.365607
-	cton_leaf_min 25.376967
+	! sla 15.365607
+	! cton_leaf_min 25.376967
 )
 
 pft "TrIBE" (
@@ -226,9 +263,11 @@ pft "TrIBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	sla 13.17
+	cton_leaf_min 29.01
 	! As calculated by ifcalcsla and ifcalccton.
-	sla 15.365607
-	cton_leaf_min 25.376967
+	! sla 15.365607
+	! cton_leaf_min 25.376967
 )
 
 pft "TrBR" (

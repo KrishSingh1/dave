@@ -3365,7 +3365,10 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		outputs.rd = rd;
 		outputs.an = -rd;
 		outputs.gsc = inputs.gdark;
-		outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
+		if (!is_zero(outputs.gsc)) {
+			// TODO: do we even need this?
+			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
+		}
 		if (!inputs.stomata_open) {
 			outputs.gsc = 0;
 			outputs.ci = inputs.ca;
@@ -3756,7 +3759,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// run hydraulics module and check for stomatal closure in next timestep
 			if (ifdavehydraulics){
-				tree_hydraulics(day, indiv);
+				if (indiv.pft.is_grass()) {
+					grass_hydraulics(day, indiv);
+				} else {
+					tree_hydraulics(day, indiv);
+				}
 			}
 
 		} // end subdaily loop
@@ -3810,6 +3817,9 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 
 	double Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
 	
+	if (is_zero(Ci + beta)) {
+		return 0; // dh fixme - to avoid crash. Need to discuss
+	}
 	double An = gamma * divide(Ci - gamstar, Ci + beta) - Rd;
 
 	return An;  // net photosynthesis (mol m-2 s-1)

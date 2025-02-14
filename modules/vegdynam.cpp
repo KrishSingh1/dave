@@ -1681,7 +1681,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-					/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
+					if (date.year >= nyear_spinup && _ifdavediagnostics) {
 						printf("%04d-%02d-%02d (year %d) %s killed by background mortality...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 					}
 					vegetation.killobj();

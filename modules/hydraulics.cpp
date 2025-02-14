@@ -45,6 +45,9 @@ const double KILL_THRESHOLD = 0.01;
 // The fraction of biomass lost due to hydraulic failure.
 const double MORT_FRAC = 0.1; // revisit how much dies based on level of stress over the year
 
+// PAR threshold between predawn and postdawn (J/m2).
+const double PAR_DAWN = 10;
+
 double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
     
     double weighted_psi;
@@ -280,7 +283,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];
 
-        if (par_previous < 10 && climate.pars[day.period] > 10) {
+        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
             // Note Zhou model uses actual (negative) pd lwp.
             indiv.predawn_lwp = indiv.lwp[day.period];
         }
@@ -481,7 +484,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];
 
-        if (par_previous < 200 && climate.pars[day.period] > 200) {
+        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
             // Note Zhou model uses actual (negative) pd lwp.
             indiv.predawn_lwp = indiv.lwp[day.period];
         }

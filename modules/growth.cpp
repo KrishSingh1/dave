@@ -5009,10 +5009,6 @@ void update_pools_dave(Vegetation& vegetation) {
 			continue;
 		}
 
-		if (date.year == 11 && date.day == 1) {
-			printf("\n");
-		}
-
 		double creturn = 0.0; // kgC m-2 d-1
 		double cexcess = 0.0;
 		double cgrow_unlim = indiv.cgrow;

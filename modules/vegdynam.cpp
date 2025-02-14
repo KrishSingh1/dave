@@ -1955,7 +1955,9 @@ void disturbance(Patch& patch, double disturb_prob) {
 		patch.disturbed = true;
 		patch.age = 0;
 		// printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-		printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
+		if (ifdavediagnostics) {
+			printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
+		}
 	}
 
 	else patch.disturbed = false;

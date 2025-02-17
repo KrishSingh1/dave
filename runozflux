@@ -54,7 +54,11 @@ Yanco"
 
 OUTPUTS="file_dave_lai
 file_dave_fpc
-file_dave_cmass"
+file_dave_cmass
+file_dave_transpiration
+file_dave_gpp
+file_dave_resp
+file_dave_nee"
 
 ################################################################################
 # End of User Inputs

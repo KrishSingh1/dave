@@ -878,6 +878,15 @@ std::vector<ColumnDefinition<Individual>> indiv_cpool_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> indiv_dbhcoloumns_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("diam", [](const Individual &i) { return i.diam; }));
+	columns.push_back(ColumnDefinition<Individual>("deltadiam", [](const Individual &i) { return i.d_diam; }));
+
+	return columns;
+}
+
 std::vector<ColumnDefinition<Individual>> indiv_npool_columns() {
 	std::vector<ColumnDefinition<Individual>> columns;
 

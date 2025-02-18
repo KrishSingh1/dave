@@ -81,6 +81,7 @@ file_dave_cmass                 "dave_cmass.out"                ! Total C biomas
 file_dave_nmass                 "dave_nmass.out"                ! Total N biomass per individual per patch (kgN/m2)
 file_dave_cmass_storage         "dave_cmass_storage.out"        ! C storage per individual (kgC/m2)
 file_dave_cmass_storage_max     "dave_cmass_storage_max.out"    ! C storage capacity per individual (kgC/m2)
+file_dave_cmass_storage_dynam   "dave_cmass_storage_dynam.out"  ! C storage dynamics (unitless)
 file_dave_nmass_storage         "dave_nmass_storage.out"        ! N storage per individual (kgN/m2)
 file_dave_nmass_storage_max     "dave_nmass_storage_max.out"    ! N storage capacity per individual (kgN/m2)
 file_dave_height                "dave_height.out"               ! Plant height (m)
@@ -111,6 +112,14 @@ file_dave_transpiration         "dave_transpiration.out"        ! Daily indiv-le
 file_dave_indiv_cpool           "dave_indiv_cpool.out"          ! Indiv-level carbon pools (kgC/m2)
 !file_dave_indiv_npool           "dave_indiv_npool.out"          ! Indiv-level nitrogen pools (kgN/m2)
 file_dave_indiv_lai             "dave_indiv_lai.out"            ! Indiv-level LAI (m2/m2)
+!file_dave_indiv_nmass_root      "dave_indiv_nmass_root.out"     ! Cohort-level root N content (kgN/m2)
+file_dave_indiv_dbh             "dave_indiv_dbh.out"            ! Cohort-level DBH (m)
+!file_dave_indiv_age             "dave_indiv_age.out"            ! Cohort-level Age (years)
+file_dave_indiv_height          "dave_indiv_height.out"         ! Cohort-level Height (m)
+file_dave_indiv_fpc             "dave_indiv_fpc.out"            ! Cohort-level FPC (-)
+file_dave_indiv_fpar            "dave_indiv_fpar.out"           ! Cohort-level fpar (-)
+file_dave_ancohort              "dave_ancohort.out"             ! Number of cohorts of each pft in each patch
+file_dave_indiv_density         "dave_indiv_density.out"        ! Average density of individuals over the patch (/m2)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar        "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]
@@ -160,6 +169,7 @@ file_dave_cgrow_leaf            "dave_cgrow_leaf.out"           ! Daily leaf gro
 file_dave_cgrow_root            "dave_cgrow_root.out"           ! Daily root growth (kgC/m2)
 file_dave_cgrow_sap             "dave_cgrow_sap.out"            ! Daily sap growth (kgC/m2)
 file_dave_cgrow_repr            "dave_cgrow_repr.out"           ! Daily repr growth (kgC/m2)
+file_dave_cgrow                 "dave_cgrow.out"                ! Daily growth allocation (kgC/m2)
 file_dave_nscal_mean            "dave_nscal_mean.out"           ! N stress scalar 5 day running mean (0-1)
 file_dave_cmass_sap             "dave_cmass_sap.out"            ! Sapwood C mass (kgC/m2)
 file_dave_nmass_sap             "dave_nmass_sap.out"            ! Sapwood N mass (kgN/m2)

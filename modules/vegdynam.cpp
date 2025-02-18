@@ -830,6 +830,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
+		// define sapling size as teh constant default.
+		double sapsize = SAPSIZE;
+
+		if (ifdavegrowth){
+			// change sapling size to what is defined in the PFT (only with dave growth).
+			sapsize = pft.sapsize;
+		}
+		// from this place forward, use onlt sapsize instaed of SAPSIZE
+
 		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
@@ -904,12 +913,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// net assimilation this year on patch area basis
 
 						if(pft.phenology == CROPGREEN) {
-							bminit = SAPSIZE * 0.01;
+							bminit = sapsize * 0.01;
 						}
 						else if(patch.has_disturbances() && patch.disturbed) {
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff_est_initial;
 						} else
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff;
 
 						if (ifdailygrass && pft.phenology != CROPGREEN)
 							bminit *= 0.1;
@@ -1079,10 +1088,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// assimilation for this PFT in this patch
 
 						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-							bminit = PLANTSIZE; // Fixed sap size after first cutting
+							bminit = sapsize; // Fixed sap size after first cutting
 						}
 						else {
-							bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff_est;
 						}
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
@@ -2072,10 +2081,11 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					return; // no mortality or establishment this year
 				}
 			}
-			if (date.get_calendar_year() == 1800) {
-				disturbance(patch, 1.0);
-				return; // no mortality or establishment this year
-			}
+			// // ASSAF: ONLY FOR WARRA TO HAVE A DISTURBANCE ON THESE YEARS
+			// if ((date.get_calendar_year() == 1850) || (date.get_calendar_year() == 1934)) {
+			// 	disturbance(patch, 1.0);
+			// 	return; // no mortality or establishment this year
+			// }
 		}
 
 		// Mortality

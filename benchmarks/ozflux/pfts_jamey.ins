@@ -193,7 +193,7 @@ group "tropical" (
 
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
 group "shade_tolerant" (
-  ! sapsize 0.05 ! introduced to force them start with low biomass/LAI to postpone competition
+  sapsize 0.05 ! introduced to force them start with low biomass/LAI to postpone competition
   est_max 0.025 ! reduced to allow higher competitiveness for Eucs
 	parff_min 2000000 ! increase to prevent esavlishment with low LAI of Eucs
 	alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
@@ -220,7 +220,7 @@ group "intermediate_shade_tolerant" (
 )
 
 group "shade_intolerant" (
-  ! sapsize 0.2
+  sapsize 0.2
   est_max 0.10
   parff_min 5000000
   alphar 50.0
@@ -231,11 +231,11 @@ group "shade_intolerant" (
 	! alphar 11.0
 	greff_min 0.09
 	turnover_sap 0.1
-
 )
 
 group "global" (
-  ! sapsize 0.1
+  sapsize 0.1
+  formfactor 1.0
   lambda_max 0.8
   emax 5.0
   reprfrac 0.1
@@ -244,19 +244,22 @@ group "global" (
   stem_frac 1
   twig_frac 1
   g0 0.005
-	g1 3.4
-	vcmax_25 0.000091 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
+
+  ! NEW ONES
+  g1 3.4
+  gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+  temp_dormancy 5.0
+  extkn 0.15
+	turnover_repr 0.25
+  cton_leaf_min 29.01 ! from TeBE
+
+  vcmax_25 0.000091 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
 	jmax_25 0.0001547 ! jmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
 	vpmax_25 0.000100 ! vpmax  at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
 	ha_v 59.70
 	ha_j 40.71
 	ds_v 639.43
 	ds_j 642.97
-  gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
-  temp_dormancy 5.0
-  extkn 0.15
-	turnover_repr 0.25
-  cton_leaf_min 29.01 ! from TeBE
 )
 
 ! Rainforest Shade Tolerant
@@ -274,15 +277,17 @@ pft "RST" (
   root_beta 0.98200000
   k_allom1 150.00000000
   k_rp 1.62000000
-  k_allom2 30.29 ! fitted to all data
-  k_allom3 0.34 ! fitted to all data
+  ! k_allom2 30.29 ! fitted to all data
+  ! k_allom3 0.34 ! fitted to all data
   ! k_allom2 60.0000000 ! CRT (Lina)
   ! k_allom3 0.87000000 ! CRT (Lina)
-  ! k_allom2 59.95079 ! fitted to binned data
-  ! k_allom3 0.8177464 ! fitted to binned data
+  k_allom2 59.95079 ! fitted to binned data
+  k_allom3 0.8177464 ! fitted to binned data
   ! k_latosa 2120
   k_latosa 4175.00000000
-  wooddens 261.00000000
+  ! wooddens 261.00000000 ! Austraits
+  wooddens 290 ! Tim Wardlaw's estimates
+  formfactor 0.46 ! extracted from allometic equation (Tim Wardlaw's)
   cton_root 29.00000000
   cton_sap 330.00000000
   nuptoroot 0.00280000
@@ -327,7 +332,7 @@ pft "RST" (
   eps_iso 24.00000000
   seas_iso 0.00000000
 
-  vcmax_25 0.0000585 ! N. cunninghamii (Camille)
+  vcmax_25 0.0000415 ! N. cunninghamii (Camille)
 	jmax_25 0.00009134370252 ! N. cunninghamii (Camille)
 	ha_v 72.518902359 ! N. cunninghamii (Camille)
 	ds_v 655.387193185562 ! N. cunninghamii (Camille)
@@ -335,89 +340,18 @@ pft "RST" (
 	ds_j 657.97027 ! N. cunninghamii (Camille)
 )
 
-! Tall Seeder Eucalypt (E. regnans)
-pft "TSdrE" (
+! Tall Resprouter Eucalypt (E. obliqua; E. globulus)
+pft "TRspE" (
   global
   include 1
   landcover "natural"
   lifeform "tree"
   shade_intolerant
   crownarea_max 100.00000000
-  ! ltor_max 1.0000000
+  ! ltor_max 1.00000000
   ltor_max 2.0000000
-  turnover_root 0.70000000
-  rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
-  root_beta 0.98200000
-  k_allom1 146.00000000
-  k_rp 1.62000000
-  ! k_rp 1.75
-  k_allom2 65.3000000
-  k_allom3 0.59000000
-  k_latosa 4176.00000000
-  ! k_latosa 3000.00000000
-  wooddens 247.0000000
-  cton_root 29.00000000
-  cton_sap 330.00000000
-  nuptoroot 0.00280000
-  km_volume 0.00000148
-  pathway "c3"
-  respcoeff 1.00000000
-  kest_repr 200.00000000
-  kest_bg 0.10000000
-  kest_pres 1.00000000
-  k_chilla 0.00000000
-  k_chillb 100.00000000
-  k_chillk 0.05000000
-  litterme 0.30000000
-  harv_eff 0.95000000
-  res_outtake 0.75000000
-  turnover_harv_prod 0.04000000
-  harvest_slow_frac 0.33000000
-  leafphysiognomy "broadleaf"
-  fnstorage 0.05000000
-  longevity 500.00000000
-  gmin 0.50000000
-  phenology "evergreen"
-  phengdd5ramp 0.00000000
-  leaflong 3.00000000
-  turnover_leaf 0.33000000
-  turnover_root 0.70000000
-  sla 9.8
-  fireresist 0.00000000
-  intc 0.02000000
-  ga 0.04000000
-  pstemp_min -40.00000000
-  pstemp_low -40.00000000
-  pstemp_high 40.00000000
-  pstemp_max 40.00000000
-  tcmin_surv -40.00000000
-  tcmin_est -40.00000000
-  tcmax_est 40.00000000
-  twmin_est -40.00000000
-  gdd5min_est 500
-  ! gdd5min_est 2000.00000000
-  eps_iso 24.00000000
-  seas_iso 0.00000000
-  turnover_sap 0.1
-
-  vcmax_25 0.0000585 ! E. Obliqua (Camille)
-	jmax_25 0.000111249 ! E. Obliqua (Camille)
-	ha_v 72.76654829 ! E. Obliqua (Camille)
-	ds_v 639.707183 ! E. Obliqua (Camille)
-	ha_j 32.6630188394226 ! E. Obliqua (Camille)
-	ds_j 634.559695 ! E. Obliqua (Camille)
-)
-
-! Tall Resprouter Eucalypt (E. obliqua; E. globulus)
-pft "TRspE" (
-  global
-  include 0
-  landcover "natural"
-  lifeform "tree"
-  shade_intolerant
-  crownarea_max 100.00000000
-  ltor_max 1.00000000
-  turnover_root 0.70000000
+  ! turnover_root 0.70000000
+  turnover_root 0.5 ! imported from the assaf's daily allocation (TeBE)
   rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
   root_beta 0.98200000
   k_allom1 146.00000000
@@ -426,6 +360,8 @@ pft "TRspE" (
   k_allom3 0.64
   k_latosa 4175.00000000
   wooddens 281.25
+  formfactor 0.6339 ! for E. Obliqua using individual-tree data from the site (excluding one outlayer)
+  ! formfactor 0.36 ! extracted from allometic equation (Tim Wardlaw's)
   cton_root 29.00000000
   cton_sap 330.00000000
   nuptoroot 0.00280000
@@ -477,10 +413,85 @@ pft "TRspE" (
 	ds_j 634.559695 ! E. Obliqua (Camille)
 )
 
+
+! Tall Seeder Eucalypt (E. regnans)
+pft "TSdrE" (
+  global
+  include 0
+  landcover "natural"
+  lifeform "tree"
+  shade_intolerant
+  crownarea_max 100.00000000
+  ! ltor_max 1.0000000
+  ltor_max 2.0000000
+  turnover_root 0.70000000
+  rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+  root_beta 0.98200000
+  k_allom1 146.00000000
+  k_rp 1.62000000
+  ! k_rp 1.75
+  k_allom2 65.3000000
+  k_allom3 0.59000000
+  k_latosa 4176.00000000
+  ! k_latosa 3000.00000000
+  wooddens 247.0000000
+  ! formfactor 0.6339 ! for E. Obliqua using individual-tree data from the site (excluding one outlayer)
+  cton_root 29.00000000
+  cton_sap 330.00000000
+  nuptoroot 0.00280000
+  km_volume 0.00000148
+  pathway "c3"
+  respcoeff 1.00000000
+  kest_repr 200.00000000
+  kest_bg 0.10000000
+  kest_pres 1.00000000
+  k_chilla 0.00000000
+  k_chillb 100.00000000
+  k_chillk 0.05000000
+  litterme 0.30000000
+  harv_eff 0.95000000
+  res_outtake 0.75000000
+  turnover_harv_prod 0.04000000
+  harvest_slow_frac 0.33000000
+  leafphysiognomy "broadleaf"
+  fnstorage 0.05000000
+  longevity 500.00000000
+  gmin 0.50000000
+  phenology "evergreen"
+  phengdd5ramp 0.00000000
+  leaflong 3.00000000
+  turnover_leaf 0.33000000
+  turnover_root 0.70000000
+  sla 9.8
+  fireresist 0.00000000
+  intc 0.02000000
+  ga 0.04000000
+  pstemp_min -40.00000000
+  pstemp_low -40.00000000
+  pstemp_high 40.00000000
+  pstemp_max 40.00000000
+  tcmin_surv -40.00000000
+  tcmin_est -40.00000000
+  tcmax_est 40.00000000
+  twmin_est -40.00000000
+  gdd5min_est 500
+  ! gdd5min_est 2000.00000000
+  eps_iso 24.00000000
+  seas_iso 0.00000000
+  turnover_sap 0.1
+
+  vcmax_25 0.0000585 ! E. Obliqua (Camille)
+	jmax_25 0.0001115 ! E. Obliqua (Camille)
+	ha_v 72.76654829 ! E. Obliqua (Camille)
+	ds_v 639.707183 ! E. Obliqua (Camille)
+	ha_j 32.6630188394226 ! E. Obliqua (Camille)
+	ds_j 634.559695 ! E. Obliqua (Camille)
+)
+
 ! Sclerophyll Medium Shade Tolerant
 pft "SMST" (
   global
-  include 1
+  include 0
   landcover "natural"
   lifeform "tree"
   intermediate_shade_tolerant

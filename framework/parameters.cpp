@@ -865,6 +865,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		declareitem("sapsize",&ppft->sapsize,0.01,1.0,1,CB_NONE,
+			"Initial sapling size coefficient");
+		declareitem("formfactor",&ppft->formfactor,0.01,1.0,1,CB_NONE,
+			"Form Factor for converting cylindrical stem into conical stem and branches");	
 
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
@@ -2052,6 +2056,8 @@ void plib_callback(int callback) {
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
 				if (!itemparsed("turnover_repr")) badins("turnover_repr");
+				if (!itemparsed("sapsize")) badins("sapsize");
+				if (!itemparsed("formfactor")) badins("formfactor");
 
 				// Calculate a_growth if it's not provided by the user.
 				if (!itemparsed("A_growth")) {

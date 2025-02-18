@@ -265,6 +265,10 @@ Aggregate a value across all individuals in a patch.
 */
 double aggregate_indivs(const Patch &patch, const Pft &pft, double (*read_value)(const Individual &), double (*aggregate)(double *, int));
 
+std::vector<ColumnDefinition<Individual>> indiv_dbhcoloumns_columns();
+
+int get_ncohort(const Patch &patch, const Pft &pft);
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

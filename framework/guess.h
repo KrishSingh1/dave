@@ -2177,6 +2177,8 @@ public:
 	double turnover_root;
 	/// annual seed turnover as a proportion of reproductive C biomass (patch-basis)
 	double turnover_repr;
+	/// size of sapling
+	double sapsize;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
 	/// sapwood and heartwood density (kgC/m3)
@@ -2211,7 +2213,10 @@ public:
 	 *  cohort modes)
 	 */
 	double alphar;
-
+	/// form factor to use in tree height calculations to that takes into account
+	/// the relationship betweeb the difference in tree mass betweenthe cylindrical 
+	/// stem hypothesis and measured mass of tree log with its branches.
+	double formfactor;
 	/*
 	Note: these 3 parameters are only used by dave photosynthesis, and only when
 	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
@@ -2502,6 +2507,8 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
+		formfactor = 1.0;
+		sapsize = 0.1;
 
 		isintercropgrass = false;
 		ifsdautumn = false;

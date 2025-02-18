@@ -36,7 +36,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
 	double& longterm_nstore, double &max_n_storage,
-	bool alive);
+	bool alive, double& sapwood_turnover);
 // Minimum growth demand after reproductive phase
 const double fdev_growth_min = 0.002;
 void allometry_dave_tree(Individual& indiv);

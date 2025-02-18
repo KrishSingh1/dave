@@ -9,7 +9,7 @@ group "common" (
 	! Parameters common to all PFTs
 
 	lambda_max 0.8
-	emax 5
+	emax 10 ! Previously 5 - changed to 10 following discussion with Clare
 	reprfrac 0.1
 	crownfrac 0.0
 	wscal_min 0.35
@@ -21,18 +21,29 @@ group "common" (
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
 	g0 0.005
 	g1 3.4
-	vcmax_25 0.000091 ! vcmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
-	jmax_25 0.0001547 ! jmax at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
-	vpmax_25 0.000100 ! vpmax  at 25degC in mol/m2/s. Only used if ifcalcvcmax = 0.
-	ha_v 59.70
-	ha_j 40.71
-	ds_v 639.43
-	ds_j 642.97
 
+	vcmax_25 91.0  ! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	jmax_25 154.7  ! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	vpmax_25 100.0 ! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+	ha_v 59.70	   ! Activation energy for vcmax (kJ mol-1)
+	ha_j 40.71	   ! Activation energy for jmax (kJ mol-1)
+	ds_v 639.43	   ! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	ds_j 642.97	   ! Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	sapsize 0.1
 	
 	temp_dormancy 5.0
+	kmax 100 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	stom_clos -1.5   ! water potential at which stomata close and roots disconnect from soil (MPa)
+	p50 -3   ! water potential at 50% loss of xylem conductance (MPa)
+	p88 -4   ! water potential at 88% loss of xylem conductance (MPa)
+	nx 0.5  ! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
+	g1x 2  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) 
+	b1z 2  ! Parameter for Zhou et al. (2014) stomatal model 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	sla 30
 	extkn 0.15
+	tlp -1.0 ! Turgor loss point (needed for grasses)
 
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -50,6 +61,8 @@ group "common" (
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
 	twig_frac 0
+
+	cton_leaf_min 16
 )
 
 group "tree" (
@@ -84,7 +97,7 @@ group "tree" (
 
 	harv_eff 0.9		! Value for forestry
 	res_outtake 0.4		! Value for forestry
-	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood):
 				! 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
 	stem_frac 0.65
@@ -92,8 +105,9 @@ group "tree" (
 	Ha_growth 63.3
 	T0_growth 30.6
 	! Previously 5
-	!temp_dormancy 5.0
-	temp_dormancy 15.0
+	temp_dormancy 5.0
+	! Assaf's value:
+	!temp_dormancy 15.0
 )
 
 group "shrub" (
@@ -124,7 +138,7 @@ group "shrub" (
 
 	harv_eff 0.9		! Value for forestry
 	res_outtake 0.4		! Value for forestry
-	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood):
 				! 1-year turnover time
 	harvest_slow_frac 0
 )
@@ -158,7 +172,7 @@ group "grass" (
 	ga 0.030
 	wscal_min 0.4
 
-	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood): 
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood):
 				! 1-year turnover time for GRASS
 	harvest_slow_frac 0
 )

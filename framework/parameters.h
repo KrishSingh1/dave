@@ -53,7 +53,7 @@ typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLAND
 /// Water uptake parameterisations
 /** \see water_uptake in canexch.cpp
   */
-typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
+typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC, WR_ROOT_RESISTANCE} wateruptaketype;
 
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
@@ -383,6 +383,10 @@ extern bool ifgrote;
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
+/// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
+extern bool ifdavehydrology;
+/// whether DAVE hydraulics scheme is turned on
+extern bool ifdavehydraulics;
 /// Whether LAI is distributed evenly across canopy layers for grasses.
 extern bool ifevenlaidist;
 
@@ -395,6 +399,10 @@ extern bool ifdavediagnostics;
 /// to the instruction file parameter.
 extern bool _ifdavediagnostics;
 
+/// Resolution for splines used to calculate psi from transpiration.
+/// This is the number of control points used for the integration. Default: 100.
+extern double epsiresolution;
+
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
 
@@ -406,6 +414,9 @@ extern bool gzip_output;
 
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
+
+/// True if we are using forced LAI.
+extern bool ifforcedlai;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs

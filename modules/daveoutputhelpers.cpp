@@ -3,6 +3,7 @@
 #include "commonoutput.h"
 #include "simfire.h"
 #include "blaze.h"
+#include "ncutil.h"
 
 namespace GuessOutput {
 
@@ -51,7 +52,7 @@ std::vector<Individual *> get_indivs(const Vegetation &vegetation, const char *n
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		if (indiv.pft.name == name && indiv.alive) {
+		if (indiv.pft.name == name) {
 			result.push_back(&indiv);
 		}
 	}
@@ -172,6 +173,14 @@ int get_nlayer_lai(const Patch &patch) {
 	return 0;
 }
 
+int get_nlayer_an(const Patch &patch) {
+	Individual *indiv = get_first_indiv(patch);
+	if (indiv) {
+		return indiv->an_layerwise.size();
+	}
+	return 0;
+}
+
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft) {
 	const Patchpft &patchpft = patch.pft[pft.id];
 	return patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap + patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
@@ -207,6 +216,16 @@ double sum(double *array, int n) {
 
 double mean(double *array, int n) {
 	return n ? sum(array, n) / n : 0;
+}
+
+double weight_by_lai(const Individual &indiv, double (*selector)(const Individual&)) {
+	double total_lai = 0;
+	for (size_t i = 0; i < indiv.vegetation.nobj; i++) {
+		if (indiv.pft.id == indiv.vegetation[i].id) {
+			total_lai += indiv.vegetation[i].lai;
+		}
+	}
+	return selector(indiv) * indiv.lai / total_lai;
 }
 
 double get_patch_nee(const Patch &patch) {
@@ -682,6 +701,34 @@ std::vector<ColumnDefinition<Patch>> met_year_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Patch>> aet_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> fevap_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+
+	columns.push_back(ColumnDefinition<Patch>("fevap", [](const Patch &p) { 
+		
+		double fpc_phen_total = 0.0;	// phenology-weighted FPC sum for patch
+
+		const Vegetation& vegetation = p.vegetation;
+		
+		for (int i=0; i<vegetation.nobj; i++) {
+			Individual& indiv = vegetation[i];
+			fpc_phen_total += indiv.fpc_today();
+		}
+	
+		double bare_ground = std::max(1.0 - fpc_phen_total, 0.0);
+
+		return bare_ground; 
+	}));
+	return columns;
+}
+
 /*
 Sum a quantity across all SOM pools.
 */
@@ -900,6 +947,17 @@ std::vector<ColumnDefinition<Individual>> indiv_npool_columns() {
 
 	return columns;
 }
+
+std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("kmax", [](const Individual &i) { return i.kmax_drought_affected; }));
+	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
+	columns.push_back(ColumnDefinition<Individual>("minimum_lwp", [](const Individual &i) { return min(i.lwp); }));
+
+	return columns;
+}
+
 
 double get_nindiv(const Patch &patch, const Pft &pft) {
 	double n = 0;

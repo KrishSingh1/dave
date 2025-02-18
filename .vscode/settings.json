@@ -94,7 +94,8 @@
 		"span": "cpp",
 		"complex": "cpp",
 		"__nullptr": "cpp",
-		"__string": "cpp"
+		"__string": "cpp",
+		"execution": "cpp"
 	},
 	"C_Cpp.default.includePath": [
 		"${workspaceRoot}/modules",

@@ -14,15 +14,18 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 
 ! Main switches
-ifdailygrass             1   ! daily allocation for grasses and crops 
-ifdailytree              1   ! daily allocation for trees and shrubs
+ifdailygrass             1   ! Daily allocation for grasses and crops
+ifdailytree              1   ! Daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
-ifdavegrowth             1   ! DAVE growth scheme (grasses only at the moment)
+ifdavegrowth             1   ! DAVE growth scheme
+ifdavehydrology          0   ! DAVE hydrology updates
+ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
+epsiresolution           100 ! Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.
 iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
@@ -116,14 +119,18 @@ variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
 
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
-file_co2                      "../forcing/global_co2_ann_1700_2023.txt"
+file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note extended to 2040 for synthetic drought/recovery at CuP - just added diff from 2022-23 every year
 !file_co2                     "../forcing/co2_1901_2018.txt"
 !file_co2                     "../forcing/co2_historical_1951_2005.dat"
 !file_co2                     "../forcing/co2_rcp45_1765_2500.dat"
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
+
+! Set to 1 to force all individuals to use constant/fixed LAI.
+! The monthly LAI values are defined at the bottom of canexch.h.
+ifforcedlai                  0
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -132,7 +139,7 @@ temperature_delta            0
 co2_delta                    0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            4
+progress_interval            0
 
 ! Force the use of newline characters to terminate progress messages. Useful for MPI runs.
 progress_newline             0
@@ -149,7 +156,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                1
+spinup_output                0
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -183,7 +190,7 @@ weathergenerator "GWGEN"    ! GWGEN, INTERP
 npatch 1            ! Number of replicate patches to simulate
 patcharea 1000            ! Patch area (m2)
 estinterval 5            ! Years between establishment events in cohort mode
-ifdisturb 1            ! Whether generic patch-destroying disturbances enabled
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
 distinterval 500        ! Average return time for generic patch-destroying disturbances
                 ! Hickler et al. (2011) used 200
 ifbgestab 1            ! Whether background establishment enabled
@@ -191,9 +198,8 @@ ifsme 1                ! Whether spatial mass effect enabled
 ifstochestab 1            ! Whether establishment stochastic
 ifstochmort 1            ! Whether mortality stochastic
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"      ! "wcont", "rootdist", "smart" or "speciesspecific",
-                            ! see documentation for water_uptake()
-!rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+wateruptake "rootdist"      ! "wcont", "rootdist", "smart", "speciesspecific", "root_resistance",
+                            ! see documentation for water_uptake(). root_resistance must be used with davehydraulics.
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -287,12 +293,12 @@ import "landcover.ins"
 ! PFT parameters
 !///////////////////////////////////////////////////////////////////////////////
 
-!import "pft_common.ins"
+import "pft_common.ins"
 
-!import "trees.ins"
-!import "shrubberies.ins"
-!import "c3g.ins"
-!import "c4g.ins"
+import "trees.ins"
+import "shrubberies.ins"
+import "c3g.ins"
+import "c4g.ins"
 
 ! for Warra only 
 ! import "pfts_jamey.ins"

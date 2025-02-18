@@ -198,6 +198,21 @@ Get the columns used in the met year output file.
 std::vector<ColumnDefinition<Patch>> met_year_columns();
 
 /*
+Get the columns used in the aet output file.
+*/
+std::vector<ColumnDefinition<Patch>> aet_columns();
+
+/*
+Get the columns used in the fevap output file.
+*/
+std::vector<ColumnDefinition<Patch>> fevap_columns();
+
+/*
+Get the columns used to evaluate the hydraulics model.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns();
+
+/*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
@@ -224,6 +239,8 @@ specified patch.
 @param patch: A patch object.
 */
 int get_nlayer_lai(const Patch &patch);
+
+int get_nlayer_an(const Patch &patch);
 
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).

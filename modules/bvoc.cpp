@@ -168,9 +168,9 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 
 	const double lam = 2.45e6;      // latent heat loss of vapourisation (J g-1 at 20 deg C)
 	const double sigma = 5.67e-8;   // Stefan-Boltzmann constant, W m-2 K-4
-	const double emiss_leaf = .97;  // average emissivity for leaves, Campbell and Norman, (1998)
+	const double emiss_leaf = 0.97;  // average emissivity for leaves, Campbell and Norman, (1998)
 	const double rhoair = 1.204;    // air density, kg m-3
-	const double cp = 1010;         // specific heat capacity of air, J kg-1 K-1
+	const double cp = 1010.0;         // specific heat capacity of air, J kg-1 K-1
 
 	// leaf temperature is calculated by balancing four fluxes:
 	// 1. net SW radiation, computed from the incoming radiation
@@ -184,10 +184,9 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 	//    H = deltaT*rhoair*cp*ga*phen*lai
 	//
 
-	return temp+(rs_day*fpar-aet*lam)/(3600.*daylength)/
-		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.)*fpc_today+rhoair*cp*ga*lai_today);
+	return temp+(rs_day*fpar-aet*lam)/(3600.0*daylength)/
+		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.0)*fpc_today+rhoair*cp*ga*lai_today);
 }
-
 
 void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 

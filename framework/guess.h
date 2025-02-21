@@ -2353,7 +2353,7 @@ public:
 	}
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers) {
+	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], double soil_depth, int nsoillayers) {
 
 		if (hydrology != GERTEN) {
 
@@ -2370,10 +2370,10 @@ public:
 			double depth_frac = 1.0;
 			
 			// If soil depth is deeper than standard depth, then update root depth
-			if (depth_soil > depth_standard) {
+			if (soil_depth > depth_standard) {
 
 				// New root depth
-				depth_root = floor((depth_standard + rootfrac_of_deep_soil * (depth_soil - depth_standard)) / 100.0) * 100.0;
+				depth_root = floor((depth_standard + rootfrac_of_deep_soil * (soil_depth - depth_standard)) / 100.0) * 100.0;
 
 				// Update root profile factor
 				depth_frac = depth_standard / depth_root;
@@ -2416,7 +2416,7 @@ public:
 			// If a fraction of root distribution should be homogenously distributed
 			if (!negligible(homrootdistfrac)) {
 
-				double hom_depth = depth_soil > 3000.0 ? 3000.0 : depth_soil;
+				double hom_depth = soil_depth > 3000.0 ? 3000.0 : soil_depth;
 
 				double frac_per_depth = homrootdistfrac / hom_depth;
 				tot = 0.0;
@@ -3279,18 +3279,6 @@ public:
 	double porosity;
 	/// Volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
 	double mineral_frac;
-	/// Slope gradient [m m-1]
-	double slope_grade_tan;
-	double slope_grade_sin;
-	double slope_grade_cos;
-	/// icrotopography distribution (mm) (Ekcic et al. 2019; eqn 2)
-	double slope_sigma;
-	// Fraction of the area that is inundated threshold below which no 
-	// single connected inundated area spans the grid cell (-)
-	double wmass_ssw_frac_thresh;
-	// Surface water threshold below which no single connected  
-	// inundated area spans the grid cell (mm)
-	double wmass_ssw_thresh;
 
 	// MEMBER FUNCTIONS
 
@@ -3536,66 +3524,77 @@ public:
 
 	/// reference to parent Soilcolumn object
 	Soilcolumn* soilcolumn;
+
+	/// Depth
 	/// Soil layer middle depth (mm)
 	double depth_profile;
 	/// soil layer depth (mm)
 	double depth;
-	/// water mass in soil layer (kg m-2)
+
+	/// Water
+	/// Water mass in soil layer (kg m-2)
 	double wmass;
-	/// monthly water mass in soil layer (kg m-2)
+	/// Monthly water mass in soil layer (kg m-2)
 	double mwmass[12];
-	/// ice mass in soil layer (kg m-2)
-	double imass;
-	/// monthly ice mass in soil layer (kg m-2)
-	double mimass[12];
-	/// suppercooled water mass in soil layer (kg m-2)
+	/// Suppercooled water mass in soil layer (kg m-2)
 	double wmass_sc;
-	/// Matrix potential (mm)
-	double psi;
-	/// Derivative in matrix potential w.r.t. volumetric liquid water content (mm)
-	double dpsidw;
-	/// monthly water content as fraction of available water holding capacity
+	/// Monthly water content as fraction of available water holding capacity
 	double mwcont[12];
-	/// mean water content above current soil layer for last month
+	/// Mean water content above current soil layer for last month
 	double mwcontabove;
-	/// average wcont over the growing season
+	/// Average wcont over the growing season
 	double awcont;
-	/// saturation point of soil layer (mm) Cosby et al 1984
+	/// Saturation point of soil layer (mm) Cosby et al 1984
 	double wsats;
-	/// available water holding capacity of soil layer (mm)
+	/// Available water holding capacity of soil layer (mm)
 	double awc;
-	/// wilting point of soil layer (mm) Cosby et al 1984
+	/// Wilting point of soil layer (mm) Cosby et al 1984
 	double wp;
-	/// Coarse root volume (mm)
-	double root_volume;
-	/// Mineral volume (mm)
-	double mineral_volume;
-	/// Organic matter volume (mm)
-	double organic_volume;
-	/// percolation mass from this layer
-	double perc_mass;
-	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
-	double perc_base;
-	/// soil moisture conductivity (mm s-1)
+
+	/// Ice
+	/// Ice mass in soil layer (kg m-2)
+	double imass;
+	/// Monthly ice mass in soil layer (kg m-2)
+	double mimass[12];
+
+	/// Matrix potential (mm)
+	double Psi;
+	/// Derivative in matrix potential w.r.t. volumetric liquid water content (mm)
+	double dPsidw;
+	/// Soil matric potential at saturation (mm)
+	double Psi_max;
+
+	/// Soil moisture conductivity (mm s-1)
 	double Kw;
 	/// Derivative in hydraulic conductivity w.r.t relative saturation (mm s-1)
 	double dKwdw;
-	/// soil moisture conductivity at saturation (mm s-1)
+	/// Soil moisture conductivity at saturation (mm s-1)
 	double Kw_max;
 	/// Exponential in Campbell (1974) parameterization for soil water retention curves
 	double b;
-	/// Soil matric potential at saturation (mm)
-	double Psi_max;
-	/// Soil organic C microorganism collocation factor
-	double a;
+
+	/// Percolation mass from this layer
+	double perc_mass;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
+	double perc_base;
 	/// Lateral drainage runoff
 	double runoff_drain;
 	/// Monthly lateral drainage runoff
 	double mdrain[12];
 	/// Baseflow runoff
 	double runoff_baseflow;
-	/// Porosity in layer (mm)
-	double por;
+
+	/// Volume
+	/// Coarse root volume (mm)
+	double root_volume;
+	/// Mineral volume (mm)
+	double mineral_volume;
+	/// Organic matter volume (mm)
+	double organic_volume;
+	/// Bulk density (g cm-3)
+	double bulk_density;
+	
+	/// Organic influence on water
 	// Organic carbon density (kg C m-3)
 	double rho_org;
 	/// Organic available water holding fraction of soil layer (-)
@@ -3610,21 +3609,31 @@ public:
 	double Psi_max_org;
 	/// Hydraulic conductivity at saturation for organic matter (m s-1)
 	double Kw_max_org;
-	/// volumetric fraction of peat material (m3 m-3)
+	/// Volumetric fraction of peat material (m3 m-3)
 	double peat_frac;
-	/// Bulk density (g cm-3)
-	double bulk_density;
-	/// thermal diffusivity at 0% WHC (mm2/s)
+	/// if soil layer is in the acrotelm
+	bool acrotelm;
+	/// if soil layer is in the catotelm
+	bool catotelm;
+	/// Tiller area
+	double tiller_area;
+
+	/// Temperature
+	/// Thermal diffusivity at 0% WHC (mm2/s)
 	double thermdiff_0;
-	/// thermal diffusivity at 15% WHC (mm2/s)
+	/// Thermal diffusivity at 15% WHC (mm2/s)
 	double thermdiff_15;
-	/// thermal diffusivity at 100% WHC (mm2/s)
+	/// Thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
+	/// Thermal conductivities (J m-1 K-1 s-1)
+	double Kh;
+	/// Heat capacities (J m-3 K-1)
+	double Ch;
 	/// Heat capacity of mineral soil [J m-3 K-1]
 	double Cp_min;
-	/// soil layer temperature (deg C)
+	/// Soil layer temperature (deg C)
 	double temp;
-	/// soil layer temperature from previous phase change (deg C)
+	/// Soil layer temperature from previous phase change (deg C)
 	double temp_old;
 	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
 	double mtemp[12];
@@ -3635,36 +3644,30 @@ public:
 	// Parameters used by function soiltemp and updated monthly
 	double alag, exp_alag;
 
-	/// if soil layer is in the acrotelm
-	bool acrotelm;
-	/// if soil layer is in the catotelm
-	bool catotelm;
-
-	/// soil layer thermal conductivities (J m-1 K-1 s-1)
-	double Kh;
-	/// soil layer heat capacities (J m-3 K-1)
-	double Ch;
-
-	/// dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
+	/// Gases
+	/// Dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
 	double CO2;
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	/// Dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4;
 	/// CH4 which bubbles out [g CH4-C layer-1]
 	double CH4_ebull_ind;
-	/// gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	/// Gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4_gas;
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	/// Dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
 	double CH4_diss;
-	/// dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
+	/// Dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
 	double O2;
-	/// daily carbon flux to atmosphere from soil respiration
-	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
+	/// Todays heterotrophic respiration [kg C m-2]
 	double respsum;
-	/// Annual total surface litter and soil respiration [kg C m-2]
+	/// Annual total respiration [kg C m-2]
 	double arespsum;
-	/// Tiller area
-	double tiller_area;
 
+	/// Annual fine litter C input
+	double acmassfinput;
+	/// Annual coarse litter C input
+	double acmasscinput;
+
+	//////////////////////////////////////////////////////////////////////////////////
 	// Old Soil Organic Matter (SOM) scheme
 
 	/// SOM pool with c. 1000 yr turnover (kgC/m2)
@@ -3686,47 +3689,49 @@ public:
 
 	/// Decay rate modifier depending on depth profile (Koven et al 2013)
 	double depth_mod;
-	/// fraction of decayed organic matter leached each day;
-	double orgleachfrac;
-	/// annual sum of nitrogen mineralisation
-	double anmin;
-	/// annual sum of nitrogen immobilisation
-	double animmob;
-	/// monthly sum of nitrogen net mineralisation
-	double mnetmin[12];
-	/// annual leaching from available nitrogen pool
-	double aminleach;
-	/// annual leaching of organics from active nitrogen pool
-	double aorgNleach;
-	/// annual leaching of organics nitrogen from carbon pool
-	double aorgCleach;
-	/// annual C decomposition without and with N and/or P limitation
-	double acdec[2];
-	/// annual C mineralisation without and with N and/or P limitation
-	double acinc[2];
-	/// annual fine and coarse litter C input
-	double acmassfinput;
-	double acmasscinput;
-
+	/// Soil organic C microorganism collocation factor
+	double a;
+	/// Annual average temperature rate modifier
 	double atemp_mod;
+	/// Annual average moisture rate modifier
 	double amoist_mod;
+	/// Annual average total rate modifier
 	double atot_mod;
-
-	/// soil NH4 mass in pool (kgN/m2)
-	double NH4_mass;
-	/// soil NO3 mass in pool (kgN/m2)
-	double NO3_mass; 
-	/// soil NO2 mass in pool (kgN/m2)
-	double NO2_mass;
-	/// soil NO mass in pool (kgN/m2)
-	double NO_mass;
-	/// soil NO mass in pool (kgN/m2)
-	double N2O_mass;
-	/// soil N2 mass in pool (kgN/m2)
-	double N2_mass;
-
-	// soil labile carbon availability daily (kgC/m2/day)
+	
+	/// Fraction of decayed organic matter leached each day;
+	double orgleachfrac;
+	/// Annual leaching from available nitrogen pool
+	double aminleach;
+	/// Annual leaching of organics from active nitrogen pool
+	double aorgNleach;
+	/// Annual leaching of organics nitrogen from carbon pool
+	double aorgCleach;
+	// Soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
+
+	/// Annual sum of nitrogen mineralisation
+	double anmin;
+	/// Annual sum of nitrogen immobilisation
+	double animmob;
+	/// Monthly sum of nitrogen net mineralisation
+	double mnetmin[12];
+	/// Annual C decomposition without and with nutrient limitation
+	double acdec[2];
+	/// Annual C mineralisation without and with nutrient limitation
+	double acinc[2];
+
+	/// Soil NH4 mass in pool (kgN/m2)
+	double NH4_mass;
+	/// Soil NO3 mass in pool (kgN/m2)
+	double NO3_mass; 
+	/// Soil NO2 mass in pool (kgN/m2)
+	double NO2_mass;
+	/// Soil NO mass in pool (kgN/m2)
+	double NO_mass;
+	/// Soil NO mass in pool (kgN/m2)
+	double N2O_mass;
+	/// Soil N2 mass in pool (kgN/m2)
+	double N2_mass;
 
 	// Variables for fast spinup of SOM pools
 
@@ -3763,7 +3768,7 @@ public:
 		wmass = that.wmass;
 		imass = that.imass;
 		wmass_sc = that.wmass_sc;
-		psi = that.psi;
+		Psi = that.Psi;
 		mwcontabove = that.mwcontabove;
 		awcont = that.awcont;
 		wsats = that.wsats;
@@ -3781,7 +3786,6 @@ public:
 		a = that.a;
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
-		por = that.por;
 		rho_org = that.rho_org;
 		awc_org = that.awc_org;
 		wp_org = that.wp_org;
@@ -3868,7 +3872,7 @@ public:
 		wmass = that.wmass;
 		imass = that.imass;
 		wmass_sc = that.wmass_sc;
-		psi = that.psi;
+		Psi = that.Psi;
 		mwcontabove = that.mwcontabove;
 		awcont = that.awcont;
 		wsats = that.wsats;
@@ -3886,7 +3890,6 @@ public:
 		a = that.a;
 		runoff_drain = that.runoff_drain;
 		runoff_baseflow = that.runoff_baseflow;
-		por = that.por;
 		rho_org = that.rho_org;
 		awc_org = that.awc_org;
 		wp_org = that.wp_org;
@@ -4197,42 +4200,6 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-struct CNpara {
-
-	std::vector<double> dz, // Soil layer thicknesses [m]
-		z, // Soil layer depth at middle of soil layer [m]
-		cap, // generalized capacity, [1] in the case of soil water
-		diff, // gen. diffusivity [m2/s]
-		cond, // gen. conductivity [m/s]
-		sink, // sink term [m3/m3/s]
-		psi0, // initial volumetric water content [m3/m3] in the case of soil water
-		psi,
-		psi1,
-		upper,
-		main,
-		lower,
-		rhs;
-
-	CNpara() {};
-
-	void set_sizes(int nlayers) {
-
-		dz.resize(nlayers, 0.0);
-		z.resize(nlayers, 0.0);
-		cap.resize(nlayers, 0.0);
-		diff.resize(nlayers, 0.0);
-		cond.resize(nlayers, 0.0);
-		sink.resize(nlayers, 0.0);
-		psi0.resize(nlayers, 0.0);
-		psi.resize(nlayers, 0.0);
-		psi1.resize(nlayers, 0.0);
-		upper.resize(nlayers, 0.0);
-		main.resize(nlayers, 0.0);
-		lower.resize(nlayers, 0.0);
-		rhs.resize(nlayers, 0.0);
-	}
-};
-
 /// Soilcolumn stores state variables for soillayers and the snow pack.
 /** Initialised by a call to initdrivers. One Soilcolumn object is defined for each patch.
 *  A reference to the parent Patch object (defined below) is included as a member
@@ -4275,8 +4242,6 @@ public:
 	int nacrotelm;
 	/// number of catotelm soil layers
 	int ncatotelm;
-	/// Temperature change calculation variables
-	CNpara tpara;
 	/// soil NH4 mass input (kgN/m2)
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)
@@ -4356,8 +4321,6 @@ public:
 	double mwmass_ssw[12];
 	/// Fraction of surface covered by surface standing water and ice
 	double wmass_ssw_frac;
-	// sat_lev is an arbitrary saturation level used to determine water table and from where lateral flow should start to occur
-	double sat_lev;
 
 	// Gas diffusion variables:
 
@@ -4397,6 +4360,22 @@ public:
 	int solvesomcent_endyr;
 	/// document for calculation of Century equilibrium
 	bool savesomcent;
+	/// Slope gradient [m m-1]
+	double slope_grade_sin;
+	double slope_grade_cos;
+	/// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	double slope_sigma;
+	double sigma_sqrt2;
+	double sigma_sqrt2pi;
+	double sigma2;
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell (-)
+	double wmass_ssw_frac_thresh;
+	// Surface water threshold below which no single connected  
+	// inundated area spans the grid cell (mm)
+	double wmass_ssw_thresh;
+
+	double evap_prev;
 
 private:
 
@@ -4426,7 +4405,6 @@ public:
 		asurflitterresp = that.asurflitterresp;
 		nacrotelm = that.nacrotelm;
 		ncatotelm = that.ncatotelm;
-		tpara = that.tpara;
 		NH4_input = that.NH4_input;
 		NO3_input = that.NO3_input;
 		anfix = that.anfix;
@@ -4454,7 +4432,6 @@ public:
 		Ch_ssw = that.Ch_ssw;
 		Kh_ssw = that.Kh_ssw;
 		temp_ssw = that.temp_ssw;
-		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
 		k_CH4 = that.k_CH4;
@@ -4467,6 +4444,14 @@ public:
 		solvesomcent_beginyr = that.solvesomcent_beginyr;
 		solvesomcent_endyr = that.solvesomcent_endyr;
 		savesomcent = that.savesomcent;
+		slope_grade_sin = that.slope_grade_sin;
+		slope_grade_cos = that.slope_grade_cos;
+		slope_sigma = that.slope_sigma;
+		sigma_sqrt2 = that.sigma_sqrt2;
+		sigma_sqrt2pi = that.sigma_sqrt2pi;
+		sigma2 = that.sigma2;
+		wmass_ssw_frac_thresh = that.wmass_ssw_frac_thresh;
+		wmass_ssw_thresh = that.wmass_ssw_thresh;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mthaw[mth] = that.mthaw[mth];
@@ -4503,7 +4488,6 @@ public:
 		asurflitterresp = that.asurflitterresp;
 		nacrotelm = that.nacrotelm;
 		ncatotelm = that.ncatotelm;
-		tpara = that.tpara;
 		NH4_input = that.NH4_input;
 		NO3_input = that.NO3_input;
 		anfix = that.anfix;
@@ -4531,7 +4515,6 @@ public:
 		Ch_ssw = that.Ch_ssw;
 		Kh_ssw = that.Kh_ssw;
 		temp_ssw = that.temp_ssw;
-		sat_lev = that.sat_lev;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
 		k_CH4 = that.k_CH4;
@@ -4544,6 +4527,14 @@ public:
 		solvesomcent_beginyr = that.solvesomcent_beginyr;
 		solvesomcent_endyr = that.solvesomcent_endyr;
 		savesomcent = that.savesomcent;
+		slope_grade_sin = that.slope_grade_sin;
+		slope_grade_cos = that.slope_grade_cos;
+		slope_sigma = that.slope_sigma;
+		sigma_sqrt2 = that.sigma_sqrt2;
+		sigma_sqrt2pi = that.sigma_sqrt2pi;
+		sigma2 = that.sigma2;
+		wmass_ssw_frac_thresh = that.wmass_ssw_frac_thresh;
+		wmass_ssw_thresh = that.wmass_ssw_thresh;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mthaw[mth] = that.mthaw[mth];
@@ -4581,6 +4572,8 @@ public:
 	 *  patches/stands.
 	 */
 	const Climate& get_climate() const;
+	/// Set slope properties
+	void set_slope_properties();
 	/// Initiate soil water content
 	void init_water();
 	/// Returns surface litter C content
@@ -4609,8 +4602,6 @@ public:
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
 	/// Calculate root volume
 	void calc_root_volume();
-	/// Vertical mixing (diffusion) of SOM
-	void vertical_mixing(pooltype p, double ald, double timestep);
 	/// Vertical movement of mineral and organic matter
 	void vertical_movement();
 	/// Calculate this months average soil layer wcont
@@ -4642,7 +4633,7 @@ public:
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp(double temp_infilt);
 	/// Update surface standing water temperatures due to water fluxes
-	void update_ssw_temp(double temp_add, double wmass_add);
+	void update_ssw_temp(double temp_add, double wmass_add, double imass_add = 0.0);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties();
 	/// Set padding layers depth
@@ -4661,8 +4652,8 @@ public:
 	void hydrology_miller(const Climate& climate, double fevap);
 	/// Flexible layer hydrology routine
 	void hydrology_richards(const Climate& climate, double fevap);
-	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double psi[NSOILLAYERS_MAX], 
-		double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
+	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double Psi[NSOILLAYERS_MAX], 
+		double dKwdw[NSOILLAYERS_MAX], double dPsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
 		double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
 		double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], int nsoillayers_sim);
 	void compute_RHS_moisture_form(double qflx_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 

@@ -1175,31 +1175,30 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	Cp_min = 0.0;
 	gtemp = 0.0;
 
-	// Water (initiate water mass at half of water holding capacity plus wilting point)
-	wmass = ((*soilcolumn).soiltype.wp_min + (*soilcolumn).soiltype.awc_min * 0.5) * depth;
+	// Water
+	wmass = 0.0;
 	imass = 0.0;
 	wmass_sc = 0.0;
-	por = 0.0;
-	Kw = 0.0;
-	dKwdw = 0.0;
-	b = 0.0;
-	Kw_max = 0.0;
-	a = 0.0;
-	perc_mass = 0.0;
-	runoff_drain = 0.0;
-	runoff_baseflow = 0.0;
-	psi = 0.0;
-	dpsidw = 0.0;
-	mwcontabove = 0.0;
-	awcont = 0.0;
 	wsats = 0.0;
 	awc = 0.0;
 	wp = 0.0;
+	Kw = 0.0;
+	dKwdw = 0.0;
+	Kw_max = 0.0;
+	Psi = 0.0;
+	dPsidw = 0.0;
+	Psi_max = 0.0;
+	b = 0.0;
+	perc_mass = 0.0;
+	runoff_drain = 0.0;
+	runoff_baseflow = 0.0;
+	mwcontabove = 0.0;
+	awcont = 0.0;
+
 	root_volume = 0.0;
 	mineral_volume = depth;
 	organic_volume = 0.0;
 	perc_base = 0.0;
-	Psi_max = 0.0;
 
 	rho_org = rho_high;
 
@@ -1278,6 +1277,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Decay rate modifier depending on depth profile (Koven et al 2013)
 	// Reference depth set to 10m
 	depth_mod = ifdepthdecaymod ? exp(-depth_profile / 10000.0) : 1.0;
+	a = 0.0;
 
 	// N pools
 	NH4_mass = 0.0;
@@ -1300,9 +1300,11 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Tiller area
 	tiller_area = 0.0001;
 
-	// Daily heterotrophic respiration
+	// Heterotrophic respiration
 	respsum = 0.0;
 	arespsum = 0.0;
+
+	// Decay rates
 	acdec[0] = 0.0;
 	acdec[1] = 0.0;
 	acinc[0] = 0.0;
@@ -1519,8 +1521,9 @@ double Soillayer::calc_organic_density(grouppooltype group) {
 void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must_set) {
 
 	// Only enter first year except if dynamic soil organic C influence soil properties
-	if (!must_set && !ifeffvolume && !((*soilcolumn).patch.stand.first_year == date.year || (iforganicsoilproperties && !acrotelm && !catotelm))) // DW_COMMENT restart years needs to update it then as well!
+	if (!must_set && !ifeffvolume && !((*soilcolumn).patch.stand.first_year == date.year || (iforganicsoilproperties && !acrotelm && !catotelm))) { // DW_COMMENT restart years needs to update it then as well!
 		return;
+	}
 	
 	// Get soil type
 	Soiltype soiltype = (*soilcolumn).soiltype;
@@ -1544,7 +1547,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// Field capacity is set at 75% of saturation (Chaudhary 2017)
 		awc = (acrotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
-		por = acrotelm_por * depth;
 		peat_frac = 1.0 - acrotelm_por;
 		bulk_density = peat_frac * rho_org;
 
@@ -1566,7 +1568,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// Field capacity is set at 75% of saturation (Chaudhary 2017)
 		awc = (catotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
-		por = catotelm_por * depth;
 		peat_frac = 1.0 - catotelm_por;
 		bulk_density = peat_frac * rho_org;
 
@@ -1593,7 +1594,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		wsats = soiltype.wsats_min * depth * eff_volume_frac;
 		awc = soiltype.awc_min * depth * eff_volume_frac;
 		wp = soiltype.wp_min * depth * eff_volume_frac;
-		por = wsats;
 		peat_frac = 0.0;
 		bulk_density = min_density;
 
@@ -1636,7 +1636,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		wsats = (min_frac * soiltype.wsats_min + org_frac * wsats_org) * depth;
 		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth;
 		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth;
-		por = wsats;
 		peat_frac = 0.0;
 		bulk_density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
@@ -1756,6 +1755,7 @@ void Soillayer::phase_change() {
 		// Maximum water capacity of soil layer
 		double wmass_max_lyr = wmass_max();
 
+		// Temperature below freezing
 		if (temp < 0.0) {
 
 			// Maximum super cooled water fraction
@@ -1778,17 +1778,22 @@ void Soillayer::phase_change() {
 				wmass_sc = wmass_max_lyr * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
 			}
 
+			// Fraction super cooled water
 			Fwmass_sc = wmass_sc / depth;
 
+			// Old temperature can't be above freezing
 			temp_old = min(0.0, temp_old);
 
+			// Should water freeze
 			if (Fwmass > Fwmass_sc && temp < temp_old) {
 				ifFreeze = true;
 			}
+			// Should ice thaw
 			else if (Fwmass < Fwmass_sc && temp > temp_old) {
 				ifThaw = true;
 			}
 		}
+		// Should ice thaw
 		else if (temp > 0.0 && Fimass > 0.0) {
 			ifThaw = true;
 			temp_old = 0.0;
@@ -1797,7 +1802,6 @@ void Soillayer::phase_change() {
 		}
 	}
 	else {
-		
 		// Should water freeze
 		if (temp < 0.0 && Fwmass > 0.0) {
 			ifFreeze = true;
@@ -1810,7 +1814,7 @@ void Soillayer::phase_change() {
 		}
 	}
 
-	// No phase change, return zero
+	// No phase change, return without doing phase change
 	if (!ifThaw && !ifFreeze) {
 		temp_old = temp;
 		return;
@@ -2000,7 +2004,7 @@ double Soillayer::wmass_max() {
 /** Fraction of air in soil layer
  */
 double Soillayer::fracair() {
-	return max(0.0, (por - (max(0.0, wmass) + imass)) / depth);
+	return max(0.0, (wsats - (max(0.0, wmass) + imass)) / depth);
 }
 
 /// Get the water filled pore space of the layer
@@ -2209,8 +2213,8 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 	}
 }
 
-/// 
-/**
+/// Help function for soil water matric potential calculation
+/** Help function for soil water matric potential calculation
  */
 double hydro_pow(double theta, double k) {
 
@@ -2226,14 +2230,15 @@ double hydro_pow(double theta, double k) {
 void Soillayer::update_matric_potential() {
 	double theta = min(1.0, max(0.001, wmass) / wsats);
 
-	psi = max(-1.0e8, Psi_max * hydro_pow(theta, -b));
+	Psi = max(-1.0e8, Psi_max * hydro_pow(theta, -b));
 
 	// Derivative in matric potential
-	dpsidw = -b * psi / theta;
+	dPsidw = -b * Psi / theta;
 }
 
 /// Updates heat capacity and thermal conductivity
-/** Updates heat capacity and thermal conductivity of the soil layer
+/** Updates heat capacity and thermal conductivity 
+ *  of the soil layer
  */
 void Soillayer::update_thermal_properties() {
 
@@ -2255,6 +2260,7 @@ void Soillayer::update_thermal_properties() {
 	// Organic water holding capacities at saturation
 	double organic_wsats = iforganicsoilproperties ? wsats_org : (*soilcolumn).soiltype.wsats_min;
 
+	// Depths each quantity occupies
 	double combined_depth = depth;
 	double ice = imass;
 	double water = wmass;
@@ -2264,7 +2270,7 @@ void Soillayer::update_thermal_properties() {
 	double coarse_root = (!acrotelm && !catotelm) ? root_volume : 0.0;
 
 	// Soil layer air (mm)
-	double air = max(0.0, por - (wmass + imass));
+	double air = max(0.0, wsats - (wmass + imass));
 
 	// Update heat capacity (J m-3 K-1)
 	Ch = (mineral * Cp_min + organic * Cp_org + ice * Cp_ice + water * Cp_water + peat * Cp_peat + air * Cp_air + coarse_root * Cp_wood) / combined_depth;
@@ -2298,10 +2304,22 @@ void Soillayer::update_thermal_properties() {
 /** Serialize soil layer variables
  */
 void Soillayer::serialize(ArchiveStream& arch) {
-	arch & depth
+	arch & depth_profile
+		& depth
 		& wmass
 		& imass
-		& temp;
+		& temp
+		& temp_old
+		& rho_org
+		& awc_org
+		& wp_org
+		& wsats_org
+		& b_org
+		& Psi_max_org
+		& Kw_max_org
+		& acrotelm
+		& catotelm
+		& Cp_min;
 
 	for (int i = 0; i < NSOMPOOL; i++) {
 		arch & sompool[i];
@@ -2314,8 +2332,12 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& N2O_mass
 		& NO_mass
 		& N2_mass
+		& CH4
+		& O2
 		& cpool_slow
 		& cpool_fast
+		& depth_mod
+		& a
 
 		// Equilsom variables
 		& solvesom
@@ -2323,7 +2345,7 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& mminleach_mean
 		& decomp_litter_mean
 		& k_soilfast_mean
-		& k_soilslow_mean;
+		& k_soilslow_mean;	
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2364,7 +2386,6 @@ void Soilcolumn::initdrivers() {
 	Kh_ssw = 0.0;
 	temp_ssw = 0.0;
 	wmass_ssw_frac = 0.0;
-	sat_lev = 0.9;
 
 	for (int mth = 0; mth < 12; mth++) {
 		mthaw[mth] = 0.0;
@@ -2398,6 +2419,8 @@ void Soilcolumn::initdrivers() {
 	solvesomcent_beginyr = (int)0.5*freenyears;
 	solvesomcent_endyr = (int)freenyears+10;
 	savesomcent = false;
+
+	evap_prev = 0.0;
 }
 
 /// Create soil layers
@@ -2434,11 +2457,9 @@ void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
 			}
 		}
 
+		// Add layer
 		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
 	}
-
-	// Set sizes of temperature change calculation parameters
-	tpara.set_sizes(nsoillayers + NPADLAYERS);
 }
 
 /// Add a single soil layer
@@ -2460,13 +2481,72 @@ const Climate& Soilcolumn::get_climate() const {
 	return patch.stand.get_climate();
 }
 
+/// Set slope properties
+/** Set slpoe properties
+ */
+void Soilcolumn::set_slope_properties() {
+	// Set fixed slope properties
+	// To be able to distinguish between and flat
+	// wetland (slope 0) and other landcovers (slope as input)
+	// this has to belong to the soilcolumn
+	// Slope in radians
+
+	double slope_rad = slope * PI / 180.0;
+
+	if (patch.stand.landcover == PEATLAND) {
+		slope_rad = 0.0;
+	}
+
+	// Slope gradient [m m-1]
+	slope_grade_sin = sin(slope_rad);
+	slope_grade_cos = cos(slope_rad);
+
+	// Beta_0 as a function of maximum topographical distribution (Ekcic et al. 2019; eqn 3)
+	double beta_0 = 1.357209;
+
+	// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	slope_sigma = pow(slope_rad + beta_0, -3.0) * MM_PER_M;
+
+	// Constants
+	sigma_sqrt2 = 1.0 / (slope_sigma * sqrt(2.0));
+	sigma_sqrt2pi = slope_sigma / sqrt(2.0 * PI);
+	sigma2 = 1.0 / (2.0 * pow(slope_sigma, 2));
+
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell
+	wmass_ssw_frac_thresh = 0.3;// 4;
+
+	// Calculate surface water threshold below which no single connected  
+	// inundated area spans the grid cell (Ekcic et al. 2019 and CLM 5.0 code)
+	wmass_ssw_thresh = 0.0;
+
+	if (slope_sigma > 1.0e-6) {
+
+		// Surface water level (mm)
+		double d = 0.0;
+
+		// Determine surface water threshold
+		for (int i = 0; i < 4; i++) {
+			double fd = 0.5 * (1.0 + erf(d * sigma_sqrt2)) - wmass_ssw_frac_thresh;
+			double dfdd = exp(-pow(d, 2) * sigma2) / (slope_sigma * sqrt(2.0 * PI));
+			d -= fd / dfdd;
+			dprintf("d %g\n",d);
+		}
+
+		// Surface water threshold below which no single connected  
+		// inundated area spans the grid cell (mm)
+		wmass_ssw_thresh = 0.5 * d * (1.0 + erf(d / (slope_sigma * sqrt(2.0)))) +
+			slope_sigma / sqrt(2.0 * PI) * exp(-pow(d, 2) / (2.0 * pow(slope_sigma, 2)));
+	}
+}
+
 /// Initiate soil water content
 /** Initiate soil water content
  */
 void Soilcolumn::init_water() {
 
 	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], wflux_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
-		Kw[NSOILLAYERS_MAX], dKwdw[NSOILLAYERS_MAX], psi[NSOILLAYERS_MAX], dpsidw[NSOILLAYERS_MAX],
+		Kw[NSOILLAYERS_MAX], dKwdw[NSOILLAYERS_MAX], Psi[NSOILLAYERS_MAX], dPsidw[NSOILLAYERS_MAX],
 		qin[NSOILLAYERS_MAX], qout[NSOILLAYERS_MAX], dqidw0[NSOILLAYERS_MAX], dqidw1[NSOILLAYERS_MAX],
 		dqodw1[NSOILLAYERS_MAX], dqodw2[NSOILLAYERS_MAX], rmx[NSOILLAYERS_MAX], amx[NSOILLAYERS_MAX],
 		bmx[NSOILLAYERS_MAX], cmx[NSOILLAYERS_MAX], dwat[NSOILLAYERS_MAX];
@@ -2498,15 +2578,15 @@ void Soilcolumn::init_water() {
 			// time per mm
 			dt_dz[lyr] = dtsub / soillayer.depth;
 			Kw[lyr] = soillayer.Kw;
-			psi[lyr] = soillayer.psi;
+			Psi[lyr] = soillayer.Psi;
 			dKwdw[lyr] = soillayer.dKwdw;
-			dpsidw[lyr] = soillayer.dpsidw;
+			dPsidw[lyr] = soillayer.dPsidw;
 			dz[lyr] = soillayer.depth;
 			wflux_root[lyr] = 0.0;
 		}
 
 		// Soil moisture fluxes and their derivatives
-		compute_moisture_fluxes_and_derivs(0.0, Kw, psi, dKwdw, dpsidw, qin, qout,
+		compute_moisture_fluxes_and_derivs(0.0, Kw, Psi, dKwdw, dPsidw, qin, qout,
 			dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz, nsoillayers);
 
 		// RHS of system of equations
@@ -3202,32 +3282,56 @@ double Soilcolumn::var_depth_ncont(double depth_start, double depth_end, grouppo
 */
 void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 
-	// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
-	// Constant [kg m-3]
-	int a = 109;
-	// Constant [kg m-3 K-1]
-	int b = 6;
-	// Constant [kg m-7/2 s-1/2]
-	int c = 26;
-	// Minimum snow density 
-	double dens_min = 80;
-	// Temperature of the melting point for water
-	double Tmelt = 0;
+	if (negligible(wmass_ssw + imass_ssw) || snow.nsnowlayers) {
 
-	// Snow fall density
-	double snowfall_dens = max(dens_min, a + b * (airT - Tmelt) + c * pow(u10, 0.5));
+		// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
+		// Constant [kg m-3]
+		int a = 109;
+		// Constant [kg m-3 K-1]
+		int b = 6;
+		// Constant [kg m-7/2 s-1/2]
+		int c = 26;
+		// Minimum snow density 
+		double dens_min = 80;
+		// Temperature of the melting point for water
+		double Tmelt = 0;
 
-	// Depth of the newly fallen snow based on precipitation & density (Oleason 2013, Eq. 6.88)
-	double snowfall_depth = prec / (snowfall_dens / rho_H2O);
+		// Snow fall density
+		double snowfall_dens = max(dens_min, a + b * (airT - Tmelt) + c * pow(u10, 0.5));
 
-	// Snow fall heat capacity
-	double snowfall_Ch = snowheatcap(prec, 0.0, snowfall_depth);
+		// Depth of the newly fallen snow based on precipitation & density (Oleason 2013, Eq. 6.88)
+		double snowfall_depth = prec / (snowfall_dens / rho_H2O);
 
-	// Snowpack depth
-	double snowpack_depth = snow.depth();
+		// Snow fall heat capacity
+		double snowfall_Ch = snowheatcap(prec, 0.0, snowfall_depth);
 
-	// Add snowfall and redistribute snowpack
-	snow.redist_layers(snowpack_depth, snowfall_depth, prec, airT, snowfall_Ch);
+		// Snowpack depth
+		double snowpack_depth = snow.depth();
+
+		// Add snowfall and redistribute snowpack
+		snow.redist_layers(snowpack_depth, snowfall_depth, prec, airT, snowfall_Ch);
+	}
+	else {
+		// Update surface standing water
+		update_ssw_temp(airT, 0.0, prec);
+
+		// Add snow as ice
+		imass_ssw += prec;
+
+		// Do phase change of standing suface water
+		phase_change_ssw();
+
+		// All standing surface water has turned into ice. Create a snow layer
+		// consisting of only ice.
+		if (negligible(wmass_ssw)) {
+			snow.snowlayers.resize(snow.nsnowlayers + 1);
+			snow.snowlayers[snow.nsnowlayers] = Snowlayer(imass_ssw, 0.0, rho_ICE, temp_ssw);
+			snow.snowlayers[snow.nsnowlayers].depth = snow.snowlayers[snow.nsnowlayers].imass * rho_H2O / snow.snowlayers[snow.nsnowlayers].dens;
+			snow.nsnowlayers++;
+			imass_ssw = 0.0;
+			temp_ssw = 0.0;
+		}
+	}
 
 	// Reset precipitation
 	prec = 0.0;
@@ -3474,11 +3578,7 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	// Calculate surface water fraction and runoff
 	if (wmass_ssw > wmass_ssw_min) {
 
-		double sigma_sqrt2 = 1.0 / (soiltype.slope_sigma * sqrt(2.0));
-		double sigma_sqrt2pi = soiltype.slope_sigma / sqrt(2.0 * PI);
-		double sigma2 = 1.0 / (2.0 * pow(soiltype.slope_sigma, 2));
-
-		// Surface water level(mm)
+		// Surface water level(m)
 		double d = 0.0;
 
 		double dfdd, fd = 1.0;
@@ -3490,22 +3590,25 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 			i++;
 		}
 
-		// Update the submerged areal fraction using the new d value (Ekici et al. 2019; eqn 1)
+		// Update the submerged area fraction using the new d value (Ekici et al. 2019; eqn 1)
 		wmass_ssw_frac = 0.5 * (1.0 + erf(d * sigma_sqrt2));
 
 		// Update the interconnected fraction of surface water
 		wmass_ssw_con_frac = 0.0;
-		if (wmass_ssw_frac > soiltype.wmass_ssw_frac_thresh) {
-			wmass_ssw_con_frac = pow(wmass_ssw_frac - soiltype.wmass_ssw_frac_thresh, 0.14);
+		if (wmass_ssw_frac > wmass_ssw_frac_thresh) {
+			wmass_ssw_con_frac = pow(wmass_ssw_frac - wmass_ssw_frac_thresh, 0.14);
 		}
 
 		// Calculate surface water lateral runoff
-		if (wmass_ssw > soiltype.wmass_ssw_thresh) {
-			wflux_ssw_runoff = C_dw * soiltype.slope_grade_sin * wmass_ssw_con_frac * (wmass_ssw - soiltype.wmass_ssw_thresh) / dtsub;
+		wflux_ssw_runoff = 0.0;
+		if (wmass_ssw > wmass_ssw_thresh) {
+			wflux_ssw_runoff = min(1.0 / dtsub, C_dw * max(0.001, slope_grade_sin) * wmass_ssw_con_frac) * (wmass_ssw - wmass_ssw_thresh);
 		}
-		else {
-			wflux_ssw_runoff = 0.0;
-		}
+
+		dprintf("W %g Wthresh %g Wsurp %g Wflux %g Wcon %g fsat %g dtsub %g frac %g fracW %g fracWthres %g\n", 
+			wmass_ssw, wmass_ssw_thresh, max(0.0, wmass_ssw - wmass_ssw_thresh), 
+			wflux_ssw_runoff * dtsub, wmass_ssw_con_frac, fsat, 1.0 / dtsub, C_dw * max(0.001, slope_grade_sin) * wmass_ssw_con_frac,
+			wmass_ssw_frac, wmass_ssw_frac_thresh);
 	}
 	else {
 		// Very small amount of surface water -> all lost through surface runoff
@@ -3595,7 +3698,7 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 	wflux_soil -= wflux_soil_evap;
 
 	// Determine the maximum infiltration rate (mm s-1)
-	wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max * soiltype.slope_grade_cos;
+	wflux_infilt_max = (1.0 - fsat) * imp_ice * Kw_max * slope_grade_cos;
 
 	// Excess water that can't infiltrate (mm s-1)
 	wflux_soil_excess = max(0.0, wflux_soil - (1.0 - wmass_ssw_frac) * wflux_infilt_max);
@@ -3708,6 +3811,7 @@ void Soilcolumn::update_thermal_properties() {
 
 	// Update heat capacity and conductivity for each soil layer
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
 		soillayers[lyr].update_thermal_properties();
 	}
 
@@ -3772,73 +3876,6 @@ void Soilcolumn::update_thermal_properties_for_pad() {
 			pad_lyr.Kh = Kbedrock;
 			pad_lyr.Ch = Cbedrock;
 		}
-	}
-}
-
-/// Build diagonals and right hand side vector
-/** Build diagonals and right hand side vector
- */
-void build_diags_rhs(double dt, double f_top, double f_bot, CNpara& para, int n_soil_layers) {
-
-	// Upper boundary conditions
-	double l_p12 = para.diff[0] + (para.diff[1] - para.diff[0]) / (para.z[1] - para.z[0]) * para.dz[0] / 2.0; // Interpolate lambda_+1/2
-	double g_p12 = para.cond[0] + (para.cond[1] - para.cond[0]) / (para.z[1] - para.z[0]) * para.dz[0] / 2.0; // Interpolate gamma_+1/2
-	double beta_p = dt / 2.0 * l_p12 / para.dz[0] / (para.z[1] - para.z[0]) / para.cap[0];
-
-	para.lower[0] = 1.0e6; // Not used, initialize to known value
-	para.main[0] = 1.0 + beta_p;
-	para.upper[0] = -beta_p;
-
-	para.rhs[0] = (1. - beta_p) * para.psi[0] + beta_p * para.psi[1] - dt / para.cap[0] / para.dz[0] * (g_p12 - f_top) + para.sink[0] * dt;
-
-	// Middle terms
-	double l_m12, g_m12, beta_m;
-	for (int i = 1; i < n_soil_layers - 1; i++) {
-		l_m12 = l_p12;
-		l_p12 = para.diff[i] + (para.diff[i + 1] - para.diff[i]) / (para.z[i + 1] - para.z[i]) * para.dz[i] / 2.0;
-		beta_m = beta_p * para.dz[i - 1] / para.dz[i] * para.cap[i - 1] / para.cap[i];
-		beta_p = dt / 2.0 * l_p12 / para.dz[i] / (para.z[i + 1] - para.z[i]) / para.cap[i];
-
-		g_m12 = g_p12;
-		g_p12 = para.cond[i] + (para.cond[i + 1] - para.cond[i]) / (para.z[i + 1] - para.z[i]) * para.dz[i] / 2.;
-
-		para.lower[i] = -beta_m;
-		para.upper[i] = -beta_p;
-		para.main[i] = 1.0 + beta_m + beta_p;
-		para.rhs[i] = beta_m * para.psi[i - 1] + (1.0 - beta_m - beta_p) * para.psi[i] + beta_p * para.psi[i + 1]
-			- dt / para.cap[i] / para.dz[i] * (g_p12 - g_m12) + para.sink[i] * dt;
-	}
-
-	beta_m = beta_p * para.dz[n_soil_layers - 2] / para.dz[n_soil_layers - 1] * para.cap[n_soil_layers - 2] / para.cap[n_soil_layers - 1];
-	g_m12 = g_p12;
-
-	para.upper[n_soil_layers - 1] = 1.0e6; // Dummy value
-	para.main[n_soil_layers - 1] = 1.0 + beta_m;
-	para.lower[n_soil_layers - 1] = -beta_m;
-
-	para.rhs[n_soil_layers - 1] = beta_m * para.psi[n_soil_layers - 2] + (1.0 - beta_m) * para.psi[n_soil_layers - 1]
-		- dt / para.cap[n_soil_layers - 1] / para.dz[n_soil_layers - 1] * (f_bot - g_m12)
-		+ para.sink[n_soil_layers - 1] * dt;
-}
-
-/// Solve tridiagonal system
-/** Solve tridiagonal system
- */
-void solve_tridiagonal(CNpara& para) {
-
-	int n = (int)para.main.size();
-	assert(n == para.psi1.size());
-
-	for (int i = 1; i < n; i++) {
-		double w = para.lower[i] / para.main[i - 1];
-		para.main[i] -= w * para.upper[i - 1];
-		para.rhs[i] -= w * para.rhs[i - 1];
-	}
-
-	para.psi1[n - 1] = para.rhs[n - 1] / para.main[n - 1];
-
-	for (int i = n - 2; i >= 0; i--) {
-		para.psi1[i] = (para.rhs[i] - para.upper[i] * para.psi1[i + 1]) / para.main[i];
 	}
 }
 
@@ -4030,13 +4067,14 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 /// Update surface standing water temperatures due to water addition
 /** Update surface standing water temperatures due to water addition
  */
-void Soilcolumn::update_ssw_temp(double temp_add, double wmass_add) {
+void Soilcolumn::update_ssw_temp(double temp_add, double wmass_add, double imass_add) {
 
 	// Only update standing water temperature if the added water is positive. 
 	// Negative would be removal of water and would not change temperature.
-	if (wmass_add > 1.0e-6) {
-		temp_ssw = (temp_ssw * (wmass_ssw + imass_ssw) * Ch_ssw + temp_add * wmass_add * Cp_water) /
-			((wmass_ssw + imass_ssw) * Ch_ssw + wmass_add * Cp_water);
+	if (wmass_add > 1.0e-6 || imass_add > 1.0e-6) {
+		temp_ssw = (temp_ssw * (wmass_ssw + imass_ssw) * Ch_ssw + temp_add * wmass_add * Cp_water +
+			temp_add * imass_add * Cp_ice) /
+			((wmass_ssw + imass_ssw) * Ch_ssw + wmass_add * Cp_water + imass_add * Cp_ice);
 	}
 }
 
@@ -4625,6 +4663,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Runon
 	fluxes.report_flux(Fluxes::WADDED, runon + waddon);
+
+	evap_prev = evap;
 
 
 	// Update CO2 level in acrotelm
@@ -5591,7 +5631,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// Mixed-form of the Richards equation hydrology
 
 	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], wflux_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
-		Kw[NSOILLAYERS_MAX],dKwdw[NSOILLAYERS_MAX],psi[NSOILLAYERS_MAX],dpsidw[NSOILLAYERS_MAX],
+		Kw[NSOILLAYERS_MAX],dKwdw[NSOILLAYERS_MAX],Psi[NSOILLAYERS_MAX],dPsidw[NSOILLAYERS_MAX],
 		qin[NSOILLAYERS_MAX],qout[NSOILLAYERS_MAX],dqidw0[NSOILLAYERS_MAX],dqidw1[NSOILLAYERS_MAX],
 		dqodw1[NSOILLAYERS_MAX],dqodw2[NSOILLAYERS_MAX],rmx[NSOILLAYERS_MAX],amx[NSOILLAYERS_MAX],
 		bmx[NSOILLAYERS_MAX],cmx[NSOILLAYERS_MAX],dwat[NSOILLAYERS_MAX],wmass_org[NSOILLAYERS_MAX];
@@ -5767,15 +5807,15 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 					// time per mm
 					dt_dz[lyr] = dtsub / soillayer.depth;
 					Kw[lyr] = soillayer.Kw;
-					psi[lyr] = soillayer.psi;
+					Psi[lyr] = soillayer.Psi;
 					dKwdw[lyr] = soillayer.dKwdw;
-					dpsidw[lyr] = soillayer.dpsidw;
+					dPsidw[lyr] = soillayer.dPsidw;
 					dz[lyr] = soillayer.depth;
 					wflux_root[lyr] = aet_layer[lyr] / SECS_PER_DAY;
 				}
 
 				// Soil moisture fluxes and their derivatives
-				compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_ssw_drain, Kw, psi, dKwdw, dpsidw, qin, qout,
+				compute_moisture_fluxes_and_derivs(wflux_infilt + wflux_ssw_drain, Kw, Psi, dKwdw, dPsidw, qin, qout,
 					dqidw0, dqidw1, dqodw1, dqodw2, vws_liq, dz, nsoillayers_sim);
 
 				// RHS of system of equations
@@ -5876,7 +5916,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 
 				// Slope dependant drainage of liquid water above fixed fraction of wsats (CLM5.0 eqn 7.106 and 107; mm s-1)
 				// Depends on the side area of the soil layer in m -> soillayer.depth * M_PER_MM
-				double drained_wmass = min(wmass_avail, C_dw * soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * soiltype.slope_grade_sin * soillayer.depth * M_PER_MM * dtsub);
+				double drained_wmass = min(wmass_avail, C_dw * soillayer.Kw * ice_imp(soillayer.imass / soillayer.wsats) * slope_grade_sin * soillayer.depth * M_PER_MM * dtsub);
 				soillayer.runoff_drain += drained_wmass;
 				soillayer.wmass -= drained_wmass;
 			}
@@ -5925,6 +5965,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	fluxes.report_flux(Fluxes::WEVAP, evap);
 	fluxes.report_flux(Fluxes::WTRAN, aet_total);
 
+	evap_prev = evap;
+
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -5957,7 +5999,7 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 }
 
 void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw[NSOILLAYERS_MAX], 
-	double psi[NSOILLAYERS_MAX], double dKwdw[NSOILLAYERS_MAX], double dpsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+	double Psi[NSOILLAYERS_MAX], double dKwdw[NSOILLAYERS_MAX], double dPsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
 	double qout[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], 
 	double dqodw2[NSOILLAYERS_MAX], double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], 
 	int nsoillayers_sim) {
@@ -5993,13 +6035,13 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 	// compute flux at the bottom of the lyr - th layer
 	// NOTE: Kw[lyr] is hydraulic conductivity at the bottom of the lyr - th layer
-	num = psi[tlyr + 1] - psi[tlyr];
+	num = Psi[tlyr + 1] - Psi[tlyr];
 	den = dz[tlyr];
 	qout[tlyr] = -Kw[tlyr] * num / den + Kw[tlyr];
 
 	// compute flux derivatives
-	dqodw1[tlyr] = (Kw[tlyr] * dpsidw[tlyr] - dKwdw1 * num) / den + dKwdw1;
-	dqodw2[tlyr] = (-Kw[tlyr] * dpsidw[tlyr + 1] - dKwdw2 * num) / den + dKwdw2;
+	dqodw1[tlyr] = (Kw[tlyr] * dPsidw[tlyr] - dKwdw1 * num) / den + dKwdw1;
+	dqodw2[tlyr] = (-Kw[tlyr] * dPsidw[tlyr + 1] - dKwdw2 * num) / den + dKwdw2;
 
 	// Interior nodes
 
@@ -6021,13 +6063,13 @@ void Soilcolumn::compute_moisture_fluxes_and_derivs(double wflux_infl, double Kw
 
 		// compute flux at the bottom of the lyr - th layer
 		// NOTE: Kw[lyr] is hydraulic conductivity at the bottom of the j - th  layer
-		num = psi[lyr + 1] - psi[lyr];
+		num = Psi[lyr + 1] - Psi[lyr];
 		den = dz[lyr];
 		qout[lyr] = -Kw[lyr] * num / den + Kw[lyr];
 
 		// compute flux derivatives
-		dqodw1[lyr] = (Kw[lyr] * dpsidw[lyr] - dKwdw1 * num) / den + dKwdw1;
-		dqodw2[lyr] = (-Kw[lyr] * dpsidw[lyr + 1] - dKwdw2 * num) / den + dKwdw2;
+		dqodw1[lyr] = (Kw[lyr] * dPsidw[lyr] - dKwdw1 * num) / den + dKwdw1;
+		dqodw2[lyr] = (-Kw[lyr] * dPsidw[lyr + 1] - dKwdw2 * num) / den + dKwdw2;
 	}
 
 	// bottom layer
@@ -6700,9 +6742,11 @@ void Soilcolumn::calc_temp() {
 		ki[NLAYERS_MAX + 1],
 		ci[NLAYERS_MAX + 1];
 
+	// Air temperature 
 	double airT = patch.get_climate().temp;
 
-	int ttimesteps = 5;
+	// Number of sub timesteps to be calculated
+	int stimesteps = 6;
 
 	// If a snowpack and standing water is present then soak snowpack
 	if (!negligible(wcont_ssw()) && !negligible(snow.depth())) {
@@ -6712,13 +6756,13 @@ void Soilcolumn::calc_temp() {
 	// Update heat capacity and thermal conductivity for snow, standing water, soil and padding layers
 	update_thermal_properties();
 
-	for (int ts = 0; ts < ttimesteps; ts++) {
+	for (int ts = 0; ts < stimesteps; ts++) {
 
 		int nsurflayers = 0;
 		bool combine_surf_soil = false;
 
 		// Layer above soil exists
-		if (snow.depth() + wcont_ssw() > 0.0) {
+		if (!negligible(snow.depth() + wcont_ssw())) {
 
 			// Layer above soil is thinner that 50% of top soil layer
 			// Should be combined with top soil layer for computational stability
@@ -6727,10 +6771,12 @@ void Soilcolumn::calc_temp() {
 				// Combine additional surface layers with top soil layer
 				combine_surf_soil = true;
 
+				// We have no surface layer
 				nsurflayers = 0;
 			}
 			else {
 
+				// We have a minimum of one surface layer
 				nsurflayers = max(1, snow.nsnowlayers);
 			}
 		}
@@ -6746,7 +6792,7 @@ void Soilcolumn::calc_temp() {
 		ki[0] = Kair * SECS_PER_DAY / MM_PER_M;
 		temp[0] = airT;
 
-		// Additional layers
+		// Add additional layers
 		if (nsurflayers) {
 			if (snow.depth()) {
 				int slyr = snow.nsnowlayers - 1;
@@ -6827,7 +6873,9 @@ void Soilcolumn::calc_temp() {
 			temp[lyr] = pad_lyr.temp;
 		}
 
-		cnstep_full(airT, 1.0 / ttimesteps, nairsurfsoilpadlayers, temp, dz, ki, ci);
+		// Calculated temperatures using the Crank-Nicholson timestepper algorithm 
+		// for temperature diffusion equation
+		cnstep_full(airT, 1.0 / (double)stimesteps, nairsurfsoilpadlayers, temp, dz, ki, ci);
 
 		// Update temperatures
 
@@ -6860,7 +6908,8 @@ void Soilcolumn::calc_temp() {
 			pad[lyr - nairsurfsoillayers].temp = temp[lyr];
 		}
 
-		// Phase change between water and ice and adjust snow, standing water, and soil layer temperatures accordingly
+		// Phase change between water and ice and adjust snow, standing water, 
+		// and soil layer temperatures accordingly
 		phase_change();
 	}
 
@@ -6869,6 +6918,26 @@ void Soilcolumn::calc_temp() {
 
 	// Update snow properties
 	snow.balance_snow(patch, rain_melt, rain_melt_temp);
+
+	if (date.year >= 300 && date.year < 301) { // DW_COMMENT
+		dprintf("Year %d Day %d ", date.year, date.day);
+		for (int i = 0; i < snow.nsnowlayers; i++) {
+			dprintf("Depth%d %g ", i, snow.snowlayers[i].depth);
+		}
+
+		for (int i = snow.nsnowlayers; i < 5; i++) {
+			dprintf("Depth%d %g ", i, 0.0);
+		}
+
+		for (int i = 0; i < snow.nsnowlayers; i++) {
+			dprintf("Dens%d %g ", i, snow.snowlayers[i].dens);
+		}
+
+		for (int i = snow.nsnowlayers; i < 5; i++) {
+			dprintf("Dens%d %g ", i, 0.0);
+		}
+		dprintf("\n");
+	}
 
 	// Thaw depth calculation
 	thaw_depth();
@@ -6996,162 +7065,7 @@ void Soilcolumn::calc_root_volume() {
 			soillayer.wp = soiltype.wp_min * eff_volume_frac * soillayer.depth;
 			soillayer.awc = soiltype.awc_min * eff_volume_frac * soillayer.depth;
 			soillayer.wsats = soiltype.wsats_min * eff_volume_frac * soillayer.depth;
-			soillayer.por = soillayer.wsats;
 		}
-	}
-}
-
-/// Vertical mixing (diffusion) of soil organic matter
-/** Vertical mixing (diffusion) of soil organic matter
-*  Cryoturbation processes on the vertical profile of SOM stocks are captured
-*  by considering a simple diffusion scheme.
-*/
-void Soilcolumn::vertical_mixing(pooltype p, double ald, double timestep) {
-
-	if (patch.stand.landcover == PEATLAND || !ifverticalmixing) {
-		return;
-	}
-
-	// Fixed multiplier to the active layer depth for maximum mixing depth
-	double k = 3.0;
-
-	// active layer depth is not deep enough to create any vertical mixing then return
-	if (k * ald < soillayers[1].depth_profile * M_PER_MM)
-		return;
-
-	// Diffusion constant resulting from the mixing due to cryoturbation (m2 yr-1)
-	double Dc_0 = 0.0001;
-
-	// Top and bottom boundary conditions are zero for soil mixing
-	double f_top = 0.0;
-	double f_bot = 0.0;
-
-	CNpara VMpara;
-
-	VMpara.set_sizes(nsoillayers);
-
-	// Populate Crank-Nicholson struct
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-
-		Soillayer& soillayer = soillayers[lyr];
-
-		VMpara.dz[lyr] = soillayer.depth * M_PER_MM;
-		VMpara.z[lyr] = soillayer.depth_profile * M_PER_MM;
-
-		// SOM pool C concentration
-		VMpara.psi[lyr] = soillayer.sompool[p].cmass / VMpara.dz[lyr];
-
-		// SOM pool C concentration
-		VMpara.cap[lyr] = 1.0;
-
-		// Depth of mixing is a function of the active layer depth, with mixing rates 
-		// constant through the active layer and tapering linearly to zero at a depth of some 
-		// constant (k) times the active layer depth (Koven 2009 eqn 3)
-		if (VMpara.z[lyr] < ald) {
-			VMpara.diff[lyr] = Dc_0;
-		}
-		else if (VMpara.z[lyr] > k * ald) {
-			VMpara.diff[lyr] = 0.0;
-		}
-		else {
-			VMpara.diff[lyr] = Dc_0 * (1.0 - min(1.0, (VMpara.z[lyr] - ald) / ((k - 1.0) * ald)));
-		}
-	}
-
-	// Build diagonals and RHS vector
-	build_diags_rhs(timestep, f_top, f_bot, VMpara, nsoillayers);
-
-	// Solve tridiagonal system
-	solve_tridiagonal(VMpara);
-
-	// Calculate carbon fluxes between soil layers
-	// Positive flow to layer below
-	// Negative flow from layer below
-	double cfluxes[NSOILLAYERS_MAX];
-	cfluxes[0] = (VMpara.psi[0] - VMpara.psi1[0]) * VMpara.dz[0];
-	cfluxes[0] = negligible(cfluxes[0], 1.0e-12) ? 0.0 : cfluxes[0];
-	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
-		cfluxes[lyr] = cfluxes[lyr - 1] + (VMpara.psi[lyr] - VMpara.psi1[lyr]) * VMpara.dz[lyr];
-		cfluxes[lyr] = negligible(cfluxes[lyr], 1.0e-12) ? 0.0 : cfluxes[lyr];
-	}
-
-	// Check for inconsistencies in downwards flux, no negative C mass
-	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
-
-		Sompool& sompool = soillayers[lyr].sompool[p];
-
-		if (lyr == 0) {
-			if (sompool.cmass - cfluxes[lyr] < 0.0) {
-				cfluxes[lyr] = sompool.cmass;
-			}
-		}
-		else {
-			if (sompool.cmass + cfluxes[lyr - 1] - cfluxes[lyr] < 0.0 && cfluxes[lyr] > 0.0) {
-				double neg_c = sompool.cmass + cfluxes[lyr - 1] - cfluxes[lyr];
-				cfluxes[lyr] += max(neg_c, -cfluxes[lyr]);
-			}
-		}
-	}
-
-	// Check for inconsistencies in upwards flux, no negative C mass
-	for (int lyr = 1; lyr < nsoillayers - 1; lyr++) {
-
-		Sompool& sompool = soillayers[lyr].sompool[p];
-
-		if (sompool.cmass + cfluxes[lyr - 1] - cfluxes[lyr] < 0.0) {
-			if (cfluxes[lyr - 1] < 0.0) {
-				double neg_c = sompool.cmass + cfluxes[lyr - 1] - cfluxes[lyr];
-				cfluxes[lyr - 1] -= neg_c;
-			}
-			if (cfluxes[lyr - 1] > 0.0)
-				dprintf("ERROR: VERTICAL_MIX lyr %d flux should be negative or zero %g\n", lyr, cfluxes[lyr - 1]);
-		}
-	}
-
-	double delta_cmass[NSOILLAYERS_MAX] = { 0.0 };
-	double delta_nmass[NSOILLAYERS_MAX] = { 0.0 };
-
-	// Calculate C and N mass changes
-	double cmove, nmove, frac;
-	for (int lyr = 0; lyr < nsoillayers - 1; lyr++) {
-
-		Sompool& sompool_current = soillayers[lyr].sompool[p];
-		Sompool& sompool_below = soillayers[lyr + 1].sompool[p];
-
-		if (cfluxes[lyr] > 0.0 && !negligible(sompool_current.cmass)) {
-			frac = max(0.0, cfluxes[lyr] / sompool_current.cmass);
-			cmove = frac * sompool_current.cmass;
-			nmove = frac * sompool_current.nmass;
-
-			delta_cmass[lyr] -= cmove;
-			delta_nmass[lyr] -= nmove;
-			delta_cmass[lyr + 1] += cmove;
-			delta_nmass[lyr + 1] += nmove;
-		}
-		else if (cfluxes[lyr] < 0.0 && !negligible(sompool_below.cmass)) {
-			frac = max(0.0, -cfluxes[lyr] / sompool_below.cmass);
-			cmove = frac * sompool_below.cmass;
-			nmove = frac * sompool_below.nmass;
-
-			delta_cmass[lyr + 1] -= cmove;
-			delta_nmass[lyr + 1] -= nmove;
-			delta_cmass[lyr] += cmove;
-			delta_nmass[lyr] += nmove;
-		}
-	}
-
-	if (delta_cmass[0] > 0.0) {
-		delta_cmass[1] += delta_cmass[0];
-		delta_nmass[1] += delta_nmass[0];
-		delta_cmass[0] = 0.0;
-		delta_nmass[0] = 0.0;
-	}
-
-	// Make C and N changes
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
-		Sompool& sompool = soillayers[lyr].sompool[p];
-		sompool.cmass += delta_cmass[lyr];
-		sompool.nmass += delta_nmass[lyr];
 	}
 }
 
@@ -7597,23 +7511,37 @@ void Soilcolumn::vertical_movement() {
 /** Serialize soilcolumn variables
  */
 void Soilcolumn::serialize(ArchiveStream& arch) {
-	arch & soillayers
-		& anfix
-		& anfix_mean
-		& mald_mean
-		& awtp
-		& anfix_calc
+	arch & depth
+		& nsoillayers
 		& wmass_ssw
 		& imass_ssw
 		& temp_ssw
-		& pad
-		& fNH4uptake_mean
-		& fNO3uptake_mean
-		& solvesomcent_beginyr
-		& solvesomcent_endyr;
+		& nacrotelm
+		& ncatotelm
+		& snow
+		& maxthaw_10
+		& slope_grade_sin
+		& slope_grade_cos
+		& slope_sigma
+		& sigma_sqrt2
+		& sigma_sqrt2pi
+		& sigma2
+		& wmass_ssw_frac_thresh
+		& wmass_ssw_thresh
+		& evap_prev;
+
+	for (int i = 0; i < NSOILLAYERS_MAX; i++) {
+		arch & soillayerdepths[i];
+	}
+
+	for (int i = 0; i < nsoillayers; i++) {
+		arch & soillayers[i];
+	}
+
+	for (int i = 0; i < NPADLAYERS; i++) {
+		arch & pad[i];
+	}
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

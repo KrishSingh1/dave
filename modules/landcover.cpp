@@ -1583,8 +1583,6 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.set_properties(wmass_add, imass_add, true);
 					}
 
-					soilcolumn.tpara.set_sizes(soilcolumn.nsoillayers + NPADLAYERS);
-
 					// Soil padding
 					for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 						padding& pad_lyr = soilcolumn.pad[lyr];

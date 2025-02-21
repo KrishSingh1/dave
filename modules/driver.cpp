@@ -800,19 +800,6 @@ void dailyaccounting_patch(Patch& patch) {
 
 		// Calculate soil layers root volume
 		soilcolumn.calc_root_volume();
-		
-		// Vertical soil C mixing (diffusion)
-		
-		// Diffusion is on a yearly timestep and as vertical mixing is done monthly
-		// the timestep will be 1 / 12
-		double timestep = 1.0 / 12.0;
-
-		// Active layer depth
-		double ald = min(soilcolumn.depth, max(0.0, soilcolumn.thaw)) * M_PER_MM;
-
-		// Vertical mixing of slow and passive SOM pools restricted by active layer depth
-		soilcolumn.vertical_mixing(SLOWSOM, ald, timestep);
-		soilcolumn.vertical_mixing(PASSIVESOM, ald, timestep);
 
 		// Vertical movement if matter in soil layer exceed maximum volume
 		soilcolumn.vertical_movement();
@@ -834,8 +821,13 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
-	// Initiate soil water
+	// Initiate slope properties and soil water
 	if (date.year == 0 && date.day == 0) {
+
+		// Set fixed slope properties of the soil
+		soilcolumn.set_slope_properties();
+
+		// Initial soil water content
 		soilcolumn.init_water();
 	}
 

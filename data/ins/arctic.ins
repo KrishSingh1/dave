@@ -177,7 +177,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 5			! Number of replicate patches to simulate
+npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -231,7 +231,6 @@ top_depth 500.0			! Additional depth ontop of snowpack to account for radiation 
 iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
 ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
-ifverticalmixing 0              ! Whether to vertical mix soil organic matter
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 

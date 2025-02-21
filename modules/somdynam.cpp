@@ -1811,8 +1811,6 @@ void equilsom(Patch& patch) {
 				soilcolumn.anfix_mean /= EQUILSOM_YEARS;
 		}
 
-		// Vertical mixing time step (every 4 year)
-		const int VMTIMESTEP = 4;
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
 		const int SAME_TREND_MAX = 5;
 		// Maximum multiplier
@@ -1905,9 +1903,6 @@ void equilsom(Patch& patch) {
 			// nitrogen uptake and leaching for NYEARS years with monthly timesteps
 			for (int yr = 0; yr < EQUILSOM_YEARS; yr++) {
 
-				// To do vertical mixing this year
-				int vertmix = yr%VMTIMESTEP;
-
 				// Monthly time steps
 				for (int m = 0; m < 12; m++) {
 
@@ -1992,12 +1987,6 @@ void equilsom(Patch& patch) {
 					// Monthly decomposition and fluxes between SOM pools
 					// and nitrogen flux from soil
 					somfluxes(patch, true, false);
-
-					if (patch.stand.landcover != PEATLAND && !vertmix && ifverticalmixing) {
-
-						soilcolumn.vertical_mixing(SLOWSOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
-						soilcolumn.vertical_mixing(PASSIVESOM, soilcolumn.mald_mean[m], (double)VMTIMESTEP / 12.0);
-					}
 				}
 
 				// Vertical movement of organic matter if C density of soil layer exceed maximum

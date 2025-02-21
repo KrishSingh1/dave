@@ -90,7 +90,6 @@ int peat_age;
 bool iforganicsoilproperties;		// Whether to update physical soil properties using soil carbon content (1), or not (0)
 bool ifeffvolume;					// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
-bool ifverticalmixing;              // Whether vertically mix soil organic matter
 bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
 
 wateruptaketype wateruptake;
@@ -560,8 +559,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)");
 		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,
 			"Whether to use depth soil organic matter decay rate modifier (1), or not (0)");
-		declareitem("ifverticalmixing", &ifverticalmixing, 1, CB_NONE,
-			"Whether to vertically mox soil organic matter (1), or not (0)");
 		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
 			"Whether thaw depth affects root distribution (1 by default), or not (0)");
 
@@ -1328,7 +1325,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
 		if (!itemparsed("ifeffvolume")) badins("ifeffvolume");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
-		if (!itemparsed("ifverticalmixing")) badins("ifverticalmixing");
 		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
 
 		if (hydrology == GERTEN) {

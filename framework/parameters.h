@@ -373,9 +373,6 @@ extern bool ifeffvolume;
 /// Whether to use depth soil organic matter decay rate modifier
 extern bool ifdepthdecaymod;
 
-/// Whether to vertically mix soil organic matter
-extern bool ifverticalmixing;
-
 /// Whether thaw depth affects root distribution
 extern bool ifthawaffectrootdist;
 

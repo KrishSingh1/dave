@@ -507,46 +507,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Slope [degree] limits
 	slope = min(90.0, max(0.0, slope));
 
-	// Slope in radians
-	double slope_rad = slope * PI / 180.0;
-
-	// Slope gradient [m m-1]
-	soiltype.slope_grade_tan = tan(slope_rad); // DW_COMMENT not used
-	soiltype.slope_grade_sin = sin(slope_rad);
-	soiltype.slope_grade_cos = cos(slope_rad);
-
-	// Beta_0 as a function of maximum topographical distribution (Ekcic et al. 2019; eqn 3)
-	double beta_0 = 1.357209;
-	// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
-	soiltype.slope_sigma = pow(slope_rad + beta_0, -3.0) * MM_PER_M;
-
-	// Fraction of the area that is inundated threshold below which no 
-	// single connected inundated area spans the grid cell
-	soiltype.wmass_ssw_frac_thresh = 0.4;
-
-	// Calculate surface water threshold below which no single connected  
-	// inundated area spans the grid cell (Ekcic et al. 2019 and CLM 5.0 code)
-	if (soiltype.slope_sigma > 1.0e-6) {
-
-		// Surface water level (mm)
-		double d = 0.0;
-
-		// Determine surface water threshold
-		for (int i = 0; i < 4; i++) {
-			double fd = 0.5 * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) - soiltype.wmass_ssw_frac_thresh;
-			double dfdd = exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2))) / (soiltype.slope_sigma * sqrt(2.0 * PI));
-			d -= fd / dfdd;
-		}
-
-		// Surface water threshold below which no single connected  
-		// inundated area spans the grid cell (mm)
-		soiltype.wmass_ssw_thresh = 0.5 * d * (1.0 + erf(d / (soiltype.slope_sigma * sqrt(2.0)))) +
-			soiltype.slope_sigma / sqrt(2.0 * PI) * exp(-pow(d, 2) / (2.0 * pow(soiltype.slope_sigma, 2)));
-	}
-	else {
-		soiltype.wmass_ssw_thresh = 0.0;
-	}
-
 	// Soil depth
 	// soil_depth is defined in global.ins
 	// if zero then use input map of soil depth

@@ -3604,11 +3604,6 @@ void Soilcolumn::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_
 		if (wmass_ssw > wmass_ssw_thresh) {
 			wflux_ssw_runoff = min(1.0 / dtsub, C_dw * max(0.001, slope_grade_sin) * wmass_ssw_con_frac) * (wmass_ssw - wmass_ssw_thresh);
 		}
-
-		dprintf("W %g Wthresh %g Wsurp %g Wflux %g Wcon %g fsat %g dtsub %g frac %g fracW %g fracWthres %g\n", 
-			wmass_ssw, wmass_ssw_thresh, max(0.0, wmass_ssw - wmass_ssw_thresh), 
-			wflux_ssw_runoff * dtsub, wmass_ssw_con_frac, fsat, 1.0 / dtsub, C_dw * max(0.001, slope_grade_sin) * wmass_ssw_con_frac,
-			wmass_ssw_frac, wmass_ssw_frac_thresh);
 	}
 	else {
 		// Very small amount of surface water -> all lost through surface runoff

@@ -4634,6 +4634,8 @@ public:
 	void wflow_temp(double temp_infilt);
 	/// Update surface standing water temperatures due to water fluxes
 	void update_ssw_temp(double temp_add, double wmass_add, double imass_add = 0.0);
+	/// Update surface standing water content
+	void update_ssw(double& mass, double mass_add);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties();
 	/// Set padding layers depth

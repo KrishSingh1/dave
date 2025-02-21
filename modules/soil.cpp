@@ -813,7 +813,9 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 
 				// Add excess water to surface standing water
 				patch.soilcolumn.update_ssw_temp(snowlayer.temp, added_wmass);
-				patch.soilcolumn.wmass_ssw += added_wmass;
+
+				// Update standing water content (mm)
+				patch.soilcolumn.update_ssw(patch.soilcolumn.wmass_ssw, added_wmass);
 			}
 
 			snowlayers.erase(snowlayers.begin() + lyr);
@@ -853,7 +855,9 @@ void Snow::balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp)
 
 	// Add excess water to standing water
 	patch.soilcolumn.update_ssw_temp(ts_melt_temp, ts_melt);
-	patch.soilcolumn.wmass_ssw += ts_melt;
+
+	// Update standing water content (mm)
+	patch.soilcolumn.update_ssw(patch.soilcolumn.wmass_ssw, ts_melt);
 }
 
 /// Phase change within the snow pack
@@ -2514,7 +2518,7 @@ void Soilcolumn::set_slope_properties() {
 
 	// Fraction of the area that is inundated threshold below which no 
 	// single connected inundated area spans the grid cell
-	wmass_ssw_frac_thresh = 0.3;// 4;
+	wmass_ssw_frac_thresh = 0.4;
 
 	// Calculate surface water threshold below which no single connected  
 	// inundated area spans the grid cell (Ekcic et al. 2019 and CLM 5.0 code)
@@ -2530,7 +2534,6 @@ void Soilcolumn::set_slope_properties() {
 			double fd = 0.5 * (1.0 + erf(d * sigma_sqrt2)) - wmass_ssw_frac_thresh;
 			double dfdd = exp(-pow(d, 2) * sigma2) / (slope_sigma * sqrt(2.0 * PI));
 			d -= fd / dfdd;
-			dprintf("d %g\n",d);
 		}
 
 		// Surface water threshold below which no single connected  
@@ -3282,7 +3285,7 @@ double Soilcolumn::var_depth_ncont(double depth_start, double depth_end, grouppo
 */
 void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 
-	if (negligible(wmass_ssw + imass_ssw) || snow.nsnowlayers) {
+	if (negligible(wmass_ssw + imass_ssw, 1.0e-10) || snow.nsnowlayers) {
 
 		// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
 		// Constant [kg m-3]
@@ -3315,8 +3318,8 @@ void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 		// Update surface standing water
 		update_ssw_temp(airT, 0.0, prec);
 
-		// Add snow as ice
-		imass_ssw += prec;
+		// Update standing ice content (mm)
+		update_ssw(imass_ssw, prec);
 
 		// Do phase change of standing suface water
 		phase_change_ssw();
@@ -3512,8 +3515,9 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 	}
 
 	double w_end = wcont_ssw() + snow.wcontent() + rain_melt;
-	if (fabs(w_begin - w_end) > 1.0e-10)
+	if (fabs(w_begin - w_end) > 1.0e-10) {
 		dprintf("Year %d Day %d ERROR: Snow snow_or_rainfall diff %g\n", date.year, date.day, w_begin - w_end);
+	}
 }
 
 /// Routine that calculate surface evaporation, infiltration and runoff
@@ -3823,7 +3827,7 @@ void Soilcolumn::update_thermal_properties_for_ssw() {
 	double depth_ssw = wmass_ssw + imass_ssw;
 
 	// No standing water then return
-	if (negligible(depth_ssw)) {
+	if (negligible(depth_ssw, 1.0e-10)) {
 		return;
 	}
 
@@ -4070,6 +4074,21 @@ void Soilcolumn::update_ssw_temp(double temp_add, double wmass_add, double imass
 		temp_ssw = (temp_ssw * (wmass_ssw + imass_ssw) * Ch_ssw + temp_add * wmass_add * Cp_water +
 			temp_add * imass_add * Cp_ice) /
 			((wmass_ssw + imass_ssw) * Ch_ssw + wmass_add * Cp_water + imass_add * Cp_ice);
+	}
+}
+
+/// Update surface standing water content
+/** Update surface standing water content
+ */
+void Soilcolumn::update_ssw(double& mass, double mass_add) {
+
+	mass += mass_add;
+
+	// Very small amount of surface standing water
+	// then it is lost as suface runoff
+	if (negligible(mass, 1.0e-10)) {
+		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, mass);
+		mass = 0.0;
 	}
 }
 
@@ -4433,8 +4452,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		// Update standing water temperature
 		update_ssw_temp(rain_melt_temp, wmass_ssw_added);
 
-		// Add water to standing water (mm)
-		wmass_ssw += wmass_ssw_added;
+		// Update standing water content (mm)
+		update_ssw(wmass_ssw, wmass_ssw_added);
 
 		// Accumulate evaporation
 		evap = wflux_evap * dtsub;
@@ -4486,8 +4505,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 				// Update standing water temperature // DW_COMMENT don't know where the excess water comes from???
 				//update_ssw_temp(soillayers[0].temp, wmass_added);
 
-				// Add water to standing water
-				wmass_ssw += wmass_added;
+				// Update standing water content (mm)
+				update_ssw(wmass_ssw, wmass_added);
 			}
 			wtp = maxh;
 		}
@@ -5834,8 +5853,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		// Update standing water temperature // Not totally correct
 		update_ssw_temp(rain_melt_temp, wmass_ssw_added);
 
-		// Add water to surface standing water (mm)
-		wmass_ssw += wmass_ssw_added;
+		// Update standing water content (mm)
+		update_ssw(wmass_ssw, wmass_ssw_added);
 
 		// Accumulate evaporation
 		evap += wflux_evap * dtsub;
@@ -5894,7 +5913,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 					soillayers[lyr - 1].wmass += wmass_excess;
 				}
 				else {
-					wmass_ssw += wmass_excess;
+					// Update standing water content (mm)
+					update_ssw(wmass_ssw, wmass_excess);
 				}
 				soillayer.wmass -= wmass_excess;
 			}
@@ -6454,7 +6474,10 @@ void Soilcolumn::phase_change_ssw() {
 	// Surface standing water depth
 	double depth_ssw = wmass_ssw + imass_ssw;
 
-	if (negligible(depth_ssw)) {
+	if (negligible(depth_ssw, 1.0e-10)) {
+		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, depth_ssw);
+		wmass_ssw = 0.0;
+		imass_ssw = 0.0;
 		return;
 	}
 
@@ -6626,6 +6649,20 @@ void Soilcolumn::phase_change_ssw() {
 	if (imass_ssw < -EPS) {
 		fail("ERROR: Negative imass at end of phase_change_ssw! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
 			date.year, date.day, depth_ssw, delta_T, phase_change_energy, wmass_ssw, imass_ssw);
+	}
+
+	// Very small amount of surface standing water
+		// then it is lost as suface runoff
+	if (negligible(wmass_ssw, 1.0e-10)) {
+		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, wmass_ssw);
+		wmass_ssw = 0.0;
+	}
+
+	// Very small amount of surface standing ice
+	// then it is lost as suface runoff
+	if (negligible(imass_ssw, 1.0e-10)) {
+		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, imass_ssw);
+		imass_ssw = 0.0;
 	}
 }
 
@@ -6913,26 +6950,6 @@ void Soilcolumn::calc_temp() {
 
 	// Update snow properties
 	snow.balance_snow(patch, rain_melt, rain_melt_temp);
-
-	if (date.year >= 300 && date.year < 301) { // DW_COMMENT
-		dprintf("Year %d Day %d ", date.year, date.day);
-		for (int i = 0; i < snow.nsnowlayers; i++) {
-			dprintf("Depth%d %g ", i, snow.snowlayers[i].depth);
-		}
-
-		for (int i = snow.nsnowlayers; i < 5; i++) {
-			dprintf("Depth%d %g ", i, 0.0);
-		}
-
-		for (int i = 0; i < snow.nsnowlayers; i++) {
-			dprintf("Dens%d %g ", i, snow.snowlayers[i].dens);
-		}
-
-		for (int i = snow.nsnowlayers; i < 5; i++) {
-			dprintf("Dens%d %g ", i, 0.0);
-		}
-		dprintf("\n");
-	}
 
 	// Thaw depth calculation
 	thaw_depth();

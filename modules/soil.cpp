@@ -1709,9 +1709,11 @@ void Soillayer::freeze_lyr() {
 	}
 
 	// If monthly mean soil temperature is below freezing half of the year
-	// then fill soil layer and freeze all water.
+	// then fill soil layer with half of what is left to saturation and then 
+	// freeze all water.
 	if (freeze_mths >= 6) {
-		imass = hydrology == RICHARDS ? wsats : fc();
+		double imass_max = hydrology == RICHARDS ? wsats : fc();
+		imass = wmass + imass + 0.5 * max(0.0, (imass_max - (wmass + imass)));
 		wmass = 0.0;
 	}
 }
@@ -5645,17 +5647,21 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// Mixed-form of the Richards equation hydrology
 
 	double dz[NSOILLAYERS_MAX], vws_liq[NSOILLAYERS_MAX], wflux_root[NSOILLAYERS_MAX], dt_dz[NSOILLAYERS_MAX],
-		Kw[NSOILLAYERS_MAX],dKwdw[NSOILLAYERS_MAX],Psi[NSOILLAYERS_MAX],dPsidw[NSOILLAYERS_MAX],
-		qin[NSOILLAYERS_MAX],qout[NSOILLAYERS_MAX],dqidw0[NSOILLAYERS_MAX],dqidw1[NSOILLAYERS_MAX],
-		dqodw1[NSOILLAYERS_MAX],dqodw2[NSOILLAYERS_MAX],rmx[NSOILLAYERS_MAX],amx[NSOILLAYERS_MAX],
-		bmx[NSOILLAYERS_MAX],cmx[NSOILLAYERS_MAX],dwat[NSOILLAYERS_MAX],wmass_org[NSOILLAYERS_MAX];
+		Kw[NSOILLAYERS_MAX], dKwdw[NSOILLAYERS_MAX], Psi[NSOILLAYERS_MAX], dPsidw[NSOILLAYERS_MAX],
+		qin[NSOILLAYERS_MAX], qout[NSOILLAYERS_MAX], dqidw0[NSOILLAYERS_MAX], dqidw1[NSOILLAYERS_MAX],
+		dqodw1[NSOILLAYERS_MAX], dqodw2[NSOILLAYERS_MAX], rmx[NSOILLAYERS_MAX], amx[NSOILLAYERS_MAX],
+		bmx[NSOILLAYERS_MAX], cmx[NSOILLAYERS_MAX], dwat[NSOILLAYERS_MAX], wmass_org[NSOILLAYERS_MAX];
+	
+	int icy_lyr[NSOILLAYERS_MAX], icalc_lyr[NSOILLAYERS_MAX], calc_lyr[NSOILLAYERS_MAX];
+	const double WFPS_SAT = 0.98;
+	const int ICY_TOP_LYRS_MAX = 2;
 
 	// Initial sub daily timesteps on days with precipitation
 	double nsubdays_prec = 12.0;
 	// Initial sub daily timesteps on days with no precipitation
 	double nsubdays_noprec = 6.0;
-	// Minimum timestep (10 sec)
-	double dtmin = 10.0;
+	// Minimum timestep (15 min)
+	double dtmin = 900.0;
 	// Model timestep length in seconds (daily timestep)
 	double dtime = SECS_PER_DAY;
 	// Tolerance (mm) to halve length of substep
@@ -5710,12 +5716,11 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	// Hydraulic conductivity at saturation for infiltation depth (top layer)
 	double Kw_max = var_depth(0.0, depth_infilt, KW_MAX, DEPTH);
 
-	// Checking for icy bottom soil layers
-	bool icy = false;
-	int icefree_lyr = 0;
-
 	// Reset daily infiltation flux, evaporation and surface and drainage runoff 
 	// and set initial water fraction to be able to calculate daily water fluxes
+	// Also determine if a layer is icy and the amounts icy layers
+	int nr_icy_lyrs = 0;
+	int nr_icy_top_lyrs = 0;
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 		Soillayer& soillayer = soillayers[lyr];
 		soillayer.runoff_drain = 0.0;
@@ -5724,38 +5729,102 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		// Save initial wmass
 		wmass_org[lyr] = soillayer.wmass;
 
-		// Determine layers without ice starting from the top. These are the layers 
-		// to be included in the hydrological calculations
-		if (!icy && soillayer.imass / soillayer.wsats < 0.5) {
-			icefree_lyr++;
+		// Determine layers without ice starting from the top. 
+		// These are the layers to be included in the 
+		// hydrological calculations
+		if (ice_imp(soillayer.imass / soillayer.wsats) < 0.01) {
+
+			// Frozen layer
+			icy_lyr[lyr] = 1;
+
+			// Allow top layers to be frozen and still include 
+			// them in calculations
+			if (nr_icy_lyrs == lyr) {
+				icalc_lyr[lyr] = 1;
+			}
+			else {
+				// Not consisten frozen top layer
+				icalc_lyr[lyr] = 0;
+			}
+
+			// Total number of icy layers
+			nr_icy_lyrs++;
+
+			// Number of icy top layers
+			if (lyr < ICY_TOP_LYRS_MAX) {
+				nr_icy_top_lyrs++;
+			}
 		}
 		else {
-			icy = true;
+			// Not frozen
+			icy_lyr[lyr] = 0;
+			// Top layer
+			if (lyr == 0) {
+				icalc_lyr[lyr] = 1;
+			}
+			else {
+				// Only include if all above layers have been included
+				icalc_lyr[lyr] = icalc_lyr[lyr-1];
+			}
 		}
+	}
+
+	// Check if there is too much ice to do hydrology calculations
+	bool calc_hyd = true;
+
+	// Too many frozen layers to do any hydrology calculations
+	if (nr_icy_top_lyrs == ICY_TOP_LYRS_MAX || nr_icy_top_lyrs == nsoillayers || nr_icy_lyrs >= nsoillayers - 1) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			icalc_lyr[lyr] = 0;
+		}
+		calc_hyd = false;
 	}
 
 	// Adaptive substep loop
 	while (!finished) {
 
-		// Calculate sudstep
+		// Calculate substep
 		bool calcsub = true;
 
-		// Layers to account during calculation
-		// Layers below wtd + one layer don't need to be updated
-		bool saturated = true;
-		int sat_lyr = -1;
-		for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
-			Soillayer& soillayer = soillayers[lyr];
-			if (saturated && (soillayer.wmass + soillayer.imass) >= soillayer.wsats * 0.98) {
-				sat_lyr++;
+		// Number of soil layers to simulate
+		int nsoillayers_sim = 0;
+
+		// Calculate number of soil layers that should be included
+		// in hydrology calculation. Depends on frozen and saturated 
+		// layers. 
+		if (calc_hyd) {
+
+			// Start from bottom to find where standing liquid water is
+			for (int lyr = nsoillayers - 1; lyr >= 0; lyr--) {
+				bool sat_lyr = soillayers[lyr].wfps() >= WFPS_SAT;
+
+				// Bottom layer
+				if (lyr == nsoillayers - 1) {
+					bool sat_lyr_above = soillayers[lyr - 1].wfps() >= WFPS_SAT;
+
+					calc_lyr[lyr] = (!sat_lyr || !sat_lyr_above) * icalc_lyr[lyr];
+				}
+				// Top layer
+				else if (lyr == 0) {
+					calc_lyr[lyr] = (!sat_lyr || calc_lyr[lyr + 1]) * icalc_lyr[lyr];
+				}
+				// Middle layers
+				else {
+					bool sat_lyr_above = soillayers[lyr - 1].wfps() >= WFPS_SAT;
+					calc_lyr[lyr] = (!sat_lyr || !sat_lyr_above || calc_lyr[lyr + 1]) * icalc_lyr[lyr];
+				}
+
+				// Add up how many layers that will be included in 
+				// hydrology calculations
+				nsoillayers_sim += calc_lyr[lyr];
+
+				// Reset change in water
+				dwat[lyr] = 0.0;
 			}
-			else {
-				saturated = false;
-			}
-			dwat[lyr] = 0.0;
 		}
 
-		int nsoillayers_sim = max(1, min(icefree_lyr, nsoillayers - max(0, sat_lyr)));
+		// Minimum one layer needs to be simulated
+		nsoillayers_sim = max(1, nsoillayers_sim);
 
 		while (calcsub) {
 

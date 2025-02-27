@@ -52,13 +52,14 @@ Whroo
 WombatStateForest
 Yanco"
 
-OUTPUTS="file_dave_lai
-file_dave_fpc
-file_dave_cmass
-file_dave_transpiration
-file_dave_gpp
+OUTPUTS="file_dave_gpp
 file_dave_resp
-file_dave_nee"
+file_dave_nee
+file_dave_transpiration
+file_dave_lai
+file_dave_height
+file_dave_diameter
+file_dave_live_biomass"
 
 ################################################################################
 # End of User Inputs
@@ -79,6 +80,10 @@ then
 	# nproc not installed by default on MacOS (usually?), use sysctl instead.
 	NP=`sysctl -n hw.logicalcpu`
 fi
+
+# Max number of processors to use.
+NP_MAX=12
+if [ ${NP} -gt ${NP_MAX} ]; then NP=${NP_MAX}; fi
 
 BUILD_PATH=build
 

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get path to the directory containing this script.
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P)"
+
+# Force all sites to use flux data for the main simulation.
+find . -name '*.ins' -exec sed -i -r 's/^([ \t]*file_met_forcing[ \t]+)"..\/forcing\/[^\/]+\//\1"..\/forcing\/met\//gm' {} \;
+
+# Force all sites to use barra2 data for spinup.
+find . -name '*.ins' -exec sed -i -r 's/^([ \t]*file_met_spinup[ \t]+)"..\/forcing\/[^\/]+\//\1"..\/forcing\/met\//gm' {} \;

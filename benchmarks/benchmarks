@@ -115,17 +115,6 @@ while getopts ":scpPru:i:x:" opt; do
 
 done
 
-#echo
-#echo "WORKS: summaryreport_arglist[all]= ":
-#for ((i = 0; i < ${#summaryreport_arglist[@]}; i++)); do
-#  echo "$i: ${summaryreport_arglist[$i]}"
-#done
-#echo "DOES NOT WORK: summaryreport_arglist[all]= ":
-#for x in ${summaryreport_arglist[@]}; do
-#  echo "$x"
-#done
-#exit
-
 if (( ${#inclusive} > 0 && ${#exclusive} > 0 )); then
     error "Using both -i and -x is not allowed!"
     exit 1
@@ -267,7 +256,6 @@ function submit_summaryjob {
     thistool_arglist=($1)
 
     # Construct argument for qsub/sbatch for dependency
-    # debug: echo " Dependencies: '$pp_jobids:' $pp_jobids"
     if [ -n "$pp_jobids" ]; then
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
@@ -280,7 +268,6 @@ function submit_summaryjob {
 
     # Determine what summary report job to run, and the arguments to it
     summarytool=${thistool_arglist[0]}
-    # debug: echo " Tool=$summarytool"
 
     # Create the summary-processing job
     workspace=$work_dir/${summarytool}
@@ -402,7 +389,7 @@ EOF
 
     fi
 
-#    rm $common_script
+#   rm $common_script
 
     popd 1>/dev/null
 
@@ -414,7 +401,6 @@ EOF
             pp_jobids="$pp_jobids:$ppid"
         fi
     fi
-    #debug: echo "${test_name}: job id = ${ppid}"
 }
 
 # This function submits a benchmark as an HPC job

@@ -31,41 +31,42 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -s ] [ -c ] [ -P ] [ -i TESTS | -x TESTS ] [ -r \"REPORTTOOL <path(s) to reference reports>\" ] <workdir>"
-    error "Pwd needs to be the directory of this benchmark script."
+    error "Usage: benchmarks [ -s ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
+    error "Pwd needs to be the directory of this BENCHMARK script."
     error
     error "Options"
     error "======="
-    error "-i   Include only the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-x   Exclude the specified tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-e   Exoprocessing or extra-processing: 2' processing after all postprocessing jobs finished,"
+    error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
+    error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
+    erroe "     Without -i and -x, all BENCHMARK test will be run."
+	error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
     error "     e.g. for comparative report processing."
-    error "     It takes several argument as one string enclosed with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
-    error "     * The report tool: delta or tellme or another script <REPORT TOOL> in benchmarks/exoprocesses/."
+    error "     Takes 1 argument. Enclose TOOL and arguments with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
+    error "     * The <SUMMARYTOOL> is a script directory in benchmarks/summarize/, e.g. delta or tellme."
     error "     * Arguments:"
-    error "       delta:  2 arguments:  a label for the comparison reference benchmark run to compare with," 
+    error "       delta:  2 arguments:  a label for the comparison reference benchmarks run to compare with," 
     error "                             the path to the same reference run's output."
-    error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta TOOL."
-    error "       Do not include the TEST at the end of the paths."
-    error "     Several -e options can be stacked in one call."
+    error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta SUMMARYTOOL."
+    error "       Do not include the BENCHMARK at the end of the paths."
+    error "     Several -u options can be stacked in one call."
     error "-s   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests."
     error "-p   Post processing only."
-    error "-P   Exo-report processing only: no model jobs, no postprocessing jobs."
+    error "-P   Summary-report processing only: no model jobs, no postprocessing jobs."
     error "-r   Generate printer friendly report (does nothing else and is run as a regular process,"
     error "     in other words, not submitted as a batch job)."
     error
     error "Examples"
     error "========"
-    error "1. Run all benchmarks (i.e. all TESTS):"
+    error "1. Run all benchmarks:"
     error "   benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
     error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
-    error "3. Run some benchmarks and then do a comparative report job (exoprocessing job):"
-    error "   benchmarks -i \"fluxnet tellus\" -e \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\" /scratch/sally/current-benchmarks-output"
-    error "4. Same as above but with two comparative report jobs (exoprocessing jobs):"
-    error "   benchmarks -i \"fluxnet tellus\" -e \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\"\\"
-    error "     -e \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "3. Run some benchmarks and then do a comparative report job (summary-processing job):"
+    error "   benchmarks -i \"fluxnet tellus\" -u \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\" /scratch/sally/current-benchmarks-output"
+    error "4. Same as above but with two comparative report jobs (summary-processing jobs):"
+    error "   benchmarks -i \"fluxnet tellus\" -u \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\"\\"
+    error "     -u \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
     error "5. Run all except some benchmarks:"
     error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
@@ -95,7 +96,7 @@ summaryreport_only=0
 summaryreport_arglist=()
 
 # Handle the -s, -c, -i, -x, ... options
-while getopts ":scpPre:i:x:" opt; do
+while getopts ":scpPru:i:x:" opt; do
 
     case $opt in
 	i  ) inclusive=$OPTARG
@@ -106,7 +107,7 @@ while getopts ":scpPre:i:x:" opt; do
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) summaryreport_only=1;;
-	e  ) summaryreport_arglist+=( "$OPTARG " )
+	u  ) summaryreport_arglist+=( "$OPTARG " )
              summaryreport_flag=1;;
 	r  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
@@ -281,7 +282,7 @@ function submit_summaryjob {
     summarytool=${thistool_arglist[0]}
     # debug: echo " Tool=$summarytool"
 
-    # Create the exoprocessing job
+    # Create the summary-processing job
     workspace=$work_dir/${summarytool}
     #rm -rf $workspace
     mkdir -p $workspace
@@ -294,7 +295,7 @@ cd $workspace
 if [ -f $bm_root/exoprocesses/${summarytool}/exoprocess.sh ]; then
     PATH=$PATH bash $bm_root/exoprocesses/${summarytool}/exoprocess.sh ${thistool_arglist[@]:1}
 else
-    echo "Error: Exoprocessing tool ${summarytool} not found in $bm_root/exoprocesses/"
+    echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/exoprocesses/"
     exit 1
 fi
 cd $bm_root
@@ -323,11 +324,10 @@ EOF
     popd 1>/dev/null
 }
 
-# This function runs the exoprocesses
+# This function runs the summary-processes
 # i.e. the jobs that runs after all pp-jobs are finished.
-function run_exoprocessing {
+function run_summaryprocessing {
   for ((i = 0; i < ${#summaryreport_arglist[@]}; i++)); do
-    #debug: echo " run_exoprocessing:   submit_exoprocessjob ${summaryreport_arglist[$i]}"
     submit_summaryjob "${summaryreport_arglist[$i]}"
   done
 }
@@ -661,7 +661,7 @@ if [ -n "$COMPUTEACCOUNT" ]; then
     SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
 fi
 
-# Call run_benchmark for each test, unless we're doing exoprocessing only.
+# Call run_benchmark for each test, unless we're doing summary-processing only.
 if (( $summaryreport_only == 0 )); then
 all_benchmarks_ok=1
   for test_name in "${test_names[@]}"
@@ -677,9 +677,9 @@ all_benchmarks_ok=1
   done
 fi
 
-# Call run_exoprocessing after all other tests have been submitted
+# Call run_summaryprocessing after all other tests have been submitted
 if (( $summaryreport_flag == 1 )); then
-  run_exoprocessing
+  run_summaryprocessing
 fi
 
 if (( $compile_only == 1 )); then

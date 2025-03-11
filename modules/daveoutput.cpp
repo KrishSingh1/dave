@@ -229,7 +229,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Daily below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_live_biomass"        , DAILY, [](const Individual &i) { return i.ccont() + i.ncont(); }, "Daily total live biomass (kg/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_wscal"               , DAILY, [](const Individual &i) { return i.get_wscal(); }, "Water scalar [0-1], 1 = min stress",  mean, false, true);
 	add_aggregated_indiv_output("file_dave_dphen"               , DAILY, [](const Individual &i) { return i.phen; }, "daily phen (-)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_ftemp"               , DAILY, [](const Individual &i) { return i.ftemp; }, "coefficient that scales growth demand using air temperature (0-1)", mean, false, false);

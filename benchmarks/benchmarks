@@ -292,10 +292,10 @@ function submit_summaryjob {
     common_script=$(mktemp) 1>/dev/null
     cat <<EOF > $common_script
 cd $workspace
-if [ -f $bm_root/exoprocesses/${summarytool}/exoprocess.sh ]; then
-    PATH=$PATH bash $bm_root/exoprocesses/${summarytool}/exoprocess.sh ${thistool_arglist[@]:1}
+if [ -f $bm_root/summaries/${summarytool}/summarize.sh ]; then
+    PATH=$PATH bash $bm_root/summaries/${summarytool}/summarize.sh ${thistool_arglist[@]:1}
 else
-    echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/exoprocesses/"
+    echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/summaries/"
     exit 1
 fi
 cd $bm_root

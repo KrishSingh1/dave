@@ -38,8 +38,8 @@ function print_usage_and_exit {
     error "======="
     error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
     error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    erroe "     Without -i and -x, all BENCHMARK test will be run."
-	error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
+    error "     Without -i and -x, all BENCHMARK test will be run."
+    error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
     error "     e.g. for comparative report processing."
     error "     Takes 1 argument. Enclose TOOL and arguments with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
     error "     * The <SUMMARYTOOL> is a script directory in benchmarks/summarize/, e.g. delta or tellme."
@@ -310,7 +310,7 @@ EOF
 	# Submit as a SLURM job
 	sbatch -n 1 --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
 #!/bin/sh
-#SBATCH -J ppp_${summarytool}
+#SBATCH -J su_${summarytool}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 #SBATCH --exclusive

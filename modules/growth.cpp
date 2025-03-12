@@ -3194,8 +3194,8 @@ double growth_demand(Individual& indiv) {
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
 	//growth_demand *= (1.0 - exp(-20.0 * cstorage_fill));
-	double qf1 = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
-	growth_demand *= pow(cstorage_fill,qf1);
+	double qf1 = indiv.growth_stage == vegetative ? 0.1 : 1.1 - indiv.fdev_growth;
+	//growth_demand *= pow(cstorage_fill,qf1);
 	growth_demand *= pow(nstorage_fill,qf1);
 
 	// reduced growth under dormancy (total cessation in full dormancy)

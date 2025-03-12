@@ -11,10 +11,12 @@
 # Metadata: this script is copied to pwd.    !!!!!
 
 
-resultfile="guess-diff.vs-${1}.result"
+toolscript="guess_diff.sh"
+toolfoldername="$(basename "$(dirname "$0")")"
+resultfile="${toolfoldername}/guess-diff-vs-${1}.summary.log"
 
-echo "Exo-processing: Output diff: are the output identical... Arguments = $@"
+echo "Summary-processing: Output diff: are the outputs identical? Arguments = $@"
 echo "$0"
-echo "The exoscript's pwd -P = $(pwd -P)"
+echo "The summarize script's pwd -P = $(pwd -P)"
 cd ..
-guess-diff-outfiles-tslices $@ | tee -a $resultfile
+"$(dirname "$0")/${toolscript}" $@ | tee -a $resultfile

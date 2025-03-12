@@ -11,6 +11,13 @@
                 "-rf",
                 "build/*"
             ],
+            "windows": {
+                "args": [
+                    "-r",
+                    "-fo",
+                    "build"
+                ]
+            },
             "options": {
                 "cwd": "${workspaceRoot}"
             },
@@ -28,6 +35,18 @@
                 "-B",
                 "build"
             ],
+            "windows": {
+                "args": [
+                    "-G",
+                    "MinGW Makefiles",
+                    "-DCMAKE_BUILD_TYPE=Debug",
+                    "-DCMAKE_CXX_STANDARD=14",
+                    "-DCMAKE_CXX_STANDARD_REQUIRED=ON",
+                    "-DCMAKE_CXX_EXTENSIONS=ON",
+                    "-B",
+                    "build"
+                ],
+            },
             "options": {
                 "cwd": "${workspaceRoot}",
                 "env": {

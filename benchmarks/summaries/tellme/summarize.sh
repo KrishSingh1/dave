@@ -19,7 +19,7 @@ if [[ "$ARCH" == "levante" ]]; then
     LUDATA_PATH=/home/b/b380710/work/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 fi
 
-DEBUG_LOG_NAME="exoprocess.debug.log"
+DEBUG_LOG_NAME="summarize.debug.log"
 
 NAMETAG_NEW="$1"
 NAMETAG_REF="$2"
@@ -32,10 +32,10 @@ YAMLSETTINGS="tellme_global_config.yml"			# Do not change, unless you change als
 YAMLSETTINGS_PATHFILE="$(dirname $0)/${YAMLSETTINGS}"
 
 if [ $# -ne 3 ]; then
-  echo "Error: the exoprocesses/tellme/exoprocess.sh script must be called with exctly 3 arguments." | tee $DEBUG_LOG_NAME
+  echo "Error: the summaries/tellme/summarize.sh script must be called with exctly 3 arguments." | tee $DEBUG_LOG_NAME
   echo "The call arguments were: $@"
-  echo "You can rerun the tellme/exoprocess.sh without reruning the model run(s). How-to: run ./benchmarks without arguments"
-  echo "to get a help message that explains how to run the tellme/exoprocess.sh without reruning the model."
+  echo "You can rerun the tellme/summarize.sh without reruning the model run(s). How-to: run ./benchmarks without arguments"
+  echo "to get a help message that explains how to run the tellme/summarize.sh without reruning the model."
   exit 1
 fi
 

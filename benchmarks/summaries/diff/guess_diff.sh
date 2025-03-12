@@ -20,6 +20,10 @@ if [ $# -eq 0 ]; then
   exit 0
 fi
 
+# This differs from the stand-alone version of this script.
+# Retrieve the outputfolder, and then remove it from the argument list, so that the argument list is the same as in the stand-alone verion of this script.
+outputfolder="$1"
+shift
 
 bms='crop_mixed_sites diurnal_pristine_sites emdi_europe emdi_global fluxnet europe pristine_sites secondary_stands global crop_global panarctic soil_temperature wetland_sites wetland_global tellus'
 
@@ -158,9 +162,8 @@ for f in $(ls */${reportfile_tslice91}); do
 done
 } | column -t
 
-} | tee "diff-vs-${reflabel}.result"
+} | tee "${outputfolder}/diff-vs-${reflabel}.result"
 
 echo LIST NON-IDENTICAL FILES only outfiles to allow redirect to less
 grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \
 | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g"| less
-

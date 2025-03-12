@@ -1277,6 +1277,11 @@ void daylengthinsoleet(Climate& climate) {
 	// maximum daylength in a year
 	if (date.year == 0) {
 		climate.daylength_max = max(climate.daylength, climate.daylength_max);
+		if (date.day == 0) {
+			// give high value to be able to record the min
+			climate.daylength_min = 24.0;
+		}
+		climate.daylength_min = max(min(climate.daylength, climate.daylength_min), 0.0);
 	}
 
 	// Grote: (Assaf) 
@@ -1348,6 +1353,14 @@ void daylengthinsoleet(Climate& climate) {
 	climate.par = climate.rad * FRADPAR;
 
 	climate.par_max = max(climate.par, climate.par_max);
+
+	if (climate.par_max > 0) {
+		// for leaf priority for leaf allocation phenology (Assaf)
+		climate.rel_par = climate.rel_par = climate.par / climate.par_max;
+	} else {
+		climate.rel_par = 0.0;
+	}
+	
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)
@@ -1438,6 +1451,58 @@ double get_local_temp(double gridcell_temp, double gridcell_elevation, double lo
 		local_temp = gridcell_temp - (local_elevation - gridcell_elevation) * 6.49 / 1000;
 
 	return local_temp;
+}
+
+/// PENMAN MONTEITH CALCULATION ///
+
+void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation) {
+
+	// Loop through individuals
+	for (int i = 0; i < vegetation.nobj; i++) {
+
+		// Retrieve information about cohort
+		Individual& indiv = vegetation[i];
+		Pft& pft = indiv.pft;
+		Patchpft &ppft = patch.pft[indiv.pft.id];
+
+		// Loop over time steps per day
+        for (Day day; day.period != date.subdaily; day.next()) {
+			
+			double ra = 0.0;
+			double rs = 0.0;
+
+			double zm = indiv.height + 1.0;		 // height of wind measurements (m) - assume 1m above veg for now
+			double zh = indiv.height + 1.0;		 // height of humidity measurements (m) - assume 1m above veg for now
+			double d = 2.0 / 3.0 * indiv.height; // zero plane displacement height (m)
+			double zom = 0.123 * indiv.height;	 // roughness length governing momentum transfer (m)
+			double zoh = 0.1 * zom; 			 // roughness length governing transfer of heat and vapour (m)
+
+			double k = 0.41; // von Karman's constant
+
+			ra = log((zm - d) / zom) * log((zh - d)/zoh) / pow(k, 2.0) / (climate.u10 / KMH_PER_MS);
+
+			double MOL2M3 = (climate.temps[day.period] + K2degC) * R_gas / climate.pressure[day.period]; // mol to m3 conversion factor (m3/mol) based on ideal gas law
+
+			double rl = 1.0 / (indiv.ps_subdaily.gsw[day.period] * MOL2M3);	// bulk stomatal resistance (s/m)
+
+			rs = rl / (indiv.lai);
+
+			double Rn = 0.000000;					//net radiation ()
+			
+			double G = 0.0; 						//soil heat flux
+			if (climate.pars[day.period] > 10){		// see FAO guidelines Chapter 3, Soil Heat Flux, at https://www.fao.org/4/x0490e/x0490e07.htm#TopOfPage
+				G = 0.1 * Rn;
+			} else {
+				G = 0.5 * Rn;
+			}
+
+			double rho_air = climate.pressure[day.period] / (R_gas * (climate.temps[day.period] + K2degC)) * 0.02896;		//air density in kg/m3 (note molar mass of 0.02896 kg/mol)
+			double cp = 1.013e3;					// specific heat of air (J/kg/degC)
+			// slope of saturation vapour pressure temperature relationship (Pa/degC), see FAO guidelines Chapter 3
+			double D = 4098e3 * (0.6108 * exp((17.27 * climate.temps[day.period]) / (237.3 + climate.temps[day.period]))) / pow((237.3 + climate.temps[day.period]), 2.0);	
+			double psychrom_const = 0.665e-3 * climate.pressure[day.period];	// psychrometric constant (Pa/degC)
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

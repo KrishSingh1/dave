@@ -888,8 +888,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						if (date.year >= nyear_spinup && _ifdavediagnostics) {
-							printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
+						//	printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 						}
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
@@ -1035,7 +1035,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 					}
 
-					if (pft.lifeform == TREE && nindiv_max > 0) {
+					if (pft.lifeform == TREE && nindiv_max > 0 && date.year > freenyears) {
 						int nindiv = get_nindiv(patch, pft);
 						if (nindiv >= nindiv_max) {
 							if (newindiv > 0) {
@@ -1051,8 +1051,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					/*if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics)*/ {
+					//	printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
 					}
 					for (i=0;i<newindiv;i++) {
 
@@ -1087,6 +1087,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// value of water stress parameter
 
 						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
+
+						// set the initial ltor to the indiv object
+						indiv.ltor = ltor;
 
 						// Allocate initial biomass
 
@@ -1511,7 +1514,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-						if (date.year >= nyear_spinup && _ifdavediagnostics) {
+						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
 							printf("%04d-%02d-%02d (year %d) %s killed by fire...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 						}
 						vegetation.killobj();
@@ -1545,7 +1548,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			patchpft.cmass_mort += indiv.ccont();
 
-			if (date.year >= nyear_spinup && _ifdavediagnostics) {
+			/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
 				printf("%04d-%02d-%02d (year %d) %s killed by exceedance of bioclimatic limits...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
 			}
 			indiv.kill();
@@ -1949,6 +1952,10 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 		patch.disturbed = true;
 		patch.age = 0;
+		// printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+		if (ifdavediagnostics) {
+			printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
+		}
 	}
 
 	else patch.disturbed = false;
@@ -2064,6 +2071,10 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year
 				}
+			}
+			if (date.get_calendar_year() == 1800) {
+				disturbance(patch, 1.0);
+				return; // no mortality or establishment this year
 			}
 		}
 

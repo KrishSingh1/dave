@@ -19,6 +19,8 @@ set(headers
   indata.h
   util.h
   grazing_input.h
+  spline.h
+  interpolator.h
 )
 
 set(source
@@ -39,6 +41,8 @@ set(source
   indata.cpp
   util.cpp
   grazing_input.cpp
+  spline.cpp
+  interpolator.cpp
 )
 
 include(add_guess_sources)

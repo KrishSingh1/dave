@@ -138,6 +138,7 @@ int get_month(timepoint timestamp, GuessNC::CF::CalendarType calendar) {
 		}
 	}
 	fail("get_month(): Invalid timestamp: %04d-%02d", timestamp.year, timestamp.day);
+	return -1; // Cannot happen; including this to silence some compilers.
 }
 
 int get_day_of_month(timepoint timestamp, GuessNC::CF::CalendarType calendar) {
@@ -150,6 +151,7 @@ int get_day_of_month(timepoint timestamp, GuessNC::CF::CalendarType calendar) {
 		day += len;
 	}
 	fail("get_month(): Invalid timestamp: %04d-%02d", timestamp.year, timestamp.day);
+	return -1; // Cannot happen; including this to silence some compilers.
 }
 
 bool is_end_of_year(timepoint date, int day_length, GuessNC::CF::CalendarType calendar) {

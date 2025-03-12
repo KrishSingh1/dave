@@ -145,7 +145,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
 				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass, 
 				soil.NH4_input, soil.NO3_input);
-	soil.percolate = soil.rain_melt >= 0.1;
+	soil.percolate = ifdavehydrology ? true : soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
 
 	// Reset annuals

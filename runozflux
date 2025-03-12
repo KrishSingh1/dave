@@ -52,9 +52,14 @@ Whroo
 WombatStateForest
 Yanco"
 
-OUTPUTS="file_dave_lai
-file_dave_fpc
-file_dave_cmass"
+OUTPUTS="file_dave_gpp
+file_dave_resp
+file_dave_nee
+file_dave_transpiration
+file_dave_lai
+file_dave_height
+file_dave_diameter
+file_dave_live_biomass"
 
 ################################################################################
 # End of User Inputs
@@ -75,6 +80,10 @@ then
 	# nproc not installed by default on MacOS (usually?), use sysctl instead.
 	NP=`sysctl -n hw.logicalcpu`
 fi
+
+# Max number of processors to use.
+NP_MAX=12
+if [ ${NP} -gt ${NP_MAX} ]; then NP=${NP_MAX}; fi
 
 BUILD_PATH=build
 
@@ -101,7 +110,15 @@ enable_output() {
 	INS="${OZFLUX}/outputs.ins"
 	if grep "${OUTPUT}" "${INS}" >/dev/null 2>&1
 	then
-		sed -i -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/gm" "${INS}"
+		# BSD sed: MUST use -i ''
+		# GNU sed: MUST use just -i (equivalent: -i''); -i '' does NOT work
+		I="-i"
+		if ! sed --version | /usr/bin/grep -qi gnu >/dev/null 2>&1
+		then
+			# BSD sed
+			I="-i ''"
+		fi
+		sed ${I} -r -e "s/^([ \t]*)\!([ \t]*${OUTPUT}[ \t].*)/\1\2/g" "${INS}"
 	else
 		FILE_NAME="${OUTPUT/file_/}.out"
 		echo "${OUTPUT} \"${FILE_NAME}\"" >>"${INS}"
@@ -127,7 +144,7 @@ done
 
 # Maximum number of concurrently-running jobs is the minimum of number of CPUs
 # and the user-specified NPROCESS parameter.
-MAX_NUM_JOBS=$(nproc)
+MAX_NUM_JOBS=${NP}
 
 # Function to sleep until number of background jobs is less than MAX_NUM_JOBS.
 wait_for_jobs() {

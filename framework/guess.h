@@ -52,6 +52,7 @@
 #include "guesscontainer.h"
 #include "soil.h"
 #include "guessstring.h"
+#include "interpolator.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -202,7 +203,9 @@ const double SOILDEPTH_LOWER = 1000.0;
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
-const double SOILDEPTH_EVAP = 200.0;
+const double SOILDEPTH_EVAP_TRUNK = 200.0;
+const double SOILDEPTH_EVAP_DAVE = 500.0;	// CS testing change, default is 200 mm
+extern double SOILDEPTH_EVAP;
 
 /// Year at which to calculate equilibrium soil carbon
 const int SOLVESOM_END=400;
@@ -738,13 +741,13 @@ public:
 		}
 	}
 
-	// Maximum carboxylation rate at 25 degC (mol m-2 s-1)
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vcmax25;
 
-	// Maximum electron transport rate at 25 degC (mol m-2 s-1)
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1)
 	double jmax25;  
 
-	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1)
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vpmax25;
 
 	// Maximum carboxylation rate (mol m-2 s-1)
@@ -1059,6 +1062,9 @@ public:
 	/// maximum daylength in a year
 	double daylength_max;
 
+	/// minimum daylength in a year
+	double daylength_min;
+
 	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
 
@@ -1095,6 +1101,8 @@ public:
 	/// maximum par at a gridcell
 	double par_max;
 
+	/// relative par today (par/par_max)
+	double rel_par;
 	/// accumulated growing degree day sum on 5 degree base
 	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
@@ -1303,7 +1311,8 @@ public:
 		winter_to_summer = true;
 
 		par_max	= 0.0;
-		
+		rel_par  = 0.0;
+
 		for(int m=0;m<12;m++) {
 
 			mtemp20[m] = 0.0;
@@ -2105,14 +2114,36 @@ public:
 	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
+	/// Cuticular conductance (mol m-2 s-1)
+	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
+	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
+    double g1x;
+    /// Parameter for Zhou et al. (2014) stomatal model (hydraulics version)
+    double b1z;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
+	/// water potential at 12% loss of hydraulic conductance
+	double stom_clos;
+	/// water potential at 50% loss of hydraulic conductance
+	double p50;
+	/// water potential at 88% loss of hydraulic conductance
+	double p88;
+	/// shape of the vulnerability curve (unitless)
+	double s2;
+	/// sensitivity of the vulnerability curve (MPa)
+	double s1;
+	/// maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa)
+	double kmax;
+	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
+	double nx;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
+	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
+	double tlp;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2210,6 +2241,31 @@ public:
 	 *  cohort modes)
 	 */
 	double alphar;
+
+	/*
+	Note: these 3 parameters are only used by dave photosynthesis, and only when
+	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
+	these values must be provided in the .ins file for each PFT (only vpmax_25
+	required for C4 grasses, only vcmax_25 and jmax_25 required for C3). When
+	ifcalcvcmax is true, values for these will be estimated daily based on leaf
+	N (and P) content, and stored in the indiv.ps_subdaily object.
+	*/
+	// (Constant) Maximum carboxylation rate at 25 degC (μmol m-2 s-1)
+	double vcmax_25;
+	// (Constant) Maximum electron transport rate at 25 degC (μmol m-2 s-1).
+	double jmax_25;
+	// (Constant) Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
+	double vpmax_25;
+	// Activation energy for vcmax (kJ mol-1)
+	double ha_v;
+	// Activation energy for jmax (kJ mol-1)
+	double ha_j;
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
+
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
 	/** constant used in calculation of sapling establishment rate when spatial
@@ -2469,6 +2525,14 @@ public:
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
+		vcmax_25 = 0;
+		vpmax_25 = 0;
+		jmax_25  = 0;
+		ha_v = 0;
+		ha_j = 0;
+		ds_v = 0;
+		ds_j = 0;
+
 		isintercropgrass = false;
 		ifsdautumn = false;
 		maxtemp_sowing = 60;
@@ -2531,6 +2595,20 @@ public:
 		c3=0.0;
 		d3=0.0;
 
+		g0=0.0;
+		g1=0.0;
+		gcutic=0.0;
+
+		stom_clos=0.0;
+		p50=0.0;
+		p88=0.0;
+		kmax=0.0;
+		g1x=0.0;
+		b1z=0.0;
+		tlp=0.0;
+
+		vcmax_25=0.0;
+
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 	}
@@ -2552,6 +2630,15 @@ public:
 			}
 		}
 	}
+
+	////
+	void init_hydraulic_vulnerability_curves() {
+		s2 = log(log(1.0-50.0/100.0)/log(1.0-88.0/100.0))/(log(abs(p50))-log(abs(p88)));
+		s1 = abs(p50)/(pow(-log(1-50.0/100),(1/s2)));
+	}
+
+	// Set spline for proportion of conductivity.
+	void setup_transpiration(double resolution);
 
 	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
@@ -2790,6 +2877,13 @@ public:
 		// Current value of pstemp_low for tropical trees and warm (C4) grass in global.ins and europe.ins is 20; may be changed.
 		return pstemp_low > 20;
 	}
+
+	bool get_psi_from_transpiration(double transpiration, double &psi) const;
+	bool get_transpiration_from_psi(double psi, double &transpiration) const;
+private:
+	Interpolator psi_from_transpiration;
+	Interpolator transpiration_from_psi;
+	double proportion_of_conductivity(double psi) const;
 };
 
 
@@ -3100,6 +3194,16 @@ public:
 	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
+	/// Total annual C biomass allocated to leaf on modelled area basis (kgC/m2)
+	double acalloc_leaf;
+	/// Total annual C biomass allocated to fine root on modelled area basis (kgC/m2)
+	double acalloc_root;
+	/// Total annual C biomass allocated to sapwood on modelled area basis (kgC/m2)
+	double acalloc_sap;
+	/// Total annaul C biomass allocated to reproductive tissue on modelled area basis (kgC/m2)
+	double acalloc_repr;
+	/// Total annaul C biomass allocated to crown on modelled area basis (kgC/m2)
+	double acalloc_crown;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)
@@ -3110,6 +3214,14 @@ public:
 	double cmass_leaf_post_turnover;
 	/// root C mass after turnover
 	double cmass_root_post_turnover;
+	/// total C in sapwood yesterday (kgC/m2)
+	double cmass_sap_yesterday;
+	/// amount of sapwood lost to turnover today (kgC/m2)
+	double cmass_sap_turnover;
+	/// drought affected dynamic hydraulic conductance of sapwood (mmol/m2/s/MPa)
+	double kmax_drought_affected;
+	/// daily loss of maximum hydraulic conductivity due to xylem embolism
+	double max_k_loss;
 	/// target leaf C mass (kgC/m2) 
 	double cmass_leaf_limit;
 	/// target root C mass (kgC/m2) 
@@ -3120,6 +3232,16 @@ public:
 	double cmass_storage_limit;
 	/// target reproduction C mass (kgC/m^2) 
 	double cmass_repr_limit;
+	/// realtive leaf sink strengthy (unitless)
+	double relative_alpha_leaf;
+	/// realtive root sink strengthy (unitless)
+	double relative_alpha_root;
+	/// realtive sapwwod sink strengthy (unitless)
+	double relative_alpha_sap;
+	/// relative storage sink strengh (unitless)
+	double relative_alpha_storage;
+	/// realtive reproductive sink strengthy (unitless)
+	double relative_alpha_repr;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3134,6 +3256,8 @@ public:
 	double cgrow_sap;
 	/// daily reproductive growth rate (kgC/m2/d)
 	double cgrow_repr;
+	/// daily storage growth (kgC/m2/day)
+	double cgrow_storage;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)
@@ -3221,16 +3345,22 @@ public:
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
-	/// root projective cover (RPC); used for grasses only
+	/// root projective cover (RPC)
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
+	/// layer-wise fpar (see fpar description)
+	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
 	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
 	std::vector<double> fipar_layerwise;
 
 	/// layer-wise lai (see lai description).
 	/// I've opted not to serialise this, as it's reinitialised each day.
 	std::vector<double> lai_layerwise;
+
+	/// layer-wise net photosynthesis 
+	/// I've opted not to serialise this, as it's reinitialised each day.
+	std::vector<double> an_layerwise;
 
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
@@ -3287,6 +3417,8 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+	double agpp;
+	double aresp;
 	/// yearly lai for daily allocation
 	double lai_ymax;
 	/// yearly fpc for daily allocation
@@ -3301,12 +3433,33 @@ public:
 	double nmass_root_ymax;
 	/// Carbon storage for leaf daily allocation (kgC/m2)
 	double cmass_storage;
+	/// Storage flux (>0 saving; <0 storing) (kgC/m2)
+	double cmass_storage_dynam;
+	/// coefficient that scales growth demand using air temperature (unitless)
+	double ftemp;
+	/// coefficient that scales growth demand using wscal (unitless)
+	double fwater;
+	/// coefficient that scales growth according to actualt storage state (unitless)
+	double fstorage;
+	/// coefficient that scales growth according to relative day length (unitless)
+	double fphoto;
+	/// a coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (unitless)
+	double cgrow_pot;
+	/// mean leaf age of the individual (y)
+	double meanleafage;
+	/// mean sapwood age of the individual (y)
+	double meansapage;
+	/// mean root age of the individual (y)
+	double meanrootage;
+
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
 	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
 	Historic<double, 20> cgrow_repr_20;
+	/// 14-day record of storage dynamics (kgC/m2/d)
+	Historic<double, 14> cstorage_dynam_14;
 	/// Maximum capacity of C storage pool (kgC/m2)
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
@@ -3346,6 +3499,8 @@ public:
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
 	double aaet;
+	/// fractional water uptake from each soil layer
+	double fwuptake[NSOILLAYER];
 	/// leaf to root mass ratio
 	double ltor;
 	/// plant height (m)
@@ -3356,6 +3511,10 @@ public:
 	double d_height;
 	/// plant diameter increment
 	double d_diam;
+	/// basal area increment (m2/day)
+	double basalarea_inc;
+	/// tree baseal area  (m2)
+	double basalarea;
 	/// plant crown area (m2)
 	double crownarea;
 	/// sapwood area (m2 sapwood/m2 ground)
@@ -3509,6 +3668,8 @@ public:
 	double cturnover_repr;
 	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
 	double cturnover_crown;
+	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
+	double pturnover_leaf;
 
 	/// Number of days with non-negligible phenology this month
 	int nday_leafon;
@@ -3560,6 +3721,35 @@ public:
 	double wscal_sen;
 	double tscal_sen;
 
+	bool stomata_open; // flag on whether stomata are open (at all) - if false, stomata are fully closed
+	bool E_not_met; // flag on whether water for E can be extracted from the soil - if not, taken from plant capacitance
+
+	double weighted_psi; // soil water potential weighted by root fraction in each layer
+
+	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
+	double Rs_r[NSOILLAYER];
+
+	// predawn leaf water potential calculated using hydraulics module
+	double predawn_lwp;
+	// leaf water potential at subdaily timescale
+	std::vector<double> lwp;
+	// leaf water potential from previous timestep (for plant water storage)
+	double lwp_previous;
+		// transpiration from previous timestep (for plant water storage)
+	double transp_previous;
+	// loss of hydraulic conductance at subdaily timescale
+	std::vector<double> k_loss;
+
+	// indicator of whether hydraulic failure has occurred
+	bool hydraulic_failure;
+
+	// wscal calculated on an individual basis using root conductance
+	double wscal;
+	Historic<double,5> wscal_5;
+	Historic<double,10> wscal_10;
+	Historic<double,30> wscal_30;
+	double wscal_mean_year;
+
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
 	// later, because individuals experiencing allocation on an annual basis are
@@ -3570,6 +3760,7 @@ public:
 	double alpha_leaf;
 	double alpha_root;
 	double alpha_sap;
+	double alpha_storage;
 	double alpha_repr;
 	// MEMBER FUNCTIONS
 
@@ -3617,6 +3808,13 @@ public:
 	double get_cmass_leaf() const;
 
 	double get_nmass_leaf() const;
+
+
+	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
+	double get_wscal() const;
+	Historic<double,5>& get_wscal_5();
+	Historic<double,10>& get_wscal_10();
+	Historic<double,30>& get_wscal_30();
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -3861,7 +4059,20 @@ public:
 	// Run on [mm/day]
 	// Currently only used for wetlands, but could be used for irrigation too
 	double runon;
-	
+	// saturated pressure head in cm (Cosby 1984)
+	double Psi_s;
+	// pressure head in cm at wilting point (Cosby 1984)
+	double Psi_wp;
+	// pressure head in cm at field capacity (Cosby 1984)
+	double Psi_whc;
+	// slope of soil water retention curve (Cosby 1984)
+	double b;
+	// percolation coefficient from Haxeltine 1996a (UNITS)
+	double K;	
+	// saturated hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
+	double Ksat;
+	// Saturated water content (m3/m3)
+	double Theta_s;
 
 	// PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
 
@@ -3898,7 +4109,10 @@ public:
 		solvesom_begin = SOLVESOM_BEGIN;
 		organic_frac = 0.02;
 		pH = -1.0;
-		
+		Psi_s = 0.0;
+		Psi_wp = 0.0;
+		Psi_whc = 0.0;
+
 		// Assume no mineral content on peatlands
 		sand_frac_peat = clay_frac_peat = silt_frac_peat = 0.0;
 		wtot_peat = 0.0;
@@ -4161,6 +4375,12 @@ public:
 	double Ci[NLAYERS];
 	/// thermal conductivities of the soil layers [J day-1 mm-1 K-1]
 	double Ki[NLAYERS];
+	/// soil water potential in each layer (MPa)
+	double psi_layer[NSOILLAYER];
+	/// soil water potential averaged over layers (MPa)
+	double soil_psi;
+	/// soil unsaturated hydraulic condutivity in each layer
+	double K_actual[NSOILLAYER];
 
 	bool snow_active; // active snow layer(s)?
 	int snow_active_layers; // <= NLAYERS_SNOW
@@ -4788,6 +5008,8 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
+	/// wscal for the top 5 layers (unitless)
+	Historic<double, 5> wscal_5_5l;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;
@@ -4888,8 +5110,7 @@ public:
 	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
 	double wsupply_leafon;
-	/// fractional uptake of water from each soil layer today
-	double fwuptake[NSOILLAYER];
+
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -4906,6 +5127,9 @@ public:
 	double water_deficit_d;
 	/// yearly sum of water deficit
 	double water_deficit_y;
+
+	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
+	double g1;
 
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
@@ -4956,12 +5180,10 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 		water_deficit_y = 0.0;
+		g1 = 0.0;
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
-
-		for (int i = 0; i < NSOILLAYER; i++)
-			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;
@@ -5138,14 +5360,14 @@ public:
 	double intercep;
 	/// annual sum of AET (mm/year)
 	double aaet;
-	/// Daily transpiration (mm/day).
-	double transp;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
 	/// annual sum of soil evaporation (mm/year)
 	double aevap;
-	/// Daily soil evaporation (mm/day)
+	/// daily evaporation (mm/day)
 	double evap;
+	/// daily transpiration (mm/day)
+	double transp;
 	/// annual sum of interception (mm/year)
 	double aintercep;
 	/// annual sum of runoff (mm/year)

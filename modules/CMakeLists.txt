@@ -31,6 +31,7 @@ set(headers
   ncvariable.h
   daveoutput.h
   daveoutputhelpers.h
+  hydraulics.h
   )
 
 set(source  
@@ -65,6 +66,7 @@ set(source
   ncvariable.cpp
   daveoutput.cpp
   daveoutputhelpers.cpp
+  hydraulics.cpp
   )
 
 include(add_guess_sources)

@@ -39,6 +39,7 @@ const double Fluxes::NOx_FIRERATIO = 0.237;
 const double Fluxes::N2O_FIRERATIO = 0.036;
 const double Fluxes::N2_FIRERATIO  = 0.722;
 
+double SOILDEPTH_EVAP = SOILDEPTH_EVAP_TRUNK;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
@@ -86,6 +87,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& aprec_lastyear
 		& daylength
 		& daylength_max
+		& daylength_min
 		& co2
 		& lat
 		& insol
@@ -370,7 +372,6 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& gcbase_day
 		& wsupply
 		& wsupply_leafon
-		& fwuptake
 		& wstress
 		& wstress_day
 		& cmass_harvested_products_slow
@@ -1732,6 +1733,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	anpp              = 0.0;
+	agpp			  = 0.0;
+	aresp			  = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	rpc               = 0.0;
@@ -1748,16 +1751,27 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_wood_old	  = 0.0;
 	cmass_leaf_post_turnover      = 0.0;
 	cmass_root_post_turnover      = 0.0;
+	cmass_sap_yesterday = 0.0;
+	cmass_sap_turnover = 0.0;
+	kmax_drought_affected = pft.kmax;
+	max_k_loss = 0.0;
 	cmass_tot_luc     = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit	  = 0.0;
+	cmass_storage_limit = 0.0;
+	relative_alpha_leaf 		  = 0.0;
+	relative_alpha_root 		  = 0.0;
+	relative_alpha_sap  		  = 0.0;
+	relative_alpha_repr 		  = 0.0;
+	relative_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
 	cgrow_crown       = 0.0;
 	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
+	cgrow_storage     = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
 	frepr_cstruct     = 0.0;
@@ -1782,6 +1796,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_ymax				= 0.0;
 	nmass_root_ymax				= 0.0;
 	cmass_storage				= 0.0;
+	cmass_storage_dynam			= 0.0;
+	ftemp			     		= 0.0;
+	fwater			   			= 0.0;
+	fstorage					= 0.0;
+	fphoto						= 0.0;
+	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
 	nstorage_max				= 0.0;
@@ -1811,6 +1831,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 			rootdist[i] = pft.rootdist[i];
 		}
 	}
+	acalloc_leaf				= 0.0;
+	acalloc_root				= 0.0;
+	acalloc_repr				= 0.0;
+	acalloc_sap					= 0.0;
+	acalloc_crown				= 0.0;
 
 	initialc = 0.0;
 	initialn = 0.0;
@@ -1873,8 +1898,31 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	ps_sink_lim                 = 1.0;
 
-	n_opt_isabovelim      = false;
+	n_opt_isabovelim  = false;
 	nstress           = false;
+	stomata_open	  = true;
+	E_not_met   	  = false;
+
+	weighted_psi = 0;
+	predawn_lwp = 0.0;
+	lwp_previous = 0.0;
+	transp_previous = 0.0;
+	lwp.resize(date.subdaily);
+	k_loss.resize(date.subdaily);
+	hydraulic_failure = false;
+
+	wscal = 0.0;
+	wscal_mean_year = 0.0;
+
+	for (int sl = 0; sl<NSOILLAYER; sl++) {
+		Rs_r[sl] = 0.0;
+		fwuptake[sl] = 0.0;
+	}
+
+	for (Day day; day.period != date.subdaily; day.next()) {
+		lwp[day.period] = 0;
+		k_loss[day.period] = 0;
+	}
 
 	size_t nleafpools;
 	if (pft.phenology == CROPGREEN) {
@@ -1896,6 +1944,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_leaf        = 0.0;
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
+	alpha_storage     = 0.0;
 	alpha_repr        = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
@@ -1906,6 +1955,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_sap  = 0.0;
 	cturnover_repr  = 0.0;
 	cturnover_crown  = 0.0;
+	pturnover_leaf   = 0.0;
 
 	charvest_green = 0.0;
 	charvest_brown = 0.0;
@@ -1920,8 +1970,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	diam              = 0.0;
 	d_height		  = 0.0;
 	d_diam		      = 0.0;
+	basalarea    	  = 0.0;
+	basalarea_inc	  = 0.0;
 	crownarea		  = 0.0;
 	latosa 			  = 0.0;
+	boleht            = 0.0;
 	sa 				  = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
@@ -1930,6 +1983,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	wstress           = false;
 	lambda            = 0.0;
 	aaet              = 0.0;
+	ltor              = 0.0;
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;
@@ -1960,6 +2014,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	fipar_layerwise.clear();
 	lai_layerwise.clear();
+	an_layerwise.clear();
 
 	andemand_leaf     = 0.0;
 	andemand_root     = 0.0;
@@ -2027,12 +2082,20 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cexcess
 		& nmass_missing
 		& anpp
+		& agpp
+		& aresp
 		& gpp_15
 		& gpptrend_15
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage
+		& cmass_storage_dynam
+		&ftemp
+		&fwater
+		&fstorage
+		&cgrow_pot
 		& cmass_storage_20
+		& cstorage_dynam_14
 		& cstorage_max
 		& nmass_storage
 		& nstorage_max
@@ -2043,6 +2106,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ltor
 		& height
 		& diam
+		& basalarea
 		& crownarea
 		& deltafpc
 		& boleht
@@ -2803,6 +2867,85 @@ bool Pft::dave_allocation() const {
 	return false;
 }
 
+// b is s1
+// c is s2
+
+// returns proportion of conductance taken from hydraulic vulnerability curve (unitless)
+double Pft::proportion_of_conductivity(double psi) const {
+  return exp(-pow((psi / s1), s2));
+}
+
+// set spline for proportion of conductivity
+void Pft::setup_transpiration(double resolution) {
+    // Integrate and accumulate results.
+    auto x_psi = std::vector<double>{ 0.0 };
+    auto y_cumulative_transpiration = std::vector<double>{ 0.0 };
+    double interval = (s1 * pow((log(1 / 0.01)), (1 / s2)));
+    double step = interval / (resolution - 1);
+	double ymax = -1e36;
+
+	// TODO: repeated additions here will cause rounding errors to accumulate.
+	// Need to change to the commented version below, but this affects the
+	// results quite a bit. Need to discuss with Clare.
+
+    // for (size_t i = 1; i < resolution; i++) {
+		// double psi_spline = step * i;
+	for (double psi_spline = 0.0 + step; psi_spline <= interval; psi_spline += step) {
+        double e_psi = step * ((proportion_of_conductivity(psi_spline - step) + proportion_of_conductivity(psi_spline)) / 2) + y_cumulative_transpiration.back();
+
+        // x values for spline.
+        x_psi.push_back(psi_spline);
+
+        // y values for spline.
+        y_cumulative_transpiration.push_back(e_psi);
+		ymax = max(ymax, e_psi);
+    }
+
+    // Setup the interpolator.
+    // We could do a reverse lookup if need, but it's not required.
+
+    transpiration_from_psi.init(x_psi, y_cumulative_transpiration);
+    transpiration_from_psi.set_extrapolate(false);
+
+	psi_from_transpiration.init(y_cumulative_transpiration, x_psi);
+	psi_from_transpiration.set_extrapolate(false);
+
+	// Note: interpolation will be significantly faster if the x-values are
+	// equidistant. Currently, x_psi is equidistant, but cum. transpiration (due
+	// to the nonlinearity of the relationship) is not. Therefore, we perform a
+	// one-time interpolation at regular intervals along the curve, and use
+	// that as the basis for future interpolations during the simulation.
+	std::vector<double> y{ 0.0 };
+	std::vector<double> x{ 0.0 };
+	for (size_t i = 1; i < resolution; i++) {
+
+		// The i-th evenly-spaced point between 0 and ymax.
+		double yi = 1.0 * i / (resolution - 1) * ymax;
+
+		// Get the psi corresponding to this y-value.
+		double xi = psi_from_transpiration.eval(yi);
+
+        // x values for spline.
+        x.push_back(xi);
+
+        // y values for spline.
+        y.push_back(yi);
+    }
+
+	// Re-initialise psi_from_transpiration.
+    psi_from_transpiration.init(y, x);
+    psi_from_transpiration.set_extrapolate(false);
+}
+
+
+bool Pft::get_psi_from_transpiration(double transpiration, double &psi) const {
+	return psi_from_transpiration.try_eval(transpiration, psi);
+}
+
+bool Pft::get_transpiration_from_psi(double psi, double &transpiration) const {
+	return transpiration_from_psi.try_eval(psi, transpiration);
+}
+
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 
@@ -3492,7 +3635,43 @@ void Individual::flush_repr_litter_DAVE() {
 }
 
 double Individual::wscal_mean() const {
-	return patchpft().wscal_mean;
+	if (ifdavehydraulics){
+		return wscal_mean_year;
+	} else {
+		return patchpft().wscal_mean;
+	}
+}
+
+double Individual::get_wscal() const {
+	if (ifdavehydraulics){
+		return wscal;
+	} else {
+		return patchpft().wscal;
+	}
+}
+
+Historic<double,5>& Individual::get_wscal_5() {
+	if (ifdavehydraulics){
+		return wscal_5;
+	} else {
+		return patchpft().wscal_5;
+	}
+}
+
+Historic<double,10>& Individual::get_wscal_10() {
+	if (ifdavehydraulics){
+		return wscal_10;
+	} else {
+		return patchpft().wscal_10;
+	}
+}
+
+Historic<double,30>& Individual::get_wscal_30() {
+	if (ifdavehydraulics){
+		return wscal_30;
+	} else {
+		return patchpft().wscal_30;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

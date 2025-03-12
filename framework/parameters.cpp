@@ -40,6 +40,7 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
+bool ifcalcvcmax;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -76,9 +77,14 @@ bool ifbvoc;
 bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
+bool iftreephen;
+bool ifgrote;
 bool ifdavegrowth;
+bool ifdavehydrology;
+bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
+double epsiresolution;
 bool ifevenlaidist;
 bool ifsinksource;
 bool ifadaptive_rootdist;
@@ -87,6 +93,7 @@ bool ifusegdd;
 bool gzip_output;
 int nindiv_max;
 int grazing_duration;
+bool ifforcedlai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -264,10 +271,13 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
+	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
+	ifcalcvcmax=true;
 	ifcalccton=true;
 	ifcdebt=false;
+	ifgrote = false;
 	distinterval=1.0e10;
 	npatch=1;
 	vegmode=COHORT;
@@ -285,10 +295,12 @@ void initsettings() {
 	useClosestNdep = false;
 	gzip_output = false;
 	nindiv_max = 0;
+	ifforcedlai = false;
 	ifevenlaidist = true;
 	ifsinksource = false;
 	ifadaptive_rootdist = false;
 	grazing_duration = 1;
+	epsiresolution = 100;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -497,6 +509,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
+		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
+			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
@@ -628,16 +642,22 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdailytree",&ifdailytree,1,CB_NONE,	"Whether daily carbon allocation for trees is enabled (0,1)");
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
+		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
+		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
+		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
+	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifsinksource", &ifsinksource, 1, CB_NONE, "Whether Growth is calculated as the minimum of a sink and a source term (default: off).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
+		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
+		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 
@@ -739,6 +759,29 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
+		declareitem("vcmax_25",&ppft->vcmax_25,0.0,10.0,1,CB_NONE, 
+			"Maximum carboxylation rate at 25 degC (mol m-2 s-1)");
+		// Subdaily photosynthesis parameters, Zhou model
+		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
+			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
+		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
+			"Parameter for Zhou et al. (2014) stomatal model");
+		// Hydraulic parameters
+		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
+		declareitem("tlp",&ppft->tlp,-1000.0,0.0,1,CB_NONE, 
+			"Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure, controls sensescence");
+		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at 50% loss of xylem conductance (MPa)");
+		declareitem("p88",&ppft->p88,-1000.0,0.0,1,CB_NONE, 
+			"Water potential at 50% loss of xylem conductance (MPa)");
+		declareitem("kmax",&ppft->kmax,0.0,1000000.0,1,CB_NONE, 
+			"Maximum hyraulic conductance per unit xylem area (mol/m2/s/MPa)");
+		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
+			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
+		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
+			"cuticular conductance at 20 degC (mol/m2/s)");
+
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
@@ -751,6 +794,21 @@ void plib_declarations(int id,xtring setname) {
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
+
+		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
+			"Maximum carboxylation rate at 25 degC (μmol m-2 s-1).");
+		declareitem("jmax_25",&ppft->jmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum electron transport rate at 25 degC (μmol m-2 s-1).");
+		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
+			"Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).");
+		declareitem("ha_v",&ppft->ha_v,-5000,5000,1,CB_NONE,
+			"activation energy for vcmax (kJ mol-1).");
+		declareitem("ha_j",&ppft->ha_j,-5000,5000,1,CB_NONE,
+			"activation energy for jmax (kJ mol-1).");	
+		declareitem("ds_v",&ppft->ds_v,-5000,5000,1,CB_NONE,
+			"Entropy terms (deltaS) for vcmax (J mol-1 K-1).");
+		declareitem("ds_j",&ppft->ds_j,-5000,5000,1,CB_NONE,
+			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -1341,9 +1399,10 @@ void plib_callback(int callback) {
 		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
 		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
 		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else if (strparam.upper() == "ROOT_RESISTANCE") wateruptake = WR_ROOT_RESISTANCE;
 		else {
 			sendmessage("Error",
-				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\", \"ROOT_RESISTANCE\")");
 				plibabort();
 		}
 		break;
@@ -1971,6 +2030,11 @@ void plib_callback(int callback) {
 			// Calculate transfer constant of leaf material between compartments
 			ppft->init_transferconst();
 
+			// Calculate hydraulic vulnerability curve parameters from P50 and P88
+			ppft->init_hydraulic_vulnerability_curves();
+
+			ppft->setup_transpiration(epsiresolution);
+
 			pftlist.nextobj();
 		}
 
@@ -2011,7 +2075,7 @@ void plib_callback(int callback) {
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");
 			}
-			if (!itemparsed("gmin")) badins("gmin");
+			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
 
@@ -2051,12 +2115,41 @@ void plib_callback(int callback) {
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 				}
 			}
+			if (!ifcalcvcmax) {
+				if (!itemparsed("vcmax_25")) badins("vcmax_25");
+				if (!itemparsed("vpmax_25")) badins("vpmax_25");
+				if (!itemparsed("jmax_25")) badins("jmax_25");
+			} else {
+				if (itemparsed("vcmax_25")) dprintf("WARNING: %s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("vpmax_25")) dprintf("WARNING: %s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("jmax_25")) dprintf("WARNING: %s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+			}
 
 			if (ifdavephotosyn) {
 				// Mandatory parameters for dave photosynthesis.
 				if (!itemparsed("g0")) badins("g0");
 				if (!itemparsed("g1")) badins("g1");
+				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("extkn")) badins("extkn");
+				if (!itemparsed("ha_v")) badins("ha_v");
+				if (!itemparsed("ha_j")) badins("ha_j");
+				if (!itemparsed("ds_v")) badins("ds_v");
+				if (!itemparsed("ds_j")) badins("ds_j");
+				if (!ifdavegrowth && ifcalcvcmax) {
+					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
+				}
+			}
+
+			if (ifdavehydraulics){
+				if (!itemparsed("p50")) badins("p50");	
+				if (!itemparsed("p88")) badins("p88");	
+				if (!itemparsed("kmax")) badins("kmax");	
+				if (!itemparsed("stom_clos")) badins("stom_clos");	
+				if (!itemparsed("g1x")) badins("g1x");
+				if (!itemparsed("gcutic")) badins("gcutic");
+				if (ppft->is_grass()){
+					if (!itemparsed("tlp")) badins("tlp");
+				}
 			}
 
 			if (run_landcover) {

@@ -728,7 +728,7 @@ bool Soil::calculate_gas_ebullition(double& ebull_today) {
 			// Maximum volume that can be dissolved
 			double CH4_diss_max_m3 = CH4_diss_max * volume_liquid_water[ii]; // m3 CH4 layer-1
 
-			// Use ideal gas law to convert to mol CH4 layer-1
+			// Use  law to convert to mol CH4 layer-1
 			double CH4_diss_max_mol = CH4_diss_max_m3 * (hydro_press + atm_press) / (R_gas * TsoilK); // mol CH4 layer-1
 
 			// Convert to g CH4-C layer-1

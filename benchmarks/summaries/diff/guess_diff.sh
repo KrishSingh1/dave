@@ -81,9 +81,6 @@ done
 
 # Main code
 
-scriptpathname=$(basename $0)
-cp $0 ${scriptpathname}.used
-
 pwd -P
 
 # Do the diffs
@@ -161,7 +158,7 @@ for f in $(ls */${reportfile_tslice91}); do
 done
 } | column -t
 
-} | tee "${scriptpathname}.vs-${reflabel}.result"
+} | tee "diff-vs-${reflabel}.result"
 
 echo LIST NON-IDENTICAL FILES only outfiles to allow redirect to less
 grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \

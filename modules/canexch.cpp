@@ -3163,10 +3163,7 @@ void get_temp_acclimation_parameters(const Climate &climate, const Pft &pft,
 	if (iftempacclimation) {
 		// Tgrowth, mean air temperature of preceding 30 d.
 		double tgrowth = climate.dtemp_31.periodicmean(30);
-		// Thome, long-term (1960–1990) mean maximum temperature of the warmest
-		// month.
-		double thome = climate.thome;
-		temp_acclimation_kummarathunge(tgrowth, thome, ha_v, ha_j, ds_v, ds_j);
+		temp_acclimation_kummarathunge(tgrowth, climate.thome, ha_v, ha_j, ds_v, ds_j);
 	} else {
 		// Use PFT constants.
 		ha_v = pft.ha_v;
@@ -3174,7 +3171,6 @@ void get_temp_acclimation_parameters(const Climate &climate, const Pft &pft,
 		ds_v = pft.ds_v;
 		ds_j = pft.ds_j;
 	}
-
 }
 
 /*

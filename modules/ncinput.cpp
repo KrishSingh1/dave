@@ -53,6 +53,8 @@ NCInput::NCInput() {
 	, "Path to nitrogen deposition fastarchive input file");
 	declare_parameter("file_co2", &file_co2, PATH_MAX
 	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
+	declare_parameter("file_thome", &file_thome, PATH_MAX
+	, "Path to the mean maximum daily temperature (T_home) input file, used for DAVE temperature acclimation calculations. This is optional if iftempacclimation is disabled.");
 
 	declare_parameter("cache_strategy", &cache_strategy, 0, 2
 	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
@@ -180,6 +182,19 @@ void NCInput::init(void) {
 
 		// Open landcover input file.
 		landcover_input.init(file_gridlist);
+
+		if (file_thome != "") {
+			if (iftempacclimation) {
+				thome_input.init(file_thome);
+			} else {
+				printf("WARNING: Temperature acclimation file specified but temperatue acclimation is disabled, so the file will not be used.\n");
+			}
+		} else {
+			if (iftempacclimation) {
+				fail("Temperature acclimation is enabled, but t_home input file is not specified. Please set file_thome in the instruction file.");
+			}
+			// else not specified and not needed - no problem.
+		}
 
 		bool separate_spinup = file_met_spinup != "" && file_met_spinup != file_met_forcing;
 		open_netcdf(separate_spinup ? file_met_spinup : file_met_forcing);
@@ -334,6 +349,12 @@ bool NCInput::getgridcell(Gridcell& gridcell) {
 			// Not all gridcells have to be included in input file.
 			misc_input.loaddisturbance(lon, lat);
 			misc_input.loadelevation(lon, lat);
+		}
+
+		if (iftempacclimation) {
+			// Temperature acclimation is enabled - read thome value for this
+			// gridcell.
+			gridcell.climate.thome = thome_input.read_gridcell(lat, lon);
 		}
 
 		// Initialise subdaily photosynthesis structures with the correct number

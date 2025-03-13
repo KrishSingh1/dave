@@ -29,6 +29,7 @@ epsiresolution           100 ! Resolution for splines used to calculate psi from
 iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+iftempacclimation        0   ! DAVE temperature acclimation of photosynthesis.
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -49,6 +50,11 @@ param "file_disturbance_st"   (str "")
 
 ! Elevation Data (optional)
 param "file_elevation_st"     (str "")
+
+! File containing long-term mean maximum temperature of warmest month, used for
+! DAVE temperature acclimation of photosynthesis.
+! Only required if iftempacclimation is enabled.
+file_thome                      "../forcing/ozflux.thome.csv"
 
 ! Number of timesteps per day.
 nsteps_day            			8

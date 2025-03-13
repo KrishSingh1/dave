@@ -20,6 +20,7 @@ set(headers
   util.h
   spline.h
   interpolator.h
+  thome.h
 )
 
 set(source
@@ -41,6 +42,7 @@ set(source
   util.cpp
   spline.cpp
   interpolator.cpp
+  thome.cpp
 )
 
 include(add_guess_sources)

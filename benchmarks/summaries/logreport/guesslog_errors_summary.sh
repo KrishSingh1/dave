@@ -1,11 +1,15 @@
 #!/bin/bash
-# guess-grep-guesslog-errors-allBMs.sh
-# If no parameter, operates on current dir. Else operates on dir given in $1.
+# guesslog_errors_summary (standallone version is guess-grep-guesslog-errors-allBMs.sh aka)
+# By Johan Nord, 2025.
+# Output is written to a file, see variable outfile below. It is not printed to std out.
+# Arguments:
+# If no argument, operates on current dir. Else operates on dir given in $1.
 # $1: dir containing bm folders with guess.log files.
 
 
 # Exclude BM(s?)
-EXCLUDEDBMS="fluxnet"
+EXCLUDEDBMS=""
+#"fluxnet"
 #"tellus"
 
 # Exclude these words or strings, separate with |
@@ -14,14 +18,10 @@ FILTERPATTERN="C pool change|C flux|Period C balance|C balance year|N pool chang
 FILTERBMS="tellus"
 
 
-if [ $# -eq 0 ]; then
-  outfile="`pwd -P;`/grep-guesslog-errors-allBMs.cout"
-
-else
-  outfile="`cd ; pwd -P;`/.grep-guesslog-errors-allBMs.tmp"
-  set -e
+# This is where output is written to. It is not printed to std out.
+outfile="`pwd -P;`/guesslog_errors.txt"
+if [ $# -ne 0 ]; then
   cd $1
-  set +e
 fi
 
 
@@ -101,9 +101,17 @@ for bmcat in $bms; do
   else
     FILTER="${GENERAL}"
   fi
-  $scriptpath/guess-grep-guesslog-errors.sh $bmcat/guess.log \
-  | grep -vE "$FILTER"
-# note the backslash at the end of the prev line.
+
+  # Remove standard output
+  grep -v 'Commencing simulation' $bmcat/guess.log \
+  | grep -E -v "complete.*elapsed.*remaining" | grep -v -e '^[[:space:]]*$' \
+  | grep -v 'fraction data used from year 2007 and onwards' | grep -v "LPJ-GUESS cohort mode \- global pfts" \
+  | grep -E -v "\[LPJ-GUESS  .*2017\]" | grep -v "\-\-\-\-\-\-\-\-\-\-" \
+  | awk '{\
+    if ( $0 ~ /^~~~~~~~~~~~~/ ) {\
+      if ( skipline==0 ) { skipline=1 } else { skipline=0 } } else { if ( skipline==0 ) { print $0 } }\
+    }' \
+  | grep -vE "$FILTER"		# note the backslash at the end of the prev line.
   echo
 
 done
@@ -122,11 +130,11 @@ cat $outfile | grep -v Finished |grep -v "^\[LPJ-GUESS" \
 | grep -v "^Using soil code and Nitrogen deposition for" \
 | grep -v "^LPJ-GUESS test Secondary stands" \
 | grep -v "^Description: " \
-| grep -v "^Last year of cropland fraction data used from year 2016 and onwards" 
+| grep -v "^Last year of cropland fraction data used from year 2016 and onwards"
 # note the backslash at the end onf the prev line.
 
 echo "________________________________________________"
-echo "Unexpected output plus Start- and Finished-lines" 
+echo "Unexpected output plus Start- and Finished-lines"
 
 nLPJG=$(cat $outfile | grep -c "\[LPJ-GUESS")
 nFinished=$(cat $outfile | grep -c "Finished")
@@ -168,6 +176,4 @@ echo "$string_guesslogerrors" >> $outfile 2>&1
 
 echo
 echo Finshed
-echo The output was saved in $outfile
-
-less $outfile
+echo The output is saved in $outfile

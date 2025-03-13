@@ -1297,6 +1297,9 @@ public:
 
 	/// Current (calendar) year of met data from input file.
 	int met_year;
+
+	/// Long-term mean maximum temperature of the warmest month (°C).
+	double thome;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {

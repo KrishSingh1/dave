@@ -3139,6 +3139,45 @@ void vcmax_from_N(Vegetation& vegetation) {
 }
 
 /*
+Acclimation of vcmax/jmax to temperature (Kumarathunge et al, 2018).
+*/
+void temp_acclimation_kummarathunge(double tgrowth, double thome, double &ha_v,
+									double &ha_j, double &ds_v, double &ds_j) {
+
+	// eav = ha_v, eaj = ha_j, Δsv = ds_v, Δsj = ds_j
+	ha_v = 42.6 + 1.14 * tgrowth;
+	ha_j = 40.71;
+	ds_v = 645.13 - 0.38 * tgrowth;
+	ds_j = 658.77 - 0.84 * thome - 0.52 * (tgrowth - thome);
+	// jvr = 2.56 - 0.0375 * thome - 0.0202 * (tgrowth - thome)
+	// jmax25 = vcmax25 * jvr
+}
+
+/*
+Acclimation of vcmax/jmax to temperature (Kumarathunge et al, 2018).
+*/
+void get_temp_acclimation_parameters(const Climate &climate, const Pft &pft,
+									 double &ha_v, double &ha_j, double &ds_v,
+									 double &ds_j) {
+
+	if (iftempacclimation) {
+		// Tgrowth, mean air temperature of preceding 30 d.
+		double tgrowth = climate.dtemp_31.periodicmean(30);
+		// Thome, long-term (1960–1990) mean maximum temperature of the warmest
+		// month.
+		double thome = climate.thome;
+		temp_acclimation_kummarathunge(tgrowth, thome, ha_v, ha_j, ds_v, ds_j);
+	} else {
+		// Use PFT constants.
+		ha_v = pft.ha_v;
+		ha_j = pft.ha_j;
+		ds_v = pft.ds_v;
+		ds_j = pft.ds_j;
+	}
+
+}
+
+/*
 Inputs required to calculate photosynthesis for a single indiv in a single layer
 at a single timestep.
 */
@@ -3570,10 +3609,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
 		inputs.wscal = indiv.get_wscal(); // returns wscal based on root resistance if using hydraulics, otherwise wscal based on wcont
-		inputs.ha_v = indiv.pft.ha_v;
-		inputs.ha_j = indiv.pft.ha_j;
-		inputs.ds_v = indiv.pft.ds_v;
-		inputs.ds_j = indiv.pft.ds_j;
+
+		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -4410,10 +4447,7 @@ void forest_floor_dave(Patch &patch) {
 			// TODO: should this be patch-level or PFT-level LAI?
 			inputs.nscal = max(1.0e-12, exp(-pft.extkn * LAI_HYPOTHETICAL));
 
-			inputs.ha_v = pft.ha_v;
-			inputs.ha_j = pft.ha_j;
-			inputs.ds_v = pft.ds_v;
-			inputs.ds_j = pft.ds_j;
+			get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
 
 			// Assume a leaf N content of 0.01 kgN/m2.
 			PhotosynthesisOutputs outputs;
@@ -4645,6 +4679,16 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Huntingford, C & Monteith, JL 1998. The behaviour of a mixed-layer model of the
 //   convective boundary layer coupled to a big leaf model of surface energy
 //   partitioning. Boundary Layer Meteorology 88: 87-101
+// Kumarathunge, D.P., Medlyn, B.E., Drake, J.E., Tjoelker, M.G., Aspinwall,
+// M.J., Battaglia, M., Cano, F.J., Carter, K.R., Cavaleri, M.A., Cernusak,
+// L.A., Chambers, J.Q., Crous, K.Y., De Kauwe, M.G., Dillaway, D.N., Dreyer,
+// E., Ellsworth, D.S., Ghannoum, O., Han, Q., Hikosaka, K., Jensen, A.M.,
+// Kelly, J.W.G., Kruger, E.L., Mercado, L.M., Onoda, Y., Reich, P.B., Rogers,
+// A., Slot, M., Smith, N.G., Tarvainen, L., Tissue, D.T., Togashi, H.F.,
+// Tribuzy, E.S., Uddling, J., Vårhammar, A., Wallin, G., Warren, J.M. and Way,
+// D.A. (2019), Acclimation and adaptation components of the temperature
+// dependence of plant photosynthesis at the global scale. New Phytol, 222:
+// 768-784. https://doi.org/10.1111/nph.15668
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und

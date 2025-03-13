@@ -141,6 +141,9 @@ extern bool ifcalcsla;
 /// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
 extern bool ifcalcvcmax;
 
+/// Whether vcmax acclimation to temperature is enabeld (alt: prescribed)
+extern bool iftempacclimation;
+
 /// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 extern bool ifcalccton;
 

@@ -41,6 +41,7 @@ bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
 bool ifcalcvcmax;
+bool iftempacclimation;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -270,7 +271,7 @@ void initsettings() {
 	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
-	ifcalcvcmax=true;
+	iftempacclimation = false;
 	ifcalccton=true;
 	ifcdebt=false;
 	ifgrote = false;
@@ -504,6 +505,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether SLA calculated from leaf longevity");
 		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
 			"Whether Vcmax calculated from leaf nutrient content");
+		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
+			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,

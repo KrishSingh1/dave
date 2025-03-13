@@ -120,9 +120,6 @@ for bm in $bms; do
 
 done
 
-# Save label and path to a list of commonly used refence data
-touch $commonfile
-echo "$(date) $reflabel $refdir" >>$commonfile
 
 # Report non-identical files
 
@@ -164,6 +161,8 @@ done
 
 } | tee "${outputfolder}/diff-vs-${reflabel}.result"
 
-echo LIST NON-IDENTICAL FILES only outfiles to allow redirect to less
-grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \
-| sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g"| less
+echo LIST NON-IDENTICAL .OUT FILES. Only if it is not empty.
+if [ -n "$(grep -v identical */$reportfile_out)" ]; then
+  grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \
+  | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g" &> "${outputfolder}/diff-vs-${reflabel}.not-identical.list"
+fi

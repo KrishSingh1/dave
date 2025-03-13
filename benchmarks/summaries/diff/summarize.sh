@@ -13,7 +13,7 @@
 
 toolscript="guess_diff.sh"
 toolfoldername="$(basename "$(dirname "$0")")"
-resultfile="${toolfoldername}/guess-diff-vs-${1}.summary.log"
+#resultfile="${toolfoldername}/guess-diff-vs-${1}.summary.log"
 
 if [ $# -ne 2 ]; then
   echo "Error: the summaries/diff/summarize.sh script must be called with exctly 2 arguments."
@@ -29,4 +29,4 @@ echo "The summarize script's pwd -P = $(pwd -P)"
 cd ..
 
 # This call to guess_diff.sh" has one more argument that the stand alone version: the summary output-folder  name.
-"$(dirname "$0")/${toolscript}" ${toolfoldername} $@ | tee -a $resultfile
+"$(dirname "$0")/${toolscript}" ${toolfoldername} $@ 	# | tee -a $resultfile

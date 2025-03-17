@@ -55,7 +55,7 @@ Yanco"
 OUTPUTS="file_dave_gpp
 file_dave_resp
 file_dave_nee
-file_dave_transpiration
+file_dave_aet
 file_dave_lai
 file_dave_height
 file_dave_diameter

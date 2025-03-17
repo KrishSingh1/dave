@@ -59,7 +59,7 @@ file_dave_transpiration
 file_dave_lai
 file_dave_height
 file_dave_diameter
-file_dave_live_biomass"
+file_dave_aboveground_tree_biomass"
 
 ################################################################################
 # End of User Inputs

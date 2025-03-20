@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Delta (deltareports)
+# Delta (deltareports.sh -> deltareport -> deltareport_sub_imgs.sh)
 # A script generating delta reports: absolute and relative differences between the LPJ-GUESS traditional benchmarks
 # and a the correspoding ones of a refernce model run.
 # The script takes 2 arguments: a label, and a path, for the folder containing the benchmarks to compare with.
 
-
+toolscript="deltareports.sh"
 resultfile="deltareports-vs-${1}.result"
 
 if [ $# -ne 2 ]; then
@@ -20,5 +20,4 @@ echo "Summary-processing: Deltareports... Arguments = $@"
 echo "$0"
 echo "The summarize script's pwd -P = $(pwd -P)"
 cd ..
-#which deltareports | tee -a delta/$resultfile
-deltareports -c $@ | tee -a delta/$resultfile
+"$(dirname "$0")/${toolscript}" -c $@ | tee -a delta/$resultfile

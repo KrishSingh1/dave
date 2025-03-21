@@ -96,7 +96,7 @@ tailhead1() {
 #set -e
 
 reportpath=$(pwd -P)/report
-diffreportpath=$(pwd -P)/report_delta41_$suffix
+diffreportpath=$(pwd -P)/report_delta_$suffix
 if [ ! -d $reportpath ]; then
   echo "No such path: " $reportpath
   exit 1

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Comparison of data in the benchmark report catalog with comparator benchmark.
+# By Johan Nord, 2017.
 # Run in the BM outputfolder where there is a report directory to be compared.
 # Output to new catalog report_delta.
 # Input parameters:
@@ -15,6 +16,8 @@ set +e
 module purge &>/dev/null
 module load GCCcore/11.3.0 Python/2.7.18 ImageMagick/7.1.0-37
 
+summarytool="delta"
+sub_imgs_cmd="$(dirname "$0")/deltareport_sub_imgs.sh"
 
 # Help message (when called with no arguments): shows top of this script
 if [ $# -eq 0 ]; then
@@ -385,6 +388,6 @@ echo
 echo Finished tabelling $(basename $0) $2
 echo now doing images and reformatting html code ...
 
-bash $(dirname $(readlink -f "$0"))/deltareport_sub_imgs.sh $diffreportpath	#N.B. is a path, to only a folder name     # upvote! https://stackoverflow.com/questions/6121091/get-file-directory-path-from-file-path
+bash $sub_imgs_cmd $diffreportpath	#N.B. is a path, to only a folder name     # upvote! https://stackoverflow.com/questions/6121091/get-file-directory-path-from-file-path
 
 echo Finished images and reformatting html code. All finished.

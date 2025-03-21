@@ -1,18 +1,21 @@
 #!/bin/bash
 
 # deltareports runs deltareport on all benchmarks folders in the current directory.
+# By Johan Nord, 2017
 # deltareport in turn compares two LPJ-GUESS benchmarks reports - the current one and a
 # reference report, and outputs a delta report in each benchmark's directory.
 # Usage:
 # Deltareports [-options] <label> <path to comparison reference data>
 # options:
 # -h	This help text
-# -c	Use option -c when this script is run on a cluster node. With this option,
-#	it will not run the deltareport jobs with nohup, which doesnt work well on a cluster.
+# -c	Use option -c when this script is run on a cluster node. With this option, it
+#	will not run the deltareport jobs with nohup, which doesnt work well on a cluster.
 
 module load Python/2.7.18
 module load ImageMagick/7.1.0-37
 
+summarytool="delta"
+deltareportcmd="$(dirname "$0")/deltareport.sh"
 
 # Options - Handle the command line switches
 while getopts "ch" opt; do
@@ -28,7 +31,7 @@ shift $((OPTIND-1))
 if [ "$HELP" == "1" ]; then
   echo
   echo Help text for $0
-  tail -n+3 $0 | cut -c2- | head -9       # Change head -n to the number of helptext lines
+  tail -n+3 $0 | cut -c2- | head -10       # Change head -n to the number of helptext lines
   echo
   exit 0
 fi
@@ -43,8 +46,8 @@ fi
 label=$1
 comparator=$(realpath -e $2)
 
-tmpfile_reportsnotfound="/home/$(id -u -n)/.deltareports.notfound.tmp"
-tmpfile_reportsfound="/home/$(id -u -n)/.deltareports.found.tmp"
+tmpfile_reportsnotfound="/home/$HOME/.deltareports.notfound.tmp"
+tmpfile_reportsfound="/home/$HOME/.deltareports.found.tmp"
 
 echo -n "" >${tmpfile_reportsnotfound}
 echo -n "" >${tmpfile_reportsfound}
@@ -62,10 +65,10 @@ for bm in  $bms; do
   if cd $bm ; then
     if ls -d report &>/dev/null; then
       if [ $CLUSTER != "1" ]; then
-        nohup deltareport $label $comparator &>deltareport_$label.ceout &
+        nohup "$deltareportcmd" $label $comparator &>${summarytool}_deltareport_${label}.ceout &
       else
-        echo "Doing $bm" &>deltareport_$label.ceout
-        deltareport $label $comparator &>>deltareport_$label.ceout		# I.e. don't use nohup on a cluster node.
+        echo "Doing $bm" &>${summarytool}_deltareport_${label}.ceout
+        "$deltareportcmd" $label $comparator &>>${summarytool}_deltareport_${label}.ceout		# I.e. don't use nohup on a cluster node.
       fi
       if [ -d "$comparator/$bm/report" ]; then
         echo -n " $bm" >>${tmpfile_reportsfound}

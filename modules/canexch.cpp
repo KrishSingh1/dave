@@ -1770,7 +1770,7 @@ double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	case WR_ROOT_RESISTANCE:
 		{
 
-			if (!ifdavehydraulics){
+			if (!ifzhou) {
 				fail("Root resistance water uptake cannot be used without DAVE hydraulics module");
 			}
 		
@@ -3672,15 +3672,24 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double X = 0.0;
 			double gdark = 0.0;
 
-			if (ifdavehydraulics){
+			if (ifzhou) {
 				// Stomatal term (Medlyn et al. 2011), with g1 defined by pre-dawn soil water potential (Zhou et al. 2014)
 				// X needs to represent gs for CO2, hence no 1.6 factor
 
 				// for water
-				ppft.g1 = g1x * exp(b1z*(indiv.predawn_lwp + 0.3));
+				double water_potential;
+				if (ifdavehydraulics) {
+					water_potential = indiv.predawn_lwp;
+				} else {
+					// For now, use soil water potential weighted by root
+					// resistance if running without dave hydraulics.
+					// water_potential = patch.soil.soil_psi;
+					water_potential = indiv.weighted_psi;
+				}
+				ppft.g1 = g1x * exp(b1z*(water_potential + 0.3));
 
 				// for water
-				g0 = min(g0,g0 * exp(b1z*(indiv.predawn_lwp + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
+				g0 = min(g0,g0 * exp(b1z*(water_potential + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
 				// for co2
 				inputs.X = divide(divide(1.0 + ppft.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
@@ -3768,7 +3777,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				if (ifdavehydraulics && outputs.gsc < gcutic_adj / DWDC){
+				if (ifdavehydraulics && outputs.gsc < gcutic_adj / DWDC) {
 					gsw_canopy += gcutic_adj * lai_layer; // don't allow gsw to fall below cuticular conductance
 				} else {
 					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
@@ -3825,7 +3834,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.photosynthesis.je    += indiv.ps_subdaily.Anj[day.period];
 
 			// run hydraulics module and check for stomatal closure in next timestep
-			if (ifdavehydraulics){
+			if (ifdavehydraulics) {
 				if (indiv.pft.is_grass()) {
 					grass_hydraulics(day, indiv);
 				} else {
@@ -4209,7 +4218,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 							pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
 			}
 			
-			if (ifdavehydraulics && !indiv.stomata_open){
+			if (ifdavehydraulics && !indiv.stomata_open) {
 				for (int i = 0; i<NSOILLAYER; i++) {
 					indiv.fwuptake[i] = 0; // if the stomata are closed, we assume roots are hydraulically isolated from the soil
 				}
@@ -4226,7 +4235,7 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 			uptake += indiv.aet * indiv.fwuptake[i]; 
 		}
 		if (uptake > wcont[i]) {
-			if (ifdavehydraulics){
+			if (ifdavehydraulics) {
 				printf("Transpiration exceeds soil water content, this shouldn't happen\n");
 	//			fail("%d %d Transpiration exceeds soil water content, this shouldn't happen",date.year,date.day);
 			}
@@ -4415,7 +4424,7 @@ void forest_floor_dave(Patch &patch) {
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
 
-			if (ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE) {
+			if (/*ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE*/ifzhou) {
 				double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 				double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 				inputs.wscal = max(min((patch.soil.psi_layer[0] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0);
@@ -4565,7 +4574,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		calc_soil_water_potenial_dave(patch.soil);
 
 		// Calculate water stress factor
-		if (ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE){
+		if (ifzhou) {
 			water_stress_root_resistance(patch);
 		} else {
 			water_stress(patch);

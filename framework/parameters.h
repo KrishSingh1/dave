@@ -390,6 +390,8 @@ extern bool ifdavegrowth;
 extern bool ifdavehydrology;
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
+/// whether Zhou response of photosynthesis to water stress is turned on (requires ifdavehydrology).
+extern bool ifzhou;
 /// Whether LAI is distributed evenly across canopy layers for grasses.
 extern bool ifevenlaidist;
 

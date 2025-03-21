@@ -82,6 +82,7 @@ bool iftreephen;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
+bool ifzhou;
 bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
@@ -272,6 +273,9 @@ void initsettings() {
 	ifdisturb=false;
 	ifcalcsla=false;
 	iftempacclimation = false;
+	ifdavehydraulics = false;
+	ifdavehydrology = false;
+	ifzhou = false;
 	ifcalccton=true;
 	ifcdebt=false;
 	ifgrote = false;
@@ -643,6 +647,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
+	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
@@ -2133,7 +2138,12 @@ void plib_callback(int callback) {
 				}
 			}
 
+			if (ifzhou && !ifdavehydrology) {
+				fail("Zhou photosynthesis response requires dave hydrology to be enabled");
+			}
+
 			if (ifdavehydraulics){
+				if (!ifzhou) fail("Dave hydraulics routine requires ifzhou to be enabled");
 				if (!itemparsed("p50")) badins("p50");	
 				if (!itemparsed("p88")) badins("p88");	
 				if (!itemparsed("kmax")) badins("kmax");	

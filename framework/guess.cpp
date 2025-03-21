@@ -3564,7 +3564,7 @@ void Individual::flush_repr_litter_DAVE() {
 }
 
 double Individual::wscal_mean() const {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_mean_year;
 	} else {
 		return patchpft().wscal_mean;
@@ -3572,7 +3572,7 @@ double Individual::wscal_mean() const {
 }
 
 double Individual::get_wscal() const {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal;
 	} else {
 		return patchpft().wscal;
@@ -3580,7 +3580,7 @@ double Individual::get_wscal() const {
 }
 
 Historic<double,5>& Individual::get_wscal_5() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_5;
 	} else {
 		return patchpft().wscal_5;
@@ -3588,7 +3588,7 @@ Historic<double,5>& Individual::get_wscal_5() {
 }
 
 Historic<double,10>& Individual::get_wscal_10() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_10;
 	} else {
 		return patchpft().wscal_10;
@@ -3596,7 +3596,7 @@ Historic<double,10>& Individual::get_wscal_10() {
 }
 
 Historic<double,30>& Individual::get_wscal_30() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_30;
 	} else {
 		return patchpft().wscal_30;

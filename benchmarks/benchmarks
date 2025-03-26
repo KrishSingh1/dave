@@ -31,7 +31,7 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -s ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
+    error "Usage: benchmarks [ -1 ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
     error "Pwd needs to be the directory of this benchmarks script."
     error
     error "Options"
@@ -39,7 +39,7 @@ function print_usage_and_exit {
     error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
     error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
     error "     Without -i and -x, all BENCHMARK test will be run."
-    error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
+    error "-s   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
     error "     e.g. for comparative report processing."
     error "     Takes 1 argument. Enclose TOOL and arguments with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
     error "     * The <SUMMARYTOOL> is a script directory in benchmarks/summarize/, e.g. delta or tellme."
@@ -48,8 +48,8 @@ function print_usage_and_exit {
     error "                             the path to the same reference run's output."
     error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta SUMMARYTOOL."
     error "       Do not include the BENCHMARK at the end of the paths."
-    error "     Several -u options can be stacked in one call."
-    error "-s   Single machine mode, don't use PBS/SLURM"
+    error "     Several -s options can be stacked in one call."
+    error "-1   Single machine mode, don't use PBS/SLURM"
     error "-c   Compile only, don't run the tests."
     error "-p   Post processing only."
     error "-P   Summary-report processing only: no model jobs, no postprocessing jobs."
@@ -63,8 +63,8 @@ function print_usage_and_exit {
     error "2. Run some benchmarks:"
     error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
     error "4. Run some benchmarks and then do two summary jobs (summary-processing jobs):"
-    error "   benchmarks -i \"fluxnet tellus\" -u \"tellme myrun refrun10153 /scratch/sally/otherproject/output_r10153\"\\"
-    error "     -u \"delta refrun10153 /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "   benchmarks -i \"fluxnet tellus\" -s \"tellme myrun refrun10153 /scratch/sally/otherproject/output_r10153\"\\"
+    error "     -s \"delta refrun10153 /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
     error "5. Run all except some benchmarks:"
     error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
@@ -93,24 +93,24 @@ summaryreport_flag=0
 summaryreport_only=0
 summaryreport_arglist=()
 
-# Handle the -s, -c, -i, -x, ... options
-while getopts ":scpPru:i:x:" opt; do
+# Handle the -1, -c, -i, -x, ... options
+while getopts ":1cpPrs:i:x:" opt; do
 
     case $opt in
 	i  ) inclusive=$OPTARG
 	     inclusive_flag=1;;
 	x  ) exclusive=$OPTARG
 	     exclusive_flag=1;;
-	s  ) single_machine=1;;
+	1  ) single_machine=1;;
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) summaryreport_only=1;;
-	u  ) summaryreport_arglist+=( "$OPTARG " )
-             summaryreport_flag=1;;
+	s  ) summaryreport_arglist+=( "$OPTARG " )
+		 summaryreport_flag=1;;
+		 [[ -z $OPTARG ]] && echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode." && print_usage_and_exit
 	r  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
     esac
-
 done
 
 if (( ${#inclusive} > 0 && ${#exclusive} > 0 )); then
@@ -121,7 +121,7 @@ fi
 if (( $single_machine == 0 )); then
     if ! has_pbs && ! has_slurm ; then
 	error "It doesn't seem like PBS or SLURM is installed. You can run the"
-	error "benchmarks on the local machine with the -s option."
+	error "benchmarks on the local machine with the -1 option."
 	exit 1
     fi
 else

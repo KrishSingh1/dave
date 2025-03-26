@@ -31,41 +31,35 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -1 ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
-    error "Pwd needs to be the directory of this benchmarks script."
-    error
+    error "Usage: benchmarks [ -1 ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -s \"<SUMMARYTOOL and arguments>\" ] <workdir>"
     error "Options"
-    error "======="
     error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
     error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
     error "     Without -i and -x, all BENCHMARK test will be run."
     error "-s   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
-    error "     e.g. for comparative report processing."
-    error "     Takes 1 argument. Enclose TOOL and arguments with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
-    error "     * The <SUMMARYTOOL> is a script directory in benchmarks/summarize/, e.g. delta or tellme."
-    error "     * Arguments:"
-    error "       delta:  2 arguments:  a label for the comparison reference benchmarks run to compare with," 
+    error "     Option -s takes 1 argument. Enclose TOOL and arguments with \"\": \"<SUMMARYTOOL> <arg1> <arg2> ...\"."
+    error "     Arguments:  e.g. delta and tellme tools"
+    error "       delta:  2 arguments:  a label for the comparison reference benchmarks run to compare with,"
     error "                             the path to the same reference run's output."
     error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta SUMMARYTOOL."
     error "       Do not include the BENCHMARK at the end of the paths."
     error "     Several -s options can be stacked in one call."
-    error "-1   Single machine mode, don't use PBS/SLURM"
+    error "     All summarytools are in benchmarks/summarize/<SUMMARYTOOL>."
+    error "-1   Single machine mode, don't use PBS/SLURM. This option was previously -s."
     error "-c   Compile only, don't run the tests."
     error "-p   Post processing only."
     error "-P   Summary-report processing only: no model jobs, no postprocessing jobs."
-    error "-r   Generate printer friendly report (does nothing else and is run as a regular process,"
-    error "     in other words, not submitted as a batch job)."
+    error "-r   Generate printer friendly report (does nothing else and is run as a regular process, i.e. not submitted as a batch job)."
     error
     error "Examples"
-    error "========"
     error "1. Run all benchmarks:"
     error "   benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
     error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
-    error "4. Run some benchmarks and then do two summary jobs (summary-processing jobs):"
+    error "3. Run some benchmarks and then do two summary jobs (summary-processing jobs):"
     error "   benchmarks -i \"fluxnet tellus\" -s \"tellme myrun refrun10153 /scratch/sally/otherproject/output_r10153\"\\"
     error "     -s \"delta refrun10153 /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
-    error "5. Run all except some benchmarks:"
+    error "4. Run all except some benchmarks:"
     error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
 }
@@ -109,7 +103,7 @@ while getopts ":1cpPrs:i:x:" opt; do
 	     summaryreport_flag=1
 	     [[ -z $OPTARG ]] && { echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode."; print_usage_and_exit; } ;;
 	r  ) printer_friendly=1;;
-	\? ) print_usage_and_exit ;;
+	\? ) echo "Invalid option: -$OPTARG"; print_usage_and_exit ;;
     esac
 done
 
@@ -293,7 +287,7 @@ EOF
 	echo Submit as PBS job: Put code here.
     else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
+	sbatch -n 1 --time=$pp_walltime $dependency  <<EOF 	1>/dev/null	# If no redirect, sbatch prints "Submitted batch job 1204359".
 #!/bin/sh
 #SBATCH -J su_${summarytool}
 #SBATCH --mail-type=FAIL

@@ -106,8 +106,8 @@ while getopts ":1cpPrs:i:x:" opt; do
 	p  ) pp_only=1;;
 	P  ) summaryreport_only=1;;
 	s  ) summaryreport_arglist+=( "$OPTARG " )
-		 summaryreport_flag=1;;
-		 [[ -z $OPTARG ]] && echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode." && print_usage_and_exit
+	     summaryreport_flag=1
+	     [[ -z $OPTARG ]] && { echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode."; print_usage_and_exit; } ;;
 	r  ) printer_friendly=1;;
 	\? ) print_usage_and_exit ;;
     esac

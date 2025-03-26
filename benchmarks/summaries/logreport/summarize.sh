@@ -1,21 +1,48 @@
 #!/bin/bash
 
-# Call guesslog_errors_summary.sh
-# Writes a summary of the guess.logs
+# Summmary tool logreport. It writes a summary of the guess.logs of all the benchmarks runs.
 # Standard output is removed, to show only unexpected output.
-# By Johan Nord, 2025.
+# This script calls the main script guesslog_errors_summary.sh
+# By Johan Nord, 2022.
+# Usage
+# ./benchmarks -i "fluxnet tellus" -s "logreport [-h] <path to reference output>" <benchmark-runs output directory>
+# Using option -h will cause logreport to print this help message and exit.
 
 toolscript="guesslog_errors_summary.sh"
 
-echo "Summary-processing: generating log report... Arguments (should be empty) = $@"
+if [ $# -ne 1 ]; then
+  echo "Error: the summaries/logreport/summarize.sh script needs one argument:"
+  echo "The path to the directory with reference output, e.g. from latest trunk."
+  echo "The call arguments were: $@"
+  echo "Abort."
+  echo
+  HELP="1"		# Help will cause exit 1
+fi
+
+# Handle the command line arguments
+while getopts ":h" opt; do
+    case $opt in
+        h ) HELP="1" ;;
+		\? ) echo "Error! Unavailble option $opt. Abort!"; HELP="1" ;;		# Help will cause exit 1
+    esac
+done
+shift $((OPTIND-1))
+
+# Display help msg and exit
+if [ "$HELP" == "1" ]; then
+  echo Help text for $0
+  echo
+  tail -n+3 $0 | cut -c2- | head -n7        # Change head -n to the number of helptext lines
+  echo
+  exit 1
+fi
+
+# Main code
+
+echo "Summary-processing: generating log report..." 
+echo "Arguments (should be 1, the path to reference log files) = $@"
 echo "$0"
 echo "The summarize script's pwd -P = $(pwd -P)"
 
-if [ $# -ne 0 ]; then
-  echo "Warning: the summaries/logreport/summarize.sh script doent use anu arguments."
-  echo "The call arguments were: $@"
-  echo "These arguments were ignored."
-  echo
-fi
-
-"$(dirname "$0")/${toolscript}" ..	# Call it to run on output folders in one level up fron the folder "logreport".
+# Call the main script
+"$(dirname "$0")/${toolscript}" $1 ..	# Call it to run on output folders in one level up fron the folder "logreport".

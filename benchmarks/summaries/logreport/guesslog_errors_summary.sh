@@ -1,11 +1,14 @@
 #!/bin/bash
-# guesslog_errors_summary (standallone version is guess-grep-guesslog-errors-allBMs.sh aka)
+# guesslog_errors_summary (standallone version is guess-grep-guesslog-errors-allBMs.sh aka guess-log-error-extract)
 # By Johan Nord, 2025.
 # Output is written to a file, see variable outfile below. It is not printed to std out.
 # Arguments:
-# If no argument, operates on current dir. Else operates on dir given in $1.
+# If 1 argument, operates on current dir. Else (i.e. 2 arguments) it operates on dir given in $2.
 # $1: dir containing bm folders with guess.log files.
+# $2: (optional) path to operate on. Only used when used stand-alone, not togeher with logreport benchmarks summary.
 
+
+### Special tweaks
 
 # Exclude BM(s?)
 EXCLUDEDBMS=""
@@ -17,30 +20,28 @@ FILTERPATTERN="C pool change|C flux|Period C balance|C balance year|N pool chang
 # and do it only on these BMs:
 FILTERBMS="tellus"
 
-
-# This is where output is written to. It is not printed to std out.
-outfile="`pwd -P;`/guesslog_errors.txt"
-if [ $# -ne 0 ]; then
-  cd $1
-fi
-
-
-scriptpath="/home/jnord/bin/"
-
-expected_files_reference="trunk/output13034full"
-if [ "$ARCH" != "" ]; then
-  expected_files_reference="/lunarc/nobackup/projects/snic2020-6-23/jnord/benchmarks/${expected_files_reference}"
-else
-  expected_files_reference="/admin/data/lpjguess_benchmarks_output/trunk/outputRelease4.1_r10118full"  # On simba: not sam as above
-fi
-
 bms="crop_global crop_mixed_sites diurnal_pristine_sites emdi_europe emdi_global europe fluxnet global panarctic\
  pristine_sites secondary_stands soil_temperature tellus wetland_global wetland_sites"
 
 
+### Initialisation
+
+# This is where output is written to. It is not printed to std out.
+# Then cd to where the log files analusis is done
+outfile="`pwd -P;`/guesslog_errors.txt"
+if [ $# -ne 0 ]; then
+  cd $2			
+fi
+
+# Path to the reference output 
+expected_files_reference="$1"
+if [ ! -d "$expected_files_reference" ]; then
+   echo "The path to the reference output is invalid. Abort."
+   exit 1
+fi
+
 
 ### Main code
-echo "Please wait a few moments..."
 
 
 ### Intro

@@ -32,12 +32,12 @@ function has_slurm {
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
     error "Usage: benchmarks [ -s ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
-    error "Pwd needs to be the directory of this BENCHMARK script."
+    error "Pwd needs to be the directory of this benchmarks script."
     error
     error "Options"
     error "======="
-    error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
+    error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
+    error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several BENCHMARKs with\"\"."
     error "     Without -i and -x, all BENCHMARK test will be run."
     error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
     error "     e.g. for comparative report processing."

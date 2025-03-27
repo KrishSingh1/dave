@@ -64,7 +64,7 @@ for bm in  $bms; do
 
   if cd $bm ; then
     if ls -d report &>/dev/null; then
-      if [ $CLUSTER != "1" ]; then
+      if [ "$CLUSTER" != "1" ]; then
         nohup "$deltareportcmd" $label $comparator &>${summarytool}_deltareport_${label}.ceout &
       else
         echo "Doing $bm" &>${summarytool}_deltareport_${label}.ceout

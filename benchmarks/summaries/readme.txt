@@ -13,14 +13,16 @@ Several summary jobs can be started within one overall benchmark command run.
 The summary jobs run in parallel independent of each other.
 
 So for example:
-The benchmark run can be run with all benchmark tests...
+The benchmark command can be run with all benchmark tests...
  ./benchmarks <output dir>
 ... or run with only a few benchmark tests:
  ./benchmarks -i "global crop_global" <output dir>
-But since the summary jobs run in parallel independently of which  
-benchmark model runs that has been run (and their associated postprocessings),
-they need to be individually specified in the benchmarks command call:
+Now to add a summary job to the benchmark command above (the first one without -i)
  ./benchmarks -s "diff <label> <comparison output>" <output dir>
+(-s can be combined with -i, just not shown here for simplicity).
+The summary jobs run independently of which benchmark model tests that 
+has been run (and their associated postprocessings),
+and need to be individually specified in the benchmarks command call.
 
 In the example above -s is the command option that tells the benchmark command
 to include a summary job in the run (i.e. in is submitted jobs to the cluster),

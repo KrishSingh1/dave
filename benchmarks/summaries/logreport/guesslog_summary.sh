@@ -28,7 +28,7 @@ bms="crop_global crop_mixed_sites diurnal_pristine_sites emdi_europe emdi_global
 
 # This is where output is written to. It is not printed to std out.
 # Then cd to where the log files analusis is done
-outfile="`pwd -P;`/guesslog_errors.txt"
+outfile="`pwd -P;`/guesslogs_summary.txt"
 if [ $# -ne 0 ]; then
   cd $2			
 fi
@@ -46,12 +46,13 @@ fi
 
 ### Intro
 string_intro=$(
-#echo $0     #> $outfile
-echo "Analysis of:"
-pwd -P      #>> $outfile
+echo "Summary of the guess log-files in:"
+pwd -P
 echo
-echo "This output is also saved in in file $outfile."
+echo "The reference used as standard to check against to find deviatios:"
+echo $expected_files_reference
 echo
+echo "Contents"
 echo "1a. Look for missing report/index.html files."
 echo "1b. Look for empty .out files."
 echo "2.  Print only unexpected output."
@@ -134,8 +135,8 @@ cat $outfile | grep -v Finished |grep -v "^\[LPJ-GUESS" \
 | grep -v "^Last year of cropland fraction data used from year 2016 and onwards"
 # note the backslash at the end onf the prev line.
 
-echo "________________________________________________"
-echo "Unexpected output plus Start- and Finished-lines"
+echo "__________________________________________________________"
+echo "Unexpected output plus number of Start- and Finished-lines"
 
 nLPJG=$(cat $outfile | grep -c "\[LPJ-GUESS")
 nFinished=$(cat $outfile | grep -c "Finished")
@@ -143,8 +144,8 @@ nFinished=$(cat $outfile | grep -c "Finished")
 echo "Number of \[LPJ-GUESS found: $nLPJG"
 echo "Number of Finished found: $nFinished"
 echo
-echo "______________________________________________"
-echo "files as cmp w $expected_files_reference"
+echo "__________________________________________________________"
+echo "Presence of files as compared with $expected_files_reference"
 echo "(diff of ls of each bm-catalog found in . with the reference):"
 
 for bmcat in $bms; do

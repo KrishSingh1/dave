@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Guess_diff by Johan Nord, 2025.
-# Diff files from LPJ-GUESS benchmarks as compared with a chosen reference run of benchmarks
+# Guess_diff. Diff files from LPJ-GUESS benchmarks as compared with a chosen reference run of benchmarks.
 # Run script in the directory containing the benchmarks output folders (see variable bms below)
 # Run as e.g. diff_outfiles_tslices.sh 5508 '/scratch/johan/Benchmarks/release_4.0/trunk_5508/output5508_all_pure'
 # i.e. 	$1: a label naming the reference
@@ -9,6 +8,7 @@
 # Output: is placed in each bm folder
 # Metadata: this script is copied to pwd.
 #	    $reflabel $refdir added to a file on path $0 for easy recollection of previous reference data
+# Written by Johan Nord, 2019.
 
 
 # Help message (when called with no arguments): shows top of this script

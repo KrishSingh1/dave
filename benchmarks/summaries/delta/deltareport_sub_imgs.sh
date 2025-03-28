@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Subroutine for deltareport.sh
-# By Johan Nord, 2017.
+# Written by Johan Nord, 2017.
 # Comparison of data in the benchmark report catalog with comparator benchmark.
 # Run in the BM outputfolder where there is a report directory to be compared.
 # Output to (new) catalog report_delta.

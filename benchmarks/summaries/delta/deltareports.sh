@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # deltareports runs deltareport on all benchmarks folders in the current directory.
-# By Johan Nord, 2017
+# Written Johan Nord, 2017
 # deltareport in turn compares two LPJ-GUESS benchmarks reports - the current one and a
 # reference report, and outputs a delta report in each benchmark's directory.
 # Usage:

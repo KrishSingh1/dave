@@ -3,7 +3,6 @@
 # Summmary tool logreport. It writes a summary of the guess.logs of all the benchmarks runs.
 # Standard output is removed, to show only unexpected output.
 # This script calls the main script guesslog_errors_summary.sh
-# By Johan Nord, 2022.
 # Usage
 # ./benchmarks -i "fluxnet tellus" -s "logreport [-h] <path to reference output>" <benchmark-runs output directory>
 # Using option -h will cause logreport to print this help message and exit.

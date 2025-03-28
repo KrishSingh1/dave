@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Comparison of data in the benchmark report catalog with comparator benchmark.
-# By Johan Nord, 2017.
+# Written by Johan Nord, 2017.
 # Run in the BM outputfolder where there is a report directory to be compared.
 # Output to new catalog report_delta.
 # Input parameters:

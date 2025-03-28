@@ -1,6 +1,6 @@
 #!/bin/bash
 # guesslog_errors_summary (standallone version is guess-grep-guesslog-errors-allBMs.sh aka guess-log-error-extract)
-# By Johan Nord, 2025.
+# Written by Johan Nord, 2017.
 # Output is written to a file, see variable outfile below. It is not printed to std out.
 # Arguments:
 # If 1 argument, operates on current dir. Else (i.e. 2 arguments) it operates on dir given in $2.

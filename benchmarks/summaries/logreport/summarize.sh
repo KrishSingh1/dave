@@ -8,7 +8,7 @@
 # ./benchmarks -i "fluxnet tellus" -s "logreport [-h] <path to reference output>" <benchmark-runs output directory>
 # Using option -h will cause logreport to print this help message and exit.
 
-toolscript="guesslog_errors_summary.sh"
+toolscript="guesslog_summary.sh"
 
 if [ $# -ne 1 ]; then
   echo "Error: the summaries/logreport/summarize.sh script needs one argument:"

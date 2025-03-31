@@ -1,4 +1,4 @@
 NPROCESS=6
 if [[ "$ARCH" == "lunarc" ]]; then
-    NPROCESS=11
+    NPROCESS=48
 fi

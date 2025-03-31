@@ -176,7 +176,7 @@ void inundation_stress(Patch& patch) {
 		Patchpft& ppft = patch.pft[p];
 
 		double wtpp = patch.soilcolumn.wtp; // [-300,100] mm
-		double wtpm =ppft.pft.wtp_max; // mm
+		double wtpm = ppft.pft.wtp_max; // mm
 
 		if (date.day == 0)
 			ppft.inund_count = 0; // Reset on Jan 1
@@ -303,9 +303,12 @@ void soilwater(Patch& patch, Climate& climate) {
 			// v4.1 15 layer LPJ-GUESS hydrology
 			soilcolumn.hydrology_miller(climate, bare_ground);
 		}
-		else {
+		else if (hydrology == RICHARDS) {
 			// Richards eqn hydrology
 			soilcolumn.hydrology_richards(climate, bare_ground);
+		}
+		else {
+			fail("Hydrology scheme not defined!\n");
 		}
 	}
 }

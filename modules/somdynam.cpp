@@ -1315,7 +1315,7 @@ void transfer_litter(Patch& patch) {
 							fireresist[SURFMETA] += cmass_litter_leaf * fm * pft.fireresist;
 						}
 
-						if (negligible(sompool_struct.cmass, 1.0e-16)) {
+						if (negligible(sompool_struct.cmass, -16)) {
 							sompool_struct.ligcfrac = 0.0;
 						}
 						else {
@@ -1599,7 +1599,7 @@ void leaching(Patch& patch) {
 		// Water percolation for this time step
 		double dperc = soilcolumn.wfluxes[lyr + 1];
 
-		if (!negligible(fabs(dperc) + runoff, 1.0e-10)) {
+		if (!negligible(fabs(dperc) + runoff, -10)) {
 
 			// Leaching from available nitrogen mineral pool
 			// in proportion to amount of water percolated or drainage
@@ -1969,7 +1969,7 @@ void equilsom(Patch& patch) {
 						}
 
 						// Monthly nitrogen addition from fixation to the soil layer
-						if (!negligible(cconttot, 1.0e-12))
+						if (!negligible(cconttot, -12))
 							soillayer.nmass_inc(soilcolumn.anfix_mean / 12.0 * soillayer.ccont() / cconttot, NH4);
 
 						// Monthly decomposition and fluxes between SOM pools
@@ -2092,14 +2092,14 @@ void equilsom(Patch& patch) {
 					double hccont_mean = hist_ccont[lyr].mean();
 
 					// Calculate trend normalised against historical mean
-					double hsslow = !negligible(hslow_mean, 1.0e-12) ? hist_slow[lyr].slope() / hslow_mean : 0.0;
-					double hspas = !negligible(hpas_mean, 1.0e-12) ? hist_passive[lyr].slope() / hpas_mean : 0.0;
-					double hsccont = !negligible(hccont_mean, 1.0e-12) ? hist_ccont[lyr].slope() / hccont_mean : 0.0;
+					double hsslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].slope() / hslow_mean : 0.0;
+					double hspas = !negligible(hpas_mean, -12) ? hist_passive[lyr].slope() / hpas_mean : 0.0;
+					double hsccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].slope() / hccont_mean : 0.0;
 
 					// Calculate std normalised against historical mean
-					double hstdslow = !negligible(hslow_mean, 1.0e-12) ? hist_slow[lyr].std() / hslow_mean : 0.0;
-					double hstdpas = !negligible(hpas_mean, 1.0e-12) ? hist_passive[lyr].std() / hpas_mean : 0.0;
-					double hstdccont = !negligible(hccont_mean, 1.0e-12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
+					double hstdslow = !negligible(hslow_mean, -12) ? hist_slow[lyr].std() / hslow_mean : 0.0;
+					double hstdpas = !negligible(hpas_mean, -12) ? hist_passive[lyr].std() / hpas_mean : 0.0;
+					double hstdccont = !negligible(hccont_mean, -12) ? hist_ccont[lyr].std() / hccont_mean : 0.0;
 
 					// Calculte how many trends and stds that are too big
 					if ((hydrology == GERTEN || lyr > 0) && (fabs(hsslow) > EPS_trend || fabs(hspas) > EPS_trend_passive || fabs(hsccont) > EPS_trend) &&

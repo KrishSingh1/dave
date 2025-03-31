@@ -116,7 +116,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Sum total required irrigation
 			irrigation(patch);
-			
+
 			// Soil water and snow pack accounting
 			soilwater(patch, gridcell.climate);
 

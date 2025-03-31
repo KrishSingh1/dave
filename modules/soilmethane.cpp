@@ -619,7 +619,7 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
 
 		Soillayer& soillayer = soillayers[lyr];
 
-		if (!negligible(tiller_density, 1.0e-15)) {
+		if (!negligible(tiller_density, -15)) {
 			tiller_frac = tiller_density * rootfrac[lyr];
 
 			// Consider this as the fraction of the area (1m2) occupied by tillers in this layer

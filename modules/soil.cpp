@@ -2119,41 +2119,75 @@ double Soillayer::nmass_avail(n_pref_type pref, bool wmass_limited) {
  */
 void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 
-	// If N transformation is turned off, then all available N should be of the type NH4
 	if (!ifntransform) {
 		pref = NH4;
 	}
-
 	double residual = 0.0;
 	if (pref == NO) {
 		double nmass_tot = NH4_mass + NO3_mass;
-		if (nmass_tot > 0.0) {
-			residual = nmass_tot - nmass;
-			if (residual >= 0.0 || negligible(residual, 1.0e-10)) {
-				nmass_subtract(nmass * NH4_mass / nmass_tot, NH4);
-				nmass_subtract(nmass * NO3_mass / nmass_tot, NO3);
+		residual = nmass_tot - nmass;
+
+		// N is available for subtraction
+		if (residual >= 0.0) {
+			nmass_subtract(nmass * NH4_mass / nmass_tot, NH4);
+			nmass_subtract(nmass * NO3_mass / nmass_tot, NO3);
+		}
+		// Very small negative residual, add missing N as NO3 flux
+		else if (negligible(residual, -10) || date.year < freenyears) {
+			if (date.year >= freenyears && residual < -1.0e-14) {
+				dprintf("ERROR year %d and day %d! NH4 and NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
+					date.year, date.day, nmass_tot, nmass, residual);
 			}
-			else {
-				fail("ERROR: Year %d Day %d Tried to subtract more N (%f) than available (%f) Diff (%f)\n", date.year, date.day, nmass, nmass_tot, residual);
-			}
+			NO3_mass = 0.0;
+			NH4_mass = 0.0;
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NH3_SOIL, -residual);
+		}
+		// Large negative residual, fail model
+		else {
+			fail("Fail in year %d and day %d! Tried to subtract more N (NO) than available (residual %g)\n",
+				date.year, date.day, residual);
 		}
 	}
 	else if (pref == NH4) {
-		if (nmass <= NH4_mass || negligible(nmass - NH4_mass, 1.0e-10)) {
-			NH4_mass = max(0.0, NH4_mass - nmass);
+		residual = NH4_mass - nmass;
+		// N is available for subtraction
+		if (residual >= 0.0) {
+			NH4_mass -= nmass;
 		}
+		// Very small negative residual, add missing N as NO3 flux
+		else if (negligible(residual, -10) || date.year < freenyears) {
+			if (date.year >= freenyears && residual < -1.0e-14) {
+				dprintf("ERROR year %d and day %d! NH4 mass %f is smaller than N substr %f with the residual %g. Adding residual as NH3 flux\n",
+					date.year, date.day, NH4_mass, nmass, residual);
+			}
+			NH4_mass = 0.0;
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NH3_SOIL, -residual);
+		}
+		// Large negative residual, fail model
 		else {
-			double r = nmass - NH4_mass;
-			fail("ERROR: Year %d Day %d Tried to subtract more NH4 (%f) than available (%f) Diff (%f)\n", date.year, date.day, nmass, NH4_mass, r);
+			fail("Fail in year %d and day %d! Tried to subtract more N (NH4) than available (residual %g)\n",
+				date.year, date.day, residual);
 		}
 	}
 	else if (pref == NO3) {
-		if (nmass <= NO3_mass || negligible(nmass - NO3_mass, 1.0e-10)) {
-			NO3_mass = max(0.0, NO3_mass - nmass);
+		residual = NO3_mass - nmass;
+		// N is available for subtraction
+		if (residual >= 0.0) {
+			NO3_mass -= nmass;
 		}
+		// Very small negative residual, add missing N as NO flux
+		else if (negligible(residual, -10) || date.year < freenyears) {
+			if (date.year >= freenyears && residual < -1.0e-14) {
+				dprintf("ERROR year %d and day %d! NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
+					date.year, date.day, NO3_mass, nmass, residual);
+			}
+			NO3_mass = 0.0;
+			(*soilcolumn).patch.fluxes.report_flux(Fluxes::NO_SOIL, -residual);
+		}
+		// Large negative residual, fail model
 		else {
-			double r = nmass - NO3_mass;
-			fail("ERROR: Year %d Day %d Tried to subtract more NO3 (%f) than available (%f) Diff (%f)\n", date.year, date.day, nmass, NO3_mass, r);
+			fail("Fail in year %d and day %d! Tried to subtract more N (NO3) than available (residual %g)\n",
+				date.year, date.day, residual);
 		}
 	}
 }
@@ -3287,7 +3321,7 @@ double Soilcolumn::var_depth_ncont(double depth_start, double depth_end, grouppo
 */
 void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 
-	if (negligible(wmass_ssw + imass_ssw, 1.0e-10) || snow.nsnowlayers) {
+	if (negligible(wmass_ssw + imass_ssw, -10) || snow.nsnowlayers) {
 
 		// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
 		// Constant [kg m-3]
@@ -3829,7 +3863,7 @@ void Soilcolumn::update_thermal_properties_for_ssw() {
 	double depth_ssw = wmass_ssw + imass_ssw;
 
 	// No standing water then return
-	if (negligible(depth_ssw, 1.0e-10)) {
+	if (negligible(depth_ssw, -10)) {
 		return;
 	}
 
@@ -4088,7 +4122,7 @@ void Soilcolumn::update_ssw(double& mass, double mass_add) {
 
 	// Very small amount of surface standing water
 	// then it is lost as suface runoff
-	if (negligible(mass, 1.0e-10)) {
+	if (negligible(mass, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, mass);
 		mass = 0.0;
 	}
@@ -4269,7 +4303,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 			wtot_acrotelm_min += minvtot * soillayer.depth;
 		}
 		else {
-			wtot_acrotelm_min += soillayer.wp * soillayer.depth;
+			wtot_acrotelm_min += soillayer.wp;
 		}
 		wtot_acrotelm_init += soillayer.wmass;
 	}
@@ -4324,7 +4358,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		else {
 			evap = 0.0;
 		}
-
 
 		// Evapotranspiration
 
@@ -4424,7 +4457,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		}
 	}
 	else {
-
 		// Water fluxes after calculating the interaction with the surface (mm s-1)
 		double wflux_evap, wflux_runoff_surf, wflux_runoff_ssw, wflux_surf, wflux_infilt, wflux_ssw_drain;
 
@@ -4488,7 +4520,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// layer is thawed, the water will be added to the soil
 	// layers. 2. If there is no standing water layer, then the
 	// snowmelt water...should penetrate into the soil.
-
 	if (wtot_acrotelm + itot_acrotelm > ACROTELM_DEPTH * acrotelm_por) {
 
 		// Saturated acrotelm
@@ -4519,7 +4550,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		wtot_acrotelm = ACROTELM_DEPTH * acrotelm_por - itot_acrotelm;
 	}
 	else {
-
 		// Non-saturated acrotelm - Granberg (1999), Eqns 1-5
 		wtd = sqrt(3.0 * (ACROTELM_DEPTH * acrotelm_por - (wtot_acrotelm + itot_acrotelm)) / (2.0 * az));
 
@@ -4530,7 +4560,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 		wtp = -wtd;
 	}
-
 
 	// Water content in each acrotelm soil layer depending on wtd
 
@@ -4607,7 +4636,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		}
 	}
 	else {
-
 		// WTD <= 0.0, at or above the surface - standing water
 		wtot_acrotelm = 0.0;
 		// Acrotelm saturated (subtract ice content)
@@ -4621,7 +4649,9 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Catotelm assumed to be always saturated
 	for (int lyr = nacrotelm; lyr < nsoillayers; lyr++) {
 		Soillayer& soillayer = soillayers[lyr];
-		soillayer.wmass = soillayer.wsats - soillayer.imass;
+		double wadd = max(0.0, soillayer.wsats - (soillayer.wmass + soillayer.imass));
+		waddon += wadd;
+		soillayer.wmass += wadd;
 	}
 
 	// Total water change during calculation of water content based on WTD
@@ -4629,7 +4659,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Lost water, need to be added. Start from lowest acrotelm layer
 	if (wdiff > 1.0e-14) {
-		for (int lyr = nacrotelm -1; lyr >= 0; lyr--) {
+		for (int lyr = nacrotelm - 1; lyr >= 0; lyr--) {
 			double wadd = min(soillayers[lyr].wsats - (soillayers[lyr].wmass + soillayers[lyr].imass), wdiff);
 			soillayers[lyr].wmass += wadd;
 			wdiff -= wadd;
@@ -4658,9 +4688,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	runoff_ssw -= wmass_moved;
 	waddon -= wmass_moved;
 
-
 	// Report water fluxes
-
 	Fluxes& fluxes = patch.fluxes;
 
 	// Evapotranspiration data
@@ -4682,10 +4710,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 
 	evap_prev = evap;
 
-
 	// Update CO2 level in acrotelm
 	update_acrotelm_co2(climate.co2);
-
 
 	// Update limits on moss photosynthesis
 
@@ -4748,7 +4774,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	else {
 		dgraminoid_wtp_limit = wtp_graminoid_lowestlimit;
 	}
-
 
 	// Update output variables
 
@@ -6269,11 +6294,12 @@ void Soilcolumn::TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_
 	}
 }
 
-void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], 
+void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX],
 	double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX], double wflux_root[NSOILLAYERS_MAX], int nsoillayers_sim,
 	double dtmin, double xTolerUpper, double& dtsub, double& errorMax, bool& calcsub) {
 
 	calcsub = false;
+	double neg_wmass = false;
 
 	double fluxNet0[NSOILLAYERS_MAX];
 	double fluxNet1[NSOILLAYERS_MAX];
@@ -6288,53 +6314,88 @@ void Soilcolumn::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS
 		fluxNet1[lyr] = qin[lyr] - qout[lyr] - wflux_root[lyr];
 
 		// Check for negative water
-		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0 && !calcsub) {
-
-			if (dtsub > dtmin) {
-				// Halve the length of the sub - step
-				dtsub /= 2.0;
-
-				// Need to recalculate this substep
-				calcsub = true;
-			}
-			else {
-				// Negative water mass
-				dprintf("ERROR!!! Negative wmass! Year %d Day %d lyr %d wmass %g\n",
-					date.year,date.day,lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
-
-				// Set soil layer water to ZERO (not keeping mass balance)
-				dwat[lyr] = -soillayers[lyr].wmass / dz[lyr];
-			}
+		if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
+			neg_wmass = true;
 		}
 	}
 
-	if (!calcsub) {
+	errorMax = 0.0;
 
-		errorMax = 0.0;
+	// Compute absolute errors
+	for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
+		if (fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5 > errorMax)
+			errorMax = fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5;
+	}
 
-		// Compute absolute errors
-		for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
-			if (fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5 > errorMax)
-				errorMax = fabs(fluxNet1[lyr] - fluxNet0[lyr]) * dtsub * 0.5;
-		}
+	// Check if the error is above the upper tolerance 
+	// or we have a soil layer with negative wmass
+	if ((errorMax > xTolerUpper || neg_wmass)) {
 
-		// Check if the error is above the upper tolerance
-		if (errorMax > xTolerUpper && dtsub > dtmin) {
-
+		if (dtsub > dtmin) {
 			// Halve the length of the sub - step
 			if (dtsub / 2.0 > dtmin) {
 				dtsub /= 2.0;
 			}
+			// Go to the smallest timestep
 			else {
 				dtsub = dtmin;
 			}
-
 			// Substep rejected; try again
 			calcsub = true;
 		}
+		// We can't solve the issue with a smaller allowed timestep
 		else {
+
+			// Total water (currently, positiv, and after)
+			double wmass_cur_total = 0.0;
+			double wmass_pos_total = 0.0;
+			double wmass_aft_total = 0.0;
+
+			for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
+				wmass_cur_total += soillayers[lyr].wmass;
+				wmass_pos_total += max(0.0, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+				wmass_aft_total += soillayers[lyr].wmass + dwat[lyr] * dz[lyr];
+			}
+
+			if (!negligible(wmass_cur_total) && !negligible(wmass_pos_total)) {
+
+				// Fraction water left after movement and loss through evapotranspiration
+				double frac_wmass = wmass_aft_total / wmass_cur_total;
+
+				// Distribute change
+				for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
+					// Fraction in each layer if excuding negative values
+					double frac_pos = max(0.0, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]) / wmass_pos_total;
+					
+					// Current fraction in each layer
+					double frac_cur = soillayers[lyr].wmass / wmass_cur_total;
+
+					// Average fraction
+					double frac= (frac_cur + frac_pos) / 2.0;
+
+					// Update water change
+					dwat[lyr] = (frac * wmass_aft_total - soillayers[lyr].wmass) / dz[lyr];
+				}
+			}
+			else {
+				for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
+					if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
+						// Negative water mass
+						dprintf("ERROR!!! Negative wmass! Year %d Day %d lyr %d wmass %g\n",
+							date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+
+						dwat[lyr] = -soillayers[lyr].wmass / dz[lyr];
+					}
+				}
+			}
+
+			// Solve water moved as good as time step resolution allows
 			calcsub = false;
 		}
+	}
+	else {
+		// Everything is fine
+		calcsub = false;
 	}
 }
 
@@ -6429,19 +6490,14 @@ void Soilcolumn::initial_percolation() {
 				imass_fraction = imass_tot / wsats_tot;
 
 				// Impedance - this is the fraction of water that can infiltrate initially 
-				// imass_fraction = 0 (e.g. summer, no phase change etc.)
-				// imass_fraction = 1 (e.g. winter, saturated soil to field capacity, all soil water frozen)
-				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
 				if (IMASS_IMPEDANCE && can_freeze()) {
-
-					imass_impedance = pow(10.0, -6.0 * imass_fraction);
+					imass_impedance = ice_imp(imass_fraction);
 				}
 				else {
 					imass_impedance = 1.0;
 				}
 
 				double wmass_in = 0.0;
-				double rain_melt_orig = rain_melt;
 
 				// Assume the amount of water available for initial infiltration is limited by the ice content in the top layer
 				double wmass_for_infiltration = imass_impedance * rain_melt;
@@ -6454,7 +6510,7 @@ void Soilcolumn::initial_percolation() {
 				else {
 					// All water can infiltrate
 					wmass_in = wmass_for_infiltration;
-					rain_melt -= wmass_for_infiltration; // i.e. 0.0 when there is no ice
+					rain_melt -= wmass_for_infiltration;
 				}
 
 				// Now add the rain_melt to each layer in proportion to the capacity if total_potential > 0.0 mm
@@ -6543,7 +6599,7 @@ void Soilcolumn::phase_change_ssw() {
 	// Surface standing water depth
 	double depth_ssw = wmass_ssw + imass_ssw;
 
-	if (negligible(depth_ssw, 1.0e-10)) {
+	if (negligible(depth_ssw, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, depth_ssw);
 		wmass_ssw = 0.0;
 		imass_ssw = 0.0;
@@ -6722,14 +6778,14 @@ void Soilcolumn::phase_change_ssw() {
 
 	// Very small amount of surface standing water
 		// then it is lost as suface runoff
-	if (negligible(wmass_ssw, 1.0e-10)) {
+	if (negligible(wmass_ssw, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, wmass_ssw);
 		wmass_ssw = 0.0;
 	}
 
 	// Very small amount of surface standing ice
 	// then it is lost as suface runoff
-	if (negligible(imass_ssw, 1.0e-10)) {
+	if (negligible(imass_ssw, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, imass_ssw);
 		imass_ssw = 0.0;
 	}
@@ -7157,6 +7213,8 @@ void Soilcolumn::calc_root_volume() {
 void Soilcolumn::vertical_movement() {
 
 	double ccont_before = ccont();
+	double wcont_before = get_sum(WCONTENT);
+	double wadd = 0.0;
 
 	double organic_frac_move_thres = 0.001;
 
@@ -7557,12 +7615,16 @@ void Soilcolumn::vertical_movement() {
 					wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
 				}
 
+				soillayer.wsats += wsats_new;
+
 				if (soillayer.temp > 0.0) {
 					soillayer.wmass += wsats_new;
 				}
 				else {
 					soillayer.imass += wsats_new;
 				}
+
+				wadd += wsats_new;
 
 				patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 			}
@@ -7582,9 +7644,14 @@ void Soilcolumn::vertical_movement() {
 	}
 
 	double ccont_after = ccont();
+	double wcont_after = get_sum(WCONTENT);
 
 	if (fabs(ccont_after - ccont_before) > 1.0e-10) {
-		dprintf("Year %d ERROR VERTMOVE C before %g after %g Diff %g\n",date.year, ccont_before, ccont_after, ccont_before - ccont_after);
+		dprintf("Year %d ERROR VERTMOVE C before %g after %g Diff %g\n", date.year, ccont_before, ccont_after, ccont_before - ccont_after);
+	}
+
+	if (fabs((wcont_after - wadd) - wcont_before) > 1.0e-10) {
+		dprintf("Year %d ERROR VERTMOVE W before %g after %g Diff %g\n", date.year, wcont_before, wcont_after, wcont_before - wcont_after);
 	}
 }
 

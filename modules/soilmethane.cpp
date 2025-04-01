@@ -596,7 +596,7 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
 			graminoid_anpp_red += indiv.anpp;
 			root_mass += indiv.cmass_root;
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				rootfrac[lyr] += indiv.cmass_root * indiv.pft.rootdist[lyr];
+				rootfrac[lyr] += indiv.cmass_root * patch.pft[indiv.pft.id].pft.rootdist[lyr];
 			}
 		}
 		vegetation.nextobj();

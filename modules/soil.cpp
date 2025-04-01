@@ -4654,29 +4654,64 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 		soillayer.wmass += wadd;
 	}
 
-	// Total water change during calculation of water content based on WTD
-	double wdiff = wtot_acrotelm_init - wtot_acrotelm;
+	// Check for error in acrotelm water balance
+	double wtot_acrotelm_error = wtot_acrotelm - wtot_acrotelm_init;
+	if (!negligible(wtot_acrotelm_error, -12)) {
 
-	// Lost water, need to be added. Start from lowest acrotelm layer
-	if (wdiff > 1.0e-14) {
-		for (int lyr = nacrotelm - 1; lyr >= 0; lyr--) {
-			double wadd = min(soillayers[lyr].wsats - (soillayers[lyr].wmass + soillayers[lyr].imass), wdiff);
-			soillayers[lyr].wmass += wadd;
-			wdiff -= wadd;
+		// Too much water
+		if (wtot_acrotelm_error > 0.0) {
+
+			// Water available for reduction
+			double water_avail = 0.0;
+			for (int lyr = 0; lyr < nacrotelm; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
+				if (lyr == 0) {
+					water_avail += max(0.0, soillayer.wmass - minvtot * soillayer.depth);
+				}
+				else {
+					water_avail += max(0.0, soillayer.wmass - soillayer.wp);
+				}
+			}
+
+			// Remaining water fraction per layer
+			double frac = water_avail > 0.0 ? max(0.0, wtot_acrotelm_error) / water_avail : 0.0;
+
+			// Subtract water
+			for (int lyr = 0; lyr < nacrotelm; lyr++) {
+				Soillayer& soillayer = soillayers[lyr];
+				double wsub;
+				if (lyr == 0) {
+					wsub = frac * max(0.0, soillayer.wmass - minvtot * soillayer.depth);
+				}
+				else {
+					wsub = frac * max(0.0, soillayer.wmass - soillayer.wp);
+				}
+				soillayer.wmass -= wsub;
+				wtot_acrotelm_error -= wsub;
+			}
+
+			// If still too much water, then account it as added water
+			waddon += wtot_acrotelm_error;
 		}
-	}
-	// Too much water, need to subtract. Start from top acrotelm layer
-	else if (wdiff < -1.0e-14) {
-		for (int lyr = 0; lyr < nacrotelm; lyr++) {
-			double wsub;
-			if (lyr == 0) {
-				wsub = min(max(0.0, soillayers[lyr].wmass - minvtot * soillayers[lyr].depth), -wdiff);
+		// Water is missing. Fill from bottom
+		else {
+			for (int lyr = nacrotelm - 1; lyr >= 0; lyr--) {
+
+				Soillayer& soillayer = soillayers[lyr];
+
+				// Space for adding water
+				double avail = max(0.0, soillayer.wsats - (soillayer.wmass + soillayer.imass));
+
+				// Water to add to this layer
+				double wmass_to_add = max(0.0, min(avail, -wtot_acrotelm_error));
+
+				// Update fraction available water in layer and reduce error
+				soillayer.wmass += wmass_to_add;
+				wtot_acrotelm_error += wmass_to_add;
 			}
-			else {
-				wsub = min(max(0.0, soillayers[lyr].wmass - soillayers[lyr].wp), -wdiff);
-			}
-			soillayers[lyr].wmass -= wsub;
-			wdiff += wsub;
+
+			// If still too little water, then account it as leached water
+			runoff_surf -= wtot_acrotelm_error;
 		}
 	}
 
@@ -6630,8 +6665,10 @@ void Soilcolumn::phase_change_ssw() {
 	double delta_T;
 	// Phase change energy consumption [J]
 	double phase_change_energy = 0.0;
-	// Maximum error
-	const double EPS = 1.0e-10;
+	// Warning error
+	const double EPS_warning = 1.0e-10;
+	// Fail error
+	const double EPS_fail = 1.0e-6;
 
 	// Should water freeze
 	if (temp_ssw < 0.0 && Fwmass > 0.0) {
@@ -6741,9 +6778,15 @@ void Soilcolumn::phase_change_ssw() {
 	double wtotal_final = wmass_ssw + imass_ssw;
 
 	// Water balance checks
-	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
-			wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+	if ((fabs(wtotal_initial - wtotal_final)) > EPS_warning) {
+		if ((fabs(wtotal_initial - wtotal_final)) > EPS_fail) {
+			fail("Fail! Year %d Day %d. Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
+				date.year, date.day, wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+		}
+		else {
+			dprintf("WARNING! Year %d Day %d. Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
+				date.year, date.day, wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+		}
 	}
 
 	// Update thermal properties for standing water
@@ -6753,8 +6796,8 @@ void Soilcolumn::phase_change_ssw() {
 	double energy_final = Ch_ssw * (temp_ssw + K2degC) - phase_change_energy;
 
 	// Energy balance checks
-	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS) {
-		dprintf("Year %d Day %d Energy balance during freezing or thawing in Soilcolumn::phase_change_ssw. Init %g, Final %g, Diff %g \n",
+	if ((fabs(energy_initial - energy_final)) > energy_initial * EPS_warning) {
+		dprintf("WARNING! Year %d Day %d Energy balance during freezing or thawing in Soilcolumn::phase_change_ssw. Init %g, Final %g, Diff %g \n",
 			date.year, date.day, energy_initial, energy_final, energy_initial - energy_final);
 	}
 
@@ -6765,26 +6808,26 @@ void Soilcolumn::phase_change_ssw() {
 	}
 
 	// No negative wmass
-	if (wmass_ssw < -EPS) {
+	if (wmass_ssw < -EPS_warning) {
 		fail("ERROR: Negative wmass at end of phase_change_ssw! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
 			date.year, date.day, depth_ssw, delta_T, phase_change_energy, wmass_ssw, imass_ssw);
 	}
 
 	// No negative imass
-	if (imass_ssw < -EPS) {
+	if (imass_ssw < -EPS_warning) {
 		fail("ERROR: Negative imass at end of phase_change_ssw! Year %d Day %d depth %g delta_T %g Phase_energy %g wmass %g imass %g\n",
 			date.year, date.day, depth_ssw, delta_T, phase_change_energy, wmass_ssw, imass_ssw);
 	}
 
 	// Very small amount of surface standing water
-		// then it is lost as suface runoff
+	// then it is lost as surface runoff
 	if (negligible(wmass_ssw, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, wmass_ssw);
 		wmass_ssw = 0.0;
 	}
 
 	// Very small amount of surface standing ice
-	// then it is lost as suface runoff
+	// then it is lost as surface runoff
 	if (negligible(imass_ssw, -10)) {
 		patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, imass_ssw);
 		imass_ssw = 0.0;
@@ -7161,7 +7204,7 @@ void Soilcolumn::calc_root_volume() {
 			double volume_coarse_root_tot = indiv.cmass_wood() * (1.0 - indiv.pft.ag_woody_frac) /
 				indiv.pft.wooddens * MM_PER_M;
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				volume_coarse_root[lyr] += volume_coarse_root_tot * indiv.pft.rootdist[lyr];
+				volume_coarse_root[lyr] += volume_coarse_root_tot * patch.pft[indiv.pft.id].rootdist[lyr];
 			}
 		}
 		vegetation.nextobj();
@@ -7176,7 +7219,7 @@ void Soilcolumn::calc_root_volume() {
 			double volume_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - pft.ag_woody_frac) /
 				pft.wooddens * MM_PER_M;
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				volume_coarse_root[lyr] += volume_coarse_root_tot * pft.rootdist[lyr];
+				volume_coarse_root[lyr] += volume_coarse_root_tot * patch.pft[pft.id].rootdist[lyr];
 			}
 		}
 		pftlist.nextobj();

@@ -1056,7 +1056,9 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, double nfrac[NSOILLAYE
 
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		individuals[i].demand = vegetation[i].ndemand;
-		individuals[i].strength = nutrient_uptake_strength(vegetation[i].cmass_root_today(), vegetation[i].cton_status, vegetation[i].densindiv, vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac, nsoillayers);
+		individuals[i].strength = nutrient_uptake_strength(vegetation[i].cmass_root_today(), 
+			vegetation[i].cton_status, vegetation[i].densindiv, 
+			vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac, nsoillayers);
 	}
 
 	// Let ncompete() do the actual distribution
@@ -1439,7 +1441,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 			// and soil available nitrogen within individual projectived coverage
-			maxnup += min(indiv.pft.nuptoroot * nminscale[lyr] * tempscale[lyr] * indiv.cton_status * indiv.cmass_root_today() * indiv.pft.rootdist[lyr], max_indiv_avail);
+			maxnup += min(indiv.pft.nuptoroot * nminscale[lyr] * tempscale[lyr] * indiv.cton_status * 
+				indiv.cmass_root_today() * patch.pft[indiv.pft.id].pft.rootdist[lyr], max_indiv_avail);
 		}
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity

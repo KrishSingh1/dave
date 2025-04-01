@@ -4606,7 +4606,7 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 		indiv.relative_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
 	}
 
-	indiv.cmass_storage_limit = indiv.cstorage_max;
+	indiv.cmass_storage_limit = 0.8 * indiv.cstorage_max;
 	indiv.relative_alpha_storage = 0;
 	if (!is_zero(indiv.cmass_storage_limit) && indiv.cmass_storage_limit > indiv.cmass_storage) {
 		indiv.relative_alpha_storage = divide(indiv.cmass_storage_limit - indiv.cmass_storage, indiv.cmass_storage_limit);

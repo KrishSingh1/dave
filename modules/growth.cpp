@@ -1918,6 +1918,7 @@ void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
 	// const est_alloc_strategy_t strategy = FIXEDHEIGHT;
 
 	indiv.alive = true;
+	assert(bminit > 0);
 
 	// ##### hypothetical allocation
 

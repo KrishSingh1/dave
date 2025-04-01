@@ -319,10 +319,6 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.dave_allocation()) {
-				assert(equal(indiv.phen,1.0));
-			}
-
 			if (indiv.growingseason()) {
 
 				indiv.fpar=0.0;
@@ -331,10 +327,10 @@ void fpar(Patch& patch) {
 				indiv.fipar_layerwise.clear();
 				indiv.lai_layerwise.clear();
 				if (indiv.height>height_veg) height_veg=indiv.height;
-				plai_leafon+=indiv.lai;
+				plai_leafon+=indiv.lai_today();
 
 				if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
-					plai_leafon_grass+=indiv.lai;
+					plai_leafon_grass+=indiv.lai_today();
 					plai_grass += indiv.lai_today();
 				}
 
@@ -403,7 +399,7 @@ void fpar(Patch& patch) {
 
 						// Calculate summed LAI of this cohort in this layer
 
-						atoh=indiv.lai/(indiv.height-indiv.boleht);
+						atoh=indiv.lai_today()/(indiv.height-indiv.boleht);
 						indiv.lai_leafon_layer=atoh*frac*vstep;
 						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
 						plai_leafon_layer+=indiv.lai_leafon_layer;

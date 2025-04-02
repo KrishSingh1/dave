@@ -3489,10 +3489,12 @@ public:
 	double height;
 	// stem diameter (m)
 	double diam;
-	/// plant height increment
+	/// tree height increment (m)
 	double d_height;
-	/// plant diameter increment
+	/// tree diameter increment (m)
 	double d_diam;
+	/// tree annual diamter increment (m)
+	double c_d_diam; 
 	/// basal area increment (m2/day)
 	double basalarea_inc;
 	/// tree baseal area  (m2)

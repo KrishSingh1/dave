@@ -268,6 +268,11 @@ Get the columns used in the vegetation C pool output file.
 std::vector<ColumnDefinition<Individual>> indiv_cpool_columns();
 
 /*
+Get the columns used in the vegetation C pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_cpool_tree_columns();
+
+/*
 Get the columns used in the vegetation N pool output file.
 */
 std::vector<ColumnDefinition<Individual>> indiv_npool_columns();

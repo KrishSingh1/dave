@@ -2025,8 +2025,9 @@ void plib_callback(int callback) {
 			// Calculate hydraulic vulnerability curve parameters from P50 and P88
 			ppft->init_hydraulic_vulnerability_curves();
 
-			ppft->setup_transpiration(epsiresolution);
-
+			if (ifdavehydraulics) {
+				ppft->setup_transpiration(epsiresolution);
+			}
 			pftlist.nextobj();
 		}
 

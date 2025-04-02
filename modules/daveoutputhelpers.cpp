@@ -924,6 +924,26 @@ std::vector<ColumnDefinition<Individual>> indiv_cpool_columns() {
 
 	return columns;
 }
+std::vector<ColumnDefinition<Individual>> indiv_cpool_tree_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("cmass_leaf", [](const Individual &i) { return i.cmass_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_root", [](const Individual &i) { return i.cmass_root; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_sap", [](const Individual &i) { return i.cmass_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_heart", [](const Individual &i) { return i.cmass_heart; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_repr", [](const Individual &i) { return i.cmass_repr; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_storage", [](const Individual &i) { return i.cmass_storage; }));
+
+	columns.push_back(ColumnDefinition<Individual>("cmass_leaf_limit", [](const Individual &i) { return i.cmass_leaf_limit; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_root_limit", [](const Individual &i) { return i.cmass_root_limit; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_sap_limit", [](const Individual &i) { return i.cmass_sap_limit; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_repr_limit", [](const Individual &i) { return i.cmass_repr_limit; }));
+	columns.push_back(ColumnDefinition<Individual>("cmass_storage_limit", [](const Individual &i) { return i.cmass_storage_limit; }));
+
+
+	return columns;
+}
+
 
 std::vector<ColumnDefinition<Individual>> indiv_dbhcoloumns_columns() {
 	std::vector<ColumnDefinition<Individual>> columns;

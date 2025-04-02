@@ -3747,10 +3747,11 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// cgrow potential which depends on environmental conditions(unitless). the higher 
 	// the value, higher proportion of cgrow will go to growth. 0 = no growth.
 	// fstorage = min(0.5, fstorage);
-	double cgrow_pot = min(min(ftemp, fwater), fphoto);
-	if (!iftreephen) {
-		cgrow_pot = 1.0;
-	}
+	double cgrow_pot = 1.0;
+	if (iftreephen) {
+		cgrow_pot = min(min(ftemp, fwater), fphoto);
+	} 
+	
 	// Scale the carbon that is potentially headed for tree growth by the minimum of 
 	// temperature and a water factor, assuming that either one can be the bottelneck 
 	// for growth.
@@ -3817,9 +3818,6 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 		return;
 	}
 
-	if (date.get_calendar_year() == 2000){
-		printf("");
-	}
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
 	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
@@ -4006,7 +4004,9 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 			storage_growth_partitioning_grass(indiv);
 		} else {
 			if (ifgrote) {
-				storage_growth_partitioning_grote(indiv);
+				storage_growth_partitioning_grote(indiv); 
+				// // <<<< TRY TO RUN THE NEW CGROW CALCULATION WITH NO PHENOLOGY (ONLY FSTORAGE)
+				// storage_growth_partitioning_tree(indiv);
 			} else {
 				storage_growth_partitioning_tree(indiv);
 			}
@@ -4551,12 +4551,13 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	double wooddens_FF = pft.wooddens * indiv.pft.formfactor;
 	
 	// proportion of cgrow that goes to reproduction. 
-	// TODO: find literature values
-	const double repr_prop = 0.01;
+	// Inkotte et al 2023 found up to 5.5% of litter to be reproduction in Eucs. 
+	// Lower in jouveile and higher in mature. Here taking conservative approach.
+	const double repr_prop = 0.05;
 	// minimum age for reproduction in years.
 	// TODO: fix to be a function of tree size and not age, and a PFT parameter.
 	// also, check that age is counted in years and not days.
-	const double min_age_for_repr = 10;
+	const double min_age_for_repr = 20;
 	// maximum proportion of growth that will be allocated to reproduction
 	// TODO: check this out. guestimated.
 	const double max_alpha_repr_factor = 0.2;
@@ -4592,6 +4593,14 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	if (indiv.age > min_age_for_repr) {
 		indiv.cmass_repr_limit = repr_prop * indiv.cgrow + indiv.cmass_repr;
 	}
+	
+	if ((indiv.cmass_leaf_limit < indiv.cmass_leaf) ||
+	(indiv.cmass_sap_limit < indiv.cmass_sap) ||
+	(indiv.cmass_root_limit < indiv.cmass_root) ||
+	(indiv.cmass_repr_limit < indiv.cmass_repr)) {
+		printf("TARGET LOWER THAN POOL MASS");
+	}
+
 
 	indiv.cstorage_max = calc_creserve_opt_grote(indiv);
 
@@ -4609,8 +4618,11 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	if (!is_zero(indiv.cmass_sap_limit)) {
 		indiv.relative_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);
 	}
-
-	indiv.cmass_storage_limit = indiv.cstorage_max;
+	// ASSAF/DREW TODO: set a limit to the storage limit because witout it, the 
+	// storage overflows and large amount of carbon leaves the tree. Limiting this to 0.8 
+	// also limits alpha_storage and therefore gives more priopority to sapwood, leaves and roots.
+	// the value 0.8 is a place holder.
+	indiv.cmass_storage_limit = indiv.cstorage_max * 0.8;
 	indiv.relative_alpha_storage = 0;
 	if (!is_zero(indiv.cmass_storage_limit) && indiv.cmass_storage_limit > indiv.cmass_storage) {
 		indiv.relative_alpha_storage = divide(indiv.cmass_storage_limit - indiv.cmass_storage, indiv.cmass_storage_limit);
@@ -4621,7 +4633,7 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	// TODO: Fix this (0.1???)
 	indiv.cgrow_repr = 0.0;
 	if (indiv.age >= min_age_for_repr) {
-		indiv.cgrow_repr = 0.1 * indiv.cgrow;
+		indiv.cgrow_repr = repr_prop * indiv.cgrow;
 		indiv.cgrow -= indiv.cgrow_repr;
 	}
 
@@ -5826,7 +5838,6 @@ void turnover_tree(Individual &indiv) {
 		// indiv.rel_turnover_leaf = turnover_leaf / turnover_leaf_max;
 		// Leaf C amount to turnover (kgC/m^2)
 		cturnover_leaf = turnover_leaf * indiv.cmass_leaf;
-
 		// // test (ASSAF): increasing the turnover significantly when mean leaf age is
 		// // higher thean the leaf longevity. Purpose: to increase the alpha_leaf
 		// // in the allocation 
@@ -6308,17 +6319,23 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.d_diam = 2.0 * dr;
 
 		double basalarea_t1 = PI * pow((indiv.diam / 2.0), 2.0);
-		
+
 		// add increments to dimentions
 		indiv.height += indiv.d_height;
 		indiv.diam += indiv.d_diam;
-
+		
+		// calculate annual (cumulative) diameter incremnt (reset at Jan 1st of every year)
+		if (date.day == 0){
+			indiv.c_d_diam = 0.0;
+		}
+		indiv.c_d_diam += indiv.d_diam;
+		
 		// new basal area (m2)
 		indiv.basalarea = PI * pow((indiv.diam / 2.0), 2.0);
 		
 		// basal area increment (m2/day)
 		indiv.basalarea_inc = indiv.basalarea - basalarea_t1;
-		
+	
 		// Stem volume
 		// double vol = indiv.height * 3.1415 * indiv.diam * indiv.diam * 0.25;
 		// Crown area (Eqn 6)
@@ -6348,6 +6365,7 @@ void allometry_dave_tree(Individual& indiv) {
 			indiv.lai_indiv = 0.0;
 			indiv.fpc = 0.0;
 		}
+
 		// Patch-level LAI
 		if (ifforcedlai) {
 			indiv.lai = FIXED_LAI[date.month];
@@ -6359,7 +6377,7 @@ void allometry_dave_tree(Individual& indiv) {
 		if (!is_zero(indiv.height)) {
 			double const LATOSA_MAX = 8000.0;
 			// sapwood area (m^2)
-			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.wooddens);
+			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
 			if (!is_zero(indiv.sa)) {
 				// leaf to sapwood area (unitelss)
 				indiv.latosa = min(LATOSA_MAX, indiv.lai / indiv.sa);

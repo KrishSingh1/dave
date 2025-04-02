@@ -78,14 +78,11 @@ group "global" (
 
 
 
+!!!!!!!!!!!!!! TALL RESPROUTER EUCALYPT
+
 ! Tall Resprouter Eucalypt (E. obliqua; E. globulus)
 ! initially as TeBE
 pft "TRspE" (
-  ! tree
-  ! broadleaved
-  ! shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
-  ! evergreen
-  ! temperate
   global
   include 1
   landcover "natural"
@@ -93,23 +90,31 @@ pft "TRspE" (
   shade_intolerant
 
   crownarea_max 50
-  ltor_max 1.00000000
+  ! ltor_max 1.00000000
   rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
   root_beta 0.98200000
+
   k_allom1 250
   k_rp 1.6
-  k_allom2 49.86 ! <- From Tallo (only E. Obliqua)
-  k_allom3 0.7 ! <- From Tallo  (only E. Obliqua)
+  !k_allom2 49.86 ! <- From Tallo (only E. Obliqua)
+  !k_allom3 0.7   ! <- From Tallo (only E. Obliqua)
+  !k_allom2 71.66 ! <- From Tallo+SamWood only E. Obliqua (not Binned) 
+  !k_allom3 0.66  ! <- From Tallo+SamWood only E. Obliqua (not Binned)
+  k_allom2 53.84  ! <- From Tallo+SamWood only E. Obliqua (binned, dbh cutoff = 1m) 
+  k_allom3 0.7    ! <- From Tallo+SamWood only E. Obliqua (binned, dbh cutoff = 1m) 
   ! k_allom2 60
   ! k_allom3 0.67
   k_latosa 6000
-  wooddens 200
+  ! k_latosa 3194 ! <- From Togashi E. Globulus
+  ! wooddens 200
+  wooddens 279.9 ! Austraits E. obliqua
+
   cton_root 29.00000000
   cton_sap 330.00000000
   nuptoroot 0.00280000
   km_volume 0.00000148
   pathway "c3"
-  respcoeff 1.00000000
+  ! respcoeff 1.00000000
   kest_repr 200.00000000
   kest_bg 0.10000000
   kest_pres 1.00000000
@@ -127,10 +132,12 @@ pft "TRspE" (
   gmin 0.50000000            !<------ NOT USED
   phenology "evergreen"
   phengdd5ramp 0.00000000
-  leaflong 2.00000000
+  leaflong 3.00000000
   turnover_leaf 0.5000000
   turnover_root 0.70000000
-  sla 10
+  ! sla 10 ! Default
+  sla 9.57 ! Austraits - E. Obliqua
+  ! formfactor 0.36 ! extracted from allometic equation (Tim Wardlaw's)
   fireresist 0.3
   intc 0.02
   ga 0.04
@@ -154,6 +161,14 @@ pft "TRspE" (
   ha_j 32.6630188394226 ! E. Obliqua (Camille)
   ds_j 634.559695 ! E. Obliqua (Camille)
 
+  parff_min 5000000
+  ltor_max 3
+  formfactor 0.6339
+  turnover_sap .15
+  turnover_leaf 0.5
+  respcoeff 0.6
+  !turnover_root 0.5
+
   ! ! ! LAST TRIED
   ! crownarea_max 100.00000000
   ! ltor_max 2.0000000
@@ -172,4 +187,110 @@ pft "TRspE" (
   ! turnover_leaf 0.5000000
   ! sla 8.8
   ! fireresist 0.80000000
+)
+
+
+
+!!!!!!!!!!!!!! RAINFOREST TREE
+! Rainforest Tree (shade tolerant)
+! initially as TeBE
+pft "RFT" (
+  global
+  include 1
+  landcover "natural"
+  lifeform "tree"
+  shade_tolerant
+
+  crownarea_max 50
+  ! ltor_max 1.00000000
+  rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+  root_beta 0.98200000
+
+  k_allom1 250
+  k_rp 1.6
+  !k_allom2 60                   ! <-----
+  !k_allom3 0.67                 ! <-----
+  k_latosa 6000
+  !wooddens 200                  ! <-----
+  
+  cton_root 29.00000000
+  cton_sap 330.00000000
+  nuptoroot 0.00280000
+  km_volume 0.00000148
+  pathway "c3"
+  respcoeff 1.0                ! <-----
+  kest_repr 200.00000000
+  kest_bg 0.10000000
+  kest_pres 1.00000000
+  k_chilla 0.00000000
+  k_chillb 100.00000000
+  k_chillk 0.05000000
+  litterme 0.30000000
+  harv_eff 0.9
+  res_outtake 0.4
+  turnover_harv_prod 0.04000000
+  harvest_slow_frac 0.33000000
+  leafphysiognomy "broadleaf"
+  fnstorage 0.05
+  longevity 500.0              ! <-----
+  gmin 0.5
+  phenology "evergreen"
+  phengdd5ramp 0.00000000
+  leaflong 3.00000000
+  turnover_leaf 0.33
+  turnover_root 0.7
+  turnover_sap 0.1              ! <-----
+  ! sla 10 ! Default            ! <-----
+  formfactor 1.0                ! <-----
+  fireresist 0.3
+  intc 0.02
+  ga 0.04
+  pstemp_min -40.00000000
+  pstemp_low -40.00000000
+  pstemp_high 40.00000000
+  pstemp_max 40.00000000
+  tcmin_surv -40.00
+  tcmin_est -40.00
+  tcmax_est 40
+  twmin_est -40
+  gdd5min_est 500            ! <-----
+  ! gdd5min_est 2000.00000000 ! The default
+  eps_iso 24.00000000
+  seas_iso 0.00000000
+  sapsize 1.0                ! <-----
+
+  vcmax_25 35.9192525308234 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+	jmax_25 67.9040707538698 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+	ha_v 53.935 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+	ds_v 650.0 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+	ha_j 36.69 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+	ds_j 650.0 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
+  
+  parff_min 1500000 ! increase to prevent esavlishment with low LAI of Eucs
+  alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
+  greff_min 0.03 ! ???
+  sla 19.6       ! <----- ( Camille+Keith Bloomfield)
+  wooddens 290                ! <----- Austraits
+  k_allom2 33.96           ! fitted to binned data (Assaf)
+  k_allom3 0.53            ! fitted to binned data (Assaf)
+  ltor_max 1.0
+
+  ! ! ! LAST VALUES TRIED
+  ! k_allom1 150.0
+  ! k_rp 1.62
+  ! k_allom2 59.95079 ! fitted to binned data
+  ! k_allom3 0.64 ! fitted to binned data
+  ! k_latosa 4175.00000000
+  ! longevity 300
+  ! wooddens 290
+  ! leaflong 2.7
+  ! turnover_leaf 0.37000000
+  ! sla 16.831
+  ! fireresist 0.0
+  ! sapsize 0.05 ! introduced to force them start with low biomass/LAI to postpone competition
+  ! est_max 0.025 ! reduced to allow higher competitiveness for Eucs
+	! parff_min 2000000 ! increase to prevent esavlishment with low LAI of Eucs
+	! alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
+ 	! greff_min 0.03
+	! turnover_sap 0.05
 )

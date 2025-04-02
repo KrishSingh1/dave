@@ -23,6 +23,7 @@ pft "BNE" (
 	fireresist 0.3
 	eps_iso 8.0
 	seas_iso 0
+	formfactor 1
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )
@@ -48,6 +49,7 @@ pft "BINE" (
 	fireresist 0.3
 	eps_iso 8.0
 	seas_iso 0
+	formfactor 1
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )
@@ -75,13 +77,14 @@ pft "BNS" (
 	seas_iso 1
 	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
 )
 
 pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
@@ -106,6 +109,7 @@ pft "TeNE" (
 	! As calculated by ifcalcsla and ifcalccton.
 	! sla 9.300558
 	! cton_leaf_min 38.336164
+	formfactor 1
 )
 
 pft "TeBS" (
@@ -129,6 +133,7 @@ pft "TeBS" (
 	seas_iso 1
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
 )
 
 pft "IBS" (
@@ -152,7 +157,7 @@ pft "IBS" (
 	seas_iso 1
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
-
+	formfactor 1
 	greff_min 0.135 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
 )
 
@@ -160,7 +165,7 @@ pft "TeBE" (
 
 	! Temperate broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -179,7 +184,7 @@ pft "TeBE" (
 	seas_iso 0
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
+	formfactor 1
 	! As calculated by ifcalcsla and ifcalccton.
 	sla 13.171494
 	cton_leaf_min 29.010140
@@ -189,7 +194,7 @@ pft "TeBE_Assaf" (
 
 	! Temperate broadleaved evergreen tree
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	shade_intolerant
@@ -244,13 +249,14 @@ pft "TeBE_Assaf" (
 	ds_v 639.707183
 	ha_j 32.6630188394226
 	ds_j 634.559695
+	formfactor 1.0
 )
 
 pft "TrBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -271,13 +277,14 @@ pft "TrBE" (
 	! As calculated by ifcalcsla and ifcalccton.
 	! sla 15.365607
 	! cton_leaf_min 25.376967
+	formfactor 1
 )
 
 pft "TrIBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -297,6 +304,7 @@ pft "TrIBE" (
 	! As calculated by ifcalcsla and ifcalccton.
 	! sla 15.365607
 	! cton_leaf_min 25.376967
+	formfactor 1
 )
 
 pft "TrBR" (
@@ -318,6 +326,7 @@ pft "TrBR" (
 	seas_iso 0
 	eps_mon 0.95 0.26 0.22 0.18 0.18 0.13 0.12 0.22 0.14
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
 )
 
 pft "ASM" (
@@ -359,6 +368,7 @@ pft "ASM" (
 	sla 7.19 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
 
 	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	formfactor 1
 )
 
 pft "WAR_ov" (
@@ -396,6 +406,7 @@ pft "WAR_ov" (
 
 	vcmax_25 69 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
 	sla 10.05 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+	formfactor 1
 )
 
 pft "WAR_un" (
@@ -440,6 +451,7 @@ pft "WAR_un" (
 
 	vcmax_25 44.0 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
 	sla 16.0 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+	formfactor 1
 )
 
 pft "Calp" (
@@ -483,7 +495,7 @@ pft "Calp" (
 	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018), 5.24
 
 	respcoeff 0.5 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
-
+	formfactor 1
 )
 
 pft "Wombat" (
@@ -527,6 +539,7 @@ pft "Wombat" (
 	sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
 	
 	respcoeff 0.8 
+	formfactor 1
 
 )
 
@@ -569,7 +582,7 @@ pft "Eucface" (
 	sla 10.7 ! E. tereticornis value from Austraits
 	
 	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
-
+	formfactor 1
 )
 
 
@@ -615,5 +628,5 @@ pft "CuP" (
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)
 	
 	respcoeff 0.6
-
+	formfactor 1
 )

@@ -2481,6 +2481,7 @@ void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
 	// Loop over number of soil layers to create
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
+		soillayerthicks[lyr] = soil_layer_depths[lyr];
 		acc_depth += soil_layer_depths[lyr];
 		soillayerdepths[lyr] = acc_depth;
 		depth_profile += lyr == 0 ? soil_layer_depths[lyr] / 2.0 : (soil_layer_depths[lyr - 1] + soil_layer_depths[lyr]) / 2.0;
@@ -4674,7 +4675,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 			}
 
 			// Remaining water fraction per layer
-			double frac = water_avail > 0.0 ? max(0.0, wtot_acrotelm_error) / water_avail : 0.0;
+			double frac = water_avail > 0.0 ? min(1.0, wtot_acrotelm_error / water_avail) : 0.0;
 
 			// Subtract water
 			for (int lyr = 0; lyr < nacrotelm; lyr++) {
@@ -7641,6 +7642,9 @@ void Soilcolumn::vertical_movement() {
 				// Update soil columns array of soil layer depths
 				soillayerdepths[lyr] += add_depth;
 
+				// Update soil columns array of soil layer thicknesses
+				soillayerthicks[lyr] += add_depth;
+
 				// Update total soil column depth
 				depth += add_depth;
 
@@ -7722,7 +7726,8 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& evap_prev;
 
 	for (int i = 0; i < NSOILLAYERS_MAX; i++) {
-		arch & soillayerdepths[i];
+		arch& soillayerdepths[i];
+		arch& soillayerthicks[i];
 	}
 
 	for (int i = 0; i < nsoillayers; i++) {

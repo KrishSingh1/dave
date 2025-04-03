@@ -431,13 +431,13 @@ bool Patchpft::growingseason() const {
  * Root distribution follow Jackson et al 1996 and is limited to 
  * maximum thaw depth during the year
  */
-void Patchpft::calc_rootdist(double maxthaw, double soillyrdepth[NSOILLAYERS_MAX], int nsoillayers) {
+void Patchpft::update_rootdist(double maxthaw, double soildepth, double soillyrdepth[NSOILLAYERS_MAX], int nsoillayers) {
 
 	if (hydrology != GERTEN) {
 
 		// Max thaw doesn't exceed first soil layer
 		// All roots in top soil layer
-		if (maxthaw < soillyrdepth[0]) {
+		if (maxthaw <= soillyrdepth[0]) {
 			rootdist[0] = 1.0;
 
 			for (int lyr = 1; lyr < nsoillayers; lyr++) {
@@ -446,37 +446,54 @@ void Patchpft::calc_rootdist(double maxthaw, double soillyrdepth[NSOILLAYERS_MAX
 		}
 		else {
 
-			// Init first layer
-			rootdist[0] = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[0]) * CM_PER_MM);
-			double rootdist_tot = rootdist[0];
+			// Multi layer soil scheme uses Jackson root distribution
+			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
 
-			for (int lyr = 1; lyr < nsoillayers; lyr++) {
-				double root_frac = 1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr]) * CM_PER_MM) - (1.0 - pow(pft.root_beta, min(maxthaw, soillyrdepth[lyr - 1]) * CM_PER_MM));
+			// Standard depth 1500 mm
+			const double depth_standard = 1500.0;
 
-				// Don't allow too small root fractions
-				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
-				rootdist_tot += rootdist[lyr];
-			}
+			// Standard root depth
+			double depth_root = depth_standard;
 
-			// If a fraction of root distribution should be homogenously distributed
-			if (!negligible(homrootdistfrac)) {
+			// Fraction of fine roots to be homogenously distributed within root depth
+			// is zero for MILLER hydrology
+			double fhom_root = 0.0;
 
-				double hom_depth = min(maxthaw, min(soillyrdepth[nsoillayers - 1], 3000.0));
+			if (hydrology == RICHARDS) {
 
-				double frac_per_depth = homrootdistfrac / hom_depth;
-				rootdist_tot = 0.0;
-				double prev_depth = 0.0;
+				// Fraction of deep soil, beyond 1500mm, that roots have access to
+				double fdeep_root = rootfrac_of_deep_soil;
 
-				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * (min(hom_depth, soillyrdepth[lyr]) - prev_depth);
-					prev_depth = min(soillyrdepth[lyr], hom_depth);
-					rootdist_tot += rootdist[lyr];
+				// Fraction of fine roots to be homogenously distributed within root depth
+				// is set in the ins file
+				fhom_root = homrootdistfrac;
+
+				// Grass has half the amount of homogenously distributed roots and depth of deep roots
+				if (pft.isgrass()) {
+					fdeep_root *= 0.5;
+					fhom_root *= 0.5;
+				}
+
+				// Moss don't have homogenously distributed roots nor deep roots
+				if (pft.ismoss()) {
+					fdeep_root = 0.0;
+					fhom_root = 0.0;
+				}
+
+				// If soil depth is deeper than standard depth, then update root depth
+				if (soildepth > depth_standard) {
+					depth_root = depth_standard + fdeep_root * (soildepth - depth_standard);
 				}
 			}
 
-			// Adjust so rootdist always add up to 1
+			depth_root = min(maxthaw, depth_root);
+
+			double rootdist_new[NSOILLAYERS_MAX] = { 0.0 };
+
+			pft.calc_rootdist(rootdist_new, soillyrdepth, nsoillayers, depth_root, pft.root_beta, fhom_root);
+
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				rootdist[lyr] /= rootdist_tot;
+				rootdist[lyr] = rootdist_new[lyr];
 			}
 		}
 	}

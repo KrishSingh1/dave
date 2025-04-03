@@ -2005,7 +2005,7 @@ public:
 	double gdd0_min;
 	/// GDD0 max
 	double gdd0_max;
-	
+
 	/// New parameters from parameters from Wania et al. (2009a, 2009b, 2010)
 
 	/// Days per month for which inundation is tolerated
@@ -2013,7 +2013,7 @@ public:
 	/// Inundation stress is felt when the water table (mm) is above wtp_max
 	double wtp_max;
 	/// Whether this PFT has aerenchyma through which O2 and CH4 can be transported (Wania et al. 2010 - Sec 2.6)
-	bool has_aerenchyma; 
+	bool has_aerenchyma;
 
 	/// Sapling/regeneration characteristics (used only in population mode)
 	/** For trees, on sapling individual basis (kgC); for grasses, on stand area basis,
@@ -2077,7 +2077,7 @@ public:
 	double trg;
 	/// default number of vernalising days required
 	int pvd;
-    /// sensitivity to the photoperiod effect [0-1]
+	/// sensitivity to the photoperiod effect [0-1]
 	double psens;
 	/// basal photoperiod (h) (pb<ps for longer days plants)
 	double pb;
@@ -2293,10 +2293,10 @@ public:
 
 		if (lifeform == GRASS || lifeform == MOSS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
-		} 
+		}
 		else {
 			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
-			             cton_sap  / (cton_sap_avr  + cton_sap_min);
+				cton_sap / (cton_sap_avr + cton_sap_min);
 		}
 		cton_stem_max = 1.0 / (2.0 * 0.0034); // Maize params
 		cton_stem_avr = 1.0 / (2.0 * 0.0068);
@@ -2311,7 +2311,7 @@ public:
 		const double kleaf2sla = -0.0052;
 
 		ligcfrac_leaf = ligcfrac_leaf_max + kleaf2sla * sla;
-		
+
 		if (ligcfrac_leaf < 0.0) {
 			fail("ERROR: Negative ligcfrac_leaf %g SLA too high %g for %s\n", ligcfrac_leaf, sla, (char*)name);
 		}
@@ -2342,20 +2342,26 @@ public:
 
 			regen.cmass_heart = SAPLINGHW * regen.cmass_sap;
 		}
-		else if (lifeform == GRASS || lifeform==MOSS) {
+		else if (lifeform == GRASS || lifeform == MOSS) {
 
 			// Grass regeneration characteristics
 
 			regen.cmass_leaf = REGENLAI_GRASS / sla;
 		}
 
-			regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
+		regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
 	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], double soil_depth, int nsoillayers) {
 
-		if (hydrology != GERTEN) {
+		if (hydrology == GERTEN) {
+
+			// Old two layer scheme
+			rootdist[0] = root_dist[0];
+			rootdist[1] = root_dist[1];
+		}
+		else {
 
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
@@ -2364,91 +2370,133 @@ public:
 			const double depth_standard = 1500.0;
 
 			// Standard root depth
-			double depth_root = 1500.0;
+			double depth_root = depth_standard;
 
-			// Factor to adjust root profile with additional depth
-			double depth_frac = 1.0;
-			
-			// If soil depth is deeper than standard depth, then update root depth
-			if (soil_depth > depth_standard) {
+			// Fraction of fine roots to be homogenously distributed within root depth
+			// is zero for MILLER hydrology
+			double fhom_root = 0.0;
 
-				// New root depth
-				depth_root = floor((depth_standard + rootfrac_of_deep_soil * (soil_depth - depth_standard)) / 100.0) * 100.0;
+			if (hydrology == RICHARDS) {
 
-				// Update root profile factor
-				depth_frac = depth_standard / depth_root;
-			}
+				// Fraction of deep soil, beyond 1500mm, that roots have access to
+				double fdeep_root = rootfrac_of_deep_soil;
 
-			// Root depth scaled and in cm
-			double depth_root_cm = depth_root * CM_PER_MM * depth_frac;
+				// Fraction of fine roots to be homogenously distributed within root depth
+				// is set in the ins file
+				fhom_root = homrootdistfrac;
 
-			// Total root dist
-			double tot = 0.0;
-
-			// Total soil layer depth
-			double tot_depth = soil_lyr_depth[0] * CM_PER_MM * depth_frac;
-
-			// Total previous soil layer depth
-			double tot_depth_prev = 0.0;
-
-			// init first layer
-			rootdist[0] = 1.0 - pow(root_beta, tot_depth); // - (1.0 - pow(root_beta, tot_depth_prev));
-			tot += rootdist[0];
-
-			for (int lyr = 1; lyr < nsoillayers; lyr++) {
-
-				// Update depths
-				tot_depth_prev = tot_depth;
-				tot_depth += soil_lyr_depth[lyr] * CM_PER_MM * depth_frac;
-
-				// Check so depth doesn't exceed scaled rooting depth
-				if (tot_depth >= depth_root_cm) {
-					tot_depth = depth_root_cm;
+				// Grass has half the amount of homogenously distributed roots and depth of deep roots
+				if (isgrass()) {
+					fdeep_root *= 0.5;
+					fhom_root *= 0.5;
 				}
 
-				double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth_prev));
-
-				// Don't allow too small root fractions
-				rootdist[lyr] = root_frac > 0.001 ? root_frac : 0.0;
-				tot += rootdist[lyr];
-			}
-			
-			// If a fraction of root distribution should be homogenously distributed
-			if (!negligible(homrootdistfrac)) {
-
-				double hom_depth = soil_depth > 3000.0 ? 3000.0 : soil_depth;
-
-				double frac_per_depth = homrootdistfrac / hom_depth;
-				tot = 0.0;
-				double acc_depth = 0.0;
-
-				for (int lyr = 0; lyr < nsoillayers; lyr++) {
-					double depth = soil_lyr_depth[lyr];
-					if (acc_depth >= hom_depth) {
-						depth = 0.0;
-					}
-					else if (acc_depth + depth > hom_depth) {
-						depth = hom_depth - acc_depth;
-					}
-					rootdist[lyr] = rootdist[lyr] * (1.0 - homrootdistfrac) + frac_per_depth * depth;
-					tot += rootdist[lyr];
-					acc_depth += depth;
+				// Moss don't have homogenously distributed roots nor deep roots
+				if (ismoss()) {
+					fdeep_root = 0.0;
+					fhom_root = 0.0;
 				}
+
+				// If soil depth is deeper than standard depth, then update root depth
+				if (soil_depth > depth_standard) {
+					depth_root = depth_standard + fdeep_root * (soil_depth - depth_standard);
+				}
+			}
+
+			double rootdist_new[NSOILLAYERS_MAX] = { 0.0 };
+
+			calc_rootdist(rootdist_new, soil_lyr_depth, nsoillayers, depth_root, root_beta, fhom_root);
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				rootdist[lyr] = rootdist_new[lyr];
+			}
+		}
+	}
+
+	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
+	void calc_rootdist(double rootdist_new[NSOILLAYERS_MAX], double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers,
+		double depth_root, double root_beta, double fhom_root) {
+
+		// Multi layer soil scheme uses Jackson root distribution
+		// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+
+		// Root depth in cm
+		double depth_root_cm = depth_root * CM_PER_MM;
+
+		// Total root dist
+		double tot = 0.0;
+
+		// Total soil layer depth
+		double tot_depth = soil_lyr_depth[0] * CM_PER_MM;
+
+		// Total previous soil layer depth
+		double tot_depth_prev = 0.0;
+
+		// init first layer
+		rootdist_new[0] = 1.0 - pow(root_beta, tot_depth); // - (1.0 - pow(root_beta, tot_depth_prev));
+		tot += rootdist_new[0];
+
+		for (int lyr = 1; lyr < nsoillayers; lyr++) {
+
+			// Update depths
+			tot_depth_prev = tot_depth;
+			tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
+
+			// Check so depth doesn't exceed rooting depth
+			if (tot_depth >= depth_root_cm) {
+				tot_depth = depth_root_cm;
+			}
+
+			double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth_prev));
+
+			// Don't allow too small root fractions
+			rootdist_new[lyr] = root_frac > 0.001 ? root_frac : 0.0;
+			tot += rootdist_new[lyr];
+		}
+
+		// Adjust so rootdist always add up to 1
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			rootdist_new[lyr] /= tot;
+		}
+
+		// If a fraction of root distribution should be homogenously distributed
+		if (!negligible(fhom_root)) {
+
+			// homogenous root fraction per depth [mm-1]
+			double frac_per_depth = fhom_root / depth_root;
+
+			// Reset total depth [mm]
+			tot = 0.0;
+
+			// Accomolated depth [mm]
+			double acc_depth = 0.0;
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				double depth = soil_lyr_depth[lyr];
+				if (acc_depth >= depth_root) {
+					depth = 0.0;
+				}
+				else if (acc_depth + depth > depth_root) {
+					depth = depth_root - acc_depth;
+				}
+
+				// New root dist
+				rootdist_new[lyr] = rootdist_new[lyr] * (1.0 - fhom_root) + frac_per_depth * depth;
+
+				// Accomolated total root dist
+				tot += rootdist_new[lyr];
+
+				// Update accomolated depth
+				acc_depth += depth;
 			}
 
 			// Adjust so rootdist always add up to 1
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
-				rootdist[lyr] /= tot;
+				rootdist_new[lyr] /= tot;
 			}
 		}
-		else { 
-			
-			// Old two layer scheme
-			rootdist[0] = root_dist[0];
-			rootdist[1] = root_dist[1];
-		}
 	}
-    
+
 	bool ismoss() const {
 
 		if (lifeform == MOSS)
@@ -4227,7 +4275,9 @@ public:
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
 	/// array with soil layer bottom depths
-	double soillayerdepths[NSOILLAYERS_MAX];
+	double soillayerdepths[NSOILLAYERS_MAX]; // DW_COMMENT not used for anything
+	/// array with soil layer thicknesses
+	double soillayerthicks[NSOILLAYERS_MAX];
 	/// number of soil layers
 	int nsoillayers;
 	/// Annual surface fine litter input [kg C m-2 yr-1]
@@ -4463,6 +4513,7 @@ public:
 
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			soillayerdepths[lyr] = that.soillayerdepths[lyr];
+			soillayerthicks[lyr] = that.soillayerthicks[lyr];
 			wfluxes[lyr] = that.wfluxes[lyr];
 		}
 		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
@@ -4546,6 +4597,7 @@ public:
 
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			soillayerdepths[lyr] = that.soillayerdepths[lyr];
+			soillayerthicks[lyr] = that.soillayerthicks[lyr];
 			wfluxes[lyr] = that.wfluxes[lyr];
 		}
 		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
@@ -5087,7 +5139,7 @@ public:
 
 	bool growingseason() const;
 
-	void calc_rootdist(double maxthaw, double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers);
+	void update_rootdist(double maxthaw, double soildepth, double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers);
 
 	void serialize(ArchiveStream& arch);
 };

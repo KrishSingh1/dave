@@ -1410,11 +1410,6 @@ void plib_callback(int callback) {
 				dprintf("Multilayer snow scheme: Can't have simple snow scheme together with RICHARDS hydrology! ifmultilayersnow set to true\n");
 				ifmultilayersnow = true;
 			}
-			if (!negligible(homrootdistfrac) && !negligible(rootfrac_of_deep_soil)) {
-				dprintf("Root distribution: Can't have homrootdistfrac and rootfrac_of_deep_soil together with RICHARDS hydrology! Both set to 0\n");
-				homrootdistfrac = 0.0;
-				rootfrac_of_deep_soil = 0.0;
-			}
 		}
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");

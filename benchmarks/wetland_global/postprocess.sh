@@ -32,6 +32,10 @@ extract mch4_2000to2012scaled.txt -o mch4_S.txt -x "Lat<45"
 extract mch4_2000to2012scaled.txt -o mch4_amazon.txt -x "Lat>=-14.75 && Lat<=-0.25 && Lon>=-79.75 && Lon<=-50.25"
 extract mch4_2000to2012scaled.txt -o mch4_wsl.txt -x "Lat>52 && Lat<74 && Lon>60 && Lon<94.5"
 extract mch4_2000to2012scaled.txt -o mch4_hbl.txt -x "Lat>50 && Lat<60 && Lon<-75 && Lon>-96"
+extract mch4_2000to2012scaled.txt -o mch4_90Sto30S.txt -x "Lat<-30"
+extract mch4_2000to2012scaled.txt -o mch4_30Sto30N.txt -x "Lat>=-30 && Lat<30"
+extract mch4_2000to2012scaled.txt -o mch4_30Nto60N.txt -x "Lat>=30 && Lat<60"
+extract mch4_2000to2012scaled.txt -o mch4_60Nto90N.txt -x "Lat>=60"
 
 # Area averages
 aslice mch4_N.txt -o mch4_N_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
@@ -39,7 +43,12 @@ aslice mch4_S.txt -o mch4_S_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.
 aslice mch4_amazon.txt -o mch4_amazon_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
 aslice mch4_wsl.txt -o mch4_wsl_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
 aslice mch4_hbl.txt -o mch4_hbl_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
+aslice mch4_90Sto30S.txt -o mch4_90Sto30S_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
+aslice mch4_30Sto30N.txt -o mch4_30Sto30N_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
+aslice mch4_30Nto60N.txt -o mch4_30Nto60N_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
+aslice mch4_60Nto90N.txt -o mch4_60Nto90N_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
 aslice mch4_2000to2012scaled.txt -o mch4_2000to2012_aa.txt -sum 'kg/m2->Tg' -n -lon 1 -lat 2 -pixsize 0.5 0.5 -pixoffset 0.25 0.25
+
 
 # Create a textfile with columns for all areas
 echo | awk 'BEGIN {OFS="\t\t\t"} {print "Area", "Tg CH4 yr-1"}' > emission_report.txt
@@ -48,6 +57,10 @@ addRow mch4_S_aa.txt emission_report.txt "Lat<45N"
 addRow mch4_amazon_aa.txt emission_report.txt "Amazonbasin"
 addRow mch4_hbl_aa.txt emission_report.txt "HBL"
 addRow mch4_wsl_aa.txt emission_report.txt "WSL"
+addRow mch4_90Sto30S_aa.txt emission_report.txt "90Sto30S"
+addRow mch4_30Sto30N_aa.txt emission_report.txt "30Sto30N"
+addRow mch4_30Nto60N_aa.txt emission_report.txt "30Nto60N"
+addRow mch4_60Nto90N_aa.txt emission_report.txt "60Nto90N"
 addRow mch4_2000to2012_aa.txt emission_report.txt "Global"
 
 describe_textfile emission_report.txt "Yearly total emissions from CH4 hotspots (2000-2012 average)"

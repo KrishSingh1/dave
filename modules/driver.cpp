@@ -694,8 +694,9 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			// Update root distribution if you have permafrost
-			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.soillayers[soilcolumn.nsoillayers-1].depth_profile) || date.year == patch.stand.first_year)
-				ppft.calc_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.soillayerdepths, soilcolumn.nsoillayers);
+			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.depth) || date.year == patch.stand.first_year) {
+				ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
+			}
 
 			pftlist.nextobj();
 		}

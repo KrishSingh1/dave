@@ -18,6 +18,7 @@
 
 namespace GuessOutput {
 
+// w: set width to the user-specified width or the title width + 1, whichever is the largest.
 ColumnDescriptor::ColumnDescriptor(const char* title, 
                                    int width, 
                                    int precision) 

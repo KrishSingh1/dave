@@ -2261,6 +2261,8 @@ public:
 	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
+	// Bole height as a fraction of tree height (0-1).
+	double boleht_frac;
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
@@ -2528,6 +2530,7 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
+		boleht_frac = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;

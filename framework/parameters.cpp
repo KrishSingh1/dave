@@ -807,6 +807,8 @@ void plib_declarations(int id,xtring setname) {
 			"Entropy terms (deltaS) for vcmax (J mol-1 K-1).");
 		declareitem("ds_j",&ppft->ds_j,-5000,5000,1,CB_NONE,
 			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
+		declareitem("boleht_frac", &ppft->boleht_frac, 0.0, 1.0, 1, CB_NONE,
+			"Bole height as a fraction of tree height (0-1)");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -2111,6 +2113,9 @@ void plib_callback(int callback) {
 					if (!itemparsed("temp_dormancy")) badins("temp_dormancy");
 					if (!itemparsed("crownfrac")) badins("crownfrac");
 					if (!itemparsed("culmfrac")) badins("culmfrac");
+				}
+				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
+					badins("boleht_frac");
 				}
 			}
 			if (!ifcalcvcmax) {

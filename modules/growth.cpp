@@ -2004,14 +2004,8 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 }
 
 double calc_bole_height(const Individual &indiv) {
-	if (ifdavehydraulics) { // fixme - need to converge on a single approach for dave
-		// This was used in Clare's version:
-		return 0.7 * indiv.height; // CS changed, to discuss further
-	} else if (indiv.pft.dave_allocation()) {
-		return 0.5 * indiv.height;
-	} else {
-		return 0.0;
-	}
+	// boleht_frac should be 0 for trunk runs.
+	return indiv.pft.boleht_frac * indiv.height;
 }
 
 double calc_rpc_tree(Individual &indiv) {

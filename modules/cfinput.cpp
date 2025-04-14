@@ -644,7 +644,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	if (current_gridcell->descrip != "") {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
 	}
-	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+	dprintf("Look for soil code and Nitrogen deposition at (%3.2f,%3.2f)\n", cru_lon, cru_lat);
 
 	return true;
 }

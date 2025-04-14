@@ -376,6 +376,9 @@ extern bool ifdepthdecaymod;
 /// Whether thaw depth affects root distribution
 extern bool ifthawaffectrootdist;
 
+/// Cali k_max
+extern double surf_li_scalar;
+extern double soil_om_scalar;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)

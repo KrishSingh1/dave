@@ -67,6 +67,7 @@ struct landcover_change_transfer {
 
 	// Soil layers
 	double transfer_soil_soillayerdepths[NSOILLAYERS_MAX];
+	double transfer_soil_soillayerthicks[NSOILLAYERS_MAX];
 	double transfer_soil_depth[NSOILLAYERS_MAX];
 	double transfer_soil_depth_profile[NSOILLAYERS_MAX];
 	double transfer_soil_wmass[NSOILLAYERS_MAX];
@@ -222,6 +223,7 @@ struct landcover_change_transfer {
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
 				transfer_soil_soillayerdepths[lyr] += soilcolumn.soillayerdepths[lyr] * scale;
+				transfer_soil_soillayerthicks[lyr] += soilcolumn.soillayerthicks[lyr] * scale;
 				transfer_soil_depth[lyr] += soillayer.depth * scale;
 				transfer_soil_depth_profile[lyr] += soillayer.depth_profile * scale;
 				transfer_soil_wmass[lyr] += soillayer.wmass * scale;
@@ -326,6 +328,7 @@ struct landcover_change_transfer {
 		// Sum soil layers
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			transfer_soil_soillayerdepths[lyr] = from.transfer_soil_soillayerdepths[lyr];
+			transfer_soil_soillayerthicks[lyr] = from.transfer_soil_soillayerthicks[lyr];
 			transfer_soil_depth[lyr] = from.transfer_soil_depth[lyr];
 			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
 			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
@@ -426,6 +429,7 @@ struct landcover_change_transfer {
 		// Soil layers
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 			transfer_soil_soillayerdepths[lyr] += from.transfer_soil_soillayerdepths[lyr] * multiplier;
+			transfer_soil_soillayerthicks[lyr] += from.transfer_soil_soillayerthicks[lyr] * multiplier;
 			transfer_soil_depth[lyr] += from.transfer_soil_depth[lyr] * multiplier;
 			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
 			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;

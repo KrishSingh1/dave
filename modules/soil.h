@@ -58,7 +58,7 @@ const double Dz_cato = 100.0;
 const double maxh = 0.0;
 
 /// Density of mineral particles [kg m-3] (Bonan 2019)
-const double Mindensity = 265.0;
+const double Mindensity = 2650.0;
 
 // C fraction of organic matter (56%) (Chadburn et al. 2022)
 const double fc = 0.56;
@@ -264,13 +264,13 @@ const double Dt_gas = 0.01;
 // Wania et al. (2010) optimal value: 0.1 (see Table 4). 
 // McGuire et al (2012), Tang et al (2015) and Zhang et al (2013) use 0.25, after optimisation
 //const double CH4toCO2_peat = 0.085;
-const double CH4toCO2_peat = 0.085 * 0.23; // DW_COMMENT
+const double CH4toCO2_peat = 0.085 * 0.24; // DW_COMMENT
 	
 /// CH4:CO2 ratio for inundated soils (< PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Spahni et al. (2011)
 //const double CH4toCO2_inundated = 0.024; // SC1 value in Spahni et al. SC2 is 0.0415
 //const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to match global emissions   
 //const double CH4toCO2_inundated = 0.0415; // Spahni et al. (2011)  
-const double CH4toCO2_inundated = 0.0415 * 0.42; // DW_COMMENT
+const double CH4toCO2_inundated = 0.0415 * 0.46; // DW_COMMENT
 	
 /// acceleration due to gravity [m s-2]
 const double gravity = 9.81;

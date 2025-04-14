@@ -92,6 +92,9 @@ bool ifeffvolume;					// Whether soil layer volume is affected by coarse root bi
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
 
+double surf_li_scalar;
+double soil_om_scalar;
+
 wateruptaketype wateruptake;
 
 bool run_landcover;
@@ -561,6 +564,11 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use depth soil organic matter decay rate modifier (1), or not (0)");
 		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
 			"Whether thaw depth affects root distribution (1 by default), or not (0)");
+
+		declareitem("surf_li_scalar", &surf_li_scalar, 0.0, 10.0, 1, CB_NONE,
+			"Cali");
+		declareitem("soil_om_scalar", &soil_om_scalar, 0.0, 10.0, 1, CB_NONE,
+			"Cali");
 
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
@@ -1326,6 +1334,9 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifeffvolume")) badins("ifeffvolume");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
+
+		if (!itemparsed("surf_li_scalar")) badins("surf_li_scalar");
+		if (!itemparsed("soil_om_scalar")) badins("soil_om_scalar");
 
 		if (hydrology == GERTEN) {
 			if (ifbedrock) {

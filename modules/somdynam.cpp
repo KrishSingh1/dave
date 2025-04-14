@@ -546,23 +546,20 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_s
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 
-	double surf_wd_scalar = 0.4; // DW_COMMENT
-	double som_scalar = 2.5; // DW_COMMENT
-
 	double K_MAX[NSOMPOOL];
 	K_MAX[SURFMETA]   = 8.0e-2;
 	K_MAX[SURFSTRUCT] = 2.2e-2;
-	K_MAX[SURFFWD]    = 1.1e-2 * surf_wd_scalar;
-	K_MAX[SURFCWD]    = 2.2e-3 * surf_wd_scalar;
+	K_MAX[SURFFWD]    = 1.1e-2 * surf_li_scalar;
+	K_MAX[SURFCWD]    = 2.2e-3 * surf_li_scalar;
 	K_MAX[SURFMICRO]  = 4.0e-2;
-	K_MAX[SURFHUMUS]  = 2.7e-4 * som_scalar;
+	K_MAX[SURFHUMUS]  = 2.7e-4 * soil_om_scalar;
 	K_MAX[SOILMETA]   = 1.0e-1;
 	K_MAX[SOILSTRUCT] = 2.7e-2;
-	K_MAX[SOILFWD]    = 1.4e-2 * som_scalar;
-	K_MAX[SOILCWD]    = 2.7e-3 * som_scalar;
+	K_MAX[SOILFWD]    = 1.4e-2 * surf_li_scalar;
+	K_MAX[SOILCWD]    = 2.7e-3 * surf_li_scalar;
 	K_MAX[SOILMICRO]  = 4.0e-2;
-	K_MAX[SLOWSOM]    = 2.7e-4 * som_scalar;
-	K_MAX[PASSIVESOM] = 4.2e-6 * som_scalar;
+	K_MAX[SLOWSOM]    = 2.7e-4 * soil_om_scalar;
+	K_MAX[PASSIVESOM] = 4.2e-6 * soil_om_scalar;
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -2119,7 +2116,7 @@ void equilsom(Patch& patch) {
 		//dprintf("EquilSOM Tries %d Landcover %d Soil C %g\n", tries, patch.stand.landcover, soilcolumn.ccont());		
 
 		// Water to be moved due to changes in the soil layers capability to hold water
-		double dval;
+		double dval1, dval2;
 
 		// Reset mineral nitrogen status
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
@@ -2129,7 +2126,8 @@ void equilsom(Patch& patch) {
 			soillayer.NH4_mass = save_NH4_avail[lyr];
 			soillayer.NO3_mass = save_NO3_avail[lyr];
 
-			soillayer.set_properties(dval, dval, true);
+			dval1 = dval2 = 0.0;
+			soillayer.set_properties(dval1, dval2, true);
 			soillayer.wmass = wmass_frac[lyr] * soillayer.wsats;
 			soillayer.imass = imass_frac[lyr] * soillayer.wsats;
 

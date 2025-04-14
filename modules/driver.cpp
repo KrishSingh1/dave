@@ -822,13 +822,13 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
-	// Initiate slope properties and soil water
-	if (date.year == 0 && date.day == 0) {
-
-		// Set fixed slope properties of the soil
+	// Initiate slope properties of the soil // DW_COMMENT wrong to use patch.age, but works
+	if (patch.age == 0 && date.day == 0) {
 		soilcolumn.set_slope_properties();
+	}
 
-		// Initial soil water content
+	// Initiate soil water content
+	if (date.year == 0 && date.day == 0) {
 		soilcolumn.init_water();
 	}
 

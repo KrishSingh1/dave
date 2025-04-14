@@ -970,7 +970,7 @@ void Soilcolumn::methane(bool generatemethane) {
 		calculate_gas_ebullition(CH4_ebull_today);
 
 		// Steps 9
-		// Instead of calling diffusion and plant transport for CO2, I simply diffuse ALL the CO2. 
+		// Instead of calling diffusion and plant transport for CO2, simply diffuse ALL the CO2. 
 		// This should improve C conservation
 		// In future one could look at how much it is emitted, especially as CO2 could be saved and emitted in 
 		// bursts during spring thaw

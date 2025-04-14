@@ -1531,7 +1531,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						}
 
 						soilcolumn.soillayerdepths[lyr] = (soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
-
+						soilcolumn.soillayerthicks[lyr] = (soilcolumn.soillayerthicks[lyr] * old_frac + from.transfer_soil_soillayerthicks[lyr] * added_frac) / new_frac;
+						
 						// Soil object for this layer
 						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
@@ -2799,7 +2800,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	// Sum soil layers
 	transfer_soil_nsoillayers = 0;
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-		transfer_soil_soillayerdepths[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
+		transfer_soil_soillayerdepths[lyr] = transfer_soil_soillayerthicks[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
 		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_root_volume[lyr] = 0.0;
 		transfer_soil_temp[lyr] = 0.0;

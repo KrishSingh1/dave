@@ -175,7 +175,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 15			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -214,14 +214,14 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 ! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////
 
-depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+depth_soil 4000			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
 C_dw 0.01			! Calibration parameter for lateral drainage
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
-homrootdistfrac 0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
+homrootdistfrac 0.2		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500 mm, that roots have access to
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
@@ -231,6 +231,9 @@ ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass t
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
+
+surf_li_scalar 0.4
+soil_om_scalar 2.5
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)
@@ -357,6 +360,7 @@ group "shrub" (
 	leafphysiognomy "broadleaf"
 	crownarea_max 10
 	ltor_max 1
+	turnover_root 0.7
 	k_allom1 100
 	k_allom2 5
 	k_allom3 0.67

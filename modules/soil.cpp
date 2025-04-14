@@ -1599,7 +1599,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = soiltype.awc_min * depth * eff_volume_frac;
 		wp = soiltype.wp_min * depth * eff_volume_frac;
 		peat_frac = 0.0;
-		bulk_density = min_density;
+		bulk_density = min_density * (depth - wsats) / depth;
 
 		Kw_max = soiltype.Kw_max_min;
 		b = soiltype.b_min;
@@ -1641,7 +1641,8 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth;
 		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth;
 		peat_frac = 0.0;
-		bulk_density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
+		double density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
+		bulk_density = density * (depth - wsats) / depth;
 
 		// Move water downwards if water content exceeds maximum water content
 		double wmass_max_lyr = wmass_max();
@@ -7235,9 +7236,6 @@ void Soilcolumn::calc_root_volume() {
 		// Root volume
 		soillayer.root_volume = min(0.5 * soillayer.depth,
 			max(0.0, volume_coarse_root[lyr]) / rho_high * MM_PER_M);
-		//soillayer.root_volume = min(0.5 * soillayer.depth,
-		//	max(0.0, volume_coarse_root[lyr] + (soillayer.sompool[SOILCWD].cmass +
-		//		soillayer.sompool[SOILFWD].cmass) / rho_high * MM_PER_M)); // DW_COMMENT
 
 		// If organic matter doesn't affect soil properties, then they 
 		// need to be updated here if effective volume is updated

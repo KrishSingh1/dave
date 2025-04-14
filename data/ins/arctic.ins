@@ -131,7 +131,7 @@ file_mwmass_depth "mwmass_depth.out"
 file_mimass_depth "mimass_depth.out"
 file_mwimass_depth "mwimass_depth.out"
 file_mdrain_depth "mdrain_depth.out"
-!file_mch4 "mch4.out"
+file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
@@ -177,7 +177,7 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-npatch 15			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -234,6 +234,9 @@ ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
+surf_li_scalar 0.4
+soil_om_scalar 2.5
+
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)
 !///////////////////////////////////////////////////////////////////////////////
@@ -258,7 +261,7 @@ save_state 0			! Whether to save a state file
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0			! Whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 1			! Whether to use (and change) landcover fractions (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////

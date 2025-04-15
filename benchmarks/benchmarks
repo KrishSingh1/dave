@@ -31,43 +31,34 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -s ] [ -c ] [ -p ] [ -P ] [ -i <BENCHMARK> | -x <BENCHMARK> ] [ -o \"<SUMMARYTOOL and arguments list>\" ] <workdir>"
-    error "Pwd needs to be the directory of this BENCHMARK script."
-    error
+    error "Usage: benchmarks [ -1 ] [ -c ] [ -p ] [ -P ] [ -i <TESTS> | -x <TESTS> ] [ -s \"<SUMMARYTOOL and arguments>\" ] <workdir>"
     error "Options"
-    error "======="
-    error "-i   Include only the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "-x   Exclude the specified BENCHMARK tests. Takes 1 argument. Enclose several TESTs with\"\"."
-    error "     Without -i and -x, all BENCHMARK test will be run."
-    error "-u   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
-    error "     e.g. for comparative report processing."
-    error "     Takes 1 argument. Enclose TOOL and arguments with \"\": \"<REPORT TOOL> <arg1> <arg2> ...\"."
-    error "     * The <SUMMARYTOOL> is a script directory in benchmarks/summarize/, e.g. delta or tellme."
-    error "     * Arguments:"
+    error "-i   Include only the specified benchmark TEST. Takes 1 argument. Enclose several TESTS with\"\"."
+    error "-x   Exclude the specified benchmark TEST. Takes 1 argument. Enclose several TESTS with\"\"."
+    error "     Without -i and -x, all benchmark TESTS will be run."
+    error "-s   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
+    error "     Option -s takes 1 argument. Enclose TOOL and arguments with \"\": \"<SUMMARYTOOL> <arg1> <arg2> ...\"."
+    error "     Arguments:  e.g. delta and tellme tools"
     error "       delta:  2 arguments:  a label for the comparison reference benchmarks run to compare with," 
     error "                             the path to the same reference run's output."
     error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta SUMMARYTOOL."
-    error "       Do not include the BENCHMARK at the end of the paths."
-    error "     Several -u options can be stacked in one call."
-    error "-s   Single machine mode, don't use PBS/SLURM"
+    error "       Do not include the benchmark TEST name at the end of the paths."
+    error "     Several -s options can be stacked in one call."
+    error "     All summarytools are in benchmarks/summarize/<SUMMARYTOOL>."
+    error "-1   Single machine mode, don't use PBS/SLURM. This option was previously -s."
     error "-c   Compile only, don't run the tests."
     error "-p   Post processing only."
     error "-P   Summary-report processing only: no model jobs, no postprocessing jobs."
-    error "-r   Generate printer friendly report (does nothing else and is run as a regular process,"
-    error "     in other words, not submitted as a batch job)."
-    error
+    error "-r   Generate printer friendly report (does nothing else and is run as a regular process, i.e. not submitted as a batch job)."
     error "Examples"
-    error "========"
     error "1. Run all benchmarks:"
     error "   benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
     error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
-    error "3. Run some benchmarks and then do a comparative report job (summary-processing job):"
-    error "   benchmarks -i \"fluxnet tellus\" -u \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\" /scratch/sally/current-benchmarks-output"
-    error "4. Same as above but with two comparative report jobs (summary-processing jobs):"
-    error "   benchmarks -i \"fluxnet tellus\" -u \"tellme myrun refrun /scratch/sally/otherproject/output_r10153\"\\"
-    error "     -u \"delta /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
-    error "5. Run all except some benchmarks:"
+    error "3. Run some benchmarks and then do two summary jobs (summary-processing jobs):"
+    error "   benchmarks -i \"fluxnet tellus\" -s \"tellme myrun refrun10153 /scratch/sally/otherproject/output_r10153\"\\"
+    error "     -s \"delta refrun10153 /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "4. Run all except some benchmarks:"
     error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
 }
@@ -95,36 +86,25 @@ summaryreport_flag=0
 summaryreport_only=0
 summaryreport_arglist=()
 
-# Handle the -s, -c, -i, -x, ... options
-while getopts ":scpPru:i:x:" opt; do
+# Handle the -1, -c, -i, -x, ... options
+while getopts ":1cpPrs:i:x:" opt; do
 
     case $opt in
 	i  ) inclusive=$OPTARG
 	     inclusive_flag=1;;
 	x  ) exclusive=$OPTARG
 	     exclusive_flag=1;;
-	s  ) single_machine=1;;
+	1  ) single_machine=1;;
 	c  ) compile_only=1;;
 	p  ) pp_only=1;;
 	P  ) summaryreport_only=1;;
-	u  ) summaryreport_arglist+=( "$OPTARG " )
-             summaryreport_flag=1;;
+	s  ) summaryreport_arglist+=( "$OPTARG " )
+	     summaryreport_flag=1
+	     [[ -z $OPTARG ]] && { echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode."; print_usage_and_exit; } ;;
 	r  ) printer_friendly=1;;
-	\? ) print_usage_and_exit ;;
+	\? ) echo "Invalid option: -$OPTARG"; print_usage_and_exit ;;
     esac
-
 done
-
-#echo
-#echo "WORKS: summaryreport_arglist[all]= ":
-#for ((i = 0; i < ${#summaryreport_arglist[@]}; i++)); do
-#  echo "$i: ${summaryreport_arglist[$i]}"
-#done
-#echo "DOES NOT WORK: summaryreport_arglist[all]= ":
-#for x in ${summaryreport_arglist[@]}; do
-#  echo "$x"
-#done
-#exit
 
 if (( ${#inclusive} > 0 && ${#exclusive} > 0 )); then
     error "Using both -i and -x is not allowed!"
@@ -134,7 +114,7 @@ fi
 if (( $single_machine == 0 )); then
     if ! has_pbs && ! has_slurm ; then
 	error "It doesn't seem like PBS or SLURM is installed. You can run the"
-	error "benchmarks on the local machine with the -s option."
+	error "benchmarks on the local machine with the -1 option."
 	exit 1
     fi
 else
@@ -271,7 +251,6 @@ function submit_summaryjob {
     thistool_arglist=($1)
 
     # Construct argument for qsub/sbatch for dependency
-    # debug: echo " Dependencies: '$pp_jobids:' $pp_jobids"
     if [ -n "$pp_jobids" ]; then
 	if has_pbs ; then
 	    dependency="-W depend=afterok:$pp_jobids"
@@ -284,7 +263,6 @@ function submit_summaryjob {
 
     # Determine what summary report job to run, and the arguments to it
     summarytool=${thistool_arglist[0]}
-    # debug: echo " Tool=$summarytool"
 
     # Create the summary-processing job
     workspace=$work_dir/${summarytool}
@@ -312,7 +290,7 @@ EOF
 	echo Submit as PBS job: Put code here.
     else
 	# Submit as a SLURM job
-	sbatch --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
+	sbatch --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# If the redirect is omitted, then sbatch prints "Submitted batch job 1204359".
 #!/bin/sh
 #SBATCH -n 8
 #SBATCH --ntasks-per-node=8
@@ -427,7 +405,6 @@ EOF
             pp_jobids="$pp_jobids:$ppid"
         fi
     fi
-    #debug: echo "${test_name}: job id = ${ppid}"
 }
 
 # This function submits a benchmark as an HPC job

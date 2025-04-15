@@ -846,7 +846,7 @@ void plib_declarations(int id,xtring setname) {
 			"Constant in allometry equations");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
-		declareitem("k_rp",&ppft->k_rp,1.0,2.0,1,CB_NONE,
+		declareitem("k_rp",&ppft->k_rp,1.0,5.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_latosa",&ppft->k_latosa,100.0,1.0e5,1,CB_NONE,
 			"Tree leaf to sapwood xs area ratio");

@@ -10,14 +10,11 @@
 #   <path to evaluation data> <path to land use data>
 
 # These paths are compute center specific. Update them to fit the center where you run your model.
-EVALDATA_PATH=/data/evaluation_data
-LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
+# TODO - at LUnd need to make a shortcut on simba in /data/benchmark_data
+# ln -s /data/evaluation_data/ Tellus
+EVALDATA_PATH=${LPJG_BENCHMARK_DATA}/Tellus
+LUDATA_PATH=${LPJG_BENCHMARK_DATA}/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
-# for Levante at DKRZ
-if [[ "$ARCH" == "levante" ]]; then
-    EVALDATA_PATH=/home/b/b380710/work/benchmark_data/Tellus
-    LUDATA_PATH=/home/b/b380710/work/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
-fi
 
 DEBUG_LOG_NAME="summarize.debug.log"
 
@@ -77,5 +74,5 @@ RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
 # MF: I would prefer not to do this cat/sed command, see instead the last argument below
 cat $RSCRIPT_PATHFILE | sed "s/%%USER%%/$FULL_USERNAME/" >./$RSCRIPT_HTML
-Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\",config_file=\"$YAMLSETTINGS_PATHFILE\",author=\"$FULL_USERNAME\"))"
+Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(sim_directory=\"$NEW_OUTPUT_PATH\",sim_name=\"$NAMETAG_NEW\",reference_sim_directory=\"$REF_OUTPUT_PATH\",reference_sim_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\",config_file=\"$YAMLSETTINGS_PATHFILE\",author=\"$FULL_USERNAME\"))"
 

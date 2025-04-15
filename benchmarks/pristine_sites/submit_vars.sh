@@ -4,7 +4,7 @@ if (( "$ARCH" == "levante" )); then
     NPROCESS=5
     NTASKSPERNODE=5
     WALLTIME="0:10:00"
-    WALLTIME_APPEND="0:10:00"
+    WALLTIME_APPEND="0:02:00"
 fi
 
 

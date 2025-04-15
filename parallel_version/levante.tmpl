@@ -19,11 +19,11 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NTASKSPERNODE=128      # Should be 128 for the compute partion (where nodes are used exclusively), but should be reduced to match NPROCESS when running on shared (for example the site-based benchmarks)
-NPROCESS=256           # NB: Should be multiple of 128 on Levante!  Here choose 256 because it is enough to get a global 15 patch PNV run in the 8 hour maximum wall time limit.
-WALLTIME=8:00:00       # NB: 8 hours is the maiximum wall time on Levante
-PARTITION=compute      # NB: Generaly should be "compute" - but could explore "shared" for smaller jobs/benchmarks 
+NTASKSPERNODE=128          # Should be 128 for the compute partion (where nodes are used exclusively), but should be reduced to match NPROCESS when running on shared (for example the site-based benchmarks)
+NPROCESS=256               # NB: Should be multiple of 128 on Levante!  Here choose 256 because it is enough to get a global 15 patch PNV run in the 8 hour maximum wall time limit.
+WALLTIME=8:00:00           # NB: 8 hours is the maiximum wall time on Levante
 WALLTIME_APPEND=02:00:00   # Does not need to be as long as guess walltime
+PARTITION=compute          # NB: Generaly should be "compute" - but could explore "shared" for smaller jobs/benchmarks 
 INSFILE=guess.ins
 INPUT_MODULE=cf
 GRIDLIST=gridlist.txt
@@ -200,9 +200,6 @@ export UCX_UNIFIED_MODE=y
 export HDF5_USE_FILE_LOCKING=FALSE
 export OMPI_MCA_io="romio321"
 export UCX_HANDLE_ERRORS=bt
-
-ulimit -s 204800 
-ulimit -c 0
 
 if ! type -P mpirun &> /dev/null; then
     echo "Didn't find mpirun! Make sure an MPI module is loaded in your" >&2

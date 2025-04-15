@@ -290,7 +290,7 @@ EOF
 	echo Submit as PBS job: Put code here.
     else
 	# Submit as a SLURM job
-	sbatch --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# If the redirect is omitted, then sbatch prints "Submitted batch job 1204359".
+	sbatch --time=$pp_walltime $dependency  <<EOF 	1>/dev/null	# If the redirect is omitted, then sbatch prints "Submitted batch job 1204359".
 #!/bin/sh
 #SBATCH -n $SUPERTOOL_NPROCS
 #SBATCH --ntasks-per-node=$SUPERTOOL_NPROCS

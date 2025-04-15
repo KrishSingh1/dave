@@ -128,7 +128,7 @@ void FluxnetInput::init() {
 	// Open additional files
 	misc_input.init();
 	// Read in soil data
-	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
+	soilinput.init(expand_environment_variables(param["file_soildata"].str), translate_gridlist_to_coord(gridlist));
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 	// Set timers

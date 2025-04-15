@@ -207,7 +207,7 @@ void LandcoverInput::init() {
 	int input_precision_parsed = 0;
 	int input_precision_use = 0;
 	ListArray_id<Coord> gridlist;
-	read_gridlist(gridlist, param["file_gridlist"].str);
+	read_gridlist(gridlist, expand_environment_variables(param["file_gridlist"].str));
 
 	all_fracs_const = true;	/* If any of the opened files have yearly data, all_fracs_const will be set to false and
 							 * landcover_dynamics will call get_landcover() each year
@@ -227,7 +227,7 @@ void LandcoverInput::init() {
 	if (openLUfile) {
 
 		// Retrieve file name for landcover fraction file and open them unless empty string and static equal-size values are used.
-		file_lu=param["file_lu"].str;
+		file_lu=expand_environment_variables(param["file_lu"].str);
 
 		if(file_lu != "")	{
 			if(!LUdata.Open(file_lu, gridlist)) {
@@ -254,7 +254,7 @@ void LandcoverInput::init() {
 
 	if (!lcfrac_fixed) {
 		// Open file for LUC transitions
-		file_grossLUC = param["file_grossLUC"].str;
+		file_grossLUC = expand_environment_variables(param["file_grossLUC"].str);
 		if(file_grossLUC != "") {
 			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
@@ -270,10 +270,10 @@ void LandcoverInput::init() {
 	}
 
 	//Retrieve file name for stand type fraction files and open them if static equal-size values are not used.
-	file_lu_st[CROPLAND] = param["file_lucrop"].str;
-	file_lu_st[PASTURE] = param["file_lupasture"].str;
-	file_lu_st[NATURAL] = param["file_lunatural"].str;
-	file_lu_st[FOREST] = param["file_luforest"].str;
+	file_lu_st[CROPLAND] = expand_environment_variables(param["file_lucrop"].str);
+	file_lu_st[PASTURE] = expand_environment_variables(param["file_lupasture"].str);
+	file_lu_st[NATURAL] = expand_environment_variables(param["file_lunatural"].str);
+	file_lu_st[FOREST] = expand_environment_variables(param["file_luforest"].str);
 
 	if(file_lu_st[CROPLAND] != "" || file_lu_st[PASTURE] != "" || file_lu_st[NATURAL] != "" || file_lu_st[FOREST] != "")
 		LU_input_present = true;

@@ -12,6 +12,7 @@
 
 #include <string>
 #include <string.h>
+#include "gutil.h"
 
 /// Removes leading and trailing whitespace from a string
 std::string trim(const std::string& str);
@@ -30,5 +31,10 @@ int split_string(char* str);
 
 /// Help function that finds substring in string
 bool issubstring(const char* string, const char* substring);
+
+/// Expand environment variables, e.g. ${INPUTPATH} in string, Note: ${} is mandatory
+// Note: might need this for xtring as well
+std::string expand_environment_variables(const std::string& str);
+xtring expand_environment_variables(xtring& str);
 
 #endif // LPJ_GUESS_GUESSSTRING_H

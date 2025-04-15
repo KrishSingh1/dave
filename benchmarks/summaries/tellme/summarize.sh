@@ -10,14 +10,11 @@
 #   <path to evaluation data> <path to land use data>
 
 # These paths are compute center specific. Update them to fit the center where you run your model.
-EVALDATA_PATH=/data/evaluation_data
-LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
+# TODO - at LUnd need to make a shortcut on simba in /data/benchmark_data
+# ln -s /data/evaluation_data/ Tellus
+EVALDATA_PATH=${LPJG_BENCHMARK_DATA}/Tellus
+LUDATA_PATH=${LPJG_BENCHMARK_DATA}/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
-# for Levante at DKRZ
-if [[ "$ARCH" == "levante" ]]; then
-    EVALDATA_PATH=/home/b/b380710/work/benchmark_data/Tellus
-    LUDATA_PATH=/home/b/b380710/work/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
-fi
 
 DEBUG_LOG_NAME="exoprocess.debug.log"
 

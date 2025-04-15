@@ -6,10 +6,10 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True"
-make_command="make -j2"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True -D VERBOSE=True"
+make_command="make -j"
 bbox_command="bbox"
-pp_walltime=5:00:00
+pp_walltime=1:00:00
 pp_jobids=""
 
 # Prints a message to stderr
@@ -169,6 +169,10 @@ fi
 
 work_dir=$1
 
+
+### Functions - only function definitions in this section. The script continues after it. ###
+
+
 # The build function is used to build one of the versions of the model.
 # Parameters:
 # $1  The directory where the results of the build should be placed
@@ -308,12 +312,14 @@ EOF
 	echo Submit as PBS job: Put code here.
     else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
+	sbatch --time=$pp_walltime $dependency  <<EOF 	#1>/dev/null	# DEBUG
 #!/bin/sh
+#SBATCH -n 8
+#SBATCH --ntasks-per-node=8
 #SBATCH -J su_${summarytool}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
-#SBATCH --exclusive
+$SBATCH_PARTITION
 $SBATCH_COMPUTEACCOUNT
 $(cat $common_script)
 EOF
@@ -390,11 +396,18 @@ EOF
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
+$SBATCH_PARTITION
 $SBATCH_COMPUTEACCOUNT
 if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
     module purge &>/dev/null
     module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
     export PATH=$PATH
+elif [[ "$ARCH" == "levante" ]]; then
+    module purge &>/dev/null
+    module load gnuplot/5.4.2-gcc-11.2.0
+    module load imagemagick/7.0.8-7-gcc-11.2.0
+    module load ghostscript/9.54.0-gcc-11.2.0  # not mentioned in readme but essential for converting .ps to .png
+    # python2 is already available on the system
 fi
 $(cat $common_script)
 EOF
@@ -588,6 +601,10 @@ function meta_data {
     popd 1>/dev/null
 }
 
+
+### End of functions section ###################################
+
+
 # Ok, let's start!
 
 # If necessary, create the working directory where all the benchmarks will be
@@ -659,6 +676,11 @@ done
 # Only used on a SLURM system.
 if [ -n "$COMPUTEACCOUNT" ]; then
     SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
+fi
+
+# System specific settings for partitions and node exclusivity (Matt Forrest, for Levante at DKRZ, others may like to add their HPC systems here)
+if [[ "$ARCH" == "levante" ]]; then
+    SBATCH_PARTITION="#SBATCH --partition=shared"
 fi
 
 # Call run_benchmark for each test, unless we're doing summary-processing only.

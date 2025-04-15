@@ -59,6 +59,24 @@ public:
 		logfile=fopen(logfile_path,"wt");
 	}
 
+
+	/// Write a formatted message to the log file.
+	virtual void write_log(const char *fmt, ...) {
+		va_list v;
+		va_start(v, fmt);
+	
+		vwrite_log(fmt, v);
+	
+		va_end(v);
+	}
+
+	/// Write a formatted message to the log file.
+	virtual void vwrite_log(const char *fmt, va_list args) {
+		fprintf(logfile, fmt, args);
+		fflush(logfile);
+	}
+
+
 	~WindowsShell() {
 		if (logfile) {
 			fclose(logfile);

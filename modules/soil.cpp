@@ -2145,8 +2145,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d! Tried to subtract more N (NO) than available (residual %g)\n",
-				date.year, date.day, residual);
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO) than available (residual %g)\n",
+				date.year, date.day, (*soilcolumn).patch.stand.id, (*soilcolumn).patch.id, depth_profile, residual);
 		}
 	}
 	else if (pref == NH4) {
@@ -2166,8 +2166,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d! Tried to subtract more N (NH4) than available (residual %g)\n",
-				date.year, date.day, residual);
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NH4) than available (residual %g)\n",
+				date.year, date.day, (*soilcolumn).patch.stand.id, (*soilcolumn).patch.id, depth_profile, residual);
 		}
 	}
 	else if (pref == NO3) {
@@ -2187,8 +2187,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d! Tried to subtract more N (NO3) than available (residual %g)\n",
-				date.year, date.day, residual);
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO3) than available (residual %g)\n",
+				date.year, date.day, (*soilcolumn).patch.stand.id, (*soilcolumn).patch.id, depth_profile, residual);
 		}
 	}
 }
@@ -2852,12 +2852,12 @@ double Soilcolumn::get_sum(soilproptype SPT, int mth) {
 /// Returns a vector with soillayer N fractions
 /** Returns a vector with soillayer N fractions
  */
-void Soilcolumn::get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], bool wmass_limited) {
+void Soilcolumn::get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool wmass_limited) {
 
 	double ntot = nmass_avail(pref, wmass_limited);
 	double nfracsum = 0.0;
 
-	if (ntot > 1.0e-12) {
+	if (ntot > nmin) {
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			nfrac[lyr] = soillayers[lyr].nmass_avail(pref, wmass_limited) / ntot;
 			nfracsum += nfrac[lyr];

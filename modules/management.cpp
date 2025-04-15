@@ -928,7 +928,6 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.nmass_heart = 0.0;
 	cp.nmass_ho = 0.0;
 	cp.nmass_agpool = 0.0;
-
 }
 
 /// Transfers all carbon and nitrogen from living tissue to litter

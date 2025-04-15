@@ -1498,17 +1498,31 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 
+	// Minimum available N for uptake to take place
+	const double N_min = 1.0e-12;
+
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = soilcolumn.nmass_avail(NO) * min(1.0, patch.fpc_total * 4.0);
 
+	if (tot_nmass_avail < N_min) {
+		vegetation.firstobj();
+
+		// Set nitrogen uptake fraction to zero for each individual
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+			indiv.fnuptake = 0.0;
+
+			vegetation.nextobj();
+		}
+	}
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail) {
+	else if (patch.ndemand > tot_nmass_avail) {
 
 		// N fraction per soil layer
 		double nfrac[NSOILLAYERS_MAX] = { 0.0 };
 
 		// Get N distribution in soil column
-		soilcolumn.get_nfrac(NO, nfrac);
+		soilcolumn.get_nfrac(NO, nfrac, N_min);
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail, nfrac, soilcolumn.nsoillayers);

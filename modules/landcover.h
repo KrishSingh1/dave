@@ -49,6 +49,7 @@ struct landcover_change_transfer {
 	double *transfer_nmass_litter_sap;
 	double *transfer_nmass_litter_heart;
 	double *transfer_nmass_litter_root;
+	double* transfer_nmass_litter_NH4;
 	double *transfer_harvested_products_slow_nmass;
 
 	double transfer_acflux_harvest;
@@ -144,6 +145,7 @@ struct landcover_change_transfer {
 			ncont += transfer_nmass_litter_sap[i];
 			ncont += transfer_nmass_litter_heart[i];
 			ncont += transfer_nmass_litter_root[i];
+			ncont += transfer_nmass_litter_NH4[i];
 			ncont += transfer_harvested_products_slow_nmass[i];
 		}
 
@@ -182,20 +184,24 @@ struct landcover_change_transfer {
 
 			// Sum patchpft litter
 			for(int n=0; n<npft; n++) {
-				transfer_litter_leaf[n] += patch.pft[n].litter_leaf * scale;
-				transfer_litter_root[n] += patch.pft[n].litter_root * scale;
-				transfer_litter_sap[n] += patch.pft[n].litter_sap * scale;
-				transfer_litter_heart[n] += patch.pft[n].litter_heart * scale;
-				transfer_litter_repr[n] += patch.pft[n].litter_repr * scale;
 
-				transfer_nmass_litter_leaf[n] += patch.pft[n].nmass_litter_leaf * scale;
-				transfer_nmass_litter_root[n] += patch.pft[n].nmass_litter_root * scale;
-				transfer_nmass_litter_sap[n] += patch.pft[n].nmass_litter_sap * scale;
-				transfer_nmass_litter_heart[n] += patch.pft[n].nmass_litter_heart * scale;
+				Patchpft& ppft = patch.pft[n];
+
+				transfer_litter_leaf[n] += ppft.litter_leaf * scale;
+				transfer_litter_root[n] += ppft.litter_root * scale;
+				transfer_litter_sap[n] += ppft.litter_sap * scale;
+				transfer_litter_heart[n] += ppft.litter_heart * scale;
+				transfer_litter_repr[n] += ppft.litter_repr * scale;
+
+				transfer_nmass_litter_leaf[n] += ppft.nmass_litter_leaf * scale;
+				transfer_nmass_litter_root[n] += ppft.nmass_litter_root * scale;
+				transfer_nmass_litter_sap[n] += ppft.nmass_litter_sap * scale;
+				transfer_nmass_litter_heart[n] += ppft.nmass_litter_heart * scale;
+				transfer_nmass_litter_NH4[n] += ppft.nmass_litter_NH4 * scale;
 
 				if(ifslowharvestpool) {
-					transfer_harvested_products_slow[n] += patch.pft[n].harvested_products_slow * scale;
-					transfer_harvested_products_slow_nmass[n] += patch.pft[n].harvested_products_slow_nmass * scale;
+					transfer_harvested_products_slow[n] += ppft.harvested_products_slow * scale;
+					transfer_harvested_products_slow_nmass[n] += ppft.harvested_products_slow_nmass * scale;
 				}
 			}
 
@@ -304,6 +310,8 @@ struct landcover_change_transfer {
 			memcpy(transfer_nmass_litter_heart, from.transfer_nmass_litter_heart, sizeof(double) * npft);
 		if (transfer_nmass_litter_root)
 			memcpy(transfer_nmass_litter_root, from.transfer_nmass_litter_root, sizeof(double) * npft);
+		if (transfer_nmass_litter_NH4)
+			memcpy(transfer_nmass_litter_NH4, from.transfer_nmass_litter_NH4, sizeof(double) * npft);
 		if (transfer_harvested_products_slow_nmass)
 			memcpy(transfer_harvested_products_slow_nmass, from.transfer_harvested_products_slow_nmass, sizeof(double) * npft);
 
@@ -401,6 +409,8 @@ struct landcover_change_transfer {
 				transfer_nmass_litter_heart[i] += from.transfer_nmass_litter_heart[i] * multiplier;
 			if(transfer_nmass_litter_root)
 				transfer_nmass_litter_root[i] += from.transfer_nmass_litter_root[i] * multiplier;
+			if (transfer_nmass_litter_NH4)
+				transfer_nmass_litter_NH4[i] += from.transfer_nmass_litter_NH4[i] * multiplier;
 			if(transfer_harvested_products_slow_nmass)
 				transfer_harvested_products_slow_nmass[i] += from.transfer_harvested_products_slow_nmass[i] * multiplier;
 		}

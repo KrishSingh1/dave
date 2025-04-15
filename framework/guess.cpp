@@ -1554,7 +1554,7 @@ void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cm
 	// N to partition
 	double ndist = nstore;
 
-	// N demand to maximum N concentration is different compartments
+	// N demand to maximum N concentration in different compartments
 	double ndemand_leaf = max(0.0, cmass_leaf_litter / cton_leaf_min - nmass_leaf_litter);
 	double ndemand_root = max(0.0, cmass_root_litter / cton_root_min - nmass_root_litter);
 	double ndemand_sap = max(0.0, cmass_sap_litter / cton_sap_min - nmass_sap_litter);
@@ -1660,7 +1660,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			nmass_leaf_litter, nmass_root_litter, nmass_sap_litter, nmass_heart_litter,
 			pft.cton_leaf_min, pft.cton_root_min, pft.cton_sap_min, pft.cton_heart_min,
 			pft.cton_leaf_max, pft.cton_root_max, pft.cton_sap_max, pft.cton_heart_max,
-			mortality * nstore(), vegetation.patch.pft[pft.id].nmass_litter_NH4);
+			mortality * nstore(), ppft.nmass_litter_NH4);
 
 		ppft.nmass_litter_leaf  += nmass_leaf_litter * mortality_non_fire / mortality;
 		ppft.nmass_litter_root  += nmass_root_litter;
@@ -2294,11 +2294,9 @@ void Individual::kill(bool harvest /* = false */) {
 	double clitter_sap = 0.0;
 	double clitter_heart = 0.0;
 
-	double& nmass_litter_NH4 = vegetation.patch.pft[pft.id].nmass_litter_NH4;
-
 	// Distribute stored N between plant compartments to prevent
 	// unrealistic C:N ratios in litter when killed
-	partition_nstore(nmass_litter_NH4);
+	partition_nstore(ppft.nmass_litter_NH4);
 
 	// The function always deals with harvest, but the harvest
 	// fractions are zero when there is no harvest.
@@ -2439,11 +2437,11 @@ void Individual::kill(bool harvest /* = false */) {
 
 			// Don't allow litter C:N below minimum level (needed due to cdebt)
 			double nmass_NH4_sap = max(0.0, nlitter_sap - clitter_sap / pft.cton_sap_min);
-			nmass_litter_NH4 += nmass_NH4_sap;
+			ppft.nmass_litter_NH4 += nmass_NH4_sap;
 			ppft.nmass_litter_sap += nlitter_sap - nmass_NH4_sap;
 
 			double nmass_NH4_heart = max(0.0, nlitter_heart - clitter_heart / pft.cton_heart_min);
-			nmass_litter_NH4 += nmass_NH4_heart;
+			ppft.nmass_litter_NH4 += nmass_NH4_heart;
 			ppft.nmass_litter_heart += nlitter_heart - nmass_NH4_heart;
 
 			nharvest_flux += nwood_harvest;
@@ -2454,7 +2452,7 @@ void Individual::kill(bool harvest /* = false */) {
 			ppft.nmass_litter_leaf += nmass_leaf * (1 - res_outtake);
 		}
 		else {
-			nmass_litter_NH4 += nmass_leaf * (1 - res_outtake);
+			ppft.nmass_litter_NH4 += nmass_leaf * (1 - res_outtake);
 		}
 		nharvest_flux += nmass_leaf * res_outtake;
 
@@ -2463,7 +2461,7 @@ void Individual::kill(bool harvest /* = false */) {
 			ppft.nmass_litter_root += nmass_root;
 		}
 		else {
-			nmass_litter_NH4 += nmass_root;
+			ppft.nmass_litter_NH4 += nmass_root;
 		}
 
 		if (pft.landcover == CROPLAND) {
@@ -2483,13 +2481,13 @@ void Individual::kill(bool harvest /* = false */) {
 	else {
 		// Else to NH4 pool
 		if (pft.lifeform == TREE) {
-			nmass_litter_NH4 += nmass_sap + nmass_heart;
+			ppft.nmass_litter_NH4 += nmass_sap + nmass_heart;
 		}
 		
-		nmass_litter_NH4 += nmass_leaf + nmass_root + nstore();
+		ppft.nmass_litter_NH4 += nmass_leaf + nmass_root + nstore();
 
 		if (pft.landcover == CROPLAND) {
-			nmass_litter_NH4 += cropindiv->nmass_ho + cropindiv->nmass_agpool + cropindiv->nmass_dead_leaf;
+			ppft.nmass_litter_NH4 += cropindiv->nmass_ho + cropindiv->nmass_agpool + cropindiv->nmass_dead_leaf;
 		}
 	}
 

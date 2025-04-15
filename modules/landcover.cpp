@@ -1244,7 +1244,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					Harvest_CN cp;
 
 					Individual& indiv = vegetation.getobj();
-					Patchpft& patchpft = patch.pft[indiv.pft.id];
+					Patchpft& ppft = patch.pft[indiv.pft.id];
 
 					if(indiv.has_daily_turnover())
 						cp.copy_from_indiv(indiv, true, false);
@@ -1284,11 +1284,10 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						cp.nmass_litter_leaf,
 						cp.nmass_litter_root,
 						cp.nstore_longterm, cp.max_n_storage,
-						indiv.alive, patch.pft[indiv.pft.id].nmass_litter_NH4);
-
+						indiv.alive, cp.nmass_litter_NH4);
 
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
-						kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
+					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
@@ -1300,6 +1299,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					to.transfer_nmass_litter_root[indiv.pft.id] += cp.nmass_litter_root * scale;
 					to.transfer_nmass_litter_sap[indiv.pft.id] += cp.nmass_litter_sap * scale;
 					to.transfer_nmass_litter_heart[indiv.pft.id] += cp.nmass_litter_heart * scale;
+					to.transfer_nmass_litter_NH4[indiv.pft.id] += cp.nmass_litter_NH4 * scale;
 
 					lc.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
 					lc.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
@@ -1489,6 +1489,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						patchpft.nmass_litter_root = (patchpft.nmass_litter_root * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
 						patchpft.nmass_litter_sap = (patchpft.nmass_litter_sap * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
 						patchpft.nmass_litter_heart = (patchpft.nmass_litter_heart * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
+						patchpft.nmass_litter_NH4 = (patchpft.nmass_litter_NH4 * old_frac + from.transfer_nmass_litter_NH4[i] * added_frac) / new_frac;
 
 						if(ifslowharvestpool) {
 							patchpft.harvested_products_slow = (patchpft.harvested_products_slow * old_frac + from.transfer_harvested_products_slow[i] * added_frac) / new_frac;
@@ -2792,7 +2793,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = NULL;
 	transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
-	transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
+	transfer_nmass_litter_root = transfer_nmass_litter_NH4 = transfer_harvested_products_slow_nmass = NULL;
 
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_depth = transfer_wcont_evap = transfer_anfix_calc = 0.0;
 	transfer_wmass_ssw = transfer_imass_ssw = transfer_temp_ssw = 0.0;
@@ -2847,6 +2848,7 @@ landcover_change_transfer::~landcover_change_transfer() {
 	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
 	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
 	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
+	if (transfer_nmass_litter_NH4) delete[] transfer_nmass_litter_NH4;
 	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
 }
 
@@ -2864,6 +2866,7 @@ void landcover_change_transfer::allocate() {
 	transfer_nmass_litter_sap = new double[npft];
 	transfer_nmass_litter_heart = new double[npft];
 	transfer_nmass_litter_root = new double[npft];
+	transfer_nmass_litter_NH4 = new double[npft];
 	transfer_harvested_products_slow_nmass = new double[npft];
 
 	for(int i=0;i<npft;i++) {
@@ -2877,6 +2880,7 @@ void landcover_change_transfer::allocate() {
 		transfer_nmass_litter_sap[i] = 0.0;
 		transfer_nmass_litter_heart[i] = 0.0;
 		transfer_nmass_litter_root[i] = 0.0;
+		transfer_nmass_litter_NH4[i] = 0.0;
 		transfer_harvested_products_slow_nmass[i] = 0.0;
 	}
 }

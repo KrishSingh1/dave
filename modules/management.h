@@ -85,6 +85,7 @@ struct Harvest_CN {
 	double nmass_litter_root;
 	double nmass_litter_sap;
 	double nmass_litter_heart;
+	double nmass_litter_NH4;
 	double acflux_harvest;
 	double anflux_harvest;
 	double harvested_products_slow;
@@ -95,7 +96,7 @@ struct Harvest_CN {
 		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem = cmass_dead_leaf = debt_excess = 0.0;
 		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm = nstore_labile = max_n_storage = scale_n_storage = 0.0;
 		litter_leaf = litter_root = litter_sap = litter_heart = 0.0;
-		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
+		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = nmass_litter_NH4 = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
 	}
@@ -164,6 +165,7 @@ struct Harvest_CN {
 			nmass_litter_root = ppft.nmass_litter_root;
 			nmass_litter_sap = ppft.nmass_litter_sap;
 			nmass_litter_heart = ppft.nmass_litter_heart;
+			nmass_litter_NH4 = ppft.nmass_litter_NH4;
 
 			// acflux_harvest and anflux_harvest only for output
 			harvested_products_slow = ppft.harvested_products_slow;
@@ -228,6 +230,7 @@ struct Harvest_CN {
 		ppft.nmass_litter_root = nmass_litter_root;
 		ppft.nmass_litter_sap = nmass_litter_sap;
 		ppft.nmass_litter_heart = nmass_litter_heart;
+		ppft.nmass_litter_NH4 = nmass_litter_NH4;
 
 		if(!lc_change) {
 			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at land use change

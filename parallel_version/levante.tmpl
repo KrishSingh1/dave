@@ -225,7 +225,7 @@ done
 
 # NOTE: without HT because that doesn't make performance better and results in twice as many open files
 #srun -l --wait=0 --cpu_bind=verbose --hint=nomultithread --distribution=block:cyclic BINARY -parallel -input $INPUT_MODULE $INSFILE
-srun -l  --cpu_bind=verbose $HYPERTHREADING_HINT --distribution=block:cyclic BINARY -parallel -input $INPUT_MODULE $INSFILE
+srun -l --wait=0 --cpu_bind=verbose $HYPERTHREADING_HINT --distribution=block:cyclic BINARY -parallel -input $INPUT_MODULE $INSFILE
 
 
 

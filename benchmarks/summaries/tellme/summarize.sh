@@ -74,5 +74,5 @@ RSCRIPT_PATHFILE="$(dirname $0)/${RSCRIPT}"
 RSCRIPT_HTML="tellme_global.${NAMETAG_NEW}.vs.${NAMETAG_REF}.Rmd"
 # MF: I would prefer not to do this cat/sed command, see instead the last argument below
 cat $RSCRIPT_PATHFILE | sed "s/%%USER%%/$FULL_USERNAME/" >./$RSCRIPT_HTML
-Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(new_directory=\"$NEW_OUTPUT_PATH\",new_name=\"$NAMETAG_NEW\",old_directory=\"$REF_OUTPUT_PATH\",old_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\",config_file=\"$YAMLSETTINGS_PATHFILE\",author=\"$FULL_USERNAME\"))"
+Rscript -e "rmarkdown::render('${RSCRIPT_HTML}',params=list(sim_directory=\"$NEW_OUTPUT_PATH\",sim_name=\"$NAMETAG_NEW\",reference_sim_directory=\"$REF_OUTPUT_PATH\",reference_sim_name=\"$NAMETAG_REF\",data_directory=\"$EVALDATA_PATH\",land_cover_file=\"$LUDATA_PATH\",config_file=\"$YAMLSETTINGS_PATHFILE\",author=\"$FULL_USERNAME\"))"
 

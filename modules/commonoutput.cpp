@@ -164,6 +164,8 @@ CommonOutput::CommonOutput() {
 
 	declare_parameter("file_mald_peat", &file_mald_peat, 300, "Monthly peat active layer depth");
 	declare_parameter("file_peat_frac", &file_peat_frac, 300, "Peat frac");
+	declare_parameter("file_csoil_data_top", &file_csoil_data_top, 300, "C soil data top");
+	declare_parameter("file_csoil_data_bot", &file_csoil_data_bot, 300, "C soil data bot");
 }
 
 
@@ -591,6 +593,18 @@ void CommonOutput::define_output_tables() {
 	wpool_columns += ColumnDescriptor("SoilWater", 10, 1);
 	wpool_columns += ColumnDescriptor("SoilIce", 9, 1);
 
+
+	// Soil data
+	ColumnDescriptors csoil_data_columns;
+	csoil_data_columns += ColumnDescriptor("Active", 8, 3);
+	csoil_data_columns += ColumnDescriptor("Slow", 8, 3);
+	csoil_data_columns += ColumnDescriptor("Passive", 8, 3);
+	csoil_data_columns += ColumnDescriptor("Total", 8, 3);
+	csoil_data_columns += ColumnDescriptor("RootLit", 8, 3);
+	csoil_data_columns += ColumnDescriptor("RootAli", 8, 3);
+	csoil_data_columns += ColumnDescriptor("BD", 8, 3);
+	csoil_data_columns += ColumnDescriptor("Por", 8, 3);
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -734,6 +748,8 @@ void CommonOutput::define_output_tables() {
 
 	create_output_table(out_mald_peat,      file_mald_peat,      mald_columns);
 	create_output_table(out_peat_frac,      file_peat_frac,      frac_columns);
+	create_output_table(out_csoil_data_top, file_csoil_data_top, csoil_data_columns);
+	create_output_table(out_csoil_data_bot, file_csoil_data_bot, csoil_data_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -1667,6 +1683,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		c_org_leach_lc[i]=0.0;
 	}
 
+	double cactive[2] = { 0.0 };
+	double cslow[2] = { 0.0 };
+	double cpassive[2] = { 0.0 };
+	double ctotal[2] = { 0.0 };
+	double crootlit[2] = { 0.0 };
+	double crootali[2] = { 0.0 };
+	double bulkdens[2] = { 0.0 };
+	double por[2] = { 0.0 };
+
 	// Sum C fluxes, dead C pools and runoff across patches
 
 	Gridcell::iterator gc_itr = gridcell.begin();
@@ -2132,6 +2157,91 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				peat_gridcell_average += to_gridcell_average;
 			}
 
+
+			////// Soil data start
+			double cdepths[3];
+			cdepths[0] = 0.0;
+			cdepths[1] = 300.0;
+			cdepths[2] = 2000.0;
+
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				int l = 0;
+				if (lyr > 2)
+					l = 1;
+
+				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
+				if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
+
+					for (int p = 0; p < NSOMPOOL; p++) {
+
+						Sompool& sompool = soillayer.sompool[p];
+
+						if (p == SURFMICRO || p == SOILMICRO) {
+							cactive[l] += sompool.cmass * to_gridcell_average;
+						}
+						else if (p == SURFHUMUS || p == SLOWSOM) {
+							cslow[l] += sompool.cmass * to_gridcell_average;
+						}
+						else if (p == PASSIVESOM) {
+							cpassive[l] += sompool.cmass * to_gridcell_average;
+						}
+
+						if (p == SURFMICRO || p == SOILMICRO || p == SURFHUMUS ||
+							p == SLOWSOM || p == PASSIVESOM) {
+							ctotal[l] += sompool.cmass * to_gridcell_average;
+						}
+
+						if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD) {
+							crootlit[l] += sompool.cmass * to_gridcell_average;
+						}
+					}
+
+					bulkdens[l] += soillayer.bulk_density * soillayer.depth / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
+					por[l] += soillayer.wsats / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
+				}
+			}
+
+			Vegetation& veg = patch.vegetation;
+
+			veg.firstobj();
+			while (veg.isobj) {
+				Individual& indiv = veg.getobj();
+
+				if (indiv.id != -1 && indiv.alive) {
+					Patchpft& ppft = patch.pft[indiv.pft.id];
+					for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+						int l = 0;
+						if (lyr > 2)
+							l = 1;
+
+						if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
+							crootali[l] += (indiv.cmass_root + (1.0 - indiv.pft.ag_woody_frac) * 
+								(indiv.cmass_sap + indiv.cmass_heart)) * ppft.rootdist[lyr] * 
+								to_gridcell_average;
+						}
+					}
+				}
+
+				veg.nextobj();
+			}
+
+			for (int q = 0; q < npft; q++) {
+				Patchpft& ppft = patch.pft[q];
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+					int l = 0;
+					if (lyr > 2)
+						l = 1;
+
+					if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
+						crootlit[l] += (ppft.litter_root + (1.0 - ppft.pft.ag_woody_frac) *
+							(ppft.litter_sap + ppft.litter_heart))* ppft.rootdist[lyr] *
+							to_gridcell_average;
+					}
+				}
+			}
+			////// Soil data end
+
 			// Calculate monthly NPP and LAI
 
 			Vegetation& vegetation = patch.vegetation;
@@ -2470,6 +2580,26 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_full_peat_gridcell / peat_gridcell_average : 0.0);
 	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_3m_peat_gridcell / peat_gridcell_average : 0.0);
 	outlimit(out,out_peat_frac, peat_gridcell_average);
+
+	// Soil data
+	int ll = 0;
+	outlimit(out, out_csoil_data_top, cactive[ll]);
+	outlimit(out, out_csoil_data_top, cslow[ll]);
+	outlimit(out, out_csoil_data_top, cpassive[ll]);
+	outlimit(out, out_csoil_data_top, ctotal[ll]);
+	outlimit(out, out_csoil_data_top, crootlit[ll]);
+	outlimit(out, out_csoil_data_top, crootali[ll]);
+	outlimit(out, out_csoil_data_top, bulkdens[ll]);
+	outlimit(out, out_csoil_data_top, por[ll]);
+	ll = 1;
+	outlimit(out, out_csoil_data_bot, cactive[ll]);
+	outlimit(out, out_csoil_data_bot, cslow[ll]);
+	outlimit(out, out_csoil_data_bot, cpassive[ll]);
+	outlimit(out, out_csoil_data_bot, ctotal[ll]);
+	outlimit(out, out_csoil_data_bot, crootlit[ll]);
+	outlimit(out, out_csoil_data_bot, crootali[ll]);
+	outlimit(out, out_csoil_data_bot, bulkdens[ll]);
+	outlimit(out, out_csoil_data_bot, por[ll]);	
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

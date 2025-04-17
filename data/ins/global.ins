@@ -145,6 +145,9 @@ file_mald "mald.out"
 file_mald_peat "mald_peat.out"
 file_peat_frac "peat_frac.out"
 
+file_csoil_data_top "soil_data_top.out"
+file_csoil_data_bot "soil_data_bot.out"
+
 file_mburned_area_out "monthly_burned_area.out"
 
 ! Daily output
@@ -232,9 +235,9 @@ ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
-surf_li_scalar 1.0 !0.4
-soil_om_scalar 1.0 !2.5
-moist_mod_anaerobic 0.1!0.075
+surf_li_scalar 0.5 !0.4
+soil_om_scalar 0.75 !2.5
+moist_mod_anaerobic 0.2!0.075
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)

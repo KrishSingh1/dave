@@ -2432,10 +2432,18 @@ void Soilcolumn::initdrivers() {
 		mthaw[mth] = 0.0;
 		mwtp[mth] = 0.0;
 		mald_mean[mth] = 0.0;
+		mwmass_ssw[mth] = 0.0;
 
 		fNH4uptake_mean[mth] = 0.0;
 		fNO3uptake_mean[mth] = 0.0;
 	}
+
+	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+		soillayerdepths[lyr] = 0.0;
+		soillayerthicks[lyr] = 0.0;
+		wfluxes[lyr] = 0.0;
+	}
+	wfluxes[NSOILLAYERS_MAX] = 0.0;
 
 	dmoss_wtp_limit = 1.0;
 	dgraminoid_wtp_limit = 1.0;
@@ -2449,6 +2457,15 @@ void Soilcolumn::initdrivers() {
 	Ceq_O2 = 0.0;
 	Ceq_CO2 = 0.0;
 	Ceq_CH4 = 0.0;
+
+	slope_grade_sin = 0.0;
+	slope_grade_cos = 0.0;
+	slope_sigma = 0.0;
+	sigma_sqrt2 = 0.0;
+	sigma_sqrt2pi = 0.0;
+	sigma2 = 0.0;
+	wmass_ssw_frac_thresh = 0.0;
+	wmass_ssw_thresh = 0.0;
 
 	firstTempCalc = true;
 
@@ -2465,7 +2482,7 @@ void Soilcolumn::initdrivers() {
 /// Create soil layers
 /** Create soil layers with specific soil depths and thickness
  */
-void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
+void Soilcolumn::create_soillayers(double soil_lyr_depths[NSOILLAYERS_MAX]) {
 
 	double acc_depth = 0.0;
 	double depth_profile = 0.0;
@@ -2480,10 +2497,10 @@ void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
 	// Loop over number of soil layers to create
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		soillayerthicks[lyr] = soil_layer_depths[lyr];
-		acc_depth += soil_layer_depths[lyr];
+		soillayerthicks[lyr] = soil_lyr_depths[lyr];
+		acc_depth += soil_lyr_depths[lyr];
 		soillayerdepths[lyr] = acc_depth;
-		depth_profile += lyr == 0 ? soil_layer_depths[lyr] / 2.0 : (soil_layer_depths[lyr - 1] + soil_layer_depths[lyr]) / 2.0;
+		depth_profile += lyr == 0 ? soil_lyr_depths[lyr] / 2.0 : (soil_lyr_depths[lyr - 1] + soil_lyr_depths[lyr]) / 2.0;
 		if (patch.stand.is_highlatitude_peatland_stand()) {
 			if (acc_depth <= ACROTELM_DEPTH) {
 				acrotelm = true;
@@ -2498,7 +2515,7 @@ void Soilcolumn::create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]) {
 		}
 
 		// Add layer
-		add_soillayer(soil_layer_depths[lyr], depth_profile, acrotelm, catotelm);
+		add_soillayer(soil_lyr_depths[lyr], depth_profile, acrotelm, catotelm);
 	}
 }
 

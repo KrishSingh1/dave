@@ -49,7 +49,7 @@ struct landcover_change_transfer {
 	double *transfer_nmass_litter_sap;
 	double *transfer_nmass_litter_heart;
 	double *transfer_nmass_litter_root;
-	double* transfer_nmass_litter_NH4;
+	double *transfer_nmass_litter_NH4;
 	double *transfer_harvested_products_slow_nmass;
 
 	double transfer_acflux_harvest;

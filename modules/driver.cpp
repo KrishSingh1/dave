@@ -694,7 +694,7 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			// Update root distribution if you have permafrost
-			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.depth) || date.year == patch.stand.first_year) {
+			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.depth)) {
 				ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
 			}
 

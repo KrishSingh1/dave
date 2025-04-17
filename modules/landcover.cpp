@@ -1627,6 +1627,12 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						indiv.save_nmass_luc();
 					}
 
+					// Update patch pft root distribution // DW_COMMENT Only needed when a new stand is created
+					for (int i = 0; i < npft; i++) {
+						Patchpft& ppft = patch.pft[i];
+						ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
+					}
+
 					stand.nextobj();
 				}
 

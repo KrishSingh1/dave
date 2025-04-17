@@ -1244,11 +1244,6 @@ void transfer_litter(Patch& patch) {
 
 					double root_lyr_frac = ppft.rootdist[lyr];
 
-					// For peatland all litter enter the top layer
-					if (soilcolumn.patch.stand.landcover == PEATLAND) {
-						root_lyr_frac = !lyr ? 1.0 : 0.0;
-					}
-
 					if (firemodel == GLOBFIRM && lyr == 0) {
 
 						Sompool& sompool_struct = soillayer.sompool[SURFSTRUCT];

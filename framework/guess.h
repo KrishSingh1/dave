@@ -5109,6 +5109,7 @@ public:
 			rootdist[lyr] = 0.0;
 			fwuptake[lyr] = 0.0;
 		}
+		rootdist[0] = 1.0;
 
 		cropphen = NULL;
 		harvested_products_slow = 0.0;

@@ -94,6 +94,7 @@ bool ifthawaffectrootdist;          // Whether thaw depth affects root distribut
 
 double surf_li_scalar;
 double soil_om_scalar;
+double moist_mod_anaerobic;
 
 wateruptaketype wateruptake;
 
@@ -101,6 +102,7 @@ bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool frac_fixed[NLANDCOVERTYPES];
 bool lcfrac_fixed;
+bool peatduration;
 bool all_fracs_const;
 bool ifslowharvestpool;
 bool ifintercropgrass;
@@ -252,6 +254,7 @@ void initsettings() {
 	restart = false;
 	verbosity=WARNING;
 	lcfrac_fixed = true;
+	peatduration = false;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
 	textured_soil = true;
@@ -568,6 +571,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("surf_li_scalar", &surf_li_scalar, 0.0, 10.0, 1, CB_NONE,
 			"Cali");
 		declareitem("soil_om_scalar", &soil_om_scalar, 0.0, 10.0, 1, CB_NONE,
+			"Cali");
+		declareitem("moist_mod_anaerobic", &moist_mod_anaerobic, 0.0, 1.0, 1, CB_NONE,
 			"Cali");
 
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
@@ -1337,6 +1342,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("surf_li_scalar")) badins("surf_li_scalar");
 		if (!itemparsed("soil_om_scalar")) badins("soil_om_scalar");
+		if (!itemparsed("moist_mod_anaerobic")) badins("moist_mod_anaerobic");
 
 		if (hydrology == GERTEN) {
 			if (ifbedrock) {

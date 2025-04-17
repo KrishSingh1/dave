@@ -210,6 +210,9 @@ extern bool run[NLANDCOVERTYPES];
 /// Whether landcover fractions are not read from input file.
 extern bool lcfrac_fixed;
 
+/// Whether peat durations are read from input file.
+extern bool peatduration;
+
 /// Whether fractions of stand types of a specific land cover are not read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
 
@@ -379,6 +382,7 @@ extern bool ifthawaffectrootdist;
 /// Cali k_max
 extern double surf_li_scalar;
 extern double soil_om_scalar;
+extern double moist_mod_anaerobic;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)

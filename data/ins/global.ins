@@ -232,8 +232,9 @@ ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
-surf_li_scalar 0.4
-soil_om_scalar 2.5
+surf_li_scalar 1.0 !0.4
+soil_om_scalar 1.0 !2.5
+moist_mod_anaerobic 0.1!0.075
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)

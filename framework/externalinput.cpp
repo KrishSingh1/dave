@@ -61,14 +61,30 @@ void LandcoverInput::init() {
 
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
-	//Retrieve file names for landcover files and open them if static values from ins-file are not used
-
-	bool openLUfile = false;
-
 	// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
 	if (hydrology == GERTEN && run[PEATLAND]) {
 		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if hydrology is set to GERTEN");
 	}
+
+	// Active peatland and hydrology set to Richards, then check if peat duration input file exist
+	if (hydrology == RICHARDS && run[PEATLAND]) {
+		// Retrieve file name for peat duration and start date
+		file_peat = param["file_peat"].str;
+
+		if (file_peat != "") {
+			if (!Peatdata.Open(file_peat, gridlist)) {
+				fail("LandcoverInput::init(): could not open %s for input", (char*)file_peat);
+			}
+			else {
+				peatduration = true;
+			}
+		}
+	}
+
+
+	//Retrieve file names for landcover files and open them if static values from ins-file are not used
+
+	bool openLUfile = false;
 
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 		if(run[i] && i != NATURAL)
@@ -277,6 +293,13 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 			else {
 				gross_input_present = true;
 			}
+		}
+	}
+
+	if (peatduration) {
+		// Load landcover area fraction data from input file to data object
+		if (!Peatdata.Load(c)) {
+			dprintf("Problems with peat duration input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n", c.lon, c.lat);
 		}
 	}
 
@@ -627,6 +650,14 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			gcst.frac = 0.0; 
 		gcst.frac_change = gcst.frac - gcst.frac_old ;
 		stlist.nextobj();
+	}
+
+	if (peatduration) {
+		if (date.year == 0) {	// Fixed through out time // DW_COMMENT need to work with restarts!!!
+			int year_fixed = Peatdata.GetFirstyear();
+			lc.wet_startday = Peatdata.Get(year_fixed, "Startday");
+			lc.wet_days = Peatdata.Get(year_fixed, "Days");
+		}
 	}
 }
 

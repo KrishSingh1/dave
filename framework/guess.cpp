@@ -2554,6 +2554,9 @@ void Gridcellst::serialize(ArchiveStream& arch) {
 
 Landcover::Landcover() {
 
+	wet_startday = 0;
+	wet_days = 0;
+
 	updated = false;
 
 	acflux_harvest_slow = 0.0;

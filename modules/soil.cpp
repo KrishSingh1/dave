@@ -2460,8 +2460,6 @@ void Soilcolumn::initdrivers() {
 	solvesomcent_beginyr = (int)0.5*freenyears;
 	solvesomcent_endyr = (int)freenyears+10;
 	savesomcent = false;
-
-	evap_prev = 0.0;
 }
 
 /// Create soil layers
@@ -2535,9 +2533,11 @@ void Soilcolumn::set_slope_properties() {
 
 	double slope_rad = slope * PI / 180.0;
 
-	if (patch.stand.landcover == PEATLAND) {
-		slope_rad = 0.0;
-	}
+	// High latitude wetland are on flat ground. Mineral wetlands are seasonal and still 
+	// have a slope when Richards hydrology is used during none wet season
+	//if (patch.stand.is_highlatitude_peatland_stand()) {
+	//	slope_rad = 0.0;
+	//}
 
 	// Slope gradient [m m-1]
 	slope_grade_sin = sin(slope_rad);
@@ -4745,8 +4745,6 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	// Runon
 	fluxes.report_flux(Fluxes::WADDED, runon + waddon);
 
-	evap_prev = evap;
-
 	// Update CO2 level in acrotelm
 	update_acrotelm_co2(climate.co2);
 
@@ -4826,6 +4824,23 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	awtp += wtp / (double)date.year_length();
 
 	return; // ...if no problems
+}
+
+bool Soilcolumn::is_wet_season() {
+
+	Landcover& lc = patch.stand.get_gridcell().landcover;
+
+	// Are we in wet period
+	bool is_saturated;
+	if (lc.wet_startday + lc.wet_days > 365) {
+		is_saturated = date.day >= lc.wet_startday || date.day <= lc.wet_startday + lc.wet_days - 365;
+	}
+	else {
+		is_saturated = date.day >= lc.wet_startday && date.day <= lc.wet_startday + lc.wet_days;
+	}
+
+	// If no wet duration is read, then constant wet
+	return !peatduration || is_saturated;
 }
 
 /// Updates the water content for each soil layer in mineral wetland soils
@@ -6111,8 +6126,6 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 	fluxes.report_flux(Fluxes::WEVAP, evap);
 	fluxes.report_flux(Fluxes::WTRAN, aet_total);
 
-	evap_prev = evap;
-
 	// Calculate annual wcont for growing season (temperature > 5C)
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -6605,16 +6618,23 @@ void Soilcolumn::initial_percolation() {
 		// Water mass added to saturate soil
 		double wmass_added = 0.0;
 
-		// Saturate the soil
-		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		// Saturate the soil if it is the wet season
+		if (is_wet_season()) {
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-			Soillayer& soillayer = soillayers[lyr];
+				Soillayer& soillayer = soillayers[lyr];
 
-			double wmass_input = soillayer.wsats - (soillayer.wmass + soillayer.imass);
+				double wmass_input = soillayer.wsats - (soillayer.wmass + soillayer.imass);
 
-			// Add water to the layer
-			soillayer.wmass += wmass_input;
-			wmass_added += wmass_input;
+				// Add water to the layer
+				if (soillayer.temp >= 0.0) {
+					soillayer.wmass += wmass_input;
+				}
+				else {
+					soillayer.imass += wmass_input;
+				}
+				wmass_added += wmass_input;
+			}
 		}
 
 		// Record the water added to this wetland today
@@ -7720,8 +7740,7 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& sigma_sqrt2pi
 		& sigma2
 		& wmass_ssw_frac_thresh
-		& wmass_ssw_thresh
-		& evap_prev;
+		& wmass_ssw_thresh;
 
 	for (int i = 0; i < NSOILLAYERS_MAX; i++) {
 		arch& soillayerdepths[i];

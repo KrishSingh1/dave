@@ -241,7 +241,6 @@ void inundation_stress(Patch& patch) {
 	} // pft loop
 }
 
-
 /// Performs daily accounting of soil water
 /** 
  * Call this function each simulation day for each modelled area or patch, following
@@ -292,8 +291,14 @@ void soilwater(Patch& patch, Climate& climate) {
 		
 		// HYDROLOGY FOR MINERAL SOILS 
 		if (patch.stand.is_true_wetland_stand()) {
+
 			// Mineral wetland hydrology
-			soilcolumn.hydrology_wetland(climate, bare_ground);
+			if (soilcolumn.is_wet_season()) {
+				soilcolumn.hydrology_wetland(climate, bare_ground);
+			}
+			else {
+				soilcolumn.hydrology_richards(climate, bare_ground);
+			}
 		}
 		else if (hydrology == GERTEN) {
 			// Original two layer LPJ-GUESS hydrology

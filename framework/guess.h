@@ -4425,8 +4425,6 @@ public:
 	// inundated area spans the grid cell (mm)
 	double wmass_ssw_thresh;
 
-	double evap_prev;
-
 private:
 
 	// Private member variables.
@@ -4698,6 +4696,8 @@ public:
 	void update_acrotelm_co2(double atmo_co2);
 	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
 	void hydrology_peat(const Climate& climate, double fevap);
+	/// If it is wet season for wetland hydrology
+	bool is_wet_season();
 	/// Mineral wetland hydrology (simplistic placeholder)
 	void hydrology_wetland(const Climate& climate, double fevap);
 	/// Two layer hydrology routine from LPJ-GUESS v4.0
@@ -5760,6 +5760,10 @@ struct Landcover : public Serializable {
 	/// Transfer matrices
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
 	double primary_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
+
+	// Peat duration
+	int wet_startday;
+	int wet_days;
 
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics

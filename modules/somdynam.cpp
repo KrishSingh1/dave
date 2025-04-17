@@ -516,7 +516,7 @@ double Soillayer::moisture_modifier() {
 	double moist_mod_dry = 0.064;
 	// Minimum moist modifier for anaerobic soils 
 	// (Frolking et al (2001, 2010), Ise et al. (2008))
-	double moist_mod_anaerobic = 0.075;
+	//double moist_mod_anaerobic = 0.075;
 	// Water fraction of soil layer volume
 	double theta = (imass + wmass) / depth;
 	// Saturation fraction of soil layer volume
@@ -1758,6 +1758,9 @@ void equilsom(Patch& patch) {
 	if (!((date.year == patch.soilcolumn.solvesomcent_endyr || (date.year >= patch.soilcolumn.solvesomcent_endyr + 5 && date.year <= nyear_spinup - 100 && !(date.year % 5))) && date.islastmonth && date.islastday))
 		return;
 
+	// Minimum C and N considerred
+	const double EPS = 1.0e-12;
+
 	Soilcolumn& soilcolumn = patch.soilcolumn;
 	const Climate& climate = soilcolumn.patch.get_climate();
 	const Gridcell& gridcell = patch.stand.get_gridcell();
@@ -1889,10 +1892,18 @@ void equilsom(Patch& patch) {
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				for (int p = 0; p < NSOMPOOL; p++) {
 					Sompool& sompool = soilcolumn.soillayers[lyr].sompool[p];
-					if (sompool.cmass < 0.0)
-						dprintf("CMASS neg lyr %d pool %d C %g\n", lyr, p, sompool.cmass);
-					if (sompool.nmass < 0.0)
-						dprintf("NMASS neg lyr %d pool %d N %g\n", lyr, p, sompool.nmass);
+					if (sompool.cmass < 0.0) {
+						if (sompool.cmass < -EPS) {
+							dprintf("Warning! Equilsom - CMASS neg lyr %d pool %d C %g\n", lyr, p, sompool.cmass);
+						}
+						sompool.cmass = 0.0;
+					}
+					if (sompool.nmass < 0.0) {
+						if (sompool.nmass < -EPS) {
+							dprintf("Warning! Equilsom - NMASS neg lyr %d pool %d N %g\n", lyr, p, sompool.nmass);
+						}
+						sompool.nmass = 0.0;
+					}
 				}
 			}
 

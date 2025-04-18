@@ -230,7 +230,7 @@ bool TimeDataD::Open(const char* name) {
 
 	// expand potential environment variables in path name, might already have happend
 	// in parent caller. Needs to be handle in std::string, since returning const char* is no good.
-	// FIXME: convert all char * to std::string in .h/cpp
+	// TODO: convert all char * to std::string in .h/cpp
 	std::string filename = expand_environment_variables(std::string(name));
 
 	if(ifp) {

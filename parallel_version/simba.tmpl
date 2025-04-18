@@ -89,6 +89,9 @@ if [ -n "$COMPUTEACCOUNT" ]; then
     SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
 fi
 
+# Set the forcing data path for this system for benchmarks
+export LPJG_BENCHMARK_DATA="/data/benchmark_data"
+
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.
 # Please note when porting this script: readlink may not be available

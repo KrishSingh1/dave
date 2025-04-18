@@ -1,5 +1,5 @@
 NPROCESS=5
-if (( "$ARCH" == "levante" )); then
+if [[ "$ARCH" == "levante" ]]; then
     PARTITION=compute
     NPROCESS=5
     NTASKSPERNODE=5

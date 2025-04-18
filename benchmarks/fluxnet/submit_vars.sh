@@ -1,6 +1,6 @@
 NPROCESS=5
 INPUT_MODULE=fluxnet
-if (( "$ARCH" == "levante" )); then
+if [[ "$ARCH" == "levante" ]]; then
     PARTITION=shared
     NPROCESS=20
     NTASKSPERNODE=20

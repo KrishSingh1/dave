@@ -1,6 +1,6 @@
 NPROCESS=5
 INPUT_MODULE=watch_diurnal
-if (( "$ARCH" == "levante" )); then
+if [[ "$ARCH" == "levante" ]]; then
     PARTITION=shared
     NPROCESS=5
     NTASKSPERNODE=5

@@ -1,5 +1,5 @@
 NPROCESS=1
-if (( "$ARCH" == "levante" )); then
+if [[ "$ARCH" == "levante" ]]; then
     PARTITION=shared
     NPROCESS=1
     NTASKSPERNODE=1

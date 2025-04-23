@@ -1552,7 +1552,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = (acrotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
 		peat_frac = 1.0 - acrotelm_por;
-		bulk_density = peat_frac * rho_org;
+		bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
 		Kw_max = Kw_max_org;
 		b = b_org;
@@ -1573,7 +1573,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = (catotelm_por * 0.75 - peat_wp) * depth;
 		wp = peat_wp * depth;
 		peat_frac = 1.0 - catotelm_por;
-		bulk_density = peat_frac * rho_org;
+		bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
 		Kw_max = Kw_max_org;
 		b = b_org;
@@ -7297,271 +7297,171 @@ void Soilcolumn::vertical_movement() {
 
 	double organic_frac_move_thres = 0.001;
 
-	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+	bool humus_first = false; // DW_COMMENT
 
-		Soillayer& soillayer = soillayers[lyr];
+	if (humus_first) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
-		// Initial mineral volume
-		double min_volume = soillayer.mineral_volume;
+			Soillayer& soillayer = soillayers[lyr];
 
-		// Calculate soil layer organic carbon masses
-		double ccont_humus = soillayer.ccont(GHUMUS);
-		double ccont_som = soillayer.ccont(GSOM);
+			// Initial mineral volume
+			double min_volume = soillayer.mineral_volume;
 
-		// Calculate soil layer organic carbon densities
-		double rho_humus = soillayer.calc_organic_density(GHUMUS);
-		double rho_som = soillayer.calc_organic_density(GSOM);
+			// Calculate soil layer organic carbon masses
+			double ccont_humus = soillayer.ccont(GHUMUS);
+			double ccont_som = soillayer.ccont(GSOM);
 
-		// Update organic volume (mm)
-		double humus_volume = ccont_humus / rho_humus * MM_PER_M;
-		double som_volume = ccont_som / rho_som * MM_PER_M;
-		double org_volume = humus_volume + som_volume;
-		soillayer.organic_volume = org_volume;
+			// Calculate soil layer organic carbon densities
+			double rho_humus = soillayer.calc_organic_density(GHUMUS);
+			double rho_som = soillayer.calc_organic_density(GSOM);
 
-		// Effective soil volume
-		double eff_volume = soillayer.depth - soillayer.root_volume;
+			// Update organic volume (mm)
+			double humus_volume = ccont_humus / rho_humus * MM_PER_M;
+			double som_volume = ccont_som / rho_som * MM_PER_M;
+			double org_volume = humus_volume + som_volume;
+			soillayer.organic_volume = org_volume;
 
-		// Difference in material and effetive volume
-		double diff_volume = min_volume + org_volume - eff_volume;
+			// Effective soil volume
+			double eff_volume = soillayer.depth - soillayer.root_volume;
 
-		// If a difference, solve it by moving material either down or upwards
-		if (!negligible(diff_volume)) {
+			// Difference in material and effetive volume
+			double diff_volume = min_volume + org_volume - eff_volume;
 
-			// For the bottom soil layer only mineral volume is updated
-			if (lyr == nsoillayers - 1) {
+			// If a difference, solve it by moving material either down or upwards
+			if (!negligible(diff_volume)) {
 
-				soillayer.mineral_volume -= diff_volume;
+				// For the bottom soil layer only mineral volume is updated
+				if (lyr == nsoillayers - 1) {
 
-				// If organic volume exceeds volume of bottom layer, then mineral volume is set to zero
-				if (soillayer.mineral_volume < 0.0) {
-					soillayer.mineral_volume = 0.0;
-				}
-				else if (soillayer.mineral_volume > eff_volume - org_volume) {
-					soillayer.mineral_volume = eff_volume - org_volume;
-				}
-			}
-			else {
+					soillayer.mineral_volume -= diff_volume;
 
-				if (diff_volume > 0.0) {
-
-					// Volume will be moved to layer below
-					Soillayer& soillayer_below = soillayers[lyr + 1];
-
-					double organic_frac_int = org_volume / (org_volume + min_volume);
-
-					// For peat move mineral soil first
-					if (patch.stand.landcover == PEATLAND) {
-						organic_frac_int = 0.0;
+					// If organic volume exceeds volume of bottom layer, then mineral volume is set to zero
+					if (soillayer.mineral_volume < 0.0) {
+						soillayer.mineral_volume = 0.0;
 					}
+					else if (soillayer.mineral_volume > eff_volume - org_volume) {
+						soillayer.mineral_volume = eff_volume - org_volume;
+					}
+				}
+				else {
 
-					// Fraction of matter to be moved
-					double frac;
+					if (diff_volume > 0.0) {
 
-					// Move mineral nitrogen
-					frac = min(1.0, diff_volume / (min_volume + org_volume));
-					soillayer_below.NH4_mass += soillayer.NH4_mass * frac;
-					soillayer_below.NO3_mass += soillayer.NO3_mass * frac;
-					soillayer_below.N2O_mass += soillayer.N2O_mass * frac;
-					soillayer_below.NO2_mass += soillayer.NO2_mass * frac;
-					soillayer_below.NO_mass += soillayer.NO_mass * frac;
-					soillayer_below.N2_mass += soillayer.N2_mass * frac;
-					soillayer.NH4_mass *= 1.0 - frac;
-					soillayer.NO3_mass *= 1.0 - frac;
-					soillayer.N2O_mass *= 1.0 - frac;
-					soillayer.NO2_mass *= 1.0 - frac;
-					soillayer.NO_mass *= 1.0 - frac;
-					soillayer.N2_mass *= 1.0 - frac;
+						// Volume will be moved to layer below
+						Soillayer& soillayer_below = soillayers[lyr + 1];
 
-					// At very low organic matter fraction at the interface 
-					// between the layers, then only mineral volume should be moved
-					if (organic_frac_int < organic_frac_move_thres) {
+						double organic_frac_int = org_volume / (org_volume + min_volume);
 
-						// Check if mineral matter is enough to fulfill move
-						if (diff_volume <= min_volume) {
-							frac = diff_volume / min_volume;
-						}
-						else {
-							// Else all mineral volume will be moved
-							frac = 1.0;
+						// For peat move mineral soil first
+						if (patch.stand.landcover == PEATLAND) {
+							organic_frac_int = 0.0;
 						}
 
-						// Move mineral matter
-						double min_move = min_volume * frac;
-						diff_volume -= min_move;
-						min_volume -= min_move;
+						// Fraction of matter to be moved
+						double frac;
 
-						soillayer_below.mineral_volume += min_move;
-						soillayer.mineral_volume -= min_move;
-					}
+						// Move mineral nitrogen
+						frac = min(1.0, diff_volume / (min_volume + org_volume));
+						soillayer_below.NH4_mass += soillayer.NH4_mass * frac;
+						soillayer_below.NO3_mass += soillayer.NO3_mass * frac;
+						soillayer_below.N2O_mass += soillayer.N2O_mass * frac;
+						soillayer_below.NO2_mass += soillayer.NO2_mass * frac;
+						soillayer_below.NO_mass += soillayer.NO_mass * frac;
+						soillayer_below.N2_mass += soillayer.N2_mass * frac;
+						soillayer.NH4_mass *= 1.0 - frac;
+						soillayer.NO3_mass *= 1.0 - frac;
+						soillayer.N2O_mass *= 1.0 - frac;
+						soillayer.NO2_mass *= 1.0 - frac;
+						soillayer.NO_mass *= 1.0 - frac;
+						soillayer.N2_mass *= 1.0 - frac;
 
-					// Still volume to be moved
-					if (diff_volume > 1.0e-15) {
+						// At very low organic matter fraction at the interface 
+						// between the layers, then only mineral volume should be moved
+						if (organic_frac_int < organic_frac_move_thres) {
 
-						// Check if mineral and som matter is enough to fulfill move
-						double frac_min, frac_som;
-						if (!negligible(min_volume + som_volume)) {
-
-							// Only organic matter to move
-							if (negligible(min_volume)) {
-								frac_min = 0.0;
-								frac_som = min(1.0, diff_volume / som_volume);
-							}
-							// Only mineral matter to move
-							else if (negligible(som_volume)) {
-								frac_min = min(1.0, diff_volume / min_volume);
-								frac_som = 0.0;
-							}
-							// All mineral and organic matter needs to move. Only humus left
-							else if (diff_volume > min_volume + som_volume) {
-								frac_min = 1.0;
-								frac_som = 1.0;
+							// Check if mineral matter is enough to fulfill move
+							if (diff_volume <= min_volume) {
+								frac = diff_volume / min_volume;
 							}
 							else {
-								// Calculate mineral volume to be moved with interface fraction
-								double diff_volume_som = diff_volume * organic_frac_int;
-								double diff_volume_min = diff_volume - diff_volume_som;
-
-								if (diff_volume_min <= min_volume && diff_volume_som <= som_volume) {
-									frac_min = diff_volume_min / min_volume;
-									frac_som = diff_volume_som / som_volume;
-								}
-								else if (diff_volume_som > som_volume) {
-									frac_som = 1.0;
-									frac_min = (diff_volume - som_volume) / min_volume;
-								}
-								else {
-									frac_som = (diff_volume - min_volume) / som_volume;
-									frac_min = 1.0;
-								}
-							}
-
-							// Move som organic matter
-							for (int p = 0; p < NSOMPOOL; p++) {
-								if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
-									soillayer_below.sompool[p].cmass += soillayer.sompool[p].cmass * frac_som;
-									soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_som;
-									soillayer.sompool[p].cmass *= 1.0 - frac_som;
-									soillayer.sompool[p].nmass *= 1.0 - frac_som;
-								}
+								// Else all mineral volume will be moved
+								frac = 1.0;
 							}
 
 							// Move mineral matter
-							soillayer_below.mineral_volume += min_volume * frac_min;
-							soillayer.mineral_volume *= 1.0 - frac_min;
+							double min_move = min_volume * frac;
+							diff_volume -= min_move;
+							min_volume -= min_move;
 
-							// Subtract moved matter
-							diff_volume -= min_volume * frac_min + som_volume * frac_som;
+							soillayer_below.mineral_volume += min_move;
+							soillayer.mineral_volume -= min_move;
 						}
 
 						// Still volume to be moved
-						if (diff_volume > 1.0e-15 && !negligible(humus_volume)) {
+						if (diff_volume > 1.0e-15) {
 
-							double frac_humus;
-							if (diff_volume <= humus_volume) {
-								frac_humus = diff_volume / humus_volume;
-							}
-							else {
-								frac_humus = 1.0;
-							}
+							// Check if mineral and som matter is enough to fulfill move
+							double frac_min, frac_som;
+							if (!negligible(min_volume + som_volume)) {
 
-							// Move som organic matter
-							for (int p = 0; p < NSOMPOOL; p++) {
-								if (p == SURFMICRO || p == SURFHUMUS) {
-									soillayer_below.sompool[p].cmass += soillayer.sompool[p].cmass * frac_humus;
-									soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_humus;
-									soillayer.sompool[p].cmass *= 1.0 - frac_humus;
-									soillayer.sompool[p].nmass *= 1.0 - frac_humus;
+								// Only organic matter to move
+								if (negligible(min_volume)) {
+									frac_min = 0.0;
+									frac_som = min(1.0, diff_volume / som_volume);
 								}
+								// Only mineral matter to move
+								else if (negligible(som_volume)) {
+									frac_min = min(1.0, diff_volume / min_volume);
+									frac_som = 0.0;
+								}
+								// All mineral and organic matter needs to move. Only humus left
+								else if (diff_volume > min_volume + som_volume) {
+									frac_min = 1.0;
+									frac_som = 1.0;
+								}
+								else {
+									// Calculate mineral volume to be moved with interface fraction
+									double diff_volume_som = diff_volume * organic_frac_int;
+									double diff_volume_min = diff_volume - diff_volume_som;
+
+									if (diff_volume_min <= min_volume && diff_volume_som <= som_volume) {
+										frac_min = diff_volume_min / min_volume;
+										frac_som = diff_volume_som / som_volume;
+									}
+									else if (diff_volume_som > som_volume) {
+										frac_som = 1.0;
+										frac_min = (diff_volume - som_volume) / min_volume;
+									}
+									else {
+										frac_som = (diff_volume - min_volume) / som_volume;
+										frac_min = 1.0;
+									}
+								}
+
+								// Move som organic matter
+								for (int p = 0; p < NSOMPOOL; p++) {
+									if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
+										soillayer_below.sompool[p].cmass += soillayer.sompool[p].cmass * frac_som;
+										soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_som;
+										soillayer.sompool[p].cmass *= 1.0 - frac_som;
+										soillayer.sompool[p].nmass *= 1.0 - frac_som;
+									}
+								}
+
+								// Move mineral matter
+								soillayer_below.mineral_volume += min_volume * frac_min;
+								soillayer.mineral_volume *= 1.0 - frac_min;
+
+								// Subtract moved matter
+								diff_volume -= min_volume * frac_min + som_volume * frac_som;
 							}
 
-							diff_volume -= humus_volume * frac_humus;
-						}
+							// Still volume to be moved
+							if (diff_volume > 1.0e-15 && !negligible(humus_volume)) {
 
-						if (diff_volume > 1.0e-12) {
-							dprintf("Year %d Day %d Lyr %d ERROR in vertical movement! No more volume to move (%g).\n", date.year, date.day, lyr, diff_volume);
-						}
-					}
-
-					// Update organic carbon density in layer below
-					soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
-
-					// Update organic volume in layer below
-					soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
-				}
-				// Movement upwards
-				else {
-
-					// Layer below
-					int lyr_below = lyr + 1;
-
-					while (diff_volume < 0.0 && lyr_below < nsoillayers) {
-
-						// Volume will be exchanged with layer below
-						Soillayer& soillayer_below = soillayers[lyr_below];
-
-						// Calculate soil layer organic carbon masses
-						double ccont_humus = soillayer_below.ccont(GHUMUS);
-						double ccont_som = soillayer_below.ccont(GSOM);
-
-						// Calculate soil layer organic carbon densities
-						double rho_humus = soillayer_below.calc_organic_density(GHUMUS);
-						double rho_som = soillayer_below.calc_organic_density(GSOM);
-
-						// Update organic volume (mm)
-						double humus_volume = ccont_humus / rho_humus * MM_PER_M;
-						double som_volume = ccont_som / rho_som * MM_PER_M;
-						double org_volume = humus_volume + som_volume;
-						soillayer_below.organic_volume = org_volume;
-
-						// Move mineral, organic and humus matter upwards from the layer below
-						double up_volume;
-
-						// Organic and mineral volume below
-						double volume_below = soillayer_below.mineral_volume + org_volume;
-
-						if (volume_below > fabs(diff_volume)) {
-							up_volume = fabs(diff_volume);
-							diff_volume = 0.0;
-						}
-						else {
-							up_volume = volume_below;
-							diff_volume += volume_below;
-						}
-
-						// Organic matter fraction at the interface between the layers
-						double organic_frac_int = 0.0;
-
-						if (!negligible(org_volume + soillayer_below.mineral_volume)) {
-							organic_frac_int = org_volume / (org_volume + soillayer_below.mineral_volume);
-						}
-
-						// For peat move organic matter up first
-						if (patch.stand.landcover == PEATLAND) {
-							organic_frac_int = 1.0;
-						}
-
-						// Move mineral nitrogen
-						double frac = min(1.0, up_volume / volume_below);
-						soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
-						soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
-						soillayer.N2O_mass += soillayer_below.N2O_mass * frac;
-						soillayer.NO2_mass += soillayer_below.NO2_mass * frac;
-						soillayer.NO_mass += soillayer_below.NO_mass * frac;
-						soillayer.N2_mass += soillayer_below.N2_mass * frac;
-						soillayer_below.NH4_mass *= 1.0 - frac;
-						soillayer_below.NO3_mass *= 1.0 - frac;
-						soillayer_below.N2O_mass *= 1.0 - frac;
-						soillayer_below.NO2_mass *= 1.0 - frac;
-						soillayer_below.NO_mass *= 1.0 - frac;
-						soillayer_below.N2_mass *= 1.0 - frac;
-
-						if (!negligible(org_volume) || !negligible(soillayer_below.mineral_volume)) {
-
-							// Humus should be moved upwards first
-							if (!negligible(humus_volume)) {
 								double frac_humus;
-								if (up_volume <= humus_volume) {
-									frac_humus = up_volume / humus_volume;
+								if (diff_volume <= humus_volume) {
+									frac_humus = diff_volume / humus_volume;
 								}
 								else {
 									frac_humus = 1.0;
@@ -7570,32 +7470,507 @@ void Soilcolumn::vertical_movement() {
 								// Move som organic matter
 								for (int p = 0; p < NSOMPOOL; p++) {
 									if (p == SURFMICRO || p == SURFHUMUS) {
-										soillayer.sompool[p].cmass += soillayer_below.sompool[p].cmass * frac_humus;
-										soillayer.sompool[p].nmass += soillayer_below.sompool[p].nmass * frac_humus;
-										soillayer_below.sompool[p].cmass *= 1.0 - frac_humus;
-										soillayer_below.sompool[p].nmass *= 1.0 - frac_humus;
+										soillayer_below.sompool[p].cmass += soillayer.sompool[p].cmass * frac_humus;
+										soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_humus;
+										soillayer.sompool[p].cmass *= 1.0 - frac_humus;
+										soillayer.sompool[p].nmass *= 1.0 - frac_humus;
 									}
 								}
 
-								up_volume -= humus_volume * frac_humus;
+								diff_volume -= humus_volume * frac_humus;
 							}
+
+							if (diff_volume > 1.0e-12) {
+								dprintf("Year %d Day %d Lyr %d ERROR in vertical movement! No more volume to move (%g).\n", date.year, date.day, lyr, diff_volume);
+							}
+						}
+
+						// Update organic carbon density in layer below
+						soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
+
+						// Update organic volume in layer below
+						soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
+					}
+					// Movement upwards
+					else {
+
+						// Layer below
+						int lyr_below = lyr + 1;
+
+						while (diff_volume < 0.0 && lyr_below < nsoillayers) {
+
+							// Volume will be exchanged with layer below
+							Soillayer& soillayer_below = soillayers[lyr_below];
+
+							// Calculate soil layer organic carbon masses
+							double ccont_humus = soillayer_below.ccont(GHUMUS);
+							double ccont_som = soillayer_below.ccont(GSOM);
+
+							// Calculate soil layer organic carbon densities
+							double rho_humus = soillayer_below.calc_organic_density(GHUMUS);
+							double rho_som = soillayer_below.calc_organic_density(GSOM);
+
+							// Update organic volume (mm)
+							double humus_volume = ccont_humus / rho_humus * MM_PER_M;
+							double som_volume = ccont_som / rho_som * MM_PER_M;
+							double org_volume = humus_volume + som_volume;
+							soillayer_below.organic_volume = org_volume;
+
+							// Move mineral, organic and humus matter upwards from the layer below
+							double up_volume;
+
+							// Organic and mineral volume below
+							double volume_below = soillayer_below.mineral_volume + org_volume;
+
+							if (volume_below > fabs(diff_volume)) {
+								up_volume = fabs(diff_volume);
+								diff_volume = 0.0;
+							}
+							else {
+								up_volume = volume_below;
+								diff_volume += volume_below;
+							}
+
+							// Organic matter fraction at the interface between the layers
+							double organic_frac_int = 0.0;
+
+							if (!negligible(org_volume + soillayer_below.mineral_volume)) {
+								organic_frac_int = org_volume / (org_volume + soillayer_below.mineral_volume);
+							}
+
+							// For peat move organic matter up first
+							if (patch.stand.landcover == PEATLAND) {
+								organic_frac_int = 1.0;
+							}
+
+							// Move mineral nitrogen
+							double frac = min(1.0, up_volume / volume_below);
+							soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
+							soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
+							soillayer.N2O_mass += soillayer_below.N2O_mass * frac;
+							soillayer.NO2_mass += soillayer_below.NO2_mass * frac;
+							soillayer.NO_mass += soillayer_below.NO_mass * frac;
+							soillayer.N2_mass += soillayer_below.N2_mass * frac;
+							soillayer_below.NH4_mass *= 1.0 - frac;
+							soillayer_below.NO3_mass *= 1.0 - frac;
+							soillayer_below.N2O_mass *= 1.0 - frac;
+							soillayer_below.NO2_mass *= 1.0 - frac;
+							soillayer_below.NO_mass *= 1.0 - frac;
+							soillayer_below.N2_mass *= 1.0 - frac;
+
+							if (!negligible(org_volume) || !negligible(soillayer_below.mineral_volume)) {
+
+								// Humus should be moved upwards first
+								if (!negligible(humus_volume)) {
+									double frac_humus;
+									if (up_volume <= humus_volume) {
+										frac_humus = up_volume / humus_volume;
+									}
+									else {
+										frac_humus = 1.0;
+									}
+
+									// Move som organic matter
+									for (int p = 0; p < NSOMPOOL; p++) {
+										if (p == SURFMICRO || p == SURFHUMUS) {
+											soillayer.sompool[p].cmass += soillayer_below.sompool[p].cmass * frac_humus;
+											soillayer.sompool[p].nmass += soillayer_below.sompool[p].nmass * frac_humus;
+											soillayer_below.sompool[p].cmass *= 1.0 - frac_humus;
+											soillayer_below.sompool[p].nmass *= 1.0 - frac_humus;
+										}
+									}
+
+									up_volume -= humus_volume * frac_humus;
+								}
+
+								// Still volume needed to move upwards
+								if (!negligible(up_volume)) {
+
+									// Check if mineral and organic matter is enough to fulfill move
+									double frac_min, frac_org;
+									if (up_volume > soillayer_below.mineral_volume + som_volume) {
+										frac_min = 1.0;
+										frac_org = 1.0;
+									}
+									else if (negligible(som_volume)) {
+										frac_min = min(1.0, up_volume / soillayer_below.mineral_volume);
+										frac_org = 0.0;
+									}
+									else if (negligible(soillayer_below.mineral_volume)) {
+										frac_min = 0.0;
+										frac_org = min(1.0, up_volume / som_volume);
+									}
+									else {
+										// Calculate mineral volume to be moved with interface fraction
+										double up_volume_org = up_volume * organic_frac_int;
+										double up_volume_min = up_volume - up_volume_org;
+
+										if (up_volume_min <= soillayer_below.mineral_volume &&
+											up_volume_org <= som_volume) {
+											frac_min = up_volume_min / soillayer_below.mineral_volume;
+											frac_org = up_volume_org / som_volume;
+										}
+										else if (up_volume_org > som_volume) {
+											frac_org = 1.0;
+											frac_min = (up_volume - som_volume) / soillayer_below.mineral_volume;
+										}
+										else {
+											frac_org = (up_volume - soillayer_below.mineral_volume) / som_volume;
+											frac_min = 1.0;
+										}
+									}
+
+									// Move organic matter
+									for (int p = 0; p < NSOMPOOL; p++) {
+										if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
+											soillayer.sompool[p].cmass += soillayer_below.sompool[p].cmass * frac_org;
+											soillayer.sompool[p].nmass += soillayer_below.sompool[p].nmass * frac_org;
+											soillayer_below.sompool[p].cmass *= 1.0 - frac_org;
+											soillayer_below.sompool[p].nmass *= 1.0 - frac_org;
+										}
+									}
+
+									// Move mineral matter
+									soillayer.mineral_volume += soillayer_below.mineral_volume * frac_min;
+									soillayer_below.mineral_volume *= 1.0 - frac_min;
+								}
+							}
+
+							// Update organic carbon density in layer below
+							soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
+
+							// Update organic volume in layer below
+							soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
+
+							lyr_below++;
+						}
+
+						// If still missing volume add mineral
+						if (diff_volume < 0.0) {
+							soillayer.mineral_volume += fabs(diff_volume);
+						}
+					}
+				}
+			}
+
+			// Update soil layer organic carbon density
+			soillayer.rho_org = soillayer.calc_organic_density(GHUMUSSOM);
+
+			// Update organic volume
+			soillayer.organic_volume = soillayer.ccont(GHUMUSSOM) / soillayer.rho_org * MM_PER_M;
+
+			// If bottom layer organic volume exceed the total volume of layer
+			// then increase depth of layer by 100mm and fill it with mineral soil 
+			if (lyr == nsoillayers - 1 && soillayer.mineral_volume == 0 && soillayer.organic_volume > eff_volume) {
+
+				if (hydrology == RICHARDS) {
+
+					// Depth to add
+					double add_depth = 100.0;
+
+					// Increase effective volume
+					eff_volume += add_depth;
+
+					// Increase soil layer depth
+					soillayer.depth += add_depth;
+
+					// Update soil layer depth profile
+					soillayer.depth_profile += add_depth / 2.0;
+
+					// Update soil columns array of soil layer depths
+					soillayerdepths[lyr] += add_depth;
+
+					// Update soil columns array of soil layer thicknesses
+					soillayerthicks[lyr] += add_depth;
+
+					// Update total soil column depth
+					depth += add_depth;
+
+					// Update soil layer mineral volume
+					soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+
+					double wsats_new;
+					if (soillayer.acrotelm) {
+						wsats_new = soillayer.mineral_volume * acrotelm_por;
+					}
+					else if (soillayer.catotelm) {
+						wsats_new = soillayer.mineral_volume * catotelm_por;
+					}
+					else {
+						wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+					}
+
+					soillayer.wsats += wsats_new;
+
+					if (soillayer.temp > 0.0) {
+						soillayer.wmass += wsats_new;
+					}
+					else {
+						soillayer.imass += wsats_new;
+					}
+
+					wadd += wsats_new;
+
+					patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
+				}
+				else {
+					soillayer.organic_volume = eff_volume;
+				}
+			}
+
+			if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10) {
+				dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
+					date.year, date.day, lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
+					eff_volume, soillayer.mineral_volume + soillayer.organic_volume);
+			}
+
+			soillayer.mineral_volume = max(0.0, eff_volume - soillayer.organic_volume);
+			soillayer.organic_volume = max(0.0, eff_volume - soillayer.mineral_volume);
+		}
+	}
+	else {
+
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soillayers[lyr];
+
+			// Initial mineral volume
+			double min_volume = soillayer.mineral_volume;
+
+			// Calculate soil layer organic carbon masses
+			double ccont_org = soillayer.ccont(GHUMUSSOM);
+
+			// Calculate soil layer organic carbon densities
+			double rho_org = soillayer.calc_organic_density(GHUMUSSOM);
+
+			// Update organic volume (mm)
+			double org_volume = ccont_org / rho_org * MM_PER_M;
+			soillayer.organic_volume = org_volume;
+
+			// Effective soil volume
+			double eff_volume = soillayer.depth - soillayer.root_volume;
+
+			// Difference in material and effetive volume
+			double diff_volume = min_volume + org_volume - eff_volume;
+
+			// If a difference, solve it by moving material either down or upwards
+			if (!negligible(diff_volume)) {
+
+				// For the bottom soil layer only mineral volume is updated
+				if (lyr == nsoillayers - 1) {
+
+					soillayer.mineral_volume -= diff_volume;
+
+					// If organic volume exceeds volume of bottom layer, then mineral volume is set to zero
+					if (soillayer.mineral_volume < 0.0) {
+						soillayer.mineral_volume = 0.0;
+					}
+					else if (soillayer.mineral_volume > eff_volume - org_volume) {
+						soillayer.mineral_volume = eff_volume - org_volume;
+					}
+				}
+				else {
+
+					if (diff_volume > 0.0) {
+
+						// Volume will be moved to layer below
+						Soillayer& soillayer_below = soillayers[lyr + 1];
+
+						double organic_frac_int = org_volume / (org_volume + min_volume);
+
+						// For peat move mineral soil first
+						if (patch.stand.landcover == PEATLAND) {
+							organic_frac_int = 0.0;
+						}
+
+						// Fraction of matter to be moved
+						double frac;
+
+						// Move mineral nitrogen
+						frac = min(1.0, diff_volume / (min_volume + org_volume));
+						soillayer_below.NH4_mass += soillayer.NH4_mass * frac;
+						soillayer_below.NO3_mass += soillayer.NO3_mass * frac;
+						soillayer_below.N2O_mass += soillayer.N2O_mass * frac;
+						soillayer_below.NO2_mass += soillayer.NO2_mass * frac;
+						soillayer_below.NO_mass += soillayer.NO_mass * frac;
+						soillayer_below.N2_mass += soillayer.N2_mass * frac;
+						soillayer.NH4_mass *= 1.0 - frac;
+						soillayer.NO3_mass *= 1.0 - frac;
+						soillayer.N2O_mass *= 1.0 - frac;
+						soillayer.NO2_mass *= 1.0 - frac;
+						soillayer.NO_mass *= 1.0 - frac;
+						soillayer.N2_mass *= 1.0 - frac;
+
+						// At very low organic matter fraction at the interface 
+						// between the layers, then only mineral volume should be moved
+						if (organic_frac_int < organic_frac_move_thres) {
+
+							// Check if mineral matter is enough to fulfill move
+							if (diff_volume <= min_volume) {
+								frac = diff_volume / min_volume;
+							}
+							else {
+								// Else all mineral volume will be moved
+								frac = 1.0;
+							}
+
+							// Move mineral matter
+							double min_move = min_volume * frac;
+							diff_volume -= min_move;
+							min_volume -= min_move;
+
+							soillayer_below.mineral_volume += min_move;
+							soillayer.mineral_volume -= min_move;
+						}
+
+						// Still volume to be moved
+						if (diff_volume > 1.0e-15) {
+
+							// Check if mineral and som matter is enough to fulfill move
+							double frac_min, frac_org;
+
+							// Only organic matter to move
+							if (negligible(min_volume)) {
+								frac_min = 0.0;
+								frac_org = min(1.0, diff_volume / org_volume);
+							}
+							// Only mineral matter to move
+							else if (negligible(org_volume)) {
+								frac_min = min(1.0, diff_volume / min_volume);
+								frac_org = 0.0;
+							}
+							// All mineral and organic matter needs to move. Only humus left
+							else if (diff_volume > min_volume + org_volume) {
+								frac_min = 1.0;
+								frac_org = 1.0;
+							}
+							else {
+								// Calculate mineral volume to be moved with interface fraction
+								double diff_volume_org = diff_volume * organic_frac_int;
+								double diff_volume_min = diff_volume - diff_volume_org;
+
+								if (diff_volume_min <= min_volume && diff_volume_org <= org_volume) {
+									frac_min = diff_volume_min / min_volume;
+									frac_org = diff_volume_org / org_volume;
+								}
+								else if (diff_volume_org > org_volume) {
+									frac_org = 1.0;
+									frac_min = (diff_volume - org_volume) / min_volume;
+								}
+								else {
+									frac_org = (diff_volume - min_volume) / org_volume;
+									frac_min = 1.0;
+								}
+							}
+
+							// Move som organic matter
+							for (int p = 0; p < NSOMPOOL; p++) {
+								if (p == SURFHUMUS || p == SURFMICRO || p == SOILMETA || p == SOILSTRUCT ||
+									p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
+									soillayer_below.sompool[p].cmass += soillayer.sompool[p].cmass * frac_org;
+									soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_org;
+									soillayer.sompool[p].cmass *= 1.0 - frac_org;
+									soillayer.sompool[p].nmass *= 1.0 - frac_org;
+								}
+							}
+
+							// Move mineral matter
+							soillayer_below.mineral_volume += min_volume * frac_min;
+							soillayer.mineral_volume *= 1.0 - frac_min;
+
+							// Subtract moved matter
+							diff_volume -= min_volume * frac_min + org_volume * frac_org;
+						}
+
+						if (diff_volume > 1.0e-12) {
+							dprintf("Year %d Day %d Lyr %d ERROR in vertical movement! No more volume to move (%g).\n", date.year, date.day, lyr, diff_volume);
+						}
+
+						// Update organic carbon density in layer below
+						soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
+
+						// Update organic volume in layer below
+						soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
+					}
+					// Movement upwards
+					else {
+
+						// Layer below
+						int lyr_below = lyr + 1;
+
+						while (diff_volume < 0.0 && lyr_below < nsoillayers) {
+
+							// Volume will be exchanged with layer below
+							Soillayer& soillayer_below = soillayers[lyr_below];
+
+							// Calculate soil layer organic carbon masses
+							double ccont_org = soillayer_below.ccont(GHUMUSSOM);
+
+							// Calculate soil layer organic carbon densities
+							double rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
+
+							// Update organic volume (mm)
+							double org_volume = ccont_org / rho_org * MM_PER_M;
+							soillayer_below.organic_volume = org_volume;
+
+							// Move mineral, organic and humus matter upwards from the layer below
+							double up_volume;
+
+							// Organic and mineral volume below
+							double volume_below = soillayer_below.mineral_volume + org_volume;
+
+							if (volume_below > fabs(diff_volume)) {
+								up_volume = fabs(diff_volume);
+								diff_volume = 0.0;
+							}
+							else {
+								up_volume = volume_below;
+								diff_volume += volume_below;
+							}
+
+							// Organic matter fraction at the interface between the layers
+							double organic_frac_int = 0.0;
+
+							if (!negligible(org_volume + soillayer_below.mineral_volume)) {
+								organic_frac_int = org_volume / (org_volume + soillayer_below.mineral_volume);
+							}
+
+							// For peat move organic matter up first
+							if (patch.stand.landcover == PEATLAND) {
+								organic_frac_int = 1.0;
+							}
+
+							// Move mineral nitrogen
+							double frac = min(1.0, up_volume / volume_below);
+							soillayer.NH4_mass += soillayer_below.NH4_mass * frac;
+							soillayer.NO3_mass += soillayer_below.NO3_mass * frac;
+							soillayer.N2O_mass += soillayer_below.N2O_mass * frac;
+							soillayer.NO2_mass += soillayer_below.NO2_mass * frac;
+							soillayer.NO_mass += soillayer_below.NO_mass * frac;
+							soillayer.N2_mass += soillayer_below.N2_mass * frac;
+							soillayer_below.NH4_mass *= 1.0 - frac;
+							soillayer_below.NO3_mass *= 1.0 - frac;
+							soillayer_below.N2O_mass *= 1.0 - frac;
+							soillayer_below.NO2_mass *= 1.0 - frac;
+							soillayer_below.NO_mass *= 1.0 - frac;
+							soillayer_below.N2_mass *= 1.0 - frac;
 
 							// Still volume needed to move upwards
 							if (!negligible(up_volume)) {
 
 								// Check if mineral and organic matter is enough to fulfill move
 								double frac_min, frac_org;
-								if (up_volume > soillayer_below.mineral_volume + som_volume) {
+								if (up_volume > soillayer_below.mineral_volume + org_volume) {
 									frac_min = 1.0;
 									frac_org = 1.0;
 								}
-								else if (negligible(som_volume)) {
+								else if (negligible(org_volume)) {
 									frac_min = min(1.0, up_volume / soillayer_below.mineral_volume);
 									frac_org = 0.0;
 								}
 								else if (negligible(soillayer_below.mineral_volume)) {
 									frac_min = 0.0;
-									frac_org = min(1.0, up_volume / som_volume);
+									frac_org = min(1.0, up_volume / org_volume);
 								}
 								else {
 									// Calculate mineral volume to be moved with interface fraction
@@ -7603,23 +7978,23 @@ void Soilcolumn::vertical_movement() {
 									double up_volume_min = up_volume - up_volume_org;
 
 									if (up_volume_min <= soillayer_below.mineral_volume &&
-										up_volume_org <= som_volume) {
+										up_volume_org <= org_volume) {
 										frac_min = up_volume_min / soillayer_below.mineral_volume;
-										frac_org = up_volume_org / som_volume;
+										frac_org = up_volume_org / org_volume;
 									}
-									else if (up_volume_org > som_volume) {
+									else if (up_volume_org > org_volume) {
 										frac_org = 1.0;
-										frac_min = (up_volume - som_volume) / soillayer_below.mineral_volume;
+										frac_min = (up_volume - org_volume) / soillayer_below.mineral_volume;
 									}
 									else {
-										frac_org = (up_volume - soillayer_below.mineral_volume) / som_volume;
+										frac_org = (up_volume - soillayer_below.mineral_volume) / org_volume;
 										frac_min = 1.0;
 									}
 								}
 
 								// Move organic matter
 								for (int p = 0; p < NSOMPOOL; p++) {
-									if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
+									if (p == SURFHUMUS || p == SURFMICRO || p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
 										soillayer.sompool[p].cmass += soillayer_below.sompool[p].cmass * frac_org;
 										soillayer.sompool[p].nmass += soillayer_below.sompool[p].nmass * frac_org;
 										soillayer_below.sompool[p].cmass *= 1.0 - frac_org;
@@ -7631,98 +8006,98 @@ void Soilcolumn::vertical_movement() {
 								soillayer.mineral_volume += soillayer_below.mineral_volume * frac_min;
 								soillayer_below.mineral_volume *= 1.0 - frac_min;
 							}
+
+							// Update organic carbon density in layer below
+							soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
+
+							// Update organic volume in layer below
+							soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
+
+							lyr_below++;
 						}
 
-						// Update organic carbon density in layer below
-						soillayer_below.rho_org = soillayer_below.calc_organic_density(GHUMUSSOM);
-
-						// Update organic volume in layer below
-						soillayer_below.organic_volume = soillayer_below.ccont(GHUMUSSOM) / soillayer_below.rho_org * MM_PER_M;
-
-						lyr_below++;
-					}
-
-					// If still missing volume add mineral
-					if (diff_volume < 0.0) {
-						soillayer.mineral_volume += fabs(diff_volume);
+						// If still missing volume add mineral
+						if (diff_volume < 0.0) {
+							soillayer.mineral_volume += fabs(diff_volume);
+						}
 					}
 				}
 			}
-		}
 
-		// Update soil layer organic carbon density
-		soillayer.rho_org = soillayer.calc_organic_density(GHUMUSSOM);
+			// Update soil layer organic carbon density
+			soillayer.rho_org = soillayer.calc_organic_density(GHUMUSSOM);
 
-		// Update organic volume
-		soillayer.organic_volume = soillayer.ccont(GHUMUSSOM) / soillayer.rho_org * MM_PER_M;
+			// Update organic volume
+			soillayer.organic_volume = soillayer.ccont(GHUMUSSOM) / soillayer.rho_org * MM_PER_M;
 
-		// If bottom layer organic volume exceed the total volume of layer
-		// then increase depth of layer by 100mm and fill it with mineral soil 
-		if (lyr == nsoillayers - 1 && soillayer.mineral_volume == 0 && soillayer.organic_volume > eff_volume) {
-			
-			if (hydrology == RICHARDS) {
+			// If bottom layer organic volume exceed the total volume of layer
+			// then increase depth of layer by 100mm and fill it with mineral soil 
+			if (lyr == nsoillayers - 1 && soillayer.mineral_volume == 0 && soillayer.organic_volume > eff_volume) {
 
-				// Depth to add
-				double add_depth = 100.0;
+				if (hydrology == RICHARDS) {
 
-				// Increase effective volume
-				eff_volume += add_depth;
+					// Depth to add
+					double add_depth = 100.0;
 
-				// Increase soil layer depth
-				soillayer.depth += add_depth;
+					// Increase effective volume
+					eff_volume += add_depth;
 
-				// Update soil layer depth profile
-				soillayer.depth_profile += add_depth / 2.0;
+					// Increase soil layer depth
+					soillayer.depth += add_depth;
 
-				// Update soil columns array of soil layer depths
-				soillayerdepths[lyr] += add_depth;
+					// Update soil layer depth profile
+					soillayer.depth_profile += add_depth / 2.0;
 
-				// Update soil columns array of soil layer thicknesses
-				soillayerthicks[lyr] += add_depth;
+					// Update soil columns array of soil layer depths
+					soillayerdepths[lyr] += add_depth;
 
-				// Update total soil column depth
-				depth += add_depth;
+					// Update soil columns array of soil layer thicknesses
+					soillayerthicks[lyr] += add_depth;
 
-				// Update soil layer mineral volume
-				soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+					// Update total soil column depth
+					depth += add_depth;
 
-				double wsats_new;
-				if (soillayer.acrotelm) {
-					wsats_new = soillayer.mineral_volume * acrotelm_por;
-				}
-				else if (soillayer.catotelm) {
-					wsats_new = soillayer.mineral_volume * catotelm_por;
+					// Update soil layer mineral volume
+					soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+
+					double wsats_new;
+					if (soillayer.acrotelm) {
+						wsats_new = soillayer.mineral_volume * acrotelm_por;
+					}
+					else if (soillayer.catotelm) {
+						wsats_new = soillayer.mineral_volume * catotelm_por;
+					}
+					else {
+						wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+					}
+
+					soillayer.wsats += wsats_new;
+
+					if (soillayer.temp > 0.0) {
+						soillayer.wmass += wsats_new;
+					}
+					else {
+						soillayer.imass += wsats_new;
+					}
+
+					wadd += wsats_new;
+
+					patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 				}
 				else {
-					wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+					soillayer.organic_volume = eff_volume;
 				}
-
-				soillayer.wsats += wsats_new;
-
-				if (soillayer.temp > 0.0) {
-					soillayer.wmass += wsats_new;
-				}
-				else {
-					soillayer.imass += wsats_new;
-				}
-
-				wadd += wsats_new;
-
-				patch.fluxes.report_flux(Fluxes::WADDED, wsats_new);
 			}
-			else {
-				soillayer.organic_volume = eff_volume;
+
+			if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10) {
+				dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
+					date.year, date.day, lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
+					eff_volume, soillayer.mineral_volume + soillayer.organic_volume);
 			}
-		}
 
-		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10) {
-			dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
-				date.year, date.day, lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
-				eff_volume, soillayer.mineral_volume + soillayer.organic_volume);
+			soillayer.mineral_volume = max(0.0, eff_volume - soillayer.organic_volume);
+			soillayer.organic_volume = max(0.0, eff_volume - soillayer.mineral_volume);
 		}
-
-		soillayer.mineral_volume = max(0.0, eff_volume - soillayer.organic_volume);
-		soillayer.organic_volume = max(0.0, eff_volume - soillayer.mineral_volume);
 	}
 
 	double ccont_after = ccont();

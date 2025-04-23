@@ -604,6 +604,7 @@ void CommonOutput::define_output_tables() {
 	csoil_data_columns += ColumnDescriptor("RootAli", 8, 3);
 	csoil_data_columns += ColumnDescriptor("BD", 8, 3);
 	csoil_data_columns += ColumnDescriptor("Por", 8, 3);
+	csoil_data_columns += ColumnDescriptor("farea", 8, 3);
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1691,6 +1692,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double crootali[2] = { 0.0 };
 	double bulkdens[2] = { 0.0 };
 	double por[2] = { 0.0 };
+	double gridcell_area = 0.0;
 
 	// Sum C fluxes, dead C pools and runoff across patches
 
@@ -1701,7 +1703,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		Stand& stand = *gc_itr;
 		stand.firstobj();
 
-		//Loop through Patches
+		// Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
 			Fluxes& fluxes = patch.fluxes;
@@ -2159,84 +2161,89 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 
 			////// Soil data start
-			double cdepths[3];
-			cdepths[0] = 0.0;
-			cdepths[1] = 300.0;
-			cdepths[2] = 2000.0;
+			if (stand.landcover != BARREN) {
 
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				int l = 0;
-				if (lyr > 2)
-					l = 1;
+				gridcell_area += to_gridcell_average;
 
-				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+				double cdepths[3];
+				cdepths[0] = 0.0;
+				cdepths[1] = 300.0;
+				cdepths[2] = 2000.0;
 
-				if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+					int l = 0;
+					if (lyr > 2)
+						l = 1;
 
-					for (int p = 0; p < NSOMPOOL; p++) {
+					Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-						Sompool& sompool = soillayer.sompool[p];
+					if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
 
-						if (p == SURFMICRO || p == SOILMICRO) {
-							cactive[l] += sompool.cmass * to_gridcell_average;
+						for (int p = 0; p < NSOMPOOL; p++) {
+
+							Sompool& sompool = soillayer.sompool[p];
+
+							if (p == SURFMICRO || p == SOILMICRO) {
+								cactive[l] += sompool.cmass * to_gridcell_average;
+							}
+							else if (p == SURFHUMUS || p == SLOWSOM) {
+								cslow[l] += sompool.cmass * to_gridcell_average;
+							}
+							else if (p == PASSIVESOM) {
+								cpassive[l] += sompool.cmass * to_gridcell_average;
+							}
+
+							if (p == SURFMICRO || p == SOILMICRO || p == SURFHUMUS ||
+								p == SLOWSOM || p == PASSIVESOM) {
+								ctotal[l] += sompool.cmass * to_gridcell_average;
+							}
+
+							if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD) {
+								crootlit[l] += sompool.cmass * to_gridcell_average;
+							}
 						}
-						else if (p == SURFHUMUS || p == SLOWSOM) {
-							cslow[l] += sompool.cmass * to_gridcell_average;
-						}
-						else if (p == PASSIVESOM) {
-							cpassive[l] += sompool.cmass * to_gridcell_average;
-						}
 
-						if (p == SURFMICRO || p == SOILMICRO || p == SURFHUMUS ||
-							p == SLOWSOM || p == PASSIVESOM) {
-							ctotal[l] += sompool.cmass * to_gridcell_average;
-						}
+						bulkdens[l] += soillayer.bulk_density * soillayer.depth / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
+						por[l] += soillayer.wsats / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
+					}
+				}
 
-						if (p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD) {
-							crootlit[l] += sompool.cmass * to_gridcell_average;
+				Vegetation& veg = patch.vegetation;
+
+				veg.firstobj();
+				while (veg.isobj) {
+					Individual& indiv = veg.getobj();
+
+					if (indiv.id != -1 && indiv.alive) {
+						Patchpft& ppft = patch.pft[indiv.pft.id];
+						for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+							int l = 0;
+							if (lyr > 2)
+								l = 1;
+
+							if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
+								crootali[l] += (indiv.cmass_root + (1.0 - indiv.pft.ag_woody_frac) *
+									(indiv.cmass_sap + indiv.cmass_heart)) * ppft.rootdist[lyr] *
+									to_gridcell_average;
+							}
 						}
 					}
 
-					bulkdens[l] += soillayer.bulk_density * soillayer.depth / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
-					por[l] += soillayer.wsats / (cdepths[l + 1] - cdepths[l]) * to_gridcell_average;
+					veg.nextobj();
 				}
-			}
 
-			Vegetation& veg = patch.vegetation;
-
-			veg.firstobj();
-			while (veg.isobj) {
-				Individual& indiv = veg.getobj();
-
-				if (indiv.id != -1 && indiv.alive) {
-					Patchpft& ppft = patch.pft[indiv.pft.id];
+				for (int q = 0; q < npft; q++) {
+					Patchpft& ppft = patch.pft[q];
 					for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 						int l = 0;
 						if (lyr > 2)
 							l = 1;
 
 						if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
-							crootali[l] += (indiv.cmass_root + (1.0 - indiv.pft.ag_woody_frac) * 
-								(indiv.cmass_sap + indiv.cmass_heart)) * ppft.rootdist[lyr] * 
+							crootlit[l] += (ppft.litter_root + (1.0 - ppft.pft.ag_woody_frac) *
+								(ppft.litter_sap + ppft.litter_heart)) * ppft.rootdist[lyr] *
 								to_gridcell_average;
 						}
-					}
-				}
-
-				veg.nextobj();
-			}
-
-			for (int q = 0; q < npft; q++) {
-				Patchpft& ppft = patch.pft[q];
-				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-					int l = 0;
-					if (lyr > 2)
-						l = 1;
-
-					if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
-						crootlit[l] += (ppft.litter_root + (1.0 - ppft.pft.ag_woody_frac) *
-							(ppft.litter_sap + ppft.litter_heart))* ppft.rootdist[lyr] *
-							to_gridcell_average;
 					}
 				}
 			}
@@ -2583,23 +2590,26 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// Soil data
 	int ll = 0;
-	outlimit(out, out_csoil_data_top, cactive[ll]);
-	outlimit(out, out_csoil_data_top, cslow[ll]);
-	outlimit(out, out_csoil_data_top, cpassive[ll]);
-	outlimit(out, out_csoil_data_top, ctotal[ll]);
-	outlimit(out, out_csoil_data_top, crootlit[ll]);
-	outlimit(out, out_csoil_data_top, crootali[ll]);
-	outlimit(out, out_csoil_data_top, bulkdens[ll]);
-	outlimit(out, out_csoil_data_top, por[ll]);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? cactive[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? cslow[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? cpassive[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? ctotal[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? crootlit[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? crootali[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? bulkdens[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area > 0.0 ? por[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_top, gridcell_area);
+	
 	ll = 1;
-	outlimit(out, out_csoil_data_bot, cactive[ll]);
-	outlimit(out, out_csoil_data_bot, cslow[ll]);
-	outlimit(out, out_csoil_data_bot, cpassive[ll]);
-	outlimit(out, out_csoil_data_bot, ctotal[ll]);
-	outlimit(out, out_csoil_data_bot, crootlit[ll]);
-	outlimit(out, out_csoil_data_bot, crootali[ll]);
-	outlimit(out, out_csoil_data_bot, bulkdens[ll]);
-	outlimit(out, out_csoil_data_bot, por[ll]);	
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? cactive[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? cslow[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? cpassive[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? ctotal[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? crootlit[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? crootali[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? bulkdens[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area > 0.0 ? por[ll] / gridcell_area : 0.0);
+	outlimit(out, out_csoil_data_bot, gridcell_area);
 
 	// Graphical output every PLOT_INTERVAL years
 	// (Windows shell only - no effect otherwise)

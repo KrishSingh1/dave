@@ -83,9 +83,9 @@ Planned, not implemented yet:
 How to write a new summary tool:
 Easy! 
 * Make a new folder in LPJ-GUESS code directory/benchmarks/summaries/<tool>/
-  in your branch. Name the new folder to the name of your new sumary tool. let's say "NEW".
+  in your branch. Name the new folder to the name of your new summary tool. let's say "NEW".
 * In the new folder NEW make file summarize.sh
-  Easiest that you copy the summarize.sh from one of the other tools, e.g. the logreport one.
+  Easiest if you copy the summarize.sh from one of the other tools, e.g. the logreport one.
 * Edit the comment section (this is the help text)
   and update the last part that calls the actual work script.
   The currently existing summary tools consists of 
@@ -94,7 +94,7 @@ Easy!
   You can do like that or have all you code in the summarize.sh script.
 * Important: the pwd (current dir) of execution is down in the NEW folder.
   So your new script will need to look for the benchmark runs output one level up, in NEW/../
-  But you will will want your summary tool's output to be written in NEW/
+  But you will want your summary tool's output to be written in NEW/
   Look in e.g. tool "diff" for how that was solved there.
 
 Planned additions:

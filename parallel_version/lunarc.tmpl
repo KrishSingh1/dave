@@ -119,21 +119,28 @@ function split_gridlist {
       echo > run$a/$GRIDLIST_FILENAME
     done
 
-    # Figure out suitable number of lines per gridlist, get the number of
-    # lines in original gridlist file, divide by NPROCESS and round up.
-    local lines_per_run=$(wc -l $GRIDLIST | \
-	awk '{ x = $1/'$NPROCESS'; d = (x == int(x)) ? x : int(x)+1; print d}')
-
-    # Use the split command to split the files into temporary files
-    split --suffix-length=4 --lines $lines_per_run $GRIDLIST tmpSPLITGRID_
-
-    # Move the temporary files into the runX-directories
-    local files=$(ls tmpSPLITGRID_*)
-    local i=1
-    for file in $files
-    do
-      mv $file run$i/$GRIDLIST_FILENAME
-      i=$((i+1))
+    # Distribute gridcells from the gridlist as evenly as possible:
+    # - the first r processes get (q + 1) lines each.
+    # - the remaining (NPROCESS - r) files get q lines each.
+    # This ensures every process gets either q or q+1 gridcells, preserving the original order.
+    #  q = floor(total_gridcells / number_of_processes)
+    #  r = total_gridcells MOD number_of_processes			# r: remainder of gridcells after division
+    Ngridcells=$(wc -l < "$GRIDLIST_FILENAME")				# Count the number of gridcells (lines) in the input file.
+    q=$(( Ngridcells / NPROCESS ))	
+    r=$(( Ngridcells % NPROCESS ))
+    
+    # Loop over each sub-gridlist (run-folder), and extract the chunks and write them to new files.
+    start=1
+    for (( i = 1; i <= NPROCESS; i++ )); do
+        # For run-folder 1..r, use q+1 gridcells; otherwise use q gridcells.
+        if [ $i -le $r ]; then  count=$(( q + 1 ));  else  count=$(( q )); fi
+        
+        # Extract gridcells from start and count lines forward and write them to the output file.
+        end=$(( start + count - 1 ))
+		sed -n "${start},${end}p" "$GRIDLIST_FILENAME" > "run$i/$GRIDLIST_FILENAME"
+        
+        # Update start for the next iteration.
+        start=$(( start + count ))
     done
 }
 

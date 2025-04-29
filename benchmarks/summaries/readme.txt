@@ -54,12 +54,17 @@ benchmarks/summaries/
 Specific info for each summary command can be read in a comment in the top of 
 each script: LPJ-GUESS code directory/benchmarks/summaries/<tool>/summarize.sh
 The currently available summary tools are:
+* tellme_global: The tellme summary tool replaces the traditional benchmarks reports.
+  It is a summary job because it reads output from several benchmark tests to 
+  make one report of them all. The resulting report is written to the <output dir>/tellme
+  folder.
+  -s "tellme_global <this job label> <reference job label> <reference output dir>"
 * logreport: summarizes the guess.log log files of all the model runs of
   the benchmark run. Standard output is removed so that only unexpected output 
-  such as warnings stand out. Expected files that are missing are also higlighted.
+  such as warnings stand out. Expected files that are missing are also reported.
   -s "logreport <reference output>"
 * diff: diffs the .out files and tslices of all the model runs of
-  the benchmark run with some reference output (e.g. a trunk model run).
+  the benchmark run against some reference output (e.g. a trunk model run).
   Usefull if you expect that your changes will not affect model output and wnat to
   confirm that quickly.
   -s "diff <reference label> <reference output dir>"
@@ -67,18 +72,13 @@ The currently available summary tools are:
   and want to see how large a difference (delta) your model changes has made to the output.
   This summary tool generates one delta-report inside each benchmark's outputfolder.  
   -s "delta <reference label> <reference output dir>"
-* tellme: The tellme summary tool replaces the traditional benchmarks reports.
-  It is a summary job because it reads output from several benchmark tests to 
-  make one report of them all. The resulting report is written to the <output dir>/tellme
-  folder.
-  -s "tellme <this-job-label> <reference label> <reference output dir>"
 Planned, not implemented yet:
-* std-summaries: a summary meta-job that runs all 4 summary jobs above, so that you 
-  don't have to specify <ref-label> <reference output dir> many times in your
+* std_summaries: a summary meta-job that runs all 4 summary jobs above, so that you 
+  don't have to specify <reference label> <reference output dir> many times in your
   benchmarks command.
-  -s "std-summaries <thisjob-label> <reference-label> <reference output dir>"
-  or, if you'd like to exclude the heavy tellme summary job (i.e. only the 3 first jobs):
-  -s "std-summaries <ref-label> <reference output dir>"
+  -s "std-summaries <this job label> <reference label> <reference output dir>"
+  or, if you'd like to exclude the heavy tellme summary job (i.e. only the 3 last jobs):
+  -s "std-summaries <reference label> <reference output dir>"
 
 How to write a new summary tool:
 Easy! 

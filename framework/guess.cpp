@@ -2305,10 +2305,24 @@ double Individual::cmass_root_today() const {
 /// Gets the individual's daily fpc value
 double Individual::fpc_today() const {
 
-	if (pft.phenology == CROPGREEN)
-		return patchpft().cropphen->growingseason ? fpc_daily : 0;
-	else
-		return fpc * phen;
+	if (pft.phenology == CROPGREEN) {
+		return patchpft().cropphen->growingseason ? fpc_daily : 0.0;
+	}
+	else if (phen == 1.0) {
+		return fpc;
+	}
+	else if (phen == 0.0) {
+		return 0.0;
+	}
+	else {
+		if (pft.lifeform == TREE) {
+			return crownarea * densindiv * (1.0 - lambertbeer(lai_indiv_today()));
+		}
+		else {
+			// Grass and mosses
+			return 1.0 - lambertbeer(lai_indiv_today());
+		}
+	}
 }
 
 /// Gets the individual's daily lai value

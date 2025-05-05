@@ -5378,15 +5378,17 @@ void senescence_dave(Vegetation& vegetation) {
 		}
 		if (pft.is_grass() || pft.lifeform == MOSS) {
 			senescence_grass(indiv);
+
+			assert(positive(indiv.cmass_leafs[green]));
+			assert(positive(indiv.nmass_leafs[green]));
+			assert(positive(indiv.cmass_leafs[brown]));
+			assert(positive(indiv.nmass_leafs[brown]));
 		} else {
 			senescence_tree(indiv);
 		}
 
-		assert(positive(indiv.cmass_leafs[green]));
-		assert(positive(indiv.nmass_leafs[green]));
-		assert(positive(indiv.cmass_leafs[brown]));
-		assert(positive(indiv.nmass_leafs[brown]));
-
+		assert(positive(indiv.get_cmass_leaf()));
+		assert(positive(indiv.get_nmass_leaf()));
 		assert(positive(indiv.cmass_storage));
 		assert(positive(indiv.nmass_storage));
 	}

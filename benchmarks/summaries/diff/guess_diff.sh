@@ -159,10 +159,10 @@ for f in $(ls */${reportfile_tslice91}); do
 done
 } | column -t
 
-} | tee "${outputfolder}/diff-vs-${reflabel}.result"
+} | tee "${outputfolder}/diff.${reflabel}.summary"
 
 echo LIST NON-IDENTICAL .OUT FILES. Only if it is not empty.
 if [ -n "$(grep -v identical */$reportfile_out)" ]; then
   grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \
-  | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g" &> "${outputfolder}/diff-vs-${reflabel}.not-identical.list"
+  | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g" &> "${outputfolder}/diff.${reflabel}.not-identical.list"
 fi

@@ -46,11 +46,11 @@ fi
 label=$1
 comparator=$(realpath -e $2)
 
-tmpfile_reportsnotfound="/home/$HOME/.deltareports.notfound.tmp"
-tmpfile_reportsfound="/home/$HOME/.deltareports.found.tmp"
+tmpfile_reportsnotfound="$HOME/.deltareports.notfound.tmp"
+tmpfile_reportsfound="$HOME/.deltareports.found.tmp"
 
-echo -n "" >${tmpfile_reportsnotfound}
-echo -n "" >${tmpfile_reportsfound}
+echo -n "" >${tmpfile_reportsnotfound}  2>/dev/null
+echo -n "" >${tmpfile_reportsfound}  2>/dev/null
 
 echo "Comparison with: $comparator"
 echo -n "Starting one process per benchmark..."
@@ -71,27 +71,27 @@ for bm in  $bms; do
         "$deltareportcmd" $label $comparator &>>${summarytool}_deltareport_${label}.ceout		# I.e. don't use nohup on a cluster node.
       fi
       if [ -d "$comparator/$bm/report" ]; then
-        echo -n " $bm" >>${tmpfile_reportsfound}
+        echo -n " $bm" >>${tmpfile_reportsfound}  2>/dev/null
       else
-        echo -n " $bm*">>${tmpfile_reportsnotfound}
+        echo -n " $bm*">>${tmpfile_reportsnotfound}  2>/dev/null
       fi
     else
-      echo -n " [$bm: no local report]">>${tmpfile_reportsnotfound}
+      echo -n " [$bm: no local report]">>${tmpfile_reportsnotfound}  2>/dev/null
     fi
     cd ..
   fi
 
  else
-   echo -n " $bm" >>${tmpfile_reportsnotfound}
+   echo -n " $bm" >>${tmpfile_reportsnotfound}  2>/dev/null
  fi
 
 done
 
-cat ${tmpfile_reportsfound}
+cat ${tmpfile_reportsfound}  2>/dev/null
 echo
 echo -n "All bms deltareport processes started"
-if [ ! -z "$(cat ${tmpfile_reportsnotfound})" ]; then
-  echo " except, not found:$(cat ${tmpfile_reportsnotfound})"
+if [ ! -z "$(cat "${tmpfile_reportsnotfound}" 2>/dev/null)" ]; then
+  echo " except, not found:$(cat ${tmpfile_reportsnotfound})"  2>/dev/null
 else
   echo
 fi

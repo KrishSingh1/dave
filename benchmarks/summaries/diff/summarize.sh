@@ -13,7 +13,6 @@
 
 toolscript="guess_diff.sh"
 toolfoldername="$(basename "$(dirname "$0")")"
-#resultfile="${toolfoldername}/guess-diff-vs-${1}.summary.log"
 
 if [ $# -ne 2 ]; then
   echo "Error: the summaries/diff/summarize.sh script must be called with exctly 2 arguments."

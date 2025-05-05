@@ -35,6 +35,9 @@ european_applications_rxxxxx in another summary job).
 Note that the summary command and its arguments are enclosed within quotes after 
 the -s option switch.
 
+Please note that if any of the postprocess jobs does not complete (has aborted/crashed), 
+the summary job will not start (it will remain as PD in the slurm queue).
+
 Several summary jobs can be run in the same benchmarks run:
  ./benchmarks -s "diff <arguments...>" -s "tellme <arguments...>" <output dir>
 

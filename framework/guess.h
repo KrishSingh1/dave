@@ -45,6 +45,7 @@
 #include "gutil.h"
 #include <vector>
 #include <algorithm>
+#include <set>
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
@@ -6153,6 +6154,10 @@ public:
 	double dNO3dep;
 
 	double distinterval_gc;
+
+	// Vector of (calendar) years in which a disturbance should occur.
+	// This only contains data and is only used when disttype = DETERMINISTIC.
+	std::set<int> static_disturbances;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

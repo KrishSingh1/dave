@@ -45,6 +45,8 @@ bool iftempacclimation;
 bool ifcalccton;
 int estinterval;
 double distinterval;
+disturbancetype disttype;
+xtring file_disturb;
 bool ifcdebt;
 
 bool ifcentury;
@@ -225,7 +227,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTHYDROLOGY, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM,
 	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STHYDROLOGY, CB_MANAGEMENT1, 
 	CB_MANAGEMENT2, CB_MANAGEMENT3,	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
-	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR};
+	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR, CB_DISTTYPE};
 
 // File local variables
 namespace {
@@ -280,6 +282,8 @@ void initsettings() {
 	ifcdebt=false;
 	ifgrote = false;
 	distinterval=1.0e10;
+	disttype = DIST_NONE;
+	file_disturb = "";
 	npatch=1;
 	vegmode=COHORT;
 	run_landcover = false;
@@ -505,6 +509,10 @@ void plib_declarations(int id,xtring setname) {
 			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
+		declareitem("disttype", &strparam, 20, CB_DISTTYPE,
+			"Disturbance regime (\"NONE\", \"STOCHASTIC\" (requires distinterval), \"DETERMINISTIC\" (requires file_disturb))");
+		declareitem("file_disturb", &file_disturb, 4096, CB_NONE,
+			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
 		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
@@ -1412,7 +1420,18 @@ void plib_callback(int callback) {
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
 			plibabort();
 		}
-		break;		
+		break;
+	case CB_DISTTYPE:
+		if (strparam.upper() == "NONE") {
+			disttype = DIST_NONE;
+		} else if (strparam.upper() == "STOCHASTIC") {
+			disttype = STOCHASTIC;
+		} else if (strparam.upper() == "DETERMINISTIC") {
+			disttype = DETERMINISTIC;
+		} else {
+			sendmessage("Error", "Unknown disttype (valid types: \"NONE\", \"STOCHASTIC\", \"DETERMINISTIC\")");
+		}
+		break;
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1717,8 +1736,25 @@ void plib_callback(int callback) {
 			if (!itemparsed("ifsme")) badins("ifsme");
 			if (!itemparsed("ifstochmort")) badins("ifstochmort");
 			if (!itemparsed("ifstochestab")) badins("ifstochestab");
-			if (itemparsed("ifdisturb") && !itemparsed("distinterval"))
-				badins("distinterval");
+			if (itemparsed("ifdisturb")) {
+				if (!itemparsed("disttype")) {
+					badins("disttype");
+				}
+				if (disttype == STOCHASTIC && !itemparsed("distinterval")) {
+					badins("distinterval");
+				}
+				if (disttype == DETERMINISTIC && !itemparsed("file_disturb")) {
+					badins("file_disturb");
+				}
+			}
+			if (ifdisturb && disttype == DIST_NONE) {
+				sendmessage("Error", "Disturbances are enabled but disttype is set to NONE");
+				plibabort();
+			}
+			if (!ifdisturb && disttype != DIST_NONE) {
+				sendmessage("Warning", "Disturbances are disabled, but disttype is not set to NONE. disttype will be ignored.");
+			}
+
 			if (!itemparsed("npatch")) badins("npatch");
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");

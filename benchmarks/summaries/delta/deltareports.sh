@@ -95,3 +95,4 @@ if [ ! -z "$(cat "${tmpfile_reportsnotfound}" 2>/dev/null)" ]; then
 else
   echo
 fi
+echo "Each deltareport can be found in each benchnmark output's folder, in a folder report_delta_$label"

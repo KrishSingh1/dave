@@ -1403,7 +1403,7 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 	}
 	// index now has the number of elements in data (the size and capacity of
 	// data are the number of cohorts in the patch).
-	return aggregator(&data.front(), index);
+	return data.size() ? aggregator(&data.front(), index) : 0;
 }
 
 bool spinup_output;

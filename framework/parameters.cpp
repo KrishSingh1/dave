@@ -915,6 +915,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		declareitem("formfactor",&ppft->formfactor,0.01,1.0,1,CB_NONE,
+			"Form Factor for converting cylindrical stem into conical stem and branches");	
 
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,

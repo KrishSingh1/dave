@@ -174,7 +174,7 @@ protected:
 private:
 	 std::vector<TableDescriptor> table_descriptors;
 	 std::vector<std::vector<double> > values;
-	 std::vector<std::vector<const char *>> text_values;
+	 std::vector<std::vector<const char *> > text_values;
 };
 
 /// An output channel for regular text files with fixed width columns

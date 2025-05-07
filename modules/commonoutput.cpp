@@ -164,6 +164,7 @@ CommonOutput::CommonOutput() {
 
 	declare_parameter("file_mald_peat", &file_mald_peat, 300, "Monthly peat active layer depth");
 	declare_parameter("file_peat_frac", &file_peat_frac, 300, "Peat frac");
+	declare_parameter("file_peat_depth", &file_peat_depth, 300, "Peat depth");
 	declare_parameter("file_csoil_data_top", &file_csoil_data_top, 300, "C soil data top");
 	declare_parameter("file_csoil_data_bot", &file_csoil_data_bot, 300, "C soil data bot");
 }
@@ -340,6 +341,9 @@ void CommonOutput::define_output_tables() {
 
 	ColumnDescriptors frac_columns;
 	frac_columns += ColumnDescriptor("Frac", 8, 5);
+
+	ColumnDescriptors peat_depth_columns;
+	peat_depth_columns += ColumnDescriptor("Depth", 8, 4);
 
 	// Create the columns for each output file
 
@@ -749,6 +753,7 @@ void CommonOutput::define_output_tables() {
 
 	create_output_table(out_mald_peat,      file_mald_peat,      mald_columns);
 	create_output_table(out_peat_frac,      file_peat_frac,      frac_columns);
+	create_output_table(out_peat_depth,     file_peat_depth,     peat_depth_columns);
 	create_output_table(out_csoil_data_top, file_csoil_data_top, csoil_data_columns);
 	create_output_table(out_csoil_data_bot, file_csoil_data_bot, csoil_data_columns);
 }
@@ -1204,6 +1209,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double permafrost_full_peat_gridcell = 0.0;
 	double permafrost_3m_peat_gridcell = 0.0;
 	double peat_gridcell_average = 0.0;
+	double peat_depth_gridcell = 0.0;
 
 	double aNH4dep_gridcell = 0.0;
 	double aNO3dep_gridcell = 0.0;
@@ -2157,6 +2163,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				permafrost_full_peat_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= PAD_DEPTH ? 0.0 : 1.0) * to_gridcell_average;
 				permafrost_3m_peat_gridcell += (hydrology == GERTEN || patch.soilcolumn.maxthaw >= 3000.0 ? 0.0 : 1.0) * to_gridcell_average;
 				peat_gridcell_average += to_gridcell_average;
+
+				double peat_depth = 0.0;
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+					Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
+					peat_depth += soillayer.organic_volume / soillayer.effective_volume * soillayer.depth;
+				}
+				peat_depth_gridcell += peat_depth * to_gridcell_average;
 			}
 
 
@@ -2587,6 +2601,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_full_peat_gridcell / peat_gridcell_average : 0.0);
 	outlimit(out,out_mald_peat, peat_gridcell_average > 0.0 ? permafrost_3m_peat_gridcell / peat_gridcell_average : 0.0);
 	outlimit(out,out_peat_frac, peat_gridcell_average);
+	outlimit(out,out_peat_depth, peat_gridcell_average > 0.0 ? peat_depth_gridcell / peat_gridcell_average * M_PER_MM : 0.0);
 
 	// Soil data
 	int ll = 0;

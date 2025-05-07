@@ -146,6 +146,7 @@ file_mairtemp "mairtemp.out"
 
 file_mald_peat "mald_peat.out"
 file_peat_frac "peat_frac.out"
+file_peat_depth "peat_depth.out"
 
 file_mburned_area_out "monthly_burned_area.out"
 
@@ -223,7 +224,7 @@ b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Sch
 C_dw 0.01			! Calibration parameter for lateral drainage
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
-homrootdistfrac 0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
+homrootdistfrac 0.2		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500 mm, that roots have access to
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
@@ -234,8 +235,9 @@ ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
-surf_li_scalar 0.4
-soil_om_scalar 2.5
+surf_li_scalar 1.0 !0.4
+soil_om_scalar 1.0!2.05 !2.5
+moist_mod_anaerobic 0.075
 
 !///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)

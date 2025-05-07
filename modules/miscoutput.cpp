@@ -66,6 +66,12 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_npool_forest", &file_npool_forest, 300, "Soil N output file");
 	declare_parameter("file_npool_peatland", &file_npool_peatland, 300, "Soil N output file");
 
+	declare_parameter("file_csoil_depth_cropland", &file_csoil_depth_cropland, 300, "Soil C at depths output file");
+	declare_parameter("file_csoil_depth_pasture", &file_csoil_depth_pasture, 300, "Soil C at depths output file");
+	declare_parameter("file_csoil_depth_natural", &file_csoil_depth_natural, 300, "Soil C at depths output file");
+	declare_parameter("file_csoil_depth_forest", &file_csoil_depth_forest, 300, "Soil C at depths output file");
+	declare_parameter("file_csoil_depth_peatland", &file_csoil_depth_peatland, 300, "Soil C at depths output file");
+
 	declare_parameter("file_soil_nflux_cropland", &file_soil_nflux_cropland, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_natural", &file_soil_nflux_natural, 300, "Soil N fluxes output file");
@@ -288,6 +294,14 @@ void MiscOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
 
+	// Create soil depth columns
+	ColumnDescriptors surfsoildepth_columns;
+	xtring depths[] = { "d0_0.3", "d0.3_0.5", "d0.5_1", "d1_1.5", "d1.5_2", "d2_3", "d3_max", "Total" };
+	surfsoildepth_columns += ColumnDescriptor("Surf", 9, 3);
+	for (int d = 0; d < 8; d++) {
+		surfsoildepth_columns += ColumnDescriptor(depths[d], 9, 3);
+	}
+
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
@@ -403,6 +417,12 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
+	create_output_table(out_csoil_depth_cropland, file_csoil_depth_cropland, surfsoildepth_columns);
+	create_output_table(out_csoil_depth_pasture, file_csoil_depth_pasture, surfsoildepth_columns);
+	create_output_table(out_csoil_depth_natural, file_csoil_depth_natural, surfsoildepth_columns);
+	create_output_table(out_csoil_depth_forest, file_csoil_depth_forest, surfsoildepth_columns);
+	create_output_table(out_csoil_depth_peatland, file_csoil_depth_peatland, surfsoildepth_columns);
+
 	// *** DAILY OUTPUT VARIABLES ***
 
 	create_output_table(out_daily_lai,					file_daily_lai,					daily_columns);
@@ -485,6 +505,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
+
+	// Soil sections layers [mm]
+	const int sslyr = 7;
+	double soil_sections[sslyr] = { 300.0, 500.0, 1000.0, 1500.0, 2000.0, 3000.0, 50000.0 };
 
 	Landcover& lc = gridcell.landcover;
 	// The OutputRows object manages the next row of output for each
@@ -774,6 +798,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double surflittern_lc[NLANDCOVERTYPES], surfcwdn_lc[NLANDCOVERTYPES], surfhumusn_lc[NLANDCOVERTYPES],
 		soillittern_lc[NLANDCOVERTYPES], soilcwdn_lc[NLANDCOVERTYPES], centuryn_lc[NLANDCOVERTYPES];
 
+	double soilc_depth_lc[sslyr + 2][NLANDCOVERTYPES] = { 0.0 };
+
 	//N-transform
 	double flux_NH3_soil[NLANDCOVERTYPES],flux_NOx_soil[NLANDCOVERTYPES],flux_N2O_soil[NLANDCOVERTYPES],flux_N2_soil[NLANDCOVERTYPES];
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
@@ -835,6 +861,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
+			Soilcolumn& soilcolumn = patch.soilcolumn;
 			Fluxes& fluxes = patch.fluxes;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
@@ -872,9 +899,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += patch.soilcolumn.get_sum(ANMIN) * to_gridcell_average;
-			animm_lc[stand.landcover] += patch.soilcolumn.get_sum(ANIMM) * to_gridcell_average;
-			anfix_lc[stand.landcover] += patch.soilcolumn.anfix * to_gridcell_average;
+			anmin_lc[stand.landcover] += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
+			animm_lc[stand.landcover] += soilcolumn.get_sum(ANIMM) * to_gridcell_average;
+			anfix_lc[stand.landcover] += soilcolumn.anfix * to_gridcell_average;
 			n_min_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
 			n_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGN) * to_gridcell_average;
 			c_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
@@ -885,10 +912,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			flux_N2O_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 			flux_N2_soil[stand.landcover]	+=fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
 
-			availn_lc[stand.landcover] += (patch.soilcolumn.snow.NH4_mass + patch.soilcolumn.snow.NO3_mass) * to_gridcell_average;
+			availn_lc[stand.landcover] += (soilcolumn.snow.NH4_mass + soilcolumn.snow.NO3_mass) * to_gridcell_average;
 
-			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
-				Soillayer& soillayer = patch.soilcolumn.soillayers[lyr];
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+				Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 				availn_lc[stand.landcover] += (soillayer.NH4_mass + soillayer.NO3_mass) * to_gridcell_average;
 
@@ -925,6 +952,31 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					}
 				}
 			}
+
+			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
+			double surflitc = soilcolumn.get_surflittercmass();
+
+			soilc_depth_lc[0][stand.landcover] += surflitc * to_gridcell_average;
+
+			// Soil to specific depths
+			double depth_prev = 0.0;
+			double soilc_prev = surflitc;
+
+			for (int lyr = 0; lyr < sslyr; lyr++) {
+				double depth_this = min(soilcolumn.depth, soil_sections[lyr]);
+				double depth_lyr = depth_this - depth_prev;
+
+				if (depth_lyr > 1.0e-12) {
+
+					soilc_depth_lc[lyr + 1][stand.landcover] += (soilcolumn.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
+					soilc_prev = 0.0;
+				}
+
+				depth_prev = depth_this;
+			}
+
+			soilc_depth_lc[sslyr + 1][stand.landcover] += soilcolumn.ccont() * to_gridcell_average;
+
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
@@ -1092,29 +1144,35 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				GuessOutput::Table* table_p=NULL;
 				GuessOutput::Table* table_p_N=NULL;
+				GuessOutput::Table* table_csoil=NULL;
 
 				switch (i) {
 				case CROPLAND:
 					table_p=&out_cpool_cropland;
 					table_p_N=&out_npool_cropland;
+					table_csoil=&out_csoil_depth_cropland;
 					break;
 				case PASTURE:
 					table_p=&out_cpool_pasture;
 					table_p_N=&out_npool_pasture;
+					table_csoil=&out_csoil_depth_pasture;
 					break;
 				case NATURAL:
 					table_p=&out_cpool_natural;
 					table_p_N=&out_npool_natural;
+					table_csoil=&out_csoil_depth_natural;
 					break;
 				case FOREST:
 					table_p=&out_cpool_forest;
 					table_p_N=&out_npool_forest;
+					table_csoil=&out_csoil_depth_forest;
 					break;
 				case URBAN:
 					break;
 				case PEATLAND:
 					table_p=&out_cpool_peatland;
 					table_p_N=&out_npool_peatland;
+					table_csoil=&out_csoil_depth_peatland;
 					break;
 				case BARREN:
 					break;
@@ -1166,6 +1224,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if (table_p) {
 					outlimit_misc(out, *table_p, cpool_total);
 					outlimit_misc(out, *table_p_N, npool_total);
+				}
+
+				if (table_csoil) {
+					// Surface output
+					outlimit_misc(out, *table_csoil, soilc_depth_lc[0][i]);
+
+					// Soil depth and total output
+					for (int depths = 0; depths < sslyr + 1; depths++) {
+						outlimit_misc(out, *table_csoil, soilc_depth_lc[depths + 1][i]);
+					}
 				}
 			}
 		}

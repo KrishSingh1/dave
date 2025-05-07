@@ -564,7 +564,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_s
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
-	const double texture_mod = 1.0 - 0.75 * ((*soilcolumn).soiltype.clay_frac + (*soilcolumn).soiltype.silt_frac);
+	const double texture_mod = 1.0 - 0.75 * (fclay(MINEFF) + fsilt(MINEFF));
 
 	// Calculate decomposition temperature modifier (in range 0-1)
 	double temp_surf_mod = temperature_modifier(temp_surf);
@@ -603,7 +603,7 @@ void Soillayer::decayrates_century(bool tillage, bool savesomcent, double temp_s
 		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFFWD || p == SOILFWD || p == SURFCWD || p == SOILCWD) {
 			k *= exp(-5.0 * som_pool.ligcfrac);
 		}
-		else if (p == SOILMICRO && !acrotelm && !catotelm) {
+		else if (p == SURFMICRO && p == SOILMICRO) {
 			k *= texture_mod;
 		}
 
@@ -871,7 +871,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
 			double respfrac = 0.55;
-			double csp = max(0.0, 0.003 - 0.009 * soiltype.clay_frac);
+			double csp = max(0.0, 0.003 - 0.009 * soillayer.fclay(MINEFF));
 			double csa = 1.0 - csp - respfrac;
 			double frac_csp = csp / (csp + csa);
 			double frac_csa = 1.0 - frac_csp;
@@ -885,11 +885,11 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			// Donor pool SOIL MICROBE
 
 			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
-			// Fraction lost to  microbial respiration (F_t, Parton et al 1993 Eqn 7)
-			respfrac = max(0.0, 0.85 - 0.68 * (soiltype.clay_frac + soiltype.silt_frac));
+			// Fraction lost to microbial respiration (F_t, Parton et al 1993 Eqn 7)
+			respfrac = max(0.0, 0.85 - 0.68 * (soillayer.fclay(MINEFF) + soillayer.fsilt(MINEFF)));
 
 			// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-			double cap = 0.003 + 0.032 * soiltype.clay_frac;
+			double cap = 0.003 + 0.032 * soillayer.fclay(MINEFF);
 
 			// Fraction entering slow SOM pool
 			double cas = 1.0 - respfrac - soillayer.orgleachfrac - cap;
@@ -1614,7 +1614,7 @@ void leaching(Patch& patch) {
 			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H20/month)
 			double cmpermonth_to_mmperday = MM_PER_CM * MONTH_PER_YEAR / date.year_length();
 
-			soillayer.orgleachfrac = min(1.0, runoff / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soilcolumn.soiltype.sand_frac);
+			soillayer.orgleachfrac = min(1.0, runoff / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.fsand(MINEFF));
 		}
 		else {
 			minleachfrac = 0.0;

@@ -71,6 +71,9 @@ private:
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
 		   file_anpp_peatland;
 
+	xtring file_csoil_depth_cropland, file_csoil_depth_pasture, file_csoil_depth_natural, 
+		file_csoil_depth_forest, file_csoil_depth_peatland;
+
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
 		   file_daily_cton, file_daily_ndemand, file_daily_cmass_leaf,
@@ -104,6 +107,9 @@ private:
 		  out_cflux_peatland, out_cpool_peatland,
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
 		  out_anpp_peatland;
+
+	Table out_csoil_depth_cropland, out_csoil_depth_pasture, out_csoil_depth_natural, 
+		out_csoil_depth_forest, out_csoil_depth_peatland;
 
 	Table* out_anpp_stand[MAXNUMBER_STANDS];
 	Table* out_cmass_stand[MAXNUMBER_STANDS];

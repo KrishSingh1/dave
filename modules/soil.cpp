@@ -1202,6 +1202,7 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	root_volume = 0.0;
 	mineral_volume = depth;
 	organic_volume = 0.0;
+	effective_volume = depth;
 	perc_base = 0.0;
 
 	rho_org = rho_high;
@@ -1525,7 +1526,7 @@ double Soillayer::calc_organic_density(grouppooltype group) {
 void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must_set) {
 
 	// Only enter first year except if dynamic soil organic C influence soil properties
-	if (!must_set && !ifeffvolume && !((*soilcolumn).patch.stand.first_year == date.year || (iforganicsoilproperties && !acrotelm && !catotelm))) { // DW_COMMENT restart years needs to update it then as well!
+	if (!must_set && !ifeffvolume && !iforganicsoilproperties && !(*soilcolumn).patch.stand.first_year == date.year) { // DW_COMMENT restart years needs to update it then as well!
 		return;
 	}
 	
@@ -1543,80 +1544,89 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 	// Heat capacity of mineral soil [J m-3 K-1; Bonan 2019]
 	Cp_min = soiltype.Cp_min;
 
-	double eff_volume_frac = 1.0 - root_volume / depth;
-
-	// Acrotelm
-	if (acrotelm) {
-		wsats = acrotelm_por * depth;
-		// Field capacity is set at 75% of saturation (Chaudhary 2017)
-		awc = (acrotelm_por * 0.75 - peat_wp) * depth;
-		wp = peat_wp * depth;
-		peat_frac = 1.0 - acrotelm_por;
-		bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
-
-		Kw_max = Kw_max_org;
-		b = b_org;
-		Psi_max = Psi_max_org;
-		a = 0.0;
-
-		// Initially saturated
-		if ((*soilcolumn).patch.stand.first_year == date.year) {
-			double wadded = wsats - (wmass + imass);
-			wmass += wadded;
-			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
-		}
+	// Effective soil volume when excluding volume roots take up 
+	if (ifeffvolume) {
+		effective_volume = depth - root_volume;
 	}
-	// Catotelm
-	else if (catotelm) {
-		wsats = catotelm_por * depth;
-		// Field capacity is set at 75% of saturation (Chaudhary 2017)
-		awc = (catotelm_por * 0.75 - peat_wp) * depth;
-		wp = peat_wp * depth;
-		peat_frac = 1.0 - catotelm_por;
-		bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
-
-		Kw_max = Kw_max_org;
-		b = b_org;
-		Psi_max = Psi_max_org;
-		a = 0.0;
-
-		// Initially saturated
-		if ((*soilcolumn).patch.stand.first_year == date.year) {
-			double wadded = wsats - (wmass + imass);
-			wmass += wadded;
-			(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
-		}
+	else {
+		effective_volume = depth;
 	}
-	// Mineral soil and no influence of soil organic C
-	else if (!iforganicsoilproperties) {
 
-		// added moved water and ice due to shrinking wsats
-		wmass += wmass_move;
-		imass += imass_move;
-		wmass_move = imass_move = 0.0;
+	if (!iforganicsoilproperties) {
 
-		wsats = soiltype.wsats_min * depth * eff_volume_frac;
-		awc = soiltype.awc_min * depth * eff_volume_frac;
-		wp = soiltype.wp_min * depth * eff_volume_frac;
-		peat_frac = 0.0;
-		bulk_density = min_density * (depth - wsats) / depth;
+		// Acrotelm
+		if (acrotelm) {
+			wsats = acrotelm_por * effective_volume;
+			// Field capacity is set at 75% of saturation (Chaudhary 2017)
+			awc = (acrotelm_por * 0.75 - peat_wp) * effective_volume;
+			wp = peat_wp * effective_volume;
+			peat_frac = 1.0 - acrotelm_por;
+			bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
-		Kw_max = soiltype.Kw_max_min;
-		b = soiltype.b_min;
-		Psi_max = soiltype.Psi_max_min;
-		a = soiltype.a;
+			Kw_max = Kw_max_org;
+			b = b_org;
+			Psi_max = Psi_max_org;
+			a = 0.0;
 
-		// Two layer hydrology parameter
-		perc_base = soiltype.perc_base;
+			// Initially saturated
+			if ((*soilcolumn).patch.stand.first_year == date.year) {
+				double wadded = wsats - (wmass + imass);
+				wmass += wadded;
+				(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+			}
+		}
+		// Catotelm
+		else if (catotelm) {
+			wsats = catotelm_por * effective_volume;
+			// Field capacity is set at 75% of saturation (Chaudhary 2017)
+			awc = (catotelm_por * 0.75 - peat_wp) * effective_volume;
+			wp = peat_wp * effective_volume;
+			peat_frac = 1.0 - catotelm_por;
+			bulk_density = peat_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
-		// Move water downwards if water content exceeds maximum water content
-		double wmass_max_lyr = wmass_max();
-		if (wmass_max_lyr < wmass + imass) {
-			double frac = (wmass + imass - wmass_max_lyr) / (wmass + imass);
-			wmass_move = wmass * frac;
-			imass_move = imass * frac;
-			wmass -= wmass_move;
-			imass -= imass_move;
+			Kw_max = Kw_max_org;
+			b = b_org;
+			Psi_max = Psi_max_org;
+			a = 0.0;
+
+			// Initially saturated
+			if ((*soilcolumn).patch.stand.first_year == date.year) {
+				double wadded = wsats - (wmass + imass);
+				wmass += wadded;
+				(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+			}
+		}
+		// Mineral soil and no influence of soil organic C
+		else {
+
+			// added moved water and ice due to shrinking wsats
+			wmass += wmass_move;
+			imass += imass_move;
+			wmass_move = imass_move = 0.0;
+
+			wsats = soiltype.wsats_min * effective_volume;
+			awc = soiltype.awc_min * effective_volume;
+			wp = soiltype.wp_min * effective_volume;
+			peat_frac = 0.0;
+			bulk_density = min_density * (effective_volume - wsats) / effective_volume;
+
+			Kw_max = soiltype.Kw_max_min;
+			b = soiltype.b_min;
+			Psi_max = soiltype.Psi_max_min;
+			a = soiltype.a;
+
+			// Two layer hydrology parameter
+			perc_base = soiltype.perc_base;
+
+			// Move water downwards if water content exceeds maximum water content
+			double wmass_max_lyr = wmass_max();
+			if (wmass_max_lyr < wmass + imass) {
+				double frac = (wmass + imass - wmass_max_lyr) / (wmass + imass);
+				wmass_move = wmass * frac;
+				imass_move = imass * frac;
+				wmass -= wmass_move;
+				imass -= imass_move;
+			}
 		}
 	}
 	// Soil organic content influences soil properties
@@ -1641,8 +1651,11 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth;
 		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth;
 		peat_frac = 0.0;
+
 		double density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
-		bulk_density = density * (depth - wsats) / depth;
+
+		// Bulk density of mineral and organic matter fraction of soillayer excluding roots
+		bulk_density = density * (effective_volume - wsats) / effective_volume * depth / effective_volume;
 
 		// Move water downwards if water content exceeds maximum water content
 		double wmass_max_lyr = wmass_max();
@@ -1654,10 +1667,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 			imass -= imass_move;
 		}
 
-		// Effective mineral and organic fractions
-		double min_frac_eff = min_frac / eff_volume_frac;
-		double org_frac_eff = org_frac / eff_volume_frac;
-
 		// The saturated hydraulic conductivity
 		// The soil organic matter fraction is further subdivided into “connected” and “unconnected” 
 		// fractions using a result from percolation theory (Stauffer and Aharony 1994, Berkowitz and 
@@ -1667,27 +1676,27 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// and span the soil space. Flow through these pathways interacts only with organic material, 
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
 		double perc_norm = 1.101;
-		double perc_frac = org_frac_eff >= threshold_frac ? perc_norm * pow(org_frac_eff - threshold_frac, beta_perc) * org_frac_eff : 0.0;
+		double perc_frac = org_frac >= threshold_frac ? perc_norm * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
 		double uncon_frac = 1.0 - perc_frac;
-		double Kw_max_uncon = org_frac_eff < 1.0 ? uncon_frac / ((1.0 - org_frac_eff) / soiltype.Kw_max_min + (org_frac_eff - perc_frac) / Kw_max_org) : 0.0;
+		double Kw_max_uncon = org_frac < 1.0 ? uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - perc_frac) / Kw_max_org) : 0.0;
 		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
 
 		// Exponential in Campbell (1974) parameterization for soil water retention curves
-		b = (min_frac_eff * soiltype.b_min + org_frac_eff * b_org);
+		b = (min_frac * soiltype.b_min + org_frac * b_org);
 
 		// Saturated soil water suction (mm)
-		Psi_max = (min_frac_eff * soiltype.Psi_max_min + org_frac_eff * Psi_max_org);
+		Psi_max = (min_frac * soiltype.Psi_max_min + org_frac * Psi_max_org);
 
 		// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
-		a = min_frac_eff * soiltype.clay_frac < 0.016 ? 0.0 : (min_frac_eff * soiltype.clay_frac > 0.37 ? 1.0 : 2.8 * min_frac_eff * soiltype.clay_frac - 0.046);
+		a = fclay(MINEFF) < 0.016 ? 0.0 : (fclay(MINEFF) > 0.37 ? 1.0 : 2.8 * fclay(MINEFF) - 0.046);
 
 		// Analytic temp calc parameters
-		thermdiff_0 = min_frac_eff * soiltype.thermdiff_0 + org_frac_eff * soiltype.thermdiff_0_org;
-		thermdiff_15 = min_frac_eff * soiltype.thermdiff_15 + org_frac_eff * soiltype.thermdiff_15_org;
-		thermdiff_100 = min_frac_eff * soiltype.thermdiff_100 + org_frac_eff * soiltype.thermdiff_100_org;
+		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
+		thermdiff_15 = min_frac * soiltype.thermdiff_15 + org_frac * soiltype.thermdiff_15_org;
+		thermdiff_100 = min_frac * soiltype.thermdiff_100 + org_frac * soiltype.thermdiff_100_org;
 
 		// Two layer hydrology parameter
-		perc_base = min_frac_eff * soiltype.perc_base + org_frac_eff * soiltype.perc_base_org;
+		perc_base = min_frac * soiltype.perc_base + org_frac * soiltype.perc_base_org;
 	}
 
 	// For Gerten and Miller hydrology schemes wmass should never be below wp
@@ -1695,6 +1704,78 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		double wadded = max(0.0, wp - (wmass+imass));
 		wmass += wadded;
 		(*soilcolumn).patch.fluxes.report_flux(Fluxes::WADDED, wadded);
+	}
+}
+
+double Soillayer::fclay(mincalctype type) {
+
+	Soiltype soiltype = (*soilcolumn).soiltype;
+
+	//return soiltype.clay_frac;
+
+	// Absolute value of mineral fraction
+	if (type == ABS) {
+		return soiltype.clay_frac;
+	}
+	// Absolute value of mineral fraction when accounting for effective volume
+	else if (type == ABSEFF) {
+		return soiltype.clay_frac * effective_volume / depth;
+	}
+	// Value of mineral fraction when only considering the mineral volume of the soil
+	else if (type == MINEFF) {
+		return soiltype.clay_frac * mineral_volume / depth;
+	}
+	else {
+		fail("ERROR! Can't calculate clay fraction\n");
+		return soiltype.clay_frac;
+	}
+}
+
+double Soillayer::fsand(mincalctype type) {
+
+	Soiltype soiltype = (*soilcolumn).soiltype;
+	
+	//return soiltype.sand_frac;
+
+	// Absolute value of mineral fraction
+	if (type == ABS) {
+		return soiltype.sand_frac;
+	}
+	// Absolute value of mineral fraction when accounting for effective volume
+	else if (type == ABSEFF) {
+		return soiltype.sand_frac * effective_volume / depth;
+	}
+	// Value of mineral fraction when only considering the mineral volume of the soil
+	else if (type == MINEFF) {
+		return soiltype.sand_frac * mineral_volume / depth;
+	}
+	else {
+		fail("ERROR! Can't calculate sand fraction\n");
+		return soiltype.clay_frac;
+	}
+}
+
+double Soillayer::fsilt(mincalctype type) {
+
+	Soiltype soiltype = (*soilcolumn).soiltype;
+	
+	//return soiltype.silt_frac;
+
+	// Absolute value of mineral fraction
+	if (type == ABS) {
+		return soiltype.silt_frac;
+	}
+	// Absolute value of mineral fraction when accounting for effective volume
+	else if (type == ABSEFF) {
+		return soiltype.silt_frac * effective_volume / depth;
+	}
+	// Value of mineral fraction when only considering the mineral volume of the soil
+	else if (type == MINEFF) {
+		return soiltype.silt_frac * mineral_volume / depth;
+	}
+	else {
+		fail("ERROR! Can't calculate silt fraction\n");
+		return soiltype.clay_frac;
 	}
 }
 
@@ -2135,7 +2216,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Very small negative residual, add missing N as NO3 flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
-			if (date.year >= freenyears && residual < -1.0e-14) {
+			if (date.year >= freenyears && residual < -1.0e-12) {
 				dprintf("ERROR year %d and day %d! NH4 and NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
 					date.year, date.day, nmass_tot, nmass, residual);
 			}
@@ -2157,7 +2238,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Very small negative residual, add missing N as NO3 flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
-			if (date.year >= freenyears && residual < -1.0e-14) {
+			if (date.year >= freenyears && residual < -1.0e-12) {
 				dprintf("ERROR year %d and day %d! NH4 mass %f is smaller than N substr %f with the residual %g. Adding residual as NH3 flux\n",
 					date.year, date.day, NH4_mass, nmass, residual);
 			}
@@ -2178,7 +2259,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Very small negative residual, add missing N as NO flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
-			if (date.year >= freenyears && residual < -1.0e-14) {
+			if (date.year >= freenyears && residual < -1.0e-12) {
 				dprintf("ERROR year %d and day %d! NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
 					date.year, date.day, NO3_mass, nmass, residual);
 			}
@@ -2305,10 +2386,18 @@ void Soillayer::update_thermal_properties() {
 	double combined_depth = depth;
 	double ice = imass;
 	double water = wmass;
-	double peat = peat_frac * depth;
-	double mineral = (!acrotelm && !catotelm) ? mineral_volume * (1.0 - (*soilcolumn).soiltype.wsats_min) : 0.0;
-	double organic = (!acrotelm && !catotelm) ? organic_volume * (1.0 - organic_wsats) : 0.0;
-	double coarse_root = (!acrotelm && !catotelm) ? root_volume : 0.0;
+	double mineral = mineral_volume * (1.0 - (*soilcolumn).soiltype.wsats_min);
+	double coarse_root = root_volume;
+	double peat, organic;
+
+	if (acrotelm || catotelm) {
+		peat = organic_volume * (1.0 - organic_wsats);
+		organic = 0.0;
+	}
+	else {
+		peat = 0.0;
+		organic = organic_volume * (1.0 - organic_wsats);
+	}
 
 	// Soil layer air (mm)
 	double air = max(0.0, wsats - (wmass + imass));
@@ -2323,8 +2412,9 @@ void Soillayer::update_thermal_properties() {
 	Stot = mineral + organic + ice + water + peat + coarse_root;
 
 	if (fabs(1.0 - (Stot + air) / combined_depth) > 1.0e-6)
-		fail("Year %d Day %d Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\n", 
-			date.year, date.day, Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
+		fail("Year %d Day %d SID %d PID %d Profile depth %g Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\n", 
+			date.year, date.day, (*soilcolumn).patch.stand.id, (*soilcolumn).patch.id, depth_profile,
+			Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
 
 	// Calculate log terms
 	lKforg = (organic / Stot) * Korg_log;
@@ -4429,7 +4519,7 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 			evap_excess += evapotranspiration + runoff_drain - (wtot_acrotelm + rain_melt);
 		}
 
-		// Add water that has been taken about available
+		// Add water that has been taken above availability
 		waddon += evap_excess;
 
 		// Update acrotelm water mass
@@ -7277,7 +7367,7 @@ void Soilcolumn::calc_root_volume() {
 		// If organic matter doesn't affect soil properties, then they 
 		// need to be updated here if effective volume is updated
 		if (!iforganicsoilproperties) {
-			double eff_volume_frac = 1.0 - soillayer.root_volume / (soillayer.depth * M_PER_MM);
+			double eff_volume_frac = 1.0 - soillayer.root_volume / soillayer.depth;
 			soillayer.wp = soiltype.wp_min * eff_volume_frac * soillayer.depth;
 			soillayer.awc = soiltype.awc_min * eff_volume_frac * soillayer.depth;
 			soillayer.wsats = soiltype.wsats_min * eff_volume_frac * soillayer.depth;

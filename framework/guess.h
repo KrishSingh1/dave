@@ -98,7 +98,10 @@ typedef enum { SURFMETA, SURFSTRUCT, SURFFWD, SURFCWD, SURFMICRO, SURFHUMUS,
 SOILMETA, SOILSTRUCT, SOILFWD, SOILCWD, SOILMICRO, SLOWSOM, PASSIVESOM, NSOMPOOL } pooltype;
 
 /// CENTURY SOM pool group names
-typedef enum { GALL, GSURFL, GHUMUS, GSOM, GHUMUSSOM} grouppooltype;
+typedef enum { GALL, GSURFL, GHUMUS, GSOM, GHUMUSSOM } grouppooltype;
+
+/// Ways of calculating mineral fractions
+typedef enum { ABS, ABSEFF, MINEFF } mincalctype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} waterusetype;
@@ -3639,6 +3642,9 @@ public:
 	double mineral_volume;
 	/// Organic matter volume (mm)
 	double organic_volume;
+	/// Effective volume when accounting for space occupied by roots (mm)
+	double effective_volume;
+
 	/// Bulk density (g cm-3)
 	double bulk_density;
 	
@@ -4035,6 +4041,12 @@ public:
 	double ncont(grouppooltype group = GALL);
 	/// Calculate organic matter density
 	double calc_organic_density(grouppooltype pools = GALL);
+	/// Calculate clay fraction of this layer
+	double fclay(mincalctype type);
+	/// Calculate sand fraction of this layer
+	double fsand(mincalctype type);
+	/// Calculate silt fraction of this layer
+	double fsilt(mincalctype type);
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change

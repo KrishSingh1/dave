@@ -478,7 +478,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	soiltype.Psi_max_min = -pow(10.0, 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac) * MM_PER_CM;
 
 	// Super cooled water setting 2
-	// Soil specific surface area (m2 g−1) from Sepaskhah et al. (2011)
+	// Soil specific surface area (m2 g−1) from eqn 11 in Sepaskhah et al. (2011)
 	// eqn 11
 	double D = 3.0 - 0.118 * (-log(soiltype.clay_frac) + soiltype.silt_frac + soiltype.sand_frac);
 	// eqn 13

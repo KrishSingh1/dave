@@ -2074,17 +2074,24 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			bool during_century_solvesom = ifcentury &&
 										   date.year >= patch.soil.solvesomcent_beginyr &&
 										   date.year <= patch.soil.solvesomcent_endyr;
-
-			double distinterval_ = stand.get_distinterval();	
-			if (patch.age && !during_century_solvesom) {
-				disturbance(patch,1.0 / distinterval_);
-				if (patch.disturbed) {
-					return; // no mortality or establishment this year
+			if (!during_century_solvesom && patch.age) {
+				if (disttype == DETERMINISTIC) {
+					// Deterministic disturbances in predefined years.
+					const Gridcell &gridcell = stand.get_gridcell();
+					const std::set<int> &years = gridcell.static_disturbances;
+					if (years.find(date.get_calendar_year()) != years.end()) {
+						// Deterministic disturbance occurs in this year.
+						disturbance(patch, 1.0);
+						return;
+					}
+				} else {
+					// Stochastic disturbances.
+					double distinterval_ = stand.get_distinterval();	
+					disturbance(patch,1.0 / distinterval_);
+					if (patch.disturbed) {
+						return; // no mortality or establishment this year
+					}
 				}
-			}
-			if (date.get_calendar_year() == 1800) {
-				disturbance(patch, 1.0);
-				return; // no mortality or establishment this year
 			}
 		}
 

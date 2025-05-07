@@ -79,6 +79,16 @@ typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
+/// The type of disturbance regime.
+/**		One of:
+ * 		NONE			No disturbances enabled (DEFAULT)
+ * 		STOCHASTIC		Random disturbances, varying by patch with mean interval
+ *  					defined by distinterval (ie trunk disturbance behaviour)
+ * 		DETERMINISTIC	Disturbances occurring in predetermined years specified
+ * 						by file_disturb
+ */
+typedef enum {DIST_NONE, STOCHASTIC, DETERMINISTIC} disturbancetype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -134,6 +144,12 @@ extern bool ifdisturb;
 
 /// Generic patch-destroying disturbance interval (individual, cohort mode)
 extern double distinterval;
+
+/// The disturbance algorithm being used.
+extern disturbancetype disttype;
+
+/// Path to a file containing years in which disturbances occur, one per line.
+extern xtring file_disturb;
 
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;

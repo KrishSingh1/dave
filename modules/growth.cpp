@@ -4540,6 +4540,11 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	// TODO: what about seedlings????
 	double height = min(max(MIN_HEIGHT, indiv.height), MAX_HEIGHT);
 	
+	// Tying the form factor with the wood density (just for convinience). This
+	// is appropriate here becuase in the FNS calculation, sapwood biomass is
+	// calculated using the assumption of a cylindrical stem.
+	double wooddens_FF = pft.wooddens * indiv.pft.formfactor;
+	
 	// proportion of cgrow that goes to reproduction. 
 	// TODO: find literature values
 	const double repr_prop = 0.01;
@@ -4557,7 +4562,7 @@ void carbon_allocation_tree_sapwood(Individual &indiv) {
 	// we need to change that.
 	indiv.cmass_sap_limit = indiv.cmass_sap * (1 + (pft.turnover_sap / Date::MAX_YEAR_LENGTH));
 	// cmass leaf target (to grow to supply leaves to the current sapwood ) (kgC/m^2)
-	indiv.cmass_leaf_limit = max(indiv.cmass_sap_limit * (pft.k_latosa / (indiv.sla() * pft.wooddens * height)) , indiv.cmass_leaf);
+	indiv.cmass_leaf_limit = max(indiv.cmass_sap_limit * (pft.k_latosa / (indiv.sla() * wooddens_FF * height)) , indiv.cmass_leaf);
 	//  calculate the ltor according to the leaf optimum and belogrownd stress
 	// TODO: think what to do when nscal or wscal is zero. Now set a minimum ltor
 	// ...to .5 of ltor_max
@@ -5378,15 +5383,17 @@ void senescence_dave(Vegetation& vegetation) {
 		}
 		if (pft.is_grass() || pft.lifeform == MOSS) {
 			senescence_grass(indiv);
+
+			assert(positive(indiv.cmass_leafs[green]));
+			assert(positive(indiv.nmass_leafs[green]));
+			assert(positive(indiv.cmass_leafs[brown]));
+			assert(positive(indiv.nmass_leafs[brown]));
 		} else {
 			senescence_tree(indiv);
 		}
 
-		assert(positive(indiv.cmass_leafs[green]));
-		assert(positive(indiv.nmass_leafs[green]));
-		assert(positive(indiv.cmass_leafs[brown]));
-		assert(positive(indiv.nmass_leafs[brown]));
-
+		assert(positive(indiv.get_cmass_leaf()));
+		assert(positive(indiv.get_nmass_leaf()));
 		assert(positive(indiv.cmass_storage));
 		assert(positive(indiv.nmass_storage));
 	}
@@ -6257,8 +6264,15 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double k_allom2 = indiv.pft.k_allom2;
 	double k_allom3 = indiv.pft.k_allom3;
 	
-	double Fr = PI * wooddens * 2.0 * R * h;
-	double Fh = PI * wooddens * R * R;
+	// Added the form factor here to PI. It belongs im the next equations (Fr
+	// and Fh) since they are derived from the derivative of the equation of the
+	// mass of a cylinder (ie: Wcyl = PI * (R^2) * H * wooddens, once for change
+	// in radius with constant height, and once for change in height for
+	// constnat  radius).
+	double PI_FF = PI * indiv.pft.formfactor;
+
+	double Fr = PI_FF * wooddens * 2.0 * R * h;
+	double Fh = PI_FF * wooddens * R * R;
 	double Fallom = k_allom2 * pow(2.0, k_allom3) * k_allom3 * pow(R, k_allom3 - 1.0);
 	// should calc once: k_allom2 * pow(2.0,k_allom3) * k_allom3
 	// we need to calc change for individual trees in cohort
@@ -6343,7 +6357,7 @@ void allometry_dave_tree(Individual& indiv) {
 		if (!is_zero(indiv.height)) {
 			double const LATOSA_MAX = 8000.0;
 			// sapwood area (m^2)
-			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.wooddens);
+			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
 			if (!is_zero(indiv.sa)) {
 				// leaf to sapwood area (unitelss)
 				indiv.latosa = min(LATOSA_MAX, indiv.lai / indiv.sa);

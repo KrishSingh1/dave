@@ -45,6 +45,7 @@
 #include "gutil.h"
 #include <vector>
 #include <algorithm>
+#include <set>
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
@@ -2238,6 +2239,11 @@ public:
 	 */
 	double alphar;
 
+	/// form factor to use in tree height calculations to that takes into account
+	/// the relationship betweeb the difference in tree mass betweenthe cylindrical
+	/// stem hypothesis and measured mass of tree log with its branches.
+	double formfactor;
+
 	/*
 	Note: these 3 parameters are only used by dave photosynthesis, and only when
 	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
@@ -2530,6 +2536,7 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
+		formfactor = 1;
 		boleht_frac = 0;
 
 		isintercropgrass = false;
@@ -6153,6 +6160,10 @@ public:
 	double dNO3dep;
 
 	double distinterval_gc;
+
+	// Vector of (calendar) years in which a disturbance should occur.
+	// This only contains data and is only used when disttype = DETERMINISTIC.
+	std::set<int> static_disturbances;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

@@ -404,6 +404,12 @@ extern bool ifdavegrowth;
 
 /// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
 extern bool ifdavehydrology;
+
+/// Depth of sublayer at top of upper soil layer, from which evaporation is
+/// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+/// Must be a multiple of Dz_soil
+extern int soildepth_evap;
+
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
 /// whether Zhou response of photosynthesis to water stress is turned on (requires ifdavehydrology).

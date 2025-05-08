@@ -205,7 +205,6 @@ const double SOILDEPTH_LOWER = 1000.0;
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
 const double SOILDEPTH_EVAP_TRUNK = 200.0;
-const double SOILDEPTH_EVAP_DAVE = 500.0;	// CS testing change, default is 200 mm
 extern double SOILDEPTH_EVAP;
 
 /// Year at which to calculate equilibrium soil carbon

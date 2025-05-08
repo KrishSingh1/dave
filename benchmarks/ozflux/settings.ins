@@ -19,7 +19,6 @@ ifdailytree              1   ! Daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             1   ! DAVE growth scheme
 ifdavehydrology          1   ! DAVE hydrology updates
-soildepth_evap           300 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
 ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifzhou                   0   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
@@ -32,6 +31,7 @@ iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 iftempacclimation        0   ! DAVE temperature acclimation of photosynthesis.
+soildepth_evap           200 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one

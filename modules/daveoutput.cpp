@@ -127,7 +127,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
 
 	// Daily per-patch aggregated individual-level outputs.
-	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_meanleafage"         , DAILY, [](const Individual &i) { return i.meanleafage; }, "Mean leaf age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_meansapage"          , DAILY, [](const Individual &i) { return i.meansapage; }, "Mean sapwood age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, true);

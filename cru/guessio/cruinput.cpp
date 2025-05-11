@@ -96,13 +96,13 @@ void CRUInput::init() {
 	// Read list of grid coordinates and store in global Coord object 'gridlist'
 
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=expand_environment_variables(param["file_gridlist"].str);
+	xtring file_gridlist=param["file_gridlist"].str;
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
-	file_cru=expand_environment_variables(param["file_cru"].str);
-	file_cru_misc=expand_environment_variables(param["file_cru_misc"].str);
+	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
 
 	gridlist.killall();
 	first_call = true;
@@ -129,7 +129,7 @@ void CRUInput::init() {
 	fclose(in_grid);
 
 	// Read CO2 data from file
-	co2.load_file(expand_environment_variables(param["file_co2"].str));
+	co2.load_file(param["file_co2"].str);
 
 	// Open landcover files. May reduce pftlist, stlist and mtlist. Must be called before management_input->init()
 	landcover_input.init();
@@ -140,7 +140,7 @@ void CRUInput::init() {
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
-	soilinput.init(expand_environment_variables(param["file_soildata"].str), translate_gridlist_to_coord(gridlist));
+	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
 	// Set timers
 	tprogress.init();
@@ -279,7 +279,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// Get nitrogen deposition data.
 		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
-		ndep.getndep(expand_environment_variables(param["file_ndep"].str), lon, lat, Lamarque::RCP60);
+		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours

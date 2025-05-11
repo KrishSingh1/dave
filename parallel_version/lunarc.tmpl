@@ -86,7 +86,7 @@ if [ -n "$COMPUTEACCOUNT" ]; then
 fi
 
 # Set the forcing data path environment variable for benchmarks on this system
-if [ -z ${LPJG_BENCHMARK_DATA} ]; then
+if [ -z /data/benchmark_data ]; then
   export LPJG_BENCHMARK_DATA="/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/benchmark_data"
 fi
 

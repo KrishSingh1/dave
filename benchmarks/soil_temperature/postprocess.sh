@@ -18,7 +18,7 @@ function selectData {
     awk -v c="$c" -v d="$d" ' BEGIN { FS = " " } ; FNR==NR{a[$1$2]=$c;next}BEGIN{OFS=" "};{if($1$2 in a){print $d,a[$1$2]}}' $1 $2 > $3
 }
 
-DIR=${LPJG_BENCHMARK_DATA}/2019-03-20/soil/
+DIR=/data/benchmark_data/2019-03-20/soil/
 tslice soiltemp25cm.out -o soiltemp1985to1999.txt -f 1985 -t 1999 
 compute soiltemp1985to1999.txt -o mod_season.txt -n -i Lat Lon 'Winter=(Dec+Jan+Feb)/3' 'Spring=(Mar+Apr+May)/3' 'Summer=(Jun+Jul+Aug)/3' 'Autumn=(Sep+Oct+Nov)/3'
 

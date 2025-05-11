@@ -6,7 +6,7 @@ GMAPPIXELSIZE=""	#="-pixsize 5 5"
 # Set data-dir
 # This path must start with '=/' and end with '/' in order to enable
 # automatic substition of path on other systems than simba.
-DATAPATH=${LPJG_BENCHMARK_DATA}/
+DATAPATH=/data/benchmark_data/
 
 # Function for preparing data for a scatter plot using gnuplot.
 #

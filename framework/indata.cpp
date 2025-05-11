@@ -228,11 +228,6 @@ bool TimeDataD::Open(const char* name) {
 
 	int format_parsed = EMPTY;
 
-	// expand potential environment variables in path name, might already have happend
-	// in parent caller. Needs to be handle in std::string, since returning const char* is no good.
-	// TODO: convert all char * to std::string in .h/cpp
-	std::string filename = expand_environment_variables(std::string(name));
-
 	if(ifp) {
 		fclose(ifp);
 		ifp = NULL;
@@ -243,13 +238,13 @@ bool TimeDataD::Open(const char* name) {
 	}
 
 	if(name)
-		ifp = fopen(filename.c_str(), "r");
+		ifp = fopen(name, "r");
 	else
 		return false;
 
 	if(ifp)	{
 
-		fileName = new char[strlen(filename.c_str()) + 1];
+		fileName = new char[strlen(name) + 1];
 
 		if(!fileName) {
 			dprintf("TimeDataD::Open: Cannot allocate memory for file name string !\n");
@@ -257,20 +252,20 @@ bool TimeDataD::Open(const char* name) {
 		}
 		else {
 			fileName[0] = '\0';
-			strcpy(fileName,filename.c_str());
+			strcpy(fileName,name);
 		}
 
 		format_parsed = ParseFormat();
 
 		if(format != format_parsed) {	// Checks format (sets it if header), sets nColumns, ifheader and header_arr[]
-			dprintf("TimeDataD::Open: Wrong format in file %s (failing ParseFormat()!\n", filename.c_str());
+			dprintf("TimeDataD::Open: Wrong format in file %s (failing ParseFormat()!\n", name);
 			return false;
 		}
 		else if(format == GLOBAL_YEARLY || format == LOCAL_YEARLY) {
 
 			nYears = ParseNYears();	// Parse numbers of years in input file
 			if(nYears == 0)	{
-				dprintf("TimeDataD::Open: Wrong format in file %s (nYears=0)!\n", filename.c_str());
+				dprintf("TimeDataD::Open: Wrong format in file %s (nYears=0)!\n", name);
 				return false;
 			}
 		}
@@ -283,7 +278,7 @@ bool TimeDataD::Open(const char* name) {
 		}
 
 		if(!Allocate())	{			//Allocate memory for dynamic data
-			dprintf("TimeDataD::Open: Could not allocate memory for data from file %s!\n", filename.c_str());
+			dprintf("TimeDataD::Open: Could not allocate memory for data from file %s!\n", name);
 			return false;
 		}
 
@@ -297,7 +292,7 @@ bool TimeDataD::Open(const char* name) {
 		spatial_resolution = ParseSpatialResolution();
 	}
 	else {
-		dprintf("TimeDataD::Open: File %s could not be opened for input !\n\n", filename.c_str());
+		dprintf("TimeDataD::Open: File %s could not be opened for input !\n\n", name);
 		return false;
 	}
 

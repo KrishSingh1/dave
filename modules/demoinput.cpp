@@ -219,10 +219,10 @@ void DemoInput::init() {
 
 	// Retrieve input file names as read from ins file
 
-	file_temp=expand_environment_variables(param["file_temp"].str);
-	file_prec=expand_environment_variables(param["file_prec"].str);
-	file_sun=expand_environment_variables(param["file_sun"].str);
-	file_soil=expand_environment_variables(param["file_soil"].str);
+	file_temp=param["file_temp"].str;
+	file_prec=param["file_prec"].str;
+	file_sun=param["file_sun"].str;
+	file_soil=param["file_soil"].str;
 
 	// Set timers
 	tprogress.init();

@@ -378,40 +378,40 @@ CFInput::~CFInput() {
 void CFInput::init() {
 
 	// Read CO2 data from file
-        co2.load_file(expand_environment_variables(param["file_co2"].str));
+	co2.load_file(param["file_co2"].str);
 
 	// Try to open the NetCDF files
 	try {
-	        cf_temp = new GridcellOrderedVariable(expand_environment_variables(param["file_temp"].str), param["variable_temp"].str);
-		cf_prec = new GridcellOrderedVariable(expand_environment_variables(param["file_prec"].str), param["variable_prec"].str);
-		cf_insol = new GridcellOrderedVariable(expand_environment_variables(param["file_insol"].str), param["variable_insol"].str);
+		cf_temp = new GridcellOrderedVariable(param["file_temp"].str, param["variable_temp"].str);
+		cf_prec = new GridcellOrderedVariable(param["file_prec"].str, param["variable_prec"].str);
+		cf_insol = new GridcellOrderedVariable(param["file_insol"].str, param["variable_insol"].str);
 
 		if (param["file_wetdays"].str != "") {
-		  cf_wetdays = new GridcellOrderedVariable(expand_environment_variables(param["file_wetdays"].str), param["variable_wetdays"].str);
+			cf_wetdays = new GridcellOrderedVariable(param["file_wetdays"].str, param["variable_wetdays"].str);
 		}
 
 		if (param["file_min_temp"].str != "") {
-		  cf_min_temp = new GridcellOrderedVariable(expand_environment_variables(param["file_min_temp"].str), param["variable_min_temp"].str);
+			cf_min_temp = new GridcellOrderedVariable(param["file_min_temp"].str, param["variable_min_temp"].str);
 		}
 
 		if (param["file_max_temp"].str != "") {
-		  cf_max_temp = new GridcellOrderedVariable(expand_environment_variables(param["file_max_temp"].str), param["variable_max_temp"].str);
+			cf_max_temp = new GridcellOrderedVariable(param["file_max_temp"].str, param["variable_max_temp"].str);
 		}
 
 		if (param["file_pres"].str != "") {
-		  cf_pres = new GridcellOrderedVariable(expand_environment_variables(param["file_pres"].str), param["variable_pres"].str);
+			cf_pres = new GridcellOrderedVariable(param["file_pres"].str, param["variable_pres"].str);
 		}
 
 		if (param["file_specifichum"].str != "") {
-		  cf_specifichum = new GridcellOrderedVariable(expand_environment_variables(param["file_specifichum"].str), param["variable_specifichum"].str);
+			cf_specifichum = new GridcellOrderedVariable(param["file_specifichum"].str, param["variable_specifichum"].str);
 		}
 
 		if (param["file_relhum"].str != "") {
-		  cf_relhum = new GridcellOrderedVariable(expand_environment_variables(param["file_relhum"].str), param["variable_relhum"].str);
+			cf_relhum = new GridcellOrderedVariable(param["file_relhum"].str, param["variable_relhum"].str);
 		}
 
 		if (param["file_wind"].str != "") {
-		  cf_wind = new GridcellOrderedVariable(expand_environment_variables(param["file_wind"].str), param["variable_wind"].str);
+			cf_wind = new GridcellOrderedVariable(param["file_wind"].str, param["variable_wind"].str);
 		}
 	}
 	catch (const std::runtime_error& e) {
@@ -529,7 +529,7 @@ void CFInput::init() {
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
 
-	soilinput.init(expand_environment_variables(param["file_soildata"].str));
+	soilinput.init(param["file_soildata"].str);
 
 	// Set timers
 	tprogress.init();
@@ -624,7 +624,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// Get nitrogen deposition, using the found CRU coordinates
 	/* Since the historic data set does not reach decade 2010-2019,
 	* we need to use the RCP data for the last decade. */
-	ndep.getndep(expand_environment_variables(param["file_ndep"].str), cru_lon, cru_lat, Lamarque::RCP60);
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, Lamarque::RCP60);
 
 	soilinput.get_soil(lon, lat, gridcell);
 

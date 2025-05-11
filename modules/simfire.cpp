@@ -255,7 +255,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 void getsimfiredata(Gridcell& gridcell) {
 
 	// Paths to SIMFIRE binaries
-	xtring file_simfire = expand_environment_variables(param["file_simfire"].str);
+	xtring file_simfire = param["file_simfire"].str;
 	
 	// Open file, fill podp, monthly_burned_area and igbp_class for a gridcell
 	// Fill static arrays/variables here

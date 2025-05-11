@@ -127,11 +127,12 @@ echo Result summary
 
 {
 echo "Diff against: $1 $2"
-echo COUNT NUMBER OF NON-IDENTICAL FILES PER EACH BM i.e. total files, identical files, files NOT identical.
+echo COUNT NUMBER OF NON-IDENTICAL FILES PER EACH BM i.e. total files (T), identical files (I), files NOT identical (X).
 
 {
+echo "${reportfile_out} T I X"
 for f in $(ls */${reportfile_out}); do
-  echo -n "$f"
+  echo -n "$(dirname "$f")"
   echo -n " $(wc -l $f | cut -d\  -f1)"
   echo -n " $(grep -c identical $f)"
   echo -n " $(grep -c -v identical $f)"
@@ -140,8 +141,9 @@ done
 } | column -t
 
 {
+echo "${reportfile_tslice61} T I X"
 for f in $(ls */${reportfile_tslice61}); do
-  echo -n "$f"
+  echo -n "$(dirname "$f")"
   echo -n " $(wc -l $f | cut -d\  -f1)"
   echo -n " $(grep -c identical $f)"
   echo -n " $(grep -c -v identical $f)"
@@ -150,8 +152,9 @@ done
 } | column -t
 
 {
+echo "${reportfile_tslice91} T I X"
 for f in $(ls */${reportfile_tslice91}); do
-  echo -n "$f"
+  echo -n "$(dirname "$f")"
   echo -n " $(wc -l $f | cut -d\  -f1)"
   echo -n " $(grep -c identical $f)"
   echo -n " $(grep -c -v identical $f)"

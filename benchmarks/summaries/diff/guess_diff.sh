@@ -111,11 +111,11 @@ for bm in $bms; do
    cd - >/dev/null
 
   else
-   echo Reference not found. Skipping\: $bm        # Added 180627
+   echo "Reference not found. Skipping\: $bm"        # Added 180627
   fi
 
  else
-   echo Not found. Skipping\: $bm
+   echo "Not found. Skipping\: $bm"
  fi
 
 done
@@ -123,11 +123,11 @@ done
 
 # Report non-identical files
 
-echo Result summary
+echo "Result summary"
 
 {
 echo "Diff against: $1 $2"
-echo COUNT NUMBER OF NON-IDENTICAL FILES PER EACH BM i.e. total files (T), identical files (I), files NOT identical (X).
+echo "COUNT NUMBER OF NON-IDENTICAL FILES PER EACH BM i.e. total files (T), identical files (I), files NOT identical (X)".
 
 {
 echo "${reportfile_out} T I X"
@@ -164,8 +164,8 @@ done
 
 } | tee "${outputfolder}/diff.${reflabel}.summary"
 
-echo LIST NON-IDENTICAL .OUT FILES. Only if it is not empty.
+echo "LIST NON-IDENTICAL .OUT FILES. Only if it is not empty."
 if [ -n "$(grep -v identical */$reportfile_out)" ]; then
   grep -v identical */$reportfile_out | sed "s/and//g" | sed "s/differ//g" \
-  | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g" &> "${outputfolder}/diff.${reflabel}.not-identical.list"
+  | sed "s/Files//g" | sed "s,/$reportfile_out,,g" | sed "s,: ,/,g" | tee "${outputfolder}/diff.${reflabel}.not-identical.list"
 fi

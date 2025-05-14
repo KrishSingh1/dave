@@ -2511,6 +2511,23 @@ double Individual::sla() const {
 	return current_sla;
 }
 
+double Individual::aboveground_biomass() const {
+	double ccont = get_cmass_leaf();
+
+	if (pft.is_grass()) {
+		ccont += cmass_crown; // TODO: should this be included?
+	} else if (pft.lifeform != MOSS) {
+		ccont += cmass_wood();
+	}
+
+	if (pft.dave_allocation()) {
+		ccont += cmass_storage; // TODO: should this be included?
+	}
+
+	// Convert kgC/m2 to kg/m2 biomass.
+	return 2.0 * ccont;
+}
+
 /// C content of individual
 /** INPUT PARAMETERS
  *

@@ -59,7 +59,9 @@ file_dave_aet
 file_dave_lai
 file_dave_height
 file_dave_diameter
-file_dave_aboveground_tree_biomass"
+file_dave_aboveground_tree_biomass
+file_agb
+file_agb_tree"
 
 ################################################################################
 # End of User Inputs

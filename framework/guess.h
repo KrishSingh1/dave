@@ -3827,6 +3827,9 @@ public:
 		return nmass_sap + nmass_heart;
 	}
 
+	// Total above-ground biomass (kg/m2).
+	double aboveground_biomass() const;
+
 	/// Total carbon biomass
 	double ccont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
 	/// Total nitrogen biomass

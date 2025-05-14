@@ -82,7 +82,7 @@ Calculate the sum of an array.
 @param array: An array of data.
 @param n: Length of the array.
 */
-double sum(double *array, int n);
+double sum(const double *array, size_t n);
 
 /*
 Calculate a mean.
@@ -90,7 +90,7 @@ Calculate a mean.
 @param array: An array of data.
 @param n: Length of the array.
 */
-double mean(double *array, int n);
+double mean(const double *array, size_t n);
 
 /*
 Get the columns used in the patch-level runoff output file.
@@ -281,6 +281,30 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns();
 Aggregate a value across all individuals in a patch.
 */
 double aggregate_indivs(const Patch &patch, const Pft &pft, double (*read_value)(const Individual &), double (*aggregate)(double *, int));
+
+/*
+Aggregate a patch-level value to gridcell-level, by reading it for all patches
+in the gridcell and aggregating accordingly.
+*/
+double aggregate_to_gridcell(const Gridcell &gridcell, double (*read_value)(const Patch &p));
+
+/*
+Generate a vector of column defintions, which aggregate the specified value read
+from an individual up to the gridcell level, for all PFTs.
+*/
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
+    double (*read_value)(const Individual &),
+    double (*aggregate)(const double *, size_t)
+);
+
+/*
+Generate a vector of column defintions, which aggregate the specified value read
+from an individual up to the gridcell level, for all tree PFTs.
+*/
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_tree_columns(
+    double (*read_value)(const Individual &),
+    double (*aggregate)(const double *, size_t)
+);
 
 } // namespace GuessOutput
 

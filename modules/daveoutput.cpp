@@ -32,6 +32,10 @@ REGISTER_OUTPUT_MODULE("dave", DaveOutput)
 DaveOutput::DaveOutput() {
 	double t_start = get_wall_time();
 
+	// Annual gridcell-level outputs.
+	add_gridcell_aggregated_indiv_output("file_aagb"             , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground biomass (kg/m2)", true);
+	add_gridcell_aggregated_tree_output("file_aagb_tree"         , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground tree biomass (kg/m2)", true);
+
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
 	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");

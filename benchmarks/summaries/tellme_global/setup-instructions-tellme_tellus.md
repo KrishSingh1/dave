@@ -101,9 +101,11 @@ fill_me_in_Johan!
 ```
 
 
-### Install R-packages, DGVMTools and DGVMBechmarks
+### Install or update R-packages, DGVMTools and DGVMBechmarks
 
 Here we work within R to install first some all the R package dependencies of the tellme_global.Rmd script.
+The same procedure is used when you update DGVMTools and DGVMBechmarks. 
+The installation/update of DGVMTools takes a long time.
 
 ##### R and devtools
 

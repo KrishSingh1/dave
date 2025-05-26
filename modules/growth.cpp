@@ -597,9 +597,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	double& phen) {
 
-	if (pft.dave_allocation()) {
-		return; // TODO: rationalise
-	}
+	// if (pft.dave_allocation()) {
+	// 	return; // TODO: rationalise
+	// }
 
 	// DESCRIPTION
 	// Calculates leaf phenological status (fractional leaf-out) for a individuals of

@@ -26,6 +26,8 @@ ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photos
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
+ifsinksource             0   ! Simulate growth as min(sink,source).
+ifadaptive_rootdist      1   ! Adaptive root distribution and response window?
 epsiresolution           100 ! Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.
 iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
@@ -199,8 +201,9 @@ npatch       1          ! Number of replicate patches to simulate
 patcharea    1000       ! Patch area (m2)
 
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"      ! "wcont", "rootdist", "smart", "speciesspecific", "root_resistance",
-                            ! see documentation for water_uptake(). root_resistance must be used with davehydraulics.
+wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
+                            ! see documentation for water_uptake()
+rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -209,7 +212,6 @@ ifdroughtlimitedestab 0        ! Whether establishment is limited by growing sea
                 ! guess2008 - species version has 1
 ifrainonwetdaysonly 1        ! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                         ! Whether to include BVOC calculations (1) or not (0)
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
@@ -321,13 +323,10 @@ import "landcover.ins"
 
 import "pft_common.ins"
 
-import "trees.ins"
-import "shrubberies.ins"
+!import "trees.ins"
+!import "shrubberies.ins"
 import "c3g.ins"
 import "c4g.ins"
-
-! For Warra only. Also, comment out pft_commons.ins
-!import "pfts_jamey.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

@@ -160,6 +160,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		// Update crop rotation status
 		crop_rotation(stand);
 
+		// Daily stand-level grazing.
+		distribute_grazing(stand);
+
 		if (date.islastday && date.islastmonth) {
 			// LAST DAY OF YEAR
 			stand.firstobj();

@@ -18,6 +18,7 @@ set(headers
   externalinput.h
   indata.h
   util.h
+  grazing_input.h
   spline.h
   interpolator.h
   thome.h
@@ -40,6 +41,7 @@ set(source
   externalinput.cpp
   indata.cpp
   util.cpp
+  grazing_input.cpp
   spline.cpp
   interpolator.cpp
   thome.cpp

@@ -91,10 +91,13 @@ bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 double epsiresolution;
 bool ifevenlaidist;
+bool ifsinksource;
+bool ifadaptive_rootdist;
 bool ifapproximate_C4;
 bool ifusegdd;
 bool gzip_output;
 int nindiv_max;
+int grazing_duration;
 bool ifforcedlai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
@@ -154,6 +157,7 @@ bool readharvestdates = false;
 bool readNfert = false;
 bool readNman = false;
 bool readNfert_st = false;
+bool read_grazing = false;
 bool readdisturbance = false;
 bool readdisturbance_st = false;
 bool readcutinterval_st = false;
@@ -304,6 +308,9 @@ void initsettings() {
 	nindiv_max = 0;
 	ifforcedlai = false;
 	ifevenlaidist = true;
+	ifsinksource = false;
+	ifadaptive_rootdist = false;
+	grazing_duration = 1;
 	epsiresolution = 100;
 }
 
@@ -660,12 +667,15 @@ void plib_declarations(int id,xtring setname) {
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
+		declareitem("ifsinksource", &ifsinksource, 1, CB_NONE, "Whether Growth is calculated as the minimum of a sink and a source term (default: off).");
+		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
+		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
 		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
@@ -825,6 +835,8 @@ void plib_declarations(int id,xtring setname) {
 			"Temperature below which plants fall dormant (degC)");
 		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
 			"Potential relative growth rate in vegetative phase (d-1)");
+		declareitem("max_mobil_cstorage",&ppft->max_mobil_cstorage,0.0,1.0,1,CB_NONE,
+			"Maximum NSC mobilisation rate from C storage (d-1)");
 		declareitem("Ha_growth",&ppft->Ha_growth,0.0,200.0,1,CB_NONE,
 			"Activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)");	
 		declareitem("T0_growth",&ppft->T0_growth,0.0,50.0,1,CB_NONE,

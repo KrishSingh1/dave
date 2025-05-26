@@ -124,7 +124,7 @@ void FluxnetInput::init() {
 	// Open landcover files
 	landcover_input.init(param["file_gridlist"].str);
 	// Open management files
-	management_input.init();
+	management_input.init(param["file_gridlist"].str);
 	// Open additional files
 	misc_input.init(param["file_gridlist"].str);
 	// Read in soil data

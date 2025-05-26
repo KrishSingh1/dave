@@ -72,6 +72,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_a_belowground_cmass" , ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_aboveground_nmass" , ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aresponse_window"  , ANNUAL, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Annual output of response window length (days)", mean);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
@@ -238,6 +239,20 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
+
+	add_aggregated_indiv_output("file_dave_cgrazed_repr"        , DAILY, [](const Individual &i) { return i.charvest_repr; }, "Daily reproductive cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cgrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.charvest_green; }, "Daily green leaf cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cgrazed_brown_leaf"  , DAILY, [](const Individual &i) { return i.charvest_brown; }, "Daily brown leaf cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_repr"        , DAILY, [](const Individual &i) { return i.nharvest_repr; }, "Daily reproductive nmass grazed (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.nharvest_green; }, "Daily green leaf nmass grazed (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_brown_leaf"  , DAILY, [](const Individual &i) { return i.nharvest_brown; }, "Daily brown leaf nmass grazed (kgN/m2/day)", sum, true);
+
+	// Daily outputs of annually-calculated pft-level outputs.
+	// (Outputted daily for plotting purposes.)
+	add_aggregated_indiv_output("file_dave_dresponse_window"    , DAILY, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Daily output of response window length (days)", mean);
+	add_aggregated_indiv_output("file_dave_root_beta"           , DAILY, [](const Individual &i) { return i.root_beta; }, "Daily output of pft-level root beta value (0-1)", mean);
+
+	add_aggregated_indiv_output("file_dave_live_biomass"        , DAILY, [](const Individual &i) { return i.ccont() + i.ncont(); }, "Daily total live biomass (kg/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_wscal"               , DAILY, [](const Individual &i) { return i.get_wscal(); }, "Water scalar [0-1], 1 = min stress",  mean, false, true);
 	add_aggregated_indiv_output("file_dave_dphen"               , DAILY, [](const Individual &i) { return i.phen; }, "daily phen (-)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_ftemp"               , DAILY, [](const Individual &i) { return i.ftemp; }, "coefficient that scales growth demand using air temperature (0-1)", mean, false, false);

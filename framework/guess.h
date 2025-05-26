@@ -2544,6 +2544,7 @@ public:
 		ds_j = 0;
 		formfactor = 1;
 		boleht_frac = 0;
+		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;

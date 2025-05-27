@@ -60,7 +60,8 @@ void Soil::init_states() {
 	if (ifdavehydrology) {
 		// TODO: find a better place for this. This should be fine, but
 		// conceptually it makes no sense to have it here.
-		SOILDEPTH_EVAP = SOILDEPTH_EVAP_DAVE;
+		//SOILDEPTH_EVAP = SOILDEPTH_EVAP_DAVE;
+		SOILDEPTH_EVAP = 200.0;  // JK: keep the old values for grasses
 	}
 
 	for (int mth=0; mth<12; mth++) {

@@ -3062,6 +3062,7 @@ Calculate maximum carboxylation rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
+TODO: check default for pmass_leaf!
 */
 double calc_vcmax25(double nmass_leaf, double pmass_leaf) {
 	return exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 *

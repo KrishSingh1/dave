@@ -270,6 +270,18 @@ function submit_summaryjob {
     mkdir -p $workspace
     pushd $workspace 1>/dev/null
 
+    # Make sure the summary tool exists
+    if [ ! -d $bm_root/summaries/${summarytool} ]; then
+      echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/summaries/"
+      echo "Skipping ${summarytool}"
+      return
+    fi
+    if [ ! -f $bm_root/summaries/${summarytool}/summarize.sh ]; then
+      echo "Error: Summary-processing script summarize.sh not found in $bm_root/summaries/${summarytool}"
+      echo "Skipping ${summarytool}"
+      return
+    fi
+
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp) 1>/dev/null
     cat <<EOF > $common_script
@@ -284,7 +296,7 @@ cd $bm_root
 echo '${summarytool}' >> progress.txt
 EOF
 
-#   Temporaert utkommenterat PBS. Skall laeggas tillbaka sedan och anpassas.
+#   The PBS code has been deprecated. I doubt PBS will ever be used for the summary functionality.
     if has_pbs ; then
 	# Submit as a PBS job
 	echo Submit as PBS job: Put code here.

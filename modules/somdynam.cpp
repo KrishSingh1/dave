@@ -940,7 +940,13 @@ void transfer_litter(Patch& patch) {
 
 		double frac_lr = 0.0;
 		//  Is a litter day, drop all leaf litter (crop)
-		if (patch.is_litter_day) {
+		if (ifdavegrowth) {
+			frac_lr = 1.0;
+			if (!ifdailygrass || !ifdailytree) {
+				fail("Litter decomposition with daily trees + annual grasses (and vice versa) doesn't work properly yet");
+			}
+		}
+		else if (patch.is_litter_day) {
 			frac_lr = 1.0;
 		}
 		// For summergreens drop leaf litter over all days during Jan in NH and July SH

@@ -32,6 +32,10 @@ REGISTER_OUTPUT_MODULE("dave", DaveOutput)
 DaveOutput::DaveOutput() {
 	double t_start = get_wall_time();
 
+	// Annual gridcell-level outputs.
+	add_gridcell_aggregated_indiv_output("file_aagb"             , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground biomass (kg/m2)", true);
+	add_gridcell_aggregated_tree_output("file_aagb_tree"         , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground tree biomass (kg/m2)", true);
+
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
 	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
@@ -68,6 +72,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_a_belowground_cmass" , ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_aboveground_nmass" , ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aresponse_window"  , ANNUAL, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Annual output of response window length (days)", mean);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
@@ -91,6 +96,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_acalloc_repr"	    , ANNUAL, [](const Individual &i) { return i.acalloc_repr; }, "Total annual C allocation to repr (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_sap"		    , ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_crown"	    , ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to crown (kgC/m2)", sum, true);
+
+	// Daily gridcell-level outputs.
+	add_gridcell_aggregated_indiv_output("file_agb"             , DAILY, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Daily gridcell-level above-ground biomass (kg/m2)", true);
+	add_gridcell_aggregated_tree_output("file_agb_tree"         , DAILY, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Daily gridcell-level above-ground tree biomass (kg/m2)", true);
 
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"                      , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
@@ -127,7 +136,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
 
 	// Daily per-patch aggregated individual-level outputs.
-	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai; }, "LAI by individual (m2/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_meanleafage"         , DAILY, [](const Individual &i) { return i.meanleafage; }, "Mean leaf age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_meansapage"          , DAILY, [](const Individual &i) { return i.meansapage; }, "Mean sapwood age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, true);
@@ -230,6 +239,20 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
+
+	add_aggregated_indiv_output("file_dave_cgrazed_repr"        , DAILY, [](const Individual &i) { return i.charvest_repr; }, "Daily reproductive cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cgrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.charvest_green; }, "Daily green leaf cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_cgrazed_brown_leaf"  , DAILY, [](const Individual &i) { return i.charvest_brown; }, "Daily brown leaf cmass grazed (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_repr"        , DAILY, [](const Individual &i) { return i.nharvest_repr; }, "Daily reproductive nmass grazed (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.nharvest_green; }, "Daily green leaf nmass grazed (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_ngrazed_brown_leaf"  , DAILY, [](const Individual &i) { return i.nharvest_brown; }, "Daily brown leaf nmass grazed (kgN/m2/day)", sum, true);
+
+	// Daily outputs of annually-calculated pft-level outputs.
+	// (Outputted daily for plotting purposes.)
+	add_aggregated_indiv_output("file_dave_dresponse_window"    , DAILY, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Daily output of response window length (days)", mean);
+	add_aggregated_indiv_output("file_dave_root_beta"           , DAILY, [](const Individual &i) { return i.root_beta; }, "Daily output of pft-level root beta value (0-1)", mean);
+
+	add_aggregated_indiv_output("file_dave_live_biomass"        , DAILY, [](const Individual &i) { return i.ccont() + i.ncont(); }, "Daily total live biomass (kg/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_wscal"               , DAILY, [](const Individual &i) { return i.get_wscal(); }, "Water scalar [0-1], 1 = min stress",  mean, false, true);
 	add_aggregated_indiv_output("file_dave_dphen"               , DAILY, [](const Individual &i) { return i.phen; }, "daily phen (-)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_ftemp"               , DAILY, [](const Individual &i) { return i.ftemp; }, "coefficient that scales growth demand using air temperature (0-1)", mean, false, false);
@@ -399,6 +422,67 @@ void DaveOutput::add_stand_output(
 	bool sum,
 	bool mean) {
 	StandLevelOutput *output = new StandLevelOutput(name, get_columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_gridcell_output(
+		std::string name,
+		timestep_t timestep,
+		std::string colname,
+		double (*read_output)(const Gridcell &),
+		std::string description,
+		bool sum,
+		bool mean) {
+	ColumnDefinition<Gridcell> column(colname, read_output);
+	std::vector<ColumnDefinition<Gridcell>> columns;
+	columns.push_back(column);
+	GridcellLevelOutput *output = new GridcellLevelOutput(name, columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_gridcell_output(
+		std::string name,
+		timestep_t timestep,
+		std::vector<ColumnDefinition<Gridcell>> (*get_columns)(),
+		std::string description,
+		bool sum,
+		bool mean) {
+	GridcellLevelOutput *output = new GridcellLevelOutput(name, get_columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_gridcell_aggregated_indiv_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Individual &i),
+		double (*aggregator)(const double *, size_t),
+		std::string description,
+		bool sum,
+		bool mean) {
+	GridcellLevelOutput *output = new GridcellLevelOutput(
+		name,
+		[read_output, aggregator]() -> std::vector<ColumnDefinition<Gridcell>> { return get_gridcell_aggregated_indiv_columns(read_output, aggregator); },
+		description,
+		sum,
+		mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_gridcell_aggregated_tree_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Individual &i),
+		double (*aggregator)(const double *, size_t),
+		std::string description,
+		bool sum,
+		bool mean) {
+	GridcellLevelOutput *output = new GridcellLevelOutput(
+		name,
+		[read_output, aggregator]() -> std::vector<ColumnDefinition<Gridcell>> { return get_gridcell_aggregated_tree_columns(read_output, aggregator); },
+		description,
+		sum,
+		mean);
+	register_output(output, timestep);
 }
 
 void DaveOutput::add_patch_array_output(
@@ -442,7 +526,7 @@ void DaveOutput::add_patch_array_output(
 	register_output(output, timestep);
 }
 
-void DaveOutput::add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(double*, int), bool sum, bool mean) {
+void DaveOutput::add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(const double*, size_t), bool sum, bool mean) {
 	OutputReader<Individual> *reader = new OutputReader<Individual>(read_output);
 	auto output = new AggregatedIndivOutput(name, reader, aggregator, description, sum, mean);
 
@@ -484,7 +568,7 @@ void DaveOutput::add_indiv_array_output(
 		int (*get_nelem)(const Patch &),
 		double (*read_output)(const Individual&, int),
 		std::string description,
-		double (*aggregator)(double *, int)) {
+		double (*aggregator)(const double *, size_t)) {
 	ArrayOutputReader<Individual> *reader = new ArrayOutputReader<Individual>(read_output);
 	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, aggregator);
 	register_output(output, timestep);
@@ -661,6 +745,83 @@ ColumnDescriptors create_column_descriptors() {
 		columns += ColumnDescriptor(COLNAME_PATCH, COLUMN_WIDTH, 0);
 	}
 	return columns;
+}
+
+// #############################################################################
+// GridcellLevelOutput implementation.
+// #############################################################################
+
+DaveOutput::GridcellLevelOutput::~GridcellLevelOutput() { }
+
+DaveOutput::GridcellLevelOutput::GridcellLevelOutput(
+		std::string param,
+		std::function<std::vector<ColumnDefinition<Gridcell>>()> get_columns,
+		std::string desc,
+		bool sum,
+		bool mean) : OutputFile(param, desc) {
+	get_column_definitions = get_columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
+DaveOutput::GridcellLevelOutput::GridcellLevelOutput(
+		std::string param,
+		std::vector<ColumnDefinition<Gridcell>> columns,
+		std::string desc,
+		bool sum,
+		bool mean) : OutputFile(param, desc) {
+	get_column_definitions = NULL;
+	this->columns = columns;
+	write_sum = sum;
+	write_mean = mean;
+}
+
+void DaveOutput::GridcellLevelOutput::write_rows(
+		OutputChannel *channel,
+		Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+
+	double total = 0;
+	for (ColumnDefinition<Gridcell> &column : columns) {
+		double value = column.read_value(gridcell);
+		write_output(channel, value);
+		total += value;
+	}
+
+	if (write_sum) {
+		write_output(channel, total);
+	}
+	if (write_mean) {
+		write_output(channel, total / columns.size());
+	}
+	finish_row(channel, lon, lat, year, day);
+}
+
+ColumnDescriptors DaveOutput::GridcellLevelOutput::get_cols() {
+	ColumnDescriptors descriptors;
+
+	// Only invoke get_column_definitions if necessary.
+	if (get_column_definitions) {
+		columns = get_column_definitions();
+	}
+
+	for (const ColumnDefinition<Gridcell> &column : columns) {
+		std::string name = column.get_name();
+		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
+		descriptors += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
+	}
+
+	if (write_sum) {
+		descriptors += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+	if (write_mean) {
+		descriptors += ColumnDescriptor(COLNAME_MEAN, COLUMN_WIDTH, NUMERIC_PRECISION);
+	}
+
+	return descriptors;
 }
 
 // #############################################################################
@@ -1286,7 +1447,7 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 		int (*get_nelem)(const Patch &),
 		ArrayOutputReader<Individual> *get_output,
 		std::string description,
-		double (*agg)(double*, int)) : OutputFile(param_name, description)
+		double (*agg)(const double*, size_t)) : OutputFile(param_name, description)
 {
 	elem_name = element_name;
 	get_n = get_nelem;
@@ -1380,7 +1541,7 @@ ColumnDescriptors DaveOutput::IndivLevelArrayOutput::get_cols() {
 DaveOutput::AggregatedIndivOutput::AggregatedIndivOutput(
 		std::string param_name,
 		OutputReader<Individual> *get_output,
-		double (*agg)(double *, int),
+		double (*agg)(const double *, size_t),
 		std::string description,
 		bool sum,
 		bool mean) : PftOutput(param_name, NULL, description, sum, mean) {

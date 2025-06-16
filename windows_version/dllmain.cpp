@@ -170,6 +170,19 @@ public:
 		return ifabort;
 	}
 
+	/// Write a formatted message to the log file.
+	virtual void write_log(const char *fmt, ...) {
+		va_list args;
+		va_start(args, fmt);
+		printf(fmt, args);
+		va_end(args);
+	}
+
+	/// Write a formatted message to the log file.
+	virtual void vwrite_log(const char *fmt, va_list args) {
+		vprintf(fmt, args);
+	}
+
 private:
 	FILE* logfile;
 	FILE* plot3d_out;		// File to transfer plot data to LPJ-GUESS Windows graphical shell

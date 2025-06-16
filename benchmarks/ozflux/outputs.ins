@@ -6,8 +6,12 @@
 outputdirectory "./out/"
 ifdailyoutput 1
 
+! Annual gridcell-level outputs.
+!file_aagb                       "aagb.out"                      ! Annual gridcell-level above-ground biomass (kg/m2)
+!file_aagb_tree                  "aagb_tree.out"                 ! Annual gridcell-level above-ground tree biomass (kg/m2)
+
 ! Annual patch-level outputs.
-file_dave_patch_age             "dave_patch_age.out"            ! Annual patch-level age since last disturbance (years)
+!file_dave_patch_age             "dave_patch_age.out"            ! Annual patch-level age since last disturbance (years)
 !file_dave_arunoff               "dave_arunoff.out"              ! Annual runoff (mm)
 !file_dave_acpool                "dave_acpool.out"               ! Annual C pools (kgC/m2)
 !file_dave_anpool                "dave_anpool.out"               ! Annual N pools (kgN/m2)
@@ -24,14 +28,14 @@ file_dave_patch_age             "dave_patch_age.out"            ! Annual patch-l
 !file_dave_aminleach             "dave_aminleach.out"            ! Annual leaching rate (kgN/m2/yr)
 !file_dave_sompool_acmass        "dave_sompool_acmass.out"       ! Daily SOM pool C mass (kgC/m2)
 !file_dave_sompool_anmass        "dave_sompool_anmass.out"       ! Daily SOM pool N mass (kgN/m2)
-file_dave_fpar_ff               "dave_fpar_ff.out"              ! Daily forest floor fpar (0-1)
+!file_dave_fpar_ff               "dave_fpar_ff.out"              ! Daily forest floor fpar (0-1)
 !file_dave_andep                 "dave_andep.out"                ! Annual nitrogen deposition (kgN/m2)
 !file_dave_resp_heterotrophic    "dave_resp_heterotrophic.out"   ! Daily carbon flux to atmosphere from soil respiration (gC/m2/day)
 !file_dave_anfixation            "dave_anfixation.out"           ! Total annual biological N fixation (kgN/m2/year)
 
 ! Annual indiv-level per-patch outputs.
 file_dave_alai                  "dave_alai.out"                 ! Annual LAI(m2/m2)
-file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
+!file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_acmass                "dave_acmass.out"               ! Annual cmass (kgC/m2). Unlike the "standard" cmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
 !file_dave_anmass                "dave_anmass.out"               ! Annual nmass (kgN/m2). Unlike the "standard" nmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
 !file_dave_aheight               "dave_aheight.out"              ! Annual plant height (m)
@@ -44,6 +48,7 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_a_belowground_cmass   "dave_a_belowground_cmass.out"  ! Annual below-ground C biomass (kgC/m2)
 !file_dave_a_aboveground_nmass   "dave_a_aboveground_nmass.out"  ! Annual above-ground N biomass (kgN/m2)
 !file_dave_a_belowground_nmass   "dave_a_belowground_nmass.out"  ! Annual below-ground N biomass (kgN/m2)
+!file_dave_aresponse_window       "dave_aresponse_window.out"     ! Annual output of response window length (days)
 
 ! Annual pft-level per-patch outputs.
 !file_dave_anpp                  "dave_anpp.out"                 ! Total individual-level Annual NPP (kgC/m2/year)
@@ -52,21 +57,25 @@ file_dave_afpc                  "dave_afpc.out"                 ! Annual FPC ()
 !file_dave_acmass_mort           "dave_acmass_mort.out"          ! Mass of annual killed vegetation (kgC/m2/year)
 !file_dave_aclitter              "dave_aclitter.out"             ! Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)
 !file_dave_ancohort              "dave_ancohort.out"             ! Number of cohorts currently established per pft (unitless)
-file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
+!file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
 !file_dave_stand_type            "dave_stand_type.out"           ! Stand landcover types
 
 ! Annual stand-level pft outputs.
-file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
+!file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
 
 ! Annual per-patch aggregated individual-level outputs.
-file_dave_acalloc_leaf          "dave_calloc_leaf.out"          ! Total annual C allocation to leaf (kgC/m2)
-file_dave_acalloc_root          "dave_calloc_root.out"          ! Total annual C allocation to root (kgC/m2)
-file_dave_acalloc_repr          "dave_calloc_repr.out"          ! Total annual C allocation to repr (kgC/m2)
-file_dave_acalloc_sap           "dave_calloc_sap.out"           ! Total annual C allocation to sap (kgC/m2)
-file_dave_acalloc_crown         "dave_acalloc_crown.out"        ! Total annual C allocation to crown (kgC/m2)
+!file_dave_acalloc_leaf          "dave_calloc_leaf.out"          ! Total annual C allocation to leaf (kgC/m2)
+!file_dave_acalloc_root          "dave_calloc_root.out"          ! Total annual C allocation to root (kgC/m2)
+!file_dave_acalloc_repr          "dave_calloc_repr.out"          ! Total annual C allocation to repr (kgC/m2)
+!file_dave_acalloc_sap           "dave_calloc_sap.out"           ! Total annual C allocation to sap (kgC/m2)
+!file_dave_acalloc_crown         "dave_acalloc_crown.out"        ! Total annual C allocation to crown (kgC/m2)
+
+! Daily gridcell-level outputs.
+!file_agb                        "agb.out"                       ! Daily gridcell-level above-ground biomass (kg/m2)
+!file_agb_tree                   "agb_tree.out"                  ! Daily gridcell-level above-ground tree biomass (kg/m2)
 
 ! Daily pft-level per-patch outputs.
 file_dave_lai                   "dave_lai.out"                  ! LAI by individual (m2/m2)
@@ -177,8 +186,8 @@ file_dave_lai                   "dave_lai.out"                  ! LAI by individ
 
 ! Daily patch-level outputs.
 !file_dave_soil_nmass_avail      "dave_soil_nmass_avail.out"     ! Soil N available for plant uptake (kgN/m2)
-file_dave_sw                    "dave_sw.out"                   ! Soil water content as fraction of available water holding capacity
-file_dave_swmm                  "dave_swmm.out"                 ! Soil water content (mm)
+!file_dave_sw                    "dave_sw.out"                   ! Soil water content as fraction of available water holding capacity
+!file_dave_swmm                  "dave_swmm.out"                 ! Soil water content (mm)
 !file_dave_swvol                 "dave_swvol.out"                ! Volumetric soil water content (m3/m3)
 !file_dave_resp                  "dave_resp.out"                 ! Daily patch-level ecosystem respiration (gC/m2/day)
 !file_dave_soil_psi_layer         "dave_soil_psi_layer.out"        ! Soil water potential for each layer
@@ -223,7 +232,7 @@ file_dave_swmm                  "dave_swmm.out"                 ! Soil water con
 !file_dave_ntolitter_repr        "dave_ntolitter_repr.out"       ! Total daily N sent from the repr pool to litter (kgN/m2/day)
 !file_dave_ctolitter_crown       "dave_ctolitter_crown.out"      ! Total daily C sent from the crown pool to litter (kgC/m2/day)
 !file_dave_ntolitter_crown       "dave_ntolitter_crown.out"      ! Total daily N sent from the crown pool to litter (kgN/m2/day)
-file_dave_aboveground_cmass     "dave_aboveground_cmass.out"    ! Daily above-ground C biomass (kgC/m2)
+!file_dave_aboveground_cmass     "dave_aboveground_cmass.out"    ! Daily above-ground C biomass (kgC/m2)
 !file_dave_belowground_cmass     "dave_belowground_cmass.out"    ! Daily below-ground C biomass (kgC/m2)
 !file_dave_aboveground_nmass     "dave_aboveground_nmass.out"    ! Daily above-ground N biomass (kgN/m2)
 !file_dave_belowground_nmass     "dave_belowground_nmass.out"    ! Daily below-ground N biomass (kgN/m2)
@@ -262,10 +271,10 @@ file_dave_aboveground_cmass     "dave_aboveground_cmass.out"    ! Daily above-gr
 !file_dave_sompool_nmass         "dave_sompool_nmass.out"        ! Daily SOM pool N mass (kgN/m2)
 !file_dave_cmass_seed_ext        "dave_cmass_seed_ext.out"       ! Daily external hypothetical seedbank (kgC/m2)
 
-file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
-file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
-file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
-file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
+!file_dave_met_par               "dave_met_par.out"              ! Daily PAR (J/m2/timestep)
+!file_dave_met_vpd               "dave_met_vpd.out"              ! Daily VPD (kPa)
+!file_dave_met_insol             "dave_met_insol.out"            ! Daily insolation (units depend on instype)
+!file_dave_met_precip            "dave_met_precip.out"           ! Daily precipitation (mm)
 !file_dave_met_co2               "dave_met_co2.out"              ! Daily atmospheric co2 concentration (ppm)
 !file_dave_met_pressure          "dave_met_pressure.out"         ! Daily air pressure (Pa)
 !file_dave_sompool_cmass         "dave_sompool_cmass.out"        ! Daily SOM pool C mass (kgC/m2)

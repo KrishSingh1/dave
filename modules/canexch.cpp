@@ -2687,7 +2687,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
 			// TODO: at some point, replace respiration functions here!
-			resp_crown = (respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// TODO: reduce resp_repr with senescence.
 			// TODO: replace cton_root with cton_repr if necessary. 
@@ -4045,6 +4045,12 @@ void water_stress(Patch &patch) {
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
 		ppft.airtemp_10.add(patch.get_climate().temp);
+	}
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		Patchpft &ppft = indiv.patchpft();
+		indiv.wscal_dynamic.add(ppft.wscal);
+		assert(ppft.wscal <= 1.0);
 	}
 }
 

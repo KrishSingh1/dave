@@ -206,7 +206,7 @@ void compute_stats(std::vector<double> data, double *mean, double *sd, double *m
 	}
 }
 
-double sum(double *array, int n) {
+double sum(const double *array, size_t n) {
 	double total = 0;
 	for (int i = 0; i < n; i++) {
 		total += array[i];
@@ -214,7 +214,7 @@ double sum(double *array, int n) {
 	return total;
 }
 
-double mean(double *array, int n) {
+double mean(const double *array, size_t n) {
 	return n ? sum(array, n) / n : 0;
 }
 
@@ -960,6 +960,51 @@ double get_nindiv(const Patch &patch, const Pft &pft) {
 		}
 	}
 	return n;
+}
+
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
+    double (*read_value)(const Individual &),
+    double (*aggregate)(const double *, size_t),
+	bool (*pft_filter)(const Pft &)
+) {
+	std::vector<ColumnDefinition<Gridcell>> columns;
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		const Pft &pft = pftlist[i];
+		if (!pft_filter(pft)) {
+			continue;
+		}
+		const char *name = (const char *)pft.name;
+
+		columns.push_back(AggregatedIndivGridcellColumnDefinition(
+			name,
+			pft,
+			read_value,
+			aggregate
+		));
+	}
+	return columns;
+}
+
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
+    double (*read_value)(const Individual &),
+    double (*aggregate)(const double *, size_t)
+) {
+	return get_gridcell_aggregated_indiv_columns(
+		read_value,
+		aggregate,
+		[](const Pft &p) { return true; }
+	);
+}
+
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_tree_columns(
+    double (*read_value)(const Individual &),
+    double (*aggregate)(const double *, size_t)
+) {
+	return get_gridcell_aggregated_indiv_columns(
+		read_value,
+		aggregate,
+		[](const Pft &p) { return p.lifeform == TREE; }
+	);
 }
 
 } // namespace GuessOutput

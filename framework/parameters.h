@@ -303,6 +303,9 @@ extern bool readharvestdates;
 /// Whether to read N fertilization from input file
 extern bool readNfert;
 
+/// Whether to read grazing dates from input file.
+extern bool read_grazing;
+
 /// Whether to read manure N fertilization from input file
 extern bool readNman;
 
@@ -404,12 +407,25 @@ extern bool ifdavegrowth;
 
 /// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
 extern bool ifdavehydrology;
+
+/// Depth of sublayer at top of upper soil layer, from which evaporation is
+/// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+/// Must be a multiple of Dz_soil
+extern int soildepth_evap;
+
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
 /// whether Zhou response of photosynthesis to water stress is turned on (requires ifdavehydrology).
 extern bool ifzhou;
 /// Whether LAI is distributed evenly across canopy layers for grasses.
 extern bool ifevenlaidist;
+
+/// Whether growth is calculated as the minimum of a sink and source term.
+extern bool ifsinksource;
+
+/// Whether root distribution and response window are adaptive to the environment.
+/// (Number of dormant+dead days)
+extern bool ifadaptive_rootdist;
 
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value
@@ -436,6 +452,9 @@ extern bool gzip_output;
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
 
+/// Number of days that animals are allowed to graze a particular set of
+/// patches (default: 1).
+extern int grazing_duration;
 /// True if we are using forced LAI.
 extern bool ifforcedlai;
 

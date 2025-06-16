@@ -205,7 +205,6 @@ const double SOILDEPTH_LOWER = 1000.0;
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
 const double SOILDEPTH_EVAP_TRUNK = 200.0;
-const double SOILDEPTH_EVAP_DAVE = 500.0;	// CS testing change, default is 200 mm
 extern double SOILDEPTH_EVAP;
 
 /// Year at which to calculate equilibrium soil carbon
@@ -2065,6 +2064,11 @@ typedef std::bitset<NSEN_TYPE> sen_type;
 //    return static_cast<enum sen_type>(static_cast<int>(a) & static_cast<int>(b));
 //}
 
+/*
+Calculate the root distribution given a root beta value.
+*/
+void calc_root_distribution(double root_beta, double rootdist[NSOILLAYER]);
+
 /// Holds static functional parameters for a plant functional type (PFT).
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object
  *  may be referenced (via the pft member of the Individual object; see below) by different
@@ -2186,6 +2190,8 @@ public:
 	double temp_dormancy;
 	/// Potential relative growth rate in vegetative phase (d-1)
 	double RGR_pot;
+	/// Maximum NSC mobilisation rate from C storage (d-1)
+	double max_mobil_cstorage;
     /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
 	double Ha_growth;
 	/// Parameter 'T0' in growth temperature relationship (K) (Parent & Tardieu 2012)
@@ -2538,6 +2544,7 @@ public:
 		ds_j = 0;
 		formfactor = 1;
 		boleht_frac = 0;
+		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;
@@ -2819,20 +2826,7 @@ public:
     
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
-
-		double depth = Dz_soil * CM_PER_MM;
-
-		rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
-
-        double tot = rootdist[0];
-        for (int i=1; i<NSOILLAYER; i++){
-			depth += Dz_soil * CM_PER_MM;
-			rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
-            tot += rootdist[i];
-        }
-        // Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
-        // Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
-        rootdist[NSOILLAYER-1] += 1.0 - tot;
+		calc_root_distribution(root_beta, rootdist);
     }
     
 	bool ismoss() const {
@@ -3392,8 +3386,10 @@ public:
 	double aphen;
 	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
-	/// physiological downregulation due to dormancy 
+	/// metabolic downregulation due to dormancy 
 	double fphen_activity;
+	/// change of fphen_activity per day
+	double dphen_activity;
 	// grote_dave - summer. after leaf out
 	bool leaf_full_switch_summer;
 	// grote_dave - autumn. scenescence after summer
@@ -3420,6 +3416,16 @@ public:
 	double anc_frac;
 	double anj_frac;
 	double anp_frac;
+
+	/// Adaptive N-day moving avegage of wscal.
+	HistoricDynamic<double> wscal_dynamic;
+	/// Adaptive N-day moving avegage of soil temperature.
+	HistoricDynamic<double> soiltemp_dynamic;
+	/// Dynamic root beta value used in dave version.
+	double root_beta;
+
+	/// Dynamic root distribution used in dave version.
+	double rootdist[NSOILLAYER];
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
@@ -3481,6 +3487,25 @@ public:
 	double cmass_root_ygrowth;
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
+
+	// green leaf c mass grazed today (kgC/m2).
+	double charvest_green;
+
+	// brown leaf c mass grazed today (kgC/m2).
+	double charvest_brown;
+
+	// repr c mass grazed today (kgC/m2).
+	double charvest_repr;
+
+	// green leaf c mass grazed today (kgC/m2).
+	double nharvest_green;
+
+	// brown leaf c mass grazed today (kgC/m2).
+	double nharvest_brown;
+
+	// repr c mass grazed today (kgC/m2).
+	double nharvest_repr;
+
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
 	/// actual evapotranspiration over projected area (mm/day)
@@ -3789,6 +3814,10 @@ public:
 	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
 
+	/// Get brown leaf biomass for this individual. (kgC/m2)
+	/// This is 0 for trees, shrubs, and mosses.
+	double get_cmass_leaf_brown() const;
+
 	double get_cmass_leaf() const;
 
 	double get_nmass_leaf() const;
@@ -3827,6 +3856,9 @@ public:
 	double nmass_wood() const {
 		return nmass_sap + nmass_heart;
 	}
+
+	// Total above-ground biomass (kg/m2).
+	double aboveground_biomass() const;
 
 	/// Total carbon biomass
 	double ccont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
@@ -5125,6 +5157,12 @@ public:
 	/// [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
 	double inund_stress;
 
+	// Number of days this indiv has spent dormant this year.
+	size_t nday_active;
+	// Moving average over N years of the total number of days this cohort is
+	// dormant per year.
+	HistoricDynamic<size_t> nday_dormant_historical;
+
 
 	// MEMBER FUNCTIONS:
 
@@ -5185,6 +5223,15 @@ public:
 		cmass_wood_clearcut = 0.0;
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
+
+		nday_active                = 0;
+
+		// 30 years by default.
+		nday_dormant_historical.set_capacity(30);
+
+		// Initial value of 105 dormant days, which corresponds to a response
+		// window size of 10 days.
+		nday_dormant_historical.add(105);
 
 		senescence_reason.reset();
 	}
@@ -5633,6 +5680,14 @@ public:
 	int clone_year;
 	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
 	double scale_LC_change;
+	/// animal units (1 cow = 1.0) per ha
+	double animal_units;
+
+	/// The patches which are currently being grazed.
+	std::vector<int> patches_grazed;
+
+	/// Number of days that the currently-grazed patches have been grazed.
+	int days_grazed;
 
 	// MEMBER FUNCTIONS
 
@@ -6235,6 +6290,19 @@ described in <...> has a maximum value of 1.
 */
 double calc_a_growth(const Pft *pft);
 
+/*
+Calculate the response window (in days) for phenological responses to growing
+conditions.
+
+@param nday_dormant: The number of dormant days in a year.
+*/
+size_t get_response_window(size_t nday_dormant);
+
+/*
+Calculate the root beta value corresponding to the specified number of dormant
+days in a year.
+*/
+double calc_root_beta(size_t nday_dormant);
 
 #endif // LPJ_GUESS_GUESS_H
 

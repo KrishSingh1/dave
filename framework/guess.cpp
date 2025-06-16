@@ -911,6 +911,8 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	cmass_wood = 0.0;
 	cmass_mort = 0.0;
 	scale_LC_change = 1.0;
+	animal_units = 0.0;
+	days_grazed = 0.0;
 }
 
 Stand::~Stand() {
@@ -1688,6 +1690,38 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& isintercropgrass;
 }
 
+size_t get_response_window(size_t nday_dormant) {
+	int x_intercept = -3;
+	int y_intercept = 15;
+	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
+	return max(1.0,slope * nday_dormant + y_intercept);
+}
+
+double calc_root_beta(size_t nday_dormant) {
+	const double ROOT_BETA_MIN = 0.94;
+	const double ROOT_BETA_MAX = 0.98;
+	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / Date::MAX_YEAR_LENGTH;
+	return slope * nday_dormant + ROOT_BETA_MIN;
+}
+
+// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
+void calc_root_distribution(double root_beta, double rootdist[NSOILLAYER]) {
+
+	double depth = Dz_soil * CM_PER_MM;
+
+	rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
+
+	double tot = rootdist[0];
+	for (int i=1; i<NSOILLAYER; i++){
+		depth += Dz_soil * CM_PER_MM;
+		rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
+		tot += rootdist[i];
+	}
+	// Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+	// Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
+	rootdist[NSOILLAYER-1] += 1.0 - tot;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Individual member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -1750,6 +1784,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;
+	dphen_activity    = 0.0;
 	cexcess           = 0.0;
 	nexcess           = 0.0;
 	nmass_missing     = 0.0;
@@ -1779,6 +1814,23 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anj_frac                    = 0.0;
 	anp_frac                    = 0.0;
 
+	Patchpft &ppft = patchpft();
+	size_t nday_dormant = ppft.nday_dormant_historical.mean();
+	size_t response_window = get_response_window(nday_dormant);
+	assert(response_window > 0);
+	wscal_dynamic.set_capacity(response_window);
+	soiltemp_dynamic.set_capacity(response_window);
+
+	// Initialise dynamic root_beta and rootdist to the pft-level values.
+	if (ifadaptive_rootdist){
+		root_beta = calc_root_beta(nday_dormant);
+		calc_root_distribution(root_beta, rootdist);
+	} else { // Take PFT-level default
+		root_beta = pft.root_beta;
+		for (size_t i = 0; i < NSOILLAYER; i++) {
+			rootdist[i] = pft.rootdist[i];
+		}
+	}
 	acalloc_leaf				= 0.0;
 	acalloc_root				= 0.0;
 	acalloc_repr				= 0.0;
@@ -1905,6 +1957,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_crown  = 0.0;
 	pturnover_leaf   = 0.0;
 
+	charvest_green = 0.0;
+	charvest_brown = 0.0;
+	charvest_repr  = 0.0;
+	nharvest_green = 0.0;
+	nharvest_brown = 0.0;
+	nharvest_repr  = 0.0;
+
 	// additional initialisation
 	age               = 0.0;
 	height            = 0.0;
@@ -2019,6 +2078,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& fphen_activity
+		& dphen_activity
 		& cexcess
 		& nmass_missing
 		& anpp
@@ -2152,6 +2212,17 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	if (alive || istruecrop_or_intercropgrass()) {
 		vegetation.patch.fluxes.report_flux(flux_type, value);
 	}
+}
+
+double Individual::get_cmass_leaf_brown() const {
+	if (ifdailygrass && pft.is_grass()) {
+		if (ifdavegrowth) {
+			return cmass_leafs[brown];
+		} else {
+			return cmass_leafs[3];
+		}
+	}
+	return 0;
 }
 
 // Receive active cmass leaf 
@@ -2509,6 +2580,23 @@ double Individual::sla() const {
 	}
 
 	return current_sla;
+}
+
+double Individual::aboveground_biomass() const {
+	double ccont = get_cmass_leaf();
+
+	if (pft.is_grass()) {
+		ccont += cmass_crown; // TODO: should this be included?
+	} else if (pft.lifeform != MOSS) {
+		ccont += cmass_wood();
+	}
+
+	if (pft.dave_allocation()) {
+		ccont += cmass_storage; // TODO: should this be included?
+	}
+
+	// Convert kgC/m2 to kg/m2 biomass.
+	return 2.0 * ccont;
 }
 
 /// C content of individual

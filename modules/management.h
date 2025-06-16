@@ -69,6 +69,9 @@ void grazing_daily(Individual& indiv);
 /// Grazing and mowing for DAVE
 void grazing_daily_dave(Vegetation& vegetation);
 
+/// Daily stand-level grazing for DAVE.
+void distribute_grazing(Stand& stand);
+
 // Remove herbaceous biomass and return parts of it as litter/manure
 void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, double frac_nreturn);
 

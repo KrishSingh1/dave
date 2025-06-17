@@ -12,7 +12,7 @@
 # These paths are compute center specific. Update them to fit the center where you run your model.
 # TODO - at LUnd need to make a shortcut on simba in /data/benchmark_data
 # ln -s /data/evaluation_data/ Tellus
-EVALDATA_PATH=/data/benchmark_data/Tellus
+EVALDATA_PATH=/data/benchmark_data/tellme
 LUDATA_PATH=/data/benchmark_data/2023_03_02/landuse/LUH2/lu_1901_2015_luh2_Hist_CMIP_UofMD_landState_2_1_h_halfdeg_nourban_2019_11_15.txt
 
 

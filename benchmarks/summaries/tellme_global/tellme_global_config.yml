@@ -120,7 +120,7 @@ Benchmarks:
       FLUXNET:
         name: "FLUXNET"
         format: "FLUXNET"
-        dir: "FLUXNET_sites"
+        dir: "fluxnet2015"
     metrics: ""
     # FLUXNET specific settings
     do_fluxes: ["GPP", "Reco", "NEE"]     # possibilities are GPP, Reco and NEE

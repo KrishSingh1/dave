@@ -282,6 +282,12 @@ function submit_summaryjob {
       return
     fi
 
+    if [[ "$ARCH" == "lunarc" ]]; then
+        if [[ ${summarytool} == "tellme_global" ]]; then
+            SBATCH_MEMORY="#SBATCH --mem-per-cpu=15000"
+        fi
+    fi
+
     # The part of the job script which is the same for PBS and SLURM
     common_script=$(mktemp) 1>/dev/null
     cat <<EOF > $common_script
@@ -310,6 +316,7 @@ EOF
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
 $SBATCH_PARTITION
+$SBATCH_MEMORY
 $SBATCH_COMPUTEACCOUNT
 $(cat $common_script)
 EOF
@@ -671,7 +678,7 @@ fi
 SUPERTOOL_NPROCS=1 # default for Lunarc/Aurora
 if [[ "$ARCH" == "levante" ]]; then
     SBATCH_PARTITION="#SBATCH --partition=shared"
-	SUPERTOOL_NPROCS=12		# Allocate enough memory for running Tellme on Levante (fixed memory amount per CPU)
+    SUPERTOOL_NPROCS=12		# Allocate enough memory for running Tellme on Levante (fixed memory amount per CPU)
 fi
 
 # Call run_benchmark for each test, unless we're doing summary-processing only.

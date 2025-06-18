@@ -518,7 +518,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
 	create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
 	create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
+
 	// *** DAILY OUTPUT VARIABLES ***
+
 	// ICOS MK: daily output
 	create_output_table(out_dgpp, file_dgpp, dgpp_columns);
 	create_output_table(out_dnee, file_dnee, dnee_columns);
@@ -530,10 +532,10 @@ void CommonOutput::define_output_tables() {
 /** for 3D vegetation plot in Windows shell
  */
 void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
-	
+
 	// File for output of 3D vegetation structure (invoked by Windows shell only)
-	plot3d_fileopen(); 
-	
+	plot3d_fileopen();
+
 	if (plot3d_getfilehandle()) {
 
 		int ival, p, npft_tree, npft_grass, npft_total;

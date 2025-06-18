@@ -191,7 +191,6 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
-// ICOS MK
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
 	return daily_fluxes_per_pft[day][pft_id][flux_type];
 }

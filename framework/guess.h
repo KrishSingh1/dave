@@ -1360,7 +1360,6 @@ public:
 	/// Report flux for a certain flux type
 	void report_flux(PerPatchFluxType flux_type, double value);
 
-	// ICOS MK: daily flux per PFT
 	/// \returns daily flux for a given flux type and PFT
 	double get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const;
 
@@ -1397,8 +1396,7 @@ private:
 	/// Stores one flux value per month and flux type
 	/** For the fluxes stored per pft for annual values */
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
-	
-	// ICOS MK: daily flux per PFT
+
 	/// Stores one flux value per day, flux type and PFT
 	double daily_fluxes_per_pft[365][12][NPERPFTFLUXTYPES];
 

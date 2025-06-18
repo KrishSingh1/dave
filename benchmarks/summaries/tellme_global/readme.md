@@ -1,14 +1,16 @@
 ﻿# The Global Tellme Script
-# Matt Forrest 2024-04-07
+# Matt Forrest 2025-06-18
 
 
 ## About
 
-The global Tellme R markdown script (tellme_global.Rmd) is a benchmarking routine to evaluate the  `tellus` global benchmark simulation (which is intended to be the best possible global run with all features turned on).  As such, it benchmarks global GPP, LAI, burnt area, biomass, etc., and also compares the `tellus` simulation to another reference `tellus` simulation.  In addition to this, the script also optionally uses some other simulations for some other benchmarks: the `fluxnet` and `regrowth` simulations for their respective benchmarks (although at present neither of these are operational) and the `global` simulation for PNV and applying a biome specific correction to biomass (total to AGB) in the global biomass benchmark.
+The global Tellme R markdown script (tellme_global.Rmd) is a benchmarking routine to evaluate the `tellus` global benchmark simulation (which is intended to be the best possible global run with all features turned on).  As such, it benchmarks global GPP, LAI, burnt area, biomass, etc., and also compares the `tellus` simulation to another reference `tellus` simulation.  In addition to this, the script also optionally uses some other simulations for some other benchmarks: the `fluxnet` and `regrowth` simulations for their respective benchmarks (although at present neither of these are operational) and the `global` simulation for PNV and applying a biome specific correction to biomass (total to AGB) in the global biomass benchmark.
 
 Within the LPJ-GUESS benchmarking system the script is run as a batch job on an HPC as a "summary job".  Typically this will be submitted at the same time as a suite of bencmarking runs (ie. `tellus` and others) and then is automatically run afterwards.  The script can also be run offline (for example in RStudio on your local PC).  This is straightforward but that usage is not covered here.
 
-The script is controlled by a combination of command line arguments which specific so key inputs, and a YAML file (`tellme_global_config.yml`) which specifies a lot of additional customisability.  The  `tellme_global_config.yml` included here contains reasonable default values, but can be modified by the user.
+The script is controlled by a combination of command line arguments which specifies some key inputs, and a YAML file (`tellme_global_config.yml`) which specifies a lot of additional customisability.  The  `tellme_global_config.yml` included here contains reasonable default values, but can be modified by the user.  There are also a couple of hard-coded paths to set in the `summarize.sh` file in this directory, but we are working on solution to avoid that.
+
+See below for Setup and Known Issues.  Note also that the script requires 12 GB of memory!  This when you are configuring the submission of summary job which calls tellme_global, you need to make sure the job has access to 12 GB of memory.  EXactly how you do this is likely HPC-specific but see the main `benchmarks/benchmark` script for how this is done on lunarc and levante. 
 
 ## Usage 
 
@@ -50,12 +52,12 @@ Here we just omit the `-1` flag and the script will be submitted as a batch job.
 ## Known issues/upcoming development
 
 1. FLUXNET benchmark is not currently working and will be overhauled.
-1. The `regrowth` benchmark simulation is not currently implemented. 
+1. The `regrowth` benchmark simulation is not currently implemented in LPJ-GUESS, so the regrowth benchmark is inactive. 
 1. At time of writing, the current of version DGVMBenchmarks has a regression whereby the difference and percentage difference row are not being displayed in some comparison tables.  This is under investigation and should be fixed soon.
 1. The actual `tellme_global.Rmd` script is currently under redevelopment to achieve two things:
    * Remove all the per-benchmark hard coded settings to the YAML configuration file (currently done for three benchmarks). 
    * Factorise the code out from the script into functions from the script into functions in the DGVMBenckmarks package.  This has only been done for one benchmark so far.
-Completing these two goals is planned but with no fixed timetable.  As the things stand the benchmarks are operational and the planned changes are purely technical rather than scientific, so they don't prohoibit the use of the benchmarks now.
+Completing these two goals is planned but with no fixed timetable.  As the things stand the benchmarks are operational and the planned changes are purely technical rather than scientific, so they don't prohibit the use of the benchmarks now.
 
 
 ## Setup Instructions for a new HPC
@@ -64,20 +66,23 @@ In order to run the Tellme benchmarking within the benchmarking framework of LPJ
 
 This guide will outline the general principles, but also the specific commands for certain machines, initially Simba, DKRZ's Levante and Lunarc's Cosmos.
 
+### Aquire the evaluation data and set paths
+
+1. On your HPC system you will already need to have the `benchmarking_data` directory which contains the input forcing data.  Check that this contains a directory (or link) to a folder `tellme`.  If it doesn't, copy it from Simba or contact Matt Forrest (matthew.forrest@senckenberg.de) for the data.
+
+1. You then need to set the paths to this data in the `summarize.sh` script in this directory (`benchmarks/summaries/tellme_global`).  Set `EVALDATA_PATH` and `LUDATA_PATH` (near the top of the script) appropriately.
+
 
 ### Load system modules/external software
 
-
-First we need to make sure that certain software is available to us: 
+We need to make sure that certain software is available to us: 
  * R
  * the GCC compiler
  * Pandoc
- * OpenMPI (although I can't remember why at this stage)
- 
+ * OpenMPI (although I can't remember why at this stage) 
 
 These will likely be available as modules on the HPC.  But they might simply need to be installed on some machines.
  
-
 **Cosmos (Lunarc)**:
 ```
 > module purge
@@ -122,7 +127,6 @@ On cosmos (lunarc) we have installed R in the common directory
 
 Now install DGVMTools and DGVMBencharks.
 
-
 ```
 # choose a mirror to avoid the popup window
 > options(repos = 'http://ftp5.gwdg.de/pub/misc/cran/')
@@ -132,7 +136,7 @@ Now install DGVMTools and DGVMBencharks.
 > devtools::install_github("MagicForrest/DGVMBenchmarks", ref = "main", dependencies = c("Depends", "Imports"), build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE, force=T)
 ```
 
-The commands above will ask about which dependencies to update.   I recommend installing updated versions of all the packages when asked, but be warned this might take a while.  Also there might be issues, see **Troubleshooting** later.
+The commands above will ask about which dependencies to update.   I recommend you do not upgrade packages unless you have a compelling reason to do so.  This is because there can be very HPC specific issues when installing R packages (particularly terra for some reason).  So if you have a stable and functional set of R packages, I suggest to keep them.  See also **Troubleshooting** later.
 
 
 ##### Dependencies for the tellus.rmd markdown script
@@ -153,7 +157,6 @@ All going well we can exit R:
 ```
 > q()
 ```
-
 
 
 ##### Troubleshooting R package installs

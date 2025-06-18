@@ -38,10 +38,10 @@ fi
 
 # Main code
 
-echo "Summary-processing: generating log report..." 
-echo "Arguments (should be 1, the path to reference log files) = $@"
+echo "Summary-processing: generating log report..."
+echo "Arguments (there should be one argument: the path to reference log files) = $@"
 echo "$0"
 echo "The summarize script's pwd -P = $(pwd -P)"
 
 # Call the main script
-"$(dirname "$0")/${toolscript}" $1 ..	# Call it to run on output folders in one level up fron the folder "logreport".
+"$(dirname "$0")/${toolscript}" $1 ..	# Call it to run on output folders in one level up from the folder "logreport".

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # deltareports runs deltareport on all benchmarks folders in the current directory.
-# Written Johan Nord, 2017
+# Written by Johan Nord, 2017
 # deltareport in turn compares two LPJ-GUESS benchmarks reports - the current one and a
 # reference report, and outputs a delta report in each benchmark's directory.
 # Usage:
@@ -95,4 +95,5 @@ if [ ! -z "$(cat "${tmpfile_reportsnotfound}" 2>/dev/null)" ]; then
 else
   echo
 fi
-echo "Each deltareport can be found in each benchnmark output's folder, in a folder report_delta_$label"
+echo "Each deltareport, index.html, can be found in each benchmark output's folder, in the folder report_delta_$label"
+echo "e.g. firefox crop_global/report_delta_${label}/index.html"

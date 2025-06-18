@@ -6,7 +6,7 @@
 # The script takes 2 arguments: a label, and a path, for the folder containing the benchmarks to compare with.
 
 toolscript="deltareports.sh"
-resultfile="deltareports-vs-${1}.result"
+resultfile="deltareports-vs-${1}.log"
 
 if [ $# -ne 2 ]; then
   echo "Error: the summaries/delta/summarize.sh script must be called with exctly 2 arguments."

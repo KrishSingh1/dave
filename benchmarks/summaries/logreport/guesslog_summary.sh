@@ -146,7 +146,7 @@ echo "Number of Finished found: $nFinished"
 echo
 echo "__________________________________________________________"
 echo "Presence of files as compared with $expected_files_reference"
-echo "(diff of ls of each bm-catalog found in . with the reference):"
+echo "(diff of ls of each bm-catalog found in . against the reference):"
 
 for bmcat in $bms; do
 

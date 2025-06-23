@@ -30,6 +30,7 @@ namespace GuessOutput {
 REGISTER_OUTPUT_MODULE("common", CommonOutput)
 
 CommonOutput::CommonOutput() {
+
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
@@ -80,9 +81,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
-	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");	
+	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
-	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
+	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
 	if ( firemodel == BLAZE ) {
@@ -115,7 +116,8 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
 
-	// ICOS MK: daily output
+	// Daily output variables
+	// Flux benchmarking
 	declare_parameter("file_dgpp", &file_dgpp, 300, "Daily GPP");
 	declare_parameter("file_dreco", &file_dreco, 300, "Daily RECO");
 	declare_parameter("file_dnee", &file_dnee, 300, "Daily NEE");
@@ -393,7 +395,7 @@ void CommonOutput::define_output_tables() {
 	soil_npool_columns += ColumnDescriptor("N2O", 11, 4);
 	soil_npool_columns += ColumnDescriptor("N2",  11, 4);
 
-	
+
 	// SOIL N TRANSFORMATION - fluxes
 	ColumnDescriptors soil_nflux_columns;
 	soil_nflux_columns += ColumnDescriptor("NH3",  12, 6);
@@ -402,7 +404,7 @@ void CommonOutput::define_output_tables() {
 	soil_nflux_columns += ColumnDescriptor("N2",   12, 6);
 
 
-	// ICOS MK: daily output
+	// Daily output for flux benchmarking
 	// Daily GPP
 	ColumnDescriptors dgpp_columns;
 	dgpp_columns += ColumnDescriptors(pfts, 10, 5);
@@ -521,7 +523,7 @@ void CommonOutput::define_output_tables() {
 
 	// *** DAILY OUTPUT VARIABLES ***
 
-	// ICOS MK: daily output
+	// Daily output for flux benchmarking
 	create_output_table(out_dgpp, file_dgpp, dgpp_columns);
 	create_output_table(out_dnee, file_dnee, dnee_columns);
 	create_output_table(out_dreco, file_dreco, dreco_columns);
@@ -1831,14 +1833,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 }
 
-// ICOS MK: daily output
 void outlimit_daily(OutputRows& out, const Table& table, double d) {
 	if (date.get_calendar_year() > 2012) {
 		out.add_value(table, d);
 	}
 }
 
-// ICOS MK: daily output
 /// Output of simulation results at the end of each day
 /** This function does not have to provide any information to the framework.
   */
@@ -1846,6 +1846,8 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+	// Daily output for flux benchmarking
 
 	double dgpp_gridcell = 0.0;
 	double standpft_dgpp = 0.0;
@@ -1864,8 +1866,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	double standpft_dlai = 0.0;
 	double mean_standpft_dlai = 0.0;
 
-	
-
 	// Get daily data per PFT
 	// *** Loop through PFTs ***
 	pftlist.firstobj();
@@ -1873,7 +1873,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 		Pft& pft = pftlist.getobj();
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
-	
+
 		mean_standpft_dgpp = 0.0;
 		mean_standpft_dra = 0.0;
 		mean_standpft_dlai = 0.0;
@@ -1988,7 +1988,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	} // stand loop
 
 	// Write fluxes to file
-	
+
 	// NEE
 	// Note that the daily output doesn't include reproduction and establishment as these are calculated at the end of a year
 	dnee = dflux_veg + dflux_soil + dflux_fire;
@@ -1999,7 +1999,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 	// GPP
 	outlimit_daily(out, out_dgpp, dgpp_gridcell);
-	
+
 	// Respiration
 	dreco = dflux_soil + dra_gridcell;
 	outlimit_daily(out, out_dreco, dra_gridcell);

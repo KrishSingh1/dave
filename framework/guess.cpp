@@ -169,6 +169,7 @@ void Fluxes::reset() {
 	for (int d = 0; d < date.year_length(); ++d) {
 		std::fill_n(daily_fluxes_pft[d], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(daily_fluxes_patch[d], int(NPERPATCHFLUXTYPES), 0);
+		std::fill_n(daily_fluxes_per_pft[d][0], 365, 0); // ICOS MK
 	}
 }
 
@@ -182,11 +183,16 @@ void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
+	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value; // ICOS MK
 }
 
 void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	monthly_fluxes_patch[date.month][flux_type] += value;
 	daily_fluxes_patch[date.day][flux_type] += value;
+}
+
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
+	return daily_fluxes_per_pft[day][pft_id][flux_type];
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {

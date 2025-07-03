@@ -6,10 +6,11 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True"
-make_command="make -j2"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True -D VERBOSE=True"
+make_command="make -j"
 bbox_command="bbox"
-pp_walltime=5:00:00
+pp_walltime=1:00:00
+pp_jobids=""
 
 # Prints a message to stderr
 function error {
@@ -30,28 +31,35 @@ function has_slurm {
 
 # Informs the user of how to use the script, and then exits.
 function print_usage_and_exit {
-    error "Usage: benchmarks [ -s ] [ -c ] [ -i TESTS | -x TESTS ] <workdir>"
-    error "Pwd needs to be the directory of this benchmark script."
-    error
+    error "Usage: benchmarks [ -1 ] [ -c ] [ -p ] [ -P ] [ -i <TESTS> | -x <TESTS> ] [ -s \"<SUMMARYTOOL and arguments>\" ] <workdir>"
     error "Options"
-    error "======="
-    error "-s   Single machine mode, don't use PBS/SLURM"
-    error "-c   Compile only, don't run the tests"
-    error "-p   Post processing only"
-    error "-r   Generate printer friendly report"
-    error "     (does nothing else and is run as a regular process,"
-    error "      in other words, not submitted as a batch job)"
-    error "-i   Include only the specified tests"
-    error "-x   Exclude the specified tests"
-    error
+    error "-i   Include only the specified benchmark TEST. Takes 1 argument. Enclose several TESTS with\"\"."
+    error "-x   Exclude the specified benchmark TEST. Takes 1 argument. Enclose several TESTS with\"\"."
+    error "     Without -i and -x, all benchmark TESTS will be run."
+    error "-s   Summize or summary-processing: secondary processing after all model-postprocessing jobs finished,"
+    error "     Option -s takes 1 argument. Enclose SUMMARYTOOL and arguments with \"\": \"<SUMMARYTOOL> <arg1> <arg2> ...\"."
+    error "     Arguments:  e.g. delta and tellme tools"
+    error "       delta:  2 arguments:  a label for the comparison reference benchmarks run to compare with,"
+    error "                             the path to the same reference run's output."
+    error "       tellme: 3 arguments:  a label for the present run, plus the same 2 arguments as the delta SUMMARYTOOL."
+    error "       Do not include the benchmark TEST name at the end of the paths."
+    error "     Several -s options can be stacked in one call."
+    error "     All summarytools are in benchmarks/summarize/<SUMMARYTOOL>."
+    error "-1   Single machine mode, don't use PBS/SLURM. This option was previously -s."
+    error "-c   Compile only, don't run the tests."
+    error "-p   Post processing only."
+    error "-P   Summary-report processing only: no model jobs, no postprocessing jobs."
+    error "-r   Generate printer friendly report (does nothing else and is run as a regular process, i.e. not submitted as a batch job)."
     error "Examples"
-    error "========"
     error "1. Run all benchmarks:"
-    error "benchmarks /scratch/sally/benchmarks"
+    error "   benchmarks /scratch/sally/current/benchmarks"
     error "2. Run some benchmarks:"
-    error "benchmarks -i \"europe euroflux\" /scratch/sally/benchmarks"
-    error "3. Run all except some benchmarks:"
-    error "benchmarks -x \"global europe\" /scratch/sally/benchmarks"
+    error "   benchmarks -i \"europe fluxnet\" /scratch/sally/current/benchmarks"
+    error "3. Run some benchmarks and then do two summary jobs (summary-processing jobs):"
+    error "   benchmarks -i \"fluxnet tellus\" -s \"tellme_global myrun refrun10153 /scratch/sally/otherproject/output_r10153\"\\"
+    error "     -s \"delta refrun10153 /scratch/sally/otherproject/output_r10153\" /scratch/sally/current/benchmarks"
+    error "4. Run all except some benchmarks:"
+    error "   benchmarks -x \"global europe\" /scratch/sally/current/benchmarks"
     exit 1
 }
 
@@ -74,19 +82,27 @@ single_machine=0
 compile_only=0
 pp_only=0
 printer_friendly=0
+summaryreport_flag=0
+summaryreport_only=0
+summaryreport_arglist=()
 
-# Handle the -s, -c, -i and -x options
-while getopts ":scpri:x:" opt; do
+# Handle the -1, -c, -i, -x, ... options
+while getopts ":1cpPrs:i:x:" opt; do
+
     case $opt in
 	i  ) inclusive=$OPTARG
-	     inclusive_flag=1 ;;
+	     inclusive_flag=1;;
 	x  ) exclusive=$OPTARG
-	     exclusive_flag=1 ;;
-	s  ) single_machine=1 ;;
-	c  ) compile_only=1 ;;
-	p  ) pp_only=1 ;;
-	r  ) printer_friendly=1 ;;
-	\? ) print_usage_and_exit ;;
+	     exclusive_flag=1;;
+	1  ) single_machine=1;;
+	c  ) compile_only=1;;
+	p  ) pp_only=1;;
+	P  ) summaryreport_only=1;;
+	s  ) summaryreport_arglist+=( "$OPTARG " )
+	     summaryreport_flag=1
+	     [[ -z $OPTARG ]] && { echo "Option -s (Summary report) requires an argument. Use option -1 for Single machine mode."; print_usage_and_exit; } ;;
+	r  ) printer_friendly=1;;
+	\? ) echo "Invalid option: -$OPTARG"; print_usage_and_exit ;;
     esac
 done
 
@@ -98,7 +114,7 @@ fi
 if (( $single_machine == 0 )); then
     if ! has_pbs && ! has_slurm ; then
 	error "It doesn't seem like PBS or SLURM is installed. You can run the"
-	error "benchmarks on the local machine with the -s option."
+	error "benchmarks on the local machine with the -1 option."
 	exit 1
     fi
 else
@@ -106,25 +122,36 @@ else
 	cmake_command="$cmake_command -D SYSTEM=multicore"
 fi
 
-if (( $compile_only == 1 && $pp_only == 1 )); then
-    error "-c and -p can't be used at the same time!"
+if (( $compile_only == 1 && ( $pp_only == 1 || $summaryreport_only == 1) )); then
+    error "-c can't be combined with -p or -P!"
     exit 1
 fi
 
-if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1) )); then
-    error "-r can't be combined with -c or -p!"
+if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1 || $summaryreport_only == 1) )); then
+    error "-r can't be combined with -c or -p or -P!"
     exit 1
 fi
 
-# Throw away the options getopts handled
+# Throw away the options getopts handled                                     <
 shift $(($OPTIND -1))
 
 # Make sure the user supplied a working directory
-if [ $# != 1 ]; then
+if [ $# -lt 1 ]; then
+    echo "You must supply a working directory."
+    echo
+    print_usage_and_exit
+elif [ $# -gt 1 ]; then
+    echo "Too many arguments:"
+    echo $@
+    echo
     print_usage_and_exit
 fi
 
 work_dir=$1
+
+
+### Functions - only function definitions in this section. The script continues after it. ###
+
 
 # The build function is used to build one of the versions of the model.
 # Parameters:
@@ -150,29 +177,29 @@ function build {
 	(cd $additional_source; tar cf - --exclude=".svn" *) | (cd $build_path; tar xf -)
     fi
 
-    pushd $build_path/output &> /dev/null
+    pushd $build_path/output 1>/dev/null
 
-    cmake_output=$(mktemp)
+    cmake_output=$(mktemp) 1>/dev/null
     if ! $cmake_command .. &> $cmake_output ; then
 	error "Failed to configure build " $build_path "!"
 	cat $cmake_output
 	rm $cmake_output
-	popd &> /dev/null
+	popd 1>/dev/null
 	return 1
     fi
     rm $cmake_output
 
-    make_output=$(mktemp)
+    make_output=$(mktemp) 1>/dev/null
     if ! $make_command &> $make_output ; then
 	error "Failed to build " $build_path "!"
 	cat $make_output
 	rm $make_output
-	popd &> /dev/null
+	popd 1>/dev/null
 	return 1
     fi
     rm $make_output
 
-    popd &> /dev/null
+    popd 1>/dev/null
     return 0
 }
 
@@ -212,6 +239,102 @@ function setup_workspace {
 	ln -s -T $(readlink -f common) $workspace/common
 }
 
+
+# This function submits a summarizing report processing job
+# that runs after all model-postprocessing jobs have finished.
+# Parameters: the argument list (string) for this summarize tool call,
+#   item 0 in the list is the tool name.
+function submit_summaryjob {
+    local workspace
+    local bm_root=$PWD
+    local thistool_arglist=()
+    thistool_arglist=($1)
+
+    # Construct argument for qsub/sbatch for dependency
+    if [ -n "$pp_jobids" ]; then
+	if has_pbs ; then
+	    dependency="-W depend=afterok:$pp_jobids"
+	else
+		dependency="--dependency=afterok:$pp_jobids"
+	fi
+    else
+		dependency=""
+    fi
+
+    # Determine what summary report job to run, and the arguments to it
+    summarytool=${thistool_arglist[0]}
+
+    # Create the summary-processing job
+    workspace=$work_dir/${summarytool}
+    #rm -rf $workspace
+    mkdir -p $workspace
+    pushd $workspace 1>/dev/null
+
+    # Make sure the summary tool exists
+    if [ ! -d $bm_root/summaries/${summarytool} ]; then
+      echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/summaries/"
+      echo "Skipping ${summarytool}"
+      return
+    fi
+    if [ ! -f $bm_root/summaries/${summarytool}/summarize.sh ]; then
+      echo "Error: Summary-processing script summarize.sh not found in $bm_root/summaries/${summarytool}"
+      echo "Skipping ${summarytool}"
+      return
+    fi
+
+    if [[ "$ARCH" == "lunarc" ]]; then
+        if [[ ${summarytool} == "tellme_global" ]]; then
+            SBATCH_MEMORY="#SBATCH --mem-per-cpu=15000"
+        fi
+    fi
+
+    # The part of the job script which is the same for PBS and SLURM
+    common_script=$(mktemp) 1>/dev/null
+    cat <<EOF > $common_script
+cd $workspace
+if [ -f $bm_root/summaries/${summarytool}/summarize.sh ]; then
+    PATH=$PATH bash $bm_root/summaries/${summarytool}/summarize.sh ${thistool_arglist[@]:1}
+else
+    echo "Error: Summary-processing tool ${summarytool} not found in $bm_root/summaries/"
+    exit 1
+fi
+cd $bm_root
+echo '${summarytool}' >> progress.txt
+EOF
+
+#   The PBS code has been deprecated. I doubt PBS will ever be used for the summary functionality.
+    if has_pbs ; then
+	# Submit as a PBS job
+	echo Submit as PBS job: Put code here.
+    else
+	# Submit as a SLURM job
+	sbatch --time=$pp_walltime $dependency  <<EOF 	1>/dev/null	# If the redirect is omitted, then sbatch prints "Submitted batch job 1204359".
+#!/bin/sh
+#SBATCH -n $SUPERTOOL_NPROCS
+#SBATCH --ntasks-per-node=$SUPERTOOL_NPROCS
+#SBATCH -J su_${summarytool}
+#SBATCH --mail-type=FAIL
+#SBATCH -o "slurm-%j.log"
+$SBATCH_PARTITION
+$SBATCH_MEMORY
+$SBATCH_COMPUTEACCOUNT
+$(cat $common_script)
+EOF
+    fi
+
+#    rm $common_script
+
+    popd 1>/dev/null
+}
+
+# This function runs the summary-processes
+# i.e. the jobs that runs after all pp-jobs are finished.
+function run_summaryprocessing {
+  for ((i = 0; i < ${#summaryreport_arglist[@]}; i++)); do
+    submit_summaryjob "${summaryreport_arglist[$i]}"
+  done
+}
+
 # This function submits the post processing job.
 # Parameters:
 # $1  The name of the benchmark
@@ -221,23 +344,13 @@ function submit_pp {
     local test_name=$1
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
+    local ppid
 
-    # Construct argument for qsub/sbatch for dependency if there is one
-    if [ -n "$2" ]; then
-	if has_pbs ; then
-	    dependency="-W depend=afterok:$jobid"
-	else
-	    dependency="--dependency=afterok:$jobid"
-	fi
-    else
-	dependency=""
-    fi
-
-    pushd $workspace &> /dev/null
     # Create the post processing job
+    pushd $workspace 1>/dev/null
 
     # The part of the job script which is the same for PBS and SLURM
-    common_script=$(mktemp)
+    common_script=$(mktemp) 1>/dev/null
     cat <<EOF > $common_script
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
     PATH=$PATH $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
@@ -248,36 +361,73 @@ echo '$test_name' >> progress.txt
 EOF
 
     if has_pbs ; then
+
 	# Submit as a PBS job
-	qsub -l walltime=$pp_walltime $dependency <<EOF > /dev/null
+
+        if [ -n "$2" ]; then
+          dependency="-W depend=afterok:$jobid"
+        else
+          dependency=""
+        fi
+
+        cat <<EOF &> $common_script
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
 $(cat $common_script)
 EOF
+	ppid=$(qsub -l walltime=$pp_walltime $dependency | awk '{print $NF}')
+
     else
+
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF > /dev/null
+
+        if [ -n "$2" ]; then
+            dependency="--dependency=afterok:$jobid"
+        else
+            dependency=""
+        fi
+
+        cat <<EOF &> $common_script
 #!/bin/sh
 #SBATCH -J pp_${test_name}
 #SBATCH --mail-type=FAIL
 #SBATCH -o "slurm-%j.log"
+$SBATCH_PARTITION
 $SBATCH_COMPUTEACCOUNT
 if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
     module purge &>/dev/null
     module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
     export PATH=$PATH
+elif [[ "$ARCH" == "levante" ]]; then
+    module purge &>/dev/null
+    module load gnuplot/5.4.2-gcc-11.2.0
+    module load imagemagick/7.0.8-7-gcc-11.2.0
+    module load ghostscript/9.54.0-gcc-11.2.0  # not mentioned in readme but essential for converting .ps to .png
+    # python2 is already available on the system
 fi
 $(cat $common_script)
 EOF
+        ppid=$(sbatch -n 1 --time=$pp_walltime $dependency $common_script | awk '{print $NF}')
+
     fi
 
-    rm $common_script
+#    rm $common_script
 
-    popd &> /dev/null    
+    popd 1>/dev/null
+
+    # Add this pp-job id to the list of pp-jobs that the summary-report job should wait for to finish.
+    if [ -n "$ppid"  ]; then
+        if [ -z "$pp_jobids" ]; then
+            pp_jobids="$ppid"
+        else
+            pp_jobids="$pp_jobids:$ppid"
+        fi
+    fi
 }
 
-# This function submits a benchmark as a PBS job
+# This function submits a benchmark as an HPC job
+# (e.g. SLURM, determined by *.tmpl in directory parallel/)
 # Parameters:
 # $1  The name of the benchmark
 function submit_job {
@@ -287,20 +437,21 @@ function submit_job {
     local submit_vars=$PWD/$test_name/submit_vars.sh
     local insfile=$bm_root/$test_name/config/guess.ins
 
-    pushd $workspace &> /dev/null
+    pushd $workspace 1>/dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
+        jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
+        jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
     fi
 
     local submit_exit_status=$?
 
-    popd &> /dev/null
+    popd 1>/dev/null
 
     if (($submit_exit_status != 0)); then
 	error "Failed to submit $test_name! Try manually for more information."
     else
+#        echo "... and skipping ppjob submission."
 	submit_pp $test_name $jobid
     fi
 }
@@ -314,12 +465,12 @@ function run_single_machine_pp {
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
 
-    pushd $workspace &> /dev/null
+    pushd $workspace 1>/dev/null
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
 	nice $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
     fi
     ls | grep "^run[0-9]*$" | xargs rm -rf
-    popd &> /dev/null
+    popd 1>/dev/null
 
     echo $test_name >> $bm_root/progress.txt
 }
@@ -335,14 +486,14 @@ function run_single_machine_model {
     local submit_vars=$PWD/$test_name/submit_vars.sh
     local insfile=$bm_root/$test_name/config/guess.ins
 
-    pushd $workspace &> /dev/null
+    pushd $workspace 1>/dev/null
     if [ -f $submit_vars ]; then
 		./submit.sh -i $insfile -s $submit_vars
     else
 		./submit.sh -i $insfile
     fi
 
-    popd &> /dev/null
+    popd 1>/dev/null
 
     run_single_machine_pp $test_name
 }
@@ -413,14 +564,14 @@ function meta_data {
     echo >> $file
 
     # Go up to parent directory and print out version control information
-    pushd .. &> /dev/null
+    pushd .. 1>/dev/null
 
-    if svn info &> /dev/null ; then
+    if svn info 1>/dev/null ; then
 	# Strip host name from svn URL
 	svn info | grep "^URL:" | sed 's|URL: svn://.*/svn/|VCS Path: |' >> $file
 	svn info | grep "^Revision:" >> $file
 	svn info | grep "^Last Changed Date:" >> $file
-	
+
 	changes=$(svn st -q --non-interactive | grep -v "Performing status on external item" | grep -v "^$")
 	changesdiff=$(svn diff --non-interactive)
 
@@ -443,8 +594,12 @@ function meta_data {
 	echo "Version information missing" >> $file
     fi
 
-    popd &> /dev/null
+    popd 1>/dev/null
 }
+
+
+### End of functions section ###################################
+
 
 # Ok, let's start!
 
@@ -468,14 +623,14 @@ fi
 
 # Generate meta data about this run
 # (such as time stamp and version control information).
-if (( $pp_only == 0 )); then
+if (( $pp_only == 0 && $summaryreport_only == 0 )); then
     meta_data $work_dir
 fi
 
 # Build the model which will be used by benchmarks that don't have their own
 # special code. No need to build it if we're only doing post processing
 # however.
-if (( $pp_only == 0 )); then
+if (( $pp_only == 0 && $summaryreport_only == 0 )); then
     echo "Building standard model..."
     if ! build $work_dir/standard_build; then
 	echo "Not running any benchmarks!"
@@ -519,19 +674,33 @@ if [ -n "$COMPUTEACCOUNT" ]; then
     SBATCH_COMPUTEACCOUNT="#SBATCH -A $COMPUTEACCOUNT"
 fi
 
-# Call run_benchmark for each test
+# Set HPC specfic variables for partitions etc
+SUPERTOOL_NPROCS=1 # default for Lunarc/Aurora
+if [[ "$ARCH" == "levante" ]]; then
+    SBATCH_PARTITION="#SBATCH --partition=shared"
+    SUPERTOOL_NPROCS=12		# Allocate enough memory for running Tellme on Levante (fixed memory amount per CPU)
+fi
+
+# Call run_benchmark for each test, unless we're doing summary-processing only.
+if (( $summaryreport_only == 0 )); then
 all_benchmarks_ok=1
-for test_name in "${test_names[@]}"
-do
-  if (( $pp_only == 1 )); then
+  for test_name in "${test_names[@]}"
+  do
+    if (( $pp_only == 1 )); then
       run_pp $test_name
-  else
+    else
       if ! run_benchmark $test_name ; then
-	  echo "Issue when building benchmarks, see log"
-	  exit 1
-      fi
-  fi
-done
+        echo "Issue when building benchmarks, see log"
+        exit 1
+    fi
+    fi
+  done
+fi
+
+# Call run_summaryprocessing after all other tests have been submitted
+if (( $summaryreport_flag == 1 )); then
+  run_summaryprocessing
+fi
 
 if (( $compile_only == 1 )); then
     echo "Done!"

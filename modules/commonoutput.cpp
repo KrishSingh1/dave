@@ -30,6 +30,7 @@ namespace GuessOutput {
 REGISTER_OUTPUT_MODULE("common", CommonOutput)
 
 CommonOutput::CommonOutput() {
+
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
@@ -80,9 +81,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
-	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");	
+	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
-	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
+	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
 	if ( firemodel == BLAZE ) {
@@ -114,6 +115,14 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_msnow", &file_msnow, 300, "Monthly snow depth");
 	declare_parameter("file_mwtp", &file_mwtp, 300, "Monthly water table depth");
 	declare_parameter("file_mald", &file_mald, 300, "Monthly active layer depth");
+
+	// Daily output variables
+	// Flux benchmarking
+	declare_parameter("file_dgpp", &file_dgpp, 300, "Daily GPP");
+	declare_parameter("file_dreco", &file_dreco, 300, "Daily RECO");
+	declare_parameter("file_dnee", &file_dnee, 300, "Daily NEE");
+	declare_parameter("file_dlai", &file_dlai, 300, "Daily LAI");
+
 }
 
 
@@ -386,13 +395,38 @@ void CommonOutput::define_output_tables() {
 	soil_npool_columns += ColumnDescriptor("N2O", 11, 4);
 	soil_npool_columns += ColumnDescriptor("N2",  11, 4);
 
-	
+
 	// SOIL N TRANSFORMATION - fluxes
 	ColumnDescriptors soil_nflux_columns;
 	soil_nflux_columns += ColumnDescriptor("NH3",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("NO",   12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
 	soil_nflux_columns += ColumnDescriptor("N2",   12, 6);
+
+
+	// Daily output for flux benchmarking
+	// Daily GPP
+	ColumnDescriptors dgpp_columns;
+	dgpp_columns += ColumnDescriptors(pfts, 10, 5);
+	dgpp_columns += ColumnDescriptor("Total", 10, 5);
+
+	// Daily NEE
+	ColumnDescriptors dnee_columns;
+	dnee_columns += ColumnDescriptor("Veg", 10, 5);
+	dnee_columns += ColumnDescriptor("Soil", 10, 5);
+	dnee_columns += ColumnDescriptor("Fire", 10, 5);
+	dnee_columns += ColumnDescriptor("NEE", 10, 5);
+
+	// Daily respiration
+	ColumnDescriptors dreco_columns;
+	dreco_columns += ColumnDescriptor("Ra", 10, 5);
+	dreco_columns += ColumnDescriptor("Rh", 10, 5);
+	dreco_columns += ColumnDescriptor("Reco", 10, 5);
+
+	// Daily LAI
+	ColumnDescriptors dlai_columns;
+	dlai_columns += ColumnDescriptors(pfts, 10, 5);
+	dlai_columns += ColumnDescriptor("Total", 10, 5);
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -486,16 +520,24 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
 	create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
 	create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
+
+	// *** DAILY OUTPUT VARIABLES ***
+
+	// Daily output for flux benchmarking
+	create_output_table(out_dgpp, file_dgpp, dgpp_columns);
+	create_output_table(out_dnee, file_dnee, dnee_columns);
+	create_output_table(out_dreco, file_dreco, dreco_columns);
+	create_output_table(out_dlai, file_dlai, dlai_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
 /** for 3D vegetation plot in Windows shell
  */
 void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
-	
+
 	// File for output of 3D vegetation structure (invoked by Windows shell only)
-	plot3d_fileopen(); 
-	
+	plot3d_fileopen();
+
 	if (plot3d_getfilehandle()) {
 
 		int ival, p, npft_tree, npft_grass, npft_total;
@@ -1791,10 +1833,182 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 }
 
+void outlimit_daily(OutputRows& out, const Table& table, double d) {
+	if (date.get_calendar_year() > 2012) {
+		out.add_value(table, d);
+	}
+}
+
 /// Output of simulation results at the end of each day
 /** This function does not have to provide any information to the framework.
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+	// Daily output for flux benchmarking
+
+	double dgpp_gridcell = 0.0;
+	double standpft_dgpp = 0.0;
+	double mean_standpft_dgpp = 0.0;
+
+	double dra_gridcell = 0.0;
+	double standpft_dra = 0.0;
+	double mean_standpft_dra = 0.0;
+	double dreco = 0.0;
+
+	double dflux_veg, dflux_repr, dflux_soil, dflux_fire, dflux_est, dflux_seed, dflux_charvest;
+	double dc_org_leach_gridcell = 0.0;
+	double dnee = 0.0;
+
+	double dlai_gridcell = 0.0;
+	double standpft_dlai = 0.0;
+	double mean_standpft_dlai = 0.0;
+
+	// Get daily data per PFT
+	// *** Loop through PFTs ***
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+
+		Pft& pft = pftlist.getobj();
+		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
+
+		mean_standpft_dgpp = 0.0;
+		mean_standpft_dra = 0.0;
+		mean_standpft_dlai = 0.0;
+
+		// Determine area fraction of stands where this pft is active:
+		double active_fraction = 0.0;
+
+		Gridcell::iterator gc_itr = gridcell.begin();
+
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+
+			if (stand.pft[pft.id].active) {
+				active_fraction += stand.get_gridcell_fraction();
+			}
+
+			++gc_itr;
+		}
+
+		// Loop through stands
+		gc_itr = gridcell.begin();
+
+		standpft_dgpp = 0.0;
+		standpft_dra = 0.0;
+		standpft_dlai = 0.0;
+
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+			Standpft& standpft = stand.pft[pft.id];
+
+			if (standpft.active) {
+				stand.firstobj();
+
+				// Loop through patches
+				while (stand.isobj) {
+					Patch& patch = stand.getobj();
+					Patchpft& patchpft = patch.pft[pft.id];
+
+					Vegetation& vegetation = patch.vegetation;
+					standpft_dgpp += patch.fluxes.get_daily_flux(Fluxes::GPP, date.day, pft.id);
+					standpft_dra += patch.fluxes.get_daily_flux(Fluxes::RA, date.day, pft.id);
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv = vegetation.getobj();
+
+						if (indiv.id != -1 && indiv.alive) {
+
+							if (indiv.pft.id == pft.id) {
+								standpft_dlai += indiv.lai_today();
+
+							}
+
+						} // alive?
+						vegetation.nextobj();
+					}
+
+
+					stand.nextobj();
+				} // end of patch loop
+				standpft_dgpp /= (double)stand.npatch();
+				standpft_dra /= (double)stand.npatch();
+				standpft_dlai /= (double)stand.npatch();
+
+				//Update pft means for active stands
+				if (active_fraction) {
+					mean_standpft_dgpp += standpft_dgpp * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_dra += standpft_dra * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_dlai += standpft_dlai * stand.get_gridcell_fraction() / active_fraction;
+				}
+				// Update gridcell totals
+				double fraction_of_gridcell = stand.get_gridcell_fraction();
+
+				dgpp_gridcell += standpft_dgpp * fraction_of_gridcell;
+				dra_gridcell += standpft_dra * fraction_of_gridcell;
+				dlai_gridcell += standpft_dlai * fraction_of_gridcell;
+
+			} // if (active)
+			++gc_itr;
+		}//End of loop through stands
+
+		outlimit_daily(out, out_dgpp, mean_standpft_dgpp);
+		outlimit_daily(out, out_dlai, mean_standpft_dlai);
+
+		pftlist.nextobj();
+	} // *** End of PFT loop ***
+
+
+	// Get daily data per patch
+	dc_org_leach_gridcell = 0.0;
+	dflux_veg = dflux_repr = dflux_soil = dflux_fire = dflux_est = dflux_seed = dflux_charvest = dnee = 0.0;
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+
+	// Loop through Stands
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+
+		// Loop through Patches
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+			dflux_veg += -patch.fluxes.get_daily_flux(Fluxes::NPP, date.day) * to_gridcell_average;
+			dflux_repr += -patch.fluxes.get_daily_flux(Fluxes::REPRC, date.day) * to_gridcell_average;
+			dflux_soil += patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * to_gridcell_average;
+			dflux_fire += patch.fluxes.get_daily_flux(Fluxes::FIREC, date.day) * to_gridcell_average;
+			dflux_est += patch.fluxes.get_daily_flux(Fluxes::ESTC, date.day) * to_gridcell_average;
+			stand.nextobj();
+		} // patch loop
+		++gc_itr;
+	} // stand loop
+
+	// Write fluxes to file
+
+	// NEE
+	// Note that the daily output doesn't include reproduction and establishment as these are calculated at the end of a year
+	dnee = dflux_veg + dflux_soil + dflux_fire;
+	outlimit_daily(out, out_dnee, dflux_veg);
+	outlimit_daily(out, out_dnee, dflux_soil);
+	outlimit_daily(out, out_dnee, dflux_fire);
+	outlimit_daily(out, out_dnee, dnee);
+
+	// GPP
+	outlimit_daily(out, out_dgpp, dgpp_gridcell);
+
+	// Respiration
+	dreco = dflux_soil + dra_gridcell;
+	outlimit_daily(out, out_dreco, dra_gridcell);
+	outlimit_daily(out, out_dreco, dflux_soil);
+	outlimit_daily(out, out_dreco, dreco);
+
+	// LAI
+	outlimit_daily(out, out_dlai, dlai_gridcell);
+
 }
 
 } // namespace

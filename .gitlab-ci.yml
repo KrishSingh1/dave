@@ -60,4 +60,4 @@ compile_benchmarks_with_netcdf:
   stage: compile_benchmarks
   script:
     - cd benchmarks
-    - ./benchmarks -s -c -i diurnal_pristine_sites .
+    - ./benchmarks -1 -c -i diurnal_pristine_sites .

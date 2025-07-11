@@ -1835,6 +1835,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	acalloc_root				= 0.0;
 	acalloc_repr				= 0.0;
 	acalloc_sap					= 0.0;
+	acalloc_storage				= 0.0;
 	acalloc_crown				= 0.0;
 
 	initialc = 0.0;

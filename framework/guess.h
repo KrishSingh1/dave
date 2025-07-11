@@ -3214,6 +3214,8 @@ public:
 	double acalloc_sap;
 	/// Total annaul C biomass allocated to reproductive tissue on modelled area basis (kgC/m2)
 	double acalloc_repr;
+	/// Total annaul C biomass allocated to storage tissue on modelled area basis (kgC/m2)
+	double acalloc_storage;
 	/// Total annaul C biomass allocated to crown on modelled area basis (kgC/m2)
 	double acalloc_crown;
 	/// heartwood C biomass on modelled area basis (kgC/m2)

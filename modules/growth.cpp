@@ -1529,7 +1529,25 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	return indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit;
+	// X years worth of backup NSC to restore roots & canopy
+	const double years_C_backup = 1.0;
+	// const double years_C_backup = 3.0;
+	// the proportion of storage C mass as a fraction of the total C mass (uniless)
+	// TODO: can be a PFT parameter given obs proof
+	const double storage_prop = 0.15;
+	//  storage_max as a proportion of total biomass (kgC/m2)
+	double storage_cmass_prop = storage_prop * (indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_heart + indiv.cmass_root);
+	// storage_max to recover leaves and canopy (kgC/m2)
+	double storage_recovery = years_C_backup * (indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit);
+	// storage max (kgC/m2)
+	double C_backup = min(storage_cmass_prop, storage_recovery);
+	
+	// C_backup = storage_recovery;
+	
+	// // to return to the "original" 
+	C_backup =  years_C_backup * (indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit);
+	
+	return C_backup;
 }
 
 // Capacity of C storage (kg C m-2)
@@ -5286,6 +5304,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.acalloc_root += indiv.cgrow_root;
 		indiv.acalloc_sap += indiv.cgrow_sap;
 		indiv.acalloc_repr += indiv.cgrow_repr;
+		indiv.acalloc_storage += indiv.cgrow_storage;
 		indiv.acalloc_crown += indiv.cgrow_crown;
 
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
@@ -6643,6 +6662,7 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 			indiv.acalloc_root = 0;
 			indiv.acalloc_sap = 0;
 			indiv.acalloc_repr = 0;
+			indiv.acalloc_storage = 0;
 			indiv.acalloc_crown = 0;
 		}
 	}

@@ -2170,6 +2170,8 @@ void plib_callback(int callback) {
 				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
 					badins("boleht_frac");
 				}
+
+				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
 			if (!ifcalcvcmax) {
 				if (!itemparsed("vcmax_25")) badins("vcmax_25");

@@ -3967,6 +3967,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to
 // growth vs. storage. Equivalent to calc_fc_growth() in the grote code
+// This is never used.
 void storage_growth_partitioning_tree_grote(Individual &indiv) {
 	// Inputs: indiv.dnpp
 	// Outputs: indiv.cmass_storage, indiv.cgrow (potential growth in kgC/m2)

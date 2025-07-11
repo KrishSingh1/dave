@@ -583,7 +583,6 @@ void GZFileOutputChannel::finish_row(const Table& table,
 
     // print out the values
     for (size_t i = 0; i < row.size(); i++) {
-        gzprintf(gzfile, format(table, (int)i), row[i]);
         const ColumnDescriptor &column = columns[i];
         column_type_t type = column.get_type();
 

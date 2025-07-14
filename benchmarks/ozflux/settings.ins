@@ -201,8 +201,8 @@ npatch       1          ! Number of replicate patches to simulate
 patcharea    1000       ! Patch area (m2)
 
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific",
-                            ! see documentation for water_uptake()
+wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
+                         ! see documentation for water_uptake()
 rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)

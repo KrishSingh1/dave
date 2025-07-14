@@ -35,7 +35,8 @@ DaveOutput::DaveOutput() {
 	// Annual gridcell-level outputs.
 	add_gridcell_aggregated_indiv_output("file_aagb"             , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground biomass (kg/m2)", true);
 	add_gridcell_aggregated_tree_output("file_aagb_tree"         , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground tree biomass (kg/m2)", true);
-	add_gridcell_output("file_dave_amet_prec"                    , ANNUAL, "prec", [](const Gridcell &g) { return g.climate.aprec; }, "Total annual precipitation (mm)", true, false);
+	add_gridcell_output("file_dave_amet_prec"                    , ANNUAL, "prec", [](const Gridcell &g) { return g.climate.aprec; }, "Total annual precipitation (mm)");
+	add_gridcell_output("file_dave_amet_par"                     , ANNUAL, "par", [](const Gridcell &g) { return g.climate.apar; }, "Total annual PAR (J/m2)");
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");

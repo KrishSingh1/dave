@@ -1351,6 +1351,10 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
+	if (date.day == 0) {
+		climate.apar = 0;
+	}
+	climate.apar += climate.par;
 
 	climate.par_max = max(climate.par, climate.par_max);
 

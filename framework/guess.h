@@ -1295,6 +1295,9 @@ public:
 	/// annual average precipitation (last year) (mm)
 	double aprec_lastyear;	
 
+	/// annual PAR sum
+	double apar;
+
 	/// Current (calendar) year of met data from input file.
 	int met_year;
 
@@ -1306,7 +1309,7 @@ public:
 
 		var_prec = 0.0;
 		var_temp = 0.0;
-
+		apar = 0.0;
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 		met_year = 0;

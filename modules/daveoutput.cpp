@@ -35,6 +35,7 @@ DaveOutput::DaveOutput() {
 	// Annual gridcell-level outputs.
 	add_gridcell_aggregated_indiv_output("file_aagb"             , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground biomass (kg/m2)", true);
 	add_gridcell_aggregated_tree_output("file_aagb_tree"         , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground tree biomass (kg/m2)", true);
+	add_gridcell_output("file_dave_amet_prec"                    , ANNUAL, "prec", [](const Gridcell &g) { return g.climate.aprec; }, "Total annual precipitation (mm)", true, false);
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
@@ -142,12 +143,13 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, true);
 	add_aggregated_indiv_output("file_dave_sla"                 , DAILY, [](const Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf"          , DAILY, [](const Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.cmass_leafs[1]; }, "Leaf brown C mass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.pft.is_grass() ? i.cmass_leafs[1] : 0.0; }, "Leaf brown C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_nmass_leaf"          , DAILY, [](const Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_root"          , DAILY, [](const Individual &i) { return i.cmass_root; }, "Root C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_sap"           , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Sapwood C mass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cton_sap"            , DAILY, [](const Individual &i) { return i.nmass_sap == 0.0 ? 0 : i.cmass_sap / i.nmass_sap; }, "Sapwood C to N ratio (kgC/kgN)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_heart"         , DAILY, [](const Individual &i) { return i.cmass_heart; }, "Heartwood C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_nmass_root"          , DAILY, [](const Individual &i) { return i.nmass_root; }, "Root N mass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass"               , DAILY, [](const Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)", sum, true);
@@ -176,6 +178,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_resp_autotrophic"    , DAILY, [](const Individual &i) { return (i.dgpp - i.dnpp) * G_PER_KG; }, "Daily autotrophic respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance * G_PER_KG; }, "Daily maintenance respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth * G_PER_KG; }, "Daily growth respiration (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_repr"           , DAILY, [](const Individual &i) { return i.resp_repr * G_PER_KG; }, "Daily reproductive respiration (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_crown"          , DAILY, [](const Individual &i) { return i.resp_crown * G_PER_KG; }, "Daily crown respiration (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_root"           , DAILY, [](const Individual &i) { return i.resp_root * G_PER_KG; }, "Daily root respiration (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_sap"            , DAILY, [](const Individual &i) { return i.resp_sap * G_PER_KG; }, "Daily sapwood respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_indiv_npp"           , DAILY, [](const Individual &i) { return i.dnpp * G_PER_KG; }, "Daily NPP (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_fpc"                 , DAILY, [](const Individual &i) { return i.fpc; }, "Daily FPC ()", mean, false, true);
 	add_aggregated_indiv_output("file_dave_crownarea"           , DAILY, [](const Individual &i) { return i.crownarea; }, "Daily Crown Area (m2)", sum, true);
@@ -282,6 +288,7 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_nmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                            , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_seed_ext"                   , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
+	add_pft_output("file_dave_dncohort"                         , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file

@@ -103,6 +103,20 @@ Get the columns used in the patch-level cpool file.
 std::vector<ColumnDefinition<Patch>> cpool_columns();
 
 /*
+Get the columns used in the vegetation C pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_cpool_columns();
+
+
+std::vector<ColumnDefinition<Individual>> indiv_dbhcoloumns_columns();
+
+
+/*
+Get the columns used in the vegetation C pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_cpool_tree_columns();
+
+/*
 Get the columns used in the patch-level cflux file.
 */
 std::vector<ColumnDefinition<Patch>> cflux_columns();

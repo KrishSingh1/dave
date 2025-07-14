@@ -956,6 +956,22 @@ std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> indiv_resp_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+
+	columns.push_back(ColumnDefinition<Individual>("resp_leaf", [](const Individual &i) { return i.resp_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_root", [](const Individual &i) { return i.resp_root; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_sap", [](const Individual &i) { return i.resp_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_crown", [](const Individual &i) { return i.resp_crown; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_repr", [](const Individual &i) { return i.resp_repr; }));
+
+	columns.push_back(ColumnDefinition<Individual>("resp_maintenance", [](const Individual &i) { return i.resp_maintenance; }));
+	columns.push_back(ColumnDefinition<Individual>("resp_growth", [](const Individual &i) { return i.resp_growth; }));
+
+	columns.push_back(ColumnDefinition<Individual>("total", [](const Individual &i) { return i.resp_maintenance + i.resp_growth; }));
+
+	return columns;
+}
 
 double get_nindiv(const Patch &patch, const Pft &pft) {
 	double n = 0;

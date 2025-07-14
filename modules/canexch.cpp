@@ -2550,7 +2550,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
 	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
 	double growth, double fphen_activity, double assim, double resp_leaf,
-	double& resp, double &resp_maintenance, double &resp_growth) {
+	double& resp, double &resp_maintenance, double &resp_growth,
+	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2593,10 +2594,10 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// TODO: if works - find references and set as pft parameter? (ASSAF)
 	const double base_resp = 0.000001;
 	// const double base_resp = 0.0;
-	double resp_sap = 0;    // sapwood respiration (kg/m2/day)
-	double resp_root = 0;   // root respiration (kg/m2/day)
-	double resp_crown = 0;  // crown respiration (kg/m2/day)
-	double resp_repr = 0;   // reproductive respiration (kg/m2/day)
+	resp_sap = 0;    // sapwood respiration (kg/m2/day)
+	resp_root = 0;   // root respiration (kg/m2/day)
+	resp_crown = 0;  // crown respiration (kg/m2/day)
+	resp_repr = 0;   // reproductive respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -2669,6 +2670,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
+		// fixme - this should depend on actual growth amount
 		resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
 
 		// guess2008 - disallow negative growth respiration
@@ -2837,11 +2839,13 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		// We pass in 0 for leaf respiration here because it's already accounted
 		// for implicitly in the call to net_assimilation() above. This value is
 		// only treated differently in dave photosynthesis.
+		indiv.resp_leaf = phot.rd_g * KG_PER_G;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
 			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
 			assim, 0.0, resp, indiv.resp_maintenance,
-			indiv.resp_growth);
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_root, indiv.resp_sap);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -4340,12 +4344,15 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cton_root = 29.0;
 		}
 
+		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;
+
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
-			assim, indiv.photosynthesis.rd_g * KG_PER_G, resp, indiv.resp_maintenance,
-			indiv.resp_growth);
+			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_root, indiv.resp_sap);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.

@@ -2009,6 +2009,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnpp              = 0.0;
 	resp_maintenance  = 0.0;
 	resp_growth       = 0.0;
+	resp_leaf         = 0.0;
+	resp_sap          = 0.0;
+	resp_root         = 0.0;
+	resp_repr         = 0.0;
+	resp_crown        = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -2176,7 +2181,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& andemand_leaf
 		& andemand_root
 		& andemand_sap
-		& andemand;
+		& andemand
+		& resp_leaf
+		& resp_sap
+		& resp_root
+		& resp_repr
+		& resp_crown;
 
 	if (pft.landcover==CROPLAND)
 		arch & *cropindiv;

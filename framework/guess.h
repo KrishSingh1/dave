@@ -3709,6 +3709,21 @@ public:
 	// Growth respiration today (kgC/m2)
 	double resp_growth;
 
+	// Leaf respiration today (kgC/m2)
+	double resp_leaf;
+
+	// Sapwood respiration today (kgC/m2)
+	double resp_sap;
+
+	// Root respiration today (kgC/m2)
+	double resp_root;
+
+	// Reproductive tissue respiration today (kgC/m2)
+	double resp_repr;
+
+	// Crown respiration today (kgC/m2)
+	double resp_crown;
+
 	// bvoc
 
 	/// isoprene production (mg C m-2 d-1)

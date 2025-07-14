@@ -267,6 +267,14 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_fstorage"            , DAILY, [](const Individual &i) { return i.fstorage; }, "coefficient that scales growth according to actualt storage state (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_fphoto"              , DAILY, [](const Individual &i) { return i.fphoto; }, "coefficient that scales growth according to relative day length (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cgrow_pot"           , DAILY, [](const Individual &i) { return i.cgrow_pot; }, "coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_resp_leaf"           , DAILY, [](const Individual &i) { return i.resp_leaf; }, "Total Leaf respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_root"           , DAILY, [](const Individual &i) { return i.resp_root; }, "Total Root respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_sap"            , DAILY, [](const Individual &i) { return i.resp_sap; }, "Total Sapwood respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_crown"          , DAILY, [](const Individual &i) { return i.resp_crown; }, "Total Crown respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_repr"           , DAILY, [](const Individual &i) { return i.resp_repr; }, "Total Reproductive respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance; }, "Total Maintenance respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth; }, "Total Growth respiration by PFT (kgC/m2)", sum, true);
+
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
 	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
@@ -274,6 +282,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_hydraulics"                     , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", false, false);
 	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 	add_indiv_output("file_dave_indiv_c_d_dbh"                  , ANNUAL, "d_dbh", [](const Individual &i) { return i.acalloc_sap; }, "annual diamter increment (m)");
+	add_indiv_output("file_dave_indiv_respiration"              , DAILY, indiv_resp_columns, "Indiv-level respiration components (kgC/m2)"); // No auto total column
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar"           , DAILY, "layer", get_nlayer_fpar, [](const Individual &indiv, int i) { return indiv.fipar_layerwise.size() > i ? indiv.fipar_layerwise[i] : 0; }, "Daily layered fpar [0-1]", mean);

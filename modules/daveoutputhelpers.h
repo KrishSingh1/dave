@@ -218,6 +218,11 @@ Get the columns used to evaluate the hydraulics model.
 std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns();
 
 /*
+Get the columns used to evaluate the hydraulics model.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_resp_columns();
+
+/*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft);

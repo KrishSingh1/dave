@@ -1019,6 +1019,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// Establishment each year in managed patches
 
 							patch.pft[pft.id].nsapling+=nsapling;
+							patch.pft[pft.id].nsapling_year = nsapling;
 							newindiv=0;
 						}
 						else {

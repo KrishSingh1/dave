@@ -360,6 +360,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& aphen
 		& establish
 		& nsapling
+		& nsapling_year
 		& cmass_litter_leaf
 		& cmass_litter_root
 		& cmass_litter_sap

@@ -84,6 +84,8 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_aclitter"                         , ANNUAL, get_pft_cmass_litter, "Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)");
 	add_pft_output("file_dave_ancohort"                         , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 	add_pft_output("file_dave_anetps_ff"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual net photosynthesis at forest floor (kgC/m2)", true);
+	add_pft_output("file_dave_ansapling"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling; }, "Number of saplings of each PFT ready to establish (trees only)", true);
+	add_pft_output("file_dave_ansapling_year"                   , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling_year; }, "Recruitment rate of each PFT (saplings per year) (trees only)", true);
 
 	// Annual stand-level outputs.
 	add_stand_output("file_dave_stand_frac"                     , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");

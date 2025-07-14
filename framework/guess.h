@@ -5088,6 +5088,8 @@ public:
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
+	/// The number of saplings of this PFT established this year.
+	double nsapling_year;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
@@ -5213,6 +5215,7 @@ public:
 		anetps_ff_est_initial = 0.0;
 		wscal_mean_est = 0.0;
 		nsapling = 0;
+		nsapling_year = 0;
 		water_deficit_y = 0.0;
 		g1 = 0.0;
 

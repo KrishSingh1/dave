@@ -978,6 +978,7 @@ void dailyaccounting_patch(Patch& patch) {
 			patchpft.cmass_leaf_root_turnover = 0.0;
 			patchpft.cmass_repr = 0.0;
 			patchpft.cmass_est = 0.0;
+			patchpft.nsapling_year = 0;
 			if(patch.age == 1) {
 				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
 			}

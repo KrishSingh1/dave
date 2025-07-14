@@ -912,12 +912,6 @@ std::vector<ColumnDefinition<Patch>> aninput_columns() {
 	return columns;
 }
 
-std::vector<ColumnDefinition<Patch>> establishment_columns() {
-	std::vector<ColumnDefinition<Patch>> columns;
-	// columns.push_back(ColumnDefinition<Patch>("anetps_ff_frac", [](const Patch &p) { return ; }));
-	return columns;
-}
-
 std::vector<ColumnDefinition<Individual>> indiv_cpool_columns() {
 	std::vector<ColumnDefinition<Individual>> columns;
 

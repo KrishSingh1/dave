@@ -11,14 +11,12 @@
 ### Special tweaks
 
 # Exclude BM(s?)
-EXCLUDEDBMS=""
-#"fluxnet"
-#"tellus"
+EXCLUDEDBMS=""		#"fluxnet tellus"
 
 # Exclude these words or strings, separate with |
 FILTERPATTERN="C pool change|C flux|Period C balance|C balance year|N pool change|N flux|Period N balance|N balance year"	# elapsed|^Commen|^Last|Using|C pool change|C fluxes|Period C|^$
 # and do it only on these BMs:
-FILTERBMS="tellus"
+FILTERBMS=""
 
 bms="crop_global crop_mixed_sites diurnal_pristine_sites emdi_europe emdi_global europe fluxnet global panarctic\
  pristine_sites secondary_stands soil_temperature tellus wetland_global wetland_sites"
@@ -105,10 +103,15 @@ for bmcat in $bms; do
   fi
 
   # Remove standard output
-  grep -v 'Commencing simulation' $bmcat/guess.log \
-  | grep -E -v "complete.*elapsed.*remaining" | grep -v -e '^[[:space:]]*$' \
-  | grep -v 'fraction data used from year 2007 and onwards' | grep -v "LPJ-GUESS cohort mode \- global pfts" \
-  | grep -E -v "\[LPJ-GUESS  .*2017\]" | grep -v "\-\-\-\-\-\-\-\-\-\-" \
+  cat $bmcat/guess.log \
+  | grep -v 'Commencing simulation' \
+  | grep -E -v "\[LPJ-GUESS  .*2017\]" \
+  | grep -v "LPJ-GUESS cohort mode \- global pfts" \
+  | grep -v -e '^[[:space:]]*$' \
+  | grep -v "\-\-\-\-\-\-\-\-\-\-" \
+  | grep -E -v "complete.*elapsed.*remaining" \
+  | grep -v "Getting soil code and Nitrogen deposition" \
+  | grep -v 'fraction data used from year 2007 and onwards' \
   | awk '{\
     if ( $0 ~ /^~~~~~~~~~~~~/ ) {\
       if ( skipline==0 ) { skipline=1 } else { skipline=0 } } else { if ( skipline==0 ) { print $0 } }\

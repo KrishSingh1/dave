@@ -183,7 +183,7 @@ public:
 	/// Copies the data column names to a string array
 	bool GetHeader(char *cropnames[MAXRECORDS]) const;
 	/// Copies the whole header to a string
-	bool GetHeaderFull(char *header_line) const;
+	bool GetHeaderFull(char header_line[MAXLINE]) const;
 	/// Returns a pointer to a data name string for a column by its index
 	char* GetHeader(int record) const;
 	/// Returns the current coordinates

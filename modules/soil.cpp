@@ -2431,6 +2431,24 @@ void Soillayer::update_thermal_properties() {
 	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;
 }
 
+/// Return organic fraction of soil layer
+/** Return organic fraction of soil layer
+ *  as org / (org + min)
+ */
+double Soillayer::org_frac() {
+
+	// Calculate soil layer organic carbon masses
+	double ccont_org = ccont(GHUMUSSOM);
+
+	// Calculate soil layer organic carbon densities
+	double rho_org = calc_organic_density(GHUMUSSOM);
+
+	// Update organic volume (mm)
+	double org_volume = ccont_org / rho_org * MM_PER_M;
+
+	return org_volume / (org_volume + mineral_volume);
+}
+
 /// Serialize soil layer variables
 /** Serialize soil layer variables
  */
@@ -7388,6 +7406,8 @@ void Soilcolumn::vertical_movement() {
 	double organic_frac_move_thres = 0.001;
 
 	bool humus_first = false; // DW_COMMENT
+	bool peat_special = false; // DW_COMMENT
+	bool org_avr = true; // DW_COMMENT
 
 	if (humus_first) {
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -7868,8 +7888,14 @@ void Soilcolumn::vertical_movement() {
 
 						double organic_frac_int = org_volume / (org_volume + min_volume);
 
+						if (org_avr) {
+							double org_frac_below = soillayer_below.org_frac();
+
+							organic_frac_int = (organic_frac_int + org_frac_below) / 2.0;
+						}
+
 						// For peat move mineral soil first
-						if (patch.stand.landcover == PEATLAND) {
+						if (patch.stand.landcover == PEATLAND && peat_special) {
 							organic_frac_int = 0.0;
 						}
 
@@ -8025,8 +8051,14 @@ void Soilcolumn::vertical_movement() {
 								organic_frac_int = org_volume / (org_volume + soillayer_below.mineral_volume);
 							}
 
+							if (org_avr) {
+								double org_frac_lyr = soillayer.org_frac();
+
+								organic_frac_int = (organic_frac_int + org_frac_lyr) / 2.0;
+							}
+
 							// For peat move organic matter up first
-							if (patch.stand.landcover == PEATLAND) {
+							if (patch.stand.landcover == PEATLAND && peat_special) {
 								organic_frac_int = 1.0;
 							}
 

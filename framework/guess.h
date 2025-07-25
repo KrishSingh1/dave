@@ -4082,6 +4082,8 @@ public:
 
 	void update_thermal_properties();
 
+	double org_frac();
+
 	void serialize(ArchiveStream& arch);
 };
 

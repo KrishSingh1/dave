@@ -2685,7 +2685,7 @@ public:
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
 
-		if (ifdavegrowth) {
+		if (dave_allocation() && is_grass()) {
 			// TODO: revisit C:N avg!
 			// Bounds for fine root C:N ratio
 			cton_root_min = cton_leaf_min * frac_leaftoroot;

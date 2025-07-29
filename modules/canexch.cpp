@@ -3290,8 +3290,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
 	// Note: fphen_activity is always 1 for trees.
 
-	// vcmax25/jmax25 are input in umol m-2 s-1, but the equations expect them
-	// in μmol m-2 s-1.
+	// vcmax25/jmax25 are input in μmol m-2 s-1, but the equations expect them
+	// in mol m-2 s-1.
 	double vcmax25_mol = inputs.vcmax25 / UMOL_PER_MOL;
 	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
 

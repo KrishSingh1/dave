@@ -2694,10 +2694,6 @@ public:
 			// Bounds for sap C:N ratio
 			cton_sap_min = cton_leaf_min * frac_leaftosap;
 			cton_sap_max = cton_leaf_max * frac_leaftosap;
-
-			// Bounds for repr C:N ratio
-			cton_repr_min = greater_than_or_equal(cton_root_min, cton_leaf_min) ? cton_root_min : cton_leaf_min;
-			cton_repr_max = less_than_or_equal(cton_root_max, cton_leaf_max) ? cton_root_max : cton_leaf_max;
 		} else {
 			// Tighter C:N ratio range for roots and sapwood: picked out thin air
 			double frac_maxtomin = .9;
@@ -2710,6 +2706,10 @@ public:
 			cton_sap_max  = cton_leaf_max * frac_leaftosap;
 			cton_sap_min = cton_sap_max * frac_maxtomin;
 		}
+
+		// Bounds for repr C:N ratio
+		cton_repr_min = std::min(cton_root_min, cton_leaf_min);
+		cton_repr_max = std::max(cton_root_max, cton_leaf_max);
 
 		// Average leaf C:N ratio
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);

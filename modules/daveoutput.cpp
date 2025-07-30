@@ -281,13 +281,13 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_fstorage"            , DAILY, [](const Individual &i) { return i.fstorage; }, "coefficient that scales growth according to actualt storage state (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_fphoto"              , DAILY, [](const Individual &i) { return i.fphoto; }, "coefficient that scales growth according to relative day length (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cgrow_pot"           , DAILY, [](const Individual &i) { return i.cgrow_pot; }, "coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_resp_leaf"           , DAILY, [](const Individual &i) { return i.resp_leaf; }, "Total Leaf respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_root"           , DAILY, [](const Individual &i) { return i.resp_root; }, "Total Root respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_sap"            , DAILY, [](const Individual &i) { return i.resp_sap; }, "Total Sapwood respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_crown"          , DAILY, [](const Individual &i) { return i.resp_crown; }, "Total Crown respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_repr"           , DAILY, [](const Individual &i) { return i.resp_repr; }, "Total Reproductive respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance; }, "Total Maintenance respiration by PFT (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth; }, "Total Growth respiration by PFT (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_leaf"           , DAILY, [](const Individual &i) { return i.resp_leaf * G_PER_KG; }, "Total Leaf respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_root"           , DAILY, [](const Individual &i) { return i.resp_root * G_PER_KG; }, "Total Root respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_sap"            , DAILY, [](const Individual &i) { return i.resp_sap * G_PER_KG; }, "Total Sapwood respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_crown"          , DAILY, [](const Individual &i) { return i.resp_crown * G_PER_KG; }, "Total Crown respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_repr"           , DAILY, [](const Individual &i) { return i.resp_repr * G_PER_KG; }, "Total Reproductive respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance * G_PER_KG; }, "Total Maintenance respiration by PFT (gC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth * G_PER_KG; }, "Total Growth respiration by PFT (gC/m2)", sum, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.

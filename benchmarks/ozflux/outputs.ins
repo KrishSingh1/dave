@@ -124,15 +124,16 @@ ifdailyoutput 1
 !file_dave_indiv_resp_auto       "dave_indiv_resp_auto.out"      ! Daily autotrophic respiration (kgC/m2/day)
 !file_dave_phen                  "dave_phen.out"                 ! Daily phenology multiplier
 !file_dave_lai_today             "dave_lai_today.out"            ! Daily LAI
-!file_dave_indiv_gpp             "dave_indiv_gpp.out"            ! Daily gross primary productivity (kgC/m2/day)
+!file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily cohort-level NPP (gC/m2/day)
+!file_dave_indiv_gpp             "dave_indiv_gpp.out"            ! Daily cohort-level GPP (gC/m2/day)
 !file_dave_resp_autotrophic      "dave_resp_auto.out"            ! Daily autotrophic respiration (gC/m2/day)  (Note: this does NOT include leaf respiration, as this is already accounted for in gpp!)
 !file_dave_resp_maintenance      "dave_resp_maintenance.out"     ! Daily maintenance respiration (gC/m2/day)
 !file_dave_resp_growth           "dave_resp_growth.out"          ! Daily growth respiration (gC/m2/day)
 !file_dave_resp_repr             "dave_resp_repr.out"            ! Daily reproductive respiration (gC/m2/day)
 !file_dave_resp_crown            "dave_resp_crown.out"           ! Daily crown respiration (gC/m2/day)
+!file_dave_resp_leaf             "dave_resp_leaf.out"            ! Total Leaf respiration by PFT (gC/m2)
 !file_dave_resp_root             "dave_resp_root.out"            ! Daily root respiration (gC/m2/day)
 !file_dave_resp_sap              "dave_resp_sap.out"             ! Daily sapwood respiration (gC/m2/day)
-!file_dave_indiv_npp             "dave_indiv_npp.out"            ! Daily NPP (kgC/m2/day)
 !file_dave_fpc                   "dave_fpc.out"                  ! Daily FPC ()
 !file_dave_crownarea             "dave_crownarea.out"            ! Daily Crown Area (m2)
 !file_dave_agd_g                 "dave_agd_g.out"                ! Daily gross photosynthesis (gC/m2/day)
@@ -171,13 +172,6 @@ ifdailyoutput 1
 !file_dave_cgrow_pot             "dave_cgrow_pot.out"            ! Coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)
 !file_dave_wscal_5l              "dave_wscal_5l.out"             ! Water scalar for top 5 layers [0-1], 1 = min stress
 !file_dave_clitter               "dave_clitter.out"              ! Total Daily PFT-Level C Mass in Litter (kgC/m2)
-!file_dave_resp_leaf             "dave_resp_leaf.out"            ! Total Leaf respiration by PFT (kgC/m2)
-!file_dave_resp_root             "dave_resp_root.out"            ! Total Root respiration by PFT (kgC/m2)
-!file_dave_resp_sap              "dave_resp_sap.out"             ! Total Sapwood respiration by PFT (kgC/m2)
-!file_dave_resp_crown            "dave_resp_crown.out"           ! Total Crown respiration by PFT (kgC/m2)
-!file_dave_resp_repr             "dave_resp_repr.out"            ! Total Reproductive respiration by PFT (kgC/m2)
-!file_dave_resp_maintenance      "dave_resp_maintenance.out"     ! Total Maintenance respiration by PFT (kgC/m2)
-!file_dave_resp_growth           "dave_resp_growth.out"          ! Total Growth respiration by PFT (kgC/m2)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar           "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]

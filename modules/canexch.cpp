@@ -2669,13 +2669,17 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
-		// Growth respiration = 0.25 ( GPP - maintenance respiration)
-		// fixme - this should depend on actual growth amount
-		resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
+		if (ifdavegrowth && ifdailytree) {
+			// In the DAVE version, growth respiration depends on growth.
+			resp_growth = 0.0;
+		} else {
+			// Growth respiration = 0.25 ( GPP - maintenance respiration)
+			resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
 
-		// guess2008 - disallow negative growth respiration
-		// (following a comment (060823) from Annett Wolf)
-		if(resp_growth < 0.0) resp_growth = 0.0;
+			// guess2008 - disallow negative growth respiration
+			// (following a comment (060823) from Annett Wolf)
+			if(resp_growth < 0.0) resp_growth = 0.0;
+		}
 	}
 	else if (lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL || lifeform == MOSS) {
 
@@ -2697,14 +2701,19 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			
 			// Growth respiration
 			//resp_growth = growth * 0.2;
-			resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
-
+			if (ifdavegrowth && ifdailygrass) {
+				// In the DAVE version, growth respiration depends on growth.
+				resp_growth = 0;
+			} else {
+				resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
+			}
 		} else {
 			
 			// Root respiration
 			resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 			
 			// Growth respiration (see above)
+			// fixme - this should depend on actual growth amount
 			resp_growth = (assim - resp_leaf - resp_root) * 0.25;
 
 		}

@@ -1625,19 +1625,47 @@ into this variable. This must be initialised before calling this function.
 @param nreturn: Any N in ngrow which can't be allocated to this pool (ie any N
 which, if allocated, would cause the C:N ratio to fall below cton_min) will be
 added into this variable. This must be initialised before calling this function.
+@param frac_resp: Fraction of growth to be respired.
+@param resp_growth: (Output) Growth respiration.
 */
-void constrain_growth(double &cgrow, double &ngrow, double cton_min, double cton_max, double &creturn, double &nreturn) {
+void constrain_growth(
+		double &cgrow,
+		double &ngrow,
+		double cton_min,
+		double cton_max,
+		double &creturn,
+		double &nreturn,
+		double frac_resp,
+		double &resp_growth) {
+	assert(frac_resp >= 0.0);
+	assert(frac_resp < 1.0);
+
 	// When the upper/lower C:N limits are reached, only allow new growth to
 	// move the C:N ratio to within this fraction of the limits. If we don't
 	// have this limits, growth will move the C:N ratio exactly onto the limits,
 	// and rounding errors can then push the C:N ratio beyond the limits.
 	const double FGROWTH_MAX = 0.999;
 
+	double cgrow_pot = cgrow;
+	cgrow = cgrow_pot / (1.0 + frac_resp);
+	resp_growth = cgrow_pot - cgrow;
+
 	if ( ngrow < (cgrow / cton_max)) {
 		// C:N ratio in new growth exceeds max C:N ratio.Limit C in new growth
 		// to the max C:N ratio and put the rest into creturn.
 		double cgrow_max = ngrow * cton_max * FGROWTH_MAX;
-		creturn += cgrow - cgrow_max;
+		double overflow = cgrow_pot - cgrow_max;
+
+		// Growth respiration can be paid by the C we can't grow.
+		resp_growth = cgrow_max * frac_resp;
+
+		// We were already able to pay for the growth respiration with
+		// cgrow_pot - cgrow, and now that difference has increased (because
+		// cgrow has decreased).
+		assert(overflow > resp_growth);
+
+		overflow -= resp_growth;
+		creturn += overflow;
 		cgrow = cgrow_max;
 	} else if ( ngrow > (cgrow / cton_min) ) {
 		// N:C ratio in new growth exceeds max N:C ratio. Limit N in new growth
@@ -1645,6 +1673,8 @@ void constrain_growth(double &cgrow, double &ngrow, double cton_min, double cton
 		double ngrow_max = FGROWTH_MAX * cgrow / cton_min;
 		nreturn += ngrow - ngrow_max;
 		ngrow = ngrow_max;
+
+		// cgrow is unchanged, so no need to adjust resp_growth.
 	}
 }
 
@@ -1677,15 +1707,19 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			double nmass_root = cmass_root / init_cton;
 			double nmass_storage = cmass_storage / init_cton;
 
+			// TODO: do we want growth respiration during establishment? The
+			// carbon is already accounted for via a magical establishment flux.
+			// Should we then respire some of that?
+			double resp;
 			constrain_growth(
 				cmass_leaf, nmass_leaf,
 				indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
-				cmass_storage, nmass_storage);
+				cmass_storage, nmass_storage, 0, resp);
 
 			constrain_growth(
 				cmass_root, nmass_root,
 				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-				cmass_storage, nmass_storage);
+				cmass_storage, nmass_storage, 0, resp);
 
 			indiv.cmass_leafs[green] += cmass_leaf;
 			indiv.cmass_root    += cmass_root;
@@ -5233,27 +5267,34 @@ void update_pools_dave(Vegetation& vegetation) {
 		//}
 		//else {
 
+		const double RESP_FRAC = 0.25;
+		double resp_growth_leaf = 0;
+		double resp_growth_root = 0;
+		double resp_growth_crown = 0;
+		double resp_growth_sap = 0;
+		double resp_growth_repr = 0;
+
 		// N supply < N demand
 		double nreturn = 0;
-			
+
 		// Leaves
 		constrain_growth(
 			indiv.cgrow_leaf, navail_leaf,
 			indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
-			creturn, nreturn);
+			creturn, nreturn, RESP_FRAC, resp_growth_leaf);
 
 		// Roots
 		constrain_growth(
 			indiv.cgrow_root, navail_root,
 			indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-			creturn, nreturn);
+			creturn, nreturn, RESP_FRAC, resp_growth_root);
 
 		// Crowns (for grasses and mosses only).
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			constrain_growth(
 				indiv.cgrow_crown, navail_crown,
 				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-				creturn, nreturn);
+				creturn, nreturn, RESP_FRAC, resp_growth_crown);
 		}
 
 		// sapwood
@@ -5261,15 +5302,21 @@ void update_pools_dave(Vegetation& vegetation) {
 			constrain_growth(
 				indiv.cgrow_sap, navail_sap,
 				indiv.pft.cton_sap_min, indiv.pft.cton_sap_max,
-				creturn, nreturn);
+				creturn, nreturn, RESP_FRAC, resp_growth_sap);
 		}
 
 		// Reproductive tissue
 		constrain_growth(
 			indiv.cgrow_repr, navail_repr,
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
-			creturn, nreturn);
+			creturn, nreturn, RESP_FRAC, resp_growth_repr);
 
+		assert(positive(creturn));
+		indiv.resp_growth = resp_growth_leaf + resp_growth_root + resp_growth_crown + resp_growth_sap + resp_growth_repr;
+		indiv.dnpp -= indiv.resp_growth;
+		indiv.report_flux(Fluxes::NPP, -indiv.resp_growth);
+		indiv.report_flux(Fluxes::RA, indiv.resp_growth);
+	
 		if (ifgrote) {
 			// cgrow_storage goes back into storage.
 			creturn += indiv.cgrow_storage;
@@ -5308,6 +5355,23 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.acalloc_storage += indiv.cgrow_storage;
 		indiv.acalloc_crown += indiv.cgrow_crown;
 
+		// Verify that growth respiration is correctly related to growth.
+		if (indiv.cgrow_leaf > 0) {
+			assert(equal(RESP_FRAC, resp_growth_leaf / indiv.cgrow_leaf));
+		}
+		if (indiv.cgrow_root > 0) {
+			assert(equal(RESP_FRAC, resp_growth_root / indiv.cgrow_root));
+		}
+		if (indiv.cgrow_sap > 0) {
+			assert(equal(RESP_FRAC, resp_growth_sap / indiv.cgrow_sap));
+		}
+		if (indiv.cgrow_repr > 0) {
+			assert(equal(RESP_FRAC, resp_growth_repr / indiv.cgrow_repr));
+		}
+		if (indiv.cgrow_crown > 0) {
+			assert(equal(RESP_FRAC, resp_growth_crown / indiv.cgrow_crown));
+		}
+
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
 
 		// Always take up available N
@@ -5345,7 +5409,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		assert(positive(indiv.cmass_storage));
 		assert(positive(indiv.nmass_storage));
 		assert(less_than_or_equal(indiv.nmass_storage, indiv.nstorage_max));
-		assert(equal(cgrow_unlim, indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr + creturn + cexcess));
+		assert(equal(cgrow_unlim, indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr + creturn + cexcess + indiv.resp_growth));
 
 		// Checking C:N ratios
 

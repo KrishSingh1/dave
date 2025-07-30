@@ -3977,9 +3977,6 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 		return;
 	}
 
-	if (date.get_calendar_year() == 2000){
-		printf("");
-	}
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
 	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).

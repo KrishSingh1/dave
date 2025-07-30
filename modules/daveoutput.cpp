@@ -14,6 +14,7 @@
 #include "commonoutput.h"
 #include "daveoutput.h"
 #include "daveoutputhelpers.h"
+#include "guessmath.h"
 #include "gutil.h"
 #include "outputchannel.h"
 #include "outputmodule.h"
@@ -154,12 +155,12 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_root"          , DAILY, [](const Individual &i) { return i.cmass_root; }, "Root C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_sap"           , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Sapwood C mass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_cton_sap"            , DAILY, [](const Individual &i) { return i.cton_sap(); }, "Sapwood C to N ratio (kgC/kgN)", sum, true);
-	add_aggregated_indiv_output("file_dave_cton_leaf"           , DAILY, [](const Individual &i) { return i.cton_leaf(); }, "Leaf C to N ratio (kgC/kgN)", mean);
-	add_aggregated_indiv_output("file_dave_cton_root"           , DAILY, [](const Individual &i) { return i.cton_root(); }, "Root C to N ratio (kgC/kgN)", mean);
-	add_aggregated_indiv_output("file_dave_cton_heart"          , DAILY, [](const Individual &i) { return i.cton_heart(); }, "Heartwood C to N ratio (kgC/kgN)", mean);
+	add_aggregated_indiv_output("file_dave_cton_sap"            , DAILY, [](const Individual &i) { return min(i.pft.cton_sap_max, i.cton_sap()); }, "Sapwood C to N ratio (kgC/kgN)", sum, true);
+	add_aggregated_indiv_output("file_dave_cton_leaf"           , DAILY, [](const Individual &i) { return min(i.pft.cton_leaf_max, i.cton_leaf()); }, "Leaf C to N ratio (kgC/kgN)", mean);
+	add_aggregated_indiv_output("file_dave_cton_root"           , DAILY, [](const Individual &i) { return min(i.pft.cton_root_max, i.cton_root()); }, "Root C to N ratio (kgC/kgN)", mean);
+	add_aggregated_indiv_output("file_dave_cton_heart"          , DAILY, [](const Individual &i) { return min(i.pft.cton_sap_max, i.cton_heart()); }, "Heartwood C to N ratio (kgC/kgN)", mean);
 	add_aggregated_indiv_output("file_dave_cton_storage"        , DAILY, [](const Individual &i) { return i.cmass_storage / i.nmass_storage; }, "Storage C to N ratio (kgC/kgN)", mean);
-	add_aggregated_indiv_output("file_dave_cton_crown"          , DAILY, [](const Individual &i) { return i.cton_crown(); }, "Crown C to N ratio (kgC/kgN)", mean);
+	add_aggregated_indiv_output("file_dave_cton_crown"          , DAILY, [](const Individual &i) { return min(i.pft.cton_root_max, i.cton_crown()); }, "Crown C to N ratio (kgC/kgN)", mean);
 	add_aggregated_indiv_output("file_dave_cmass_heart"         , DAILY, [](const Individual &i) { return i.cmass_heart; }, "Heartwood C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_nmass_root"          , DAILY, [](const Individual &i) { return i.nmass_root; }, "Root N mass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass"               , DAILY, [](const Individual &i) { return i.ccont(); }, "Total C biomass per individual per patch (kgC/m2)", sum, true);

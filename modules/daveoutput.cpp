@@ -199,7 +199,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_agd_g"               , DAILY, [](const Individual &i) { return i.photosynthesis.agd_g; }, "Daily gross photosynthesis (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_rd_g"                , DAILY, [](const Individual &i) { return i.photosynthesis.rd_g; }, "Daily leaf respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_je"                  , DAILY, [](const Individual &i) { return i.photosynthesis.je; }, "Daily PAR-limited photosynthesis rate (gC/m2/h)", sum, true);
-	add_aggregated_indiv_output("file_dave_vm"                  , DAILY, [](const Individual &i) { return i.photosynthesis.vm; }, "RuBisCO capacity (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_vcmax"               , DAILY, [](const Individual &i) { return i.photosynthesis.vm; }, "RuBisCO capacity (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_vcmax25"             , DAILY, [](const Individual &i) { return i.ps_subdaily.vcmax25; }, "Max carboxylation rate at 25 degrees (vcmax 25) (umol/m2/s)", mean);
 	add_aggregated_indiv_output("file_dave_jmax25"              , DAILY, [](const Individual &i) { return i.ps_subdaily.jmax25; }, "Maximum e- transport rate at 25 degrees (jmax) (umol/m2/s)", mean);
 	add_aggregated_indiv_output("file_dave_fphen_activity"      , DAILY, [](const Individual &i) { return i.fphen_activity; }, "Dormancy downregulation (0-1)", mean, false, true);

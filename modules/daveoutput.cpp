@@ -79,7 +79,7 @@ DaveOutput::DaveOutput() {
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
 	add_pft_output("file_dave_agpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Total individual-level Annual GPP (kgC/m2/year)", true);
-	add_pft_output("file_dave_acue"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id) / patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Annual CUE (unitless)", true);
+	add_pft_output("file_dave_acue"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) ? patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id) / patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) : 0; }, "Annual CUE (unitless)", true);
 	add_pft_output("file_dave_aresp"                            , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total individual-level Annual autotrophic Respiration (kgC/m2/year)", true);
 	add_pft_output("file_dave_acmass_mort"                      , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
 	add_pft_output("file_dave_aclitter"                         , ANNUAL, get_pft_cmass_litter, "Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)");

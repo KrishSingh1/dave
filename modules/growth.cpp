@@ -1530,8 +1530,8 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 
 double calc_creserve_opt_grote(const Individual &indiv) {
 	// X years worth of backup NSC to restore roots & canopy
-	const double years_C_backup = 1.0;
-	// const double years_C_backup = 3.0;
+	// const double years_C_backup = 1.0;
+	const double years_C_backup = 3.0;
 	// the proportion of storage C mass as a fraction of the total C mass (uniless)
 	// TODO: can be a PFT parameter given obs proof
 	const double storage_prop = 0.15;

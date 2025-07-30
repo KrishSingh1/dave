@@ -2720,13 +2720,16 @@ public:
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (is_grass() || lifeform == MOSS) {
-			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
-		} 
-		else {
-			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
+		if (!dave_allocation() || is_grass()) {
+			if (is_grass() || lifeform == MOSS) {
+				respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
+			}
+			else {
+				respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
 			             cton_sap  / (cton_sap_avr  + cton_sap_min);
+			}
 		}
+
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
 	/*

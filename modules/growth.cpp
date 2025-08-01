@@ -1529,25 +1529,34 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	// X years worth of backup NSC to restore roots & canopy
-	const double years_C_backup = 1.0;
-	// const double years_C_backup = 3.0;
-	// the proportion of storage C mass as a fraction of the total C mass (uniless)
-	// TODO: can be a PFT parameter given obs proof
-	const double storage_prop = 0.15;
-	//  storage_max as a proportion of total biomass (kgC/m2)
-	double storage_cmass_prop = storage_prop * (indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_heart + indiv.cmass_root);
-	// storage_max to recover leaves and canopy (kgC/m2)
-	double storage_recovery = years_C_backup * (indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit);
-	// storage max (kgC/m2)
-	// double C_backup = min(storage_cmass_prop, storage_recovery);
-	
-	// C_backup = storage_recovery;
-	
-	// // to return to the "original" 
-	double C_backup =  years_C_backup * (indiv.pft.turnover_leaf * indiv.cmass_leaf_limit + indiv.pft.turnover_root * indiv.cmass_root_limit);
-	
-	return C_backup;
+	// 95% percentile NSC concentrations from eucface.
+
+	// Maximum NSC concentration in dead bark.
+	const double BARK_NSC_CONC = 0.203;
+
+	// Maximum NSC concentration in leaves.
+	const double LEAF_NSC_CONC = 0.243;
+
+	// Maximum NSC concentration in twigs.
+	const double TWIG_NSC_CONC = 0.0688;
+
+	// Maximum NSC concentration in wood.
+	const double WOOD_NSC_CONC = 0.0797;
+
+	// Fraction of dead woody biomass that is bark. Plucked out of thin air.
+	const double BARK_FRAC = 0.01;
+
+	double cmass_bark = indiv.cmass_heart * BARK_FRAC;
+	double cmass_leaf = indiv.get_cmass_leaf();
+	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
+	double cmass_wood = indiv.cmass_sap - cmass_twig;
+
+	double nsc_bark = cmass_bark * BARK_NSC_CONC;
+	double nsc_leaf = cmass_leaf * LEAF_NSC_CONC;
+	double nsc_twig = cmass_twig * TWIG_NSC_CONC;
+	double nsc_wood = cmass_wood * WOOD_NSC_CONC;
+
+	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
 }
 
 // Capacity of C storage (kg C m-2)

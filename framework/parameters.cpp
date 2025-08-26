@@ -25,6 +25,7 @@ vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
 hydrologytype hydrology;
+energytype energy;
 
 int npatch;
 int npatch_secondarystand;
@@ -195,7 +196,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTWATERUSE,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STWATERUSE, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
-	CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY
+	CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY, CB_ENERGY
 };
 
 // File local variables
@@ -240,6 +241,7 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	hydrology=GERTEN;
+	energy=CNSTEP_FULL;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -490,6 +492,8 @@ void plib_declarations(int id,xtring setname) {
 			"Weather Generator (\"INTERP\", \"GWGEN\")");
 		declareitem("hydrology", &strparam, 20, CB_HYDROLOGY,
 			"Hydrology schemes (\"GERTEN\", \"MILLER\", \"RICHARDS\")");
+		declareitem("energy", &strparam, 20, CB_ENERGY,
+			"Energy calculation schemes (\"CNSTEP_FULL\", \"CNSTEP\", \"BELDA\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -1097,6 +1101,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_ENERGY:
+		if (strparam.upper() == "CNSTEP_FULL") energy = CNSTEP_FULL;
+		else if (strparam.upper() == "CNSTEP") energy = CNSTEP;
+		else if (strparam.upper() == "BELDA") energy = BELDA;
+		else {
+			sendmessage("Error",
+				"Unknown energy calculation scheme (valid types: \"CNSTEP_FULL\", \"CNSTEP\", \"BELDA\")");
+			plibabort();
+		}
+		break;
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1262,6 +1276,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("hydrology")) badins("hydrology");
+		if (!itemparsed("energy")) badins("energy");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE){
 			if (weathergenerator!=GWGEN) {

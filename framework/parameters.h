@@ -85,6 +85,15 @@ typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
  */
 typedef enum { GERTEN, MILLER, RICHARDS } hydrologytype;
 
+/// Type of energy calculation used 
+/**     One of:
+ *      CNSTEP_FULL
+ *      CNSTEP
+ *      BELDA
+ */
+typedef enum { CNSTEP_FULL, CNSTEP, BELDA} energytype;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -134,6 +143,9 @@ extern weathergeneratortype weathergenerator;
 
 /// Hydrology switch
 extern hydrologytype hydrology;
+
+/// Energy calculation switch
+extern energytype energy;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;

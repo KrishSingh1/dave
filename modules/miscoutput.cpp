@@ -353,6 +353,9 @@ void MiscOutput::define_output_tables() {
 		sprintf(lyr_nr, "soil%d", lyr);
 		soillyr_columns += ColumnDescriptor(lyr_nr, 8, 4);
 	}
+	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+		sprintf(lyr_nr, "pad%d", lyr);
+	}
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
@@ -1268,7 +1271,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup+90) {
+	if (date.year < nyear_spinup + 90) {
 		return;
 	}
 
@@ -1292,7 +1295,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double wmass[NSOILLAYERS_MAX] = { 0.0 };
 	double wsats[NSOILLAYERS_MAX] = { 0.0 };
 
-	double soil_temp[NSOILLAYERS_MAX+NPADLAYERS] = { 0.0 };
+	double soil_temp[NSOILLAYERS_MAX + NPADLAYERS] = { 0.0 };
 
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {

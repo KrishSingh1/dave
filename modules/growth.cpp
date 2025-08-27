@@ -1814,7 +1814,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		indiv.cmass_sap += cmass_sap_ind;
 
 		if (ifforcedlai) {
-			indiv.lai = FIXED_LAI[date.month];
+			indiv.lai = fixed_lai;
 		} else {
 			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 		}
@@ -2303,7 +2303,7 @@ bool allometry(Individual& indiv) {
 
 		// Stand-level LAI
 		if (ifforcedlai) {
-			indiv.lai = FIXED_LAI[date.month];
+			indiv.lai = fixed_lai;
 		} else {
 			indiv.lai = indiv.cmass_leaf * indiv.sla();
 		}
@@ -2338,7 +2338,7 @@ bool allometry(Individual& indiv) {
 
 				// Stand-level LAI
 				if (ifforcedlai) {
-					indiv.lai = FIXED_LAI[date.month];
+					indiv.lai = fixed_lai;
 				} else {
 					indiv.lai = indiv.lai_indiv;
 				}
@@ -2347,7 +2347,7 @@ bool allometry(Individual& indiv) {
 				indiv.lai_indiv = 0.0;
 				indiv.fpc = 0.0;
 				if (ifforcedlai) {
-					indiv.lai = FIXED_LAI[date.month];
+					indiv.lai = fixed_lai;
 				} else {
 					indiv.lai = 0.0;
 				}
@@ -6219,7 +6219,7 @@ void allometry_dave_tree(Individual& indiv) {
 		}
 		// Patch-level LAI
 		if (ifforcedlai) {
-			indiv.lai = FIXED_LAI[date.month];
+			indiv.lai = fixed_lai;
 		} else {
 			indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 		}

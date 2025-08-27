@@ -99,6 +99,7 @@ bool gzip_output;
 int nindiv_max;
 int grazing_duration;
 bool ifforcedlai;
+double fixed_lai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -307,6 +308,7 @@ void initsettings() {
 	gzip_output = false;
 	nindiv_max = 0;
 	ifforcedlai = false;
+	fixed_lai = 0;
 	ifevenlaidist = true;
 	ifsinksource = false;
 	ifadaptive_rootdist = false;
@@ -677,6 +679,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
 		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
+		declareitem("fixed_lai", &fixed_lai, 0.01, 7, 1, CB_NONE, "The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 
@@ -1803,6 +1806,10 @@ void plib_callback(int callback) {
 
 		if (state_path == "" && (save_state || restart)) {
 			badins("state_path");
+		}
+
+		if (ifforcedlai) {
+			if (!itemparsed("fixed_lai")) badins("fixed_lai");
 		}
 
 		if (grassforcrop) {

@@ -153,6 +153,16 @@ Fluxes::Fluxes(Patch& p)
   : patch(p),
     annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
 
+	// Resize daily_fluxes_per_pft to required sizes
+	// Order  daily_fluxes_per_pft[day][pft][type]
+	daily_fluxes_per_pft.resize(date.year_length());
+	for (int day = 0; day < date.year_length(); ++day) {
+		daily_fluxes_per_pft[day].resize(npft);
+		for (int pft = 0; pft < npft; ++pft) {
+			daily_fluxes_per_pft[day][pft].resize(NPERPFTFLUXTYPES, 0.0);
+		}
+	}
+
 	reset();
 }
 
@@ -169,7 +179,9 @@ void Fluxes::reset() {
 	for (int d = 0; d < date.year_length(); ++d) {
 		std::fill_n(daily_fluxes_pft[d], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(daily_fluxes_patch[d], int(NPERPATCHFLUXTYPES), 0);
-		std::fill_n(daily_fluxes_per_pft[d][0], 365, 0); // ICOS MK
+		for (int pft = 0; pft < npft; ++pft) {
+			std::fill_n(daily_fluxes_per_pft[d][pft].begin(), int(NPERPFTFLUXTYPES), 0);
+		}
 	}
 }
 
@@ -183,7 +195,7 @@ void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
-	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value; // ICOS MK
+	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value;
 }
 
 void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
@@ -3186,7 +3198,7 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
-		if ((ncont_year - ncont + nflux_year) > epsilon_biomass) {
+		if (fabs(ncont_year - ncont + nflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ncont_year - ncont + nflux_year);
 			dprintf("N pool change: %.9f\n", ncont_year - ncont);
@@ -3214,7 +3226,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 		double epsilon_biomass = 1.0e-9;
 		if(!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
-		if ((ccont_year - ccont + cflux_year) > epsilon_biomass) {
+		if (fabs(ccont_year - ccont + cflux_year) > epsilon_biomass) {
 			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
 				ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);

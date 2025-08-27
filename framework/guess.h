@@ -1398,7 +1398,8 @@ private:
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
 
 	/// Stores one flux value per day, flux type and PFT
-	double daily_fluxes_per_pft[365][12][NPERPFTFLUXTYPES];
+	//  Order daily_fluxes_per_pft[day][pft][type]
+	std::vector<std::vector<std::vector<double>>> daily_fluxes_per_pft;
 
 	/// Stores one flux value per day and flux type
 	double daily_fluxes_patch[365][NPERPATCHFLUXTYPES];

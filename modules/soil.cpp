@@ -49,10 +49,14 @@ void Snowlayer::clear() {
 
 /// Calculates heat capacity of snow
 /** Calculates heat capacity of snow
- *  Best et al. 2011, Eq. 22 [J m-3 K-1]
+ *  Fukusako, Eq. 2. (J m-3 K-1) ///Best et al. 2011, Eq. 22 [J m-3 K-1]
  */
-double snowheatcap(double imass, double wmass, double depth) {
-	return (Cp_ice * imass + Cp_water * wmass + Cp_air * max(0.0, (depth - wmass - imass))) / depth;
+double snowheatcap(double imass, double wmass, double depth, double temp) {
+	//return (Cp_ice * imass + Cp_water * wmass + Cp_air * max(0.0, (depth - wmass - imass))) / depth;
+
+	// Snow density including water withing snow
+	double tot_dens = (imass + wmass) / depth * MM_PER_M;
+	return (0.185 + 0.689 * (K2degC + temp) * 0.01) * tot_dens * J_PER_KJ; // J kg-1 K-1
 }
 
 /// Calculates thermal conductivity of snow
@@ -102,8 +106,8 @@ void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
  */
 void Snowlayer::update_thermal_properties() {
 
-	// Heat capacity of snow - Best et al. 2011, Eq. 22 [J m-3 K-1]
-	Ch = snowheatcap(imass, wmass, depth);
+	// Heat capacity of snow - Fukusako, Eq. 2. (J m-3 K-1)
+	Ch = snowheatcap(imass, wmass, depth, temp);
 
 	// Thermal conductivity of snow - Best et al. 2011, Eq. 23 [J m-1 K-1 s-1]
 	Kh = snowcond(imass, wmass, depth);
@@ -960,7 +964,7 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 	// Compactive viscosity factor for snow
 	double eta_0 = 1E7;
 	// Reference snow density [kg m-3]
-	double rho_0 = 80.0;
+	double rho_0 = 50.0;
 
 	// Snow mass above current layer
 	double I_above = 0.0;
@@ -3416,7 +3420,7 @@ void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 		// Constant [kg m-7/2 s-1/2]
 		int c = 26;
 		// Minimum snow density 
-		double dens_min = 80;
+		double dens_min = 50;
 		// Temperature of the melting point for water
 		double Tmelt = 0;
 
@@ -3427,7 +3431,7 @@ void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 		double snowfall_depth = prec / (snowfall_dens / rho_H2O);
 
 		// Snow fall heat capacity
-		double snowfall_Ch = snowheatcap(prec, 0.0, snowfall_depth);
+		double snowfall_Ch = snowheatcap(prec, 0.0, snowfall_depth, airT);
 
 		// Snowpack depth
 		double snowpack_depth = snow.depth();
@@ -4091,16 +4095,16 @@ void cnstep_full(double surf_temp, double dt, int nlayers, double temp[NLAYERS_M
 		if (lyr == nlayers - 1) {
 			dplus = 0.0;
 		}
+		else if (lyr >= nlayers - NPADLAYERS) {
+			dplus = ki[lyr] / ci[lyr];
+		}
 		else {
 			dplus = ((ki[lyr] * dz[lyr] + ki[lyr + 1] * dz[lyr + 1]) / (dz[lyr] + dz[lyr + 1])) / ci[lyr];
 		}
 
 		// D-
-		if (lyr == 0) {
+		if (lyr == 0 || lyr >= nlayers - NPADLAYERS) {
 			dminus = ki[lyr] / ci[lyr];
-		}
-		else if (lyr == nlayers - 1) {
-			dminus = Dbedrock;
 		}
 		else {
 			dminus = ((ki[lyr] * dz[lyr] + ki[lyr - 1] * dz[lyr - 1]) / (dz[lyr] + dz[lyr - 1])) / ci[lyr];
@@ -4275,16 +4279,16 @@ void cnstep(double surf_temp, double dt, int nlayers, double temp[NLAYERS_MAX + 
 		if (lyr == nlayers - 1) {
 			dplus = 0.0;
 		}
+		else if (lyr >= nlayers - NPADLAYERS) {
+			dplus = di[lyr];
+		}
 		else {
 			dplus = 0.5 * (di[lyr] + di[lyr + 1]);
 		}
 
 		// D-
-		if (lyr == 0) {
+		if (lyr == 0 || lyr >= nlayers - NPADLAYERS) {
 			dminus = di[lyr];
-		}
-		else if (lyr == nlayers - 1) {
-			dminus = Dbedrock;
 		}
 		else {
 			dminus = 0.5 * (di[lyr] + di[lyr - 1]);
@@ -7411,8 +7415,8 @@ void Soilcolumn::calc_temp() {
 		// Air layer
 		dz[0] = AIR_THICKNESS;
 		ci[0] = Cp_air * M3_PER_MM3;
-		ki[0] = Kair * SECS_PER_DAY / MM_PER_M;
 		di[0] = Kair / Cp_air * SECS_PER_DAY * MM2_PER_M2;	// mm2 day-1
+		ki[0] = di[0] * ci[0];
 		temp[0] = airT;
 
 		// Add additional layers

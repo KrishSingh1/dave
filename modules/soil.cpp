@@ -964,7 +964,7 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 	// Compactive viscosity factor for snow
 	double eta_0 = 1E7;
 	// Reference snow density [kg m-3]
-	double rho_0 = 50.0;
+	double rho_0 = 70.0;
 
 	// Snow mass above current layer
 	double I_above = 0.0;
@@ -3420,9 +3420,9 @@ void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 		// Constant [kg m-7/2 s-1/2]
 		int c = 26;
 		// Minimum snow density 
-		double dens_min = 50;
+		double dens_min = 70.0;
 		// Temperature of the melting point for water
-		double Tmelt = 0;
+		double Tmelt = 0.0;
 
 		// Snow fall density
 		double snowfall_dens = max(dens_min, a + b * (airT - Tmelt) + c * pow(u10, 0.5));

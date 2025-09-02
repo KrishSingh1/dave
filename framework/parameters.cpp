@@ -1779,7 +1779,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");
 		}
-		
+
+		if (ifzhou && wateruptake != WR_ROOT_RESISTANCE) {
+			sendmessage("Error", "Zhou model has been enabled, but water uptake method is not set to ROOT_RESISTANCE. This is the only supported water uptake method when ifzhou is enabled");
+			plibabort();
+		}
+
 		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
 		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
 			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");

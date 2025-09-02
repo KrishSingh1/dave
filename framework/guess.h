@@ -4262,6 +4262,66 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/// Container for surface standing water and ice
+struct SSW : public Serializable {
+
+	/// Surface standing water (kg m-2)
+	double wmass;
+	/// Surface standing ice (kg m-2)
+	double imass;
+	/// Surface standing water/ice temperature (deg C)
+	double temp;
+	/// Surface standing water/ice thermal conductivities (J m-1 K-1 s-1)
+	double Kh;
+	/// Surface standing water/ice heat capacities (J m-3 K-1)
+	double Ch;
+	/// Monthly surface standing water and ice [mm]
+	double mwimass[12];
+	/// Fraction of surface covered by surface standing water and ice
+	double wmass_frac;
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell (-)
+	double wmass_frac_thresh;
+	// Surface water threshold below which no single connected  
+	// inundated area spans the grid cell (mm)
+	double wmass_thresh;
+	/// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	double slope_sigma;
+	double sigma_sqrt2;
+	double sigma_sqrt2pi;
+	double sigma2;
+
+	SSW() {
+		wmass = 0.0;
+		imass = 0.0;
+		temp = 0.0;
+		Kh = 0.0;
+		Ch = 0.0;
+		wmass_frac = 0.0;
+		wmass_frac_thresh = 0.0;
+		wmass_thresh = 0.0;
+		slope_sigma = 0.0;
+		sigma_sqrt2 = 0.0;
+		sigma_sqrt2pi = 0.0;
+		sigma2 = 0.0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			mwimass[mth] = 0.0;
+		}
+	}
+
+	/// Water content of surface standing water
+	double wcontent();
+	/// Update surface standing water temperatures due to water fluxes
+	void update_temp(double temp_add, double wmass_add, double imass_add = 0.0);
+	/// Update thermal properties for surface standing water
+	void update_thermal_properties();
+	/// Calculate surface standing water and ice
+	void phase_change();
+	/// Serialize surface standing water variables
+	void serialize(ArchiveStream& arch);
+};
+
 /// Soilcolumn stores state variables for soillayers and the snow pack.
 /** Initialised by a call to initdrivers. One Soilcolumn object is defined for each patch.
 *  A reference to the parent Patch object (defined below) is included as a member
@@ -4337,6 +4397,8 @@ public:
 	padding pad[NPADLAYERS];
 	/// Snow
 	Snow snow;
+	/// Surface standing water
+	SSW ssw;
 
 	// Daily storage:
 
@@ -4371,20 +4433,6 @@ public:
 	double awtp;
 	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
-	/// Standing surface water [mm]
-	double wmass_ssw;
-	/// Standing surface ice [mm]
-	double imass_ssw;
-	/// Standing surface water heat capacity (J m-3 K-1)
-	double Ch_ssw;
-	// Standing surface water thermal conductivity (J m-1 K-1 s-1)
-	double Kh_ssw;
-	/// Standing surface water temperature [C]
-	double temp_ssw;	
-	/// Monthly standing surface water and ice [mm]
-	double mwmass_ssw[12];
-	/// Fraction of surface covered by surface standing water and ice
-	double wmass_ssw_frac;
 
 	// Gas diffusion variables:
 
@@ -4427,17 +4475,6 @@ public:
 	/// Slope gradient [m m-1]
 	double slope_grade_sin;
 	double slope_grade_cos;
-	/// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
-	double slope_sigma;
-	double sigma_sqrt2;
-	double sigma_sqrt2pi;
-	double sigma2;
-	// Fraction of the area that is inundated threshold below which no 
-	// single connected inundated area spans the grid cell (-)
-	double wmass_ssw_frac_thresh;
-	// Surface water threshold below which no single connected  
-	// inundated area spans the grid cell (mm)
-	double wmass_ssw_thresh;
 
 private:
 
@@ -4489,11 +4526,6 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		wmass_ssw = that.wmass_ssw;
-		imass_ssw = that.imass_ssw;
-		Ch_ssw = that.Ch_ssw;
-		Kh_ssw = that.Kh_ssw;
-		temp_ssw = that.temp_ssw;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
 		k_CH4 = that.k_CH4;
@@ -4508,12 +4540,6 @@ public:
 		savesomcent = that.savesomcent;
 		slope_grade_sin = that.slope_grade_sin;
 		slope_grade_cos = that.slope_grade_cos;
-		slope_sigma = that.slope_sigma;
-		sigma_sqrt2 = that.sigma_sqrt2;
-		sigma_sqrt2pi = that.sigma_sqrt2pi;
-		sigma2 = that.sigma2;
-		wmass_ssw_frac_thresh = that.wmass_ssw_frac_thresh;
-		wmass_ssw_thresh = that.wmass_ssw_thresh;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mthaw[mth] = that.mthaw[mth];
@@ -4573,11 +4599,6 @@ public:
 		wtp = that.wtp;
 		awtp = that.awtp;
 		wtd = that.wtd;
-		wmass_ssw = that.wmass_ssw;
-		imass_ssw = that.imass_ssw;
-		Ch_ssw = that.Ch_ssw;
-		Kh_ssw = that.Kh_ssw;
-		temp_ssw = that.temp_ssw;
 		k_O2 = that.k_O2;
 		k_CO2 = that.k_CO2;
 		k_CH4 = that.k_CH4;
@@ -4592,12 +4613,6 @@ public:
 		savesomcent = that.savesomcent;
 		slope_grade_sin = that.slope_grade_sin;
 		slope_grade_cos = that.slope_grade_cos;
-		slope_sigma = that.slope_sigma;
-		sigma_sqrt2 = that.sigma_sqrt2;
-		sigma_sqrt2pi = that.sigma_sqrt2pi;
-		sigma2 = that.sigma2;
-		wmass_ssw_frac_thresh = that.wmass_ssw_frac_thresh;
-		wmass_ssw_thresh = that.wmass_ssw_thresh;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mthaw[mth] = that.mthaw[mth];
@@ -4648,8 +4663,6 @@ public:
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
 	double ncont(grouppooltype group = GALL);
-	/// Water content of surface standing water
-	double wcont_ssw();
 	/// Get soil property per layer
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
@@ -4696,10 +4709,6 @@ public:
 	void update_hydraulic_properties(int nsoillayers_sim);
 	/// Update soil layer temperatures due to water fluxes
 	void wflow_temp(double temp_infilt);
-	/// Update surface standing water temperatures due to water fluxes
-	void update_ssw_temp(double temp_add, double wmass_add, double imass_add = 0.0);
-	/// Update surface standing water content
-	void update_ssw(double& mass, double mass_add);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties();
 	/// Set padding layers depth
@@ -4761,8 +4770,6 @@ public:
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
 
-	/// Update thermal properties for surface standing water
-	void update_thermal_properties_for_ssw();
 	/// Update thermal properties for padding layers
 	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
@@ -4771,8 +4778,6 @@ public:
 	void calc_temp();
 	/// Calculate analytic soil temperatures
 	void calc_temp_analytic();
-	/// Calculate surface standing water and ice
-	void phase_change_ssw();
 	/// Calculate water and ice for each layer
 	void phase_change();
 	/// Calculate thaw depth

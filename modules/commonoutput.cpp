@@ -1782,7 +1782,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
 			imass_snow_gridcell += snow.imass() * to_gridcell_average;
-			wmass_ssw_gridcell += soilcolumn.wmass_ssw * to_gridcell_average;
+			wmass_ssw_gridcell += soilcolumn.ssw.wcontent() * to_gridcell_average;
 			wmass_soil_gridcell += soilcolumn.get_sum(WMASS) * to_gridcell_average;
 			imass_soil_gridcell += soilcolumn.get_sum(IMASS) * to_gridcell_average;
 
@@ -2082,7 +2082,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				
 				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m] * M_PER_MM * to_gridcell_average;
 				msnowcover[m] += patch.soilcolumn.snow.mcover[m] * to_gridcell_average;
-				mwmass_ssw[m] += patch.soilcolumn.mwmass_ssw[m] * to_gridcell_average;
+				mwmass_ssw[m] += patch.soilcolumn.ssw.mwimass[m] * to_gridcell_average;
 				
 				double ald_mth = patch.soilcolumn.depth * M_PER_MM;
 				if (hydrology != GERTEN) {

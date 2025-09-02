@@ -717,7 +717,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		for (int mth = 0; mth < 12; mth++) {
-			soilcolumn.mwmass_ssw[mth] = 0.0;
+			soilcolumn.ssw.mwimass[mth] = 0.0;
 		}
 
 		// Snow

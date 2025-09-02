@@ -1512,9 +1512,10 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soilcolumn.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
 
 					soilcolumn.anfix_calc = (soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
-					soilcolumn.wmass_ssw = (soilcolumn.wmass_ssw * old_frac + from.transfer_wmass_ssw * added_frac) / new_frac;
-					soilcolumn.imass_ssw = (soilcolumn.imass_ssw * old_frac + from.transfer_imass_ssw * added_frac) / new_frac;
-					soilcolumn.temp_ssw = (soilcolumn.temp_ssw * old_frac + from.transfer_temp_ssw * added_frac) / new_frac;
+					soilcolumn.ssw.wmass = (soilcolumn.ssw.wmass * old_frac + from.transfer_wmass_ssw * added_frac) / new_frac;
+					soilcolumn.ssw.imass = (soilcolumn.ssw.imass * old_frac + from.transfer_imass_ssw * added_frac) / new_frac;
+					soilcolumn.ssw.temp = (soilcolumn.ssw.temp * old_frac + from.transfer_temp_ssw * added_frac) / new_frac;
+					// SSW parameter for SLOPE???
 
 					int nsoillayers = min(NSOILLAYERS_MAX, max(soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
 

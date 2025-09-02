@@ -220,9 +220,9 @@ struct landcover_change_transfer {
 				transfer_maxthaw_10.add(maxthaw_10_cp[i] + soilcolumn.maxthaw_10[i] * scale);
 			}
 			transfer_anfix_calc += soilcolumn.anfix_calc * scale;
-			transfer_wmass_ssw += soilcolumn.wmass_ssw * scale;
-			transfer_imass_ssw += soilcolumn.imass_ssw * scale;
-			transfer_temp_ssw += soilcolumn.temp_ssw * scale;
+			transfer_wmass_ssw += soilcolumn.ssw.wmass * scale;
+			transfer_imass_ssw += soilcolumn.ssw.imass * scale;
+			transfer_temp_ssw += soilcolumn.ssw.temp * scale;
 			transfer_soil_nsoillayers = max(transfer_soil_nsoillayers, soilcolumn.nsoillayers);
 
 			// Sum soil layers

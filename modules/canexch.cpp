@@ -3040,7 +3040,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	if (ifforcedlai) {
 		for (size_t i = 0; i < vegetation.nobj; i++) {
 			Individual &indiv = vegetation[i];
-			indiv.lai = FIXED_LAI[date.month];
+			indiv.lai = fixed_lai;
 		}
 	}
 

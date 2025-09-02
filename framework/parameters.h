@@ -457,6 +457,8 @@ extern int nindiv_max;
 extern int grazing_duration;
 /// True if we are using forced LAI.
 extern bool ifforcedlai;
+/// The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.
+extern double fixed_lai;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs

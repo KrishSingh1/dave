@@ -48,7 +48,7 @@ void methane_dynamics(Patch& patch) {
  * dt			d
  * conc			mmol m-3
 */
-void cnstepgas(double Di[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double surf_conc, double dt,
+void cnstepgas(double Di[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double surf_conc, double dt, // DW_COMMENT
 			double conc[NSOILLAYERS_MAX], int nsoillayers) {
 
 	double dplus;

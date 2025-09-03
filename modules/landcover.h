@@ -264,7 +264,7 @@ struct landcover_change_transfer {
 
 			// Soil padding
 			for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-				padding& pad = soilcolumn.pad[lyr];
+				Padlayer& pad = soilcolumn.pad.padlayers[lyr];
 				transfer_soilpad_depth[lyr] += pad.depth * scale;
 				transfer_soilpad_temp[lyr] += pad.temp * scale;
 			}

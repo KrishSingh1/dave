@@ -1588,7 +1588,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 					// Soil padding
 					for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-						padding& pad_lyr = soilcolumn.pad[lyr];
+						Padlayer& pad_lyr = soilcolumn.pad.padlayers[lyr];
 						pad_lyr.depth = (pad_lyr.depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
 						pad_lyr.temp = (pad_lyr.temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}

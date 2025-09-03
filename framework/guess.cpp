@@ -2691,7 +2691,7 @@ void Gridcell::set_soil_depth() {
 			soilcolumn.create_soillayers(soil_lyr_depth);
 
 			// Set padding layers depth
-			soilcolumn.set_padding_depth();
+			soilcolumn.pad.set_depths(soilcolumn.soillayers[nsoillayers - 1].depth);
 			
 			stand.nextobj();
 		}// End of loop through patches

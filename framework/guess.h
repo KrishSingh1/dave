@@ -4087,14 +4087,18 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-/// Container for soil padding parameters
-struct padding : public Serializable {
+/// Container for soil padlayer parameters
+struct Padlayer : public Serializable {
 
-	padding() {
+	Padlayer() {
 		temp = 0.0;
 		depth = 0.0;
 		Kh = 0.0;
 		Ch = 0.0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			mtemp[mth] = 0.0;
+		}
 	}
 
 	/// Soil padding layer temperatures [deg C]
@@ -4107,7 +4111,34 @@ struct padding : public Serializable {
 	double Kh;
 	/// Soil padding layer heat capacities (J m-3 K-1)
 	double Ch;
+	/// Update thermal properties for padding layers
+	void update_thermal_properties(double Kh_last_lyr = 0.0, double Ch_last_lyr = 0.0);
+	/// Serialize padding layer variables
+	void serialize(ArchiveStream& arch);
+};
 
+class Padding : public Serializable {
+
+	// MEMBER VARIABLES
+
+public:
+
+	std::vector<Padlayer> padlayers;
+
+	// MEMBER FUNCTIONS
+
+public:
+
+	/// Constructs an empty result
+	Padding() {
+		padlayers.resize(NPADLAYERS);
+	}
+
+	/// Set padding layers depth
+	void set_depths(double depth_last_lyr);
+	/// Update thermal properties for padding layers
+	void update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr);
+	/// Serialize padding layer variables
 	void serialize(ArchiveStream& arch);
 };
 
@@ -4394,7 +4425,7 @@ public:
 	/// whether to percolate today
 	bool percolate;
 	/// Soil temperature padding
-	padding pad[NPADLAYERS];
+	Padding pad;
 	/// Snow
 	Snow snow;
 	/// Surface standing water
@@ -4560,9 +4591,7 @@ public:
 			csom_litter_input[p] = that.csom_litter_input[p];
 		}
 
-		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
-			pad[plyr] = that.pad[plyr];
-		}
+		pad = that.pad;
 	}
 
 	// 2. copy assignment operator
@@ -4633,9 +4662,8 @@ public:
 			csom_litter_input[p] = that.csom_litter_input[p];
 		}
 
-		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
-			pad[plyr] = that.pad[plyr];
-		}
+		pad = that.pad;
+
 		return *this;
 	}
 
@@ -4711,8 +4739,6 @@ public:
 	void wflow_temp(double temp_infilt);
 	/// Update heat capacity and conductivity for soil layers
 	void update_thermal_properties();
-	/// Set padding layers depth
-	void set_padding_depth();
 	/// Soil water freezing allowed?
 	bool can_freeze() const;
 	/// Updates the CO2 concentration in the acrotelm water
@@ -4770,8 +4796,6 @@ public:
 	/// Calculate methane dynamics today
 	void methane(bool generatemethane);
 
-	/// Update thermal properties for padding layers
-	void update_thermal_properties_for_pad();
 	/// Calculate soil temperature
 	void temp();
 	/// Calculate multilayer soil temperature

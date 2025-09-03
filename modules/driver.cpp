@@ -782,7 +782,7 @@ void dailyaccounting_patch(Patch& patch) {
 		// Padding layers
 		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
 
-			padding& pad_lyr = soilcolumn.pad[plyr];
+			Padlayer& pad_lyr = soilcolumn.pad.padlayers[plyr];
 
 			for (int mth = 0; mth < 12; mth++) {
 				pad_lyr.mtemp[mth] = 0.0;

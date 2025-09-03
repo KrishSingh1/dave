@@ -1325,7 +1325,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 			for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 
 				if (lyr >= NSOILLAYERS_MAX) {
-					soil_temp[lyr] += soilcolumn.pad[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
+					soil_temp[lyr] += soilcolumn.pad.padlayers[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
 				}
 				else if (lyr < soilcolumn.nsoillayers) {
 					soil_temp[lyr] += soilcolumn.soillayers[lyr].temp * to_gridcell_average;

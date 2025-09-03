@@ -2094,7 +2094,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 				
 				mwtp[m] += min(50.0, (hydrology == GERTEN ? patch.soilcolumn.depth : patch.soilcolumn.mwtp[m]) * M_PER_MM) * to_gridcell_average;
-				mtemp25cm[m] += (hydrology == GERTEN ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad[0].mtemp[m])) * to_gridcell_average;
+				mtemp25cm[m] += (hydrology == GERTEN ? patch.soilcolumn.soillayers[0].mtemp[m] : (patch.soilcolumn.nsoillayers >= 3 ? patch.soilcolumn.soillayers[2].mtemp[m] : patch.soilcolumn.pad.padlayers[0].mtemp[m])) * to_gridcell_average;
 				
 				mch4[m] += fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				mch4_diff[m] += fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
@@ -2117,7 +2117,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 
 				for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
-					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYERS_MAX][m] += soilcolumn.pad[plyr].mtemp[m] * to_gridcell_average;
+					mtemp[plyr + NSNOWLAYERS_MAX + NSOILLAYERS_MAX][m] += soilcolumn.pad.padlayers[plyr].mtemp[m] * to_gridcell_average;
 				}
 				double wmass_tot = 0.0;
 				double imass_tot = 0.0;

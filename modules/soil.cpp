@@ -3066,7 +3066,7 @@ void Soilcolumn::calc_mtemp() {
 	}
 
 	for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
-		padding& pad_lyr = pad[plyr];
+		Padlayer& pad_lyr = pad.padlayers[plyr];
 		pad_lyr.mtemp[date.month] += pad_lyr.temp / date.ndaymonth[date.month];
 	}
 }
@@ -3267,7 +3267,7 @@ double Soilcolumn::var_depth(double depth_start, double depth_end, soilproptype 
 
 		while (acc_depth < depth_end && lyr < NPADLAYERS) {
 
-			padding& padlyr = pad[lyr];
+			Padlayer& padlyr = pad.padlayers[lyr];
 
 			lyr_start = min(max(acc_depth, depth_start), depth_end);
 			lyr_end = min(max(acc_depth + padlyr.depth, depth_start), depth_end);
@@ -3935,7 +3935,7 @@ void Soilcolumn::update_thermal_properties() {
 	}
 
 	// Calculate heat capacity and conductivity for each padding layer
-	update_thermal_properties_for_pad();
+	pad.update_thermal_properties(soillayers[nsoillayers - 1].Kh, soillayers[nsoillayers - 1].Ch);
 }
 
 /// Update surface standing waters thermal capacity and conductivity
@@ -3977,39 +3977,6 @@ void SSW::serialize(ArchiveStream& arch) {
 		& sigma_sqrt2
 		& sigma_sqrt2pi
 		& sigma2;
-}
-
-/// Update padding layers thermal capacity and conductivity
-/** Update padding layers thermal capacity and conductivity
- */
-void Soilcolumn::update_thermal_properties_for_pad() { // DW_COMMENT
-
-	// Bedrock parameters from Chadburn et al. (2015)
-
-	// Thermal conductivity [W m-1 K-1 s-1]
-	double Kbedrock = 8.6;
-	// Heat capacity [J m-3 K-1]
-	double Cbedrock = 2100000.0;	
-
-	// Use bottom soil layer properties for the first 2 padding layers
-	const int first_bedrock_padding_layer = 2;
-
-	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-
-		padding& pad_lyr = pad[lyr];
-
-		// First padding layers use bottom soil layers properties
-		if (lyr < first_bedrock_padding_layer) {
-			Soillayer& soillayer = soillayers[nsoillayers - 1];
-			pad_lyr.Kh = soillayer.Kh;
-			pad_lyr.Ch = soillayer.Ch;
-		}
-		else {
-			// Bedrock
-			pad_lyr.Kh = Kbedrock;
-			pad_lyr.Ch = Cbedrock;
-		}
-	}
 }
 
 /// Crank-Nicholson timestepper algorithm for temperature diffusion equation.
@@ -4564,11 +4531,32 @@ void Soilcolumn::wflow_temp(double temp_infilt) {
 	}
 }
 
-/// Serialize soil padding variables
-/** Serialize soil padding variables
+/// Update padding layers thermal capacity and conductivity
+/** Update padding layers thermal capacity and conductivity
  */
-void padding::serialize(ArchiveStream& arch) {
-	arch & temp
+void Padlayer::update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr) {
+
+	if (!negligible(Kh_last_lyr)) {
+		// Thermal conductivity [W m-1 K-1 s-1]
+		Kh = Kh_last_lyr;
+		// Heat capacity [J m-3 K-1]
+		Ch = Ch_last_lyr;
+	}
+	else {
+		// Bedrock parameters from Chadburn et al. (2015)
+
+		// Thermal conductivity [W m-1 K-1 s-1]
+		Kh = 8.6;
+		// Heat capacity [J m-3 K-1]
+		Ch = 2100000.0;
+	}
+}
+
+/// Serialize soil padlayer variables
+/** Serialize soil padlayer variables
+ */
+void Padlayer::serialize(ArchiveStream& arch) {
+	arch& temp
 		& depth;
 }
 
@@ -4579,7 +4567,7 @@ void padding::serialize(ArchiveStream& arch) {
  * number of layers. This gives a smooth increase in layer depth
  * away from the calculation domain.
  */
-void Soilcolumn::set_padding_depth() {
+void Padding::set_depths(double depth_last_lyr) {
 
 	// Iterative improvements of geometric factor
 	double k_guess, k_last;
@@ -4595,7 +4583,7 @@ void Soilcolumn::set_padding_depth() {
 	// Function, derivative 
 	double func, dfunc;
 	// Thickness of last active soil layer above the padding layers
-	double dz = soillayers[nsoillayers - 1].depth;
+	double dz = depth_last_lyr;
 
 	// If bottom soil layer multiplied with number of padding layers are less
 	// than total padding layer depth, then calculate each padding layer depth
@@ -4617,27 +4605,55 @@ void Soilcolumn::set_padding_depth() {
 		for (int lyr = 0; lyr < NPADLAYERS - 1; lyr++) {
 			lyr_depth = dz * pow(k_guess, lyr + 1);
 			lyr_depth = floor(dz * pow(k_guess, lyr + 1) / 100.0) * 100.0;
-			pad[lyr].depth = lyr_depth;
+			padlayers[lyr].depth = lyr_depth;
 			tot_depth += lyr_depth;
 		}
 
-		pad[NPADLAYERS - 1].depth += PAD_DEPTH - tot_depth;
+		padlayers[NPADLAYERS - 1].depth += PAD_DEPTH - tot_depth;
 	}
 	// Else each padding layer decrease linear to a minimum of 2m for the bottom padding layer
 	else {
-		double first_pad = min(16000.0, soillayers[nsoillayers - 1].depth);
+		double first_pad = min(16000.0, dz);
 		double diff = floor((5.0 * first_pad - PAD_DEPTH) / 10.0 / 100.0) * 100.0;
 		int scalar = 0;
 		double tot_depth = 0.0;
 
 		for (int lyr = 0; lyr < NPADLAYERS - 1; lyr++) {
-			pad[lyr].depth = first_pad - diff * (double)scalar;
-			tot_depth += pad[lyr].depth;
+			padlayers[lyr].depth = first_pad - diff * (double)scalar;
+			tot_depth += padlayers[lyr].depth;
 			scalar++;
 		}
 
-		pad[NPADLAYERS - 1].depth = PAD_DEPTH - tot_depth;
+		padlayers[NPADLAYERS - 1].depth = PAD_DEPTH - tot_depth;
 	}
+}
+
+/// Update thermal properties for padding layers
+/** Update thermal properties for padding layers
+ */
+void Padding::update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr) {
+
+	// Use bottom soil layer properties for the first 2 padding layers
+	const int first_bedrock_padding_layer = 2;
+
+	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
+		if (lyr < first_bedrock_padding_layer) {
+			padlayers[lyr].update_thermal_properties(Kh_last_lyr, Ch_last_lyr);
+		}
+		else {
+			padlayers[lyr].update_thermal_properties();
+		}
+	}
+}
+
+/// Serialize soil padding variables
+/** Serialize soil padding variables
+ */
+void Padding::serialize(ArchiveStream& arch) {
+
+	for (int i = 0; i < NPADLAYERS; i++) {
+		arch& padlayers[i];
+	};
 }
 
 /// Update the CO2 concentration in the acrotelm water
@@ -7291,8 +7307,8 @@ void Soilcolumn::thaw_depth() {
 	}
 	// If all soil layer where thawn then add padding layer with temperature above 0 degree C
 	if (lyr == nsoillayers) {
-		while (lyr < nsoillayers + NPADLAYERS && pad[lyr - nsoillayers].temp > 0.0) {
-			thaw += pad[lyr - nsoillayers].depth;
+		while (lyr < nsoillayers + NPADLAYERS && pad.padlayers[lyr - nsoillayers].temp > 0.0) {
+			thaw += pad.padlayers[lyr - nsoillayers].depth;
 			lyr++;
 		}
 	}
@@ -7475,7 +7491,7 @@ void Soilcolumn::calc_temp() {
 		for (int lyr = nairsurfsoillayers; lyr < nairsurfsoilpadlayers; lyr++) {
 
 			// Padding layer
-			padding& pad_lyr = pad[lyr - nairsurfsoillayers];
+			Padlayer& pad_lyr = pad.padlayers[lyr - nairsurfsoillayers];
 
 			dz[lyr] = pad_lyr.depth;
 			ci[lyr] = pad_lyr.Ch / MM3_PER_M3; // m-3 to mm-3
@@ -7536,7 +7552,7 @@ void Soilcolumn::calc_temp() {
 
 		// Set new padding layer temperatures
 		for (int lyr = nairsurfsoillayers; lyr < nairsurfsoilpadlayers; lyr++) {
-			pad[lyr - nairsurfsoillayers].temp = temp[lyr];
+			pad.padlayers[lyr - nairsurfsoillayers].temp = temp[lyr];
 		}
 
 		// Phase change between water and ice and adjust snow, standing water, 
@@ -7564,7 +7580,7 @@ void Soilcolumn::calc_temp() {
 		avr_temp /= 12.0;
 
 		for (int lyr = NPADLAYERS-2; lyr < NPADLAYERS; lyr++) {
-			pad[lyr].temp = avr_temp;
+			pad.padlayers[lyr].temp = avr_temp;
 		}
 	}
 }
@@ -8528,6 +8544,7 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 		& ncatotelm
 		& snow
 		& ssw
+		& pad
 		& maxthaw_10
 		& slope_grade_sin
 		& slope_grade_cos;
@@ -8539,10 +8556,6 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 
 	for (int i = 0; i < nsoillayers; i++) {
 		arch & soillayers[i];
-	}
-
-	for (int i = 0; i < NPADLAYERS; i++) {
-		arch & pad[i];
 	}
 }
 

@@ -4093,8 +4093,11 @@ struct Padlayer : public Serializable {
 	Padlayer() {
 		temp = 0.0;
 		depth = 0.0;
-		Kh = 0.0;
-		Ch = 0.0;
+		// Bedrock parameters from Chadburn et al. (2015)
+		// Thermal conductivity [W m-1 K-1 s-1]
+		Kh = 8.6;
+		// Heat capacity [J m-3 K-1]
+		Ch = 2100000.0;
 
 		for (int mth = 0; mth < 12; mth++) {
 			mtemp[mth] = 0.0;

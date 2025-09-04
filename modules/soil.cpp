@@ -4536,20 +4536,10 @@ void Soilcolumn::wflow_temp(double temp_infilt) {
  */
 void Padlayer::update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr) {
 
-	if (!negligible(Kh_last_lyr)) {
-		// Thermal conductivity [W m-1 K-1 s-1]
-		Kh = Kh_last_lyr;
-		// Heat capacity [J m-3 K-1]
-		Ch = Ch_last_lyr;
-	}
-	else {
-		// Bedrock parameters from Chadburn et al. (2015)
-
-		// Thermal conductivity [W m-1 K-1 s-1]
-		Kh = 8.6;
-		// Heat capacity [J m-3 K-1]
-		Ch = 2100000.0;
-	}
+	// Thermal conductivity [W m-1 K-1 s-1]
+	Kh = Kh_last_lyr;
+	// Heat capacity [J m-3 K-1]
+	Ch = Ch_last_lyr;
 }
 
 /// Serialize soil padlayer variables
@@ -4636,13 +4626,8 @@ void Padding::update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr) 
 	// Use bottom soil layer properties for the first 2 padding layers
 	const int first_bedrock_padding_layer = 2;
 
-	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-		if (lyr < first_bedrock_padding_layer) {
-			padlayers[lyr].update_thermal_properties(Kh_last_lyr, Ch_last_lyr);
-		}
-		else {
-			padlayers[lyr].update_thermal_properties();
-		}
+	for (int lyr = 0; lyr < first_bedrock_padding_layer; lyr++) {
+		padlayers[lyr].update_thermal_properties(Kh_last_lyr, Ch_last_lyr);
 	}
 }
 

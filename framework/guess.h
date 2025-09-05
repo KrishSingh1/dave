@@ -4710,6 +4710,8 @@ public:
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
 	/// Calculate root volume
 	void calc_root_volume();
+	/// Returns a fine vertical resolution C soil fraction
+	std::vector<double> interp_soil_conserve(double fineDz);
 	/// Vertical movement of mineral and organic matter
 	void vertical_movement();
 	/// Calculate this months average soil layer wcont

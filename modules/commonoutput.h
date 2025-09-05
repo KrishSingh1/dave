@@ -58,7 +58,8 @@ private:
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_lambda, file_nflux, file_ngases;
 	xtring file_soil_npool, file_soil_nflux;
-		
+	xtring file_csoillyr;
+
 	// BLAZE & SIMFIRE
 	xtring file_aburned_area_out, file_mburned_area_out;
 	xtring file_simfireanalysis_out;
@@ -90,6 +91,7 @@ private:
 	
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_lambda, out_nflux, out_ngases;
 	Table out_soil_npool, out_soil_nflux;
+	Table out_csoillyr;
 
 	// BLAZE && SIMFIRE
 	Table out_aburned_area, out_mburned_area;

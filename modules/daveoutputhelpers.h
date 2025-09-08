@@ -267,6 +267,22 @@ Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
 
 /*
+Get the soil moisture in mm between the specified top and bottom layers.
+
+@param soil: A soil object.
+@param start_layer: The index of the top layer.
+@param end_layer: The index of the bottom layer.
+*/
+double get_soil_moisture(const Soil &soil, int start_layer, int end_layer);
+
+/*
+Get an estimate of total soil moisture in mm from 1-6m.
+
+@param soil: A soil object.
+*/
+double get_6m_soil_moisture_estimate(const Soil &soil);
+
+/*
 Compute summary statistics for the given row of data.
 
 @param data: A row of output data. This will be mutated (sorted) by this function.

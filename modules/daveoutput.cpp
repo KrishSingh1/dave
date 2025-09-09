@@ -229,11 +229,11 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_cmass_sap_limit"     , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Daily optimum sap pool size for trees (kgC/m2)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cmass_repr_limit"    , DAILY, [](const Individual &i) { return i.cmass_repr_limit; }, "Daily optimum reproductive pool size for trees (kgC/m2)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cmass_storage_limit" , DAILY, [](const Individual &i) { return i.cmass_storage_limit; }, "Daily optimum storage pool size (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_alpha_leaf_limit"    , DAILY, [](const Individual &i) { return i.relative_alpha_leaf; }, "Relative leaf sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_alpha_root_limit"    , DAILY, [](const Individual &i) { return i.relative_alpha_root; }, "Relative root sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_alpha_sap_limit"     , DAILY, [](const Individual &i) { return i.relative_alpha_sap; }, "Relative sapwood sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_alpha_repr_limit"    , DAILY, [](const Individual &i) { return i.relative_alpha_repr; }, "Relative reproductive sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_alpha_storage_limit" , DAILY, [](const Individual &i) { return i.relative_alpha_storage; }, "Relative storage sink strength (unitless)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_relative_alpha_leaf"   , DAILY, [](const Individual &i) { return i.relative_alpha_leaf; }, "Relative leaf sink strength (unitless)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_relative_alpha_root"   , DAILY, [](const Individual &i) { return i.relative_alpha_root; }, "Relative root sink strength (unitless)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_relative_alpha_sap"    , DAILY, [](const Individual &i) { return i.relative_alpha_sap; }, "Relative sapwood sink strength (unitless)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_relative_alpha_repr"   , DAILY, [](const Individual &i) { return i.relative_alpha_repr; }, "Relative reproductive sink strength (unitless)", mean, false, false);
+	add_aggregated_indiv_output("file_dave_relative_alpha_storage", DAILY, [](const Individual &i) { return i.relative_alpha_storage; }, "Relative storage sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_cgrow_leaf"          , DAILY, [](const Individual &i) { return i.cgrow_leaf; }, "Daily leaf growth (kgC/m2)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_cgrow_root"          , DAILY, [](const Individual &i) { return i.cgrow_root; }, "Daily root growth (kgC/m2)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_cgrow_sap"           , DAILY, [](const Individual &i) { return i.cgrow_sap; }, "Daily sap growth (kgC/m2)", mean, true, false);

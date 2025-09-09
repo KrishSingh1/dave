@@ -336,7 +336,7 @@ DaveOutput::DaveOutput() {
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal_5l"                         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal_5_5l.lastadd(); }, "Water scalar for top 5 layers [0-1], 1 = min stress",  false, true);
 	add_pft_output("file_dave_clitter"                          , DAILY, get_pft_cmass_litter, "Total Daily PFT-Level C Mass in Litter (kgC/m2)");
-	add_pft_output("file_dave_cmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Seedbank cmass (kgC/m2)", true);
+	add_pft_output("file_dave_cmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr + p.pft[pft.id].cmass_ext_seed; }, "Seedbank cmass (kgC/m2)", true);
 	add_pft_output("file_dave_nmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                            , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_seed_ext"                   , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);

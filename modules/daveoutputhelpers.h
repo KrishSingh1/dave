@@ -341,6 +341,16 @@ std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_tree_columns(
     double (*aggregate)(const double *, size_t)
 );
 
+/*
+Get the columns used in the annual water budget output file.
+*/
+std::vector<ColumnDefinition<Patch>> water_budget_cols_annual();
+
+/*
+Get the columns used in the daily water budget output file.
+*/
+std::vector<ColumnDefinition<Patch>> water_budget_cols_daily();
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

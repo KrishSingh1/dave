@@ -1013,6 +1013,28 @@ std::vector<ColumnDefinition<Individual>> indiv_resp_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Patch>> water_budget_cols_annual() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("precip", [](const Patch &p) { return p.get_climate().aprec; }));
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.aevap; }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.aaet; }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.aintercep; }));
+	columns.push_back(ColumnDefinition<Patch>("runoff", [](const Patch &p) { return p.arunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().aprec - p.aevap - p.aaet - p.aintercep - p.arunoff; }));
+	return columns;
+}
+
+std::vector<ColumnDefinition<Patch>> water_budget_cols_daily() {
+	std::vector<ColumnDefinition<Patch>> columns;
+	columns.push_back(ColumnDefinition<Patch>("precip", [](const Patch &p) { return p.get_climate().prec; }));
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
+	columns.push_back(ColumnDefinition<Patch>("runoff", [](const Patch &p) { return p.soil.runoff; }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().prec - p.evap - p.transp - p.intercep - p.soil.runoff; }));
+	return columns;
+}
+
 double get_nindiv(const Patch &patch, const Pft &pft) {
 	double n = 0;
 	const Vegetation &vegetation = patch.vegetation;

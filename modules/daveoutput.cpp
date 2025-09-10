@@ -59,6 +59,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_anmass"                 , ANNUAL, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
 	add_patch_output("file_dave_andep"                          , ANNUAL, aninput_columns, "Annual nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_anfixation"                     , ANNUAL, "nfixation", [](const Patch &p) { return p.soil.anfix; }, "Total annual biological N fixation (kgN/m2)");
+	add_patch_output("file_dave_water_budget_annual"            , ANNUAL, water_budget_cols_annual, "Annual water budget (mm)");
 
 	// Annual per-patch individual-level outputs.
 	add_aggregated_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);
@@ -144,6 +145,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 1); }, "Soil Moisture at depth: 0-0.1m (mm)");
 	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 1, 10); }, "Soil Moisture at depth: 0.1-1m (mm)");
 	add_patch_output("file_dave_swmm_600"                       , DAILY, "total", [](const Patch &p) { return get_6m_soil_moisture_estimate(p.soil); }, "Soil Moisture at depth: 0.1-1m (mm)");
+	add_patch_output("file_dave_water_budget_daily"             , DAILY, water_budget_cols_daily, "Daily water budget (mm)");
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);

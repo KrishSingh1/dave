@@ -7400,7 +7400,17 @@ void Soilcolumn::calc_temp() {
 		int nairsurfsoilpadlayers = nairlayers + nsurflayers + nsoillayers + NPADLAYERS;
 
 		// Air layer
-		dz[0] = AIR_THICKNESS;
+		if (energy == CNSTEP_FULL) {
+			dz[0] = AIR_THICKNESS_CNSTEP_FULL;
+		}
+		else if (energy == CNSTEP) {
+			dz[0] = AIR_THICKNESS_CNSTEP;
+		}
+		else if (energy == BELDA) {
+			// Not used
+			dz[0] = 0.0;
+		}
+		
 		ci[0] = Cp_air * M3_PER_MM3;
 		di[0] = Kair / Cp_air * SECS_PER_DAY * MM2_PER_M2;	// mm2 day-1
 		ki[0] = di[0] * ci[0];
@@ -7834,10 +7844,10 @@ std::vector<double> Soilcolumn::interp_soil_conserve(double fineDz) {
 void Soilcolumn::vertical_movement() {
 
 	// Resolution of finersoil layering (mm)
-	const double fineDz = 10.0;
+	//const double fineDz = 10.0;
 	
 	// Conservative interpolation of soil organic matter fractions down the soil depth 
-	std::vector<double> csoilfinefrac = interp_soil_conserve(fineDz);
+	//std::vector<double> csoilfinefrac = interp_soil_conserve(fineDz);
 
 	double ccont_before = ccont();
 	double wcont_before = get_sum(WCONTENT);
@@ -7890,10 +7900,11 @@ void Soilcolumn::vertical_movement() {
 					Soillayer& soillayer_below = soillayers[lyr + 1];
 
 					// Lyr at the interface between coarse layer in the fine scale organic fraction of soil layers
-					int lyr_above = static_cast<int>(std::round((soillayer.depth_profile + soillayer.depth / 2.0) / fineDz)) - 1;
+					//int lyr_above = static_cast<int>(std::round((soillayer.depth_profile + soillayer.depth / 2.0) / fineDz)) - 1;
 
 					// Organic fraction at interface between layers
-					double organic_frac_int = (csoilfinefrac[lyr_above] + csoilfinefrac[lyr_above + 1]) / 2.0;
+					//double organic_frac_int = (csoilfinefrac[lyr_above] + csoilfinefrac[lyr_above + 1]) / 2.0;
+					double organic_frac_int = (soillayer.org_frac() + receiver_frac * soillayer_below.org_frac()) / (1.0 + receiver_frac);
 
 					// Fraction of matter to be moved
 					double frac = min(1.0, diff_volume / (min_volume + org_volume));
@@ -8014,10 +8025,11 @@ void Soilcolumn::vertical_movement() {
 						}
 
 						// Lyr at the interface between coarse layer in the fine scale organic fraction of soil layers
-						int lyr_above = static_cast<int>(std::round((soillayer.depth_profile + soillayer.depth / 2.0) / fineDz)) - 1;
+						//int lyr_above = static_cast<int>(std::round((soillayer.depth_profile + soillayer.depth / 2.0) / fineDz)) - 1;
 
 						// Organic fraction at interface between layers
-						double organic_frac_int = (csoilfinefrac[lyr_above] + csoilfinefrac[lyr_above + 1]) / 2.0;
+						//double organic_frac_int = (csoilfinefrac[lyr_above] + csoilfinefrac[lyr_above + 1]) / 2.0;
+						double organic_frac_int = (receiver_frac * soillayer.org_frac() + soillayer_below.org_frac()) / (1.0 + receiver_frac);
 
 						// Fraction of matter to be moved
 						double frac = min(1.0, up_volume / volume_below);

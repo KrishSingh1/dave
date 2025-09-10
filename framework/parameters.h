@@ -355,6 +355,9 @@ extern double homrootdistfrac;
 /// Fraction of deep soil, beyond 1500mm, that roots have access to
 extern double rootfrac_of_deep_soil;
 
+/// Fraction of organic matter to move from receiver layer
+extern double receiver_frac;
+
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
 

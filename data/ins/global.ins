@@ -146,8 +146,8 @@ file_mald "mald.out"
 !file_mald_peat "mald_peat.out"
 !file_peat_frac "peat_frac.out"
 
-file_csoil_data_top "soil_data_top.out"
-file_csoil_data_bot "soil_data_bot.out"
+!file_csoil_data_top "soil_data_top.out"
+!file_csoil_data_bot "soil_data_bot.out"
 
 !file_mburned_area_out "monthly_burned_area.out"
 
@@ -179,8 +179,8 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-energy "CNSTEP"	! CNSTEP_FULL, CNSTEP, BELDA
-npatch 1			! Number of replicate patches to simulate
+energy "CNSTEP_FULL"	! CNSTEP_FULL, CNSTEP, BELDA
+npatch 5			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -228,6 +228,7 @@ ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or 
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0.2		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
 rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500 mm, that roots have access to
+receiver_frac 0.1 		! Fraction of organic matter to move from receiver layer
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
 top_depth 100.0			! Additional depth ontop of snowpack to account for radiation energy
@@ -238,7 +239,7 @@ ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland s
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
 
 surf_li_scalar 1.0 !0.4
-soil_om_scalar 1.95 !2.05 !2.5
+soil_om_scalar 2.0 !2.05 !2.5
 moist_mod_anaerobic 0.075
 
 !///////////////////////////////////////////////////////////////////////////////

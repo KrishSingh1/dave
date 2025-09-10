@@ -80,6 +80,7 @@ bool ifbedrock;						// Whether to consider bedrock as lower boundary condition 
 int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
 double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
 double rootfrac_of_deep_soil;		// Fraction of deep soil, beyond 1500mm, that roots have access to
+double receiver_frac;				// Fraction of organic matter to move from receiver layer
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
 double top_depth;					// Additional depth ontop of snowpack to account for radiation energy
@@ -548,6 +549,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of fine roots to be homogenously distributed in soil column");
 		declareitem("rootfrac_of_deep_soil", &rootfrac_of_deep_soil, 0.0, 1.0, 1, CB_NONE,
 			"Fraction of deep soil, beyond 1500mm, that roots have access to");
+		declareitem("receiver_frac", &receiver_frac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of organic matter to move from receiver layer");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
@@ -1344,6 +1347,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifsupercooled")) badins("ifsupercooled");
 		if (!itemparsed("homrootdistfrac")) badins("homrootdistfrac");
 		if (!itemparsed("rootfrac_of_deep_soil")) badins("rootfrac_of_deep_soil");
+		if (!itemparsed("receiver_frac")) badins("receiver_frac");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
 		if (!itemparsed("top_depth")) badins("top_depth");

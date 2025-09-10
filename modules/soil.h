@@ -225,8 +225,8 @@ const double Dbedrock = Kbedrock / Cbedrock * SECS_PER_DAY * MM2_PER_M2;
 const double MISSING_VALUE = -9999.0;      
 
 /// Thickness of the topmost air layer [mm]
-// Note - keep air thickness low when using cnstep_full
-const double AIR_THICKNESS = 100.0;
+const double AIR_THICKNESS_CNSTEP = 100.0;
+const double AIR_THICKNESS_CNSTEP_FULL = 25.0;
 
 
 ////////////////////////////////////////////////////////////////////////

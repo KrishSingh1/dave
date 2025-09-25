@@ -50,6 +50,13 @@ Get the patch-level ecosystem NEE.
 double get_nee(const Patch &patch);
 
 /*
+Get the patch-level annual NEE in kgC/m2.
+
+@param patch: The patch.
+*/
+double get_anee(const Patch &patch);
+
+/*
 Get the patch-level daily evapotranspiration (mm/day).
 
 @param patch: The patch.
@@ -132,6 +139,21 @@ Get the columns used in the patch-level nflux file.
 std::vector<ColumnDefinition<Patch>> nflux_columns();
 
 /*
+Get the columns used in the patch-level soil anflux file.
+*/
+std::vector<ColumnDefinition<Patch>> soil_anflux_columns();
+
+/*
+Get the columns used in the patch-level pft litter pools file.
+*/
+std::vector<ColumnDefinition<Individual>> get_pft_litter_pools();
+
+/*
+Get the columns used in the patch-level npool veg file.
+*/
+std::vector<ColumnDefinition<Patch>> npool_veg_columns();
+
+/*
 Get the columns used in the patch-level globfirm output file.
 */
 std::vector<ColumnDefinition<Patch>> globfirm_columns();
@@ -175,6 +197,31 @@ std::vector<ColumnDefinition<Patch>> sompool_cmass_columns();
 Get the columns used in the patch-level SOM pool nmass output file.
 */
 std::vector<ColumnDefinition<Patch>> sompool_nmass_columns();
+
+/*
+Get the columns used in the patch-level SOM pool nimmob output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_nimmob_columns();
+
+/*
+Get the columns used in the patch-level SOM pool nmin_gross output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_nmin_gross_columns();
+
+/*
+Get the columns used in the patch-level SOM pool decay reduction output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_decay_reduction_columns();
+
+/*
+Get the columns used in the patch-level SOM pool fraction remaining output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_frac_remaining_columns();
+
+/*
+Get the columns used in the patch-level SOM pool N to C ratio output file.
+*/
+std::vector<ColumnDefinition<Patch>> sompool_ntoc_columns();
 
 /*
 Get the columns used in the patch-level nitrogen input output file.
@@ -350,6 +397,16 @@ std::vector<ColumnDefinition<Patch>> water_budget_cols_annual();
 Get the columns used in the daily water budget output file.
 */
 std::vector<ColumnDefinition<Patch>> water_budget_cols_daily();
+
+/*
+Get the columns used in the annual nitrogen budget output file.
+*/
+std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual();
+
+/*
+Get the columns used in the daily nitrogen budget output file.
+*/
+std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily();
 
 } // namespace GuessOutput
 

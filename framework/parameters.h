@@ -436,6 +436,9 @@ extern bool ifdavediagnostics;
 /// to the instruction file parameter.
 extern bool _ifdavediagnostics;
 
+/// Whether tree N uptake should go into long-term storage pool.
+extern bool ifstoreuptake;
+
 /// Resolution for splines used to calculate psi from transpiration.
 /// This is the number of control points used for the integration. Default: 100.
 extern double epsiresolution;

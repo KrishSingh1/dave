@@ -31,6 +31,7 @@ void Soil::init_states() {
 
 	alag = 0.0;
 	exp_alag = 1.0;
+	navail_start_day = 0;
 	cpool_slow = 0.0;
 	cpool_fast = 0.0;
 	decomp_litter_mean = 0.0;
@@ -40,16 +41,28 @@ void Soil::init_states() {
 	snowpack = 0.0;
 	orgleachfrac = 0.0;
 
+	runoff = 0;
+	surfrunoff = 0;
+	drainrunoff = 0;
+	baserunoff = 0;
 	net_mineralisation = 0.0;
 	dminleach          = 0.0;
 	dorgNleach         = 0.0;
 	nvol               = 0.0;
+	anvol              = 0.0;
 	nloss_gas          = 0.0;
+	anloss_gas         = 0.0;
+	nimmob             = 0.0;
+	nmin_gross         = 0.0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		decay_reduction[i] = 0;
+	}
 
 	// Extra initialisation
 	aorgCleach = 0.0;
 	aorgNleach = 0.0;
 	anfix = 0.0;
+	dnfix = 0.0;
 	aminleach = 0.0;
 
 	lKorg = lKpeat = lKmin = lKwater = lKice = lKair = 0.0;
@@ -111,6 +124,7 @@ void Soil::init_states() {
 	aorgNleach = 0.0;
 	aorgCleach = 0.0;
 	anfix = 0.0;
+	dnfix = 0.0;
 	anfix_calc = 0.0;
 	anfix_mean = 0.0;
 	snowpack_NH4_mass = 0.0;
@@ -251,6 +265,11 @@ void Soil::init_states() {
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;
 		K_actual[sl] = 0.0;
+	}
+
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		nimmob_pool[i] = 0.0;
+		nmin_gross_pool[i] = 0.0;
 	}
 
 	soil_psi = 0.0;
@@ -805,7 +824,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	double MIN_WATER_PERC = 0.0;
 
 	if (ifdavehydrology){
-		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
+		BASEFLOW_FRAC = 0.5;	// CS testing change, standard is 0.5
 		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
 
 	} else {
@@ -1239,6 +1258,9 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Total runoff
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
+	surfrunoff = runoff_surf;
+	drainrunoff = runoff_drain;
+	baserunoff = runoff_baseflow;
 
 	// Water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
 	// in proportion to its components
@@ -4117,6 +4139,9 @@ void Soil::serialize(ArchiveStream& arch) {
 		& dsnowdepth
 		& thaw
 		& runoff
+		& surfrunoff
+		& drainrunoff
+		& baserunoff
 		& temp25
 		& Dz // optimise through init after restart?
 		& T_soil_yesterday
@@ -4177,6 +4202,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& aorgNleach
 		& aorgCleach
 		& anfix
+		& dnfix
 		& anfix_calc
 		& anfix_mean
 		& snowpack_NH4_mass

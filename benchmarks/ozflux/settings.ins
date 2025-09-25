@@ -33,7 +33,8 @@ iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 ifcalcvcmax              0   ! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 iftempacclimation        0   ! DAVE temperature acclimation of photosynthesis.
-soildepth_evap           200 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
+soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
+ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -272,8 +273,8 @@ ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latiti
 ifcentury 1            ! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1            ! Whether plant growth limited by available N
 freenyears 100            ! Number of years to spin up without N limitation (needed to build up a N pool)
-nfix_a 0.234            ! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
-nfix_b -0.172            ! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
+nfix_a 0.102            ! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
+nfix_b 0.524            ! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
 nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root shedding
 
 

@@ -1764,7 +1764,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	relative_alpha_leaf 		  = 0.0;
 	relative_alpha_root 		  = 0.0;
 	relative_alpha_sap  		  = 0.0;
-	relative_alpha_repr 		  = 0.0;
 	relative_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
@@ -1805,6 +1804,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
+	nmass_uptake                = 0.0;
+	nretranslocated             = 0.0;
+	anretranslocated            = 0.0;
+	ntoavail                    = 0.0;
 	nstorage_max				= 0.0;
 	cmass_leaf_ygrowth			= 0.0;
 	cmass_root_ygrowth			= 0.0;
@@ -1947,11 +1950,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
 	alpha_storage     = 0.0;
-	alpha_repr        = 0.0;
+	cdeficit_leaf     = 0.0;
+	cdeficit_root     = 0.0;
+	cdeficit_sap      = 0.0;
+	cdeficit_storage  = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit   = 0.0;
-	cmass_repr_limit  = 0.0;
 	cturnover_leaf  = 0.0;
  	cturnover_root  = 0.0;
 	cturnover_sap  = 0.0;
@@ -2140,6 +2145,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_repr
 		& nmass_sap
 		& nmass_heart
+		& nmass_uptake
+		& ntoavail
 		& cmass_wood_old
 		& nactive
 		& nextin
@@ -2762,6 +2769,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_longterm - nstore_longterm_luc * (1.0 - scale_indiv);
 			ncont += nstore_labile - nstore_labile_luc * (1.0 - scale_indiv);
 			ncont += nmass_storage - nmass_storage_luc * (1.0 - scale_indiv);
+			ncont += nmass_uptake * (1.0 - scale_indiv);
 
 			if (ifdailygrass && pft.is_grass()) {
 				ncont += nmass_leafs[0] - nmass_leafs_luc[0] * (1.0 - scale_indiv);
@@ -2789,6 +2797,9 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_longterm * scale_indiv;
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
+			if (!pft.store_uptake()) {
+				ncont += nmass_uptake * scale_indiv;
+			}
 
 			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
@@ -3419,6 +3430,11 @@ void Individual::kill(bool harvest /* = false */) {
 
 	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
 		ppft.cmass_litter_root += cmass_storage;
+	}
+
+	if (!pft.store_uptake() && nmass_uptake > 0) {
+		vegetation.patch.soil.nmass_inc(nmass_uptake);
+		nmass_uptake = 0;
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive

@@ -764,6 +764,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
+				patch.soil.dnfix = 0.0;
 				patch.soil.aorgNleach = 0.0;
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
@@ -949,6 +950,14 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 
 	Soil& soil = patch.soil;
+	soil.navail_start_day = soil.get_nmass_avail();
+	soil.nmin_gross = 0.0;
+	soil.nimmob = 0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		soil.nimmob_pool[i] = 0.0;
+		soil.nmin_gross_pool[i] = 0.0;
+		soil.decay_reduction[i] = 0.0;
+	}
 
 	if (date.day == 0) {
 

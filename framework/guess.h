@@ -2514,6 +2514,10 @@ public:
 		return lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL;
 	}
 
+	bool store_uptake() const {
+		return dave_allocation() && ifstoreuptake && !is_grass();
+	}
+
 	/// Check whether DAVE allocation is enabled for this PFT.
 	bool dave_allocation() const;
 
@@ -3251,8 +3255,6 @@ public:
 	double cmass_sap_limit;
 	/// target storage C mass (kgC/m2)
 	double cmass_storage_limit;
-	/// target reproduction C mass (kgC/m^2) 
-	double cmass_repr_limit;
 	/// realtive leaf sink strengthy (unitless)
 	double relative_alpha_leaf;
 	/// realtive root sink strengthy (unitless)
@@ -3261,8 +3263,6 @@ public:
 	double relative_alpha_sap;
 	/// relative storage sink strengh (unitless)
 	double relative_alpha_storage;
-	/// realtive reproductive sink strengthy (unitless)
-	double relative_alpha_repr;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3326,6 +3326,8 @@ public:
 	double ctolitter;
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
+	/// Daily N taken up but then sent back to available N pool (kgN/m2).
+	double ntoavail;
 
 	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
 	double ctolitter_leaf;
@@ -3495,6 +3497,12 @@ public:
 	double cmass_root_ygrowth;
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
+	/// Nitrogen uptake today (0 when ifstoreuptake=true) (kgN/m2).
+	double nmass_uptake;
+	/// Nitrogen retranslocated today (kgN/m2).
+	double nretranslocated;
+	/// Cumulative total nitrogen retranslocated this year (kgN/m2).
+	double anretranslocated;
 
 	// green leaf c mass grazed today (kgC/m2).
 	double charvest_green;
@@ -3797,7 +3805,10 @@ public:
 	double alpha_root;
 	double alpha_sap;
 	double alpha_storage;
-	double alpha_repr;
+	double cdeficit_leaf;
+	double cdeficit_root;
+	double cdeficit_sap;
+	double cdeficit_storage;
 	// MEMBER FUNCTIONS
 
 public:
@@ -4304,6 +4315,12 @@ public:
 	double snowpack;
 	/// total runoff today (mm/day)
 	double runoff;
+	/// surface runoff today (mm/day)
+	double surfrunoff;
+	/// drainage runoff today (mm/day)
+	double drainrunoff;
+	/// base runoff today (mm/day)
+	double baserunoff;
 	/// daily temperatures for the last month (deg C)
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double dtemp[31];
@@ -4618,7 +4635,13 @@ public:
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)
 	double NO3_input;
-	/// annual sum of nitrogen mineralisation
+	double navail_start_day;
+	double nmin_gross;
+	double nimmob;
+	double nimmob_pool[NSOMPOOL];
+	double nmin_gross_pool[NSOMPOOL];
+	double decay_reduction[NSOMPOOL];
+	/// annual sum of gross nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
 	double animmob;
@@ -4628,6 +4651,8 @@ public:
 	double aorgNleach;
 	/// total annual nitrogen fixation
 	double anfix;
+	/// total daily nitrogen fixation
+	double dnfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	/// annual leaching of organics from carbon pool
@@ -4644,7 +4669,11 @@ public:
 
 	// Daily N volatilisation (kgN/m2/day).
 	double nvol;
+	// Cumulative annual N volatilisation (kgN/m2/year).
+	double anvol;
 
+	/// Cumulative annual nitrogen flux to atmosphere (kgN/m2/year).
+	double anloss_gas;
 	// Daily nitrogen flux to atmosphere (kgN/m2/day).
 	double nloss_gas;
 

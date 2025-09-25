@@ -35,6 +35,7 @@
 #include "somdynam.h"
 #include "ntransform.h"
 #include "driver.h"
+#include "parameters.h"
 #include <assert.h>
 #include <bitset>
 #include <vector>
@@ -540,11 +541,13 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
 	// otherwise balance is nitrogen mineralisation
 	if (ninc > ndec) {
 		nimmob += ninc - ndec;
+		soil.nimmob_pool[donor] += ninc - ndec;
 		net_min += ndec - ninc;
 	}
 	else {
 		nmin_actual += ndec - ninc;
 		net_min += ndec - ninc;
+		soil.nmin_gross_pool[donor] += ndec - ninc;
 	}
 
 	// "Transfer" carbon and nitrogen to receiver
@@ -793,6 +796,10 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		times++;
 	}
 
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		soil.decay_reduction[i] = decay_reduction[i];
+	}
+
 	// Reset surface microbial and passivesom pools N:C ratio
 	soil.sompool[SURFMICRO].ntoc = init_surfmicro_ntoc;
 	soil.sompool[PASSIVESOM].ntoc = init_passivesom_ntoc;
@@ -831,6 +838,8 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 
 	// Adding mineral nitrogen to soil available pool
 	double nmin_inc = nmin_actual - nimmob;
+	soil.nmin_gross += nmin_actual;
+	soil.nimmob += nimmob;
 
 	// Estimate of N flux from soil (simple CLM-CN approach)
 	if(!ifntransform) {
@@ -1264,9 +1273,11 @@ void soilnadd(Patch& patch) {
 		if (nmin_avail + daily_nfix < NMASS_SAT) {
 			soil.NH4_mass += daily_nfix;
 			soil.anfix += daily_nfix;
+			soil.dnfix = daily_nfix;
 		}
 		else {
 			soil.anfix += NMASS_SAT - soil.NH4_mass;
+			soil.dnfix  = NMASS_SAT - soil.NH4_mass;
 			soil.NH4_mass += NMASS_SAT - nmin_avail;
 		}
 	}
@@ -1340,7 +1351,14 @@ void vegetation_n_uptake(Patch& patch) {
 		if (indiv.pft.dave_allocation() || (indiv.pft.is_grass() && ifdailygrass)) {
 
 			// N uptake added to storage
-			indiv.nmass_storage += nuptake_day;
+			if (indiv.pft.store_uptake()) {
+				// Default behaviour - N uptake added to storage.
+				indiv.nmass_storage += nuptake_day;
+			} else {
+				// N uptake added to short-term uptake pool.
+				assert(indiv.nmass_uptake == 0);
+				indiv.nmass_uptake += nuptake_day;
+			}
 		}
 		else {
 			indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;

@@ -55,8 +55,8 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_amet_year"                      , ANNUAL, met_year_columns, "Current year of met data being used");
 	add_patch_output("file_dave_aco2"                           , ANNUAL, "co2", [](const Patch &p) { return p.get_climate().co2; }, "Annual atmospheric co2 concentration (ppm)");
 	add_patch_output("file_dave_aminleach"                      , ANNUAL, "aminleach", [](const Patch &patch) { return patch.soil.aminleach; }, "Leaching of soil mineral N (kgN/m2/yr)");
-	add_patch_output("file_dave_sompool_acmass"                 , ANNUAL, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)");
-	add_patch_output("file_dave_sompool_anmass"                 , ANNUAL, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
+	add_patch_output("file_dave_sompool_acmass"                 , ANNUAL, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)", true);
+	add_patch_output("file_dave_sompool_anmass"                 , ANNUAL, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)", true);
 	add_patch_output("file_dave_andep"                          , ANNUAL, aninput_columns, "Annual nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_anfixation"                     , ANNUAL, "nfixation", [](const Patch &p) { return p.soil.anfix; }, "Total annual biological N fixation (kgN/m2)");
 	add_patch_output("file_dave_water_budget_annual"            , ANNUAL, water_budget_cols_annual, "Annual water budget (mm)");
@@ -93,6 +93,12 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_anetps_ff"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual net photosynthesis at forest floor (kgC/m2)", true);
 	add_pft_output("file_dave_ansapling"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling; }, "Number of saplings of each PFT ready to establish (trees only)", true);
 	add_pft_output("file_dave_ansapling_year"                   , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling_year; }, "Recruitment rate of each PFT (saplings per year) (trees only)", true);
+	add_pft_output("file_dave_cton_leaf_max"                    , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_leaf_max; }, "Maximum C:N ratio of leaves (unitless)");
+	add_pft_output("file_dave_cton_leaf_min"                    , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_leaf_min; }, "Minimum C:N ratio of leaves (unitless)");
+	add_pft_output("file_dave_cton_root_max"                    , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_root_max; }, "Maximum C:N ratio of roots (unitless)");
+	add_pft_output("file_dave_cton_root_min"                    , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_root_min; }, "Minimum C:N ratio of roots (unitless)");
+	add_pft_output("file_dave_cton_sap_max"                     , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_sap_max; }, "Maximum C:N ratio of sapwood (unitless)");
+	add_pft_output("file_dave_cton_sap_min"                     , ANNUAL, [](const Patch &p, const Pft &pft) { return pft.cton_sap_min; }, "Minimum C:N ratio of sapwood (unitless)");
 
 	// Annual stand-level outputs.
 	add_stand_output("file_dave_stand_frac"                     , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
@@ -132,12 +138,12 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_met_pressure"                   , DAILY, "pressure", [](const Patch &patch) { return mean(&patch.stand.get_gridcell().climate.pressure.front(), patch.stand.get_gridcell().climate.pressure.size()) * 0.001; }, "Daily air pressure (kPa)");
 	add_patch_output("file_dave_met_co2"                        , DAILY, "co2", [](const Patch &patch) { return patch.stand.get_gridcell().climate.co2;         }, "Daily atmospheric co2 concentration (ppm)");
 	add_patch_output("file_dave_daylength"                      , DAILY, "daylength", [](const Patch &patch) { return patch.stand.get_gridcell().climate.daylength;         }, "Daylength (h)");
-	add_patch_output("file_dave_sompool_cmass"                  , DAILY, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)");
-	add_patch_output("file_dave_sompool_nmass"                  , DAILY, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)");
-	add_patch_output("file_dave_sompool_nimmob"                 , DAILY, sompool_nimmob_columns, "Daily SOM pool N immobilisation (kgN/m2)");
-	add_patch_output("file_dave_sompool_nmin_gross"             , DAILY, sompool_nmin_gross_columns, "Daily SOM pool N immobilisation (kgN/m2)");
-	add_patch_output("file_dave_sompool_decay_reduction"        , DAILY, sompool_decay_reduction_columns, "Daily SOM pool decay reduction (0-1)");
-	add_patch_output("file_dave_sompool_frac_remaining"         , DAILY, sompool_frac_remaining_columns, "Daily SOM pool fraction remaining (0-1)");
+	add_patch_output("file_dave_sompool_cmass"                  , DAILY, sompool_cmass_columns, "Daily SOM pool C mass (kgC/m2)", true);
+	add_patch_output("file_dave_sompool_nmass"                  , DAILY, sompool_nmass_columns, "Daily SOM pool N mass (kgN/m2)", true);
+	add_patch_output("file_dave_sompool_nimmob"                 , DAILY, sompool_nimmob_columns, "Daily SOM pool N immobilisation (kgN/m2)", true);
+	add_patch_output("file_dave_sompool_nmin_gross"             , DAILY, sompool_nmin_gross_columns, "Daily SOM pool N immobilisation (kgN/m2)", true);
+	add_patch_output("file_dave_sompool_decay_reduction"        , DAILY, sompool_decay_reduction_columns, "Daily SOM pool decay reduction (0-1)", true);
+	add_patch_output("file_dave_sompool_frac_remaining"         , DAILY, sompool_frac_remaining_columns, "Daily SOM pool fraction remaining (0-1)", true);
 	add_patch_output("file_dave_sompool_ntoc"                   , DAILY, sompool_ntoc_columns, "Daily SOM pool N to C ratio (kgN/kgC)");
 	add_patch_output("file_dave_ninput"                         , DAILY, ninput_columns, "Daily nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_fpar_ff"                        , DAILY, "fpar_ff", [](const Patch &p) { return p.fpar_ff; }, "Forest floor fpar (0-1)");
@@ -362,12 +368,6 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_dresp"                            , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_seed_ext"                   , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
 	add_pft_output("file_dave_dncohort"                         , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
-	add_pft_output("file_dave_cton_leaf_max"                     , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_leaf_max; }, "Maximum C:N ratio of leaves (unitless)");
-	add_pft_output("file_dave_cton_leaf_min"                     , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_leaf_min; }, "Minimum C:N ratio of leaves (unitless)");
-	add_pft_output("file_dave_cton_root_max"                     , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_root_max; }, "Maximum C:N ratio of roots (unitless)");
-	add_pft_output("file_dave_cton_root_min"                     , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_root_min; }, "Minimum C:N ratio of roots (unitless)");
-	add_pft_output("file_dave_cton_sap_max"                      , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_sap_max; }, "Maximum C:N ratio of sapwood (unitless)");
-	add_pft_output("file_dave_cton_sap_min"                      , DAILY, [](const Patch &p, const Pft &pft) { return pft.cton_sap_min; }, "Minimum C:N ratio of sapwood (unitless)");
 
 	// Subdaily individual-level outputs.
 	//                      param name in .ins file    timestep  column name    function which gets number of array elems     function which returns the i-th output value                               Description of output file

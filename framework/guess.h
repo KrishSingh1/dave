@@ -2515,7 +2515,7 @@ public:
 	}
 
 	bool store_uptake() const {
-		return dave_allocation() && ifstoreuptake && !is_grass();
+		return dave_allocation() && ifstoreuptake || is_grass();
 	}
 
 	/// Check whether DAVE allocation is enabled for this PFT.

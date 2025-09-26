@@ -764,6 +764,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
+				patch.soil.dnfix = 0.0;
 				patch.soil.aorgNleach = 0.0;
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
@@ -949,6 +950,14 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 
 	Soil& soil = patch.soil;
+	soil.navail_start_day = soil.get_nmass_avail();
+	soil.nmin_gross = 0.0;
+	soil.nimmob = 0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		soil.nimmob_pool[i] = 0.0;
+		soil.nmin_gross_pool[i] = 0.0;
+		soil.decay_reduction[i] = 0.0;
+	}
 
 	if (date.day == 0) {
 
@@ -978,6 +987,7 @@ void dailyaccounting_patch(Patch& patch) {
 			patchpft.cmass_leaf_root_turnover = 0.0;
 			patchpft.cmass_repr = 0.0;
 			patchpft.cmass_est = 0.0;
+			patchpft.nsapling_year = 0;
 			if(patch.age == 1) {
 				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
 			}
@@ -1351,6 +1361,10 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
+	if (date.day == 0) {
+		climate.apar = 0;
+	}
+	climate.apar += climate.par;
 
 	climate.par_max = max(climate.par, climate.par_max);
 

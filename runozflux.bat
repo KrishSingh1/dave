@@ -23,7 +23,7 @@ set "BIN=%DIR%\%BUILD_PATH%"
 set "GUESS=%BIN%\guesscmd.exe"
 
 :: Define sites (same list as in bash script)
-set "SITES=DryRiver Samford SturtPlains"
+set "SITES=AdelaideRiver AliceSpringsMulga Boyagin Calperum CapeTribulation Collie CowBay CumberlandPlain DalyPasture DalyUncleared DryRiver Emerald FoggDam Gingin GreatWesternWoodlands HowardSprings Litchfield Longreach Otway RedDirtMelonFarm Ridgefield RiggsCreek RobsonCreek Samford SilverPlains SturtPlains TiTreeEast Tumbarumba WallabyCreek Warra Whroo WombatStateForest Yanco"
 
 :: Start all simulations
 for %%S in (%SITES%) do (
@@ -45,5 +45,3 @@ tasklist | find /i "guesscmd.exe" > nul
 if not errorlevel 1 goto wait_loop
 
 echo All simulations completed.
-
-pause

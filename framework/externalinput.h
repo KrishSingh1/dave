@@ -65,6 +65,9 @@ private:
 
 	/// Gets elevation
 	void getelevation(Gridcell& gridcell);
+
+	// Read file_disturb to get the static disturbance years.
+	std::set<int> get_static_disturbances() const;
 };
 
 /// Class that deals with all land cover input from text files

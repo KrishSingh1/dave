@@ -45,6 +45,7 @@
 #include "gutil.h"
 #include <vector>
 #include <algorithm>
+#include <set>
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
@@ -204,7 +205,6 @@ const double SOILDEPTH_LOWER = 1000.0;
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
 const double SOILDEPTH_EVAP_TRUNK = 200.0;
-const double SOILDEPTH_EVAP_DAVE = 500.0;	// CS testing change, default is 200 mm
 extern double SOILDEPTH_EVAP;
 
 /// Year at which to calculate equilibrium soil carbon
@@ -1295,15 +1295,21 @@ public:
 	/// annual average precipitation (last year) (mm)
 	double aprec_lastyear;	
 
+	/// annual PAR sum
+	double apar;
+
 	/// Current (calendar) year of met data from input file.
 	int met_year;
+
+	/// Long-term mean maximum temperature of the warmest month (°C).
+	double thome;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
 
 		var_prec = 0.0;
 		var_temp = 0.0;
-
+		apar = 0.0;
 		aprec = 0.0;
 		aprec_lastyear = 0.0;
 		met_year = 0;
@@ -2242,6 +2248,11 @@ public:
 	 */
 	double alphar;
 
+	/// form factor to use in tree height calculations to that takes into account
+	/// the relationship betweeb the difference in tree mass betweenthe cylindrical
+	/// stem hypothesis and measured mass of tree log with its branches.
+	double formfactor;
+
 	/*
 	Note: these 3 parameters are only used by dave photosynthesis, and only when
 	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
@@ -2265,6 +2276,8 @@ public:
 	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
+	// Bole height as a fraction of tree height (0-1).
+	double boleht_frac;
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
@@ -2501,6 +2514,10 @@ public:
 		return lifeform == GRASS_PERENNIAL || lifeform == GRASS_ANNUAL;
 	}
 
+	bool store_uptake() const {
+		return dave_allocation() && ifstoreuptake && !is_grass();
+	}
+
 	/// Check whether DAVE allocation is enabled for this PFT.
 	bool dave_allocation() const;
 
@@ -2532,6 +2549,9 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
+		formfactor = 1;
+		boleht_frac = 0;
+		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;
 		ifsdautumn = false;
@@ -2669,7 +2689,7 @@ public:
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
 
-		if (ifdavegrowth) {
+		if (dave_allocation() && is_grass()) {
 			// TODO: revisit C:N avg!
 			// Bounds for fine root C:N ratio
 			cton_root_min = cton_leaf_min * frac_leaftoroot;
@@ -2678,10 +2698,6 @@ public:
 			// Bounds for sap C:N ratio
 			cton_sap_min = cton_leaf_min * frac_leaftosap;
 			cton_sap_max = cton_leaf_max * frac_leaftosap;
-
-			// Bounds for repr C:N ratio
-			cton_repr_min = greater_than_or_equal(cton_root_min, cton_leaf_min) ? cton_root_min : cton_leaf_min;
-			cton_repr_max = less_than_or_equal(cton_root_max, cton_leaf_max) ? cton_root_max : cton_leaf_max;
 		} else {
 			// Tighter C:N ratio range for roots and sapwood: picked out thin air
 			double frac_maxtomin = .9;
@@ -2695,6 +2711,10 @@ public:
 			cton_sap_min = cton_sap_max * frac_maxtomin;
 		}
 
+		// Bounds for repr C:N ratio
+		cton_repr_min = std::min(cton_root_min, cton_leaf_min);
+		cton_repr_max = std::max(cton_root_max, cton_leaf_max);
+
 		// Average leaf C:N ratio
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
 
@@ -2704,13 +2724,16 @@ public:
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (is_grass() || lifeform == MOSS) {
-			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
-		} 
-		else {
-			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
+		if (!dave_allocation() || is_grass()) {
+			if (is_grass() || lifeform == MOSS) {
+				respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
+			}
+			else {
+				respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
 			             cton_sap  / (cton_sap_avr  + cton_sap_min);
+			}
 		}
+
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
 	/*
@@ -3202,6 +3225,8 @@ public:
 	double acalloc_sap;
 	/// Total annaul C biomass allocated to reproductive tissue on modelled area basis (kgC/m2)
 	double acalloc_repr;
+	/// Total annaul C biomass allocated to storage tissue on modelled area basis (kgC/m2)
+	double acalloc_storage;
 	/// Total annaul C biomass allocated to crown on modelled area basis (kgC/m2)
 	double acalloc_crown;
 	/// heartwood C biomass on modelled area basis (kgC/m2)
@@ -3230,8 +3255,6 @@ public:
 	double cmass_sap_limit;
 	/// target storage C mass (kgC/m2)
 	double cmass_storage_limit;
-	/// target reproduction C mass (kgC/m^2) 
-	double cmass_repr_limit;
 	/// realtive leaf sink strengthy (unitless)
 	double relative_alpha_leaf;
 	/// realtive root sink strengthy (unitless)
@@ -3240,8 +3263,6 @@ public:
 	double relative_alpha_sap;
 	/// relative storage sink strengh (unitless)
 	double relative_alpha_storage;
-	/// realtive reproductive sink strengthy (unitless)
-	double relative_alpha_repr;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3305,6 +3326,8 @@ public:
 	double ctolitter;
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
+	/// Daily N taken up but then sent back to available N pool (kgN/m2).
+	double ntoavail;
 
 	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
 	double ctolitter_leaf;
@@ -3474,6 +3497,12 @@ public:
 	double cmass_root_ygrowth;
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
+	/// Nitrogen uptake today (0 when ifstoreuptake=true) (kgN/m2).
+	double nmass_uptake;
+	/// Nitrogen retranslocated today (kgN/m2).
+	double nretranslocated;
+	/// Cumulative total nitrogen retranslocated this year (kgN/m2).
+	double anretranslocated;
 
 	// green leaf c mass grazed today (kgC/m2).
 	double charvest_green;
@@ -3693,6 +3722,21 @@ public:
 	// Growth respiration today (kgC/m2)
 	double resp_growth;
 
+	// Leaf respiration today (kgC/m2)
+	double resp_leaf;
+
+	// Sapwood respiration today (kgC/m2)
+	double resp_sap;
+
+	// Root respiration today (kgC/m2)
+	double resp_root;
+
+	// Reproductive tissue respiration today (kgC/m2)
+	double resp_repr;
+
+	// Crown respiration today (kgC/m2)
+	double resp_crown;
+
 	// bvoc
 
 	/// isoprene production (mg C m-2 d-1)
@@ -3761,7 +3805,10 @@ public:
 	double alpha_root;
 	double alpha_sap;
 	double alpha_storage;
-	double alpha_repr;
+	double cdeficit_leaf;
+	double cdeficit_root;
+	double cdeficit_sap;
+	double cdeficit_storage;
 	// MEMBER FUNCTIONS
 
 public:
@@ -3843,6 +3890,9 @@ public:
 	double nmass_wood() const {
 		return nmass_sap + nmass_heart;
 	}
+
+	// Total above-ground biomass (kg/m2).
+	double aboveground_biomass() const;
 
 	/// Total carbon biomass
 	double ccont(double scale_indiv = 1.0, bool luc = false, bool ignore_alive = false) const;
@@ -4265,6 +4315,12 @@ public:
 	double snowpack;
 	/// total runoff today (mm/day)
 	double runoff;
+	/// surface runoff today (mm/day)
+	double surfrunoff;
+	/// drainage runoff today (mm/day)
+	double drainrunoff;
+	/// base runoff today (mm/day)
+	double baserunoff;
 	/// daily temperatures for the last month (deg C)
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double dtemp[31];
@@ -4579,7 +4635,13 @@ public:
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)
 	double NO3_input;
-	/// annual sum of nitrogen mineralisation
+	double navail_start_day;
+	double nmin_gross;
+	double nimmob;
+	double nimmob_pool[NSOMPOOL];
+	double nmin_gross_pool[NSOMPOOL];
+	double decay_reduction[NSOMPOOL];
+	/// annual sum of gross nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
 	double animmob;
@@ -4589,6 +4651,8 @@ public:
 	double aorgNleach;
 	/// total annual nitrogen fixation
 	double anfix;
+	/// total daily nitrogen fixation
+	double dnfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	/// annual leaching of organics from carbon pool
@@ -4605,7 +4669,11 @@ public:
 
 	// Daily N volatilisation (kgN/m2/day).
 	double nvol;
+	// Cumulative annual N volatilisation (kgN/m2/year).
+	double anvol;
 
+	/// Cumulative annual nitrogen flux to atmosphere (kgN/m2/year).
+	double anloss_gas;
 	// Daily nitrogen flux to atmosphere (kgN/m2/day).
 	double nloss_gas;
 
@@ -5054,6 +5122,8 @@ public:
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
+	/// The number of saplings of this PFT established this year.
+	double nsapling_year;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
 	double cmass_litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
@@ -5179,6 +5249,7 @@ public:
 		anetps_ff_est_initial = 0.0;
 		wscal_mean_est = 0.0;
 		nsapling = 0;
+		nsapling_year = 0;
 		water_deficit_y = 0.0;
 		g1 = 0.0;
 
@@ -6199,6 +6270,10 @@ public:
 	double dNO3dep;
 
 	double distinterval_gc;
+
+	// Vector of (calendar) years in which a disturbance should occur.
+	// This only contains data and is only used when disttype = DETERMINISTIC.
+	std::set<int> static_disturbances;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

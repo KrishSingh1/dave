@@ -104,12 +104,13 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe 
 // Calculate soil water potential according to Campbell (1974)
 void calc_soil_water_potenial_dave(Soil &soil) {
 
-    if (!ifdavehydraulics) {
+    if (!ifzhou) {
+        // ifzhou will always be true if dave hydraulics routine is enabled.
         return;
     }
 
     if (!ifdavehydrology) {
-        fail("ifdavehydrology must be enabled to run ifdavehydralics");
+        fail("ifdavehydrology must be enabled to calculate soil water potential");
     }
 
     for (int i = 0; i < NSOILLAYER; i++) {
@@ -149,18 +150,16 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
         
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * soil.soiltype.sand_frac*100.0 + (-3.895 + 0.03671 * 
-                            soil.soiltype.sand_frac*100.0 - 0.1103 * soil.soiltype.clay_frac*100.0 + 8.7546e-4 * soil.soiltype.clay_frac*100.0) * 1.0/theta);
-
-        
+        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * soil.soiltype.sand_frac * 100.0 + (-3.895 + 0.03671 *
+                            soil.soiltype.sand_frac * 100.0 - 0.1103 * soil.soiltype.clay_frac * 100.0 + 8.7546e-4 * soil.soiltype.clay_frac * 100.0) * 1.0 / theta);
     }
 
     soil.soil_psi = mean(soil.psi_layer, NSOILLAYER);
 
     for (int i = 0; i < soil.patch.vegetation.nobj; i++) {
 		Individual &indiv = soil.patch.vegetation[i];
-		Pft &pft = indiv.pft; 
-        if (wateruptake == WR_ROOT_RESISTANCE){
+		Pft &pft = indiv.pft;
+        if (wateruptake == WR_ROOT_RESISTANCE) {
 		    indiv.weighted_psi = calc_weighted_psi(soil, pft, indiv);
         } else {
             fail("Water uptake method different to root_resistance: Growth, soil, and photosynthesis modules need to be updated for compatibility with soil water potential calculated in hydraulics module");
@@ -188,7 +187,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; /// shouldn't be proportional to stomatal conductance - look at how transpiration compares to flux data
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
-    double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
+    double Ax = PI * pow(indiv.diam / 2.0, 2.0) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
 
     if (indiv.stomata_open) {
         // Stomata are not fully closed.

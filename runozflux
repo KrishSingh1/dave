@@ -55,11 +55,13 @@ Yanco"
 OUTPUTS="file_dave_gpp
 file_dave_resp
 file_dave_nee
-file_dave_transpiration
+file_dave_aet
 file_dave_lai
 file_dave_height
 file_dave_diameter
-file_dave_live_biomass"
+file_dave_aboveground_tree_biomass
+file_agb
+file_agb_tree"
 
 ################################################################################
 # End of User Inputs
@@ -113,7 +115,7 @@ enable_output() {
 		# BSD sed: MUST use -i ''
 		# GNU sed: MUST use just -i (equivalent: -i''); -i '' does NOT work
 		I="-i"
-		if ! sed --version | /usr/bin/grep -qi gnu >/dev/null 2>&1
+		if ! sed --version 2>/dev/null | /usr/bin/grep -qi gnu >/dev/null 2>&1
 		then
 			# BSD sed
 			I="-i ''"

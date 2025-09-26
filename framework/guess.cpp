@@ -360,6 +360,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& aphen
 		& establish
 		& nsapling
+		& nsapling_year
 		& cmass_litter_leaf
 		& cmass_litter_root
 		& cmass_litter_sap
@@ -1763,7 +1764,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	relative_alpha_leaf 		  = 0.0;
 	relative_alpha_root 		  = 0.0;
 	relative_alpha_sap  		  = 0.0;
-	relative_alpha_repr 		  = 0.0;
 	relative_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
@@ -1804,6 +1804,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
+	nmass_uptake                = 0.0;
+	nretranslocated             = 0.0;
+	anretranslocated            = 0.0;
+	ntoavail                    = 0.0;
 	nstorage_max				= 0.0;
 	cmass_leaf_ygrowth			= 0.0;
 	cmass_root_ygrowth			= 0.0;
@@ -1822,7 +1826,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	soiltemp_dynamic.set_capacity(response_window);
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
-	if (ifadaptive_rootdist){
+	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {
 		root_beta = calc_root_beta(nday_dormant);
 		calc_root_distribution(root_beta, rootdist);
 	} else { // Take PFT-level default
@@ -1835,6 +1839,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	acalloc_root				= 0.0;
 	acalloc_repr				= 0.0;
 	acalloc_sap					= 0.0;
+	acalloc_storage				= 0.0;
 	acalloc_crown				= 0.0;
 
 	initialc = 0.0;
@@ -1945,11 +1950,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alpha_root        = 0.0;
 	alpha_sap         = 0.0;
 	alpha_storage     = 0.0;
-	alpha_repr        = 0.0;
+	cdeficit_leaf     = 0.0;
+	cdeficit_root     = 0.0;
+	cdeficit_sap      = 0.0;
+	cdeficit_storage  = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit   = 0.0;
-	cmass_repr_limit  = 0.0;
 	cturnover_leaf  = 0.0;
  	cturnover_root  = 0.0;
 	cturnover_sap  = 0.0;
@@ -2009,6 +2016,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnpp              = 0.0;
 	resp_maintenance  = 0.0;
 	resp_growth       = 0.0;
+	resp_leaf         = 0.0;
+	resp_sap          = 0.0;
+	resp_root         = 0.0;
+	resp_repr         = 0.0;
+	resp_crown        = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
 
@@ -2133,6 +2145,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_repr
 		& nmass_sap
 		& nmass_heart
+		& nmass_uptake
+		& ntoavail
 		& cmass_wood_old
 		& nactive
 		& nextin
@@ -2176,7 +2190,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& andemand_leaf
 		& andemand_root
 		& andemand_sap
-		& andemand;
+		& andemand
+		& resp_leaf
+		& resp_sap
+		& resp_root
+		& resp_repr
+		& resp_crown;
 
 	if (pft.landcover==CROPLAND)
 		arch & *cropindiv;
@@ -2582,6 +2601,23 @@ double Individual::sla() const {
 	return current_sla;
 }
 
+double Individual::aboveground_biomass() const {
+	double ccont = get_cmass_leaf();
+
+	if (pft.is_grass()) {
+		ccont += cmass_crown; // TODO: should this be included?
+	} else if (pft.lifeform != MOSS) {
+		ccont += cmass_wood();
+	}
+
+	if (pft.dave_allocation()) {
+		ccont += cmass_storage; // TODO: should this be included?
+	}
+
+	// Convert kgC/m2 to kg/m2 biomass.
+	return 2.0 * ccont;
+}
+
 /// C content of individual
 /** INPUT PARAMETERS
  *
@@ -2733,6 +2769,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_longterm - nstore_longterm_luc * (1.0 - scale_indiv);
 			ncont += nstore_labile - nstore_labile_luc * (1.0 - scale_indiv);
 			ncont += nmass_storage - nmass_storage_luc * (1.0 - scale_indiv);
+			ncont += nmass_uptake * (1.0 - scale_indiv);
 
 			if (ifdailygrass && pft.is_grass()) {
 				ncont += nmass_leafs[0] - nmass_leafs_luc[0] * (1.0 - scale_indiv);
@@ -2760,6 +2797,9 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_longterm * scale_indiv;
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
+			if (!pft.store_uptake()) {
+				ncont += nmass_uptake * scale_indiv;
+			}
 
 			if (ifdailygrass && pft.is_grass()) {
 				if (ifdavegrowth) {
@@ -3331,7 +3371,7 @@ void Individual::kill(bool harvest /* = false */) {
 		 // can happen in stressed plants. This will positively bias
 		 // plant respiration and should be accounted for somehow.
 		//assert(ccont() >= initialc); // C could be lost from the system
-		assert(ncont() >= initialn);
+		assert(greater_than_or_equal(ncont(), initialn));
 
 		double nflux_out = initialn;
 		double cflux_out = initialc;
@@ -3390,6 +3430,11 @@ void Individual::kill(bool harvest /* = false */) {
 
 	if (pft.lifeform == TREE && ifdailytree && ifdavegrowth) {
 		ppft.cmass_litter_root += cmass_storage;
+	}
+
+	if (!pft.store_uptake() && nmass_uptake > 0) {
+		vegetation.patch.soil.nmass_inc(nmass_uptake);
+		nmass_uptake = 0;
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive
@@ -3635,7 +3680,7 @@ void Individual::flush_repr_litter_DAVE() {
 }
 
 double Individual::wscal_mean() const {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_mean_year;
 	} else {
 		return patchpft().wscal_mean;
@@ -3643,7 +3688,7 @@ double Individual::wscal_mean() const {
 }
 
 double Individual::get_wscal() const {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal;
 	} else {
 		return patchpft().wscal;
@@ -3651,7 +3696,7 @@ double Individual::get_wscal() const {
 }
 
 Historic<double,5>& Individual::get_wscal_5() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_5;
 	} else {
 		return patchpft().wscal_5;
@@ -3659,7 +3704,7 @@ Historic<double,5>& Individual::get_wscal_5() {
 }
 
 Historic<double,10>& Individual::get_wscal_10() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_10;
 	} else {
 		return patchpft().wscal_10;
@@ -3667,7 +3712,7 @@ Historic<double,10>& Individual::get_wscal_10() {
 }
 
 Historic<double,30>& Individual::get_wscal_30() {
-	if (ifdavehydraulics){
+	if (ifzhou) {
 		return wscal_30;
 	} else {
 		return patchpft().wscal_30;

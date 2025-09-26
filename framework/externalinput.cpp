@@ -11,6 +11,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include <limits.h>
+
 #include "externalinput.h"
 
 /// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
@@ -175,9 +177,51 @@ void MiscInput::getelevation(Gridcell& gridcell) {
 	}
 }
 
+std::set<int> MiscInput::get_static_disturbances() const {
+	if (file_disturb == "") {
+		fail("file_disturb must be set when using disttype = DETERMINISTIC");
+	}
+
+	FILE* file = fopen(file_disturb, "r");
+	if (!file) {
+		fail("get_static_disturbances(): could not open %s for input: %s", (const char *)file_disturb, strerror(errno));
+	}
+
+	std::set<int> years;
+
+	const size_t BUFSIZE = 1024;
+	char buffer[BUFSIZE];
+	while (fgets(buffer, BUFSIZE, file)) {
+		// Convert to integer.
+		char *end;
+		errno = 0;
+		unsigned long year = strtoul(buffer, &end, 10);
+		if (errno != 0) {
+			fail("get_static_disturbances(): failed to parse line '%s': %s", buffer, strerror(errno));
+		}
+		if (end == buffer) {
+			fail("get_static_disturbances(): failed to parse line '%s': line cannot be converted to integer", buffer);
+		}
+		if (year > INT_MAX) {
+			fail("get_static_disturbances(): year %lu is out of range", year);
+		}
+		years.insert((int)year);
+	}
+
+	int err = fclose(file);
+	if (err) {
+		printf("WARNING: Failed to close file_disturb: %s", (const char *)file_disturb);
+	}
+
+	return years;
+}
+
 void MiscInput::getmiscinput_static(Gridcell& gridcell) {
 
 	getelevation(gridcell);
+	if (ifdisturb && disttype == DETERMINISTIC) {
+		gridcell.static_disturbances = get_static_disturbances();
+	}
 }
 
 void MiscInput::getmiscinput_yearly(Gridcell& gridcell) {

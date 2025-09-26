@@ -26,6 +26,7 @@
 #include "ncvariable.h"
 #include "soilinput.h"
 #include "globalco2file.h"
+#include "thome.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -279,6 +280,11 @@ private:
 	SoilInput soil_input;
 
 	/*
+	THome input module (use for temperature acclimation of photosynthesis).
+	*/
+	THomeInput thome_input;
+
+	/*
 	Nitrogen deposition input module.
 	*/
 	Lamarque::NDepData ndep_input;
@@ -339,6 +345,12 @@ private:
 	user-configurable setting in the instruction file.
 	*/
 	xtring file_ndep;
+
+	/*
+	Path to the mean maximum daily temperature (T_home) input file, used for
+	DAVE temperature acclimation calculations.
+	*/
+	xtring file_thome;
 
 	/*
 	Scenario to be used for nitrogen deposition data. This is a

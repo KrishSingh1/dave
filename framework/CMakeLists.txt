@@ -21,6 +21,7 @@ set(headers
   grazing_input.h
   spline.h
   interpolator.h
+  thome.h
 )
 
 set(source
@@ -43,6 +44,7 @@ set(source
   grazing_input.cpp
   spline.cpp
   interpolator.cpp
+  thome.cpp
 )
 
 include(add_guess_sources)

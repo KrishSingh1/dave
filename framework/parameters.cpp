@@ -41,9 +41,12 @@ bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
 bool ifcalcvcmax;
+bool iftempacclimation;
 bool ifcalccton;
 int estinterval;
 double distinterval;
+disturbancetype disttype;
+xtring file_disturb;
 bool ifcdebt;
 
 bool ifcentury;
@@ -81,6 +84,8 @@ bool iftreephen;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
+int soildepth_evap;
+bool ifzhou;
 bool ifdavehydraulics;
 bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
@@ -90,10 +95,12 @@ bool ifsinksource;
 bool ifadaptive_rootdist;
 bool ifapproximate_C4;
 bool ifusegdd;
+bool ifstoreuptake;
 bool gzip_output;
 int nindiv_max;
 int grazing_duration;
 bool ifforcedlai;
+double fixed_lai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 
@@ -227,7 +234,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTHYDROLOGY, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM,
 	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STHYDROLOGY, CB_MANAGEMENT1, 
 	CB_MANAGEMENT2, CB_MANAGEMENT3,	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
-	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR};
+	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR, CB_DISTTYPE};
 
 // File local variables
 namespace {
@@ -274,11 +281,18 @@ void initsettings() {
 	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
-	ifcalcvcmax=true;
+	iftempacclimation = false;
+	ifdavehydraulics = false;
+	ifdavehydrology = false;
+	ifstoreuptake = true;
+	soildepth_evap = 200.0;// Default in trunk
+	ifzhou = false;
 	ifcalccton=true;
 	ifcdebt=false;
 	ifgrote = false;
 	distinterval=1.0e10;
+	disttype = DIST_NONE;
+	file_disturb = "";
 	npatch=1;
 	vegmode=COHORT;
 	run_landcover = false;
@@ -296,6 +310,7 @@ void initsettings() {
 	gzip_output = false;
 	nindiv_max = 0;
 	ifforcedlai = false;
+	fixed_lai = 0;
 	ifevenlaidist = true;
 	ifsinksource = false;
 	ifadaptive_rootdist = false;
@@ -507,10 +522,16 @@ void plib_declarations(int id,xtring setname) {
 			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
+		declareitem("disttype", &strparam, 20, CB_DISTTYPE,
+			"Disturbance regime (\"NONE\", \"STOCHASTIC\" (requires distinterval), \"DETERMINISTIC\" (requires file_disturb))");
+		declareitem("file_disturb", &file_disturb, 4096, CB_NONE,
+			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
 		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
 			"Whether Vcmax calculated from leaf nutrient content");
+		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
+			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
@@ -646,7 +667,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
+		declareitem("soildepth_evap", &soildepth_evap, 0, 1500, 1, CB_NONE, "Depth of sublayer at top of upper soil layer, from which evaporation is possible (NB: must not exceed value of global constant SOILDEPTH_UPPER) Must be a multiple of Dz_soil");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
+	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifsinksource", &ifsinksource, 1, CB_NONE, "Whether Growth is calculated as the minimum of a sink and a source term (default: off).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
@@ -654,10 +677,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
+		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
 		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
+		declareitem("fixed_lai", &fixed_lai, 0.01, 7, 1, CB_NONE, "The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
 
@@ -809,6 +834,8 @@ void plib_declarations(int id,xtring setname) {
 			"Entropy terms (deltaS) for vcmax (J mol-1 K-1).");
 		declareitem("ds_j",&ppft->ds_j,-5000,5000,1,CB_NONE,
 			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
+		declareitem("boleht_frac", &ppft->boleht_frac, 0.0, 1.0, 1, CB_NONE,
+			"Bole height as a fraction of tree height (0-1)");
 
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
@@ -848,7 +875,7 @@ void plib_declarations(int id,xtring setname) {
 			"Constant in allometry equations");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
-		declareitem("k_rp",&ppft->k_rp,1.0,2.0,1,CB_NONE,
+		declareitem("k_rp",&ppft->k_rp,1.0,5.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_latosa",&ppft->k_latosa,100.0,1.0e5,1,CB_NONE,
 			"Tree leaf to sapwood xs area ratio");
@@ -909,6 +936,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		declareitem("formfactor",&ppft->formfactor,0.01,1.0,1,CB_NONE,
+			"Form Factor for converting cylindrical stem into conical stem and branches");	
 
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
@@ -1414,7 +1443,18 @@ void plib_callback(int callback) {
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
 			plibabort();
 		}
-		break;		
+		break;
+	case CB_DISTTYPE:
+		if (strparam.upper() == "NONE") {
+			disttype = DIST_NONE;
+		} else if (strparam.upper() == "STOCHASTIC") {
+			disttype = STOCHASTIC;
+		} else if (strparam.upper() == "DETERMINISTIC") {
+			disttype = DETERMINISTIC;
+		} else {
+			sendmessage("Error", "Unknown disttype (valid types: \"NONE\", \"STOCHASTIC\", \"DETERMINISTIC\")");
+		}
+		break;
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1719,13 +1759,35 @@ void plib_callback(int callback) {
 			if (!itemparsed("ifsme")) badins("ifsme");
 			if (!itemparsed("ifstochmort")) badins("ifstochmort");
 			if (!itemparsed("ifstochestab")) badins("ifstochestab");
-			if (itemparsed("ifdisturb") && !itemparsed("distinterval"))
-				badins("distinterval");
+			if (itemparsed("ifdisturb")) {
+				if (!itemparsed("disttype")) {
+					badins("disttype");
+				}
+				if (disttype == STOCHASTIC && !itemparsed("distinterval")) {
+					badins("distinterval");
+				}
+				if (disttype == DETERMINISTIC && !itemparsed("file_disturb")) {
+					badins("file_disturb");
+				}
+			}
+			if (ifdisturb && disttype == DIST_NONE) {
+				sendmessage("Error", "Disturbances are enabled but disttype is set to NONE");
+				plibabort();
+			}
+			if (!ifdisturb && disttype != DIST_NONE) {
+				sendmessage("Warning", "Disturbances are disabled, but disttype is not set to NONE. disttype will be ignored.");
+			}
+
 			if (!itemparsed("npatch")) badins("npatch");
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");
 		}
-		
+
+		if (ifzhou && wateruptake != WR_ROOT_RESISTANCE) {
+			sendmessage("Error", "Zhou model has been enabled, but water uptake method is not set to ROOT_RESISTANCE. This is the only supported water uptake method when ifzhou is enabled");
+			plibabort();
+		}
+
 		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
 		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
 			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");
@@ -1752,6 +1814,10 @@ void plib_callback(int callback) {
 
 		if (state_path == "" && (save_state || restart)) {
 			badins("state_path");
+		}
+
+		if (ifforcedlai) {
+			if (!itemparsed("fixed_lai")) badins("fixed_lai");
 		}
 
 		if (grassforcrop) {
@@ -2031,9 +2097,11 @@ void plib_callback(int callback) {
 			ppft->init_transferconst();
 
 			// Calculate hydraulic vulnerability curve parameters from P50 and P88
-			ppft->init_hydraulic_vulnerability_curves();
+			if (ifdavehydraulics) {
+				ppft->init_hydraulic_vulnerability_curves();
 
-			ppft->setup_transpiration(epsiresolution);
+				ppft->setup_transpiration(epsiresolution);
+			}
 
 			pftlist.nextobj();
 		}
@@ -2114,6 +2182,11 @@ void plib_callback(int callback) {
 					if (!itemparsed("crownfrac")) badins("crownfrac");
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 				}
+				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
+					badins("boleht_frac");
+				}
+
+				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
 			if (!ifcalcvcmax) {
 				if (!itemparsed("vcmax_25")) badins("vcmax_25");
@@ -2140,7 +2213,12 @@ void plib_callback(int callback) {
 				}
 			}
 
+			if (ifzhou && !ifdavehydrology) {
+				fail("Zhou photosynthesis response requires dave hydrology to be enabled");
+			}
+
 			if (ifdavehydraulics){
+				if (!ifzhou) fail("Dave hydraulics routine requires ifzhou to be enabled");
 				if (!itemparsed("p50")) badins("p50");	
 				if (!itemparsed("p88")) badins("p88");	
 				if (!itemparsed("kmax")) badins("kmax");	

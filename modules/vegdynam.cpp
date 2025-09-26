@@ -1019,6 +1019,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// Establishment each year in managed patches
 
 							patch.pft[pft.id].nsapling+=nsapling;
+							patch.pft[pft.id].nsapling_year = nsapling;
 							newindiv=0;
 						}
 						else {
@@ -1051,9 +1052,27 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					/*if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics)*/ {
-					//	printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
 					}
+
+					// Initial biomass proportional to potential forest floor net
+					// assimilation for this PFT in this patch
+
+					if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
+						bminit = PLANTSIZE; // Fixed sap size after first cutting
+					}
+					else {
+						bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+					}
+					if (bminit == 0) {
+						patch.pft[pft.id].anetps_ff_est = 0;
+						patch.pft[pft.id].wscal_mean_est = 0;
+						patch.pft[pft.id].nsapling = 0;
+						pftlist.nextobj();
+						continue;
+					}
+
 					for (i=0;i<newindiv;i++) {
 
 						// Create average individual for a new cohort (cohort mode)
@@ -1072,16 +1091,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// accessed in allocation_init(), so let's initialize it
 						// to 0 here rather than rely on uninitialized memory.
 						indiv.height = 0;
-
-						// Initial biomass proportional to potential forest floor net
-						// assimilation for this PFT in this patch
-
-						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-							bminit = PLANTSIZE; // Fixed sap size after first cutting
-						}
-						else {
-							bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
-						}
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
@@ -2064,17 +2073,24 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			bool during_century_solvesom = ifcentury &&
 										   date.year >= patch.soil.solvesomcent_beginyr &&
 										   date.year <= patch.soil.solvesomcent_endyr;
-
-			double distinterval_ = stand.get_distinterval();	
-			if (patch.age && !during_century_solvesom) {
-				disturbance(patch,1.0 / distinterval_);
-				if (patch.disturbed) {
-					return; // no mortality or establishment this year
+			if (!during_century_solvesom && patch.age) {
+				if (disttype == DETERMINISTIC) {
+					// Deterministic disturbances in predefined years.
+					const Gridcell &gridcell = stand.get_gridcell();
+					const std::set<int> &years = gridcell.static_disturbances;
+					if (years.find(date.get_calendar_year()) != years.end()) {
+						// Deterministic disturbance occurs in this year.
+						disturbance(patch, 1.0);
+						return;
+					}
+				} else {
+					// Stochastic disturbances.
+					double distinterval_ = stand.get_distinterval();	
+					disturbance(patch,1.0 / distinterval_);
+					if (patch.disturbed) {
+						return; // no mortality or establishment this year
+					}
 				}
-			}
-			if (date.get_calendar_year() == 1800) {
-				disturbance(patch, 1.0);
-				return; // no mortality or establishment this year
 			}
 		}
 

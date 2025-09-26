@@ -800,17 +800,6 @@ std::vector<ColumnDefinition<Patch>> fevap_columns() {
 	return columns;
 }
 
-/*
-Sum a quantity across all SOM pools.
-*/
-double sum_sompool(const Patch &patch, double (*read_pool)(const Sompool &pool)) {
-	double total = 0;
-	for (size_t i = 0; i < NSOMPOOL; i++) {
-		total += read_pool(patch.soil.sompool[i]);
-	}
-	return total;
-}
-
 std::vector<ColumnDefinition<Patch>> sompool_cmass_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].cmass; }));
@@ -824,7 +813,6 @@ std::vector<ColumnDefinition<Patch>> sompool_cmass_columns() {
 	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].cmass; }));
 	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].cmass; }));
 	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("total", [](const Patch &p) { return sum_sompool(p, [](const Sompool &pool) { return pool.cmass; }); }));
 	return columns;
 }
 
@@ -841,7 +829,6 @@ std::vector<ColumnDefinition<Patch>> sompool_nmass_columns() {
 	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].nmass; }));
 	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].nmass; }));
 	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("total", [](const Patch &p) { return sum_sompool(p, [](const Sompool &pool) { return pool.nmass; }); }));
 	return columns;
 }
 

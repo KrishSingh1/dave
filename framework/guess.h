@@ -2724,7 +2724,7 @@ public:
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (!dave_allocation() || is_grass()) {
+		if (!dave_allocation()) {
 			if (is_grass() || lifeform == MOSS) {
 				respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
 			}

@@ -81,7 +81,7 @@ pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
@@ -167,7 +167,7 @@ pft "TeBE" (
 	evergreen
 	temperate
 	leaflong 3
-	turnover_leaf 0.33
+	turnover_leaf 1
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
@@ -183,6 +183,12 @@ pft "TeBE" (
 	! As calculated by ifcalcsla and ifcalccton.
 	sla 13.171494
 	cton_leaf_min 29.010140
+
+	turnover_sap 0.1
+	!wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+    !vcmax_25 69 ! NEED A VALUE - using Warra's
+    !sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+    !respcoeff 0.8 
 )
 
 pft "TeBE_Assaf" (
@@ -250,7 +256,7 @@ pft "TrBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -277,7 +283,7 @@ pft "TrIBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -494,10 +500,17 @@ pft "Wombat" (
 	tree
 	broadleaved
 	shade_intolerant
+
+	!est_max 0.05
+	!parff_min 350000
+	!alphar 2.0
+	!greff_min 0.03
+	!turnover_sap 0.05
+
 	evergreen
 	temperate
 	leaflong 2.0 
-	turnover_leaf 0.5
+	turnover_leaf 0.33
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8

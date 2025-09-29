@@ -99,7 +99,8 @@ group "tree" (
 	harvest_slow_frac 0.33	! Bondeau 0.33
 	stem_frac 0.65
 	twig_frac 0.13
-	turnover_repr 0.25
+	turnover_repr_litter 0.25
+	turnover_repr 0.5
 )
 
 group "shrub" (
@@ -152,7 +153,7 @@ group "grass" (
 	phengdd5mat 2000.0
 	turnover_leaf 1.0
 	turnover_root 0.7
-	turnover_repr 0.2
+	turnover_repr_litter 0.2
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
@@ -173,10 +174,10 @@ group "grass" (
 	tlp -1.0 				! Turgor loss point (needed for grasses)
 	crownfrac 0.0
 	culmfrac 0.0
-	turnover_repr 0.2
+	turnover_repr_litter 0.2
 	crownfrac 0.0
 	culmfrac 0.0
-	turnover_repr 0.2
+	turnover_repr_litter 0.2
 )
 
 group "broadleaved" (
@@ -595,6 +596,10 @@ pft "MRS" (
 	k_latosa 4000
 	k_allom2 35
 	longevity 300
+
+	stom_clos -3.2   ! Peters (2021)
+	stom_clos -1.5
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	! ! WOMBAT (Clare) - fixedLAI = 2.253

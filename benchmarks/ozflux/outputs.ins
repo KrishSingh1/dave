@@ -68,6 +68,12 @@ ifdailyoutput 1
 !file_dave_anetps_ff             "dave_anetps_ff.out"            ! Annual net photosynthesis at forest floor (kgC/m2)
 !file_dave_ansapling             "dave_ansapling.out"            ! Number of saplings of each PFT ready to establish (trees only)
 !file_dave_ansapling_year        "dave_ansapling_year.out"       ! Recruitment rate of each PFT (saplings per year) (trees only)
+!file_dave_cton_leaf_max         "dave_cton_leaf_max.out"        ! Maximum C:N ratio of leaves (unitless)
+!file_dave_cton_leaf_min         "dave_cton_leaf_min.out"        ! Maximum C:N ratio of leaves (unitless)
+!file_dave_cton_root_max         "dave_cton_root_max.out"        ! Maximum C:N ratio of leaves (unitless)
+!file_dave_cton_root_min         "dave_cton_root_min.out"        ! Maximum C:N ratio of leaves (unitless)
+!file_dave_cton_sap_max          "dave_cton_sap_max.out"         ! Maximum C:N ratio of leaves (unitless)
+!file_dave_cton_sap_min          "dave_cton_sap_min.out"         ! Maximum C:N ratio of leaves (unitless)
 
 ! Annual stand-level outputs.
 !file_dave_stand_frac            "dave_stand_frac.out"           ! Fraction of the gridcell occupied by each stand.
@@ -75,6 +81,7 @@ ifdailyoutput 1
 
 ! Annual stand-level pft outputs.
 !file_dave_anetps_ff_max         "dave_anetps_ff_max.out"        ! Annual net photosynthesis at forest floor (kgC/m2)
+!file_dave_spft_cmass_repr       "dave_spft_cmass_repr.out"      ! Daily reproductive cmass at standpft-level (gC/m2)
 
 ! Annual per-patch aggregated individual-level outputs.
 !file_dave_acalloc_leaf          "dave_calloc_leaf.out"          ! Total annual C allocation to leaf (kgC/m2)
@@ -162,15 +169,17 @@ file_agb_tree                   "agb_tree.out"                  ! Daily gridcell
 !file_dave_kmax_drought_affected "dave_kmax_drought_affected.out" ! Dynamic kmax value impacted by drought, gradually recovers (mol/m2/s/MPa)
 !file_dave_max_k_loss            "dave_max_k_loss.out"           ! Fractional reduction in kmax due to xylem embolism
 !file_dave_wscal                 "dave_wscal.out"                ! Water scalar [0-1], 1 = min stress
-!file_dave_cmass_litter_repr     "dave_cmass_litter_repr.out"    ! Seedbank cmass (kgC/m2)
-!file_dave_nmass_litter_repr     "dave_nmass_litter_repr.out"    ! Seedbank nmass (kgN/m2)
+!file_dave_cmass_standing_dead_repr     "dave_cmass_standing_dead_repr.out"    ! Standing Dead Reproductive (Seedbank for grasses) C mass (kgC/m2)
+!file_dave_nmass_standing_dead_repr     "dave_nmass_standing_dead_repr.out"    ! Standing Dead Reproductive (Seedbank for grasses) N mass (kgN/m2)
+!file_dave_cmass_standing_dead_leaf     "dave_cmass_standing_dead_leaf.out"    ! Standing Dead Leaf C Mass (kgC/m2)
+!file_dave_nmass_standing_dead_leaf     "dave_nmass_standing_dead_leaf.out"    ! Standing Dead Leaf N Mass (kgN/m2)
+!file_dave_cmass_standing_dead_root     "dave_cmass_standing_dead_root.out"    ! Standing Dead Root C Mass (kgC/m2)
+!file_dave_nmass_standing_dead_root     "dave_nmass_standing_dead_root.out"    ! Standing Dead Root N Mass (kgN/m2)
+!file_dave_cmass_standing_dead_sap      "dave_cmass_standing_dead_sap.out"     ! Standing Dead Sap C Mass (kgC/m2)
+!file_dave_nmass_standing_dead_sap      "dave_nmass_standing_dead_sap.out"     ! Standing Dead Sap N Mass (kgN/m2)
+!file_dave_cmass_standing_dead_heart    "dave_cmass_standing_dead_heart.out"   ! Standing Dead Heartwood C Mass (kgC/m2)
+!file_dave_nmass_standing_dead_heart    "dave_nmass_standing_dead_heart.out"   ! Standing Dead Heartwood N Mass (kgN/m2)
 !file_dave_dresp                 "dave_dresp.out"                ! Total daily pft-level autotrophic Respiration (kgC/m2)
-!file_dave_cton_leaf_max         "dave_cton_leaf_max.out"        ! Maximum C:N ratio of leaves (unitless)
-!file_dave_cton_leaf_min         "dave_cton_leaf_min.out"        ! Maximum C:N ratio of leaves (unitless)
-!file_dave_cton_root_max         "dave_cton_root_max.out"        ! Maximum C:N ratio of leaves (unitless)
-!file_dave_cton_root_min         "dave_cton_root_min.out"        ! Maximum C:N ratio of leaves (unitless)
-!file_dave_cton_sap_max          "dave_cton_sap_max.out"         ! Maximum C:N ratio of leaves (unitless)
-!file_dave_cton_sap_min          "dave_cton_sap_min.out"         ! Maximum C:N ratio of leaves (unitless)
 !file_dave_dturnover_leaf        "dave_dturnover_leaf.out"       ! Daily leaf C turnover flux (kgC/m2/day)
 !file_dave_dturnover_root        "dave_dturnover_root.out"       ! Daily root C turnover flux (kgC/m2/day)
 !file_dave_dturnover_sap         "dave_dturnover_sap.out"        ! Daily sapwood C turnover flux (kgC/m2/day)
@@ -182,7 +191,7 @@ file_agb_tree                   "agb_tree.out"                  ! Daily gridcell
 !file_dave_fphoto                "dave_fphoto.out"               ! Coefficient that scales growth according to relative day length (0-1)
 !file_dave_cgrow_pot             "dave_cgrow_pot.out"            ! Coefficient used to scale cgrow by taking into account ftem, fwater and fstrage (0-1)
 !file_dave_wscal_5l              "dave_wscal_5l.out"             ! Water scalar for top 5 layers [0-1], 1 = min stress
-!file_dave_clitter               "dave_clitter.out"              ! Total Daily PFT-Level C Mass in Litter (kgC/m2)
+!file_dave_standing_dead          "dave_standing_dead.out"        ! Daily per-PFT total standing dead C mass (kgC/m2)
 
 ! Daily indiv-level per-patch array outputs.
 !file_dave_layerwise_fpar           "dave_layerwise_fpar.out"       ! Daily layered fpar [0-1]
@@ -258,6 +267,8 @@ file_agb_tree                   "agb_tree.out"                  ! Daily gridcell
 !file_dave_dnpool                "dave_dnpool.out"               ! Daily N pools (kgN/m2)
 !file_dave_wcont_upper           "dave_wcont_upper.out"          ! Daily soil moisture in the upper 50cm (0-1)
 !file_dave_soiltemp25            "dave_soiltemp25.out"           ! Daily soil temperature at 25cm (°C)
+!file_dave_clitter               "dave_clitter.out"              ! Total Daily PFT-Level C Mass in Litter (kgC/m2)
+!file_dave_nlitter               "dave_nlitter.out"              ! Total Daily PFT-Level N Mass in Litter (kgN/m2)
 !file_dave_swvol                 "dave_swvol.out"                ! Volumetric soil water content (m3/m3)
 !file_dave_resp                  "dave_resp.out"                 ! Daily patch-level ecosystem respiration (gC/m2/day)
 !file_dave_gpp                   "dave_gpp.out"                  ! Daily patch level GPP (gC/m2)

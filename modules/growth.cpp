@@ -5034,7 +5034,9 @@ void update_pools_dave(Vegetation& vegetation) {
 		//}
 		//else {
 
-		const double RESP_FRAC = 0.25;
+		// Growth respiration as fraction of new growth.
+		const double RESP_GROWTH_FRAC = 0.25;
+
 		double resp_growth_leaf = 0;
 		double resp_growth_root = 0;
 		double resp_growth_crown = 0;
@@ -5048,20 +5050,20 @@ void update_pools_dave(Vegetation& vegetation) {
 		constrain_growth(
 			indiv.cgrow_leaf, navail_leaf,
 			indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_leaf);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_leaf);
 
 		// Roots
 		constrain_growth(
 			indiv.cgrow_root, navail_root,
 			indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_root);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_root);
 
 		// Crowns (for grasses and mosses only).
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			constrain_growth(
 				indiv.cgrow_crown, navail_crown,
 				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-				creturn, nreturn, RESP_FRAC, resp_growth_crown);
+				creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_crown);
 		}
 
 		// sapwood
@@ -5069,14 +5071,14 @@ void update_pools_dave(Vegetation& vegetation) {
 			constrain_growth(
 				indiv.cgrow_sap, navail_sap,
 				indiv.pft.cton_sap_min, indiv.pft.cton_sap_max,
-				creturn, nreturn, RESP_FRAC, resp_growth_sap);
+				creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_sap);
 		}
 
 		// Reproductive tissue
 		constrain_growth(
 			indiv.cgrow_repr, navail_repr,
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_repr);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_repr);
 
 		assert(positive(creturn));
 		indiv.resp_growth = resp_growth_leaf + resp_growth_root + resp_growth_crown + resp_growth_sap + resp_growth_repr;
@@ -5124,19 +5126,19 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// Verify that growth respiration is correctly related to growth.
 		if (indiv.cgrow_leaf > 0) {
-			assert(equal(RESP_FRAC, resp_growth_leaf / indiv.cgrow_leaf));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_leaf / indiv.cgrow_leaf));
 		}
 		if (indiv.cgrow_root > 0) {
-			assert(equal(RESP_FRAC, resp_growth_root / indiv.cgrow_root));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_root / indiv.cgrow_root));
 		}
 		if (indiv.cgrow_sap > 0) {
-			assert(equal(RESP_FRAC, resp_growth_sap / indiv.cgrow_sap));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_sap / indiv.cgrow_sap));
 		}
 		if (indiv.cgrow_repr > 0) {
-			assert(equal(RESP_FRAC, resp_growth_repr / indiv.cgrow_repr));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_repr / indiv.cgrow_repr));
 		}
 		if (indiv.cgrow_crown > 0) {
-			assert(equal(RESP_FRAC, resp_growth_crown / indiv.cgrow_crown));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_crown / indiv.cgrow_crown));
 		}
 
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));

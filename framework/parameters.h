@@ -420,9 +420,6 @@ extern bool ifzhou;
 /// Whether LAI is distributed evenly across canopy layers for grasses.
 extern bool ifevenlaidist;
 
-/// Whether growth is calculated as the minimum of a sink and source term.
-extern bool ifsinksource;
-
 /// Whether root distribution and response window are adaptive to the environment.
 /// (Number of dormant+dead days)
 extern bool ifadaptive_rootdist;

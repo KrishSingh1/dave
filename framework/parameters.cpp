@@ -91,7 +91,6 @@ bool ifdavediagnostics = false;
 bool _ifdavediagnostics;
 double epsiresolution;
 bool ifevenlaidist;
-bool ifsinksource;
 bool ifadaptive_rootdist;
 bool ifapproximate_C4;
 bool ifusegdd;
@@ -312,7 +311,6 @@ void initsettings() {
 	ifforcedlai = false;
 	fixed_lai = 0;
 	ifevenlaidist = true;
-	ifsinksource = false;
 	ifadaptive_rootdist = false;
 	grazing_duration = 1;
 	epsiresolution = 100;
@@ -671,7 +669,6 @@ void plib_declarations(int id,xtring setname) {
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
-		declareitem("ifsinksource", &ifsinksource, 1, CB_NONE, "Whether Growth is calculated as the minimum of a sink and a source term (default: off).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");

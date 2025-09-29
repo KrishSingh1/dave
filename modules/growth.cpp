@@ -3532,11 +3532,7 @@ double growth_demand(Individual& indiv) {
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 
-	if (ifsinksource){
-		growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
-	} else {
-		growth_demand = indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
-	}
+	growth_demand = indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
@@ -3582,12 +3578,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	if (indiv.dnpp >= 0.0) {
 		
 		// Positive NPP
-
-		if (ifsinksource){
-			indiv.cgrow = min(indiv.growth_demand,Gpot);
-		} else {
-			indiv.cgrow = Gpot * indiv.growth_demand;
-		}
+		indiv.cgrow = Gpot * indiv.growth_demand;
 
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
@@ -3612,11 +3603,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			if (ifsinksource){
-				indiv.cgrow = min(indiv.growth_demand,Gpot);
-			} else {
-				indiv.cgrow = Gpot * indiv.growth_demand;
-			}
+
+			indiv.cgrow = Gpot * indiv.growth_demand;
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {

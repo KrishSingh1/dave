@@ -3611,10 +3611,18 @@ void Individual::kill(bool harvest /* = false */) {
 	}
 
 	if (pft.dave_allocation()) {
-		ppft.cmass_litter_repr += cmass_repr;
+		if (pft.is_grass()) {
+			ppft.cmass_litter_repr += cmass_repr;
+			ppft.nmass_litter_repr += nmass_repr;
+		} else {
+			// Tree reproductive tissue to be treated as leaf tissue, so that it
+			// decays over time. (cmass_litter_repr decay is defined by loss of
+			// seed viability, and is much slower than the turnover of the leaf/
+			// root/woody "standing dead"/litter turnover).
+			ppft.cmass_litter_leaf += cmass_repr;
+			ppft.nmass_litter_leaf += nmass_repr;
+		}
 		cmass_repr = 0;
-
-		ppft.nmass_litter_repr += nmass_repr;
 		nmass_repr = 0;
 	}
 
@@ -3650,6 +3658,10 @@ void Individual::flush_repr_litter_DAVE() {
 		initialn -= nvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
 		ntolitter += nvoid; // For mass balance checks; not an actual pool
+	}
+
+	if (pft.lifeform == TREE) {
+		return;
 	}
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.

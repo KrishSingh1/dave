@@ -42,7 +42,7 @@ DaveOutput::DaveOutput() {
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
 	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
-	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)");
+	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
 	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
 	add_patch_output("file_dave_globfirm"                       , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
@@ -63,6 +63,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_nitrogen_budget_annual"         , ANNUAL, nitrogen_budget_cols_annual, "Annual nitrogen budget (kgN/m2)");
 	add_patch_output("file_dave_soil_anflux"                    , ANNUAL, soil_anflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
 	add_patch_output("file_dave_anee"                           , ANNUAL, "nee", get_anee, "Total annual patch-level NEE (kgC/m2)");
+	add_patch_output("file_dave_aclitter"                       , ANNUAL, clitter_columns, "Total End-of-Year Patch-Level C Mass in Litter (kgC/m2)");
 
 	// Annual per-patch individual-level outputs.
 	add_aggregated_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);
@@ -88,7 +89,6 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_acue"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) ? patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id) / patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) : 0; }, "Annual CUE (unitless)", true);
 	add_pft_output("file_dave_aresp"                            , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total individual-level Annual autotrophic Respiration (kgC/m2/year)", true);
 	add_pft_output("file_dave_acmass_mort"                      , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
-	add_pft_output("file_dave_aclitter"                         , ANNUAL, get_pft_cmass_litter, "Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)");
 	add_pft_output("file_dave_ancohort"                         , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 	add_pft_output("file_dave_anetps_ff"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual net photosynthesis at forest floor (kgC/m2)", true);
 	add_pft_output("file_dave_ansapling"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling; }, "Number of saplings of each PFT ready to establish (trees only)", true);
@@ -168,6 +168,8 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_dnpool"                         , DAILY, npool_columns, "Daily N pools (kgN/m2)");
 	add_patch_output("file_dave_wcont_upper"                    , DAILY, "wcont", [](const Patch &p) { return p.soil.get_soil_water_upper(); }, "Daily soil moisture in the upper 50cm (0-1)");
 	add_patch_output("file_dave_soiltemp25"                     , DAILY, "soiltemp25", [](const Patch &p) { return p.soil.get_soil_temp_25(); }, "Daily soil temperature at 25cm (°C)");
+	add_patch_output("file_dave_clitter"                        , DAILY, clitter_columns, "Daily C Mass in Litter (kgC/m2)", true);
+	add_patch_output("file_dave_nlitter"                        , DAILY, nlitter_columns, "Daily N Mass in Litter (kgN/m2)", true);
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);
@@ -178,8 +180,8 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_cmass_leaf"          , DAILY, [](const Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.pft.is_grass() ? i.cmass_leafs[1] : 0.0; }, "Leaf brown C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_nmass_leaf"          , DAILY, [](const Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", mean, false, true);
-	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", sum, false, true);
+	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", sum, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_root"          , DAILY, [](const Individual &i) { return i.cmass_root; }, "Root C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_sap"           , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Sapwood C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cton_sap"            , DAILY, [](const Individual &i) { return min(i.pft.cton_sap_max, i.cton_sap()); }, "Sapwood C to N ratio (kgC/kgN)", sum, true);
@@ -361,10 +363,18 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_water_uptake"             , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)", sum);
 
 	// Daily pft-level per-patch outputs.
-	add_pft_output("file_dave_wscal_5l"                         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal_5_5l.lastadd(); }, "Water scalar for top 5 layers [0-1], 1 = min stress",  false, true);
-	add_pft_output("file_dave_clitter"                          , DAILY, get_pft_cmass_litter, "Total Daily PFT-Level C Mass in Litter (kgC/m2)");
-	add_pft_output("file_dave_cmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr + p.pft[pft.id].cmass_ext_seed; }, "Seedbank cmass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_litter_repr"                , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Seedbank nmass (kgN/m2)",  true);
+	add_pft_output("file_dave_wscal_5l"                         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal_5_5l.size() ? p.pft[pft.id].wscal_5_5l.lastadd() : -1; }, "Water scalar for top 5 layers [0-1], 1 = min stress",  false, true);
+	add_pft_output("file_dave_standing_dead"                    , DAILY, get_pft_standing_dead_cmass, "Daily PFT-Level Total Standing Dead C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_cmass_standing_dead_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) C mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_dead_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) N mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_dead_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_leaf; }, "Standing Dead Leaf C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_dead_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_leaf; }, "Standing Dead Leaf N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_dead_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_root; }, "Standing Dead Root C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_dead_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_root; }, "Standing Dead Root N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_dead_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_sap; }, "Standing Dead Sap C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_dead_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_sap; }, "Standing Dead Sap N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_dead_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_heart; }, "Seedbank cmass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_dead_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_heart; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                            , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_seed_ext"                   , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
 	add_pft_output("file_dave_dncohort"                         , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
@@ -400,7 +410,7 @@ DaveOutput::DaveOutput() {
 	add_patch_array_output("file_dave_met_subdaily_co2"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
 
 	// Standpft-level outputs.
-	add_spft_output("file_dave_cmass_repr"                      , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2/day)");
+	add_spft_output("file_dave_spft_cmass_repr"                 , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2)");
 	add_spft_output("file_dave_anetps_ff_max"                   , DAILY, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum recorded annual net photosynthesis at forest-floor (kgC/m2)");
 
 	// Register instruction file parameters.

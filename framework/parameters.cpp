@@ -859,8 +859,10 @@ void plib_declarations(int id,xtring setname) {
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
 			"Fine root turnover (fraction/year)");
-		declareitem("turnover_repr",&ppft->turnover_repr,0.0,1.0,1,CB_NONE,
-			"Seed turnover (fraction/year)");	
+		declareitem("turnover_repr_litter",&ppft->turnover_repr_litter,0.0,1.0,1,CB_NONE,
+			"Seed turnover (fraction/year)");
+		declareitem("turnover_repr",&ppft->turnover_repr,0.0,10.0,1,CB_NONE,
+			"Turnover of 'live' reproductive tissue to litter (fraction/year)");
 		declareitem("turnover_sap",&ppft->turnover_sap,0.0,1.0,1,CB_NONE,
 			"Sapwood turnover (fraction/year)");
 		declareitem("wooddens",&ppft->wooddens,10.0,1000.0,1,CB_NONE,
@@ -2169,11 +2171,16 @@ void plib_callback(int callback) {
 
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
-				if (!itemparsed("turnover_repr")) badins("turnover_repr");
+				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.
 				if (!itemparsed("A_growth")) {
 					ppft->A_growth = calc_a_growth(ppft);
+				}
+
+				if (ifdailytree && ppft->lifeform == TREE) {
+					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
+					if (!itemparsed("turnover_repr")) badins("turnover_repr");
 				}
 
 				if (ifdailygrass && ppft->is_grass()) {
@@ -2340,6 +2347,7 @@ void plib_callback(int callback) {
 			if (ppft->lifeform==TREE) {
 				if (!itemparsed("cton_sap")) badins("cton_sap");
 				if (!itemparsed("turnover_sap")) badins("turnover_sap");
+				if (ppft->dave_allocation() && ppft->lifeform == TREE && !itemparsed("turnover_repr")) badins("turnover_repr");
 				if (!itemparsed("wooddens")) badins("wooddens");
 				if (!itemparsed("crownarea_max")) badins("crownarea_max");
 				if (!itemparsed("k_allom1")) badins("k_allom1");

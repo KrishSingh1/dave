@@ -224,6 +224,16 @@ Get the columns used in the patch-level SOM pool N to C ratio output file.
 std::vector<ColumnDefinition<Patch>> sompool_ntoc_columns();
 
 /*
+Get the columns used in the patch-level C litter output file.
+*/
+std::vector<ColumnDefinition<Patch>> clitter_columns();
+
+/*
+Get the columns used in the patch-level N litter output file.
+*/
+std::vector<ColumnDefinition<Patch>> nlitter_columns();
+
+/*
 Get the columns used in the patch-level nitrogen input output file.
 */
 std::vector<ColumnDefinition<Patch>> ninput_columns();
@@ -279,9 +289,9 @@ Get the columns used to evaluate the hydraulics model.
 std::vector<ColumnDefinition<Individual>> indiv_resp_columns();
 
 /*
-Get the litter cmass for the specified pft in the specified patch (kgC/m2).
+Get the total standing dead biomass for the given PFT.
 */
-double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
+double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
 Get the first individual in the patch, if any are established.
@@ -311,7 +321,7 @@ int get_nlayer_an(const Patch &patch);
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */
-double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
+double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
 Get the soil moisture in mm between the specified top and bottom layers.
@@ -392,6 +402,16 @@ std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_tree_columns(
 Get the columns used in the annual water budget output file.
 */
 std::vector<ColumnDefinition<Patch>> water_budget_cols_annual();
+
+/*
+Get the total standing dead C mass in the patch (kgC/m2).
+*/
+double get_standing_c(const Patch &patch);
+
+/*
+Get the total standing dead N mass in the patch (kgN/m2).
+*/
+double get_standing_n(const Patch &patch);
 
 /*
 Get the columns used in the daily water budget output file.

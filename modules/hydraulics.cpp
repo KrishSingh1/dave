@@ -512,6 +512,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
                 indiv.cmass_leafs[1] += closs_leaf; //added to brown leaf carbon
                 indiv.nmass_leafs[1] += nloss_leaf; //added to brown leaf N
             } else {
+                fail("TODO: Should go to soil litter (discuss with Drew)");
                 indiv.cmass_leaf -= closs_leaf;
                 indiv.nmass_leaf -= nloss_leaf;
                 ppft.cmass_litter_leaf += closs_leaf;

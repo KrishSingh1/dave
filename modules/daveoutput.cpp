@@ -1246,6 +1246,7 @@ DaveOutput::IndividualOutput::IndividualOutput(
 		bool sum,
 		bool mean) : OutputFile(param_name, description) {
 	this->columns = columns;
+	get_column_definitions = NULL;
 	write_sum = sum;
 	write_mean = mean;
 }

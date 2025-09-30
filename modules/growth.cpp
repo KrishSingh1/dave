@@ -5217,7 +5217,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Parameters
 	const double crelocfrac = 0.0;             // TODO: move to constants?
-	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
+	const double senesc_base = 0.0003;         // Baseline senescence rate (d-1)
 	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
@@ -5284,7 +5284,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Total senescence rate
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
-	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + (1.0 + senesc_fwater)) * (1.0 + senesc_ftemp);
+	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + senesc_fwater) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = senesc_base;
 

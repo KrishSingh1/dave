@@ -2700,7 +2700,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
 			// Growth respiration
-			//resp_growth = growth * 0.2;
 			if (ifdavegrowth && ifdailygrass) {
 				// In the DAVE version, growth respiration depends on growth.
 				resp_growth = 0;

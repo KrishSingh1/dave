@@ -428,6 +428,11 @@ Get the columns used in the daily nitrogen budget output file.
 */
 std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily();
 
+/*
+Get the columns used in the mortality output file.
+*/
+std::vector<ColumnDefinition<Individual>> mortality_cols();
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

@@ -55,6 +55,8 @@ ifdailyoutput 1
 !file_dave_a_belowground_nmass   "dave_a_belowground_nmass.out"  ! Annual below-ground N biomass (kgN/m2)
 !file_dave_aresponse_window      "dave_aresponse_window.out"     ! Annual output of response window length (days)
 !file_dave_anretranslocated      "dave_anretranslocated.out"     ! Annual nitrogen retranslocated (kgN/m2)
+!file_dave_amort_greff           "dave_amort_greff.out"          ! Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
+!file_dave_amort_age             "dave_amort_age.out"            ! Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
 
 ! Annual pft-level per-patch outputs.
 !file_dave_anpp                  "dave_anpp.out"                 ! Total Annual Pft-Level NPP (kgC/m2/year)
@@ -90,6 +92,10 @@ ifdailyoutput 1
 !file_dave_acalloc_sap           "dave_calloc_sap.out"           ! Total annual C allocation to sap (kgC/m2)
 !file_dave_acalloc_storage       "dave_calloc_storage.out"       ! Total annual C allocation to sap (kgC/m2)
 !file_dave_acalloc_crown         "dave_acalloc_crown.out"        ! Total annual C allocation to crown (kgC/m2)
+
+! Annual indiv-level outputs.
+!file_dave_indiv_mort            "dave_indiv_mort.out"           ! Annual indiv-level mortality divided by component/cause, expressed as fraction of individuals within the cohort which died this year.
+!file_dave_indiv_age             "dave_indiv_age.out"            ! Individual-level age (years)
 
 ! Daily gridcell-level outputs.
 file_agb                        "agb.out"                       ! Daily gridcell-level above-ground biomass (kg/m2)

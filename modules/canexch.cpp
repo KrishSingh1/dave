@@ -4069,7 +4069,6 @@ void water_stress(Patch &patch) {
 }
 
 /// Run water stress 
-
 void water_stress_root_resistance(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
@@ -4077,9 +4076,10 @@ void water_stress_root_resistance(Patch &patch) {
 	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
 	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
+	const Soil &soil = patch.soil;
 
-	double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
-	double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+	double Psi_wp = soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+	double Psi_whc = soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 
 	// Iterate over individuals in patch.
 	for (int i = 0; i < patch.vegetation.nobj; i++) {
@@ -4093,14 +4093,28 @@ void water_stress_root_resistance(Patch &patch) {
 	
 		for (int j = 0; j<NSOILLAYER; j++) {
 			// get actual water content and available water content per layer
-			// double wcont = patch.soil.get_layer_soil_water(j);
+			// double wcont = soil.get_layer_soil_water(j);
 
-			// calculate water stress factor per layer and weight with root conductance
-			wstress_layer[j] = max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * (1.0/indiv.Rs_r[j]);
+			// Calculate water stress factor per layer and weight with root
+			// conductance.
+			double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
+
+			// Alternative: calculate stress from water content, because water
+			// potential is so nonlinear that we rarely see stress in practice
+			// (ie WP only gets close to psi_wp at extreme water contents).
+			// stress_base = soil.get_layer_soil_water(j);
+
+			// Guard to [0, 1].
+			stress_base = max(min(stress_base, 1.0), 0.0);
+
+			// Weight by root resistance.
+			wstress_layer[j] = stress_base / indiv.Rs_r[j];
+
 			wstress += wstress_layer[j];
-			root_cond_sum += 1.0/indiv.Rs_r[j]; 
+			root_cond_sum += 1.0 / indiv.Rs_r[j]; 
 		}
-		// water stress factor [0-1] in the root zone
+
+		// Water stress factor [0-1] in the root zone.
 		wstress /= root_cond_sum;
 
 		// Mean daily water stress value.
@@ -4122,9 +4136,23 @@ void water_stress_root_resistance(Patch &patch) {
 	}
 
 	double wstress_pft = 0.0;
-
 	for (int j = 0; j<NSOILLAYER; j++) {
-		wstress_pft += max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * patch.soil.Dz[j+7] / sum(patch.soil.Dz+7,15); // alternative wstress to be used at PFT level (since we can't use root biomass for weighting)
+		// Alternative wstress to be used at PFT level, since we can't use the
+		// root resistance (which depends on root biomass) for weighting.
+		double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
+
+		// Alternative: calculate stress from water content, because water
+		// potential is so nonlinear that we rarely see stress in practice
+		// (ie WP only gets close to psi_wp at extreme water contents).
+		// stress_base = soil.get_layer_soil_water(j);
+
+		// Guard to [0, 1].
+		stress_base = max(min(stress_base, 1.0), 0.0);
+
+		// Weight by layer thickness.
+		double weight = soil.Dz[j + 7] / sum(soil.Dz + 7, NSOILLAYER);
+
+		wstress_pft += stress_base * weight;
 	}
 
 	for (int i = 0; i < pftlist.nobj; i++) {

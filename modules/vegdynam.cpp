@@ -1651,6 +1651,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 							(indiv.crownarea*indiv.densindiv),mort_greff);
 				}
 
+				indiv.mort_greff = mort_greff;
+				indiv.mort_age = mort_min;
+
 				// Overall mortality: c.f. Eqn 29, Smith et al 2001
 
 				mort=mort_min+mort_greff-mort_min*mort_greff;

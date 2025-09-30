@@ -6043,7 +6043,7 @@ void turnover_dave(Vegetation& vegetation) {
 
 	turnover_seed(vegetation);
 
-	// TODO: Find a more elegant way to do support GLOBFIRM here.
+	// TODO: Find a more elegant way to support GLOBFIRM here.
 	// Could this be handled internally by leaf_to_litter() and friends, e.g. by
 	// passing in pft.litterme?
 	set_litterme(soil, litterme, fireresist);

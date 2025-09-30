@@ -82,6 +82,8 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aresponse_window"    , ANNUAL, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Annual output of response window length (days)", mean);
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
+	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
+	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
@@ -114,6 +116,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_acalloc_sap"		    , ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_storage"	    , ANNUAL, [](const Individual &i) { return i.acalloc_storage; }, "Total annual C allocation to storage (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_crown"	    , ANNUAL, [](const Individual &i) { return i.acalloc_crown; }, "Total annuabl C allocation to crown (kgC/m2)", sum, true);
+
+	// Annual indiv-level outputs.
+	add_indiv_output("file_dave_indiv_mort"                     , ANNUAL, mortality_cols, "Annual indiv-level mortality divided by component/cause, expressed as fraction of individuals within the cohort which died this year.", true);
+	add_indiv_output("file_dave_indiv_age"                      , ANNUAL, "age", [](const Individual &i) { return i.age; }, "Individual-level age (years)");
 
 	// Daily gridcell-level outputs.
 	add_gridcell_aggregated_indiv_output("file_agb"             , DAILY, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Daily gridcell-level above-ground biomass (kg/m2)", true);

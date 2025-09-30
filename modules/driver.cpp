@@ -971,8 +971,11 @@ void dailyaccounting_patch(Patch& patch) {
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			Individual &indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;		// indiv.fpc
+			patch.rpc_total += indiv.rpc;		// indiv.rpc
+			indiv.mort_age = 0;
+			indiv.mort_greff = 0;
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/

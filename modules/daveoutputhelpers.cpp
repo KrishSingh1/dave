@@ -1136,6 +1136,13 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> mortality_cols() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("mort_age", [](const Individual &i) { return i.mort_age; }));
+	columns.push_back(ColumnDefinition<Individual>("mort_greff", [](const Individual &i) { return i.mort_greff; }));
+	return columns;
+}
+
 std::vector<ColumnDefinition<Patch>> sompool_decay_reduction_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.decay_reduction[SURFSTRUCT]; }));

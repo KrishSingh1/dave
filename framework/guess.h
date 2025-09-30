@@ -3812,6 +3812,15 @@ public:
 	double cdeficit_root;
 	double cdeficit_sap;
 	double cdeficit_storage;
+
+	// Fraction of individuals within this cohort killed this year due to age-
+	// related mortality.
+	double mort_age;
+
+	// Fraction of individuals within this cohort killed this year due to
+	// growth efficiency-related mortality.
+	double mort_greff;
+
 	// MEMBER FUNCTIONS
 
 public:

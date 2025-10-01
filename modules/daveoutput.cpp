@@ -116,6 +116,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_acalloc_sap"		    , ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_storage"	    , ANNUAL, [](const Individual &i) { return i.acalloc_storage; }, "Total annual C allocation to storage (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_crown"	    , ANNUAL, [](const Individual &i) { return i.acalloc_crown; }, "Total annuabl C allocation to crown (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_anstorage_drawdown"  , ANNUAL, [](const Individual &i) { return i.anstorage_drawdown; }, "Total annual amount of N withdrawn from storage for growth (kgN/m2)", sum, true);
 
 	// Annual indiv-level outputs.
 	add_indiv_output("file_dave_indiv_mort"                     , ANNUAL, mortality_cols, "Annual indiv-level mortality divided by component/cause, expressed as fraction of individuals within the cohort which died this year.", true);
@@ -328,6 +329,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance * G_PER_KG; }, "Total Maintenance respiration by PFT (gC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth * G_PER_KG; }, "Total Growth respiration by PFT (gC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_fnuptake"            , DAILY, [](const Individual &i) { return i.fnuptake; }, "Fraction of nitrogen demand taken up", mean);
+	add_aggregated_indiv_output("file_dave_nstorage_drawdown"   , DAILY, [](const Individual &i) { return i.nstorage_drawdown; }, "Amount of N withdrawn from storage today for growth (kgN/m2)", sum, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.

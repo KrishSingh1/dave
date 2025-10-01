@@ -1809,6 +1809,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anretranslocated            = 0.0;
 	ntoavail                    = 0.0;
 	nstorage_max				= 0.0;
+	nstorage_drawdown           = 0.0;
+	anstorage_drawdown          = 0.0;
 	cmass_leaf_ygrowth			= 0.0;
 	cmass_root_ygrowth			= 0.0;
 	cton_leaf_opt				= 0.0;

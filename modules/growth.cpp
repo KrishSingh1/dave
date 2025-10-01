@@ -5155,6 +5155,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.nmass_repr  += navail_repr;
 
 		double ngrow = navail_leaf + navail_root + navail_crown + navail_sap + navail_repr;
+		indiv.nstorage_drawdown = 0;
 		if (!pft.store_uptake()) {
 			// First take ngrow out of uptake pool.
 			indiv.nmass_uptake -= ngrow;
@@ -5163,6 +5164,7 @@ void update_pools_dave(Vegetation& vegetation) {
 				double drawdown = -indiv.nmass_uptake; // positive sign now
 				indiv.nmass_storage = max(0.0, indiv.nmass_storage - drawdown);
 				indiv.nmass_uptake = 0;
+				indiv.nstorage_drawdown = drawdown;
 			} else if (indiv.nmass_uptake > 0) {
 				// N supply was met by uptake. If any uptake remains, put it
 				// back into the available soil N, as if it had never been
@@ -5173,8 +5175,14 @@ void update_pools_dave(Vegetation& vegetation) {
 			}
 		} else {
 			// Draw down on storage.
+			indiv.nstorage_drawdown = ngrow;
 			indiv.nmass_storage = max(0.0, indiv.nmass_storage - ngrow);
 		}
+
+		if (date.day == 0) {
+			indiv.anstorage_drawdown = 0;
+		}
+		indiv.anstorage_drawdown += indiv.nstorage_drawdown;
 
 		// Save yearly leaf and root growth. 
 		// TODO JK: check if crown and repr need to be added

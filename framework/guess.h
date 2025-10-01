@@ -3490,6 +3490,10 @@ public:
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
 	double nstorage_max;
+	/// Amount of N withdrawn from storage today for growth (kgN/m2)
+	double nstorage_drawdown;
+	/// Total annual amount of N withdrawn from storage for growth (kgN/m2)
+	double anstorage_drawdown;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
 	/// leaf N biomass on modelled area basis (kgN/m2)

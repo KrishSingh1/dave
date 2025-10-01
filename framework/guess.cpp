@@ -1808,6 +1808,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nretranslocated             = 0.0;
 	anretranslocated            = 0.0;
 	ntoavail                    = 0.0;
+	antoavail                   = 0.0;
 	nstorage_max				= 0.0;
 	nstorage_drawdown           = 0.0;
 	anstorage_drawdown          = 0.0;
@@ -2151,6 +2152,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_heart
 		& nmass_uptake
 		& ntoavail
+		& antoavail
 		& cmass_wood_old
 		& nactive
 		& nextin

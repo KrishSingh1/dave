@@ -3331,6 +3331,8 @@ public:
 	double ntolitter;
 	/// Daily N taken up but then sent back to available N pool (kgN/m2).
 	double ntoavail;
+	/// Cumulative annual N taken up but then sent back to available N pool (kgN/m2).
+	double antoavail;
 
 	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
 	double ctolitter_leaf;

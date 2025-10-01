@@ -971,7 +971,8 @@ std::vector<ColumnDefinition<Patch>> soil_nmass_columns() {
 double get_anuptake(const Patch &patch) {
 	double nuptake = 0;
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
-		nuptake += patch.vegetation[i].anuptake;
+		const Individual &indiv = patch.vegetation[i];
+		nuptake += indiv.anuptake - indiv.antoavail;
 	}
 	return nuptake;
 }
@@ -979,7 +980,7 @@ double get_anuptake(const Patch &patch) {
 double get_nuptake(const Patch &patch) {
 	double nuptake = 0;
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
-		nuptake += patch.vegetation[i].dnuptake;
+		nuptake += patch.vegetation[i].dnuptake - patch.vegetation[i].ntoavail;
 	}
 	return nuptake;
 }

@@ -5169,7 +5169,16 @@ void update_pools_dave(Vegetation& vegetation) {
 				// N supply was met by uptake. If any uptake remains, put it
 				// back into the available soil N, as if it had never been
 				// taken up.
+				//
+				// We can't subtract from dnuptake because it's set later in the
+				// day in vegetation_n_uptake(). Therefore, we account for this
+				// using a separate variable: ntoavail. The same is true for the
+				// annual variables (anuptake, antoavail). This isn't really too
+				// important, except to ensure that we've accounted for all
+				// fluxes so that the nitrogen budget outputs make sense.
 				indiv.ntoavail += indiv.nmass_uptake;
+				indiv.antoavail += indiv.nmass_uptake;
+
 				vegetation.patch.soil.nmass_inc(indiv.nmass_uptake);
 				indiv.nmass_uptake = 0;
 			}

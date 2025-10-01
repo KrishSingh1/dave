@@ -976,6 +976,7 @@ void dailyaccounting_patch(Patch& patch) {
 			patch.rpc_total += indiv.rpc;		// indiv.rpc
 			indiv.mort_age = 0;
 			indiv.mort_greff = 0;
+			indiv.antoavail = 0;
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/

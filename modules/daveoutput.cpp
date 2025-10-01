@@ -1144,7 +1144,7 @@ void DaveOutput::PatchLevelOutput::write_rows(OutputChannel *channel, Gridcell &
 					write_output(channel, total);
 				}
 				if (write_mean) {
-					write_output(channel, total / patch_data.size());
+					write_output(channel, patch_data.size() ? total / patch_data.size() : 0);
 				}
 			}
 

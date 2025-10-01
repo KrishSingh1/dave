@@ -3647,6 +3647,10 @@ void Individual::flush_repr_litter_DAVE() {
 	const double frac_seed = 0.7;
 	Patchpft &ppft = patchpft();
 
+	if (pft.lifeform == TREE) {
+		return;
+	}
+
 	// Time to pay our debts.
 	if (initialc > 0) {
 		double cvoid = min(cmass_repr, initialc);
@@ -3662,10 +3666,6 @@ void Individual::flush_repr_litter_DAVE() {
 		initialn -= nvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
 		ntolitter += nvoid; // For mass balance checks; not an actual pool
-	}
-
-	if (pft.lifeform == TREE) {
-		return;
 	}
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.

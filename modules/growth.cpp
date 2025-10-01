@@ -5232,6 +5232,10 @@ void update_pools_dave(Vegetation& vegetation) {
 			assert(greater_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_min * 0.999));
 			assert(positive(indiv.cmass_crown));
 		}
+
+		if (!negligible(indiv.nmass_repr)) {
+			assert(less_than_or_equal(indiv.cmass_repr / indiv.nmass_repr, indiv.pft.cton_repr_max * 1.001));
+		}
 	}
 }
 

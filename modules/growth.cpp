@@ -4842,7 +4842,7 @@ void nuptake_dave(Vegetation& vegetation) {
         }
 
 		// TODO: verify that this belongs here.
-		// indiv.fnuptake = competing_individuals[i].fnuptake;
+		indiv.fnuptake = competing_individuals[i].fnuptake;
 	}
 
 	// If daily tree or grass allocation is disabled, we should probably call

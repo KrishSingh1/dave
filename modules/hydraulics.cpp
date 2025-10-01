@@ -287,7 +287,6 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             indiv.predawn_lwp = indiv.lwp[day.period];
         }
     }
-
 }
 
 // Hydraulic failure mortality applied at the daily timescale if allocation is

@@ -581,6 +581,47 @@ std::vector<ColumnDefinition<Patch>> cflux_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Patch>> nflux_columns() {
+	std::vector<ColumnDefinition<Patch>> columns;
+		/// Carbon flux to atmosphere from burnt vegetation and li
+		/// Flux to vegetation associated with manure addition (kgN/m2)
+		columns.push_back(ColumnDefinition<Patch>("MANUREN", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::MANUREN); }));
+		/// Flux to vegetation associated with N addition (kgN/m2) 
+		columns.push_back(ColumnDefinition<Patch>("NFERT", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NFERT); }));
+		/// Nitrogen flux from atmosphere to vegetation associated with establishment (kgN/m2)
+		columns.push_back(ColumnDefinition<Patch>("ESTN", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::ESTN); }));
+		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
+		columns.push_back(ColumnDefinition<Patch>("HARVESTN", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::HARVESTN); }));
+		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
+		columns.push_back(ColumnDefinition<Patch>("SEEDN", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::SEEDN); }));
+		/// NH3 flux to atmosphere from fire
+		columns.push_back(ColumnDefinition<Patch>("NH3_FIRE", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NH3_FIRE); }));
+		/// NOx flux to atmosphere from fire
+		columns.push_back(ColumnDefinition<Patch>("NOx_FIRE", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NOx_FIRE); }));
+		/// N2O flux to atmosphere from fire
+		columns.push_back(ColumnDefinition<Patch>("N2O_FIRE", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::N2O_FIRE); }));
+		/// N2 flux to atmosphere from fire
+		columns.push_back(ColumnDefinition<Patch>("N2_FIRE", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::N2_FIRE); }));
+		//---- Soil N transformation -----
+		/// NH3 flux from soil (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("NH3_SOIL", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NH3_SOIL); }));
+		/// NO flux from soil (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("NO_SOIL", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NO_SOIL); }));
+		/// N2O flux in soil (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("N2O_SOIL", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::N2O_SOIL); }));
+		/// N2 flux from soil (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("N2_SOIL", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::N2_SOIL); }));
+		/// Net nitrification (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("NET_NITRIF", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NET_NITRIF); }));
+		/// Net denitrification (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("NET_DENITRIF", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NET_DENITRIF); }));
+		/// Gross nitrification (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("GROSS_NITRIF", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::GROSS_NITRIF); }));
+		/// Gross denitrification (ntransform)
+		columns.push_back(ColumnDefinition<Patch>("GROSS_DENITRIF", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::GROSS_DENITRIF); }));
+	return columns;
+}
+
 std::vector<ColumnDefinition<Patch>> globfirm_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 
@@ -985,37 +1026,6 @@ double get_nuptake(const Patch &patch) {
 	return nuptake;
 }
 
-std::vector<ColumnDefinition<Patch>> soil_nflux_columns() {
-	std::vector<ColumnDefinition<Patch>> columns;
-
-	columns.push_back(ColumnDefinition<Patch>("dNO3dep", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep; }));
-	columns.push_back(ColumnDefinition<Patch>("dNH4dep", [](const Patch &p) { return p.stand.get_gridcell().dNH4dep; }));
-	columns.push_back(ColumnDefinition<Patch>("nmin_net", [](const Patch &p) { return p.soil.net_mineralisation; }));
-	columns.push_back(ColumnDefinition<Patch>("nmin_leach", [](const Patch &p) { return p.soil.dminleach; }));
-	columns.push_back(ColumnDefinition<Patch>("norg_leach", [](const Patch &p) { return p.soil.dorgNleach; }));
-	columns.push_back(ColumnDefinition<Patch>("nvolatilisation", [](const Patch &p) { return p.soil.nvol; }));
-	columns.push_back(ColumnDefinition<Patch>("nloss_gas", [](const Patch &p) { return p.soil.nloss_gas; }));
-	columns.push_back(ColumnDefinition<Patch>("nmin_gross", [](const Patch &p) { return p.soil.nmin_gross; }));
-	columns.push_back(ColumnDefinition<Patch>("nimmob", [](const Patch &p) { return p.soil.nimmob; }));
-	columns.push_back(ColumnDefinition<Patch>("dnfix", [](const Patch &p) { return p.soil.dnfix; }));
-	columns.push_back(ColumnDefinition<Patch>("nuptake", get_nuptake));
- 	// dNO3dep + dNH4dep + nmin_net + dnfix - nuptake - nmin_leach - nloss_gas - nvolatilisation
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.soil.net_mineralisation + p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix - get_nuptake(p) - p.soil.dminleach - p.soil.nvol - p.soil.nloss_gas; }));
-	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
-
-	return columns;
-}
-
-std::vector<ColumnDefinition<Patch>> soil_anflux_columns() {
-	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("anmin_net", [](const Patch &p) { return p.soil.anmin; }));
-	columns.push_back(ColumnDefinition<Patch>("anmin_leach", [](const Patch &p) { return p.soil.aminleach; }));
-	columns.push_back(ColumnDefinition<Patch>("anorg_leach", [](const Patch &p) { return p.soil.aorgNleach; }));
-	columns.push_back(ColumnDefinition<Patch>("anvolatilisation", [](const Patch &p) { return p.soil.anvol; }));
-	// columns.push_back(ColumnDefinition<Patch>("anloss_gas", [](const Patch &p) { return p.soil.anlo; }));
-	return columns;
-}
-
 std::vector<ColumnDefinition<Patch>> aninput_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("aNO3dep", [](const Patch &p) { return get_gridcell(p).aNO3dep; }));
@@ -1112,6 +1122,7 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("deposition", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep; }));
 	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.soil.anfix; }));
+	columns.push_back(ColumnDefinition<Patch>("uptake", get_anuptake));
 	columns.push_back(ColumnDefinition<Patch>("net_mineralisation", [](const Patch &p) { return p.soil.anmin - p.soil.animmob; }));
 	columns.push_back(ColumnDefinition<Patch>("gross_mineralisation", [](const Patch &p) { return p.soil.anmin; }));
 	columns.push_back(ColumnDefinition<Patch>("immobilisation", [](const Patch &p) { return p.soil.animmob; }));
@@ -1119,10 +1130,12 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual() {
 	columns.push_back(ColumnDefinition<Patch>("org_leach", [](const Patch &p) { return p.soil.aorgNleach; }));
 	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.soil.anvol; }));
 	columns.push_back(ColumnDefinition<Patch>("gas_emissions", [](const Patch &p) { return p.soil.anloss_gas; }));
-	columns.push_back(ColumnDefinition<Patch>("nuptake", get_anuptake));
-	                                                                               // NO3dep                     + NH4dep                          + dnfix       + nmin_net                      - nuptake         - nmin_leach       - nvolatilisation - nloss_gas
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix + p.soil.anmin - p.soil.animmob - get_anuptake(p) - p.soil.aminleach - p.soil.anvol - p.soil.anloss_gas; }));
+	// Annual flux in available N: deposition + fixation + mineralisation - uptake - leaching - volatilisation - gas emissions
+	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix + p.soil.anmin - p.soil.animmob - get_anuptake(p) - p.soil.aminleach - p.soil.anvol - p.soil.anloss_gas; }));
+	// Annual flux in total N: deposition + fixation - gas emissions
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix - p.soil.anloss_gas; }));
 	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
+	columns.push_back(ColumnDefinition<Patch>("totaln", [](const Patch &p) { return p.ncont(); }));
 	return columns;
 }
 
@@ -1130,10 +1143,20 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("deposition", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep; }));
 	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.soil.dnfix; }));
-	columns.push_back(ColumnDefinition<Patch>("leaching", [](const Patch &p) { return p.soil.dminleach + p.soil.dorgNleach; }));
+	columns.push_back(ColumnDefinition<Patch>("uptake", get_nuptake));
+	columns.push_back(ColumnDefinition<Patch>("net_mineralisation", [](const Patch &p) { return p.soil.net_mineralisation; }));
+	columns.push_back(ColumnDefinition<Patch>("gross_mineralisation", [](const Patch &p) { return p.soil.nmin_gross; }));
+	columns.push_back(ColumnDefinition<Patch>("immobilisation", [](const Patch &p) { return p.soil.nimmob; }));
+	columns.push_back(ColumnDefinition<Patch>("min_leach", [](const Patch &p) { return p.soil.dminleach; }));
+	columns.push_back(ColumnDefinition<Patch>("org_leach", [](const Patch &p) { return p.soil.dorgNleach; }));
 	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.soil.nvol; }));
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix - p.soil.dminleach - p.soil.dorgNleach - p.soil.nvol; }));
+	columns.push_back(ColumnDefinition<Patch>("gas_emissions", [](const Patch &p) { return p.soil.nloss_gas; }));
+	// flux in available N
+	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix + p.soil.net_mineralisation - get_nuptake(p) - p.soil.dminleach - p.soil.nvol - p.soil.nloss_gas; }));
+	// flux in total N
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix - p.soil.nloss_gas; }));
 	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
+	columns.push_back(ColumnDefinition<Patch>("totaln", [](const Patch &p) { return p.ncont(); }));
 	return columns;
 }
 

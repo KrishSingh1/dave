@@ -630,7 +630,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
  *  \param scale_indiv  		scaling factor for living N
  *  \param luc 					down-scales living N (used in N balance tests)
  */
-double Patch::ncont(double scale_indiv, bool luc) {
+double Patch::ncont(double scale_indiv, bool luc) const {
 
 	double ncont = 0.0;
 

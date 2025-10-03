@@ -45,6 +45,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
 	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
+	add_patch_output("file_dave_anflux"                         , ANNUAL, nflux_columns, "Annual N flux (kgN/m2/year)");
 	add_patch_output("file_dave_globfirm"                       , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
 	add_patch_output("file_dave_mwcont_upper"                   , ANNUAL, mwcont_upper_columns, "Monthly wcont_upper output file (0-1)");
 	add_patch_output("file_dave_mwcont_lower"                   , ANNUAL, mwcont_lower_columns, "Monthly wcont_lower output file (0-1)");
@@ -61,7 +62,6 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_anfixation"                     , ANNUAL, "nfixation", [](const Patch &p) { return p.soil.anfix; }, "Total annual biological N fixation (kgN/m2)");
 	add_patch_output("file_dave_water_budget_annual"            , ANNUAL, water_budget_cols_annual, "Annual water budget (mm)");
 	add_patch_output("file_dave_nitrogen_budget_annual"         , ANNUAL, nitrogen_budget_cols_annual, "Annual nitrogen budget (kgN/m2)");
-	add_patch_output("file_dave_soil_anflux"                    , ANNUAL, soil_anflux_columns, "Daily N fluxes from soil (kgN/m2/day)", true);
 	add_patch_output("file_dave_anee"                           , ANNUAL, "nee", get_anee, "Total annual patch-level NEE (kgC/m2)");
 	add_patch_output("file_dave_aclitter"                       , ANNUAL, clitter_columns, "Total End-of-Year Patch-Level C Mass in Litter (kgC/m2)");
 
@@ -164,7 +164,6 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_evaporation"                    , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)");
 	add_patch_output("file_dave_soilc"                          , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"                          , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
-	add_patch_output("file_dave_soil_nflux"                     , DAILY, soil_nflux_columns, "Daily N fluxes from soil (kgN/m2/day)");
 	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return p.soil.soil_psi; }, "Soil psi (MPa)");
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
 	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 1); }, "Soil Moisture at depth: 0-0.1m (mm)");

@@ -129,19 +129,14 @@ Get the columns used in the patch-level cflux file.
 std::vector<ColumnDefinition<Patch>> cflux_columns();
 
 /*
-Get the columns used in the patch-level npool file.
-*/
-std::vector<ColumnDefinition<Patch>> npool_columns();
-
-/*
-Get the columns used in the patch-level nflux file.
+Get the columns used in the patch-level nflux output file.
 */
 std::vector<ColumnDefinition<Patch>> nflux_columns();
 
 /*
-Get the columns used in the patch-level soil anflux file.
+Get the columns used in the patch-level npool file.
 */
-std::vector<ColumnDefinition<Patch>> soil_anflux_columns();
+std::vector<ColumnDefinition<Patch>> npool_columns();
 
 /*
 Get the columns used in the patch-level pft litter pools file.

@@ -5540,7 +5540,7 @@ public:
 	/// Total patch carbon biomass and litter
 	double ccont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch nitrogen biomass and litter
-	double ncont(double scale_indiv = 1.0, bool luc = false);
+	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch water and ice mass
 	double water_content();
 	/// Total patch carbon fluxes so far this year

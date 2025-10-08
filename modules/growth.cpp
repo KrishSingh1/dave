@@ -533,7 +533,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 		1: vegetative stage
 			// 		2: reproductive stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
-			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
@@ -543,8 +542,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.cmass_struct = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0 && cmass_storage_level > 0.7){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(20) > 0.0 &&
+				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0){
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;

@@ -3287,8 +3287,8 @@ public:
 	double fdev_growth;
 	/// LAI at flowering (vegetative - reproductive switch).
 	double lai_flowering;
-	/// fraction of reproductive biomass to structural biomass.
-	double frepr_cstruct;
+	/// fraction of reproductive biomass to storage capacity.
+	double frepr_cstorage;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)

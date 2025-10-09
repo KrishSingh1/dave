@@ -365,26 +365,18 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 }
 
 
-// Development effects on relative growth rate.
+// Development effects on growth demand.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
+void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		// TODO: better (and more interpretable) characterisation of a1 parameter.
-		// TODO: check if a2 parameter is needed.
-		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
-		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
-		// a1 parameter should depend on the size of the plant at flowering time.
-		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 0.03;  
-		double a1 = max(0.5,indiv.lai_flowering) * a1m;
-		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 0.5 : 0.25;
-		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
-		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - a1 * (frepr_cstruct / indiv.pft.reprfrac - a2)));
+		double a1 = 3.0;
+		double seed_target = a1 * indiv.pft.reprfrac;
 
+		indiv.fdev_growth = max(0.0, min(1.0, 1.0 - frepr_cstorage/seed_target));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -520,12 +512,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 2) Development factor for growth (returns indiv.fdev_growth, which is used in
 			//    growth_demand() function returning growth demand).
 
-			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
-			//indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-			indiv.cmass_struct = max(1.0e-9,indiv.get_cmass_leaf());
-			indiv.frepr_cstruct = min(1.0e3,indiv.cmass_repr / indiv.cmass_struct);
-
-			dev_growth(indiv, climate, indiv.frepr_cstruct);
+			// Ratio of reproductive biomass to storage capacity, which is fed into dev_growth
+			indiv.frepr_cstorage = indiv.cmass_repr / max(indiv.cstorage_max,1e-9);
+			dev_growth(indiv, climate, indiv.frepr_cstorage);
 			
 
 			// 3) Switches between growth stages (indiv.growth_stage):

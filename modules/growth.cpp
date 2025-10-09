@@ -256,6 +256,16 @@ double wscal_growth_trees(double wscal) {
   return wscal_growth;
 }
 
+// Fill fraction of C storage (0-1)
+double Cstorage_fillfrac(Individual& indiv) {
+	return max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+}
+
+// Fill fraction of N storage (0-1)
+double Nstorage_fillfrac(const Individual& indiv) {
+	return max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
+}
+
 
 // Temperature scalar used for growth and dormancy
 // Relationship and parameters from Parent & Tardieu 2012, New Phytologist
@@ -375,8 +385,10 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 
 		double a1 = 3.0;
 		double seed_target = a1 * indiv.pft.reprfrac;
+		double fillfrac = Cstorage_fillfrac(indiv);
 
-		indiv.fdev_growth = max(0.0, min(1.0, 1.0 - frepr_cstorage/seed_target));
+		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - frepr_cstorage/seed_target)));
+		indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6) * (1-indiv.fdev_growth));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -3470,17 +3482,6 @@ void growth_daily_grass(Patch& patch) {
 // New DAVE functions
 // --------------------------------------
 
-// Fill fraction of C storage (0-1)
-double Cstorage_fillfrac(Individual& indiv) {
-	return max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-}
-
-// Fill fraction of N storage (0-1)
-double Nstorage_fillfrac(const Individual& indiv) {
-	return max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
-}
-
-
 // Determine growth demand (aka 'sink strength') in kgC m-2 d-1
 double growth_demand(Individual& indiv) {
 
@@ -3537,12 +3538,6 @@ double growth_demand(Individual& indiv) {
 }
 
 
-double calculate_Cmobilisation(Individual& indiv) {
-
-	return 1.0;
-
-}
-
 
 void storage_growth_partitioning_grass(Individual &indiv) {
 	// Local:
@@ -3551,14 +3546,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
-	// Calculate maximum C storage mobilisation (constant for now).
-	double mobile_rate = 1.0;
-	if (date.year > 200){
-	   mobile_rate = calculate_Cmobilisation(indiv);
-	}
-
 	// C source: Potential growth rate (kgC m-2 d-1)
-	double Gpot = max(0.0, mobile_rate * indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+	double Gpot = max(0.0, indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);

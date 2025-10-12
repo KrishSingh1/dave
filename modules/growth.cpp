@@ -388,7 +388,9 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 		double fillfrac = Cstorage_fillfrac(indiv);
 
 		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - frepr_cstorage/seed_target)));
-		indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6) * (1-indiv.fdev_growth));
+		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6) * (1-indiv.fdev_growth));
+		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6));
+
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -5194,16 +5196,16 @@ void senescence_grass(Individual &indiv) {
 
 	// Parameters
 	const double crelocfrac = 0.0;             // TODO: move to constants?
-	const double senesc_base = 0.0003;         // Baseline senescence rate (d-1)
+	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
 	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 120.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 120.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 35.0;    
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 2 : 35.0;    
     // higher value --> lower sensitivity to water stress at high wscal
-	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 1.0;     
+	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.8 : 1.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
 	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  

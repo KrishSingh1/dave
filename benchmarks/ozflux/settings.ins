@@ -221,9 +221,9 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
 ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
-disttype     "NONE"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
+disttype     "STOCHASTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
-distinterval 500        ! Average return time for generic patch-destroying disturbances
+distinterval 30        ! Average return time for generic patch-destroying disturbances
                         ! Only used if disttype = "STOCHASTIC"
                         ! Hickler et al. (2011) used 200
 

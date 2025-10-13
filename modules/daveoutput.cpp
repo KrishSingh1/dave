@@ -64,6 +64,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_nitrogen_budget_annual"         , ANNUAL, nitrogen_budget_cols_annual, "Annual nitrogen budget (kgN/m2)");
 	add_patch_output("file_dave_anee"                           , ANNUAL, "nee", get_anee, "Total annual patch-level NEE (kgC/m2)");
 	add_patch_output("file_dave_aclitter"                       , ANNUAL, clitter_columns, "Total End-of-Year Patch-Level C Mass in Litter (kgC/m2)");
+	add_patch_output("file_dave_par_grass"                      , ANNUAL, "par_grass", [](const Patch &p) { return p.par_grass_mean / 1000000; }, "Annual mean PAR at top of grass canopy (MJ/m2/day)");
 
 	// Annual per-patch individual-level outputs.
 	add_aggregated_indiv_output("file_dave_alai"                , ANNUAL, get_lai, "Annual LAI(m2/m2)", sum, true);

@@ -28,9 +28,15 @@ group "common" (
 	! branches.
 	formfactor 1
 
+	! Whether vcmax25, jmax25 and vpmax25 should be calculated dynamically from
+	! leaf N. This used to be a global parameter affecting all PFTs.
+	ifcalcvcmax 0
+
+	! These parameters will only have an effect if ifcalcvcmax = 0.
 	vcmax_25 91.0  ! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
 	jmax_25 154.7  ! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
 	vpmax_25 100.0 ! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+
 	ha_v 59.70	   ! Activation energy for vcmax (kJ mol-1)
 	ha_j 40.71	   ! Activation energy for jmax (kJ mol-1)
 	ds_v 639.43	   ! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
@@ -160,6 +166,11 @@ group "grass" (
 	! Parameters common to all grasses
 
 	common
+
+	! Whether vcmax25, jmax25 and vpmax25 should be calculated dynamically from
+	! leaf N. This used to be a global parameter affecting all PFTs.
+	ifcalcvcmax 1
+
 	leafphysiognomy "broadleaf"
 	ltor_max 2.0
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01

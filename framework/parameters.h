@@ -154,9 +154,6 @@ extern xtring file_disturb;
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
 
-/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
-extern bool ifcalcvcmax;
-
 /// Whether vcmax acclimation to temperature is enabeld (alt: prescribed)
 extern bool iftempacclimation;
 

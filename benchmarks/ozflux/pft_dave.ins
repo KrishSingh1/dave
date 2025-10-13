@@ -7,6 +7,8 @@
 group "common" (
 
 	! Parameters common to all PFTs
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 0
 
 	lambda_max 0.8
 	emax 10
@@ -66,6 +68,7 @@ group "tree" (
 	! Parameters common to all trees
 
 	common
+	ifcalcvcmax 0
 	lifeform "tree"
 	crownarea_max 50
 	ltor_max 1
@@ -106,6 +109,8 @@ group "tree" (
 group "shrub" (
 
 	common
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 0
 	lifeform "tree"
 	leafphysiognomy "broadleaf"
 	crownarea_max 10
@@ -142,6 +147,8 @@ group "grass" (
 	! Parameters common to all grasses
  
 	common
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 1
 	leafphysiognomy "broadleaf"
 	ltor_max 2.0
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01

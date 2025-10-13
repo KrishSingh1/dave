@@ -2255,6 +2255,9 @@ public:
 	/// stem hypothesis and measured mass of tree log with its branches.
 	double formfactor;
 
+	/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
+	bool ifcalcvcmax;
+
 	/*
 	Note: these 3 parameters are only used by dave photosynthesis, and only when
 	ifcalcvcmax is false (this is a parameter in the .ins file). When false,
@@ -2628,6 +2631,7 @@ public:
 		g1x=0.0;
 		b1z=0.0;
 		tlp=0.0;
+		ifcalcvcmax = false;
 
 		vcmax_25=0.0;
 		turnover_repr = 0.0;

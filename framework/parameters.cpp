@@ -40,7 +40,6 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
-bool ifcalcvcmax;
 bool iftempacclimation;
 bool ifcalccton;
 int estinterval;
@@ -277,7 +276,6 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
-	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
 	iftempacclimation = false;
@@ -526,8 +524,6 @@ void plib_declarations(int id,xtring setname) {
 			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
-		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
-			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
 			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
@@ -803,7 +799,8 @@ void plib_declarations(int id,xtring setname) {
 			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
 			"cuticular conductance at 20 degC (mol/m2/s)");
-
+		declareitem("ifcalcvcmax",&ppft->ifcalcvcmax,1,CB_NONE,
+			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
@@ -2138,9 +2135,11 @@ void plib_callback(int callback) {
 			if (!itemparsed("lambda_max")) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");
+				// if (itemparsed("root_beta")) badins("root_beta given but rootdistribution is fixed. This does not make sense.");
 			}
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");
+				// if (itemparsed("rootdist")) badins("rootdist given but root distribution is jackson. This does not make sense.");
 			}
 			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
@@ -2192,7 +2191,7 @@ void plib_callback(int callback) {
 
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
-			if (!ifcalcvcmax) {
+			if (!ppft->ifcalcvcmax) {
 				if (!itemparsed("vcmax_25")) badins("vcmax_25");
 				if (!itemparsed("vpmax_25")) badins("vpmax_25");
 				if (!itemparsed("jmax_25")) badins("jmax_25");
@@ -2212,7 +2211,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ha_j")) badins("ha_j");
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
-				if (!ifdavegrowth && ifcalcvcmax) {
+				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 			}

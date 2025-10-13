@@ -2086,6 +2086,9 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 						disturbance(patch, 1.0);
 						return;
 					}
+					else {
+						patch.disturbed = false;
+					}
 				} else {
 					// Stochastic disturbances.
 					double distinterval_ = stand.get_distinterval();	

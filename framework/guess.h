@@ -3259,13 +3259,13 @@ public:
 	/// target storage C mass (kgC/m2)
 	double cmass_storage_limit;
 	/// realtive leaf sink strengthy (unitless)
-	double relative_alpha_leaf;
+	double absolute_alpha_leaf;
 	/// realtive root sink strengthy (unitless)
-	double relative_alpha_root;
+	double absolute_alpha_root;
 	/// realtive sapwwod sink strengthy (unitless)
-	double relative_alpha_sap;
+	double absolute_alpha_sap;
 	/// relative storage sink strengh (unitless)
-	double relative_alpha_storage;
+	double absolute_alpha_storage;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3706,6 +3706,16 @@ public:
 	double cturnover_repr;
 	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
 	double cturnover_crown;
+	/// daily leaf turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_leaf;
+	/// daily root turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_root;
+	/// daily sapwood turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_sap;
+	/// daily repr turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_repr;
+	/// daily crown turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_crown;
 	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
 	double pturnover_leaf;
 
@@ -3814,6 +3824,12 @@ public:
 	double alpha_root;
 	double alpha_sap;
 	double alpha_storage;
+
+	Historic<double, 30> alpha_leaf_trend;
+	Historic<double, 30> alpha_root_trend;
+	Historic<double, 30> alpha_sap_trend;
+	Historic<double, 30> alpha_storage_trend;
+
 	double cdeficit_leaf;
 	double cdeficit_root;
 	double cdeficit_sap;

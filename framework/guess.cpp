@@ -1761,10 +1761,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_limit  = 0.0;
 	cmass_sap_limit	  = 0.0;
 	cmass_storage_limit = 0.0;
-	relative_alpha_leaf 		  = 0.0;
-	relative_alpha_root 		  = 0.0;
-	relative_alpha_sap  		  = 0.0;
-	relative_alpha_storage        = 0.0;
+	absolute_alpha_leaf 		  = 0.0;
+	absolute_alpha_root 		  = 0.0;
+	absolute_alpha_sap  		  = 0.0;
+	absolute_alpha_storage        = 0.0;
 	cgrow             = 0.0;
 	cgrow_leaf	      = 0.0;
 	cgrow_root 		  = 0.0;
@@ -1967,6 +1967,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cturnover_sap  = 0.0;
 	cturnover_repr  = 0.0;
 	cturnover_crown  = 0.0;
+
+	nturnover_leaf  = 0.0;
+ 	nturnover_root  = 0.0;
+	nturnover_sap  = 0.0;
+	nturnover_repr  = 0.0;
+	nturnover_crown  = 0.0;
+	
 	pturnover_leaf   = 0.0;
 
 	charvest_green = 0.0;

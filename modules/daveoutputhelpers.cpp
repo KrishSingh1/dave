@@ -690,9 +690,9 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
 	columns.push_back(ColumnDefinition<Individual>("meanleafage", [](const Individual &i) { return i.meanleafage; }));
 	columns.push_back(ColumnDefinition<Individual>("meansapage", [](const Individual &i) { return i.meansapage; }));
 	columns.push_back(ColumnDefinition<Individual>("meanrootage", [](const Individual &i) { return i.meanrootage; }));
-	columns.push_back(ColumnDefinition<Individual>("leaf_growth_demand", [](const Individual &i) { return i.relative_alpha_leaf; }));
-	columns.push_back(ColumnDefinition<Individual>("root_growth_demand", [](const Individual &i) { return i.relative_alpha_root; }));
-	columns.push_back(ColumnDefinition<Individual>("sap_growth_demand", [](const Individual &i) { return i.relative_alpha_sap; }));
+	columns.push_back(ColumnDefinition<Individual>("leaf_growth_demand", [](const Individual &i) { return i.absolute_alpha_leaf; }));
+	columns.push_back(ColumnDefinition<Individual>("root_growth_demand", [](const Individual &i) { return i.absolute_alpha_root; }));
+	columns.push_back(ColumnDefinition<Individual>("sap_growth_demand", [](const Individual &i) { return i.absolute_alpha_sap; }));
 	columns.push_back(ColumnDefinition<Individual>("density", [](const Individual &i) { return i.densindiv; }));
 	// columns.push_back(ColumnDefinition<Individual>("fpar", [](const Individual &i) { return i.fpar; }));
 	columns.push_back(ColumnDefinition<Individual>("latosa", [](const Individual &i) { return i.latosa; }));

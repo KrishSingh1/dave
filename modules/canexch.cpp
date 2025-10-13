@@ -2700,7 +2700,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
 			
 			// Growth respiration
-			//resp_growth = growth * 0.2;
 			if (ifdavegrowth && ifdailygrass) {
 				// In the DAVE version, growth respiration depends on growth.
 				resp_growth = 0;
@@ -3071,6 +3070,7 @@ Calculate maximum carboxylation rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
+TODO: check default for pmass_leaf!
 */
 double calc_vcmax25(double nmass_leaf, double pmass_leaf) {
 	return exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 *

@@ -239,7 +239,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_jmax25"              , DAILY, [](const Individual &i) { return i.ps_subdaily.jmax25; }, "Maximum e- transport rate at 25 degrees (jmax) (umol/m2/s)", mean);
 	add_aggregated_indiv_output("file_dave_fphen_activity"      , DAILY, [](const Individual &i) { return i.fphen_activity; }, "Dormancy downregulation (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_fdev_growth"         , DAILY, [](const Individual &i) { return i.fdev_growth; }, "Development factor for growth demand (0-1)", mean, false, true);
-	add_aggregated_indiv_output("file_dave_frepr_cstruct"       , DAILY, [](const Individual &i) { return i.frepr_cstruct; }, "Ratio of reproductive to aboveground structural biomass", mean, false, true);
+	add_aggregated_indiv_output("file_dave_frepr_cstorage"      , DAILY, [](const Individual &i) { return i.frepr_cstorage; }, "Ratio of reproductive biomass to storage capacity", mean, false, true);
 	add_aggregated_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level transpiration (mm/day)", sum, true, true);
 	add_aggregated_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);

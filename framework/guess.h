@@ -2727,7 +2727,7 @@ public:
 		// Average sap C:N ratio
 		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
 
-		if (!dave_allocation() || is_grass()) {
+		if (!dave_allocation()) {
 			if (is_grass() || lifeform == MOSS) {
 				respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
 			}
@@ -3290,8 +3290,8 @@ public:
 	double fdev_growth;
 	/// LAI at flowering (vegetative - reproductive switch).
 	double lai_flowering;
-	/// fraction of reproductive biomass to structural biomass.
-	double frepr_cstruct;
+	/// fraction of reproductive biomass to storage capacity.
+	double frepr_cstorage;
 	/// development factor used for calculating senescence.
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)

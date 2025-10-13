@@ -256,6 +256,16 @@ double wscal_growth_trees(double wscal) {
   return wscal_growth;
 }
 
+// Fill fraction of C storage (0-1)
+double Cstorage_fillfrac(Individual& indiv) {
+	return max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
+}
+
+// Fill fraction of N storage (0-1)
+double Nstorage_fillfrac(const Individual& indiv) {
+	return max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
+}
+
 
 // Temperature scalar used for growth and dormancy
 // Relationship and parameters from Parent & Tardieu 2012, New Phytologist
@@ -365,25 +375,21 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 }
 
 
-// Development effects on relative growth rate.
+// Development effects on growth demand.
 // Reduction of growth demand in reproductive phase.
-void dev_growth(Individual &indiv, Climate &climate, double frepr_cstruct) {
+void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 	
 	Patchpft &ppft = indiv.patchpft();
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		// TODO: better (and more interpretable) characterisation of a1 parameter.
-		// TODO: check if a2 parameter is needed.
-		//  a1: higher values: later (at higher frepr_cstruct) reduction in growth demand.
-		//   --> a1 should decrease with reprfrac. Same reprfrac --> earlier seeding with higher a1.
-		// a1 parameter should depend on the size of the plant at flowering time.
-		double a1m = indiv.pft.lifeform == GRASS_ANNUAL ? 1.75 : 0.03;  
-		double a1 = max(0.5,indiv.lai_flowering) * a1m;
-		double a2 = indiv.pft.lifeform == GRASS_ANNUAL ? 0.5 : 0.25;
-		//double fac2 = min(1.0, max(0.0, 1.0 - (a1 * 0.4 * frepr_cstruct - 1.3 * indiv.pft.reprfrac)));
-		//indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - (a1 * frepr_cstruct - a2 * indiv.pft.reprfrac)));
-		indiv.fdev_growth *= min(1.0, max(0.0, 1.0 - a1 * (frepr_cstruct / indiv.pft.reprfrac - a2)));
+		double a1 = 3.0;
+		double seed_target = a1 * indiv.pft.reprfrac;
+		double fillfrac = Cstorage_fillfrac(indiv);
+
+		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - frepr_cstorage/seed_target)));
+		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6) * (1-indiv.fdev_growth));
+		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6));
 
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
@@ -520,12 +526,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 2) Development factor for growth (returns indiv.fdev_growth, which is used in
 			//    growth_demand() function returning growth demand).
 
-			// Peak aboveground structural biomass and ratio of reproductive biomass to peak aboveground structural biomass
-			//indiv.cmass_struct = indiv.get_cmass_leaf() > indiv.cmass_struct ? indiv.get_cmass_leaf() : indiv.cmass_struct;
-			indiv.cmass_struct = max(1.0e-9,indiv.get_cmass_leaf());
-			indiv.frepr_cstruct = min(1.0e3,indiv.cmass_repr / indiv.cmass_struct);
-
-			dev_growth(indiv, climate, indiv.frepr_cstruct);
+			// Ratio of reproductive biomass to storage capacity, which is fed into dev_growth
+			indiv.frepr_cstorage = indiv.cmass_repr / max(indiv.cstorage_max,1e-9);
+			dev_growth(indiv, climate, indiv.frepr_cstorage);
 			
 
 			// 3) Switches between growth stages (indiv.growth_stage):
@@ -533,7 +536,6 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			// 		1: vegetative stage
 			// 		2: reproductive stage
 			double repr_trend = 0.0;  // relative trend in repr. tissue
-			double cmass_storage_level = indiv.cstorage_max > 0.0 ? indiv.cmass_storage / indiv.cstorage_max : 0.0; 
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
 		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
@@ -543,8 +545,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.cmass_struct = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
-				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(15) > 0.0 &&
-				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0 && cmass_storage_level > 0.7){
+				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(20) > 0.0 &&
+				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0){
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;
@@ -3483,17 +3485,6 @@ void growth_daily_grass_warlind(Patch& patch) {
 // New DAVE functions
 // --------------------------------------
 
-// Fill fraction of C storage (0-1)
-double Cstorage_fillfrac(Individual& indiv) {
-	return max(0.0, (indiv.cmass_storage - (frac_cstorage_res * indiv.cstorage_max)) / (indiv.cstorage_max - frac_cstorage_res * indiv.cstorage_max));
-}
-
-// Fill fraction of N storage (0-1)
-double Nstorage_fillfrac(const Individual& indiv) {
-	return max(0.0, (indiv.nmass_storage / indiv.nstorage_max));
-}
-
-
 // Determine growth demand (aka 'sink strength') in kgC m-2 d-1
 double growth_demand(Individual& indiv) {
 
@@ -3533,11 +3524,7 @@ double growth_demand(Individual& indiv) {
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 
-	if (ifsinksource){
-		growth_demand = indiv.pft.RGR_pot * cmass_total * indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
-	} else {
-		growth_demand = indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
-	}
+	growth_demand = indiv.fdev_growth * ftemp_growth * fwater_growth * fphoto_growth;
 
 	// feedbacks with C storage and N storage
 	// i.e. reduce growth demand when C or N are scarce.
@@ -3554,12 +3541,6 @@ double growth_demand(Individual& indiv) {
 }
 
 
-double calculate_Cmobilisation(Individual& indiv) {
-
-	return 1.0;
-
-}
-
 
 void storage_growth_partitioning_grass(Individual &indiv) {
 	// Local:
@@ -3568,14 +3549,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C storage not available for growth.
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
-	// Calculate maximum C storage mobilisation (constant for now).
-	double mobile_rate = 1.0;
-	if (date.year > 200){
-	   mobile_rate = calculate_Cmobilisation(indiv);
-	}
-
 	// C source: Potential growth rate (kgC m-2 d-1)
-	double Gpot = max(0.0, mobile_rate * indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+	double Gpot = max(0.0, indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 	// C sink: growth demand (kgC m-2 d-1).
 	indiv.growth_demand = growth_demand(indiv);
@@ -3583,12 +3558,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	if (indiv.dnpp >= 0.0) {
 		
 		// Positive NPP
-
-		if (ifsinksource){
-			indiv.cgrow = min(indiv.growth_demand,Gpot);
-		} else {
-			indiv.cgrow = Gpot * indiv.growth_demand;
-		}
+		indiv.cgrow = Gpot * indiv.growth_demand;
 
 		cstore = indiv.dnpp - indiv.cgrow;  // = Gpot - growth - (Gpot - NPP) 
 											// cstore = re-allocation if negative
@@ -3613,11 +3583,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
-			if (ifsinksource){
-				indiv.cgrow = min(indiv.growth_demand,Gpot);
-			} else {
-				indiv.cgrow = Gpot * indiv.growth_demand;
-			}
+
+			indiv.cgrow = Gpot * indiv.growth_demand;
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
@@ -5273,11 +5240,11 @@ void senescence_grass(Individual &indiv) {
 	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
 	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
 	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 40.0 : 120.0;
+	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 120.0;
 	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 5.0 : 35.0;    
+	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 2 : 35.0;    
     // higher value --> lower sensitivity to water stress at high wscal
-	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.0 : 1.0;     
+	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.8 : 1.0;     
 	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
 	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
 	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  
@@ -5335,7 +5302,7 @@ void senescence_grass(Individual &indiv) {
 
 	// Total senescence rate
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
-	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + (1.0 + senesc_fwater)) * (1.0 + senesc_ftemp);
+	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + senesc_fwater) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = senesc_base;
 

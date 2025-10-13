@@ -284,7 +284,7 @@ group "intermediate_shade_tolerant" (
 
 group "shade_intolerant" (
 	est_max 0.2
-	parff_min 2500000
+	parff_min 5000000
 	alphar 11.0
 	greff_min 0.09
 	turnover_sap 0.1
@@ -590,6 +590,7 @@ pft "MRS" (
 	wooddens 300
 	sla 10
 	turnover_leaf 1
+	leaflong 1
 	turnover_sap 0.07
 	turnover_root 1
 	ltor_max 0.67
@@ -597,9 +598,10 @@ pft "MRS" (
 	k_allom2 35
 	longevity 300
 
-	stom_clos -3.2   ! Peters (2021)
-	stom_clos -1.5
-	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	! Default stom_clos is -1.5
+	!stom_clos -3.2   ! Peters (2021)
+	! default g1x is 2
+	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9 
 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	! ! WOMBAT (Clare) - fixedLAI = 2.253

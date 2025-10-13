@@ -258,10 +258,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_cdeficit_root"       , DAILY, [](const Individual &i) { return i.cdeficit_root; }, "Daily root C deficit (kgC/m2)", sum, false, false);
 	add_aggregated_indiv_output("file_dave_cdeficit_sap"        , DAILY, [](const Individual &i) { return i.cdeficit_sap; }, "Daily sap C deficit (kgC/m2)", sum, false, false);
 	add_aggregated_indiv_output("file_dave_cdeficit_storage"    , DAILY, [](const Individual &i) { return i.cdeficit_storage; }, "Daily storage C deficit (kgC/m2)", sum, false, false);
-	add_aggregated_indiv_output("file_dave_cmass_leaf_limit"    , DAILY, [](const Individual &i) { return i.cmass_leaf_limit; }, "Daily optimum leaf pool size for trees (kgC/m2)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_cmass_root_limit"    , DAILY, [](const Individual &i) { return i.cmass_root_limit; }, "Daily optimum root pool size for trees (kgC/m2)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_cmass_sap_limit"     , DAILY, [](const Individual &i) { return i.cmass_sap_limit; }, "Daily optimum sap pool size for trees (kgC/m2)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_cmass_storage_limit" , DAILY, [](const Individual &i) { return i.cmass_storage_limit; }, "Daily optimum storage pool size (kgC/m2)", mean, true, false);
+	add_aggregated_indiv_output("file_dave_cmass_leaf_limit"    , DAILY, [](const Individual &i) { return i.cmass_leaf_limit; }, "Daily optimum leaf pool size for trees (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cmass_root_limit"    , DAILY, [](const Individual &i) { return i.cmass_root_limit; }, "Daily optimum root pool size for trees (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cmass_sap_limit"     , DAILY, [](const Individual &i) { return i.cmass_sap_limit; }, "Daily optimum sap pool size for trees (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cmass_storage_limit" , DAILY, [](const Individual &i) { return i.cmass_storage_limit; }, "Daily optimum storage pool size (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_leaf"   , DAILY, [](const Individual &i) { return i.absolute_alpha_leaf; }, "Relative leaf sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_root"   , DAILY, [](const Individual &i) { return i.absolute_alpha_root; }, "Relative root sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_sap"    , DAILY, [](const Individual &i) { return i.absolute_alpha_sap; }, "Relative sapwood sink strength (unitless)", mean, false, false);

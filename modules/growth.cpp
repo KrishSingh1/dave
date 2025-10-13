@@ -3195,6 +3195,7 @@ void growth_daily_grass_warlind(Patch& patch) {
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
 					indiv.nscal_5.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
+					indiv.nscal_30.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
 				}
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
@@ -4457,7 +4458,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// An alternative ltor equation to test. Reason: ltor too sensitive to
 	// wscal, which can increase the proportion of C going to root
 	// unnecesseraly. indiv.ltor = calculate_ltor_tree(indiv);
-	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.1 * pft.ltor_max);
+	indiv.ltor = max(min(ppft.wscal_30.mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.1 * pft.ltor_max);
 	assert(indiv.ltor <= pft.ltor_max && indiv.ltor >= 0);
 
 	// Update storage capacity.
@@ -5022,6 +5023,7 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// nstress will be 1 in freenyears.
 		indiv.nscal_5.add(nstress);
+		indiv.nscal_30.add(nstress);
 
 		// Get available N for each pool.
 		double navail_leaf  = indiv.leafndemand * fnavail;

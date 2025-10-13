@@ -3533,6 +3533,8 @@ public:
 
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
+	/// running mean of nscal for last 5 days for each individual daily allocation
+	Historic<double, 30> nscal_30;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -3808,9 +3810,9 @@ public:
 
 	// wscal calculated on an individual basis using root conductance
 	double wscal;
-	Historic<double,5> wscal_5;
-	Historic<double,10> wscal_10;
-	Historic<double,30> wscal_30;
+	Historic<double, 5> wscal_5;
+	Historic<double, 10> wscal_10;
+	Historic<double, 30> wscal_30;
 	double wscal_mean_year;
 
 	// N content of the individual at time of establishment (g). This is needed
@@ -3893,9 +3895,9 @@ public:
 
 	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
 	double get_wscal() const;
-	Historic<double,5>& get_wscal_5();
-	Historic<double,10>& get_wscal_10();
-	Historic<double,30>& get_wscal_30();
+	Historic<double, 5>& get_wscal_5();
+	Historic<double, 10>& get_wscal_10();
+	Historic<double, 30>& get_wscal_30();
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.

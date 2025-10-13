@@ -4458,7 +4458,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// An alternative ltor equation to test. Reason: ltor too sensitive to
 	// wscal, which can increase the proportion of C going to root
 	// unnecesseraly. indiv.ltor = calculate_ltor_tree(indiv);
-	indiv.ltor = max(min(ppft.wscal_30.mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.1 * pft.ltor_max);
+	indiv.ltor = max(min(ppft.wscal_30.mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	assert(indiv.ltor <= pft.ltor_max && indiv.ltor >= 0);
 
 	// Update storage capacity.

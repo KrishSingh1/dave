@@ -3306,6 +3306,10 @@ public:
 	int growth_stage_days;
 	/// fraction of seedbank that is germinating each day
 	double frac_germ;
+	/// C mass of germinated seedbank (kgC/m2/d).
+	double cmass_germ;
+	/// Total annual C mass of germinated seedbank (kgC/m2/year).
+	double acmass_germ;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// N exceeding storage capacity (kgN/m2/d)

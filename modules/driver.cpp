@@ -977,6 +977,7 @@ void dailyaccounting_patch(Patch& patch) {
 			indiv.mort_age = 0;
 			indiv.mort_greff = 0;
 			indiv.antoavail = 0;
+			indiv.acmass_germ = 0;
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -1049,6 +1050,7 @@ void dailyaccounting_patch(Patch& patch) {
 			indiv.nharvest_green = 0.0;
 			indiv.nharvest_brown = 0.0;
 			indiv.nharvest_repr  = 0.0;
+			indiv.cmass_germ = 0;
 
 			vegetation.nextobj();
 		}

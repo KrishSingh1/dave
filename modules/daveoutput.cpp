@@ -85,6 +85,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
+	add_aggregated_indiv_output("file_dave_acmass_germ"         , ANNUAL, [](const Individual &i) { return i.cmass_germ; }, "Annual germinated C mass (kgC/m2)", sum, true);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
@@ -241,6 +242,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_fdev_growth"         , DAILY, [](const Individual &i) { return i.fdev_growth; }, "Development factor for growth demand (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_frepr_cstorage"      , DAILY, [](const Individual &i) { return i.frepr_cstorage; }, "Ratio of reproductive biomass to storage capacity", mean, false, true);
 	add_aggregated_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_cmass_germ"          , DAILY, [](const Individual &i) { return i.cmass_germ; }, "Germinated C Mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level transpiration (mm/day)", sum, true, true);
 	add_aggregated_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_nscal_mean"          , DAILY, [](const Individual &i) { return i.nscal_5.mean(); }, "N stress scalar 5 day running mean (0-1)", mean, false, true);

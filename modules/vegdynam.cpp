@@ -702,6 +702,9 @@ void establishment_daily(Patch& patch) {
 					indiv->initialc += cmass_ext_seed;
 					indiv->initialn += nmass_ext_seed;
 
+					indiv->cmass_germ = cmass_ext_seed;
+					indiv->acmass_germ += cmass_ext_seed;
+
 					double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true) + ppft.cmass_ext_seed;
 					double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true) + ppft.nmass_ext_seed;
 					assert(equal(cmass_before, cmass_after));

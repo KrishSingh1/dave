@@ -1781,6 +1781,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	senesc_root       = 0.0;
 	growth_stage_days = 0;
 	frac_germ         = 0.0;
+	cmass_germ        = 0.0;
+	acmass_germ       = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
 	fphen_activity    = 1.0;

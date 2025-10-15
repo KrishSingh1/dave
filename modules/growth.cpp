@@ -339,7 +339,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double wscal_mean = indiv.wscal_dynamic.size() > 0 ? indiv.wscal_dynamic.mean() : 1.0;
+	double wscal_mean = indiv.get_wscal_moving_average();
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
@@ -434,13 +434,13 @@ void adjust_response_window(Individual &indiv) {
 		const size_t MAX_CHANGE_RATE = 1;
 
 		size_t response_window_new = get_response_window(nday_dormant);
-		size_t response_window_old = indiv.wscal_dynamic.get_capacity();
+		size_t response_window_old = indiv.get_wscal_dynamic_capacity();
 
 		// Move toward the new response window length by at most change_rate.
 		double response_window = move_toward(response_window_old, response_window_new, MAX_CHANGE_RATE);
 		assert(response_window > 0);
 
-		indiv.wscal_dynamic.set_capacity(response_window);
+		indiv.set_wscal_dynamic_capacity(response_window);
 		indiv.soiltemp_dynamic.set_capacity(response_window);
 
 		// Adjust root beta factor (and therefore root distribution) based on

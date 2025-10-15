@@ -81,7 +81,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_a_belowground_cmass" , ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_aboveground_nmass" , ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_aresponse_window"    , ANNUAL, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Annual output of response window length (days)", mean);
+	add_aggregated_indiv_output("file_dave_aresponse_window"    , ANNUAL, [](const Individual &i) { return (double)i.get_wscal_dynamic_capacity(); }, "Annual output of response window length (days)", mean);
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
@@ -310,7 +310,7 @@ DaveOutput::DaveOutput() {
 
 	// Daily outputs of annually-calculated pft-level outputs.
 	// (Outputted daily for plotting purposes.)
-	add_aggregated_indiv_output("file_dave_dresponse_window"    , DAILY, [](const Individual &i) { return (double)i.wscal_dynamic.get_capacity(); }, "Daily output of response window length (days)", mean);
+	add_aggregated_indiv_output("file_dave_dresponse_window"    , DAILY, [](const Individual &i) { return (double)i.get_wscal_dynamic_capacity(); }, "Daily output of response window length (days)", mean);
 	add_aggregated_indiv_output("file_dave_root_beta"           , DAILY, [](const Individual &i) { return i.root_beta; }, "Daily output of pft-level root beta value (0-1)", mean);
 
 	add_aggregated_indiv_output("file_dave_live_biomass"        , DAILY, [](const Individual &i) { return i.ccont() + i.ncont(); }, "Daily total live biomass (kg/m2)", sum, true);

@@ -974,10 +974,6 @@ void dailyaccounting_patch(Patch& patch) {
 			Individual &indiv = vegetation.getobj();
 			patch.fpc_total += indiv.fpc;		// indiv.fpc
 			patch.rpc_total += indiv.rpc;		// indiv.rpc
-			indiv.mort_age = 0;
-			indiv.mort_greff = 0;
-			indiv.antoavail = 0;
-			indiv.acmass_germ = 0;
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -1050,12 +1046,15 @@ void dailyaccounting_patch(Patch& patch) {
 			indiv.nharvest_green = 0.0;
 			indiv.nharvest_brown = 0.0;
 			indiv.nharvest_repr  = 0.0;
-			indiv.cmass_germ = 0;
 
 			vegetation.nextobj();
 		}
 	}
 
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		indiv.daily_accounting();
+	}
 
 	// On last day of month, calculate mean content of upper and lower soil layers
 

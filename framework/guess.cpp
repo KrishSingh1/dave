@@ -413,6 +413,16 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
+void Patchpft::daily_accounting() {
+	if (date.day == 0) {
+		annual_accounting();
+	}
+}
+
+void Patchpft::annual_accounting() {
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Patch member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -3690,6 +3700,48 @@ void Individual::flush_repr_litter_DAVE() {
 
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;
+}
+
+void Individual::daily_accounting() {
+	if (date.day == 0) {
+		annual_accounting();
+	}
+	cmass_germ = 0;
+}
+
+void Individual::annual_accounting() {
+	acmass_germ = 0;
+	wscal_mean_year = 0;
+	mort_age = 0;
+	mort_greff = 0;
+	antoavail = 0;
+}
+
+size_t Individual::get_wscal_dynamic_capacity() const {
+	return wscal_dynamic.get_capacity();
+}
+
+void Individual::set_wscal_dynamic_capacity(size_t capacity) {
+	wscal_dynamic.set_capacity(capacity);
+}
+
+double Individual::get_wscal_moving_average() const {
+	return wscal_dynamic.size() > 0 ? wscal_dynamic.mean() : 1.0;
+}
+
+void Individual::set_wscal(double wscal) {
+	this->wscal = wscal;
+	wscal_dynamic.add(wscal);
+	// TODO: combine the 5-, 10-, and 30-day moving averages into a single
+	// 30-day moving average, and have get_wscal_N() return the mean of the most
+	// recent N days' values.
+	wscal_5.add(wscal);
+	wscal_10.add(wscal);
+	wscal_30.add(wscal);
+	wscal_mean_year += wscal;
+	if (date.islastmonth && date.islastday) {
+		wscal_mean_year /= Date::MAX_YEAR_LENGTH;
+	}
 }
 
 double Individual::wscal_mean() const {

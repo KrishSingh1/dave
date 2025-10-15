@@ -3416,8 +3416,6 @@ public:
 	double anj_frac;
 	double anp_frac;
 
-	/// Adaptive N-day moving avegage of wscal.
-	HistoricDynamic<double> wscal_dynamic;
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
 	/// Dynamic root beta value used in dave version.
@@ -3792,12 +3790,17 @@ public:
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;
 
+	private:
+	/// Adaptive N-day moving avegage of wscal.
+	HistoricDynamic<double> wscal_dynamic;
 	// wscal calculated on an individual basis using root conductance
 	double wscal;
 	Historic<double, 5> wscal_5;
 	Historic<double, 10> wscal_10;
 	Historic<double, 30> wscal_30;
 	double wscal_mean_year;
+
+	public:
 
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
@@ -3876,7 +3879,9 @@ public:
 
 	double get_nmass_leaf() const;
 
-
+	/// @brief Set the water stress value in this individual. This will update all moving-averages of water stress.
+	/// @param wscal The water stress value (1=no stress, 0=max stress).
+	void set_wscal(double wscal);
 	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
 	double get_wscal() const;
 	Historic<double, 5>& get_wscal_5();
@@ -4004,6 +4009,23 @@ public:
 
 	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
+
+	/// Reset daily variables.
+	void daily_accounting();
+
+	/// Get the capacity of the dynamic-length moving average of water stress.
+	size_t get_wscal_dynamic_capacity() const;
+
+	/// Set the capacity of the dynamic-length moving average of water stress.
+	/// @param capacity The new window length of the moving average.
+	void set_wscal_dynamic_capacity(size_t capacity);
+
+	/// Get the moving average of water stress.
+	double get_wscal_moving_average() const;
+private:
+	// Reset annual variables. Called from daily_accounting() on the first day
+	// of the year.
+	void annual_accounting();
 };
 
 
@@ -5325,6 +5347,13 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+	/// Reset daily variables.
+	void daily_accounting();
+private:
+	/// Reset annual variables. Called from daily_accounting() on the first day
+	/// of the year.
+	void annual_accounting();
 };
 
 

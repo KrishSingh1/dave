@@ -4010,7 +4010,7 @@ DAVE water scalar routine (see water_scalar()).
 
 @param patch: The patch.
 */
-void water_stress(Patch &patch) {
+void water_stress_dave(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
@@ -4033,7 +4033,7 @@ void water_stress(Patch &patch) {
 			double wcont = patch.soil.get_layer_soil_water(j);
 
 			// calculate water stress factor per layer and weight with root fraction
-			wstress_layer[j] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[j];
+			wstress_layer[j] = max(min(wcont / wcont_crit, 1.0), 0.0) * pft.rootdist[j];
 			wstress += wstress_layer[j];
 			rootdist_sum += pft.rootdist[j]; // rootdist should add up to 1 but summed here just in case...
 			// save water stress for the top 5 layers
@@ -4071,24 +4071,32 @@ void water_stress(Patch &patch) {
 			ppft.cropphen->growingdays_y++;
 			ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 		} else {
-			// No wscal_mean for you...
+			// Either cropland but not a crop, or a crop outside growing season.
 		}
 
+		// Update the ppft-level moving averages of water stress.
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
+
+		// Also update air temperature for some reason (why is this here?).
 		ppft.airtemp_10.add(patch.get_climate().temp);
 	}
+
+	// Update the corresponding indiv-level moving averages of water stress.
+	// These are handled internally by the individual.
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
-		indiv.wscal_dynamic.add(ppft.wscal);
+
+		indiv.set_wscal(ppft.wscal);
 		assert(ppft.wscal <= 1.0);
+		assert(ppft.wscal >= 0.0);
 	}
 }
 
 /// Run water stress 
-void water_stress_root_resistance(Patch &patch) {
+void water_stress_dave_root_resistance(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
@@ -4144,21 +4152,7 @@ void water_stress_root_resistance(Patch &patch) {
 		wstress /= root_cond_sum;
 
 		// Mean daily water stress value.
-		indiv.wscal = wstress;
-
-		indiv.wscal_5.add(indiv.wscal);
-		indiv.wscal_10.add(indiv.wscal);
-		indiv.wscal_30.add(indiv.wscal);
-
-		if (date.day == 0){
-			indiv.wscal_mean_year = 0.0;
-		}
-
-		indiv.wscal_mean_year += wstress;
-
-		if (date.islastmonth && date.islastday){
-			indiv.wscal_mean_year /= Date::MAX_YEAR_LENGTH;
-		}
+		indiv.set_wscal(wstress);
 	}
 
 	double wstress_pft = 0.0;
@@ -4630,9 +4624,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 		// Calculate water stress factor
 		if (ifzhou) {
-			water_stress_root_resistance(patch);
+			water_stress_dave_root_resistance(patch);
 		} else {
-			water_stress(patch);
+			water_stress_dave(patch);
 		}
 
 		// Calculate subdaily photosynthesis and stomatal conductance 

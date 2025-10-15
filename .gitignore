@@ -5,4 +5,5 @@ build/
 callgrind.*
 *.lpj
 .simulations
+._*
 

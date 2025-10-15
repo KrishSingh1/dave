@@ -5791,6 +5791,7 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 	double cturnover_leaf = 0.0, nturnover_leaf = 0.0;
 	double cturnover_root = 0.0, nturnover_root = 0.0;
 	double cturnover_sap = 0.0, nturnover_sap = 0.0;
+	double cturnover_repr = 0.0, nturnover_repr = 0.0;
 
 	double nretranslocated = 0;
 
@@ -5982,26 +5983,24 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 	if (indiv.cmass_repr > 0) {
 		double turnover_repr = indiv.pft.turnover_repr / Date::MAX_YEAR_LENGTH;
 
-		double cturnover_repr = turnover_repr * indiv.cmass_repr;
-		double nturnover_repr = turnover_repr * indiv.nmass_repr;
+		cturnover_repr = turnover_repr * indiv.cmass_repr;
+		nturnover_repr = turnover_repr * indiv.nmass_repr;
 
 		// Update pools
 		indiv.cmass_repr -= cturnover_repr;
 		indiv.nmass_repr -= nturnover_repr;
 
 		indiv.ctolitter += cturnover_repr;
-		indiv.ctolitter_repr = cturnover_repr;
-
-		indiv.ntolitter_repr = nturnover_repr;
 		indiv.ntolitter += nturnover_repr;
 
-		// ppft.cmass_litter_repr += cturnover_repr;
-		// ppft.nmass_litter_repr += nturnover_repr;
 		// Let somdynam decide what to do with reproductive litter.
 		// TODO: should repr be treated as leaf or root litter?
 		// For now, use root (this reproduces previous behaviour).
 		root_to_litter(soil, pft, litterme, fireresist, cturnover_repr, nturnover_repr);
 	}
+
+	indiv.cturnover_repr = cturnover_repr;
+	indiv.nturnover_repr = nturnover_repr;
 
 	// save daily sapwood turnover flux (kgC/m^2/day)
 	indiv.cturnover_sap = cturnover_sap;
@@ -6586,14 +6585,16 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.ctolitter              = 0.0;
 		indiv.ntolitter              = 0.0;
 		indiv.ntoavail               = 0.0;
-		indiv.ctolitter_leaf         = 0.0;
-		indiv.ntolitter_leaf         = 0.0;
-		indiv.ctolitter_root         = 0.0;
-		indiv.ntolitter_root         = 0.0;
-		indiv.ctolitter_repr         = 0.0;
-		indiv.ntolitter_repr         = 0.0;
-		indiv.ctolitter_crown        = 0.0;
-		indiv.ntolitter_crown        = 0.0;
+		indiv.cturnover_leaf         = 0.0;
+		indiv.nturnover_leaf         = 0.0;
+		indiv.cturnover_root         = 0.0;
+		indiv.nturnover_root         = 0.0;
+		indiv.cturnover_repr         = 0.0;
+		indiv.nturnover_repr         = 0.0;
+		indiv.cturnover_crown        = 0.0;
+		indiv.nturnover_crown        = 0.0;
+		indiv.cturnover_sap          = 0.0;
+		indiv.nturnover_sap          = 0.0;
 		indiv.absolute_alpha_leaf    = 0.0;
 		indiv.absolute_alpha_root    = 0.0;
 		indiv.absolute_alpha_sap     = 0.0;

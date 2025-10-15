@@ -1871,14 +1871,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_tot_luc     = 0.0;
 	ctolitter         = 0.0;
 	ntolitter         = 0.0;
-	ctolitter_leaf   = 0.0;
-	ntolitter_leaf   = 0.0;
-	ctolitter_root   = 0.0;
-	ntolitter_root   = 0.0;
-	ctolitter_repr   = 0.0;
-	ntolitter_repr   = 0.0;
-	ctolitter_crown  = 0.0;
-	ntolitter_crown  = 0.0;
 
 	nactive						= 0.0;
 	nextin						= 1.0;
@@ -2075,14 +2067,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_debt
 		& ctolitter
 		& ntolitter
-		& ctolitter_leaf
-		& ntolitter_leaf
-		& ctolitter_root
-		& ntolitter_root
-		& ctolitter_repr
-		& ntolitter_repr
-		& ctolitter_crown
-		& ntolitter_crown
 		& cmass_leaf_post_turnover
 		& cmass_root_post_turnover
 		& cmass_leaf_limit
@@ -3701,8 +3685,8 @@ void Individual::flush_repr_litter_DAVE() {
 	ctolitter += cmass_repr;
 	ntolitter += nmass_repr;
 
-	ctolitter_repr = cmass_repr;
-	ntolitter_repr = nmass_repr;
+	cturnover_repr = cmass_repr;
+	nturnover_repr = nmass_repr;
 
 	cmass_repr = 0.0;
 	nmass_repr = 0.0;

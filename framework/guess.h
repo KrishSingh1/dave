@@ -3342,30 +3342,6 @@ public:
 	/// Cumulative annual N taken up but then sent back to available N pool (kgN/m2).
 	double antoavail;
 
-	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_leaf;
-
-	/// Daily N sent from leaf to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_leaf;
-
-	/// Daily C sent from root to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_root;
-
-	/// Daily N sent from root to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_root;
-
-	/// Daily C sent from the reproductive biomass to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_repr;
-
-	/// Daily N sent from the reproductive biomass to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_repr;
-
-	/// Daily C sent from crown to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_crown;
-
-	/// Daily N sent from crown to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_crown;
-
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
 	/// root N biomass on modelled area basis on first day of land use change year

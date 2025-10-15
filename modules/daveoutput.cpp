@@ -369,16 +369,16 @@ DaveOutput::DaveOutput() {
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_wscal_5l"                         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal_5_5l.size() ? p.pft[pft.id].wscal_5_5l.lastadd() : -1; }, "Water scalar for top 5 layers [0-1], 1 = min stress",  false, true);
 	add_pft_output("file_dave_standing_dead"                    , DAILY, get_pft_standing_dead_cmass, "Daily PFT-Level Total Standing Dead C Mass (kgC/m2)", true);
-	add_pft_output("file_dave_cmass_standing_dead_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) C mass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_standing_dead_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) N mass (kgN/m2)",  true);
-	add_pft_output("file_dave_cmass_standing_dead_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_leaf; }, "Standing Dead Leaf C Mass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_standing_dead_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_leaf; }, "Standing Dead Leaf N Mass (kgN/m2)",  true);
-	add_pft_output("file_dave_cmass_standing_dead_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_root; }, "Standing Dead Root C Mass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_standing_dead_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_root; }, "Standing Dead Root N Mass (kgN/m2)",  true);
-	add_pft_output("file_dave_cmass_standing_dead_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_sap; }, "Standing Dead Sap C Mass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_standing_dead_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_sap; }, "Standing Dead Sap N Mass (kgN/m2)",  true);
-	add_pft_output("file_dave_cmass_standing_dead_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_heart; }, "Seedbank cmass (kgC/m2)", true);
-	add_pft_output("file_dave_nmass_standing_dead_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_heart; }, "Seedbank nmass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) C mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) N mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_leaf; }, "Standing Dead Leaf C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_leaf"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_leaf; }, "Standing Dead Leaf N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_root; }, "Standing Dead Root C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_root"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_root; }, "Standing Dead Root N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_sap; }, "Standing Dead Sap C Mass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_sap"          , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_sap; }, "Standing Dead Sap N Mass (kgN/m2)",  true);
+	add_pft_output("file_dave_cmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_heart; }, "Seedbank cmass (kgC/m2)", true);
+	add_pft_output("file_dave_nmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_heart; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                            , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_seed_ext"                   , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
 	add_pft_output("file_dave_dncohort"                         , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");

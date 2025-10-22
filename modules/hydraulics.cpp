@@ -113,6 +113,12 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         fail("ifdavehydrology must be enabled to calculate soil water potential");
     }
 
+    // Sand content, as percentage.
+    double sand_perc = soil.soiltype.sand_frac * 100.0;
+
+    // Clay content, as percentage.
+    double clay_perc = soil.soiltype.clay_frac * 100.0;
+
     for (int i = 0; i < NSOILLAYER; i++) {
 
 	    double wcont = soil.get_layer_soil_water(i);
@@ -150,8 +156,8 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
         
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * soil.soiltype.sand_frac * 100.0 + (-3.895 + 0.03671 *
-                            soil.soiltype.sand_frac * 100.0 - 0.1103 * soil.soiltype.clay_frac * 100.0 + 8.7546e-4 * soil.soiltype.clay_frac * 100.0) * 1.0 / theta);
+        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
+                            sand_perc - 0.1103 * clay_perc + 8.7546e-4 * pow(clay_perc, 2.0)) * 1.0 / theta);
     }
 
     soil.soil_psi = mean(soil.psi_layer, NSOILLAYER);

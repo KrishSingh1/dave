@@ -397,14 +397,15 @@ $SBATCH_PARTITION
 $SBATCH_COMPUTEACCOUNT
 if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
     module purge &>/dev/null
-    module load foss/2022a Ghostscript/9.56.1 Python/2.7.18 gnuplot/5.4.4
+    module load foss/2022a Ghostscript/9.56.1 gnuplot/5.4.4
+    # python3 required but already available on system
     export PATH=$PATH
 elif [[ "$ARCH" == "levante" ]]; then
     module purge &>/dev/null
     module load gnuplot/5.4.2-gcc-11.2.0
     module load imagemagick/7.0.8-7-gcc-11.2.0
     module load ghostscript/9.54.0-gcc-11.2.0  # not mentioned in readme but essential for converting .ps to .png
-    # python2 is already available on the system
+    # python3 is already available on the system
 fi
 $(cat $common_script)
 EOF

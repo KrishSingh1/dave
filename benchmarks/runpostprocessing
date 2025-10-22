@@ -131,4 +131,4 @@ if [ -z "$(which python3)" ]; then
     echo "Error in runpostprocessing: Python 3 not found!"
     exit 1
 fi
-python3 $(dirname $0)/report2html report.xml ../../info.txt > index.html		# This script needs to be run by python2
+python3 $(dirname $0)/report2html report.xml ../../info.txt > index.html		# This script needs to be run by python3

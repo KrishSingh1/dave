@@ -3,7 +3,6 @@
 /// \brief Implementation of the common output module
 ///
 /// \author Joe Siltberg
-/// $Date: 2015-04-09 18:40:34 +0200 (Thu, 09 Apr 2015) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this

@@ -7,7 +7,6 @@
 /// for global static data, use: dummy data-columns (with "static" as first word in header).
 ///
 /// \author Mats Lindeskog
-/// $Date: $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this

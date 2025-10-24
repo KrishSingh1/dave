@@ -453,6 +453,12 @@ void adjust_response_window(Individual &indiv) {
 }
 
 void dormant_days_accounting_dave(Vegetation &vegetation) {
+	// The dormant days tracker and response window are only required if the
+	// adaptive root distribution for grasses is enabled.
+	if (!ifadaptive_rootdist) {
+		return;
+	}
+
 	for (size_t i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 		Patchpft &ppft = indiv.patchpft();

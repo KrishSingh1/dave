@@ -5243,18 +5243,8 @@ void senescence_dave_grass(Individual &indiv) {
 	Vegetation &vegetation = indiv.vegetation;
 	Patchpft ppft = indiv.patchpft();
 
-	// Parameters
-	double crelocfrac = pft.crelocfrac;
-	double senesc_base = pft.senesc_base;
-	double senesc_scal_dorm = pft.senesc_scal_dorm;
-	double senesc_scal_water = pft.senesc_scal_water;
-	double senesc_scal_repr = pft.senesc_scal_repr;
-	double qdev_senesc = pft.qdev_senesc;
-	double qwater_senesc = pft.qwater_senesc;
-	double temp_senesc1 = pft.temp_senesc1;
-	double temp_senesc2 = pft.temp_senesc2;
-
-	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
+	// TODO: is there an active retranslocation of storage C and N in senescing
+	// annual plants?
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -5263,41 +5253,38 @@ void senescence_dave_grass(Individual &indiv) {
 	// double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
 	// Note: leaflong not used anymore for senescence as it is conceptually difficult
 
-	double senesc = senesc_base;
+	double senesc = pft.senesc_base;
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant || indiv.fdev_growth < 1.0) {
-
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 		//indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
 		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
-		indiv.fdev_senesc = senesc_scal_repr * pow((1.0 - indiv.fdev_growth),qdev_senesc);
-
+		indiv.fdev_senesc = pft.senesc_scal_repr * pow((1.0 - indiv.fdev_growth),
+													   pft.qdev_senesc);
 	} else {
-
 		indiv.fdev_senesc = 0.0;
-
 	}
 
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = senesc_scal_water * (1.0 - pow(indiv.get_wscal(),qwater_senesc));
+	double senesc_fwater = pft.senesc_scal_water * (1.0 - pow(indiv.get_wscal(),
+															  pft.qwater_senesc));
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
 	double senesc_ftemp = 0.0;
 	if (grass_temp < 0.0){
-		senesc_ftemp = -temp_senesc1 * grass_temp;
+		senesc_ftemp = -pft.temp_senesc1 * grass_temp;
 	} else if (grass_temp >= indiv.pft.temp_dormancy) {		
-		senesc_ftemp = temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
+		senesc_ftemp = pft.temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
 	} 
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
 	if (indiv.fphen_activity < 1.0 && indiv.dphen_activity < 0.0) {
-
-		senesc_fdorm = senesc_scal_dorm * abs(indiv.dphen_activity/dphen_activity_max);
+		senesc_fdorm = pft.senesc_scal_dorm * abs(indiv.dphen_activity / dphen_activity_max);
         //senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
@@ -5305,7 +5292,7 @@ void senescence_dave_grass(Individual &indiv) {
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
 	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + senesc_fwater) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
-	indiv.senesc_root = senesc_base;
+	indiv.senesc_root = pft.senesc_base;
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
@@ -5313,8 +5300,8 @@ void senescence_dave_grass(Individual &indiv) {
 
 	// Carbon
 	double csenesc  = indiv.cmass_leafs[green] * senesc;
-	double cstore   = csenesc * crelocfrac;
-	double ctobrown = csenesc * (1.0 - crelocfrac);
+	double cstore   = csenesc * pft.crelocfrac;
+	double ctobrown = csenesc * (1.0 - pft.crelocfrac);
 
 	// If C storage pool overflows, re-adjust cstore and ctobrown
 	if (indiv.cmass_storage + cstore > indiv.cstorage_max) {

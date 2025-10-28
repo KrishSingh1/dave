@@ -181,15 +181,16 @@ DaveOutput::DaveOutput() {
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_meanleafage"         , DAILY, [](const Individual &i) { return i.meanleafage; }, "Mean leaf age (years)", mean, true);
-	add_aggregated_indiv_output("file_dave_meansapage"          , DAILY, [](const Individual &i) { return i.meansapage; }, "Mean sapwood age (years)", mean, true);
-	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, true);
+	add_aggregated_indiv_output("file_dave_meanleafage"         , DAILY, [](const Individual &i) { return i.meanleafage; }, "Mean leaf age (years)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_meansapage"          , DAILY, [](const Individual &i) { return i.meansapage; }, "Mean sapwood age (years)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_meanrootage"         , DAILY, [](const Individual &i) { return i.meanrootage; }, "Mean root age (years)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_sla"                 , DAILY, [](const Individual &i) { return i.sla(); }, "SLA by individual (m2/kgC)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf"          , DAILY, [](const Individual &i) { return i.get_cmass_leaf(); }, "Leaf C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_leaf_brown"    , DAILY, [](const Individual &i) { return i.pft.is_grass() ? i.cmass_leafs[1] : 0.0; }, "Leaf brown C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_nmass_leaf"          , DAILY, [](const Individual &i) { return i.get_nmass_leaf(); }, "Leaf N mass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", sum, false, true);
-	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", sum, false, true);
+	add_aggregated_indiv_output("file_dave_cmass_crown"         , DAILY, [](const Individual &i) { return i.cmass_crown; }, "Crown C mass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_nmass_crown"         , DAILY, [](const Individual &i) { return i.nmass_crown; }, "Crown N mass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_cmass_repr"          , DAILY, [](const Individual &i) { return i.cmass_repr; }, "Reproductive C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_root"          , DAILY, [](const Individual &i) { return i.cmass_root; }, "Root C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cmass_sap"           , DAILY, [](const Individual &i) { return i.cmass_sap; }, "Sapwood C mass (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_cton_sap"            , DAILY, [](const Individual &i) { return min(i.pft.cton_sap_max, i.cton_sap()); }, "Sapwood C to N ratio (kgC/kgN)", sum, true);
@@ -398,7 +399,7 @@ DaveOutput::DaveOutput() {
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
 	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
-	add_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", true, false);
+	add_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", false, true);
 	add_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYER, [](const Patch &p, int i) { return p.soil.psi_layer[i]; }, "Soil water potential (MPa) in each layer", false, false);
 
 	// Subdaily patch-level outputs.

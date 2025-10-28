@@ -402,6 +402,7 @@ DaveOutput::DaveOutput() {
 	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
 	add_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", false, true);
 	add_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYER, [](const Patch &p, int i) { return p.soil.psi_layer[i]; }, "Soil water potential (MPa) in each layer", false, false);
+	add_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.K_actual[i] / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
 
 	// Subdaily patch-level outputs.
 	//                                               column name              function which gets number of array elems     function which returns the i-th output value

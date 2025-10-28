@@ -761,7 +761,7 @@ void plib_declarations(int id,xtring setname) {
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
- 		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
+ 		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");
@@ -1650,13 +1650,6 @@ void plib_callback(int callback) {
 	case CB_ROOTFRAC:
 		numval = 0.0;
 		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
-	
-		for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
-		if (numval<0.99 || numval>1.01) {
-			sendmessage("Error","Specified root fractions do not sum to 1.0");
-			plibabort();
-		}
-		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound

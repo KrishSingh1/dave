@@ -369,7 +369,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_water_uptake"             , DAILY, "layer", [](const Patch &p) { return NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)", sum);
 
 	// Daily pft-level per-patch outputs.
-	add_pft_output("file_dave_wscal_5l"                         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].wscal_5_5l.size() ? p.pft[pft.id].wscal_5_5l.lastadd() : -1; }, "Water scalar for top 5 layers [0-1], 1 = min stress",  false, true);
 	add_pft_output("file_dave_standing_dead"                    , DAILY, get_pft_standing_dead_cmass, "Daily PFT-Level Total Standing Dead C Mass (kgC/m2)", true);
 	add_pft_output("file_dave_cmass_standing_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) C mass (kgC/m2)", true);
 	add_pft_output("file_dave_nmass_standing_repr"         , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_repr; }, "Standing Dead Reproductive (Seedbank for grasses) N mass (kgN/m2)",  true);

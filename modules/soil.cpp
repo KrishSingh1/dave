@@ -1493,13 +1493,13 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_acro_root_frac += indiv.rootdist[ly-IDX];
 
 		// PFT total root frac down to evaporation depth (200mm) 
 		double pft_evap_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
-			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_evap_root_frac += indiv.rootdist[ly-IDX];
 		}
 
 		// this includes mosses, which have root_frac = 1 in the acrotelm

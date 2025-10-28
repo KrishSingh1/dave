@@ -1847,7 +1847,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	} else { // Take PFT-level default
 		root_beta = pft.root_beta;
 		for (size_t i = 0; i < NSOILLAYER; i++) {
-			rootdist[i] = pft.rootdist[i];
+			rootdist[i] = pft.input_rootdist[i];
 		}
 	}
 	acalloc_leaf				= 0.0;
@@ -3745,39 +3745,57 @@ void Individual::set_wscal(double wscal) {
 }
 
 double Individual::wscal_mean() const {
-	if (ifzhou) {
+	if (use_indiv_wscal()) {
 		return wscal_mean_year;
 	} else {
 		return patchpft().wscal_mean;
 	}
 }
 
+bool Individual::use_indiv_wscal() const {
+	// When using the zhou model, individual-level water stress will be
+	// different to ppft-level water stress, because it's weighted by root
+	// resistance (an indiv-level property).
+	//
+	// When using adaptive root distribution for dave grasses, individual-level
+	// water stress will be different to ppft-level water stress, because the
+	// individuals' root distributions can vary over time.
+	//
+	// When using dave allocation more generally, individual-level water stress
+	// will be the same as ppft-level water stress.
+	//
+	// When not using dave allocation (or the zhou model, which requires dave
+	// allocation), individual-level water stress will not be set, and we must
+	// therefore fall back to using the ppft-level water stress.
+	return ifzhou || pft.dave_allocation();
+}
+
 double Individual::get_wscal() const {
-	if (ifzhou) {
+	if (use_indiv_wscal()) {
 		return wscal;
 	} else {
 		return patchpft().wscal;
 	}
 }
 
-Historic<double,5>& Individual::get_wscal_5() {
-	if (ifzhou) {
+const Historic<double,5> &Individual::get_wscal_5() const {
+	if (use_indiv_wscal()) {
 		return wscal_5;
 	} else {
 		return patchpft().wscal_5;
 	}
 }
 
-Historic<double,10>& Individual::get_wscal_10() {
-	if (ifzhou) {
+const Historic<double,10> &Individual::get_wscal_10() const {
+	if (use_indiv_wscal()) {
 		return wscal_10;
 	} else {
 		return patchpft().wscal_10;
 	}
 }
 
-Historic<double,30>& Individual::get_wscal_30() {
-	if (ifzhou) {
+const Historic<double,30> &Individual::get_wscal_30() const {
+	if (use_indiv_wscal()) {
 		return wscal_30;
 	} else {
 		return patchpft().wscal_30;

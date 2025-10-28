@@ -2113,7 +2113,10 @@ public:
 	/// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
-	double rootdist[NSOILLAYER];
+	/// Should be private, but parameters.cpp wants a pointer for parameter binding..
+	/// This should generally never be used. Always use indiv.rootdist if possible.
+	double input_rootdist[NSOILLAYER];
+
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -2810,9 +2813,9 @@ public:
 
 		for (int sl = 0; sl < NSOILLAYER; sl++) {
 			if (sl < NSOILLAYER_UPPER) 
-				rootdist_upper += rootdist[sl];
+				rootdist_upper += input_rootdist[sl];
 			else
-				rootdist_lower += rootdist[sl];
+				rootdist_lower += input_rootdist[sl];
 		}
 
 		nupscoeff = rootdist_upper * upper_adv + rootdist_lower;
@@ -2881,7 +2884,20 @@ public:
     
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
-		calc_root_distribution(root_beta, rootdist);
+		calc_root_distribution(root_beta, input_rootdist);
+
+		double numval = 0;
+		for (size_t i = 0; i < NSOILLAYER; i++) {
+			numval+=input_rootdist[i];
+		}
+
+		// Ensure total root distribution sums to ~1.
+		if (numval < 0.99 || numval > 1.01) {
+			fail("Error","Specified root fractions do not sum to 1.0");
+		}
+
+		// Allow for small numerical errors (<1e-2).
+		input_rootdist[NSOILLAYER-1] += 1.0 - numval;
     }
     
 	bool ismoss() const {
@@ -3459,7 +3475,11 @@ public:
 	/// Dynamic root beta value used in dave version.
 	double root_beta;
 
-	/// Dynamic root distribution used in dave version.
+	/// Dynamic root distribution used in dave version. This is the fraction of
+	/// roots in each soil layer.
+	/// If this individual is not using dave allocation, this will be the same
+	/// pft.input_rootdist (ie the old pft.rootdist, as provided in the ins file
+	/// or calculted from the root beta).
 	double rootdist[NSOILLAYER];
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
@@ -3922,9 +3942,9 @@ public:
 	void set_wscal(double wscal);
 	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
 	double get_wscal() const;
-	Historic<double, 5>& get_wscal_5();
-	Historic<double, 10>& get_wscal_10();
-	Historic<double, 30>& get_wscal_30();
+	const Historic<double, 5> &get_wscal_5() const;
+	const Historic<double, 10> &get_wscal_10() const;
+	const Historic<double, 30> &get_wscal_30() const;
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -4064,6 +4084,7 @@ private:
 	// Reset annual variables. Called from daily_accounting() on the first day
 	// of the year.
 	void annual_accounting();
+	bool use_indiv_wscal() const;
 };
 
 
@@ -5156,8 +5177,6 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
-	/// wscal for the top 5 layers (unitless)
-	Historic<double, 5> wscal_5_5l;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;

@@ -56,7 +56,7 @@ double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
  
     for (int j=0; j<NSOILLAYER; j++){
         double psi_layer = soil.psi_layer[j];
-        double rootfrac_layer = pft.rootdist[j];
+        double rootfrac_layer = indiv.rootdist[j];
         weighted_psi = weighted_psi + psi_layer * rootfrac_layer; // weight soil water potential by root fraction in each layer
     }
     return weighted_psi;
@@ -74,7 +74,7 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe 
     for (int j = 0; j < NSOILLAYER; j++) {
         double thickness_lyr = soil.Dz[j+7] / 1000.0; // soil layer depth in m, note that we skip the 6 snow layers and layer of air in betwen (7 total)
         
-        double rootc_layer = pft.rootdist[j] * indiv.cmass_root;    // kgC/m2
+        double rootc_layer = indiv.rootdist[j] * indiv.cmass_root;    // kgC/m2
         double root_biomass = rootc_layer * 2.0; // kg/m2     !!UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
         
 

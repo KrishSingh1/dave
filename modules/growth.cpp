@@ -335,7 +335,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 		wscal_min = pft.wscal_min;
 	}
 
-	Historic<double,10>& wscal_10 = indiv.get_wscal_10();
+	const Historic<double,10> &wscal_10 = indiv.get_wscal_10();
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
@@ -453,6 +453,12 @@ void adjust_response_window(Individual &indiv) {
 }
 
 void dormant_days_accounting_dave(Vegetation &vegetation) {
+	// The dormant days tracker and response window are only required if the
+	// adaptive root distribution for grasses is enabled.
+	if (!ifadaptive_rootdist) {
+		return;
+	}
+
 	for (size_t i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
@@ -3519,7 +3525,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal, wscal0, bgrowth);
+	fwater_growth = wscal_growth(indiv.get_wscal(), wscal0, bgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
@@ -3707,7 +3713,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 	assert(ftemp <= 1);
 	assert(ftemp >= 0);
 	// water scalar for decoupling potosynthesis from growth (Fatichi et al 2014)
-	double fwater = wscal_growth_trees(indiv.patchpft().wscal_10.mean());
+	double fwater = wscal_growth_trees(indiv.get_wscal_10().mean());
 	// fwater = max(1.0, 0.5);
 	// double fwater = wscal_10.mean();
 	// daylength scalar (currently off)
@@ -4095,7 +4101,7 @@ double calculate_ltor_tree(Individual &indiv){
 	const double expon = -10;
 	const double ltor_min = 0.5 * pft.ltor_max;
 	// state of soil stress
-	double stress_state = min(ppft.wscal_5.mean(), indiv.nscal_5.mean());
+	double stress_state = min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean());
 	// 
 	double ltor = ltor_min + ( (pft.ltor_max - ltor_min) / (1 + pow( (stress_state / mid_scal), expon) ) );
 	
@@ -4222,7 +4228,7 @@ void carbon_allocation_tree_assaf(Individual &indiv) {
 	double alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(alpha_leaf_pot_expon * rel_par));
 	
 	// // !!!! TRYING A NEW APPROACH. LEAF ALLLOCATION IS RELATED TO LEAF WATER POTENTIAL (HIGHER - MORE ALLOCATION)
-	// alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(-2.0 * ppft.wscal_30.mean()));
+	// alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(-2.0 * indiv.get_wscal_30().mean()));
 	
 	// calculate the growth demand of leaves, depending on the *light conditions*
 	indiv.cmass_leaf_limit = indiv.cmass_leaf + alpha_leaf_pot * indiv.cgrow;
@@ -4425,7 +4431,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// An alternative ltor equation to test. Reason: ltor too sensitive to
 	// wscal, which can increase the proportion of C going to root
 	// unnecesseraly. indiv.ltor = calculate_ltor_tree(indiv);
-	indiv.ltor = max(min(ppft.wscal_30.mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
+	indiv.ltor = max(min(indiv.get_wscal_30().mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	assert(indiv.ltor <= pft.ltor_max && indiv.ltor >= 0);
 
 	// Update storage capacity.
@@ -5679,7 +5685,7 @@ void turnover_dave_grass(Individual &indiv, double litterme[NSOMPOOL], double fi
 }
 
 // calculate the coefficient of water stress for the turnover of leaves and roots in trees
-double calculate_fwater_turnover_tree (Patchpft& ppft) {
+double calculate_fwater_turnover_tree(const Individual& indiv) {
 	// fraction of change in leaf and root turnover as a result of water stress.
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
@@ -5694,7 +5700,7 @@ double calculate_fwater_turnover_tree (Patchpft& ppft) {
 	const double fwater_expo = 3.0;
 	const double fwater_mid = 0.1;
 	double fwater_min = (miny +((maxy - miny) / (1 + pow((1.0 / fwater_mid), fwater_expo))));
-	double fwater = miny + ((maxy - miny) / (1 + pow((ppft.wscal_30.mean() / fwater_mid), fwater_expo)));
+	double fwater = miny + ((maxy - miny) / (1 + pow((indiv.get_wscal_30().mean() / fwater_mid), fwater_expo)));
 	fwater /= fwater_min;
 	fwater = 1.0;
 	return fwater;
@@ -5781,7 +5787,7 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 	// fraction of change in leaf and root turnover as a result of water stress.
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
-	double fwater = calculate_fwater_turnover_tree (ppft);
+	double fwater = calculate_fwater_turnover_tree(indiv);
 
 	double cturnover_leaf = 0.0, nturnover_leaf = 0.0;
 	double cturnover_root = 0.0, nturnover_root = 0.0;

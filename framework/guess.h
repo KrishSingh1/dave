@@ -2207,6 +2207,35 @@ public:
 	double crownfrac;
 	// fraction of shoot allocated to culms (=culm / (culm + leaves))
 	double culmfrac;
+	/// Fraction of senesced carbon retranslocated back to storage.
+	double crelocfrac;
+	/// Baseline senescence rate for dave grasses (d-1).
+	double senesc_base;
+	/// Senescence coefficient for dormancy in dave grasses. Senescence rate is
+	/// increased by this factor when phenology is changing at the maximum rate.
+	double senesc_scal_dorm;
+	/// Senescence coefficient for water stress in dave grasses. Senescence rate
+	/// is increased by this factor under max water stress.
+	double senesc_scal_water;
+	/// Senescence coefficient for reproductive phase in dave grasses.
+	/// Senescence rate is increased by this factor during reproductive phase.
+	double senesc_scal_repr;
+	/// Exponent shaping development-driven senescence for dave grasses. Higher
+	/// values delay senescence (less early, more late in the reproductive
+	/// phase). Unitless.
+	double qdev_senesc;
+	/// Exponent shaping water stress-driven senescence for dave grasses. q = 1
+	/// gives a linear response. q > 1 increases senescence at moderate stress;
+	/// 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	/// Unitless.
+	double qwater_senesc;
+	/// Increase in senescence rate per 1℃, for temperatures below 0 ℃
+	/// (Johnson & Thornley 1983).
+	double temp_senesc1;
+	/// Increase in senescence rate per 1℃, for temperatures above 0 ℃
+	/// (Johnson & Thornley 1983).
+	double temp_senesc2;
+
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
@@ -2635,6 +2664,15 @@ public:
 
 		vcmax_25=0.0;
 		turnover_repr = 0.0;
+		crelocfrac = 0.0;
+		senesc_base = 0;
+		senesc_scal_dorm = 0;
+		senesc_scal_water = 0;
+		senesc_scal_repr = 0;
+		qdev_senesc = 0;
+		qwater_senesc = 0;
+		temp_senesc1 = 0;
+		temp_senesc2 = 0;
 
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;

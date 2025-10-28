@@ -5231,29 +5231,24 @@ void update_pools_dave(Vegetation& vegetation) {
 	}
 }
 
-void senescence_grass(Individual &indiv) {
+void senescence_dave_grass(Individual &indiv) {
 
-	// Parameters
-	const double crelocfrac = 0.0;             // TODO: move to constants?
-	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
-	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
-	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 120.0;
-	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 2 : 35.0;    
-    // higher value --> lower sensitivity to water stress at high wscal
-	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.8 : 1.0;     
-	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
-	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
-	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  
-
-	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
-
+	const Pft &pft = indiv.pft;
 	Vegetation &vegetation = indiv.vegetation;
 	Patchpft ppft = indiv.patchpft();
-	Pft &pft = indiv.pft;
+
+	// Parameters
+	double crelocfrac = pft.crelocfrac;
+	double senesc_base = pft.senesc_base;
+	double senesc_scal_dorm = pft.senesc_scal_dorm;
+	double senesc_scal_water = pft.senesc_scal_water;
+	double senesc_scal_repr = pft.senesc_scal_repr;
+	double qdev_senesc = pft.qdev_senesc;
+	double qwater_senesc = pft.qwater_senesc;
+	double temp_senesc1 = pft.temp_senesc1;
+	double temp_senesc2 = pft.temp_senesc2;
+
+	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -5349,7 +5344,7 @@ void senescence_grass(Individual &indiv) {
 }
 
 // Transfer of green leaf pool to brown leaf pool.
-void senescence_tree(Individual &indiv) {
+void senescence_dave_tree(Individual &indiv) {
 	// Inputs: indiv.cmass_leafs, indiv.nmass_leafs
 	// Outputs: indiv.cmass_leafs, indiv.nmass_leafs
 	// Do we even need this? If using a single leaf pool, perhaps we just use
@@ -5374,14 +5369,14 @@ void senescence_dave(Vegetation& vegetation) {
 			continue;
 		}
 		if (pft.is_grass() || pft.lifeform == MOSS) {
-			senescence_grass(indiv);
+			senescence_dave_grass(indiv);
 
 			assert(positive(indiv.cmass_leafs[green]));
 			assert(positive(indiv.nmass_leafs[green]));
 			assert(positive(indiv.cmass_leafs[brown]));
 			assert(positive(indiv.nmass_leafs[brown]));
 		} else {
-			senescence_tree(indiv);
+			senescence_dave_tree(indiv);
 		}
 
 		assert(positive(indiv.get_cmass_leaf()));

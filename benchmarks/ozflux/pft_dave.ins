@@ -185,6 +185,28 @@ group "grass" (
 	crownfrac 0.0
 	culmfrac 0.0
 	turnover_repr_litter 0.2
+
+	! Fraction of senesced carbon retranslocated back to storage.
+	crelocfrac 0
+
+	! Baseline senescence rate for dave grasses (d-1).
+	senesc_base 0.0002
+
+	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
+	! increased by this factor when phenology is changing at the maximum rate.
+	senesc_scal_dorm 300
+
+	! Senescence coefficient for water stress in dave grasses. Senescence rate
+	! is increased by this factor under max water stress.
+	senesc_scal_water 100
+
+	! Increase in senescence rate per 1℃, for temperatures below 0 ℃
+	! (Johnson & Thornley 1983).
+	temp_senesc1 1.0
+
+	! Increase in senescence rate per 1℃, for temperatures above 0 ℃
+	! (Johnson & Thornley 1983).
+	temp_senesc2 0.05
 )
 
 group "broadleaved" (
@@ -568,7 +590,7 @@ pft "MRS" (
 
 	! Medium Resprouter
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	shade_intolerant
@@ -769,12 +791,61 @@ group "C3G" (
 	pstemp_max 45
 )
 
+group "perennial" (
+
+	! Perennial grass.
+
+	lifeform "grass_perennial"
+
+	! Senescence coefficient for water stress in dave grasses. Senescence rate
+	! is increased by this factor under max water stress.
+	!senesc_scal_water 50
+
+	! Senescence coefficient for reproductive phase in dave grasses.
+	! Senescence rate is increased by this factor during reproductive phase.
+	senesc_scal_repr 30
+
+	! Exponent shaping development-driven senescence for dave grasses. Higher
+	! values delay senescence (less early, more late in the reproductive
+	! phase). Unitless.
+	qdev_senesc 2
+
+	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
+	! gives a linear response. q > 1 increases senescence at moderate stress;
+	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	! Unitless.
+	qwater_senesc 0.8
+)
+
+group "annual" (
+
+	! Annual grass.
+
+	lifeform "grass_annual"
+
+	! Senescence coefficient for reproductive phase in dave grasses.
+	! Senescence rate is increased by this factor during reproductive phase.
+	senesc_scal_repr 120
+
+	! Exponent shaping development-driven senescence for dave grasses. Higher
+	! values delay senescence (less early, more late in the reproductive
+	! phase). Unitless.
+	qdev_senesc 35
+
+	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
+	! gives a linear response. q > 1 increases senescence at moderate stress;
+	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	! Unitless.
+	qwater_senesc 1
+)
+
 pft "C3G_perennial" (
 
 	C3G
-	include 1
+	perennial
 
-	lifeform "grass_perennial"
+	include 0
+
 	sla                35.0
     cton_leaf_min      13.7
 	RGR_pot            0.2
@@ -789,9 +860,9 @@ pft "C3G_perennial" (
 pft "C3G_annual" (
 	
 	C3G
+	annual
+
 	include 0
-	
-	lifeform "grass_annual"
 	sla                53.1
 	cton_leaf_min      13.7
 	RGR_pot            0.3
@@ -807,7 +878,7 @@ group "C4G" (
 
 	! Warm (C4) grass
 
-	include 1
+	include 0
 	grass
 	pathway "c4"
 	g0 0.049
@@ -837,9 +908,10 @@ group "C4G" (
 pft "C4G_perennial" (
 
 	C4G
-	include 0
+	perennial
 
-	lifeform "grass_perennial"
+	!include 0
+
 	sla    	           35.0
 	cton_leaf_min      17.1
     max_mobil_cstorage 0.2
@@ -853,9 +925,10 @@ pft "C4G_perennial" (
 pft "C4G_annual" (
 
    C4G
-   include 0
+   annual
 
-   lifeform "grass_annual"
+   !include 0
+
    sla  	          53.1
    cton_leaf_min      17.1
    max_mobil_cstorage 0.7

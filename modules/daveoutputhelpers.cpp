@@ -216,6 +216,15 @@ double get_soil_moisture(const Soil &soil, int start_layer, int end_layer) {
 	return swmm;
 }
 
+double get_available_soil_moisture(const Soil &soil, int start_layer, int end_layer) {
+	assert(start_layer < end_layer);
+	double swmm = 0;
+	for (size_t i = start_layer; i < end_layer; i++) {
+		swmm += soil.get_layer_soil_water(i) * soil.soiltype.awc[i];
+	}
+	return swmm;
+}
+
 double get_6m_soil_moisture_estimate(const Soil &soil) {
 	// Soil goes down to 1.5m. Get fractional content of the bottom 0.5m (ie
 	// 1m-1.5m), then multiply this 0.5m by 12 to get an esimate of water

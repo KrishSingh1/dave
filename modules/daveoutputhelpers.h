@@ -328,6 +328,16 @@ Get the soil moisture in mm between the specified top and bottom layers.
 double get_soil_moisture(const Soil &soil, int start_layer, int end_layer);
 
 /*
+Get the available soil moisture in mm between the specified top and bottom
+layers. This is the sum of AWC * wcont for each layer.
+
+@param soil: A soil object.
+@param start_layer: The index of the top layer.
+@param end_layer: The index of the bottom layer.
+*/
+double get_available_soil_moisture(const Soil &soil, int start_layer, int end_layer);
+
+/*
 Get an estimate of total soil moisture in mm from 1-6m.
 
 @param soil: A soil object.

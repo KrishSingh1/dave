@@ -43,6 +43,9 @@ bool format_input_header(const char* fname) {
 }
 
 }
+
+const double PERC_EXP_DAVE = 4.0;
+
 coord SoilInput::find_closest_point(double searchradius, coord C) {
 
 	// First try the exact coordinate
@@ -430,7 +433,7 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = soilprop.K;
 	soiltype.perc_base_evap = soilprop.K;
-	soiltype.perc_exp = 2;
+	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : 2;
 	soiltype.gawc[0] = SOILDEPTH_UPPER * soilprop.volumetric_whc_field_capacity;
 	soiltype.gawc[1] = SOILDEPTH_LOWER * soilprop.volumetric_whc_field_capacity;
 	soiltype.thermdiff_0 = soilprop.thermal_wilting_point;
@@ -645,7 +648,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 
 	soiltype.perc_base = org_frac_avg * soilproporganic.K + min_frac_avg * soilpropmineral.K;
 	soiltype.perc_base_evap = org_frac_avg_evap * soilproporganic.K + min_frac_avg_evap * soilpropmineral.K;
-	soiltype.perc_exp = 2;
+	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : 2;
 
 	soiltype.gawc[0] = SOILDEPTH_UPPER * (min_frac_upper * soilpropmineral.volumetric_whc_field_capacity + 
 		org_frac_upper * soilproporganic.volumetric_whc_field_capacity);
@@ -748,7 +751,7 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = data[soilcode][0];
 	soiltype.perc_base_evap = data[soilcode][0];
-	soiltype.perc_exp = PERC_EXP;
+	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : PERC_EXP;
 	soiltype.gawc[0] = SOILDEPTH_UPPER * data[soilcode][1];
 	soiltype.gawc[1] = SOILDEPTH_LOWER * data[soilcode][1];
 	soiltype.thermdiff_0 = data[soilcode][2];

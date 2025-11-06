@@ -103,6 +103,8 @@ const double rho_ICE = 917.0;
 /// density of water [kg m-3]
 const double rho_H2O = 1000.0;
 
+/// Reference (minimum) snow density [kg m-3]
+const double rho_SNOW_0 = 70.0;
 
 // POROSITIES
 

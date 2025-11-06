@@ -1524,7 +1524,7 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 /**
  *  Help function for reduce_biomass(). Stored N is partioned out to make sure 
  *  tissue C:N ratios are within limits
- */
+ */ // DW_COMMENT don't I need & before variables?
 void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cmass_sap_litter, double cmass_heart_litter,
 	double& nmass_leaf_litter, double& nmass_root_litter, double& nmass_sap_litter, double& nmass_heart_litter,
 	double cton_leaf_min, double cton_root_min, double cton_sap_min, double cton_heart_min,
@@ -1563,10 +1563,12 @@ void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cm
 	// Total N demand
 	double ndemand = ndemand_leaf + ndemand_root + ndemand_sap + ndemand_heart;
 
+	double nfrac = 0.0;
+
 	if (ndemand > 0.0) {
 
 		// N demand fraction that is meet
-		double nfrac = min(1.0, ndist / ndemand);
+		nfrac = min(1.0, ndist / ndemand);
 
 		// Subtract N demand from N to partition
 		ndist -= nfrac * ndemand;
@@ -2449,10 +2451,10 @@ void Individual::kill(bool harvest /* = false */) {
 
 		// Leaf: remove residue outtake and send the rest to litter
 		if (cmass_leaf > 0.0) {
-			ppft.nmass_litter_leaf += nmass_leaf * (1 - res_outtake);
+			ppft.nmass_litter_leaf += nmass_leaf * (1.0 - res_outtake);
 		}
 		else {
-			ppft.nmass_litter_NH4 += nmass_leaf * (1 - res_outtake);
+			ppft.nmass_litter_NH4 += nmass_leaf * (1.0 - res_outtake);
 		}
 		nharvest_flux += nmass_leaf * res_outtake;
 
@@ -2466,15 +2468,16 @@ void Individual::kill(bool harvest /* = false */) {
 
 		if (pft.landcover == CROPLAND) {
 			if (pft.aboveground_ho) {
-				ppft.nmass_litter_leaf += cropindiv->nmass_ho * (1 - res_outtake);
+				ppft.nmass_litter_leaf += cropindiv->nmass_ho * (1.0 - res_outtake);
 				nharvest_flux += cropindiv->nmass_ho * res_outtake;
 			}
-			else
+			else {
 				ppft.nmass_litter_root += cropindiv->nmass_ho;
+			}
 
-			ppft.nmass_litter_leaf += cropindiv->nmass_agpool * (1 - res_outtake);
+			ppft.nmass_litter_leaf += cropindiv->nmass_agpool * (1.0 - res_outtake);
 			nharvest_flux += cropindiv->nmass_agpool * res_outtake;
-			ppft.nmass_litter_leaf += cropindiv->nmass_dead_leaf * (1 - res_outtake);
+			ppft.nmass_litter_leaf += cropindiv->nmass_dead_leaf * (1.0 - res_outtake);
 			nharvest_flux += cropindiv->nmass_dead_leaf * res_outtake;
 		}
 	}

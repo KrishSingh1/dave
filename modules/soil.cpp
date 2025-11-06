@@ -964,8 +964,6 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 	double k_s = 4000.0;
 	// Compactive viscosity factor for snow
 	double eta_0 = 1E7;
-	// Reference snow density [kg m-3]
-	double rho_0 = 70.0;
 
 	// Snow mass above current layer
 	double I_above = 0.0;
@@ -986,7 +984,7 @@ void Snow::compaction(Patch& patch, double& rain_melt, double& rain_melt_temp) {
 
 		if (snowlayer.dens < rho_ICE) {
 			double delta_dens = snowlayer.dens * gravity * M_k / eta_0 *
-				exp((k_s / K2degC) - (k_s / T_k) - (snowlayer.dens / rho_0)) * SECS_PER_DAY;
+				exp((k_s / K2degC) - (k_s / T_k) - (snowlayer.dens / rho_SNOW_0)) * SECS_PER_DAY;
 
 			// Increase density
 			snowlayer.dens += delta_dens;
@@ -3414,13 +3412,11 @@ void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 		int b = 6;
 		// Constant [kg m-7/2 s-1/2]
 		int c = 26;
-		// Minimum snow density 
-		double dens_min = 70.0;
 		// Temperature of the melting point for water
 		double Tmelt = 0.0;
 
 		// Snow fall density
-		double snowfall_dens = max(dens_min, a + b * (airT - Tmelt) + c * pow(u10, 0.5));
+		double snowfall_dens = max(rho_SNOW_0, a + b * (airT - Tmelt) + c * pow(u10, 0.5));
 
 		// Depth of the newly fallen snow based on precipitation & density (Oleason 2013, Eq. 6.88)
 		double snowfall_depth = prec / (snowfall_dens / rho_H2O);

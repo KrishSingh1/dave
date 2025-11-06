@@ -4698,7 +4698,7 @@ public:
 	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
 	double get_sum(soilproptype SPT, int m = 0);
-	/// Get soil layers avail nmass fraction
+	/// Get soil layers available nmass fraction
 	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool water_limited = false);
 	/// Get soil layers root fractions
 	void calc_rootfrac(double rootfrac[NSOILLAYERS_MAX]);

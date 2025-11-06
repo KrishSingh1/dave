@@ -907,7 +907,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
 				// Loop through Patches
 				while (stand.isobj) {
 					Patch& patch = stand.getobj();
-					Patchpft& patchpft = patch.pft[pft.id];
+					Patchpft& ppft = patch.pft[pft.id];
 					Vegetation& vegetation = patch.vegetation;
 
 					// Loop through individuals/cohorts
@@ -968,7 +968,7 @@ void outlimit(OutputRows& out, const Table& table, double d) {
   */
 void CommonOutput::outannual(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup)
+	if (date.year < nyear_spinup-100)
 		return;
 
 	const double NOT_A_VALUE_SMALL = -9.999;
@@ -1372,7 +1372,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				// Loop through Patches
 				while (stand.isobj) {
 					Patch& patch = stand.getobj();
-					Patchpft& patchpft = patch.pft[pft.id];
+					Patchpft& ppft = patch.pft[pft.id];
 					Vegetation& vegetation = patch.vegetation;
 					Fluxes& fluxes = patch.fluxes;
 
@@ -1400,12 +1400,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 					standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
-					standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
-					standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
+					standpft_clitter += ppft.litter_leaf + ppft.litter_root + ppft.litter_sap + ppft.litter_heart + ppft.litter_repr;
+					standpft_nlitter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart;
 
 					for (int m = 0; m < 12; m++) {
-						standpft_mcmass_leaf[m] += patchpft.mcmass_leaf[m];
-						standpft_mnmass_leaf[m] += patchpft.mnmass_leaf[m];
+						standpft_mcmass_leaf[m] += ppft.mcmass_leaf[m];
+						standpft_mnmass_leaf[m] += ppft.mnmass_leaf[m];
 					}
 
 					vegetation.firstobj();
@@ -1766,9 +1766,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			//Sum slow pools of harvested products
 			if(run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
-					Patchpft& patchpft=patch.pft[q];
-					c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
-					n_harv_slow+=patchpft.harvested_products_slow_nmass*to_gridcell_average;
+					Patchpft& ppft=patch.pft[q];
+					c_harv_slow+=ppft.harvested_products_slow*to_gridcell_average;
+					n_harv_slow+=ppft.harvested_products_slow_nmass*to_gridcell_average;
 				}
 			}
 

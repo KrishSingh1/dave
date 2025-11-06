@@ -1168,11 +1168,11 @@ void nfert_crop(Patch& patch) {
 
 		if (patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
 
-			Patchpft& patchpft = patch.pft[pft.id];
+			Patchpft& ppft = patch.pft[pft.id];
 			Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 			Fluxes& fluxes = patch.fluxes;
 
-			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+			cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 			if (!ppftcrop.growingseason) {
 				pftlist.nextobj();
 				continue;

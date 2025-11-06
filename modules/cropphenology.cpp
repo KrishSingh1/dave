@@ -156,18 +156,18 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 void harvest_index(Patch& patch, Pft& pft) {
 
 	double wdf, fwdf, hi_save;
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 	ppftcrop.hi = pft.hiopt * 100 * ppftcrop.fphu / (100 * ppftcrop.fphu + exp(11.1 - 10.0 * ppftcrop.fphu));	// SWAT 5:2.4.1
 	ppftcrop.fhi_phen = ppftcrop.hi / pft.hiopt;
 
 	// Correction of HI according to water stress:
 	ppftcrop.demandsum_crop += patch.wdemand;
-	if (patchpft.wsupply > patch.wdemand)
+	if (ppft.wsupply > patch.wdemand)
 		ppftcrop.supplysum_crop += patch.wdemand;
 	else
-		ppftcrop.supplysum_crop += patchpft.wsupply;
+		ppftcrop.supplysum_crop += ppft.wsupply;
 
 	if (ppftcrop.demandsum_crop > 0.0)
 		wdf = 100.0 * ppftcrop.supplysum_crop / ppftcrop.demandsum_crop;	// SWAT 5:3.3.2	: aetsum/petsum
@@ -192,8 +192,8 @@ void harvest_index(Patch& patch, Pft& pft) {
  */
 void heat_units(Patch& patch, Pft& pft) {
 
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 	const Climate& climate = patch.get_climate();
 
 	// calculation av fphu:
@@ -268,8 +268,8 @@ inline double temperature_factor(double temp, double min, double opt, double max
  */
 void development_stage(Patch& patch, Pft& pft) {
 
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 	const Climate& climate = patch.get_climate();
 
 	// account for vernalization if needs for vernalization not yet satisfied	//trg=tb for crops other than TeWW and TeRa and don't enter here
@@ -315,8 +315,8 @@ void crop_phenology(Patch& patch) {
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
-		Patchpft& patchpft = patch.pft.getobj();
-		Pft& pft=patchpft.pft;
+		Patchpft& ppft = patch.pft.getobj();
+		Pft& pft=ppft.pft;
 		Standpft& standpft = patch.stand.pft[pft.id];
 		Gridcell& gridcell = patch.stand.get_gridcell();
 		Climate& climate = gridcell.climate;
@@ -326,7 +326,7 @@ void crop_phenology(Patch& patch) {
 
 			if (pft.phenology == CROPGREEN) {
 
-				cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+				cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 				ppftcrop.growingseason_ystd = ppftcrop.growingseason;
 
 				// resets on first day of the year:
@@ -465,7 +465,7 @@ void crop_phenology(Patch& patch) {
 			else if (pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
 
 				if (patch.stand.pftid != pft.id) {
-					cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+					cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 					if (date.day == 0) {
 						ppftcrop.nharv = 0;
@@ -502,8 +502,8 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 	if (pft.phenology == CROPGREEN) {
 		if (ppftcrop.growingseason) {
@@ -515,14 +515,14 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 				Individual& indiv = vegetation.getobj();
 
 				if (indiv.pft.id == pft.id) {
-					patchpft.phen = indiv.fpc ? indiv.fpc_daily / indiv.fpc : 0;
+					ppft.phen = indiv.fpc ? indiv.fpc_daily / indiv.fpc : 0;
 				}
 
 				vegetation.nextobj();
 			}
 		}
 		else if (date.day == ppftcrop.hdate) {
-			patchpft.phen = 0.0;
+			ppft.phen = 0.0;
 		}
 	}
 	else if (pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
@@ -538,7 +538,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 				}
 				if (date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 					patch.stand.gdd5_intercrop = 0.0;
-					patchpft.phen = 0.0;
+					ppft.phen = 0.0;
 				}
 			}
 
@@ -553,23 +553,23 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 			if (ppftcrop.growingseason) {	// includes bicdate, not eicdate
 
 				if (patch.stand.pftid == pft.id || gridcell.pft[patch.stand.pftid].sowing_restriction) { // Normal grass growth: gives identical result to natural stands.
-					patchpft.phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
+					ppft.phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
 				}
 				else if (patch.stand.gdd5_intercrop > 0.0) {
-					patchpft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd5_intercrop) / (pft.phengdd5ramp * 0.9)); // intercrop grass
+					ppft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd5_intercrop) / (pft.phengdd5ramp * 0.9)); // intercrop grass
 				}
 				else {
-					patchpft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd5_intercrop) / pft.phengdd5ramp); // intercrop grass
+					ppft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd5_intercrop) / pft.phengdd5ramp); // intercrop grass
 				}
 
-				if (patchpft.phen < 0.0) {
-					patchpft.phen = 0.0;
+				if (ppft.phen < 0.0) {
+					ppft.phen = 0.0;
 				}
 
 				// raingreen phenology
-				if (patchpft.wscal < pft.wscal_min) {
+				if (ppft.wscal < pft.wscal_min) {
 
-					patchpft.phen = 0.0;
+					ppft.phen = 0.0;
 					patch.stand.gdd5_intercrop = climate.gdd5;
 				}
 			}

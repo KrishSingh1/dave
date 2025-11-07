@@ -3354,6 +3354,8 @@ public:
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)
     double senesc_root;
+	/// total daily carbon senesced by dave grasses (gC/m2/day)
+	double csenesc;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
 	/// number of days in current growth stage
@@ -3464,6 +3466,11 @@ public:
 
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
+
+	// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
+	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
+	// if zhou is disabled, this is the same as pft.g1.
+	double g1;
 
 	// Fraction of total photosynthesis limited by Anc and Anj, respectively.
 	double anc_frac;
@@ -5297,9 +5304,6 @@ public:
 	/// yearly sum of water deficit
 	double water_deficit_y;
 
-	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
-	double g1;
-
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
 
@@ -5350,7 +5354,6 @@ public:
 		nsapling = 0;
 		nsapling_year = 0;
 		water_deficit_y = 0.0;
-		g1 = 0.0;
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;

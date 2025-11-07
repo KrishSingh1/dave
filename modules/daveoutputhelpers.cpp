@@ -423,7 +423,7 @@ double aggregate_ppft(const Patch &patch, double (*read_ppft)(const Patchpft &),
 		const Patchpft &ppft = patch.pft[i];
 		elems[i] = read_ppft(ppft);
 	}
-	return aggregate(&elems.front(), patch.pft.nobj);
+	return elems.size() ? aggregate(&elems.front(), patch.pft.nobj) : 0;
 }
 
 /*

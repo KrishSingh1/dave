@@ -5302,6 +5302,7 @@ void senescence_dave_grass(Individual &indiv) {
 	double csenesc  = indiv.cmass_leafs[green] * senesc;
 	double cstore   = csenesc * pft.crelocfrac;
 	double ctobrown = csenesc * (1.0 - pft.crelocfrac);
+	indiv.csenesc            =  csenesc;
 
 	// If C storage pool overflows, re-adjust cstore and ctobrown
 	if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
@@ -6593,6 +6594,7 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.cgrow_repr		     = 0.0;
 		indiv.cgrow_storage		     = 0.0;
 		indiv.cgrow_crown		     = 0.0;
+		indiv.csenesc                = 0.0;
 
 		if (indiv.pft.is_grass()) {
 			assert(positive(indiv.cmass_leafs[brown]));

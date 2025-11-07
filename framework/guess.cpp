@@ -1828,6 +1828,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root_ygrowth			= 0.0;
 	cton_leaf_opt				= 0.0;
 	nday_leafon					= 0.0;
+	csenesc                     = 0.0;
+	g1 = pft.g1;
 
 	anc_frac                    = 0.0;
 	anj_frac                    = 0.0;

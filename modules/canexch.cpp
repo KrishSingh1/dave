@@ -3714,12 +3714,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// water_potential = patch.soil.soil_psi;
 					water_potential = indiv.weighted_psi;
 				}
-				ppft.g1 = g1x * exp(b1z*(water_potential + 0.3));
+				g1 = g1x * exp(b1z * (water_potential + 0.3));
+				// Update indiv.g1 for outputting.
+				indiv.g1 = g1;
 
 				// for water
-				g0 = min(g0,g0 * exp(b1z*(water_potential + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
+				// rescale similar to g1, but don't allow values bigger than assigned g0
+				g0 = min(g0,g0 * exp(b1z * (water_potential + 0.3)));
+
 				// for co2
-				inputs.X = divide(divide(1.0 + ppft.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+				inputs.X = divide(divide(1.0 + g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2

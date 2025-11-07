@@ -300,6 +300,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_csenesc"             , DAILY, [](const Individual &i) { return G_PER_KG * i.csenesc; }, "Daily total C senesced by grasses (gC/m2/day)", sum, true);
 
 	add_aggregated_indiv_output("file_dave_cgrazed_repr"        , DAILY, [](const Individual &i) { return i.charvest_repr; }, "Daily reproductive cmass grazed (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_cgrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.charvest_green; }, "Daily green leaf cmass grazed (kgC/m2/day)", sum, true);
@@ -332,6 +333,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth * G_PER_KG; }, "Total Growth respiration by PFT (gC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_fnuptake"            , DAILY, [](const Individual &i) { return i.fnuptake; }, "Fraction of nitrogen demand taken up", mean);
 	add_aggregated_indiv_output("file_dave_nstorage_drawdown"   , DAILY, [](const Individual &i) { return i.nstorage_drawdown; }, "Amount of N withdrawn from storage today for growth (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_g1"                  , DAILY, [](const Individual &i) { return i.g1; }, "Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)", mean, false, true);
 
 	// Daily individual-level outputs.
 	// These will produce one row per individual per patch per timestep.
@@ -1604,7 +1606,7 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridc
 						}
 						values.push_back(value);
 					}
-					double aggregated = aggregator(&values.front(), values.size());
+					double aggregated = values.size() ? aggregator(&values.front(), values.size()) : 0;
 					total += aggregated;
 
 					// Write current array element for this individual.

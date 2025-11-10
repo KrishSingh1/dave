@@ -179,6 +179,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_soiltemp25"                     , DAILY, "soiltemp25", [](const Patch &p) { return p.soil.get_soil_temp_25(); }, "Daily soil temperature at 25cm (°C)");
 	add_patch_output("file_dave_clitter"                        , DAILY, clitter_columns, "Daily C Mass in Litter (kgC/m2)", true);
 	add_patch_output("file_dave_nlitter"                        , DAILY, nlitter_columns, "Daily N Mass in Litter (kgN/m2)", true);
+	add_patch_output("file_dave_patch_ba"                       , DAILY, "total", get_patch_ba, "Total daily patch-level basal area (m2/ha)");
 
 	// Daily per-patch aggregated individual-level outputs.
 	add_aggregated_indiv_output("file_dave_lai"                 , DAILY, [](const Individual &i) { return i.lai_today(); }, "LAI by individual (m2/m2)", sum, true);

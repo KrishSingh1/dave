@@ -53,6 +53,17 @@ double get_et(const Patch &patch) {
 	return transpiration + patch.soil.get_layer_soil_water_evap();
 }
 
+double get_patch_ba(const Patch &patch) {
+	double ba = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		const Individual &indiv = patch.vegetation[i];
+		if (indiv.pft.lifeform == TREE) {
+			ba += indiv.basalarea;
+		}
+	}
+	return ba * 10000.0 / patcharea;
+}
+
 std::vector<Individual *> get_indivs(const Vegetation &vegetation, const char *name) {
 	std::vector<Individual *> result;
 	for (int i = 0; i < vegetation.nobj; i++) {

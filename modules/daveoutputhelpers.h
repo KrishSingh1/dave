@@ -64,6 +64,11 @@ Get the patch-level daily evapotranspiration (mm/day).
 double get_et(const Patch &patch);
 
 /*
+Get the total basal area in the patch (m2/ha).
+*/
+double get_patch_ba(const Patch &patch);
+
+/*
 Get the individual in the patch with the specified name, or NULL if not found.
 
 @param vegetation: The vegetation in the patch.

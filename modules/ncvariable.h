@@ -326,6 +326,12 @@ private:
 	GuessNC::CF::DateTime get_nth_date(size_t n) const;
 
 	/*
+	Validate the time axis. An exception will be thrown if the time axis is
+	invalid.
+	*/
+	void validate_time_axis() const;
+
+	/*
 	NetCDF file ID.
 	*/
 	int id_file;
@@ -455,6 +461,11 @@ private:
 	True if bounds checking should occur.
 	*/
 	bool check_bounds;
+
+	/*
+	True if the time axis is uniform (ie regular and aligned to calendar days).
+	*/
+	bool uniform_time;
 
 	/*
 	Name of the units attribute on the time variable. This is part of the CF

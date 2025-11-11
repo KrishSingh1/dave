@@ -73,8 +73,13 @@ struct landcover_change_transfer {
 	double transfer_soil_depth_profile[NSOILLAYERS_MAX];
 	double transfer_soil_wmass[NSOILLAYERS_MAX];
 	double transfer_soil_imass[NSOILLAYERS_MAX];
+	double transfer_soil_clay_frac[NSOILLAYERS_MAX];
+	double transfer_soil_sand_frac[NSOILLAYERS_MAX];
+	double transfer_soil_silt_frac[NSOILLAYERS_MAX];
+	double transfer_soil_coarse_frac[NSOILLAYERS_MAX];
 	double transfer_soil_mineral_volume[NSOILLAYERS_MAX];
 	double transfer_soil_organic_volume[NSOILLAYERS_MAX];
+	double transfer_soil_coarse_volume[NSOILLAYERS_MAX];
 	double transfer_soil_root_volume[NSOILLAYERS_MAX];
 	double transfer_soil_temp[NSOILLAYERS_MAX];
 	double transfer_soil_CO2[NSOILLAYERS_MAX];
@@ -86,6 +91,7 @@ struct landcover_change_transfer {
 	double transfer_soil_NO[NSOILLAYERS_MAX];
 	double transfer_soil_N2O[NSOILLAYERS_MAX];
 	double transfer_soil_N2[NSOILLAYERS_MAX];
+	double transfer_soil_pH[NSOILLAYERS_MAX];
 	double transfer_soil_depth_mod[NSOILLAYERS_MAX];
 	double transfer_soil_cpool_slow[NSOILLAYERS_MAX];
 	double transfer_soil_cpool_fast[NSOILLAYERS_MAX];
@@ -234,8 +240,13 @@ struct landcover_change_transfer {
 				transfer_soil_depth_profile[lyr] += soillayer.depth_profile * scale;
 				transfer_soil_wmass[lyr] += soillayer.wmass * scale;
 				transfer_soil_imass[lyr] += soillayer.imass * scale;
+				transfer_soil_clay_frac[lyr] += soillayer.clay_frac * scale;
+				transfer_soil_sand_frac[lyr] += soillayer.sand_frac * scale;
+				transfer_soil_silt_frac[lyr] += soillayer.silt_frac * scale;
+				transfer_soil_coarse_frac[lyr] += soillayer.coarse_frac * scale;
 				transfer_soil_mineral_volume[lyr] += soillayer.mineral_volume * scale;
 				transfer_soil_organic_volume[lyr] += soillayer.organic_volume * scale;
+				transfer_soil_coarse_volume[lyr] += soillayer.coarse_volume * scale;
 				transfer_soil_root_volume[lyr] += soillayer.root_volume * scale;
 				transfer_soil_temp[lyr] += soillayer.temp * scale;
 				transfer_soil_CO2[lyr] += soillayer.CO2 * scale;
@@ -247,6 +258,7 @@ struct landcover_change_transfer {
 				transfer_soil_NO[lyr] += soillayer.NO_mass * scale;
 				transfer_soil_N2O[lyr] += soillayer.N2O_mass * scale;
 				transfer_soil_N2[lyr] += soillayer.N2_mass * scale;
+				transfer_soil_pH[lyr] += soillayer.pH * scale;
 				transfer_soil_depth_mod[lyr] += soillayer.depth_mod * scale;
 				transfer_soil_cpool_slow[lyr] += soillayer.cpool_slow * scale;
 				transfer_soil_cpool_fast[lyr] += soillayer.cpool_fast * scale;
@@ -341,8 +353,13 @@ struct landcover_change_transfer {
 			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
 			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
 			transfer_soil_imass[lyr] = from.transfer_soil_imass[lyr];
+			transfer_soil_clay_frac[lyr] = from.transfer_soil_clay_frac[lyr];
+			transfer_soil_sand_frac[lyr] = from.transfer_soil_sand_frac[lyr];
+			transfer_soil_silt_frac[lyr] = from.transfer_soil_silt_frac[lyr];
+			transfer_soil_coarse_frac[lyr] = from.transfer_soil_coarse_frac[lyr];
 			transfer_soil_mineral_volume[lyr] = from.transfer_soil_mineral_volume[lyr];
 			transfer_soil_organic_volume[lyr] = from.transfer_soil_organic_volume[lyr];
+			transfer_soil_coarse_volume[lyr] = from.transfer_soil_coarse_volume[lyr];
 			transfer_soil_root_volume[lyr] = from.transfer_soil_root_volume[lyr];
 			transfer_soil_temp[lyr] = from.transfer_soil_temp[lyr];
 			transfer_soil_CO2[lyr] = from.transfer_soil_CO2[lyr];
@@ -354,6 +371,7 @@ struct landcover_change_transfer {
 			transfer_soil_NO[lyr] = from.transfer_soil_NO[lyr];
 			transfer_soil_N2O[lyr] = from.transfer_soil_N2O[lyr];
 			transfer_soil_N2[lyr] = from.transfer_soil_N2[lyr];
+			transfer_soil_pH[lyr] = from.transfer_soil_pH[lyr];
 			transfer_soil_depth_mod[lyr] = from.transfer_soil_depth_mod[lyr];
 			transfer_soil_cpool_slow[lyr] = from.transfer_soil_cpool_slow[lyr];
 			transfer_soil_cpool_fast[lyr] = from.transfer_soil_cpool_fast[lyr];
@@ -444,8 +462,13 @@ struct landcover_change_transfer {
 			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
 			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;
 			transfer_soil_imass[lyr] += from.transfer_soil_imass[lyr] * multiplier;
+			transfer_soil_clay_frac[lyr] += from.transfer_soil_clay_frac[lyr] * multiplier;
+			transfer_soil_sand_frac[lyr] += from.transfer_soil_sand_frac[lyr] * multiplier;
+			transfer_soil_silt_frac[lyr] += from.transfer_soil_silt_frac[lyr] * multiplier;
+			transfer_soil_coarse_frac[lyr] += from.transfer_soil_coarse_frac[lyr] * multiplier;
 			transfer_soil_mineral_volume[lyr] += from.transfer_soil_mineral_volume[lyr] * multiplier;
 			transfer_soil_organic_volume[lyr] += from.transfer_soil_organic_volume[lyr] * multiplier;
+			transfer_soil_coarse_volume[lyr] += from.transfer_soil_coarse_volume[lyr] * multiplier;
 			transfer_soil_root_volume[lyr] += from.transfer_soil_root_volume[lyr] * multiplier;
 			transfer_soil_temp[lyr] += from.transfer_soil_temp[lyr] * multiplier;
 			transfer_soil_CO2[lyr] += from.transfer_soil_CO2[lyr] * multiplier;
@@ -457,6 +480,7 @@ struct landcover_change_transfer {
 			transfer_soil_NO[lyr] += from.transfer_soil_NO[lyr] * multiplier;
 			transfer_soil_N2O[lyr] += from.transfer_soil_N2O[lyr] * multiplier;
 			transfer_soil_N2[lyr] += from.transfer_soil_N2[lyr] * multiplier;
+			transfer_soil_pH[lyr] += from.transfer_soil_pH[lyr] * multiplier;
 			transfer_soil_depth_mod[lyr] += from.transfer_soil_depth_mod[lyr] * multiplier;
 			transfer_soil_cpool_slow[lyr] += from.transfer_soil_cpool_slow[lyr] * multiplier;
 			transfer_soil_cpool_fast[lyr] += from.transfer_soil_cpool_fast[lyr] * multiplier;

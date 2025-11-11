@@ -1542,8 +1542,13 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.depth_profile = (soillayer.depth_profile * old_frac + from.transfer_soil_depth_profile[lyr] * added_frac) / new_frac;
 						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_soil_wmass[lyr] * added_frac) / new_frac;
 						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
+						soillayer.clay_frac = (soillayer.clay_frac * old_frac + from.transfer_soil_clay_frac[lyr] * added_frac) / new_frac;
+						soillayer.sand_frac = (soillayer.sand_frac * old_frac + from.transfer_soil_sand_frac[lyr] * added_frac) / new_frac;
+						soillayer.silt_frac = (soillayer.silt_frac * old_frac + from.transfer_soil_silt_frac[lyr] * added_frac) / new_frac;
+						soillayer.coarse_frac = (soillayer.coarse_frac * old_frac + from.transfer_soil_coarse_frac[lyr] * added_frac) / new_frac;
 						soillayer.mineral_volume = (soillayer.mineral_volume * old_frac + from.transfer_soil_mineral_volume[lyr] * added_frac) / new_frac;
 						soillayer.organic_volume = (soillayer.organic_volume * old_frac + from.transfer_soil_organic_volume[lyr] * added_frac) / new_frac;
+						soillayer.coarse_volume = (soillayer.coarse_volume * old_frac + from.transfer_soil_coarse_volume[lyr] * added_frac) / new_frac;
 						soillayer.root_volume = (soillayer.root_volume * old_frac + from.transfer_soil_root_volume[lyr] * added_frac) / new_frac;
 						soillayer.temp = (soillayer.temp * old_frac + from.transfer_soil_temp[lyr] * added_frac) / new_frac;
 						soillayer.CO2 = (soillayer.CO2 * old_frac + from.transfer_soil_CO2[lyr] * added_frac) / new_frac;
@@ -1555,6 +1560,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						soillayer.NO_mass = (soillayer.NO_mass * old_frac + from.transfer_soil_NO[lyr] * added_frac) / new_frac;
 						soillayer.N2O_mass = (soillayer.N2O_mass * old_frac + from.transfer_soil_N2O[lyr] * added_frac) / new_frac;
 						soillayer.N2_mass = (soillayer.N2_mass * old_frac + from.transfer_soil_N2[lyr] * added_frac) / new_frac;
+						soillayer.pH = (soillayer.pH * old_frac + from.transfer_soil_pH[lyr] * added_frac) / new_frac;
 						soillayer.depth_mod = (soillayer.depth_mod * old_frac + from.transfer_soil_depth_mod[lyr] * added_frac) / new_frac;
 						soillayer.cpool_fast = (soillayer.cpool_fast * old_frac + from.transfer_soil_cpool_fast[lyr] * added_frac) / new_frac;
 						soillayer.cpool_slow = (soillayer.cpool_slow * old_frac + from.transfer_soil_cpool_slow[lyr] * added_frac) / new_frac;
@@ -1577,13 +1583,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					// Vertical movement of organic and mineral matter if different than effective volume of a soil layer
 					soilcolumn.vertical_movement();
 
-					// Update soil properties
-					double wmass_add = 0.0;
-					double imass_add = 0.0;
+					// Set soil properties
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
-						Soillayer& soillayer = soilcolumn.soillayers[lyr];
-						
-						soillayer.set_properties(wmass_add, imass_add, true);
+						soilcolumn.soillayers[lyr].set_properties();;
 					}
 
 					// Soil padding
@@ -2810,11 +2812,13 @@ landcover_change_transfer::landcover_change_transfer() {
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 		transfer_soil_soillayerdepths[lyr] = transfer_soil_soillayerthicks[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
-		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_root_volume[lyr] = 0.0;
+		transfer_soil_clay_frac[lyr] = transfer_soil_sand_frac[lyr] = transfer_soil_silt_frac[lyr] = transfer_soil_coarse_frac[lyr] = 0.0;
+		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_coarse_volume[lyr] = transfer_soil_root_volume[lyr] = 0.0;
 		transfer_soil_temp[lyr] = 0.0;
 		transfer_soil_CO2[lyr] = transfer_soil_CH4[lyr] = transfer_soil_O2[lyr] = 0.0;
 		transfer_soil_NH4[lyr] = transfer_soil_NO3[lyr] = transfer_soil_NO2[lyr] = 0.0;
 		transfer_soil_NO[lyr] = transfer_soil_N2O[lyr] = transfer_soil_N2[lyr] = 0.0;
+		transfer_soil_pH[lyr] = 0.0;
 		transfer_soil_depth_mod[lyr] = 0.0;
 		transfer_soil_cpool_slow[lyr] = transfer_soil_cpool_fast[lyr] = 0.0;
 		for (int p = 0; p < NSOMPOOL; p++) {

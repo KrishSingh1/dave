@@ -812,7 +812,7 @@ void dailyaccounting_patch(Patch& patch) {
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			// Set soil layer properties
-			soilcolumn.soillayers[lyr].set_properties(wmass_move, imass_move);
+			soilcolumn.soillayers[lyr].update_properties(wmass_move, imass_move);
 		}
 
 		// If water and ice exceed the capability of the soil to hold water, 

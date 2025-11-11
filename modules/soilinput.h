@@ -51,9 +51,14 @@ public:
 	
 	double STEP;
 
+	/// Initialises the soil object and decides based on the input file the data source type.
+	void init_depth_varying(const std::set<coord>& coords);
+
 private:
 
 	bool soil_code;
+
+	bool soil_varying;
 	
 	double searchradius_soil;
 
@@ -92,8 +97,6 @@ private:
 		double soil_OC;
 		// carbon content (kg C/m2)
  		double soilC;
- 		// Porosity
-        double porosity;
 		// Depth (mm)
 		double depth;
 		// Slope
@@ -115,12 +118,37 @@ private:
 		double pH;
 		double soilC;			// Initial soil C content (kgC/m2), from model output or a database
 		double CN;				// C:N ratio from database
+
+		std::vector<double> sand_lyr;
+		std::vector<double> clay_lyr;
+		std::vector<double> coarse_lyr;
+		std::vector<double> orgc_lyr;
+		std::vector<double> bulkdensity_lyr;
+		std::vector<double> pH_lyr;
+		std::vector<double> soilC_lyr;
+		std::vector<double> CN_lyr;
+		std::vector<double> depth_lyr;
 	};
 
 	std::map<coord, int> lpj_map;
 	std::map<coord, double> depth_map;
 	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
+
+	void SoilInput::get_depth_varying_prop(
+		const std::set<coord>& coords,
+		std::ifstream& prop,
+		std::map<coord, SoilDataMineral>& mineral_map,
+		std::vector<double> SoilDataMineral::* member);
+
+	// Reads only the header and extracts the depth values
+	std::vector<double> SoilInput::extract_layer_depths(std::ifstream& prop);
+
+	// Assigns depth vector to all coords
+	void SoilInput::assign_depths(
+		const std::set<coord>& coords,
+		std::map<coord, SoilDataMineral>& mineral_map,
+		const std::vector<double>& depths);
 };
 
 const double data[10][12] = {

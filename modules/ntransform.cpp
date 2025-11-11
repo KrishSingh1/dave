@@ -383,7 +383,7 @@ void ntransform(Patch& patch, Climate& climate) {
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
 			// NH3 volatilization
-			nh3_volatilization(soillayer, fluxes, soilcolumn.soiltype.pH, climate.aprec_lastyear, n_budget_check);
+			nh3_volatilization(soillayer, fluxes, soillayer.pH, climate.aprec_lastyear, n_budget_check);
 
 			// N substrate partition
 			Nsubpart subpart;

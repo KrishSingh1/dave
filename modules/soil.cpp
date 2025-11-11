@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+ï»¿///////////////////////////////////////////////////////////////////////////////////////
 /// \file soil.cpp
 /// \brief LPJ-GUESS Soil class and related definitions
 /// Implementation of member functions of class Soil.
@@ -1188,29 +1188,12 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 
 	root_volume = 0.0;
 	mineral_volume = depth;
+	coarse_volume = 0.0;
 	organic_volume = 0.0;
 	effective_volume = depth;
 	perc_base = 0.0;
 
 	rho_org = rho_high;
-
-	// Organic exponential in Campbell (1974) parameterization for soil 
-	// water retention curves from CLM5.0 documentation 
-	b_org = min(2.7 + 9.3 * depth_profile / sapric_depth, 12.0);
-	// Organic soil matric potential at saturation 
-	Psi_max_org = -max(10.3 - 0.2 * depth_profile / sapric_depth, 10.1);
-	// Organic volumetric soil water concentration at saturation point (porosity)
-	wsats_org = max(0.93 - 0.1 * depth_profile / sapric_depth, 0.83);
-	// Volumetric soil moisture concentration at Field Capacity
-	// Field capacity generally occurs at a suction of 100 cm
-	double Theta_whc = wsats_org * pow(-100.0 / Psi_max_org, -1.0 / b_org);
-	// Volumetric soil moisture concentration at wilting point
-	// Wilting point typically occurs at a suction of 15000 cm
-	wp_org = wsats_org * pow(-15000.0 / Psi_max_org, -1.0 / b_org);
-	// Organic available water holding capacity of soil layer (-)
-	awc_org = Theta_whc - wp_org;
-	// Hydraulic conductivity at saturation for organic matter (mm s-1) (CLM5.0 - Documentation; Hoag and Price 1995)
-	Kw_max_org = max(0.28 - 0.2799 * depth_profile / sapric_depth, (*soilcolumn).soiltype.Kw_max_min);
 
 	// Leaching
 	orgleachfrac = 0.0;
@@ -1438,6 +1421,9 @@ double Soillayer::get(soilproptype SPT, int m) {
 	case VOL_MIN:
 		prop = mineral_volume;
 		break;
+	case VOL_ROCK:
+		prop = coarse_volume;
+		break;
 	case VOL_ROOT:
 		prop = root_volume;
 		break;
@@ -1506,6 +1492,238 @@ double Soillayer::calc_organic_density(grouppooltype group) {
 	return !negligible(volume_tot) ? cmass_tot / volume_tot : rho_high;
 }
 
+// Mineral exponential in Campbell (1974) parameterization for soil 
+// water retention curves from Table 4, Cosby (1984)
+double Soillayer::mineral_exp(double clay_frac, double sand_frac) {
+	return 3.10 + 15.7 * clay_frac - 0.3 * sand_frac;
+}
+
+// Set soil layer properties
+/** Set soil layer properties
+ * Sets the following properties for this individual layer
+ * clay, silt and sand fraction
+ * pH
+ * hydrologic parameters (wsats, awc, wp, Psi_max, b and Kw_max)
+ * thermal properties for analytic temperature calculation
+ * and two layer soil perculation parameters
+*/
+void Soillayer::set_properties() {
+
+	// Get soil type
+	Soiltype soiltype = (*soilcolumn).soiltype;
+
+	if (soiltype.soil_input == LPJ) {
+
+		// Water holding capacities for mineral
+		wsats_min = soiltype.wsats_min;
+		awc_min = soiltype.awc_min;
+		wp_min = soiltype.wp_min;
+
+		// Percolation coefficient
+		perc_base_min = soiltype.perc_base;
+
+		// Mineral exponential in Campbell (1974) parameterization for soil 
+		// water retention curves from Table 4, Cosby (1984)
+		b_min = mineral_exp(clay_frac, sand_frac);
+	}
+	else if (soiltype.soil_input == MINERAL || soiltype.soil_input == VARYING) {
+
+		// Equation 1 from Cosby 1984
+		// Psi = Psi_s * (Theta/Theta_s)^b
+		// Psi is the pressure head in cm
+		// *_s is the values at saturation
+		// Theta is the volumetric moisture content
+		// Re-arranged to get the Theta
+		// Theta = Theta_s * (Psi/Psi_s)^(-1/b)
+
+		// Mineral exponential in Campbell (1974) parameterization for soil 
+		// water retention curves from Table 4, Cosby (1984)
+		b_min = mineral_exp(clay_frac, sand_frac);
+
+		// Saturated soil water suction (cm)
+		double Psi_s = -pow(10.0, 1.54 - 0.95 * sand_frac + 0.63 * silt_frac);
+
+		// Volumetric soil water concentration at saturation point (porosity)
+		double Theta_s = 0.505 - 0.142 * sand_frac - 0.037 * clay_frac;
+
+		// Volumetric soil moisture concentration at Field Capacity
+		// Field capacity generally occurs at a suction of 100 cm
+		double Theta_whc = Theta_s * pow(-100.0 / Psi_s, -1.0 / b_min);
+
+		// Volumetric soil moisture concentration at wilting point
+		// Wilting point typically occurs at a suction of 15000 cm
+		double Theta_wilt = Theta_s * pow(-15000.0 / Psi_s, -1.0 / b_min);
+
+		// Water holding capacities
+		wsats_min = Theta_s;
+		awc_min = (Theta_whc - Theta_wilt);
+		wp_min = Theta_wilt;
+
+		// Percolation coefficient
+		perc_base_min = 5.87 - 0.29 * b_min;
+
+		// Analytic thermal diffusivity parameters
+		thermdiff_0_min = 0.2;
+		thermdiff_15_min = 0.15 * b_min + 0.05;
+		thermdiff_100_min = 0.4;
+	}
+
+	// Heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
+	Cp_min = (2.128 * sand_frac + 2.385 * clay_frac) / (sand_frac + clay_frac) * 1.0e6;// 2380000;
+
+	// Saturated mineral hydraulic conductivity (from inch h-1 to mm s-1) from Table 4, Cosby 1984
+	Kw_max_min = pow(10.0, -0.6 + 1.26 * sand_frac - 0.64 * clay_frac) * MM_PER_INCH / SECS_PER_HOUR;
+
+	// Saturated soil water suction (from cm to mm) from Table 4, Cosby 1984
+	Psi_max_min = -pow(10.0, 1.54 - 0.95 * sand_frac + 0.63 * silt_frac) * MM_PER_CM;
+
+	// Super cooled water setting 2
+	// Soil specific surface area (m2 gâˆ’1) from eqn 11 in Sepaskhah et al. (2011)
+	// eqn 11
+	double D = 3.0 - 0.118 * (-log(clay_frac) + silt_frac + sand_frac);
+	// eqn 13
+	ssa = exp(-25.06 + 10.66 * D);
+
+	// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
+	a = !(acrotelm || catotelm) ? (clay_frac < 0.0165 ? 0.0 : (clay_frac > 0.373 ? 1.0 : 2.8 * clay_frac - 0.046)) : 0.0;
+
+
+	// Organic
+
+	// Organic exponential in Campbell (1974) parameterization for soil 
+	// water retention curves from CLM5.0 documentation 
+	b_org = min(2.7 + 9.3 * depth_profile / sapric_depth, 12.0);
+
+	// Organic soil matric potential at saturation 
+	Psi_max_org = -max(10.3 - 0.2 * depth_profile / sapric_depth, 10.1);
+
+	// Organic volumetric soil water concentration at saturation point (porosity)
+	wsats_org = max(0.93 - 0.1 * depth_profile / sapric_depth, 0.83);
+
+	// Volumetric soil moisture concentration at Field Capacity
+	// Field capacity generally occurs at a suction of 100 cm
+	double Theta_whc = wsats_org * pow(-100.0 / Psi_max_org, -1.0 / b_org);
+
+	// Volumetric soil moisture concentration at wilting point
+	// Wilting point typically occurs at a suction of 15000 cm
+	wp_org = wsats_org * pow(-15000.0 / Psi_max_org, -1.0 / b_org);
+
+	// Organic available water holding capacity of soil layer (-)
+	awc_org = Theta_whc - wp_org;
+
+	// Hydraulic conductivity at saturation for organic matter (mm s-1) (CLM5.0 - Documentation; Hoag and Price 1995)
+	Kw_max_org = max(0.28 - 0.2799 * depth_profile / sapric_depth, Kw_max_min);
+
+
+	// Coarse fragment
+
+	/// Coarse fragment (rock) available water holding fraction of soil layer (-)
+	awc_rock = 0.0;
+	/// Coarse fragment (rock) wilting point of soil layer (-)
+	wp_rock = 0.0;
+	/// Coarse fragment (rock) saturation point (-)
+	wsats_rock = 0.0;
+
+
+	// Coarse fragment volume
+	coarse_volume = !(acrotelm || catotelm) ? coarse_frac * depth : 0.0;
+}
+
+static double calc_weighted_avg(
+	const std::vector<double>& prop_lyr,
+	const std::vector<double>& depth_lyr,
+	double z_top, double z_bottom) {
+
+	double weighted_sum = 0.0;
+	double overlap_sum = 0.0;
+	double layer_top = 0.0;
+	const int nr_lyr = (int)prop_lyr.size();
+
+	for (int lyr = 0; lyr < nr_lyr; lyr++) {
+		double layer_bottom = depth_lyr[lyr];
+		double prop = prop_lyr[lyr];
+
+		double overlap_top = max(layer_top, z_top);
+		double overlap_bottom = min(layer_bottom, z_bottom);
+		double overlap = overlap_bottom - overlap_top;
+
+		if (overlap > 0.0) {
+			weighted_sum += prop * overlap;
+			overlap_sum += overlap;
+		}
+
+		layer_top = layer_bottom;
+
+		if (layer_top >= z_bottom)
+			break;
+	}
+
+	// If the target layer extends below the last soiltype layer,
+	// add the remaining thickness weighted by the last property value
+	if (z_bottom > layer_top && nr_lyr > 0) {
+		double remaining_thickness = z_bottom - max(layer_top, z_top);
+		if (remaining_thickness > 0.0) {
+			weighted_sum += prop_lyr.back() * remaining_thickness;
+			overlap_sum += remaining_thickness;
+		}
+	}
+
+	return (overlap_sum > 0.0) ? (weighted_sum / overlap_sum) : 0.0;
+}
+
+
+// Initiate soil layer properties
+/** Initiate soil layer properties
+ * Sets the following properties for this individual layer
+ * clay, silt and sand fraction
+ * pH
+ * hydrologic parameters (wsats, awc, wp, Psi_max, b and Kw_max)
+ * thermal properties for analytic temperature calculation
+ * and two layer soil perculation parameters
+*/
+void Soillayer::initiate_properties() {
+
+		// Get soil type
+	Soiltype soiltype = (*soilcolumn).soiltype;
+
+	// Analytic temp calc parameters
+	thermdiff_0_org = soiltype.thermdiff_0_org;
+	thermdiff_15_org = soiltype.thermdiff_15_org;
+	thermdiff_100_org = soiltype.thermdiff_100_org;
+	thermdiff_0_min = soiltype.thermdiff_0;
+	thermdiff_15_min = soiltype.thermdiff_15;
+	thermdiff_100_min = soiltype.thermdiff_100;
+
+	// Percolation coefficients
+	perc_exp = soiltype.perc_exp;
+	perc_base_org = soiltype.perc_base_org;
+
+	if (soiltype.soil_input == LPJ || soiltype.soil_input == MINERAL) {
+
+		clay_frac = soiltype.clay_frac;
+		sand_frac = soiltype.sand_frac;
+		silt_frac = 1.0 - (clay_frac + sand_frac);
+		coarse_frac = 0.0;
+		pH = soiltype.pH;
+	}
+	else if (soiltype.soil_input == VARYING) {
+
+		double z_top = max(0.0, depth_profile - depth / 2.0);
+		double z_bottom = depth_profile + depth / 2.0;
+
+		clay_frac = calc_weighted_avg(soiltype.clay_frac_lyr, soiltype.depth_lyr, z_top, z_bottom);
+		sand_frac = calc_weighted_avg(soiltype.sand_frac_lyr, soiltype.depth_lyr, z_top, z_bottom);
+		silt_frac = 1.0 - (clay_frac + sand_frac);
+		coarse_frac = !(acrotelm || catotelm) ? calc_weighted_avg(soiltype.coarse_frac_lyr, soiltype.depth_lyr, z_top, z_bottom) : 0.0;
+		pH = calc_weighted_avg(soiltype.pH_lyr, soiltype.depth_lyr, z_top, z_bottom);
+	}
+
+	set_properties();
+
+	// Mineral volume
+	mineral_volume = depth - coarse_volume;
+}
+
 
 // Set soil layer properties
 /** Set soil layer properties
@@ -1517,30 +1735,19 @@ double Soillayer::calc_organic_density(grouppooltype group) {
  * thermal properties for analytic temperature calculation
  * and two layer soil perculation parameters
 */
-void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must_set) {
+void Soillayer::update_properties(double& wmass_move, double& imass_move, bool must_set) {
 
 	// Only enter first year except if dynamic soil organic C influence soil properties
 	if (!must_set && !ifeffvolume && !iforganicsoilproperties && !(*soilcolumn).patch.stand.first_year == date.year) { // DW_COMMENT restart years needs to update it then as well!
 		return;
 	}
-	
-	// Get soil type
-	Soiltype soiltype = (*soilcolumn).soiltype;
 
-	// Mineral particle density set to 2.65 g cm–3 (Bonan 2019)
+	// Mineral particle density set to 2.65 g cmâ€“3 (Bonan 2019)
 	double min_density = Mindensity * G_PER_KG * M3_PER_CM3;
 
-	// Analytic temp calc parameters
-	thermdiff_0 = soiltype.thermdiff_0;
-	thermdiff_15 = soiltype.thermdiff_15;
-	thermdiff_100 = soiltype.thermdiff_100;
-
-	// Heat capacity of mineral soil [J m-3 K-1; Bonan 2019]
-	Cp_min = soiltype.Cp_min;
-
-	// Effective soil volume when excluding volume roots take up 
+	// Effective soil volume when excluding volume roots and rock take up 
 	if (ifeffvolume) {
-		effective_volume = depth - root_volume;
+		effective_volume = depth - root_volume - coarse_volume;
 	}
 	else {
 		effective_volume = depth;
@@ -1560,7 +1767,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 			Kw_max = Kw_max_org;
 			b = b_org;
 			Psi_max = Psi_max_org;
-			a = 0.0;
 
 			// Initially saturated
 			if ((*soilcolumn).patch.stand.first_year == date.year) {
@@ -1581,7 +1787,6 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 			Kw_max = Kw_max_org;
 			b = b_org;
 			Psi_max = Psi_max_org;
-			a = 0.0;
 
 			// Initially saturated
 			if ((*soilcolumn).patch.stand.first_year == date.year) {
@@ -1598,19 +1803,15 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 			imass += imass_move;
 			wmass_move = imass_move = 0.0;
 
-			wsats = soiltype.wsats_min * effective_volume;
-			awc = soiltype.awc_min * effective_volume;
-			wp = soiltype.wp_min * effective_volume;
+			wsats = wsats_min * effective_volume;
+			awc = awc_min * effective_volume;
+			wp = wp_min * effective_volume;
 			peat_frac = 0.0;
 			bulk_density = min_density * (effective_volume - wsats) / effective_volume;
 
-			Kw_max = soiltype.Kw_max_min;
-			b = soiltype.b_min;
-			Psi_max = soiltype.Psi_max_min;
-			a = soiltype.a;
-
-			// Two layer hydrology parameter
-			perc_base = soiltype.perc_base;
+			Kw_max = Kw_max_min;
+			b = b_min;
+			Psi_max = Psi_max_min;
 
 			// Move water downwards if water content exceeds maximum water content
 			double wmass_max_lyr = wmass_max();
@@ -1636,20 +1837,21 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 		double org_frac = organic_volume / depth;
 		double min_frac = mineral_volume / depth;
+		double rock_frac = coarse_volume / depth;
 
-		if (fabs(organic_volume + mineral_volume + root_volume - depth) > 1.0e-12)
+		if (fabs(organic_volume + mineral_volume + coarse_volume + root_volume - depth) > 1.0e-12)
 			dprintf("Year %d Day %d ERROR in soil volume (%g) compared to depth (%g)\n", 
-				date.year,date.day, organic_volume + mineral_volume + root_volume, depth);
+				date.year,date.day, organic_volume + mineral_volume + coarse_volume + root_volume, depth);
 
-		wsats = (min_frac * soiltype.wsats_min + org_frac * wsats_org) * depth;
-		awc = (min_frac * soiltype.awc_min + org_frac * awc_org) * depth;
-		wp = (min_frac * soiltype.wp_min + org_frac * wp_org) * depth;
+		wsats = (min_frac * wsats_min + org_frac * wsats_org + rock_frac * wsats_rock) * depth;
+		awc = (min_frac * awc_min + org_frac * awc_org + rock_frac * awc_rock) * depth;
+		wp = (min_frac * wp_min + org_frac * wp_org + rock_frac * wp_rock) * depth;
 		peat_frac = 0.0;
 
-		double density = min_frac * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
+		double density = (min_frac + rock_frac) * min_density + org_frac * rho_org * G_PER_KG * M3_PER_CM3;
 
 		// Bulk density of mineral and organic matter fraction of soillayer excluding roots
-		bulk_density = density * (effective_volume - wsats) / effective_volume * depth / effective_volume;
+		bulk_density = density * (min_frac + rock_frac + org_frac - wsats / depth);
 
 		// Move water downwards if water content exceeds maximum water content
 		double wmass_max_lyr = wmass_max();
@@ -1662,7 +1864,7 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		}
 
 		// The saturated hydraulic conductivity
-		// The soil organic matter fraction is further subdivided into “connected” and “unconnected” 
+		// The soil organic matter fraction is further subdivided into â€œconnectedâ€ and â€œunconnectedâ€ 
 		// fractions using a result from percolation theory (Stauffer and Aharony 1994, Berkowitz and 
 		// Balberg 1992). Assuming that the organic and mineral fractions are randomly distributed 
 		// throughout a soil layer, percolation theory predicts that above a threshold value 
@@ -1671,26 +1873,26 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 		// and thus can be described by Kw_max_org (CLM5.0 documentation).
 		double perc_norm = 1.101;
 		double perc_frac = org_frac >= threshold_frac ? perc_norm * pow(org_frac - threshold_frac, beta_perc) * org_frac : 0.0;
-		double uncon_frac = 1.0 - perc_frac;
-		double Kw_max_uncon = org_frac < 1.0 ? uncon_frac / ((1.0 - org_frac) / soiltype.Kw_max_min + (org_frac - perc_frac) / Kw_max_org) : 0.0;
-		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac) * Kw_max_org;
+		double uncon_frac = 1.0 - perc_frac - rock_frac;
+		double Kw_max_uncon = org_frac < 1.0 ? uncon_frac / ((1.0 - org_frac - rock_frac) / Kw_max_min + (org_frac - perc_frac) / Kw_max_org) : 0.0;
+		Kw_max = uncon_frac * Kw_max_uncon + (1.0 - uncon_frac - rock_frac) * Kw_max_org;
 
 		// Exponential in Campbell (1974) parameterization for soil water retention curves
-		b = (min_frac * soiltype.b_min + org_frac * b_org);
+		b = (min_frac * b_min + org_frac * b_org);
 
 		// Saturated soil water suction (mm)
-		Psi_max = (min_frac * soiltype.Psi_max_min + org_frac * Psi_max_org);
+		Psi_max = (min_frac * Psi_max_min + org_frac * Psi_max_org);
 
 		// Soil organic C microorganism collocation factor for decomposition (Yan 2018)
 		a = fclay(MINEFF) < 0.016 ? 0.0 : (fclay(MINEFF) > 0.37 ? 1.0 : 2.8 * fclay(MINEFF) - 0.046);
 
 		// Analytic temp calc parameters
-		thermdiff_0 = min_frac * soiltype.thermdiff_0 + org_frac * soiltype.thermdiff_0_org;
-		thermdiff_15 = min_frac * soiltype.thermdiff_15 + org_frac * soiltype.thermdiff_15_org;
-		thermdiff_100 = min_frac * soiltype.thermdiff_100 + org_frac * soiltype.thermdiff_100_org;
+		thermdiff_0 = min_frac * thermdiff_0_min + org_frac * thermdiff_0_org;
+		thermdiff_15 = min_frac * thermdiff_15_min + org_frac * thermdiff_15_org;
+		thermdiff_100 = min_frac * thermdiff_100_min + org_frac * thermdiff_100_org;
 
-		// Two layer hydrology parameter
-		perc_base = min_frac * soiltype.perc_base + org_frac * soiltype.perc_base_org;
+		// Two-layer hydrology parameter
+		perc_base = min_frac * perc_base_min + org_frac * perc_base_org;
 	}
 
 	// For Gerten and Miller hydrology schemes wmass should never be below wp
@@ -1703,73 +1905,61 @@ void Soillayer::set_properties(double& wmass_move, double& imass_move, bool must
 
 double Soillayer::fclay(mincalctype type) {
 
-	Soiltype soiltype = (*soilcolumn).soiltype;
-
-	//return soiltype.clay_frac;
-
 	// Absolute value of mineral fraction
 	if (type == ABS) {
-		return soiltype.clay_frac;
+		return clay_frac;
 	}
 	// Absolute value of mineral fraction when accounting for effective volume
 	else if (type == ABSEFF) {
-		return soiltype.clay_frac * effective_volume / depth;
+		return clay_frac * effective_volume / depth;
 	}
 	// Value of mineral fraction when only considering the mineral volume of the soil
 	else if (type == MINEFF) {
-		return soiltype.clay_frac * mineral_volume / depth;
+		return clay_frac * mineral_volume / depth;
 	}
 	else {
 		fail("ERROR! Can't calculate clay fraction\n");
-		return soiltype.clay_frac;
+		return clay_frac;
 	}
 }
 
 double Soillayer::fsand(mincalctype type) {
 
-	Soiltype soiltype = (*soilcolumn).soiltype;
-	
-	//return soiltype.sand_frac;
-
 	// Absolute value of mineral fraction
 	if (type == ABS) {
-		return soiltype.sand_frac;
+		return sand_frac;
 	}
 	// Absolute value of mineral fraction when accounting for effective volume
 	else if (type == ABSEFF) {
-		return soiltype.sand_frac * effective_volume / depth;
+		return sand_frac * effective_volume / depth;
 	}
 	// Value of mineral fraction when only considering the mineral volume of the soil
 	else if (type == MINEFF) {
-		return soiltype.sand_frac * mineral_volume / depth;
+		return sand_frac * mineral_volume / depth;
 	}
 	else {
 		fail("ERROR! Can't calculate sand fraction\n");
-		return soiltype.clay_frac;
+		return clay_frac;
 	}
 }
 
 double Soillayer::fsilt(mincalctype type) {
 
-	Soiltype soiltype = (*soilcolumn).soiltype;
-	
-	//return soiltype.silt_frac;
-
 	// Absolute value of mineral fraction
 	if (type == ABS) {
-		return soiltype.silt_frac;
+		return silt_frac;
 	}
 	// Absolute value of mineral fraction when accounting for effective volume
 	else if (type == ABSEFF) {
-		return soiltype.silt_frac * effective_volume / depth;
+		return silt_frac * effective_volume / depth;
 	}
 	// Value of mineral fraction when only considering the mineral volume of the soil
 	else if (type == MINEFF) {
-		return soiltype.silt_frac * mineral_volume / depth;
+		return silt_frac * mineral_volume / depth;
 	}
 	else {
 		fail("ERROR! Can't calculate silt fraction\n");
-		return soiltype.clay_frac;
+		return silt_frac;
 	}
 }
 
@@ -1848,10 +2038,10 @@ void Soillayer::phase_change() {
 			}
 			// Jin scheme
 			else if (ifsupercooled == 2) {
-				double w_m = 0.05 * (*soilcolumn).soiltype.ssa;
+				double w_m = 0.05 * ssa;
 				double S = 0.37;
 				double C_1 = 0.041;
-				double C = (*soilcolumn).soiltype.ssa * S * C_1 * pow(K2degC - temp, 0.5);
+				double C = ssa * S * C_1 * pow(K2degC - temp, 0.5);
 				wmass_sc = wmass_max_lyr * min(max_sc_frac, (C * pow(-temp, -0.5) + w_m - 0.25 * C) / 100.0);
 			}
 
@@ -2348,13 +2538,13 @@ void Soillayer::update_thermal_properties() {
 	// Total solids in soil
 	double Stot;
 	// Organic water holding capacities at saturation
-	double organic_wsats = iforganicsoilproperties ? wsats_org : (*soilcolumn).soiltype.wsats_min;
+	double organic_wsats = iforganicsoilproperties ? wsats_org : wsats_min;
 
 	// Depths each quantity occupies
 	double combined_depth = depth;
 	double ice = imass;
 	double water = wmass;
-	double mineral = mineral_volume * (1.0 - (*soilcolumn).soiltype.wsats_min);
+	double mineral = mineral_volume * (1.0 - wsats_min) + coarse_volume;
 	double coarse_root = root_volume;
 	double peat, organic;
 
@@ -2414,7 +2604,7 @@ double Soillayer::org_frac() {
 	// Update organic volume (mm)
 	double org_volume = ccont_org / rho_org * MM_PER_M;
 
-	return org_volume / (org_volume + mineral_volume);
+	return org_volume / (org_volume + mineral_volume + coarse_volume);
 }
 
 /// Serialize soil layer variables
@@ -2557,6 +2747,8 @@ void Soilcolumn::create_soillayers(double soil_lyr_depths[NSOILLAYERS_MAX]) {
 	thaw = depth;
 	maxthaw_10.add(thaw);
 
+	soillayers.reserve(nsoillayers);
+
 	// Loop over number of soil layers to create
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -2587,13 +2779,18 @@ void Soilcolumn::create_soillayers(double soil_lyr_depths[NSOILLAYERS_MAX]) {
  */
 void Soilcolumn::add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm) {
 
-	// Create soil layer
-	Soillayer* soillayer = new Soillayer(this, soil_layer_depth, soil_layer_depth_profile, acrotelm, catotelm);
+	// Create soil layer directly inside the vector
+	soillayers.emplace_back(this, soil_layer_depth, soil_layer_depth_profile, acrotelm, catotelm);
+	
+	// Access the new layer via reference
+	Soillayer& soillayer = soillayers.back();
 
-	// Add soil layer to soillayer vector
-	soillayers.push_back((*soillayer));
+	// Initiate fixed soil layer properties
+	soillayer.initiate_properties();
 
-	delete soillayer;
+	// Update soil layer properties
+	double dval = 0.0;
+	soillayer.update_properties(dval, dval, true);
 }
 
 const Climate& Soilcolumn::get_climate() const {
@@ -2892,6 +3089,9 @@ void Soilcolumn::get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m) {
 			break;
 		case VOL_MIN:
 			prop[lyr] = soillayers[lyr].mineral_volume;
+			break;
+		case VOL_ROCK:
+			prop[lyr] = soillayers[lyr].coarse_volume;
 			break;
 		case VOL_ROOT:
 			prop[lyr] = soillayers[lyr].root_volume;
@@ -5535,7 +5735,7 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 	// Percolation from evaporation layer
 	double perc = 0.0;
 	if (percolate) {
-		perc = min(min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.perc_base * pow(wcont_evap, soiltype.perc_exp),
+		perc = min(min(1.0, SOILDEPTH_EVAP / soillayer_top.depth) * soillayer_top.perc_base * pow(wcont_evap, soillayer_top.perc_exp),
 			max_rain_melt);
 	}
 	wcont_evap -= min(wcont_evap, perc / soillayer_top.awc);
@@ -5555,7 +5755,7 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 
 		// Allow only on days with rain or snowmelt
 		if (percolate) {
-			perc = min(soillayer_above.perc_base * pow(soillayer_above.wcont(), soiltype.perc_exp), max_rain_melt);
+			perc = min(soillayer_above.perc_base * pow(soillayer_above.wcont(), soillayer_above.perc_exp), max_rain_melt);
 		}
 		else {
 			perc = 0.0;
@@ -5583,7 +5783,7 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 	Soillayer& soillayer_bottom = soillayers[nsoillayers - 1];
 	if (percolate) {
 		double perc_baseflow = BASEFLOW_FRAC * soillayer_bottom.perc_base * 
-			pow(soillayer_bottom.wcont(), soiltype.perc_exp);
+			pow(soillayer_bottom.wcont(), soillayer_bottom.perc_exp);
 		
 		// Check so baseflow doesn't exceed inflow of water
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
@@ -5886,7 +6086,7 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 		if (wmass_layer1 > MIN_WATER_PERC) {
 
 			// Percolation from the top layer (mm; limited to available liquid water)
-			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), wmass_layer1);
+			perc = min(soillayers[0].perc_base * pow(wcont_layer1, soillayers[0].perc_exp), wmass_layer1);
 
 			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
 				Soillayer& soillayer = soillayers[lyr];
@@ -5946,7 +6146,8 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 		double perc_from_base = 0.0;
 		if (percolate && wmass_perc_layer_2 > MIN_WATER_PERC) {
 
-			perc_from_base = min(wmass_perc_layer_2, min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt));
+			perc_from_base = min(wmass_perc_layer_2, min(BASEFLOW_FRAC * soillayers[NSOILLAYERS_UPPER].perc_base * 
+				pow(wcont_perc_layer_2, soillayers[NSOILLAYERS_UPPER].perc_exp), max_rain_melt));
 
 			// As in LPJ-GUESS v4.0
 			if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
@@ -7684,9 +7885,9 @@ void Soilcolumn::calc_root_volume() {
 		// need to be updated here if effective volume is updated
 		if (!iforganicsoilproperties) {
 			double eff_volume_frac = 1.0 - soillayer.root_volume / soillayer.depth;
-			soillayer.wp = soiltype.wp_min * eff_volume_frac * soillayer.depth;
-			soillayer.awc = soiltype.awc_min * eff_volume_frac * soillayer.depth;
-			soillayer.wsats = soiltype.wsats_min * eff_volume_frac * soillayer.depth;
+			soillayer.wp = soillayer.wp_min * eff_volume_frac * soillayer.depth;
+			soillayer.awc = soillayer.awc_min * eff_volume_frac * soillayer.depth;
+			soillayer.wsats = soillayer.wsats_min * eff_volume_frac * soillayer.depth;
 		}
 	}
 }
@@ -7867,7 +8068,7 @@ void Soilcolumn::vertical_movement() {
 		soillayer.organic_volume = org_volume;
 
 		// Effective soil volume
-		double eff_volume = soillayer.depth - soillayer.root_volume;
+		double eff_volume = soillayer.depth - soillayer.root_volume - soillayer.coarse_volume;
 
 		// Difference in material and effetive volume
 		double diff_volume = min_volume + org_volume - eff_volume;
@@ -8146,8 +8347,11 @@ void Soilcolumn::vertical_movement() {
 				// Update total soil column depth
 				depth += add_depth;
 
+				// Coarse fragment volume
+				soillayer.coarse_volume = soillayer.coarse_frac * soillayer.depth;
+
 				// Update soil layer mineral volume
-				soillayer.mineral_volume = eff_volume - soillayer.organic_volume;
+				soillayer.mineral_volume = soillayer.depth - (soillayer.root_volume + soillayer.coarse_volume + soillayer.organic_volume);
 
 				double wsats_new;
 				if (soillayer.acrotelm) {
@@ -8157,7 +8361,7 @@ void Soilcolumn::vertical_movement() {
 					wsats_new = soillayer.mineral_volume * catotelm_por;
 				}
 				else {
-					wsats_new = soillayer.mineral_volume * soiltype.wsats_min;
+					wsats_new = soillayer.mineral_volume * soillayer.wsats_min;
 				}
 
 				soillayer.wsats += wsats_new;
@@ -8230,19 +8434,19 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 // References not related to Arctic and wetland code:
 //
 // Campbell, G.S.: Simple method for determining unsaturated conductivity from moisture 
-//  retention data. Soil Sci. 117: 311–314. 
+//  retention data. Soil Sci. 117: 311â€“314. 
 //  https://doi.org/10.1097/00010694-197406000-00001, 1974
 // Chadburn, S., Burke, E., Essery, R., Boike, J., Langer, M., Heikenfeld, M., Cox, P., 
 //   and Friedlingstein, P.: An improved representation of physical permafrost dynamics 
 //   in the JULES land - surface model, Geosci.Model Dev., 8, 1493 - 1508, 
 //   https ://doi.org/10.5194/gmd-8-1493-2015, 2015
 // Clapp, R.B., and Hornberger, G.M. Empirical equations for some soil hydraulic properties. 
-//  Water Resour. Res. 14: 601–604. https://doi.org/10.1029/WR014i004p00601, 1978
+//  Water Resour. Res. 14: 601â€“604. https://doi.org/10.1029/WR014i004p00601, 1978
 // Fukusako, S. Int J Thermophys (1990) 11: 353. doi:10.1007/BF01133567
 // Jobbagy, E. G. & Jackson, R. B. (2000) The vertical distribution of soil carbon
 //   and its relation to climate and vegetation. Ecological Applications 10(2): 423-436
 // Lawrence, D. M. and Slater, A.: Incorporating organic soil into a global climate 
-//  model, Clim.Dynam., 30, 145–160, doi:10.1007/s00382-007-0278-1, 2008.
+//  model, Clim.Dynam., 30, 145â€“160, doi:10.1007/s00382-007-0278-1, 2008.
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling

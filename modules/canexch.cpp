@@ -1947,10 +1947,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 					if (add_water[ly]) {
 
 						Soillayer& soillayer = soilcolumn.soillayers[ly];
-						// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
-						Faw_layer[ly] = soillayer.wcont() * soillayer.awc; // mm
-
+						
 						// Water in this layer
+						Faw_layer[ly] = soillayer.wcont() * soillayer.awc;
+
+						// Potential new water in this layer
 						potential_layer[ly] = soillayer.awc - Faw_layer[ly];
 						potential_water += potential_layer[ly];
 					}

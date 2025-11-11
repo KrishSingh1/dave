@@ -65,6 +65,9 @@ typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
 /// The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
 typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
 
+/// Soil input type
+typedef enum { LPJ, MINERAL, VARYING } soilinputtype;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -152,7 +155,7 @@ typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, A
 WSATS, AWC, WP, KW_MAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
 CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
 ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, AFLITTERINPUT, ACLITTERINPUT,
-VOL_ORG, VOL_MIN, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
+VOL_ORG, VOL_MIN, VOL_ROCK, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -175,12 +178,6 @@ const double SOILDEPTH_UPPER = 500.0;
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 //  Must be a multiple of Dz_soil
 const double SOILDEPTH_EVAP = 200.0;
-
-/// Year at which to calculate equilibrium soil carbon
-const int SOLVESOM_END = 400;
-
-/// Year at which to begin documenting means for calculation of equilibrium soil carbon
-const int SOLVESOM_BEGIN = 350;
 
 /// Number of years to average growth efficiency over in function mortality
 const int NYEARGREFF = 5;
@@ -3257,6 +3254,8 @@ class Soiltype {
 
 public:
 
+	soilinputtype soil_input;
+
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for the evaporation soil layer
@@ -3271,25 +3270,12 @@ public:
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
 
-	/// Heat capacity of mineral soil [J m-3 K-1] - Bonan (2002)
-	double Cp_min;
-
 	/// Available water holding capacity of soil layers (mm)
 	double awc_min;
 	/// Wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
 	double wp_min;
 	/// Saturation point. Cosby et al 1984
 	double wsats_min;
-
-	/// Mineral exponential in Campbell (1974) parameterization for soil water retention curves
-	double b_min;
-	/// Mineral hydraulic conductivity at saturation (mm s-1)
-	double Kw_max_min;
-	/// Saturated mineral matter water suction (matrix potential) (mm)
-	double Psi_max_min;
-	// Soil specific surface area (m2 g−1)
-	double ssa;
-
 
 	/// Organic soil properties
 	
@@ -3303,34 +3289,28 @@ public:
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100_org;
 
-	/// year at which to calculate equilibrium soil carbon
-	int solvesom_end;
-	/// year at which to begin documenting means for calculation of equilibrium soil carbon
-	int solvesom_begin;
-
 	// Sand, silt and clay fractions, should always add up to 1.
 	/// fraction of soil that is sand
 	double sand_frac;
 	/// fraction of soil that is clay
 	double clay_frac;
-	/// fraction of soil that is silt
-	double silt_frac;
 	/// pH
 	double pH;
 	/// carbon content (kg C m-2)
 	double soilC;
-	/// SOC–microorganism collocation factor for decomposition (Yan 2018)
-	double a;
 
 	/// Soilcode, 0 to 8
 	int soilcode;
 	/// Volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
 	double organic_frac;
-	/// Porosity from AGRMET Handbook, 2002
-	double porosity;
-	/// Volumetric fraction of mineral material (m3 m-3) (Hillel, 1998) = 1 - organic_frac - porosity
-	double mineral_frac;
 
+	// Inhomogeneous soil types
+	std::vector<double> sand_frac_lyr;
+	std::vector<double> clay_frac_lyr;
+	std::vector<double> coarse_frac_lyr;
+	std::vector<double> pH_lyr;
+	std::vector<double> depth_lyr;
+	
 	// MEMBER FUNCTIONS
 
 public:
@@ -3338,18 +3318,8 @@ public:
 	/// Constructor: initialises certain member variables
 	Soiltype() {
 
-		solvesom_end = SOLVESOM_END;
-		solvesom_begin = SOLVESOM_BEGIN;
 		organic_frac = 0.02;
 		pH = -1.0;
-	}
-
-	/// Override the default SOM years with 70-80% of the spin-up period length
-	void updateSolveSOMvalues(const int& nyrspinup) {
-
-		solvesom_end = static_cast<int>(0.8 * nyrspinup);
-		solvesom_begin = static_cast<int>(0.7 * nyrspinup);
-
 	}
 };
 
@@ -3582,6 +3552,18 @@ public:
 	/// soil layer depth (mm)
 	double depth;
 
+	// Sand, silt and clay fractions, should always add up to 1.
+	/// fraction of mineral soil that is sand
+	double sand_frac;
+	/// fraction of mineral soil that is clay
+	double clay_frac;
+	/// fraction of mineral soil that is silt
+	double silt_frac;
+	/// fraction of soil that is coarse fragments
+	double coarse_frac;
+	/// pH
+	double pH;
+
 	/// Water
 	/// Water mass in soil layer (kg m-2)
 	double wmass;
@@ -3623,11 +3605,16 @@ public:
 	double Kw_max;
 	/// Exponential in Campbell (1974) parameterization for soil water retention curves
 	double b;
-
+	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
+	double perc_exp;
 	/// Percolation mass from this layer
 	double perc_mass;
 	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for mineral soils
+	double perc_base_min;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for organic soils
+	double perc_base_org;
 	/// Lateral drainage runoff
 	double runoff_drain;
 	/// Monthly lateral drainage runoff
@@ -3635,15 +3622,45 @@ public:
 	/// Baseflow runoff
 	double runoff_baseflow;
 
+	/// Mineral available water holding fraction of soil layer (-)
+	double awc_min;
+	/// Mineral wilting point of soil layer (-)
+	double wp_min;
+	/// Mineral saturation point (-)
+	double wsats_min;
+	/// Mineral exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_min;
+	/// Mineral hydraulic conductivity at saturation (mm s-1)
+	double Kw_max_min;
+	/// Saturated mineral matter water suction (matrix potential) (mm)
+	double Psi_max_min;
+
+	/// Coarse fragment (rock) available water holding fraction of soil layer (-)
+	double awc_rock;
+	/// Coarse fragment (rock) wilting point of soil layer (-)
+	double wp_rock;
+	/// Coarse fragment (rock) saturation point (-)
+	double wsats_rock;
+	/// Coarse fragment (rock) exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_rock;
+	/// Coarse fragment (rock) hydraulic conductivity at saturation (mm s-1)
+	double Kw_max_rock;
+	/// Coarse fragment (rock) mineral matter water suction (matrix potential) (mm)
+	double Psi_max_rock;
+	
 	/// Volume
 	/// Coarse root volume (mm)
 	double root_volume;
 	/// Mineral volume (mm)
 	double mineral_volume;
+	/// Coarse fragment volume (mm)
+	double coarse_volume;
 	/// Organic matter volume (mm)
 	double organic_volume;
 	/// Effective volume when accounting for space occupied by roots (mm)
 	double effective_volume;
+	// Soil specific surface area (m2 g−1)
+	double ssa;
 
 	/// Bulk density (g cm-3)
 	double bulk_density;
@@ -3679,6 +3696,18 @@ public:
 	double thermdiff_15;
 	/// Thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
+	/// Thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0_min;
+	/// Thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15_min;
+	/// Thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100_min;
+	/// Thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0_org;
+	/// Thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15_org;
+	/// Thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100_org;
 	/// Thermal conductivities (J m-1 K-1 s-1)
 	double Kh;
 	/// Heat capacities (J m-3 K-1)
@@ -4033,8 +4062,15 @@ public:
 	void init();
 	/// Get property of soil layer
 	double get(soilproptype SPT, int m = 0);
+	// Mineral exponential in Campbell (1974) parameterization for soil 
+	// water retention curves from Table 4, Cosby (1984)
+	double mineral_exp(double clay_frac, double sand_frac);
 	/// Set soil layer properties
-	void set_properties(double& wmass_move, double& imass_move, bool must_set = false);
+	void set_properties();
+	/// Initiate soil layer properties
+	void initiate_properties();
+	/// Update soil layer properties
+	void update_properties(double& wmass_move, double& imass_move, bool must_set = false);
 	/// C content of soil layer
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil layer

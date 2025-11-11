@@ -179,8 +179,8 @@ void equilsom_lpj(Soilcolumn& soilcolumn) {
 
 	// number of years over which decay constants and litter inputs averaged
 	double nyear;
-		
-	nyear = soilcolumn.soiltype.solvesom_end - soilcolumn.soiltype.solvesom_begin + 1;
+
+	nyear = soilcolumn.solvesom_end - soilcolumn.solvesom_begin + 1;
 
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
@@ -283,7 +283,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 				ppft.litter_root *= fr_litter;
 		}
 
-		if (date.year >= soilcolumn.soiltype.solvesom_begin)
+		if (date.year >= soilcolumn.solvesom_begin)
 			soillayer.decomp_litter_mean += decomp_litter;
 
 		// Partition litter decomposition among fast and slow SOM pools
@@ -319,8 +319,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	}
 
 	// Solve SOM pool sizes at end of year given by soilcolumn.solvesom_end
-
-	if (date.year == soilcolumn.soiltype.solvesom_end && date.islastmonth && date.islastday)
+	if (date.year == soilcolumn.solvesom_end && date.islastmonth && date.islastday)
 		equilsom_lpj(soilcolumn);
 
 }
@@ -2133,7 +2132,7 @@ void equilsom(Patch& patch) {
 			soillayer.NO3_mass = save_NO3_avail[lyr];
 
 			dval1 = dval2 = 0.0;
-			soillayer.set_properties(dval1, dval2, true);
+			soillayer.update_properties(dval1, dval2, true);
 			soillayer.wmass = wmass_frac[lyr] * soillayer.wsats;
 			soillayer.imass = imass_frac[lyr] * soillayer.wsats;
 

@@ -319,7 +319,7 @@ namespace GuessOutput {
 					out->finish_row(Table((int)i), lon, lat, y);
 				}
 				else {
-					out->finish_row(Table(i), lon, lat, y, c, v);
+					out->finish_row(Table((int)i), lon, lat, y, c, v);
 				}
 			}
 		}

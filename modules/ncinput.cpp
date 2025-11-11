@@ -710,6 +710,8 @@ void NCInput::update_ndep(double lon, double lat, int year) {
 		// be in mm, so we can sum the subdaily values to get a daily one.
 		std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
 
+		assert(daily_prec.size() == Date::MAX_YEAR_LENGTH);
+
 		// Distribute N deposition
 		distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
 						&(daily_prec.front()), nh4_dep, no3_dep);
@@ -891,25 +893,25 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	} else if (day_length < 2) {
 		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
 	} else {
-		tmax.release();
 		tmax = NULL;
 	}
 	if (variable_tmin != "" && variable_exists(netcdf_file, variable_tmin)) {
 		tmin = create_variable(netcdf_file, variable_tmin, nc_tmin, bounds_temp, temp_units, true);
 	} else if (day_length < 2) {
-		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
+		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmin, (const char *)netcdf_file);
 	} else {
-		tmin.release();
 		tmin = NULL;
 	}
 	if (variable_ndep_nhx == "") {
 		use_lamarque = true;
+		ndep_nhx = NULL;
 	} else {
 		use_lamarque = false;
 		ndep_nhx = create_variable(netcdf_file, variable_ndep_nhx, nc_nhx, bounds_ndep, ndep_units, true);
 	}
 	if (variable_ndep_noy == "") {
 		use_lamarque = true;
+		ndep_noy = NULL;
 	} else {
 		use_lamarque = false;
 		ndep_noy = create_variable(netcdf_file, variable_ndep_noy, nc_noy, bounds_ndep, ndep_units, true);

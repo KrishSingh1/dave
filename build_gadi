@@ -14,6 +14,11 @@ module load openmpi gcc cmake netcdf
 # Help cmake find the netcdf module.
 export CMAKE_PREFIX_PATH="${NETCDF}"
 
+if [ -n "${OMPI_ROOT:-}" ]
+then
+    export CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}:${OMPI_ROOT}"
+fi
+
 # Output path.
 BUILD="${DIR}/build"
 

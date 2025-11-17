@@ -89,6 +89,7 @@ private:
 		   file_daily_stem, file_daily_leaf, file_daily_root,
 		   file_daily_storage;
 	xtring file_daily_snow_depth, file_daily_snow_density, file_daily_snow_k, file_daily_snow_c;
+	xtring file_dtemp_depth;
 
 	// Output tables
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2,
@@ -126,6 +127,7 @@ private:
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
 	Table out_daily_snow_depth, out_daily_snow_density, out_daily_snow_k, out_daily_snow_c;
+	Table out_dtemp_depth;
 };
 
 }

@@ -112,6 +112,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_snow_c", &file_daily_snow_c, 300, "Daily snow heat capacity output.");
 
 	declare_parameter("file_daily_temp", &file_daily_temp, 300, "Daily air, snow and soil temperature output.");
+	declare_parameter("file_dtemp_depth", &file_dtemp_depth, 300, "Daily air and soil temperature for Russian sites output.");
 	declare_parameter("file_daily_wcont", &file_daily_wcont, 300, "Daily wcont output.");
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
@@ -323,6 +324,16 @@ void MiscOutput::define_output_tables() {
 		daily_snow_c_columns += ColumnDescriptor("Total", 10, 1);
 	}
 
+	ColumnDescriptors tsoil_columns;
+	tsoil_columns += ColumnDescriptor("air", 8, 2);
+	tsoil_columns += ColumnDescriptor("d20", 8, 2);
+	tsoil_columns += ColumnDescriptor("d40", 8, 2);
+	tsoil_columns += ColumnDescriptor("d80", 8, 2);
+	tsoil_columns += ColumnDescriptor("d120", 8, 2);
+	tsoil_columns += ColumnDescriptor("d160", 8, 2);
+	tsoil_columns += ColumnDescriptor("d240", 8, 2);
+	tsoil_columns += ColumnDescriptor("d320", 8, 2);
+
 	// Create snow and soil layer columns
 	ColumnDescriptors snowsoillyr_columns;
 	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
@@ -458,6 +469,8 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_snow_c,               file_daily_snow_c,              daily_snow_c_columns);
 
 	create_output_table(out_daily_temp,                 file_daily_temp,                snowsoillyr_columns);
+
+	create_output_table(out_dtemp_depth,                file_dtemp_depth,               tsoil_columns);
 
 	create_output_table(out_daily_wcont,                file_daily_wcont,               soillyr_columns);
 
@@ -1271,7 +1284,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup + 90) {
+	//if (date.year < nyear_spinup + 90) {
+	if (date.get_calendar_year() < 1963) {
 		return;
 	}
 
@@ -1296,6 +1310,8 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double wsats[NSOILLAYERS_MAX] = { 0.0 };
 
 	double soil_temp[NSOILLAYERS_MAX + NPADLAYERS] = { 0.0 };
+
+	double tsoil_depth[7] = { 0.0 };
 
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
@@ -1347,6 +1363,15 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				}
 			}
 
+			// Russian soil depths
+			tsoil_depth[0] += soilcolumn.temp_at_depth(200.0) * to_gridcell_average;
+			tsoil_depth[1] += soilcolumn.temp_at_depth(400.0) * to_gridcell_average;
+			tsoil_depth[2] += soilcolumn.temp_at_depth(800.0) * to_gridcell_average;
+			tsoil_depth[3] += soilcolumn.temp_at_depth(1200.0) * to_gridcell_average;
+			tsoil_depth[4] += soilcolumn.temp_at_depth(1600.0) * to_gridcell_average;
+			tsoil_depth[5] += soilcolumn.temp_at_depth(2400.0) * to_gridcell_average;
+			tsoil_depth[6] += soilcolumn.temp_at_depth(3200.0) * to_gridcell_average;
+
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
@@ -1384,6 +1409,12 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
+	}
+
+	// Soil temperature depth for Russian sites
+	outlimit_misc(out, out_dtemp_depth, gridcell.climate.temp);
+	for (int lyr = 0; lyr <7; lyr++) {
+		outlimit_misc(out, out_dtemp_depth, tsoil_depth[lyr]);
 	}
 
 	// Soil water

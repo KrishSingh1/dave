@@ -3276,6 +3276,41 @@ void Soilcolumn::calc_mtemp() {
 	}
 }
 
+// 
+/// Function to get temperature at a specific depth
+/** Function to get temperature at a specific depth
+ */
+double Soilcolumn::temp_at_depth(double depth) {
+	
+	// Depth above first layer
+	if (depth <= soillayers.front().depth_profile) {
+		return soillayers.front().temp;
+	}
+
+	// Depth below last layer
+	if (depth >= soillayers.back().depth_profile) {
+		return soillayers.back().temp;
+	}
+
+	// Find the two layers surrounding the depth
+	for (int i = 0; i < (int)soillayers.size() - 1; i++) {
+
+		double z1 = soillayers[i].depth_profile;
+		double z2 = soillayers[i + 1].depth_profile;
+
+		if (depth >= z1 && depth <= z2) {
+			double t1 = soillayers[i].temp;
+			double t2 = soillayers[i + 1].temp;
+
+			// Linear interpolation
+			return t1 + (t2 - t1) * (depth - z1) / (z2 - z1);
+		}
+	}
+
+	// Should not reach here
+	fail("Depth (%g) not within soil column depth (%g)!", depth, soillayers.back().depth_profile + soillayers.back().depth / 2.0);
+}
+
 /// Average temperature down to a depth
 /** Average temperature down to a depth
  */

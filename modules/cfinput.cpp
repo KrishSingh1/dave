@@ -314,7 +314,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in frac.
-	if ( pressure > 106000 || pressure < 10000 ) {
+	if ( pressure > 109000 || pressure < 10000 ) {
 		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	if ( temp  > 80. ) {
@@ -332,6 +332,18 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	return rh;		
 }
 
+}
+
+std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) {
+
+	std::vector<std::pair<double, double> > output;
+	for (int i = 0; i < gridlist.size(); i++) {
+		Coord& c = gridlist[i];
+		double center_lon = floor(c.lon * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		double center_lat = floor(c.lat * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		output.push_back(std::make_pair(center_lon, center_lat));
+	}
+	return output;
 }
 
 CFInput::CFInput()
@@ -525,8 +537,12 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
-	soilinput.init(param["file_soildata"].str);
+	if (hydrology == RICHARDS) {
+		soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
+		soilinput.init_slope(param["file_soilslope"].str, translate_gridlist_to_coord(gridlist));
+	}
 
 	// Set timers
 	tprogress.init();
@@ -936,7 +952,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		else if ( cf_pres && cf_specifichum ) {
 			// compute rel. humidity if it can't be read from file
 			for ( int i=0; i<12; i++) {
-				xmrhum[i] = calc_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+				xmrhum[i] = calc_relative_humidity(xmtemp[i],mspecifichum[i],mpres[i]);
 			}
 		}
 
@@ -953,6 +969,9 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 				accumday += date.ndaymonth[mon];
 				mon++;
 			}
+			//CLN !! QUICKFIX for Stefan by LN --(
+			dtemp[i] += K2degC;
+
 			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i];
 			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i];
 			// correct dmin and dmax against t_mean if available
@@ -1010,14 +1029,6 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			// Invert from cloudiness to sunshine,
 			// and convert fraction (0-1) to percent (0-100)
 			dinsol[i] = (1-dinsol[i]) * 100.0;
-		}
-		
-		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
-			// compute relative humidity for BLAZE
-			drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
-		}
-		else if ( firemodel == BLAZE && !cf_relhum ) {
-			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );
 		}
 	}
 

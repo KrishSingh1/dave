@@ -172,6 +172,8 @@ void SoilInput::get_depth_varying_prop(
 	std::vector<double> T(nr_layers);
 	std::string line;
 
+	int sites = 0;
+
 	while (getline(prop, line)) {
 		std::istringstream iss(line);
 		double lon, lat;
@@ -190,7 +192,9 @@ void SoilInput::get_depth_varying_prop(
 		for (int lyr = 0; lyr < nr_layers; ++lyr)
 			(soildata.*member)[lyr] = T[lyr];
 
-		if (mineral_map.size() == coords.size())
+		sites++;
+
+		if (sites == (int)coords.size())
 			break;
 	}
 }

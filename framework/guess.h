@@ -4754,6 +4754,8 @@ public:
 	void calc_mwcont();
 	/// Calculate this months average soil layer temperature
 	void calc_mtemp();
+	/// Function to get temperature at a specific depth
+	double temp_at_depth(double depth);
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
 	/// Returns the value of some vector within a certain depth interval

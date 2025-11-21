@@ -6,7 +6,6 @@
 /// The class Soil and its member functions and variables are declared in guess.h
 ///
 /// \author Paul Miller
-/// $Date: 2015-12-22 15:22:04 +0100 (Tue, 22 Dec 2015) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this

@@ -3,7 +3,6 @@
 /// \brief Global Weather GENerator 
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-11-24 15:04:09 +0200 (Fri, 24 Nov 2017) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this

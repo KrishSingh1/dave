@@ -6,7 +6,6 @@
 ///  (1) Definitions of constants and common functions used throughout LPJ-GUESS
 ///
 /// \author Michael Mischurow
-/// $Date$
 ///
 ////////////////////////////////////////////////////////////////////////////////
 

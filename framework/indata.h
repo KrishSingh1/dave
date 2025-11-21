@@ -5,7 +5,6 @@
 /// line 2 etc.: lon lat year data-columns. For local static data, use: lon lat data-columns,
 /// for global static data, use: dummy data-columns (with "static" as first word in header).
 /// \author Mats Lindeskog
-/// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef INDATA_H

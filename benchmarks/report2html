@@ -1,18 +1,20 @@
-#  Python 2 code
+# Python 3 code
 
 """Small script to convert a report in the form of an XML file,
 as generated in the post processing step of a benchmark, into HTML.
 """
 
 from xml.dom import minidom
-from xml.dom.minidom import Element, Text
 import sys
 import subprocess
+
+doc = minidom.Document()
 
 # This will be set to True if invoked with -p
 printer_friendly=False
 
-class ResizeFail:
+
+class ResizeFail(Exception):
     """This is thrown when resizing of an image fails"""
     pass
 
@@ -20,7 +22,7 @@ def resizeimage(path, small):
     """Calls the ImageMagick program convert to resize the image
     to something that isn't too big"""
 
-    print >> sys.stderr, "Resizing " + path
+    print(f"Resizing {path}", file=sys.stderr)
 
     newpath = "resized_" + path
     if small:
@@ -29,7 +31,7 @@ def resizeimage(path, small):
         format = '800x600>'
     try:
         subprocess.call(['convert', path, '-trim', '-bordercolor', 'White', '-border', '25x25', '-resize', format, newpath])
-    except:
+    except Exception:
         raise ResizeFail
 
     return newpath
@@ -39,14 +41,13 @@ def resizeimage(path, small):
 
 def htmlelement(type, parent):
     """Creates an HTML Element with a specific parent node"""
-    element = Element(type)
+    element = doc.createElement(type)
     parent.appendChild(element)
     return element
 
 def htmltext(string, parent):
     """Creates a text node with a specific parent node"""
-    text = Text()
-    text.data = string
+    text = doc.createTextNode(string)
     parent.appendChild(text)
     return text
 
@@ -72,7 +73,7 @@ class Image:
         self.embed = embed
 
     def tohtml(self, ingroup):
-        node = Element("div")
+        node = doc.createElement("div")
 
         if printer_friendly:
             self.path = resizeimage(self.path, ingroup)
@@ -100,13 +101,13 @@ class Textfile:
         self.description = description
 
     def tohtml(self, ingroup):
-        node = Element("div")
+        node = doc.createElement("div")
         htmlheader("h3", self.description, node)
 
-        file = open(self.path, 'r')
-        pre = htmlelement("pre", node)
-        htmltext(file.read(), pre)
-        
+        with open(self.path, 'r', encoding='utf-8') as file:
+            pre = htmlelement("pre", node)
+            htmltext(file.read(), pre)
+
         return node
 
 class Group:
@@ -117,7 +118,7 @@ class Group:
         self.description = description
 
     def tohtml(self, ingroup):
-        node = Element("div")
+        node = doc.createElement("div")
         htmlheader("h2", self.description, node)
         for part in self.parts:
             node.appendChild(part.tohtml(True))
@@ -137,7 +138,7 @@ class Report:
         self.description = description
 
     def settitle(self, title):
-        self.title = title;
+        self.title = title
 
     def setmetadata(self, metadata):
         self.metadata = metadata
@@ -146,9 +147,13 @@ class Report:
         self.parts.append(part)
 
     def tohtml(self):
-        root = self._createhtmldoc()
-        body = htmlelement("body", root)
+        html = doc.createElement("html")
+        doc.appendChild(html)
+        head = htmlelement("head", html)
+        title = htmlelement("title", head)
+        htmltext("Benchmark report - " + self.title, title)
 
+        body = htmlelement("body", html)
         htmlheader("h1", self.title, body)
         desc = htmlelement("p", body)
         htmltext(self.description, desc)
@@ -174,23 +179,16 @@ class Report:
         meta = self._metadataelement()
         body.appendChild(meta)
 
-        return root
-
-    def _createhtmldoc(self):
-        html = Element("html")
-        head = htmlelement("head", html)
-        title = htmlelement("title", head)
-        htmltext("Benchmark report - " + self.title, title)
-        return html
+        return doc
 
     def _tablecell(self, color):
-        tr = Element("tr")
+        tr = doc.createElement("tr")
         td = htmlelement("td", tr)
         td.setAttribute("bgcolor", color)
         return tr
 
     def _metadataelement(self):
-        table = Element("table")
+        table = doc.createElement("table")
         tr = htmlelement("tr", table)
         td = htmlelement("td", tr)
         htmlheader("h3", "Meta data", td)
@@ -208,6 +206,7 @@ class XMLError(Exception):
     def __str__(self):
         return repr(self.value)
 
+
 def xmlassert(predicate, message):
     """Help function for checking something and raising an XMLError"""
     if not predicate:
@@ -218,36 +217,27 @@ def xmlassert(predicate, message):
 # Functions to parse the XML format
 
 def parsebenchmark(node):
-    xmlassert(len(node.childNodes) == 1 and \
-                  hasattr(node.childNodes[0], "data"),
-              "Bas benchmark element")
+    xmlassert(len(node.childNodes) == 1 and
+              hasattr(node.childNodes[0], "data"),
+              "Bad benchmark element")
     return node.childNodes[0].data
 
 def parseimage(node):
-    xmlassert(node.hasAttribute("src") and \
-                  len(node.childNodes) == 1 and \
-                  hasattr(node.childNodes[0], "data"),
+    xmlassert(node.hasAttribute("src") and
+              len(node.childNodes) == 1 and
+              hasattr(node.childNodes[0], "data"),
               "Bad image element")
-
-    embed = False
-
-    if node.hasAttribute("embed") and \
-            node.getAttribute("embed") == "1":
-        embed = True
-
+    embed = node.hasAttribute("embed") and node.getAttribute("embed") == "1"
     return Image(node.getAttribute("src"), node.childNodes[0].data, embed)
 
 def parsetextfile(node):
-    xmlassert(node.hasAttribute("src") and \
-                  node.hasAttribute("description"), 
+    xmlassert(node.hasAttribute("src") and node.hasAttribute("description"),
               "Bad text element")
     return Textfile(node.getAttribute("src"),
                     node.getAttribute("description"))
 
 def parsegroup(node):
-    xmlassert(node.hasAttribute("description"), 
-              "Bad group element")
-
+    xmlassert(node.hasAttribute("description"), "Bad group element")
     parts = []
     for child in node.childNodes:
         if child.nodeType == node.ELEMENT_NODE:
@@ -265,7 +255,8 @@ def parsepart(node):
     elif tag == "textfile":
         return parsetextfile(node)
     else:
-        raise XMLError("Bad element (" + tag + ")")
+        raise XMLError(f"Bad element ({tag})")
+
 
 def parsexml(xml, report):
     report.settitle(xml.getAttribute("title"))
@@ -285,7 +276,7 @@ if __name__ == "__main__":
 
     # Check if we should do a printer friendly report
     # (all images embedded and resized if they are too big)
-    if sys.argv.count("-p") > 0:
+    if "-p" in sys.argv:
         printer_friendly = True
         sys.argv.remove("-p")
 
@@ -294,30 +285,31 @@ if __name__ == "__main__":
 
     # Open and parse the XML file into a DOM tree
     try:
-        file = open(sys.argv[1])
-        xmldoc = minidom.parse(file).documentElement
+        with open(sys.argv[1], encoding='utf-8') as file:
+            xmldoc = minidom.parse(file).documentElement
 
         # Traverse the DOM tree and create our internal representation
         parsexml(xmldoc, report)
 
         try:
-            metadata = open(sys.argv[2]).read()
-        except IOError,e:
+            with open(sys.argv[2], encoding='utf-8') as f:
+                metadata = f.read()
+        except IOError:
             metadata = ""
         report.setmetadata(metadata)
-    except XMLError,e:
-        print >> sys.stderr, e
+
+    except XMLError as e:
+        print(e, file=sys.stderr)
         sys.exit(1)
-    except IOError,e:
-        print >> sys.stderr, "I/O error: " + e.strerror
-        print >> sys.stderr, "File: " + e.filename
+    except IOError as e:
+        print(f"I/O error: {e.strerror}", file=sys.stderr)
+        print(f"File: {e.filename}", file=sys.stderr)
         sys.exit(1)
-    except ResizeFail,e:
-        print >> sys.stderr, "Failed to resize, ImageMagick not installed?"
+    except ResizeFail:
+        print("Failed to resize, ImageMagick not installed?", file=sys.stderr)
         sys.exit(1)
-    except:
-        print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
+    except Exception:
+        print(f"Unexpected error: {sys.exc_info()[0]}", file=sys.stderr)
         sys.exit(1)
 
-    # Serialize to HTML
-    print report.tohtml().toxml()
+    print(report.tohtml().toxml())

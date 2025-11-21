@@ -11,7 +11,6 @@
 # -c	Use option -c when this script is run on a cluster node. With this option, it
 #	will not run the deltareport jobs with nohup, which doesnt work well on a cluster.
 
-module load Python/2.7.18
 module load ImageMagick/7.1.0-37
 
 summarytool="delta"

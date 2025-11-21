@@ -14,7 +14,7 @@
 set +e
 
 module purge &>/dev/null
-module load GCCcore/11.3.0 Python/2.7.18 ImageMagick/7.1.0-37
+module load GCCcore/11.3.0 ImageMagick/7.1.0-37
 
 summarytool="delta"
 sub_imgs_cmd="$(dirname "$0")/deltareport_sub_imgs.sh"
@@ -348,7 +348,7 @@ cp $reportpath/report.xml $diffreportpath
 { cat $reportpath/../../info.txt; echo; echo Comparator benchmark; echo; echo; cat $comparatorpath/../../info.txt; } >svn.info.txt
 
 # run report2html
-python2 `cd srccatalog_bmcommon; pwd -P`/../report2html report.xml svn.info.txt >index.html
+python3 `cd srccatalog_bmcommon; pwd -P`/../report2html report.xml svn.info.txt >index.html
 
 # Compar-info in header
 sed -i 's|</p><table|\n</p><table|' index.html

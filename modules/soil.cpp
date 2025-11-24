@@ -1147,6 +1147,16 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 			// Percolation from the top  layer (limited to available liquid water)
 			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), Faw_layer1);
 
+			if (ifzhou) {
+				double max_perc = 0;
+				for (size_t s = 0; s < NSOILLAYER_UPPER; s++) {
+					// Soil hydraulic conductivity, converted from m/s to mm/day.
+					max_perc += K_actual[s] * 1000.0 * 86400.0;
+				}
+				assert(max_perc >= 0);
+				// perc = min(perc, max_perc);
+			}
+
 			for (int s = 0; s<NSOILLAYER_UPPER; s++) {
 
 				// Take water proportionally from the layers.
@@ -1212,7 +1222,16 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 			if (ifdavehydrology){
 				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
-				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2);
+				if (ifzhou) {
+					double max_perc = 0;
+					for (size_t s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
+						// Convert from m/s to mm/day.
+						max_perc += K_actual[s] * 1000.0 * 86400.0;
+					}
+					assert(max_perc >= 0);
+					// perc_from_base = min(perc_from_base, max_perc);
+				}
 			} else {
 				perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
 				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 

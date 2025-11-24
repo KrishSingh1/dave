@@ -642,12 +642,6 @@ void NCVariable::validate_time_axis() const {
 		throw std::runtime_error((const char *)msg);
 	}
 
-	// Ensure day boundaries every day_length samples and dates increment by one day
-	if (ntime % day_length != 0) {
-		xtring msg;
-		msg.printf("Total number of timesteps is not an integer multiple of day_length: %d", ntime);
-		throw std::runtime_error((const char *)msg);
-	}
 	size_t ndays = ntime / day_length;
 	if (ndays == 0) {
 		xtring msg;

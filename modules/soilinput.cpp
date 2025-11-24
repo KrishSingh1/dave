@@ -107,6 +107,24 @@ coord SoilInput::find_closest_point(double searchradius, coord C) {
 		}
 	}
 
+	// Try a closest-match.
+	const double EXACT_MATCH_EPS = 1e-3;
+	double dist_min = 1e100;
+	if (!soil_code) {
+		// Search through the map
+		for (std::map<coord, SoilDataMineral>::iterator it = mineral_map.begin(); it != mineral_map.end(); ++it) {
+			coord search_point = it->first;
+			double xdist = search_point.second - lat;
+			double ydist = search_point.first - lon;
+			double dist = sqrt(xdist * xdist + ydist * ydist);
+
+			dist_min = min(dist, dist_min);
+			if (dist <= EXACT_MATCH_EPS) {
+				return search_point;
+			}
+		}
+	}
+
 	fail("Coordinate at %f, %f could not be found in the soil map.\n",lon,lat);
 	return C;
 }

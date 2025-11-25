@@ -636,31 +636,24 @@ void NCVariable::validate_time_axis() const {
 
 	// Verify first timestamp is at midnight and that day boundaries align
 	GuessNC::CF::DateTime dt0 = time_spec.get_date_time(time_vals[0], calendar_type);
-	if (!(dt0.get_hour() == 0 && dt0.get_minute() == 0 && dt0.get_second() == 0)) {
+	timepoint tp0 = to_timepoint(dt0);
+	if (tp0.timestep != 0) {
 		xtring msg;
-		msg.printf("First time step is not aligned to midnight: %g", dt0.get_hour());
+		msg.printf("First time step is not aligned to midnight: %g-%g-%g %g:%g:%g",
+				   dt0.get_year(), dt0.get_month(), dt0.get_day(),
+				   dt0.get_hour(), dt0.get_minute(), dt0.get_day());
 		throw std::runtime_error((const char *)msg);
 	}
 
 	size_t ndays = ntime / day_length;
 	if (ndays == 0) {
-		xtring msg;
-		msg.printf("Computed zero days from time axis: %d", ndays);
-		throw std::runtime_error((const char *)msg);
+		throw std::runtime_error("Computed zero days from time axis");
 	}
 
-	timepoint prev_tp = to_timepoint(dt0);
-	if (prev_tp.timestep != 0) {
-		throw std::runtime_error("First boundary does not map to timestep 0");
-	}
+	timepoint prev_tp = tp0;
 	for (size_t k = 1; k < ndays; ++k) {
 		size_t idx = k * (size_t)day_length;
 		GuessNC::CF::DateTime dtk = time_spec.get_date_time(time_vals[idx], calendar_type);
-		if (!(dtk.get_hour() == 0 && dtk.get_minute() == 0 && dtk.get_second() == 0)) {
-			xtring msg;
-			msg.printf("Day boundary at index %zu is not midnight", idx);
-			throw std::runtime_error((const char*)msg);
-		}
 		timepoint tp = to_timepoint(dtk);
 		if (tp.timestep != 0) {
 			throw std::runtime_error("Day boundary does not fall on timestep 0");

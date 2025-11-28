@@ -1874,10 +1874,14 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	double wcont_opt[NSOILLAYERS_MAX];
 	bool add_water[NSOILLAYERS_MAX];
 
-	for (int i = 0; i < nsoillayersupper; i++) add_water[i] = true;
+	for (int i = 0; i < nsoillayersupper; i++) {
+		add_water[i] = true;
+	}
 
-	double wcont_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, WCONT, AWC);
-	double awc_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, AWC);
+	double awc_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::awc);
+	double wp_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::wp);
+	double wmass_upper = soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::wmass);
+	double wcont_upper = min(1.0, (wmass_upper - wp_upper) / awc_upper);
 
 	if (wcont_upper < 0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
@@ -1918,7 +1922,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		if (irrigate_soil && soilcolumn.snow.depth() <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
-			if (!soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, IMASS)) {
+			if (!soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::imass)) {
 
 				// Irrigation water for this PFT:
 
@@ -1998,8 +2002,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	double wcont[NSOILLAYERS_MAX];
 
 	// Get array with updated wcont and awc
-	soilcolumn.get(WCONT, wcont);
-	soilcolumn.get(AWC, awc);
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+		awc[lyr] = soillayer.awc;
+		wcont[lyr] = soillayer.wcont();
+	}
 
 	return water_uptake(wcont, awc, ppft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
@@ -2022,15 +2029,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 	double wcont[NSOILLAYERS_MAX], awc[NSOILLAYERS_MAX];
 
-	// Get array with wcont
-	soilcolumn.get(WCONT, wcont);
-
 	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-		wcont[lyr] = soilcolumn.soillayers[lyr].temp >= 0.0 ? soilcolumn.soillayers[lyr].wcont() : 0.0;
+		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+		wcont[lyr] = soillayer.temp >= 0.0 ? soillayer.wcont() : 0.0;
+		awc[lyr] = soillayer.awc;
 	}
-
-	// Get array with awc
-	soilcolumn.get(AWC, awc);
 
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {

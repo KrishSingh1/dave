@@ -1685,7 +1685,7 @@ void soilnadd(Patch& patch) {
 	const double cconttot = soilcolumn.ccont();
 
 	// Get available NH4 and NO3
-	const double navailtot = soilcolumn.get_sum(NH_4) + soilcolumn.get_sum(NO_3);
+	const double navailtot = soilcolumn.get_sum(&Soillayer::NH4_mass) + soilcolumn.get_sum(&Soillayer::NO3_mass);
 
 	// There is organic matter in the soil column and NH4 and NO3 is below saturation level
 	if (!negligible(cconttot) && navailtot < NMASS_SAT_NFIX) {

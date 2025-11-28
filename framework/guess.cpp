@@ -632,7 +632,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 
 	double ccont = soilcolumn.ccont();
 
-	ccont += soilcolumn.get_sum(CH_4) * KG_PER_G;
+	ccont += soilcolumn.get_sum(&Soillayer::CH4) * KG_PER_G;
 
 	ccont += soilcolumn.snow.ccont();
 
@@ -689,7 +689,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 /// Water content of patch
 double Patch::wcontent() {
 
-	double wcontent = soilcolumn.get_sum(WCONTENT);
+	double wcontent = soilcolumn.get_sum(&Soillayer::wmass) + soilcolumn.get_sum(&Soillayer::imass);
 
 	wcontent += soilcolumn.snow.wcontent();
 

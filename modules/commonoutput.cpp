@@ -1790,8 +1790,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
 			imass_snow_gridcell += snow.imass() * to_gridcell_average;
 			wmass_ssw_gridcell += soilcolumn.ssw.wcontent() * to_gridcell_average;
-			wmass_soil_gridcell += soilcolumn.get_sum(WMASS) * to_gridcell_average;
-			imass_soil_gridcell += soilcolumn.get_sum(IMASS) * to_gridcell_average;
+			wmass_soil_gridcell += soilcolumn.get_sum(&Soillayer::wmass) * to_gridcell_average;
+			imass_soil_gridcell += soilcolumn.get_sum(&Soillayer::imass) * to_gridcell_average;
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001) {
@@ -1805,8 +1805,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			aNH4dep_gridcell += gridcell.aNH4dep * to_gridcell_average;
 			aNO3dep_gridcell += gridcell.aNO3dep * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
-			anmin_gridcell += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
-			animm_gridcell += soilcolumn.get_sum(ANIMM) * to_gridcell_average;
+			anmin_gridcell += soilcolumn.get_sum(&Soillayer::anmin) * to_gridcell_average;
+			animm_gridcell += soilcolumn.get_sum(&Soillayer::animmob) * to_gridcell_average;
 			anfix_gridcell += soilcolumn.anfix * to_gridcell_average;
 			n_min_leach_gridcell += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
 			c_org_leach_gridcell += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
@@ -1841,7 +1841,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				cinc[lyr][0] += soillayer.acinc[0] * to_gridcell_average;
 				cinc[lyr][1] += soillayer.acinc[1] * to_gridcell_average;
 
-				clitterinput[lyr + 1] += (soillayer.get(AFLITTERINPUT) + soillayer.get(ACLITTERINPUT)) * to_gridcell_average;
+				clitterinput[lyr + 1] += (soillayer.acmassfinput + soillayer.acmasscinput) * to_gridcell_average;
 
 				c_fast += soillayer.cpool_fast * to_gridcell_average;
 				c_slow += soillayer.cpool_slow * to_gridcell_average;
@@ -1911,26 +1911,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 					soilc_depth[lyr + 1] += (soilcolumn.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
 					soiln_depth[lyr + 1] += (soilcolumn.var_depth_ncont(depth_prev, depth_this) - soiln_prev) * to_gridcell_average;
-					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, ARH) - soilr_prev)* to_gridcell_average;
-					clitterinput_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, AFLITTERINPUT) + soilcolumn.var_depth(depth_prev, depth_this, ACLITTERINPUT)) * to_gridcell_average;
-					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, ANMIN) - soilcolumn.var_depth(depth_prev, depth_this, ANIMM)) * to_gridcell_average;
-					org_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ORG) / depth_lyr * to_gridcell_average;
-					min_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_MIN) / depth_lyr * to_gridcell_average;
-					rock_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ROCK) / depth_lyr * to_gridcell_average;
-					root_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, VOL_ROOT) / depth_lyr * to_gridcell_average;
-					double wsats = soilcolumn.var_depth(depth_prev, depth_this, WSATS);
+					soilr_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::arespsum) - soilr_prev) * to_gridcell_average;
+
+					clitterinput_depth[lyr + 1] += (soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::acmassfinput) + 
+						soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::acmasscinput)) * to_gridcell_average;
+					soilnetnmin_depth[lyr] += (soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::anmin) - 
+						soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::animmob)) * to_gridcell_average;
+					org_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::organic_volume) / depth_lyr * to_gridcell_average;
+					min_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::mineral_volume) / depth_lyr * to_gridcell_average;
+					rock_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::coarse_volume) / depth_lyr * to_gridcell_average;
+					root_frac_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::root_volume) / depth_lyr * to_gridcell_average;
+					double wsats = soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::wsats);
 					wsats_depth[lyr] += wsats / depth_lyr * to_gridcell_average;
-					temp_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODTEMP, DEPTH) * to_gridcell_average;
-					moist_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODMOIS, DEPTH) * to_gridcell_average;
-					tot_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, MODTOT, DEPTH) * to_gridcell_average;
+					temp_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::atemp_mod, &Soillayer::depth) * to_gridcell_average;
+					moist_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::amoist_mod, &Soillayer::depth) * to_gridcell_average;
+					tot_mod_depth[lyr] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::atot_mod, &Soillayer::depth) * to_gridcell_average;
 
 					for (int mth = 0; mth < 12; mth++) {
-						double wmass = soilcolumn.var_depth(depth_prev, depth_this, MWMASS, mth) / wsats;
-						double imass = soilcolumn.var_depth(depth_prev, depth_this, MIMASS, mth) / wsats;
+						double wmass = soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::mwmass, mth) / wsats;
+						double imass = soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::mimass, mth) / wsats;
 						mwmass_depth[lyr][mth] += wmass * to_gridcell_average;
 						mimass_depth[lyr][mth] += imass * to_gridcell_average;
 						mwimass_depth[lyr][mth] += (wmass + imass) * to_gridcell_average;
-						mdrain_depth[lyr][mth] += soilcolumn.var_depth(depth_prev, depth_this, MDRAIN, mth) * to_gridcell_average;
+						mdrain_depth[lyr][mth] += soilcolumn.var_depth(depth_prev, depth_this, &Soillayer::mdrain, mth) * to_gridcell_average;
 					}
 
 					soilc_prev = 0.0;
@@ -1963,14 +1966,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				soilc_cm[d] += carbon * frac * to_gridcell_average;
 				soilcp_cm[d] += carbon * (1.0 - frac) * to_gridcell_average;
-				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
-				litter_F_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, AFLITTERINPUT) * to_gridcell_average;
-				litter_C_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, ACLITTERINPUT) * to_gridcell_average;
+				rh_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, &Soillayer::arespsum) * to_gridcell_average;
+				litter_F_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, &Soillayer::acmassfinput) * to_gridcell_average;
+				litter_C_cm[d] += soilcolumn.var_depth(dcm, dcm + dint, &Soillayer::acmasscinput) * to_gridcell_average;
 
 				if (stand.landcover == PEATLAND) {
 					soilc_cm_peat[d] += carbon * frac * to_gridcell_average;
 					soilcp_cm_peat[d] += carbon * (1.0 - frac) * to_gridcell_average;
-					rh_cm_peat[d] += soilcolumn.var_depth(dcm, dcm + dint, ARH) * to_gridcell_average;
+					rh_cm_peat[d] += soilcolumn.var_depth(dcm, dcm + dint, &Soillayer::arespsum) * to_gridcell_average;
 				}
 
 				dcm += dint;
@@ -1981,28 +1984,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			double carbon = soilcolumn.var_depth_ccont(dcm, dcm + 5000.0);
 			soilc_cm[50] += carbon * frac * to_gridcell_average;
 			soilcp_cm[50] += carbon * (1.0 - frac) * to_gridcell_average;
-			rh_cm[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, ARH) * to_gridcell_average;
+			rh_cm[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, &Soillayer::arespsum) * to_gridcell_average;
 
 			if (stand.landcover == PEATLAND) {
 				soilc_cm_peat[50] += carbon * frac * to_gridcell_average;
 				soilcp_cm_peat[50] += carbon * (1.0 - frac) * to_gridcell_average;
-				rh_cm_peat[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, ARH) * to_gridcell_average;
+				rh_cm_peat[50] += soilcolumn.var_depth(dcm, dcm + 5000.0, &Soillayer::arespsum) * to_gridcell_average;
 			}
 
 			soilc_depth[sslyr + 1] += soilcolumn.ccont() * to_gridcell_average;
 			soiln_depth[sslyr + 1] += soilcolumn.ncont() * to_gridcell_average;
-			soilr_depth[sslyr + 1] += soilcolumn.get_sum(ARH) * to_gridcell_average;
-			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(ANMIN) - soilcolumn.get_sum(ANIMM)) * to_gridcell_average;
-			clitterinput_depth[sslyr + 1] += (surfflitinput + surfclitinput + soilcolumn.get_sum(AFLITTERINPUT) + soilcolumn.get_sum(ACLITTERINPUT)) * to_gridcell_average;
-			org_frac_depth[sslyr] += soilcolumn.get_sum(VOL_ORG) / soilcolumn.depth * to_gridcell_average;
-			min_frac_depth[sslyr] += soilcolumn.get_sum(VOL_MIN) / soilcolumn.depth * to_gridcell_average;
-			rock_frac_depth[sslyr] += soilcolumn.get_sum(VOL_ROCK) / soilcolumn.depth * to_gridcell_average;
-			root_frac_depth[sslyr] += soilcolumn.get_sum(VOL_ROOT) / soilcolumn.depth * to_gridcell_average;
-			double wsats_tot = soilcolumn.get_sum(WSATS);
+			soilr_depth[sslyr + 1] += soilcolumn.get_sum(&Soillayer::arespsum) * to_gridcell_average;
+			soilnetnmin_depth[sslyr] += (soilcolumn.get_sum(&Soillayer::anmin) - soilcolumn.get_sum(&Soillayer::animmob)) * to_gridcell_average;
+			clitterinput_depth[sslyr + 1] += (surfflitinput + surfclitinput + soilcolumn.get_sum(&Soillayer::acmassfinput) + 
+				soilcolumn.get_sum(&Soillayer::acmasscinput)) * to_gridcell_average;
+			org_frac_depth[sslyr] += soilcolumn.get_sum(&Soillayer::organic_volume) / soilcolumn.depth * to_gridcell_average;
+			min_frac_depth[sslyr] += soilcolumn.get_sum(&Soillayer::mineral_volume) / soilcolumn.depth * to_gridcell_average;
+			rock_frac_depth[sslyr] += soilcolumn.get_sum(&Soillayer::coarse_volume) / soilcolumn.depth * to_gridcell_average;
+			root_frac_depth[sslyr] += soilcolumn.get_sum(&Soillayer::root_volume) / soilcolumn.depth * to_gridcell_average;
+			double wsats_tot = soilcolumn.get_sum(&Soillayer::wsats);
 			wsats_depth[sslyr] += wsats_tot / soilcolumn.depth * to_gridcell_average;
-			temp_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODTEMP, DEPTH) * to_gridcell_average;
-			moist_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODMOIS, DEPTH) * to_gridcell_average;
-			tot_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, MODTOT, DEPTH) * to_gridcell_average;
+			temp_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, &Soillayer::atemp_mod, &Soillayer::depth) * to_gridcell_average;
+			moist_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, &Soillayer::amoist_mod, &Soillayer::depth) * to_gridcell_average;
+			tot_mod_depth[sslyr] += soilcolumn.var_depth(0.0, soilcolumn.depth, &Soillayer::atot_mod, &Soillayer::depth) * to_gridcell_average;
 
 			depth_prev = 0.0;
 			for (int lyr = 0; lyr < sstlyr; lyr++) {
@@ -2010,40 +2014,40 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				double depth_lyr = depth_this - depth_prev;
 
 				for (int mth = 0; mth < 12; mth++) {
-					mtemp_depth[lyr][mth] += soilcolumn.var_depth(depth_prev, depth_this, MTEMP, DEPTH, mth) * to_gridcell_average;
+					mtemp_depth[lyr][mth] += soilcolumn.temp_depth(depth_prev, depth_this, mth) * to_gridcell_average;
 				}
 
 				depth_prev = depth_this;
 			}
 
 			for (int mth = 0; mth < 12; mth++) {
-				double wmass_tot = soilcolumn.get_sum(MWMASS, mth);
-				double imass_tot = soilcolumn.get_sum(MIMASS, mth);
+				double wmass_tot = soilcolumn.get_sum(&Soillayer::mwmass, mth);
+				double imass_tot = soilcolumn.get_sum(&Soillayer::mimass, mth);
 
 				mwmass_depth[sslyr][mth] += wmass_tot / wsats_tot * to_gridcell_average;
 				mimass_depth[sslyr][mth] += imass_tot / wsats_tot * to_gridcell_average;
 				mwimass_depth[sslyr][mth] += (wmass_tot + imass_tot) / wsats_tot * to_gridcell_average;
-				mdrain_depth[sslyr][mth] += soilcolumn.get_sum(MDRAIN, mth) * to_gridcell_average;
+				mdrain_depth[sslyr][mth] += soilcolumn.get_sum(&Soillayer::mdrain, mth) * to_gridcell_average;
 			}
 
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
 				if (lyr == 0) {
 					soilc[lyr] += (soillayer.ccont() - surflitc) * to_gridcell_average;
-					soilr[lyr] += (soillayer.get(ARH) - surflitr) * to_gridcell_average;
+					soilr[lyr] += (soillayer.arespsum - surflitr) * to_gridcell_average;
 				}
 				else {
 					soilc[lyr] += soillayer.ccont() * to_gridcell_average;
-					soilr[lyr] += soillayer.get(ARH) * to_gridcell_average;
+					soilr[lyr] += soillayer.arespsum * to_gridcell_average;
 				}
-				temp_mod[lyr] += soillayer.get(MODTEMP) * to_gridcell_average;
-				moist_mod[lyr] += soillayer.get(MODMOIS) * to_gridcell_average;
-				tot_mod[lyr] += soillayer.get(MODTOT) * to_gridcell_average;
+				temp_mod[lyr] += soillayer.atemp_mod * to_gridcell_average;
+				moist_mod[lyr] += soillayer.amoist_mod * to_gridcell_average;
+				tot_mod[lyr] += soillayer.atot_mod * to_gridcell_average;
 				wsats[lyr] += soillayer.wsats / soillayer.depth * to_gridcell_average;
 				wsats[NSOILLAYERS_MAX] += soillayer.wsats / soilcolumn.depth * to_gridcell_average;
 			}
 			soilc[NSOILLAYERS_MAX] += (soilcolumn.ccont() - surflitc) * to_gridcell_average;
-			soilr[NSOILLAYERS_MAX] += (soilcolumn.get_sum(ARH) - soilcolumn.asurflitterresp) * to_gridcell_average;
+			soilr[NSOILLAYERS_MAX] += (soilcolumn.get_sum(&Soillayer::arespsum) - soilcolumn.asurflitterresp) * to_gridcell_average;
 
 			soilc_ald += soilcolumn.var_depth_ccont(0.0, soilcolumn.maxthaw) * to_gridcell_average;
 			soilc_tot += soilcolumn.ccont() * to_gridcell_average;
@@ -2060,10 +2064,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mrunoff[m] += (fluxes.get_monthly_flux(Fluxes::WRUNOFF_SURF, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_DRAIN, m) + fluxes.get_monthly_flux(Fluxes::WRUNOFF_BASE, m)) * to_gridcell_average;
 				mrh[m] += fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 
-				mwmass[m] += soilcolumn.get_sum(MWMASS, m) * to_gridcell_average;
-				mimass[m] += soilcolumn.get_sum(MIMASS, m) * to_gridcell_average;
-				mwcont_upper[m] += soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, MWCONT, AWC, m) * to_gridcell_average;
-				mwcont_lower[m] += soilcolumn.var_depth(SOILDEPTH_UPPER, soilcolumn.depth, MWCONT, AWC, m) * to_gridcell_average;
+				mwmass[m] += soilcolumn.get_sum(&Soillayer::mwmass, m) * to_gridcell_average;
+				mimass[m] += soilcolumn.get_sum(&Soillayer::mimass, m) * to_gridcell_average;
+				mwcont_upper[m] += soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, m) * to_gridcell_average;
+				mwcont_lower[m] += soilcolumn.var_depth(SOILDEPTH_UPPER, soilcolumn.depth, &Soillayer::mwcont, &Soillayer::awc, m) * to_gridcell_average;
 
 				mgpp[m] += fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -2146,11 +2150,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						}
 					}
 					else if (lyr == NSOILLAYERS_MAX) {
-						mwmasslyr[lyr][m] += wmass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
-						mimasslyr[lyr][m] += imass_tot / soilcolumn.get_sum(WSATS) * to_gridcell_average;
+						double wsats = soilcolumn.get_sum(&Soillayer::wsats);
+						mwmasslyr[lyr][m] += wmass_tot / wsats * to_gridcell_average;
+						mimasslyr[lyr][m] += imass_tot / wsats * to_gridcell_average;
 						mdrainlyr[lyr][m] += drain_tot * to_gridcell_average;
 						if (m == 0) {
-							wsatslyr[lyr] += soilcolumn.get_sum(WSATS) * to_gridcell_average;
+							wsatslyr[lyr] += wsats * to_gridcell_average;
 							csoillyr[lyr] += soilcolumn.ccont() * to_gridcell_average;
 						}
 					}
@@ -2654,8 +2659,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
 
 			if (!ifcentury) {
-				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soilcolumn.get_sum(CSLOW));
-				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soilcolumn.get_sum(CFAST));
+				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soilcolumn.get_sum(&Soillayer::cpool_slow));
+				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soilcolumn.get_sum(&Soillayer::cpool_fast));
 			}
 			else {
 				plot("N flux [kgN/ha/yr]","fix",   date.year, -anfix_gridcell * M2_PER_HA);

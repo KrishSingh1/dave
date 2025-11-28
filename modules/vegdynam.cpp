@@ -125,7 +125,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-		double awcontupper = patch.soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, AWCONT, AWC);
+		double awcontupper = patch.soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::awcont, &Soillayer::awc);
         if (pft.drought_tolerance > awcontupper) {
            return false;
         }

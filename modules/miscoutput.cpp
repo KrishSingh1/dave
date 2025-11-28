@@ -915,8 +915,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += soilcolumn.get_sum(ANMIN) * to_gridcell_average;
-			animm_lc[stand.landcover] += soilcolumn.get_sum(ANIMM) * to_gridcell_average;
+			anmin_lc[stand.landcover] += soilcolumn.get_sum(&Soillayer::anmin) * to_gridcell_average;
+			animm_lc[stand.landcover] += soilcolumn.get_sum(&Soillayer::animmob) * to_gridcell_average;
 			anfix_lc[stand.landcover] += soilcolumn.anfix * to_gridcell_average;
 			n_min_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
 			n_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGN) * to_gridcell_average;

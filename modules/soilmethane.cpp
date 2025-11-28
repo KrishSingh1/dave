@@ -261,8 +261,8 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 
 	// Conservation check - C in methane produced
 	double c_input = 0.0;
-	double initial_CH4 = get_sum(CH_4);
-	double initial_CO2 = get_sum(CO_2) + get_sum(RESPSUM) * G_PER_KG;
+	double initial_CH4 = get_sum(&Soillayer::CH4);
+	double initial_CO2 = get_sum(&Soillayer::CO2) + get_sum(&Soillayer::respsum) * G_PER_KG;
 
 	double CH4_prod, CO2_prod;
 
@@ -293,9 +293,9 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 		soillayer.CO2 += CO2_prod;
 	}
 
-	double total_CH4 = get_sum(CH_4);
-	double total_CO2 = get_sum(CO_2);
-	double respsum_tot = get_sum(RESPSUM);
+	double total_CH4 = get_sum(&Soillayer::CH4);
+	double total_CO2 = get_sum(&Soillayer::CO2);
+	double respsum_tot = get_sum(&Soillayer::respsum);
 
 	if (fabs((initial_CH4 + initial_CO2) - (total_CH4 + total_CO2)) > 1.0e-12)
 		dprintf("Year %d Day %d ERROR: CH4 production %g\n",date.year,date.day, (initial_CH4 + initial_CO2) - (total_CH4 + total_CO2));
@@ -758,7 +758,7 @@ void Soilcolumn::oxidation_ch4() {
 void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 
 	// Initial mass
-	double initial_CH4 = get_sum(CH_4);
+	double initial_CH4 = get_sum(&Soillayer::CH4);
 
 	// Ebullition to emit today [g m-2 d-1]
 	ebull_today = 0.0;
@@ -839,7 +839,7 @@ void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 	}
 
 	// C mass at end
-	double end_CH4 = get_sum(CH_4);
+	double end_CH4 = get_sum(&Soillayer::CH4);
 
 	if (fabs(initial_CH4 - (end_CH4 + ebull_today)) > 1.0e-12)
 		dprintf("Year %d Day %d ERROR: gas_ebullition %g\n",date.year,date.day, initial_CH4 - (end_CH4 + ebull_today));
@@ -914,8 +914,8 @@ void Soilcolumn::methane(bool generatemethane) {
 
 		// C budget before today's methane calculations
 
-		double ch4_budget_init = get_sum(CH_4) * KG_PER_G;
-		double co2_budget_init = get_sum(RESPSUM);
+		double ch4_budget_init = get_sum(&Soillayer::CH4) * KG_PER_G;
+		double co2_budget_init = get_sum(&Soillayer::respsum);
 
 		// Step 1
 
@@ -981,7 +981,7 @@ void Soilcolumn::methane(bool generatemethane) {
 		double CH4_flux_today = CH4_diff_today + CH4_plant_today + CH4_ebull_today;
 
 		// Calculate total heterotrophic respiration [kg C m-2]
-		double tot_respsum = get_sum(CO_2) * KG_PER_G;
+		double tot_respsum = get_sum(&Soillayer::CO2) * KG_PER_G;
 
 		// Report the heterotrophic respiration [kg C m-2] and the 4 CH4 fluxes [g C m-2].
 		fluxes.report_flux(Fluxes::SOILC, tot_respsum);
@@ -996,7 +996,7 @@ void Soilcolumn::methane(bool generatemethane) {
 		}
 
 		// Check C budget
-		double ch4_budget_end = get_sum(CH_4) * KG_PER_G;
+		double ch4_budget_end = get_sum(&Soillayer::CH4) * KG_PER_G;
 		double co2_budget_end = tot_respsum;
 		double ch4_flux_budget_end = CH4_flux_today * KG_PER_G;
 

@@ -150,13 +150,6 @@ typedef enum {O2gas, CO2gas, CH4gas} gastype;
 /// Nitrogen preferance
 typedef enum {NO, NH4, NO3} n_pref_type;
 
-/// Soil property types
-typedef enum {DEPTH, TEMP, MTEMP, WMASS, MWMASS, IMASS, MIMASS, WCONT, MWCONT, AWCONT,
-WSATS, AWC, WP, KW_MAX, MDRAIN, WCONTENT, RUNOFFDRAIN, RUNOFFBASE, 
-CSLOW, CFAST, CSOM, NSOM, NH_4, NO_3, CH_4, CO_2, RESPSUM, 
-ARH, ANMIN, ANIMM, AORGCLEACH, AORGNLEACH, AMINLEACH, AFLITTERINPUT, ACLITTERINPUT,
-VOL_ORG, VOL_MIN, VOL_ROCK, VOL_ROOT, MODTEMP, MODMOIS, MODTOT} soilproptype;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -4060,8 +4053,6 @@ public:
 
 	/// Initialise soil layer properties
 	void init();
-	/// Get property of soil layer
-	double get(soilproptype SPT, int m = 0);
 	// Mineral exponential in Campbell (1974) parameterization for soil 
 	// water retention curves from Table 4, Cosby (1984)
 	double mineral_exp(double clay_frac, double sand_frac);
@@ -4730,10 +4721,9 @@ public:
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
 	double ncont(grouppooltype group = GALL);
-	/// Get soil property per layer
-	void get(soilproptype SPT, double prop[NSOILLAYERS_MAX], int m = 0);
 	/// Get soil property totals
-	double get_sum(soilproptype SPT, int m = 0);
+	double get_sum(double Soillayer::* var_member);
+	double get_sum(double(Soillayer::* var_arr)[12], int m);
 	/// Get soil layers available nmass fraction
 	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool water_limited = false);
 	/// Get soil layers root fractions
@@ -4758,10 +4748,16 @@ public:
 	double temp_at_depth(double depth);
 	/// gtemp weighted against root distribution
 	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
+	/// Returns the soil temperature for a certain depth interval
+	double temp_depth(double depth_start, double depth_end);
+	/// Returns the month average soil temperature for a certain depth interval
+	double temp_depth(double depth_start, double depth_end, int mth = 0);
 	/// Returns the value of some vector within a certain depth interval
-	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, int mth = 0);
+	double var_depth(double depth_start, double depth_end, double Soillayer::* member);
+	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], int m);
 	/// Returns the value of some vector within a certain depth interval with a scalar
-	double var_depth(double depth_start, double depth_end, soilproptype SPT_var, soilproptype SPT_scal, int mth = 0);
+	double var_depth(double depth_start, double depth_end, double Soillayer::* var_member, double Soillayer::* scal_member);
+	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], double Soillayer::* scal_member, int mth);
 	/// Returns the value of soil C within a certain depth interval
 	double var_depth_ccont(double depth_start, double depth_end, grouppooltype group = GALL);
 	/// Returns the value of soil N within a certain depth interval

@@ -237,6 +237,8 @@ private:
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;
 	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
+	// the state calendar year calculate from state_year
+	int state_calendar_year;
 };
 
 #endif // HAVE_NETCDF

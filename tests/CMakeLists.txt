@@ -13,6 +13,7 @@ set(source
   guesscontainer_test.cpp
   management_test.cpp
   demo_integration_test.cpp
+  demo_state_test.cpp
   )
 
 include(add_test_sources)

@@ -107,6 +107,10 @@ NCInput::NCInput() {
 	, "Optional name of the nhx nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
 	declare_parameter("variable_ndep_noy", &variable_ndep_noy, NC_MAX_NAME
 	, "Optional name of the noy nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
+	declare_parameter("fixed_pressure", &fixed_pressure, 0, 200000
+	, "Optional fixed/constant air pressure to use in Pa");
+
+	fixed_pressure = 0;
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
@@ -479,13 +483,21 @@ try {
 	std::vector<double> precs = precip->read(lon, lat, year, day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, day, 1);
 	std::vector<double> vpds = vpd->read(lon, lat, year, day, 1);
-	std::vector<double> pressure = ps->read(lon, lat, year, day, 1);
+	std::vector<double> pressure;
+	if (fixed_pressure == 0) {
+		pressure = ps->read(lon, lat, year, day, 1);
+	} else {
+		pressure.resize(date.subdaily);
+		for (size_t i = 0; i < pressure.size(); i++) {
+			pressure[i] = fixed_pressure;
+		}
+	}
 
 	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
 		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
 		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
 		(vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
-		(ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
+		(ps && ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
 
 		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
 		return false;
@@ -864,7 +876,9 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	insol = create_variable(netcdf_file, variable_insol, nc_insol, bounds_insol, insol_units, true);
 	precip = create_variable(netcdf_file, variable_precip, nc_precip, bounds_prec, precip_units, true);
 	vpd = create_variable(netcdf_file, variable_vpd, nc_vpd, bounds_vpd, vpd_units, true);
-	ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
+	if (fixed_pressure == 0) {
+		ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
+	}
 
 
 	if (variable_wind != "" && variable_exists(netcdf_file, variable_wind)) {

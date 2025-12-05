@@ -753,6 +753,11 @@ private:
 	int spinup_timestep;
 
 	/*
+	Fixed/constant air pressure to use, in Pa.
+	*/
+	double fixed_pressure;
+
+	/*
 	The calendar used in the spinup data file, if a separate file is being used
 	for spinup.
 	*/

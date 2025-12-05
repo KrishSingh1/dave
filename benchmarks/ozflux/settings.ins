@@ -126,6 +126,14 @@ variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
 ! file_co2 will be used.
 !variable_co2                 "co2"  ! CO2 Concentration (ppm)
 
+! Subdaily relative humidity (0-1). Not required if VPD is provided instead.
+variable_rh                   ""
+
+! Algorithm used to estimate saturation vapour pressure (esat) from air
+! temperature. Required iff variable_rh is set. Valid options are:
+! sonntag_1990, alduchov_1996, allen_1998
+esat_method                  "sonntag_1990"
+
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
 file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note extended to 2040 for synthetic drought/recovery at CuP - just added diff from 2022-23 every year

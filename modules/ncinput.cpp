@@ -914,6 +914,9 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 		fail("Must set either variable_vpd or variable_rh in ins file");
 	}
 	if (fixed_pressure == 0) {
+		if (variable_ps == "") {
+			fail("Either variable_ps or fixed_pressure parameters must be set in the instruction file");
+		}
 		ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
 	}
 

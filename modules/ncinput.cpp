@@ -842,6 +842,7 @@ void NCInput::close_all() {
 	close_if_open(nc_insol);
 	close_if_open(nc_precip);
 	close_if_open(nc_vpd);
+	close_if_open(nc_rh);
 	close_if_open(nc_huss);
 	close_if_open(nc_ps);
 	close_if_open(nc_wind);

@@ -500,6 +500,13 @@ try {
 		climate.u10 = mean(winds);
 	}
 
+	for (size_t i = 0; i < vpds.size(); i++) {
+		if (vpds[i] < 0) {
+			printf("Year %d day %d timestep %zu vpd is negative: %f\n", date.year, date.day, i, vpds[i]);
+			vpds[i] = 0;
+		}
+	}
+
 	climate.temps = temps;
 	climate.insols = insols;
 	climate.vpds = vpds;

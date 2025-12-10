@@ -11,6 +11,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include <limits.h>
+
 #include "externalinput.h"
 
 /// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
@@ -175,9 +177,51 @@ void MiscInput::getelevation(Gridcell& gridcell) {
 	}
 }
 
+std::set<int> MiscInput::get_static_disturbances() const {
+	if (file_disturb == "") {
+		fail("file_disturb must be set when using disttype = DETERMINISTIC");
+	}
+
+	FILE* file = fopen(file_disturb, "r");
+	if (!file) {
+		fail("get_static_disturbances(): could not open %s for input: %s", (const char *)file_disturb, strerror(errno));
+	}
+
+	std::set<int> years;
+
+	const size_t BUFSIZE = 1024;
+	char buffer[BUFSIZE];
+	while (fgets(buffer, BUFSIZE, file)) {
+		// Convert to integer.
+		char *end;
+		errno = 0;
+		unsigned long year = strtoul(buffer, &end, 10);
+		if (errno != 0) {
+			fail("get_static_disturbances(): failed to parse line '%s': %s", buffer, strerror(errno));
+		}
+		if (end == buffer) {
+			fail("get_static_disturbances(): failed to parse line '%s': line cannot be converted to integer", buffer);
+		}
+		if (year > INT_MAX) {
+			fail("get_static_disturbances(): year %lu is out of range", year);
+		}
+		years.insert((int)year);
+	}
+
+	int err = fclose(file);
+	if (err) {
+		printf("WARNING: Failed to close file_disturb: %s", (const char *)file_disturb);
+	}
+
+	return years;
+}
+
 void MiscInput::getmiscinput_static(Gridcell& gridcell) {
 
 	getelevation(gridcell);
+	if (ifdisturb && disttype == DETERMINISTIC) {
+		gridcell.static_disturbances = get_static_disturbances();
+	}
 }
 
 void MiscInput::getmiscinput_yearly(Gridcell& gridcell) {
@@ -1876,13 +1920,13 @@ ManagementInput::~ManagementInput() {
 	}
 }
 
-void ManagementInput::init() {
+void ManagementInput::init(xtring file_gridlist) {
 
 	if(!run_landcover)
 		return;
 
 	ListArray_id<Coord> gridlist;
-	read_gridlist(gridlist, param["file_gridlist"].str);
+	read_gridlist(gridlist, (const char *)file_gridlist);
 
 	if(run[CROPLAND]) {
 
@@ -1963,6 +2007,16 @@ void ManagementInput::init() {
 		}
 	}
 
+	if (run[PASTURE]) {
+		file_grazing = param["file_grazing"].str;
+		if (file_grazing != "") {
+			if (!grazing.init(file_grazing)) {
+				fail("initio: could not open %s for input", (const char *)file_grazing);
+			}
+			read_grazing = true;
+		}
+	}
+
 	gridlist.killall();
 }
 
@@ -2031,6 +2085,13 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		if(!firstmanageyear_st.Load(c)) {
 			LUerror = true;	// skip this stand
 			dprintf("firstmanageyear data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+
+	if (read_grazing && !LUerror) {
+		if (!grazing.load()) {
+			LUerror = true; // skip this stand
+			dprintf("grazing data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -2259,6 +2320,22 @@ void ManagementInput::getfirstmanageyear(Gridcell& gridcell) {
 	}
 }
 
+/// Read firstmanageyear from file
+/** Saves value in input file for stand type in gridcell.st[stid].firstmanageyear_st and overrides mt firstmanageyear value
+ */
+void ManagementInput::get_grazing(Gridcell& gridcell) {
+	if(grazing.is_initialised()) {
+		GrazingDate grazing_day(date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
+		double animal_units = grazing.get_animal_units(grazing_day);
+		for (int i=0; i<gridcell.nbr_stands(); i++){
+			Stand& stand=gridcell[i];
+			if (stand.landcover == PASTURE){
+				stand.animal_units = animal_units;
+			}
+		}
+	}
+}
+
 /// Read pft target cutting biomass fractions from file
 /** File name with path, file_targetfrac_pft_mt, is defined in management types (or in stand types if if they don't have
  *  a rotation scheme). Columns for PFT values in text file are as in standard text input.In years with zero target cutting 
@@ -2293,6 +2370,11 @@ void ManagementInput::gettargetcutting(Gridcell& gridcell) {
 }
 
 void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input) {
+
+	// check for grazing every day
+	if (read_grazing) {
+		get_grazing(gridcell);
+	}
 
 	if (!run_landcover || date.day) {
 		return;

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get path to the directory containing this script.
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd -P)"
+
+# BSD sed: MUST use -i ''
+# GNU sed: MUST use just -i (equivalent: -i''); -i '' does NOT work
+I="-i"
+if ! sed --version 2>/dev/null | /usr/bin/grep -qi gnu >/dev/null 2>&1
+then
+    # BSD sed
+    I="-i ''"
+fi
+
+# TODO: add CLI option to control which paths are changed.
+
+# Force all sites to use flux data for the main simulation.
+#find . -name '*.ins' -exec sed ${I} -r 's/^([ \t]*file_met_forcing[ \t]+)"..\/forcing\/[^\/]+\//\1"..\/forcing\/met\//g' {} \;
+
+# Force all sites to use barra2 data for spinup.
+find . -name '*.ins' -exec sed ${I} -r 's/^([ \t]*file_met_spinup[ \t]+)"..\/forcing\/[^\/]+\//\1"..\/forcing\/met\//g' {} \;

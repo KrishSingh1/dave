@@ -31,6 +31,7 @@ void Soil::init_states() {
 
 	alag = 0.0;
 	exp_alag = 1.0;
+	navail_start_day = 0;
 	cpool_slow = 0.0;
 	cpool_fast = 0.0;
 	decomp_litter_mean = 0.0;
@@ -40,22 +41,40 @@ void Soil::init_states() {
 	snowpack = 0.0;
 	orgleachfrac = 0.0;
 
+	runoff = 0;
+	surfrunoff = 0;
+	drainrunoff = 0;
+	baserunoff = 0;
 	net_mineralisation = 0.0;
 	dminleach          = 0.0;
 	dorgNleach         = 0.0;
 	nvol               = 0.0;
+	anvol              = 0.0;
 	nloss_gas          = 0.0;
+	anloss_gas         = 0.0;
+	nimmob             = 0.0;
+	nmin_gross         = 0.0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		decay_reduction[i] = 0;
+	}
 
 	// Extra initialisation
 	aorgCleach = 0.0;
 	aorgNleach = 0.0;
 	anfix = 0.0;
+	dnfix = 0.0;
 	aminleach = 0.0;
 
 	lKorg = lKpeat = lKmin = lKwater = lKice = lKair = 0.0;
 
 	mwcontupper = 0.0;
 	mwcontlower = 0.0;
+
+	if (ifdavehydrology) {
+		// TODO: find a better place for this. This should be fine, but
+		// conceptually it makes no sense to have it here.
+		SOILDEPTH_EVAP = soildepth_evap;
+	}
 
 	for (int mth=0; mth<12; mth++) {
 		mwcont[mth][0] = 0.0;
@@ -105,6 +124,7 @@ void Soil::init_states() {
 	aorgNleach = 0.0;
 	aorgCleach = 0.0;
 	anfix = 0.0;
+	dnfix = 0.0;
 	anfix_calc = 0.0;
 	anfix_mean = 0.0;
 	snowpack_NH4_mass = 0.0;
@@ -240,11 +260,16 @@ void Soil::init_states() {
 	}
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
-		wcont[sl] = 0.1;
+		wcont[sl] = 0.0;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;
 		K_actual[sl] = 0.0;
+	}
+
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		nimmob_pool[i] = 0.0;
+		nmin_gross_pool[i] = 0.0;
 	}
 
 	soil_psi = 0.0;
@@ -799,9 +824,8 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	double MIN_WATER_PERC = 0.0;
 
 	if (ifdavehydrology){
-		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
+		BASEFLOW_FRAC = 0.5;	// CS testing change, standard is 0.5
 		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
-
 	} else {
 		BASEFLOW_FRAC = 0.5;
 		MIN_WATER_PERC = 0.0000001;	
@@ -840,15 +864,10 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		if (ifdavehydrology){
 			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init;// * wcont_evap_init ;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
 		} else {
-			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init * wcont_evap_init ;
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * wcont_evap_init * wcont_evap_init * fevap;
 		}
 		// Below, we will limit evaporation to a value <= the available water in the evaporation layer
 	}
-
-	//if (date.get_calendar_year() > 2010 && wcont_evap_init > 0.9){
-	//	printf("a");
-	//}
-
 
 	// *** AET ***
 
@@ -1105,21 +1124,38 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation from top layer if there is enough water (at least MIN_WATER_PERC)
 		double perc = 0.0;
 
-		double depth_upper = 0; 
-		double depth_lower = 0; 
+		// Minimum water required for percolation to occur.
+		double min_water_upper = MIN_WATER_PERC;
+		double min_water_lower = MIN_WATER_PERC;
 
-		for (int s = 0; s<NSOILLAYER; s++) {
-			if (s < NSOILLAYER_UPPER) {
-				depth_upper += Dz[s]/1000;
-			} else {
-				depth_lower += Dz[s]/1000;
+		if (ifdavehydrology) {
+			double depth_upper = 0;
+			double depth_lower = 0;
+			for (int s = 0; s<NSOILLAYER; s++) {
+				if (s < NSOILLAYER_UPPER) {
+					depth_upper += Dz[s] / 1000;
+				} else {
+					depth_lower += Dz[s] / 1000;
+				}
 			}
+			min_water_upper *= depth_upper;
+			min_water_lower *= depth_lower;
 		}
 
-		if (Faw_layer1 > MIN_WATER_PERC*depth_upper) {	
+		if (Faw_layer1 > min_water_upper) {
 
 			// Percolation from the top  layer (limited to available liquid water)
 			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), Faw_layer1);
+
+			if (ifzhou) {
+				double max_perc = 0;
+				for (size_t s = 0; s < NSOILLAYER_UPPER; s++) {
+					// Soil hydraulic conductivity, converted from m/s to mm/day.
+					max_perc += K_actual[s] * 1000.0 * 86400.0;
+				}
+				assert(max_perc >= 0);
+				// perc = min(perc, max_perc);
+			}
 
 			for (int s = 0; s<NSOILLAYER_UPPER; s++) {
 
@@ -1182,11 +1218,20 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		// Percolation 3 -> base
 
 		double perc_from_base = 0.0;
-		if (percolate && Faw_perc_layer_2 > MIN_WATER_PERC*depth_lower) {
+		if (percolate && Faw_perc_layer_2 > min_water_lower) {
 
 			if (ifdavehydrology){
 				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
-				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2);
+				if (ifzhou) {
+					double max_perc = 0;
+					for (size_t s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
+						// Convert from m/s to mm/day.
+						max_perc += K_actual[s] * 1000.0 * 86400.0;
+					}
+					assert(max_perc >= 0);
+					// perc_from_base = min(perc_from_base, max_perc);
+				}
 			} else {
 				perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
 				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
@@ -1194,7 +1239,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				// As in LPJ-GUESS v4.0
 				if (perc_from_base > rain_melt - runoff_surf && rain_melt >= runoff_surf){
 					perc_from_base = rain_melt - runoff_surf;
-				}							
+				}
 			}
 			// Only available water in these layers can percolate								
 		} else {
@@ -1231,6 +1276,9 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	// Total runoff
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
+	surfrunoff = runoff_surf;
+	drainrunoff = runoff_drain;
+	baserunoff = runoff_baseflow;
 
 	// Water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
 	// in proportion to its components
@@ -1464,13 +1512,13 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_acro_root_frac += indiv.rootdist[ly-IDX];
 
 		// PFT total root frac down to evaporation depth (200mm) 
 		double pft_evap_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
-			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_evap_root_frac += indiv.rootdist[ly-IDX];
 		}
 
 		// this includes mosses, which have root_frac = 1 in the acrotelm
@@ -4088,8 +4136,6 @@ void Soil::nmass_multiplic_inc(double inc, int pref) {
 	}
 }
 
-
-
 // serialize new soil variables, when finalised
 void Soil::serialize(ArchiveStream& arch) {
 	arch & wcont
@@ -4111,6 +4157,9 @@ void Soil::serialize(ArchiveStream& arch) {
 		& dsnowdepth
 		& thaw
 		& runoff
+		& surfrunoff
+		& drainrunoff
+		& baserunoff
 		& temp25
 		& Dz // optimise through init after restart?
 		& T_soil_yesterday
@@ -4171,6 +4220,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& aorgNleach
 		& aorgCleach
 		& anfix
+		& dnfix
 		& anfix_calc
 		& anfix_mean
 		& snowpack_NH4_mass

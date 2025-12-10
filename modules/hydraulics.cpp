@@ -45,6 +45,9 @@ const double KILL_THRESHOLD = 0.01;
 // The fraction of biomass lost due to hydraulic failure.
 const double MORT_FRAC = 0.1; // revisit how much dies based on level of stress over the year
 
+// PAR threshold between predawn and postdawn (J/m2).
+const double PAR_DAWN = 10;
+
 double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
     
     double weighted_psi;
@@ -53,7 +56,7 @@ double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
  
     for (int j=0; j<NSOILLAYER; j++){
         double psi_layer = soil.psi_layer[j];
-        double rootfrac_layer = pft.rootdist[j];
+        double rootfrac_layer = indiv.rootdist[j];
         weighted_psi = weighted_psi + psi_layer * rootfrac_layer; // weight soil water potential by root fraction in each layer
     }
     return weighted_psi;
@@ -71,7 +74,7 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe 
     for (int j = 0; j < NSOILLAYER; j++) {
         double thickness_lyr = soil.Dz[j+7] / 1000.0; // soil layer depth in m, note that we skip the 6 snow layers and layer of air in betwen (7 total)
         
-        double rootc_layer = pft.rootdist[j] * indiv.cmass_root;    // kgC/m2
+        double rootc_layer = indiv.rootdist[j] * indiv.cmass_root;    // kgC/m2
         double root_biomass = rootc_layer * 2.0; // kg/m2     !!UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
         
 
@@ -101,19 +104,23 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe 
 // Calculate soil water potential according to Campbell (1974)
 void calc_soil_water_potenial_dave(Soil &soil) {
 
-    if (!ifdavehydraulics) {
+    if (!ifzhou) {
+        // ifzhou will always be true if dave hydraulics routine is enabled.
         return;
     }
 
     if (!ifdavehydrology) {
-        fail("ifdavehydrology must be enabled to run ifdavehydralics");
+        fail("ifdavehydrology must be enabled to calculate soil water potential");
     }
+
+    // Sand content, as percentage.
+    double sand_perc = soil.soiltype.sand_frac * 100.0;
+
+    // Clay content, as percentage.
+    double clay_perc = soil.soiltype.clay_frac * 100.0;
 
     for (int i = 0; i < NSOILLAYER; i++) {
 
-        //if (date.get_calendar_year() == 2019){
-        //    printf("a");
-        //}
 	    double wcont = soil.get_layer_soil_water(i);
 
         // Wilting point in mm.
@@ -149,18 +156,16 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
         
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * soil.soiltype.sand_frac*100.0 + (-3.895 + 0.03671 * 
-                            soil.soiltype.sand_frac*100.0 - 0.1103 * soil.soiltype.clay_frac*100.0 + 8.7546e-4 * pow(soil.soiltype.clay_frac*100.0,2.0)) * 1.0/theta);
-
-        
+        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
+                            sand_perc - 0.1103 * clay_perc + 8.7546e-4 * pow(clay_perc, 2.0)) * 1.0 / theta);
     }
 
     soil.soil_psi = mean(soil.psi_layer, NSOILLAYER);
 
     for (int i = 0; i < soil.patch.vegetation.nobj; i++) {
 		Individual &indiv = soil.patch.vegetation[i];
-		Pft &pft = indiv.pft; 
-        if (wateruptake == WR_ROOT_RESISTANCE){
+		Pft &pft = indiv.pft;
+        if (wateruptake == WR_ROOT_RESISTANCE) {
 		    indiv.weighted_psi = calc_weighted_psi(soil, pft, indiv);
         } else {
             fail("Water uptake method different to root_resistance: Growth, soil, and photosynthesis modules need to be updated for compatibility with soil water potential calculated in hydraulics module");
@@ -188,7 +193,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; /// shouldn't be proportional to stomatal conductance - look at how transpiration compares to flux data
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
-    double Ax = PI * pow(indiv.diam / 2, 2) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
+    double Ax = PI * pow(indiv.diam / 2.0, 2.0) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
 
     if (indiv.stomata_open) {
         // Stomata are not fully closed.
@@ -283,12 +288,11 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];
 
-        if (par_previous < 10 && climate.pars[day.period] > 10) {
+        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
             // Note Zhou model uses actual (negative) pd lwp.
             indiv.predawn_lwp = indiv.lwp[day.period];
         }
     }
-
 }
 
 // Hydraulic failure mortality applied at the daily timescale if allocation is
@@ -484,7 +488,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];
 
-        if (par_previous < 200 && climate.pars[day.period] > 200) {
+        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
             // Note Zhou model uses actual (negative) pd lwp.
             indiv.predawn_lwp = indiv.lwp[day.period];
         }
@@ -492,35 +496,33 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
     double min_lwp_day = 0.0;
 
-    // senescence based on lowest water potential that day - runs at end of each day
-    if (day.period == date.subdaily-1){
+    // Senescence based on lowest water potential that day - runs at end of each day.
+    if (day.period == date.subdaily - 1){
 
         for (Day day; day.period != date.subdaily; day.next()) {
             min_lwp_day = std::min(min_lwp_day, indiv.lwp[day.period]);
         }
 
-        if (min_lwp_day <= pft.tlp){ // we start to get senescence at turgor loss point, full senescense once stomata are fully closed
+        // We start to get senescence at turgor loss point, full senescense once stomata are fully closed.
+        if (min_lwp_day <= pft.tlp) {
 
             double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0); // fraction of lai lost to senescence increases linearly with lwp
 
             double closs_leaf = indiv.get_cmass_leaf() * hyd_senesce;
             double nloss_leaf = indiv.get_nmass_leaf() * hyd_senesce;
 
-            if (ifdailygrass){
+            if (ifdailygrass) {
                 indiv.cmass_leafs[0] -= closs_leaf; //green leaf carbon removed
                 indiv.nmass_leafs[0] -= nloss_leaf; //green leaf N removed
                 indiv.cmass_leafs[1] += closs_leaf; //added to brown leaf carbon
                 indiv.nmass_leafs[1] += nloss_leaf; //added to brown leaf N
             } else {
+                fail("TODO: Should go to soil litter (discuss with Drew)");
                 indiv.cmass_leaf -= closs_leaf;
                 indiv.nmass_leaf -= nloss_leaf;
                 ppft.cmass_litter_leaf += closs_leaf;
                 ppft.nmass_litter_leaf += nloss_leaf;
             }
-
         }
-
     }
-    
-
-} 
+}

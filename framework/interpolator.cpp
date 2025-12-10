@@ -1,3 +1,5 @@
+#include <functional>
+
 #include "interpolator.h"
 #include "gutil.h"
 #include "shell.h"

@@ -1,6 +1,7 @@
 #ifdef HAVE_NETCDF
 
 #include <algorithm>
+#include <cmath>
 #include <netcdf.h>
 #include <vector>
 
@@ -162,6 +163,15 @@ NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
 		// Unit checking.
 		check_units(units, force_legal_units);
 
+		// Validate time axis regularity and alignment to calendar days.
+		validate_time_axis();
+
+		// If the time axis was succesfully validated, it is uniform. This is
+		// probably a redundant variable for now, but if we ever change the
+		// validation logic, it still allows code to conditionally optimise for
+		// uniform axes.
+		uniform_time = true;
+
 		// Initialise cache.
 		cache_prev.year = -1;
 		cache_prev.day = -1;
@@ -208,29 +218,44 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 
 			int start_index = get_cache_offset(date);
 
-			// This is an exclusive index.
-			int end_index = min(start_index + result_len, cache.size());
+			// This is an exclusive index within the cache buffer.
+			int end_index = min(start_index + (result_len - read), (int)cache.size());
 
 			cache_prev.year = year;
 			cache_prev.day = day;
 			cache_prev.timestep = 0;
 			cache_prev_index = start_index;
 
-			if (start_index < 0 || start_index + day_length > cache.size()) {
+			if (start_index < 0 || start_index >= (int)cache.size()) {
 				throw std::runtime_error("Insufficient data in file");
 			}
 
-			// Copy N elements (up to cache size) into the result vector.
-			std::vector<double>::iterator start = cache.begin() + start_index;
-			std::vector<double>::iterator end = cache.begin() + end_index;
-			std::vector<double>::iterator result_start = result.begin() + read;
-			std::copy(start, end, result_start);
+			// Compute how many elements to copy in this iteration,
+			// capped by remaining result capacity and cache size.
+			int to_copy = end_index - start_index;
+			if (to_copy <= 0) {
+				throw std::runtime_error("Internal error: non-positive copy length in NCVariable::read");
+			}
 
-			read += end_index - start_index;
+			// Copy into the correct slice of the result vector.
+			auto start = cache.begin() + start_index;
+			auto result_start = result.begin() + read;
+			std::copy(start, start + to_copy, result_start);
+
+			read += to_copy;
 
 			if (read < result_len) {
 				int cache_offset = get_timesteps_between(data_start, cache_start);
-				int cache_end = cache_offset + end_index - start_index;
+				int cache_end = cache_offset + (end_index - 0); // absolute index in time axis
+				if (cache_end >= (int)ntime) {
+					timepoint last_date = get_last_date();
+					xtring msg;
+					msg.printf("ncvariable: Failed to read variable %d timesteps starting in year %d day %d of variable '%s': Insufficient data in file to fulfill requested read span. Data only goes from year %d day %d timestep %d to year %d day %d timestep %d",
+						result_len, year, day, (const char *)var_name,
+						data_start.year, data_start.day, data_start.timestep,
+						last_date.year, last_date.day, last_date.timestep);
+					throw std::runtime_error((const char *)msg);
+				}
 				timepoint next_timepoint = to_timepoint(get_nth_date(cache_end));
 				year = next_timepoint.year;
 				day = next_timepoint.day;
@@ -326,15 +351,16 @@ int NCVariable::get_cache_offset(timepoint date) const {
 		return date.timestep;
 	}
 	// Shortcut - use previous index + day_length.
-	if (date.timestep == 0
-	&&	cache_prev.timestep == 0
+	if (uniform_time
+	&& date.timestep == 0
+	&& cache_prev.timestep == 0
 	// Same year, next day.
-	&&	( (cache_prev.year == date.year
-	&&	cache_prev.day + 1 == date.day)
+	&& ( (cache_prev.year == date.year
+	&& cache_prev.day + 1 == date.day)
 	// Or cache_prev is last day of year and date is 1st day of next year.
-	||	(cache_prev.year == date.year - 1
-	&&	cache_prev.day == get_year_len(cache_prev.year, calendar_type) - 1
-	&&	date.day == 0
+	|| (cache_prev.year == date.year - 1
+	&& cache_prev.day == get_year_len(cache_prev.year, calendar_type) - 1
+	&& date.day == 0
 	&&  cache_strategy == All) )) {
 		return cache_prev_index + day_length;
 	}
@@ -558,6 +584,94 @@ double NCVariable::get_missing_value() const {
 
 GuessNC::CF::CalendarType NCVariable::get_calendar() const {
 	return calendar_type;
+}
+
+// Validate that the time axis is strictly regular and aligned to days.
+void NCVariable::validate_time_axis() const {
+	// Quick sanity checks
+	if (ntime < 2) {
+		xtring msg;
+		msg.printf("Time axis must contain at least two timesteps: %d", ntime);
+		throw std::runtime_error((const char *)msg);
+	}
+	if (day_length <= 0) {
+		xtring msg;
+		msg.printf("Invalid day_length computed from time axis: %d", day_length);
+		throw std::runtime_error((const char *)msg);
+	}
+
+	// Bulk-read entire time coordinate
+	std::vector<double> time_vals(ntime);
+	int status = nc_get_var_double(id_file, id_time, &(time_vals.front()));
+	GuessNC::handle_error(status, "Failed to read entire time coordinate for validation");
+
+	// Ensure strictly increasing and constant delta within tolerance
+	double delta0 = time_vals[1] - time_vals[0];
+	if (!(delta0 > 0.0) || !std::isfinite(delta0)) {
+		xtring msg;
+		msg.printf("Non-positive or invalid timestep size on time axis: %g", delta0);
+		throw std::runtime_error((const char *)msg);
+	}
+	const double rel_eps = 1e-9;
+	for (size_t i = 1; i + 1 < ntime; ++i) {
+		double d = time_vals[i + 1] - time_vals[i];
+		if (!(d > 0.0) || !std::isfinite(d)) {
+			xtring msg;
+			msg.printf("Non-positive or invalid timestep encountered on time axis: %g", d);
+			throw std::runtime_error((const char *)msg);
+		}
+		double diff = std::abs(d - delta0);
+		double tol = rel_eps * std::max(std::abs(delta0), std::abs(d));
+		if (diff > tol) {
+			timepoint tp0 = to_timepoint(time_spec.get_date_time(time_vals[i], calendar_type));
+			timepoint tp1 = to_timepoint(time_spec.get_date_time(time_vals[i + 1], calendar_type));
+			// Provide context around offending indices
+			xtring msg;
+			msg.printf("Irregular timestep detected at index %u: d[i]=%.17g, d0=%.17g\ntime[%u]: year %d, day %d, timestep %d\ntime[%u]: year %d, day %d, timestep %d\n",
+				       i, d, delta0, i, tp0.year, tp0.day, tp0.timestep, i + 1,
+					   tp1.year, tp1.day, tp1.timestep);
+			throw std::runtime_error((const char*)msg);
+		}
+	}
+
+	// Verify first timestamp is at midnight and that day boundaries align
+	GuessNC::CF::DateTime dt0 = time_spec.get_date_time(time_vals[0], calendar_type);
+	timepoint tp0 = to_timepoint(dt0);
+	if (tp0.timestep != 0) {
+		xtring msg;
+		msg.printf("First time step is not aligned to midnight: %g-%g-%g %g:%g:%g",
+				   dt0.get_year(), dt0.get_month(), dt0.get_day(),
+				   dt0.get_hour(), dt0.get_minute(), dt0.get_day());
+		throw std::runtime_error((const char *)msg);
+	}
+
+	size_t ndays = ntime / day_length;
+	if (ndays == 0) {
+		throw std::runtime_error("Computed zero days from time axis");
+	}
+
+	timepoint prev_tp = tp0;
+	for (size_t k = 1; k < ndays; ++k) {
+		size_t idx = k * (size_t)day_length;
+		GuessNC::CF::DateTime dtk = time_spec.get_date_time(time_vals[idx], calendar_type);
+		timepoint tp = to_timepoint(dtk);
+		if (tp.timestep != 0) {
+			throw std::runtime_error("Day boundary does not fall on timestep 0");
+		}
+		// Check calendar day increment (handles year transitions and leap years)
+		bool ok = false;
+		if (tp.year == prev_tp.year && tp.day == prev_tp.day + 1) {
+			ok = true;
+		} else if (tp.year == prev_tp.year + 1 && tp.day == 0 && prev_tp.day == get_year_len(prev_tp.year, calendar_type) - 1) {
+			ok = true;
+		}
+		if (!ok) {
+			xtring msg;
+			msg.printf("Non-consecutive day at boundary %zu: prev %04d/%d -> curr %04d/%d", k, prev_tp.year, prev_tp.day, tp.year, tp.day);
+			throw std::runtime_error((const char*)msg);
+		}
+		prev_tp = tp;
+	}
 }
 
 #endif

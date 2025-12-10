@@ -2,5 +2,8 @@ build/
 .svn/
 *~
 .DS_Store
-*callgrind.out*
+callgrind.*
+*.lpj
+.simulations
+._*
 

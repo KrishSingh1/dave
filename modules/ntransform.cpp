@@ -91,6 +91,10 @@ void nh3_volatilization(Patch& patch, Soil& soil, Climate& climate, double& n_bu
 
 	patch.fluxes.report_flux(Fluxes::NH3_SOIL, nh3_inc);
 	soil.nvol = nh3_inc;
+	if (date.day == 0) {
+		soil.anvol = 0;
+	}
+	soil.anvol += nh3_inc;
 
 	// N budget check
 	// N lost as NH3 gas
@@ -315,6 +319,10 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 	soil.labile_carbon = soil.labile_carbon_w  + soil.labile_carbon_d;
 
 	soil.nloss_gas = no_d_flux_inc + no_w_flux_inc + n2o_d_flux_inc + n2o_w_flux_inc + n2_flux_inc;
+	if (date.day == 0) {
+		soil.anloss_gas = 0;
+	}
+	soil.anloss_gas += soil.nloss_gas;
 
 	// N budget check
 	// N lost through emissions and existing pool sizes

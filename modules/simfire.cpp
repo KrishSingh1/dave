@@ -467,6 +467,10 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 }
 
 double get_p_biome(const Gridcell &gridcell) {
+	if (gridcell.simfire_biome == SF_NOVEG) {
+		return 0.;
+	}
+	assert(gridcell.simfire_biome >= 1 && gridcell.simfire_biome <= 8);
 	return A[gridcell.simfire_biome - 1];
 }
 

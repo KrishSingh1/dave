@@ -79,6 +79,16 @@ typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
+/// The type of disturbance regime.
+/**		One of:
+ * 		NONE			No disturbances enabled (DEFAULT)
+ * 		STOCHASTIC		Random disturbances, varying by patch with mean interval
+ *  					defined by distinterval (ie trunk disturbance behaviour)
+ * 		DETERMINISTIC	Disturbances occurring in predetermined years specified
+ * 						by file_disturb
+ */
+typedef enum {DIST_NONE, STOCHASTIC, DETERMINISTIC} disturbancetype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -135,11 +145,17 @@ extern bool ifdisturb;
 /// Generic patch-destroying disturbance interval (individual, cohort mode)
 extern double distinterval;
 
+/// The disturbance algorithm being used.
+extern disturbancetype disttype;
+
+/// Path to a file containing years in which disturbances occur, one per line.
+extern xtring file_disturb;
+
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
 
-/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
-extern bool ifcalcvcmax;
+/// Whether vcmax acclimation to temperature is enabeld (alt: prescribed)
+extern bool iftempacclimation;
 
 /// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 extern bool ifcalccton;
@@ -284,6 +300,9 @@ extern bool readharvestdates;
 /// Whether to read N fertilization from input file
 extern bool readNfert;
 
+/// Whether to read grazing dates from input file.
+extern bool read_grazing;
+
 /// Whether to read manure N fertilization from input file
 extern bool readNman;
 
@@ -374,15 +393,33 @@ extern bool ifdailytree;
 /// whether DAVE (empirical) photosynthesis scheme is turned on
 extern bool ifdavephotosyn;
 
+/// Turn on/off tree phenology (Dave)
+extern bool iftreephen;
+
+/// Turn on/off grote tree allocation.
+extern bool ifgrote;
+
 /// whether DAVE growth routine for grasses is turned on
 extern bool ifdavegrowth;
 
 /// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
 extern bool ifdavehydrology;
+
+/// Depth of sublayer at top of upper soil layer, from which evaporation is
+/// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+/// Must be a multiple of Dz_soil
+extern int soildepth_evap;
+
 /// whether DAVE hydraulics scheme is turned on
 extern bool ifdavehydraulics;
+/// whether Zhou response of photosynthesis to water stress is turned on (requires ifdavehydrology).
+extern bool ifzhou;
 /// Whether LAI is distributed evenly across canopy layers for grasses.
 extern bool ifevenlaidist;
+
+/// Whether root distribution and response window are adaptive to the environment.
+/// (Number of dormant+dead days)
+extern bool ifadaptive_rootdist;
 
 /// Whether DAVE mass balance diagnostics are enabled. This value is checked set
 /// to false at all times except during mass balance checks. This is the value
@@ -392,6 +429,9 @@ extern bool ifdavediagnostics;
 /// Whether DAVE mass balance diagnostics are enabled. This parameter is bound
 /// to the instruction file parameter.
 extern bool _ifdavediagnostics;
+
+/// Whether tree N uptake should go into long-term storage pool.
+extern bool ifstoreuptake;
 
 /// Resolution for splines used to calculate psi from transpiration.
 /// This is the number of control points used for the integration. Default: 100.
@@ -409,8 +449,13 @@ extern bool gzip_output;
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
 
+/// Number of days that animals are allowed to graze a particular set of
+/// patches (default: 1).
+extern int grazing_duration;
 /// True if we are using forced LAI.
 extern bool ifforcedlai;
+/// The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.
+extern double fixed_lai;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Arctic and wetland inputs

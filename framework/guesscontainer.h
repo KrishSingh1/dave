@@ -61,7 +61,7 @@ public:
 	}
 
 	/// Returns object at position i
-	T& operator[](unsigned int i) {
+	T& operator[](unsigned int i) const {
 		return *objects[i];
 	}
 

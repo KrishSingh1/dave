@@ -28,7 +28,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
-void growth_daily_grass(Patch& patch);
+void growth_daily_grass_warlind(Patch& patch);
 double photo_growth(double reldaylength, double daylength_diff);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
@@ -41,6 +41,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 const double fdev_growth_min = 0.002;
 void allometry_dave_tree(Individual& indiv);
 double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm);
+double wscal_growth(double wscal, double wscal0, double b);
 double get_cmass_init_min(Patchpft& ppft);
 
 // ---------------------------------
@@ -52,5 +53,9 @@ const double lai_min = 0.01;
 // Maximum size of C storage pool as a fraction of biomass (pool-dependent!)
 const double cstorage_max_temp = 0.3;   // leaves and roots
 const double cstorage_max_perm = 0.75;  // crowns
+
+// Water response parameters for growth and developmental processes
+const double wscal0 = 0.7;    // inflection point
+const double bgrowth = 0.08;   // steepness around wscal0
 
 #endif // LPJ_GUESS_GROWTH_H

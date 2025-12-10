@@ -10,6 +10,7 @@
 #ifndef LPJ_GUESS_NCINPUT_H
 #define LPJ_GUESS_NCINPUT_H
 
+#include "driver.h"
 #ifdef HAVE_NETCDF
 
 #include <memory>
@@ -26,6 +27,7 @@
 #include "ncvariable.h"
 #include "soilinput.h"
 #include "globalco2file.h"
+#include "thome.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -249,6 +251,11 @@ private:
 	bool variable_exists(xtring netcdf_file, xtring name) const;
 
 	/*
+	Parse the specified esat_method name into an esat_method_t.
+	*/
+	esat_method_t parse_esat_method(xtring name) const;
+
+	/*
 	Close the specified NetCDF file if it is open.
 	*/
 	void close_if_open(int &nc);
@@ -277,6 +284,11 @@ private:
 	Soil input module.
 	*/
 	SoilInput soil_input;
+
+	/*
+	THome input module (use for temperature acclimation of photosynthesis).
+	*/
+	THomeInput thome_input;
 
 	/*
 	Nitrogen deposition input module.
@@ -339,6 +351,12 @@ private:
 	user-configurable setting in the instruction file.
 	*/
 	xtring file_ndep;
+
+	/*
+	Path to the mean maximum daily temperature (T_home) input file, used for
+	DAVE temperature acclimation calculations.
+	*/
+	xtring file_thome;
 
 	/*
 	Scenario to be used for nitrogen deposition data. This is a
@@ -441,6 +459,11 @@ private:
 	xtring variable_ndep_noy;
 
 	/*
+	Name of the relative humidity variable in the NetCDF file (optional).
+	*/
+	xtring variable_rh;
+
+	/*
 	Constant to be added to daily temperature (°C). Set in instruction file.
 	*/
 	double temperature_delta;
@@ -512,6 +535,12 @@ private:
 	ndep_input will be used.
 	*/
 	std::unique_ptr<NCVariable> ndep_noy;
+
+	/*
+	Optional relative humidity variable in the NetCDF file. If not set,
+	vpd must be provided instead.
+	*/
+	std::unique_ptr<NCVariable> rh;
 
 	/*
 	Optional co2 text file reader.
@@ -591,6 +620,11 @@ private:
 	int nc_noy;
 
 	/*
+	The NetCDF file ID for the rh variable.
+	*/
+	int nc_rh;
+
+	/*
 	The first timestep in the input data of the main simulation.
 	*/
 	timepoint first_timestep;
@@ -652,6 +686,11 @@ private:
 	Upper and lower bounds for VPD.
 	*/
 	bounds bounds_vpd;
+
+	/*
+	Upper and lower bounds for relative humidity.
+	*/
+	bounds bounds_rh;
 
 	/*
 	Upper and lower bounds for atmospheric pressure.
@@ -739,6 +778,21 @@ private:
 	for spinup.
 	*/
 	int spinup_timestep;
+
+	/*
+	Fixed/constant air pressure to use, in Pa.
+	*/
+	double fixed_pressure;
+
+	/*
+	Name of the method to use for estimating saturation vapor pressure.
+	*/
+	xtring esat_method_name;
+
+	/*
+	Method to use for estimating saturation vapor pressure.
+	*/
+	esat_method_t esat_method;
 
 	/*
 	The calendar used in the spinup data file, if a separate file is being used

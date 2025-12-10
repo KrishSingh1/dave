@@ -114,6 +114,30 @@ if (CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
 endif(CCACHE_FOUND)
 
+# AddressSanitizer (ASan) option (opt-in)
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+if (ENABLE_ASAN)
+  if (UNIX AND NOT MSVC)
+    # Only enable for GCC/Clang toolchains
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+      # Use conservative optimization level for better stack traces
+      set(ASAN_CFLAGS "-fsanitize=address -fno-omit-frame-pointer")
+      set(ASAN_LDFLAGS "-fsanitize=address")
+
+      set(CMAKE_C_FLAGS           "${CMAKE_C_FLAGS} ${ASAN_CFLAGS}")
+      set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} ${ASAN_CFLAGS}")
+      set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${ASAN_LDFLAGS}")
+      set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${ASAN_LDFLAGS}")
+
+      message(STATUS "AddressSanitizer enabled")
+    else()
+      message(WARNING "ENABLE_ASAN requested, but compiler ${CMAKE_CXX_COMPILER_ID} is not supported for ASan")
+    endif()
+  else()
+    message(WARNING "ENABLE_ASAN requested, but platform is not supported for ASan")
+  endif()
+endif()
+
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 

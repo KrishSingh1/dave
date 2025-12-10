@@ -106,21 +106,25 @@ const double MOL2G_C = 12.011;
 /// Molecular mass of Water (g mol-1)
 const double MOL2G_H2O = 18.01528;
 
+// von Caemmerer 2013, PCE: 0.36125
+// Medlyn et al. 2002, PCE: 0.3
+// Yang et al. 2019: 0.24
+
 /// Michaelis-Menten constants at 25 degC (mol mol-1)
 const double KO25      = 278.4E-3; // MM constant for O2 (Bernacchi et al. 2001)
 const double KC25      = 404.9E-6; // MM constant for CO2 (Bernacchi et al. 2001)
 const double GAMSTAR25 = 42.75E-6; // photorespiratory CO2 comp. point (Bernacchi et al. 2001)
 
 /// Activation energies (kJ mol-1)
-const double HA_V  = 59.70;  // Vcmax (Kumarathunge et al. 2019)
-const double HA_J  = 40.71;  // Jmax (Kumarathunge et al. 2019)
+// const double HA_V  = 59.70;  // Vcmax (Kumarathunge et al. 2019)
+// const double HA_J  = 40.71;  // Jmax (Kumarathunge et al. 2019)
 const double HA_KO = 36.38;  // Ko (Bernacchi et al. 2001)
 const double HA_KC = 79.43;  // Kc (Bernacchi et al. 2001)
 const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
 
 /// Entropy terms (J mol-1 K-1)
-const double DS_V = 639.43;  // Vcmax (Kumarathunge et al. 2019)
-const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
+// const double DS_V = 639.43;  // Vcmax (Kumarathunge et al. 2019)
+// const double DS_J = 642.97;  // Jmax (Kumarathunge et al. 2019)
 
 // Deactivation energy for Vcmax, Jmax, Vpmax (C4) (kJ mol-1)
 const double HD = 200.0;
@@ -267,20 +271,5 @@ inline double gc_monteith(double& aet, double& eet) {
 	return (aet*GM) / (eet*ALPHAM-aet);
 }
 #endif
-
-const double FIXED_LAI[12] = {
-	0.4, // January
-	0.4, // February
-	0.5, // March
-	0.5, // April
-	0.7, // May
-	0.7, // June
-	0.6, // July
-	0.5, // August
-	0.4, // September
-	0.4, // October
-	0.4, // November
-	0.4  // December
-};
 
 #endif // LPJ_GUESS_CANEXCH_H

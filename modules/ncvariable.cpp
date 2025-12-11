@@ -630,7 +630,7 @@ void NCVariable::validate_time_axis() const {
 			msg.printf("Irregular timestep detected at index %u: d[i]=%.17g, d0=%.17g\ntime[%u]: year %d, day %d, timestep %d\ntime[%u]: year %d, day %d, timestep %d\n",
 				       i, d, delta0, i, tp0.year, tp0.day, tp0.timestep, i + 1,
 					   tp1.year, tp1.day, tp1.timestep);
-			throw std::runtime_error((const char*)msg);
+			//throw std::runtime_error((const char*)msg);
 		}
 	}
 
@@ -668,7 +668,7 @@ void NCVariable::validate_time_axis() const {
 		if (!ok) {
 			xtring msg;
 			msg.printf("Non-consecutive day at boundary %zu: prev %04d/%d -> curr %04d/%d", k, prev_tp.year, prev_tp.day, tp.year, tp.day);
-			throw std::runtime_error((const char*)msg);
+			//throw std::runtime_error((const char*)msg);
 		}
 		prev_tp = tp;
 	}

@@ -132,7 +132,7 @@ NCInput::NCInput() {
 	bounds_temp.min = -100;
 
 	bounds_vpd.max = 100;
-	bounds_vpd.min = 0;
+	bounds_vpd.min = 0.01; // CS updated from 0
 
 	bounds_rh.max = 1;
 	bounds_rh.min = 0;
@@ -564,9 +564,9 @@ try {
 	}
 
 	for (size_t i = 0; i < vpds.size(); i++) {
-		if (vpds[i] < 0) {
-			printf("Year %d day %d timestep %zu vpd is negative: %f\n", date.year, date.day, i, vpds[i]);
-			vpds[i] = 0;
+		if (vpds[i] < 0.01) {
+			printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			vpds[i] = 0.01;
 		}
 	}
 

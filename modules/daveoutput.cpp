@@ -398,6 +398,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_vcmax"           , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_jmax"            , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", mean);
+	add_indiv_array_output("file_dave_subdaily_Vl"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.Vl[i];  }, "Subdaily stem water volume (m3)", mean);
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);

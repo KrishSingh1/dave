@@ -3340,6 +3340,8 @@ public:
 	double cgrow_repr;
 	/// daily storage growth (kgC/m2/day)
 	double cgrow_storage;
+	/// daily storage growth plus excess from N limitation (kgC/m2/day)
+	double creturn;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)

@@ -5088,6 +5088,7 @@ void update_pools_dave(Vegetation& vegetation) {
 			creturn = indiv.cstorage_max - indiv.cmass_storage;
 		}
 		indiv.cmass_storage += creturn;
+		indiv.creturn = creturn;
 
 		// nreturn doesn't need to go back into the storage pool, because we
 		// haven't actually taken anything out of the storage pool yet, and

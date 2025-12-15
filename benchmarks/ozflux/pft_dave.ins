@@ -653,6 +653,52 @@ pft "MRS" (
 	!stom_clos -3.2   ! Peters (2021)
 	! default g1x is 2
 	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9 
+
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	! ! WOMBAT (Clare) - fixedLAI = 2.253
+	! shade_intolerant
+	! turnover_leaf 0.5
+	! ltor_max 0.3
+	! g1x 3.9  				! FOR CUP (see Clare's notes)
+	! wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+	! kmax 15  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	! stom_clos -3.5   ! Estimated based on Figure 5a in Pritzkow (2021), -2.5
+	! p50 -4.0   ! Used E. obliqua value for Warra from Peters (2021), -3.03
+	! p88 -4.5   ! Used E. obliqua value for Warra from Peters (2021). -3.84
+	! g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) = 4.1 
+	! gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	! vcmax_25 69 ! NEED A VALUE - using Warra's
+	! sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+	! respcoeff 0.8 
+
+	!! ! CUP (Clare) - fixedLAI = 1.545
+	!!shade_intolerant
+	!rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+	!!k_latosa 6000 ! 6000 estimated from Austraits
+	!!wooddens 350  ! Peters (2021)
+	!kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	!stom_clos -3.2   ! Peters (2021) -3.2
+	!p50 -5.8   ! Peters (2021)
+	!p88 -7.7  ! Peters (2021)
+	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), 3.9
+	!gcutic 0.0015 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, maybe should be lower for sclerophyll?
+	!!vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	!!jmax_25 61.2 ! 1.7 * vcmax_25
+	!!sla 9.2 ! Average of two euc species from Bloomfield (2018)
+
+	! ! Warra (Clare) - fixedLAI = 5.164s
+	!shade_intolerant
+	!wooddens 300  ! Peters et al (2021)
+	!kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	!stom_clos -1.5   ! Peters et al (2021)
+	!p50 -3.03   ! Peters et al (2021)
+	!p88 -3.84   ! Peters et al (2021)
+	!g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019)
+	!gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	!vcmax_25 69 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
+	!sla 10.05 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+
+
 )
 
 pft "SRS" (
@@ -1088,3 +1134,51 @@ pft "C4G_annual" (
    extkn              0.23
 )
 
+! Clare's Cumberland Plain PFT for hydraulics - hydraulic parameters adjusted for drought mortality sites
+pft "CuP" (
+
+	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 1.0 
+	turnover_leaf 1.0
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 350  ! Peters (2021)
+	kmax 200  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -4.1   ! Peters (2021)
+	p50 -5.0   ! Peters (2021)
+	p88 -5.8  ! Peters (2021)
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
+
+	vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	jmax_25 61.2 ! 1.7 * vcmax_25
+	sla 9.2 ! Average of two euc species from Bloomfield (2018)
+	
+	respcoeff 0.6
+
+	ifcalcvcmax 0
+	cton_leaf_min 29.010140
+
+)

@@ -107,6 +107,14 @@ NCInput::NCInput() {
 	, "Optional name of the nhx nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
 	declare_parameter("variable_ndep_noy", &variable_ndep_noy, NC_MAX_NAME
 	, "Optional name of the noy nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
+	declare_parameter("variable_rh", &variable_rh, NC_MAX_NAME
+	, "Optional name of the relative humidity variable in the NetCDF file. If not set, vpd must be provided instead.");
+	declare_parameter("fixed_pressure", &fixed_pressure, 0, 200000
+	, "Optional fixed/constant air pressure to use in Pa");
+	declare_parameter("esat_method", &esat_method_name, 256
+	, "Method to use for estimating saturation vapor pressure");
+
+	fixed_pressure = 0;
 
 	bounds_prec.max = 1000;
 	bounds_prec.min = 0;
@@ -124,7 +132,10 @@ NCInput::NCInput() {
 	bounds_temp.min = -100;
 
 	bounds_vpd.max = 100;
-	bounds_vpd.min = 0;
+	bounds_vpd.min = 0.01; // CS updated from 0
+
+	bounds_rh.max = 1;
+	bounds_rh.min = 0;
 
 	temperature_delta = 0;
 	co2_delta = 0;
@@ -156,6 +167,7 @@ NCInput::NCInput() {
 	nc_tmin = -1;
 	nc_nhx = -1;
 	nc_noy = -1;
+	nc_rh = -1;
 
 	progress_newline = false;
 }
@@ -197,6 +209,13 @@ void NCInput::init(void) {
 				fail("Temperature acclimation is enabled, but t_home input file is not specified. Please set file_thome in the instruction file.");
 			}
 			// else not specified and not needed - no problem.
+		}
+
+		if (variable_rh != "") {
+			if (esat_method_name == "") {
+				fail("Relative humidity variable specified but esat_method is not specified. Please set esat_method in the instruction file.");
+			}
+			esat_method = parse_esat_method(esat_method_name);
 		}
 
 		bool separate_spinup = file_met_spinup != "" && file_met_spinup != file_met_forcing;
@@ -478,14 +497,34 @@ try {
 	std::vector<double> temps = temp->read(lon, lat, year, day, 1);
 	std::vector<double> precs = precip->read(lon, lat, year, day, 1);
 	std::vector<double> insols = insol->read(lon, lat, year, day, 1);
-	std::vector<double> vpds = vpd->read(lon, lat, year, day, 1);
-	std::vector<double> pressure = ps->read(lon, lat, year, day, 1);
+	std::vector<double> vpds;
+	if (vpd) {
+		vpds = vpd->read(lon, lat, year, day, 1);
+	} else if (rh) {
+		std::vector<double> relhum = rh->read(lon, lat, year, day, 1);
+		if (rh->has_missing_value() && contains(rh->get_missing_value(), relhum)) {
+			fail("Missing value in relative humidity data for gridcell (%f, %f)", lon, lat);
+		}
+		vpds.resize(date.subdaily);
+		for (size_t i = 0; i < vpds.size(); i++) {
+			vpds[i] = rh_to_vpd(relhum[i], temps[i], esat_method);
+		}
+	}
+	std::vector<double> pressure;
+	if (fixed_pressure == 0) {
+		pressure = ps->read(lon, lat, year, day, 1);
+	} else {
+		pressure.resize(date.subdaily);
+		for (size_t i = 0; i < pressure.size(); i++) {
+			pressure[i] = fixed_pressure;
+		}
+	}
 
 	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
 		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
 		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
-		(vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
-		(ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
+		(vpd && vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
+		(ps && ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
 
 		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
 		return false;
@@ -522,6 +561,13 @@ try {
 	if (wind) {
 		std::vector<double> winds = wind->read(lon, lat, year, date.day, 1);
 		climate.u10 = mean(winds);
+	}
+
+	for (size_t i = 0; i < vpds.size(); i++) {
+		if (vpds[i] < 0.01) {
+			printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			vpds[i] = 0.01;
+		}
 	}
 
 	climate.temps = temps;
@@ -803,6 +849,7 @@ void NCInput::close_all() {
 	close_if_open(nc_insol);
 	close_if_open(nc_precip);
 	close_if_open(nc_vpd);
+	close_if_open(nc_rh);
 	close_if_open(nc_huss);
 	close_if_open(nc_ps);
 	close_if_open(nc_wind);
@@ -848,6 +895,9 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	std::vector<xtring> vpd_units(1);
 	vpd_units[0] = "kPa";
 
+	std::vector<xtring> rh_units(1);
+	rh_units[0] = "1";
+
 	std::vector<xtring> ndep_units(1);
 	ndep_units[0] = "kgN/m2/day";
 
@@ -863,8 +913,19 @@ void NCInput::open_netcdf(xtring netcdf_file) {
 	temp = create_variable(netcdf_file, variable_temp, nc_temp, bounds_temp, temp_units, true);
 	insol = create_variable(netcdf_file, variable_insol, nc_insol, bounds_insol, insol_units, true);
 	precip = create_variable(netcdf_file, variable_precip, nc_precip, bounds_prec, precip_units, true);
-	vpd = create_variable(netcdf_file, variable_vpd, nc_vpd, bounds_vpd, vpd_units, true);
-	ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
+	if (variable_vpd != "") {
+		vpd = create_variable(netcdf_file, variable_vpd, nc_vpd, bounds_vpd, vpd_units, true);
+	} else if (variable_rh != "") {
+		rh = create_variable(netcdf_file, variable_rh, nc_rh, bounds_rh, rh_units, true);
+	} else {
+		fail("Must set either variable_vpd or variable_rh in ins file");
+	}
+	if (fixed_pressure == 0) {
+		if (variable_ps == "") {
+			fail("Either variable_ps or fixed_pressure parameters must be set in the instruction file");
+		}
+		ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
+	}
 
 
 	if (variable_wind != "" && variable_exists(netcdf_file, variable_wind)) {
@@ -1030,6 +1091,19 @@ int NCInput::get_spinup_year() const {
 	// and add this to the first year of data. This gives us the (calendar) year
 	// of data to be used this year.
 	return (date.year + offset) % nyear_data + first_year;
+}
+
+esat_method_t NCInput::parse_esat_method(xtring name) const {
+	name = name.lower();
+	if (name == "sonntag_1990") {
+		return SONNTAG_1990;
+	} else if (name == "alduchov_1996") {
+		return ALDUCHOV_1996;
+	} else if (name == "allen_1998") {
+		return ALLEN_1998;
+	} else {
+		fail("Invalid esat_method: %s", (const char *)name);
+	}
 }
 
 #endif // HAVE_NETCDF

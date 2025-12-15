@@ -3845,14 +3845,16 @@ public:
 
 	// predawn leaf water potential calculated using hydraulics module
 	double predawn_lwp;
-	// leaf water potential at subdaily timescale
+	// leaf water potential at subdaily timescale (MPa)
 	std::vector<double> lwp;
-	// leaf water potential from previous timestep (for plant water storage)
+	// leaf water potential (MPa) from previous timestep (for plant water storage)
 	double lwp_previous;
-		// transpiration from previous timestep (for plant water storage)
+		// transpiration (mm) from previous timestep (for plant water storage)
 	double transp_previous;
-	// loss of hydraulic conductance at subdaily timescale
+	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;
+	// volume of water in stems across cohort (m3/m2)
+	std::vector<double> Vl;
 
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;

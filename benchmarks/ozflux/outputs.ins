@@ -7,7 +7,7 @@ outputdirectory "./out/"
 ifdailyoutput 1
 
 ! Annual gridcell-level outputs.
-!file_aagb                          "aagb.out"                          ! Annual gridcell-level above-ground biomass (kg/m2)
+file_aagb                          "aagb.out"                          ! Annual gridcell-level above-ground biomass (kg/m2)
 !file_aagb_tree                     "aagb_tree.out"                     ! Annual gridcell-level above-ground tree biomass (kg/m2)
 !file_dave_amet_prec                "dave_amet_prec.out"                ! Annual gridcell-level precipitation (mm)
 !file_dave_amet_par                 "dave_amet_par.out"                 ! Annual gridcell-level PAR (J/m2)
@@ -61,11 +61,11 @@ ifdailyoutput 1
 !file_dave_acmass_germ              "dave_acmass_germ.out"              ! Annual germinated C mass (kgC/m2)
 
 ! Annual pft-level per-patch outputs.
-!file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
-!file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
-!file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
-!file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
-!file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
+file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
+file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
+file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
+file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
+file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
 !file_dave_acmass_mort              "dave_acmass_mort.out"              ! Mass of annual killed vegetation (kgC/m2/year)
 !file_dave_aclitter                 "dave_aclitter.out"                 ! Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)
 !file_dave_ancohort                 "dave_ancohort.out"                 ! Number of cohorts currently established per pft (unitless)
@@ -105,7 +105,7 @@ file_agb                            "agb.out"                           ! Daily 
 file_agb_tree                       "agb_tree.out"                      ! Daily gridcell-level above-ground tree biomass (kg/m2)
 
 ! Daily pft-level per-patch outputs.
-!file_dave_lai                      "dave_lai.out"                      ! LAI by individual (m2/m2)
+file_dave_lai                      "dave_lai.out"                      ! LAI by individual (m2/m2)
 !file_dave_meanleafage              "dave_meanleafage.out"              ! Mean leaf age (years)
 !file_dave_meansapage               "dave_meansapage.out"               ! Mean sapwood age (years)
 !file_dave_meanrootage              "dave_meanrootage.out"              ! Mean root age (years)
@@ -295,6 +295,7 @@ file_agb_tree                       "agb_tree.out"                      ! Daily 
 !file_dave_daylength                "dave_daylength.out"                ! Daylength (hours)
 !file_dave_cpool                    "dave_cpool.out"                    ! Daily C pools (kgC/m2)
 !file_dave_subdaily_lwp             "dave_subdaily_lwp.out"             ! Subdaily leaf water potential (MPa)
+!file_dave_subdaily_Vl              "dave_subdaily_Vl.out"             ! Subdaily stem water volume (m3)
 !file_dave_alpha_leaf               "dave_alpha_leaf.out"               ! Daily leaf sink strength (0-1)
 !file_dave_alpha_root               "dave_alpha_root.out"               ! Daily root sink strength (0-1)
 !file_dave_alpha_sap                "dave_alpha_sap.out"                ! Daily sap sink strength (0-1)
@@ -397,7 +398,7 @@ file_anpp "anpp.out"
 file_agpp "agpp.out"
 !file_fpc "fpc.out"
 !file_aaet "aaet.out"
-file_lai "lai.out"
+!file_lai "lai.out"
 !file_cflux "cflux.out"
 !file_doc "doc.out"
 !file_dens "dens.out"

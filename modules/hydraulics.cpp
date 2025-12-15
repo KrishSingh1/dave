@@ -194,6 +194,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
     double Ax = PI * pow(indiv.diam / 2.0, 2.0) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
+    // Water holding capacity approximated based on wood density:
+    double nx = 1 - (pft.wooddens * 2) / 1000; // find out what paper had the wood density vs water holding capacity relationship
 
     if (indiv.stomata_open) {
         // Stomata are not fully closed.
@@ -206,7 +208,15 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
 
-        double transpiration_full = transpiration_psi_soil + transpiration / (indiv.kmax_drought_affected * 1000 * Ax); // convert from mol to mmol
+        double kmax_param;
+
+        if (pft.dave_allocation()){ 
+            kmax_param = pft.kmax; // if we're using dave_allocation, we account for xylem loss through sapwood turnover
+        } else {
+            kmax_param = indiv.kmax_drought_affected; // if we're using annual (trunk) allocation, we don't change the sapwood but instead reduce the kmax parameter
+        }
+
+        double transpiration_full = transpiration_psi_soil + transpiration / (kmax_param * 1000 * Ax); // convert from mol to mmol
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
@@ -217,11 +227,11 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
             // Set water potential to stom_clos to close stomata.
             psi2 = -pft.stom_clos;
-            //printf("hydraulic vulnerability curve doesn't allow E to be met\n");
+            printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
         }
 
         // Calculate loss of conductance.
-        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2)); // calculate loss of conductance from vulnerability curve
+        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2)); // calculate loss of conductance from vulnerability curve (note this will change sapwood, not k parameter, if using daily allocation)
 
         indiv.lwp[day.period] = -psi2;
         indiv.E_not_met = !e_met;
@@ -230,20 +240,20 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             indiv.stomata_open = false;
             // printf("stomata have closed\n");
         }
+
+        indiv.Vl[day.period] = nx * Ax * indiv.height; // assume storage capacity is full if in 'non water stressed' mode
+
     } else {
         // Stomata are fully closed.
 
         // Alternative for high water stress - consuming internal storage.
 
-        // Water holding capacity approximated based on wood density:
-        double nx = 1 - (pft.wooddens * 2) / 1000; // find out what paper had the wood density vs water holding capacity relationship
-
         // See Paschalis et al. (2024), currently ignoring leaf water storage.
         double Vmax = nx * Ax * indiv.height;
 
         // Note using P88 as approximation for LWP when Vl = 0. Equation from
-        // Paschalis et al. (2024).
-        double Vl_init = Vmax*(1-indiv.lwp_previous/pft.p88);
+        // Paschalis et al. (2024), but we assume stom_clos LWP at Vmax (not LWP of zero as in Pasch)
+        double Vl_init = Vmax*(1-(indiv.lwp_previous - pft.stom_clos)/(pft.p88 - pft.stom_clos));
 
         const double MOL2MMOL = 1000.0;
         const double M3_H2O_PER_KG = 0.001;
@@ -256,14 +266,14 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         }
 
         // m3/m2
-        double Vl = Vl_init - transpiration * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
+       indiv.Vl[day.period] = Vl_init - transpiration * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
 
-        if (Vl < 0) {
+        if (indiv.Vl[day.period] < 0) {
             printf("%04d-%02d-%02d indiv %d (%s) hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
         } else {
-            indiv.lwp[day.period] =  pft.p88 * (1 - Vl / Vmax);
+            indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
         }
 
         // Only account for the extra ET once (can only be set to 'true' in the loop for
@@ -272,13 +282,31 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         // Calculate loss of conductance.
         indiv.k_loss[day.period] = 1 - exp(-pow(-indiv.lwp[day.period] / pft.s1, pft.s2));
-    }
 
-    if (climate.prec > 1.0 && day.period == (date.subdaily - 1) && !indiv.stomata_open) {
-        // If there is >1mm rain this day and stomata are closed, open stomata next
-        // day.
-        indiv.stomata_open = true;
-        // printf("stomata have opened\n");
+        // Refill tree water stores if we have rainfall
+        if (climate.prec > 1.0 * 24 / date.subdaily / 3.0) { // assume 1 mm every 3h is lost e.g. to interception
+            double cmass_root_tot = 0;
+            for (size_t i = 0 ; i < indiv.vegetation.nobj; i++) {
+                cmass_root_tot += indiv.cmass_root;
+            }
+            
+            double prec_avail = climate.prec - 1.0 * 24 / date.subdaily / 3.0; // rainfall that isn't intercepted / lost
+            double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot; // this indiv gets an amount based on its root carbon
+
+            double v_refill = prec_avail * frac_prec_this_indiv / 1000; // convert mm * m2 to m3
+
+            indiv.Vl[day.period] = std::min(indiv.Vl[day.period] + v_refill, Vmax); // stem refills
+
+            indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
+
+            // stomata reopen if volume refills to the point that lwp is equal to stom_clos
+
+            if (indiv.lwp[day.period] >= pft.stom_clos) {
+                indiv.stomata_open = true;
+            }
+
+        }
+        
     }
 
     indiv.lwp_previous = indiv.lwp[day.period];
@@ -342,8 +370,11 @@ void hydraulic_mortality(Patch &patch) {
     }
 }
 
-// Reduce kmax if drought damage has occurred today, otherwise allow kmax to
-// recover with new growth / turnover.
+// Reduce hydraulic conductance if drought damage has occurred today (or this year if annual growth), otherwise allow conductance to
+// recover with new growth / turnover. This is done via direct adjustment to the kmax parameter if running with annual growth, or via loss
+// of xylem, leaves and roots if running with dave growth. Note that we still calculate kmax_drought_affected even if we aren't actually altering 
+// the kmax parameter in the hydraulics routine (ie when we run with DAVE growth) because it keeps tabs on drought damage over time and is used
+// to scale the level of damage accounting for drought legacy as applicable
 void adjust_kmax(Patch &patch) {
 
     Vegetation &vegetation = patch.vegetation;
@@ -364,69 +395,70 @@ void adjust_kmax(Patch &patch) {
             indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]); // take maximum k_loss for that day, will continue to maximise over all days of year if annual allocation
         }
 
-        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // if annual allocation, only move forward to xylem loss calcs at end of year
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // if annual allocation, only move forward to conductance loss calcs at end of year
             vegetation.nextobj();
             continue;
         }
 
-        if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if loss of conductance exceeds current state and also we've crossed P12
-            double xylem_loss = indiv.max_k_loss * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss but scaled by how affected it already is
-
-            //double closs_leaf = indiv.get_cmass_leaf() * xylem_loss; /// note dropping leaves causes problems due to fixed klatosa - consider adding back in with new allocation
-            //double closs_root = indiv.cmass_root * xylem_loss;
-
-            //double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss; 
-            //double nloss_root = indiv.nmass_root * xylem_loss;
-
+        if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if stomata are fully closed, loss of conductance exceeds current state and we've crossed P12
+            
             if (pft.is_grass()) {
                 fail("Grasses not supported");
             }
-            //indiv.cmass_leaf -= closs_leaf; // lose leaves and roots in proportion to lost xylem
-            //ppft.cmass_litter_leaf += closs_leaf; // lost leaves and roots go to litter
+            
+            double xylem_loss_frac = (indiv.max_k_loss - 0.12) / (1.0 - 0.12) * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss starting with zero loss at p12 (we scale from here to avoid sudden 'threshold' losses of 12%) but scaled by how affected it already is
 
-            //indiv.cmass_root -= closs_root;
-            //ppft.cmass_litter_root += closs_root;
+            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss_frac));
 
-            //indiv.nmass_leaf -= nloss_leaf;
-            //ppft.nmass_litter_leaf += nloss_leaf;
+            if (pft.dave_allocation()){
 
-            //indiv.nmass_root -= nloss_root;
-            //ppft.nmass_litter_root += nloss_root;
+                double closs_sap = indiv.cmass_sap * xylem_loss_frac; /// note dropping leaves causes problems due to fixed klatosa - consider adding back in with new allocation
+                double nloss_sap = indiv.nmass_sap * xylem_loss_frac; 
 
-            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss));
+                indiv.cmass_sap -= closs_sap; 
+                indiv.cmass_heart += closs_sap;
+                indiv.nmass_sap -= nloss_sap; 
+                indiv.nmass_heart += nloss_sap;
+
+                double closs_leaf = indiv.get_cmass_leaf() * xylem_loss_frac; /// note dropping leaves causes problems due to fixed klatosa - consider adding back in with new allocation
+                double closs_root = indiv.cmass_root * xylem_loss_frac;
+
+                double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss_frac; 
+                double nloss_root = indiv.nmass_root * xylem_loss_frac;
+
+                indiv.cmass_leaf -= closs_leaf; // lose leaves and roots in proportion to lost xylem
+                ppft.cmass_litter_leaf += closs_leaf; // lost leaves and roots go to litter
+
+                indiv.cmass_root -= closs_root;
+                ppft.cmass_litter_root += closs_root;
+
+                indiv.nmass_leaf -= nloss_leaf;
+                ppft.nmass_litter_leaf += nloss_leaf;
+
+                indiv.nmass_root -= nloss_root;
+                ppft.nmass_litter_root += nloss_root;
+            }
+
         }
 
+        double old_wood, new_wood;
+
         if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
-            double old_wood = std::max(indiv.cmass_sap - indiv.acalloc_sap, 0.0);
-            double new_wood = std::max(std::min(indiv.acalloc_sap, indiv.cmass_sap),0.0);
-            if (indiv.cmass_sap_yesterday == 0.0){ // there was no sapwood before, no drought legacy
-                indiv.kmax_drought_affected = pft.kmax;
-            } else { // drought-impacted wood is lost and fresh wood (with maximum kmax) regrows
-                indiv.kmax_drought_affected = (indiv.kmax_drought_affected * old_wood + pft.kmax * new_wood) / (old_wood + new_wood);
-            }
+            old_wood = std::max(indiv.cmass_sap - indiv.acalloc_sap, 0.0);
+            new_wood = std::max(std::min(indiv.acalloc_sap, indiv.cmass_sap),0.0);
         } else {
-            fail("Update sapwood turnover in accordance with new allocation");
+            old_wood = std::max(indiv.cmass_sap - indiv.cgrow_sap, 0.0);
+            new_wood = std::max(std::min(indiv.cgrow_sap, indiv.cmass_sap),0.0);
+        }
+
+        if (old_wood == 0.0){ // there was no sapwood before, no drought legacy
+            indiv.kmax_drought_affected = pft.kmax;
+        } else { // drought-impacted wood is lost and fresh wood (with maximum kmax) regrows
+            indiv.kmax_drought_affected = std::min((indiv.kmax_drought_affected * old_wood + pft.kmax * new_wood) / (old_wood + new_wood),pft.kmax);
         }
 
         assert(indiv.kmax_drought_affected >= 0.0);
         assert(less_than_or_equal(indiv.kmax_drought_affected,pft.kmax));
-
-
-    //     MIGHT COME BACK TO THIS FOR DAILY ALLOCATION
-
-    //     for (Day day; day.period != date.subdaily; day.next()) {
-    //         indiv.max_k_loss = std::max(indiv.max_k_loss,indiv.k_loss[day.period]);
-    //     }
-
-    //     if (indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax)){ // drought only has an impact if loss of conductance exceeds current state
-    //         indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-indiv.max_k_loss*indiv.kmax_drought_affected/pft.kmax)); // kmax decreases proportionately to loss but scaled by how affected it already is   
-    //    // kmax2[d] <- min(kmax_init, kmax2[d-1]*(1-drought[d]/100*kmax2[d-1]/kmax_init))
-    
-    
-    //     } else { // kmax recovery as sapwood regrows
-    //         //this line is designed to work with daily growth
-    //         //  indiv.kmax_drought_affected = std::min(pft.kmax,(indiv.kmax_drought_affected*(1-indiv.cmass_sap_turnover) + pft.kmax*indiv.cmass_sap_growth)*indiv.cmass_sap_yesterday/indiv.cmass_sap);
-    //      }
 
         vegetation.nextobj();
     }
@@ -475,11 +507,11 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
     if (!e_met) {
         // If hydraulic vulnerability curve doesn't allow E to be met, we
-        // assume stomata are fully closed which means grass will fully senesce
+        // assume stomata are fully closed which means grass will fully senesce, but this shouldn't really happen
 
         // Set water potential to stom_clos to close stomata.
         psi2 = -pft.stom_clos;
-        // printf("hydraulic vulnerability curve doesn't allow E to be met\n");
+        printf("hydraulic vulnerability curve doesn't allow E to be met\n");
     }
 
     indiv.lwp[day.period] = -psi2;

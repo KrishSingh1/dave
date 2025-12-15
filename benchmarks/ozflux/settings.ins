@@ -127,6 +127,14 @@ variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
 ! file_co2 will be used.
 !variable_co2                 "co2"  ! CO2 Concentration (ppm)
 
+! Subdaily relative humidity (0-1). Not required if VPD is provided instead.
+variable_rh                   ""
+
+! Algorithm used to estimate saturation vapour pressure (esat) from air
+! temperature. Required iff variable_rh is set. Valid options are:
+! sonntag_1990, alduchov_1996, allen_1998
+esat_method                  "sonntag_1990"
+
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
 file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note extended to 2040 for synthetic drought/recovery at CuP - just added diff from 2022-23 every year
@@ -145,6 +153,9 @@ ifforcedlai                  0
 ! The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.
 ! This is a required parameter with ifforcedlai 1.
 !fixed_lai                    1.5
+
+! Set to non-zero to use this as a constant value of air pressure (Pa).
+fixed_pressure               0
 
 ! Optional constant to be added to daily temperature (°C).
 temperature_delta            0
@@ -207,7 +218,7 @@ patcharea    1000       ! Patch area (m2)
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "root_resistance"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
                          ! see documentation for water_uptake()
-rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "fixed"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)

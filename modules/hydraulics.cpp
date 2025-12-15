@@ -43,54 +43,74 @@
 const double KILL_THRESHOLD = 0.01;
 
 // The fraction of biomass lost due to hydraulic failure.
-const double MORT_FRAC = 0.1; // revisit how much dies based on level of stress over the year
+// Revisit how much dies based on level of stress over the year.
+const double MORT_FRAC = 0.1;
 
 // PAR threshold between predawn and postdawn (J/m2).
 const double PAR_DAWN = 10;
 
 double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
-    
-    double weighted_psi;
 
-    weighted_psi = 0.0;
- 
+    double weighted_psi = 0.0;
+
     for (int j=0; j<NSOILLAYER; j++){
         double psi_layer = soil.psi_layer[j];
         double rootfrac_layer = indiv.rootdist[j];
-        weighted_psi = weighted_psi + psi_layer * rootfrac_layer; // weight soil water potential by root fraction in each layer
+        // Weight soil water potential by root fraction in each layer.
+        weighted_psi = weighted_psi + psi_layer * rootfrac_layer;
     }
     return weighted_psi;
 }
 
-double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) { // De Kauwe et al (2015) recommends weighting by soil-to-root resistance
+// De Kauwe et al (2015) recommends weighting by soil-to-root resistance.
+double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
 
     double weighted_psi = 0;
     double Rs_inv_sum = 0;
-    
-    double rr = 0.5e-3; // fine root radius (m), from Table 2 in Williams et al (2001)
-    double froot_density = 0.31e3; // specific fine root density, kg[biomass]/m3[root], from Table 3 in Bonan et al (2014)
-    double root_resist =  25; // root resistivity in MPa*s*g/mmol, see Table 3 in Bonan et al (2014)
+
+    // Fine root radius (m), from Table 2 in Williams et al (2001).
+    double rr = 0.5e-3;
+
+    // Specific fine root density, kg[biomass]/m3[root], from Table 3 in Bonan
+    // et al (2014).
+    double froot_density = 0.31e3;
+
+    // Root resistivity in MPa*s*g/mmol, see Table 3 in Bonan et al (2014).
+    double root_resist =  25;
 
     for (int j = 0; j < NSOILLAYER; j++) {
-        double thickness_lyr = soil.Dz[j+7] / 1000.0; // soil layer depth in m, note that we skip the 6 snow layers and layer of air in betwen (7 total)
-        
-        double rootc_layer = indiv.rootdist[j] * indiv.cmass_root;    // kgC/m2
-        double root_biomass = rootc_layer * 2.0; // kg/m2     !!UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
-        
+        // Soil layer depth in m, note that we skip the 6 snow layers and layer
+        // of air in betwen (7 total).
+        double thickness_lyr = soil.Dz[j+7] / 1000.0;
 
-        double lr = (1 / (PI * pow(rr, 2))) * root_biomass * (1 / froot_density); // length of fine roots in soil (m) 
-        double rs = pow(1 / (PI * lr * thickness_lyr), 0.5); // mean distance between roots (m)
-        
-        double Ksoil = soil.K_actual[j] / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * water_density; // convert from m/s to m2/s/MPa by dividing by head of pressure in MPa/m, then convert to mmol/m/s/MPa
+        // kgC/m2
+        double rootc_layer = indiv.rootdist[j] * indiv.cmass_root;
+
+        // UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
+        double root_biomass = rootc_layer * 2.0; // kg/m2
+
+        // Length of fine roots in soil (m).
+        double lr = (1 / (PI * pow(rr, 2))) * root_biomass * (1 / froot_density);
+
+        // Mean distance between roots (m).
+        double rs = pow(1 / (PI * lr * thickness_lyr), 0.5);
+
+        // Convert from m/s to m2/s/MPa by dividing by head of pressure in
+        // MPa/m, then convert to mmol/m/s/MPa.
+        double Ksoil = soil.K_actual[j] / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * water_density;
 
         if (root_biomass > 0.0){
-            indiv.Rs_r[j] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass);  // soil-root resistance + root resistance, see Williams et al. (2001). Note we don't multiply root biomass by D because it's already in kg/m2 (equation assumes kg/m3)
+            // Soil-root resistance + root resistance, see Williams et al.
+            // (2001). Note we don't multiply root biomass by D because it's
+            // already in kg/m2 (equation assumes kg/m3).
+            indiv.Rs_r[j] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass);
         } else {
-            indiv.Rs_r[j] = pow(10.0,10.0); // conductivity is effectively zero if there are no roots
+            // Conductivity is effectively zero if there are no roots.
+            indiv.Rs_r[j] = pow(10.0,10.0);
         }
 
         double psi_layer = soil.psi_layer[j];
-        
+
         // Weight soil water potential by root fraction in each layer.
         weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[j]);
         Rs_inv_sum += 1.0 / indiv.Rs_r[j];
@@ -141,7 +161,7 @@ void calc_soil_water_potenial_dave(Soil &soil) {
 		double b = soil.soiltype.b;
 
         // Same approach used in De Kauwe et al (2020)
-        
+
         // Seems to be a mistake in this equation in Cosby 1984 as other
         // literature (e.g. Campbell 1974 and Clap & Hornberger 1978) use '-b',
         // no negative sign in Cosby 1984 but parameters seem to be the same.
@@ -154,7 +174,7 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         // soil.K_actual[i] = k * Ksoil_sat; // one way of converting Ksat to Kactual, but can also use method below
 
         double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
-        
+
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
         soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
                             sand_perc - 0.1103 * clay_perc + 8.7546e-4 * pow(clay_perc, 2.0)) * 1.0 / theta);
@@ -190,12 +210,15 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double gsw = indiv.ps_subdaily.gsw[day.period];
 
     // Transpiration in mmol/m2/s.
-    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0; /// shouldn't be proportional to stomatal conductance - look at how transpiration compares to flux data
+    // Shouldn't be proportional to stomatal conductance - look at how
+    // transpiration compares to flux data.
+    double transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
     double Ax = PI * pow(indiv.diam / 2.0, 2.0) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));
-    // Water holding capacity approximated based on wood density:
-    double nx = 1 - (pft.wooddens * 2) / 1000; // find out what paper had the wood density vs water holding capacity relationship
+    // Water holding capacity approximated based on wood density. Find out what
+    // paper had the wood density vs water holding capacity relationship.
+    double nx = 1 - (pft.wooddens * 2) / 1000;
 
     if (indiv.stomata_open) {
         // Stomata are not fully closed.
@@ -210,13 +233,18 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         double kmax_param;
 
-        if (pft.dave_allocation()){ 
-            kmax_param = pft.kmax; // if we're using dave_allocation, we account for xylem loss through sapwood turnover
+        if (pft.dave_allocation()){
+            // If we're using dave_allocation, we account for xylem loss through
+            // sapwood turnover.
+            kmax_param = pft.kmax;
         } else {
-            kmax_param = indiv.kmax_drought_affected; // if we're using annual (trunk) allocation, we don't change the sapwood but instead reduce the kmax parameter
+            // If we're using annual (trunk) allocation, we don't change the
+            // sapwood but instead reduce the kmax parameter.
+            kmax_param = indiv.kmax_drought_affected;
         }
 
-        double transpiration_full = transpiration_psi_soil + transpiration / (kmax_param * 1000 * Ax); // convert from mol to mmol
+        // Convert from mol to mmol.
+        double transpiration_full = transpiration_psi_soil + transpiration / (kmax_param * 1000 * Ax);
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
@@ -231,7 +259,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         }
 
         // Calculate loss of conductance.
-        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2)); // calculate loss of conductance from vulnerability curve (note this will change sapwood, not k parameter, if using daily allocation)
+        // Calculate loss of conductance from vulnerability curve (note this
+        // will change sapwood, not k parameter, if using daily allocation)
+        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
         indiv.lwp[day.period] = -psi2;
         indiv.E_not_met = !e_met;
@@ -241,7 +271,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             // printf("stomata have closed\n");
         }
 
-        indiv.Vl[day.period] = nx * Ax * indiv.height; // assume storage capacity is full if in 'non water stressed' mode
+        // Assume storage capacity is full if in 'non water stressed' mode.
+        indiv.Vl[day.period] = nx * Ax * indiv.height;
 
     } else {
         // Stomata are fully closed.
@@ -252,7 +283,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         double Vmax = nx * Ax * indiv.height;
 
         // Note using P88 as approximation for LWP when Vl = 0. Equation from
-        // Paschalis et al. (2024), but we assume stom_clos LWP at Vmax (not LWP of zero as in Pasch)
+        // Paschalis et al. (2024), but we assume stom_clos LWP at Vmax (not LWP
+        // of zero as in Pasch)
         double Vl_init = Vmax*(1-(indiv.lwp_previous - pft.stom_clos)/(pft.p88 - pft.stom_clos));
 
         const double MOL2MMOL = 1000.0;
@@ -276,37 +308,44 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
         }
 
-        // Only account for the extra ET once (can only be set to 'true' in the loop for
-        // open stomata).
+        // Only account for the extra ET once (can only be set to 'true' in the
+        // loop for open stomata).
         indiv.E_not_met = false;
 
         // Calculate loss of conductance.
         indiv.k_loss[day.period] = 1 - exp(-pow(-indiv.lwp[day.period] / pft.s1, pft.s2));
 
         // Refill tree water stores if we have rainfall
-        if (climate.prec > 1.0 * 24 / date.subdaily / 3.0) { // assume 1 mm every 3h is lost e.g. to interception
+        // Assume 1 mm every 3h is lost e.g. to interception.
+        if (climate.prec > 1.0 * 24 / date.subdaily / 3.0) {
             double cmass_root_tot = 0;
             for (size_t i = 0 ; i < indiv.vegetation.nobj; i++) {
                 cmass_root_tot += indiv.cmass_root;
             }
-            
-            double prec_avail = climate.prec - 1.0 * 24 / date.subdaily / 3.0; // rainfall that isn't intercepted / lost
-            double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot; // this indiv gets an amount based on its root carbon
 
-            double v_refill = prec_avail * frac_prec_this_indiv / 1000; // convert mm * m2 to m3
+            // Rainfall that isn't intercepted / lost.
+            double prec_avail = climate.prec - 1.0 * 24 / date.subdaily / 3.0;
 
-            indiv.Vl[day.period] = std::min(indiv.Vl[day.period] + v_refill, Vmax); // stem refills
+            // This indiv gets an amount based on its root carbon.
+            double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot;
+
+            // Convert mm * m2 to m3.
+            double v_refill = prec_avail * frac_prec_this_indiv / 1000;
+
+            // Stem refills.
+            indiv.Vl[day.period] = std::min(indiv.Vl[day.period] + v_refill, Vmax);
 
             indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
 
-            // stomata reopen if volume refills to the point that lwp is equal to stom_clos
+            // Stomata reopen if volume refills to the point that lwp is equal
+            // to stom_clos.
 
             if (indiv.lwp[day.period] >= pft.stom_clos) {
                 indiv.stomata_open = true;
             }
 
         }
-        
+
     }
 
     indiv.lwp_previous = indiv.lwp[day.period];
@@ -370,11 +409,15 @@ void hydraulic_mortality(Patch &patch) {
     }
 }
 
-// Reduce hydraulic conductance if drought damage has occurred today (or this year if annual growth), otherwise allow conductance to
-// recover with new growth / turnover. This is done via direct adjustment to the kmax parameter if running with annual growth, or via loss
-// of xylem, leaves and roots if running with dave growth. Note that we still calculate kmax_drought_affected even if we aren't actually altering 
-// the kmax parameter in the hydraulics routine (ie when we run with DAVE growth) because it keeps tabs on drought damage over time and is used
-// to scale the level of damage accounting for drought legacy as applicable
+// Reduce hydraulic conductance if drought damage has occurred today (or this
+// year if annual growth), otherwise allow conductance to recover with new
+// growth / turnover. This is done via direct adjustment to the kmax parameter
+// if running with annual growth, or via loss of xylem, leaves and roots if
+// running with dave growth. Note that we still calculate kmax_drought_affected
+// even if we aren't actually altering the kmax parameter in the hydraulics
+// routine (ie when we run with DAVE growth) because it keeps tabs on drought
+// damage over time and is used to scale the level of damage accounting for
+// drought legacy as applicable
 void adjust_kmax(Patch &patch) {
 
     Vegetation &vegetation = patch.vegetation;
@@ -387,47 +430,67 @@ void adjust_kmax(Patch &patch) {
 		Pft &pft = indiv.pft;
         Patchpft &ppft = indiv.patchpft();
 
-        if (pft.dave_allocation() || date.day == 0){ // if using annual allocation (not DAVE) then kmax loss is over whole year (not every day)
-            indiv.max_k_loss = 0; // reset at beginning of year (annual allocation) or beginning of day (daily allocation)
+        // if using annual allocation (not DAVE) then kmax loss is over whole
+        // year (not every day).
+        if (pft.dave_allocation() || date.day == 0){
+            // Reset at beginning of year (annual allocation) or beginning of
+            // day (daily allocation).
+            indiv.max_k_loss = 0;
         }
 
         for (Day day; day.period != date.subdaily; day.next()) {
-            indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]); // take maximum k_loss for that day, will continue to maximise over all days of year if annual allocation
+            // Take maximum k_loss for that day, will continue to maximise over
+            // all days of year if annual allocation.
+            indiv.max_k_loss = std::max(indiv.max_k_loss, indiv.k_loss[day.period]);
         }
 
-        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){ // if annual allocation, only move forward to conductance loss calcs at end of year
+        // If annual allocation, only move forward to conductance loss calcs at
+        // end of year.
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){
             vegetation.nextobj();
             continue;
         }
 
-        if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){ // drought only has an impact if stomata are fully closed, loss of conductance exceeds current state and we've crossed P12
-            
+        // Drought only has an impact if stomata are fully closed, loss of
+        // conductance exceeds current state and we've crossed P12.
+        if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){
+
             if (pft.is_grass()) {
                 fail("Grasses not supported");
             }
-            
-            double xylem_loss_frac = (indiv.max_k_loss - 0.12) / (1.0 - 0.12) * indiv.kmax_drought_affected / pft.kmax; // xylem capacity decreases proportionately to k_loss starting with zero loss at p12 (we scale from here to avoid sudden 'threshold' losses of 12%) but scaled by how affected it already is
 
-            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected*(1-xylem_loss_frac));
+            // Xylem capacity decreases proportionately to k_loss starting with
+            // zero loss at p12 (we scale from here to avoid sudden 'threshold'
+            // losses of 12%) but scaled by how affected it already is.
+            double xylem_loss_frac = (indiv.max_k_loss - 0.12) / (1.0 - 0.12) * indiv.kmax_drought_affected / pft.kmax;
+
+            indiv.kmax_drought_affected = indiv.kmax_drought_affected * (1.0 - xylem_loss_frac);
+            indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected);
 
             if (pft.dave_allocation()){
 
-                double closs_sap = indiv.cmass_sap * xylem_loss_frac; /// note dropping leaves causes problems due to fixed klatosa - consider adding back in with new allocation
-                double nloss_sap = indiv.nmass_sap * xylem_loss_frac; 
+                // Note dropping leaves causes problems due to fixed klatosa -
+                // consider adding back in with new allocation.
+                double closs_sap = indiv.cmass_sap * xylem_loss_frac;
+                double nloss_sap = indiv.nmass_sap * xylem_loss_frac;
 
-                indiv.cmass_sap -= closs_sap; 
+                indiv.cmass_sap -= closs_sap;
                 indiv.cmass_heart += closs_sap;
-                indiv.nmass_sap -= nloss_sap; 
+                indiv.nmass_sap -= nloss_sap;
                 indiv.nmass_heart += nloss_sap;
 
-                double closs_leaf = indiv.get_cmass_leaf() * xylem_loss_frac; /// note dropping leaves causes problems due to fixed klatosa - consider adding back in with new allocation
+                // Note dropping leaves causes problems due to fixed klatosa -
+                // consider adding back in with new allocation.
+                double closs_leaf = indiv.get_cmass_leaf() * xylem_loss_frac;
                 double closs_root = indiv.cmass_root * xylem_loss_frac;
 
-                double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss_frac; 
+                double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss_frac;
                 double nloss_root = indiv.nmass_root * xylem_loss_frac;
 
-                indiv.cmass_leaf -= closs_leaf; // lose leaves and roots in proportion to lost xylem
-                ppft.cmass_litter_leaf += closs_leaf; // lost leaves and roots go to litter
+                // Lose leaves and roots in proportion to lost xylem.
+                // Lost leaves and roots go to litter.
+                indiv.cmass_leaf -= closs_leaf;
+                ppft.cmass_litter_leaf += closs_leaf;
 
                 indiv.cmass_root -= closs_root;
                 ppft.cmass_litter_root += closs_root;
@@ -438,22 +501,25 @@ void adjust_kmax(Patch &patch) {
                 indiv.nmass_root -= nloss_root;
                 ppft.nmass_litter_root += nloss_root;
             }
-
         }
 
         double old_wood, new_wood;
 
-        if (!pft.dave_allocation()){ // this loop allows kmax to recover as sapwood regrows
+        // This loop allows kmax to recover as sapwood regrows.
+        if (!pft.dave_allocation()) {
             old_wood = std::max(indiv.cmass_sap - indiv.acalloc_sap, 0.0);
-            new_wood = std::max(std::min(indiv.acalloc_sap, indiv.cmass_sap),0.0);
+            new_wood = std::max(std::min(indiv.acalloc_sap, indiv.cmass_sap), 0.0);
         } else {
             old_wood = std::max(indiv.cmass_sap - indiv.cgrow_sap, 0.0);
-            new_wood = std::max(std::min(indiv.cgrow_sap, indiv.cmass_sap),0.0);
+            new_wood = std::max(std::min(indiv.cgrow_sap, indiv.cmass_sap), 0.0);
         }
 
-        if (old_wood == 0.0){ // there was no sapwood before, no drought legacy
+        // There was no sapwood before, no drought legacy.
+        if (old_wood == 0.0){
             indiv.kmax_drought_affected = pft.kmax;
-        } else { // drought-impacted wood is lost and fresh wood (with maximum kmax) regrows
+        } else {
+            // Drought-impacted wood is lost and fresh wood (with maximum kmax)
+            // regrows.
             indiv.kmax_drought_affected = std::min((indiv.kmax_drought_affected * old_wood + pft.kmax * new_wood) / (old_wood + new_wood),pft.kmax);
         }
 
@@ -537,8 +603,8 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
         // We start to get senescence at turgor loss point, full senescense once stomata are fully closed.
         if (min_lwp_day <= pft.tlp) {
-
-            double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0); // fraction of lai lost to senescence increases linearly with lwp
+            // Fraction of lai lost to senescence increases linearly with lwp.
+            double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0);
 
             double closs_leaf = indiv.get_cmass_leaf() * hyd_senesce;
             double nloss_leaf = indiv.get_nmass_leaf() * hyd_senesce;

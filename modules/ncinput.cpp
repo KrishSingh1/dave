@@ -565,7 +565,9 @@ try {
 
 	for (size_t i = 0; i < vpds.size(); i++) {
 		if (vpds[i] < 0.01) {
-			printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			if (nc_check_inputs) {
+				printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			}
 			vpds[i] = 0.01;
 		}
 	}

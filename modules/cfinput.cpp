@@ -344,10 +344,13 @@ CFInput::CFInput()
 	  cf_specifichum(0),
 	  cf_relhum(0),
 	  cf_wind(0),
-	  ndep_timeseries("historic") {
+	  ndep_timeseries("historic"),
+	  ifsyncspinupclimate(0) {
 
 	// Declare instruction file parameters
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
+	declare_parameter("ifsyncspinupclimate", &ifsyncspinupclimate, "If true, synchronize spinup climate with historic climate, if false (default, previous behavior), no synchronisation");
+
 }
 
 CFInput::~CFInput() {
@@ -530,6 +533,10 @@ void CFInput::init() {
 
 	soilinput.init(param["file_soildata"].str);
 
+	if (state_year>0) {
+		state_calendar_year = (state_year-1) + date.first_calendar_year;
+	}
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -617,6 +624,59 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	}
 	
 	spinup_temp.detrend_data();
+
+	// allow to synchronize the spinup start climate and available climate period
+	// with the setup `nyear_spinup 500` and `NYEAR_SPINUP_DATA 30` 
+	// without synchronization (default, previous behavior so benchmarks are not affected):
+	//   the climate of 1901 is used in 1401, 1902 in 1402, ..., 1920 in 1900 during the spinuup
+	//   then the climate of 1901 will get used in year 1901
+	// with synchronization:
+	//   the climate of 1911 is used in 1401, 1912 in 1402,..., 1930 in 1900 during the spinuup
+	//   then the climate of 1901 will get used in year 1901
+	if (ifsyncspinupclimate) {
+		GuessNC::CF::DateTime first_date = cf_temp->get_date_time(0);
+		int climate_first_year = first_date.get_year();
+		int sync_first_year = date.first_calendar_year;
+		if (restart&&((state_calendar_year+1) < climate_first_year))
+			sync_first_year = state_calendar_year+1;
+		int year_offset = NYEAR_SPINUP_DATA-(climate_first_year - sync_first_year)%NYEAR_SPINUP_DATA;
+
+		for (int y=0;y<year_offset;y++) {
+			// Move to next year in spinup dataset
+			spinup_temp.nextyear();
+			spinup_prec.nextyear();
+			spinup_insol.nextyear();
+
+			if (cf_wetdays) {
+				spinup_wetdays.nextyear();
+			}
+
+			if (cf_min_temp) {
+				spinup_min_temp.nextyear();
+			}
+
+			if (cf_max_temp) {
+				spinup_max_temp.nextyear();
+			}
+			
+			if (cf_pres) {
+				spinup_pres.nextyear();
+			}
+			
+			if (cf_specifichum) {
+				spinup_specifichum.nextyear();
+			}
+			
+			if (cf_wind) {
+				spinup_wind.nextyear();
+			}
+			
+			if (cf_relhum) {
+				spinup_relhum.nextyear();
+			}
+		
+		}
+	}
 
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
@@ -741,6 +801,13 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 					++historic_timestep;
 					GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
 
+					if (restart) { // in case of restart from state need to advance to the restart year
+						while(dt.get_year() < (state_calendar_year + 1)) {
+							++historic_timestep;
+							dt = cf_historic->get_date_time(historic_timestep);
+						}
+					}
+
 					// Deal with calendar mismatch
 
 					// Leap day in NetCDF variable but not in LPJ-GUESS?
@@ -788,6 +855,15 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 				if (historic_timestep + 1 < cf_historic->get_timesteps()) {
 					++historic_timestep;
 				}
+				
+				GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
+				if (restart) { // in case of restart from state need to advance to the restart year
+					while(dt.get_year() < (state_calendar_year +1)) {
+						++historic_timestep;
+						dt = cf_historic->get_date_time(historic_timestep);
+					}
+				}
+				
 
 				if (historic_timestep < cf_historic->get_timesteps()) {
 					data[m] = cf_historic->get_value(historic_timestep);

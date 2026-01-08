@@ -51,6 +51,15 @@ const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 
+const double DHUGE = std::numeric_limits<double>::max();
+const long LHUGE = std::numeric_limits<long>::max();
+const int IHUGE = std::numeric_limits<int>::max();
+const double D_EPSILON = std::numeric_limits<double>::min();
+const float R_EPSILON = std::numeric_limits<float>::min();
+
+// Freezing temperature of freshwater (K)
+const double TFREEZE = 273.15;
+
 inline bool negligible(double dval, int limit = 0) {
 	// Returns true if |dval| < EPSILON, otherwise false
 	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
@@ -343,6 +352,19 @@ inline bool verysmall(double dval) {
 	if (dval>EPSILON) return false;
 	if (dval<0.0 && dval<-EPSILON) return false;
 	return true;
+}
+
+// Generate seed depending on geolocation
+inline unsigned int geohash(double lat, double lon, double offset = 0.5) {
+	const double SCALE = roundoff(60.0 / offset, 0); // scale factor for geohash, the larger the number the more unique values
+	const unsigned int ROWLEN = (int)roundoff(SCALE * 360., 0);
+
+	unsigned int i, j;
+
+	i = (int)roundoff(offset + SCALE * (lon + 180.), 0);
+	j = (int)roundoff(offset + SCALE * (lat + 90.), 0);
+	unsigned int geohash = i + ROWLEN * (j - 1) - IHUGE;
+	return geohash;
 }
 
 #endif // LPJ_GUESS_GUESSMATH_H

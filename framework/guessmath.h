@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include "archive.h"
+#include <limits>
 
 #define _USE_MATH_DEFINES
 #include <cmath>

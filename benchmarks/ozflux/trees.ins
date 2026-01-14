@@ -160,7 +160,7 @@ pft "TeBE" (
 
 	! Temperate broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -586,11 +586,11 @@ pft "Eucface" (
 )
 
 
-pft "CuP" (
+pft "CuP" ( ### used for testing hydraulics model
 
 	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	shade_intolerant
@@ -610,16 +610,16 @@ pft "CuP" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
-	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+	rootdist 0.14 0.14 0.14 0.14 0.14 0.04 0.04 0.04 0.04 0.04 0.02 0.02 0.02 0.02 0.02
 
 	k_latosa 6000 ! 6000 estimated from Austraits
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 30  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	stom_clos -4.1   ! Peters (2021)
-	p50 -5.0   ! Peters (2021)
-	p88 -5.8  ! Peters (2021)
+	kmax 10  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -3.2   ! Peters (2021)
+	p50 -5.8   ! Peters (2021)
+	p88 -7.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
 

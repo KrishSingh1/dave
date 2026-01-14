@@ -590,7 +590,7 @@ pft "MRS" (
 
 	! Medium Resprouter
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -943,7 +943,7 @@ pft "CuP" (
 
 	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	shade_intolerant
@@ -963,24 +963,31 @@ pft "CuP" (
 	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
+	!!! new params from MRS !!!
+	turnover_sap 0.07
+	turnover_root 1
+	ltor_max 0.67
+	k_allom2 35
+
 	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
 
 	k_latosa 6000 ! 6000 estimated from Austraits
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 200  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	stom_clos -4.1   ! Peters (2021)
-	p50 -5.0   ! Peters (2021)
-	p88 -5.8  ! Peters (2021)
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -3.2   ! Peters (2021)
+	p50 -5.8   ! Peters (2021)
+	p88 -7.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
-	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
+	b1z 0.5 ! Somewhere between values for dry and wet euc species in Zhou (2014).
+	gcutic 0.002 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
 
-	vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
-	jmax_25 61.2 ! 1.7 * vcmax_25
+	vcmax_25 50 ! Somewhere between values for dry and wet euc species in Zhou (2014). Average of two euc species from Bloomfield (2018) is 36
+	jmax_25 85 ! 1.7 * vcmax_25
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)
 	
-	respcoeff 0.6
+	respcoeff 0.7
 
 	ifcalcvcmax 0
 	cton_leaf_min 29.010140

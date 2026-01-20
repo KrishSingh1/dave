@@ -706,7 +706,6 @@ std::vector<std::unique_ptr<DaveOutput::OutputFile>> &DaveOutput::get_outputs_ve
 }
 
 void DaveOutput::declare_parameters() {
-	declare_parameter("spinup_output", &spinup_output, "True to write DAVE outputs during the spinup, false otherwise.");
 	declare_parameter("patch_output_stats", &patch_output_stats, "True to ONLY write stats (mean/std. deviation) for patch-level outputs. False to write the full patch-level outputs.");
 
 	declare_parameters(daily_outputs);
@@ -1674,7 +1673,6 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 	return data.size() ? aggregator(&data.front(), index) : 0;
 }
 
-bool spinup_output;
 bool patch_output_stats;
 
 const int COLUMN_WIDTH = 15; // Enough to fit a 6-digit number

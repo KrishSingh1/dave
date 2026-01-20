@@ -252,7 +252,6 @@ private:
 
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			OutputFile(std::string param, std::string desc);
 
@@ -737,7 +736,6 @@ class GridcellLevelOutput : public OutputFile {
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
@@ -1301,11 +1299,6 @@ class GridcellLevelOutput : public OutputFile {
 	*/
 	double total_time;
 };
-
-/*
-True iff outputs should be written during spinup.
-*/
-extern bool spinup_output;
 
 /*
 Iff true, mean/std dev across patches will be written instead of raw outputs.

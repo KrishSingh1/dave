@@ -95,6 +95,7 @@ bool ifapproximate_C4;
 bool ifusegdd;
 bool ifstoreuptake;
 bool gzip_output;
+bool spinup_output;
 int nindiv_max;
 int grazing_duration;
 bool ifforcedlai;
@@ -305,6 +306,7 @@ void initsettings() {
 	grassforcrop = false;
 	useClosestNdep = false;
 	gzip_output = false;
+	spinup_output = false;
 	nindiv_max = 0;
 	ifforcedlai = false;
 	fixed_lai = 0;
@@ -667,6 +669,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
+		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");

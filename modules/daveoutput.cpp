@@ -272,11 +272,12 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_absolute_alpha_root"   , DAILY, [](const Individual &i) { return i.absolute_alpha_root; }, "Relative root sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_sap"    , DAILY, [](const Individual &i) { return i.absolute_alpha_sap; }, "Relative sapwood sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_storage", DAILY, [](const Individual &i) { return i.absolute_alpha_storage; }, "Relative storage sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_cgrow_leaf"          , DAILY, [](const Individual &i) { return i.cgrow_leaf; }, "Daily leaf growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_root"          , DAILY, [](const Individual &i) { return i.cgrow_root; }, "Daily root growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_sap"           , DAILY, [](const Individual &i) { return i.cgrow_sap; }, "Daily sap growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_repr"          , DAILY, [](const Individual &i) { return i.cgrow_repr; }, "Daily repr growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_storage"       , DAILY, [](const Individual &i) { return i.cgrow_storage; }, "Daily storage allocation (kgC/m2)", mean, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_leaf"          , DAILY, [](const Individual &i) { return i.cgrow_leaf; }, "Daily leaf growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_root"          , DAILY, [](const Individual &i) { return i.cgrow_root; }, "Daily root growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_sap"           , DAILY, [](const Individual &i) { return i.cgrow_sap; }, "Daily sap growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_repr"          , DAILY, [](const Individual &i) { return i.cgrow_repr; }, "Daily repr growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_storage"       , DAILY, [](const Individual &i) { return i.cgrow_storage; }, "Daily storage allocation (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_creturn"             , DAILY, [](const Individual &i) { return i.creturn; }, "daily storage growth plus excess from N limitation (kgC/m2/day)", sum, true, false);
 	add_aggregated_indiv_output("file_dave_cgrow"               , DAILY, [](const Individual &i) { return i.cgrow; }, "Daily growth (kgC/m2)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_diameter_inc"        , DAILY, [](const Individual &i) { return i.d_diam; }, "Daily diameter growth (m/day)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_height_inc"          , DAILY, [](const Individual &i) { return i.d_height; }, "Daily height growth (m/day)", mean, true, false);
@@ -398,6 +399,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_vcmax"           , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_jmax"            , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", mean);
+	add_indiv_array_output("file_dave_subdaily_Vl"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.Vl[i];  }, "Subdaily stem water volume (m3)", mean);
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);

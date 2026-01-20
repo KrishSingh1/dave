@@ -1947,7 +1947,10 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 			return csap;
 		}
 	}
-	fail("Failed to find a solution for csap");
+	xtring msg;
+	msg.printf("solve_csap(): Failed to find a solution for csap;\nbminit=%f, k_latosa=%f, k_allom2=%f, k_allom3=%f, wooddens=%f, sla=%f, init_storfrac=%f, ltor=%f",
+	           bminit, k, k2, k3, rho, sla, ks, ltor);
+	fail(msg);
 	return -1; // Can never reach here: fail() calls exit().
 }
 
@@ -5071,6 +5074,7 @@ void update_pools_dave(Vegetation& vegetation) {
 			creturn = indiv.cstorage_max - indiv.cmass_storage;
 		}
 		indiv.cmass_storage += creturn;
+		indiv.creturn = creturn;
 
 		// nreturn doesn't need to go back into the storage pool, because we
 		// haven't actually taken anything out of the storage pool yet, and

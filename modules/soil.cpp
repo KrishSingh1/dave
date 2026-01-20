@@ -824,7 +824,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	double MIN_WATER_PERC = 0.0;
 
 	if (ifdavehydrology){
-		BASEFLOW_FRAC = 0.5;	// CS testing change, standard is 0.5
+		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
 		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
 	} else {
 		BASEFLOW_FRAC = 0.5;

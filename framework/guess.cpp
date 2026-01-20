@@ -1782,6 +1782,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_sap		  = 0.0;
 	cgrow_repr        = 0.0;
 	cgrow_storage     = 0.0;
+	creturn           = 0.0;
 	growth_demand     = pft.is_grass() ? 0.0 : 1.0;
 	growth_stage      = 0.0;
 	frepr_cstorage    = 0.0;
@@ -1922,6 +1923,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lwp_previous = 0.0;
 	transp_previous = 0.0;
 	lwp.resize(date.subdaily);
+	Vl.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	hydraulic_failure = false;
 	mort_age = 0;

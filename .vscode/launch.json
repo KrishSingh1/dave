@@ -5,44 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Site",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "${input:site}.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/${input:site}",
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "program": "${workspaceFolder}/build/guesscmd.exe",
-                "MIMode": "gdb"
-            },
-            "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "prepare-run",
-        },
-        {
             "name": "Abisko",
             "type": "cppdbg",
             "request": "launch",
@@ -1728,61 +1690,6 @@
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"
-        }
-    ],
-    "inputs": [
-        {
-            "id": "site",
-            "type": "command",
-            "command": "extension.commandvariable.pickStringRemember",
-            "args":
-            {
-                "key": "sitename",
-                "description": "Name of the ozflux site to run",
-                "default": "SturtPlains",
-                "options": [
-                    "AdelaideRiver",
-                    "AliceSpringsMulga",
-                    "Boyagin",
-                    "Calperum",
-                    "CapeTribulation",
-                    "ClimGrass",
-                    "Collie",
-                    "CowBay",
-                    "CumberlandPlain",
-                    "DalyPasture",
-                    "DalyUncleared",
-                    "DryRiver",
-                    "Emerald",
-                    "FoggDam",
-                    "Gingin",
-                    "GreatWesternWoodlands",
-                    "HenryBayly",
-                    "HowardSprings",
-                    "Litchfield",
-                    "Longreach",
-                    "MtAlex",
-                    "MtMajura",
-                    "Otway",
-                    "RedDirtMelonFarm",
-                    "Ridgefield",
-                    "RiggsCreek",
-                    "RobsonCreek",
-                    "Samford",
-                    "SilverPlains",
-                    "SturtPlains",
-                    "TiTreeEast",
-                    "Tumbarumba",
-                    "UNE",
-                    "WallabyCreek",
-                    "Warra",
-                    "Whroo",
-                    "WombatStateForest",
-                    "Yanco",
-                    "YarCon",
-                    "YarIrr"
-                ],
-            }
         }
     ]
 }

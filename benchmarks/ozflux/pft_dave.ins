@@ -336,6 +336,13 @@ group "shade_intolerant" (
 	turnover_sap 0.1
 )
 
+group "extreme_shade_intolerant" (
+	est_max 0.2
+	parff_min 5000000
+	alphar 50.0
+	greff_min 0.09
+	turnover_sap 0.1
+)
 
 group "no_bioclimatic_limits" (
 
@@ -607,9 +614,10 @@ pft "MRS" (
 
 	! Medium Resprouter
 
-	include 1
+	include 0
 	tree
 	broadleaved
+	extreme_shade_intolerant
 	shade_intolerant
 	evergreen
 	temperate
@@ -643,6 +651,20 @@ pft "MRS" (
 	k_latosa 4000
 	k_allom2 35
 	longevity 300
+	vcmax_25 94 ! apprx from Dushan (EucFACE)
+	jmax_25 138 ! apprx from Dushan (EucFACE)
+	!vcmax_25 75.8 ! Austraits
+	!jmax_25 127.27 ! Austraits
+	ha_v 60 ! apprx from Dushan (EucFACE)
+	ha_j 28 ! apprx from Dushan (EucFACE)
+	ds_v 638 ! apprx from Dushan (EucFACE)
+	ds_j 638 ! apprx from Dushan (EucFACE)
+	g1 3.38 ! Austraits
+	g1x 3.9 ! Austraits
+	!b1z 2
+	!vcmax_25 40.5
+	!root_beta 0.97
+
 
 	! Default stom_clos is -1.5
 	!stom_clos -3.2   ! Peters (2021)
@@ -666,20 +688,20 @@ pft "MRS" (
 	! sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
 	! respcoeff 0.8 
 
-	! ! CUP (Clare) - fixedLAI = 1.545
-	!shade_intolerant
+	!! ! CUP (Clare) - fixedLAI = 1.545
+	!!shade_intolerant
 	!rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
-	!k_latosa 6000 ! 6000 estimated from Austraits
-	!wooddens 350  ! Peters (2021)
+	!!k_latosa 6000 ! 6000 estimated from Austraits
+	!!wooddens 350  ! Peters (2021)
 	!kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	!stom_clos -3.2   ! Peters (2021)
+	!stom_clos -3.2   ! Peters (2021) -3.2
 	!p50 -5.8   ! Peters (2021)
 	!p88 -7.7  ! Peters (2021)
-	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
-	!gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
-	!vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
-	!jmax_25 61.2 ! 1.7 * vcmax_25
-	!sla 9.2 ! Average of two euc species from Bloomfield (2018)
+	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), 3.9
+	!gcutic 0.0015 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, maybe should be lower for sclerophyll?
+	!!vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	!!jmax_25 61.2 ! 1.7 * vcmax_25
+	!!sla 9.2 ! Average of two euc species from Bloomfield (2018)
 
 	! ! Warra (Clare) - fixedLAI = 5.164s
 	!shade_intolerant
@@ -696,6 +718,180 @@ pft "MRS" (
 
 )
 
+pft "SRS" (
+
+	! Short Resprouter Sclerophyll
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 13.171494
+	cton_leaf_min 29.010140
+	no_bioclimatic_limits
+
+	! Changes
+	wooddens 370
+	sla 6.2
+	leaflong 2.4
+	turnover_leaf 0.42
+	turnover_sap 0.04
+	turnover_root 1 ! ?? to have higher root allocation?
+	k_latosa 4400
+	ltor_max 0.4
+	ltor_max 1  ! <<<<<
+	k_allom2 22
+	k_allom3 0.67
+	longevity 100
+	cton_leaf_min 35.35
+	vcmax_25 51
+	jmax_25 92
+	ha_v 45.4 ! Dushan's data from GWW
+	ha_j 18 ! Dushan's data from GWW
+	ds_v 636  ! Dushan's data from GWW
+	ds_j 620 ! Dushan's data from GWW
+	g1 1.85 ! Austraits
+	g1x 2.2 ! Austraits?
+	!b1z 2
+	root_beta 0.988
+)
+
+
+pft "TRS" (
+
+	! Tall Resprouter Sclerophyll
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 13.171494
+	cton_leaf_min 29.010140
+	no_bioclimatic_limits
+
+	! Changes
+	wooddens 270
+	sla 10.54
+	leaflong 1
+	turnover_leaf 1
+	turnover_sap 0.1
+	turnover_root 1 ! ?? to have higher root allocation?
+	k_latosa 1840
+	! k_latosa 6000 ! <<<< TEST >>>>
+	ltor_max 1 ! can be also 1.5 (Warra)
+	k_allom2 45
+	k_allom3 0.67
+	longevity 300
+	cton_leaf_min 31.6
+	!vcmax_25 77.47 ! Austraits
+	!jmax_25 148.25 ! Austraits
+	vcmax_25 93 ! Dushan's estimate at Tumbarumba
+	jmax_25 190 ! Dushan's estimate at Tumbarumba
+	ha_v 75 ! Dushan's estimate at Tumbarumba
+	ha_j 50 ! Dushan's estimate at Tumbarumba
+	ds_v 638 ! Dushan's estimate at Tumbarumba
+	ds_j 636 ! Dushan's estimate at Tumbarumba
+	g1 3.67 ! Austraits
+	g1x 4.1 ! Bloomfield for "Warra"
+	b1z .5
+	root_beta 0.96
+)
+
+
+pft "TeRF" (
+
+	! Temperate rainforest
+
+	include 0
+	tree
+	broadleaved
+	shade_tolerant ! Shade Tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 13.171494
+	cton_leaf_min 29.010140
+	no_bioclimatic_limits
+
+	! Changes
+	wooddens 260
+	sla 18
+	leaflong 1
+	turnover_leaf 1
+	turnover_sap 0.05
+	turnover_root 0.7 ! ??
+	k_latosa 2616
+	ltor_max 1 ! can be also 1.5
+	k_allom2 45
+	k_allom3 0.67
+	longevity 500
+	cton_leaf_min 23.72
+	!vcmax_25 45.94 ! Austraits
+	!jmax_25 94.6 ! Austraits
+	vcmax_25 36 ! Camille for N. cunninghamii
+	jmax_25 98 ! Camille for N. cunninghamii
+	ha_v 54 ! Camille for N. cunninghamii
+	ha_j 33 ! Camille for N. cunninghamii
+	ds_v 640 ! Camille for N. cunninghamii
+	ds_j 635 ! Camille for N. cunninghamii
+	g1 2.62 ! Austraits
+	!g1x 4.1 ! Bloomfield for "Warra"
+	!b1z 2
+
+	! COPIED FROM warra_pfts
+	parff_min 1500000 ! increase to prevent esavlishment with low LAI of Eucs
+  	parff_min 500000
+  	alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
+  	greff_min 0.03 ! ???
+)
 
 pft "TrBE" (
 
@@ -955,3 +1151,51 @@ pft "C4G_annual" (
    extkn              0.23
 )
 
+! Clare's Cumberland Plain PFT for hydraulics - hydraulic parameters adjusted for drought mortality sites
+pft "CuP" (
+
+	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 1.0 
+	turnover_leaf 1.0
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 350  ! Peters (2021)
+	kmax 200  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -4.1   ! Peters (2021)
+	p50 -5.0   ! Peters (2021)
+	p88 -5.8  ! Peters (2021)
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
+
+	vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	jmax_25 61.2 ! 1.7 * vcmax_25
+	sla 9.2 ! Average of two euc species from Bloomfield (2018)
+	
+	respcoeff 0.6
+
+	ifcalcvcmax 0
+	cton_leaf_min 29.010140
+
+)

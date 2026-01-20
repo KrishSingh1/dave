@@ -132,7 +132,7 @@ NCInput::NCInput() {
 	bounds_temp.min = -100;
 
 	bounds_vpd.max = 100;
-	bounds_vpd.min = 0;
+	bounds_vpd.min = 0.01; // CS updated from 0
 
 	bounds_rh.max = 1;
 	bounds_rh.min = 0;
@@ -561,6 +561,15 @@ try {
 	if (wind) {
 		std::vector<double> winds = wind->read(lon, lat, year, date.day, 1);
 		climate.u10 = mean(winds);
+	}
+
+	for (size_t i = 0; i < vpds.size(); i++) {
+		if (vpds[i] < 0.01) {
+			if (nc_check_inputs) {
+				printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			}
+			vpds[i] = 0.01;
+		}
 	}
 
 	climate.temps = temps;

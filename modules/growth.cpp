@@ -1541,32 +1541,15 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	// 95% percentile NSC concentrations from eucface.
-
-	// Maximum NSC concentration in dead bark.
-	const double BARK_NSC_CONC = 0.203;
-
-	// Maximum NSC concentration in leaves.
-	const double LEAF_NSC_CONC = 0.243;
-
-	// Maximum NSC concentration in twigs.
-	const double TWIG_NSC_CONC = 0.0688;
-
-	// Maximum NSC concentration in wood.
-	const double WOOD_NSC_CONC = 0.0797;
-
-	// Fraction of dead woody biomass that is bark. Plucked out of thin air.
-	const double BARK_FRAC = 0.01;
-
-	double cmass_bark = indiv.cmass_heart * BARK_FRAC;
+	double cmass_bark = indiv.cmass_heart * indiv.pft.bark_frac;
 	double cmass_leaf = indiv.get_cmass_leaf();
 	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
 	double cmass_wood = indiv.cmass_sap - cmass_twig;
 
-	double nsc_bark = cmass_bark * BARK_NSC_CONC;
-	double nsc_leaf = cmass_leaf * LEAF_NSC_CONC;
-	double nsc_twig = cmass_twig * TWIG_NSC_CONC;
-	double nsc_wood = cmass_wood * WOOD_NSC_CONC;
+	double nsc_bark = cmass_bark * indiv.pft.max_bark_nsc_conc;
+	double nsc_leaf = cmass_leaf * indiv.pft.max_leaf_nsc_conc;
+	double nsc_twig = cmass_twig * indiv.pft.max_twig_nsc_conc;
+	double nsc_wood = cmass_wood * indiv.pft.max_wood_nsc_conc;
 
 	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
 }

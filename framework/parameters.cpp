@@ -849,7 +849,16 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
-
+		declareitem("max_bark_nsc_conc", &ppft->max_bark_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in dead bark.");
+		declareitem("max_leaf_nsc_conc", &ppft->max_leaf_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in leaves.");
+		declareitem("max_twig_nsc_conc", &ppft->max_twig_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in twigs.");
+		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in wood.");
+		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of dead woody biomass that is bark. Plucked out of thin air.");
 		declareitem("crelocfrac", &ppft->crelocfrac, 0.0, 1e10, 1, CB_NONE,
 			"Fraction of senesced carbon retranslocated back to storage.");
 		declareitem("senesc_base", &ppft->senesc_base, 0.0, 1e10, 1, CB_NONE,
@@ -2189,6 +2198,11 @@ void plib_callback(int callback) {
 				if (ifdailytree && ppft->lifeform == TREE) {
 					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
+					if (!itemparsed("max_bark_nsc_conc")) badins("max_bark_nsc_conc");
+					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
+					if (!itemparsed("max_twig_nsc_conc")) badins("max_twig_nsc_conc");
+					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
+					if (!itemparsed("bark_frac")) badins("bark_frac");
 				}
 
 				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {

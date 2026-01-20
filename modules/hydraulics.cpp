@@ -37,6 +37,7 @@
 #include "guess.h"
 #include "hydraulics.h"
 #include "canexch.h"
+#include "somdynam.h"
 
 // The cohort density (/m2) above which cohorts will lose MORT_FRAC biomass
 // upon hydraulic failure, and below which they will be killed outright.
@@ -490,16 +491,12 @@ void adjust_kmax(Patch &patch) {
                 // Lose leaves and roots in proportion to lost xylem.
                 // Lost leaves and roots go to litter.
                 indiv.cmass_leaf -= closs_leaf;
-                ppft.cmass_litter_leaf += closs_leaf;
+                indiv.nmass_leaf -= nloss_leaf;
+                leaf_to_litter(patch.soil, pft, closs_leaf, nloss_leaf);
 
                 indiv.cmass_root -= closs_root;
-                ppft.cmass_litter_root += closs_root;
-
-                indiv.nmass_leaf -= nloss_leaf;
-                ppft.nmass_litter_leaf += nloss_leaf;
-
                 indiv.nmass_root -= nloss_root;
-                ppft.nmass_litter_root += nloss_root;
+                root_to_litter(patch.soil, pft, closs_root, nloss_root);
             }
         }
 

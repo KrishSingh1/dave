@@ -1803,6 +1803,16 @@ void plib_callback(int callback) {
 			if (!itemparsed("estinterval")) badins("estinterval");
 		}
 
+		if (ifdailytree && !ifdavegrowth) {
+			for (size_t i = 0; i < pftlist.nobj; i++) {
+				if (pftlist[i].lifeform == TREE) {
+					sendmessage("Error", "Daily tree allocation (ifdailytree) is enabled, but dave growth (ifdavegrowth) is disabled. These must be either both enabled or both disabled.");
+					plibabort();
+					break;
+				}
+			}
+		}
+
 		if (ifzhou && wateruptake != WR_ROOT_RESISTANCE) {
 			sendmessage("Error", "Zhou model has been enabled, but water uptake method is not set to ROOT_RESISTANCE. This is the only supported water uptake method when ifzhou is enabled");
 			plibabort();

@@ -578,7 +578,6 @@ try {
 	climate.precs = precs;
 	gridcell.dNH4dep = nh4_dep[date.day];
 	gridcell.dNO3dep = no3_dep[date.day];
-	climate.vpds = vpds;
 	climate.pressure = pressure;
 
 	climate.co2 = get_co2(lon, lat, co2_year, date.day);

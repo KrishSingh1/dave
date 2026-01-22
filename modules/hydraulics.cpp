@@ -426,10 +426,16 @@ void adjust_kmax(Patch &patch) {
     vegetation.firstobj();
     size_t nobj = vegetation.nobj;
 
-    while(vegetation.isobj) {
-        Individual &indiv = vegetation.getobj();
+    for (size_t i = 0; i < vegetation.nobj; i++) {
+        Individual &indiv = vegetation[i];
 		Pft &pft = indiv.pft;
         Patchpft &ppft = indiv.patchpft();
+
+        // Only trees are affected by adjust_kmax(). Grasses use
+        // grass_hydraulics().
+        if (pft.is_grass()) {
+            continue;
+        }
 
         // if using annual allocation (not DAVE) then kmax loss is over whole
         // year (not every day).
@@ -448,17 +454,12 @@ void adjust_kmax(Patch &patch) {
         // If annual allocation, only move forward to conductance loss calcs at
         // end of year.
         if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){
-            vegetation.nextobj();
             continue;
         }
 
         // Drought only has an impact if stomata are fully closed, loss of
         // conductance exceeds current state and we've crossed P12.
         if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){
-
-            if (pft.is_grass()) {
-                fail("Grasses not supported");
-            }
 
             // Xylem capacity decreases proportionately to k_loss starting with
             // zero loss at p12 (we scale from here to avoid sudden 'threshold'
@@ -522,8 +523,6 @@ void adjust_kmax(Patch &patch) {
 
         assert(indiv.kmax_drought_affected >= 0.0);
         assert(less_than_or_equal(indiv.kmax_drought_affected,pft.kmax));
-
-        vegetation.nextobj();
     }
 }
 
@@ -612,11 +611,9 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
                 indiv.cmass_leafs[1] += closs_leaf; //added to brown leaf carbon
                 indiv.nmass_leafs[1] += nloss_leaf; //added to brown leaf N
             } else {
-                fail("TODO: Should go to soil litter (discuss with Drew)");
                 indiv.cmass_leaf -= closs_leaf;
                 indiv.nmass_leaf -= nloss_leaf;
-                ppft.cmass_litter_leaf += closs_leaf;
-                ppft.nmass_litter_leaf += nloss_leaf;
+                leaf_to_litter(indiv.vegetation.patch.soil, pft, closs_leaf, nloss_leaf);
             }
         }
     }

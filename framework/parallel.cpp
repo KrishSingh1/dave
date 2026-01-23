@@ -27,21 +27,6 @@ namespace GuessParallel {
 
 bool parallel = false;
 
-#ifdef HAVE_MPI
-
-/// A class whose only purpose is to terminate the MPI library when deleted
-class FinalizeCaller {
-public:
-	~FinalizeCaller() {
-		MPI_Finalize();
-	}
-};
-
-/// The auto pointer will delete the object some time after main() is finished
-std::auto_ptr<FinalizeCaller> destructor;
-
-#endif
-
 void init(int& argc, char**& argv) {
 #ifdef HAVE_MPI
 
@@ -65,9 +50,6 @@ void init(int& argc, char**& argv) {
 
 	if (parallel) {
 		MPI_Init(&argc, &argv);
-
-		// Make sure the MPI_Finalize function is called at program termination
-		destructor = std::auto_ptr<FinalizeCaller>(new FinalizeCaller());
 	}
 #endif
 }
@@ -99,6 +81,14 @@ int get_num_processes() {
 	}
 #else
 	return 1;
+#endif
+}
+
+void finalize() {
+#ifdef HAVE_MPI
+	if (parallel) {
+		MPI_Finalize();
+	}
 #endif
 }
 

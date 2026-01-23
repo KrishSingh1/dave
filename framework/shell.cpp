@@ -16,11 +16,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory>
+#include <parallel.h>
+#ifdef __unix__
+#include <csignal>
+#endif
+#ifdef _MSC_VER
+#include <windows.h>
+#endif
 
 namespace {
 
 /// The global Shell object
-std::auto_ptr<Shell> current_shell;
+std::unique_ptr<Shell> current_shell;
 
 }
 
@@ -54,6 +61,54 @@ void fail(xtring format,...) {
 }
 
 
+// Do the last things before exiting, e.g. termiante MPI
+void cleanupAtExit() {
+	current_shell->cleanupAtExit();
+}
+
+
+// Handle console control events, e.g. a ctrl-C signal, sighup.
+// These handlers are registred in the CommandLineShell constructor.
+#ifdef __unix__
+void sig_handler(int signum) {
+
+	// All linux signals that stops the program execution.
+	// SIGHUP and SIGINT will result in the desired outcome
+	// (i.e. calling cleanupAtExit()) while SIGQUIT, SIGTERM, and
+	// SIGKILL aborts the program too abruptly for it to happen,
+	// at least on simba2.
+	switch (signum) {
+	case SIGHUP:	
+	case SIGINT:	
+	case SIGQUIT:	
+	case SIGTERM:	
+	case SIGKILL:
+		cleanupAtExit();		// Do the last things before exiting.
+		exit(99);
+		break;
+	}
+}
+#endif
+#ifdef _MSC_VER
+BOOL CtrlHandler(DWORD ctrlType) {
+
+	// The windows signals are: CTRL_C_EVENT (ctrl-c), CTRL_BREAK_EVENT (similar), CTRL_CLOSE_EVENT,
+	// CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT. I.e. all of the possible signals should unload MPI before 
+	// termination of the program. So no need for a switch (ctrlType). Just do the same action for all of them.
+	// N.B. This is not used by the Graphical shell: see instead abort_request_received() (dllmain.cpp).
+
+	// Do the last things before exiting
+	cleanupAtExit();	
+
+	// Return FALSE to let the system go on with its action in response to the signal,
+	// i.e. to terminate LPJ-GUESS as per the users' ctrl-C request or other ctrl-signal,
+	// e.g. let LPJ-GUESS graphical shell do the termination rather than doing it here.
+	// (TRUE would mean that our code would handle the signal instead of the system.)
+	return FALSE;		
+}
+#endif
+
+
 void plot(xtring window_name,xtring series_name,double x,double y) {
 	current_shell->plot(window_name, series_name, x, y);
 }
@@ -81,7 +136,7 @@ bool abort_request_received() {
 }
 
 void set_shell(Shell* s) {
-	current_shell = std::auto_ptr<Shell>(s);
+	current_shell = std::unique_ptr<Shell>(s);
 }
 
 void plot3d_fileopen() {
@@ -107,6 +162,17 @@ CommandLineShell::CommandLineShell(const char* logfile_path) {
 		printf("Could not open log file %s for output\n", logfile_path);
 		exit(99);
 	}
+
+	// Register the SIGHUP, SIGINT or ctrl-C signal handler
+#ifdef __unix__
+	signal(SIGHUP, sig_handler);
+	signal(SIGINT, sig_handler);
+#endif
+#ifdef _MSC_VER
+	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE)) {
+		printf("Could not register the ctrl-C handler.\n");
+	}
+#endif
 }
 
 CommandLineShell::~CommandLineShell() {
@@ -117,7 +183,15 @@ CommandLineShell::~CommandLineShell() {
 
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
+	cleanupAtExit();
 	exit(99);
+}
+
+// Do the last things before exiting, e.g. termiante MPI
+void CommandLineShell::cleanupAtExit() {
+
+	// Terminate parallel communication if available.
+	GuessParallel::finalize();
 }
 
 void CommandLineShell::log_message(const char* message) {

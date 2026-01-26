@@ -205,11 +205,11 @@ int framework(const CommandLineArguments& args) {
     unique_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-        serializer = std::make_unique<GuessSerializer>(GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+        serializer = std::make_unique<GuessSerializer>(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
-        deserializer = std::make_unique<GuessDeserializer>(GuessDeserializer(state_path));
+        deserializer = std::make_unique<GuessDeserializer>(state_path);
 	}
 
 	while (true) {

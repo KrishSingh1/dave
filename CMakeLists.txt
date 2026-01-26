@@ -7,7 +7,8 @@
 
 cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
-set(CMAKE_CXX_STANDARD 11)
+# C++ standard 14 rather than 11 is needed to compile guess on mac.
+set(CMAKE_CXX_STANDARD 14)
 
 # Compiler flags for building with Microsoft Visual C++, and for Linux and macOS, respectively.
 if (MSVC)

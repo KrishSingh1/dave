@@ -3599,9 +3599,9 @@ public:
 	Historic<double, 5> nscal_5;
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 30> nscal_30;
-	/// actual evapotranspiration over projected area (mm/day)
+	/// actual transpiration over projected area (mm/day)
 	double aet;
-	/// annual actual evapotranspiration over projected area (mm/year)
+	/// annual actual transpiration over projected area (mm/year)
 	double aaet;
 	/// fractional water uptake from each soil layer
 	double fwuptake[NSOILLAYER];

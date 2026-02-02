@@ -676,6 +676,13 @@ class GridcellLevelOutput : public OutputFile {
 			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(const double*, size_t));
 
 			/*
+			Create a new individual output using a custom weight reader. When a weight
+			reader is provided, values are aggregated as a weighted mean across
+			individuals: sum(value_i * weight_i) / sum(weight_i).
+			*/
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, OutputReader<Individual> *read_weight);
+
+			/*
 			Destructor.
 			*/
 			~IndivLevelArrayOutput() { }
@@ -720,6 +727,12 @@ class GridcellLevelOutput : public OutputFile {
 			Pointer to a function which aggregates the output value across individuals.
 			*/
 			double (*aggregator)(const double *, size_t);
+
+			/*
+			Optional reader for per-individual weights. When present, write_rows will
+			compute a weighted mean across individuals using these weights.
+			*/
+			std::unique_ptr<OutputReader<Individual>> read_weight;
 	};
 
 	/*
@@ -1088,6 +1101,13 @@ class GridcellLevelOutput : public OutputFile {
 	@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 	*/
 	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(const double *, size_t));
+
+	/*
+	Add an individual-level array output using a custom weight function. When a
+	weight reader is provided, values are aggregated as a weighted mean across
+	individuals: sum(value_i * weight_i) / sum(weight_i).
+	*/
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
 
 	/*
 	Add a patch-level output.

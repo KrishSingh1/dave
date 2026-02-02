@@ -398,7 +398,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_ci"              , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.ci[i];    }, "Subdaily intercellular CO2 concentration (mol/mol)", mean);
 	add_indiv_array_output("file_dave_subdaily_vcmax"           , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_jmax"            , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
-	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", sum);
+	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", get_lai /* Mean weighted by LAI*/);
 	add_indiv_array_output("file_dave_subdaily_Vl"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.Vl[i];  }, "Subdaily stem water volume (m3)", sum);
 
 	// Daily patch-level array outputs.
@@ -676,6 +676,20 @@ void DaveOutput::add_indiv_array_output(
 		double (*aggregator)(const double *, size_t)) {
 	ArrayOutputReader<Individual> *reader = new ArrayOutputReader<Individual>(read_output);
 	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, aggregator);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_indiv_array_output(
+		std::string name,
+		timestep_t timestep,
+		std::string elem_name,
+		int (*get_nelem)(const Patch &),
+		double (*read_output)(const Individual&, int),
+		std::string description,
+		double (*read_weight)(const Individual&)) {
+	ArrayOutputReader<Individual> *reader = new ArrayOutputReader<Individual>(read_output);
+	OutputReader<Individual> *weight_reader = new OutputReader<Individual>(read_weight);
+	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, weight_reader);
 	register_output(output, timestep);
 }
 
@@ -1558,6 +1572,22 @@ DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
 	get_n = get_nelem;
 	read_elem = std::unique_ptr<ArrayOutputReader<Individual>>(get_output);
 	aggregator = agg;
+	read_weight = nullptr;
+}
+
+DaveOutput::IndivLevelArrayOutput::IndivLevelArrayOutput(
+		std::string param_name,
+		std::string element_name,
+		int (*get_nelem)(const Patch &),
+		ArrayOutputReader<Individual> *get_output,
+		std::string description,
+		OutputReader<Individual> *weight_reader) : OutputFile(param_name, description)
+{
+	elem_name = element_name;
+	get_n = get_nelem;
+	read_elem = std::unique_ptr<ArrayOutputReader<Individual>>(get_output);
+	aggregator = NULL;
+	read_weight = std::unique_ptr<OutputReader<Individual>>(weight_reader);
 }
 
 void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
@@ -1590,25 +1620,28 @@ void DaveOutput::IndivLevelArrayOutput::write_rows(OutputChannel *channel, Gridc
 				for (size_t k = 0; k < pftlist.nobj; k++) {
 					std::vector<Individual *> indivs = get_indivs(vegetation, (const char *)pftlist[k].name);
 
-					double lai_total = 0;
-					if (ifdavehydraulics) {
+					double aggregated = 0;
+					if (read_weight) {
+						// Compute weighted mean, using user-defined weight.
+						double total_weight = 0;
+						double weighted_sum = 0;
 						for (Individual *indiv : indivs) {
-							lai_total += indiv->lai;
+							double value = read_elem->read(*indiv, i);
+							double weight = read_weight->read(*indiv);
+							weighted_sum += value * weight;
+							total_weight += weight;
 						}
-					}
-
-					std::vector<double> values;
-					for (Individual *indiv : indivs) {
-						// Read array element for this individual.
-						double value = read_elem->read(*indiv, i);
-						if (ifdavehydraulics && aggregator) {
-							// Weighted by LAI - need to double check with Clare
-							// whether this is what we actually want.
-							value *= indiv->lai / lai_total;
+						aggregated = total_weight > 0 ? weighted_sum / total_weight : 0;
+					} else {
+						// Aggregate using custom aggregator.
+						std::vector<double> values;
+						values.reserve(indivs.size());
+						for (Individual *indiv : indivs) {
+							double value = read_elem->read(*indiv, i);
+							values.push_back(value);
 						}
-						values.push_back(value);
+						aggregated = values.size() && aggregator ? aggregator(&values.front(), values.size()) : 0;
 					}
-					double aggregated = values.size() ? aggregator(&values.front(), values.size()) : 0;
 					total += aggregated;
 
 					// Write current array element for this individual.

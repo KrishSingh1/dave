@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <float.h>
 #include "archive.h"
+#include "shell.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -226,9 +227,12 @@ inline double mean(double x, double y) {
 }
 
 // Divide x by y. Raise an error if denominator is 0.
-inline double divide(double x, double y) {
+#define divide(x, y) safe_divide((x), (y), __FILE__, __LINE__, __func__)
+
+inline double safe_divide(double x, double y,
+                          const char *file, int line, const char *func) {
 	if (equal(y, 0)) {
-		throw std::runtime_error("Divide by 0 error");
+		fail("Divide by 0: %f / %f at %s:%d (%s)", x, y, file, line, func);
 	}
 	return x / y;
 }

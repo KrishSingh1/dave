@@ -565,7 +565,9 @@ try {
 
 	for (size_t i = 0; i < vpds.size(); i++) {
 		if (vpds[i] < 0.01) {
-			printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			if (nc_check_inputs) {
+				printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			}
 			vpds[i] = 0.01;
 		}
 	}
@@ -576,7 +578,6 @@ try {
 	climate.precs = precs;
 	gridcell.dNH4dep = nh4_dep[date.day];
 	gridcell.dNO3dep = no3_dep[date.day];
-	climate.vpds = vpds;
 	climate.pressure = pressure;
 
 	climate.co2 = get_co2(lon, lat, co2_year, date.day);

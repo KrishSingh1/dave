@@ -2243,6 +2243,21 @@ public:
 	/// (Johnson & Thornley 1983).
 	double temp_senesc2;
 
+	// Maximum NSC concentration in dead bark.
+	double max_bark_nsc_conc;
+
+	// Maximum NSC concentration in leaves.
+	double max_leaf_nsc_conc;
+
+	// Maximum NSC concentration in twigs.
+	double max_twig_nsc_conc;
+
+	// Maximum NSC concentration in wood.
+	double max_wood_nsc_conc;
+
+	// Fraction of dead woody biomass that is bark.
+	double bark_frac;
+
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
@@ -3344,6 +3359,8 @@ public:
 	double cgrow_repr;
 	/// daily storage growth (kgC/m2/day)
 	double cgrow_storage;
+	/// daily storage growth plus excess from N limitation (kgC/m2/day)
+	double creturn;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)
@@ -3586,9 +3603,9 @@ public:
 	Historic<double, 5> nscal_5;
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 30> nscal_30;
-	/// actual evapotranspiration over projected area (mm/day)
+	/// actual transpiration over projected area (mm/day)
 	double aet;
-	/// annual actual evapotranspiration over projected area (mm/year)
+	/// annual actual transpiration over projected area (mm/year)
 	double aaet;
 	/// fractional water uptake from each soil layer
 	double fwuptake[NSOILLAYER];

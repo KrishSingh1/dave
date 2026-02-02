@@ -272,11 +272,12 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_absolute_alpha_root"   , DAILY, [](const Individual &i) { return i.absolute_alpha_root; }, "Relative root sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_sap"    , DAILY, [](const Individual &i) { return i.absolute_alpha_sap; }, "Relative sapwood sink strength (unitless)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_absolute_alpha_storage", DAILY, [](const Individual &i) { return i.absolute_alpha_storage; }, "Relative storage sink strength (unitless)", mean, false, false);
-	add_aggregated_indiv_output("file_dave_cgrow_leaf"          , DAILY, [](const Individual &i) { return i.cgrow_leaf; }, "Daily leaf growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_root"          , DAILY, [](const Individual &i) { return i.cgrow_root; }, "Daily root growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_sap"           , DAILY, [](const Individual &i) { return i.cgrow_sap; }, "Daily sap growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_repr"          , DAILY, [](const Individual &i) { return i.cgrow_repr; }, "Daily repr growth (kgC/m2)", mean, true, false);
-	add_aggregated_indiv_output("file_dave_cgrow_storage"       , DAILY, [](const Individual &i) { return i.cgrow_storage; }, "Daily storage allocation (kgC/m2)", mean, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_leaf"          , DAILY, [](const Individual &i) { return i.cgrow_leaf; }, "Daily leaf growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_root"          , DAILY, [](const Individual &i) { return i.cgrow_root; }, "Daily root growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_sap"           , DAILY, [](const Individual &i) { return i.cgrow_sap; }, "Daily sap growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_repr"          , DAILY, [](const Individual &i) { return i.cgrow_repr; }, "Daily repr growth (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_cgrow_storage"       , DAILY, [](const Individual &i) { return i.cgrow_storage; }, "Daily storage allocation (kgC/m2)", sum, true, false);
+	add_aggregated_indiv_output("file_dave_creturn"             , DAILY, [](const Individual &i) { return i.creturn; }, "daily storage growth plus excess from N limitation (kgC/m2/day)", sum, true, false);
 	add_aggregated_indiv_output("file_dave_cgrow"               , DAILY, [](const Individual &i) { return i.cgrow; }, "Daily growth (kgC/m2)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_diameter_inc"        , DAILY, [](const Individual &i) { return i.d_diam; }, "Daily diameter growth (m/day)", mean, true, false);
 	add_aggregated_indiv_output("file_dave_height_inc"          , DAILY, [](const Individual &i) { return i.d_height; }, "Daily height growth (m/day)", mean, true, false);
@@ -705,7 +706,6 @@ std::vector<std::unique_ptr<DaveOutput::OutputFile>> &DaveOutput::get_outputs_ve
 }
 
 void DaveOutput::declare_parameters() {
-	declare_parameter("spinup_output", &spinup_output, "True to write DAVE outputs during the spinup, false otherwise.");
 	declare_parameter("patch_output_stats", &patch_output_stats, "True to ONLY write stats (mean/std. deviation) for patch-level outputs. False to write the full patch-level outputs.");
 
 	declare_parameters(daily_outputs);
@@ -1673,7 +1673,6 @@ double DaveOutput::AggregatedIndivOutput::get_value(
 	return data.size() ? aggregator(&data.front(), index) : 0;
 }
 
-bool spinup_output;
 bool patch_output_stats;
 
 const int COLUMN_WIDTH = 15; // Enough to fit a 6-digit number

@@ -1541,32 +1541,15 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	// 95% percentile NSC concentrations from eucface.
-
-	// Maximum NSC concentration in dead bark.
-	const double BARK_NSC_CONC = 0.203;
-
-	// Maximum NSC concentration in leaves.
-	const double LEAF_NSC_CONC = 0.243;
-
-	// Maximum NSC concentration in twigs.
-	const double TWIG_NSC_CONC = 0.0688;
-
-	// Maximum NSC concentration in wood.
-	const double WOOD_NSC_CONC = 0.0797;
-
-	// Fraction of dead woody biomass that is bark. Plucked out of thin air.
-	const double BARK_FRAC = 0.01;
-
-	double cmass_bark = indiv.cmass_heart * BARK_FRAC;
+	double cmass_bark = indiv.cmass_heart * indiv.pft.bark_frac;
 	double cmass_leaf = indiv.get_cmass_leaf();
 	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
 	double cmass_wood = indiv.cmass_sap - cmass_twig;
 
-	double nsc_bark = cmass_bark * BARK_NSC_CONC;
-	double nsc_leaf = cmass_leaf * LEAF_NSC_CONC;
-	double nsc_twig = cmass_twig * TWIG_NSC_CONC;
-	double nsc_wood = cmass_wood * WOOD_NSC_CONC;
+	double nsc_bark = cmass_bark * indiv.pft.max_bark_nsc_conc;
+	double nsc_leaf = cmass_leaf * indiv.pft.max_leaf_nsc_conc;
+	double nsc_twig = cmass_twig * indiv.pft.max_twig_nsc_conc;
+	double nsc_wood = cmass_wood * indiv.pft.max_wood_nsc_conc;
 
 	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
 }
@@ -1964,7 +1947,10 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 			return csap;
 		}
 	}
-	fail("Failed to find a solution for csap");
+	xtring msg;
+	msg.printf("solve_csap(): Failed to find a solution for csap;\nbminit=%f, k_latosa=%f, k_allom2=%f, k_allom3=%f, wooddens=%f, sla=%f, init_storfrac=%f, ltor=%f",
+	           bminit, k, k2, k3, rho, sla, ks, ltor);
+	fail(msg);
 	return -1; // Can never reach here: fail() calls exit().
 }
 
@@ -5088,6 +5074,7 @@ void update_pools_dave(Vegetation& vegetation) {
 			creturn = indiv.cstorage_max - indiv.cmass_storage;
 		}
 		indiv.cmass_storage += creturn;
+		indiv.creturn = creturn;
 
 		// nreturn doesn't need to go back into the storage pool, because we
 		// haven't actually taken anything out of the storage pool yet, and
@@ -5596,7 +5583,7 @@ void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 
 // Note: cropallocation.cpp contains a function called turnover_grass(). I am
 // therefore avoiding reusing this name here.
-void turnover_dave_grass(Individual &indiv, double litterme[NSOMPOOL], double fireresist[NSOMPOOL]) {
+void turnover_dave_grass(Individual &indiv) {
 	Vegetation &vegetation = indiv.vegetation;
 	Patch& patch = vegetation.patch;
 	Pft& pft = indiv.pft;
@@ -5641,7 +5628,7 @@ void turnover_dave_grass(Individual &indiv, double litterme[NSOMPOOL], double fi
 
 	// Send leaf turnover to litter.
 	// This will go directly into the SURFSTRUCT and SURFMETA SOM pools.
-	leaf_to_litter(soil, pft, litterme, fireresist, cturnover_leaf, nturnover_leaf);
+	leaf_to_litter(soil, pft, cturnover_leaf, nturnover_leaf);
 	indiv.cturnover_leaf = cturnover_leaf;
 	indiv.nturnover_leaf = nturnover_leaf;
 
@@ -5668,7 +5655,7 @@ void turnover_dave_grass(Individual &indiv, double litterme[NSOMPOOL], double fi
 
 	// Send crown and root turnover to litter.
 	// This will go directly into the SOILSTRUCT and SOILMETA SOM pools.
-	root_to_litter(soil, pft, litterme, fireresist, cturnover_root, nturnover_root);
+	root_to_litter(soil, pft, cturnover_root, nturnover_root);
 
 }
 
@@ -5715,7 +5702,7 @@ double calculate_fcgrow_tree(double min_turnover_fraction, double cgrow_pot) {
 
 // Turnover of green pools to litter. 
 // TODO: If only using a single leaf pool, we could remove the senescence function altogether.
-void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fireresist[NSOMPOOL]) {
+void turnover_dave_tree(Individual &indiv) {
 	// Inputs:  indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap,
 	//          indiv.pft.leaflong
@@ -5872,7 +5859,7 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 		// ppft.cmass_litter_leaf += cturnover_leaf;
 		// ppft.nmass_litter_leaf += n2litter_leaf;
 		// Let somdynam decide what to do with leaf litter.
-		leaf_to_litter(soil, pft, litterme, fireresist, cturnover_leaf, n2litter_leaf);
+		leaf_to_litter(soil, pft, cturnover_leaf, n2litter_leaf);
 
 		assert(equal(nturnover_leaf, n2storage_leaf + n2litter_leaf));
 	}
@@ -5914,7 +5901,7 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 		// ppft.nmass_litter_root += n2litter_root;
 		// Let somdynam decide what to do with repr litter (treating it as leaf
 		// litter).
-		root_to_litter(soil, pft, litterme, fireresist, cturnover_root, n2litter_root);
+		root_to_litter(soil, pft, cturnover_root, n2litter_root);
 
 		assert(equal(nturnover_root, n2litter_root + n2storage_root));
 	}
@@ -5985,7 +5972,7 @@ void turnover_dave_tree(Individual &indiv, double litterme[NSOMPOOL], double fir
 		// Let somdynam decide what to do with reproductive litter.
 		// TODO: should repr be treated as leaf or root litter?
 		// For now, use root (this reproduces previous behaviour).
-		root_to_litter(soil, pft, litterme, fireresist, cturnover_repr, nturnover_repr);
+		root_to_litter(soil, pft, cturnover_repr, nturnover_repr);
 	}
 
 	indiv.cturnover_repr = cturnover_repr;
@@ -6018,11 +6005,6 @@ void turnover_dave(Vegetation& vegetation) {
 
 	Soil &soil = vegetation.patch.soil;
 
-	// Fire (GlobFIRM)
-	double litterme[NSOMPOOL]  = {0.};
-	double fireresist[NSOMPOOL]= {0.};
-	init_litterme(soil, litterme, fireresist);
-
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
@@ -6033,18 +6015,13 @@ void turnover_dave(Vegetation& vegetation) {
 			continue;
 		}
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
-			turnover_dave_grass(indiv, litterme, fireresist);
+			turnover_dave_grass(indiv);
 		} else {
-			turnover_dave_tree(indiv, litterme, fireresist);
+			turnover_dave_tree(indiv);
 		}
 	}
 
 	turnover_seed(vegetation);
-
-	// TODO: Find a more elegant way to support GLOBFIRM here.
-	// Could this be handled internally by leaf_to_litter() and friends, e.g. by
-	// passing in pft.litterme?
-	set_litterme(soil, litterme, fireresist);
 }
 
 // Allocate excess C and N to target pool.

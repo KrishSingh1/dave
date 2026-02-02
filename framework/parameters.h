@@ -98,6 +98,11 @@ extern xtring title;
 /// Whether to produce daily output
 extern bool ifdailyoutput; 
 
+/*
+True iff outputs should be written during spinup.
+*/
+extern bool spinup_output;
+
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 

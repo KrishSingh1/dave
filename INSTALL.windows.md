@@ -14,7 +14,7 @@
 Run the following command from inside msys2:
 
 ```bash
-pacman -S mingw-w64-x86_64-{gcc,cmake,netcdf,gdb}
+pacman -S mingw-w64-x86_64-{gcc,cmake,netcdf,gdb,make,ninja}
 ```
 
 ### Update PATH to include MinGW64

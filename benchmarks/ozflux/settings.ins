@@ -19,7 +19,7 @@ ifdailytree              1   ! Daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             1   ! DAVE growth scheme
 ifdavehydrology          1   ! DAVE hydrology updates
-ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
+ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifzhou                   1   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
@@ -35,7 +35,8 @@ soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, fro
 ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
 
 ! Soil Data
-file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
+! file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
+file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
 
 ! Simfire Data
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
@@ -231,7 +232,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
 ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
-disttype     "STOCHASTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
+disttype     "NONE"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances
                         ! Only used if disttype = "STOCHASTIC"

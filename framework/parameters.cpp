@@ -95,6 +95,7 @@ bool ifapproximate_C4;
 bool ifusegdd;
 bool ifstoreuptake;
 bool gzip_output;
+bool spinup_output;
 int nindiv_max;
 int grazing_duration;
 bool ifforcedlai;
@@ -305,6 +306,7 @@ void initsettings() {
 	grassforcrop = false;
 	useClosestNdep = false;
 	gzip_output = false;
+	spinup_output = false;
 	nindiv_max = 0;
 	ifforcedlai = false;
 	fixed_lai = 0;
@@ -667,6 +669,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
+		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
@@ -853,7 +856,16 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
-
+		declareitem("max_bark_nsc_conc", &ppft->max_bark_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in dead bark.");
+		declareitem("max_leaf_nsc_conc", &ppft->max_leaf_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in leaves.");
+		declareitem("max_twig_nsc_conc", &ppft->max_twig_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in twigs.");
+		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in wood.");
+		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of dead woody biomass that is bark. Plucked out of thin air.");
 		declareitem("crelocfrac", &ppft->crelocfrac, 0.0, 1e10, 1, CB_NONE,
 			"Fraction of senesced carbon retranslocated back to storage.");
 		declareitem("senesc_base", &ppft->senesc_base, 0.0, 1e10, 1, CB_NONE,
@@ -1795,6 +1807,16 @@ void plib_callback(int callback) {
 			if (!itemparsed("estinterval")) badins("estinterval");
 		}
 
+		if (ifdailytree && !ifdavegrowth) {
+			for (size_t i = 0; i < pftlist.nobj; i++) {
+				if (pftlist[i].lifeform == TREE) {
+					sendmessage("Error", "Daily tree allocation (ifdailytree) is enabled, but dave growth (ifdavegrowth) is disabled. These must be either both enabled or both disabled.");
+					plibabort();
+					break;
+				}
+			}
+		}
+
 		if (ifzhou && wateruptake != WR_ROOT_RESISTANCE) {
 			sendmessage("Error", "Zhou model has been enabled, but water uptake method is not set to ROOT_RESISTANCE. This is the only supported water uptake method when ifzhou is enabled");
 			plibabort();
@@ -2193,6 +2215,11 @@ void plib_callback(int callback) {
 				if (ifdailytree && ppft->lifeform == TREE) {
 					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
+					if (!itemparsed("max_bark_nsc_conc")) badins("max_bark_nsc_conc");
+					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
+					if (!itemparsed("max_twig_nsc_conc")) badins("max_twig_nsc_conc");
+					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
+					if (!itemparsed("bark_frac")) badins("bark_frac");
 				}
 
 				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {

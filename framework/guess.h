@@ -2153,6 +2153,10 @@ public:
 	double extkn;
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
 	double tlp;
+	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
+	double s_f;
+	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
+	double psi_f;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;

@@ -284,13 +284,13 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         indiv.k_loss[day.period] = 1 - exp(-pow(-indiv.lwp[day.period] / pft.s1, pft.s2));
 
         // Refill tree water stores if we have rainfall
-        if (climate.prec > 1.0 * 24 / date.subdaily / 3.0) { // assume 1 mm every 3h is lost e.g. to interception
+        if (climate.precs[day.period] > 1.0 * 24 / date.subdaily / 3.0) { // assume 1 mm every 3h is lost e.g. to interception
             double cmass_root_tot = 0;
             for (size_t i = 0 ; i < indiv.vegetation.nobj; i++) {
                 cmass_root_tot += indiv.cmass_root;
             }
             
-            double prec_avail = climate.prec - 1.0 * 24 / date.subdaily / 3.0; // rainfall that isn't intercepted / lost
+            double prec_avail = climate.precs[day.period] - 1.0 * 24 / date.subdaily / 3.0; // rainfall that isn't intercepted / lost
             double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot; // this indiv gets an amount based on its root carbon
 
             double v_refill = prec_avail * frac_prec_this_indiv / 1000; // convert mm * m2 to m3

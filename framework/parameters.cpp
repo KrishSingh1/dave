@@ -798,7 +798,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
 			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
-			"cuticular conductance at 20 degC (mol/m2/s)");
+			"cuticular conductance at 25 degC (mol/m2/s)");					
+		declareitem("s_f",&ppft->s_f,0,1000,1,CB_NONE,
+			"Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)");
+		declareitem("psi_f",&ppft->psi_f,-100,0,1,CB_NONE,
+			"Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)");
 		declareitem("ifcalcvcmax",&ppft->ifcalcvcmax,1,CB_NONE,
 			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
@@ -2249,6 +2253,8 @@ void plib_callback(int callback) {
 				if (!itemparsed("stom_clos")) badins("stom_clos");	
 				if (!itemparsed("g1x")) badins("g1x");
 				if (!itemparsed("gcutic")) badins("gcutic");
+				if (!itemparsed("s_f")) badins("s_f");
+				if (!itemparsed("psi_f")) badins("psi_f");
 				if (ppft->is_grass()){
 					if (!itemparsed("tlp")) badins("tlp");
 				}

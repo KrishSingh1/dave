@@ -1088,7 +1088,10 @@ std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
 
 	columns.push_back(ColumnDefinition<Individual>("kmax", [](const Individual &i) { return i.kmax_drought_affected; }));
 	columns.push_back(ColumnDefinition<Individual>("lai", [](const Individual &i) { return i.lai; }));
+	columns.push_back(ColumnDefinition<Individual>("height", [](const Individual &i) { return i.height; }));
+	columns.push_back(ColumnDefinition<Individual>("transp", [](const Individual &i) { return i.aet; }));
 	columns.push_back(ColumnDefinition<Individual>("minimum_lwp", [](const Individual &i) { return min(i.lwp); }));
+	columns.push_back(ColumnDefinition<Individual>("soil_water_potential", [](const Individual &i) { return i.weighted_psi; }));
 
 	return columns;
 }

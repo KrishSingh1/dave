@@ -3271,6 +3271,15 @@ public:
 
 	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
 	bool stomata_open;
+
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
+
+	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
+	double s_f;
+
+	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
+	double psi_f;
 };
 
 /*
@@ -3303,6 +3312,11 @@ public:
 	double vcmax;
 	double jmax;
 };
+
+// scales Vcmax and Jmax under water stress based on Zhou (2014)
+double pslim_lwp_scalar(double s_f, double psi_f, double predawn_lwp){
+	return (1 + exp(s_f * psi_f)) / (1 + exp(s_f * (psi_f - predawn_lwp)));
+}
 
 /*
 C3 photosynthesis (largely Farquhar et al. 1980).
@@ -3344,7 +3358,17 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.temp, HA_GS, 0.0, 0.0);
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal * pow(inputs.wscal, qb);
+	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+
+	// apply water stress scaling to vcmax / jmax
+	if(ifzhou){
+	// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
+		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+		pslim = pslim * wp_vmax_scale;
+	} else {
+		pslim = pslim * pow(inputs.wscal, qb);
+	}
+
 	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.temp, inputs.ha_v, HD, inputs.ds_v);
 	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.temp, inputs.ha_j, HD, inputs.ds_j);
 
@@ -3354,7 +3378,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double anc   = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
 
 	if (!ifdavehydraulics) {
-		// TODO: Why has Clare disabled this in her version?
+		// TODO: Discuss how to allow water stress to close stomata further
 		if (inputs.gdark > (anc * inputs.X)) {
 			// If gdark is greater than gs from the 'normal' gs model,
 			// repeat calculation with gdark only.
@@ -3371,7 +3395,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	beta  = 2.0 * gamstar;
 	double anj = photosyn_solver(0.0, inputs.X, gamma, beta, gamstar, rd, inputs.ca);
 	if (!ifdavehydraulics) {
-		// TODO: Why has Clare disabled this in her version?
+		// TODO: Discuss how to allow water stress to close stomata further
 		if (inputs.gdark > (anj * inputs.X)) {
 			anj = photosyn_solver(inputs.gdark, 0.0, gamma, beta, gamstar, rd, inputs.ca);
 		}
@@ -3464,7 +3488,17 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// C4/day time
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal * pow(inputs.wscal, qb);
+	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+
+	// apply water stress scaling to vcmax / jmax
+	if(ifzhou){
+		// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
+		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+		pslim = pslim * wp_vmax_scale;
+	} else {
+		pslim = pslim * pow(inputs.wscal, qb);
+	}
+
 	double vcmax = pslim * Arrhenius_temp_response(vcmax25_c4, inputs.temp, HA_V4, HD, DS_V4);
 
 	// Note: Jmax temperature response has been refitted to an Arrhenius equation
@@ -3622,7 +3656,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = pft.b1z; 
+		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% reduction in g1 at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3633,6 +3667,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
 		inputs.wscal = indiv.get_wscal(); // returns wscal based on root resistance if using hydraulics, otherwise wscal based on wcont
+		inputs.s_f = pft.s_f;
+		inputs.psi_f = pft.psi_f;
+		inputs.predawn_lwp = indiv.predawn_lwp;
 
 		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
 
@@ -3689,10 +3726,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double Q10b = 4.8; // Scaling parameter
 			double gcutic_adj = 0.0;
 
-			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 20)/10); // calculate gcutic at phase change T for use in equation below
+			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 25)/10); // calculate gcutic at phase change T for use in equation below
 			
 			if (inputs.temp < Tp){ // note this should all be based on leaf temperature, but using air temperature as an approximation
-				gcutic_adj = gcutic * pow(Q10a,(inputs.temp - 20)/10);
+				gcutic_adj = gcutic * pow(Q10a,(inputs.temp - 25)/10); // Note Erick's measurements start at 25, so changed 20 to 25 in equations
 			} else {
 				gcutic_adj = gcutic_Tp * pow(Q10b,(inputs.temp - Tp)/10);
 			}
@@ -4500,6 +4537,10 @@ void forest_floor_dave(Patch &patch) {
 			}
 
 			Patchpft &ppft = patch.pft[i];
+
+			inputs.s_f = pft.s_f;
+			inputs.psi_f = pft.psi_f;
+			inputs.predawn_lwp = patch.soil.soil_psi;
 
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;

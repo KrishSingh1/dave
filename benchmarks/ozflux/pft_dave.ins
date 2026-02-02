@@ -51,6 +51,8 @@ group "common" (
 	ds_v 639.43	   			! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
 	ds_j 642.97	   			! Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	extkn 0.15
+	s_f 1.0					! sensitivity parameter for photosynthetic response to water stress (Zhou 2014 Eq 7)
+	psi_f -2.0				! reference value for photosynthetic response to water stress (Zhou 2014 Eq 7)
 
 	! hydraulics module parameters
 	kmax 100 				! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
@@ -980,14 +982,15 @@ pft "CuP" (
 	p50 -5.8   ! Peters (2021)
 	p88 -7.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
-	b1z 0.5 ! Somewhere between values for dry and wet euc species in Zhou (2014).
-	gcutic 0.002 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
+	gcutic 0.0025 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
 
-	vcmax_25 50 ! Somewhere between values for dry and wet euc species in Zhou (2014). Average of two euc species from Bloomfield (2018) is 36
-	jmax_25 85 ! 1.7 * vcmax_25
+	vcmax_25 36 ! Somewhere between values for dry and wet euc species in Zhou (2014). Average of two euc species from Bloomfield (2018) is 36
+	jmax_25 61.2 ! 1.7 * vcmax_25
+	s_f 1.2
+	psi_f -2.2
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)
 	
-	respcoeff 0.7
+	respcoeff 0.9
 
 	ifcalcvcmax 0
 	cton_leaf_min 29.010140

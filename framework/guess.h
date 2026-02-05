@@ -3853,6 +3853,8 @@ public:
 	std::vector<double> k_loss;
 	// volume of water in stems across cohort (m3/m2)
 	std::vector<double> Vl;
+	// Subdaily transpiration (mm).
+	std::vector<double> transpiration;
 
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;

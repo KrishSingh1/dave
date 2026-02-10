@@ -170,14 +170,14 @@ pft "TRspE" (
   !turnover_root 0.5
 
   ! ! ! LAST TRIED
-  ! crownarea_max 100.00000000
-  ! ltor_max 2.0000000
-  ! turnover_root 0.5 ! imported from the assaf's daily allocation (TeBE)
-  ! k_allom1 146.00000000
-  ! k_rp 1.62000000
-  ! k_allom2 47.48
-  ! k_allom3 0.64
-  ! k_latosa 4175.00000000
+  crownarea_max 100.00000000
+  !ltor_max 2.5000000
+  turnover_root 0.5 ! imported from the assaf's daily allocation (TeBE)
+  k_allom1 146.00000000
+  k_rp 1.62000000
+  !k_allom2 47.48
+  !k_allom3 0.64
+  !k_latosa 4175.0
   ! wooddens 281.25
   ! formfactor 0.6339 ! extracted from E. Obliqua using individual-tree data from the site (excluding one outlayer)
   ! ! formfactor 0.36 ! extracted from allometic equation (Tim Wardlaw's)
@@ -267,6 +267,7 @@ pft "RFT" (
 	ds_j 650.0 ! N. cunninghamii (Camille+Keith Bloomfield) ! <-----
   
   parff_min 1500000 ! increase to prevent esavlishment with low LAI of Eucs
+  parff_min 500000
   alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
   greff_min 0.03 ! ???
   sla 19.6       ! <----- ( Camille+Keith Bloomfield)
@@ -275,6 +276,7 @@ pft "RFT" (
   k_allom3 0.53            ! fitted to binned data (Assaf)
   ltor_max 1.0
 
+  ! ltor_max 1.0
   ! ! ! LAST VALUES TRIED
   ! k_allom1 150.0
   ! k_rp 1.62
@@ -292,5 +294,5 @@ pft "RFT" (
 	! parff_min 2000000 ! increase to prevent esavlishment with low LAI of Eucs
 	! alphar 7.0 ! increase to prevent esavlishment with low LAI of Eucs
  	! greff_min 0.03
-	! turnover_sap 0.05
+	turnover_sap 0.05
 )

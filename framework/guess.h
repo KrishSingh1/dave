@@ -3921,6 +3921,13 @@ public:
 	// growth efficiency-related mortality.
 	double mort_greff;
 
+	// Fraction of individuals within this cohort killed this year due to
+	// carbon starvation.
+	double mort_cstarve;
+
+	// Fraction of individuals within this cohort killed today due to
+	// carbon starvation.
+	double mort_dcstarve;
 	// MEMBER FUNCTIONS
 
 public:

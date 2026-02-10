@@ -80,6 +80,7 @@ bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
 bool iftreephen;
+bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
@@ -277,6 +278,8 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
+	ifdailycstarvmort=false;
+	iftreephen=false;
 	ifdisturb=false;
 	ifcalcsla=false;
 	iftempacclimation = false;
@@ -660,6 +663,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
+		declareitem("ifdailycstarvmort", &ifdailycstarvmort, 1, CB_NONE, "Turn on/off daily carbon starvation mortality (Dave)");
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
@@ -1820,6 +1824,10 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 
+		if (ifdailycstarvmort && !(ifdavegrowth && ifdailytree)) {
+			sendmessage("Error", "Daily carbon starvation requires daily carbon allocation and daily tree (dave grote)");
+			plibabort();
+		}
 		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
 		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
 			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");

@@ -401,6 +401,9 @@ extern bool ifdavephotosyn;
 /// Turn on/off tree phenology (Dave)
 extern bool iftreephen;
 
+/// Turn on/off daily carbon starvation mortality in trees (Dave)
+extern bool ifdailycstarvmort;
+
 /// Turn on/off grote tree allocation.
 extern bool ifgrote;
 

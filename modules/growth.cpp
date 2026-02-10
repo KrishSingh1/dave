@@ -3755,6 +3755,113 @@ double calculate_cgrow_tree(Individual &indiv) {
 	
 }
 
+// Reduce density of indoviduals *daily* when carbon storage reduces below a threshold.
+// To consider doing:
+// 1. DONE. Use a flag for debugging (ifdailycstarvmort) which will enable this 
+//    function and disable the growth efficiency mnortality
+// 2. Do we want mortality to be storchastic or deterministic (depending on ifstochmort)?
+//    currently it ignores ifstochmort completely.
+// 3. Set the inflection point (cmass_storage_min) be a pft parameter
+bool carbon_starvation_mortality(Individual &indiv) {
+
+	// Maximum proportion of trees within one cohort that will experience mortality
+	// due to carbon starvation each DAY. The poroportion 0.3 was taken from the ANNAUL mortality
+	// from growth deficciency (greff_mort).
+	// TODO: Check if this makes sense by comparing total mortality from c starvation and greff.
+	const double MAX_MORT_FRAC = 0.3 / 365.0;
+	// PFT-specific threshold (TO DO: make PFT-parameters when ready) for the 
+	// carbon starvation mortality curve. Can be similar to greff_min (ie higher 
+	// with shade intolerance)
+	// The cohort density (trees/m2) above which cohorts will lose MORT_FRAC biomass
+	// upon carbon starvation, and below which they will be killed outright 
+	// (borrowed from Clare's code). ASSAF: equates for 10 trees per ha
+	const double KILL_THRESHOLD = 0.001;
+	// threshold of storage below which thinning due to carbon starvation will start
+	const double THIN_THRESHOLD = 0.4;
+	// inflection point in the sigmoidal graph (when x = cmass_storage_min).
+	// suggest to change into a PFT parameter, which depend on shade tollerance
+	// (in which shade tolerant trees will have a lower value)
+	const double cmass_storage_min = 0.1;
+	// prob of mortality due to carbon starvation
+	double storage_state = 0.0;
+	// probablity of mortality (ie reduction in densindiv)
+	double pmort_cstarve = 0.0;
+	
+	double cmass_before = 0.0;
+	double cmass_after = 0.0;
+
+	// initialize cumulative annual carbon starvation variable at start of each year
+	if (date.day == 0) {
+		indiv.mort_cstarve = 0.0;
+	}
+
+	// TODO : CHECK
+	if (indiv.cmass_storage > 0) {
+		storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
+	} else {
+		
+		printf("%04d-%2d-%02d indiv %d (%s): total mortality due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+		// next check: if adding the NPP to the storage caused storage to be 
+		// negitive - kill tree and return.
+		// Not enough C in storage to fulfill respiration demands --> kill individual
+		double cmass_deficit = -indiv.cmass_storage;
+		indiv.cmass_storage = 0.0;
+		
+		// ASSAF: this code was coppied from storage_growth_partitioning_tree() function... 
+		// The respiration and NPP fluxes reported in canexch are
+		// now incorrect, so we need to fix them. Note that the RA
+		// flux is not used for mass balance checks (it's only used
+		// for outputs). The NPP flux is used in mass balance checks
+		// however, so it's important to correct it here.
+		indiv.report_flux(Fluxes::RA, -cmass_deficit);
+			// (npp has opposite sign to respiration)
+		indiv.report_flux(Fluxes::NPP, cmass_deficit);
+		// report carbon starvation mortality 
+		indiv.mort_cstarve += 1.0; // annual
+		indiv.mort_dcstarve = 1.0; // 100% mortality of this cohort (daily)
+
+		indiv.kill();  // flushes all pools to litter
+		indiv.vegetation.killobj();  // removes individual object
+							
+		//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+		// Don't think we need to call nextobj() here, as we've just
+		// removed an element from the list; when this happens, the
+		// "current" pointer internal to the list object points to
+		// the element that was previously the "next" element.
+		return false;
+	}
+		
+	// calculate probability of mortality due to carbon starvation (unitless)
+	pmort_cstarve = MAX_MORT_FRAC / (1.0 + pow(storage_state / cmass_storage_min, 5.0));
+	
+    if (ifdailycstarvmort && (storage_state < THIN_THRESHOLD)) {
+	// start thinning
+        if (indiv.densindiv > KILL_THRESHOLD) {
+            printf("%04d-%2d-%02d indiv %d (%s): densindiv and biomass loss due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+			indiv.ctolitter += pmort_cstarve * (indiv.get_cmass_leaf() + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_heart + indiv.cmass_repr);
+			indiv.ntolitter += pmort_cstarve * (indiv.get_nmass_leaf() + indiv.nmass_sap + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_heart + indiv.nmass_repr);
+			// report carbon starvation mortality
+			indiv.mort_dcstarve = pmort_cstarve;
+			indiv.mort_cstarve += pmort_cstarve;
+			// cmass_before = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
+            indiv.reduce_biomass(pmort_cstarve, 0);
+			// cmass_after = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
+
+			// indiv.cstarvmort = cmass_before - cmass_after;4 4
+        } else {
+			// kill individual
+            printf("%04d-%02d-%02d indiv %d (%s): complete mortality due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+            indiv.kill();
+            indiv.vegetation.killobj();
+			return false;
+        }
+    }
+	// We don't need to update allometry for the individual becasue 
+	// it hasn't occured yet today
+	
+	return true;
+}
+
 // Determine how much of the available C (NPP + C fraction from storage) goes to
 // growth vs. storage. Equivalent to calc_fc_growth() in the grote code
 void storage_growth_partitioning_tree(Individual &indiv) {
@@ -3776,32 +3883,15 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
 
-	// if this causes storage to be negitive - kill tree and return.
-	if (indiv.cmass_storage < 0) {
-		// Not enough C in storage to fulfill respiration demands --> kill individual
-		double cmass_deficit = -indiv.cmass_storage;
-		indiv.cmass_storage = 0.0;
-
-		// The respiration and NPP fluxes reported in canexch are
-		// now incorrect, so we need to fix them. Note that the RA
-		// flux is not used for mass balance checks (it's only used
-		// for outputs). The NPP flux is used in mass balance checks
-		// however, so it's important to correct it here.
-		indiv.report_flux(Fluxes::RA, -cmass_deficit);
-			// (npp has opposite sign to respiration)
-		indiv.report_flux(Fluxes::NPP, cmass_deficit);
-
-		indiv.kill();  // flushes all pools to litter
-		indiv.vegetation.killobj();  // removes individual object
-							
-		//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
-		// Don't think we need to call nextobj() here, as we've just
-		// removed an element from the list; when this happens, the
-		// "current" pointer internal to the list object points to
-		// the element that was previously the "next" element.
+	// implement *daily* carbon starvation mortality/thinning here (ASSAF).
+	// note: we should keep the killing of the whole cohort when cmass_storage <0 
+	// (below), but hopefully the thinning will alleviate the C starvation stress.
+	if (!carbon_starvation_mortality(indiv)) {
+		// in case the individual was killed there is no use in the next steps.
 		return;
 	}
-
+	// In case the individual wasn't killed (only lost a couple of trees), continue...
+	
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
 	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
@@ -3929,37 +4019,19 @@ void storage_growth_partitioning_grote(Individual &indiv) {
 	double bminc = indiv.dnpp;
 	if (bminc < 0) {
 		// Negative NPP.
-		if (bminc + indiv.cmass_storage >= 0) {
-			// Use NSCs to meet respiration costs, and don't grow.
-			indiv.cmass_storage += bminc;
-			bminc = 0;
-			assert(positive(indiv.cmass_storage));
-		} else {
-			// Insufficient NSCs to meet respiration costs -> kill individual.
-			indiv.cmass_storage += bminc;
-			double cmass_deficit = -indiv.cmass_storage;
-			indiv.cmass_storage = 0.0;
-
-			// The respiration and NPP fluxes reported in canexch are
-			// now incorrect, so we need to fix them. Note that the RA
-			// flux is not used for mass balance checks (it's only used
-			// for outputs). The NPP flux is used in mass balance checks
-			// however, so it's important to correct it here.
-			indiv.report_flux(Fluxes::RA, -cmass_deficit);
-				// (npp has opposite sign to respiration)
-			indiv.report_flux(Fluxes::NPP, cmass_deficit);
-
-			indiv.kill();  // flushes all pools to litter
-			indiv.vegetation.killobj();  // removes individual object
-								
-			//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
-			// Don't think we need to call nextobj() here, as we've just
-			// removed an element from the list; when this happens, the
-			// "current" pointer internal to the list object points to
-			// the element that was previously the "next" element.
-			return;
-		}
+		indiv.cmass_storage += bminc;
+		bminc = 0;
 	}
+
+	// implement *daily* carbon starvation mortality/thinning here (ASSAF).
+	// note: we should keep the killing of the whole cohort when cmass_storage <0 
+	// (below), but hopefully the thinning will alleviate the C starvation stress.
+	if (!carbon_starvation_mortality(indiv)) {
+		// in case the individual was killed there is no use in the next steps.
+		return;
+	}
+	// In case the individual wasn't killed (only lost a couple of trees), continue...
+
 	indiv.cgrow = bminc;
 }
 

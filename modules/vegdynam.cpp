@@ -411,7 +411,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
 	double tdorm = ppft.pft.temp_dormancy;
-	double fgerm_max25 = 0.3; // maximum daily germination rate at temperature optimum (fraction) 
+	double fgerm_max25 = 0.6; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
 	ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy
@@ -421,9 +421,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
 	// TODO: parameterise this relationship from data
-	double wcont_min = 0.6;    // relative water content below which germination cannot occur
-	double wcont_max = 0.9;    // relative water content above which germination is at its maximum
-	double fwater = min(1.0,max(0.0,((wcont - wcont_min) / (wcont_max - wcont_min))));
+	double fwater = wscal_growth(wcont, wscal0, bgrowth);
 	
 	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
@@ -703,6 +701,9 @@ void establishment_daily(Patch& patch) {
 
 					indiv->initialc += cmass_ext_seed;
 					indiv->initialn += nmass_ext_seed;
+
+					indiv->cmass_germ = cmass_ext_seed;
+					indiv->acmass_germ += cmass_ext_seed;
 
 					double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true) + ppft.cmass_ext_seed;
 					double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true) + ppft.nmass_ext_seed;
@@ -1030,6 +1031,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// Establishment each year in managed patches
 
 							patch.pft[pft.id].nsapling+=nsapling;
+							patch.pft[pft.id].nsapling_year = nsapling;
 							newindiv=0;
 						}
 						else {
@@ -1062,9 +1064,27 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					/*if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics)*/ {
-					//	printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
+						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
 					}
+
+					// Initial biomass proportional to potential forest floor net
+					// assimilation for this PFT in this patch
+
+					if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
+						bminit = pft.dave_allocation() ? sapsize : PLANTSIZE; // Fixed sap size after first cutting
+					}
+					else {
+						bminit = sapsize*patch.pft[pft.id].anetps_ff_est;
+					}
+					if (bminit == 0) {
+						patch.pft[pft.id].anetps_ff_est = 0;
+						patch.pft[pft.id].wscal_mean_est = 0;
+						patch.pft[pft.id].nsapling = 0;
+						pftlist.nextobj();
+						continue;
+					}
+
 					for (i=0;i<newindiv;i++) {
 
 						// Create average individual for a new cohort (cohort mode)
@@ -1083,16 +1103,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// accessed in allocation_init(), so let's initialize it
 						// to 0 here rather than rely on uninitialized memory.
 						indiv.height = 0;
-
-						// Initial biomass proportional to potential forest floor net
-						// assimilation for this PFT in this patch
-
-						if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-							bminit = sapsize; // Fixed sap size after first cutting
-						}
-						else {
-							bminit = sapsize * patch.pft[pft.id].anetps_ff_est;
-						}
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
@@ -1653,6 +1663,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 							(indiv.crownarea*indiv.densindiv),mort_greff);
 				}
 
+				indiv.mort_greff = mort_greff;
+				indiv.mort_age = mort_min;
+
 				// Overall mortality: c.f. Eqn 29, Smith et al 2001
 
 				mort=mort_min+mort_greff-mort_min*mort_greff;
@@ -2075,19 +2088,28 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			bool during_century_solvesom = ifcentury &&
 										   date.year >= patch.soil.solvesomcent_beginyr &&
 										   date.year <= patch.soil.solvesomcent_endyr;
-
-			double distinterval_ = stand.get_distinterval();	
-			if (patch.age && !during_century_solvesom) {
-				disturbance(patch,1.0 / distinterval_);
-				if (patch.disturbed) {
-					return; // no mortality or establishment this year
+			if (!during_century_solvesom && patch.age) {
+				if (disttype == DETERMINISTIC) {
+					// Deterministic disturbances in predefined years.
+					const Gridcell &gridcell = stand.get_gridcell();
+					const std::set<int> &years = gridcell.static_disturbances;
+					if (years.find(date.get_calendar_year()) != years.end()) {
+						// Deterministic disturbance occurs in this year.
+						disturbance(patch, 1.0);
+						return;
+					}
+					else {
+						patch.disturbed = false;
+					}
+				} else {
+					// Stochastic disturbances.
+					double distinterval_ = stand.get_distinterval();	
+					disturbance(patch,1.0 / distinterval_);
+					if (patch.disturbed) {
+						return; // no mortality or establishment this year
+					}
 				}
 			}
-			// // ASSAF: ONLY FOR WARRA TO HAVE A DISTURBANCE ON THESE YEARS
-			// if ((date.get_calendar_year() == 1850) || (date.get_calendar_year() == 1934)) {
-			// 	disturbance(patch, 1.0);
-			// 	return; // no mortality or establishment this year
-			// }
 		}
 
 		// Mortality

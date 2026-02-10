@@ -345,7 +345,7 @@ const char* FileOutputChannel::format(const Table& table, int column) {
 	 // NB: not thread safe
 	 static char buf[100];
 
-	 sprintf(buf, "%%%d.%df", cd.width(), cd.precision());
+	 sprintf(buf, " %%%d.%df", cd.width(), cd.precision());
 
 	 return buf;
 }
@@ -358,7 +358,7 @@ const char* FileOutputChannel::format_header(const Table& table, int column) {
 	 static char format[100];
 	 static char buf[100];
 
-	 sprintf(format, "%%%ds", cd.width());
+	 sprintf(format, " %%%ds", cd.width());
 	 sprintf(buf, format, cd.title().c_str());
 
 	 return buf;	 
@@ -583,7 +583,6 @@ void GZFileOutputChannel::finish_row(const Table& table,
 
     // print out the values
     for (size_t i = 0; i < row.size(); i++) {
-        gzprintf(gzfile, format(table, (int)i), row[i]);
         const ColumnDescriptor &column = columns[i];
         column_type_t type = column.get_type();
 

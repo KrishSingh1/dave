@@ -7,7 +7,7 @@
 title "LPJ-Guess ozflux site: Calperum"
 
 file_met_forcing        "../forcing/met/Calperum.nc"
-file_met_spinup         "../forcing/met/1year/Calperum_2014.nc"
+file_met_spinup         "../forcing/met/Calperum.nc"
 
 ! Gridlist
 file_gridlist    	    "gridlist.txt"
@@ -16,3 +16,5 @@ file_gridlist    	    "gridlist.txt"
 import                  "../outputs.ins"
 import                  "../settings.ins"
 import                  "../soiln.ins"
+
+fixed_lai 0.41

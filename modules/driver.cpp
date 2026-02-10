@@ -764,6 +764,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
+				patch.soil.dnfix = 0.0;
 				patch.soil.aorgNleach = 0.0;
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
@@ -949,6 +950,14 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 
 	Soil& soil = patch.soil;
+	soil.navail_start_day = soil.get_nmass_avail();
+	soil.nmin_gross = 0.0;
+	soil.nimmob = 0;
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		soil.nimmob_pool[i] = 0.0;
+		soil.nmin_gross_pool[i] = 0.0;
+		soil.decay_reduction[i] = 0.0;
+	}
 
 	if (date.day == 0) {
 
@@ -962,8 +971,9 @@ void dailyaccounting_patch(Patch& patch) {
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			Individual &indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;		// indiv.fpc
+			patch.rpc_total += indiv.rpc;		// indiv.rpc
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -978,6 +988,7 @@ void dailyaccounting_patch(Patch& patch) {
 			patchpft.cmass_leaf_root_turnover = 0.0;
 			patchpft.cmass_repr = 0.0;
 			patchpft.cmass_est = 0.0;
+			patchpft.nsapling_year = 0;
 			if(patch.age == 1) {
 				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
 			}
@@ -1024,12 +1035,26 @@ void dailyaccounting_patch(Patch& patch) {
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			Individual &indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;		// indiv.fpc
+			patch.rpc_total += indiv.rpc;		// indiv.rpc
+
+			// Reset daily harvest amounts to zero.
+			indiv.charvest_green = 0.0;
+			indiv.charvest_brown = 0.0;
+			indiv.charvest_repr  = 0.0;
+			indiv.nharvest_green = 0.0;
+			indiv.nharvest_brown = 0.0;
+			indiv.nharvest_repr  = 0.0;
+
 			vegetation.nextobj();
 		}
 	}
 
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		indiv.daily_accounting();
+	}
 
 	// On last day of month, calculate mean content of upper and lower soil layers
 
@@ -1341,6 +1366,10 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
 	climate.par = climate.rad * FRADPAR;
+	if (date.day == 0) {
+		climate.apar = 0;
+	}
+	climate.apar += climate.par;
 
 	climate.par_max = max(climate.par, climate.par_max);
 
@@ -1493,6 +1522,44 @@ void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation
 			double psychrom_const = 0.665e-3 * climate.pressure[day.period];	// psychrometric constant (Pa/degC)
 		}
 	}
+}
+
+typedef struct {
+	double a;
+	double b;
+	double c;
+} esat_params_t;
+
+void get_esat_params(esat_method_t esat_method, esat_params_t *params) {
+	if (esat_method == SONNTAG_1990) {
+		params->a = 611.2;
+		params->b = 17.62;
+		params->c = 243.12;
+	} else if (esat_method == ALDUCHOV_1996) {
+		params->a = 610.94;
+		params->b = 17.625;
+		params->c = 243.04;
+	} else if (esat_method == ALLEN_1998) {
+		params->a = 610.8;
+		params->b = 17.27;
+		params->c = 237.3;
+	}
+}
+
+double esat(double tair, esat_method_t esat_method) {
+	esat_params_t params;
+	get_esat_params(esat_method, &params);
+
+	double a = params.a;
+	double b = params.b;
+	double c = params.c;
+
+	const double PA_TO_KPA = 0.001;
+	return a * exp((b * tair) / (c + tair)) * PA_TO_KPA;
+}
+
+double rh_to_vpd(double rh, double tair, esat_method_t esat_method) {
+	return esat(tair, esat_method) * (1.0 - rh);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

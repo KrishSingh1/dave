@@ -172,7 +172,7 @@ pft "TeBE" (
 	evergreen
 	temperate
 	leaflong 3
-	turnover_leaf 0.33
+	turnover_leaf 1
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
@@ -188,6 +188,12 @@ pft "TeBE" (
 	! As calculated by ifcalcsla and ifcalccton.
 	sla 13.171494
 	cton_leaf_min 29.010140
+
+	turnover_sap 0.1
+	!wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+    !vcmax_25 69 ! NEED A VALUE - using Warra's
+    !sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+    !respcoeff 0.8 
 )
 
 pft "TeBE_Assaf" (
@@ -506,10 +512,17 @@ pft "Wombat" (
 	tree
 	broadleaved
 	shade_intolerant
+
+	!est_max 0.05
+	!parff_min 350000
+	!alphar 2.0
+	!greff_min 0.03
+	!turnover_sap 0.05
+
 	evergreen
 	temperate
 	leaflong 2.0 
-	turnover_leaf 0.5
+	turnover_leaf 0.33
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 18.8
@@ -616,10 +629,10 @@ pft "CuP" (
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
-	stom_clos -3.2   ! Peters (2021)
-	p50 -5.8   ! Peters (2021)
-	p88 -7.7  ! Peters (2021)
+	kmax 30  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -4.1   ! Peters (2021)
+	p50 -5.0   ! Peters (2021)
+	p88 -5.8  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
 

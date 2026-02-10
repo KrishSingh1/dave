@@ -10,6 +10,7 @@
 #ifndef LPJ_GUESS_DAVE_OUTPUT_H
 #define LPJ_GUESS_DAVE_OUTPUT_H
 
+#include <functional>
 #include <memory>
 
 #include "outputmodule.h"
@@ -36,7 +37,7 @@ class ColumnDefinition {
 		@param get_output: Pointer to a function which returns the value to
 							be written to the rows of this column.
 		*/
-		ColumnDefinition(std::string name, double (*get_output)(const T&)) {
+		ColumnDefinition(std::string name, std::function<double(const T&)> get_output) {
 			this->name = name;
 			read_output = get_output;
 		}
@@ -65,7 +66,84 @@ class ColumnDefinition {
 		@param patch: The patch.
 		@return: The value which appears in each column of the output table.
 		*/
-		double (*read_output)(const T &t);
+		std::function<double(const T&)> read_output;
+};
+
+class AggregatedStandGridcellColumnDefinition : public ColumnDefinition<Gridcell> {
+	public:
+		/*
+		Create a new column definition.
+
+		@param name: Column name.
+		@param get_output: Pointer to a function which returns the value to
+							be written to the rows of this column.
+		*/
+	AggregatedStandGridcellColumnDefinition(std::string name, std::function<double(const Stand&)> get_output)
+		: ColumnDefinition<Gridcell>(
+			name,
+			[get_output](const Gridcell &gridcell) -> double {
+			double total = 0;
+			for (size_t i = 0; i < gridcell.nbr_stands(); i++) {
+				total += get_output(gridcell[i]) * gridcell[i].get_gridcell_fraction();
+			}
+			return total;
+		}) {
+		};
+};
+
+class AggregatedPatchGridcellColumnDefinition : public AggregatedStandGridcellColumnDefinition {
+	public:
+		AggregatedPatchGridcellColumnDefinition(std::string name, std::function<double(const Patch&)> get_output)
+			: AggregatedStandGridcellColumnDefinition(
+				name,
+				[get_output](const Stand &s) -> double {
+					double total = 0;
+					for (size_t i = 0; i < s.npatch(); i++) {
+						total += get_output(s[i]);
+					}
+					return total / s.npatch();
+			}) {
+		}
+};
+
+class AggregatedPatchPftGridcellColumnDefinition : public AggregatedPatchGridcellColumnDefinition {
+	public:
+		AggregatedPatchPftGridcellColumnDefinition(std::string name, const Pft &pft, std::function<double(const Patch&, const Pft&)> get_output)
+			: AggregatedPatchGridcellColumnDefinition(name, [get_output, pft](const Patch &p) -> double {
+				return get_output(p, pft);
+			}) {
+		}
+};
+
+class AggregatedIndivGridcellColumnDefinition : public AggregatedPatchPftGridcellColumnDefinition {
+	public:
+		/*
+		Create a new column definition.
+
+		@param name: Column name.
+		@param get_output: Pointer to a function which returns the value to
+							be written to the rows of this column.
+		*/
+	AggregatedIndivGridcellColumnDefinition(
+			std::string name,
+			const Pft &pft,
+			double (*get_output)(const Individual&),
+			double (*aggregate)(const double *, size_t))
+			: AggregatedPatchPftGridcellColumnDefinition(
+				name,
+				pft,
+				[get_output, aggregate](const Patch &patch, const Pft &pft) -> double {
+					std::vector<double> data;
+					const Vegetation &vegetation = patch.vegetation;
+					for (size_t i = 0; i < vegetation.nobj; i++) {
+						const Individual &indiv = vegetation[i];
+						if (indiv.pft.id == pft.id) {
+							data.push_back(get_output(indiv));
+						}
+					}
+					return data.size() ? aggregate(&data.front(), data.size()) : 0;
+				}) {
+	}
 };
 
 // Output module for DAVE outputs, including per-patch outputs.
@@ -174,7 +252,6 @@ private:
 
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			OutputFile(std::string param, std::string desc);
 
@@ -258,7 +335,86 @@ private:
 	};
 
 	/*
-	Base class for patch-level outputs.
+	Base class for Gridcell-level outputs.
+	*/
+class GridcellLevelOutput : public OutputFile {
+	public:
+		/*
+		Destructor.
+		*/
+		~GridcellLevelOutput();
+
+		/*
+		Create a new GridcellLevelOutput instance.
+
+		@param param: Name of the paramter in the instruction file which determines the output file name.
+		@param get_columns: A function which defines column definitions.
+		@param desc: Description of the output file (please include units).
+		@param sum: Iff true, a total column will be written after all other columns.
+		@param mean: Iff true, a mean column will be written after all other columns.
+		*/
+		GridcellLevelOutput(std::string param, std::function<std::vector<ColumnDefinition<Gridcell>>()> get_columns, std::string desc, bool sum, bool mean);
+
+		/*
+		Create a new GridcellLevelOutput instance.
+
+		@param param: Name of the paramter in the instruction file which determines the output file name.
+		@param columns: The columns in this output file.
+		@param desc: Description of the output file (please include units).
+		@param sum: Iff true, a total column will be written after all other columns.
+		@param mean: Iff true, a mean column will be written after all other columns.
+		*/
+		GridcellLevelOutput(std::string param, std::vector<ColumnDefinition<Gridcell>> columns, std::string desc, bool sum, bool mean);
+
+		/*
+		Write all rows of output to the output file for the current
+		timestep. No default implementation is provided, because the
+		implementation depends on the output - e.g. annual, daily, daily
+		per-patch, etc.
+
+		@param out: Pointer to an output channel.
+		@param gridcell: The current gridcell.
+		*/
+		virtual void write_rows(OutputChannel *channel, Gridcell &gridcell);
+
+		/*
+		Function which gets columns used by this output file.
+		*/
+		virtual ColumnDescriptors get_cols();
+
+	private:
+
+		/*
+		Pointer to a function which generates column definitions to be used
+		for this output file.
+
+		@param patch: The patch.
+		@param pft: The PFT.
+		@return: The value which appears in each column of the output table.
+		*/
+		std::function<std::vector<ColumnDefinition<Gridcell>>()> get_column_definitions;
+
+		/*
+		The column definitions. This will be empty until get_columns() is
+		called, when the output file is opened.
+		*/
+		std::vector<ColumnDefinition<Gridcell>> columns;
+
+		/*
+		Iff true, a column containing the sum of all other columns will be
+		written to the output file.
+		*/
+		bool write_sum;
+
+		/*
+		Iff true, a column containing the mean of all other columns will be
+		written to the output file.
+		*/
+		bool write_mean;
+	};
+
+	/*
+	Base class for stand-level outputs.
 	*/
 	class StandLevelOutput : public OutputFile {
 		public:
@@ -517,7 +673,14 @@ private:
 			@param description: A description of the output (including units!!).
 			@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(double*, int));
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(const double*, size_t));
+
+			/*
+			Create a new individual output using a custom weight reader. When a weight
+			reader is provided, values are aggregated as a weighted mean across
+			individuals: sum(value_i * weight_i) / sum(weight_i).
+			*/
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, OutputReader<Individual> *read_weight);
 
 			/*
 			Destructor.
@@ -563,7 +726,13 @@ private:
 			/*
 			Pointer to a function which aggregates the output value across individuals.
 			*/
-			double (*aggregator)(double *, int);
+			double (*aggregator)(const double *, size_t);
+
+			/*
+			Optional reader for per-individual weights. When present, write_rows will
+			compute a weighted mean across individuals using these weights.
+			*/
+			std::unique_ptr<OutputReader<Individual>> read_weight;
 	};
 
 	/*
@@ -580,7 +749,6 @@ private:
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
@@ -729,7 +897,7 @@ private:
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			AggregatedIndivOutput(std::string param_name, OutputReader<Individual> *get_output, double (*agg)(double *, int), std::string description, bool sum, bool mean);
+			AggregatedIndivOutput(std::string param_name, OutputReader<Individual> *get_output, double (*agg)(const double *, size_t), std::string description, bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -760,7 +928,7 @@ private:
 			/*
 			Pointer to a function which aggregates the output value across individuals.
 			*/
-			double (*aggregator)(double *, int);
+			double (*aggregator)(const double *, size_t);
 	};
 
 	class CustomPatchLevelOutput : public PatchLevelOutput {
@@ -884,7 +1052,7 @@ private:
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(double*, int), bool sum = false, bool mean = false);
+	void add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(const double*, size_t), bool sum = false, bool mean = false);
 
 	/*
 	Add an individual-level output. This will produce an output file with one
@@ -932,7 +1100,14 @@ private:
 	@param description: Description of the output (with units!!).
 	@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 	*/
-	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(double *, int));
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(const double *, size_t));
+
+	/*
+	Add an individual-level array output using a custom weight function. When a
+	weight reader is provided, values are aggregated as a weighted mean across
+	individuals: sum(value_i * weight_i) / sum(weight_i).
+	*/
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
 
 	/*
 	Add a patch-level output.
@@ -981,6 +1156,72 @@ private:
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
 	void add_stand_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a gridcell-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param read_output: A function which returns an output value for a given gridcell.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_output(std::string name, timestep_t timestep, std::string colname, double (*read_output)(const Gridcell &), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a gridcell-level output.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param colname: Column name in the output file.
+	@param get_columns: Pointer to a function which returns the columns used in this output file.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Gridcell>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a gridcell-level output, which contains one column per PFT. Each column
+	will have its value read from individual objects according to read_output,
+	and the values will be aggregated back up to the gridcell level.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the output value for a specific individual.
+	@param aggregator: A function which aggregates an output value across all individuals of a specific PFT.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_aggregated_indiv_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Individual &i),
+		double (*aggregator)(const double *, size_t),
+		std::string description,
+		bool sum = false,
+		bool mean = false);
+
+	/*
+	Add a gridcell-level output, which contains one column per PFT. Each column
+	will have its value read from individual objects according to read_output,
+	and the values will be aggregated back up to the gridcell level.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the output value for a specific individual.
+	@param aggregator: A function which aggregates an output value across all individuals of a specific PFT.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_aggregated_tree_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Individual &i),
+		double (*aggregator)(const double *, size_t),
+		std::string description,
+		bool sum = false,
+		bool mean = false);
 
 	/*
 	Add a patch-level array output.
@@ -1078,11 +1319,6 @@ private:
 	*/
 	double total_time;
 };
-
-/*
-True iff outputs should be written during spinup.
-*/
-extern bool spinup_output;
 
 /*
 Iff true, mean/std dev across patches will be written instead of raw outputs.

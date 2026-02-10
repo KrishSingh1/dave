@@ -2204,8 +2204,10 @@ void plib_callback(int callback) {
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
 				if (!itemparsed("turnover_repr")) badins("turnover_repr");
-				if (!itemparsed("sapsize")) badins("sapsize");
-				if (!itemparsed("formfactor")) badins("formfactor");
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("sapsize")) badins("sapsize");
+					if (!itemparsed("formfactor")) badins("formfactor");
+				}
 				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.

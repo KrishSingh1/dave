@@ -135,17 +135,17 @@ private:
 	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
 
-	void SoilInput::get_depth_varying_prop(
+	void get_depth_varying_prop(
 		const std::set<coord>& coords,
 		std::ifstream& prop,
 		std::map<coord, SoilDataMineral>& mineral_map,
 		std::vector<double> SoilDataMineral::* member);
 
 	// Reads only the header and extracts the depth values
-	std::vector<double> SoilInput::extract_layer_depths(std::ifstream& prop);
+	std::vector<double> extract_layer_depths(std::ifstream& prop);
 
 	// Assigns depth vector to all coords
-	void SoilInput::assign_depths(
+	void assign_depths(
 		const std::set<coord>& coords,
 		std::map<coord, SoilDataMineral>& mineral_map,
 		const std::vector<double>& depths);

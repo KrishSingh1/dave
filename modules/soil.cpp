@@ -1291,6 +1291,9 @@ Soillayer::Soillayer(Soilcolumn* sc, double d, double dp, bool at, bool ct) : so
 	// Soil labile carbon availability
 	labile_carbon = 0.0;
 
+	// Soil organic matter age
+	socage = 0.0;
+
 	peat_frac = 0.0;
 	bulk_density = 0.0;
 
@@ -2450,6 +2453,18 @@ void Soillayer::update_thermal_properties() {
 
 	// Update thermal conductivity
 	Kh = (air * Kair + Stot * exp_thermal_lut(lKtot)) / combined_depth;
+}
+
+/// Update organic matter age of soil layer
+/** Update organic matter age of soil layer
+ */
+void Soillayer::update_socage(double cmass, double age) {
+
+	if (!negligible(cmass)) {
+
+		double ctot = ccont();
+		socage = (ctot * socage + cmass * age) / (ctot + cmass);
+	}
 }
 
 /// Return organic fraction of soil layer
@@ -8093,6 +8108,8 @@ void Soilcolumn::vertical_movement() {
 						}
 					}
 
+					double cmass_moved = 0.0;
+
 					// Move som organic matter
 					for (int p = 0; p < NSOMPOOL; p++) {
 						if (p == SURFHUMUS || p == SURFMICRO || p == SOILMETA || p == SOILSTRUCT ||
@@ -8101,8 +8118,12 @@ void Soilcolumn::vertical_movement() {
 							soillayer_below.sompool[p].nmass += soillayer.sompool[p].nmass * frac_org;
 							soillayer.sompool[p].cmass *= 1.0 - frac_org;
 							soillayer.sompool[p].nmass *= 1.0 - frac_org;
+							cmass_moved += soillayer.sompool[p].cmass * frac_org;
 						}
 					}
+
+					// Update organic matter age
+					soillayer_below.update_socage(cmass_moved, soillayer.socage);
 
 					// Move mineral matter
 					soillayer_below.mineral_volume += min_volume * frac_min;
@@ -8218,6 +8239,8 @@ void Soilcolumn::vertical_movement() {
 								}
 							}
 
+							double cmass_moved = 0.0;
+
 							// Move organic matter
 							for (int p = 0; p < NSOMPOOL; p++) {
 								if (p == SURFHUMUS || p == SURFMICRO || p == SOILMETA || p == SOILSTRUCT || p == SOILFWD || p == SOILCWD || p == SOILMICRO || p == SLOWSOM || p == PASSIVESOM) {
@@ -8225,8 +8248,12 @@ void Soilcolumn::vertical_movement() {
 									soillayer.sompool[p].nmass += soillayer_below.sompool[p].nmass * frac_org;
 									soillayer_below.sompool[p].cmass *= 1.0 - frac_org;
 									soillayer_below.sompool[p].nmass *= 1.0 - frac_org;
+									cmass_moved += soillayer_below.sompool[p].cmass * frac_org;
 								}
 							}
+
+							// Update organic matter age
+							soillayer.update_socage(cmass_moved, soillayer_below.socage);
 
 							// Move mineral matter
 							soillayer.mineral_volume += soillayer_below.mineral_volume * frac_min;

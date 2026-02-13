@@ -804,7 +804,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	}
 
 	unsigned int num_patches = 1;
-	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
+	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE) || landcover == PEATLAND) {
 		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
 	}
 	if (npatch > 0) {

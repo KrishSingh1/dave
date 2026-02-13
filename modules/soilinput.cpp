@@ -109,11 +109,11 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
-	std::string soilClay = param["file_soilclay"].str;
-	std::string soilSand = param["file_soilsand"].str;
+	xtring soilClay = param["file_soilclay"].str;
+	xtring soilSand = param["file_soilsand"].str;
 
 	// Have soil depth varying properties
-	if (!soilClay.empty() && !soilSand.empty()) {
+	if (!soilClay.len() && !soilSand.len()) {
 
 		soil_varying = true;
 

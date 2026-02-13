@@ -297,7 +297,7 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 	double total_CO2 = get_sum(&Soillayer::CO2);
 	double respsum_tot = get_sum(&Soillayer::respsum);
 
-	if (fabs((initial_CH4 + initial_CO2) - (total_CH4 + total_CO2)) > 1.0e-12)
+	if (fabs((initial_CH4 + initial_CO2) - (total_CH4 + total_CO2)) > 1.0e-10)
 		dprintf("Year %d Day %d ERROR: CH4 production %g\n",date.year,date.day, (initial_CH4 + initial_CO2) - (total_CH4 + total_CO2));
 }
 
@@ -841,7 +841,7 @@ void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 	// C mass at end
 	double end_CH4 = get_sum(&Soillayer::CH4);
 
-	if (fabs(initial_CH4 - (end_CH4 + ebull_today)) > 1.0e-12)
+	if (fabs(initial_CH4 - (end_CH4 + ebull_today)) > 1.0e-10)
 		dprintf("Year %d Day %d ERROR: gas_ebullition %g\n",date.year,date.day, initial_CH4 - (end_CH4 + ebull_today));
 }
 

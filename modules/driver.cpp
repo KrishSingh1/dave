@@ -822,6 +822,20 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
+	// Soil organic matter age
+	if (date.islastday && date.islastmonth) {
+		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+			// Increase organic matter age
+			if (!negligible(soilcolumn.soillayers[lyr].ccont())) {
+				soilcolumn.soillayers[lyr].socage++;
+			}
+			else {
+				soilcolumn.soillayers[lyr].socage = 0.0;
+			}
+		}
+	}
+
 	// Initiate slope properties of the soil // DW_COMMENT wrong to use patch.age, but works
 	if (patch.age == 0 && date.day == 0) {
 		soilcolumn.set_slope_properties();

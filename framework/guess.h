@@ -3784,6 +3784,8 @@ public:
 	double aorgCleach;
 	// Soil labile carbon availability daily (kgC/m2/day)
 	double labile_carbon;
+	// Age of organic matter
+	double socage;
 
 	/// Annual sum of nitrogen mineralisation
 	double anmin;
@@ -4051,8 +4053,6 @@ public:
 		// etc.
 	}
 
-	/// Initialise soil layer properties
-	void init();
 	// Mineral exponential in Campbell (1974) parameterization for soil 
 	// water retention curves from Table 4, Cosby (1984)
 	double mineral_exp(double clay_frac, double sand_frac);
@@ -4108,6 +4108,8 @@ public:
 	void update_matric_potential();
 
 	void update_thermal_properties();
+
+	void update_socage(double cmass, double age);
 
 	double org_frac();
 
@@ -4751,7 +4753,7 @@ public:
 	/// Returns the soil temperature for a certain depth interval
 	double temp_depth(double depth_start, double depth_end);
 	/// Returns the month average soil temperature for a certain depth interval
-	double temp_depth(double depth_start, double depth_end, int mth = 0);
+	double temp_depth(double depth_start, double depth_end, int mth);
 	/// Returns the value of some vector within a certain depth interval
 	double var_depth(double depth_start, double depth_end, double Soillayer::* member);
 	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], int m);

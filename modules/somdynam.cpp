@@ -1271,6 +1271,9 @@ void transfer_litter(Patch& patch) {
 						Sompool& sompool_meta = soillayer.sompool[SURFMETA];
 						Sompool& sompool_struct = soillayer.sompool[SURFSTRUCT];
 
+						// Update soil organic matter age
+						soillayer.update_socage(cmass_litter_leaf, 0.0);
+
 						// Leaf litter lignin:N ratio
 						double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, pft.ligcfrac_leaf, pft.cton_leaf_avr);
 
@@ -1496,6 +1499,13 @@ void transfer_litter(Patch& patch) {
 								sompool_soilcwd.cmass));
 						}
 					}
+
+					// Update soil organic matter age when adding fine and coarse roots and stem
+					double cmass_litter = (cmass_litter_root + (cmass_litter_sap + cmass_litter_heart) * COARSE_ROOT_FRAC) * root_lyr_frac;
+					if (lyr == 0) {
+						cmass_litter += (cmass_litter_sap + cmass_litter_heart) * (1.0 - COARSE_ROOT_FRAC);
+					}
+					soillayer.update_socage(cmass_litter, 0.0);
 				}
 			}
 
@@ -1738,6 +1748,8 @@ void add_litter(Soillayer& soillayer, int timestep, int pool) {
 	LitterSolveSOM& solvesom = soillayer.solvesom[timestep];
 	sompool.cmass += solvesom.get_clitter(pool);
 	sompool.nmass += solvesom.get_nlitter(pool);
+
+	soillayer.update_socage(solvesom.get_clitter(pool), 0.0);
 }
 
 /// Iteratively solving differential flux equations for century SOM pools
@@ -1993,6 +2005,18 @@ void equilsom(Patch& patch) {
 
 				// Vertical movement of organic matter if C density of soil layer exceed maximum
 				soilcolumn.vertical_movement();
+
+				// Soil organic matter age
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+					// Increase organic matter age
+					if (!negligible(soilcolumn.soillayers[lyr].ccont())) {
+						soilcolumn.soillayers[lyr].socage++;
+					}
+					else {
+						soilcolumn.soillayers[lyr].socage = 0.0;
+					}
+				}
 			}
 
 			// Reset number of trends that doesn't meet the criteria

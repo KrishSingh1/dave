@@ -1403,7 +1403,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 					standpft_amon_mt2 += fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
-					standpft_clitter += ppft.litter_leaf + ppft.litter_root + ppft.litter_sap + ppft.litter_heart + ppft.litter_repr;
+					standpft_clitter += ppft.cmass_litter_leaf + ppft.cmass_litter_root + ppft.cmass_litter_sap + ppft.cmass_litter_heart + ppft.cmass_litter_repr;
 					standpft_nlitter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart;
 
 					for (int m = 0; m < 12; m++) {
@@ -1770,8 +1770,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			if(run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& ppft=patch.pft[q];
-					c_harv_slow+=ppft.harvested_products_slow*to_gridcell_average;
-					n_harv_slow+=ppft.harvested_products_slow_nmass*to_gridcell_average;
+					c_harv_slow+=ppft.cmass_harvested_products_slow*to_gridcell_average;
+					n_harv_slow+=ppft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 
@@ -2271,8 +2271,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							l = 1;
 
 						if (soilcolumn.soillayerdepths[lyr] <= cdepths[2]) {
-							crootlit[l] += (ppft.litter_root + (1.0 - ppft.pft.ag_woody_frac) *
-								(ppft.litter_sap + ppft.litter_heart)) * ppft.rootdist[lyr] *
+							crootlit[l] += (ppft.cmass_litter_root + (1.0 - ppft.pft.ag_woody_frac) *
+								(ppft.cmass_litter_sap + ppft.cmass_litter_heart)) * ppft.rootdist[lyr] *
 								to_gridcell_average;
 						}
 					}

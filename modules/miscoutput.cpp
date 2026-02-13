@@ -619,7 +619,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 
-				standpft_clitter += ppft.litter_leaf + ppft.litter_root + ppft.litter_sap + ppft.litter_heart + ppft.litter_repr;
+				standpft_clitter += ppft.cmass_litter_leaf + ppft.cmass_litter_root + ppft.cmass_litter_sap + ppft.cmass_litter_heart + ppft.cmass_litter_repr;
 				standpft_nlitter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart;
 
 				vegetation.firstobj();
@@ -905,8 +905,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if (run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& ppft=patch.pft[q];
-					c_harv_slow_lc[stand.landcover]+=ppft.harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
-					n_harv_slow_lc[stand.landcover]+=ppft.harvested_products_slow_nmass*to_gridcell_average;
+					c_harv_slow_lc[stand.landcover]+=ppft.cmass_harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
+					n_harv_slow_lc[stand.landcover]+=ppft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 

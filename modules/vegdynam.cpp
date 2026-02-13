@@ -1371,8 +1371,8 @@ void fire(Patch& patch, double& fireprob) {
 
 	for (p = 0; p < npft; p++) {
 		Patchpft& ppft = patch.pft[p];
-		litter_ag += ppft.litter_leaf + ppft.litter_sap + ppft.litter_heart +
-			ppft.litter_repr;
+		litter_ag += ppft.cmass_litter_leaf + ppft.cmass_litter_sap + ppft.cmass_litter_heart +
+			ppft.cmass_litter_repr;
 	}
 
 	// Soil Litter
@@ -1394,8 +1394,8 @@ void fire(Patch& patch, double& fireprob) {
 
 	for (p = 0; p < npft; p++) {
 		Patchpft& ppft = patch.pft[p];
-		me_mean += (ppft.litter_leaf + ppft.litter_sap + ppft.litter_heart +
-			ppft.litter_repr) * ppft.pft.litterme / litter_ag;
+		me_mean += (ppft.cmass_litter_leaf + ppft.cmass_litter_sap + ppft.cmass_litter_heart +
+			ppft.cmass_litter_repr) * ppft.pft.litterme / litter_ag;
 	}
 
 	// Soil litter
@@ -1451,18 +1451,18 @@ void fire(Patch& patch, double& fireprob) {
 		// Calculate flux from burnt litter
 
 		fluxes.report_flux(Fluxes::FIREC,
-			mort_fire*(ppft.litter_leaf + ppft.litter_sap +
-				ppft.litter_heart + ppft.litter_repr));
+			mort_fire*(ppft.cmass_litter_leaf + ppft.cmass_litter_sap +
+				ppft.cmass_litter_heart + ppft.cmass_litter_repr));
 
 		report_fire_nfluxes(fluxes, mort_fire * (ppft.nmass_litter_leaf +
 			ppft.nmass_litter_sap + ppft.nmass_litter_heart));
 
 		// Account for burnt above ground litter
 
-		ppft.litter_leaf *= (1.0 - mort_fire);
-		ppft.litter_sap *= (1.0 - mort_fire);
-		ppft.litter_heart *= (1.0 - mort_fire);
-		ppft.litter_repr *= (1.0 - mort_fire);
+		ppft.cmass_litter_leaf *= (1.0 - mort_fire);
+		ppft.cmass_litter_sap *= (1.0 - mort_fire);
+		ppft.cmass_litter_heart *= (1.0 - mort_fire);
+		ppft.cmass_litter_repr *= (1.0 - mort_fire);
 		ppft.nmass_litter_leaf *= (1.0 - mort_fire);
 		ppft.nmass_litter_sap *= (1.0 - mort_fire);
 		ppft.nmass_litter_heart *= (1.0 - mort_fire);

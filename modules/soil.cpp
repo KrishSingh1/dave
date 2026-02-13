@@ -7813,7 +7813,7 @@ void Soilcolumn::calc_root_volume() {
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 		if (pft.lifeform == TREE) {
-			double volume_coarse_root_tot = (ppft.litter_sap + ppft.litter_heart) * (1.0 - pft.ag_woody_frac) /
+			double volume_coarse_root_tot = (ppft.cmass_litter_sap + ppft.cmass_litter_heart) * (1.0 - pft.ag_woody_frac) /
 				pft.wooddens * MM_PER_M;
 			for (int lyr = 0; lyr < nsoillayers; lyr++) {
 				volume_coarse_root[lyr] += volume_coarse_root_tot * patch.pft[pft.id].rootdist[lyr];

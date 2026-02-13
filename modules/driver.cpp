@@ -636,13 +636,13 @@ void dailyaccounting_patch_lc(Patch& patch) {
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 
-		lc.acflux_harvest_slow += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow = ppft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+		lc.acflux_harvest_slow += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.cmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.cmass_harvested_products_slow = ppft.cmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
-		lc.anflux_harvest_slow += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		ppft.harvested_products_slow_nmass = ppft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+		lc.anflux_harvest_slow += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.nmass_harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.nmass_harvested_products_slow = ppft.nmass_harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 		pftlist.nextobj();
 	}

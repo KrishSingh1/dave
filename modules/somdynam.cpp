@@ -268,19 +268,19 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 
 			if (lyr == 0) {
 
-				decomp_litter += (ppft.litter_leaf + ppft.litter_sap +
-					ppft.litter_heart +	ppft.litter_repr) * (1.0 - fr_litter);
+				decomp_litter += (ppft.cmass_litter_leaf + ppft.cmass_litter_sap +
+					ppft.cmass_litter_heart +	ppft.cmass_litter_repr) * (1.0 - fr_litter);
 
-				ppft.litter_leaf *= fr_litter;
-				ppft.litter_sap *= fr_litter;
-				ppft.litter_heart *= fr_litter;
-				ppft.litter_repr *= fr_litter;
+				ppft.cmass_litter_leaf *= fr_litter;
+				ppft.cmass_litter_sap *= fr_litter;
+				ppft.cmass_litter_heart *= fr_litter;
+				ppft.cmass_litter_repr *= fr_litter;
 			}
 
-			decomp_litter += ppft.litter_root * (1.0 - fr_litter) * ppft.rootdist[lyr];
+			decomp_litter += ppft.cmass_litter_root * (1.0 - fr_litter) * ppft.rootdist[lyr];
 
 			if (lyr == soilcolumn.nsoillayers - 1)
-				ppft.litter_root *= fr_litter;
+				ppft.cmass_litter_root *= fr_litter;
 		}
 
 		if (date.year >= soilcolumn.solvesom_begin)
@@ -1125,7 +1125,7 @@ double metabolic_litter_fraction(double lton) {
 }
 
 /// Transfers litter from growth, mortality and fire
-/** Called monthly to transfer last year's litter from vegetation
+/** Called daily to transfer last year's litter from vegetation
  *  (turnover, mortality and fire) to soil litter pools.
  *  Alternatively, with daily allocation and harvest/turnover,
  *  the litter produced a certain day.
@@ -1188,14 +1188,14 @@ void transfer_litter(Patch& patch) {
 			}
 
 			// Todays leaf and fine root litter
-			cmass_litter_leaf = ppft.litter_leaf * frac_lr;
+			cmass_litter_leaf = ppft.cmass_litter_leaf * frac_lr;
 			nmass_litter_leaf = ppft.nmass_litter_leaf * frac_lr;
-			cmass_litter_root = ppft.litter_root * frac_lr;
+			cmass_litter_root = ppft.cmass_litter_root * frac_lr;
 			nmass_litter_root = ppft.nmass_litter_root * frac_lr;
 
-			ppft.litter_leaf -= cmass_litter_leaf;
+			ppft.cmass_litter_leaf -= cmass_litter_leaf;
 			ppft.nmass_litter_leaf -= nmass_litter_leaf;
-			ppft.litter_root -= cmass_litter_root;
+			ppft.cmass_litter_root -= cmass_litter_root;
 			ppft.nmass_litter_root -= nmass_litter_root;
 
 			// If NH4 litter then drop it with same fraction every day to top soil layer
@@ -1211,14 +1211,14 @@ void transfer_litter(Patch& patch) {
 
 				// Woody litter is dropped as a fraction every day
 				double frac_w = 1.0 / (date.year_length() - date.day);
-				cmass_litter_sap = ppft.litter_sap * frac_w;
+				cmass_litter_sap = ppft.cmass_litter_sap * frac_w;
 				nmass_litter_sap = ppft.nmass_litter_sap * frac_w;
-				cmass_litter_heart = ppft.litter_heart * frac_w;
+				cmass_litter_heart = ppft.cmass_litter_heart * frac_w;
 				nmass_litter_heart = ppft.nmass_litter_heart * frac_w;
 
-				ppft.litter_sap -= cmass_litter_sap;
+				ppft.cmass_litter_sap -= cmass_litter_sap;
 				ppft.nmass_litter_sap -= nmass_litter_sap;
-				ppft.litter_heart -= cmass_litter_heart;
+				ppft.cmass_litter_heart -= cmass_litter_heart;
 				ppft.nmass_litter_heart -= nmass_litter_heart;
 			}
 			else {

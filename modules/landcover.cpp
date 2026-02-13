@@ -1279,8 +1279,8 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 						cp.cmass_leaf, cp.cmass_root, cp.cmass_sap, cp.cmass_heart,
 						cp.nmass_leaf, cp.nmass_root, cp.nmass_sap, cp.nmass_heart,
-						cp.litter_leaf,
-						cp.litter_root,
+						cp.cmass_litter_leaf,
+						cp.cmass_litter_root,
 						cp.nmass_litter_leaf,
 						cp.nmass_litter_root,
 						cp.nstore_longterm, cp.max_n_storage,
@@ -1290,10 +1290,10 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
-					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
-					to.transfer_litter_root[indiv.pft.id] += cp.litter_root * scale;
-					to.transfer_litter_sap[indiv.pft.id] += cp.litter_sap * scale;
-					to.transfer_litter_heart[indiv.pft.id] += cp.litter_heart * scale;
+					to.transfer_cmass_litter_leaf[indiv.pft.id] += cp.cmass_litter_leaf * scale;
+					to.transfer_cmass_litter_root[indiv.pft.id] += cp.cmass_litter_root * scale;
+					to.transfer_cmass_litter_sap[indiv.pft.id] += cp.cmass_litter_sap * scale;
+					to.transfer_cmass_litter_heart[indiv.pft.id] += cp.cmass_litter_heart * scale;
 
 					to.transfer_nmass_litter_leaf[indiv.pft.id] += cp.nmass_litter_leaf * scale;
 					to.transfer_nmass_litter_root[indiv.pft.id] += cp.nmass_litter_root * scale;
@@ -1309,8 +1309,8 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					// gridcell.acflux_landuse_change += -cp.debt_excess * donor_area / (double)stand.nobj;
 
 					if(ifslowharvestpool) {
-						to.transfer_harvested_products_slow[indiv.pft.id] += cp.harvested_products_slow * scale;
-						to.transfer_harvested_products_slow_nmass[indiv.pft.id] += cp.harvested_products_slow_nmass * scale;
+						to.transfer_cmass_harvested_products_slow[indiv.pft.id] += cp.cmass_harvested_products_slow * scale;
+						to.transfer_nmass_harvested_products_slow[indiv.pft.id] += cp.nmass_harvested_products_slow * scale;
 					}
 
 					vegetation.nextobj();
@@ -1479,11 +1479,11 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					for (int i=0; i<npft; i++) {
 						Patchpft& ppft = patch.pft[i];
 
-						ppft.litter_leaf = (ppft.litter_leaf * old_frac + from.transfer_litter_leaf[i] * added_frac) / new_frac;
-						ppft.litter_sap = (ppft.litter_sap * old_frac + from.transfer_litter_sap[i] * added_frac) / new_frac;
-						ppft.litter_heart = (ppft.litter_heart * old_frac + from.transfer_litter_heart[i] * added_frac) / new_frac;
-						ppft.litter_root = (ppft.litter_root * old_frac + from.transfer_litter_root[i] * added_frac) / new_frac;
-						ppft.litter_repr = (ppft.litter_repr * old_frac + from.transfer_litter_repr[i] * added_frac) / new_frac;
+						ppft.cmass_litter_leaf = (ppft.cmass_litter_leaf * old_frac + from.transfer_cmass_litter_leaf[i] * added_frac) / new_frac;
+						ppft.cmass_litter_sap = (ppft.cmass_litter_sap * old_frac + from.transfer_cmass_litter_sap[i] * added_frac) / new_frac;
+						ppft.cmass_litter_heart = (ppft.cmass_litter_heart * old_frac + from.transfer_cmass_litter_heart[i] * added_frac) / new_frac;
+						ppft.cmass_litter_root = (ppft.cmass_litter_root * old_frac + from.transfer_cmass_litter_root[i] * added_frac) / new_frac;
+						ppft.cmass_litter_repr = (ppft.cmass_litter_repr * old_frac + from.transfer_cmass_litter_repr[i] * added_frac) / new_frac;
 
 						ppft.nmass_litter_leaf = (ppft.nmass_litter_leaf * old_frac + from.transfer_nmass_litter_leaf[i] * added_frac) / new_frac;
 						ppft.nmass_litter_root = (ppft.nmass_litter_root * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
@@ -1492,8 +1492,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						ppft.nmass_litter_NH4 = (ppft.nmass_litter_NH4 * old_frac + from.transfer_nmass_litter_NH4[i] * added_frac) / new_frac;
 
 						if(ifslowharvestpool) {
-							ppft.harvested_products_slow = (ppft.harvested_products_slow * old_frac + from.transfer_harvested_products_slow[i] * added_frac) / new_frac;
-							ppft.harvested_products_slow_nmass = (ppft.harvested_products_slow_nmass * old_frac + from.transfer_harvested_products_slow_nmass[i] * added_frac) / new_frac;
+							ppft.cmass_harvested_products_slow = (ppft.cmass_harvested_products_slow * old_frac + from.transfer_cmass_harvested_products_slow[i] * added_frac) / new_frac;
+							ppft.nmass_harvested_products_slow = (ppft.nmass_harvested_products_slow * old_frac + from.transfer_nmass_harvested_products_slow[i] * added_frac) / new_frac;
 						}
 					}
 
@@ -2799,10 +2799,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 /// landcover_change_transfer constructor
 landcover_change_transfer::landcover_change_transfer() {
 
-	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = NULL;
-	transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
+	transfer_cmass_litter_leaf = transfer_cmass_litter_sap = transfer_cmass_litter_heart = NULL;
+	transfer_cmass_litter_root = transfer_cmass_litter_repr = transfer_cmass_harvested_products_slow = NULL;
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
-	transfer_nmass_litter_root = transfer_nmass_litter_NH4 = transfer_harvested_products_slow_nmass = NULL;
+	transfer_nmass_litter_root = transfer_nmass_litter_NH4 = transfer_nmass_harvested_products_slow = NULL;
 
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_depth = transfer_wcont_evap = transfer_anfix_calc = 0.0;
 	transfer_wmass_ssw = transfer_imass_ssw = transfer_temp_ssw = 0.0;
@@ -2849,50 +2849,50 @@ landcover_change_transfer::landcover_change_transfer() {
 /// landcover_change_transfer deconstructor
 landcover_change_transfer::~landcover_change_transfer() {
 
-	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
-	if(transfer_litter_sap) delete[] transfer_litter_sap;
-	if(transfer_litter_heart) delete[] transfer_litter_heart;
-	if(transfer_litter_root) delete[] transfer_litter_root;
-	if(transfer_litter_repr) delete[] transfer_litter_repr;
-	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;
+	if(transfer_cmass_litter_leaf) delete[] transfer_cmass_litter_leaf;
+	if(transfer_cmass_litter_sap) delete[] transfer_cmass_litter_sap;
+	if(transfer_cmass_litter_heart) delete[] transfer_cmass_litter_heart;
+	if(transfer_cmass_litter_root) delete[] transfer_cmass_litter_root;
+	if(transfer_cmass_litter_repr) delete[] transfer_cmass_litter_repr;
+	if(transfer_cmass_harvested_products_slow) delete[] transfer_cmass_harvested_products_slow;
 	if(transfer_nmass_litter_leaf) delete[] transfer_nmass_litter_leaf;
 	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
 	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
 	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
-	if (transfer_nmass_litter_NH4) delete[] transfer_nmass_litter_NH4;
-	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
+	if(transfer_nmass_litter_NH4) delete[] transfer_nmass_litter_NH4;
+	if(transfer_nmass_harvested_products_slow) delete[] transfer_nmass_harvested_products_slow;
 }
 
 /// allocates memory for landcover_change_transfer object
 void landcover_change_transfer::allocate() {
 
-	transfer_litter_leaf = new double[npft];
-	transfer_litter_sap = new double[npft];
-	transfer_litter_heart = new double[npft];
-	transfer_litter_root = new double[npft];
-	transfer_litter_repr = new double[npft];
-	transfer_harvested_products_slow = new double[npft];
+	transfer_cmass_litter_leaf = new double[npft];
+	transfer_cmass_litter_sap = new double[npft];
+	transfer_cmass_litter_heart = new double[npft];
+	transfer_cmass_litter_root = new double[npft];
+	transfer_cmass_litter_repr = new double[npft];
+	transfer_cmass_harvested_products_slow = new double[npft];
 
 	transfer_nmass_litter_leaf = new double[npft];
 	transfer_nmass_litter_sap = new double[npft];
 	transfer_nmass_litter_heart = new double[npft];
 	transfer_nmass_litter_root = new double[npft];
 	transfer_nmass_litter_NH4 = new double[npft];
-	transfer_harvested_products_slow_nmass = new double[npft];
+	transfer_nmass_harvested_products_slow = new double[npft];
 
 	for(int i=0;i<npft;i++) {
-		transfer_litter_leaf[i] = 0.0;
-		transfer_litter_sap[i] = 0.0;
-		transfer_litter_heart[i] = 0.0;
-		transfer_litter_root[i] = 0.0;
-		transfer_litter_repr[i] = 0.0;
-		transfer_harvested_products_slow[i] = 0.0;
+		transfer_cmass_litter_leaf[i] = 0.0;
+		transfer_cmass_litter_sap[i] = 0.0;
+		transfer_cmass_litter_heart[i] = 0.0;
+		transfer_cmass_litter_root[i] = 0.0;
+		transfer_cmass_litter_repr[i] = 0.0;
+		transfer_cmass_harvested_products_slow[i] = 0.0;
 		transfer_nmass_litter_leaf[i] = 0.0;
 		transfer_nmass_litter_sap[i] = 0.0;
 		transfer_nmass_litter_heart[i] = 0.0;
 		transfer_nmass_litter_root[i] = 0.0;
 		transfer_nmass_litter_NH4[i] = 0.0;
-		transfer_harvested_products_slow_nmass[i] = 0.0;
+		transfer_nmass_harvested_products_slow[i] = 0.0;
 	}
 }
 

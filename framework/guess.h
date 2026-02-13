@@ -5077,19 +5077,15 @@ public:
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_leaf;
+	double cmass_litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_root;
+	double cmass_litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap;
-	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap_year;
+	double cmass_litter_sap;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart;
-	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart_year;
+	double cmass_litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
-	double litter_repr;
+	double cmass_litter_repr;
 
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
@@ -5097,12 +5093,8 @@ public:
 	double nmass_litter_root;
 	/// remaining sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
-	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_sap_year;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
-	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_heart_year;
 	/// remaining NH4-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_NH4;
 	/// Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002) Michaelis-Menten kinetic parameters
@@ -5128,9 +5120,9 @@ public:
 	bool wstress_day;
 
 	/// carbon depository for long-lived products like wood
-	double harvested_products_slow;
+	double cmass_harvested_products_slow;
 	/// nitrogen depository for long-lived products like wood
-	double harvested_products_slow_nmass;
+	double nmass_harvested_products_slow;
 	/// first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
 	int swindow[2];
 	/// daily value of water deficit, calculated in irrigated_water_uptake()
@@ -5154,20 +5146,16 @@ public:
 	/// Constructor: initialises id, pft and data members
 	Patchpft(int i,Pft& p):id(i),pft(p) {
 
-		litter_leaf = 0.0;
-		litter_root = 0.0;
-		litter_sap = 0.0;
-		litter_sap_year = 0.0;
-		litter_heart = 0.0;
-		litter_heart_year = 0.0;
-		litter_repr = 0.0;
+		cmass_litter_leaf = 0.0;
+		cmass_litter_root = 0.0;
+		cmass_litter_sap = 0.0;
+		cmass_litter_heart = 0.0;
+		cmass_litter_repr = 0.0;
 
 		nmass_litter_leaf = 0.0;
 		nmass_litter_root = 0.0;
 		nmass_litter_sap = 0.0;
-		nmass_litter_sap_year = 0.0;
 		nmass_litter_heart = 0.0;
-		nmass_litter_heart_year = 0.0;
 		nmass_litter_NH4 = 0.0;
 
 		wscal = 1.0;
@@ -5196,8 +5184,8 @@ public:
 		rootdist[0] = 1.0;
 
 		cropphen = NULL;
-		harvested_products_slow = 0.0;
-		harvested_products_slow_nmass = 0.0;
+		cmass_harvested_products_slow = 0.0;
+		nmass_harvested_products_slow = 0.0;
 
 		swindow[0]=-1;
 		swindow[1]=-1;

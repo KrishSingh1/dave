@@ -1,14 +1,15 @@
 # Development
 
-This section contains developer-focused documentation for the DAVE fork of LPJ-GUESS.
+This section contains developer-focused documentation for the DAVE fork of
+LPJ-GUESS.
 
 ## Current pages
 
 - [LPJ-GUESS Development Ecosystem](lpj-guess-development-ecosystem.md)
+- [Dependencies and Toolchains](toolchains.md)
 
 ## Planned content
 
-- Build and toolchain details
 - Repository structure and key files/modules
 - Debugging workflows
 - Testing and validation workflows

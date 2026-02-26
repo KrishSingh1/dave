@@ -6,11 +6,28 @@ nav:
       - Carbon Allocation: science/daily-carbon-allocation.md
   - How-to:
       - Overview: howto/index.md
-      - Windows: howto/INSTALL.windows.md
+      - Setup:
+          - Windows: howto/INSTALL.windows.md
+          - macOS: howto/INSTALL.macos.md
+          - Linux: howto/INSTALL.linux.md
+      - Data Access:
+          - HIE-Storage: howto/hie-storage.md
+          - SFTP via FileZilla: howto/sftp-filezilla.md
+          - SFTP via Terminal: howto/sftp-terminal.md
+          - SSH Key Management: howto/ssh-keys.md
+      - Running:
+          - OzFlux Site Simulations: howto/ozflux-simulations.md
+          - NC Input Module: howto/nc-input.md
+          - Debugging via VSCode: howto/debugging-vscode.md
+          - Running Serially (CLI): howto/run-serial.md
+          - Running in Parallel (MPI): howto/run-parallel.md
+          - Running on Gadi: howto/run-gadi.md
   - Development:
       - Overview: development/index.md
       - LPJ-GUESS Development Ecosystem: development/lpj-guess-development-ecosystem.md
+      - Dependencies and Toolchains: development/toolchains.md
 markdown_extensions:
+  - admonition
   - pymdownx.arithmatex:
       generic: true
 extra_javascript:

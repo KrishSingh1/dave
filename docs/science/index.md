@@ -4,14 +4,14 @@ This section documents scientific concepts, process representations, and model-b
 
 ## Current pages
 
-- [Daily Tree Carbon Allocation](daily-carbon-allocation.md)
+- [Daily Tree Growth](daily-growth-tree.md)
+- [Photosynthesis](photosynthesis.md)
 
 ## Planned content
 
-- Photosynthesis
 - Phenology and growth process notes
 - Hydraulics
-- Daily grass carbon allocation
+- Daily grass growth
 - Hydrology changes
 - Site-level interpretation notes (e.g. OzFlux)
 - Key differences from upstream LPJ-GUESS science behaviour

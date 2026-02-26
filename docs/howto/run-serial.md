@@ -10,7 +10,7 @@ or a debugger.
 ```
 
 For DAVE simulations, the input module is always `nc` (see
-[NC Input Module](nc-input.md)):
+[Climate INput](climate-input.md)):
 
 ```bash
 cd /path/to/repository

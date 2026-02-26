@@ -78,7 +78,7 @@ Useful PBS commands:
 48 hours. For LPJ-GUESS this means that running a large domain on very few
 CPUs is not feasible — even setting aside patience, the job would be killed
 before it finishes. Use enough CPUs to comfortably fit within the limit (see
-[`choose_num_cpus.py`](#choose_num_cpus-py-choose-cpu-count) below).
+[`choose_num_cpus.py`](#choose_num_cpuspy-choose-cpu-count) below).
 
 ## Environment Modules
 

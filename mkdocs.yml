@@ -3,7 +3,8 @@ nav:
   - Home: index.md
   - Science:
       - Overview: science/index.md
-      - Carbon Allocation: science/daily-carbon-allocation.md
+      - Daily Tree Growth: science/daily-growth-tree.md
+      - Photosynthesis: science/photosynthesis.md
   - How-to:
       - Overview: howto/index.md
       - Setup:
@@ -17,11 +18,16 @@ nav:
           - SSH Key Management: howto/ssh-keys.md
       - Running:
           - OzFlux Site Simulations: howto/ozflux-simulations.md
-          - NC Input Module: howto/nc-input.md
+          - Climate Input: howto/climate-input.md
           - Debugging via VSCode: howto/debugging-vscode.md
           - Running Serially (CLI): howto/run-serial.md
           - Running in Parallel (MPI): howto/run-parallel.md
           - Running on Gadi: howto/run-gadi.md
+      - Contributing:
+          - Contributing to the Documentation: howto/contributing-docs.md
+          - Writing Equations: howto/markdown-math.md
+          - Version Control via SourceTree: howto/vcs-sourcetree.md
+          - Version Control via CLI: howto/vcs-cli.md
   - Development:
       - Overview: development/index.md
       - LPJ-GUESS Development Ecosystem: development/lpj-guess-development-ecosystem.md
@@ -32,5 +38,4 @@ markdown_extensions:
       generic: true
 extra_javascript:
   - javascripts/config.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

@@ -25,18 +25,21 @@ How to connect to HIE-Storage and manage SSH keys:
 How to configure and run simulations:
 
 - [OzFlux Site Simulations](ozflux-simulations.md)
-- [NC Input Module](nc-input.md)
+- [Climate Input](climate-input.md)
 - [Debugging via VSCode](debugging-vscode.md)
 - [Running Serially (CLI)](run-serial.md)
 - [Running in Parallel (MPI)](run-parallel.md)
 - [Running on Gadi](run-gadi.md)
 
+## Contributing
+
+How to add and edit documentation:
+
+- [Contributing to the Documentation](contributing-docs.md)
+- [Writing Equations](markdown-math.md)
+- [Version Control via SourceTree](vcs-sourcetree.md)
+- [Version Control via CLI](vcs-cli.md)
+
 ## Planned content
 
-- Version control (client-agnostic)
-- Version control via SourceTree
-- Version control via CLI
 - Common troubleshooting procedures
-- Contributing to the documentation website
-- Writing equations in markdown/latex format
-- Converting word documents to markdown

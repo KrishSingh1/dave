@@ -8,7 +8,7 @@ is determined by the difference between the actual C of each of the
 pools and its potential target:
 
   --------------------------------------------------------------------------------------------------
-  $$\phi_{p} = \max\left( 0,\ \frac{C_{p.target(t)} - C_{p(t)}}{C_{p.target(t)}} \right) \tag{1} $$
+$$\phi_{p} = \max\left( 0,\ \frac{C_{p.target(t)} - C_{p(t)}}{C_{p.target(t)}} \right) \tag{1} $$
   ------------------------------------------------------------------------------------------ -------
 
   --------------------------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ allocated to each of the pools ($\alpha_{p}$) is calculated by the
 proportion of the sink strength, relative to that of the other pools:
 
   ------------------------------------------------------------------------
-  $$\alpha_{p} = \frac{\phi_{p}}{\sum_{p = 0}^{n_{p}}\phi_{p}} \tag{2} $$
+$$\alpha_{p} = \frac{\phi_{p}}{\sum_{p = 0}^{n_{p}}\phi_{p}} \tag{2} $$
   ---------------------------------------------------------------- -------
 
   ------------------------------------------------------------------------
@@ -32,7 +32,7 @@ rates.
 Daily change in C pools is therefore calculated using
 
   ---------------------------------------------------------------------------------
-  $$\frac{dC_{p}}{dt} = {\overline{\alpha}}_{p}C_{grow} - C_{p}\tau_{p} \tag{3} $$
+$$\frac{dC_{p}}{dt} = {\overline{\alpha}}_{p}C_{grow} - C_{p}\tau_{p} \tag{3} $$
   ------------------------------------------------------------------------- -------
 
   ---------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ deficit) of stored water and Nitrogen in the soil.
 Sapwood targe is calculated as:
 
   -------------------------------------------------------------------------------
-  $$C_{Sap.target} = C_{Sap}\left( 1 + \tau_{sap} \right)^{n.outlook} \tag{4} $$
+$$C_{Sap.target} = C_{Sap}\left( 1 + \tau_{sap} \right)^{n.outlook} \tag{4} $$
   ----------------------------------------------------------------------- -------
 
   -------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ maintain the ratio between tree leaf area to sapwood area, set by the
 ratio between leaf and sapwood area, assuming the pipe model.
 
   ---------------------------------------------------------------------------------------------------------------------------
-  $$C_{Leaf.target} = \left( C_{Leaf},\ {\ \ \ C}_{Sap.target}\left( \frac{{\ k}_{LA:SA}}{SLA\ h} \right) \right) \tag{5} $$
+$$C_{Leaf.target} = \left( C_{Leaf},\ {\ \ \ C}_{Sap.target}\left( \frac{{\ k}_{LA:SA}}{SLA\ h} \right) \right) \tag{5} $$
   ------------------------------------------------------------------------------------------------------------------- -------
 
   ---------------------------------------------------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ is the ratio between leaf and sapwood area (Table X), both are PFT
 parameters. Potential root target is calculated using:
 
   ------------------------------------------------------------------------------------------
-  $$C_{root.target} = max\left( C_{Root},\ \ \frac{C_{Leaf.target}}{l:r} \right) \tag{6} $$
+$$C_{root.target} = max\left( C_{Root},\ \ \frac{C_{Leaf.target}}{l:r} \right) \tag{6} $$
   ---------------------------------------------------------------------------------- -------
 
   ------------------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ where $k_{l:r}$ is the ratio between leaf to root, which decreases when
 an increasing soil water and N stress, which is calculated using:
 
   -----------------------------------------------------------------------------------------------------------
-  $$k_{l:r} = k_{l:r.\ max}\ \ max\left( \min\left( s_{w},\ s_{N} \right)\ ,\ k_{l:r.min} \right) \tag{7} $$
+$$k_{l:r} = k_{l:r.\ max}\ \ max\left( \min\left( s_{w},\ s_{N} \right)\ ,\ k_{l:r.min} \right) \tag{7} $$
   --------------------------------------------------------------------------------------------------- -------
 
   -----------------------------------------------------------------------------------------------------------
@@ -105,9 +105,9 @@ m^-2^) is assumed to depend on the capacity of the leaves, sapwood and
 coarse roots (e.g., lignotuber) using:
 
   ----------------------------------------------------------------------------------------------------------------------------------------------------
-  $$C_{storage.max} = \ C_{Leaf}k_{Leaf.NSC.max} + \ \left( {p_{AG}C}_{Sap}k_{AG.Sap.NSC.max} + \ {P_{BG}C}_{Sap}k_{BG.Sap.NSC.max} \right)$$    (8a)
+$$C_{storage.max} = \ C_{Leaf}k_{Leaf.NSC.max} + \ \left( {p_{AG}C}_{Sap}k_{AG.Sap.NSC.max} + \ {P_{BG}C}_{Sap}k_{BG.Sap.NSC.max} \right)$$    (8a)
   --------------------------------------------------------------------------------------------------------------------------------------------- ------
-  $$C_{storage.target} = \ k_{NSC.max}\ C_{storage.max}$$                                                                                        (8b)
+$$C_{storage.target} = \ k_{NSC.max}\ C_{storage.max}$$                                                                                        (8b)
 
   ----------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -119,9 +119,9 @@ respectively. These are calculated from the PFT-specific root to shoot
 ratio, $k_{r:s}$ using
 
   -----------------------------------------------------------------------
-  $$p_{AG} = \frac{1}{\left( k_{r:s} + 1 \right)}$$                 (9a)
+$$p_{AG} = \frac{1}{\left( k_{r:s} + 1 \right)}$$                 (9a)
   ---------------------------------------------------------------- ------
-  $$p_{BG} = 1 - p_{AG}$$                                           (9b)
+$$p_{BG} = 1 - p_{AG}$$                                           (9b)
 
   -----------------------------------------------------------------------
 

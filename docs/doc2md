@@ -31,5 +31,6 @@ pandoc --from docx --to markdown "${IN_FILE}" -o "${OUT_FILE}"
 RX_SEARCH='\$\$[[:space:]]+\\\(([0-9]+)\\\)'
 sedi -E "s/${RX_SEARCH}/ \\\\tag{\1} \$\$/g" "${OUT_FILE}"
 
-
-# \$\$[ \t]+\\\(([0-9])\\\)
+# Remove whitespace before opening `$$`. Such equations render in vscode preview
+# but not via mkdocs/mathjax.
+sedi -E 's/^[[:space:]]+\$\$/\$\$/g' "${OUT_FILE}"

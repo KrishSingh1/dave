@@ -8,7 +8,11 @@ is determined by the difference between the actual C of each of the
 pools and its potential target:
 
   --------------------------------------------------------------------------------------------------
-$$\phi_{p} = \max\left( 0,\ \frac{C_{p.target(t)} - C_{p(t)}}{C_{p.target(t)}} \right) \tag{1} $$
+$$
+\begin{equation}
+\phi_{p} = \max\left( 0,\ \frac{C_{p.target(t)} - C_{p(t)}}{C_{p.target(t)}} \right)
+\end{equation}
+$$
   ------------------------------------------------------------------------------------------ -------
 
   --------------------------------------------------------------------------------------------------
@@ -105,9 +109,11 @@ m^-2^) is assumed to depend on the capacity of the leaves, sapwood and
 coarse roots (e.g., lignotuber) using:
 
   ----------------------------------------------------------------------------------------------------------------------------------------------------
-$$C_{storage.max} = \ C_{Leaf}k_{Leaf.NSC.max} + \ \left( {p_{AG}C}_{Sap}k_{AG.Sap.NSC.max} + \ {P_{BG}C}_{Sap}k_{BG.Sap.NSC.max} \right)$$    (8a)
+
+$$C_{storage.max} = \ C_{Leaf}k_{Leaf.NSC.max} + \ \left( {p_{AG}C}_{Sap}k_{AG.Sap.NSC.max} + \ {P_{BG}C}_{Sap}k_{BG.Sap.NSC.max} \right) \tag{8a} $$
+
   --------------------------------------------------------------------------------------------------------------------------------------------- ------
-$$C_{storage.target} = \ k_{NSC.max}\ C_{storage.max}$$                                                                                        (8b)
+$$ C_{storage.target} = \ k_{NSC.max}\ C_{storage.max} \tag{8b} $$
 
   ----------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -119,9 +125,10 @@ respectively. These are calculated from the PFT-specific root to shoot
 ratio, $k_{r:s}$ using
 
   -----------------------------------------------------------------------
-$$p_{AG} = \frac{1}{\left( k_{r:s} + 1 \right)}$$                 (9a)
+$$p_{AG} = \frac{1}{\left( k_{r:s} + 1 \right)} \tag{9a} $$
   ---------------------------------------------------------------- ------
-$$p_{BG} = 1 - p_{AG}$$                                           (9b)
+
+$$p_{BG} = 1 - p_{AG} \tag{9b} $$
 
   -----------------------------------------------------------------------
 

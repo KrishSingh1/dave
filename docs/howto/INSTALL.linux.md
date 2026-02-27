@@ -9,7 +9,7 @@ running simulations and obtaining climate data, see the
 On Debian/Ubuntu:
 
 ```bash
-sudo apt install cmake g++ libnetcdf-dev libnetcdf-cxx-legacy-dev
+sudo apt install cmake g++ libnetcdf-dev
 ```
 
 On other distributions, install the equivalent packages via your native package

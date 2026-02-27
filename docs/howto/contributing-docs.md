@@ -149,8 +149,8 @@ sidebar navigation.
 Once you are happy with your changes:
 
 1. Commit the changed files to a branch (see
-   [Version Control via SourceTree](vcs-sourcetree.md) or
-   [Version Control via CLI](vcs-cli.md))
+   [Version Control via SourceTree](sourcetree.md) or
+   [Version Control via CLI](git-cli.md.md))
 2. Push the branch to GitLab
 3. Open a Merge Request targeting the `lpjguess_dave` branch
 4. The CI pipeline runs a compile check; the MR can be merged once checks pass

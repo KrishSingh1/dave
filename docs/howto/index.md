@@ -37,8 +37,8 @@ How to add and edit documentation:
 
 - [Contributing to the Documentation](contributing-docs.md)
 - [Writing Equations](markdown-math.md)
-- [Version Control via SourceTree](vcs-sourcetree.md)
-- [Version Control via CLI](vcs-cli.md)
+- [Version Control via SourceTree](sourcetree.md)
+- [Version Control via CLI](git-cli.md.md)
 
 ## Planned content
 

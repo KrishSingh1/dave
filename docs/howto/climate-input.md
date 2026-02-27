@@ -126,7 +126,6 @@ Provide one of the following:
 | Parameter | Type | Range | Default | Description |
 |-----------|------|-------|---------|-------------|
 | `spinup_met_cycle_length` | int | 0–1000000 | 0 | Number of years of met data to draw from during spinup. 0 means all available years are used. |
-| `met_sampling_seed` | int | 0–INT_MAX | — | Random seed for met-year sampling during spinup. Use the same seed to reproduce identical spinup sequences. |
 
 ### Perturbations
 
@@ -152,28 +151,56 @@ Useful for sensitivity experiments.
 
 ## Spinup Climate Cycling
 
-During spinup (`date.year < nyear_spinup`), the module randomly samples
-calendar years of meteorological data rather than replaying a fixed sequence.
-This avoids introducing spurious trends from repeatedly cycling the same
-short period at the start of available data.
+During spinup (`date.year < nyear_spinup`), the module maps each spinup year
+to a calendar year of met data by cycling deterministically through the
+available years. The goal is for the met years used in spinup to arrive at
+the start of the main simulation data as naturally as possible — the year
+immediately before the simulation data begins is always the last full year
+of the spinup dataset.
 
-### How years are sampled
+### How years are selected
 
-At the start of each spinup year, a random calendar year is drawn from the
-available range in the met file. If `spinup_met_cycle_length` is set to a
-value greater than zero, sampling is limited to the first
-`spinup_met_cycle_length` years of available data, which is useful when a
-short pre-industrial baseline period is available separately from the main
-forcing record.
+The module cycles through the spinup dataset in order, wrapping back to the
+start when it reaches the end. The cycling is deterministic — the same run
+configuration always produces the same sequence.
 
-The sampling is deterministic given the same `met_sampling_seed`, so spinup
-behaviour is reproducible across runs.
+The wrap-around point is chosen so that the sequence ends exactly at the
+transition into the simulation data. Once the calendar year falls within the
+range covered by the spinup dataset, actual data years are used directly
+with no cycling.
+
+**Example** — suppose the spinup dataset covers 1990–1999 (10 years), the
+spinup runs for 30 years, and the main simulation begins in 2000:
+
+| Spinup year | Calendar year | Met data year | |
+|-------------|---------------|---------------|-|
+| 0 | 1970 | 1990 | cycling begins |
+| 1 | 1971 | 1991 | |
+| ... | ... | ... | |
+| 8 | 1978 | 1998 | |
+| 9 | 1979 | 1999 | end of cycle 1 |
+| 10 | 1980 | 1990 | cycle 2 begins |
+| 11 | 1981 | 1991 | |
+| ... | ... | ... | |
+| 19 | 1989 | 1999 | end of cycle 2 |
+| 20 | 1990 | 1990 | within data range — direct |
+| ... | ... | ... | |
+| 28 | 1998 | 1998 | | |
+| 29 | 1999 | 1999 | last spinup year |
+| — | 2000 | 2000 | simulation begins |
+
+The data cycles twice, and the transition into the simulation data at year
+2000 occurs naturally at the end of the final cycle year.
+
+If `spinup_met_cycle_length` is set to a value greater than zero, only the
+**first N years** of the spinup dataset are used for cycling. This is useful
+when only a short pre-industrial baseline period should be repeated during
+spinup, even if a longer dataset is available.
 
 ### CO₂ is not cycled
 
 CO₂ concentration is always taken from the actual calendar year being
-simulated. It is not randomised or cycled with the meteorology, even during
-spinup.
+simulated. It is not cycled with the meteorology, even during spinup.
 
 ### Separate spinup file
 
@@ -186,6 +213,36 @@ identical to `file_met_forcing`, the same file is used for both periods.
 When a separate spinup file is used, the module opens the spinup file first,
 determines the available years and timestep, and then switches to the main
 forcing file at the start of the transient simulation.
+
+---
+
+## Per-variable Input Files
+
+By default all meteorological variables are read from the single file given
+by `file_met_forcing`. If your dataset stores each variable in a separate
+file, you can use a **printf-style `%s` placeholder** in the path — the
+module will substitute the variable name for `%s` when opening each
+variable's file.
+
+For example, if temperature is in `Tair.nc`, radiation in `SWdown.nc`, and
+so on, each in the same directory:
+
+```
+file_met_forcing "/data/barra2/%s.nc"
+
+variable_temp    "Tair"     ! opens /data/barra2/Tair.nc
+variable_insol   "SWdown"   ! opens /data/barra2/SWdown.nc
+variable_precip  "Precip"   ! opens /data/barra2/Precip.nc
+variable_vpd     "VPD"      ! opens /data/barra2/VPD.nc
+variable_ps      "PSurf"    ! opens /data/barra2/PSurf.nc
+```
+
+The substitution is applied to every variable, so all variable-specific
+files must follow the same naming convention. The path may include
+subdirectories as well as a filename suffix around the `%s`.
+
+If the path does not contain `%s`, the same file is used for all variables;
+this is the normal case for self-contained CF-compliant archives.
 
 ---
 

@@ -48,11 +48,40 @@ few terms will make the rest of this guide easier to follow:
 
 Download and install SourceTree from
 [sourcetreeapp.com](https://www.sourcetreeapp.com/). During setup it will
-ask you to sign in with an Atlassian account (free).
+ask you to sign in with an Atlassian account. This is optional; there is no need
+to do this.
 
-When prompted to set up a hosting account, choose **GitLab** and
-authenticate with your GitLab credentials. This allows SourceTree to push
-and pull without asking for your password on every operation.
+You can also opt to disable merccurial support, which we won't be using.
+
+Once installed, SourceTree will prompt you to set your user name and email. This
+is important — it will be recorded in your commits. These don't strictly need to
+be the same as in your GitLab account, but it's conventional to do so. You can
+change these later in the settings if needed.
+
+---
+
+## Configure SSH Authentication in SourceTree
+
+For LPJ-GUESS DAVE, we recommend using Git over SSH rather than HTTPS.
+
+Using SSH is useful because it avoids repeated password prompts and avoids
+relying on password-based authentication, which is increasingly restricted on
+Git hosting services.
+
+Before configuring SourceTree, make sure you have an SSH key pair and your
+public key is registered with GitLab. See [SSH Key Management](ssh-keys.md)
+for instructions to create a key or locate an existing one.
+
+In SourceTree, set your SSH client and key:
+
+1. Open **Tools → Options**.
+2. In the **General** tab, go to **SSH Client Configuration**.
+3. Set **SSH Client** to **OpenSSH**.
+4. Select your SSH **private** key (the key file without `.pub`).
+5. Click **OK**.
+
+After this, use SSH repository URLs (`git@...`) when cloning and managing
+remotes.
 
 ---
 
@@ -61,9 +90,10 @@ and pull without asking for your password on every operation.
 Cloning creates a local copy of the repository on your machine.
 
 1. In SourceTree, open **File → New...** and select the **Clone** tab.
-2. Paste the repository URL into the **Source Path** field:
+2. Paste the SSH repository URL into the **Source Path** field (use
+  `git@...`, not `https://...`):
    ```
-   <repository-url>
+   git@stormbringer4.nateko.lu.se:dave/lpj-guess-dave.git
    ```
 3. Set **Destination Path** to a folder on your machine
    (e.g. `C:\Users\you\code\lpj-guess-dave`).
@@ -119,17 +149,17 @@ Edit files in the repository folder using whatever tools you normally use
 (an IDE, VSCode, a text editor). When you return to SourceTree you will see
 your changes listed.
 
-Click **Working Copy** at the top of the commit graph to open the staging
+Click **File Status** below the toolbar to open the staging
 view:
 
 ![SourceTree staging area](img/sourcetree/working-copy.png)
 
 The panel has two sections:
 
-- **Unstaged files** (top) — files you have changed but not yet selected
-  for the next commit.
-- **Staged files** (bottom) — files that will be included in the next
+- **Staged files** (top) — files that will be included in the next
   commit.
+- **Unstaged files** (bottom) — files you have changed but not yet selected
+  for the next commit.
 
 To stage a file, click the checkbox to the left of its name in the
 **Unstaged files** panel. It moves to **Staged files**. You can stage all
@@ -166,7 +196,7 @@ graph — it is saved locally, but not yet on GitLab.
 ## Pushing to GitLab
 
 "Pushing" sends your local commits to GitLab so others can see them and so
-that the CI pipeline can run.
+that they are backed up remotely.
 
 1. Click the **Push** button in the toolbar.
 2. In the dialog, make sure your branch is ticked.

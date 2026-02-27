@@ -1,3 +1,5 @@
+# Daily Tree Growth
+
 ## Daily Carbon Allocation
 
 C allocation is inspired by the method proposed by Grote (REF),. In this

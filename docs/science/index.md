@@ -5,6 +5,7 @@ This section documents scientific concepts, process representations, and model-b
 ## Current pages
 
 - [Daily Tree Growth](daily-growth-tree.md)
+- [Daily Grass Growth](daily-growth-grass.md)
 - [Photosynthesis](photosynthesis.md)
 
 ## Planned content

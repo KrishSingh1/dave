@@ -4,6 +4,7 @@ nav:
   - Science:
       - Overview: science/index.md
       - Daily Tree Growth: science/daily-growth-tree.md
+      - Daily Grass Growth: science/daily-growth-grass.md
       - Photosynthesis: science/photosynthesis.md
   - How-to:
       - Overview: howto/index.md

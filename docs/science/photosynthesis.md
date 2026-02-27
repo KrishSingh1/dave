@@ -42,7 +42,9 @@ Nitrogen decreases exponentially through the canopy following Beer–Lambert
 extinction:
 
 $$
+\begin{equation}
 N(L) = N_{top} \cdot e^{-k_N \cdot L}
+\end{equation}
 $$
 
 where $L$ is the cumulative leaf area index from the top (m² m⁻²) and $k_N$
@@ -56,11 +58,15 @@ estimated from $N_{top}$ using the empirical relationships of Ellsworth et
 al. (2022):
 
 $$
+\begin{equation}
 V_{cmax,25} = a_V \cdot N_{top} + b_V
+\end{equation}
 $$
 
 $$
+\begin{equation}
 J_{max,25} = a_J \cdot N_{top} + b_J
+\end{equation}
 $$
 
 where the intercept and slope coefficients come from a meta-analysis of
@@ -86,9 +92,11 @@ Temperature responses of enzyme-limited capacities follow a peaked modified
 Arrhenius equation (Johnson et al. 1942):
 
 $$
+\begin{equation}
 k(T_l) = k_{25} \cdot \exp\!\left(\frac{H_a (T_l - T_{ref})}{T_{ref} \, R \, T_l}\right)
           \cdot \frac{1 + \exp\!\left(\dfrac{T_{ref} \, \Delta S - H_d}{T_{ref} \, R}\right)}
                      {1 + \exp\!\left(\dfrac{T_l \, \Delta S - H_d}{T_l \, R}\right)}
+\end{equation}
 $$
 
 where $T_l$ is leaf temperature (K), $T_{ref} = 298.15$ K, $R$ is the
@@ -113,7 +121,9 @@ Leaf mitochondrial respiration ($R_d$) uses the non-Arrhenius temperature
 response of Heskel et al. (2016):
 
 $$
+\begin{equation}
 R_d(T_l) = R_{d,25} \cdot \exp\!\left(a \, (T_l - 25) + b \, (T_l^2 - 25^2)\right)
+\end{equation}
 $$
 
 where $a$ and $b$ are empirically fitted coefficients from the global
@@ -136,13 +146,17 @@ The C3 assimilation rate is the minimum of three co-limiting rates
 (Farquhar et al. 1980):
 
 $$
+\begin{equation}
 A_n = \min(A_{nc},\; A_{nj},\; A_{np})
+\end{equation}
 $$
 
 ### Rubisco-limited rate
 
 $$
+\begin{equation}
 A_{nc} = V_{cmax} \frac{c_i - \Gamma^*}{c_i + K_c \left(1 + \dfrac{O_i}{K_O}\right)} - R_d
+\end{equation}
 $$
 
 where $c_i$ is intercellular CO₂ (mol mol⁻¹), $\Gamma^*$ is the
@@ -155,7 +169,9 @@ $\Gamma^*_{25} = 42.75 \times 10^{-6}$ mol mol⁻¹ (Bernacchi et al. 2001).
 ### RuBP-regeneration-limited rate
 
 $$
+\begin{equation}
 A_{nj} = \frac{J}{4} \frac{c_i - \Gamma^*}{c_i + 2\Gamma^*} - R_d
+\end{equation}
 $$
 
 where $J$ is the electron transport rate (see below).
@@ -163,7 +179,9 @@ where $J$ is the electron transport rate (see below).
 ### Triose phosphate utilisation (TPU) limitation
 
 $$
+\begin{equation}
 A_{np} = 3\,V_{pmax} - R_d
+\end{equation}
 $$
 
 where $V_{pmax}$ is the TPU rate (a fixed fraction of $V_{cmax,25}$).
@@ -174,7 +192,9 @@ The response of $J$ to absorbed PAR follows the non-rectangular hyperbola
 of von Caemmerer (2013):
 
 $$
+\begin{equation}
 J = \frac{\text{PAR} + J_{max} - \sqrt{(\text{PAR} + J_{max})^2 - 4\,\theta\,\text{PAR}\,J_{max}}}{2\theta}
+\end{equation}
 $$
 
 where $\theta = 0.7$ is the curvature parameter and PAR is converted from
@@ -216,7 +236,9 @@ Stomatal conductance is modelled using the optimal conductance model of
 Medlyn et al. (2011):
 
 $$
+\begin{equation}
 g_s = g_0 + \left(1 + \frac{g_1}{\sqrt{D}}\right)\frac{A_n}{c_a}
+\end{equation}
 $$
 
 where $D$ is leaf-to-air vapour pressure deficit (kPa), $c_a$ is ambient
@@ -241,7 +263,9 @@ coupled analytically. Substituting the Medlyn form into the Fick's law
 relationship
 
 $$
+\begin{equation}
 A_n = g_s \cdot (c_a - c_i)
+\end{equation}
 $$
 
 yields a quadratic in $c_i$ that is solved analytically following
@@ -260,7 +284,9 @@ The canopy is divided into discrete layers. PAR at the top of each layer is
 attenuated following Beer–Lambert:
 
 $$
+\begin{equation}
 I(L) = I_0 \cdot e^{-k \cdot L}
+\end{equation}
 $$
 
 where $k$ is the light extinction coefficient. Leaf nitrogen also follows

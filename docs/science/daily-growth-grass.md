@@ -45,42 +45,31 @@ The model represents four structural carbon pools in the plant: shoots, roots,
 crowns, and reproductive tissues, and one non-structural (storage) pool (Figure
 XX). All carbon pools are in $kg C m^{-2}$.
 
----
 $$
 C_{total} = C_{struct} + C_{storage}
 \tag{1} 
 $$
 
----
 $$
 C_{struct}\  = {\ C}_{shoot}\  + \ C_{root}\  + \ C_{crown}\  + {\ C}_{repr} \tag{2} 
 $$
 
----
-
 Shoots are divided into culm and leaf components according to a culm
 fraction parameter $p_{culm}$.
 
----
 $$
 C_{shoot}\  = C_{leaf} + C_{culm} \tag{3} 
 $$
 
----
 $$
 C_{leaf}\  = C_{shoot} \times \ (1.0 - p_{culm}) \tag{4} 
 $$
 
----
-
 Green leaf area index (LAI) is then calculated as:
 
----
 $$
 LAI = C_{leaf} \times SLA + C_{culm} \times SCA\  \tag{5} 
 $$
-
----
 
 where SLA is specific leaf area ($m^2$ kg$^{-1}$ C) and SCA is specific culm
 area ($m^2$ kg$^{-1}$ C). Parameters $p_{culm}$, SLA, and SCA are assumed
@@ -98,13 +87,9 @@ other carbohydrates of varying complexity (ref). This pool does not have
 an explicit location within the plant, but its maximum capacity
 ($C_{storage,max}$) depends on the individual pool sizes as follows:
 
----
-
 $$
 C_{storage,max} = p_{storage1} \times \left( C_{shoot} + C_{root} \right) + p_{storage2} \times C_{crown} \tag{6} 
 $$
-
----
 
 where $p_{storage1}$ and $p_{storage2}$ represent the maximum fraction of
 NSCs relative to structural C of the pools where it is located in
@@ -134,12 +119,9 @@ assumes radiation transfer within the canopy according to the
 Beer-Lambert law (ref). The incident PAR $I_{inc}$ ($W m^{-2}$) in the
 middle of layer $i$ is given by:
 
----
 $$
 I_{inc,i} = \frac{k}{1 - \ \tau}\ I_{0}\ e^{- kL}\  \tag{7} 
 $$
-
----
 
 where $k$ is the canopy light extinction coefficient, $I_0$ is the PAR
 above the canopy ($W m^{-2}$), and $L$ is the cumulative leaf area (summed
@@ -151,12 +133,9 @@ their leaf area distributed equally across all layers.
 
 We assume the following distribution of N within the canopy:
 
----
 $$
 {rN}_{i} = exp( - k_{n}\ L) \tag{8} 
 $$
-
----
 
 where $rN_{i}$ is the N content of layer $i$ relative to the top of the
 canopy, and $k_{n}$ is the canopy N extinction coefficient (Hikosaka et
@@ -171,7 +150,6 @@ vapour ($g_{sw}$) is modelled according to Lombardozzi et al. (2017) and
 Duursma et al. (2019), based on the Medlyn et al. (2011) model for both
 $C_3$ and $C_4$ plants:
 
----
 $$
 g_{sw} = \max\left( {\max(g_{\min},g}_{0}),\ 1.6\left( 1 + \ \frac{g_{1}}{\sqrt{D}} \right)\frac{A_{n}}{C_{a}} \right) \tag{9} 
 $$
@@ -191,13 +169,9 @@ respiration ($R_{m}$) and growth respiration ($R_{g}$). $R_{m}$ is
 calculated individually for different plant pools and for a given pool x
 is given by:
 
----
-
 $$
 R_{m,x} = k_{rm}\frac{C_{x}}{\chi_{x}^{C:N}}\ T\ \  \tag{10} 
 $$
-
----
 
 Where $k_{rm}$ is a respiration coefficient, $C_{x}$ is the carbon mass of
 plant pool x ($\text{kg C m}^{-2}$), $\chi_{x}^{C:N}$ is the C:N ratio of pool x,
@@ -209,21 +183,15 @@ AX).
 Growth respiration ($R_{g}$) is calculated on a whole-plant basis as
 ([ref]{.mark}):
 
----
 $$
 R_{g} = \left( GPP - {R_{m,shoot} - R}_{m,root} - R_{m,crown} - R_{m,repr} \right) \times 0.25 \tag{11} 
 $$
 
----
-
 Daily net primary production (NPP, $\text{kg C m}^{-2} \text{d}^{-1}$) is given by:
 
----
 $$
 NPP = GPP - R_{m} - R_{g} \tag{12} 
 $$
-
----
 
 ## Growth
 
@@ -233,12 +201,9 @@ Source strength ($\text{kg C m}^{-2} \text{d}^{-1}$) is here defined as the
 external C input (i.e. net primary productivity, NPP) plus the amount of C that
 can be provided internally from $C_{storage}$:
 
----
 $$
 G_{source} = NPP + r_{mobil,max} \times (C_{storage} - p_{reserve} \times \ C_{storage,max}) \tag{13} 
 $$
-
----
 
 where $r_{mobil,max}$ (d^-1^) represents the maximum mobilisation rate of
 the storage pool and $p_{reserve}$ represents the fraction of $C_{storage}$
@@ -249,12 +214,9 @@ that is unavailable for growth and kept as a reserve.
 Sink strength is here defined as the demand for growth ($\text{kg C m}^{-2}
 \text{d}^{-1}$) and is calculated as:
 
----
 $$
 G_{sink} = {RGR}_{pot} \times {(C}_{storage} + {\ C}_{shoot}\  + \ C_{root}) \times f_{dev,growth} \times \ f_{temp,growth} \times \ f_{water,growth} \tag{14} 
 $$
-
----
 
 where $RGR_{pot}$ is the potential relative growth rate of the plant ($\text{kg
 C kg}^{-1} \text{C d}^{-1}$), $f_{dev,growth}$ describes developmental effects
@@ -268,12 +230,9 @@ The decreasing growth demand throughout the reproductive phase of the plant is
 here simulated depending on the fraction of reproductive biomass to shoot
 biomass:
 
----
 $$
 f_{dev,growth} = \left( 1\  - \ d_{1} \times \frac{C_{repr}}{C_{shoot} \times \ a_{repr}} - d_{2}\  \right) \tag{15} 
 $$
-
----
 
 Where $d_{1}$ and $d_{2}$ are seasonality parameters determining the timing of
 growth demand in the reproductive period, and $a_{repr}$ is the
@@ -284,12 +243,9 @@ temperature and water stress. The temperature response of growth and
 other developmental processes (e.g. germination) follows the one
 presented in Parent & Tardieu (2012):
 
----
 $$
 f_{temp,growth}(T_{leaf}) = \ \frac{A\ T_{leaf}\ exp\left( \frac{{- H}_{a}}{R_{gas}\ T_{leaf}} \right)}{1.0 + \ \left( \exp\left( \frac{{- H}_{a}}{R_{gas}T_{leaf}} \right) \right)^{\propto \left( 1.0\  - \ \frac{T_{leaf}}{T_{0}} \right)}}\  \times \ k_{g} \tag{16} 
 $$
-
----
 
 where $A$ is a scaling coefficient which is here further modified to scale
 $f_{temp,growth}$ between 0 and 1, with 1 being reached at the optimum
@@ -302,8 +258,6 @@ value of $T_{opt}$. $k_{g}$ is a modifier that accounts for the fact that Eq.
 (16) does not hold under low temperatures close to or below $T_{dorm}$. $k_{g}$
 is defined as:
 
----
-
 $$
 k_g = \begin{cases}
 1 & \text{if } T_{leaf} \geq T_{dorm} \\
@@ -312,8 +266,6 @@ k_g = \begin{cases}
 
 \tag{17}
 $$
-
----
 
 Eq. (17) represents a relatively sudden decrease of growth below
 $T_{dorm}$. Such a threshold behaviour is [often]{.mark} observed in
@@ -328,12 +280,9 @@ of temperature effects on growth and developmental processes.
 Growth demand is further modified by a water stress scalar which assumed
 to by a sigmoidal function of available soil water content:
 
----
 $$
 f_{water,growth}\left( w_{scal} \right) = \ \frac{\left( 1 + exp\left( \frac{w_{scal0} - 1}{b_{1}} \right) \right)}{\left( 1 + exp\left( \frac{w_{scal0} - w_{scal}}{b_{1}} \right) \right)} \tag{18} 
 $$
-
----
 
 where $w_{scal}$ is a water availability scalar describing the available
 soil water content in the rooting zone (see Appendix B). $w_{scal}$
@@ -345,12 +294,9 @@ water stress) and 1 field capacity (absence of water stress).
 The actual growth rate $G$ ($\text{kg C m}^{-2} \text{d}^{-1}$) is given by the
 minimum of the source strength and the sink strength:
 
----
 $$
 G = \min(G_{source},G_{sink}) \tag{19} 
 $$
-
----
 
 If $G = G_{source}$ (i.e. $G_{source} < G_{sink}$), plants are
 considered source-limited, in which case C is actively drawn from
@@ -371,24 +317,18 @@ C is usually drawn from storage. The following negative feedback
 prevents $C_{storage}$ from a complete depletion which would put the plant
 at risk of carbon starvation:
 
----
 $$
 f_{storage,feedback} = \ {p_{Cstorage}}^{q_{f1}} \tag{20} 
 $$
-
----
 
 Where $p_{Cstorage}$ represents the fraction of $C_{storage}$ that is
 available for growth relative to the capacity of the $C_{storage}$ pool
 ($C_{storage,max}$) and $q_{f}$ is a parameter determining the strength of
 the feedback (Table X). $p_{Cstorage}$ is calculated as:
 
----
 $$
 p_{Cstorage} = \ \left( \frac{C_{storage} - \ p_{reserve} \times \ C_{storage,max}\ }{C_{storage,max}\  - \ p_{reserve} \times \ C_{storage,max}} \right) \tag{21} 
 $$
-
----
 
 $f_{storage,feedback}$ is directly applied to $G_{sink}$ (Eq. (14)) and
 serves to reduce growth demand when storage approaches depletion. The
@@ -402,12 +342,9 @@ capacity of the storage pool ($C_{storage,max}$, Eq. (6)) is reached. If
 $C_{storage}$ approaches $C_{storage,max}$, a negative feedback on
 photosynthetic capacity is invoked as follows:
 
----
 $$
 q_{ps,lim} = \min\left( 1,\ \left( 1 + d_{ps,lim} - 2\ \left. \  \times {({f_{dorm}(T_{soil1},\ w_{scal}) \times p}_{Cstorage})}^{q_{f2}} - 1 \right.\  \right){\times q}_{{ps,lim}_{t - 1}} \right)\  \tag{22} 
 $$
-
----
 
 where $q_{ps,lim}$ is a downregulation factor applied to parameters of
 photosynthetic capacity, $q_{ps,lim_{t-1}}$ is its value at the previous
@@ -437,12 +374,9 @@ model developments.
 Carbon from growth is allocated to the four structural pools so that
 growth of pool x can be expressed as:
 
----
 $$
 G_{x} = a_{x}\ G \tag{23} 
 $$
-
----
 
 where $a_{x}$ represents the C allocation fraction to pool x.
 
@@ -458,13 +392,9 @@ shoots and roots depending on water and nitrogen stress. We adopted a
 similar formulation as presented in Johnson (2016) to determine the
 allocation fraction to shoots:
 
----
-
 $$
 a_{shoot} = \ a_{shoot,max}\  \times {{(n}_{scal}\  \times \ w_{scal})}^{0.5} \tag{24} 
 $$
-
----
 
 where $a_{shoot,max}$ is the maximum allocation fraction to shoots and
 $n_{scal}$ and $w_{scal}$ are scalars describing nitrogen and water
@@ -472,13 +402,9 @@ stress, respectively. Both factors range from 0-1 where 0 indicates
 maximum stress and 1 represents unstressed conditions. Finally,
 $a_{root}$ is given by:
 
----
-
 $$
 a_{root} = \ 1.0 - \ a_{crown} - \ a_{repr} - \ a_{shoot} \tag{25} 
 $$
-
----
 
 In annual plants*, $a_{crown}$ is set to 0 in the reproductive stage. In
 perennial plants younger than one year, $a_{crown}$ is multiplied by 2
@@ -505,12 +431,9 @@ Gillespie & Volaire, 2017). In the model, dormancy is triggered by
 either low temperatures or low soil moisture contents in the rooting
 zone and represented as a metabolic downregulation function ($f_{dorm}$):
 
----
 $$
 f_{dorm}(T_{soil1},\ w_{scal}) = {min(1.0,\ max(p}_{dorm,min},\ d_{dorm,max} \cdot \ min(f_{temp,dorm}(T_{soil1}),f_{water,dorm}(w_{scal}))) \tag{26} 
 $$
-
----
 
 where $p_{dorm,min}$ represents a baseline level of metabolic activity at
 full dormancy (i.e. the minimum value of $f_{dorm}$), which is assumed to
@@ -527,12 +450,9 @@ subsequent applications, it is useful to rescale $f_{dorm}$ and express
 it as 'dormancy depth' ($q_{dorm}$) ranging from 0 (non-dormant) to 1
 (fully dormant):
 
----
 $$
 q_{dorm} = \ \frac{1\  - \ f_{dorm}\left( T_{soil1},\ w_{scal} \right)\ }{1\  - \ p_{dorm,min}} \tag{27} 
 $$
-
----
 
 In the model, plants change their dormancy depth according to the
 temperature of the first soil layer averaged over a certain preceding
@@ -542,8 +462,6 @@ the average $T_{soil1}$ falls below a critical dormancy temperature
 ($T_{dorm}$) and release dormancy (or remain non-dormant) if the average
 $T_{soil1}$ is greater than $T_{dorm}$:
 
----
-
 $$
 f_{temp,dorm}(T_{soil1}) = \begin{cases}
 f_{temp,growth}(\overline{T_{soil1,t - 9:t}})^{q_{temp,dorm}} & \text{if } \overline{T_{soil1,t - 9:t}} > T_{dorm} \\
@@ -551,8 +469,6 @@ f_{temp,growth}(\overline{T_{soil1,t - 9:t}})^{q_{temp,dorm}} & \text{if } \over
 \end{cases}
 \tag{28}
 $$
-
----
 
 where $f_{temp,growth}(\overline{T_{soil1,t - 9:t}})$ is the
 temperature response function for growth as given by Eq. (16) but with
@@ -563,7 +479,6 @@ available soil water in the rooting zone ($w_{scal}$, Eq. (B2)). We assume
 that plants fall dormant when $w_{scal}$ falls below a critical threshold
 for dormancy ($w_{scal,dorm}$).
 
----
 $$
 f_{water,dorm}(w_{scal}) = \begin{cases}
 \frac{(w_{scal} - w_{scal,dorm})^{q_{water,dorm}}}{1 - w_{scal,dorm}} & \text{if } w_{scal} > w_{scal,dorm} \\
@@ -571,8 +486,6 @@ f_{water,dorm}(w_{scal}) = \begin{cases}
 \end{cases}
 \tag{29}
 $$
-
----
 
 where $w_{scal,dorm}$ is the fraction of available water content below
 which plants fall dormant. The exponent $q_{water,dorm}$ is here set to
@@ -615,12 +528,9 @@ The model tracks the flow of C from the green shoot pool ($C_{shoot}$) to
 the brown shoot pool ($C_{shoot,brown}$), a process known as senescence
 ($k_{senesc}$):
 
----
 $$
 \frac{dC_{shoot,brown}}{dt} = k_{senesc} \times C_{shoot} - k_{shoot,brown} \times \ C_{shoot,brown}\  \tag{30} 
 $$
-
----
 
 Where $k_{shoot,brown}$ is the turnover rate from the brown shoot pool to litter
 which is described in the next section. The senescence rate depends on the
@@ -628,13 +538,10 @@ environmental conditions and the growth stage of the plant and is higher in the
 reproductive and dormant phases compared to the vegetative phase. The shoot
 senescence rate on any given day is calculated as:
 
----
 $$
 k_{senesc} = \min\left( {1.0,\ \ k}_{senesc,base} \times \left( \left( {1 + max}\left( f_{dev,senesc},f_{dorm,senesc} \right) \right) + \left( 1 + f_{water,senesc} \right) \right) \times (1 + f_{temp,senesc}) \right)
 \tag{31}
 $$
-
----
 
 where $k_{senesc,base}$ is the base rate of senescence under unstressed
 conditions (Table 1), $f_{dev,senesc}$ describes plant developmental
@@ -648,7 +555,6 @@ model version.
 We assume that shoot senescence is linked to the decrease in growth
 demand during the reproductive phase (Eq. (15) as follows:
 
----
 $$
 f_{dev,senesc} = \begin{cases}
 s_{dev,senesc} \times \left( 1 - f_{dev,growth} \right)^{q_{dev,senesc}} & \in \text{reproductive} \wedge \text{dormant phase} \\
@@ -656,8 +562,6 @@ s_{dev,senesc} \times \left( 1 - f_{dev,growth} \right)^{q_{dev,senesc}} & \in \
 \end{cases}
 \tag{32}
 $$
-
----
 
 where $s_{dev,senesc}$ is a scaling factor determining the maximum
 senescence rate caused by developmental effects. The exponent
@@ -668,12 +572,9 @@ Dormancy is another mechanism associated with increasing senescence
 rates (Gillespie & Volaire, 2017; Volaire & Norton, 2006). This
 phenomenon is represented here through the following formulation:
 
----
 $$
 f_{dorm,senesc} = s_{dorm,senesc} \times q_{dorm} \tag{33} 
 $$
-
----
 
 where $s_{dorm,senesc}$ is a scaling factor representing the maximum
 increase in senescence rate under full dormancy, and $q_{dorm}$ is the
@@ -683,12 +584,9 @@ the dormant phase.
 
 Water stress increases shoot senescence as follows:
 
----
 $$
 f_{water,senesc}(w_{scal}) = s_{water,senesc}\  \times (1 - \ {w_{scal}}^{q_{water,senesc}}) \tag{34} 
 $$
-
----
 
 where $s_{water,senesc}$ is a scaling factor representing the maximum increase
 in senescence rate under soil water stress and $q_{water,senesc}$ is an exponent
@@ -696,7 +594,6 @@ determining the shape of the response. Lastly, a linear temperature dependence
 is added similar to Johnson & Thornley (1983), but additionally assuming
 increasing senescence rates under freezing temperatures (Jouven et al., 2006):
 
----
 $$
 f_{temp,senesc} = \begin{cases}
 b_{senesc1} \times |T_{air}| & \text{if } T_{air} \leq 0^\circ C \\
@@ -706,8 +603,6 @@ b_{senesc2} \times \left(T_{air} - T_{dorm}\right) & \text{if } T_{air} \geq T_{
 \tag{35}
 $$
 
----
-
 where $b_{senesc1}$ and $b_{senesc2}$ are the sensitivities of the senescence
 rate to $T_{air}$ (°C) below 0°C and above $T_{dorm}$, respectively.
 
@@ -716,37 +611,27 @@ rate to $T_{air}$ (°C) below 0°C and above $T_{dorm}$, respectively.
 The turnover rate of the brown shoot pool ($C_{pool,brown}$) into the shoot
 litter pool is simulated as follows:
 
----
-
 $$
 k_{shoot,brown} = k_{shoot,base}\  \times \ f_{temp,decomp}\  \times \ f_{water,decomp} \tag{36} 
 $$
-
----
 
 where $k_{shoot,base}$ is the baseline decomposition rate at 10 °C,
 $f_{temp,decomp}$ and $f_{water,decomp}$ describe the temperature and soil
 moisture dependence functions of litter decomposition. The temperature
 dependence is given by Lloyd & Taylor (1994):
 
----
 $$
 f_{temp,decomp}(T_{air})\  = \exp\left( 308.56\  \times \left( \frac{1}{56.02} - \frac{1}{T_{air} + 46.02} \right)\  \right) \tag{37} 
 $$
-
----
 
 We use $T_{air}$ as driving temperature in Eq. (37), but note that
 $T_{soil1}$ could also be a meaningful alternative for the decomposition
 of biomass close to the ground. The soil moisture response is given by
 the following logistic function (Parton et al., 2000):
 
----
 $$
 f_{water,decomp}(w_{cont1})\  = \frac{1}{1 + 30 \times exp( - 8.5\ {\times w}_{cont1})} \tag{38} 
 $$
-
----
 
 where $w_{cont1}$ (Eq. (B1) is the relative soil moisture of the
 uppermost soil layer.
@@ -755,24 +640,18 @@ Root turnover rate ($k_{root}$) is assumed to be proportional to shoot
 base turnover rate ($k_{senesc,base}$, Eq. (31) but follows different
 environmental dependencies:
 
----
 $$
 k_{root} = {r_{k,root:shoot}\  \times k}_{senesc,base}\  \times f_{temp} \tag{39} 
 $$
-
----
 
 where $r_{k,root:shoot}$ is the ratio of root base turnover rate to shoot
 base turnover rate.
 
 Crown turnover ($k_{crown}$) is assumed to be proportional to $k_{root}$:
 
----
 $$
 k_{crown} = {r_{k,crown:root}\  \times k}_{root} \tag{40} 
 $$
-
----
 
 where $r_{k,crown:root}$ is the ratio of crown base turnover rate to root
 base turnover rate.
@@ -807,12 +686,9 @@ of the PFT. $C_{litter,repr}$ is also continuously turned over according to
 the seed turnover rate $k_{litter,repr}$. The change of C in the
 seedbank is thus given by:
 
----
 $$
 \frac{dC_{litter,repr}}{dt} = \ {k_{repr}\  \times p}_{seed} \times C_{repr} - \ k_{litter,repr\ } \times C_{litter,repr} \tag{41} 
 $$
-
----
 
 where $p_{seed}$ represents the fraction of $C_{repr}$ that is composed of
 viable seeds and $k_{repr}$ represents the fraction of $C_{repr}$ being
@@ -835,12 +711,9 @@ Germination of PFTs present in the patch is simulated through a
 germination function which simulates a daily germination rate
 ($p_{germ}$) depending on the environmental conditions:
 
----
 $$
 p_{germ} = \ p_{germ,max} \times f_{temp,growth}(\overline{T_{soil1,t - 4:t}}) \times f_{water,growth}(\overline{w_{cont1,t - 4:t}})\ \  \tag{42} 
 $$
-
----
 
 where $p_{germ,max}$ is the maximum fraction of $C_{litter,repr}$ that can
 germinate on any single day (here set to 0.3), and $f_{temp,germ}$ and
@@ -894,12 +767,9 @@ establishment of PFTs in areas where they did not occur previously. The
 model keeps track of a hypothetical external seedbank
 ($C_{litter,repr,ext}$) for all non-established PFTs:
 
----
 $$
 \frac{dC_{litter,repr,ext}}{dt} = \ d_{repr,ext} - \ k_{litter,repr\ } \times C_{litter,repr,ext} \tag{44} 
 $$
-
----
 
 where $d_{repr,ext}$ ($\text{kg C m}^{-2} \text{d}^{-1}$) represents an external
 seed input that integrates all seed dispersal processes (anthropogenic and
@@ -1252,27 +1122,20 @@ https://doi.org/10.1002/hyp.15152
 Photosynthesis for $C_3$ plants was implemented following Farquhar et al.
 (1980):
 
----
 $$
 A_{n} = \min\left( A_{c},A_{j},A_{p} \right)
 \tag{A1}
 $$
-
----
 
 where net photosynthesis ($A_{n}$) is limited by either Rubisco-activity
 ($A_{c}$), RuBP regeneration ($A_{j}$), or triose phosphate utilisation
 (TPU) ($A_{p}$). $R_{d}$ is leaf mitochondrial respiration (Eq. (A12)).
 $A_{c}$ is given by:
 
----
-
 $$
 A_{c} = \frac{V_{cmax}\ (C_{i} - \ \Gamma_{*})}{C_{i} + K_{c}(1.0 + O_{i}/K_{o})} - R_{d}
 \tag{A2}
 $$
-
----
 
 where $V_{cmax}$ is the maximum carboxylation rate (mol $\text{m}^{-2}
 \text{s}^{-1}$), $C_{i}$ is the intercellular $CO_2$ concentration (mol
@@ -1283,40 +1146,29 @@ $\text{mol}^{-1}$), respectively, and $O_{i}$ is the intercellular $O_2$
 concentration (mol $\text{mol}^{-1}$). RuBP regeneration-limited photosynthesis
 ($A_{j}$) is given by:
 
----
 $$
 A_{j} = \frac{J/4\ (C_{i} - \ \Gamma_{*})}{C_{i} + 2\Gamma_{*}} - R_{d}
 \tag{A3}
 $$
 
----
-
 where $J$ is the electron transport rate ($\text{mol (electrons) m}^{-2}
 \text{s}^{-1}$). $J$ is assumed to follow a hyperbolic light response curve (von
 Caemmerer, 2013):
-
----
 
 $$
 J = \ \frac{PPFD + \ J_{\max} - \ \sqrt{{(PPFD + \ J_{\max})}^{2}\  - \ 4\theta PPFDJ_{\max}}}{2\theta}
 \tag{A4}
 $$
 
----
-
 where $J_{\max}$ is the maximum electron transport rate ($\text{mol (electrons)
 m}^{-2}\ \text{s}^{-1}$), $\theta$ is a curvature factor, and PPFD is
 photosynthetic photon flux density at leaf level (mol $\text{(photons) m}^{-2}\
 \text{s}^{-1}$), which is calculated as:
 
----
-
 $$
 PPFD = I_{inc} \times a_{l} \times \frac{1 - f_{l}}{2} \times J_{mol}
 \tag{A5}
 $$
-
----
 
 where $I_{inc}$ is incident photosynthetically active radiation ($\text{W m}^{-2}$)
 as calculated by Eq. (7), $a_{l}$ is leaf absorptance, $f_{l}$ is a
@@ -1326,14 +1178,10 @@ is a factor converting radiation from $\text{W m}^{-2}$ to $\text{mol (photons) 
 described in Harley & Sharkey (1991). Following Collatz et al. (1991) TPU can be
 related to $V_{cmax}$ so that $A_{p}$ can be expressed as:
 
----
-
 $$
 A_{p} = 3TPU - R_{d} = 0.5\ V_{cmax} - R_{d}
 \tag{A6}
 $$
-
----
 
 We solve equations (A2) and (A3) in combination with stomatal
 conductance Eq. (9) using the analytic solution presented in Wang &
@@ -1345,26 +1193,19 @@ We implemented the $C_4$ photosynthesis model as described in von
 Caemmerer & Furbank (1999) and von Caemmerer (2000, 2021). Net
 photosynthesis ($\text{mol m}^{-2} \text{s}^{-1}$) is given by:
 
----
-
 $$
 A_{n} = \min(A_{c},A_{j})
 \tag{A7}
 $$
----
 
 where $A_{c}$ represents enzyme-limited photosynthesis, and $A_{j}$
 represents light- and electron-transport-limited photosynthesis. $A_{c}$
 was calculated as:
 
----
-
 $$
 A_{c} = \min\left( \left( V_{p}\  + \ g_{bs}\ C_{m} - \ R_{m} \right),(V_{cmax} - \ R_{d}) \right)
 \tag{A8}
 $$
-
----
 
 where $V_{p}$ is the phosphoenolpyruvate (PEP) carboxylation rate ($\text{mol m}^{-2}
 \text{s}^{-1}$), $g_{bs}$ is the bundle sheath is conductance to CO_2 ($\text{mol m}^{-2}\
@@ -1378,12 +1219,10 @@ values can be found in Table A1.
 
 $V_p$ is calculated as:
 
----
 $$
 V_{p} = \min\left( \frac{C_{m}\ V_{pmax}}{C_{m} + K_{p}},V_{pr} \right)
 \tag{A9}
 $$
----
 
 Where $V_{pmax}$ is the maximum PEP carboxylation rate ($\text{mol m}^{-2}
 \text{s}^{-1}$), $K_{p}$ is the Michaelis-Menten constant of PEP carboxylase for
@@ -1393,14 +1232,10 @@ CO_2 ($\text{mol mol}^{-1}$), and $V_{pr}$ is the PEP regeneration rate
 
 $A_j$ is calculated as:
 
----
-
 $$
 A_{j} = \min\left( \left( \frac{z}{2}x\ J - R_{m} + g_{bs}{\ C}_{m} \right),\frac{z}{3}(1 - x)\ J - R_{d} \right)
 \tag{A10}
 $$
-
----
 
 Where $z$ is the ratio of the rate of ATP production to linear electron
 transport, $x$ is a partitioning factor of the electron transport rate
@@ -1408,14 +1243,10 @@ $J$ between mesophyll and bundle-sheath cells. $J$ is calculated in
 dependence of PPFD as for $C_3$ photosynthesis (Eq. (A5) (von Caemmerer,
 2021). $z$ is given by (Yin & Struik, 2012):
 
----
-
 $$
 z = \frac{3 - f_{cyc}}{4(1 - f_{cyc})}
 \tag{A11}
 $$
-
----
 
 Where $f_{cyc}$ is the fraction of cyclic electron transport.
 
@@ -1432,14 +1263,10 @@ TODO: relationship leaf N and parameters in C4 plants 🡪 Yuzhen's data.
 For both $C_3$ and $C_4$ photosynthesis, leaf mitochondrial respiration is
 calculated as:
 
----
-
 $$
 R_{d,25} = b_{c}\ V_{cmax,25} \ \text{fPAR}
 \tag{A12}
 $$
-
----
 
 where $b_c$ differs between $C_3$ and $C_4$ plants (Tables A X and AX) and fPAR
 describes the inhibition of $R_d$ under light. As in Huntingford et al. (2017),
@@ -1458,14 +1285,10 @@ Most photosynthetic parameters in the model vary with temperature. The
 temperature dependence of many processes can be expressed using an
 Arrhenius equation:
 
----
-
 $$
 k(T_{leaf}) = k_{25}\ \exp\left( \frac{H_{a}\left( T_{leaf} - \ T_{\text{ref}} \right)}{T_{\text{ref}}{\ R}_{gas}\ T_{leaf}} \right)
 \tag{A13}
 $$
-
----
 
 where $k(T_{leaf})$ is the rate at leaf temperature $T_{leaf}$ (K), $k_{25}$ is
 the rate at the reference temperature $T_{ref}$ (298.15 K = 25 °C), $H_a$ is the
@@ -1480,12 +1303,10 @@ decreasing rate at temperatures above the optimum. In that case,
 temperature dependence is better expressed as a modified Arrhenius
 equation (F. H. Johnson et al., 1942):
 
----
 $$
 k(T_{leaf}) = k_{25}\ \exp\left( \frac{H_{a}\left( T_{leaf} - \ T_{\text{ref}} \right)}{T_{\text{ref}}{\ R}_{gas}\ T_{leaf}} \right)\frac{1 + \exp\left( \frac{T_{\text{ref}}\ \mathrm{\Delta}S - \ H_{d}}{T_{\text{ref}}{\ R}_{gas}} \right)}{1 + \exp\left( \frac{T_{leaf}\ \mathrm{\Delta}S - \ H_{d}}{T_{leaf}{\ R}_{gas}} \right)}
 \tag{A14}
 $$
----
 
 where $\Delta S$ is the entropy term ($\text{J}\ \text{mol}^{−1}\
 \text{K}^{−1}$), and $H_d$ is the deactivation energy ($\text{J}\
@@ -1496,14 +1317,10 @@ The temperature response of $R_d$ was modelled according to Heskel et
 al. (2016), who found that the following relationship provided the best
 fit to $R_d$ data across PFTs:
 
----
-
 $$
 R_{d}(T_{leaf}) = \ R_{d,25}\ \exp(a + 0.1012\ T_{leaf} - 0.0005\ {T_{leaf}}^{2})
 \tag{A15}
 $$
-
----
 
 In this case parameter $a$ was set to -2.2175 so that the second term of
 Eq. (A15) gives a value of 1 for $T_{leaf}$ = 25 °C. Eq. (A15) was
@@ -1515,19 +1332,15 @@ Key photosynthetic parameters are related to leaf N content in the
 model. For $C_3$ plants we implemented the following relationship
 (Ellsworth et al., 2022):
 
----
 $$
 V_{cmax,25} = \exp(4.308 + 0.298\log\left( P_{leaf} \right) + 0.197\log(N_{leaf}))
 \tag{A16}
 $$
----
 
----
 $$
 J_{max,25} = \exp(5.139 + 0.325\log\left( P_{leaf} \right) + 0.112\ \log(N_{leaf}))
 \tag{A17}
 $$
----
 
 where $P_{leaf}$ is the leaf P content ($\text{g m}^{-2}$), which is set here to
 an average value of XX. $N_{leaf}$ is the leaf N content ($\text{g m}^{-2}$).
@@ -1589,14 +1402,10 @@ al. (2024).
 The available soil water content ($w_{cont}$) for any soil layer *l* is
 given by:
 
----
-
 $$
 w_{cont,l} = \frac{\theta_{l} - \ \theta_{wilt,l}}{\theta_{fc,l}\  - \ \theta_{wilt,l}}
 \tag{B1}
 $$
-
----
 
 where $\theta_{l}$ is the soil water content of layer *l* ($\text{kg m}^{-2}$),
 $\theta_{wilt,l}$ is the permanent wilting point of layer *l* ($\text{kg m}^{-2}$), and
@@ -1609,12 +1418,10 @@ plant physiology and functioning are expressed as a 'soil water scalar',
 which is a function of available water content in the layers weighted by
 the fraction of roots in the layers:
 
----
 $$
 w_{scal} = \sum_{l = 1}^{15}\frac{\theta_{l} - \ \theta_{wilt,l}}{\theta_{crit,l}\  - \ \theta_{wilt,l}}\  \times p_{root,l}
 \tag{B2}
 $$
----
 
 where $\theta_{crit,l}$ is the critical soil water content of layer *l* ($\text{kg
 m}^{-2}$), here defined as 0.7 $\times$ $\theta_{fc,l}$, below which plant
@@ -1623,12 +1430,10 @@ fraction of roots in layer *l.* The root distribution in the soil
 profile is assumed to follow an asymptotic function (Jackson et al.,
 1996):
 
----
 $$
 p_{root,d} = \ 1 - \ {\beta_{root}}^{d}
 \tag{B3}
 $$
----
 
 where $p_{root,d}$ is the fraction of roots above depth $d$ (cm) and
 $\beta_{root}$ is the root distribution coefficient. $p_{root,l}$ in Eq. (B2)

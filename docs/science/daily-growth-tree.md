@@ -9,26 +9,18 @@ roots, stem, storage) based on their sink strength ($\phi_{p}$) , which
 is determined by the difference between the actual C of each of the
 pools and its potential target:
 
-  --------------------------------------------------------------------------------------------------
 $$
 \begin{equation}
 \phi_{p} = \max\left( 0,\ \frac{C_{p.target(t)} - C_{p(t)}}{C_{p.target(t)}} \right)
 \end{equation}
 $$
-  ------------------------------------------------------------------------------------------ -------
-
-  --------------------------------------------------------------------------------------------------
 
 where $C_{p}$ and $C_{p.target}$ are the daily actual and target carbon
 mass (kgC m^-2^) of pool $p$ at time $t$. The proportion of C that is
 allocated to each of the pools ($\alpha_{p}$) is calculated by the
 proportion of the sink strength, relative to that of the other pools:
 
-  ------------------------------------------------------------------------
 $$\alpha_{p} = \frac{\phi_{p}}{\sum_{p = 0}^{n_{p}}\phi_{p}} \tag{2} $$
-  ---------------------------------------------------------------- -------
-
-  ------------------------------------------------------------------------
 
 where $n_{p}$number of carbon pools. Sink strengths are therefore key to
 the allocation process, as these are affected by the C targets (which
@@ -37,11 +29,7 @@ rates.
 
 Daily change in C pools is therefore calculated using
 
-  ---------------------------------------------------------------------------------
 $$\frac{dC_{p}}{dt} = {\overline{\alpha}}_{p}C_{grow} - C_{p}\tau_{p} \tag{3} $$
-  ------------------------------------------------------------------------- -------
-
-  ---------------------------------------------------------------------------------
 
 where , $\overline{\alpha_{p}}$ is a 30-day moving average of daily
 $\alpha_{p}$ that is calculated, which intends to tune down further
@@ -61,11 +49,7 @@ deficit) of stored water and Nitrogen in the soil.
 
 Sapwood targe is calculated as:
 
-  -------------------------------------------------------------------------------
 $$C_{Sap.target} = C_{Sap}\left( 1 + \tau_{sap} \right)^{n.outlook} \tag{4} $$
-  ----------------------------------------------------------------------- -------
-
-  -------------------------------------------------------------------------------
 
 where $n.outlook$ is the number of days in which turnover needs to be
 replenished by the daily allocation to sapwood. $n.outlook$ is used to
@@ -77,30 +61,18 @@ fulfilling assumption *ii*, which states that the tree will opt to
 maintain the ratio between tree leaf area to sapwood area, set by the
 ratio between leaf and sapwood area, assuming the pipe model.
 
-  ---------------------------------------------------------------------------------------------------------------------------
 $$C_{Leaf.target} = \left( C_{Leaf},\ {\ \ \ C}_{Sap.target}\left( \frac{{\ k}_{LA:SA}}{SLA\ h} \right) \right) \tag{5} $$
-  ------------------------------------------------------------------------------------------------------------------- -------
-
-  ---------------------------------------------------------------------------------------------------------------------------
 
 where SLA is the specific leaf area (m^2^ kgC^-1^); and ${\ k}_{LA:SA}$
 is the ratio between leaf and sapwood area (Table X), both are PFT
 parameters. Potential root target is calculated using:
 
-  ------------------------------------------------------------------------------------------
 $$C_{root.target} = max\left( C_{Root},\ \ \frac{C_{Leaf.target}}{l:r} \right) \tag{6} $$
-  ---------------------------------------------------------------------------------- -------
-
-  ------------------------------------------------------------------------------------------
 
 where $k_{l:r}$ is the ratio between leaf to root, which decreases when
 an increasing soil water and N stress, which is calculated using:
 
-  -----------------------------------------------------------------------------------------------------------
 $$k_{l:r} = k_{l:r.\ max}\ \ max\left( \min\left( s_{w},\ s_{N} \right)\ ,\ k_{l:r.min} \right) \tag{7} $$
-  --------------------------------------------------------------------------------------------------- -------
-
-  -----------------------------------------------------------------------------------------------------------
 
 where $k_{l:r.\ max}$ and $k_{l:r.min}$ are the maximum and minimum leaf
 to root ratio; and $s_{w}$ and $s_{N}$ are scalars that represent soil
@@ -110,14 +82,9 @@ Maximum capacity of a cohort to store none-structural carbohydrates (kgC
 m^-2^) is assumed to depend on the capacity of the leaves, sapwood and
 coarse roots (e.g., lignotuber) using:
 
-  ----------------------------------------------------------------------------------------------------------------------------------------------------
-
 $$C_{storage.max} = \ C_{Leaf}k_{Leaf.NSC.max} + \ \left( {p_{AG}C}_{Sap}k_{AG.Sap.NSC.max} + \ {P_{BG}C}_{Sap}k_{BG.Sap.NSC.max} \right) \tag{8a} $$
 
-  --------------------------------------------------------------------------------------------------------------------------------------------- ------
 $$ C_{storage.target} = \ k_{NSC.max}\ C_{storage.max} \tag{8b} $$
-
-  ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 where $k_{Leaf.NSC.max}$ and $k_{Sap.NSC.max}$ (kgC m^-2^) are PFT
 parameters that define the maximum possible none-structural carbohydrate
@@ -126,13 +93,9 @@ are the proportions of the sapwood that is above and below ground,
 respectively. These are calculated from the PFT-specific root to shoot
 ratio, $k_{r:s}$ using
 
-  -----------------------------------------------------------------------
 $$p_{AG} = \frac{1}{\left( k_{r:s} + 1 \right)} \tag{9a} $$
-  ---------------------------------------------------------------- ------
 
 $$p_{BG} = 1 - p_{AG} \tag{9b} $$
-
-  -----------------------------------------------------------------------
 
 To avoid that NSC storage exceeding its capacity, maximum storage
 ($C_{storage.max}$) is scaled down using the a fixed proportion

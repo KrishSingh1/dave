@@ -38,7 +38,7 @@ How to add and edit documentation:
 - [Contributing to the Documentation](contributing-docs.md)
 - [Writing Equations](markdown-math.md)
 - [Version Control via SourceTree](sourcetree.md)
-- [Version Control via CLI](git-cli.md.md)
+- [Version Control via CLI](git-cli.md)
 
 ## Planned content
 

@@ -28,7 +28,7 @@ nav:
           - Contributing to the Documentation: howto/contributing-docs.md
           - Writing Equations: howto/markdown-math.md
           - Version Control via SourceTree: howto/sourcetree.md
-          - Version Control via CLI: howto/git-cli.md.md
+          - Version Control via CLI: howto/git-cli.md
   - Development:
       - Overview: development/index.md
       - LPJ-GUESS Development Ecosystem: development/lpj-guess-development-ecosystem.md

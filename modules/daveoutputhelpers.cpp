@@ -1311,4 +1311,43 @@ std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_tree_columns(
 	);
 }
 
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_input_cols() {
+	return {
+		{"gdark",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].gdark; }},
+		{"lai",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].lai; }},
+		{"fipar",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fipar; }},
+		{"fphen",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fphen_activity; }},
+		{"ps_sink_lim",  [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ps_sink_lim; }},
+		{"vcmax25",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vcmax25; }},
+		{"vpmax25",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vpmax25; }},
+		{"jmax25",       [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].jmax25; }},
+		{"nscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].nscal; }},
+		{"wscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].wscal; }},
+		{"temp",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].temp; }},
+		{"ha_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_v; }},
+		{"ha_j",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_j; }},
+		{"ds_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ds_v; }},
+		{"ds_j",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ds_j; }},
+		{"par",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].par; }},
+		{"vpd",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vpd; }},
+		{"ca",           [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ca; }},
+		{"X",            [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].X; }},
+		{"stomata_open", [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].stomata_open ? 1.0 : 0.0; }},
+	};
+}
+
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_output_cols() {
+	return {
+		{"rd",    [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].rd; }},
+		{"an",    [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].an; }},
+		{"anc",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].anc; }},
+		{"anj",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].anj; }},
+		{"anp",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].anp; }},
+		{"gsc",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].gsc; }},
+		{"ci",    [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].ci; }},
+		{"vcmax", [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].vcmax; }},
+		{"jmax",  [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].jmax; }},
+	};
+}
+
 } // namespace GuessOutput

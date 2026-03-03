@@ -688,6 +688,117 @@ struct Wood_harvest_struct {
 	}
 };
 
+/// Inputs required to calculate photosynthesis for a single individual in a
+/// single canopy layer at a single subdaily timestep (DAVE photosynthesis).
+class PhotosynthesisInputs {
+public:
+	// Residual stomatal conductance term
+	double gdark;
+
+	// LAI of this individual in this layer.
+	double lai;
+
+	// Fraction of PAR incident in the middle of the layer.
+	double fipar;
+
+	// Physiological downregulation due to dormancy.
+	double fphen_activity;
+
+	// Photosynthetic limitation due to sink activity [0-1].
+	double ps_sink_lim;
+
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vcmax25;
+
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vpmax25;
+
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1).
+	double jmax25;
+
+	// Nitrogen scalar to account for the nitrogen gradient within the canopy.
+	double nscal;
+
+	// Water stress parameter (0-1 range; 1=minimum stress).
+	double wscal;
+
+	// Air temperature in °C.
+	double temp;
+
+	// Activation energy for vcmax (kJ mol-1).
+	double ha_v;
+
+	// Activation energy for jmax (kJ mol-1).
+	double ha_j;
+
+	// Entropy term (deltaS) for vcmax (J mol-1 K-1).
+	double ds_v;
+
+	// Entropy term (deltaS) for jmax (J mol-1 K-1).
+	double ds_j;
+
+	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
+	double par;
+
+	// VPD in kPa.
+	double vpd;
+
+	// Atmospheric CO2 concentration in mol mol-1.
+	double ca;
+
+	// Medlyn stomatal term.
+	double X;
+
+	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
+	bool stomata_open;
+};
+
+/// Outputs from the photosynthesis function for a single individual in a single
+/// canopy layer at a single subdaily timestep (DAVE photosynthesis).
+class PhotosynthesisOutputs {
+public:
+	PhotosynthesisOutputs() {
+		clear();
+	}
+	void clear() {
+		rd = 0;
+		an = 0;
+		anc = 0;
+		anj = 0;
+		anp = 0;
+		gsc = 0;
+		ci = 0;
+		vcmax = 0;
+		jmax = 0;
+	}
+
+	//< Respiration (mol m-2 s-1).
+	double rd;
+
+	//< Net photosynthesis (mol m-2 s-1).
+	double an;
+
+	//< Rubisco-limited net photosynthesis (mol m-2 s-1).
+	double anc;
+
+	//< RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	double anj;
+
+	//< PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C4 only].
+	double anp;
+
+	//< Stomatal conductance to CO2 (mol m-2 s-1).
+	double gsc;
+
+	//< Intercellular CO2 concentration (mol mol-1).
+	double ci;
+
+	//< Maximum carboxylation rate (mol m-2 s-1).
+	double vcmax;
+
+	//< Maximum electron transport rate (mol m-2 s-1).
+	double jmax;
+};
 
 /// Structure containing variables for sub-daily photosynthesis calculation.
 struct PhotosynthesisSubdaily : public Serializable {
@@ -3477,6 +3588,14 @@ public:
 
     /// Photosynthesis variables for subdaily calculations
 	PhotosynthesisSubdaily ps_subdaily;
+
+	/// Per-subdaily-timestep, per-canopy-layer photosynthesis inputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<PhotosynthesisInputs>> ps_inputs_layerwise;
+
+	/// Per-subdaily-timestep, per-canopy-layer photosynthesis outputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<PhotosynthesisOutputs>> ps_outputs_layerwise;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;

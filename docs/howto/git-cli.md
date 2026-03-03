@@ -80,36 +80,49 @@ The `-u` flag sets the upstream tracking reference so that subsequent
 
 ---
 
-## Keep the Branch Up to Date
+## Bring a Branch Up to Date
 
-If `lpjguess_dave` has moved forward while you were working, rebase your
-branch onto it to avoid conflicts at merge time:
+Two common workflows are covered below:
+
+1. Bring a long-lived development branch up to date with
+    `origin/lpjguess_dave`.
+2. Pull commits you made to the same branch from another machine.
+
+In both workflows, commit or stash local uncommitted changes first.
+
+### Workflow A: Update from `lpjguess_dave` (Rebase Recommended)
+
+From your development branch:
 
 ```bash
 git fetch origin
 git rebase origin/lpjguess_dave
 ```
 
-If there are conflicts, Git will pause and ask you to resolve them file by
-file. After resolving each conflict:
+If conflicts occur, resolve them and continue:
 
 ```bash
 git add <resolved-file>
 git rebase --continue
 ```
 
-### Alternative: Merge Instead of Rebase
+If you already pushed the branch earlier, rebase rewrites commit hashes, so
+you may need:
 
-If you prefer not to rewrite your branch history, merge `lpjguess_dave` into
-your branch instead:
+```bash
+git push --force-with-lease
+```
+
+### Workflow A (Alternative): Update from `lpjguess_dave` with Merge
+
+If you do not want to rewrite branch history:
 
 ```bash
 git fetch origin
 git merge origin/lpjguess_dave
 ```
 
-If there are conflicts, Git will pause and ask you to resolve them file by
-file. After resolving each conflict:
+If conflicts occur, resolve them and continue:
 
 ```bash
 git add <resolved-file>
@@ -117,11 +130,23 @@ git merge --continue
 ```
 
 If your Git version does not support `git merge --continue`, complete the
-merge with a regular commit:
+merge with:
 
 ```bash
 git commit
 ```
+
+### Workflow B: Pull Your Own Branch Changes from Another Machine
+
+If you pushed commits from machine A and now want them on machine B:
+
+```bash
+git switch my-feature-branch
+git pull
+```
+
+This works because the branch tracks `origin/my-feature-branch` (set when you
+first used `git push -u origin my-feature-branch`).
 
 ### Rebase vs Merge (What’s the Difference?)
 
@@ -163,9 +188,9 @@ passes and a reviewer has approved it.
 
 ---
 
-## Pull Updates from the Remote
+## Update Local `lpjguess_dave`
 
-To bring in commits merged to `lpjguess_dave` by others:
+To refresh your local copy of the primary branch itself:
 
 ```bash
 git switch lpjguess_dave
@@ -188,6 +213,7 @@ git pull
 | Push (subsequent) | `git push` |
 | Fetch + rebase | `git fetch origin && git rebase origin/lpjguess_dave` |
 | Fetch + merge | `git fetch origin && git merge origin/lpjguess_dave` |
+| Pull your branch from remote | `git switch <branch> && git pull` |
 | Pull main branch | `git switch lpjguess_dave && git pull` |
 | Check status | `git status` |
 | View diff | `git diff` / `git diff --staged` |

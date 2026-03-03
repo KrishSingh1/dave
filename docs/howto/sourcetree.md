@@ -44,12 +44,34 @@ few terms will make the rest of this guide easier to follow:
 
 ---
 
+## Core Workflow
+
+If you already have SourceTree set up, this is the main day-to-day workflow:
+
+1. (Optional) Create a branch for new work (or continue on your long-lived
+   development branch): [Creating a Branch](#creating-a-branch)
+2. Pull latest updates into your branch:
+   [Bringing a Branch Up to Date](#bringing-a-branch-up-to-date)
+3. Check repository state in **File Status** and edit files:
+  [Check Repository State in File Status](#check-repository-state-in-file-status)
+4. Stage the files for one logical change:
+   [Making and Staging Changes](#making-and-staging-changes)
+5. Commit your staged changes: [Committing](#committing)
+6. Push your branch to GitLab: [Pushing to GitLab](#pushing-to-gitlab)
+7. (Optional) Open or update a Merge Request:
+   [Opening a Merge Request](#opening-a-merge-request)
+
+The rest of this page includes setup details, deeper explanations, and
+troubleshooting guidance.
+
+---
+
 ## Installing SourceTree
 
 Download and install SourceTree from
-[sourcetreeapp.com](https://www.sourcetreeapp.com/). During setup it will
-ask you to sign in with an Atlassian account. This is optional; there is no need
-to do this.
+[sourcetreeapp.com](https://www.sourcetreeapp.com/). During setup it will ask
+you to sign in with an Atlassian account. This is optional; there is no need to
+do this.
 
 You can also opt to disable merccurial support, which we won't be using.
 
@@ -149,6 +171,25 @@ Edit files in the repository folder using whatever tools you normally use
 (an IDE, VSCode, a text editor). When you return to SourceTree you will see
 your changes listed.
 
+### Check Repository State in File Status
+
+If you are unsure "what state am I in right now?", always start by opening
+**File Status**. This is the main place to inspect repository state before
+you commit, pull, or push.
+
+In `File Status`, look for:
+
+- **Ignored files**: files Git is configured to ignore (for example build
+  outputs). These are typically not part of commits.
+- **Untracked files**: new files Git sees but is not yet tracking. They will
+  not be committed unless you stage them.
+- **Unstaged files**: changed files that are not yet selected for commit.
+- **Staged files**: changes that will be included in the next commit.
+- No changed files in either panel: your working tree is **clean**.
+
+A "clean working tree" simply means there are no uncommitted local file
+changes. This is the safest state for pulling updates.
+
 Click **File Status** below the toolbar to open the staging
 view:
 
@@ -156,10 +197,9 @@ view:
 
 The panel has two sections:
 
-- **Staged files** (top) — files that will be included in the next
-  commit.
-- **Unstaged files** (bottom) — files you have changed but not yet selected
-  for the next commit.
+- **Staged files** (top) — files that will be included in the next commit.
+- **Unstaged files** (bottom) — files you have changed but not yet selected for
+  the next commit.
 
 To stage a file, click the checkbox to the left of its name in the
 **Unstaged files** panel. It moves to **Staged files**. You can stage all
@@ -193,6 +233,27 @@ graph — it is saved locally, but not yet on GitLab.
 
 ---
 
+## Stashing Changes
+
+Sometimes you want to temporarily set aside local edits without making a commit
+(for example, before pulling updates).
+
+A **stash** is a temporary shelf for uncommitted changes. You can re-apply them
+later.
+
+In SourceTree:
+
+1. Open **File Status**.
+2. Click **Stash**.
+3. Enter a short message describing what was stashed.
+4. Confirm to create the stash.
+
+Later, when you are ready to restore those changes, open your stash list in
+SourceTree and choose **Apply Stash** (keeps the stash) or **Pop Stash**
+(restores and removes it from the stash list).
+
+---
+
 ## Pushing to GitLab
 
 "Pushing" sends your local commits to GitLab so others can see them and so
@@ -206,6 +267,100 @@ that they are backed up remotely.
 
 If this is the first time you have pushed this branch, GitLab will create
 a remote copy of it automatically.
+
+---
+
+## Bringing a Branch Up to Date
+
+There are two common reasons to pull changes:
+
+1. You want your long-lived development branch to include the latest commits
+   from `lpjguess_dave`.
+2. You made commits to *the same branch* on another machine and now want
+   those commits on this machine too.
+
+!!! warning
+    Before pulling, check your repository state in [Check Repository State in
+    File Status](#check-repository-state-in-file-status) and make sure your
+    working tree is clean.
+
+    If it is not clean, either commit your changes (see
+    [Committing](#committing)) or stash them (see
+    [Stashing Changes](#stashing-changes)).
+
+![SourceTree pull dialog](img/sourcetree/pull.png)
+
+### Workflow A: Bring in Latest `lpjguess_dave` Changes
+
+1. Click **Fetch** in the toolbar to update remote-tracking branches.
+2. Check out your development branch in the left sidebar.
+3. Click **Pull**.
+4. In the pull dialog, choose `origin/lpjguess_dave` as the branch to pull from.
+5. Choose one integration method:
+  - **Merge** (simpler, safer default for beginners)
+  - **Rebase** (cleaner history; rewrites your local branch commits)
+6. Complete the pull and resolve any conflicts if prompted.
+
+### Workflow B: Pull Your Own Branch from Another Machine
+
+If you pushed commits from another computer to the same branch name:
+
+1. Click **Fetch**.
+2. Check out that branch locally.
+3. Click **Pull** and pull from the matching remote branch (e.g.
+   `origin/my-feature-branch`).
+
+This updates your local branch with the commits you already pushed from the
+other machine.
+
+### Merge vs Rebase (Which Should I Use?)
+
+- **Merge** adds a merge commit and keeps the exact branch history.
+- **Rebase** replays your commits on top of newer commits, creating a more
+  linear history.
+
+For this project, a practical rule is:
+
+- Use **Merge** if you are unsure or if multiple people share the branch.
+- Use **Rebase** if you are comfortable with Git and want a cleaner history
+  before opening/updating an MR.
+
+Avoid rebasing commits that have already been pulled by collaborators unless
+your team has explicitly agreed to that workflow.
+
+### Resolving Conflicts in SourceTree
+
+When Git reports a conflict, it means both sides changed overlapping parts of
+the same file and Git cannot safely decide which version to keep.
+
+In conflict markers, you will often see:
+
+```text
+<<<<<<< HEAD
+your current branch changes
+=======
+incoming branch changes
+>>>>>>> origin/lpjguess_dave
+```
+
+- The block above `=======` is your current branch version.
+- The block below `=======` is the incoming version.
+- You resolve the conflict by choosing one side, or combining both, then
+  removing the markers.
+
+Practical SourceTree workflow:
+
+1. In **File Status**, locate files marked as conflicted.
+2. Open each conflicted file in the merge tool or your editor.
+3. For each conflict, choose **Mine**, **Theirs**, or edit manually to keep
+  the correct final content.
+4. Save the file after all markers are removed.
+5. Stage the resolved file.
+6. Continue the operation:
+  - For a merge-based pull: complete the merge commit.
+  - For a rebase-based pull: click **Continue Rebase**.
+
+Repeat until no conflicted files remain.
 
 ---
 

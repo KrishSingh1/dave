@@ -378,11 +378,6 @@ private:
 	bool nc_check_inputs;
 
 	/*
-	Seed used for random sampling of met data during spinup period.
-	*/
-	int met_sampling_seed;
-
-	/*
 	User input from the instruction file. The number of years of data to recycle
 	during the spinup. If <= 0, all data will be recycled during freenyears.
 	*/

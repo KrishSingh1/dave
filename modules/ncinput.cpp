@@ -64,8 +64,6 @@ NCInput::NCInput() {
 
 	declare_parameter("spinup_met_cycle_length", &spinup_met_cycle_length, 0, 1000000, "User input from the instruction file. The number of years of data to recycle during the freenyears. If 0, all data will be recycled during freenyears.");
 
-	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
-
 	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
 
 	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
@@ -302,9 +300,6 @@ void NCInput::init(void) {
 		// Set the calendar year at start of spinup.
 		date.set_first_calendar_year(first_year - nyear_spinup);
 
-		// Initialise PRNG.
-		srand(met_sampling_seed);
-
 	if (strict_math) {
 #ifndef _WIN32
 		// feenableexcept(FE_DIVBYZERO | FE_INVALID);
@@ -440,8 +435,6 @@ try {
 	}
 
 	if (date.year < nyear_spinup) {
-		// Shuffle years of met data during spinup. Whenever we move to a new
-		// year, select another year at random.
 		if (date.day == 0) {
 			spinup_year = get_spinup_year();
 		}

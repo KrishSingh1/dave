@@ -6,7 +6,6 @@
 ///  (1) Definitions of constants and common functions used throughout LPJ-GUESS
 ///
 /// \author Michael Mischurow
-/// $Date$
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -193,6 +192,10 @@ public:
 
 	Historic()
 		: current_index(0), full(false) {
+		
+		for (size_t i = 0; i < capacity; ++i) {
+			values[i] = 0.0;
+		}
 	}
 
 	/// Adds a value, overwriting the oldest if full

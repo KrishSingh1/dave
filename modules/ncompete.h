@@ -4,7 +4,6 @@
 ///        the individuals' uptake strength
 ///
 /// \author David Wårlind
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -19,13 +18,13 @@
  */
 struct NCompetingIndividual {
 	/// This individual's nutrient demand
-	double demand;
+	double ndemand;
 
 	/// A meassure of this individual's uptake strength
 	double strength;
 
 	/// Output from ncompete - fraction of the demand satisfied by the distribution
-	double fuptake;
+	double fnuptake;
 };
 
 /// Distributes nutrients among individuals according to supply, demand and uptake strength

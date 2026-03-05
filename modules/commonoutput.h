@@ -3,7 +3,6 @@
 /// \brief Output module for the most commonly needed output files
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -33,7 +32,7 @@ public:
 
 	void outdaily(Gridcell& gridcell);
 
-	void openlocalfiles(Gridcell& gridcell) {};
+	void openlocalfiles(Gridcell& gridcell, int coordinates_precision) {};
 
 	void closelocalfiles(Gridcell& gridcell) {};
 
@@ -48,7 +47,7 @@ private:
 	xtring file_temp_mod, file_moist_mod, file_tot_mod, file_temp_mod_depth, file_moist_mod_depth, file_tot_mod_depth, file_volume_org_depth, file_volume_min_depth, file_volume_rock_depth, file_volume_root_depth, file_runoff;
 	xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 	xtring file_mnee,file_mnetmin,file_mcton_leaf,file_mvmaxnlim,file_mlambda,file_mwmass,file_mimass,file_mwcont_upper,file_mwcont_lower;
-	xtring file_firert,file_speciesheights;
+	xtring file_firert,file_speciesheights,file_speciesdiam;
 	xtring file_wetland_water_added;
 	xtring file_soildeclim, file_soilgrolim, file_soiltotlim, file_soilcuelim, file_clitterinput, file_clitterinput_depth, file_csomlitterinput, file_soilcperma;
 
@@ -63,32 +62,35 @@ private:
 	// BLAZE & SIMFIRE
 	xtring file_aburned_area_out, file_mburned_area_out;
 	xtring file_simfireanalysis_out;
-		
+
 	// Soil temperature and water
 	xtring file_mtemp, file_mairtemp, file_mwmasslyr, file_mimasslyr, file_mwimasslyr, file_wsatslyr, file_mdrainlyr;
 	xtring file_mtemp_depth, file_mwmass_depth, file_mimass_depth, file_mwimass_depth, file_mdrain_depth;
 
 	// Methane fluxes
-	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull; 
-	
+	xtring file_mch4, file_mch4diff, file_mch4plan, file_mch4ebull;
+
 	// Snow, water table depth and active layer depth
 	xtring file_msnow, file_msnowcover, file_snowdays, file_mwmass_ssw, file_mwtp, file_mald, file_mald_peat, file_msoiltempdepth25;
 	xtring file_wflux, file_wpool, file_wsats, file_wsats_depth;
 	xtring file_peat_frac, file_peat_depth, file_csoil_data_top, file_csoil_data_bot;
 
+	// Daily output for flux benchmarking
+	xtring file_dgpp, file_dnee, file_dreco, file_dlai;
+
 	// Output tables
 	Table out_cmass, out_cmass_agb, out_anpp, out_agpp, out_agpp_no, out_agpp_ns, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter; 
 	Table out_csom, out_ctonsom, out_soildepth, out_csoil, out_csoil_depth, out_nsoil_depth, out_csoil_cm, out_csoilp_cm, out_rh_cm, out_flitter_cm, out_clitter_cm, out_csoil_cm_peat, out_csoilp_cm_peat, out_rh_cm_peat, out_netnminsoil_depth, out_rh, out_rh_depth, out_tau_soil, out_tau_soil_depth;
 	Table out_temp_mod, out_moist_mod, out_tot_mod, out_temp_mod_depth, out_moist_mod_depth, out_tot_mod_depth, out_volume_org_depth, out_volume_min_depth, out_volume_rock_depth, out_volume_root_depth, out_firert, out_runoff, out_speciesheights;
-	Table out_wetland_water_added;
+	Table out_speciesdiam, out_wetland_water_added;
 	Table out_soildeclim, out_soilgrolim, out_soiltotlim, out_soilcuelim, out_clitterinput, out_clitterinput_depth, out_csomlitterinput, out_soilcperma;
 
 	Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 	Table out_mrh, out_mnee, out_mnetmin, out_mcton_leaf, out_mvmaxnlim, out_mlambda, out_mwmass, out_mimass, out_mwcont_upper, out_mwcont_lower;
-	
+
 	// bvoc
 	Table out_aiso, out_miso, out_amon, out_mmon, out_amon_mt1, out_amon_mt2, out_mmon_mt1, out_mmon_mt2;
-	
+
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_lambda, out_nflux, out_ngases;
 	Table out_soil_npool, out_soil_nflux;
 	Table out_csoillyr;
@@ -105,6 +107,9 @@ private:
 	// Soil temperatures and water
 	Table out_mtemp, out_mairtemp, out_mwmasslyr, out_mimasslyr, out_mwimasslyr, out_wsatslyr, out_mdrainlyr;
 	Table out_mtemp_depth, out_mwmass_depth, out_mimass_depth, out_mwimass_depth, out_mdrain_depth;
+
+	// Daily output for flux benchmarking
+	Table out_dgpp, out_dnee, out_dreco, out_dlai;
 };
 
 }

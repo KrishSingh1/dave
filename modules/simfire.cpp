@@ -3,7 +3,10 @@
 /// \brief SIMFIRE burned area simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-01-24 16:02:51 +0100 (Tue, 24 Jan 2017) $
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -258,7 +261,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	SimfireInputArchive ark;
 	
 	if (!ark.open(file_simfire)) {
-		fail("Could not open %s for input \n", (char*)file_simfire);
+		fail("getsimfiredata(): Could not open %s for input \n", (char*)file_simfire);
 	}
 	
 	SimfireInput rec;
@@ -269,7 +272,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	if (!ark.getindex(rec)) {
 		ark.close();
-		fail("Grid cell not found in %s \n", (char*)file_simfire);
+		fail("getsimfiredata(): Grid cell not found in %s \n", (char*)file_simfire);
 	}
 
 	// Found the record, get the values
@@ -430,7 +433,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
 		gridcell.nesterov_cur = 0.0;
 	}
-	else {
+	else if ( climate.tmax > 0. ) {
 		gridcell.nesterov_cur += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
 	}
 	gridcell.nesterov_cur = min(gridcell.nesterov_cur,MAXIMUM_NESTEROV) ;

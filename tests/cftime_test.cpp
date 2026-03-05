@@ -3,7 +3,10 @@
 /// \brief Unit tests for CF time functionality
 ///
 /// \author Joe Siltberg
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -30,7 +33,7 @@ bool verify_datetime(const DateTime& dt,
 
 }
 
-TEST_CASE("CF::DateTime/construction", "Tests construction of DateTime objects") {
+TEST_CASE("CF::DateTime/construction", "[date]") {
 	// default constructor
 	REQUIRE(verify_datetime(DateTime(), 
 	                        0, 1, 1, 0, 0, 0));
@@ -48,7 +51,7 @@ TEST_CASE("CF::DateTime/construction", "Tests construction of DateTime objects")
 	                        1900,10,01,0,0,0));
 }
 
-TEST_CASE("CF::DateTime/add_time", "Tests the DateTime::add_time function") {
+TEST_CASE("CF::DateTime/add_time", "[date]") {
 
 	// test NO_LEAP calendar
 
@@ -121,7 +124,7 @@ TEST_CASE("CF::DateTime/add_time", "Tests the DateTime::add_time function") {
 	                        end_tm->tm_hour, end_tm->tm_min, end_tm->tm_sec));
 }
 
-TEST_CASE("CF::TimeUnitSpecification", "Tests CF time unit specifications") {
+TEST_CASE("CF::TimeUnitSpecification", "[date]") {
 	
 	TimeUnitSpecification tus("days since 1970-01-01 00:00:00");
 	

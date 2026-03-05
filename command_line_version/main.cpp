@@ -3,7 +3,10 @@
 /// \brief Main module for command line version of LPJ-GUESS
 ///
 /// \author Ben Smith
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -48,6 +51,13 @@ int main(int argc,char* argv[]) {
 	// LPJ-GUESS.
 
 	umask(S_IWGRP | S_IWOTH); // only disable write access for group and others
+
+#endif
+
+#ifdef _MSC_VER
+
+	// Maximizing capacity of number of open files
+	_setmaxstdio(2048);
 
 #endif
 

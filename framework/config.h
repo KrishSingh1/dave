@@ -13,7 +13,6 @@
 /// specific issues, such as non-standard conforming compilers.
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -51,16 +50,24 @@ template <class T> inline T min(const T& a, const T& b) {
 using std::min;
 using std::max;
 
-// platform independent function for changing working directory
-// we'll call our new function change_directory
-#ifdef _MSC_VER
+// platform independent function for changing and making working directory
+// we'll call our new functions change_directory and make_directory
+// make_directory is non recursive.
+#if defined(_MSC_VER) || defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 // The Microsoft way
 #include <direct.h>
 #define change_directory _chdir
+static void make_directory(const char *dir) {
+	_mkdir(dir);
+}
 #else
 // The POSIX way
 #include <unistd.h>
+#include <sys/stat.h>
 #define change_directory chdir
+static void make_directory(const char *dir) {
+        mkdir(dir, 0755);
+}
 #endif
 
 #endif // LPJ_GUESS_CONFIG_H

@@ -2,7 +2,6 @@
 /// \file spinupdata.h
 /// \brief Management of climate data for spinup
 ///
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -95,6 +94,7 @@ public:
 		if (endyear - startyear + 1 == nyear) {
 
 			int y,m;
+			thisyear=0;
 			for (y=startyear-1;y<endyear;y++) {
 				for (m=0;m<12;m++) {
 					data[(y-(startyear-1))*12+m]=source[y][m];

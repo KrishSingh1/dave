@@ -1,9 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file cropallocation.cpp
 /// \brief Crop allocation and growth
+///
 /// \author Mats Lindeskog, Stefan Olin
-/// $Date:  $
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "landcover.h"
 #include "cropallocation.h"
@@ -103,10 +108,11 @@ void turnover_grass(Individual& indiv) {
 		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
 		ppft.cmass_litter_leaf,
 		ppft.cmass_litter_root,
+		ppft.cmass_leaf_root_turnover,
 		ppft.nmass_litter_leaf,
 		ppft.nmass_litter_root,
 		indiv.nstore_longterm, indiv.max_n_storage,
-		true, indiv.vegetation.patch.pft[indiv.pft.id].nmass_litter_NH4);
+		true, ppft.nmass_litter_NH4);
 
 	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
 	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;
@@ -534,7 +540,7 @@ void growth_crop_daily(Patch& patch) {
 						cmass_seed = 0.1 * CMASS_SEED;
 						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
 					}
-				} 
+				}
 				else {
 					// add seed carbon on sowing date
 					if(date.day == ppftcrop.sdate) {
@@ -958,7 +964,6 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
-// S. Olin, G. Schurgers, M. Lindeskog, D. W�rlind, B. Smith, P. Bodin, J. Holm�r, and A. Arneth. 2015
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
 //   Biogeosciences 12, 2489-2515. Modelling the response of yields and tissue C:N to changes in
 //   atmospheric CO2 and N management in the main wheat regions of western Europe
-   

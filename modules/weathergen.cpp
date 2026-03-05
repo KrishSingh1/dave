@@ -1,9 +1,12 @@
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file weathergen.cpp
 /// \brief Global Weather GENerator 
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-11-24 15:04:09 +0200 (Fri, 24 Nov 2017) $
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -2635,7 +2638,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			doy++;
 
 			// Compute days max rad (i.e. cldfr=0.) for weighting
-			cldwght[day] = max(0.01,cldf2rad(0.0,lat,doy,true));
+			cldwght[day] = max(0.,cldf2rad(0.0,lat,doy,true));
 			tot_cldwght += cldwght[day];
 		}
 
@@ -2684,8 +2687,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			drhum[day]   = get_arden_rh(tdavg,dtmin[day]);
 		}
 
-		// Redistribute limited parameters like relhum and cloud-fraction		
+		// Redistribute limited parameters like relhum and cloud-fraction
 		double limit[2] = {0.,1.};
+        for (int day=0;day<ndaymon;day++) {
+            dsol[day] = 0.;
+        }
 		if ( in_msol[mon] > 0. ) {
 	
 			if (in_mcldf[mon] > 0.)
@@ -2693,15 +2699,15 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			
 			solcor = 0.;
 			for (int day=0;day<ndaymon;day++) {
-				doy = accumday+day+1;
-				dsol[day] = max(0.001,cldf2rad(dcldf[day],lat,doy,true));
+				int ldoy = accumday+day+1;
+				dsol[day] = max(0.,cldf2rad(dcldf[day],lat,ldoy,true));
 				solcor += dsol[day];
 			}
 			solcor /= (in_msol[mon]*(double)ndaymon);
 			for (int day=0;day<ndaymon;day++) 
 				dsol[day] /= solcor;
 		}
-		
+
 		if ( in_mrhum[mon] > 0. ) {
 			redist_restricted_vals(drhum, ndaymon, in_mrhum[mon], limit, dum);
 		}

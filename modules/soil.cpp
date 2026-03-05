@@ -1,11 +1,15 @@
-Ôªø///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file soil.cpp
 /// \brief LPJ-GUESS Soil class and related definitions
+///
 /// Implementation of member functions of class Soil.
 /// The class Soil and its member functions and variables are declared in guess.h
 ///
 /// \author Paul Miller
-/// $Date: 2015-12-22 15:22:04 +0100 (Tue, 22 Dec 2015) $
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -1444,7 +1448,7 @@ void Soillayer::set_properties() {
 	Psi_max_min = -pow(10.0, 1.54 - 0.95 * sand_frac + 0.63 * silt_frac) * MM_PER_CM;
 
 	// Super cooled water setting 2
-	// Soil specific surface area (m2 g‚àí1) from eqn 11 in Sepaskhah et al. (2011)
+	// Soil specific surface area (m2 g-1) from eqn 11 in Sepaskhah et al. (2011)
 	// eqn 11
 	double D = 3.0 - 0.118 * (-log(clay_frac) + silt_frac + sand_frac);
 	// eqn 13
@@ -1608,7 +1612,7 @@ void Soillayer::update_properties(double& wmass_move, double& imass_move, bool m
 		return;
 	}
 
-	// Mineral particle density set to 2.65 g cm‚Äì3 (Bonan 2019)
+	// Mineral particle density set to 2.65 g cmñ3 (Bonan 2019)
 	double min_density = Mindensity * G_PER_KG * M3_PER_CM3;
 
 	// Effective soil volume when excluding volume roots and rock take up 
@@ -1730,7 +1734,7 @@ void Soillayer::update_properties(double& wmass_move, double& imass_move, bool m
 		}
 
 		// The saturated hydraulic conductivity
-		// The soil organic matter fraction is further subdivided into ‚Äúconnected‚Äù and ‚Äúunconnected‚Äù 
+		// The soil organic matter fraction is further subdivided into ìconnectedî and ìunconnectedî 
 		// fractions using a result from percolation theory (Stauffer and Aharony 1994, Berkowitz and 
 		// Balberg 1992). Assuming that the organic and mineral fractions are randomly distributed 
 		// throughout a soil layer, percolation theory predicts that above a threshold value 
@@ -2760,7 +2764,7 @@ void Soilcolumn::init_water() {
 
 		// Calculate matrix potential
 		update_matric_potential();
-
+		 
 		// Calculate hydraulic conductivity and diffusivity
 		update_hydraulic_properties(nsoillayers);
 
@@ -5996,7 +6000,6 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 
 			// The upper soil layers cannot absorb all of this water today, so take up what can be absorbed 
 			// (i.e. wmass_pot_top_layer) and add the rest to surface runoff
-
 			for (int lyr = 0; lyr < NSOILLAYERS_UPPER; lyr++) {
 				Soillayer& soillayer = soillayers[lyr];
 
@@ -8397,19 +8400,19 @@ void Soilcolumn::serialize(ArchiveStream& arch) {
 // References not related to Arctic and wetland code:
 //
 // Campbell, G.S.: Simple method for determining unsaturated conductivity from moisture 
-//  retention data. Soil Sci. 117: 311‚Äì314. 
+//  retention data. Soil Sci. 117: 311ñ314. 
 //  https://doi.org/10.1097/00010694-197406000-00001, 1974
 // Chadburn, S., Burke, E., Essery, R., Boike, J., Langer, M., Heikenfeld, M., Cox, P., 
 //   and Friedlingstein, P.: An improved representation of physical permafrost dynamics 
 //   in the JULES land - surface model, Geosci.Model Dev., 8, 1493 - 1508, 
 //   https ://doi.org/10.5194/gmd-8-1493-2015, 2015
 // Clapp, R.B., and Hornberger, G.M. Empirical equations for some soil hydraulic properties. 
-//  Water Resour. Res. 14: 601‚Äì604. https://doi.org/10.1029/WR014i004p00601, 1978
+//  Water Resour. Res. 14: 601ñ604. https://doi.org/10.1029/WR014i004p00601, 1978
 // Fukusako, S. Int J Thermophys (1990) 11: 353. doi:10.1007/BF01133567
 // Jobbagy, E. G. & Jackson, R. B. (2000) The vertical distribution of soil carbon
 //   and its relation to climate and vegetation. Ecological Applications 10(2): 423-436
 // Lawrence, D. M. and Slater, A.: Incorporating organic soil into a global climate 
-//  model, Clim.Dynam., 30, 145‚Äì160, doi:10.1007/s00382-007-0278-1, 2008.
+//  model, Clim.Dynam., 30, 145ñ160, doi:10.1007/s00382-007-0278-1, 2008.
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling

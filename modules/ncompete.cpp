@@ -1,10 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file ncompete.cpp
-/// \brief Distribution of nutrient among individuals according to supply, demand and
-///        the individuals' uptake strength
+/// \brief Distribution of N among individuals according to supply, demand and the individuals' uptake strength
 ///
 /// \author David Wårlind
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -22,7 +24,7 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nutrient_ma
 	// zero initially
 	for (size_t i = 0; i < individuals.size(); ++i) {
 		total_ups += individuals[i].strength;
-		individuals[i].fuptake = 0;
+		individuals[i].fnuptake = 0;
 	}
 
 	bool full_uptake = true;			// If an individual could get more than its demand, then
@@ -49,18 +51,18 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nutrient_ma
 			NCompetingIndividual& indiv = individuals[i];
 
 			// if fnuptake doesn't meet indiv nutrient demand, then calculate a new value for fnuptake
-			if (indiv.fuptake != 1.0) {
+			if (indiv.fnuptake != 1.0) {
 
 				// how much is the individual entitled to take up due to its strength?
 				double entitlement = ratio_uptake * indiv.strength;
 
 				// if indiv has the strength to take up more than its nutrient demand
-				if (entitlement > indiv.demand && !negligible(indiv.demand)) {
+				if (entitlement > indiv.ndemand && !negligible(indiv.ndemand)) {
 
-					indiv.fuptake = 1.0;
+					indiv.fnuptake = 1.0;
 
 					// nutrient demand is subtract from nutrient supply
-					nsupply -= indiv.demand;
+					nsupply -= indiv.ndemand;
 
 					// strength is subtracted from uptake strengths
 					total_ups -= indiv.strength;
@@ -70,11 +72,11 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nutrient_ma
 					full_uptake = true;
 				}
 				// normal nutrient limited uptake (0.0 < fnuptake < 1.0)
-				else if (indiv.demand > 0.0) {
-					indiv.fuptake = min(1.0, entitlement / indiv.demand);
+				else if (indiv.ndemand > 0.0) {
+					indiv.fnuptake = min(1.0, entitlement / indiv.ndemand);
 				}
 				else {
-					indiv.fuptake = 0.0;
+					indiv.fnuptake = 0.0;
 				}
 			}
 		}

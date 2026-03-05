@@ -3,7 +3,6 @@
 /// \brief BLAZE fire simulation and combustion
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-01-24 16:02:51 +0100 (Tue, 24 Jan 2017) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

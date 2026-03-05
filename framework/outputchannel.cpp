@@ -3,7 +3,10 @@
 /// \brief Classes for formatting and printing output from the model
 ///
 /// \author Joe Siltberg
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -14,13 +17,14 @@
 
 namespace GuessOutput {
 
-	ColumnDescriptor::ColumnDescriptor(const char* title,
-		int width,
-		int precision)
-		: t(title),
-		w(width),
-		p(precision) {
-	}
+// w: set width to the user-specified width or the title width + 1, whichever is the largest.
+ColumnDescriptor::ColumnDescriptor(const char* title, 
+                                   int width, 
+                                   int precision) 
+		  : t(title),
+			 w(max(width, (int)strlen(title) + 1)),
+			 p(precision) {
+}
 
 	const std::string& ColumnDescriptor::title() const {
 		return t;
@@ -148,9 +152,12 @@ namespace GuessOutput {
 		coords_format = (char*)str;
 	}
 
+
 	FileOutputChannel::~FileOutputChannel() {
 		for (size_t i = 0; i < files.size(); i++) {
-			fclose(files[i]);
+			if(files[i] != NULL) {
+				fclose(files[i]);
+			}
 		}
 	}
 
@@ -193,6 +200,7 @@ namespace GuessOutput {
 
 		FILE* file = files[table.id()];
 		fclose(file);
+		files[table.id()] = NULL;
 	}
 
 	void FileOutputChannel::finish_row(const Table& table,

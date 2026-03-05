@@ -3,7 +3,10 @@
 /// \brief Unit tests for nitrogen uptake competition
 ///
 /// \author Joe Siltberg
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -12,7 +15,7 @@
 
 #include "ncompete.h"
 
-TEST_CASE("ncompete/single", "Testing a single individual") {
+TEST_CASE("ncompete/single", "[ncompete]") {
 	std::vector<NCompetingIndividual> indivs(1);
 
 	indivs[0].ndemand = 1;
@@ -42,7 +45,7 @@ TEST_CASE("ncompete/single", "Testing a single individual") {
 }
 
 
-TEST_CASE("ncompete/double", "Testing two individuals") {
+TEST_CASE("ncompete/double", "[ncompete]") {
 	std::vector<NCompetingIndividual> indivs(2);
 
 	// two equal individuals
@@ -96,7 +99,7 @@ TEST_CASE("ncompete/double", "Testing two individuals") {
 
 }
 
-TEST_CASE("ncompete/triple", "Testing three individuals") {
+TEST_CASE("ncompete/triple", "[ncompete]") {
 	std::vector<NCompetingIndividual> indivs(3);
 
     indivs[0].ndemand = 1;
@@ -145,7 +148,7 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 	REQUIRE(indivs[2].fnuptake == Approx(1));
 }
 
-TEST_CASE("ncompete/four", "Testing four individuals") {
+TEST_CASE("ncompete/four", "[ncompete]") {
 	std::vector<NCompetingIndividual> indivs(4);
 
 	indivs[0].ndemand = 0.5;

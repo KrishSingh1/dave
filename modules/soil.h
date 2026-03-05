@@ -5,7 +5,6 @@
 /// while its member functions are implemented in soil.cpp and in soilmethane.cpp.
 /// 
 /// \author Paul Miller
-/// $Date: 2019-03-10 16:34:14 +0100 (Sun, 10 Mar 2019) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -145,6 +144,9 @@ const double sapric_depth = 500.0;
 /// First year when phase change is allowed
 const int FIRST_FREEZE_YEAR = 40;
 
+/// Freezing point [degree C]
+const double T_freeze = 0.0;
+
 /// time step [day]
 const double Dt = 1;
 
@@ -234,10 +236,6 @@ const double AIR_THICKNESS_CNSTEP_FULL = 25.0;
 ////////////////////////////////////////////////////////////////////////
 
 // SOIL CONSTANTS
-
-/// Increased soil decomposition due to tillage (crops)
-// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
-static const double TILLAGE_FACTOR = 33.0 / 17.0;
 
 /// Increased soil decoposition due to tillage only down to a certain depth  
 static const double TILLAGE_DEPTH = 300.0;

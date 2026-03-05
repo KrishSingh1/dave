@@ -5,7 +5,6 @@
 ///  Created on: 24 nov 2014
 /// \author : Stefan Olin
 ///
-/// $Date: $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -28,7 +27,8 @@ class SoilInput {
 public:
 	SoilInput() : 
 		searchradius_soil(0),
-		STEP(0.5) {
+		STEP(0.5),
+		soil_code(false) {
 		declare_parameter("searchradius_soil", &searchradius_soil, 0, 100,
 			"Search radius for soil input.");
 		declare_parameter("searchstep_soil", &STEP, 0, 1,
@@ -49,6 +49,7 @@ public:
 	/// Get and set the Soiltype-object in the current Gridcell-object.
 	void get_soil(double lon, double lat, Gridcell& gridcell);
 	
+	/// searchstep_soil instruction file parameter
 	double STEP;
 
 	/// Initialises the soil object and decides based on the input file the data source type.

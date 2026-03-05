@@ -13,7 +13,10 @@
 /// hydrology scheme is used.
 ///
 /// \author Ben Smith
-/// $Date$
+///
+/// This Source Code Form is subject to the terms of the Mozilla Public
+/// License, v. 2.0. If a copy of the MPL was not distributed with this
+/// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -226,19 +229,8 @@ void inundation_stress(Patch& patch) {
 		if (!ifinundationstress) {
 			ppft.inund_stress = 1.0; // i.e. never any stress if this is 0 in the .ins file
 		}
-		else {
-			if (pft_inund_dur <= 0) { // constant from from .ins file
-									  // FULL stress, so NO photosynthesis and this PFT will not survive on peatlands 
-				ppft.inund_stress = 0.0;
-			}
-			else {
-				if (pft_inund_count <= 0.0)
-					ppft.inund_stress = 1.0; // i.e. no stress
-				else
-					ppft.inund_stress = 1.0 - min(1.0, pft_inund_count / pft_inund_dur); // partial stress, 0 (full) to 1 (none) 
-			}
-		}
-	} // pft loop
+
+	}
 }
 
 /// Performs daily accounting of soil water

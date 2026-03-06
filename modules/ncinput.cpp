@@ -127,17 +127,17 @@ void NCInput::init(const NCInputOptions &options) {
         // TODO: RAII.
         try {
             // Update simulation timesteps.
-            first_timestep = tas->get_first_date();
-            final_timestep = tas->get_last_date();
+            first_timestep = tmp->get_first_date();
+            final_timestep = tmp->get_last_date();
 
             // Set input_timestep to the value from file_met_forcing.
-            input_timestep = tas->get_day_length();
-            simulation_calendar = tas->get_calendar();
+            input_timestep = tmp->get_day_length();
+            simulation_calendar = tmp->get_calendar();
 
             // These three parameters all now come from file_met_forcing; last
             // time we called this function, they came from file_met_spinup.
             // Therefore we should check the main file. Better to fail early.
-            verify_data_length(first_timestep, final_timestep, input_timestep, tas->get_calendar());
+            verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
 
             GuessNC::close_ncdf(nc_tmp);
             nc_tmp = -1;

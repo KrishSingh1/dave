@@ -134,6 +134,10 @@ void DaveInput::init(void) {
 		double init_start = get_wall_time();
 
 		// Parse the gridlist.
+		if (file_gridlist == "") {
+			fail("No gridlist file specified. Please set file_gridlist in the instruction file.");
+		}
+
 		gridlist = parse_gridlist(file_gridlist);
 
 		// Open soil data file.
@@ -413,6 +417,11 @@ void DaveInput::getmiscinput_yearly(Gridcell& gridcell) {
 std::vector<DaveInput::Coord> DaveInput::parse_gridlist(xtring filename) const {
 	// Open the file for reading.
 	std::ifstream ifs(filename, std::ifstream::in);
+
+	// Validate that the file was opened successfully.
+	if (!ifs.is_open()) {
+		throw std::runtime_error("Failed to open gridlist file: " + std::string(filename));
+	}
 
 	std::vector<Coord> coordinates;
 

@@ -300,7 +300,7 @@ void resolve_ndep(const NCInventory &inventory,
 
 void resolve_dtr(const NCInventory &inventory,
                  const ResolveOptions &options, DtrWriter &writer) {
-    if (options.timestep > 1) {
+    if (options.subdaily) {
         log("Input data is subdaily, so Tmax and Tmin will be calculated from subdaily temperature data.", LogLevel::Info);
         writer.set_from_subdaily();
     } else {
@@ -356,10 +356,6 @@ void resolve_vpd(const NCInventory &inventory,
 
 ResolvedPlan VariableResolver::resolve(const NCInventory &inventory,
                                        const ResolveOptions &options) const {
-    if (options.timestep < 1) {
-        throw std::runtime_error("Invalid value for timestep: " + std::to_string(options.timestep));
-    }
-
     ResolvedPlan plan;
 
     plan.bindings[Variable::Pr] = get_var_info(inventory, STDS_PR);

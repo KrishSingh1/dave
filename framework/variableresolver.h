@@ -119,8 +119,8 @@ struct ResolveOptions {
     bool allow_netcdf_co2;
     // Whether to allow nitrogen deposition to be read from netcdf inputs.
     bool allow_netcdf_ndep;
-    // Number of timesteps per day in the input data.
-    int timestep;
+    // Whether the input data is subdaily.
+    bool subdaily;
 };
 
 /*

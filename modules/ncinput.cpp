@@ -16,7 +16,7 @@ ResolveOptions to_resolve_options(const NCInputOptions &options) {
     resolve_options.allow_fixed_pressure = options.allow_fixed_pressure;
     resolve_options.allow_netcdf_co2 = options.allow_netcdf_co2;
     resolve_options.allow_netcdf_ndep = options.allow_netcdf_ndep;
-    resolve_options.timestep = options.nsteps_day;
+    resolve_options.subdaily = options.nsteps_day > 1;
     return resolve_options;
 }
 

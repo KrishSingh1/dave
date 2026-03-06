@@ -57,7 +57,7 @@ struct bounds {
 /*
 This enum defines the cache strategy used by this variable.
 */
-enum CacheStrategy {
+enum class CacheStrategy {
 	// Cache the entire timeseries. Fastest but most memory intensive.
 	All,
 	// Cache one year of data at a time. Reduces memory usage.

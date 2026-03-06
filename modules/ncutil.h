@@ -153,9 +153,8 @@ double round_to_nearest_multiple(double x, double y);
 Check if the given timepoint represents the first time step in the year.
 
 @param date: The date.
-@param day_length: Number of timesteps per day.
 */
-bool is_start_of_year(timepoint date, int day_length);
+bool is_start_of_year(timepoint date);
 
 /*
 Check if the given timepoint represents the first timestep in the year.

@@ -204,8 +204,8 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 				cache = load(lon, lat, year, day);
 
 				// Update starting date of cached data.
-				cache_start.year = cache_strategy == All ? data_start.year : year;
-				cache_start.day = cache_strategy == Year ? 0 : day;
+				cache_start.year = cache_strategy == CacheStrategy::All ? data_start.year : year;
+				cache_start.day = cache_strategy == CacheStrategy::Year ? 0 : day;
 				cache_start.timestep = 0;
 				longitude = lon;
 				latitude = lat;
@@ -282,12 +282,12 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 
 std::vector<double> NCVariable::load(double lon, double lat, int year, int day)
 const {
-	if (cache_strategy == None) {
+	if (cache_strategy == CacheStrategy::None) {
 		// No caching. Read the data from the file.
 		return load_day(lon, lat, year, day);
-	} else if (cache_strategy == Year) {
+	} else if (cache_strategy == CacheStrategy::Year) {
 		return load_year(lon, lat, year);
-	} else if (cache_strategy == All) {
+	} else if (cache_strategy == CacheStrategy::All) {
 		return load_all(lon, lat);
 	}
 	throw std::runtime_error("Unknown caching strategy: " + std::to_string((int)cache_strategy));
@@ -347,7 +347,7 @@ std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 }
 
 int NCVariable::get_cache_offset(timepoint date) const {
-	if (cache_strategy == None) {
+	if (cache_strategy == CacheStrategy::None) {
 		return date.timestep;
 	}
 	// Shortcut - use previous index + day_length.
@@ -361,7 +361,7 @@ int NCVariable::get_cache_offset(timepoint date) const {
 	|| (cache_prev.year == date.year - 1
 	&& cache_prev.day == get_year_len(cache_prev.year, calendar_type) - 1
 	&& date.day == 0
-	&&  cache_strategy == All) )) {
+	&&  cache_strategy == CacheStrategy::All) )) {
 		return cache_prev_index + day_length;
 	}
 	// Year offset is complicated by the possibility of leap years.
@@ -403,11 +403,11 @@ bool NCVariable::is_cache_valid(double lon, double lat, int year, int day) const
 		return false;
 	}
 
-	if (cache_strategy == All) {
+	if (cache_strategy == CacheStrategy::All) {
 		return true;
 	}
 
-	if (cache_strategy == Year) {
+	if (cache_strategy == CacheStrategy::Year) {
 		return cache_start.year == year;
 	}
 

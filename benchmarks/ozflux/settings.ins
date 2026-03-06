@@ -86,47 +86,6 @@ useClosestNdep               1   ! Use closest available N Deposition data if no
 ! during the spinup. If 0, all data will be recycled during freenyears.
 spinup_met_cycle_length      30
 
-! Names of variables in met input file.
-variable_lon                 "longitude" ! Longitude
-variable_lat                 "latitude"  ! Latitude
-variable_time                "time"      ! Time
-variable_temp                "tav"       ! Air Temperature (°C)
-variable_insol               "insol"     ! Shortwave Radiation (W m^-2)
-variable_precip              "prec"      ! Precipitation (mm)
-variable_vpd                 "vpd"       ! Vapour Pressure Deficit (kPa)
-variable_ps                  "ps"        ! Atmospheric Pressure (Pa)
-variable_wind                "wind"      ! Wind speed (m/2) (optional if not using blaze)
-
-! Empty string means it will be calculated from subdaily temperature. If this
-! variable doesn't exist, it will be calculated from subdaily temperature. If
-! this variable doesn't exist, and input timestep is daily, an error will occur.
-variable_tmax                "tmax" ! Maximum Daily Air Temperature (°C)
-
-! Empty string means it will be calculated from subdaily temperature. If this
-! variable doesn't exist, it will be calculated from subdaily temperature. If
-! this variable doesn't exist, and input timestep is daily, an error will occur.
-variable_tmin                "tmin" ! Minimum Daily Air Temperature (°C)
-
-! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set. The quantities in this variable are assumed
-! to be rates of N deposition, so aggregation will occur by taking the mean of
-! these rates over a time period.
-variable_ndep_nhx            ""     ! Daily NHX N deposition (mgN/m2/day)
-
-! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set. The quantities in this variable are assumed
-! to be rates of N deposition, so aggregation will occur by taking the mean of
-! these rates over a time period.
-variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
-
-! This is the optional name of a variable in the NetCDF file which contains CO2
-! concentrations. Either this or file_co2 must be provided. If both are set,
-! file_co2 will be used.
-!variable_co2                 "co2"  ! CO2 Concentration (ppm)
-
-! Subdaily relative humidity (0-1). Not required if VPD is provided instead.
-variable_rh                   ""
-
 ! Algorithm used to estimate saturation vapour pressure (esat) from air
 ! temperature. Required iff variable_rh is set. Valid options are:
 ! sonntag_1990, alduchov_1996, allen_1998

@@ -117,6 +117,13 @@ std::string get_variable_name(int ncid_file, int ncid_var) {
 	return name;
 }
 
+int get_nvars(int ncid_file) {
+	int nvars;
+	int status = nc_inq_nvars(ncid_file, &nvars);
+	handle_error(status, "Failed to get number of variables in NetCDF file");
+	return nvars;
+}
+
 } // namespace GuessNC 
 
 #endif // HAVE_NETCDF

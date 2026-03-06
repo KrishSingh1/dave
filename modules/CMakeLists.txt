@@ -26,6 +26,7 @@ set(headers
   soil.h
   soilinput.h
   ntransform.h
+  daveinput.h
   ncinput.h
   ncutil.h
   ncvariable.h
@@ -61,6 +62,7 @@ set(source
   soil.cpp
   soilinput.cpp
   ntransform.cpp
+  daveinput.cpp
   ncinput.cpp
   ncutil.cpp
   ncvariable.cpp

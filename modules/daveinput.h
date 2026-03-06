@@ -185,16 +185,6 @@ private:
 	esat_method_t parse_esat_method(xtring name) const;
 
 	/*
-	Close the specified NetCDF file if it is open.
-	*/
-	void close_if_open(int &nc);
-
-	/*
-	Close all open netcdf files.
-	*/
-	void close_all();
-
-	/*
 	Land cover input module.
 	*/
 	LandcoverInput landcover_input;

@@ -501,13 +501,6 @@ double DaveInput::get_co2() {
 	return (*co2_file)[date.get_calendar_year()];
 }
 
-void DaveInput::close_if_open(int &nc) {
-	if (nc != -1) {
-		GuessNC::close_ncdf(nc);
-		nc = -1;
-	}
-}
-
 void DaveInput::resize_climate_arrays(Gridcell &gridcell, size_t size) const {
 	for (Stand& stand : gridcell) {
 		for (size_t i = 0; i < stand.nobj; i++) {

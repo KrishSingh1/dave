@@ -111,12 +111,6 @@ public:
     timepoint get_first_timestep() const;
 
     /*
-    Get the timepoint representing the final timestep of the main simulation
-    period.
-    */
-    timepoint get_final_timestep() const;
-
-    /*
     Get the total number of years in the main simulation.
     */
     int get_simulation_length() const;

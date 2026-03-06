@@ -1,14 +1,23 @@
 # Climate Input
 
-The NC input module is the standard input module for all DAVE simulations. It
+The DAVE input module is the standard input module for DAVE simulations. It
 reads subdaily, CF-compliant NetCDF forcing data into LPJ-GUESS.
 
 ## Background
 
-The NC module is loosely based on the `cf` input module used by upstream
-LPJ-GUESS, but adds support for **subdaily meteorological inputs**. Subdaily
-inputs are required by the [DAVE photosynthesis module](../science/photosynthesis.md),
+The DAVE climate input stack is loosely based on the `cf` input module used by
+upstream LPJ-GUESS, but adds support for **subdaily meteorological inputs**.
+Subdaily inputs are required by the [DAVE photosynthesis module](../science/photosynthesis.md),
 which operates at sub-daily time resolution.
+
+## Input Architecture
+
+At a high level:
+
+- `DAVEInput` is the top-level input module selected by `-input nc`.
+- `NCInput` is the climate-specific submodule used by `DAVEInput`.
+- `NCInput` discovers required variables from NetCDF metadata (`standard_name`
+  + `units`) and reads the corresponding timeseries.
 
 ## Selecting the Module
 
@@ -24,9 +33,12 @@ Or in the context of a parallel run:
 mpirun -np 8 ./build/guess -parallel -input nc <insfile>
 ```
 
+`nc` is the current CLI key for DAVE climate input. A future breaking release
+may introduce `dave` as the module key.
+
 ## Instruction File Parameters
 
-All parameters are declared in `modules/ncinput.cpp`. Parameters with no
+All parameters are declared in `modules/daveinput.cpp`. Parameters with no
 default listed are required and must be set explicitly.
 
 ### Simulation resolution
@@ -39,75 +51,34 @@ default listed are required and must be set explicitly.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `file_met_forcing` | string | — | Path to CF-compliant NetCDF met forcing file |
-| `file_met_spinup` | string | *(same as forcing)* | Path to NetCDF met file used during spinup. If omitted, `file_met_forcing` is used for both spinup and simulation. |
+| `file_met_forcing` | string | — | Path or shell-glob pattern for CF-compliant NetCDF met forcing files |
+| `file_met_spinup` | string | *(same as forcing)* | Path or shell-glob pattern for NetCDF met data used during spinup. If omitted, `file_met_forcing` is used for both spinup and simulation. |
 | `file_gridlist` | string | — | Path to gridlist file (one `lon lat` pair per line) |
 | `file_soildata` | string | — | Path to soil input file |
-| `file_ndep` | string | — | Path to nitrogen deposition archive file. Not required if `variable_ndep_nhx`/`variable_ndep_noy` are set. |
-| `file_co2` | string | — | Path to annual CO₂ text file (format: `year ppm`, one row per year). Required if `variable_co2` is not set. |
+| `file_ndep` | string | — | Path to nitrogen deposition archive file (used when N deposition is not read from NetCDF variables) |
+| `file_co2` | string | — | Path to annual CO₂ text file (format: `year ppm`, one row per year). Used when CO₂ is not read from NetCDF |
 | `file_thome` | string | — | Path to mean maximum temperature ($T_{home}$) input file. Required when `iftempacclimation` is enabled. |
 
-### NetCDF variable names
+### Humidity method
 
-The module does not assume fixed variable names — each must be declared
-explicitly to match your NetCDF file.
-
-**Coordinate variables (required):**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `variable_lon` | string | Name of the longitude variable |
-| `variable_lat` | string | Name of the latitude variable |
-| `variable_time` | string | Name of the time variable |
-
-**Meteorological variables (required):**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `variable_temp` | string | Mean air temperature (°C) |
-| `variable_insol` | string | Downwelling shortwave radiation (W m⁻²) |
-| `variable_precip` | string | Precipitation (mm or kg m⁻² s⁻¹) |
-
-**Meteorological variables (optional):**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `variable_wind` | string | Wind speed (m s⁻¹) |
-| `variable_tmax` | string | Daily maximum air temperature (°C) |
-| `variable_tmin` | string | Daily minimum air temperature (°C) |
-
-### Humidity (one required)
-
-Provide one of the following:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `variable_vpd` | string | Vapour pressure deficit (kPa) |
-| `variable_rh` | string | Relative humidity (dimensionless, 0–1) |
-
-If `variable_rh` is used, also specify the saturation vapour pressure method:
+If humidity is provided as relative humidity (rather than direct VPD), specify
+the saturation vapour pressure method:
 
 | Parameter | Type | Options | Description |
 |-----------|------|---------|-------------|
 | `esat_method` | string | `sonntag_1990`, `alduchov_1996`, `allen_1998` | Method for computing saturation vapour pressure from temperature |
 
-### Atmospheric pressure (one required)
-
-Provide one of the following:
+### Atmospheric pressure
 
 | Parameter | Type | Range | Description |
 |-----------|------|-------|-------------|
-| `variable_ps` | string | — | Name of the surface pressure variable in the NetCDF file (Pa) |
 | `fixed_pressure` | float | 0–200000 | Fixed constant atmospheric pressure to use (Pa). Default: 0 (disabled). |
 
-### CO₂ concentration (one required)
-
-Provide one of the following:
+### CO₂ concentration
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `variable_co2` | string | Name of the CO₂ variable in the NetCDF file (ppm) |
-| `file_co2` | string | Path to a text file of annual CO₂ values (see above) |
+| `file_co2` | string | Path to a text file of annual CO₂ values (see above). If omitted, CO₂ may be read from NetCDF where present. |
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -118,8 +89,6 @@ Provide one of the following:
 | Parameter | Type | Options | Description |
 |-----------|------|---------|-------------|
 | `ndep_scenario` | string | `HISTORIC`, `RCP26`, `RCP45`, `RCP60`, `RCP85` | Scenario for the nitrogen deposition archive (`file_ndep`) |
-| `variable_ndep_nhx` | string | — | Name of NHx deposition variable in the NetCDF file (alternative to `file_ndep`) |
-| `variable_ndep_noy` | string | — | Name of NOy deposition variable in the NetCDF file (alternative to `file_ndep`) |
 
 ### Spinup
 
@@ -148,6 +117,65 @@ Useful for sensitivity experiments.
 | `strict_math` | bool | — | Treat invalid floating-point operations (e.g. division by zero) as fatal errors |
 
 ---
+
+## NetCDF Variable Discovery and Metadata Requirements
+
+`NCInput` discovers variables from NetCDF metadata. For each variable it uses,
+the NetCDF variable must include:
+
+- `standard_name`
+- `units`
+
+Variables without both attributes are ignored by the resolver.
+
+### Required coordinate metadata
+
+Coordinate variables must be discoverable with these `standard_name` values:
+
+- `longitude`
+- `latitude`
+- `time`
+
+The `time` coordinate must also include CF-compatible `units` (for example
+`days since 1850-01-01`) and `calendar`.
+
+### Climate variables and accepted `standard_name` values
+
+The table below lists the names currently recognised by DAVE climate input.
+
+| Input quantity | `standard_name` values |
+|---|---|
+| Air temperature (required) | `air_temperature` |
+| Shortwave radiation (required) | `surface_downwelling_shortwave_flux_in_air`, `surface_downwelling_shortwave_flux` |
+| Precipitation (required) | `thickness_of_rainfall_amount`, `precipitation_amount`, `precipitation_flux` |
+| Humidity (one required source) | VPD: `water_vapor_saturation_deficit_in_air` or `water_vapor_saturation_deficit`; OR relative humidity: `relative_humidity`; OR specific humidity: `specific_humidity` |
+| Surface pressure (required unless `fixed_pressure` > 0) | `surface_air_pressure` |
+| CO₂ (required if `file_co2` not provided) | `mole_fraction_of_carbon_dioxide_in_air` |
+| Wind speed (required when BLAZE is enabled) | `wind_speed` |
+| Daily Tmax/Tmin (required for daily forcing with BLAZE) | `maximum_air_temperature`, `minimum_air_temperature` |
+| NetCDF N deposition (optional alternative to archive input) | `ndep_nhx`, `ndep_noy` |
+
+### Units
+
+Units are validated when climate variables are opened. In practice, datasets
+should use these units:
+
+- Temperature: `degC` / `°C` / `℃`
+- Shortwave radiation: `W/m2` or `W m-2`
+- Precipitation: `mm`, `kg m-2`, or `kg/m2`
+- VPD: `kPa`
+- Relative humidity: `1`
+- Specific humidity: `1` or `kg/kg`
+- Pressure: `Pa`
+- CO₂: `ppm`
+- Wind speed: `m/s` or `m s-1`
+- NetCDF N deposition: `kgN/m2/day`
+
+### Uniqueness rule
+
+Within a resolved input set, each required `standard_name` must map to a
+single variable. Ambiguous duplicates for the same `standard_name` are treated
+as an error.
 
 ## Spinup Climate Cycling
 
@@ -216,33 +244,22 @@ forcing file at the start of the transient simulation.
 
 ---
 
-## Per-variable Input Files
+## Multi-file Input Paths
 
-By default all meteorological variables are read from the single file given
-by `file_met_forcing`. If your dataset stores each variable in a separate
-file, you can use a **printf-style `%s` placeholder** in the path — the
-module will substitute the variable name for `%s` when opening each
-variable's file.
+`file_met_forcing` and `file_met_spinup` accept either:
 
-For example, if temperature is in `Tair.nc`, radiation in `SWdown.nc`, and
-so on, each in the same directory:
+- a single NetCDF path, or
+- a shell-glob pattern (`*` and `?`) that resolves to multiple NetCDF files.
+
+Examples:
 
 ```
-file_met_forcing "/data/barra2/%s.nc"
-
-variable_temp    "Tair"     ! opens /data/barra2/Tair.nc
-variable_insol   "SWdown"   ! opens /data/barra2/SWdown.nc
-variable_precip  "Precip"   ! opens /data/barra2/Precip.nc
-variable_vpd     "VPD"      ! opens /data/barra2/VPD.nc
-variable_ps      "PSurf"    ! opens /data/barra2/PSurf.nc
+file_met_forcing "/data/barra2/forcing_*.nc"
+file_met_spinup  "/data/barra2/spinup_19??.nc"
 ```
 
-The substitution is applied to every variable, so all variable-specific
-files must follow the same naming convention. The path may include
-subdirectories as well as a filename suffix around the `%s`.
-
-If the path does not contain `%s`, the same file is used for all variables;
-this is the normal case for self-contained CF-compliant archives.
+Matched files are sorted and then scanned for variables using metadata
+resolution (`standard_name` + `units`).
 
 ---
 
@@ -252,12 +269,11 @@ Input files must follow **CF Conventions 1.6**:
 
 - A `time` coordinate variable with `units` (e.g. `"days since 1850-01-01"`)
   and `calendar` attributes.
-- Longitude and latitude coordinates identifiable via `standard_name`,
-  `axis`, or CF auxiliary coordinates.
+- Coordinate variables with `standard_name` values `longitude`, `latitude`,
+  and `time`.
 - `scale_factor` / `add_offset` and `missing_value` attributes are not
   supported.
 
-The input timestep must be greater than or equal to `nsteps_day` and must
-divide evenly into it. For example, if the forcing file is 3-hourly (8
-steps/day) and the simulation requests 48 steps/day, the module will
-interpolate accordingly.
+The input timestep (steps/day in the forcing files) must be greater than or
+equal to `nsteps_day` and must be an integer multiple of `nsteps_day`. For
+example, 48 input steps/day can be aggregated to 24 requested steps/day.

@@ -1381,13 +1381,13 @@ gs to transpiration
 | $b_c$ | Leaf respiration coefficient | \- | 0.025 | Huntingford et al. (2017) |
 | $f_{cyc}$ | Fraction of cyclic electron transport | \- | 0.3 | Yin and Struik (2012) |
 | $g_{bs}$ | Bundle sheath conductance to $\text{CO}_2$ | $\text{mol m}^{-2}\ \text{s}^{-1}$ | 0.003 | von Caemmerer (2021) |
-| $K_p$ | Michaelis-Menten constant of PEP carboxylase for $\text{CO}_2$ | $\text{mol mol}^{-1}$ | $80e_{-3}$ | von Caemmerer (2021) |
+| $K_p$ | Michaelis-Menten constant of PEP carboxylase for $\text{CO}_2$ | $\text{mol mol}^{-1}$ | $115 \times 10^{-6}$ | von Caemmerer (2021) |
 | $R_d$ | Leaf mitochondrial respiration | $\text{mol m}^{-2}\ \text{s}^{-1}$ |  |  |
-| $R_m$ | Leaf mitochondrial respiration in the mesophyll cell | $\text{mol m}^{-2}\ \text{s}^{-1}$ | 0.5 \* $R_d$ |  |
+| $R_m$ | Leaf mitochondrial respiration in the mesophyll cell | $\text{mol m}^{-2}\ \text{s}^{-1}$ | $0.5 \times R_d$ |  |
 | $V_{cmax}$ | Maximum rubisco carboxylation rate | $\text{mol m}^{-2}\ \text{s}^{-1}$ |  |  |
 | $V_{pmax}$ | Maximum PEP carboxylation rate | $\text{mol m}^{-2}\ \text{s}^{-1}$ |  |  |
 | $V_{pr}$ | PEP regeneration rate | $\text{mol m}^{-2}\ \text{s}^{-1}$ |  |  |
-| $x$ | Partitioning factor of electron transport rate | \- | 0.4 | von Caemmerer (2021) |
+| $x$ | Partitioning factor of electron transport rate | \- | $0.4$ | von Caemmerer (2021) |
 
   : Table A1: Parameters in the photosynthesis and stomatal conductance
   model.

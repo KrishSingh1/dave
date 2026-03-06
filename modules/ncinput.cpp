@@ -589,7 +589,7 @@ std::vector<double> NCInput::get_ps(const ResolvedPlan &plan, int year, int day)
         return ps->read(lon, lat, year, day, 1);
     }
 
-    std::vector<double> pressure(options.nsteps_day);
+    std::vector<double> pressure(tas->get_day_length());
     for (size_t i = 0; i < pressure.size(); i++) {
         pressure[i] = options.constant_ps;
     }

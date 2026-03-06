@@ -33,8 +33,10 @@ How to configure and run simulations:
 
 ## Contributing
 
-How to add and edit documentation:
+How to contribute code and documentation:
 
+- [Contributing Code (Workflow)](contributing-code.md)
+- [Migrating from Upstream Repo](migrate-from-upstream-repo.md)
 - [Contributing to the Documentation](contributing-docs.md)
 - [Writing Equations](markdown-math.md)
 - [Version Control via SourceTree](sourcetree.md)

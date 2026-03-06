@@ -560,13 +560,13 @@ std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day
     std::vector<double> temp_values = tas->read(lon, lat, year, day, 1);
 
     // TODO: should look into ways to vectorise this.
-    std::vector<double> vpds(options.nsteps_day);
+    std::vector<double> vpds(temp_values.size());
 
     if (plan.vpd_mode == VpdMode::FromSH) {
         // Estimate VPD from specific humidity.
         std::vector<double> sh_values = sh->read(lon, lat, year, day, 1);
         std::vector<double> ps_values = get_ps(plan, year, day);
-        for (size_t i = 0; i < options.nsteps_day; i++) {
+        for (size_t i = 0; i < temp_values.size(); i++) {
             vpds[i] = sh_to_vpd(sh_values[i], temp_values[i], ps_values[i], options.esat_method);
         }
         return vpds;
@@ -575,7 +575,7 @@ std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day
     if (plan.vpd_mode == VpdMode::FromRH) {
         // Estimate VPD from relative humidity.
         std::vector<double> rh_values = rh->read(lon, lat, year, day, 1);
-        for (size_t i = 0; i < options.nsteps_day; i++) {
+        for (size_t i = 0; i < temp_values.size(); i++) {
             vpds[i] = rh_to_vpd(rh_values[i], temp_values[i], options.esat_method);
         }
         return vpds;

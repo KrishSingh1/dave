@@ -170,12 +170,15 @@ void DaveInput::init(void) {
 		options.file_met_forcing = file_met_forcing;
 		options.file_met_spinup = file_met_spinup;
 		options.nsteps_day = nsteps_day;
-		options.nc_check_inputs = nc_check_inputs;
 		options.cache_strategy = (CacheStrategy)cache_strategy;
+		options.nc_check_inputs = nc_check_inputs;
+		options.blaze_enabled = firemodel == BLAZE;
 		options.allow_fixed_pressure = fixed_pressure > 0;
-		options.constant_ps = fixed_pressure;
 		options.allow_netcdf_co2 = file_co2 == "";
 		options.allow_netcdf_ndep = !use_lamarque;
+		options.constant_ps = fixed_pressure;
+		options.use_mean_annual_co2 = use_mean_annual_co2;
+		options.esat_method = esat_method;
 		ncinput.init(options);
 
 		if (!options.allow_netcdf_co2) {

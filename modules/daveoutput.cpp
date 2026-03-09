@@ -351,7 +351,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_height"                   , DAILY, "height", [](const Individual &i) { return i.height; }, "Cohort-level Height (m)");
 	add_indiv_output("file_dave_indiv_crownarea"                , DAILY, "crownarea", [](const Individual &i) { return i.crownarea; }, "crownarea (m2)");
 	add_indiv_output("file_dave_indiv_fpc"                      , DAILY, "fpc", [](const Individual &i) { return i.fpc; }, "Cohort-level FPC (-)");
-	add_indiv_output("file_dave_indiv_fpar"                     , DAILY, "fpar", [](const Individual &i) { return i.fpc; }, "Cohort-level fpar (-)");
+	add_indiv_output("file_dave_indiv_fpar"                     , DAILY, "fpar", [](const Individual &i) { return i.fpar; }, "Cohort-level fpar (-)");
 	add_indiv_output("file_dave_indiv_density"                  , DAILY, "density", [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
 	add_indiv_output("file_dave_indiv_alpha_sap"                , DAILY, "alpha_sap", [](const Individual &i) { return i.alpha_sap; }, "proportion allocated to sapwood (unitless)");
 	add_indiv_output("file_dave_indiv_alpha_leaf"               , DAILY, "alpha_leaf", [](const Individual &i) { return i.alpha_leaf; }, "proportion allocated to leaf (unitless)");

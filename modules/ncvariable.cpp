@@ -92,39 +92,39 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 	}
 }
 
-NCVariable::NCVariable(int file_id, xtring name, xtring lon_name
-, xtring lat_name, xtring time_name
-, CacheStrategy chunk_mode, bool sensibility_checks, bounds b
-, std::vector<xtring> units, bool force_legal_units) {
+NCVariable::NCVariable(int file_id, xtring name, CacheStrategy chunk_mode,
+				       bool sensibility_checks, bounds bounds,
+					   std::vector<xtring> units, bool force_legal_units) {
 	try {
 		id_file = file_id;
 		var_name = name;
 		cache_strategy = chunk_mode;
 		id_var = get_variable_id(name);
 		check_bounds = sensibility_checks;
-		limits = b;
+		limits = bounds;
 
 		ndim = get_num_dimensions(id_var);
 
 		// Get dimensions of this variable.
+		// TODO: this coordinate dimension discovery is not ideal.
+		// - It's not the job of NCVariable to do this
+		// - Duplicates logic from NCInventory
+		// - If multiple data variables are in the same file, work is duplicated
 		std::vector<int> dimensions(ndim);
 		int status = nc_inq_vardimid(id_file, id_var, &(dimensions.front()));
 		GuessNC::handle_error(status, "Failed to get dimensions");
 
 		// Get longitude variable ID.
-		id_lon = get_variable_id(lon_name);
-		check_num_dims(id_lon, 1);
-		int id_lon_dim = get_dimension_id(lon_name);
+		int id_lon_dim;
+		find_coordinate("longitude", id_lon, id_lon_dim, dimensions);
 
 		// Get latitude variable ID.
-		id_lat = get_variable_id(lat_name);
-		check_num_dims(id_lat, 1);
-		int id_lat_dim = get_dimension_id(lat_name);
+		int id_lat_dim;
+		find_coordinate("latitude", id_lat, id_lat_dim, dimensions);
 
 		// Get time variable ID.
-		id_time = get_variable_id(time_name);
-		int id_time_dim = get_dimension_id(time_name);
-		check_num_dims(id_time, 1);
+		int id_time_dim;
+		find_coordinate("time", id_time, id_time_dim, dimensions);
 
 		// Check total number of timesteps. This will be useful later.
 		ntime = get_dimension_length(id_time_dim);
@@ -672,6 +672,50 @@ void NCVariable::validate_time_axis() const {
 		}
 		prev_tp = tp;
 	}
+}
+
+void NCVariable::find_coordinate(const char *expected, int &id_var,
+								 int &id_dim,
+								 const std::vector<int> &dimids) const {
+	std::string expected_name(expected);
+	int nvars = GuessNC::get_nvars(id_file);
+
+	for (int i = 0; i < nvars; i++) {
+		std::string std_name;
+		GuessNC::get_attribute(id_file, i, "standard_name", std_name);
+
+		if (std_name != expected_name) {
+			continue;
+		}
+
+		// Ensure this variable has exactly one dimension. This allows us to
+		// safely pass a single integer into nc_inq_vardimid() and also
+		// guarantees that we're using a rectilinear grid (the only kind of grid
+		// we explicitly support).
+		int ndim;
+		int status = nc_inq_varndims(id_file, i, &ndim);
+		GuessNC::handle_error(status,
+			"Failed to get number of dimensions for coordinate variable");
+		if (ndim != 1) {
+			// TODO: write log message. The user has supplied a file with a 2D
+			// coordinate variable, probably by mistake.
+			continue;
+		}
+
+		id_var = i;
+		status = nc_inq_vardimid(id_file, id_var, &id_dim);
+		GuessNC::handle_error(status,
+			"Failed to get dimension ID for coordinate variable");
+
+		// Check if the dimension ID is in the list of expected dimension IDs.
+		if (std::find(dimids.begin(), dimids.end(), id_dim) != dimids.end()) {
+			return;
+		}
+	}
+	xtring msg;
+	msg.printf("1D Coordinate variable with standard name '%s' not found",
+			   expected_name.c_str());
+	throw std::runtime_error((const char *)msg);
 }
 
 #endif

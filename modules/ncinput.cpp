@@ -52,20 +52,10 @@ void open_file(const ResolvedPlan &plan, Variable var,
     // 3. We are double-parsing (this parsing has already occurred).
     // Need to refactor this requirement out of the NCVariable contructor.
     const VariableInfo &var_info = it->second;
-    NCInventory inventory({var_info.file});
-    const char *STD_LON = "longitude";
-    const char *STD_LAT = "latitude";
-    const char *STD_TIME = "time";
-    std::string dim_lon = inventory.get_variable_name(STD_LON).name;
-    std::string dim_lat = inventory.get_variable_name(STD_LAT).name;
-    std::string dim_time = inventory.get_variable_name(STD_TIME).name;
-
     nc_id = GuessNC::open_ncdf(var_info.file.c_str());
     variable = std::make_unique<NCVariable>(nc_id, var_info.name.c_str(),
-                                            dim_lon.c_str(), dim_lat.c_str(),
-                                            dim_time.c_str(), cache_strategy,
-                                            sensibility_checks, limits, units,
-                                            true);
+                                            cache_strategy, sensibility_checks,
+                                            limits, units, true);
 }
 
 NCInput::NCInput() {
@@ -122,7 +112,7 @@ void NCInput::init(const NCInputOptions &options) {
         int nc_tmp;
         std::unique_ptr<NCVariable> tmp;
         open_file(simulation_plan, Variable::Temp, CacheStrategy::Year, true,
-                  { -273.15, 1e4 }, {"K"}, nc_tmp, tmp);
+                  { -273.15, 1e4 }, {"degC", "degc", "°C", "℃"}, nc_tmp, tmp);
 
         // TODO: RAII.
         try {
@@ -239,7 +229,7 @@ void NCInput::open_files(const ResolvedPlan &plan) {
 
     // TODO: automatic unit conversion (where feasible).
 
-    std::vector<xtring> temp_units = {"degC", "°C", "℃"};
+    std::vector<xtring> temp_units = {"degC", "degc", "°C", "℃"};
     bounds temp_bounds = {-100, 100};
     open_file(plan, Variable::Temp, options.cache_strategy,
               options.nc_check_inputs, temp_bounds, temp_units, nc_tas, tas);

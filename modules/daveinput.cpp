@@ -385,9 +385,11 @@ try {
 	return true;
 } catch (const std::exception& e) {
 	if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
-		fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
-		if (current_gridcell->description != "") {
-			fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
+		fprintf(stderr, "Failed to read data for gridcell (%f, %f)",
+				gridcell.get_lon(), gridcell.get_lat());
+		auto prev_gridcell = current_gridcell - 1;
+		if (prev_gridcell >= gridlist.begin() && prev_gridcell->description != "") {
+			fprintf(stderr, " (%s)", (const char *)prev_gridcell->description);
 		}
 		fprintf(stderr, "\n");
 	}

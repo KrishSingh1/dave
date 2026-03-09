@@ -114,7 +114,7 @@ std::string get_variable_name(int ncid_file, int ncid_var) {
 	int status = nc_inq_varname(ncid_file, ncid_var, name);
 	handle_error(status, "Failed to get name of a variable");
 
-	return name;
+	return std::string(name);
 }
 
 int get_nvars(int ncid_file) {

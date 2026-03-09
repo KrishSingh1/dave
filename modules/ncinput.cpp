@@ -72,10 +72,10 @@ NCInput::NCInput() {
     nc_tmax = -1;
     nc_tmin = -1;
     nc_ws = -1;
+    open_dataset = Dataset::None;
 }
 
 void NCInput::init(const NCInputOptions &options) {
-    double init_start = get_wall_time();
     this->options = options;
 
     std::string file_met_spinup = options.file_met_spinup.empty() ?
@@ -86,7 +86,7 @@ void NCInput::init(const NCInputOptions &options) {
     simulation_plan = get_forcing_plan(options.file_met_forcing, options);
 
     separate_spinup = file_met_spinup != options.file_met_forcing;
-    open_files(spinup_plan);
+    open_files(spinup_plan, Dataset::Spinup);
 
     // Ensure that input timestep is an integer multiple of simulation
     // timestep. Note that if using a separate .nc file for spinup and
@@ -178,25 +178,13 @@ NCInput::~NCInput() {
 }
 
 void NCInput::begin_gridcell(double lon, double lat) {
-    bool first_gridcell = this->lon == 0 && this->lat == 0;
-
     this->lon = lon;
     this->lat = lat;
 
-    // Revert to spinup dataset when necessary:
-    // 1. Using a separate file for spinup, and...
-    // 2. Not the first gridcell (ie we've already run the main simulation for
-    //    the previous gridcell, and that dataset is still open right now).
-    if (separate_spinup && !first_gridcell) {
-        open_files(spinup_plan);
+    // Revert to spinup dataset when necessary.
+    if (separate_spinup && open_dataset != Dataset::Spinup) {
+        open_files(spinup_plan, Dataset::Spinup);
     }
-
-    // Ensure that input timestep is an integer multiple of simulation
-    // timestep. Note that if using a separate .nc file for spinup and
-    // simulation, the timestep may be different between the two files. In
-    // this case, we use the input timestep for the spinup, and then use
-    // the nsteps_day timestep for the simulation.
-    int input_timestep = tas->get_day_length();
 }
 
 void close_if_open(int &nc_id, std::unique_ptr<NCVariable> &variable) {
@@ -221,9 +209,10 @@ void NCInput::close() {
     close_if_open(nc_ps, ps);
     close_if_open(nc_nhx, nhx);
     close_if_open(nc_noy, noy);
+    open_dataset = Dataset::None;
 }
 
-void NCInput::open_files(const ResolvedPlan &plan) {
+void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
     // If files aren't already open, this will do nothing.
     close();
 
@@ -295,6 +284,8 @@ void NCInput::open_files(const ResolvedPlan &plan) {
         open_file(plan, Variable::Ps, options.cache_strategy, options.nc_check_inputs,
                   bounds_ps, ps_units, nc_ps, ps);
     }
+
+    open_dataset = dataset;
 }
 
 bool NCInput::read_day(int year, int day, Climate &climate) {
@@ -331,7 +322,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 
     if (day == 0 && date.get_calendar_year() == first_timestep.year && separate_spinup) {
         // Open the NetCDF files used for the main simulation.
-        open_files(simulation_plan);
+        open_files(simulation_plan, Dataset::Main);
 
         // Update the cliamte insoltype (as it could have changed).
         set_insoltype(climate);

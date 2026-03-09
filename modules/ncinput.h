@@ -144,14 +144,24 @@ private:
     void close();
 
     /*
+    The different datasets that can be used in the simulation.
+    */
+    enum class Dataset {
+        Spinup,
+        Main,
+        None
+    };
+
+    /*
     Open all files required by the given input plan, store the file IDs in the
     nc_* members, and store the variable objects in the corresponding NCVariable
     members.
 
     @param plan The input management plan specifying which variables are
                 required and how to obtain them.
+    @param dataset The dataset encapsulated by the plan.
     */
-    void open_files(const ResolvedPlan &plan);
+    void open_files(const ResolvedPlan &plan, Dataset dataset);
 
     /*
     Verify that the given timestep is valid for the simulation configuration.
@@ -477,6 +487,11 @@ private:
 	Daily NO3 deposition data for the current year.
 	*/
 	double no3_dep[Date::MAX_YEAR_LENGTH];
+
+    /*
+    The currently-open dataset.
+    */
+    Dataset open_dataset;
 };
 
 #endif // HAVE_NETCDF

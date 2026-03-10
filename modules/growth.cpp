@@ -1541,17 +1541,11 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	double cmass_bark = indiv.cmass_heart * indiv.pft.bark_frac;
-	double cmass_leaf = indiv.get_cmass_leaf();
-	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
-	double cmass_wood = indiv.cmass_sap - cmass_twig;
 
-	double nsc_bark = cmass_bark * indiv.pft.max_bark_nsc_conc;
-	double nsc_leaf = cmass_leaf * indiv.pft.max_leaf_nsc_conc;
-	double nsc_twig = cmass_twig * indiv.pft.max_twig_nsc_conc;
-	double nsc_wood = cmass_wood * indiv.pft.max_wood_nsc_conc;
+	double nsc_leaf = indiv.get_cmass_leaf() * indiv.pft.max_leaf_nsc_conc;
+	double nsc_wood = indiv.cmass_sap * indiv.pft.max_wood_nsc_conc;
 
-	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
+	return nsc_leaf + nsc_wood;
 }
 
 // Capacity of C storage (kg C m-2)
@@ -3837,7 +3831,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
     if (ifdailycstarvmort && (storage_state < THIN_THRESHOLD)) {
 	// start thinning
         if (indiv.densindiv > KILL_THRESHOLD) {
-            printf("%04d-%2d-%02d indiv %d (%s): densindiv and biomass loss due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+            // printf("%04d-%2d-%02d indiv %d (%s): densindiv and biomass loss due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
 			indiv.ctolitter += pmort_cstarve * (indiv.get_cmass_leaf() + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_heart + indiv.cmass_repr);
 			indiv.ntolitter += pmort_cstarve * (indiv.get_nmass_leaf() + indiv.nmass_sap + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_heart + indiv.nmass_repr);
 			// report carbon starvation mortality
@@ -3850,7 +3844,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			// indiv.cstarvmort = cmass_before - cmass_after;4 4
         } else {
 			// kill individual
-            printf("%04d-%02d-%02d indiv %d (%s): complete mortality due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+            printf(" %04d-%02d-%02d indiv %d (%s): complete mortality due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
             indiv.kill();
             indiv.vegetation.killobj();
 			return false;
@@ -4509,10 +4503,6 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 
 	// Remaining carbon available for growth (kgC/m2).
 	double cgrow = indiv.cgrow - indiv.cgrow_repr;
-
-	if (indiv.cmass_sap > 0.9) {
-		printf("\r");
-	}
 
 	// Sapwood target (to grow at least the turnover of N days) (kgC/m^2). This
 	// drives the growth of sapwood AND the leaves (in the next day). TODO: to

@@ -107,17 +107,11 @@ group "tree" (
 
 	! 95% percentile NSC concentrations from eucface.
 
-	! Maximum NSC concentration in dead bark.
-	max_bark_nsc_conc  0.203
-
 	! Maximum NSC concentration in leaves.
 	max_leaf_nsc_conc  0.243
 
-	! Maximum NSC concentration in twigs.
-	max_twig_nsc_conc  0.0688
-
 	! Maximum NSC concentration in wood.
-	max_wood_nsc_conc  0.0797
+	max_wood_nsc_conc  0.0797 
 
 	! Fraction of dead woody biomass that is bark. Plucked out of thin air.
 	bark_frac  0.01
@@ -622,7 +616,7 @@ pft "MRS" (
 
 	! Medium Resprouter
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	extreme_shade_intolerant
@@ -673,9 +667,11 @@ pft "MRS" (
 	!vcmax_25 40.5
 	!root_beta 0.97
 
+	max_wood_nsc_conc 0.0797 ! defulat eucface 0.0797
+	max_leaf_nsc_conc 0.243 ! defualt eucface 0.243
 
 	! Default stom_clos is -1.5
-	!stom_clos -3.2   ! Peters (2021)
+	stom_clos -3.2   ! Peters (2021)
 	! default g1x is 2
 	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9 
 
@@ -779,6 +775,9 @@ pft "SRS" (
 	g1x 2.2 ! Austraits?
 	!b1z 2
 	root_beta 0.988
+
+	max_wood_nsc_conc 0.0797 ! defulat eucface 0.0797
+	max_leaf_nsc_conc 0.243 ! defualt eucface 0.243
 )
 
 
@@ -786,7 +785,7 @@ pft "TRS" (
 
 	! Tall Resprouter Sclerophyll
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -837,6 +836,9 @@ pft "TRS" (
 	g1x 4.1 ! Bloomfield for "Warra"
 	b1z .5
 	root_beta 0.96
+
+	max_wood_nsc_conc 0.0797 ! defulat eucface 0.0797
+	max_leaf_nsc_conc 0.243 ! defualt eucface 0.243
 )
 
 

@@ -2239,14 +2239,8 @@ public:
 	/// (Johnson & Thornley 1983).
 	double temp_senesc2;
 
-	// Maximum NSC concentration in dead bark.
-	double max_bark_nsc_conc;
-
 	// Maximum NSC concentration in leaves.
 	double max_leaf_nsc_conc;
-
-	// Maximum NSC concentration in twigs.
-	double max_twig_nsc_conc;
 
 	// Maximum NSC concentration in wood.
 	double max_wood_nsc_conc;

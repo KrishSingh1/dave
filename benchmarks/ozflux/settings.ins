@@ -36,8 +36,8 @@ ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage
 ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
 
 ! Soil Data
-! file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
-file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
+file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
+! file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
 
 ! Simfire Data
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
@@ -182,7 +182,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                1
+spinup_output               0
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -219,7 +219,7 @@ patcharea    1000       ! Patch area (m2)
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "root_resistance"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
                          ! see documentation for water_uptake()
-rootdistribution "fixed"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -232,14 +232,14 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
-disttype     "NONE"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
+ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
+disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances
                         ! Only used if disttype = "STOCHASTIC"
                         ! Hickler et al. (2011) used 200
 
-!file_disturb ""        ! Path to a plaintext file containing years in which
+file_disturb "../disturbances.txt"        ! Path to a plaintext file containing years in which
                         ! disturbances should occur, one value per line.
                         ! Only used if disttype = "DETERMINISTIC"
                         ! It may be more useful to include this in the site-

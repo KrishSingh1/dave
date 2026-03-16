@@ -1,0 +1,10 @@
+picture img.dave-logo {
+	max-width: 220px;
+	height: auto;
+    float: left;
+    margin: 0px 10px 10px 0px;
+}
+
+#what-youll-find-here {
+    clear: both;
+}

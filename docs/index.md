@@ -1,5 +1,10 @@
 # LPJ-GUESS DAVE
 
+<picture>
+	<source media="(prefers-color-scheme: dark)" srcset="img/dave-dark.png">
+	<img class="dave-logo" src="img/dave-light.png" alt="DAVE logo">
+</picture>
+
 DAVE (**D**ynamics of **A**ustralian **VE**getation) is a fork of LPJ-GUESS, a dynamic global vegetation model (DGVM), used for simulating Australian ecosystems.
 
 This documentation site is the central reference for running, developing, and understanding the DAVE fork.

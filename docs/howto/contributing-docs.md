@@ -2,6 +2,22 @@
 
 This page explains how to add or update pages on this documentation site.
 
+## Background
+
+The documentation source files are part of the main LPJ-GUESS-DAVE repository
+(the same repository as the model code), not a separate documentation repo.
+All documentation changes should therefore be made and reviewed through normal
+branch + Merge Request workflows in this repository.
+
+The docs are organised under `docs/` and rendered with MkDocs using
+`mkdocs.yml` at the repository root:
+
+- `docs/index.md` is the documentation homepage
+- `docs/howto/` contains practical how-to guides
+- `docs/development/` contains developer-facing and architecture material
+- `docs/science/` contains science and model-method documentation
+- `mkdocs.yml` defines the site navigation and page hierarchy
+
 ## Overview of the Workflow
 
 1. Write or edit a Markdown file under `docs/`

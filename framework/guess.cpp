@@ -2757,7 +2757,6 @@ Gridcell::Gridcell():climate(*this) {
 	nesterov_cur = 0.;
 
 	// Initialise BLAZE variables
-	seed = 12345678;
 
 	distinterval_gc = 1.0e10;
 	for (int i=0;i<12;i++) {
@@ -2767,6 +2766,9 @@ Gridcell::Gridcell():climate(*this) {
 	}
 	burned_area = 0.0;
 	simfire_region = 0;
+
+	seed = 12345678;
+
 }
 
 double Gridcell::get_lon() const {

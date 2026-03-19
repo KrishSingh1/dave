@@ -42,16 +42,7 @@
 #include "config.h"
 #include "weathergen.h"
 #include <limits>
-
-const double DHUGE     = std::numeric_limits<double>::max();
-const long LHUGE       = std::numeric_limits<long>::max()  ;
-const int IHUGE	       = std::numeric_limits<int>::max()   ;
-const double D_EPSILON = std::numeric_limits<double>::min();
-const float R_EPSILON  = std::numeric_limits<float>::min() ;
-
-// Parameters used witin GWGEN
-// Freezing temperature of freshwater (K)
-const double TFREEZE = 273.15;      
+#include "guessmath.h"
 
 // -----------------------------------------------------------------------------
 // ------------------- Defaults for the namelist parameters --------------------
@@ -288,20 +279,6 @@ void matrixmult(double AA[4][4], double B[4], double CC[4]) {
 		} 
 		CC[j] = res; 
 	}
-}
-
-// Generate seed depending on geolocation
-unsigned int geohash(double lat, double lon) {
-	const double SCALE  = 120.0; // scale factor for geohash, the larger the number the more unique values
-	const double OFFSET = 0.5;   // offset to calculate pixel number assuming gridcell center coordinates
-	const unsigned int ROWLEN = (int)roundoff(SCALE * 360.,0);
-	
-	unsigned int i,j;
-	
-	i = (int)roundoff(OFFSET + SCALE * (lon + 180.),0);
-	j = (int)roundoff(OFFSET + SCALE * (lat +  90.),0);
-	unsigned int geohash = i + ROWLEN * ( j-1 ) - IHUGE;
-	return geohash;
 }
 
 // Set the seed for the random distribution

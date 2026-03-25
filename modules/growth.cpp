@@ -335,11 +335,11 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 		wscal_min = pft.wscal_min;
 	}
 
-	Historic<double,10>& wscal_10 = indiv.get_wscal_10();
+	const Historic<double,10> &wscal_10 = indiv.get_wscal_10();
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double wscal_mean = indiv.wscal_dynamic.size() > 0 ? indiv.wscal_dynamic.mean() : 1.0;
+	double wscal_mean = indiv.get_wscal_moving_average();
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
@@ -434,13 +434,13 @@ void adjust_response_window(Individual &indiv) {
 		const size_t MAX_CHANGE_RATE = 1;
 
 		size_t response_window_new = get_response_window(nday_dormant);
-		size_t response_window_old = indiv.wscal_dynamic.get_capacity();
+		size_t response_window_old = indiv.get_wscal_dynamic_capacity();
 
 		// Move toward the new response window length by at most change_rate.
 		double response_window = move_toward(response_window_old, response_window_new, MAX_CHANGE_RATE);
 		assert(response_window > 0);
 
-		indiv.wscal_dynamic.set_capacity(response_window);
+		indiv.set_wscal_dynamic_capacity(response_window);
 		indiv.soiltemp_dynamic.set_capacity(response_window);
 
 		// Adjust root beta factor (and therefore root distribution) based on
@@ -453,6 +453,12 @@ void adjust_response_window(Individual &indiv) {
 }
 
 void dormant_days_accounting_dave(Vegetation &vegetation) {
+	// The dormant days tracker and response window are only required if the
+	// adaptive root distribution for grasses is enabled.
+	if (!ifadaptive_rootdist) {
+		return;
+	}
+
 	for (size_t i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
@@ -1535,32 +1541,15 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	// 95% percentile NSC concentrations from eucface.
-
-	// Maximum NSC concentration in dead bark.
-	const double BARK_NSC_CONC = 0.203;
-
-	// Maximum NSC concentration in leaves.
-	const double LEAF_NSC_CONC = 0.243;
-
-	// Maximum NSC concentration in twigs.
-	const double TWIG_NSC_CONC = 0.0688;
-
-	// Maximum NSC concentration in wood.
-	const double WOOD_NSC_CONC = 0.0797;
-
-	// Fraction of dead woody biomass that is bark. Plucked out of thin air.
-	const double BARK_FRAC = 0.01;
-
-	double cmass_bark = indiv.cmass_heart * BARK_FRAC;
+	double cmass_bark = indiv.cmass_heart * indiv.pft.bark_frac;
 	double cmass_leaf = indiv.get_cmass_leaf();
 	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
 	double cmass_wood = indiv.cmass_sap - cmass_twig;
 
-	double nsc_bark = cmass_bark * BARK_NSC_CONC;
-	double nsc_leaf = cmass_leaf * LEAF_NSC_CONC;
-	double nsc_twig = cmass_twig * TWIG_NSC_CONC;
-	double nsc_wood = cmass_wood * WOOD_NSC_CONC;
+	double nsc_bark = cmass_bark * indiv.pft.max_bark_nsc_conc;
+	double nsc_leaf = cmass_leaf * indiv.pft.max_leaf_nsc_conc;
+	double nsc_twig = cmass_twig * indiv.pft.max_twig_nsc_conc;
+	double nsc_wood = cmass_wood * indiv.pft.max_wood_nsc_conc;
 
 	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
 }
@@ -1958,7 +1947,10 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 			return csap;
 		}
 	}
-	fail("Failed to find a solution for csap");
+	xtring msg;
+	msg.printf("solve_csap(): Failed to find a solution for csap;\nbminit=%f, k_latosa=%f, k_allom2=%f, k_allom3=%f, wooddens=%f, sla=%f, init_storfrac=%f, ltor=%f",
+	           bminit, k, k2, k3, rho, sla, ks, ltor);
+	fail(msg);
 	return -1; // Can never reach here: fail() calls exit().
 }
 
@@ -2436,7 +2428,7 @@ void flush_litter_repr(Patch& patch) {
 // Set standpft-level reproductive cmass to 0 if this is the first patch.
 // This should be called once per year. Called from growth() iff dailygrass is
 // disabled. Called from growth_daily_grass() on 1st day of year iff davegrowth
-// is disabled. Called from growth_daily_grass_dave() on 1st day of year
+// is disabled. Called from growth_daily_dave() on 1st day of year
 // otherwise. Standpft-level reproductive cmass is used for tree establishment
 // when the spatial mass effect (ifsme) is enabled, so failure to reset this to
 // 0 results in absurdly large initial tree biomass at establishment. Resetting
@@ -3000,7 +2992,7 @@ void growth(Stand& stand, Patch& patch) {
  *  Daily grass growth follow the model of Johnson & Thornley (1983)
  */
 //
-void growth_daily_grass(Patch& patch) {
+void growth_daily_grass_warlind(Patch& patch) {
 
 	Stand& stand = patch.stand;
 
@@ -3197,6 +3189,7 @@ void growth_daily_grass(Patch& patch) {
 			if (ifnlim && date.year > freenyears) {
 				if (!negligible(indiv.get_cmass_leaf())) {
 					indiv.nscal_5.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
+					indiv.nscal_30.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
 				}
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
@@ -3518,7 +3511,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate growth demand
 	// ------------------------------
 	// Factors determining growth demand
-	fwater_growth = wscal_growth(ppft.wscal, wscal0, bgrowth);
+	fwater_growth = wscal_growth(indiv.get_wscal(), wscal0, bgrowth);
 	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
@@ -3706,7 +3699,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 	assert(ftemp <= 1);
 	assert(ftemp >= 0);
 	// water scalar for decoupling potosynthesis from growth (Fatichi et al 2014)
-	double fwater = wscal_growth_trees(indiv.patchpft().wscal_10.mean());
+	double fwater = wscal_growth_trees(indiv.get_wscal_10().mean());
 	// fwater = max(1.0, 0.5);
 	// double fwater = wscal_10.mean();
 	// daylength scalar (currently off)
@@ -4094,7 +4087,7 @@ double calculate_ltor_tree(Individual &indiv){
 	const double expon = -10;
 	const double ltor_min = 0.5 * pft.ltor_max;
 	// state of soil stress
-	double stress_state = min(ppft.wscal_5.mean(), indiv.nscal_5.mean());
+	double stress_state = min(indiv.get_wscal_5().mean(), indiv.nscal_5.mean());
 	// 
 	double ltor = ltor_min + ( (pft.ltor_max - ltor_min) / (1 + pow( (stress_state / mid_scal), expon) ) );
 	
@@ -4140,10 +4133,10 @@ void calculate_pool_age(Individual &indiv) {
 void rescale_alphas(Individual &indiv) {
 
 	//  sum of all the relative alphas so it will be used to calculate the alphas
-	double sum_relative_alphas = indiv.relative_alpha_leaf + indiv.relative_alpha_root + 
-						indiv.relative_alpha_sap;
+	double sum_relative_alphas = indiv.absolute_alpha_leaf + indiv.absolute_alpha_root + 
+						indiv.absolute_alpha_sap;
 	if (ifgrote) {
-		sum_relative_alphas += indiv.relative_alpha_storage;
+		sum_relative_alphas += indiv.absolute_alpha_storage;
 	}
 
 	// calculate the alpha for each pool relative to the alpha of the rest of the pools.
@@ -4156,11 +4149,11 @@ void rescale_alphas(Individual &indiv) {
 		// No need for protected divde here. If we refactor out the above check
 		// for a zero value in the denominator, we should reinstate the use of a
 		// protected division here.
-		indiv.alpha_leaf = indiv.relative_alpha_leaf / sum_relative_alphas;
-		indiv.alpha_root = indiv.relative_alpha_root / sum_relative_alphas;
-		indiv.alpha_sap = indiv.relative_alpha_sap / sum_relative_alphas;
+		indiv.alpha_leaf = indiv.absolute_alpha_leaf / sum_relative_alphas;
+		indiv.alpha_root = indiv.absolute_alpha_root / sum_relative_alphas;
+		indiv.alpha_sap = indiv.absolute_alpha_sap / sum_relative_alphas;
 		if (ifgrote) {
-			indiv.alpha_storage = indiv.relative_alpha_storage / sum_relative_alphas;
+			indiv.alpha_storage = indiv.absolute_alpha_storage / sum_relative_alphas;
 		}
 		assert(equal(1.0, indiv.alpha_leaf + indiv.alpha_root + indiv.alpha_sap + (ifgrote ? indiv.alpha_storage : 0)));
 	}
@@ -4221,7 +4214,7 @@ void carbon_allocation_tree_assaf(Individual &indiv) {
 	double alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(alpha_leaf_pot_expon * rel_par));
 	
 	// // !!!! TRYING A NEW APPROACH. LEAF ALLLOCATION IS RELATED TO LEAF WATER POTENTIAL (HIGHER - MORE ALLOCATION)
-	// alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(-2.0 * ppft.wscal_30.mean()));
+	// alpha_leaf_pot = alpha_leaf_pot_max * (1 - exp(-2.0 * indiv.get_wscal_30().mean()));
 	
 	// calculate the growth demand of leaves, depending on the *light conditions*
 	indiv.cmass_leaf_limit = indiv.cmass_leaf + alpha_leaf_pot * indiv.cgrow;
@@ -4260,23 +4253,23 @@ void carbon_allocation_tree_assaf(Individual &indiv) {
 	// Calculate the alpha factor (what proportion to allocate for each pool) according
 	// to the distance of actual C to it's target.
 	if (!is_zero(indiv.cmass_leaf_limit)) {
-		indiv.relative_alpha_leaf = divide(indiv.cmass_leaf_limit - indiv.cmass_leaf, indiv.cmass_leaf_limit);
+		indiv.absolute_alpha_leaf = divide(indiv.cmass_leaf_limit - indiv.cmass_leaf, indiv.cmass_leaf_limit);
 	}
 
 	if (!is_zero(indiv.cmass_root_limit)) {
-		indiv.relative_alpha_root = divide(indiv.cmass_root_limit - indiv.cmass_root, indiv.cmass_root_limit);
+		indiv.absolute_alpha_root = divide(indiv.cmass_root_limit - indiv.cmass_root, indiv.cmass_root_limit);
 	}
 	
 	double relative_alpha_sap_temp = 0;
 	if (!is_zero(indiv.cmass_sap_limit)) {
-		indiv.relative_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);	
+		indiv.absolute_alpha_sap = divide(indiv.cmass_sap_limit - indiv.cmass_sap, indiv.cmass_sap_limit);	
 	}
 
 	// To prevent allocation to reproduction if the tree is stressed (lower priority.),
 	// 1. calculate the mean of the alphas or leaf, root and sapwood, that will 
 	// be used ased as a threshold for allocating to reproduction. 
 	// double mean_relative_alphas = (relative_alpha_leaf + relative_alpha_root + relative_alpha_sap + relative_alpha_storage) / 4.0;
-	double mean_relative_alphas = (indiv.relative_alpha_leaf + indiv.relative_alpha_root + indiv.relative_alpha_sap) / 3.0;
+	double mean_relative_alphas = (indiv.absolute_alpha_leaf + indiv.absolute_alpha_root + indiv.absolute_alpha_sap) / 3.0;
 	// logistic function of the relative strength of  allocation to reproduction
 	// depending on how far the other pools are from their target.
 	// TODO: Unsupported assumption: logistic function assumed and it's parameters 
@@ -4359,9 +4352,9 @@ double calc_alpha(double limit, double actual, double turnover_rate) {
 	double alpha = divide(limit - actual, limit); // relative alpha
 	// double alpha = limit - actual; // absolute alpha
 
-	if (!is_zero(turnover_rate)) {
-		alpha *= turnover_rate;
-	}
+	// if (!is_zero(turnover_rate)) {
+	// 	alpha *= turnover_rate;
+	// }
 
 	// Constrain alpha to [0, 1].
 	alpha = min(1.0, alpha);
@@ -4405,7 +4398,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	const double MIN_STORFRAC_FOR_REPR = 0.5;
 
 	// Number of days to look ahead for the targets.
-	const int NDAY_OUTLOOK = 30;
+	const int NDAY_OUTLOOK = 365;
 
 	// limit height to below max and above min (to avoid FNS > 1)(from David's 
 	// code). 
@@ -4424,7 +4417,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// An alternative ltor equation to test. Reason: ltor too sensitive to
 	// wscal, which can increase the proportion of C going to root
 	// unnecesseraly. indiv.ltor = calculate_ltor_tree(indiv);
-	indiv.ltor = max(min(ppft.wscal_5.mean(), indiv.nscal_5.mean()) * pft.ltor_max, 0.1 * pft.ltor_max);
+	indiv.ltor = max(min(indiv.get_wscal_30().mean(), indiv.nscal_30.mean()) * pft.ltor_max, 0.5 * pft.ltor_max);
 	assert(indiv.ltor <= pft.ltor_max && indiv.ltor >= 0);
 
 	// Update storage capacity.
@@ -4442,12 +4435,16 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// Remaining carbon available for growth (kgC/m2).
 	double cgrow = indiv.cgrow - indiv.cgrow_repr;
 
+	if (indiv.cmass_sap > 0.9) {
+		printf("\r");
+	}
+
 	// Sapwood target (to grow at least the turnover of N days) (kgC/m^2). This
 	// drives the growth of sapwood AND the leaves (in the next day). TODO: to
 	// get the observed bi-modal sapwood growth and unimodal leaf growth, we
 	// need to change that.
 	double growth_rate = 1.0 + pft.turnover_sap / Date::MAX_YEAR_LENGTH;
-	indiv.cmass_sap_limit = indiv.cmass_sap * pow(growth_rate, NDAY_OUTLOOK);
+	indiv.cmass_sap_limit = indiv.cmass_sap * pow(growth_rate, 1.0 * NDAY_OUTLOOK);
 
 	// Leaf target (to grow to supply leaves to the current sapwood ) (kgC/m^2).
 	indiv.cmass_leaf_limit = max(indiv.cmass_sap_limit * (pft.k_latosa / (indiv.sla() * wooddens_FF * height)) , indiv.cmass_leaf);
@@ -4467,13 +4464,23 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// Calculate the alpha factor (what proportion to allocate for each pool)
 	// according to the distance of actual C to it's target. Alphas are zeroed
 	// at the start of each day.
-	indiv.relative_alpha_leaf = calc_alpha(indiv.cmass_leaf_limit, indiv.cmass_leaf, pft.turnover_leaf);
-	indiv.relative_alpha_root = calc_alpha(indiv.cmass_root_limit, indiv.cmass_root, pft.turnover_root);
-	indiv.relative_alpha_sap = calc_alpha(indiv.cmass_sap_limit, indiv.cmass_sap, pft.turnover_sap);
-	indiv.relative_alpha_storage = calc_alpha(indiv.cmass_storage_limit, indiv.cmass_storage, 1 - indiv.cmass_storage / indiv.cstorage_max);
+	indiv.absolute_alpha_leaf = calc_alpha(indiv.cmass_leaf_limit, indiv.cmass_leaf, pft.turnover_leaf);
+	indiv.absolute_alpha_root = calc_alpha(indiv.cmass_root_limit, indiv.cmass_root, pft.turnover_root);
+	indiv.absolute_alpha_sap = calc_alpha(indiv.cmass_sap_limit, indiv.cmass_sap, pft.turnover_sap);
+	indiv.absolute_alpha_storage = calc_alpha(indiv.cmass_storage_limit, indiv.cmass_storage, 1 - indiv.cmass_storage / indiv.cstorage_max);
 
 	// Rescale the alphas according to the demand.
 	rescale_alphas(indiv);
+
+	indiv.alpha_leaf_trend.add(indiv.alpha_leaf);
+	indiv.alpha_root_trend.add(indiv.alpha_root);
+	indiv.alpha_sap_trend.add(indiv.alpha_sap);
+	indiv.alpha_storage_trend.add(indiv.alpha_storage);
+
+	indiv.alpha_leaf = indiv.alpha_leaf_trend.mean();
+	indiv.alpha_root = indiv.alpha_root_trend.mean();
+	indiv.alpha_sap = indiv.alpha_sap_trend.mean();
+	indiv.alpha_storage = indiv.alpha_storage_trend.mean();
 
 	// Calculate cgrow for each of the pools. We need to use cgrow (not
 	// indiv.cgrow), because the alphas are fractions of the remaining cgrow,
@@ -4809,7 +4816,7 @@ void nuptake_dave(Vegetation& vegetation) {
         }
 
 		// TODO: verify that this belongs here.
-		// indiv.fnuptake = competing_individuals[i].fnuptake;
+		indiv.fnuptake = competing_individuals[i].fnuptake;
 	}
 
 	// If daily tree or grass allocation is disabled, we should probably call
@@ -4975,6 +4982,7 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// nstress will be 1 in freenyears.
 		indiv.nscal_5.add(nstress);
+		indiv.nscal_30.add(nstress);
 
 		// Get available N for each pool.
 		double navail_leaf  = indiv.leafndemand * fnavail;
@@ -5001,7 +5009,9 @@ void update_pools_dave(Vegetation& vegetation) {
 		//}
 		//else {
 
-		const double RESP_FRAC = 0.25;
+		// Growth respiration as fraction of new growth.
+		const double RESP_GROWTH_FRAC = 0.25;
+
 		double resp_growth_leaf = 0;
 		double resp_growth_root = 0;
 		double resp_growth_crown = 0;
@@ -5015,20 +5025,20 @@ void update_pools_dave(Vegetation& vegetation) {
 		constrain_growth(
 			indiv.cgrow_leaf, navail_leaf,
 			indiv.pft.cton_leaf_min, indiv.pft.cton_leaf_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_leaf);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_leaf);
 
 		// Roots
 		constrain_growth(
 			indiv.cgrow_root, navail_root,
 			indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_root);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_root);
 
 		// Crowns (for grasses and mosses only).
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			constrain_growth(
 				indiv.cgrow_crown, navail_crown,
 				indiv.pft.cton_root_min, indiv.pft.cton_root_max,
-				creturn, nreturn, RESP_FRAC, resp_growth_crown);
+				creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_crown);
 		}
 
 		// sapwood
@@ -5036,14 +5046,14 @@ void update_pools_dave(Vegetation& vegetation) {
 			constrain_growth(
 				indiv.cgrow_sap, navail_sap,
 				indiv.pft.cton_sap_min, indiv.pft.cton_sap_max,
-				creturn, nreturn, RESP_FRAC, resp_growth_sap);
+				creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_sap);
 		}
 
 		// Reproductive tissue
 		constrain_growth(
 			indiv.cgrow_repr, navail_repr,
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
-			creturn, nreturn, RESP_FRAC, resp_growth_repr);
+			creturn, nreturn, RESP_GROWTH_FRAC, resp_growth_repr);
 
 		assert(positive(creturn));
 		indiv.resp_growth = resp_growth_leaf + resp_growth_root + resp_growth_crown + resp_growth_sap + resp_growth_repr;
@@ -5064,6 +5074,7 @@ void update_pools_dave(Vegetation& vegetation) {
 			creturn = indiv.cstorage_max - indiv.cmass_storage;
 		}
 		indiv.cmass_storage += creturn;
+		indiv.creturn = creturn;
 
 		// nreturn doesn't need to go back into the storage pool, because we
 		// haven't actually taken anything out of the storage pool yet, and
@@ -5091,19 +5102,19 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// Verify that growth respiration is correctly related to growth.
 		if (indiv.cgrow_leaf > 0) {
-			assert(equal(RESP_FRAC, resp_growth_leaf / indiv.cgrow_leaf));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_leaf / indiv.cgrow_leaf));
 		}
 		if (indiv.cgrow_root > 0) {
-			assert(equal(RESP_FRAC, resp_growth_root / indiv.cgrow_root));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_root / indiv.cgrow_root));
 		}
 		if (indiv.cgrow_sap > 0) {
-			assert(equal(RESP_FRAC, resp_growth_sap / indiv.cgrow_sap));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_sap / indiv.cgrow_sap));
 		}
 		if (indiv.cgrow_repr > 0) {
-			assert(equal(RESP_FRAC, resp_growth_repr / indiv.cgrow_repr));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_repr / indiv.cgrow_repr));
 		}
 		if (indiv.cgrow_crown > 0) {
-			assert(equal(RESP_FRAC, resp_growth_crown / indiv.cgrow_crown));
+			assert(equal(RESP_GROWTH_FRAC, resp_growth_crown / indiv.cgrow_crown));
 		}
 
 		assert(equal((indiv.ndemand - indiv.storendemand) * fnavail, navail_leaf + navail_root + navail_crown + navail_sap + navail_repr + nreturn));
@@ -5120,6 +5131,7 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.nmass_repr  += navail_repr;
 
 		double ngrow = navail_leaf + navail_root + navail_crown + navail_sap + navail_repr;
+		indiv.nstorage_drawdown = 0;
 		if (!pft.store_uptake()) {
 			// First take ngrow out of uptake pool.
 			indiv.nmass_uptake -= ngrow;
@@ -5128,18 +5140,34 @@ void update_pools_dave(Vegetation& vegetation) {
 				double drawdown = -indiv.nmass_uptake; // positive sign now
 				indiv.nmass_storage = max(0.0, indiv.nmass_storage - drawdown);
 				indiv.nmass_uptake = 0;
+				indiv.nstorage_drawdown = drawdown;
 			} else if (indiv.nmass_uptake > 0) {
 				// N supply was met by uptake. If any uptake remains, put it
 				// back into the available soil N, as if it had never been
 				// taken up.
+				//
+				// We can't subtract from dnuptake because it's set later in the
+				// day in vegetation_n_uptake(). Therefore, we account for this
+				// using a separate variable: ntoavail. The same is true for the
+				// annual variables (anuptake, antoavail). This isn't really too
+				// important, except to ensure that we've accounted for all
+				// fluxes so that the nitrogen budget outputs make sense.
 				indiv.ntoavail += indiv.nmass_uptake;
+				indiv.antoavail += indiv.nmass_uptake;
+
 				vegetation.patch.soil.nmass_inc(indiv.nmass_uptake);
 				indiv.nmass_uptake = 0;
 			}
 		} else {
 			// Draw down on storage.
+			indiv.nstorage_drawdown = ngrow;
 			indiv.nmass_storage = max(0.0, indiv.nmass_storage - ngrow);
 		}
+
+		if (date.day == 0) {
+			indiv.anstorage_drawdown = 0;
+		}
+		indiv.anstorage_drawdown += indiv.nstorage_drawdown;
 
 		// Save yearly leaf and root growth. 
 		// TODO JK: check if crown and repr need to be added
@@ -5189,32 +5217,21 @@ void update_pools_dave(Vegetation& vegetation) {
 			assert(greater_than_or_equal(indiv.cton_crown(), indiv.pft.cton_root_min * 0.999));
 			assert(positive(indiv.cmass_crown));
 		}
+
+		if (!negligible(indiv.nmass_repr)) {
+			assert(less_than_or_equal(indiv.cmass_repr / indiv.nmass_repr, indiv.pft.cton_repr_max * 1.001));
+		}
 	}
 }
 
-void senescence_grass(Individual &indiv) {
+void senescence_dave_grass(Individual &indiv) {
 
-	// Parameters
-	const double crelocfrac = 0.0;             // TODO: move to constants?
-	const double senesc_base = 0.0002;         // Baseline senescence rate (d-1)
-	const double senesc_scal_dorm = 300.0;     // senescence scalar for dormancy     --> x * 100% increase in senescence rate under max. temp. stress
-	// senescence scalar for water stress --> x * 100% increase in senescence rate under max. water stress
-	const double senesc_scal_water = indiv.pft.lifeform == GRASS_PERENNIAL ? 100.0 : 100.0;
-	// senescence scalar for reproductive phase
-	const double senesc_scal_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 30.0 : 120.0;
-	// higher value --> less (more) senescence at beginning (end) of reproductive phase
-	const double qdev_senesc   = indiv.pft.lifeform == GRASS_PERENNIAL ? 2 : 35.0;    
-    // higher value --> lower sensitivity to water stress at high wscal
-	const double qwater_senesc = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.8 : 1.0;     
-	// increase in senescence rate per 1degC (Johnson & Thornley 1983)
-	const double temp_senesc1 = 1.0;    // for temperatures below 0 degC
-	const double temp_senesc2 = 0.05;   // for temperatures above 0 degC  
-
-	// TODO: is there an active retranslocation of storage C and N in senescing annual plants?
-
+	const Pft &pft = indiv.pft;
 	Vegetation &vegetation = indiv.vegetation;
 	Patchpft ppft = indiv.patchpft();
-	Pft &pft = indiv.pft;
+
+	// TODO: is there an active retranslocation of storage C and N in senescing
+	// annual plants?
 
 	// Air temperature or bottom snow layer if snow present
 	double grass_temp = vegetation.patch.soil.T_soil[6];
@@ -5223,41 +5240,38 @@ void senescence_grass(Individual &indiv) {
 	// double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
 	// Note: leaflong not used anymore for senescence as it is conceptually difficult
 
-	double senesc = senesc_base;
+	double senesc = pft.senesc_base;
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant || indiv.fdev_growth < 1.0) {
-
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 		//indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
 		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
-		indiv.fdev_senesc = senesc_scal_repr * pow((1.0 - indiv.fdev_growth),qdev_senesc);
-
+		indiv.fdev_senesc = pft.senesc_scal_repr * pow((1.0 - indiv.fdev_growth),
+													   pft.qdev_senesc);
 	} else {
-
 		indiv.fdev_senesc = 0.0;
-
 	}
 
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = senesc_scal_water * (1.0 - pow(indiv.get_wscal(),qwater_senesc));
+	double senesc_fwater = pft.senesc_scal_water * (1.0 - pow(indiv.get_wscal(),
+															  pft.qwater_senesc));
 	
 	// High and low temperatures
 	// linear increase as in Johnson & Thornley 1983.
 	double senesc_ftemp = 0.0;
 	if (grass_temp < 0.0){
-		senesc_ftemp = -temp_senesc1 * grass_temp;
+		senesc_ftemp = -pft.temp_senesc1 * grass_temp;
 	} else if (grass_temp >= indiv.pft.temp_dormancy) {		
-		senesc_ftemp = temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
+		senesc_ftemp = pft.temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
 	} 
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
 	if (indiv.fphen_activity < 1.0 && indiv.dphen_activity < 0.0) {
-
-		senesc_fdorm = senesc_scal_dorm * abs(indiv.dphen_activity/dphen_activity_max);
+		senesc_fdorm = pft.senesc_scal_dorm * abs(indiv.dphen_activity / dphen_activity_max);
         //senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
@@ -5265,7 +5279,7 @@ void senescence_grass(Individual &indiv) {
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
 	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + senesc_fwater) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
-	indiv.senesc_root = senesc_base;
+	indiv.senesc_root = pft.senesc_base;
 
 	// Retranslocation and pool updates
 	// TODO: maybe call cstorage_capacity once at the beginning to be consistent across routines!
@@ -5273,8 +5287,9 @@ void senescence_grass(Individual &indiv) {
 
 	// Carbon
 	double csenesc  = indiv.cmass_leafs[green] * senesc;
-	double cstore   = csenesc * crelocfrac;
-	double ctobrown = csenesc * (1.0 - crelocfrac);
+	double cstore   = csenesc * pft.crelocfrac;
+	double ctobrown = csenesc * (1.0 - pft.crelocfrac);
+	indiv.csenesc            =  csenesc;
 
 	// If C storage pool overflows, re-adjust cstore and ctobrown
 	if (indiv.cmass_storage + cstore > indiv.cstorage_max) {
@@ -5310,7 +5325,7 @@ void senescence_grass(Individual &indiv) {
 }
 
 // Transfer of green leaf pool to brown leaf pool.
-void senescence_tree(Individual &indiv) {
+void senescence_dave_tree(Individual &indiv) {
 	// Inputs: indiv.cmass_leafs, indiv.nmass_leafs
 	// Outputs: indiv.cmass_leafs, indiv.nmass_leafs
 	// Do we even need this? If using a single leaf pool, perhaps we just use
@@ -5335,14 +5350,14 @@ void senescence_dave(Vegetation& vegetation) {
 			continue;
 		}
 		if (pft.is_grass() || pft.lifeform == MOSS) {
-			senescence_grass(indiv);
+			senescence_dave_grass(indiv);
 
 			assert(positive(indiv.cmass_leafs[green]));
 			assert(positive(indiv.nmass_leafs[green]));
 			assert(positive(indiv.cmass_leafs[brown]));
 			assert(positive(indiv.nmass_leafs[brown]));
 		} else {
-			senescence_tree(indiv);
+			senescence_dave_tree(indiv);
 		}
 
 		assert(positive(indiv.get_cmass_leaf()));
@@ -5440,7 +5455,7 @@ void turnover_seed(Vegetation& vegetation) {
 		
 		// Base turnover rate modified by temperature and water availability
 		double ftemp = 0.0, fwater = 0.0;
-		double base_turnover_seed = ppft.pft.turnover_repr / date.year_length();
+		double base_turnover_seed = ppft.pft.turnover_repr_litter / date.year_length();
 		respiration_temperature_response(surf_temp, ftemp); 
 		fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
 		double frac_turnover_seed = base_turnover_seed * ftemp * fwater;
@@ -5573,6 +5588,7 @@ void turnover_dave_grass(Individual &indiv) {
 	Patch& patch = vegetation.patch;
 	Pft& pft = indiv.pft;
 	Patchpft &ppft = patch.pft[indiv.pft.id];
+	Soil &soil = patch.soil;
 
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
@@ -5600,31 +5616,51 @@ void turnover_dave_grass(Individual &indiv) {
 	double frac_turnover_leaf = kleaf * ftemp * fwater;
 
 	// Dead shoot turnover (brown shoot --> leaf litter)
+	double cturnover_leaf = 0;
+	double nturnover_leaf = 0;
+
+	// Work out how much goes to litter.
 	turnover_pool(frac_turnover_leaf, 0, 0, indiv.cmass_leafs[brown],
-                  indiv.nmass_leafs[brown], ppft.cmass_litter_leaf,
-                  ppft.nmass_litter_leaf, indiv.ctolitter, indiv.ntolitter,
-                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
-                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
-	
-	// Crown turnover
-	// TODO: put into function (same for roots and crowns)!	
-	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
-                  indiv.nmass_crown, ppft.cmass_litter_root,
-                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+                  indiv.nmass_leafs[brown], cturnover_leaf,
+                  nturnover_leaf, indiv.ctolitter, indiv.ntolitter,
                   indiv.initialc, indiv.initialn, indiv.cmass_storage,
                   indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 
-	// Root turnover (roots --> root litter)
-	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
-                  indiv.nmass_root, ppft.cmass_litter_root,
-                  ppft.nmass_litter_root, indiv.ctolitter, indiv.ntolitter,
+	// Send leaf turnover to litter.
+	// This will go directly into the SURFSTRUCT and SURFMETA SOM pools.
+	leaf_to_litter(soil, pft, cturnover_leaf, nturnover_leaf);
+	indiv.cturnover_leaf = cturnover_leaf;
+	indiv.nturnover_leaf = nturnover_leaf;
+
+	// Crown turnover (goes into root litter).
+	// TODO: put into function (same for roots and crowns)!
+	double cturnover_root = 0;
+	double nturnover_root = 0;
+	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
+                  indiv.nmass_crown, cturnover_root,
+                  nturnover_root, indiv.ctolitter, indiv.ntolitter,
                   indiv.initialc, indiv.initialn, indiv.cmass_storage,
                   indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+    indiv.cturnover_crown = cturnover_root;
+	indiv.nturnover_crown = nturnover_root;
+
+	// Root turnover (roots --> root litter)
+	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
+                  indiv.nmass_root, cturnover_root,
+                  nturnover_root, indiv.ctolitter, indiv.ntolitter,
+                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
+                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+	indiv.cturnover_root = cturnover_root - indiv.cturnover_crown;
+	indiv.nturnover_root = nturnover_root - indiv.nturnover_crown;
+
+	// Send crown and root turnover to litter.
+	// This will go directly into the SOILSTRUCT and SOILMETA SOM pools.
+	root_to_litter(soil, pft, cturnover_root, nturnover_root);
 
 }
 
 // calculate the coefficient of water stress for the turnover of leaves and roots in trees
-double calculate_fwater_turnover_tree (Patchpft& ppft) {
+double calculate_fwater_turnover_tree(const Individual& indiv) {
 	// fraction of change in leaf and root turnover as a result of water stress.
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
@@ -5639,7 +5675,7 @@ double calculate_fwater_turnover_tree (Patchpft& ppft) {
 	const double fwater_expo = 3.0;
 	const double fwater_mid = 0.1;
 	double fwater_min = (miny +((maxy - miny) / (1 + pow((1.0 / fwater_mid), fwater_expo))));
-	double fwater = miny + ((maxy - miny) / (1 + pow((ppft.wscal_30.mean() / fwater_mid), fwater_expo)));
+	double fwater = miny + ((maxy - miny) / (1 + pow((indiv.get_wscal_30().mean() / fwater_mid), fwater_expo)));
 	fwater /= fwater_min;
 	fwater = 1.0;
 	return fwater;
@@ -5666,7 +5702,7 @@ double calculate_fcgrow_tree(double min_turnover_fraction, double cgrow_pot) {
 
 // Turnover of green pools to litter. 
 // TODO: If only using a single leaf pool, we could remove the senescence function altogether.
-void turnover_tree(Individual &indiv) {
+void turnover_dave_tree(Individual &indiv) {
 	// Inputs:  indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap
 	//          indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap,
 	//          indiv.pft.leaflong
@@ -5719,16 +5755,19 @@ void turnover_tree(Individual &indiv) {
 		fcgrow = 1.0;
 	}
 	// fcgrow = pow(growth_lim, 4.0);
+	Soil &soil = indiv.vegetation.patch.soil;
 	Patchpft& ppft = indiv.patchpft();
+	const Pft &pft = indiv.pft;
 	
 	// fraction of change in leaf and root turnover as a result of water stress.
 	// leaf (root) turnover will increase (decrease) by the same fraction 
 	// in high soil water stress conditions.
-	double fwater = calculate_fwater_turnover_tree (ppft);
+	double fwater = calculate_fwater_turnover_tree(indiv);
 
-	double cturnover_leaf = 0.0;
-	double cturnover_root = 0.0;
-	double cturnover_sap = 0.0;
+	double cturnover_leaf = 0.0, nturnover_leaf = 0.0;
+	double cturnover_root = 0.0, nturnover_root = 0.0;
+	double cturnover_sap = 0.0, nturnover_sap = 0.0;
+	double cturnover_repr = 0.0, nturnover_repr = 0.0;
 
 	double nretranslocated = 0;
 
@@ -5776,7 +5815,7 @@ void turnover_tree(Individual &indiv) {
 		// double turnover_leaf_min = turnover_leaf_max * min_tunrover_leaf_proportion;	
 		// turnover_leaf = fleafage * fwater * (turnover_leaf_min + ((turnover_leaf_max - turnover_leaf_min) * indiv.cgrow_pot));
 
-		turnover_leaf = fwater * fleafage * fcgrow * maximum_daily_turnover_leaf;
+		turnover_leaf = /*fwater * fleafage * fcgrow * */ maximum_daily_turnover_leaf;
 		// indiv.rel_turnover_leaf = turnover_leaf / turnover_leaf_max;
 		// Leaf C amount to turnover (kgC/m^2)
 		cturnover_leaf = turnover_leaf * indiv.cmass_leaf;
@@ -5793,7 +5832,7 @@ void turnover_tree(Individual &indiv) {
 		// save turnover (TODO: remove the local turnover_leaf variable and use this instead)
 		indiv.pturnover_leaf = turnover_leaf;
 		// Leaf N amount to turnover (kgN/m^2)
-		double nturnover_leaf = turnover_leaf * indiv.nmass_leaf;
+		nturnover_leaf = turnover_leaf * indiv.nmass_leaf;
 		// Leaf N that goes to litter (kgN/m^2)
 		double n2litter_leaf = nturnover_leaf * (1.0 - nrelocfrac);
 		// Leaf N amount to storage (kgC/m^2)
@@ -5806,30 +5845,35 @@ void turnover_tree(Individual &indiv) {
 			n2litter_leaf = nturnover_leaf - n2storage_leaf;
 		}
 
-		// updete pools
-		ppft.cmass_litter_leaf += cturnover_leaf;
+		// Update pools
 		indiv.ctolitter += cturnover_leaf;
 		indiv.cmass_leaf -= cturnover_leaf;
 
-		ppft.nmass_litter_leaf += n2litter_leaf;
 		indiv.ntolitter += n2litter_leaf;
 		indiv.nmass_leaf -= nturnover_leaf;
+
 		// Update N storage (kgN/m^2)
 		indiv.nmass_storage += n2storage_leaf;
 		nretranslocated += n2storage_leaf;
+
+		// ppft.cmass_litter_leaf += cturnover_leaf;
+		// ppft.nmass_litter_leaf += n2litter_leaf;
+		// Let somdynam decide what to do with leaf litter.
+		leaf_to_litter(soil, pft, cturnover_leaf, n2litter_leaf);
 
 		assert(equal(nturnover_leaf, n2storage_leaf + n2litter_leaf));
 	}
 	// save daily leaf turnover flux (kgC/m^2/day)
 	indiv.cturnover_leaf = cturnover_leaf;
+	indiv.nturnover_leaf = nturnover_leaf;
 
 	if (indiv.cmass_root > 0) {
 		// fraction of root biomass that is turned over today. 
-		turnover_root = fcgrow * indiv.pft.turnover_root / fwater / Date::MAX_YEAR_LENGTH;
+		turnover_root = /*fcgrow * 1.0 / fwater */ indiv.pft.turnover_root / Date::MAX_YEAR_LENGTH;
 		// root C amount to turnover (kgC/m^2)
 		cturnover_root = turnover_root * indiv.cmass_root; 
 		// root N amount to turnover (kgN/m^2)
-		double nturnover_root = turnover_root * indiv.nmass_root;
+		nturnover_root = turnover_root * indiv.nmass_root;
 		// Lean N that goes to litter (kgN/m^2)
 		double n2litter_root = nturnover_root * (1.0 - nrelocfrac);
 		// root N amount to storage (kgC/m^2)
@@ -5842,22 +5886,28 @@ void turnover_tree(Individual &indiv) {
 			n2litter_root = nturnover_root - n2storage_root;
 		}
 
-		// updete pools
-		ppft.cmass_litter_root += cturnover_root;
+		// Update pools
 		indiv.ctolitter += cturnover_root;
 		indiv.cmass_root -= cturnover_root;
 
-		ppft.nmass_litter_root += n2litter_root;
 		indiv.ntolitter += n2litter_root;
 		indiv.nmass_root -= nturnover_root;
+
 		// Update N storage (kgN/m^2)
 		indiv.nmass_storage += n2storage_root;
 		nretranslocated += n2storage_root;
+
+		// ppft.cmass_litter_root += cturnover_root;
+		// ppft.nmass_litter_root += n2litter_root;
+		// Let somdynam decide what to do with repr litter (treating it as leaf
+		// litter).
+		root_to_litter(soil, pft, cturnover_root, n2litter_root);
 
 		assert(equal(nturnover_root, n2litter_root + n2storage_root));
 	}
 	// save daily root turnover flux (kgC/m^2/day)
 	indiv.cturnover_root = cturnover_root;
+	indiv.nturnover_root = nturnover_root;
 
 	if (indiv.cmass_sap > 0) {
 
@@ -5870,7 +5920,7 @@ void turnover_tree(Individual &indiv) {
 			fsapage = indiv.meansapage / (1.0 / indiv.pft.turnover_sap);
 		}
 		if ((turnover_leaf > 0) && (indiv.pft.k_latosa > 0)) {
-			turnover_sap =  fsapage * fcgrow * indiv.pft.turnover_sap / Date::MAX_YEAR_LENGTH;
+			turnover_sap =  /* fsapage * fcgrow * */ indiv.pft.turnover_sap / Date::MAX_YEAR_LENGTH;
 		} else {
 			// no turnover sap today
 			turnover_sap = 0;
@@ -5879,7 +5929,7 @@ void turnover_tree(Individual &indiv) {
 		// sapwood C amount to turnover (kgC/m^2)
 		cturnover_sap = turnover_sap * indiv.cmass_sap; 
 		// sapwood N amount to turnover (kgN/m^2)
-		double nturnover_sap = turnover_sap * indiv.nmass_sap;
+		nturnover_sap = turnover_sap * indiv.nmass_sap;
 		// Lean N that goes to heartwood (kgN/m^2)
 		double n2heart_sap = nturnover_sap * (1.0 - nrelocfrac);
 		// sapwood N amount to storage (kgC/m^2)
@@ -5892,19 +5942,45 @@ void turnover_tree(Individual &indiv) {
 			n2heart_sap = nturnover_sap - n2storage_sap;
 		}
 
-		// updete pools
+		// Update pools
 		indiv.cmass_heart += cturnover_sap;
 		indiv.cmass_sap -= cturnover_sap;
 
 		indiv.nmass_heart += n2heart_sap;
 		indiv.nmass_sap -= nturnover_sap;
+
 		// Update N storage (kgN/m^2)
 		indiv.nmass_storage += n2storage_sap;
 		nretranslocated += n2storage_sap;
+
 		assert(equal(nturnover_sap, n2storage_sap + n2heart_sap));
 	}
+
+	if (indiv.cmass_repr > 0) {
+		double turnover_repr = indiv.pft.turnover_repr / Date::MAX_YEAR_LENGTH;
+
+		cturnover_repr = turnover_repr * indiv.cmass_repr;
+		nturnover_repr = turnover_repr * indiv.nmass_repr;
+
+		// Update pools
+		indiv.cmass_repr -= cturnover_repr;
+		indiv.nmass_repr -= nturnover_repr;
+
+		indiv.ctolitter += cturnover_repr;
+		indiv.ntolitter += nturnover_repr;
+
+		// Let somdynam decide what to do with reproductive litter.
+		// TODO: should repr be treated as leaf or root litter?
+		// For now, use root (this reproduces previous behaviour).
+		root_to_litter(soil, pft, cturnover_repr, nturnover_repr);
+	}
+
+	indiv.cturnover_repr = cturnover_repr;
+	indiv.nturnover_repr = nturnover_repr;
+
 	// save daily sapwood turnover flux (kgC/m^2/day)
 	indiv.cturnover_sap = cturnover_sap;
+	indiv.nturnover_sap = nturnover_sap;
 	indiv.nretranslocated = nretranslocated;
 	indiv.anretranslocated += nretranslocated;
 	// // drop reproductive pool when trends goes down
@@ -5927,6 +6003,8 @@ void turnover_tree(Individual &indiv) {
 // Transfer reproductive tissue to litter if end of growth cycle is reached.
 void turnover_dave(Vegetation& vegetation) {
 
+	Soil &soil = vegetation.patch.soil;
+
 	// Loop through individuals
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual& indiv = vegetation[i];
@@ -5939,13 +6017,12 @@ void turnover_dave(Vegetation& vegetation) {
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			turnover_dave_grass(indiv);
 		} else {
-			turnover_tree(indiv);
+			turnover_dave_tree(indiv);
 		}
 	}
 
 	turnover_seed(vegetation);
 }
-
 
 // Allocate excess C and N to target pool.
 void allocate_excess(double &cexcess, double &nexcess, double &cpool_dest, double &npool_dest,
@@ -6474,24 +6551,27 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 		indiv.ctolitter              = 0.0;
 		indiv.ntolitter              = 0.0;
 		indiv.ntoavail               = 0.0;
-		indiv.ctolitter_leaf         = 0.0;
-		indiv.ntolitter_leaf         = 0.0;
-		indiv.ctolitter_root         = 0.0;
-		indiv.ntolitter_root         = 0.0;
-		indiv.ctolitter_repr         = 0.0;
-		indiv.ntolitter_repr         = 0.0;
-		indiv.ctolitter_crown        = 0.0;
-		indiv.ntolitter_crown        = 0.0;
-		indiv.relative_alpha_leaf    = 0.0;
-		indiv.relative_alpha_root    = 0.0;
-		indiv.relative_alpha_sap     = 0.0;
-		indiv.relative_alpha_storage = 0.0;
+		indiv.cturnover_leaf         = 0.0;
+		indiv.nturnover_leaf         = 0.0;
+		indiv.cturnover_root         = 0.0;
+		indiv.nturnover_root         = 0.0;
+		indiv.cturnover_repr         = 0.0;
+		indiv.nturnover_repr         = 0.0;
+		indiv.cturnover_crown        = 0.0;
+		indiv.nturnover_crown        = 0.0;
+		indiv.cturnover_sap          = 0.0;
+		indiv.nturnover_sap          = 0.0;
+		indiv.absolute_alpha_leaf    = 0.0;
+		indiv.absolute_alpha_root    = 0.0;
+		indiv.absolute_alpha_sap     = 0.0;
+		indiv.absolute_alpha_storage = 0.0;
 		indiv.cgrow_leaf		     = 0.0;
 		indiv.cgrow_root		     = 0.0;
 		indiv.cgrow_sap		         = 0.0;
 		indiv.cgrow_repr		     = 0.0;
 		indiv.cgrow_storage		     = 0.0;
 		indiv.cgrow_crown		     = 0.0;
+		indiv.csenesc                = 0.0;
 
 		if (indiv.pft.is_grass()) {
 			assert(positive(indiv.cmass_leafs[brown]));
@@ -6509,7 +6589,7 @@ void growth_daily_accounting_dave(Vegetation &vegetation) {
 	}
 }
 
-void growth_daily_grass_dave(Patch& patch) {
+void growth_daily_dave(Patch& patch) {
 
 	// Obtain reference to Vegetation and Stand object for this patch
 	Vegetation& vegetation = patch.vegetation;
@@ -6571,7 +6651,7 @@ void growth_daily_grass_dave(Patch& patch) {
 	// Ensure that daily mass balance is closed.
 	mass_balance.check(vegetation);
 
-} // growth_daily_grass_dave() 
+} // growth_daily_dave()
 
 /// Handles daily crop allocation and daily lai calculation
 /** Simple allocation based on heat unit accumulation.
@@ -6591,10 +6671,10 @@ void growth_daily(Patch& patch) {
 	// Daily C allocation.
 	if (ifdavegrowth) {
 		// Dave daily allocation.
-		growth_daily_grass_dave(patch);
+		growth_daily_dave(patch);
 	} else if (ifdailygrass) {
 		// David Warlind daily allocation.
-		growth_daily_grass(patch);
+		growth_daily_grass_warlind(patch);
 	}
 
 	// necessary updates after daily change to fpc in daily grass

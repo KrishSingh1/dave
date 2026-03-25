@@ -64,6 +64,11 @@ Get the patch-level daily evapotranspiration (mm/day).
 double get_et(const Patch &patch);
 
 /*
+Get the total basal area in the patch (m2/ha).
+*/
+double get_patch_ba(const Patch &patch);
+
+/*
 Get the individual in the patch with the specified name, or NULL if not found.
 
 @param vegetation: The vegetation in the patch.
@@ -129,19 +134,14 @@ Get the columns used in the patch-level cflux file.
 std::vector<ColumnDefinition<Patch>> cflux_columns();
 
 /*
-Get the columns used in the patch-level npool file.
-*/
-std::vector<ColumnDefinition<Patch>> npool_columns();
-
-/*
-Get the columns used in the patch-level nflux file.
+Get the columns used in the patch-level nflux output file.
 */
 std::vector<ColumnDefinition<Patch>> nflux_columns();
 
 /*
-Get the columns used in the patch-level soil anflux file.
+Get the columns used in the patch-level npool file.
 */
-std::vector<ColumnDefinition<Patch>> soil_anflux_columns();
+std::vector<ColumnDefinition<Patch>> npool_columns();
 
 /*
 Get the columns used in the patch-level pft litter pools file.
@@ -224,6 +224,16 @@ Get the columns used in the patch-level SOM pool N to C ratio output file.
 std::vector<ColumnDefinition<Patch>> sompool_ntoc_columns();
 
 /*
+Get the columns used in the patch-level C litter output file.
+*/
+std::vector<ColumnDefinition<Patch>> clitter_columns();
+
+/*
+Get the columns used in the patch-level N litter output file.
+*/
+std::vector<ColumnDefinition<Patch>> nlitter_columns();
+
+/*
 Get the columns used in the patch-level nitrogen input output file.
 */
 std::vector<ColumnDefinition<Patch>> ninput_columns();
@@ -279,9 +289,9 @@ Get the columns used to evaluate the hydraulics model.
 std::vector<ColumnDefinition<Individual>> indiv_resp_columns();
 
 /*
-Get the litter cmass for the specified pft in the specified patch (kgC/m2).
+Get the total standing dead biomass for the given PFT.
 */
-double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
+double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
 Get the first individual in the patch, if any are established.
@@ -311,7 +321,7 @@ int get_nlayer_an(const Patch &patch);
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
 */
-double get_pft_cmass_litter(const Patch &patch, const Pft &pft);
+double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
 Get the soil moisture in mm between the specified top and bottom layers.
@@ -321,6 +331,16 @@ Get the soil moisture in mm between the specified top and bottom layers.
 @param end_layer: The index of the bottom layer.
 */
 double get_soil_moisture(const Soil &soil, int start_layer, int end_layer);
+
+/*
+Get the available soil moisture in mm between the specified top and bottom
+layers. This is the sum of AWC * wcont for each layer.
+
+@param soil: A soil object.
+@param start_layer: The index of the top layer.
+@param end_layer: The index of the bottom layer.
+*/
+double get_available_soil_moisture(const Soil &soil, int start_layer, int end_layer);
 
 /*
 Get an estimate of total soil moisture in mm from 1-6m.
@@ -394,6 +414,16 @@ Get the columns used in the annual water budget output file.
 std::vector<ColumnDefinition<Patch>> water_budget_cols_annual();
 
 /*
+Get the total standing dead C mass in the patch (kgC/m2).
+*/
+double get_standing_c(const Patch &patch);
+
+/*
+Get the total standing dead N mass in the patch (kgN/m2).
+*/
+double get_standing_n(const Patch &patch);
+
+/*
 Get the columns used in the daily water budget output file.
 */
 std::vector<ColumnDefinition<Patch>> water_budget_cols_daily();
@@ -407,6 +437,11 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual();
 Get the columns used in the daily nitrogen budget output file.
 */
 std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily();
+
+/*
+Get the columns used in the mortality output file.
+*/
+std::vector<ColumnDefinition<Individual>> mortality_cols();
 
 } // namespace GuessOutput
 

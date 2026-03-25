@@ -30,6 +30,11 @@ double metabolic_litter_fraction(double lton);
 // determine lignin to N ratio for leaf and root litter (used by BLAZE)
 double lignin_to_n_ratio(double cmass_litter, double nmass_litter, double LIGCFRAC, double cton_avr);
 
+void leaf_to_litter(Soil& soil, const Pft &pft, double cmass_litter_leaf, double nmass_litter_leaf);
+void root_to_litter(Soil& soil, const Pft &pft, double cmass_litter_root, double nmass_litter_root);
+void sap_to_litter(Soil& soil, const Pft &pft, double cmass_litter_sap, double nmass_litter_sap);
+void heart_to_litter(Soil& soil, const Pft &pft, double cmass_litter_heart, double nmass_litter_heart);
+
 // Leaf, root and wood litter lignin fractions
 // Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
 const double LIGCFRAC_LEAF = 0.2;

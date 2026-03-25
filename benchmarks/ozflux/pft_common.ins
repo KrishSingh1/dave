@@ -28,9 +28,15 @@ group "common" (
 	! branches.
 	formfactor 1
 
+	! Whether vcmax25, jmax25 and vpmax25 should be calculated dynamically from
+	! leaf N. This used to be a global parameter affecting all PFTs.
+	ifcalcvcmax 0
+
+	! These parameters will only have an effect if ifcalcvcmax = 0.
 	vcmax_25 91.0  ! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
 	jmax_25 154.7  ! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
 	vpmax_25 100.0 ! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0
+
 	ha_v 59.70	   ! Activation energy for vcmax (kJ mol-1)
 	ha_j 40.71	   ! Activation energy for jmax (kJ mol-1)
 	ds_v 639.43	   ! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
@@ -68,6 +74,7 @@ group "common" (
 
 	cton_leaf_min 16
 	max_mobil_cstorage 0.2
+	turnover_repr 0.5
 )
 
 group "tree" (
@@ -79,7 +86,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	turnover_repr 0.25
+	turnover_repr_litter 0.25
 	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	k_allom2 60
@@ -116,6 +123,23 @@ group "tree" (
 
 	! Bole height as a fraction of tree height (0-1).
 	boleht_frac 0.5
+
+	! 95% percentile NSC concentrations from eucface.
+
+	! Maximum NSC concentration in dead bark.
+	max_bark_nsc_conc  0.203
+
+	! Maximum NSC concentration in leaves.
+	max_leaf_nsc_conc  0.243
+
+	! Maximum NSC concentration in twigs.
+	max_twig_nsc_conc  0.0688
+
+	! Maximum NSC concentration in wood.
+	max_wood_nsc_conc  0.0797
+
+	! Fraction of dead woody biomass that is bark. Plucked out of thin air.
+	bark_frac  0.01
 )
 
 group "shrub" (
@@ -159,6 +183,11 @@ group "grass" (
 	! Parameters common to all grasses
 
 	common
+
+	! Whether vcmax25, jmax25 and vpmax25 should be calculated dynamically from
+	! leaf N. This used to be a global parameter affecting all PFTs.
+	ifcalcvcmax 1
+
 	leafphysiognomy "broadleaf"
 	ltor_max 2.0
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
@@ -170,7 +199,7 @@ group "grass" (
 	phengdd5mat 2000.0
 	turnover_leaf 1.0
 	turnover_root 0.7
-	turnover_repr 0.2
+	turnover_repr_litter 0.2
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551

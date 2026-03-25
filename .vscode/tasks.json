@@ -32,13 +32,13 @@
                 "-DCMAKE_CXX_STANDARD=14",
                 "-DCMAKE_CXX_STANDARD_REQUIRED=ON",
                 "-DCMAKE_CXX_EXTENSIONS=ON",
+                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+                // "-DENABLE_ASAN=ON",
                 "-B",
                 "build"
             ],
             "windows": {
                 "args": [
-                    "-G",
-                    "MinGW Makefiles",
                     "-DCMAKE_BUILD_TYPE=Debug",
                     "-DCMAKE_CXX_STANDARD=14",
                     "-DCMAKE_CXX_STANDARD_REQUIRED=ON",

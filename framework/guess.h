@@ -2113,7 +2113,10 @@ public:
 	/// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
-	double rootdist[NSOILLAYER];
+	/// Should be private, but parameters.cpp wants a pointer for parameter binding..
+	/// This should generally never be used. Always use indiv.rootdist if possible.
+	double input_rootdist[NSOILLAYER];
+
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -2207,11 +2210,57 @@ public:
 	double crownfrac;
 	// fraction of shoot allocated to culms (=culm / (culm + leaves))
 	double culmfrac;
+	/// Fraction of senesced carbon retranslocated back to storage.
+	double crelocfrac;
+	/// Baseline senescence rate for dave grasses (d-1).
+	double senesc_base;
+	/// Senescence coefficient for dormancy in dave grasses. Senescence rate is
+	/// increased by this factor when phenology is changing at the maximum rate.
+	double senesc_scal_dorm;
+	/// Senescence coefficient for water stress in dave grasses. Senescence rate
+	/// is increased by this factor under max water stress.
+	double senesc_scal_water;
+	/// Senescence coefficient for reproductive phase in dave grasses.
+	/// Senescence rate is increased by this factor during reproductive phase.
+	double senesc_scal_repr;
+	/// Exponent shaping development-driven senescence for dave grasses. Higher
+	/// values delay senescence (less early, more late in the reproductive
+	/// phase). Unitless.
+	double qdev_senesc;
+	/// Exponent shaping water stress-driven senescence for dave grasses. q = 1
+	/// gives a linear response. q > 1 increases senescence at moderate stress;
+	/// 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	/// Unitless.
+	double qwater_senesc;
+	/// Increase in senescence rate per 1℃, for temperatures below 0 ℃
+	/// (Johnson & Thornley 1983).
+	double temp_senesc1;
+	/// Increase in senescence rate per 1℃, for temperatures above 0 ℃
+	/// (Johnson & Thornley 1983).
+	double temp_senesc2;
+
+	// Maximum NSC concentration in dead bark.
+	double max_bark_nsc_conc;
+
+	// Maximum NSC concentration in leaves.
+	double max_leaf_nsc_conc;
+
+	// Maximum NSC concentration in twigs.
+	double max_twig_nsc_conc;
+
+	// Maximum NSC concentration in wood.
+	double max_wood_nsc_conc;
+
+	// Fraction of dead woody biomass that is bark.
+	double bark_frac;
+
 	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
 	/// annual fine root turnover as a proportion of fine root C biomass
 	double turnover_root;
-	/// annual seed turnover as a proportion of reproductive C biomass (patch-basis)
+	/// annual turnover of reproductive litter to root litter as a proportion of reproductive litter C biomass (patch-basis)
+	double turnover_repr_litter;
+	/// annual turnover of "live" reproductive tissue to litter as a proportion of reproductive C biomass
 	double turnover_repr;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
@@ -2252,6 +2301,9 @@ public:
 	/// the relationship betweeb the difference in tree mass betweenthe cylindrical
 	/// stem hypothesis and measured mass of tree log with its branches.
 	double formfactor;
+
+	/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
+	bool ifcalcvcmax;
 
 	/*
 	Note: these 3 parameters are only used by dave photosynthesis, and only when
@@ -2626,8 +2678,19 @@ public:
 		g1x=0.0;
 		b1z=0.0;
 		tlp=0.0;
+		ifcalcvcmax = false;
 
 		vcmax_25=0.0;
+		turnover_repr = 0.0;
+		crelocfrac = 0.0;
+		senesc_base = 0;
+		senesc_scal_dorm = 0;
+		senesc_scal_water = 0;
+		senesc_scal_repr = 0;
+		qdev_senesc = 0;
+		qwater_senesc = 0;
+		temp_senesc1 = 0;
+		temp_senesc2 = 0;
 
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
@@ -2765,9 +2828,9 @@ public:
 
 		for (int sl = 0; sl < NSOILLAYER; sl++) {
 			if (sl < NSOILLAYER_UPPER) 
-				rootdist_upper += rootdist[sl];
+				rootdist_upper += input_rootdist[sl];
 			else
-				rootdist_lower += rootdist[sl];
+				rootdist_lower += input_rootdist[sl];
 		}
 
 		nupscoeff = rootdist_upper * upper_adv + rootdist_lower;
@@ -2836,7 +2899,20 @@ public:
     
     // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
     void init_rootdist() {
-		calc_root_distribution(root_beta, rootdist);
+		calc_root_distribution(root_beta, input_rootdist);
+
+		double numval = 0;
+		for (size_t i = 0; i < NSOILLAYER; i++) {
+			numval+=input_rootdist[i];
+		}
+
+		// Ensure total root distribution sums to ~1.
+		if (numval < 0.99 || numval > 1.01) {
+			fail("Error","Specified root fractions do not sum to 1.0");
+		}
+
+		// Allow for small numerical errors (<1e-2).
+		input_rootdist[NSOILLAYER-1] += 1.0 - numval;
     }
     
 	bool ismoss() const {
@@ -3256,13 +3332,13 @@ public:
 	/// target storage C mass (kgC/m2)
 	double cmass_storage_limit;
 	/// realtive leaf sink strengthy (unitless)
-	double relative_alpha_leaf;
+	double absolute_alpha_leaf;
 	/// realtive root sink strengthy (unitless)
-	double relative_alpha_root;
+	double absolute_alpha_root;
 	/// realtive sapwwod sink strengthy (unitless)
-	double relative_alpha_sap;
+	double absolute_alpha_sap;
 	/// relative storage sink strengh (unitless)
-	double relative_alpha_storage;
+	double absolute_alpha_storage;
 	/// Latest tunover day for this individual
 	int last_turnover_day;
 	/// daily total growth rate (kgC/m2/d)
@@ -3279,6 +3355,8 @@ public:
 	double cgrow_repr;
 	/// daily storage growth (kgC/m2/day)
 	double cgrow_storage;
+	/// daily storage growth plus excess from N limitation (kgC/m2/day)
+	double creturn;
 	/// temporary object keeping track of farea of growth demand
 	double farea_growth;
 	/// daily growth demand / sink strength (kgC/m2/d)
@@ -3293,12 +3371,18 @@ public:
 	double fdev_senesc;
 	/// senescence rate of roots (d-1)
     double senesc_root;
+	/// total daily carbon senesced by dave grasses (gC/m2/day)
+	double csenesc;
 	/// growth stage (dormant = 0, vegetative=1, reproductive=2)
 	int growth_stage;
 	/// number of days in current growth stage
 	int growth_stage_days;
 	/// fraction of seedbank that is germinating each day
 	double frac_germ;
+	/// C mass of germinated seedbank (kgC/m2/d).
+	double cmass_germ;
+	/// Total annual C mass of germinated seedbank (kgC/m2/year).
+	double acmass_germ;
 	/// C exceeding storage capacity (kgC/m2/d)
 	double cexcess;
 	/// N exceeding storage capacity (kgN/m2/d)
@@ -3328,30 +3412,8 @@ public:
 	double ntolitter;
 	/// Daily N taken up but then sent back to available N pool (kgN/m2).
 	double ntoavail;
-
-	/// Daily C sent from leaf to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_leaf;
-
-	/// Daily N sent from leaf to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_leaf;
-
-	/// Daily C sent from root to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_root;
-
-	/// Daily N sent from root to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_root;
-
-	/// Daily C sent from the reproductive biomass to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_repr;
-
-	/// Daily N sent from the reproductive biomass to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_repr;
-
-	/// Daily C sent from crown to litter (kgC/m2). This is an output, not a pool.
-	double ctolitter_crown;
-
-	/// Daily N sent from crown to litter (kgN/m2). This is an output, not a pool.
-	double ntolitter_crown;
+	/// Cumulative annual N taken up but then sent back to available N pool (kgN/m2).
+	double antoavail;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
@@ -3422,19 +3484,26 @@ public:
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
 
+	// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
+	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
+	// if zhou is disabled, this is the same as pft.g1.
+	double g1;
+
 	// Fraction of total photosynthesis limited by Anc and Anj, respectively.
 	double anc_frac;
 	double anj_frac;
 	double anp_frac;
 
-	/// Adaptive N-day moving avegage of wscal.
-	HistoricDynamic<double> wscal_dynamic;
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
 	/// Dynamic root beta value used in dave version.
 	double root_beta;
 
-	/// Dynamic root distribution used in dave version.
+	/// Dynamic root distribution used in dave version. This is the fraction of
+	/// roots in each soil layer.
+	/// If this individual is not using dave allocation, this will be the same
+	/// pft.input_rootdist (ie the old pft.rootdist, as provided in the ins file
+	/// or calculted from the root beta).
 	double rootdist[NSOILLAYER];
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
@@ -3487,6 +3556,10 @@ public:
 	double cstorage_max;
 	/// Maximum capacity of N storage pool (kgN/m2)
 	double nstorage_max;
+	/// Amount of N withdrawn from storage today for growth (kgN/m2)
+	double nstorage_drawdown;
+	/// Total annual amount of N withdrawn from storage for growth (kgN/m2)
+	double anstorage_drawdown;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	std::vector<double> cmass_leafs;
 	/// leaf N biomass on modelled area basis (kgN/m2)
@@ -3524,9 +3597,11 @@ public:
 
 	/// running mean of nscal for last 5 days for each individual daily allocation
 	Historic<double, 5> nscal_5;
-	/// actual evapotranspiration over projected area (mm/day)
+	/// running mean of nscal for last 5 days for each individual daily allocation
+	Historic<double, 30> nscal_30;
+	/// actual transpiration over projected area (mm/day)
 	double aet;
-	/// annual actual evapotranspiration over projected area (mm/year)
+	/// annual actual transpiration over projected area (mm/year)
 	double aaet;
 	/// fractional water uptake from each soil layer
 	double fwuptake[NSOILLAYER];
@@ -3697,6 +3772,16 @@ public:
 	double cturnover_repr;
 	/// daily crown turnover flux (kgC/m^2/day) (DAVE)
 	double cturnover_crown;
+	/// daily leaf turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_leaf;
+	/// daily root turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_root;
+	/// daily sapwood turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_sap;
+	/// daily repr turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_repr;
+	/// daily crown turnover flux (kgN/m^2/day) (DAVE)
+	double nturnover_crown;
 	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
 	double pturnover_leaf;
 
@@ -3775,24 +3860,31 @@ public:
 
 	// predawn leaf water potential calculated using hydraulics module
 	double predawn_lwp;
-	// leaf water potential at subdaily timescale
+	// leaf water potential at subdaily timescale (MPa)
 	std::vector<double> lwp;
-	// leaf water potential from previous timestep (for plant water storage)
+	// leaf water potential (MPa) from previous timestep (for plant water storage)
 	double lwp_previous;
-		// transpiration from previous timestep (for plant water storage)
+		// transpiration (mm) from previous timestep (for plant water storage)
 	double transp_previous;
-	// loss of hydraulic conductance at subdaily timescale
+	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;
+	// volume of water in stems across cohort (m3/m2)
+	std::vector<double> Vl;
 
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;
 
+	private:
+	/// Adaptive N-day moving avegage of wscal.
+	HistoricDynamic<double> wscal_dynamic;
 	// wscal calculated on an individual basis using root conductance
 	double wscal;
-	Historic<double,5> wscal_5;
-	Historic<double,10> wscal_10;
-	Historic<double,30> wscal_30;
+	Historic<double, 5> wscal_5;
+	Historic<double, 10> wscal_10;
+	Historic<double, 30> wscal_30;
 	double wscal_mean_year;
+
+	public:
 
 	// N content of the individual at time of establishment (g). This is needed
 	// because we need to report the initial N as an establishment flux 1 year
@@ -3805,10 +3897,25 @@ public:
 	double alpha_root;
 	double alpha_sap;
 	double alpha_storage;
+
+	Historic<double, 30> alpha_leaf_trend;
+	Historic<double, 30> alpha_root_trend;
+	Historic<double, 30> alpha_sap_trend;
+	Historic<double, 30> alpha_storage_trend;
+
 	double cdeficit_leaf;
 	double cdeficit_root;
 	double cdeficit_sap;
 	double cdeficit_storage;
+
+	// Fraction of individuals within this cohort killed this year due to age-
+	// related mortality.
+	double mort_age;
+
+	// Fraction of individuals within this cohort killed this year due to
+	// growth efficiency-related mortality.
+	double mort_greff;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -3856,12 +3963,14 @@ public:
 
 	double get_nmass_leaf() const;
 
-
+	/// @brief Set the water stress value in this individual. This will update all moving-averages of water stress.
+	/// @param wscal The water stress value (1=no stress, 0=max stress).
+	void set_wscal(double wscal);
 	// Return appropriate wscal (based on root resistance if using hydraulics, otherwise based on wcont)
 	double get_wscal() const;
-	Historic<double,5>& get_wscal_5();
-	Historic<double,10>& get_wscal_10();
-	Historic<double,30>& get_wscal_30();
+	const Historic<double, 5> &get_wscal_5() const;
+	const Historic<double, 10> &get_wscal_10() const;
+	const Historic<double, 30> &get_wscal_30() const;
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -3984,6 +4093,24 @@ public:
 
 	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
+
+	/// Reset daily variables.
+	void daily_accounting();
+
+	/// Get the capacity of the dynamic-length moving average of water stress.
+	size_t get_wscal_dynamic_capacity() const;
+
+	/// Set the capacity of the dynamic-length moving average of water stress.
+	/// @param capacity The new window length of the moving average.
+	void set_wscal_dynamic_capacity(size_t capacity);
+
+	/// Get the moving average of water stress.
+	double get_wscal_moving_average() const;
+private:
+	// Reset annual variables. Called from daily_accounting() on the first day
+	// of the year.
+	void annual_accounting();
+	bool use_indiv_wscal() const;
 };
 
 
@@ -5076,8 +5203,6 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
-	/// wscal for the top 5 layers (unitless)
-	Historic<double, 5> wscal_5_5l;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;
@@ -5198,9 +5323,6 @@ public:
 	/// yearly sum of water deficit
 	double water_deficit_y;
 
-	// dynamic g1 calculated based on predawn lwp (Zhou et al. 2014)
-	double g1;
-
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
 
@@ -5251,7 +5373,6 @@ public:
 		nsapling = 0;
 		nsapling_year = 0;
 		water_deficit_y = 0.0;
-		g1 = 0.0;
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
@@ -5305,6 +5426,13 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+	/// Reset daily variables.
+	void daily_accounting();
+private:
+	/// Reset annual variables. Called from daily_accounting() on the first day
+	/// of the year.
+	void annual_accounting();
 };
 
 
@@ -5522,7 +5650,7 @@ public:
 	/// Total patch carbon biomass and litter
 	double ccont(double scale_indiv = 1.0, bool luc = false);
 	/// Total patch nitrogen biomass and litter
-	double ncont(double scale_indiv = 1.0, bool luc = false);
+	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch water and ice mass
 	double water_content();
 	/// Total patch carbon fluxes so far this year

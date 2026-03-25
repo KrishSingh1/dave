@@ -40,7 +40,6 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
-bool ifcalcvcmax;
 bool iftempacclimation;
 bool ifcalccton;
 int estinterval;
@@ -96,6 +95,7 @@ bool ifapproximate_C4;
 bool ifusegdd;
 bool ifstoreuptake;
 bool gzip_output;
+bool spinup_output;
 int nindiv_max;
 int grazing_duration;
 bool ifforcedlai;
@@ -277,7 +277,6 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
-	ifcalcvcmax=true;
 	ifdisturb=false;
 	ifcalcsla=false;
 	iftempacclimation = false;
@@ -307,6 +306,7 @@ void initsettings() {
 	grassforcrop = false;
 	useClosestNdep = false;
 	gzip_output = false;
+	spinup_output = false;
 	nindiv_max = 0;
 	ifforcedlai = false;
 	fixed_lai = 0;
@@ -526,8 +526,6 @@ void plib_declarations(int id,xtring setname) {
 			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
-		declareitem("ifcalcvcmax",&ifcalcvcmax,1,CB_NONE,
-			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
 			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
@@ -671,6 +669,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifevenlaidist", &ifevenlaidist, 1, CB_NONE, "Whether LAI is distributed evenly across canopy layers for grasses (default: on).");
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
+		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
@@ -765,7 +764,7 @@ void plib_declarations(int id,xtring setname) {
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
- 		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
+ 		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");
@@ -803,7 +802,8 @@ void plib_declarations(int id,xtring setname) {
 			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
 			"cuticular conductance at 20 degC (mol/m2/s)");
-
+		declareitem("ifcalcvcmax",&ppft->ifcalcvcmax,1,CB_NONE,
+			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
@@ -852,12 +852,42 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
+		declareitem("max_bark_nsc_conc", &ppft->max_bark_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in dead bark.");
+		declareitem("max_leaf_nsc_conc", &ppft->max_leaf_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in leaves.");
+		declareitem("max_twig_nsc_conc", &ppft->max_twig_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in twigs.");
+		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
+			"Maximum NSC concentration in wood.");
+		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of dead woody biomass that is bark. Plucked out of thin air.");
+		declareitem("crelocfrac", &ppft->crelocfrac, 0.0, 1e10, 1, CB_NONE,
+			"Fraction of senesced carbon retranslocated back to storage.");
+		declareitem("senesc_base", &ppft->senesc_base, 0.0, 1e10, 1, CB_NONE,
+			"Baseline senescence rate for dave grasses (d-1).");
+		declareitem("senesc_scal_dorm", &ppft->senesc_scal_dorm, 0.0, 1e10, 1, CB_NONE,
+			"Senescence coefficient for dormancy in dave grasses. Senescence rate is increased by this factor when phenology is changing at the maximum rate.");
+		declareitem("senesc_scal_water", &ppft->senesc_scal_water, 0.0, 1e10, 1, CB_NONE,
+			"Senescence coefficient for water stress in dave grasses. Senescence rate is increased by this factor under max water stress.");
+		declareitem("senesc_scal_repr", &ppft->senesc_scal_repr, 0.0, 1e10, 1, CB_NONE,
+			"Senescence coefficient for reproductive phase in dave grasses. Senescence rate is increased by this factor during reproductive phase.");
+		declareitem("qdev_senesc", &ppft->qdev_senesc, 0.0, 1e10, 1, CB_NONE,
+			"Exponent shaping development-driven senescence for dave grasses. Higher values delay senescence (less early, more late in the reproductive phase). Unitless.");
+		declareitem("qwater_senesc", &ppft->qwater_senesc, 0.0, 1e10, 1, CB_NONE,
+			"Exponent shaping water stress-driven senescence for dave grasses. q = 1 gives a linear response. q > 1 increases senescence at moderate stress; 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1). Unitless.");
+		declareitem("temp_senesc1", &ppft->temp_senesc1, 0.0, 1e10, 1, CB_NONE,
+			"Increase in senescence rate per 1℃, for temperatures below 0 ℃ (Johnson & Thornley 1983).");
+		declareitem("temp_senesc2", &ppft->temp_senesc2, 0.0, 1e10, 1, CB_NONE,
+			"Increase in senescence rate per 1℃, for temperatures above 0 ℃ (Johnson & Thornley 1983).");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
 			"Fine root turnover (fraction/year)");
-		declareitem("turnover_repr",&ppft->turnover_repr,0.0,1.0,1,CB_NONE,
-			"Seed turnover (fraction/year)");	
+		declareitem("turnover_repr_litter",&ppft->turnover_repr_litter,0.0,1.0,1,CB_NONE,
+			"Seed turnover (fraction/year)");
+		declareitem("turnover_repr",&ppft->turnover_repr,0.0,10.0,1,CB_NONE,
+			"Turnover of 'live' reproductive tissue to litter (fraction/year)");
 		declareitem("turnover_sap",&ppft->turnover_sap,0.0,1.0,1,CB_NONE,
 			"Sapwood turnover (fraction/year)");
 		declareitem("wooddens",&ppft->wooddens,10.0,1000.0,1,CB_NONE,
@@ -1632,13 +1662,6 @@ void plib_callback(int callback) {
 	case CB_ROOTFRAC:
 		numval = 0.0;
 		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
-	
-		for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
-		if (numval<0.99 || numval>1.01) {
-			sendmessage("Error","Specified root fractions do not sum to 1.0");
-			plibabort();
-		}
-		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound
@@ -1778,6 +1801,16 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch")) badins("npatch");
 			if (!itemparsed("patcharea")) badins("patcharea");
 			if (!itemparsed("estinterval")) badins("estinterval");
+		}
+
+		if (ifdailytree && !ifdavegrowth) {
+			for (size_t i = 0; i < pftlist.nobj; i++) {
+				if (pftlist[i].lifeform == TREE) {
+					sendmessage("Error", "Daily tree allocation (ifdailytree) is enabled, but dave growth (ifdavegrowth) is disabled. These must be either both enabled or both disabled.");
+					plibabort();
+					break;
+				}
+			}
 		}
 
 		if (ifzhou && wateruptake != WR_ROOT_RESISTANCE) {
@@ -2136,9 +2169,11 @@ void plib_callback(int callback) {
 			if (!itemparsed("lambda_max")) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");
+				// if (itemparsed("root_beta")) badins("root_beta given but rootdistribution is fixed. This does not make sense.");
 			}
 			if (rootdistribution == ROOTDIST_JACKSON) {
 				if (!itemparsed("root_beta")) badins("root_beta");
+				// if (itemparsed("rootdist")) badins("rootdist given but root distribution is jackson. This does not make sense.");
 			}
 			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
@@ -2166,18 +2201,37 @@ void plib_callback(int callback) {
 
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
-				if (!itemparsed("turnover_repr")) badins("turnover_repr");
+				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.
 				if (!itemparsed("A_growth")) {
 					ppft->A_growth = calc_a_growth(ppft);
 				}
 
-				if (ifdailygrass && ppft->is_grass()) {
+				if (ifdailytree && ppft->lifeform == TREE) {
+					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
+					if (!itemparsed("turnover_repr")) badins("turnover_repr");
+					if (!itemparsed("max_bark_nsc_conc")) badins("max_bark_nsc_conc");
+					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
+					if (!itemparsed("max_twig_nsc_conc")) badins("max_twig_nsc_conc");
+					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
+					if (!itemparsed("bark_frac")) badins("bark_frac");
+				}
+
+				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {
 					// Mandatory parameters for dave daily grasses.
 					if (!itemparsed("temp_dormancy")) badins("temp_dormancy");
 					if (!itemparsed("crownfrac")) badins("crownfrac");
 					if (!itemparsed("culmfrac")) badins("culmfrac");
+					if (!itemparsed("crelocfrac")) badins("crelocfrac");
+					if (!itemparsed("senesc_base")) badins("senesc_base");
+					if (!itemparsed("senesc_scal_dorm")) badins("senesc_scal_dorm");
+					if (!itemparsed("senesc_scal_water")) badins("senesc_scal_water");
+					if (!itemparsed("senesc_scal_repr")) badins("senesc_scal_repr");
+					if (!itemparsed("qdev_senesc")) badins("qdev_senesc");
+					if (!itemparsed("qwater_senesc")) badins("qwater_senesc");
+					if (!itemparsed("temp_senesc1")) badins("temp_senesc1");
+					if (!itemparsed("temp_senesc2")) badins("temp_senesc2");
 				}
 				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
 					badins("boleht_frac");
@@ -2185,7 +2239,7 @@ void plib_callback(int callback) {
 
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
-			if (!ifcalcvcmax) {
+			if (!ppft->ifcalcvcmax) {
 				if (!itemparsed("vcmax_25")) badins("vcmax_25");
 				if (!itemparsed("vpmax_25")) badins("vpmax_25");
 				if (!itemparsed("jmax_25")) badins("jmax_25");
@@ -2205,7 +2259,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ha_j")) badins("ha_j");
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
-				if (!ifdavegrowth && ifcalcvcmax) {
+				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 			}
@@ -2337,6 +2391,7 @@ void plib_callback(int callback) {
 			if (ppft->lifeform==TREE) {
 				if (!itemparsed("cton_sap")) badins("cton_sap");
 				if (!itemparsed("turnover_sap")) badins("turnover_sap");
+				if (ppft->dave_allocation() && ppft->lifeform == TREE && !itemparsed("turnover_repr")) badins("turnover_repr");
 				if (!itemparsed("wooddens")) badins("wooddens");
 				if (!itemparsed("crownarea_max")) badins("crownarea_max");
 				if (!itemparsed("k_allom1")) badins("k_allom1");

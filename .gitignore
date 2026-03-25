@@ -3,4 +3,7 @@ build/
 *~
 .DS_Store
 callgrind.*
+*.lpj
+.simulations
+._*
 

@@ -98,6 +98,11 @@ extern xtring title;
 /// Whether to produce daily output
 extern bool ifdailyoutput; 
 
+/*
+True iff outputs should be written during spinup.
+*/
+extern bool spinup_output;
+
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 
@@ -153,9 +158,6 @@ extern xtring file_disturb;
 
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
-
-/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
-extern bool ifcalcvcmax;
 
 /// Whether vcmax acclimation to temperature is enabeld (alt: prescribed)
 extern bool iftempacclimation;

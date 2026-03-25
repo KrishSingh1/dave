@@ -28,7 +28,7 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
-void growth_daily_grass(Patch& patch);
+void growth_daily_grass_warlind(Patch& patch);
 double photo_growth(double reldaylength, double daylength_diff);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,

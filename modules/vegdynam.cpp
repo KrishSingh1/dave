@@ -702,6 +702,9 @@ void establishment_daily(Patch& patch) {
 					indiv->initialc += cmass_ext_seed;
 					indiv->initialn += nmass_ext_seed;
 
+					indiv->cmass_germ = cmass_ext_seed;
+					indiv->acmass_germ += cmass_ext_seed;
+
 					double cmass_after = ppft.cmass_litter_repr + indiv->ccont(1.0, false, true) + ppft.cmass_ext_seed;
 					double nmass_after = ppft.nmass_litter_repr + indiv->ncont(1.0, false, true) + ppft.nmass_ext_seed;
 					assert(equal(cmass_before, cmass_after));
@@ -1651,6 +1654,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 							(indiv.crownarea*indiv.densindiv),mort_greff);
 				}
 
+				indiv.mort_greff = mort_greff;
+				indiv.mort_age = mort_min;
+
 				// Overall mortality: c.f. Eqn 29, Smith et al 2001
 
 				mort=mort_min+mort_greff-mort_min*mort_greff;
@@ -2082,6 +2088,9 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 						// Deterministic disturbance occurs in this year.
 						disturbance(patch, 1.0);
 						return;
+					}
+					else {
+						patch.disturbed = false;
 					}
 				} else {
 					// Stochastic disturbances.

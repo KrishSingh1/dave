@@ -252,7 +252,6 @@ private:
 
 			@param param: Name of the paramter in the instruction file which determines the output file name.
 			@param desc: Description of the output file (please include units).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			*/
 			OutputFile(std::string param, std::string desc);
 
@@ -677,6 +676,13 @@ class GridcellLevelOutput : public OutputFile {
 			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(const double*, size_t));
 
 			/*
+			Create a new individual output using a custom weight reader. When a weight
+			reader is provided, values are aggregated as a weighted mean across
+			individuals: sum(value_i * weight_i) / sum(weight_i).
+			*/
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, OutputReader<Individual> *read_weight);
+
+			/*
 			Destructor.
 			*/
 			~IndivLevelArrayOutput() { }
@@ -721,6 +727,12 @@ class GridcellLevelOutput : public OutputFile {
 			Pointer to a function which aggregates the output value across individuals.
 			*/
 			double (*aggregator)(const double *, size_t);
+
+			/*
+			Optional reader for per-individual weights. When present, write_rows will
+			compute a weighted mean across individuals using these weights.
+			*/
+			std::unique_ptr<OutputReader<Individual>> read_weight;
 	};
 
 	/*
@@ -737,7 +749,6 @@ class GridcellLevelOutput : public OutputFile {
 			@param n: Number of elements in the array.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
-			@param spinup_output: True to write outputs during spinup. False otherwise.
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
@@ -1092,6 +1103,13 @@ class GridcellLevelOutput : public OutputFile {
 	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(const double *, size_t));
 
 	/*
+	Add an individual-level array output using a custom weight function. When a
+	weight reader is provided, values are aggregated as a weighted mean across
+	individuals: sum(value_i * weight_i) / sum(weight_i).
+	*/
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
+
+	/*
 	Add a patch-level output.
 
 	@param name: Parameter in the instruction file which determines output file name.
@@ -1301,11 +1319,6 @@ class GridcellLevelOutput : public OutputFile {
 	*/
 	double total_time;
 };
-
-/*
-True iff outputs should be written during spinup.
-*/
-extern bool spinup_output;
 
 /*
 Iff true, mean/std dev across patches will be written instead of raw outputs.

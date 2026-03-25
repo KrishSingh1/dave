@@ -824,7 +824,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	double MIN_WATER_PERC = 0.0;
 
 	if (ifdavehydrology){
-		BASEFLOW_FRAC = 0.5;	// CS testing change, standard is 0.5
+		BASEFLOW_FRAC = 0.0;	// CS testing change, standard is 0.5
 		MIN_WATER_PERC = soiltype.wp[1];	// mm/m - Minimum water amount for percolation to occur - CS testing change. Assume all available water can percolate, and wilting point theta is the same for all depths.
 	} else {
 		BASEFLOW_FRAC = 0.5;
@@ -1147,6 +1147,16 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 			// Percolation from the top  layer (limited to available liquid water)
 			perc = min(soiltype.perc_base * pow(wcont_layer1, soiltype.perc_exp), Faw_layer1);
 
+			if (ifzhou) {
+				double max_perc = 0;
+				for (size_t s = 0; s < NSOILLAYER_UPPER; s++) {
+					// Soil hydraulic conductivity, converted from m/s to mm/day.
+					max_perc += K_actual[s] * 1000.0 * 86400.0;
+				}
+				assert(max_perc >= 0);
+				// perc = min(perc, max_perc);
+			}
+
 			for (int s = 0; s<NSOILLAYER_UPPER; s++) {
 
 				// Take water proportionally from the layers.
@@ -1212,7 +1222,16 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 			if (ifdavehydrology){
 				perc_from_base = BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp); // CS testing change
-				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
+				perc_from_base = min(perc_from_base, Faw_perc_layer_2);
+				if (ifzhou) {
+					double max_perc = 0;
+					for (size_t s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
+						// Convert from m/s to mm/day.
+						max_perc += K_actual[s] * 1000.0 * 86400.0;
+					}
+					assert(max_perc >= 0);
+					// perc_from_base = min(perc_from_base, max_perc);
+				}
 			} else {
 				perc_from_base = min(BASEFLOW_FRAC * soiltype.perc_base * pow(wcont_perc_layer_2, soiltype.perc_exp), max_rain_melt);
 				perc_from_base = min(perc_from_base, Faw_perc_layer_2); 
@@ -1493,13 +1512,13 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_acro_root_frac += indiv.rootdist[ly-IDX];
 
 		// PFT total root frac down to evaporation depth (200mm) 
 		double pft_evap_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NSOILLAYER_EVAP; ly++) {
-			pft_evap_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
+			pft_evap_root_frac += indiv.rootdist[ly-IDX];
 		}
 
 		// this includes mosses, which have root_frac = 1 in the acrotelm

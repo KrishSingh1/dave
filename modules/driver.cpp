@@ -971,8 +971,9 @@ void dailyaccounting_patch(Patch& patch) {
 		Vegetation& vegetation = patch.vegetation;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
-			patch.rpc_total += vegetation.getobj().rpc;		// indiv.rpc
+			Individual &indiv = vegetation.getobj();
+			patch.fpc_total += indiv.fpc;		// indiv.fpc
+			patch.rpc_total += indiv.rpc;		// indiv.rpc
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
@@ -1050,6 +1051,10 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		indiv.daily_accounting();
+	}
 
 	// On last day of month, calculate mean content of upper and lower soil layers
 
@@ -1517,6 +1522,44 @@ void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation
 			double psychrom_const = 0.665e-3 * climate.pressure[day.period];	// psychrometric constant (Pa/degC)
 		}
 	}
+}
+
+typedef struct {
+	double a;
+	double b;
+	double c;
+} esat_params_t;
+
+void get_esat_params(esat_method_t esat_method, esat_params_t *params) {
+	if (esat_method == SONNTAG_1990) {
+		params->a = 611.2;
+		params->b = 17.62;
+		params->c = 243.12;
+	} else if (esat_method == ALDUCHOV_1996) {
+		params->a = 610.94;
+		params->b = 17.625;
+		params->c = 243.04;
+	} else if (esat_method == ALLEN_1998) {
+		params->a = 610.8;
+		params->b = 17.27;
+		params->c = 237.3;
+	}
+}
+
+double esat(double tair, esat_method_t esat_method) {
+	esat_params_t params;
+	get_esat_params(esat_method, &params);
+
+	double a = params.a;
+	double b = params.b;
+	double c = params.c;
+
+	const double PA_TO_KPA = 0.001;
+	return a * exp((b * tair) / (c + tair)) * PA_TO_KPA;
+}
+
+double rh_to_vpd(double rh, double tair, esat_method_t esat_method) {
+	return esat(tair, esat_method) * (1.0 - rh);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

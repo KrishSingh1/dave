@@ -37,4 +37,30 @@ void daylengthinsoleet(Climate& climate);
 double get_local_temp(Gridcell& gridcell, double gridcell_temp, double gridcell_elevation, double local_elevation);
 void climate_seasonality(Gridcell& gridcell);
 
+/*
+Different algorithms which may be used to estimate saturation vapor pressure.
+*/
+typedef enum {
+	SONNTAG_1990,
+	ALDUCHOV_1996,
+	ALLEN_1998
+} esat_method_t;
+
+/*
+Estimate saturation vapor pressure (esat) from air temperature (tair).
+
+@param tair Air temperature (℃)
+@param esat_method Method to use for estimating saturation vapor pressure.
+*/
+double esat(double tair, esat_method_t esat_method = SONNTAG_1990);
+
+/*
+Convert relative humidity to vapour pressure deficit in kPa.
+
+@param rh Relative humidity (0-1)
+@param tair Air temperature (℃)
+@param esat_method Method to use for estimating saturation vapor pressure.
+*/
+double rh_to_vpd(double rh, double tair, esat_method_t esat_method = SONNTAG_1990);
+
 #endif // LPJ_GUESS_DRIVER_H

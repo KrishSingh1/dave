@@ -1997,9 +1997,9 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 	for (int i=0;i<NSOILLAYER;i++) {
 		wcont_cp[i] = patch.soil.get_layer_soil_water(i);
 		if (i < NSOILLAYER_UPPER)
-			grootdist[0] += pft.rootdist[i];
+			grootdist[0] += indiv.rootdist[i];
 		else
-			grootdist[1] += pft.rootdist[i];
+			grootdist[1] += indiv.rootdist[i];
 	}
 
 	if (day.isstart) {
@@ -2030,8 +2030,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
 					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 			
-					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
-						wcont_opt[i] = pft.emax * pft.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
+					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * indiv.rootdist[i]) {
+						wcont_opt[i] = pft.emax * indiv.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 					}
 
 					if (wcont_cp[i] > wcont_opt[i]) {
@@ -2196,10 +2196,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 
 
 	if (iftwolayersoil) 
-		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
+		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
 				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
-		return water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
+		return water_uptake(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
 				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
@@ -2249,17 +2249,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 
 			if (iftwolayersoil) 
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			else {
 
 				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
-							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 				else
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 
 				}
@@ -3097,52 +3097,71 @@ double calc_vpmax25(double nmass_leaf) {
 	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG));
 }
 
+void vcmax_from_parameters(Individual &indiv) {
+	if (indiv.pft.pathway == C3) {
+		indiv.ps_subdaily.vcmax25 = indiv.pft.vcmax_25;
+		indiv.ps_subdaily.jmax25 = indiv.pft.jmax_25;
+		indiv.ps_subdaily.vpmax25 = 0;
+	} else {
+		indiv.ps_subdaily.vcmax25 = 0;
+		indiv.ps_subdaily.jmax25 = 0;
+		indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_25;
+	}
+}
+
 // Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
 // and preliminary data from Yuzhen Fan for C4 grasses.
-void vcmax_from_N(Vegetation& vegetation) {
+void vcmax_from_N(Individual &indiv) {
 
-	for (int i = 0; i < vegetation.nobj; i++) {
-		Individual& indiv = vegetation[i];
-		const Pft &pft = indiv.pft;
+	const Pft &pft = indiv.pft;
+	double nmass_leaf0 = 0.0;
 
-		assert(ifcalcvcmax);
+	// Avoid log(0)
+	if (!is_zero(indiv.get_nmass_leaf())) {
 
-        double nmass_leaf0 = 0.0;
+		// Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area)
+		nmass_leaf0 = calc_nmass_leaf0(pft, indiv.lai, indiv.get_nmass_leaf());
 
-		// Avoid log(0)
-		if (!is_zero(indiv.get_nmass_leaf())) {
+		assert(positive(nmass_leaf0));
 
-			// Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area)
-			nmass_leaf0 = calc_nmass_leaf0(pft, indiv.lai, indiv.get_nmass_leaf());
+		if (indiv.pft.pathway == C3) {
 
-			assert(positive(nmass_leaf0));
+			// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
+			// pmass_leaf is in kgP m-2 leaf area
+			// nmass_leaf is in kgN m-2 leaf area 
+			double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
 
-			if (indiv.pft.pathway == C3) {
+			indiv.ps_subdaily.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
+			indiv.ps_subdaily.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
+		} 
+		else if (indiv.pft.pathway == C4) {
 
-				// leaf P in first fully expanded leaves per unit leaf area (kgP m-2 leaf) 
-				// pmass_leaf is in kgP m-2 leaf area
-				// nmass_leaf is in kgN m-2 leaf area 
-				double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
+			indiv.ps_subdaily.vpmax25 = calc_vpmax25(nmass_leaf0);
 
-				indiv.ps_subdaily.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
-				indiv.ps_subdaily.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
-			} 
-			else if (indiv.pft.pathway == C4) {
-
-                indiv.ps_subdaily.vpmax25 = calc_vpmax25(nmass_leaf0);
-
-			} else {
-				fail("Unknown photosynthetic pathway");
-			}
+		} else {
+			fail("Unknown photosynthetic pathway");
 		}
-		else {
-			// This may happen on first day after establishment when using the
-			// annual (trunk) allocation, because individuals are given no N at
-			// establishment. Nitrogen uptake happens daily though, so on the
-			// next day, nmass_leaf should be nonzero.
-			indiv.ps_subdaily.vcmax25 = 0.0;
-			indiv.ps_subdaily.jmax25  = 0.0;
-			indiv.ps_subdaily.vpmax25 = 0.0;
+	}
+	else {
+		// This may happen on first day after establishment when using the
+		// annual (trunk) allocation, because individuals are given no N at
+		// establishment. Nitrogen uptake happens daily though, so on the
+		// next day, nmass_leaf should be nonzero.
+		indiv.ps_subdaily.vcmax25 = 0.0;
+		indiv.ps_subdaily.jmax25  = 0.0;
+		indiv.ps_subdaily.vpmax25 = 0.0;
+	}
+}
+
+void store_vcmax_values(Vegetation &vegetation) {
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
+		if (indiv.pft.ifcalcvcmax) {
+			// Calculate photosynthetic capacity from leaf N
+			vcmax_from_N(indiv);
+		} else {
+			// Use parameter value.
+			vcmax_from_parameters(indiv);
 		}
 	}
 }
@@ -3591,7 +3610,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (is_zero(indiv.get_nmass_leaf()) || is_zero(ppft.wscal)) {
+		if (is_zero(indiv.get_nmass_leaf()) || is_zero(indiv.get_wscal())) {
 			continue;
 		}
 
@@ -3695,12 +3714,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					// water_potential = patch.soil.soil_psi;
 					water_potential = indiv.weighted_psi;
 				}
-				ppft.g1 = g1x * exp(b1z*(water_potential + 0.3));
+				g1 = g1x * exp(b1z * (water_potential + 0.3));
+				// Update indiv.g1 for outputting.
+				indiv.g1 = g1;
 
 				// for water
-				g0 = min(g0,g0 * exp(b1z*(water_potential + 0.3))); // rescale similar to g1, but don't allow values bigger than assigned g0
+				// rescale similar to g1, but don't allow values bigger than assigned g0
+				g0 = min(g0,g0 * exp(b1z * (water_potential + 0.3)));
+
 				// for co2
-				inputs.X = divide(divide(1.0 + ppft.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+				inputs.X = divide(divide(1.0 + g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
@@ -3987,11 +4010,31 @@ double electron_transport_rate(double PAR,double Jmax) {
 }
 
 /*
+Calculate water stress factor [0-1] in the root zone.
+*/
+double calc_water_stress_dave(const Soil &soil, const double rootdist[NSOILLAYER]) {
+	double wstress = 0;
+	double rootdist_sum = 0;
+	for (int j = 0; j<NSOILLAYER; j++) {
+		// Get actual water content and available water content per layer.
+		double wcont = soil.get_layer_soil_water(j);
+
+		// Calculate water stress factor per layer and weight by root fraction.
+		wstress += max(min(wcont / wcont_crit, 1.0), 0.0) * rootdist[j];
+
+		// Root distribution should add up to 1 but summed here just in case.
+		rootdist_sum += rootdist[j];
+	}
+	// Normalise by sum of root distribution in case it doesn't sum to 1.
+	return wstress / rootdist_sum;
+}
+
+/*
 DAVE water scalar routine (see water_scalar()).
 
 @param patch: The patch.
 */
-void water_stress(Patch &patch) {
+void water_stress_dave(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
@@ -4004,31 +4047,11 @@ void water_stress(Patch &patch) {
 		Patchpft &ppft = patch.pft[i];
 		Pft &pft = pftlist[i];
 
-		double wstress_layer[NSOILLAYER];
-		double wstress = 0.0;
-		double rootdist_sum = 0.0;
-		double wstress_5l = 0.0;
+		// Aggregate water stress factor [0-1] in the root zone.
+		double wstress = calc_water_stress_dave(patch.soil, pft.input_rootdist);
 
-		for (int j = 0; j<NSOILLAYER; j++) {
-			// get actual water content and available water content per layer
-			double wcont = patch.soil.get_layer_soil_water(j);
-
-			// calculate water stress factor per layer and weight with root fraction
-			wstress_layer[j] = max(min(wcont / wcont_crit,1.0),0.0) * pft.rootdist[j];
-			wstress += wstress_layer[j];
-			rootdist_sum += pft.rootdist[j]; // rootdist should add up to 1 but summed here just in case...
-			// save water stress for the top 5 layers
-			if (j == 4) {
-				wstress_5l = wstress / rootdist_sum;
-			}
-
-		}
-		// water stress factor [0-1] in the root zone
-		wstress /= rootdist_sum;
-
-		// Mean daily water stress value.
+		// Store water stress.
 		ppft.wscal = wstress;
-		ppft.wscal_5_5l.add(wstress_5l);
 
 		if (date.day == 0 && (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass) ) {
 			ppft.cropphen->growingdays_y = 0;
@@ -4052,34 +4075,50 @@ void water_stress(Patch &patch) {
 			ppft.cropphen->growingdays_y++;
 			ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 		} else {
-			// No wscal_mean for you...
+			// Either cropland but not a crop, or a crop outside growing season.
 		}
 
+		// Update the ppft-level moving averages of water stress.
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
+
+		// Also update air temperature for some reason (why is this here?).
 		ppft.airtemp_10.add(patch.get_climate().temp);
 	}
+
+	// Update the corresponding indiv-level moving averages of water stress.
+	// These are handled internally by the individual.
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
-		indiv.wscal_dynamic.add(ppft.wscal);
+
+		double wscal = ppft.wscal;
+
+		// Calculate individual-level wscal. This can be different for grasses
+		// if the adaptive root distribution is enabled.
+		if (indiv.pft.is_grass() && indiv.pft.dave_allocation() && ifadaptive_rootdist) {
+			wscal = calc_water_stress_dave(patch.soil, indiv.rootdist);
+		}
+
+		indiv.set_wscal(wscal);
 		assert(ppft.wscal <= 1.0);
+		assert(ppft.wscal >= 0.0);
 	}
 }
 
 /// Run water stress 
-
-void water_stress_root_resistance(Patch &patch) {
+void water_stress_dave_root_resistance(Patch &patch) {
 	// Must set:
 	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
 	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
 	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
 	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
+	const Soil &soil = patch.soil;
 
-	double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
-	double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+	double Psi_wp = soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
+	double Psi_whc = soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 
 	// Iterate over individuals in patch.
 	for (int i = 0; i < patch.vegetation.nobj; i++) {
@@ -4093,38 +4132,60 @@ void water_stress_root_resistance(Patch &patch) {
 	
 		for (int j = 0; j<NSOILLAYER; j++) {
 			// get actual water content and available water content per layer
-			// double wcont = patch.soil.get_layer_soil_water(j);
+			// double wcont = soil.get_layer_soil_water(j);
 
-			// calculate water stress factor per layer and weight with root conductance
-			wstress_layer[j] = max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * (1.0/indiv.Rs_r[j]);
+			// Calculate water stress factor per layer and weight with root
+			// conductance.
+			// double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
+
+			// Alternative: calculate stress from water content, because water
+			// potential is so nonlinear that we rarely see stress in practice
+			// (ie WP only gets close to psi_wp at extreme water contents).
+			// stress_base = soil.get_layer_soil_water(j);
+			double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
+
+			// Guard to [0, 1].
+			stress_base = max(min(stress_base, 1.0), 0.0);
+
+			// Weight by root resistance.
+			// double weight = 1.0 / indiv.Rs_r[j];
+
+			// Alternative: weight by root distributeion. Reason: weighting by
+			// root resistance leads to a flatter relationship with wcont.
+			double weight = indiv.rootdist[j];
+
+			wstress_layer[j] = stress_base * weight;
+
 			wstress += wstress_layer[j];
-			root_cond_sum += 1.0/indiv.Rs_r[j]; 
+			root_cond_sum += weight;
 		}
-		// water stress factor [0-1] in the root zone
+
+		// Water stress factor [0-1] in the root zone.
 		wstress /= root_cond_sum;
 
 		// Mean daily water stress value.
-		indiv.wscal = wstress;
-
-		indiv.wscal_5.add(indiv.wscal);
-		indiv.wscal_10.add(indiv.wscal);
-		indiv.wscal_30.add(indiv.wscal);
-
-		if (date.day == 0){
-			indiv.wscal_mean_year = 0.0;
-		}
-
-		indiv.wscal_mean_year += wstress;
-
-		if (date.islastmonth && date.islastday){
-			indiv.wscal_mean_year /= Date::MAX_YEAR_LENGTH;
-		}
+		indiv.set_wscal(wstress);
 	}
 
 	double wstress_pft = 0.0;
-
 	for (int j = 0; j<NSOILLAYER; j++) {
-		wstress_pft += max(min((patch.soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0) * patch.soil.Dz[j+7] / sum(patch.soil.Dz+7,15); // alternative wstress to be used at PFT level (since we can't use root biomass for weighting)
+		// Alternative wstress to be used at PFT level, since we can't use the
+		// root resistance (which depends on root biomass) for weighting.
+		// double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
+
+		// Alternative: calculate stress from water content, because water
+		// potential is so nonlinear that we rarely see stress in practice
+		// (ie WP only gets close to psi_wp at extreme water contents).
+		// stress_base = soil.get_layer_soil_water(j);
+		double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
+
+		// Guard to [0, 1].
+		stress_base = max(min(stress_base, 1.0), 0.0);
+
+		// Weight by layer thickness.
+		double weight = soil.Dz[j + 7] / sum(soil.Dz + 7, NSOILLAYER);
+
+		wstress_pft += stress_base * weight;
 	}
 
 	for (int i = 0; i < pftlist.nobj; i++) {
@@ -4226,11 +4287,11 @@ void transpiration(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 			if (iftwolayersoil) {
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			} else {
 				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
 			}
 			
@@ -4476,7 +4537,7 @@ void forest_floor_dave(Patch &patch) {
 			// Assume a leaf N content of 0.01 kgN/m2.
 			PhotosynthesisOutputs outputs;
 			if (pft.pathway == C3) {
-				if (ifcalcvcmax) {
+				if (pft.ifcalcvcmax) {
 					inputs.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
 					inputs.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
 				} else {
@@ -4489,7 +4550,7 @@ void forest_floor_dave(Patch &patch) {
 			} else {
 				inputs.vcmax25 = 0;
 				inputs.jmax25 = 0;
-				inputs.vpmax25 = ifcalcvcmax ? calc_vpmax25(nmass_leaf0) : pft.vpmax_25;
+				inputs.vpmax25 = pft.ifcalcvcmax ? calc_vpmax25(nmass_leaf0) : pft.vpmax_25;
 
 				photosynthesis_dave_c4(inputs, outputs);
 			}
@@ -4503,21 +4564,6 @@ void forest_floor_dave(Patch &patch) {
 				spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
 				ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 			}
-		}
-	}
-}
-
-void vcmax_from_parameters(Vegetation &vegetation) {
-	for (size_t i = 0; i < vegetation.nobj; i++) {
-		Individual &indiv = vegetation[i];
-		if (indiv.pft.pathway == C3) {
-			indiv.ps_subdaily.vcmax25 = indiv.pft.vcmax_25;
-			indiv.ps_subdaily.jmax25 = indiv.pft.jmax_25;
-			indiv.ps_subdaily.vpmax25 = 0;
-		} else {
-			indiv.ps_subdaily.vcmax25 = 0;
-			indiv.ps_subdaily.jmax25 = 0;
-			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_25;
 		}
 	}
 }
@@ -4582,21 +4628,17 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 		*/
 
-		// Calculate photosynthetic capacity from leaf N
-		if (ifcalcvcmax) {
-			vcmax_from_N(vegetation);
-		} else {
-			vcmax_from_parameters(vegetation);
-		}
+		// Get vcmax25/jmax25/vpmax25 values.
+		store_vcmax_values(vegetation);
 
 		// Calculate soil water potential
 		calc_soil_water_potenial_dave(patch.soil);
 
 		// Calculate water stress factor
 		if (ifzhou) {
-			water_stress_root_resistance(patch);
+			water_stress_dave_root_resistance(patch);
 		} else {
-			water_stress(patch);
+			water_stress_dave(patch);
 		}
 
 		// Calculate subdaily photosynthesis and stomatal conductance 

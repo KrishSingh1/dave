@@ -201,7 +201,7 @@ ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
-npatch       1          ! Number of replicate patches to simulate
+npatch       5          ! Number of replicate patches to simulate
 patcharea    1000       ! Patch area (m2)
 
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
@@ -220,7 +220,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
+ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
 disttype     "STOCHASTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances

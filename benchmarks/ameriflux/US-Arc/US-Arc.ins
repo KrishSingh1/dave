@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! US-Arc master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: US-Arc"
+
+file_met_forcing        "../forcing/met/US-Arc.nc"
+file_met_spinup         "../forcing/met/US-Arc.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! PR-xLA master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: PR-xLA"
+
+file_met_forcing        "../forcing/met/PR-xLA.nc"
+file_met_spinup         "../forcing/met/PR-xLA.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

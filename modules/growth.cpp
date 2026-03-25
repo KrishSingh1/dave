@@ -73,7 +73,7 @@ const double frac_cstorage_res = 0.15;
 const double fphen_activity_min = 0.1;
 
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
-const double dphen_activity_max = 0.3;
+const double dphen_activity_max = 0.4;
 
 // SLA of culms relative to leaves in grasses
 const double frac_sla_culm = 0.2;

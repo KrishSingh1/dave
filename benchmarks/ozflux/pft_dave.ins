@@ -728,7 +728,7 @@ group "C3G" (
 
 	! Cool (C3) grass
 
-	include 0
+	include 1
 	grass
 	pathway "c3"
 	g0 0.161
@@ -743,7 +743,7 @@ group "C3G" (
 	tcmax_est 1000  	! no limit
 	twmin_est -1000 	! no limit
 	gdd5min_est 0   	! no limit
-	temp_dormancy 5.0
+	temp_dormancy 4.0
 	eps_iso 16.0
 	seas_iso 1
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19
@@ -764,10 +764,10 @@ pft "C3G_perennial" (
 	sla                35.0
     cton_leaf_min      13.7
 	RGR_pot            0.2
-	max_mobil_cstorage 0.2
-	reprfrac           0.2
-	crownfrac          0.2
-	culmfrac           0.5
+	max_mobil_cstorage 0.3
+	reprfrac           0.1
+	crownfrac          0.1
+	culmfrac           0.1
 	extkn              0.17
 )
 
@@ -793,7 +793,7 @@ group "C4G" (
 
 	! Warm (C4) grass
 
-	include 1
+	include 0
 	grass
 	pathway "c4"
 	g0 0.049

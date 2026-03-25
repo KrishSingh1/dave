@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! AR-CCg master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: AR-CCg"
+
+file_met_forcing        "../forcing/met/AR-CCg.nc"
+file_met_spinup         "../forcing/met/AR-CCg.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

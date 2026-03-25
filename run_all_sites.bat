@@ -18,21 +18,34 @@ cmake ^
 cmake --build "%BUILD_PATH%"
 
 :: Get paths
-set "OZFLUX=%DIR%\benchmarks\ozflux"
+set "OUTDIR=%DIR%\benchmarks"
 set "BIN=%DIR%\%BUILD_PATH%"
 set "GUESS=%BIN%\guesscmd.exe"
 
-:: Define sites (same list as in bash script)
-set "SITES=AdelaideRiver AliceSpringsMulga Boyagin Calperum CapeTribulation Collie CowBay CumberlandPlain DalyPasture DalyUncleared DryRiver Emerald FoggDam Gingin GreatWesternWoodlands HowardSprings Litchfield Longreach Otway RedDirtMelonFarm Ridgefield RiggsCreek RobsonCreek Samford SilverPlains SturtPlains TiTreeEast Tumbarumba WallabyCreek Warra Whroo WombatStateForest Yanco"
+:: Define sites to run
+set "SITES_FILE=%OUTDIR%\EC_grass_sites.txt"
+
+if not exist "%SITES_FILE%" (
+    echo ERROR: Site list file not found: "%SITES_FILE%"
+    echo Please create benchmarks\ozflux\sites.txt with one site per line.
+    goto :fail
+)
 
 :: Start all simulations
-for %%S in (%SITES%) do (
-    set "SITE_DIR=%OZFLUX%\%%S"
+for /f "usebackq delims=" %%S in ("%SITES_FILE%") do (
+    set "SITE_DIR=%OUTDIR%\%%S"
     if not exist "!SITE_DIR!" (
-        echo WARNING: Site '%%S' does not appear to exist. Expected: '!SITE_DIR!'
+        echo Creating site directory "!SITE_DIR!"
+        mkdir "!SITE_DIR!"
     ) else (
         pushd "!SITE_DIR!"
-        start /b "" "%GUESS%" -input nc "%%S.ins"
+        if not exist "%%S.ins" (
+            echo WARNING: Missing INS file in "!SITE_DIR!": "%%S.ins"
+        ) else (
+            start /b "" "%GUESS%" -input nc "%%S.ins"
+            rem Optional: log outputs per site
+            rem start /b "" "%GUESS%" -input nc "%%S.ins" > "%%S.out.log" 2> "%%S.err.log"
+        )
         popd
     )
 )

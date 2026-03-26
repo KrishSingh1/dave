@@ -2258,8 +2258,6 @@ public:
 	double s1;
 	/// maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa)
 	double kmax;
-	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	double nx;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure

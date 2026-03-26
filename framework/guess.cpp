@@ -429,11 +429,21 @@ void Patchpft::daily_accounting(const Patch &patch) {
 
 	lai_ymax = max(lai_ymax, total_lai);
 	agb_ymax = max(agb_ymax, total_agb);
+	lai_ymean += total_lai;
+	agb_ymean += total_agb;
+
+	if (date.islastday && date.islastmonth) {
+		int year_length = date.year_length();
+		lai_ymean /= year_length;
+		agb_ymean /= year_length;
+	}
 }
 
 void Patchpft::annual_accounting(const Patch &patch) {
 	lai_ymax = 0;
 	agb_ymax = 0;
+	lai_ymean = 0;
+	agb_ymean = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

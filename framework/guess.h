@@ -5462,7 +5462,14 @@ public:
 	// Maximum above-ground biomass recorded on any day this year (kg/m2).
 	double agb_ymax;
 
+	// Mean LAI over the year (m2/m2). Note: this is a rolling sum, divided by
+	// year length only on last day of year.
+	double lai_ymean;
 
+	// Mean above-ground biomass over the year (kg/m2). Note: this is a rolling
+	// sum, divided by year length only on last day of year.
+	double agb_ymean;
+	
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
@@ -5535,6 +5542,8 @@ public:
 		senescence_reason.reset();
 		lai_ymax = 0;
 		agb_ymax = 0;
+		lai_ymean = 0;
+		agb_ymean = 0;
 	}
 
 	~Patchpft() {

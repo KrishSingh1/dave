@@ -40,6 +40,8 @@ DaveOutput::DaveOutput() {
 	add_gridcell_output("file_dave_amet_par"                     , ANNUAL, "par", [](const Gridcell &g) { return g.climate.apar; }, "Total annual PAR (J/m2)");
 	add_gridcell_aggregated_ppft_output("file_dave_lai_ymax"     , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].lai_ymax; }, "Maximum gridcell-level annual leaf area index (m2/m2)");
 	add_gridcell_aggregated_ppft_output("file_dave_agb_ymax"     , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].agb_ymax; }, "Maximum gridcell-level annual above-ground biomass (kg/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_lai_ymean"    , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].lai_ymean; }, "Mean gridcell-level annual leaf area index (m2/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_agb_ymean"    , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].agb_ymean; }, "Mean gridcell-level annual above-ground biomass (kg/m2)");
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");

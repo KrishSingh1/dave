@@ -639,9 +639,10 @@ void NCVariable::validate_time_axis() const {
 	timepoint tp0 = to_timepoint(dt0);
 	if (tp0.timestep != 0) {
 		xtring msg;
-		msg.printf("First time step is not aligned to midnight: %04d-%02d-%02d %02d:%02d:%02f",
+		msg.printf("First time step is not aligned to midnight: %04d-%02d-%02d %02d:%02d:%02f (timestep=%d, expected 0)",
 				   dt0.get_year(), dt0.get_month(), dt0.get_day(),
-				   dt0.get_hour(), dt0.get_minute(), dt0.get_second());
+				   dt0.get_hour(), dt0.get_minute(), dt0.get_second(),
+				   tp0.timestep);
 		throw std::runtime_error((const char *)msg);
 	}
 

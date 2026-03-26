@@ -6,7 +6,6 @@ nav:
       - Establishment: science/establishment.md
       - Daily Tree Growth: science/daily-growth-tree.md
       - Daily Grass Growth: science/daily-growth-grass.md
-      - Photosynthesis: science/photosynthesis.md
   - How-to:
       - Overview: howto/index.md
       - Setup:

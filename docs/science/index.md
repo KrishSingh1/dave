@@ -7,7 +7,6 @@ This section documents scientific concepts, process representations, and model-b
 - [Establishment (GUESS)](establishment.md)
 - [Daily Tree Growth](daily-growth-tree.md)
 - [Daily Grass Growth](daily-growth-grass.md)
-- [Photosynthesis](photosynthesis.md)
 
 ## Planned content
 

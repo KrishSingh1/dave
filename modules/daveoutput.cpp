@@ -44,7 +44,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
 	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
-	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
+	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (kgC/m2)");
 	add_patch_output("file_dave_anflux"                         , ANNUAL, nflux_columns, "Annual N flux (kgN/m2/year)");
 	add_patch_output("file_dave_globfirm"                       , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
 	add_patch_output("file_dave_mwcont_upper"                   , ANNUAL, mwcont_upper_columns, "Monthly wcont_upper output file (0-1)");
@@ -356,7 +356,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_alpha_sap"                , DAILY, "alpha_sap", [](const Individual &i) { return i.alpha_sap; }, "proportion allocated to sapwood (unitless)");
 	add_indiv_output("file_dave_indiv_alpha_leaf"               , DAILY, "alpha_leaf", [](const Individual &i) { return i.alpha_leaf; }, "proportion allocated to leaf (unitless)");
 	add_indiv_output("file_dave_indiv_alpha_root"               , DAILY, "alpha_root", [](const Individual &i) { return i.alpha_root; }, "proportion allocated to root (unitless)");
-	add_indiv_output("file_dave_indiv_alpha_storage"            , DAILY, "alpha_stor", [](const Individual &i) { return i.alpha_storage; }, "proportion allocated to  storage (unitless)");
+	add_indiv_output("file_dave_indiv_alpha_storage"            , DAILY, "alpha_storage", [](const Individual &i) { return i.alpha_storage; }, "proportion allocated to  storage (unitless)");
 	add_indiv_output("file_dave_indiv_cgrow"          		    , DAILY, "cgrow", [](const Individual &i) { return i.cgrow; }, "daily total growth rate of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_leaf"          		, DAILY, "cgrow_leaf", [](const Individual &i) { return i.cgrow_leaf; }, "daily leaf allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_root"         	    , DAILY, "cgrow_root", [](const Individual &i) { return i.cgrow_root; }, "daily root allocation of individual (kgC/m2/d)");

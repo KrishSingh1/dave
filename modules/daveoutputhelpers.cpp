@@ -1266,6 +1266,22 @@ double get_nindiv(const Patch &patch, const Pft &pft) {
 	return n;
 }
 
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_patchpft_columns(
+	double (*read_value)(const Patch &, const Pft &)
+) {
+	std::vector<ColumnDefinition<Gridcell>> columns;
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		const Pft &pft = pftlist[i];
+		std::string name = std::string((const char*)pft.name);
+		columns.push_back(AggregatedPatchPftGridcellColumnDefinition(
+			name,
+			pft,
+			read_value
+		));
+	}
+	return columns;
+}
+
 std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
     double (*read_value)(const Individual &),
     double (*aggregate)(const double *, size_t),

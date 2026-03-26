@@ -413,14 +413,27 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
-void Patchpft::daily_accounting() {
+void Patchpft::daily_accounting(const Patch &patch) {
 	if (date.day == 0) {
-		annual_accounting();
+		annual_accounting(patch);
 	}
+	double total_lai = 0;
+	double total_agb = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; ++i) {
+		const Individual& indiv = patch.vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			total_lai += indiv.lai;
+			total_agb += indiv.aboveground_biomass();
+		}
+	}
+
+	lai_ymax = max(lai_ymax, total_lai);
+	agb_ymax = max(agb_ymax, total_agb);
 }
 
-void Patchpft::annual_accounting() {
-
+void Patchpft::annual_accounting(const Patch &patch) {
+	lai_ymax = 0;
+	agb_ymax = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

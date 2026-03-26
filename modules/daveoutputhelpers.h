@@ -400,6 +400,14 @@ std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
 );
 
 /*
+Generate a vector of column definitions, which aggregate the specified value
+read from a pft in a given patch up to the gridcell level, for all PFTs.
+*/
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_patchpft_columns(
+	double (*read_value)(const Patch &, const Pft &)
+);
+
+/*
 Generate a vector of column defintions, which aggregate the specified value read
 from an individual up to the gridcell level, for all tree PFTs.
 */

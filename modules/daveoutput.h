@@ -1252,6 +1252,25 @@ class GridcellLevelOutput : public OutputFile {
 
 	/*
 	Add a gridcell-level output, which contains one column per PFT. Each column
+	will have its value read from the corresponding pft in each patch, and the
+	values will be aggregated back up to the gridcell level.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the output value for a specific pft in a patch.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_aggregated_ppft_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Patch &, const Pft &),
+		std::string description,
+		bool sum = false,
+		bool mean = false);
+
+	/*
+	Add a gridcell-level output, which contains one column per PFT. Each column
 	will have its value read from individual objects according to read_output,
 	and the values will be aggregated back up to the gridcell level.
 

@@ -1051,6 +1051,11 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
+	for (size_t i = 0; i < patch.pft.nobj; i++) {
+		Patchpft &patchpft = patch.pft[i];
+		patchpft.daily_accounting(patch);
+	}
+
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
 		indiv.daily_accounting();

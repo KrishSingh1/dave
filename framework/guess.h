@@ -5456,6 +5456,12 @@ public:
 	// dormant per year.
 	HistoricDynamic<size_t> nday_dormant_historical;
 
+	// Maximum total LAI recorded on any day this year (m2/m2).
+	double lai_ymax;
+
+	// Maximum above-ground biomass recorded on any day this year (kg/m2).
+	double agb_ymax;
+
 
 	// MEMBER FUNCTIONS:
 
@@ -5527,6 +5533,8 @@ public:
 		nday_dormant_historical.add(105);
 
 		senescence_reason.reset();
+		lai_ymax = 0;
+		agb_ymax = 0;
 	}
 
 	~Patchpft() {
@@ -5545,11 +5553,11 @@ public:
 	void serialize(ArchiveStream& arch);
 
 	/// Reset daily variables.
-	void daily_accounting();
+	void daily_accounting(const Patch &patch);
 private:
 	/// Reset annual variables. Called from daily_accounting() on the first day
 	/// of the year.
-	void annual_accounting();
+	void annual_accounting(const Patch &patch);
 };
 
 

@@ -3,6 +3,7 @@ nav:
   - Home: index.md
   - Science:
       - Overview: science/index.md
+      - Establishment: science/establishment.md
       - Daily Tree Growth: science/daily-growth-tree.md
       - Daily Grass Growth: science/daily-growth-grass.md
       - Photosynthesis: science/photosynthesis.md

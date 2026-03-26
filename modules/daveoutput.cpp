@@ -586,8 +586,8 @@ void DaveOutput::add_gridcell_aggregated_ppft_output(
 		timestep_t timestep,
 		double (*read_output)(const Patch &, const Pft &),
 		std::string description,
-		bool sum = false,
-		bool mean = false
+		bool sum,
+		bool mean
 ) {
 	GridcellLevelOutput *output = new GridcellLevelOutput(
 		name,

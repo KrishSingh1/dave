@@ -7,8 +7,9 @@ reads subdaily, CF-compliant NetCDF forcing data into LPJ-GUESS.
 
 The DAVE climate input stack is loosely based on the `cf` input module used by
 upstream LPJ-GUESS, but adds support for **subdaily meteorological inputs**.
-Subdaily inputs are required by the [DAVE photosynthesis module](../science/photosynthesis.md),
-which operates at sub-daily time resolution.
+Subdaily inputs are required by the [DAVE photosynthesis
+module](../science/daily-growth-grass.md#appendix-a-photosynthesis), which
+operates at sub-daily time resolution.
 
 ## Input Architecture
 

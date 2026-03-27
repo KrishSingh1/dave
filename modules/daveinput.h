@@ -313,6 +313,11 @@ private:
 	double co2_delta;
 
 	/*
+	Scalar to multiply daily precipitation by. Set in instruction file.
+	*/
+	double precip_scalar;
+
+	/*
 	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
 	of that day's subdaily data will be used.
 	*/

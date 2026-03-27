@@ -76,6 +76,7 @@ DaveInput::DaveInput() {
 
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
+	declare_parameter("precip_scalar", &precip_scalar, -1e6, 1e6, "Optional scalar to multiply daily precipitation by.");
 
 	declare_parameter("fixed_pressure", &fixed_pressure, 0, 200000
 	, "Optional fixed/constant air pressure to use in Pa");
@@ -107,6 +108,7 @@ DaveInput::DaveInput() {
 
 	temperature_delta = 0;
 	co2_delta = 0;
+	precip_scalar = 1.0;
 
 	// Are these too generous?
 	bounds_ps.max = 150000;
@@ -351,6 +353,13 @@ try {
 
 	if (co2_delta > 0) {
 		climate.co2 += co2_delta;
+	}
+
+	if (precip_scalar != 1.0) {
+		for (int i = 0; i < date.subdaily; i++) {
+			climate.precs[i] *= precip_scalar;
+		}
+		climate.prec *= precip_scalar;
 	}
 
 	// rads and pars are calculated automatically in daylengthinsoleet().

@@ -212,10 +212,10 @@ this PFT in this stand so far in the simulation (kgC/m2/year).
 $\alpha_r$ is a PFT-specific constant (parameter capturing non-linearity in
 recruitment rate relative to understorey growing conditions).
 
-#### Example: recruitment sensitivity to `alphar`
+#### Recruitment sensitivity to $\alpha_r$
 
 The figure below shows expected saplings vs $F = A_{\mathrm{net,ff}} /
-A_{\mathrm{net,ff,max}}$ for multiple `alphar` values, generated from the same
+A_{\mathrm{net,ff,max}}$ for multiple $\alpha_r$ values, generated from the same
 equations described above.
 
 <div class="theme-figure">
@@ -307,54 +307,38 @@ $A_{\mathrm{patch}}$ is the patch area in $\mathrm{m}^2$.
 
 If initial biomass is zero, that PFT does not establish in that year.
 
-## Key Controls That Commonly Change Outcomes
-
-These controls often explain major establishment differences across runs:
-
-- relevant PFT parameters and bioclimatic limits
-- background establishment on/off (`ifbgestab`)
-- spatial mass effect on/off (`ifsme`)
-- stochastic establishment on/off (`ifstochestab`)
-- cohort establishment interval (`estinterval`)
-- management forcing or planting-density settings
-- individual-density cap for a PFT
-
-## Parameter Summary
-
-This section collects establishment-relevant parameters in one place.
+## Key Parameters
 
 ### PFT-Level Parameters
 
 | Parameter | Role in establishment | Typical effect if increased |
 | --- | --- | --- |
-| `est_max` | Nominal maximum sapling establishment rate | Raises potential sapling recruitment ceiling |
-| `alphar` | Controls nonlinearity of recruitment response to forest-floor assimilation ratio $F$ | Changes sensitivity of recruitment to understory conditions |
+| `est_max` | Maximum sapling recruitment rate | Raises recruitment rate, and stem density and initial biomass at establishment |
+| `alphar` | Controls nonlinearity of recruitment response to forest-floor assimilation ratio $F$ | Makes it harder for the PFT to establish under an overstory |
 | `kest_repr` | Scales contribution of stand reproductive carbon pool when spatial mass effect is enabled | Stronger propagule-pool contribution |
-| `kest_pres` | Recruitment multiplier when spatial mass effect is off but propagule pool is present | Higher recruitment in "pool-present, no-SME" case |
-| `kest_bg` | Background establishment term (used only if background establishment is enabled) | Raises baseline recruitment under low propagule conditions |
-| `ltor_max` | Upper bound for leaf:root ratio used during initialization | Shifts initial biomass partitioning toward leaves |
-| `tcmin_est` | Lower temperature bound for establishment | More restrictive in cold climates when increased |
-| `tcmax_est` | Upper temperature bound for establishment | More restrictive in warm climates when decreased |
-| `twmin_est` | Minimum warmest-month temperature | More restrictive when increased |
-| `gdd5min_est` | Minimum annual GDD (base 5 C) | More restrictive when increased |
-| `min_snow` | Minimum snow-depth requirement (one-layer soil branch) | More restrictive when increased |
-| `gdd0_min` | Lower bound on annual GDD (base 0 C; one-layer soil branch) | More restrictive when increased |
-| `gdd0_max` | Upper bound on annual GDD (base 0 C; one-layer soil branch) | More restrictive when decreased |
-| `parff_min` | Minimum forest-floor PAR for establishment (non-cropland, non-population) | More restrictive when increased |
-| `drought_tolerance` | Used only when global `ifdroughtlimitedestab = 1` | Higher values generally make drought filter harder to pass |
+| `kest_pres` | Recruitment multiplier when spatial mass effect is off but propagule pool is present | Higher recruitment rate in "pool-present, no-SME" case |
+| `kest_bg` | Background establishment term (used only if background establishment is enabled) | Raises baseline recruitment rate |
+| `tcmin_est` | Minimum coldest month mean temperature for the last 20 years | More restrictive in cold climates |
+| `tcmax_est` | Maximum warmest month mean temperature for the last 20 years | Less restrictive in warm climates |
+| `twmin_est` | Minimum warmest-month mean temperature | More restrictive in cold climates |
+| `gdd5min_est` | Minimum annual GDD (base 5 C) | More restrictive in low-light conditions |
+| `min_snow` | Minimum snow-depth requirement (one-layer soil branch) | More restrictive |
+| `gdd0_min` | Lower bound on annual GDD (base 0 C; one-layer soil branch) | More restrictive |
+| `gdd0_max` | Upper bound on annual GDD (base 0 C; one-layer soil branch) | Less restrictive |
+| `parff_min` | Minimum forest-floor PAR for establishment (non-cropland, non-population) | More restrictive |
+| `drought_tolerance` | Used only when global `ifdroughtlimitedestab = 1` | More restrictive in dry conditions |
 
-### Global And Run/Management Controls
+### Global Parameters
 
-| Parameter / control | Scope | Role in establishment |
+| Parameter | Scope | Role in establishment |
 | --- | --- | --- |
-| `ifsme` | Global instruction | Enables/disables spatial mass effect recruitment branch |
+| `ifsme` | Global instruction | Enables/disables spatial mass effect |
 | `ifbgestab` | Global instruction | Enables/disables background establishment term |
-| `ifstochestab` | Global instruction | Enables stochastic sapling realization (with management switch) |
+| `ifstochestab` | Global instruction | Enables/disables stochastic sapling realization |
 | `estinterval` | Global instruction (cohort mode) | Number of years between cohort establishment years |
-| `ifdroughtlimitedestab` | Global instruction | Turns drought-limited establishment gate on/off; if off, `drought_tolerance` does not affect establishment |
+| `ifdroughtlimitedestab` | Global instruction | Turns drought-limited establishment on/off; if off, `drought_tolerance` does not affect establishment |
 | `ifdailygrass` + `ifdavegrowth` | Global instruction | Moves DAVE-grass establishment to daily pathway (annual grass establishment pathway no longer drives those grasses) |
-| `nindiv_max` | Global instruction | Caps number of individuals/cohorts of a tree PFT per patch (post spinup) |
-| `freenyears` | Global instruction | Establishment cap (`nindiv_max`) is only enforced after this year threshold |
+| `nindiv_max` | Global instruction | Caps number of individuals/cohorts of a tree PFT per patch (post free-N years) |
 | Stand/PFT active flags | Stand/PFT configuration | Inactive PFTs cannot establish in that stand |
 | Management re-establishment settings | Stand management | Can allow/block establishment in managed stands |
 | Planting-year and planting-density management settings | Stand management | Can force planting or bypass normal annual establishment via dedicated planting routine |

@@ -48,7 +48,7 @@ file_dave_alai                     "dave_alai.out"                     ! Annual 
 !file_dave_afpc                     "dave_afpc.out"                     ! Annual FPC ()
 !file_dave_acmass                   "dave_acmass.out"                   ! Annual cmass (kgC/m2). Unlike the "standard" cmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
 !file_dave_anmass                   "dave_anmass.out"                   ! Annual nmass (kgN/m2). Unlike the "standard" nmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
-file_dave_aheight                  "dave_aheight.out"                  ! Annual plant height (m)
+!file_dave_aheight                  "dave_aheight.out"                  ! Annual plant height (m)
 !file_dave_altor                    "dave_altor.out"                    ! Leaf to root carbon allocation ratio
 !file_dave_aaet                     "dave_aaet.out"                     ! Annual actual evapotranspiration (mm)
 !file_dave_adensity                 "dave_adensity.out"                 ! Annual density of individuals over patch (/m2)
@@ -65,11 +65,11 @@ file_dave_aheight                  "dave_aheight.out"                  ! Annual 
 !file_dave_acmass_germ              "dave_acmass_germ.out"              ! Annual germinated C mass (kgC/m2)
 
 ! Annual pft-level per-patch outputs.
-file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
-file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
-file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
-file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
-file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
+!file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
+!file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
+!file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
+!file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
+!file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
 !file_dave_acmass_mort              "dave_acmass_mort.out"              ! Mass of annual killed vegetation (kgC/m2/year)
 !file_dave_aclitter                 "dave_aclitter.out"                 ! Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)
 !file_dave_ancohort                 "dave_ancohort.out"                 ! Number of cohorts currently established per pft (unitless)
@@ -139,8 +139,8 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_nmass_storage_max        "dave_nmass_storage_max.out"        ! N storage capacity per individual (kgN/m2)
 !file_dave_cmass_storage_dynam      "dave_cmass_storage_dynam.out"      ! C mass storage dynamics (> 0 when saving C) (kgC/m2)
 !file_dave_storage_dynam_14sum      "dave_storage_dynam_14sum.out"      ! Mean 14-day cumulative C mass storage dynamics (> 0 if saving C) (kgC/m2)
-file_dave_height                   "dave_height.out"                   ! Plant height (m)
-file_dave_diameter                 "dave_diameter.out"                 ! Stem diameter (m)
+!file_dave_height                   "dave_height.out"                   ! Plant height (m)
+!file_dave_diameter                 "dave_diameter.out"                 ! Stem diameter (m)
 !file_dave_basalarea                "dave_basalarea.out"                ! Mean Basal Area (m2/tree)
 !file_dave_basalarea_inc            "dave_basalarea_inc.out"            ! Mean Basal Area increment (cm2/tree/day)
 !file_dave_density                  "dave_density.out"                  ! Density of individuals over patch (/m2)
@@ -176,8 +176,8 @@ file_dave_diameter                 "dave_diameter.out"                 ! Stem di
 !file_dave_growth_demand            "dave_growth_demand.out"            ! Growth Demand (0-1)
 !file_dave_cmass_germ               "dave_cmass_germ.out"               ! Germinated C Mass (kgC/m2)
 !file_dave_nscal                    "dave_nscal.out"                    ! Nitrogen stress scalar (0-1)
-file_dave_weighted_psi             "dave_weighted_psi.out"             ! Soil water potential weighted by root fraction or resistance in each layer (MPa)
-file_dave_soil_psi                 "dave_soil_psi.out"                 ! Soil water potential averaged over layers (MPa)
+!file_dave_weighted_psi             "dave_weighted_psi.out"             ! Soil water potential weighted by root fraction or resistance in each layer (MPa)
+!file_dave_soil_psi                 "dave_soil_psi.out"                 ! Soil water potential averaged over layers (MPa)
 !file_dave_transpiration            "dave_transpiration.out"            ! Daily indiv-level transpiration (mm/day)
 !file_dave_cue                      "dave_cue.out"                      ! Daily carbon use efficiency
 !file_dave_ndemand                  "dave_ndemand.out"                  ! daily N demand mass (kgN/m2)
@@ -220,24 +220,24 @@ file_dave_soil_psi                 "dave_soil_psi.out"                 ! Soil wa
 !file_dave_layerwise_fpar           "dave_layerwise_fpar.out"           ! Daily layered fpar [0-1]
 !file_dave_layerwise_lai            "dave_layerwise_lai.out"            ! Daily layered LAI (m2/m2)
 !file_dave_layerwise_an             "dave_layerwise_an.out"             ! Daily layered net photosynthesis (mol/m2/s)
-file_dave_Rs_r                     "dave_Rs_r.out"                     ! Daily root-soil resistance by layer (mol/m/s/MPa)
-file_dave_water_uptake             "dave_water_uptake.out"             ! Water uptake from each soil layer (mm/day)
+!file_dave_Rs_r                     "dave_Rs_r.out"                     ! Daily root-soil resistance by layer (mol/m/s/MPa)
+!file_dave_water_uptake             "dave_water_uptake.out"             ! Water uptake from each soil layer (mm/day)
 
 ! Daily cohort-level outputs
 !file_dave_indiv_cpool              "dave_indiv_cpool.out"              ! Indiv-level carbon pools (kgC/m2)
 !file_dave_indiv_npool              "dave_indiv_npool.out"              ! Indiv-level nitrogen pools (kgN/m2)
-file_dave_hydraulics               "dave_hydraulics.out"               ! Summary file with kmax, lai and daily minimum lwp for all indivs
-file_dave_indiv_lai                "dave_indiv_lai.out"                ! Cohort-level LAI (m2/m2)
+!file_dave_hydraulics               "dave_hydraulics.out"               ! Summary file with kmax, lai and daily minimum lwp for all indivs
+!file_dave_indiv_lai                "dave_indiv_lai.out"                ! Cohort-level LAI (m2/m2)
 !file_dave_indiv_c_d_dbh            "dave_indiv_c_d_dbh.out"            ! annual diamter increment (m)
 !file_dave_indiv_respiration        "dave_indiv_respiration.out"        ! Indiv-level respiration components (kgC/m2)
 !file_dave_indiv_dbh                "dave_indiv_dbh.out"                ! Cohort-level DBH (m)
 !file_dave_indiv_cpool              "dave_indiv_cpool.out"              ! Indiv-level carbon pools (kgC/m2)
 !file_dave_indiv_tree_cpool         "dave_indiv_tree_cpool.out"         ! Indiv-level tree carbon pools (kgC/m2)
-file_dave_indiv_height             "dave_indiv_height.out"             ! Cohort-level Height (m)
+!file_dave_indiv_height             "dave_indiv_height.out"             ! Cohort-level Height (m)
 !file_dave_indiv_crownarea          "dave_indiv_crownarea.out"          ! crown area (m2)
 !file_dave_indiv_fpc                "dave_indiv_fpc.out"                ! Cohort-level FPC (-)
 !file_dave_indiv_fpar               "dave_indiv_fpar.out"               ! Cohort-level fpar (-)
-file_dave_indiv_density            "dave_indiv_density.out"            ! Average density of individuals over the patch (/m2)
+!file_dave_indiv_density            "dave_indiv_density.out"            ! Average density of individuals over the patch (/m2)
 !file_dave_indiv_alpha_sap          "dave_indiv_alpha_sap.out"          ! proportion allocated to sapwood (unitless)
 !file_dave_indiv_alpha_leaf         "dave_indiv_alpha_leaf.out"         ! proportion allocated to leaf (unitless)
 !file_dave_indiv_alpha_root         "dave_indiv_alpha_root.out"         ! proportion allocated to root (unitless)
@@ -260,18 +260,18 @@ file_dave_indiv_density            "dave_indiv_density.out"            ! Average
 !file_dave_subdaily_rd              "dave_subdaily_rd.out"              ! Subdaily leaf respiration (mol/m2/s)
 !file_dave_subdaily_anc             "dave_subdaily_anc.out"             ! Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)
 !file_dave_subdaily_anj             "dave_subdaily_anj.out"             ! Subdaily RuBP regeneration-limited photoysnthesis (mol/m2/s)
-file_dave_subdaily_gsw             "dave_subdaily_gsw.out"             ! Subdaily stomatal conductance to water vapour (mol/m2/s)
+!file_dave_subdaily_gsw             "dave_subdaily_gsw.out"             ! Subdaily stomatal conductance to water vapour (mol/m2/s)
 !file_dave_subdaily_ci              "dave_subdaily_ci.out"              ! Subdaily intercellular CO2 concentration (mol/mol)
 !file_dave_subdaily_vcmax           "dave_subdaily_vcmax.out"           ! Subdaily max carboxylation rate (mol/m2/s)
 !file_dave_subdaily_jmax            "dave_subdaily_jmax.out"            ! Subdaily max electron transport rate (mol/m2/s)!
 !file_dave_ps_inputs                "dave_ps_inputs.out"                ! Subdaily layered cohort-level photosynthesis inputs
 !file_dave_ps_outputs               "dave_ps_outputs.out"               ! Subdaily layered cohort-level photosynthesis outputs
 !file_dave_ksoil_layer               "dave_ksoil_layer.out"              ! Soil hydraulic conductivity (cm/hr)
-file_dave_met_subdaily_temp        "dave_met_subdaily_temp.out"        ! Subdaily temperature (°C)
-file_dave_met_subdaily_par         "dave_met_subdaily_par.out"         ! Subdaily PAR (J/m2/timestep)
-file_dave_met_subdaily_vpd         "dave_met_subdaily_vpd.out"         ! Subdaily VPD (kPa)
-file_dave_met_subdaily_insol       "dave_met_subdaily_insol.out"       ! Subdaily insolation (units depend on instype)
-file_dave_met_subdaily_precip      "dave_met_subdaily_precip.out"      ! Subdaily precipitation (mm)
+!file_dave_met_subdaily_temp        "dave_met_subdaily_temp.out"        ! Subdaily temperature (°C)
+!file_dave_met_subdaily_par         "dave_met_subdaily_par.out"         ! Subdaily PAR (J/m2/timestep)
+!file_dave_met_subdaily_vpd         "dave_met_subdaily_vpd.out"         ! Subdaily VPD (kPa)
+!file_dave_met_subdaily_insol       "dave_met_subdaily_insol.out"       ! Subdaily insolation (units depend on instype)
+!file_dave_met_subdaily_precip      "dave_met_subdaily_precip.out"      ! Subdaily precipitation (mm)
 !file_dave_met_subdaily_pressure    "dave_met_subdaily_pressure.out"    ! Subdaily air pressure (Pa)
 !file_dave_met_subdaily_co2         "dave_met_subdaily_co2.out"         ! Subdaily atmospheric co2 concentration (ppm)
 
@@ -280,7 +280,7 @@ file_dave_met_subdaily_precip      "dave_met_subdaily_precip.out"      ! Subdail
 !file_dave_soil_nh4_mass            "dave_soil_nh4_mass.out"            ! NH4 mass in soil (kgN/m2)
 !file_dave_soil_no3_mass            "dave_soil_no3_mass.out"            ! NO3 mass in soil (kgN/m2)
 !file_dave_soiln                    "dave_soiln.out"                    ! Daily soil nitrogen content (kgN/m2)
-file_dave_sw                       "dave_sw.out"                       ! Soil water content as fraction of available water holding capacity
+!file_dave_sw                       "dave_sw.out"                       ! Soil water content as fraction of available water holding capacity
 !file_dave_swmm                     "dave_swmm.out"                     ! Soil water content (mm)
 !file_dave_swmm_10                  "dave_swmm_10.out"                  ! Soil water content at depth 0-0.1m (mm)
 !file_dave_swmm_100                 "dave_swmm_100.out"                 ! Soil water content at depth 0.1-1m (mm)
@@ -294,17 +294,16 @@ file_dave_sw                       "dave_sw.out"                       ! Soil wa
 !file_dave_clitter                  "dave_clitter.out"                  ! Total Daily PFT-Level C Mass in Litter (kgC/m2)
 !file_dave_nlitter                  "dave_nlitter.out"                  ! Total Daily PFT-Level N Mass in Litter (kgN/m2)
 !file_dave_swvol                    "dave_swvol.out"                    ! Volumetric soil water content (m3/m3)
-file_dave_resp                     "dave_resp.out"                     ! Daily patch-level ecosystem respiration (gC/m2/day)
-file_dave_soil_psi_layer           "dave_soil_psi_layer.out"           ! Soil water potential for each layer
-file_dave_patch_ba                 "dave_patch_ba.out"                 ! Total daily patch-level basal area (m2/ha)
+!file_dave_resp                     "dave_resp.out"                     ! Daily patch-level ecosystem respiration (gC/m2/day)
+!file_dave_soil_psi_layer           "dave_soil_psi_layer.out"           ! Soil water potential for each layer
+!file_dave_patch_ba                 "dave_patch_ba.out"                 ! Total daily patch-level basal area (m2/ha)
 
 !file_dave_daylength                "dave_daylength.out"                ! Daylength (hours)
 !file_dave_cpool                    "dave_cpool.out"                    ! Daily C pools (kgC/m2)
-file_dave_subdaily_lwp             "dave_subdaily_lwp.out"             ! Subdaily leaf water potential (MPa)
-file_dave_subdaily_transp          "dave_subdaily_transp.out"         ! Subdaily transpiration (mm)
-file_dave_alpha_leaf               "dave_alpha_leaf.out"               ! Daily leaf sink strength (0-1)
-file_dave_alpha_root               "dave_alpha_root.out"               ! Daily root sink strength (0-1)
-file_dave_alpha_sap                "dave_alpha_sap.out"                ! Daily sap sink strength (0-1)
+!file_dave_subdaily_lwp             "dave_subdaily_lwp.out"             ! Subdaily leaf water potential (MPa)
+!file_dave_alpha_leaf               "dave_alpha_leaf.out"               ! Daily leaf sink strength (0-1)
+!file_dave_alpha_root               "dave_alpha_root.out"               ! Daily root sink strength (0-1)
+!file_dave_alpha_sap                "dave_alpha_sap.out"                ! Daily sap sink strength (0-1)
 !file_dave_alpha_storage            "dave_alpha_storage.out"            ! Daily storage sink strength (0-1)
 !file_dave_cmass_leaf_limit         "dave_cmass_leaf_limit.out"         ! Daily optimum leaf pool size for trees (kgC/m2)
 !file_dave_cmass_root_limit         "dave_cmass_root_limit.out"         ! Daily optimum root pool size for trees (kgC/m2)
@@ -322,7 +321,7 @@ file_dave_alpha_sap                "dave_alpha_sap.out"                ! Daily s
 !file_dave_creturn                  "dave_creturn.out"                  ! daily storage growth plus excess from N limitation (kgC/m2/day)
 !file_dave_nscal_mean               "dave_nscal_mean.out"               ! N stress scalar 5 day running mean (0-1)
 !file_dave_ltor                     "dave_ltor.out"                     ! Daily leaf to root ratio (unitless)
-file_dave_cmass_sap                "dave_cmass_sap.out"                ! Sapwood C mass (kgC/m2)
+!file_dave_cmass_sap                "dave_cmass_sap.out"                ! Sapwood C mass (kgC/m2)
 !file_dave_nmass_sap                "dave_nmass_sap.out"                ! Sapwood N mass (kgN/m2)
 !file_dave_cmass_heart              "dave_cmass_heart.out"              ! Heartwood C mass (kgC/m2)
 !file_dave_nmass_heart              "dave_nmass_heart.out"              ! Heartwood N mass (kgN/m2)
@@ -354,10 +353,10 @@ file_dave_cmass_sap                "dave_cmass_sap.out"                ! Sapwood
 !file_dave_sw                       "dave_sw.out"                       ! Soil water content as fraction of available water holding capacity
 !file_dave_swmm                     "dave_swmm.out"                     ! Soil water content (mm)
 !file_dave_swvol                    "dave_swvol.out"                    ! Volumetric soil water content (m3/m3)
-file_dave_aet                      "dave_aet.out"                      ! Daily patch-level evapotranspiration (mm)
+!file_dave_aet                      "dave_aet.out"                      ! Daily patch-level evapotranspiration (mm)
 !file_dave_fevap                    "dave_fevap.out"                    ! Daily patch-level fraction available for soil evap
 !file_dave_resp                     "dave_resp.out"                     ! Daily patch-level ecosystem respiration (gC/m2/day)
-file_dave_gpp                      "dave_gpp.out"                      ! Daily patch-level GPP (gC/m2/day)
+!file_dave_gpp                      "dave_gpp.out"                      ! Daily patch-level GPP (gC/m2/day)
 !file_dave_npp                      "dave_npp.out"                      ! Daily patch-level NPP (gC/m2/day)
 !file_dave_nee                      "dave_nee.out"                      ! Daily NEE (gC/m2/day)
 !file_dave_evaporation              "dave_evaporation.out"              ! Daily patch-level evaporation (mm/day)

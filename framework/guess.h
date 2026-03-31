@@ -692,6 +692,11 @@ struct Wood_harvest_struct {
 /// single canopy layer at a single subdaily timestep (DAVE photosynthesis).
 class PhotosynthesisInputs {
 public:
+	// todo: do we want to protect these members?
+	// It seems like a sensible thing to do, but it makes things a bit uglier
+	// from the caller's perspective (which seems to be the only thing we care
+	// about).
+
 	// Residual stomatal conductance term
 	double gdark;
 
@@ -725,16 +730,16 @@ public:
 	// Air temperature in °C.
 	double temp;
 
-	// Activation energy for vcmax (kJ mol-1).
+	// activation energy for vcmax (kJ mol-1)
 	double ha_v;
 
-	// Activation energy for jmax (kJ mol-1).
+	// activation energy for jmax (kJ mol-1)
 	double ha_j;
 
-	// Entropy term (deltaS) for vcmax (J mol-1 K-1).
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
 	double ds_v;
 
-	// Entropy term (deltaS) for jmax (J mol-1 K-1).
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
 	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
@@ -751,6 +756,15 @@ public:
 
 	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
 	bool stomata_open;
+
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
+
+	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
+	double s_f;
+
+	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
+	double psi_f;
 };
 
 /// Outputs from the photosynthesis function for a single individual in a single

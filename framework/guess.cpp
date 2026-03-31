@@ -1916,14 +1916,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	n_opt_isabovelim  = false;
 	nstress           = false;
 	stomata_open	  = true;
-	E_not_met   	  = false;
 
 	weighted_psi = 0;
 	predawn_lwp = 0.0;
 	lwp_previous = 0.0;
-	transp_previous = 0.0;
 	lwp.resize(date.subdaily);
-	Vl.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	hydraulic_failure = false;
 	mort_age = 0;
@@ -2997,7 +2994,7 @@ bool Pft::get_psi_from_transpiration(double transpiration, double &psi) const {
 	return psi_from_transpiration.try_eval(transpiration, psi);
 }
 
-bool Pft::get_transpiration_from_psi(double psi, double &transpiration) const {
+bool Pft::get_transpiration_lower_bound(double psi, double &transpiration) const {
 	return transpiration_from_psi.try_eval(psi, transpiration);
 }
 

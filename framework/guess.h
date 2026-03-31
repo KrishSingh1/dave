@@ -2982,7 +2982,7 @@ public:
 	}
 
 	bool get_psi_from_transpiration(double transpiration, double &psi) const;
-	bool get_transpiration_from_psi(double psi, double &transpiration) const;
+	bool get_transpiration_lower_bound(double psi, double &transpiration) const;
 private:
 	Interpolator psi_from_transpiration;
 	Interpolator transpiration_from_psi;
@@ -3855,8 +3855,7 @@ public:
 	double tscal_sen;
 
 	bool stomata_open; // flag on whether stomata are open (at all) - if false, stomata are fully closed
-	bool E_not_met; // flag on whether water for E can be extracted from the soil - if not, taken from plant capacitance
-
+	
 	double weighted_psi; // soil water potential weighted by root fraction in each layer
 
 	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
@@ -3868,12 +3867,8 @@ public:
 	std::vector<double> lwp;
 	// leaf water potential (MPa) from previous timestep (for plant water storage)
 	double lwp_previous;
-		// transpiration (mm) from previous timestep (for plant water storage)
-	double transp_previous;
 	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;
-	// volume of water in stems across cohort (m3/m2)
-	std::vector<double> Vl;
 
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;

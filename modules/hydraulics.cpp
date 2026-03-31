@@ -44,8 +44,8 @@
 const double KILL_THRESHOLD = 0.01;
 
 // The fraction of biomass lost due to hydraulic failure.
-// Revisit how much dies based on level of stress over the year.
-const double MORT_FRAC = 0.1;
+// Revisit how much dies based on level of stress over the year (or day if using dave dailytree).
+const double MORT_FRAC = 0.01;
 
 // PAR threshold between predawn and postdawn (J/m2).
 const double PAR_DAWN = 10;
@@ -221,6 +221,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     // paper had the wood density vs water holding capacity relationship.
     double nx = 1 - (pft.wooddens * 2) / 1000;
 
+    double Vmax = 0.0; // CALC BASED ON AREA UNDER CURVE BETWEEN STOM_CLOS AND P88
+
     if (indiv.stomata_open) {
         // Stomata are not fully closed.
 
@@ -229,8 +231,11 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         double psi1 = abs(indiv.weighted_psi);
         double psi2 = 0;
 
+        // We calculate the area under the hydraulic curve up to the point of psi_soil. This
+        // will be subtracted from the total are under the curve up to lwp to get at transpiration
+        // between psi_soil and lwp.
         double transpiration_psi_soil = 0;
-        bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
+        bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_soil);
 
         double kmax_param;
 
@@ -249,14 +254,10 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
-            // If hydraulic vulnerability curve doesn't allow E to be met, we
-            // account for transpiration from capacitance in next step (closed
-            // stomata loop). This happens often when ET is high and hydraulic
-            // parameters (kmax, P50 and P88) are too small, check values.
-
-            // Set water potential to stom_clos to close stomata.
-            psi2 = -pft.stom_clos;
-            printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            // If hydraulic vulnerability curve doesn't allow E to be met, something
+            // must be wrong with the hydraulic parameters or Zhou model (if it's that dry,
+            // stomata should be closed).
+            fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
         }
 
         // Calculate loss of conductance.
@@ -265,80 +266,98 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
         indiv.lwp[day.period] = -psi2;
-        indiv.E_not_met = !e_met;
 
         if (indiv.lwp[day.period] <= pft.stom_clos) {
             indiv.stomata_open = false;
             // printf("stomata have closed\n");
         }
 
-        // Assume storage capacity is full if in 'non water stressed' mode.
-        indiv.Vl[day.period] = nx * Ax * indiv.height;
-
     } else {
         // Stomata are fully closed.
 
-        // Alternative for high water stress - consuming internal storage.
+        // Alternative for high water stress - consuming internal storage. Remaining 'area under the curve' between soil 
+        // water potential at stom_clos and p88 is the volume available for transpiration before the plant dies. Roots are 
+        // assumed to be fully disconnected from the soil, no further extraction.
+        double psi1 = 0.0;
 
-        // See Paschalis et al. (2024), currently ignoring leaf water storage.
-        double Vmax = nx * Ax * indiv.height;
-
-        // Note using P88 as approximation for LWP when Vl = 0. Equation from
-        // Paschalis et al. (2024), but we assume stom_clos LWP at Vmax (not LWP
-        // of zero as in Pasch)
-        double Vl_init = Vmax*(1-(indiv.lwp_previous - pft.stom_clos)/(pft.p88 - pft.stom_clos));
-
-        const double MOL2MMOL = 1000.0;
-        const double M3_H2O_PER_KG = 0.001;
-
-        if (indiv.E_not_met) {
-            // If the previous day's transpiration couldn't be met, we just
-            // assume the plant starts at p12 but the previous day's
-            // transpiration is taken from the capacitance store.
-            Vl_init = Vl_init - indiv.transp_previous * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
+        if (day.period == 0){
+            psi1 = abs(indiv.lwp[date.subdaily-1]);
+        } else {
+            psi1 = abs(indiv.lwp[day.period-1]);
         }
 
-        // m3/m2
-       indiv.Vl[day.period] = Vl_init - transpiration * (SECS_PER_DAY / date.subdaily) * MOL2G_H2O * KG_PER_G * M3_H2O_PER_KG / MOL2MMOL;
+        double psi2 = 0;
 
-        if (indiv.Vl[day.period] < 0) {
+        // We calculate the area under the hydraulic curve up to the point of the previous lwp. This
+        // will be subtracted from the total are under the curve up to the new lwp to get at transpiration
+        // between last timestep and this one.
+        double transpiration_psi_prev = 0;
+        bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_prev);
+
+        double kmax_param;
+
+        if (pft.dave_allocation()){
+            // If we're using dave_allocation, we account for xylem loss through
+            // sapwood turnover.
+            kmax_param = pft.kmax;
+        } else {
+            // If we're using annual (trunk) allocation, we don't change the
+            // sapwood but instead reduce the kmax parameter.
+            kmax_param = indiv.kmax_drought_affected;
+        }
+
+        // Convert from mol to mmol.
+        double transpiration_full = transpiration_psi_prev + transpiration / (kmax_param * 1000 * Ax);
+        e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+
+        if (!e_met) {
+            fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+        }
+
+        indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
+
+        indiv.lwp[day.period] = -psi2;
+   
+        if (indiv.lwp[day.period] < pft.p88) {
             printf("%04d-%02d-%02d indiv %d (%s) hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
-        } else {
-            indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
         }
 
-        // Only account for the extra ET once (can only be set to 'true' in the
-        // loop for open stomata).
-        indiv.E_not_met = false;
-
-        // Calculate loss of conductance.
-        indiv.k_loss[day.period] = 1 - exp(-pow(-indiv.lwp[day.period] / pft.s1, pft.s2));
-
         // Refill tree water stores if we have rainfall
-        if (climate.precs[day.period] > 1.0 * 24 / date.subdaily / 3.0) { // assume 1 mm every 3h is lost e.g. to interception
+        if (climate.precs[day.period] > 0.5 * 24 / date.subdaily) { // assume 0.5 mm every 1h is lost e.g. to interception
             double cmass_root_tot = 0;
             for (size_t i = 0 ; i < indiv.vegetation.nobj; i++) {
-                cmass_root_tot += indiv.cmass_root;
+                cmass_root_tot += indiv.vegetation[i].cmass_root;
             }
             
-            double prec_avail = climate.precs[day.period] - 1.0 * 24 / date.subdaily / 3.0; // rainfall that isn't intercepted / lost
+            double prec_avail = std::max(climate.precs[day.period] - 0.1 * 24 / date.subdaily, 0.0); // rainfall that isn't intercepted / lost
             double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot; // this indiv gets an amount based on its root carbon
 
-            // Convert mm * m2 to m3.
-            double v_refill = prec_avail * frac_prec_this_indiv / 1000;
+            // How much rain this individual gets to refill stem, convert from mm to mmol/m2/s.
+            // 1 mm water = 1e-3 m * water_density kg/m3 = kg/m2, then kg -> g -> mol -> mmol.
+            double seconds_per_timestep = (24.0 / date.subdaily) * 3600.0;
+            double stem_refill = prec_avail * frac_prec_this_indiv * (1e-3 * water_density) * G_PER_KG / MOL2G_H2O * MMOL_PER_MOL / seconds_per_timestep;
 
-            // Stem refills.
-            indiv.Vl[day.period] = std::min(indiv.Vl[day.period] + v_refill, Vmax);
+            // Total volume under hydraulic curve up to current lwp, then subtract rainfall refill.
+            // This will tell us the 'transpiration under the curve' value we need to read off the 
+            // new lwp value with some stem refilling  
+            double after_rain = transpiration_full - stem_refill / (kmax_param * 1000 * Ax);
 
-            indiv.lwp[day.period] =  (pft.p88 - pft.stom_clos) * (1 - indiv.Vl[day.period] / Vmax) + pft.stom_clos;
+            if (after_rain < 0.0){ // If there's more than enough rain to 'refill' the whole hydraulic curve
+                indiv.stomata_open = true;
+                indiv.lwp[day.period] = pft.stom_clos;
+            } else {
+                e_met &= indiv.pft.get_psi_from_transpiration(after_rain, psi2);
+                indiv.lwp[day.period] = -psi2;
+            }
 
             // Stomata reopen if volume refills to the point that lwp is equal
             // to stom_clos.
 
             if (indiv.lwp[day.period] >= pft.stom_clos) {
                 indiv.stomata_open = true;
+                indiv.lwp[day.period] = pft.stom_clos;
             }
 
         }
@@ -346,7 +365,6 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     }
 
     indiv.lwp_previous = indiv.lwp[day.period];
-    indiv.transp_previous = transpiration;
 
     if (day.period > 0) {
         // W m-2; 0.5 * climate.insols
@@ -556,7 +574,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
     double psi2 = 0;
 
     double transpiration_psi_soil = 0;
-    bool e_met = indiv.pft.get_transpiration_from_psi(psi1, transpiration_psi_soil);
+    bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_soil);
 
     // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
     // loss, not leaf loss.
@@ -595,8 +613,15 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
         // We start to get senescence at turgor loss point, full senescense once stomata are fully closed.
         if (min_lwp_day <= pft.tlp) {
-            // Fraction of lai lost to senescence increases linearly with lwp.
-            double hyd_senesce = std::min(std::max(pft.tlp + 1.0/(pft.stom_clos-pft.tlp)*min_lwp_day, 0.0), 1.0);
+            // Fraction of LAI lost rises linearly from 0 at TLP to 1 at stomatal closure.
+            double hyd_senesce = 0.0;
+            double lwp_span = pft.tlp - pft.stom_clos;
+            if (lwp_span > 0.0) {
+                hyd_senesce = std::min(std::max((pft.tlp - min_lwp_day) / lwp_span, 0.0), 1.0);
+            } else {
+                // Fallback for invalid/equal thresholds.
+                hyd_senesce = (min_lwp_day <= pft.stom_clos) ? 1.0 : 0.0;
+            }
 
             double closs_leaf = indiv.get_cmass_leaf() * hyd_senesce;
             double nloss_leaf = indiv.get_nmass_leaf() * hyd_senesce;

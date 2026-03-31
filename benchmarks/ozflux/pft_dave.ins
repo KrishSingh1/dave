@@ -55,14 +55,14 @@ group "common" (
 	psi_f -2.0				! reference value for photosynthetic response to water stress (Zhou 2014 Eq 7)
 
 	! hydraulics module parameters
-	kmax 100 				! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	kmax 20 				! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   		! water potential at which stomata close and roots disconnect from soil (MPa)
-	p50 -3   				! water potential at 50% loss of xylem conductance (MPa)
-	p88 -4   				! water potential at 88% loss of xylem conductance (MPa)
+	p50 -5.8   				! water potential at 50% loss of xylem conductance (MPa)
+	p88 -7.7   				! water potential at 88% loss of xylem conductance (MPa)
 	nx 0.5  				! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 2  					! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
+	g1x 3.9  					! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
 	b1z 2  					! Parameter for Zhou et al. (2014) stomatal model 
-	
+
 )
 
 group "tree" (
@@ -616,7 +616,7 @@ pft "MRS" (
 
 	! Medium Resprouter
 
-	include 0
+	include 1
 	tree
 	broadleaved
 	extreme_shade_intolerant
@@ -643,7 +643,7 @@ pft "MRS" (
 	no_bioclimatic_limits
 
 	! Changes
-	wooddens 300
+	!wooddens 300
 	sla 10
 	turnover_leaf 1
 	leaflong 1
@@ -653,25 +653,26 @@ pft "MRS" (
 	k_latosa 4000
 	k_allom2 35
 	longevity 300
-	vcmax_25 94 ! apprx from Dushan (EucFACE)
-	jmax_25 138 ! apprx from Dushan (EucFACE)
-	!vcmax_25 75.8 ! Austraits
-	!jmax_25 127.27 ! Austraits
+	vcmax_25 60 ! apprx from Dushan (EucFACE) - 91
+	jmax_25 96 ! apprx from Dushan (EucFACE) - 138
 	ha_v 60 ! apprx from Dushan (EucFACE)
 	ha_j 28 ! apprx from Dushan (EucFACE)
 	ds_v 638 ! apprx from Dushan (EucFACE)
 	ds_j 638 ! apprx from Dushan (EucFACE)
 	g1 3.38 ! Austraits
 	g1x 3.9 ! Austraits
-	!b1z 2
-	!vcmax_25 40.5
-	!root_beta 0.97
 
-
-	! Default stom_clos is -1.5
-	!stom_clos -3.2   ! Peters (2021)
-	! default g1x is 2
-	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9 
+	! hydraulic traits
+	wooddens 350  ! Peters (2021)
+	kmax 5  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area 
+	stom_clos -4.1 !-3.2   ! Peters (2021)
+	p50 -5.0 !-5.8   ! Peters (2021)
+	p88 -5.8 !-7.7  ! Peters (2021)
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	gcutic 0.0025 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
+	s_f 1.5
+	psi_f -2.0
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	! ! WOMBAT (Clare) - fixedLAI = 2.253
@@ -780,7 +781,7 @@ pft "TRS" (
 
 	! Tall Resprouter Sclerophyll
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -1158,7 +1159,7 @@ pft "CuP" (
 
 	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -1183,27 +1184,26 @@ pft "CuP" (
 	turnover_root 1
 	ltor_max 0.67
 	k_allom2 35
+	k_latosa 4000
 
 	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
 
-	k_latosa 6000 ! 6000 estimated from Austraits
-
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area 
 	stom_clos -3.2   ! Peters (2021)
 	p50 -5.8   ! Peters (2021)
 	p88 -7.7  ! Peters (2021)
 	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 	gcutic 0.0025 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
-
-	vcmax_25 36 ! Somewhere between values for dry and wet euc species in Zhou (2014). Average of two euc species from Bloomfield (2018) is 36
-	jmax_25 61.2 ! 1.7 * vcmax_25
-	s_f 1.2
+	s_f 1.5
 	psi_f -2.2
+
+	vcmax_25 70 ! Somewhere between values for dry and wet euc species in Zhou (2014). Average of two euc species from Bloomfield (2018) is 36
+	jmax_25 119 ! 1.7 * vcmax_25
 	sla 9.2 ! Average of two euc species from Bloomfield (2018)
 	
-	respcoeff 0.9
+	respcoeff 1.0
 
 	ifcalcvcmax 0
 	cton_leaf_min 29.010140

@@ -786,7 +786,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
 		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
-			"Parameter for Zhou et al. (2014) stomatal model");
+			"Parameter for Zhou et al. (2014) stomatal model - not currently used");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
@@ -799,7 +799,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("kmax",&ppft->kmax,0.0,1000000.0,1,CB_NONE, 
 			"Maximum hyraulic conductance per unit xylem area (mol/m2/s/MPa)");
 		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
-			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
+			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless) - not used");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
 			"cuticular conductance at 25 degC (mol/m2/s)");					
 		declareitem("s_f",&ppft->s_f,0,1000,1,CB_NONE,

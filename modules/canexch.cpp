@@ -4034,10 +4034,9 @@ double electron_transport_rate(double PAR,double Jmax) {
 						    // Medlyn et al. 2002 (Plant, Cell and Environment): 0.3
 							// Note that alpha accounts for leaf light absorptance.
 
-	if (ifdavehydraulics) {
-		alpha = 0.3 * 0.825;// quantum yield of electron transport (mol (electrons) mol-1 (photon))
-							// updated value from Yang et al (2020)
-	}
+	/// alpha = 0.3 * 0.825;// quantum yield of electron transport (mol (electrons) mol-1 (photon))
+							// updated value from Yang et al (2020), alternative parameterisation
+
 
 	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
 				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  

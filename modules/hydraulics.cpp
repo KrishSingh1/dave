@@ -366,6 +366,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
     indiv.lwp_previous = indiv.lwp[day.period];
 
+    // Calculate total transpiration in mm/timestep.
+    indiv.transpiration[day.period] = transpiration / MMOL_PER_MOL * MOL2G_H2O * KG_PER_G * SECS_PER_DAY / date.subdaily;
+
     if (day.period > 0) {
         // W m-2; 0.5 * climate.insols
         double par_previous = climate.pars[day.period - 1];

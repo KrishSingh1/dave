@@ -1922,6 +1922,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lwp_previous = 0.0;
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
+	transpiration.resize(date.subdaily);
 	hydraulic_failure = false;
 	mort_age = 0;
 	mort_greff = 0;

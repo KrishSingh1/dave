@@ -3990,6 +3990,9 @@ public:
 	// indicator of whether hydraulic failure has occurred
 	bool hydraulic_failure;
 
+	// individual-level transpiration, mm (includes cuticular conductance when roots are disconnected)
+	std::vector<double> transpiration;
+
 	private:
 	/// Adaptive N-day moving avegage of wscal.
 	HistoricDynamic<double> wscal_dynamic;

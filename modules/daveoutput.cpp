@@ -345,7 +345,7 @@ DaveOutput::DaveOutput() {
 	// These will produce one row per individual per patch per timestep.
 	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_npool"                    , DAILY, indiv_npool_columns, "Indiv-level nitrogen pools (kgN/m2)", false, true);
-	add_indiv_output("file_dave_hydraulics"                     , DAILY, indiv_hydraulics_columns, "kmax, lai and daily minimum leaf water potential at individual level", false, false);
+	add_indiv_output("file_dave_hydraulics"                     , DAILY, indiv_hydraulics_columns, "kmax, height, lai, transpiration, daily minimum leaf water potential and weighted soil water potential at individual level", false, false);
 	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 	add_indiv_output("file_dave_indiv_c_d_dbh"                  , ANNUAL, "d_dbh", [](const Individual &i) { return i.acalloc_sap; }, "annual diamter increment (m)");
 	add_indiv_output("file_dave_indiv_respiration"              , DAILY, indiv_resp_columns, "Indiv-level respiration components (kgC/m2)"); // No auto total column
@@ -403,7 +403,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_vcmax"           , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_jmax"            , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", get_lai /* Mean weighted by LAI*/);
-	add_indiv_array_output("file_dave_subdaily_Vl"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.Vl[i];  }, "Subdaily stem water volume (m3)", mean);
 
 	// Subdaily cohort-level per-layer photosynthesis inputs.
 	add_indiv_layer_timestep_output("file_dave_ps_inputs", ps_input_cols(), "Subdaily layered cohort-level photosynthesis inputs");

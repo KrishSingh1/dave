@@ -311,7 +311,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
-            fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
         }
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));

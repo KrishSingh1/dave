@@ -249,7 +249,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             kmax_param = indiv.kmax_drought_affected;
         }
 
-        // Convert from mol to mmol.
+        // Convert kmax from mol to mmol.
         double transpiration_full = transpiration_psi_soil + transpiration / (kmax_param * 1000 * Ax);
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
@@ -257,7 +257,13 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             // If hydraulic vulnerability curve doesn't allow E to be met, something
             // must be wrong with the hydraulic parameters or Zhou model (if it's that dry,
             // stomata should be closed).
+            double transpiration_check = 0.0;
+	        indiv.pft.get_transpiration_lower_bound(-indiv.pft.p88,transpiration_check);
+	        printf("total area under curve = %f/n",transpiration_check * (kmax_param * 1000 * Ax));
+            printf("transpiration = %f/n",transpiration);
+
             fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            
         }
 
         // Calculate loss of conductance.
@@ -311,14 +317,14 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
-            fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            indiv.lwp[day.period] = pft.p88;
         }
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
         indiv.lwp[day.period] = -psi2;
    
-        if (indiv.lwp[day.period] < pft.p88) {
+        if (indiv.lwp[day.period] <= pft.p88) {
             printf("%04d-%02d-%02d indiv %d (%s) hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
@@ -346,7 +352,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
             if (after_rain < 0.0){ // If there's more than enough rain to 'refill' the whole hydraulic curve
                 indiv.stomata_open = true;
-                indiv.lwp[day.period] = pft.stom_clos;
+                indiv.lwp[day.period] = pft.stom_clos; 
             } else {
                 e_met &= indiv.pft.get_psi_from_transpiration(after_rain, psi2);
                 indiv.lwp[day.period] = -psi2;
@@ -369,15 +375,6 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     // Calculate total transpiration in mm/timestep.
     indiv.transpiration[day.period] = transpiration / MMOL_PER_MOL * MOL2G_H2O * KG_PER_G * SECS_PER_DAY / date.subdaily;
 
-    if (day.period > 0) {
-        // W m-2; 0.5 * climate.insols
-        double par_previous = climate.pars[day.period - 1];
-
-        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
-            // Note Zhou model uses actual (negative) pd lwp.
-            indiv.predawn_lwp = indiv.lwp[day.period];
-        }
-    }
 }
 
 // Hydraulic failure mortality applied at the daily timescale if allocation is

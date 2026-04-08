@@ -3656,7 +3656,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% reduction in g1 at stom_clos (for compatibility with hydraulic module)
+		double b1z = log(0.05)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 95% reduction in g1 at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3743,14 +3743,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				// for water
 				double water_potential;
-				if (ifdavehydraulics) {
-					water_potential = indiv.predawn_lwp;
-				} else {
-					// For now, use soil water potential weighted by root
-					// resistance if running without dave hydraulics.
-					// water_potential = patch.soil.soil_psi;
-					water_potential = indiv.weighted_psi;
-				}
+	
+				// Use soil water potential weighted by root
+				// resistance (same as plant-accessible water potential)
+				water_potential = indiv.weighted_psi;
+
 				g1 = g1x * exp(b1z * (water_potential + 0.3));
 				// Update indiv.g1 for outputting.
 				indiv.g1 = g1;

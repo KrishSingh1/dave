@@ -2988,6 +2988,7 @@ void Pft::setup_transpiration(double resolution) {
 	// Re-initialise psi_from_transpiration.
     psi_from_transpiration.init(y, x);
     psi_from_transpiration.set_extrapolate(false);
+
 }
 
 

@@ -6,6 +6,7 @@
 #include <vector>
 #include <iterator>
 #include <sstream>
+#include "shell.h"
 
 #include "variableresolver.h"
 
@@ -98,9 +99,9 @@ std::string pfx(LogLevel level) {
 }
 
 void vlog(const std::string &message, LogLevel level, va_list args) {
-    printf("%s ", pfx(level).c_str());
-    vprintf(message.c_str(), args);
-    printf("\n");
+    lprintf("%s ", pfx(level).c_str());
+    vlprintf(message.c_str(), args);
+    lprintf("\n");
 }
 
 // Stub logging function for now. TODO: implement proper logging.

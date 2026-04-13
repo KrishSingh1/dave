@@ -349,7 +349,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 	add_indiv_output("file_dave_indiv_c_d_dbh"                  , ANNUAL, "d_dbh", [](const Individual &i) { return i.acalloc_sap; }, "annual diamter increment (m)");
 	add_indiv_output("file_dave_indiv_respiration"              , DAILY, indiv_resp_columns, "Indiv-level respiration components (kgC/m2)"); // No auto total column
-	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_tree_cpool"               , DAILY, indiv_cpool_tree_columns, "Indiv-level tree carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_dbh"             	        , DAILY, indiv_dbhcoloumns_columns, "Cohort-level DBH and Delta DBH (m, m/yr)");
 	add_indiv_output("file_dave_indiv_height"                   , DAILY, "height", [](const Individual &i) { return i.height; }, "Cohort-level Height (m)");

@@ -229,7 +229,7 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 		if (current_gridcell == gridlist.end()) {
 			double total_walltime = (getgridcell_start - ctor_start) * 1000;
 			double prop = ncinput_walltime_use / total_walltime;
-			dprintf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
+			printf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
 			return false;
 		}
 
@@ -382,7 +382,7 @@ try {
 		if (progress_newline) {
 			eol = "\n";
 		}
-		dprintf("%3d%% complete, %s elapsed, %s remaining%s"
+		printf("%3d%% complete, %s elapsed, %s remaining%s"
 			, (int)(overall_progress * 100), progress_timer.elapsed.str
 			, progress_timer.remaining.str, eol);
 		if (progress_interval > 0) {

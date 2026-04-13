@@ -2756,9 +2756,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							if (date.year >= nyear_spinup && _ifdavediagnostics) {
-								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-							}
+							lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2850,9 +2848,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							if (date.year >= nyear_spinup && _ifdavediagnostics) {
-								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-							}
+							lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2902,9 +2898,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (!allometry(indiv)) {
 
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -2958,9 +2952,7 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.flush_repr_litter_DAVE();
 					}
 
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -3580,7 +3572,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
-			
+			lprintf("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2\n",
+				    (const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
 			// Not enough C in storage to fulfill respiration demands --> kill individual
 			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
 			indiv.cmass_storage = 0.0;
@@ -3777,6 +3770,8 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 
 	// if this causes storage to be negitive - kill tree and return.
 	if (indiv.cmass_storage < 0) {
+		lprintf("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2\n",
+				(const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
 		// Not enough C in storage to fulfill respiration demands --> kill individual
 		double cmass_deficit = -indiv.cmass_storage;
 		indiv.cmass_storage = 0.0;
@@ -3925,6 +3920,7 @@ void storage_growth_partitioning_grote(Individual &indiv) {
 	if (!ifgrote || !ifdailytree || !ifdavegrowth || indiv.pft.lifeform != TREE) {
 		return;
 	}
+
 	double bminc = indiv.dnpp;
 	if (bminc < 0) {
 		// Negative NPP.
@@ -3934,6 +3930,9 @@ void storage_growth_partitioning_grote(Individual &indiv) {
 			bminc = 0;
 			assert(positive(indiv.cmass_storage));
 		} else {
+			lprintf("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2\n",
+				    (const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
+
 			// Insufficient NSCs to meet respiration costs -> kill individual.
 			indiv.cmass_storage += bminc;
 			double cmass_deficit = -indiv.cmass_storage;

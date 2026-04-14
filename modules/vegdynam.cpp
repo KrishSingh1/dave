@@ -891,9 +891,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-						//	printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-						}
+						lprintf("Establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
@@ -1059,8 +1057,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					if (newindiv > 0) {
+						lprintf("Establishing new %s cohort with %d tree%s...\n", (const char *)pft.name, newindiv, newindiv > 1 ? "s" : "");
 					}
 
 					// Initial biomass proportional to potential forest floor net
@@ -1530,9 +1528,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-							printf("%04d-%02d-%02d (year %d) %s killed by fire...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-						}
+						lprintf("%s killed by fire...\n", (const char *)indiv.pft.name);
 						vegetation.killobj();
 						killed=true;
 					}
@@ -1564,9 +1560,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			patchpft.cmass_mort += indiv.ccont();
 
-			/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-				printf("%04d-%02d-%02d (year %d) %s killed by exceedance of bioclimatic limits...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-			}
+			lprintf("%s killed by exceedance of bioclimatic limits...\n", (const char *)indiv.pft.name);
 			indiv.kill();
 
 			vegetation.killobj();
@@ -1701,9 +1695,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by background mortality...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					lprintf("%s killed by background mortality. mort_greff=%f, mort_age=%f, total_mort_frac=%f...\n",
+						    (const char *)indiv.pft.name, mort_greff, mort_min,
+							mort);
 					vegetation.killobj();
 					killed=true;
 				}
@@ -1713,7 +1707,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				else allometry(indiv);
 			} 
 			else { 
-				
 				// MORTALITY in PEATLAND stands
 				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
 				// biomass is reduced (ends up in litter) to be consistent with the given LAI limit (maxlai_peatland)
@@ -1971,10 +1964,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 		patch.disturbed = true;
 		patch.age = 0;
-		// printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-		if (ifdavediagnostics) {
-			printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
-		}
+		lprintf("Disturbance...\n");
 	}
 
 	else patch.disturbed = false;

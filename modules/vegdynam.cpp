@@ -1033,6 +1033,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							}
 							newindiv=!negligible(nsapling / patcharea);
 								// round down to 0 if nsapling very small
+							if (pft.dave_allocation() && nsapling < 1) {
+								// Only establish with at least 1 sapling.
+								newindiv = 0;
+							}
 						}
 					}
 					else if (vegmode == INDIVIDUAL) {

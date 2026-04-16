@@ -3282,7 +3282,9 @@ double Individual::fpc_today() const {
 /// Gets the individual's daily lai value
 double Individual::lai_today() const {
 
-	if (pft.phenology == CROPGREEN)
+	if (pft.dave_allocation()) {
+		return lai;
+	} else if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_daily : 0;
 	else if (pft.is_grass() && ifdailygrass)
 		return lai;

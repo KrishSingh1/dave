@@ -80,6 +80,7 @@ bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
 bool iftreephen;
+bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
@@ -277,6 +278,8 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
+	ifdailycstarvmort=false;
+	iftreephen=false;
 	ifdisturb=false;
 	ifcalcsla=false;
 	iftempacclimation = false;
@@ -660,6 +663,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
+		declareitem("ifdailycstarvmort", &ifdailycstarvmort, 1, CB_NONE, "Turn on/off daily carbon starvation mortality (Dave)");
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
@@ -854,12 +858,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
-		declareitem("max_bark_nsc_conc", &ppft->max_bark_nsc_conc, 0.0, 1.0, 1, CB_NONE,
-			"Maximum NSC concentration in dead bark.");
 		declareitem("max_leaf_nsc_conc", &ppft->max_leaf_nsc_conc, 0.0, 1.0, 1, CB_NONE,
 			"Maximum NSC concentration in leaves.");
-		declareitem("max_twig_nsc_conc", &ppft->max_twig_nsc_conc, 0.0, 1.0, 1, CB_NONE,
-			"Maximum NSC concentration in twigs.");
 		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
 			"Maximum NSC concentration in wood.");
 		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
@@ -965,6 +965,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		declareitem("sapsize",&ppft->sapsize,0.01,1.0,1,CB_NONE,
+			"Initial sapling size coefficient");
 		declareitem("formfactor",&ppft->formfactor,0.01,1.0,1,CB_NONE,
 			"Form Factor for converting cylindrical stem into conical stem and branches");	
 
@@ -1820,6 +1822,10 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 
+		if (ifdailycstarvmort && !(ifdavegrowth && ifdailytree)) {
+			sendmessage("Error", "Daily carbon starvation requires daily carbon allocation and daily tree (dave grote)");
+			plibabort();
+		}
 		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
 		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
 			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");
@@ -2203,6 +2209,11 @@ void plib_callback(int callback) {
 
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("turnover_repr")) badins("turnover_repr");
+					if (!itemparsed("sapsize")) badins("sapsize");
+					if (!itemparsed("formfactor")) badins("formfactor");
+				}
 				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.
@@ -2213,9 +2224,7 @@ void plib_callback(int callback) {
 				if (ifdailytree && ppft->lifeform == TREE) {
 					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
-					if (!itemparsed("max_bark_nsc_conc")) badins("max_bark_nsc_conc");
 					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
-					if (!itemparsed("max_twig_nsc_conc")) badins("max_twig_nsc_conc");
 					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
 					if (!itemparsed("bark_frac")) badins("bark_frac");
 				}

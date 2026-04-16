@@ -62,6 +62,7 @@ file_dave_alai                     "dave_alai.out"                     ! Annual 
 !file_dave_anretranslocated         "dave_anretranslocated.out"         ! Annual nitrogen retranslocated (kgN/m2)
 !file_dave_amort_greff              "dave_amort_greff.out"              ! Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
 !file_dave_amort_age                "dave_amort_age.out"                ! Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
+file_dave_amort_cstarve            "dave_amort_cstarve.out"            ! Annual PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
 !file_dave_acmass_germ              "dave_acmass_germ.out"              ! Annual germinated C mass (kgC/m2)
 
 ! Annual pft-level per-patch outputs.
@@ -107,6 +108,10 @@ file_dave_alai                     "dave_alai.out"                     ! Annual 
 ! Daily gridcell-level outputs.
 file_agb                            "agb.out"                           ! Daily gridcell-level above-ground biomass (kg/m2)
 file_agb_tree                       "agb_tree.out"                      ! Daily gridcell-level above-ground tree biomass (kg/m2)
+
+! Annual cohort-level outputs
+file_dave_annual_indiv_c_d_dbh  "dave_annual_indiv_c_d_dbh.out" ! Annual diameter increment (m)
+file_dave_annual_indiv_dbh      "dave_annual_indiv_dbh.out"     ! Cohort-level DBH  (m)
 
 ! Daily pft-level per-patch outputs.
 file_dave_lai                      "dave_lai.out"                      ! LAI by individual (m2/m2)

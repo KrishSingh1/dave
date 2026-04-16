@@ -107,20 +107,22 @@ group "tree" (
 
 	! 95% percentile NSC concentrations from eucface.
 
-	! Maximum NSC concentration in dead bark.
-	max_bark_nsc_conc  0.203
-
 	! Maximum NSC concentration in leaves.
 	max_leaf_nsc_conc  0.243
 
-	! Maximum NSC concentration in twigs.
-	max_twig_nsc_conc  0.0688
-
 	! Maximum NSC concentration in wood.
-	max_wood_nsc_conc  0.0797
+	max_wood_nsc_conc  0.0797 
 
 	! Fraction of dead woody biomass that is bark. Plucked out of thin air.
 	bark_frac  0.01
+
+	! size of sapling
+	sapsize 0.1
+
+	! form factor to use in tree height calculations to that takes into account
+	! the relationship betweeb the difference in tree mass betweenthe cylindrical
+	! stem hypothesis and measured mass of tree log with its branches.
+	formfactor 1.0
 )
 
 group "shrub" (
@@ -812,7 +814,7 @@ pft "TRS" (
 	turnover_sap 0.1
 	turnover_root 1 ! ?? to have higher root allocation?
 	k_latosa 1840
-	! k_latosa 6000 ! <<<< TEST >>>>
+	! k_latosa 6000 ! TEST
 	ltor_max 1 ! can be also 1.5 (Warra)
 	k_allom2 45
 	k_allom3 0.67

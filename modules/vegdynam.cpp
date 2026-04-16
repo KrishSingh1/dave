@@ -831,6 +831,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
+		// define sapling size as teh constant default.
+		double sapsize = SAPSIZE;
+
+		if (ifdavegrowth){
+			// change sapling size to what is defined in the PFT (only with dave growth).
+			sapsize = pft.sapsize;
+		}
+		// from this place forward, use onlt sapsize instaed of SAPSIZE
+
 		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
@@ -903,12 +912,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// net assimilation this year on patch area basis
 
 						if(pft.phenology == CROPGREEN) {
-							bminit = SAPSIZE * 0.01;
+							bminit = sapsize * 0.01;
 						}
 						else if(patch.has_disturbances() && patch.disturbed) {
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff_est_initial;
 						} else
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff;
 
 						if (ifdailygrass && pft.phenology != CROPGREEN)
 							bminit *= 0.1;
@@ -1065,10 +1074,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// assimilation for this PFT in this patch
 
 					if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-						bminit = PLANTSIZE; // Fixed sap size after first cutting
+						bminit = pft.dave_allocation() ? sapsize : PLANTSIZE; // Fixed sap size after first cutting
 					}
 					else {
-						bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						bminit = sapsize*patch.pft[pft.id].anetps_ff_est;
 					}
 					if (bminit == 0) {
 						patch.pft[pft.id].anetps_ff_est = 0;
@@ -1631,7 +1640,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
 
 				// guess2008 - introduce a smoothly-varying mort_greff - 5 is the exponent in the global validation
-				if (ifsmoothgreffmort)
+				if (ifdailycstarvmort) {
+					mort_greff = 0.0;
+				} else if (ifsmoothgreffmort)
 					mort_greff=KMORTGREFF/(1.0+pow((greff_mean/(indiv.pft.greff_min)),5.0));
 				else {
 					// Standard case, as in guess030124

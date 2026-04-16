@@ -1187,6 +1187,7 @@ std::vector<ColumnDefinition<Individual>> mortality_cols() {
 	std::vector<ColumnDefinition<Individual>> columns;
 	columns.push_back(ColumnDefinition<Individual>("mort_age", [](const Individual &i) { return i.mort_age; }));
 	columns.push_back(ColumnDefinition<Individual>("mort_greff", [](const Individual &i) { return i.mort_greff; }));
+	columns.push_back(ColumnDefinition<Individual>("mort_cstarve", [](const Individual &i) { return i.mort_cstarve; }));
 	return columns;
 }
 

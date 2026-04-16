@@ -89,6 +89,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
+	add_aggregated_indiv_output("file_dave_amort_cstarve"       , ANNUAL, [](const Individual &i) { return i.mort_cstarve; }, "Annual PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_acmass_germ"         , ANNUAL, [](const Individual &i) { return i.cmass_germ; }, "Annual germinated C mass (kgC/m2)", sum, true);
 
 	// Annual per-patch pft-level outputs.
@@ -223,7 +224,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_height"              , DAILY, [](const Individual &i) { return i.height; }, "Plant height (m)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_diameter"            , DAILY, [](const Individual &i) { return i.diam; }, "Stem diameter (m)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_basalarea"           , DAILY, [](const Individual &i) { return i.basalarea; }, "Mean Basal Area (m2/tree)", mean, false, true);
-	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc / 10; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc * 10000; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_density"             , DAILY, [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_sapwood_area"        , DAILY, [](const Individual &i) { return i.sa; }, "sapwood area sum of individuals (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa /1000; }, "leaf area to sapwood area ratio / 1000 (unitless)", mean, true);
@@ -351,6 +352,11 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_respiration"              , DAILY, indiv_resp_columns, "Indiv-level respiration components (kgC/m2)"); // No auto total column
 	add_indiv_output("file_dave_indiv_tree_cpool"               , DAILY, indiv_cpool_tree_columns, "Indiv-level tree carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_dbh"             	        , DAILY, indiv_dbhcoloumns_columns, "Cohort-level DBH and Delta DBH (m, m/yr)");
+	add_indiv_output("file_dave_annual_indiv_dbh"             	, ANNUAL, "dbh", [](const Individual &i) { return i.diam; }, "Cohort-level DBH  (m)");
+	add_indiv_output("file_dave_annual_indiv_c_d_dbh"           , ANNUAL, "d_dbh", [](const Individual &i) { return i.c_d_diam; }, "Annual diameter increment (m/yr)");
+	add_indiv_output("file_dave_annual_lai"          		    , ANNUAL, "alai", [](const Individual &i) { return i.lai; }, "Annual LAI");
+	add_indiv_output("file_dave_indiv_age"             	        , DAILY, "age", [](const Individual &i) { return i.age; }, "Cohort-level Age (years)");
+	add_indiv_output("file_dave_indiv_nmass_root"             	, DAILY, "nmass_root", [](const Individual &i) { return i.nmass_root; }, "Cohort-level root N content (kgN/m2)");
 	add_indiv_output("file_dave_indiv_height"                   , DAILY, "height", [](const Individual &i) { return i.height; }, "Cohort-level Height (m)");
 	add_indiv_output("file_dave_indiv_crownarea"                , DAILY, "crownarea", [](const Individual &i) { return i.crownarea; }, "crownarea (m2)");
 	add_indiv_output("file_dave_indiv_fpc"                      , DAILY, "fpc", [](const Individual &i) { return i.fpc; }, "Cohort-level FPC (-)");
@@ -366,6 +372,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_cgrow_sap"          	    , DAILY, "cgrow_sap", [](const Individual &i) { return i.cgrow_sap; }, "daily sapwood allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_repr"     		    , DAILY, "cgrow_repr", [](const Individual &i) { return i.cgrow_repr; }, "daily reproduction allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_storage"     	    , DAILY, "cgrow_storage", [](const Individual &i) { return i.cgrow_storage; }, "daily storage allocation of individual (kgC/m2/d)");
+	add_indiv_output("file_dave_cohort_gpp"     	            , DAILY, "gpp", [](const Individual &i) { return i.dgpp; }, "daily gpp (kgC/m2/d)");
+	add_indiv_output("file_dave_cohort_npp"     	            , DAILY, "npp", [](const Individual &i) { return i.dnpp; }, "daily npp (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
 
 	// Daily individual-level array outputs.

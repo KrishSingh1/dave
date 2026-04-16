@@ -2366,14 +2366,8 @@ public:
 	/// (Johnson & Thornley 1983).
 	double temp_senesc2;
 
-	// Maximum NSC concentration in dead bark.
-	double max_bark_nsc_conc;
-
 	// Maximum NSC concentration in leaves.
 	double max_leaf_nsc_conc;
-
-	// Maximum NSC concentration in twigs.
-	double max_twig_nsc_conc;
 
 	// Maximum NSC concentration in wood.
 	double max_wood_nsc_conc;
@@ -2389,6 +2383,8 @@ public:
 	double turnover_repr_litter;
 	/// annual turnover of "live" reproductive tissue to litter as a proportion of reproductive C biomass
 	double turnover_repr;
+	/// size of sapling
+	double sapsize;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
 	/// sapwood and heartwood density (kgC/m3)
@@ -2728,7 +2724,8 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
-		formfactor = 1;
+		formfactor = 1.0;
+		sapsize = 0.1;
 		boleht_frac = 0;
 		max_mobil_cstorage = 0;
 
@@ -3746,10 +3743,12 @@ public:
 	double height;
 	// stem diameter (m)
 	double diam;
-	/// plant height increment
+	/// tree height increment (m)
 	double d_height;
-	/// plant diameter increment
+	/// tree diameter increment (m)
 	double d_diam;
+	/// tree annual diamter increment (m)
+	double c_d_diam; 
 	/// basal area increment (m2/day)
 	double basalarea_inc;
 	/// tree baseal area  (m2)
@@ -4049,6 +4048,13 @@ public:
 	// growth efficiency-related mortality.
 	double mort_greff;
 
+	// Fraction of individuals within this cohort killed this year due to
+	// carbon starvation.
+	double mort_cstarve;
+
+	// Fraction of individuals within this cohort killed today due to
+	// carbon starvation.
+	double mort_dcstarve;
 	// MEMBER FUNCTIONS
 
 public:
